@@ -11,6 +11,8 @@ export type Photographer = {
   specialty: string;
   avatar: string;
   avatarFallback: string;
+  /** Single collage image that replaces the 9-grid when provided. */
+  portfolioImage?: string;
   portfolio: readonly Shot[];
 };
 

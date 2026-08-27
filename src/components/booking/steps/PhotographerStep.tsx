@@ -5,6 +5,7 @@ import { Button } from '../../ui/Button';
 import { PlaceholderImage } from '../../ui/PlaceholderImage';
 import { ShotFrame } from '../ui/ShotFrame';
 import { StepFooter } from '../ui/StepFooter';
+import Image from 'next/image';
 
 type PhotographerStepProps = {
   route: PhotoRoute;
@@ -41,18 +42,31 @@ export const PhotographerStep = ({
       </div>
     </div>
 
-    <div className="mt-6 grid grid-cols-3 gap-1 sm:gap-1.5">
-      {photographer.portfolio.map((shot, index) => (
-        <div key={shot.src} className="group aspect-square overflow-hidden">
-          <ShotFrame
-            shot={shot}
-            alt={`${photographer.name}'s work — ${route.title} ${index + 1}`}
-            loading={index < 3 ? 'eager' : 'lazy'}
-            className="h-full w-full"
-          />
-        </div>
-      ))}
-    </div>
+    {photographer.portfolioImage ? (
+      <div className="mt-6 overflow-hidden rounded-xl">
+        <Image
+          src={photographer.portfolioImage}
+          alt={`${photographer.name}'s portfolio`}
+          width={1200}
+          height={800}
+          className="w-full object-cover"
+          priority
+        />
+      </div>
+    ) : (
+      <div className="mt-6 grid grid-cols-3 gap-1 sm:gap-1.5">
+        {photographer.portfolio.map((shot, index) => (
+          <div key={shot.src} className="group aspect-square overflow-hidden">
+            <ShotFrame
+              shot={shot}
+              alt={`${photographer.name}'s work — ${route.title} ${index + 1}`}
+              loading={index < 3 ? 'eager' : 'lazy'}
+              className="h-full w-full"
+            />
+          </div>
+        ))}
+      </div>
+    )}
 
     <p className="mt-4 text-[12.5px] leading-relaxed text-muted">
       {photographer.name} shoots the {route.title} route every week — the light, the spots and the
