@@ -1,0 +1,86 @@
+'use client';
+
+import { useState } from 'react';
+import type { PhotoRoute } from '../../data/site';
+import { ArrowRightIcon, CameraIcon, ClockIcon, HeartIcon, MapPinIcon } from '../ui/Icons';
+import { PlaceholderImage } from '../ui/PlaceholderImage';
+
+type RouteCardProps = {
+  route: PhotoRoute;
+  onSelect: (route: PhotoRoute) => void;
+};
+
+export const RouteCard = ({ route, onSelect }: RouteCardProps) => {
+  const [saved, setSaved] = useState(false);
+
+  const meta = [
+    { icon: MapPinIcon, text: route.locations },
+    { icon: ClockIcon, text: route.duration },
+    { icon: CameraIcon, text: `Photographer: ${route.photographer}` },
+  ];
+
+  return (
+    <article className="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-page shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgb(34_31_28/0.35)] focus-within:-translate-y-1">
+      <button
+        type="button"
+        onClick={() => onSelect(route)}
+        className="absolute inset-0 z-10 rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        <span className="sr-only">View the {route.title} route</span>
+      </button>
+
+      <div className="relative">
+        <PlaceholderImage
+          src={route.image}
+          alt={`${route.title} photo route`}
+          label={route.imageLabel}
+          className="aspect-[1/1.05] w-full"
+          imageClassName="transition-transform duration-700 group-hover:scale-105"
+        />
+
+        <span className="absolute top-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 font-serif text-[12px] font-medium text-ink shadow-sm">
+          {route.number}
+        </span>
+
+        <button
+          type="button"
+          onClick={() => setSaved((value) => !value)}
+          aria-pressed={saved}
+          aria-label={saved ? `Remove ${route.title} from favourites` : `Save ${route.title}`}
+          className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 shadow-sm transition-transform duration-300 hover:scale-110"
+        >
+          <HeartIcon
+            filled={saved}
+            className={`h-4 w-4 ${saved ? 'text-accent-strong' : 'text-ink/70'}`}
+          />
+        </button>
+      </div>
+
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
+        <h3 className="font-serif text-[16px] tracking-[0.07em] text-ink uppercase">
+          {route.title}
+        </h3>
+        <p className="mt-2 text-[12.5px] leading-[1.55] text-muted">{route.description}</p>
+
+        <ul className="mt-4 space-y-2">
+          {meta.map(({ icon: Icon, text }) => (
+            <li key={text} className="flex items-center gap-2 text-[11.5px] text-muted">
+              <Icon className="h-3.5 w-3.5 shrink-0 text-ink/55" />
+              {text}
+            </li>
+          ))}
+        </ul>
+
+        <p className="mt-5 font-serif text-[19px]">
+          <span className="text-gold">{route.price}</span>{' '}
+          <span className="text-ink">VND</span>
+        </p>
+
+        <span className="label-caps mt-4 inline-flex w-full items-center justify-center gap-2.5 rounded-lg bg-ink-block px-4 py-2.5 text-[10px] font-medium text-on-dark transition-colors duration-300 group-hover:bg-ink-block/85">
+          View route
+          <ArrowRightIcon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+        </span>
+      </div>
+    </article>
+  );
+};
