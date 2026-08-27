@@ -1,0 +1,188 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { CloseIcon } from './Icons';
+
+type ImageLightboxProps = {
+  src: string;
+  alt: string;
+  onClose: () => void;
+};
+
+/**
+ * Full-screen lightbox with:
+ * - Initial 2× zoom centred on the image
+ * - Native browser pinch-to-zoom (touch-action: pinch-zoom)
+ * - Double-tap to toggle between 1× and 2×
+ * - Drag/pan when zoomed
+ * - Accessible close button (top-right) + Escape key
+ */
+export const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
+  const INITIAL_SCALE = 2;
+  const MIN_SCALE = 1;
+  const MAX_SCALE = 6;
+
+  const [scale, setScale] = useState(INITIAL_SCALE);
+  const [translate, setTranslate] = useState({ x: 0, y: 0 });
+
+  // Pinch state
+  const lastPinchDist = useRef<number | null>(null);
+  const lastScaleRef = useRef(INITIAL_SCALE);
+
+  // Pan state
+  const isDragging = useRef(false);
+  const lastPointer = useRef({ x: 0, y: 0 });
+
+  // Double-tap state
+  const lastTap = useRef(0);
+
+  // Lock body scroll
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Escape key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  // Clamp translate so the image doesn't scroll too far off screen
+  const clamp = (t: { x: number; y: number }, s: number) => {
+    const maxX = Math.max(0, (s - 1) * 50); // percent of half-width
+    const maxY = Math.max(0, (s - 1) * 50);
+    return {
+      x: Math.min(maxX, Math.max(-maxX, t.x)),
+      y: Math.min(maxY, Math.max(-maxY, t.y)),
+    };
+  };
+
+  /* ── Touch handlers ──────────────────────────────────────────────── */
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist.current = Math.hypot(dx, dy);
+      lastScaleRef.current = scale;
+    } else if (e.touches.length === 1) {
+      lastPointer.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      isDragging.current = true;
+
+      // Double-tap detection
+      const now = Date.now();
+      if (now - lastTap.current < 300) {
+        const next = scale > 1.2 ? MIN_SCALE : INITIAL_SCALE;
+        setScale(next);
+        setTranslate({ x: 0, y: 0 });
+        lastScaleRef.current = next;
+      }
+      lastTap.current = now;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault(); // prevent page scroll while interacting
+    if (e.touches.length === 2 && lastPinchDist.current !== null) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.hypot(dx, dy);
+      const ratio = dist / lastPinchDist.current;
+      const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, lastScaleRef.current * ratio));
+      setScale(next);
+      if (next <= MIN_SCALE) setTranslate({ x: 0, y: 0 });
+    } else if (e.touches.length === 1 && isDragging.current && scale > 1) {
+      const dx = e.touches[0].clientX - lastPointer.current.x;
+      const dy = e.touches[0].clientY - lastPointer.current.y;
+      lastPointer.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      setTranslate((prev) => clamp({ x: prev.x + dx * 0.3, y: prev.y + dy * 0.3 }, scale));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    lastPinchDist.current = null;
+    isDragging.current = false;
+    lastScaleRef.current = scale;
+    // Snap back to 1× if pinch ended below threshold
+    if (scale < 1.1) {
+      setScale(MIN_SCALE);
+      setTranslate({ x: 0, y: 0 });
+    }
+  };
+
+  /* ── Mouse pan (desktop) ─────────────────────────────────────────── */
+  const handleMouseDown = (e: React.MouseEvent) => {
+    isDragging.current = true;
+    lastPointer.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging.current || scale <= 1) return;
+    const dx = e.clientX - lastPointer.current.x;
+    const dy = e.clientY - lastPointer.current.y;
+    lastPointer.current = { x: e.clientX, y: e.clientY };
+    setTranslate((prev) => clamp({ x: prev.x + dx * 0.3, y: prev.y + dy * 0.3 }, scale));
+  };
+
+  const handleMouseUp = () => { isDragging.current = false; };
+
+  /* ── Wheel zoom (desktop) ─────────────────────────────────────────── */
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.2 : 0.2;
+    setScale((prev) => {
+      const next = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev + delta));
+      if (next <= MIN_SCALE) setTranslate({ x: 0, y: 0 });
+      return next;
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/92"
+      style={{ touchAction: 'none' }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onWheel={handleWheel}
+    >
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        aria-label="Close"
+        className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/30"
+      >
+        <CloseIcon className="h-5 w-5" />
+      </button>
+
+      {/* Hint */}
+      <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] text-white/40 pointer-events-none select-none">
+        Pinch to zoom · Double-tap to reset
+      </p>
+
+      {/* Image */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={alt}
+        draggable={false}
+        style={{
+          transform: `scale(${scale}) translate(${translate.x}%, ${translate.y}%)`,
+          transition: isDragging.current ? 'none' : 'transform 0.2s ease',
+          maxWidth: '100vw',
+          maxHeight: '100vh',
+          objectFit: 'contain',
+          userSelect: 'none',
+          cursor: scale > 1 ? 'grab' : 'zoom-in',
+        }}
+      />
+    </div>
+  );
+};

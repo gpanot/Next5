@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
 import { getAvailableSlots, getFirstAvailableDate, isDateAvailable } from '../../../data/availability';
 import { formatLongDate, fromIsoDate, startOfToday } from '../../../lib/date';
@@ -28,6 +28,8 @@ export const DateStep = ({
   onSelectSlot,
   onNext,
 }: DateStepProps) => {
+  const slotsRef = useRef<HTMLDivElement>(null);
+
   const initialMonth = useMemo(() => {
     const first = getFirstAvailableDate(route.id);
     return first ? fromIsoDate(first) : startOfToday();
@@ -37,6 +39,14 @@ export const DateStep = ({
     () => (date ? getAvailableSlots(route.id, date, route.slotTemplate) : []),
     [route.id, route.slotTemplate, date],
   );
+
+  const handleSelectDate = (iso: string) => {
+    onSelectDate(iso);
+    // On mobile, scroll the time-slot panel into view after a short paint delay
+    setTimeout(() => {
+      slotsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  };
 
   return (
     <section>
@@ -51,10 +61,11 @@ export const DateStep = ({
           initialMonth={initialMonth}
           selected={date}
           isAvailable={(iso) => isDateAvailable(route.id, iso)}
-          onSelect={onSelectDate}
+          onSelect={handleSelectDate}
         />
 
-        <div className="lg:border-l lg:border-line lg:pl-8">
+        {/* Scroll anchor sits just above the slots so the heading is visible */}
+        <div ref={slotsRef} className="scroll-mt-4 lg:border-l lg:border-line lg:pl-8">
           <h3 className="label-caps text-[9.5px] font-medium text-muted">Available times</h3>
 
           {!date && (
