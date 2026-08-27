@@ -6,15 +6,15 @@ type PhotographerProfile = {
   id: string;
   name: string;
   specialty: string;
-  /** Optional single collage image replacing the 9-grid in the booking modal. */
   portfolioImage?: string;
 };
 
 const profiles: Record<string, PhotographerProfile> = {
-  linh: { id: 'linh', name: 'Linh', specialty: 'Fashion · Lifestyle · Portrait' },
-  mai: { id: 'mai', name: 'Mai', specialty: 'Soft light · Café · Portrait' },
-  anna: { id: 'anna', name: 'Anna', specialty: 'Night · Editorial · Portrait', portfolioImage: '/images/photographers/anna-portfolio.jpg' },
-  khoa: { id: 'khoa', name: 'Khoa', specialty: 'Luxury · Architecture · Portrait' },
+  linh:  { id: 'linh',  name: 'Linh',  specialty: 'Fashion · Lifestyle · Golden Hour',  portfolioImage: '/images/photographers/linh-portfolio.jpg' },
+  mai:   { id: 'mai',   name: 'Mai',   specialty: 'Soft · Feminine · Café',             portfolioImage: '/images/photographers/mai-portfolio.jpg' },
+  sofia: { id: 'sofia', name: 'Sofia', specialty: 'Luxury · Architecture · Editorial',  portfolioImage: '/images/photographers/sofia-portfolio.jpg' },
+  anna:  { id: 'anna',  name: 'Anna',  specialty: 'Night · Editorial · Portrait',       portfolioImage: '/images/photographers/anna-portfolio.jpg' },
+  emma:  { id: 'emma',  name: 'Emma',  specialty: 'Outfit · Fashion · Street Style',    portfolioImage: '/images/photographers/emma-portfolio.jpg' },
 };
 
 export const getPhotographer = (photographerId: string, routeId: RouteId): Photographer => {
