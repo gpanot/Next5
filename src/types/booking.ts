@@ -19,10 +19,10 @@ export type CreativeDirector = {
 
 export type BookingStep =
   | 'studio'
+  | 'style'
   | 'intention'
   | 'upload'
   | 'preview'
-  | 'purchase'
   | 'payment'
   | 'confirmed';
 
@@ -57,6 +57,7 @@ export type PaymentStatus = 'pending' | 'paid' | 'confirmed';
 export type Booking = {
   id: string;
   studioId: string;
+  directorId: string;
   email: string;
   intention: ShootIntention;
   uploadedPhoto: string | null;

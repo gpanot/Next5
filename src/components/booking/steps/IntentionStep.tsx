@@ -3,7 +3,8 @@
 import type { PhotoRoute } from '../../../data/routes';
 import type { FeelingChoice, GoalChoice, ShootIntention } from '../../../types/booking';
 import { Button } from '../../ui/Button';
-import { StepFooter } from '../ui/StepFooter';
+import { ChoiceChip } from '../ui/ChoiceChip';
+import { StepActions, StepLayout } from '../ui/StepLayout';
 import { StepHeading } from '../ui/StepHeading';
 
 type IntentionStepProps = {
@@ -33,25 +34,12 @@ const goals: readonly { id: GoalChoice; label: string }[] = [
   { id: 'jealous', label: 'Make someone jealous 😏' },
 ];
 
-type ChipProps = {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-};
-
-const Chip = ({ selected, onClick, children }: ChipProps) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={[
-      'rounded-full border px-4 py-2.5 text-left text-[13px] leading-tight transition-all duration-200',
-      selected
-        ? 'border-accent bg-accent/10 text-ink font-medium shadow-sm'
-        : 'border-line bg-surface text-muted hover:border-accent/50 hover:text-ink',
-    ].join(' ')}
+const Counter = ({ count }: { count: number }) => (
+  <span
+    className={`label-caps text-[9px] font-medium ${count > 0 ? 'text-accent-strong' : 'text-muted/70'}`}
   >
-    {children}
-  </button>
+    {count} of 2 selected
+  </span>
 );
 
 export const IntentionStep = ({
@@ -64,57 +52,83 @@ export const IntentionStep = ({
   const canContinue = intention.feelings.length > 0;
 
   return (
-    <section>
+    <StepLayout
+      footer={
+        <StepActions
+          hint={
+            <p className="text-[12px] text-muted">
+              {canContinue
+                ? 'We’ll shape your creative direction around this.'
+                : 'Pick at least one feeling to continue.'}
+            </p>
+          }
+        >
+          <Button
+            onClick={onNext}
+            size="lg"
+            withArrow
+            fullWidth
+            className="sm:w-auto"
+            disabled={!canContinue}
+          >
+            Continue
+          </Button>
+        </StepActions>
+      }
+    >
       <StepHeading
         eyebrow={route.title}
         title="How do you want to feel?"
         subtitle="Choose up to 2 that feel right for you."
       />
 
-      <div className="mt-6 flex flex-wrap gap-2.5">
+      <div className="mt-4 flex items-center justify-between border-b border-line pb-2">
+        <span className="label-caps text-[9px] font-medium text-muted">The feeling</span>
+        <Counter count={intention.feelings.length} />
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {feelings.map(({ id, emoji, label }) => (
-          <Chip
+          <ChoiceChip
             key={id}
+            emoji={emoji}
             selected={intention.feelings.includes(id)}
             onClick={() => onToggleFeeling(id)}
           >
-            {emoji} {label}
-          </Chip>
+            {label}
+          </ChoiceChip>
         ))}
       </div>
 
-      {/* Divider */}
-      <hr className="my-8 border-line" />
+      {intention.feelings.length === 2 && (
+        <p className="mt-2.5 text-[11.5px] text-muted">
+          Picking a third will replace your first choice.
+        </p>
+      )}
+
+      <hr className="my-7 border-line" />
 
       <h3 className="font-serif text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
         What do you want these photos to do for you?
       </h3>
-      <p className="mt-1.5 text-[12.5px] text-muted">Choose one or two.</p>
+      <p className="mt-1.5 text-[12.5px] text-muted">Optional — choose one or two.</p>
 
-      <div className="mt-5 flex flex-wrap gap-2.5">
+      <div className="mt-4 flex items-center justify-between border-b border-line pb-2">
+        <span className="label-caps text-[9px] font-medium text-muted">The goal</span>
+        <Counter count={intention.goals.length} />
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {goals.map(({ id, label }) => (
-          <Chip
+          <ChoiceChip
             key={id}
             selected={intention.goals.includes(id)}
             onClick={() => onToggleGoal(id)}
           >
             {label}
-          </Chip>
+          </ChoiceChip>
         ))}
       </div>
-
-      <StepFooter>
-        <Button
-          onClick={onNext}
-          size="lg"
-          withArrow
-          fullWidth
-          className="sm:w-auto"
-          disabled={!canContinue}
-        >
-          Continue
-        </Button>
-      </StepFooter>
-    </section>
+    </StepLayout>
   );
 };

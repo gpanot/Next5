@@ -54,21 +54,29 @@ export const RouteCard = ({ route, onSelect }: RouteCardProps) => {
         <h3 className="font-serif text-[16px] tracking-[0.07em] text-ink uppercase">
           {route.title}
         </h3>
-        <p className="mt-1.5 text-[11px] font-medium tracking-[0.08em] text-accent-strong uppercase">
+        {/* Two reserved lines: subtitles wrap on some routes and not others, and
+            a ragged baseline here misaligns every card below it. */}
+        <p className="mt-1.5 line-clamp-2 min-h-[2.2em] text-[11px] leading-[1.1em] font-medium tracking-[0.08em] text-accent-strong uppercase">
           {route.subtitle}
         </p>
-        <p className="mt-2.5 text-[12.5px] leading-[1.55] text-muted">{route.description}</p>
 
-        <p className="mt-5 font-serif text-[19px]">
-          <span className="text-gold">{route.price}</span>{' '}
-          <span className="text-ink">VND</span>
+        <p className="mt-2.5 line-clamp-4 text-[12.5px] leading-[1.55] text-muted">
+          {route.description}
         </p>
-        <p className="mt-0.5 text-[11px] text-muted">5 personalized photos · 4h delivery</p>
 
-        <span className="label-caps mt-4 inline-flex w-full items-center justify-center gap-2.5 rounded-lg bg-ink-block px-4 py-2.5 text-[10px] font-medium text-on-dark transition-colors duration-300 group-hover:bg-ink-block/85">
-          Explore Studio
-          <ArrowRightIcon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-        </span>
+        {/* mt-auto pins price + CTA to the card floor, so they line up across the row */}
+        <div className="mt-auto pt-5">
+          <p className="font-serif text-[19px]">
+            <span className="text-gold">{route.price}</span>{' '}
+            <span className="text-ink">VND</span>
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted">5 personalized photos · 4h delivery</p>
+
+          <span className="label-caps mt-4 inline-flex w-full items-center justify-center gap-2.5 rounded-lg bg-ink-block px-4 py-2.5 text-[10px] font-medium text-on-dark transition-colors duration-300 group-hover:bg-ink-block/85">
+            Explore Studio
+            <ArrowRightIcon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+          </span>
+        </div>
       </div>
     </article>
   );

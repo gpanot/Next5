@@ -1,31 +1,52 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import type { BookingFlow } from '../../hooks/useBookingFlow';
 import { ConfirmedStep } from './steps/ConfirmedStep';
 import { IntentionStep } from './steps/IntentionStep';
 import { PaymentStep } from './steps/PaymentStep';
 import { PreviewStep } from './steps/PreviewStep';
-import { PurchaseStep } from './steps/PurchaseStep';
 import { StudioStep } from './steps/StudioStep';
+import { StyleStep } from './steps/StyleStep';
 import { UploadStep } from './steps/UploadStep';
 
 type BookingStepsProps = {
   flow: BookingFlow;
 };
 
+/** Sends the flow back to a step whose prerequisites are still missing. */
+const useStepGuard = (flow: BookingFlow) => {
+  const { step, uploadedPhoto, booking, goTo } = flow;
+
+  const needsPhoto = step === 'preview' && !uploadedPhoto;
+  const needsBooking = (step === 'payment' || step === 'confirmed') && !booking;
+
+  useEffect(() => {
+    if (needsPhoto || needsBooking) goTo('upload');
+  }, [needsPhoto, needsBooking, goTo]);
+
+  return needsPhoto || needsBooking;
+};
+
 export const BookingSteps = ({ flow }: BookingStepsProps) => {
-  const { route, director, booking, goTo } = flow;
+  const { route, director, directorOptions, booking, goTo } = flow;
 
   const goToConfirmed = useCallback(() => goTo('confirmed'), [goTo]);
+  const blocked = useStepGuard(flow);
 
-  if (!route || !director) return null;
+  if (!route || !director || !directorOptions || blocked) return null;
 
   if (flow.step === 'studio') {
+    return <StudioStep route={route} onNext={() => goTo('style')} />;
+  }
+
+  if (flow.step === 'style') {
     return (
-      <StudioStep
+      <StyleStep
         route={route}
-        director={director}
+        options={directorOptions}
+        selectedId={flow.directorId}
+        onSelect={flow.selectDirector}
         onNext={() => goTo('intention')}
       />
     );
@@ -56,37 +77,19 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
     );
   }
 
-  if (flow.step === 'preview') {
-    if (!flow.uploadedPhoto) {
-      goTo('upload');
-      return null;
-    }
+  if (flow.step === 'preview' && flow.uploadedPhoto) {
     return (
       <PreviewStep
         route={route}
         director={director}
         uploadedPhoto={flow.uploadedPhoto}
         intention={flow.intention}
-        onNext={() => goTo('purchase')}
+        onNext={flow.startPayment}
       />
     );
   }
 
-  if (flow.step === 'purchase') {
-    return (
-      <PurchaseStep
-        route={route}
-        director={director}
-        intention={flow.intention}
-        onBuy={flow.startPayment}
-      />
-    );
-  }
-
-  if (!booking) {
-    goTo('upload');
-    return null;
-  }
+  if (!booking) return null;
 
   if (flow.step === 'payment') {
     return (
@@ -96,6 +99,7 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
         status={flow.paymentStatus}
         onStatusChange={flow.setPaymentStatus}
         onConfirmed={goToConfirmed}
+        onCancel={flow.back}
       />
     );
   }

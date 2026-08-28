@@ -11,7 +11,8 @@ export type PhotoRoute = {
   description: string;
   aesthetic: string;
   scenes: readonly string[];
-  photographerId: string;
+  /** The two creative directors offered for this studio, in display order. */
+  directorIds: readonly [string, string];
   photoCount: number;
   price: string;
   priceVnd: number;
@@ -30,7 +31,7 @@ const seeds: readonly RouteSeed[] = [
     subtitle: 'Warm · Feminine · Golden Hour',
     tagline: 'Warm. Feminine. Unforgettable.',
     description:
-      'A Saigon-inspired editorial shoot designed around golden light, beautiful architecture and effortless femininity.',
+      'Golden light, colonial architecture and effortless femininity.',
     aesthetic: 'Golden hour rooftops, colonial architecture and Saigon streets at their most beautiful.',
     scenes: [
       'Golden-hour rooftop',
@@ -39,7 +40,7 @@ const seeds: readonly RouteSeed[] = [
       'Saigon street',
       'Sunset city view',
     ],
-    photographerId: 'linh',
+    directorIds: ['linh', 'sofia'],
     photoCount: 5,
     price: '149.000',
     priceVnd: 149_000,
@@ -52,7 +53,7 @@ const seeds: readonly RouteSeed[] = [
     subtitle: 'Soft · Romantic · Café',
     tagline: 'Soft. Romantic. Yours.',
     description:
-      'Dreamy light, blooming flowers and the gentlest Saigon vibes — a shoot that feels like a soft morning in your favourite café.',
+      'Dreamy light, flowers and the softest morning in your favourite café.',
     aesthetic: 'Café corners, pastel walls, flowers and that soft morning glow.',
     scenes: [
       'Flower café corner',
@@ -61,7 +62,7 @@ const seeds: readonly RouteSeed[] = [
       'Garden terrace',
       'Window light portrait',
     ],
-    photographerId: 'mai',
+    directorIds: ['mai', 'linh'],
     photoCount: 5,
     price: '149.000',
     priceVnd: 149_000,
@@ -74,7 +75,7 @@ const seeds: readonly RouteSeed[] = [
     subtitle: 'Bold · Cinematic · Night',
     tagline: 'Bold. Cinematic. Unforgettable.',
     description:
-      'City lights, neon glow and the electric energy of Saigon after dark — a shoot that makes you look like the main character.',
+      'Neon, city lights and Saigon after dark — you as the main character.',
     aesthetic: 'Rooftop skylines, neon streets, and cinematic city-light bokeh.',
     scenes: [
       'Rooftop skyline',
@@ -83,7 +84,7 @@ const seeds: readonly RouteSeed[] = [
       'Night terrace',
       'After-dark portrait',
     ],
-    photographerId: 'anna',
+    directorIds: ['anna', 'emma'],
     photoCount: 5,
     price: '149.000',
     priceVnd: 149_000,
@@ -96,7 +97,7 @@ const seeds: readonly RouteSeed[] = [
     subtitle: 'Elegant · Premium · Editorial',
     tagline: 'Elegant. Premium. Editorial.',
     description:
-      'Five-star interiors, skyline terraces and upscale Saigon — a shoot that makes you look like you belong in a magazine.',
+      'Five-star interiors and skyline terraces, straight out of a magazine.',
     aesthetic: 'Hotel lobbies, rooftop pools, marble interiors and architectural elegance.',
     scenes: [
       'Hotel lobby',
@@ -105,7 +106,7 @@ const seeds: readonly RouteSeed[] = [
       'Skyline editorial',
       'Luxury corridor',
     ],
-    photographerId: 'sofia',
+    directorIds: ['sofia', 'anna'],
     photoCount: 5,
     price: '149.000',
     priceVnd: 149_000,
@@ -118,7 +119,7 @@ const seeds: readonly RouteSeed[] = [
     subtitle: 'Fashion · Street · Style',
     tagline: 'Fashion. Street. You.',
     description:
-      'A shoot built entirely around your outfit — street backdrops, fashion angles and editorial poses that make your look the star.',
+      'Street backdrops and editorial angles, built around your outfit.',
     aesthetic: 'Street walls, urban textures and fashion-forward editorial framing.',
     scenes: [
       'Street editorial',
@@ -127,7 +128,7 @@ const seeds: readonly RouteSeed[] = [
       'Street portrait',
       'Style full-body',
     ],
-    photographerId: 'emma',
+    directorIds: ['emma', 'sofia'],
     photoCount: 5,
     price: '149.000',
     priceVnd: 149_000,

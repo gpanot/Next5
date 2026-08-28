@@ -48,6 +48,15 @@ const profiles: Record<string, DirectorProfile> = {
   },
 };
 
+/** The pair of directors a studio offers, in the order the route declares them. */
+export const getCreativeDirectors = (
+  directorIds: readonly [string, string],
+  routeId: RouteId,
+): readonly [CreativeDirector, CreativeDirector] => [
+  getCreativeDirector(directorIds[0], routeId),
+  getCreativeDirector(directorIds[1], routeId),
+];
+
 export const getCreativeDirector = (photographerId: string, routeId: RouteId): CreativeDirector => {
   const profile = profiles[photographerId];
 

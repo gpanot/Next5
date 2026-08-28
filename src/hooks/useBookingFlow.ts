@@ -2,7 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { PhotoRoute } from '../data/routes';
-import { getCreativeDirector } from '../data/photographers';
+import { getCreativeDirectors } from '../data/photographers';
 import type {
   Booking,
   BookingStep,
@@ -20,10 +20,10 @@ const emptyIntention: ShootIntention = { feelings: [], goals: [] };
 
 export const bookingSteps: readonly BookingStep[] = [
   'studio',
+  'style',
   'intention',
   'upload',
   'preview',
-  'purchase',
   'payment',
   'confirmed',
 ];
@@ -64,6 +64,7 @@ export type BookingFlow = ReturnType<typeof useBookingFlow>;
 export const useBookingFlow = () => {
   const [route, setRoute] = useState<PhotoRoute | null>(null);
   const [step, setStep] = useState<BookingStep>('studio');
+  const [directorId, setDirectorId] = useState<string | null>(null);
   const [intention, setIntention] = useState<ShootIntention>(emptyIntention);
   const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
   const [details, setDetails] = useState<CustomerDetails>(emptyDetails);
@@ -76,6 +77,7 @@ export const useBookingFlow = () => {
   const open = useCallback((next: PhotoRoute) => {
     setRoute(next);
     setStep('studio');
+    setDirectorId(null);
     setIntention(emptyIntention);
     setUploadedPhoto(null);
     setDetails(emptyDetails);
@@ -86,11 +88,10 @@ export const useBookingFlow = () => {
 
   const close = useCallback(() => setRoute(null), []);
 
-  const canGoBack =
-    step !== 'studio' &&
-    step !== 'payment' &&
-    step !== 'preview' &&
-    step !== 'confirmed';
+  // No back from the first step, from payment (which offers its own Cancel), or
+  // from the terminal confirmation. Preview keeps it: a wrong photo is a
+  // plausible mistake and re-uploading is the only way to fix it.
+  const canGoBack = step !== 'studio' && step !== 'payment' && step !== 'confirmed';
 
   const back = useCallback(() => {
     setStep((current) => {
@@ -122,10 +123,16 @@ export const useBookingFlow = () => {
     setStep('payment');
   }, [route]);
 
-  const director = useMemo(
-    () => (route ? getCreativeDirector(route.photographerId, route.id) : null),
+  const directorOptions = useMemo(
+    () => (route ? getCreativeDirectors(route.directorIds, route.id) : null),
     [route],
   );
+
+  /** Falls back to the studio's lead director until the user picks one. */
+  const director = useMemo(() => {
+    if (!directorOptions) return null;
+    return directorOptions.find((option) => option.id === directorId) ?? directorOptions[0];
+  }, [directorOptions, directorId]);
 
   const booking = useMemo<Booking | null>(() => {
     if (!route || !bookingId) return null;
@@ -133,13 +140,14 @@ export const useBookingFlow = () => {
     return {
       id: bookingId,
       studioId: route.id,
+      directorId: director?.id ?? route.directorIds[0],
       email: details.email,
       intention,
       uploadedPhoto,
       amount: route.priceVnd,
       paymentStatus,
     };
-  }, [route, bookingId, details, intention, uploadedPhoto, paymentStatus]);
+  }, [route, bookingId, director, details, intention, uploadedPhoto, paymentStatus]);
 
   // Snapshot refs so the setPaymentStatus callback can close over stable values
   const routeRef = useRef(route);
@@ -197,6 +205,9 @@ export const useBookingFlow = () => {
   return {
     route,
     director,
+    directorOptions,
+    directorId,
+    selectDirector: setDirectorId,
     step,
     intention,
     uploadedPhoto,

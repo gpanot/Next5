@@ -2,10 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
-import type { ShootIntention, CreativeDirector } from '../../../types/booking';
+import type {
+  CreativeDirector,
+  FeelingChoice,
+  GoalChoice,
+  ShootIntention,
+} from '../../../types/booking';
 import { Button } from '../../ui/Button';
 import { LockIcon } from '../../ui/Icons';
+import { PreviewLoader } from '../preview/PreviewLoader';
+import { PriceTag } from '../ui/PriceTag';
 import { ShotFrame } from '../ui/ShotFrame';
+import { StepActions, StepLayout } from '../ui/StepLayout';
 
 type PreviewStepProps = {
   route: PhotoRoute;
@@ -23,6 +31,25 @@ type GenerationState =
 
 const POLL_INTERVAL_MS = 3000;
 const MAX_WAIT_MS = 120_000;
+
+const feelingLabels: Record<FeelingChoice, string> = {
+  beautiful: '✨ Beautiful & confident',
+  soft: '🌸 Soft & feminine',
+  elegant: '💎 Elegant & expensive',
+  bold: '🔥 Bold & irresistible',
+  fashion: '👗 Like a fashion girl',
+  noticed: '📸 Like everyone noticed me',
+};
+
+const goalLabels: Record<GoalChoice, string> = {
+  instagram: 'Refresh my Instagram',
+  attention: 'Get more attention',
+  style: 'Show my style',
+  confident: 'Feel more confident',
+  content: 'Create content',
+  fun: 'Just have fun',
+  jealous: 'Make someone jealous 😏',
+};
 
 export const PreviewStep = ({
   route,
@@ -117,121 +144,138 @@ export const PreviewStep = ({
     return () => clearPoll();
   }, [startGeneration]);
 
-  // ── Loading states ───────────────────────────────────────────────────────────
-
   if (state.phase === 'uploading' || state.phase === 'generating') {
-    const label =
-      state.phase === 'uploading'
-        ? 'Uploading your photo…'
-        : `${director.name} is preparing your shoot…`;
-
     return (
-      <div className="flex min-h-[55vh] flex-col items-center justify-center gap-6 py-16 text-center">
-        <div className="relative h-20 w-20">
-          <div className="absolute inset-0 animate-ping rounded-full bg-accent/20" />
-          <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-accent/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={uploadedPhoto} alt="Your photo" className="h-16 w-16 rounded-full object-cover" />
-          </div>
-        </div>
-        <div>
-          <p className="label-caps text-[10px] font-medium text-accent-strong">{label}</p>
-          <div className="mt-3 flex justify-center gap-1">
-            {[0, 0.2, 0.4].map((delay) => (
-              <span
-                key={delay}
-                className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent"
-                style={{ animationDelay: `${delay}s` }}
-              />
-            ))}
-          </div>
-          <p className="mt-4 text-[11px] text-muted">This usually takes 15–30 seconds</p>
-        </div>
-      </div>
+      <StepLayout>
+        <PreviewLoader
+          uploadedPhoto={uploadedPhoto}
+          label={
+            state.phase === 'uploading'
+              ? 'Uploading your photo…'
+              : `${director.name} is preparing your shoot…`
+          }
+          note="This usually takes 15–30 seconds"
+        />
+      </StepLayout>
     );
   }
-
-  // ── Error state ──────────────────────────────────────────────────────────────
 
   if (state.phase === 'error') {
     return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-5 py-12 text-center">
-        <p className="text-[14px] text-muted">{state.message}</p>
-        <Button onClick={startGeneration} size="lg">
-          Try again
-        </Button>
-      </div>
+      <StepLayout centered>
+        <div className="flex flex-col items-center gap-5 py-12 text-center">
+          <p className="max-w-sm text-[14px] text-muted">{state.message}</p>
+          <Button onClick={startGeneration} size="lg">
+            Try again
+          </Button>
+        </div>
+      </StepLayout>
     );
   }
-
-  // ── Done — show the generated image ─────────────────────────────────────────
 
   const generatedUrl = state.url;
 
   return (
-    <section className="animate-fade-in pb-8">
-      {/* WOW moment headline */}
-      <div className="text-center">
-        <p className="label-caps text-[10px] font-medium text-accent-strong">Your first shot is ready</p>
-        <h2 className="mt-2 font-serif text-[28px] leading-tight tracking-[0.05em] text-ink uppercase sm:text-[34px]">
-          {route.title}
-        </h2>
-        <p className="mt-1.5 text-[13px] text-muted">{director.name} · Shot 01</p>
-      </div>
+    <StepLayout
+      footer={
+        <StepActions hint={<PriceTag amountVnd={route.priceVnd} note="High-resolution · Delivered in 4 hours · One payment" />}>
+          <Button onClick={onNext} size="lg" withArrow fullWidth className="sm:w-auto">
+            Get all 5 photos
+          </Button>
+        </StepActions>
+      }
+    >
+      <div className="animate-fade-in grid gap-6 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:items-start lg:gap-10">
+        <div className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgb(34_31_28/0.35)] lg:mx-0 lg:max-w-none">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={generatedUrl}
+            alt={`${route.title} — your first shot`}
+            className="aspect-[3/4] w-full object-cover"
+          />
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-black/65 to-transparent p-4">
+            <span className="text-[11.5px] font-medium text-white">{route.scenes[0]}</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/90 font-serif text-[11px] text-ink">
+              01
+            </span>
+          </div>
+        </div>
 
-      {/* First shot — AI generated */}
-      <div className="relative mx-auto mt-6 max-w-sm overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgb(34_31_28/0.35)]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={generatedUrl}
-          alt={`${route.title} — your first shot`}
-          className="aspect-[3/4] w-full object-cover"
-        />
-        <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-          <span className="rounded-lg bg-black/60 px-3 py-1.5 text-[11px] font-medium text-white backdrop-blur-sm">
-            {route.scenes[0]}
-          </span>
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/90 font-serif text-[11px] text-ink shadow-sm">
-            01
-          </span>
+        <div className="lg:pt-1">
+          <p className="label-caps text-[10px] font-medium text-accent-strong">
+            Your first shot is ready
+          </p>
+          <h2 className="mt-2 font-serif text-[26px] leading-none tracking-[0.06em] text-ink uppercase sm:text-[29px]">
+            {route.title}
+          </h2>
+          <p className="mt-2 text-[13px] text-muted">
+            {director.name} · Shot 01 · {route.scenes[0]}
+          </p>
+
+          <IntentionRecap intention={intention} />
+
+          <div className="mt-5 max-w-[420px]">
+            <p className="label-caps text-[9px] font-medium text-muted">
+              Unlock the remaining 4 shots
+            </p>
+            <LockedShots route={route} />
+            <ul className="mt-3 space-y-1">
+              {route.scenes.slice(1).map((scene, index) => (
+                <li key={scene} className="flex items-baseline gap-2.5 text-[12px] text-muted">
+                  <span className="font-serif text-[10px] text-accent-strong">
+                    {String(index + 2).padStart(2, '0')}
+                  </span>
+                  {scene}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
-
-      {/* Locked previews — still use the route's example shots as placeholders */}
-      <div className="mt-5">
-        <p className="mb-3 text-center text-[11.5px] text-muted">4 more shots waiting for you</p>
-        <div className="grid grid-cols-4 gap-2 sm:gap-3">
-          {route.shots.slice(1).map((shot, index) => (
-            <div key={shot.src} className="group relative aspect-[3/4] overflow-hidden rounded-xl">
-              <ShotFrame
-                shot={shot}
-                alt={`Locked shot ${index + 2}`}
-                loading="lazy"
-                className="h-full w-full scale-110 blur-[6px] brightness-75"
-              />
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-black/30">
-                <LockIcon className="h-5 w-5 text-white/80" />
-                <span className="font-serif text-[11px] text-white/80">
-                  {String(index + 2).padStart(2, '0')}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* CTA */}
-      <div className="mt-8 flex flex-col items-center gap-4 rounded-2xl bg-surface px-6 py-6 text-center">
-        <p className="font-serif text-[22px] tracking-[0.04em] text-ink sm:text-[24px]">
-          Love your first shot?
-        </p>
-        <p className="text-[13px] text-muted">
-          Get the complete shoot — 5 personalized photos, 5 scenes, all yours.
-        </p>
-        <Button onClick={onNext} size="lg" withArrow fullWidth className="max-w-xs">
-          I want this →
-        </Button>
-      </div>
-    </section>
+    </StepLayout>
   );
 };
+
+const IntentionRecap = ({ intention }: { intention: ShootIntention }) => {
+  if (intention.feelings.length === 0 && intention.goals.length === 0) return null;
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-1.5">
+      {intention.feelings.map((f) => (
+        <span key={f} className="rounded-full bg-accent/12 px-2.5 py-1 text-[11px] text-ink">
+          {feelingLabels[f]}
+        </span>
+      ))}
+      {intention.goals.map((g) => (
+        <span key={g} className="rounded-full bg-surface-alt px-2.5 py-1 text-[11px] text-muted">
+          {goalLabels[g]}
+        </span>
+      ))}
+    </div>
+  );
+};
+
+const LockedShots = ({ route }: { route: PhotoRoute }) => (
+  <div className="mt-2.5 grid grid-cols-4 gap-2">
+    {route.shots.slice(1).map((shot, index) => (
+      <div key={shot.src} className="relative aspect-[3/4] overflow-hidden rounded-lg">
+        <ShotFrame
+          shot={shot}
+          alt=""
+          loading="lazy"
+          interactive={false}
+          className="h-full w-full scale-110 blur-[6px] brightness-75"
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/25">
+          <LockIcon className="h-4 w-4 text-white/85" />
+          <span className="font-serif text-[10px] text-white/85">
+            {String(index + 2).padStart(2, '0')}
+          </span>
+        </div>
+        <span className="sr-only">
+          Shot {index + 2}, {route.scenes[index + 1]} — unlocked with the full shoot
+        </span>
+      </div>
+    ))}
+  </div>
+);
