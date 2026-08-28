@@ -33,6 +33,7 @@
   - [PriceTag](#pricetag)
   - [ChoiceChip](#choicechip)
   - [DirectorChoiceCard](#directorchoicecard)
+  - [DirectorNote](#directornote)
   - [Field](#field)
   - [Calendar](#calendar)
   - [BookingSummary](#bookingsummary)
@@ -474,6 +475,26 @@ One of the two creative directors offered on the `style` step.
   (`aspect-square`, capped at `max-w-[272px]`, on a white panel) — any landscape
   crop slices the middle row of photos in half
 - Routes with no `portfolioImage` fall back to a three-frame strip
+- **No expand/zoom badge.** That a photo opens full screen is understood; a
+  hover chip only adds furniture. Same on `StudioGallery`.
+
+### DirectorNote
+
+`src/components/booking/preview/DirectorNote.tsx`
+
+The director's note on the preview shot — avatar, message, script signature.
+This is what makes the step read as a studio rather than a generator: the shot
+arrives with a reason attached, in a named person's voice.
+
+- Copy is generated server-side by `gpt-4o-mini` via `/api/director-note`
+- Holds its own height with a skeleton while the note is in flight, so the panel
+  never pops in and shifts the column
+- **Never given the scene name.** Scene names live in local route data, not in
+  the Airtable prompt that produced the image, so a note naming a location could
+  confidently describe somewhere the shot isn't. It talks about craft and the
+  feeling she picked — both of which are true by construction.
+- With no `OPENAI_API_KEY` the API returns a written fallback; the panel is
+  identical either way
 
 ### Field
 

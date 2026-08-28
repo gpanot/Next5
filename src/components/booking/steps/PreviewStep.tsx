@@ -9,11 +9,13 @@ import type {
   ShootIntention,
 } from '../../../types/booking';
 import { Button } from '../../ui/Button';
-import { LockIcon } from '../../ui/Icons';
+import { ClockIcon, LockIcon, PhotoIcon, StarIcon } from '../../ui/Icons';
+import { useDirectorNote } from '../../../hooks/useDirectorNote';
+import { DirectorNote } from '../preview/DirectorNote';
 import { PreviewLoader } from '../preview/PreviewLoader';
 import { PriceTag } from '../ui/PriceTag';
 import { ShotFrame } from '../ui/ShotFrame';
-import { StepActions, StepLayout } from '../ui/StepLayout';
+import { StepLayout } from '../ui/StepLayout';
 
 type PreviewStepProps = {
   route: PhotoRoute;
@@ -144,6 +146,16 @@ export const PreviewStep = ({
     return () => clearPoll();
   }, [startGeneration]);
 
+  // Written in parallel with the shot, so it is on screen when she gets there.
+  const note = useDirectorNote({
+    directorName: director.name,
+    directorSpecialty: director.specialty,
+    directorSignature: director.signature,
+    studioTitle: route.title,
+    feelings: intention.feelings.map((f) => feelingLabels[f].replace(/^\S+\s/, '')),
+    goals: intention.goals.map((g) => goalLabels[g]),
+  });
+
   if (state.phase === 'uploading' || state.phase === 'generating') {
     return (
       <StepLayout>
@@ -178,14 +190,40 @@ export const PreviewStep = ({
   return (
     <StepLayout
       footer={
-        <StepActions hint={<PriceTag amountVnd={route.priceVnd} note="High-resolution · Delivered in 4 hours · One payment" />}>
-          <Button onClick={onNext} size="lg" withArrow fullWidth className="sm:w-auto">
-            Get all 5 photos
-          </Button>
-        </StepActions>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
+          <PriceTag amountVnd={route.priceVnd} note="High-resolution · Delivered in 4 hours" />
+
+          <ul className="hidden items-center gap-6 lg:flex">
+            <IncludedItem icon={<PhotoIcon className="h-4.5 w-4.5" />}>
+              5 personalized
+              <br />
+              photos
+            </IncludedItem>
+            <IncludedItem icon={<StarIcon className="h-4.5 w-4.5" />}>
+              {director.name}&apos;s creative
+              <br />
+              direction
+            </IncludedItem>
+            <IncludedItem icon={<ClockIcon className="h-4.5 w-4.5" />}>
+              Delivered within
+              <br />
+              4 hours
+            </IncludedItem>
+          </ul>
+
+          <div className="lg:shrink-0">
+            <Button onClick={onNext} size="lg" withArrow fullWidth className="lg:w-auto">
+              Get all 5 photos
+            </Button>
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-muted">
+              <LockIcon className="h-3 w-3" />
+              One payment · Secure &amp; easy
+            </p>
+          </div>
+        </div>
       }
     >
-      <div className="animate-fade-in grid gap-6 lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)] lg:items-start lg:gap-10">
+      <div className="animate-fade-in grid gap-6 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)_minmax(0,232px)] lg:items-start lg:gap-8">
         <div className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgb(34_31_28/0.35)] lg:mx-0 lg:max-w-none">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -193,10 +231,9 @@ export const PreviewStep = ({
             alt={`${route.title} — your first shot`}
             className="aspect-[3/4] w-full object-cover"
           />
-          <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 bg-gradient-to-t from-black/65 to-transparent p-4">
-            <span className="text-[11.5px] font-medium text-white">{route.scenes[0]}</span>
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/90 font-serif text-[11px] text-ink">
-              01
+          <div className="absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/55 to-transparent p-4">
+            <span className="rounded-full bg-white/90 px-3 py-1 font-serif text-[11px] text-ink">
+              01 / 05
             </span>
           </div>
         </div>
@@ -208,33 +245,44 @@ export const PreviewStep = ({
           <h2 className="mt-2 font-serif text-[26px] leading-none tracking-[0.06em] text-ink uppercase sm:text-[29px]">
             {route.title}
           </h2>
-          <p className="mt-2 text-[13px] text-muted">
-            {director.name} · Shot 01 · {route.scenes[0]}
-          </p>
+          <p className="mt-2 text-[13px] text-muted">Shot 01 of 5</p>
 
           <IntentionRecap intention={intention} />
 
-          <div className="mt-5 max-w-[420px]">
-            <p className="label-caps text-[9px] font-medium text-muted">
-              Unlock the remaining 4 shots
-            </p>
-            <LockedShots route={route} />
-            <ul className="mt-3 space-y-1">
-              {route.scenes.slice(1).map((scene, index) => (
-                <li key={scene} className="flex items-baseline gap-2.5 text-[12px] text-muted">
-                  <span className="font-serif text-[10px] text-accent-strong">
-                    {String(index + 2).padStart(2, '0')}
-                  </span>
-                  {scene}
-                </li>
-              ))}
-            </ul>
+          <div className="mt-4">
+            <DirectorNote director={director} note={note} />
           </div>
+        </div>
+
+        <div className="lg:pt-1">
+          <p className="label-caps text-[9px] font-medium text-muted">
+            Unlock the remaining 4 shots
+          </p>
+          <LockedShots route={route} />
+          <ul className="mt-3 space-y-1">
+            {route.scenes.slice(1).map((scene, index) => (
+              <li key={scene} className="flex items-baseline gap-2 text-[11.5px] text-muted">
+                <span className="font-serif text-[10px] text-accent-strong">
+                  {String(index + 2).padStart(2, '0')}
+                </span>
+                {scene}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </StepLayout>
   );
 };
+
+type IncludedItemProps = { icon: React.ReactNode; children: React.ReactNode };
+
+const IncludedItem = ({ icon, children }: IncludedItemProps) => (
+  <li className="flex items-center gap-2.5 text-[11.5px] leading-tight text-muted">
+    <span className="shrink-0 text-accent">{icon}</span>
+    <span>{children}</span>
+  </li>
+);
 
 const IntentionRecap = ({ intention }: { intention: ShootIntention }) => {
   if (intention.feelings.length === 0 && intention.goals.length === 0) return null;
@@ -256,7 +304,7 @@ const IntentionRecap = ({ intention }: { intention: ShootIntention }) => {
 };
 
 const LockedShots = ({ route }: { route: PhotoRoute }) => (
-  <div className="mt-2.5 grid grid-cols-4 gap-2">
+  <div className="mt-2.5 grid grid-cols-4 gap-2 lg:grid-cols-2">
     {route.shots.slice(1).map((shot, index) => (
       <div key={shot.src} className="relative aspect-[3/4] overflow-hidden rounded-lg">
         <ShotFrame

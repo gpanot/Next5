@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
-import { ExpandIcon } from '../../ui/Icons';
 import { ImageLightbox } from '../../ui/ImageLightbox';
 import { ShotFrame } from '../ui/ShotFrame';
 
@@ -46,10 +45,6 @@ export const StudioGallery = ({ route }: StudioGalleryProps) => {
 
             <span className="absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 font-serif text-[10px] text-ink">
               {String(index + 1).padStart(2, '0')}
-            </span>
-
-            <span className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/0 text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:bg-white/20 group-hover:opacity-100">
-              <ExpandIcon className="h-3.5 w-3.5" />
             </span>
 
             <span className="absolute bottom-2 left-2.5 right-2.5 truncate text-left text-[10.5px] font-medium text-white">

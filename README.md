@@ -2,6 +2,20 @@
 
 Curated photography routes in Saigon. Built with Next.js 16 + Tailwind CSS v4.
 
+## Environment
+
+`.env.local` (not committed):
+
+| Variable | Used by | Required |
+|---|---|---|
+| `WAVESPEED_API_KEY` | preview + full-shoot generation | yes |
+| `AIRTABLE_API_KEY` / `AIRTABLE_BASE_ID` / `AIRTABLE_TABLE_NAME` | order recording | yes |
+| `AIRTABLE_PROMPTS_TABLE_ID` | studio prompts | falls back to `src/data/prompts.ts` |
+| `CLOUDFLARE_ACCOUNT_ID` / `R2_*` | delivered photo storage | yes |
+| `OPENAI_API_KEY` | the creative director's note on the preview (`gpt-4o-mini`) | no — falls back to a written note |
+
+---
+
 ## Design System
 
 | Doc | Purpose |

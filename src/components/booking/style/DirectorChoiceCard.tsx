@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import type { CreativeDirector } from '../../../types/booking';
-import { CheckIcon, ExpandIcon } from '../../ui/Icons';
+import { CheckIcon } from '../../ui/Icons';
 import { PlaceholderImage } from '../../ui/PlaceholderImage';
 import { ShotFrame } from '../ui/ShotFrame';
 
@@ -38,11 +38,6 @@ export const DirectorChoiceCard = ({
       className="group relative block focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
     >
       <DirectorWork director={director} />
-
-      <span className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-ink/55 px-2.5 py-1 text-[10px] font-medium text-white opacity-0 backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
-        <ExpandIcon className="h-3 w-3" />
-        View
-      </span>
     </button>
 
     <button
