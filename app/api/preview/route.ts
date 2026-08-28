@@ -29,8 +29,8 @@ export async function POST(req: NextRequest) {
     // 2. Upload to WaveSpeed's own storage (no R2 needed for the temp reference image)
     const imageUrl = await uploadPhotoToWaveSpeed(buffer);
 
-    // 3. Build the prompt for scene 0 (preview shot)
-    const prompt = getPrompt(studioId, 0, feelings ?? []);
+    // 3. Build the prompt for scene 0 (preview shot) — fetched from Airtable, falls back to hardcoded
+    const prompt = await getPrompt(studioId, 0, feelings ?? []);
 
     // 4. Submit generation task — returns a task ID immediately
     const taskId = await submitEdit({ imageUrl, prompt, aspectRatio: '3:4', resolution: '1k' });

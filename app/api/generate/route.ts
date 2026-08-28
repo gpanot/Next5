@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     const results: GenerateResult[] = [];
 
     for (let sceneIndex = 1; sceneIndex <= 4; sceneIndex++) {
-      const prompt = getPrompt(studioId, sceneIndex, feelings);
+      const prompt = await getPrompt(studioId, sceneIndex, feelings);
 
       // Submit task
       const taskId = await submitEdit({

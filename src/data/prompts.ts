@@ -125,19 +125,34 @@ const FEELING_MODIFIERS: Record<string, string> = {
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
+ * Returns the hardcoded base prompt for a given studio and scene (no feelings applied).
+ * Used internally and as the fallback when Airtable is unavailable.
+ */
+function getHardcodedBase(studioId: string, sceneIndex: number): string {
+  const prompts = STUDIO_PROMPTS[studioId] ?? STUDIO_PROMPTS['golden-saigon'];
+  return prompts[Math.min(sceneIndex, prompts.length - 1)];
+}
+
+/**
  * Returns the fully assembled prompt for a given studio, scene, and feeling choices.
  *
- * @param studioId  - route id (e.g. 'golden-saigon')
+ * Tries to load the base prompt from Airtable (so you can edit it without redeploying).
+ * Falls back silently to the hardcoded value in STUDIO_PROMPTS if Airtable is
+ * unavailable or not configured.
+ *
+ * @param studioId   - route id (e.g. 'golden-saigon')
  * @param sceneIndex - 0 = preview/shot 1, 1–4 = shots 2–5
- * @param feelings  - array of FeelingChoice ids the customer selected (max 2)
+ * @param feelings   - array of FeelingChoice ids the customer selected (max 2)
  */
-export function getPrompt(
+export async function getPrompt(
   studioId: string,
   sceneIndex: number,
   feelings: readonly string[],
-): string {
-  const prompts = STUDIO_PROMPTS[studioId] ?? STUDIO_PROMPTS['golden-saigon'];
-  const base = prompts[Math.min(sceneIndex, prompts.length - 1)];
+): Promise<string> {
+  // Lazy-import to avoid bundling Airtable client-side
+  const { getAirtablePrompt } = await import('../lib/airtable-prompts');
+  const airtableBase = await getAirtablePrompt(studioId, sceneIndex);
+  const base = airtableBase ?? getHardcodedBase(studioId, sceneIndex);
   const modifiers = feelings.map((f) => FEELING_MODIFIERS[f] ?? '').join('');
   return base + modifiers;
 }
