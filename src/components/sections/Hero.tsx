@@ -31,20 +31,19 @@ export const Hero = () => (
       <div className="max-w-[640px]">
         <span className="label-caps inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-4 py-2 text-[9.5px] font-medium text-white backdrop-blur-sm sm:text-[10px]">
           <SparkleIcon className="h-3.5 w-3.5" />
-          Your next 5 Instagram photos
+          Professional photoshoot · Immediate delivery
         </span>
 
         <h1 className="mt-7 font-serif text-[42px] leading-[1.04] font-light text-white sm:text-[56px] lg:text-[64px] xl:text-[70px]">
-          We plan the places.
+          Your next 5
           <br />
-          You get the photos
+          Instagram photos.
           <br />
-          <em className="text-[#e8cfb5] italic">everyone asks about.</em>
+          <em className="text-[#e8cfb5] italic">Made for you.</em>
         </h1>
 
         <p className="mt-6 max-w-md text-[15px] leading-relaxed text-white/85 sm:text-base">
-          5 photos. Curated spots. Professional photographer.
-          <br className="hidden sm:block" /> Perfect timing. We handle everything.
+          Choose your studio, show us your vibe, and get your photos today.
         </p>
 
         <ul className="mt-9 grid max-w-lg grid-cols-2 gap-x-6 gap-y-5 sm:flex sm:max-w-none sm:flex-wrap sm:gap-x-8">
@@ -60,9 +59,14 @@ export const Hero = () => (
           ))}
         </ul>
 
-        <ButtonLink href="#routes" size="lg" withArrow className="mt-10">
-          Explore photo routes
-        </ButtonLink>
+        <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <ButtonLink href="#routes" size="lg" withArrow className="">
+            Create my shoot
+          </ButtonLink>
+          <p className="text-[12.5px] text-white/65">
+            First preview free · 149K VND for complete shoot
+          </p>
+        </div>
       </div>
     </div>
   </section>

@@ -3,20 +3,19 @@ import { heroPhoto } from './photos';
 import {
   CalendarIcon,
   CameraIcon,
-  CardIcon,
   CloudIcon,
-  PhoneCheckIcon,
+  ImageIcon,
   PhotoIcon,
-  SunIcon,
-  TicketIcon,
+  SparkleIcon,
+  StarIcon,
+  UploadIcon,
 } from '../components/ui/Icons';
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 
 export const navLinks = [
-  { label: 'Photo Routes', href: '#routes' },
+  { label: 'Studios', href: '#routes' },
   { label: 'How It Works', href: '#how-it-works' },
-  { label: 'Photographers', href: '#photographers' },
   { label: 'FAQ', href: '#faq' },
 ] as const;
 
@@ -25,10 +24,10 @@ export const heroImage = heroPhoto;
 export const whatsAppUrl = 'https://wa.me/84000000000';
 
 export const heroFeatures: readonly { icon: Icon; lines: readonly [string, string] }[] = [
-  { icon: TicketIcon, lines: ['Venue fees', 'included'] },
-  { icon: SunIcon, lines: ['Best light', 'at the best time'] },
-  { icon: CameraIcon, lines: ['Professional', 'photographer'] },
-  { icon: CloudIcon, lines: ['Weather', 'reschedule'] },
+  { icon: CameraIcon, lines: ['5 personalized', 'photos'] },
+  { icon: StarIcon, lines: ['Creative direction', 'included'] },
+  { icon: CalendarIcon, lines: ['Delivered', 'within 4 hours'] },
+  { icon: CloudIcon, lines: ['Immediate', 'first preview'] },
 ];
 
 export { photoRoutes, type PhotoRoute } from './routes';
@@ -43,33 +42,33 @@ export type HowItWorksStep = {
 export const howItWorksSteps: readonly HowItWorksStep[] = [
   {
     step: '1',
-    icon: PhoneCheckIcon,
-    title: 'Pick your route',
-    description: ['Choose the route that fits', 'your vibe and time.'],
+    icon: ImageIcon,
+    title: 'Choose your studio',
+    description: ['Pick the aesthetic that', 'matches your vibe.'],
   },
   {
     step: '2',
-    icon: CalendarIcon,
-    title: 'Choose date & time',
-    description: ["We'll show the best time", 'for perfect lighting.'],
+    icon: SparkleIcon,
+    title: 'Tell us how you want to feel',
+    description: ['We craft your shoot', 'around your intention.'],
   },
   {
     step: '3',
-    icon: CardIcon,
-    title: 'Book & pay',
-    description: ['Secure your slot with a deposit.', 'We handle the rest.'],
+    icon: UploadIcon,
+    title: 'Upload your photo',
+    description: ['One clear selfie is', 'all we need.'],
   },
   {
     step: '4',
     icon: CameraIcon,
-    title: 'Enjoy your shoot',
-    description: ['We meet, shoot, have fun.', 'We got you!'],
+    title: 'See your first shot',
+    description: ['Get your personalized preview', 'before you pay.'],
   },
   {
     step: '5',
     icon: PhotoIcon,
-    title: 'Get your photos',
-    description: ['Receive 5+ edited photos', 'within 3 days.'],
+    title: 'Receive all 5 photos',
+    description: ['Complete shoot delivered', 'to your email in 4 hours.'],
   },
 ];
 

@@ -2,68 +2,91 @@
 
 import { useCallback } from 'react';
 import type { BookingFlow } from '../../hooks/useBookingFlow';
-import { CheckoutStep } from './steps/CheckoutStep';
 import { ConfirmedStep } from './steps/ConfirmedStep';
-import { DateStep } from './steps/DateStep';
+import { IntentionStep } from './steps/IntentionStep';
 import { PaymentStep } from './steps/PaymentStep';
-import { PhotographerStep } from './steps/PhotographerStep';
-import { RouteStep } from './steps/RouteStep';
+import { PreviewStep } from './steps/PreviewStep';
+import { PurchaseStep } from './steps/PurchaseStep';
+import { StudioStep } from './steps/StudioStep';
+import { UploadStep } from './steps/UploadStep';
 
 type BookingStepsProps = {
   flow: BookingFlow;
 };
 
 export const BookingSteps = ({ flow }: BookingStepsProps) => {
-  const { route, photographer, date, slot, booking, goTo } = flow;
+  const { route, director, booking, goTo } = flow;
 
   const goToConfirmed = useCallback(() => goTo('confirmed'), [goTo]);
 
-  if (!route || !photographer) return null;
+  if (!route || !director) return null;
 
-  const dateStep = (
-    <DateStep
-      route={route}
-      date={date}
-      slot={slot}
-      onSelectDate={flow.selectDate}
-      onSelectSlot={flow.selectSlot}
-      onNext={() => goTo('photographer')}
-    />
-  );
-
-  if (flow.step === 'route') {
-    return <RouteStep route={route} onNext={() => goTo('date')} />;
-  }
-
-  if (flow.step === 'date' || !date || !slot) return dateStep;
-
-  if (flow.step === 'photographer') {
+  if (flow.step === 'studio') {
     return (
-      <PhotographerStep
+      <StudioStep
         route={route}
-        photographer={photographer}
-        date={date}
-        slot={slot}
-        onBook={() => goTo('checkout')}
+        director={director}
+        onNext={() => goTo('intention')}
       />
     );
   }
 
-  if (flow.step === 'checkout') {
+  if (flow.step === 'intention') {
     return (
-      <CheckoutStep
+      <IntentionStep
         route={route}
-        photographer={photographer}
-        date={date}
-        slot={slot}
+        intention={flow.intention}
+        onToggleFeeling={flow.toggleFeeling}
+        onToggleGoal={flow.toggleGoal}
+        onNext={() => goTo('upload')}
+      />
+    );
+  }
+
+  if (flow.step === 'upload') {
+    return (
+      <UploadStep
+        route={route}
+        uploadedPhoto={flow.uploadedPhoto}
         details={flow.details}
-        onChange={flow.setDetails}
-        onSubmit={flow.startPayment}
+        onPhotoChange={flow.setUploadedPhoto}
+        onDetailsChange={flow.setDetails}
+        onNext={() => goTo('preview')}
       />
     );
   }
 
-  if (!booking) return dateStep;
+  if (flow.step === 'preview') {
+    if (!flow.uploadedPhoto) {
+      goTo('upload');
+      return null;
+    }
+    return (
+      <PreviewStep
+        route={route}
+        director={director}
+        uploadedPhoto={flow.uploadedPhoto}
+        intention={flow.intention}
+        onNext={() => goTo('purchase')}
+      />
+    );
+  }
+
+  if (flow.step === 'purchase') {
+    return (
+      <PurchaseStep
+        route={route}
+        director={director}
+        intention={flow.intention}
+        onBuy={flow.startPayment}
+      />
+    );
+  }
+
+  if (!booking) {
+    goTo('upload');
+    return null;
+  }
 
   if (flow.step === 'payment') {
     return (
@@ -80,9 +103,8 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
   return (
     <ConfirmedStep
       route={route}
-      photographer={photographer}
+      director={director}
       booking={booking}
-      slot={slot}
       onDone={flow.close}
     />
   );

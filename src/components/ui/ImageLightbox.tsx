@@ -1,24 +1,37 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { CloseIcon } from './Icons';
 
 type ImageLightboxProps = {
   src: string;
   alt: string;
   onClose: () => void;
+  /** Opening zoom. Use 2 for contact sheets, where the whole point is to look
+   *  at one frame rather than the grid. Defaults to fit-to-screen. */
+  initialScale?: number;
 };
 
 /**
  * Full-screen lightbox with:
- * - Initial 2× zoom centred on the image
+ * - Opens at `initialScale` (fit-to-screen by default)
  * - Native browser pinch-to-zoom (touch-action: pinch-zoom)
  * - Double-tap to toggle between 1× and 2×
  * - Drag/pan when zoomed
  * - Accessible close button (top-right) + Escape key
+ *
+ * Rendered through a portal on <body>: the booking modal panel carries a
+ * transform, which would otherwise make it the containing block for this
+ * `position: fixed` overlay and trap it inside the panel.
  */
-export const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
-  const INITIAL_SCALE = 2;
+export const ImageLightbox = ({
+  src,
+  alt,
+  onClose,
+  initialScale = 1,
+}: ImageLightboxProps) => {
+  const INITIAL_SCALE = initialScale;
   const MIN_SCALE = 1;
   const MAX_SCALE = 6;
 
@@ -45,9 +58,13 @@ export const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
 
   // Escape key
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.stopPropagation();
+      onClose();
+    };
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
   }, [onClose]);
 
   // Clamp translate so the image doesn't scroll too far off screen
@@ -74,7 +91,7 @@ export const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
       // Double-tap detection
       const now = Date.now();
       if (now - lastTap.current < 300) {
-        const next = scale > 1.2 ? MIN_SCALE : INITIAL_SCALE;
+        const next = scale > 1.2 ? MIN_SCALE : Math.max(INITIAL_SCALE, 2);
         setScale(next);
         setTranslate({ x: 0, y: 0 });
         lastScaleRef.current = next;
@@ -139,8 +156,12 @@ export const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
     });
   };
 
-  return (
+  // Only ever mounted in response to a click, so document is always available.
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
+      data-lightbox-open="true"
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/92"
       style={{ touchAction: 'none' }}
       onTouchStart={handleTouchStart}
@@ -163,8 +184,8 @@ export const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
       </button>
 
       {/* Hint */}
-      <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] text-white/40 pointer-events-none select-none">
-        Pinch to zoom · Double-tap to reset
+      <p className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-ink/55 px-3.5 py-1.5 text-[11px] text-white/85 backdrop-blur-sm select-none">
+        Scroll or pinch to zoom · Double-tap to reset · Drag to pan
       </p>
 
       {/* Image */}
@@ -183,6 +204,7 @@ export const ImageLightbox = ({ src, alt, onClose }: ImageLightboxProps) => {
           cursor: scale > 1 ? 'grab' : 'zoom-in',
         }}
       />
-    </div>
+    </div>,
+    document.body,
   );
 };

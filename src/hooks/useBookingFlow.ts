@@ -1,23 +1,29 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { PhotoRoute } from '../data/routes';
-import { getPhotographer } from '../data/photographers';
+import { getCreativeDirector } from '../data/photographers';
 import type {
   Booking,
   BookingStep,
   CustomerDetails,
+  FeelingChoice,
+  GoalChoice,
   PaymentStatus,
-  TimeSlot,
+  ShootIntention,
 } from '../types/booking';
+import type { OrderPayload } from '../../app/api/orders/route';
+import type { GenerateRequestBody } from '../../app/api/generate/route';
 
-const emptyDetails: CustomerDetails = { name: '', email: '', phone: '' };
+const emptyDetails: CustomerDetails = { email: '' };
+const emptyIntention: ShootIntention = { feelings: [], goals: [] };
 
 export const bookingSteps: readonly BookingStep[] = [
-  'route',
-  'date',
-  'photographer',
-  'checkout',
+  'studio',
+  'intention',
+  'upload',
+  'preview',
+  'purchase',
   'payment',
   'confirmed',
 ];
@@ -33,30 +39,58 @@ const createBookingId = (routeTitle: string): string => {
   return `${initials}-${String(Math.floor(1000 + Math.random() * 9000))}`;
 };
 
+const recordOrder = (payload: OrderPayload): void => {
+  fetch('/api/orders', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch((err) => {
+    console.error('[orders] Failed to record order:', err);
+  });
+};
+
+const triggerGenerate = (payload: GenerateRequestBody): void => {
+  fetch('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }).catch((err) => {
+    console.error('[generate] Failed to trigger generation:', err);
+  });
+};
+
 export type BookingFlow = ReturnType<typeof useBookingFlow>;
 
 export const useBookingFlow = () => {
   const [route, setRoute] = useState<PhotoRoute | null>(null);
-  const [step, setStep] = useState<BookingStep>('route');
-  const [date, setDate] = useState<string | null>(null);
-  const [slot, setSlot] = useState<TimeSlot | null>(null);
+  const [step, setStep] = useState<BookingStep>('studio');
+  const [intention, setIntention] = useState<ShootIntention>(emptyIntention);
+  const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
   const [details, setDetails] = useState<CustomerDetails>(emptyDetails);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
 
+  // Prevent recording the same order twice if re-renders fire setPaymentStatus multiple times
+  const orderRecorded = useRef(false);
+
   const open = useCallback((next: PhotoRoute) => {
     setRoute(next);
-    setStep('route');
-    setDate(null);
-    setSlot(null);
+    setStep('studio');
+    setIntention(emptyIntention);
+    setUploadedPhoto(null);
     setDetails(emptyDetails);
     setBookingId(null);
     setPaymentStatus('pending');
+    orderRecorded.current = false;
   }, []);
 
   const close = useCallback(() => setRoute(null), []);
 
-  const canGoBack = step !== 'route' && step !== 'payment' && step !== 'confirmed';
+  const canGoBack =
+    step !== 'studio' &&
+    step !== 'payment' &&
+    step !== 'preview' &&
+    step !== 'confirmed';
 
   const back = useCallback(() => {
     setStep((current) => {
@@ -65,9 +99,22 @@ export const useBookingFlow = () => {
     });
   }, []);
 
-  const selectDate = useCallback((iso: string) => {
-    setDate(iso);
-    setSlot(null);
+  const toggleFeeling = useCallback((feeling: FeelingChoice) => {
+    setIntention((prev) => {
+      const has = prev.feelings.includes(feeling);
+      if (has) return { ...prev, feelings: prev.feelings.filter((f) => f !== feeling) };
+      if (prev.feelings.length >= 2) return { ...prev, feelings: [prev.feelings[1], feeling] };
+      return { ...prev, feelings: [...prev.feelings, feeling] };
+    });
+  }, []);
+
+  const toggleGoal = useCallback((goal: GoalChoice) => {
+    setIntention((prev) => {
+      const has = prev.goals.includes(goal);
+      if (has) return { ...prev, goals: prev.goals.filter((g) => g !== goal) };
+      if (prev.goals.length >= 2) return { ...prev, goals: [prev.goals[1], goal] };
+      return { ...prev, goals: [...prev.goals, goal] };
+    });
   }, []);
 
   const startPayment = useCallback(() => {
@@ -75,32 +122,84 @@ export const useBookingFlow = () => {
     setStep('payment');
   }, [route]);
 
-  const photographer = useMemo(
-    () => (route ? getPhotographer(route.photographerId, route.id) : null),
+  const director = useMemo(
+    () => (route ? getCreativeDirector(route.photographerId, route.id) : null),
     [route],
   );
 
   const booking = useMemo<Booking | null>(() => {
-    if (!route || !date || !slot || !bookingId) return null;
+    if (!route || !bookingId) return null;
 
     return {
       id: bookingId,
-      routeId: route.id,
-      photographerId: route.photographerId,
-      date,
-      time: slot.id,
-      ...details,
+      studioId: route.id,
+      email: details.email,
+      intention,
+      uploadedPhoto,
       amount: route.priceVnd,
       paymentStatus,
     };
-  }, [route, date, slot, bookingId, details, paymentStatus]);
+  }, [route, bookingId, details, intention, uploadedPhoto, paymentStatus]);
+
+  // Snapshot refs so the setPaymentStatus callback can close over stable values
+  const routeRef = useRef(route);
+  const directorRef = useRef(director);
+  const detailsRef = useRef(details);
+  const intentionRef = useRef(intention);
+  const bookingIdRef = useRef(bookingId);
+  const uploadedPhotoRef = useRef(uploadedPhoto);
+  routeRef.current = route;
+  directorRef.current = director;
+  detailsRef.current = details;
+  intentionRef.current = intention;
+  bookingIdRef.current = bookingId;
+  uploadedPhotoRef.current = uploadedPhoto;
+
+  const setPaymentStatusAndRecord = useCallback((status: PaymentStatus) => {
+    setPaymentStatus(status);
+
+    if (status === 'confirmed' && !orderRecorded.current) {
+      orderRecorded.current = true;
+      const r = routeRef.current;
+      const d = directorRef.current;
+      const det = detailsRef.current;
+      const int = intentionRef.current;
+      const bid = bookingIdRef.current;
+      const photo = uploadedPhotoRef.current;
+
+      if (r && d && bid) {
+        // Record order in Airtable
+        recordOrder({
+          bookingId: bid,
+          studioId: r.id,
+          studioTitle: r.title,
+          directorName: d.name,
+          email: det.email,
+          feelings: int.feelings,
+          goals: int.goals,
+          amountVnd: r.priceVnd,
+        });
+
+        // Trigger post-payment AI generation (fire and forget)
+        if (photo) {
+          triggerGenerate({
+            photoDataUrl: photo,
+            studioId: r.id,
+            studioTitle: r.title,
+            feelings: int.feelings,
+            bookingId: bid,
+          });
+        }
+      }
+    }
+  }, []);
 
   return {
     route,
-    photographer,
+    director,
     step,
-    date,
-    slot,
+    intention,
+    uploadedPhoto,
     details,
     booking,
     paymentStatus,
@@ -110,10 +209,11 @@ export const useBookingFlow = () => {
     close,
     back,
     goTo: setStep,
-    selectDate,
-    selectSlot: setSlot,
+    toggleFeeling,
+    toggleGoal,
+    setUploadedPhoto,
     setDetails,
     startPayment,
-    setPaymentStatus,
+    setPaymentStatus: setPaymentStatusAndRecord,
   };
 };

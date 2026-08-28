@@ -1,4 +1,4 @@
-import type { Shot, TimeSlot } from '../types/booking';
+import type { Shot } from '../types/booking';
 import { buildRouteShots } from './imagery';
 import { routePhotos, type RouteId } from './photos';
 
@@ -7,28 +7,18 @@ export type PhotoRoute = {
   number: string;
   title: string;
   subtitle: string;
+  tagline: string;
   description: string;
-  locations: string;
-  duration: string;
-  photographer: string;
-  price: string;
-  image: string;
-  imageLabel: string;
+  aesthetic: string;
+  scenes: readonly string[];
   photographerId: string;
   photoCount: number;
-  locationCount: number;
-  durationShort: string;
+  price: string;
   priceVnd: number;
+  image: string;
+  imageLabel: string;
   shots: readonly Shot[];
-  slotTemplate: readonly TimeSlot[];
 };
-
-const slot = (value: string, label: string, badge?: string): TimeSlot => ({
-  id: value,
-  value,
-  label,
-  ...(badge ? { badge } : {}),
-});
 
 type RouteSeed = Omit<PhotoRoute, 'shots' | 'image'>;
 
@@ -37,111 +27,111 @@ const seeds: readonly RouteSeed[] = [
     id: 'golden-saigon',
     number: '01',
     title: 'Golden Saigon',
-    subtitle: 'Golden-hour city portraits',
-    description: 'Sunset vibes, city views and iconic spots.',
-    locations: '4 locations',
-    duration: '90 minutes',
-    photographer: 'Linh',
-    price: '890.000',
-    imageLabel: 'Golden Saigon',
+    subtitle: 'Warm · Feminine · Golden Hour',
+    tagline: 'Warm. Feminine. Unforgettable.',
+    description:
+      'A Saigon-inspired editorial shoot designed around golden light, beautiful architecture and effortless femininity.',
+    aesthetic: 'Golden hour rooftops, colonial architecture and Saigon streets at their most beautiful.',
+    scenes: [
+      'Golden-hour rooftop',
+      'Colonial architecture',
+      'Boutique café',
+      'Saigon street',
+      'Sunset city view',
+    ],
     photographerId: 'linh',
     photoCount: 5,
-    locationCount: 4,
-    durationShort: '90 min',
-    priceVnd: 890_000,
-    slotTemplate: [
-      slot('10:00', '10:00 AM'),
-      slot('14:00', '2:00 PM'),
-      slot('17:30', '5:30 PM', 'Best light'),
-    ],
+    price: '149.000',
+    priceVnd: 149_000,
+    imageLabel: 'Golden Saigon',
   },
   {
     id: 'soft-girl-saigon',
     number: '02',
     title: 'Soft Girl Saigon',
-    subtitle: 'Cafés, flowers and soft light',
-    description: 'Cafés, flowers and soft feminine vibes.',
-    locations: '4 locations',
-    duration: '90 minutes',
-    photographer: 'Mai',
-    price: '790.000',
-    imageLabel: 'Soft Girl Saigon',
+    subtitle: 'Soft · Romantic · Café',
+    tagline: 'Soft. Romantic. Yours.',
+    description:
+      'Dreamy light, blooming flowers and the gentlest Saigon vibes — a shoot that feels like a soft morning in your favourite café.',
+    aesthetic: 'Café corners, pastel walls, flowers and that soft morning glow.',
+    scenes: [
+      'Flower café corner',
+      'Soft morning light',
+      'Pastel wall backdrop',
+      'Garden terrace',
+      'Window light portrait',
+    ],
     photographerId: 'mai',
     photoCount: 5,
-    locationCount: 4,
-    durationShort: '90 min',
-    priceVnd: 790_000,
-    slotTemplate: [
-      slot('09:00', '9:00 AM'),
-      slot('11:00', '11:00 AM', 'Best light'),
-      slot('15:00', '3:00 PM'),
-    ],
+    price: '149.000',
+    priceVnd: 149_000,
+    imageLabel: 'Soft Girl Saigon',
   },
   {
     id: 'night-out',
     number: '03',
     title: 'Night Out',
-    subtitle: 'Rooftops, neon and city lights',
-    description: 'Rooftop, nightlife and city lights.',
-    locations: '4 locations',
-    duration: '90 minutes',
-    photographer: 'Anna',
-    price: '990.000',
-    imageLabel: 'Night Out',
+    subtitle: 'Bold · Cinematic · Night',
+    tagline: 'Bold. Cinematic. Unforgettable.',
+    description:
+      'City lights, neon glow and the electric energy of Saigon after dark — a shoot that makes you look like the main character.',
+    aesthetic: 'Rooftop skylines, neon streets, and cinematic city-light bokeh.',
+    scenes: [
+      'Rooftop skyline',
+      'Neon street',
+      'City light bokeh',
+      'Night terrace',
+      'After-dark portrait',
+    ],
     photographerId: 'anna',
     photoCount: 5,
-    locationCount: 4,
-    durationShort: '90 min',
-    priceVnd: 990_000,
-    slotTemplate: [
-      slot('18:30', '6:30 PM'),
-      slot('20:00', '8:00 PM', 'Best light'),
-      slot('21:30', '9:30 PM'),
-    ],
+    price: '149.000',
+    priceVnd: 149_000,
+    imageLabel: 'Night Out',
   },
   {
     id: 'luxury-saigon',
     number: '04',
     title: 'Luxury Saigon',
-    subtitle: 'Five-star interiors and skyline suites',
-    description: 'Luxury hotels, rooftops and upscale vibes.',
-    locations: '4 locations',
-    duration: '120 minutes',
-    photographer: 'Sofia',
-    price: '1.490.000',
-    imageLabel: 'Luxury Saigon',
+    subtitle: 'Elegant · Premium · Editorial',
+    tagline: 'Elegant. Premium. Editorial.',
+    description:
+      'Five-star interiors, skyline terraces and upscale Saigon — a shoot that makes you look like you belong in a magazine.',
+    aesthetic: 'Hotel lobbies, rooftop pools, marble interiors and architectural elegance.',
+    scenes: [
+      'Hotel lobby',
+      'Rooftop pool terrace',
+      'Marble interior',
+      'Skyline editorial',
+      'Luxury corridor',
+    ],
     photographerId: 'sofia',
     photoCount: 5,
-    locationCount: 4,
-    durationShort: '120 min',
-    priceVnd: 1_490_000,
-    slotTemplate: [
-      slot('10:00', '10:00 AM'),
-      slot('13:00', '1:00 PM'),
-      slot('16:30', '4:30 PM', 'Best light'),
-    ],
+    price: '149.000',
+    priceVnd: 149_000,
+    imageLabel: 'Luxury Saigon',
   },
   {
     id: 'outfit-shoot',
     number: '05',
     title: 'Outfit Shoot',
-    subtitle: 'Built around the outfit you love',
-    description: 'Designed around your outfit and style.',
-    locations: '4 locations',
-    duration: '60 minutes',
-    photographer: 'Emma',
-    price: '690.000',
-    imageLabel: 'Outfit Shoot',
+    subtitle: 'Fashion · Street · Style',
+    tagline: 'Fashion. Street. You.',
+    description:
+      'A shoot built entirely around your outfit — street backdrops, fashion angles and editorial poses that make your look the star.',
+    aesthetic: 'Street walls, urban textures and fashion-forward editorial framing.',
+    scenes: [
+      'Street editorial',
+      'Urban texture wall',
+      'Fashion close-up',
+      'Street portrait',
+      'Style full-body',
+    ],
     photographerId: 'emma',
     photoCount: 5,
-    locationCount: 4,
-    durationShort: '60 min',
-    priceVnd: 690_000,
-    slotTemplate: [
-      slot('09:30', '9:30 AM'),
-      slot('12:00', '12:00 PM'),
-      slot('16:00', '4:00 PM', 'Best light'),
-    ],
+    price: '149.000',
+    priceVnd: 149_000,
+    imageLabel: 'Outfit Shoot',
   },
 ];
 

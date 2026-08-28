@@ -73,14 +73,16 @@ export const BookingModal = ({ flow }: BookingModalProps) => {
               </span>
             )}
 
-            <button
-              type="button"
-              onClick={close}
-              aria-label="Close booking"
-              className="-mr-2 flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-surface-alt hover:text-ink"
-            >
-              <CloseIcon className="h-5 w-5" />
-            </button>
+            {dismissable && (
+              <button
+                type="button"
+                onClick={close}
+                aria-label="Close"
+                className="-mr-2 flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-surface-alt hover:text-ink"
+              >
+                <CloseIcon className="h-5 w-5" />
+              </button>
+            )}
           </div>
 
           <div className="mt-3">

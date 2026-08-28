@@ -1,3 +1,17 @@
+# NEXT5 Photos — Landing Page
+
+Curated photography routes in Saigon. Built with Next.js 16 + Tailwind CSS v4.
+
+## Design System
+
+| Doc | Purpose |
+|---|---|
+| [`docs/design-system.md`](docs/design-system.md) | Color tokens, typography, spacing, motion — single source of truth |
+| [`docs/components.md`](docs/components.md) | Every component: props, variants, usage examples |
+| [`docs/contributing.md`](docs/contributing.md) | File structure, naming conventions, styling rules, PR checklist |
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

@@ -37,9 +37,9 @@ export const PaymentStep = ({
     <section className="pb-8">
       {status === 'pending' && (
         <StepHeading
-          eyebrow={route.title}
-          title="Scan to pay"
-          subtitle="Open your banking app, scan the code and transfer. We detect it automatically."
+          eyebrow={`${route.title} · 5 photos`}
+          title="Complete your shoot"
+          subtitle="Scan to pay. We detect it automatically — no proof of payment needed."
         />
       )}
 
@@ -114,7 +114,7 @@ const QrSkeleton = () => (
   <div className="flex flex-col items-center" aria-live="polite">
     <div className="h-64 w-64 animate-pulse rounded-2xl bg-surface-alt" />
     <div className="mt-5 h-6 w-40 animate-pulse rounded-full bg-surface-alt" />
-    <p className="mt-4 text-[12.5px] text-muted">Opening your secure payment…</p>
+    <p className="mt-4 text-[12.5px] text-muted">Preparing your payment…</p>
   </div>
 );
 
@@ -126,8 +126,8 @@ const PaymentReceived = () => (
       </svg>
     </span>
     <p className="mt-5 font-serif text-[24px] tracking-[0.05em] text-ink uppercase">
-      Payment received
+      Payment confirmed
     </p>
-    <p className="mt-2 text-[13px] text-muted">Your booking is being confirmed…</p>
+    <p className="mt-2 text-[13px] text-muted">Your shoot has started…</p>
   </div>
 );

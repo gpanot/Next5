@@ -1,10 +1,11 @@
 import type { BookingStep } from '../../types/booking';
 
 const stages: readonly { step: BookingStep; label: string }[] = [
-  { step: 'route', label: 'Your photos' },
-  { step: 'date', label: 'Date' },
-  { step: 'photographer', label: 'Photographer' },
-  { step: 'checkout', label: 'Details' },
+  { step: 'studio', label: 'Studio' },
+  { step: 'intention', label: 'Your vibe' },
+  { step: 'upload', label: 'Upload' },
+  { step: 'preview', label: 'Preview' },
+  { step: 'purchase', label: 'Get all 5' },
   { step: 'payment', label: 'Payment' },
 ];
 

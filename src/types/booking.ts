@@ -5,49 +5,61 @@ export type Shot = {
   objectClassName?: string;
 };
 
-export type Photographer = {
+export type CreativeDirector = {
   id: string;
   name: string;
   specialty: string;
   avatar: string;
   avatarFallback: string;
+  signature: string;
   /** Single collage image that replaces the 9-grid when provided. */
   portfolioImage?: string;
   portfolio: readonly Shot[];
 };
 
-export type TimeSlot = {
-  id: string;
-  value: string;
-  label: string;
-  badge?: string;
-};
-
 export type BookingStep =
-  | 'route'
-  | 'date'
-  | 'photographer'
-  | 'checkout'
+  | 'studio'
+  | 'intention'
+  | 'upload'
+  | 'preview'
+  | 'purchase'
   | 'payment'
   | 'confirmed';
 
+export type FeelingChoice =
+  | 'beautiful'
+  | 'soft'
+  | 'elegant'
+  | 'bold'
+  | 'fashion'
+  | 'noticed';
+
+export type GoalChoice =
+  | 'instagram'
+  | 'attention'
+  | 'style'
+  | 'confident'
+  | 'content'
+  | 'fun'
+  | 'jealous';
+
+export type ShootIntention = {
+  feelings: FeelingChoice[];
+  goals: GoalChoice[];
+};
+
 export type CustomerDetails = {
-  name: string;
   email: string;
-  phone: string;
 };
 
 export type PaymentStatus = 'pending' | 'paid' | 'confirmed';
 
 export type Booking = {
   id: string;
-  routeId: string;
-  photographerId: string;
-  date: string;
-  time: string;
-  name: string;
+  studioId: string;
   email: string;
-  phone: string;
+  intention: ShootIntention;
+  uploadedPhoto: string | null;
   amount: number;
   paymentStatus: PaymentStatus;
 };

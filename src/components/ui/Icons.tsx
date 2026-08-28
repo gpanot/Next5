@@ -153,3 +153,67 @@ export const ChevronDownIcon = (props: IconProps) => (
     <path d="m6 9 6 6 6-6" />
   </Svg>
 );
+
+export const ImageIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <rect x="3" y="4.5" width="18" height="15" rx="2.4" />
+    <path d="M3 15.5l4.5-4.5 3.5 3.5 3-3 5 4" />
+    <circle cx="8.5" cy="9.5" r="1.5" />
+  </Svg>
+);
+
+export const UploadIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M12 15.5V4M8 8l4-4 4 4" />
+    <path d="M4 17v1.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V17" />
+  </Svg>
+);
+
+export const LockIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <rect x="5" y="11" width="14" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </Svg>
+);
+
+export const CheckCircleIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8.5 12 2.5 2.5 4.5-5" />
+  </Svg>
+);
+
+export const CheckIcon = ({ strokeWidth, ...props }: IconProps & { strokeWidth?: number }) => (
+  <svg
+    viewBox="0 0 24 24"
+    aria-hidden="true"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={strokeWidth ?? 1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    {...props}
+  >
+    <path d="m4 12 5 5 11-11" />
+  </svg>
+);
+
+export const CopyIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <rect x="9" y="9" width="12" height="12" rx="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </Svg>
+);
+
+export const ExpandIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M15 3h6m0 0v6m0-6-7 7M9 21H3m0 0v-6m0 6 7-7" />
+  </Svg>
+);
+
+export const TrashIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
+    <path d="M10 11v5M14 11v5" />
+  </Svg>
+);
