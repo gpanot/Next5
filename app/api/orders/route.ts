@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isMockGeneration } from '../../../src/lib/mock';
 import { prisma, isDbConfigured } from '../../../src/lib/db';
 import { signMagicToken } from '../../../src/lib/studio-auth';
+import { sendEmail } from '../../../src/lib/maileroo';
 
 export type OrderPayload = {
   bookingId: string;
@@ -55,31 +56,25 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
     const link = `${appUrl}/studio?token=${token}`;
 
-    if (process.env.RESEND_API_KEY) {
-      const { Resend } = await import('resend');
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: 'Next5 Studio <studio@next5.app>',
-        to: body.email,
-        subject: 'Your photos are being created — access your Next5 Studio',
-        html: `
-          <div style="font-family:serif;max-width:480px;margin:0 auto;padding:40px 24px;">
-            <h1 style="font-size:28px;letter-spacing:0.08em;text-transform:uppercase;color:#111;margin:0 0 8px;">Your photos are on their way</h1>
-            <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 32px;">
-              Thank you for booking with Next5. Your AI photographer is creating your photos now.
-              Click below to access your studio and view them when they're ready.
-            </p>
-            <a href="${link}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:14px 28px;font-family:serif;font-size:14px;letter-spacing:0.06em;text-transform:uppercase;border-radius:12px;">
-              Open my studio
-            </a>
-            <p style="font-size:12px;color:#999;margin:32px 0 0;">This link expires in 15 minutes. You can always request a new one from the studio page.</p>
-          </div>
-        `,
-      });
-      console.log('[orders] Studio access email sent to:', body.email);
-    } else {
-      console.log('[orders] Dev mode — studio link:', link);
-    }
+    await sendEmail({
+      to: body.email,
+      subject: 'Your photos are being created — access your Next5 Studio',
+      html: `
+        <div style="font-family:serif;max-width:480px;margin:0 auto;padding:40px 24px;">
+          <h1 style="font-size:28px;letter-spacing:0.08em;text-transform:uppercase;color:#111;margin:0 0 8px;">Your photos are on their way</h1>
+          <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 32px;">
+            Thank you for booking with Next5. Your AI photographer is creating your photos now.
+            Click below to access your studio and view them when they're ready.
+          </p>
+          <a href="${link}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:14px 28px;font-family:serif;font-size:14px;letter-spacing:0.06em;text-transform:uppercase;border-radius:12px;">
+            Open my studio
+          </a>
+          <p style="font-size:12px;color:#999;margin:32px 0 0;">This link expires in 15 minutes. You can always request a new one from the studio page.</p>
+        </div>
+      `,
+      plain: `Your photos are on their way\n\nThank you for booking with Next5. Your AI photographer is creating your photos now.\n\nClick the link below to access your studio (expires in 15 minutes):\n\n${link}\n\nYou can always request a new link from the studio page.`,
+    });
+    console.log('[orders] Studio access email sent to:', body.email);
   } catch (err) {
     console.warn('[orders] Magic-link email failed (non-fatal):', err);
   }

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, isDbConfigured } from '../../../../../src/lib/db';
 import { signMagicToken } from '../../../../../src/lib/studio-auth';
+import { sendEmail } from '../../../../../src/lib/maileroo';
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,30 +33,24 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
     const link = `${appUrl}/studio?token=${token}`;
 
-    if (process.env.RESEND_API_KEY) {
-      const { Resend } = await import('resend');
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      await resend.emails.send({
-        from: 'Next5 Studio <studio@next5.app>',
-        to: trimmed,
-        subject: 'Access your Next5 Studio',
-        html: `
-          <div style="font-family:serif;max-width:480px;margin:0 auto;padding:40px 24px;">
-            <h1 style="font-size:28px;letter-spacing:0.08em;text-transform:uppercase;color:#111;margin:0 0 8px;">Your Studio</h1>
-            <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 32px;">
-              Click the link below to access your Next5 photo studio. This link expires in 15 minutes.
-            </p>
-            <a href="${link}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:14px 28px;font-family:serif;font-size:14px;letter-spacing:0.06em;text-transform:uppercase;border-radius:12px;">
-              Open my studio
-            </a>
-            <p style="font-size:12px;color:#999;margin:32px 0 0;">If you didn't request this, you can safely ignore this email.</p>
-          </div>
-        `,
-      });
-    } else {
-      // Dev mode — log the link so you can test without an email provider
-      console.log('[studio/magic] Dev mode — magic link:', link);
-    }
+    await sendEmail({
+      to: trimmed,
+      subject: 'Access your Next5 Studio',
+      html: `
+        <div style="font-family:serif;max-width:480px;margin:0 auto;padding:40px 24px;">
+          <h1 style="font-size:28px;letter-spacing:0.08em;text-transform:uppercase;color:#111;margin:0 0 8px;">Your Studio</h1>
+          <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 32px;">
+            Click the link below to access your Next5 photo studio. This link expires in 15 minutes.
+          </p>
+          <a href="${link}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:14px 28px;font-family:serif;font-size:14px;letter-spacing:0.06em;text-transform:uppercase;border-radius:12px;">
+            Open my studio
+          </a>
+          <p style="font-size:12px;color:#999;margin:32px 0 0;">If you didn't request this, you can safely ignore this email.</p>
+        </div>
+      `,
+      plain: `Access your Next5 Studio\n\nClick the link below to open your studio (expires in 15 minutes):\n\n${link}\n\nIf you didn't request this, you can safely ignore this email.`,
+    });
+    console.log('[studio/magic] Magic link sent to:', trimmed);
 
     return NextResponse.json({ ok: true });
   } catch (err) {
