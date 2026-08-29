@@ -75,9 +75,6 @@ export default function StudioPreviewPage() {
             bookingId="TEST-0001"
             shotUrls={shotUrls}
             director={director}
-            activeOffer={null}
-            onClaimOffer={() => {}}
-            onDone={() => {}}
           />
         </div>
       </div>

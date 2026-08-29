@@ -20,8 +20,8 @@ type ShootDetailProps = {
 };
 
 /** One shoot's full reveal — gallery, downloads, and the director's note.
- *  The account-level discount offer lives in the sidebar now, not here (see
- *  `StudioReveal`'s `showOffer`), so this never repeats it per shoot.
+ *  The account-level discount offer lives on the "create another shooting"
+ *  screen now, not here, so this never repeats it per shoot.
  *  Callers must render this with `key={booking.id}` — its generation state
  *  is only ever correct for the shoot it mounted with, and remounting on a
  *  key change is how that resets, rather than an effect watching for it. */
@@ -138,10 +138,6 @@ export const ShootDetail = ({ booking, token, onUpdated }: ShootDetailProps) => 
           bookingId={booking.id}
           shotUrls={shotUrls}
           director={director}
-          activeOffer={null}
-          onClaimOffer={() => {}}
-          onDone={() => {}}
-          showOffer={false}
         />
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { StudioBooking } from '../../../app/api/studio/me/route';
+import { photoRoutes } from '../../data/routes';
 import type { DiscountOffer } from '../../types/offer';
 import { ShootSidebar } from './ShootSidebar';
 import { ShootDetail } from './ShootDetail';
@@ -38,6 +39,10 @@ export const StudioWorkspace = ({
   // Abandoned/unpaid previews still create a DB row so the account exists
   // even if she never finishes — those aren't a "shoot" yet.
   const shoots = useMemo(() => bookings.filter((b) => b.payment_status === 'confirmed'), [bookings]);
+  const missingRouteIds = useMemo(
+    () => photoRoutes.filter((route) => !shoots.some((s) => s.route_id === route.id)).map((route) => route.id),
+    [shoots],
+  );
 
   const [rawView, setView] = useState<MainView>(() => {
     if (initialBookingId) return { kind: 'shoot', bookingId: initialBookingId };
@@ -79,10 +84,8 @@ export const StudioWorkspace = ({
           shoots={shoots}
           selectedId={view.kind === 'shoot' ? view.bookingId : null}
           isCreating={view.kind === 'create'}
-          activeOffer={activeOffer}
           onSelect={selectShoot}
           onCreateNew={startCreating}
-          onClaimOffer={onClaimOffer}
         />
       </div>
 
@@ -98,7 +101,13 @@ export const StudioWorkspace = ({
         )}
 
         {view.kind === 'create' ? (
-          <CreateShootPanel email={email} activeOffer={activeOffer} onBookingConfirmed={handleBookingConfirmed} />
+          <CreateShootPanel
+            email={email}
+            activeOffer={activeOffer}
+            missingRouteIds={missingRouteIds}
+            onClaimOffer={onClaimOffer}
+            onBookingConfirmed={handleBookingConfirmed}
+          />
         ) : selectedShoot ? (
           <ShootDetail
             key={selectedShoot.id}

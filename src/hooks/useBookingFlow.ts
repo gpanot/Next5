@@ -76,10 +76,14 @@ export function checkBrowserPreviewAllowed(email: string): { allowed: boolean; m
 }
 
 // The value ladder: a first-ever booking is the low-risk entry price: every
-// studio after that is automatically the repeat-customer price, and the
-// claimed bundle offer (see types/offer.ts) outranks both when it applies.
+// studio after that is automatically the repeat-customer price, and a
+// claimed offer (see types/offer.ts) outranks both when it applies.
 export const INTRO_DISCOUNT_PERCENT = 50;
 export const REPEAT_DISCOUNT_PERCENT = 10;
+// The two claimable account-level offers on /studio's "create another
+// shooting" screen — pick 3 of the studios you're missing, or all of them.
+export const THREE_PACK_PERCENT = 20;
+export const COLLECTION_PERCENT = 30;
 
 export const bookingSteps: readonly BookingStep[] = [
   'studio',

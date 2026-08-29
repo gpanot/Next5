@@ -1,11 +1,8 @@
 'use client';
 
-import type { Shot } from '../../../types/booking';
-import { DownloadIcon } from '../../ui/Icons';
-import { ShotFrame } from '../ui/ShotFrame';
+import { DownloadIcon, PhotoIcon } from '../../ui/Icons';
 
 type ShotTileProps = {
-  shot: Shot;
   sceneLabel: string;
   index: number;
   url: string | null;
@@ -14,10 +11,12 @@ type ShotTileProps = {
   onDownload: () => void;
 };
 
-/** One frame in the studio mosaic: a finished photo (open + download) or a
- *  softly blurred placeholder while it's still being crafted. */
+/** One frame in the studio mosaic: a finished photo (open + download), or a
+ *  plain "photo coming" placeholder while it's still being crafted. A
+ *  blurred stock photo here used to imply "roughly what you'll get" — a
+ *  neutral placeholder doesn't set that expectation, and one consistent tile
+ *  reads calmer than five different blurred scenes. */
 export const ShotTile = ({
-  shot,
   sceneLabel,
   index,
   url,
@@ -44,13 +43,9 @@ export const ShotTile = ({
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
           />
         ) : (
-          <ShotFrame
-            shot={shot}
-            alt=""
-            loading={index < 2 ? 'eager' : 'lazy'}
-            interactive={false}
-            className="h-full w-full blur-[5px] brightness-75"
-          />
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#3a322b_0%,#282220_45%,#1d1815_100%)]">
+            <PhotoIcon className="h-6 w-6 text-[#a2917f]/70" />
+          </div>
         )}
       </button>
 

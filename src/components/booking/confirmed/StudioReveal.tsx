@@ -1,15 +1,13 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
 import { downloadAllAsZip, downloadFile } from '../../../lib/download';
 import type { CreativeDirector } from '../../../types/booking';
-import type { DiscountOffer } from '../../../types/offer';
 import { Button } from '../../ui/Button';
 import { DownloadIcon } from '../../ui/Icons';
 import { ImageLightbox } from '../../ui/ImageLightbox';
 import { ClosingNote } from './ClosingNote';
-import { OfferReminder, UpsellOffer } from './UpsellOffer';
 import { ShotTile } from './ShotTile';
 
 type StudioRevealProps = {
@@ -18,20 +16,12 @@ type StudioRevealProps = {
   /** Index 0 = shot 1 (the preview) … index 4 = shot 5. `null` = still generating. */
   shotUrls: readonly (string | null)[];
   director: CreativeDirector;
-  activeOffer: DiscountOffer | null;
-  onClaimOffer: (offer: DiscountOffer) => void;
-  onDone: () => void;
-  /** Exposed so the parent footer CTA can scroll here. */
-  offersRef?: React.RefObject<HTMLDivElement | null>;
-  /** False when the offer already lives elsewhere on the page (e.g. a
-   *  sidebar that's visible regardless of which shoot is selected) — showing
-   *  it again per-shoot would just be noise. The director's closing note
-   *  still shows either way; that's shoot-specific, not account-wide. */
-  showOffer?: boolean;
 };
 
 /** Same wide-lead mosaic used by `StudioGallery` — one visual language for
- *  "a set of studio photos" everywhere on the site. */
+ *  "a set of studio photos" everywhere on the site. Purely about the
+ *  photos — the collection upsell lives on the "create another shooting"
+ *  screen now, not here (see `CollectionOffers`), so this never repeats it. */
 const frameLayout = [
   'col-span-2 aspect-[16/10] sm:aspect-[2/1] lg:col-span-2 lg:row-span-2 lg:aspect-auto',
   'aspect-[3/4] lg:row-span-2 lg:aspect-auto',
@@ -42,17 +32,7 @@ const frameLayout = [
 
 const shotFilename = (route: PhotoRoute, index: number) => `next5-${route.id}-shot-${String(index + 1).padStart(2, '0')}.jpg`;
 
-export const StudioReveal = ({
-  route,
-  bookingId,
-  shotUrls,
-  director,
-  activeOffer,
-  onClaimOffer,
-  onDone,
-  offersRef,
-  showOffer = true,
-}: StudioRevealProps) => {
+export const StudioReveal = ({ route, bookingId, shotUrls, director }: StudioRevealProps) => {
   const [zoomed, setZoomed] = useState<number | null>(null);
   const [isZipping, setIsZipping] = useState(false);
 
@@ -83,7 +63,6 @@ export const StudioReveal = ({
         {route.shots.map((shot, index) => (
           <ShotTile
             key={shot.src}
-            shot={shot}
             sceneLabel={route.scenes[index]}
             index={index}
             url={shotUrls[index]}
@@ -106,19 +85,8 @@ export const StudioReveal = ({
         {isZipping ? 'Preparing your download…' : 'Download all 5 photos'}
       </Button>
 
-      {/* Director note always shows; the offer only when it isn't already
-          shown elsewhere on the page (see `showOffer`). */}
-      <div ref={offersRef} className="mt-6 scroll-mt-4">
+      <div className="mt-6">
         <ClosingNote director={director} />
-        {showOffer && (
-          <div className="mt-4">
-            {activeOffer ? (
-              <OfferReminder offer={activeOffer} onDone={onDone} />
-            ) : (
-              <UpsellOffer route={route} onClaim={onClaimOffer} onDone={onDone} />
-            )}
-          </div>
-        )}
       </div>
 
       {zoomedUrl && (
