@@ -10,7 +10,10 @@ import type {
 } from '../../../types/booking';
 import { Button } from '../../ui/Button';
 import { ClockIcon, LockIcon, PhotoIcon, StarIcon } from '../../ui/Icons';
+import { ImageLightbox } from '../../ui/ImageLightbox';
+import { Watermark } from '../../ui/Watermark';
 import { useDirectorNote } from '../../../hooks/useDirectorNote';
+import { applyDiscount } from '../../../lib/format';
 import { DirectorNote } from '../preview/DirectorNote';
 import { PreviewLoader } from '../preview/PreviewLoader';
 import { PriceTag } from '../ui/PriceTag';
@@ -23,6 +26,11 @@ type PreviewStepProps = {
   uploadedPhoto: string;
   intention: ShootIntention;
   onNext: () => void;
+  /** Fired once the first shot finishes generating, so the studio reveal at
+   *  the end of the flow can show her actual photo instead of a placeholder. */
+  onPreviewReady: (url: string) => void;
+  /** From a claimed upsell offer — 0 when this route isn't discounted. */
+  discountPercent?: number;
 };
 
 type GenerationState =
@@ -59,8 +67,11 @@ export const PreviewStep = ({
   uploadedPhoto,
   intention,
   onNext,
+  onPreviewReady,
+  discountPercent = 0,
 }: PreviewStepProps) => {
   const [state, setState] = useState<GenerationState>({ phase: 'uploading' });
+  const [zoomed, setZoomed] = useState(false);
   const taskIdRef = useRef<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startedRef = useRef(false);
@@ -146,6 +157,10 @@ export const PreviewStep = ({
     return () => clearPoll();
   }, [startGeneration]);
 
+  useEffect(() => {
+    if (state.phase === 'done') onPreviewReady(state.url);
+  }, [state, onPreviewReady]);
+
   // Written in parallel with the shot, so it is on screen when she gets there.
   const note = useDirectorNote({
     directorName: director.name,
@@ -161,12 +176,13 @@ export const PreviewStep = ({
       <StepLayout>
         <PreviewLoader
           uploadedPhoto={uploadedPhoto}
+          director={director}
           label={
             state.phase === 'uploading'
               ? 'Uploading your photo…'
               : `${director.name} is preparing your shoot…`
           }
-          note="This usually takes 15–30 seconds"
+          note={note}
         />
       </StepLayout>
     );
@@ -186,12 +202,22 @@ export const PreviewStep = ({
   }
 
   const generatedUrl = state.url;
+  const finalPriceVnd =
+    discountPercent > 0 ? applyDiscount(route.priceVnd, discountPercent) : route.priceVnd;
 
   return (
     <StepLayout
       footer={
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
-          <PriceTag amountVnd={route.priceVnd} note="High-resolution · Delivered in 4 hours" />
+          <PriceTag
+            amountVnd={finalPriceVnd}
+            originalAmountVnd={discountPercent > 0 ? route.priceVnd : undefined}
+            note={
+              discountPercent > 0
+                ? `${discountPercent}% off applied · Delivered in 4 hours`
+                : 'High-resolution · Delivered in 4 hours'
+            }
+          />
 
           <ul className="hidden items-center gap-6 lg:flex">
             <IncludedItem icon={<PhotoIcon className="h-4.5 w-4.5" />}>
@@ -224,7 +250,12 @@ export const PreviewStep = ({
       }
     >
       <div className="animate-fade-in grid gap-6 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)_minmax(0,232px)] lg:items-start lg:gap-8">
-        <div className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgb(34_31_28/0.35)] lg:mx-0 lg:max-w-none">
+        <button
+          type="button"
+          onClick={() => setZoomed(true)}
+          aria-label="View your first shot full screen"
+          className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgb(34_31_28/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:mx-0 lg:max-w-none"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={generatedUrl}
@@ -236,7 +267,17 @@ export const PreviewStep = ({
               01 / 05
             </span>
           </div>
-        </div>
+          <Watermark position="bottom-left" />
+        </button>
+
+        {zoomed && (
+          <ImageLightbox
+            src={generatedUrl}
+            alt={`${route.title} — your first shot`}
+            onClose={() => setZoomed(false)}
+            overlay={<Watermark />}
+          />
+        )}
 
         <div className="lg:pt-1">
           <p className="label-caps text-[10px] font-medium text-accent-strong">

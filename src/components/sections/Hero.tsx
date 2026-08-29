@@ -64,7 +64,7 @@ export const Hero = () => (
             Create my shoot
           </ButtonLink>
           <p className="text-[12.5px] text-white/65">
-            First preview free · 149K VND for complete shoot
+            First preview free · 149K VND for your first studio (50% off)
           </p>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isMockGeneration } from '../../../src/lib/mock';
 
 export type OrderPayload = {
   bookingId: string;
@@ -17,6 +18,11 @@ const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE_NAME ?? 'Orders';
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as OrderPayload;
+
+  if (isMockGeneration()) {
+    console.warn('[orders] Mock mode — skipping Airtable record creation.', body);
+    return NextResponse.json({ ok: true, skipped: true });
+  }
 
   // If Airtable is not configured, log and return success so the UX is not blocked.
   if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {

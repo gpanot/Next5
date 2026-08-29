@@ -37,7 +37,13 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
   if (!route || !director || !directorOptions || blocked) return null;
 
   if (flow.step === 'studio') {
-    return <StudioStep route={route} onNext={() => goTo('style')} />;
+    return (
+      <StudioStep
+        route={route}
+        onNext={() => goTo('style')}
+        discountPercent={flow.discountPercentFor(route.id)}
+      />
+    );
   }
 
   if (flow.step === 'style') {
@@ -85,6 +91,8 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
         uploadedPhoto={flow.uploadedPhoto}
         intention={flow.intention}
         onNext={flow.startPayment}
+        onPreviewReady={flow.setPreviewUrl}
+        discountPercent={flow.discountPercentFor(route.id)}
       />
     );
   }
@@ -100,6 +108,7 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
         onStatusChange={flow.setPaymentStatus}
         onConfirmed={goToConfirmed}
         onCancel={flow.back}
+        discountPercent={flow.discountPercentFor(route.id)}
       />
     );
   }
@@ -110,6 +119,8 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
       director={director}
       booking={booking}
       onDone={flow.close}
+      activeOffer={flow.activeOffer}
+      onClaimOffer={flow.claimOffer}
     />
   );
 };

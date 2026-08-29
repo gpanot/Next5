@@ -1,16 +1,21 @@
 import type { CreativeDirector } from '../../../types/booking';
 import { PlaceholderImage } from '../../ui/PlaceholderImage';
+import { TypewriterText } from './TypewriterText';
 
 type DirectorNoteProps = {
   director: CreativeDirector;
   note: string | null;
+  /** Types the note out over ~2-4s instead of showing it instantly — used on
+   *  the waiting screen, where this card is the first time she "meets" the
+   *  photographer. Same card, same note, either place. */
+  stream?: boolean;
 };
 
 /**
  * The shot arrives with a reason attached. This is what separates a studio from
  * a generator, so it holds its own space and skeletons rather than popping in.
  */
-export const DirectorNote = ({ director, note }: DirectorNoteProps) => (
+export const DirectorNote = ({ director, note, stream = false }: DirectorNoteProps) => (
   <figure className="rounded-2xl border border-line bg-surface px-5 py-4.5">
     <figcaption className="flex items-center gap-2.5">
       <PlaceholderImage
@@ -25,7 +30,9 @@ export const DirectorNote = ({ director, note }: DirectorNoteProps) => (
     </figcaption>
 
     {note ? (
-      <blockquote className="mt-3 text-[13px] leading-relaxed text-ink">{note}</blockquote>
+      <blockquote className="mt-3 text-[13px] leading-relaxed text-ink">
+        {stream ? <TypewriterText text={note} speed={16} /> : note}
+      </blockquote>
     ) : (
       <div className="mt-3 space-y-2" aria-label="Writing your note">
         <span className="block h-2.5 w-full animate-pulse rounded-full bg-surface-alt" />

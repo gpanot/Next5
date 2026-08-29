@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadPhotoToWaveSpeed, submitEdit } from '../../../src/lib/wavespeed';
 import { getPrompt } from '../../../src/data/prompts';
+import { isMockGeneration } from '../../../src/lib/mock';
 
 export type PreviewRequestBody = {
   /** base64 data URL: "data:image/jpeg;base64,..." */
@@ -20,6 +21,12 @@ export async function POST(req: NextRequest) {
 
     if (!photoDataUrl || !studioId) {
       return NextResponse.json({ error: 'Missing photoDataUrl or studioId' }, { status: 400 });
+    }
+
+    if (isMockGeneration()) {
+      // Encodes studioId + start time so the stateless poll route below can
+      // simulate a believable wait without a database.
+      return NextResponse.json({ taskId: `mock-${studioId}-${Date.now()}` } satisfies PreviewResponseBody);
     }
 
     // 1. Decode base64 → Buffer

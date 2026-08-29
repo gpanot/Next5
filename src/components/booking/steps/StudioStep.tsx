@@ -1,4 +1,5 @@
 import type { PhotoRoute } from '../../../data/routes';
+import { applyDiscount } from '../../../lib/format';
 import { Button } from '../../ui/Button';
 import { StudioGallery } from '../studio/StudioGallery';
 import { PriceTag } from '../ui/PriceTag';
@@ -7,6 +8,8 @@ import { StepActions, StepLayout } from '../ui/StepLayout';
 type StudioStepProps = {
   route: PhotoRoute;
   onNext: () => void;
+  /** From the value ladder — intro, repeat, or a claimed bundle. Never 0. */
+  discountPercent: number;
 };
 
 /**
@@ -14,10 +17,18 @@ type StudioStepProps = {
  * captions on the frames themselves rather than in a second list below, and the
  * long description is left on the route card — nobody reads it twice.
  */
-export const StudioStep = ({ route, onNext }: StudioStepProps) => (
+export const StudioStep = ({ route, onNext, discountPercent }: StudioStepProps) => (
   <StepLayout
     footer={
-      <StepActions hint={<PriceTag amountVnd={route.priceVnd} note="5 personalized photos · 4-hour delivery" />}>
+      <StepActions
+        hint={
+          <PriceTag
+            amountVnd={applyDiscount(route.priceVnd, discountPercent)}
+            originalAmountVnd={route.priceVnd}
+            note="5 personalized photos · 4-hour delivery"
+          />
+        }
+      >
         <Button onClick={onNext} size="lg" withArrow fullWidth className="sm:w-auto">
           Create my shoot
         </Button>

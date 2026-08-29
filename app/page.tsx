@@ -19,7 +19,12 @@ export default function HomePage() {
       <main>
         <Hero />
         <SocialProofBar />
-        <PhotoRoutes onSelectRoute={flow.open} />
+        <PhotoRoutes
+          onSelectRoute={flow.open}
+          discountPercentFor={flow.discountPercentFor}
+          activeOffer={flow.activeOffer}
+          hasBookedBefore={flow.hasBookedBefore}
+        />
         <HowItWorks />
         <FinalCta />
       </main>

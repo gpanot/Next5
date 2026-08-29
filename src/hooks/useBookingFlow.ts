@@ -13,10 +13,17 @@ import type {
   ShootIntention,
 } from '../types/booking';
 import type { OrderPayload } from '../../app/api/orders/route';
-import type { GenerateRequestBody } from '../../app/api/generate/route';
+import type { DiscountOffer } from '../types/offer';
+import { applyDiscount } from '../lib/format';
 
 const emptyDetails: CustomerDetails = { email: '' };
 const emptyIntention: ShootIntention = { feelings: [], goals: [] };
+
+// The value ladder: a first-ever booking is the low-risk entry price: every
+// studio after that is automatically the repeat-customer price, and the
+// claimed bundle offer (see types/offer.ts) outranks both when it applies.
+export const INTRO_DISCOUNT_PERCENT = 50;
+export const REPEAT_DISCOUNT_PERCENT = 10;
 
 export const bookingSteps: readonly BookingStep[] = [
   'studio',
@@ -44,19 +51,13 @@ const recordOrder = (payload: OrderPayload): void => {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
-  }).catch((err) => {
-    console.error('[orders] Failed to record order:', err);
-  });
-};
-
-const triggerGenerate = (payload: GenerateRequestBody): void => {
-  fetch('/api/generate', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).catch((err) => {
-    console.error('[generate] Failed to trigger generation:', err);
-  });
+  })
+    .then((res) => {
+      if (!res.ok) console.error('[orders] HTTP error recording order:', res.status);
+    })
+    .catch((err) => {
+      console.error('[orders] Failed to record order:', err);
+    });
 };
 
 export type BookingFlow = ReturnType<typeof useBookingFlow>;
@@ -67,9 +68,17 @@ export const useBookingFlow = () => {
   const [directorId, setDirectorId] = useState<string | null>(null);
   const [intention, setIntention] = useState<ShootIntention>(emptyIntention);
   const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [details, setDetails] = useState<CustomerDetails>(emptyDetails);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
+  // Claimed from the studio-reveal upsell. Deliberately survives `open()` /
+  // `close()` — she should be able to claim once and redeem it across several
+  // separate bookings in the same session.
+  const [activeOffer, setActiveOffer] = useState<DiscountOffer | null>(null);
+  // True once she's completed one booking, ever. Drives the automatic
+  // intro → repeat price step; survives `open()` / `close()` like `activeOffer`.
+  const [hasBookedBefore, setHasBookedBefore] = useState(false);
 
   // Prevent recording the same order twice if re-renders fire setPaymentStatus multiple times
   const orderRecorded = useRef(false);
@@ -80,6 +89,7 @@ export const useBookingFlow = () => {
     setDirectorId(null);
     setIntention(emptyIntention);
     setUploadedPhoto(null);
+    setPreviewUrl(null);
     setDetails(emptyDetails);
     setBookingId(null);
     setPaymentStatus('pending');
@@ -118,6 +128,27 @@ export const useBookingFlow = () => {
     });
   }, []);
 
+  const discountPercentFor = useCallback(
+    (routeId: string): number => {
+      if (activeOffer?.eligibleRouteIds.includes(routeId)) return activeOffer.percent;
+      return hasBookedBefore ? REPEAT_DISCOUNT_PERCENT : INTRO_DISCOUNT_PERCENT;
+    },
+    [activeOffer, hasBookedBefore],
+  );
+
+  const claimOffer = useCallback((offer: DiscountOffer) => setActiveOffer(offer), []);
+
+  /** Single-use offers clear entirely on their one redemption; bundle offers
+   *  shrink and self-clear once every route in them has been booked. */
+  const redeemOffer = useCallback((routeId: string) => {
+    setActiveOffer((prev) => {
+      if (!prev || !prev.eligibleRouteIds.includes(routeId)) return prev;
+      if (!prev.multiUse) return null;
+      const remaining = prev.eligibleRouteIds.filter((id) => id !== routeId);
+      return remaining.length > 0 ? { ...prev, eligibleRouteIds: remaining } : null;
+    });
+  }, []);
+
   const startPayment = useCallback(() => {
     setBookingId((current) => current ?? createBookingId(route?.title ?? 'Next5'));
     setStep('payment');
@@ -144,10 +175,21 @@ export const useBookingFlow = () => {
       email: details.email,
       intention,
       uploadedPhoto,
-      amount: route.priceVnd,
+      previewUrl,
+      amount: applyDiscount(route.priceVnd, discountPercentFor(route.id)),
       paymentStatus,
     };
-  }, [route, bookingId, director, details, intention, uploadedPhoto, paymentStatus]);
+  }, [
+    route,
+    bookingId,
+    director,
+    details,
+    intention,
+    uploadedPhoto,
+    previewUrl,
+    paymentStatus,
+    discountPercentFor,
+  ]);
 
   // Snapshot refs so the setPaymentStatus callback can close over stable values
   const routeRef = useRef(route);
@@ -156,12 +198,16 @@ export const useBookingFlow = () => {
   const intentionRef = useRef(intention);
   const bookingIdRef = useRef(bookingId);
   const uploadedPhotoRef = useRef(uploadedPhoto);
+  const activeOfferRef = useRef(activeOffer);
+  const hasBookedBeforeRef = useRef(hasBookedBefore);
   routeRef.current = route;
   directorRef.current = director;
   detailsRef.current = details;
   intentionRef.current = intention;
   bookingIdRef.current = bookingId;
   uploadedPhotoRef.current = uploadedPhoto;
+  activeOfferRef.current = activeOffer;
+  hasBookedBeforeRef.current = hasBookedBefore;
 
   const setPaymentStatusAndRecord = useCallback((status: PaymentStatus) => {
     setPaymentStatus(status);
@@ -174,9 +220,18 @@ export const useBookingFlow = () => {
       const int = intentionRef.current;
       const bid = bookingIdRef.current;
       const photo = uploadedPhotoRef.current;
+      const offer = activeOfferRef.current;
+      const bookedBefore = hasBookedBeforeRef.current;
 
       if (r && d && bid) {
-        // Record order in Airtable
+        const discountPercent = offer?.eligibleRouteIds.includes(r.id)
+          ? offer.percent
+          : bookedBefore
+            ? REPEAT_DISCOUNT_PERCENT
+            : INTRO_DISCOUNT_PERCENT;
+        const amountVnd = applyDiscount(r.priceVnd, discountPercent);
+
+        // Record order in Airtable (includes customer photo upload)
         recordOrder({
           bookingId: bid,
           studioId: r.id,
@@ -185,22 +240,16 @@ export const useBookingFlow = () => {
           email: det.email,
           feelings: int.feelings,
           goals: int.goals,
-          amountVnd: r.priceVnd,
+          amountVnd,
         });
 
-        // Trigger post-payment AI generation (fire and forget)
-        if (photo) {
-          triggerGenerate({
-            photoDataUrl: photo,
-            studioId: r.id,
-            studioTitle: r.title,
-            feelings: int.feelings,
-            bookingId: bid,
-          });
-        }
+        redeemOffer(r.id);
+        setHasBookedBefore(true);
+
+        // Generation is now handled scene-by-scene in ConfirmedStep
       }
     }
-  }, []);
+  }, [redeemOffer]);
 
   return {
     route,
@@ -214,6 +263,10 @@ export const useBookingFlow = () => {
     details,
     booking,
     paymentStatus,
+    activeOffer,
+    hasBookedBefore,
+    discountPercentFor,
+    claimOffer,
     isOpen: route !== null,
     canGoBack,
     open,
@@ -223,6 +276,7 @@ export const useBookingFlow = () => {
     toggleFeeling,
     toggleGoal,
     setUploadedPhoto,
+    setPreviewUrl,
     setDetails,
     startPayment,
     setPaymentStatus: setPaymentStatusAndRecord,

@@ -61,6 +61,8 @@ export type Booking = {
   email: string;
   intention: ShootIntention;
   uploadedPhoto: string | null;
+  /** Shot 1 — generated and approved on the preview step, before payment. */
+  previewUrl: string | null;
   amount: number;
   paymentStatus: PaymentStatus;
 };

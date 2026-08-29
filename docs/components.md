@@ -37,6 +37,10 @@
   - [Field](#field)
   - [Calendar](#calendar)
   - [BookingSummary](#bookingsummary)
+- [Booking — Studio Reveal (Confirmed step)](#booking--studio-reveal-confirmed-step)
+  - [StudioReveal](#studioreveal)
+  - [ShotTile](#shottile)
+  - [ClosingNote](#closingnote)
 
 ---
 
@@ -522,6 +526,67 @@ Custom month calendar for the date-selection step.
 `src/components/booking/ui/BookingSummary.tsx`
 
 Readonly summary panel showing selected route, date, photographer, and price.
+
+---
+
+## Booking — Studio Reveal (Confirmed step)
+
+The `confirmed` step is the payoff of the whole flow — she's already paid and
+waited, so it renders as an arrival at her own studio space, not an order
+receipt. `ConfirmedStep.tsx` orchestrates scene generation (unchanged) and
+composes the three pieces below.
+
+### StudioReveal
+
+`src/components/booking/confirmed/StudioReveal.tsx`
+
+The mosaic gallery of all 5 shots, in the same wide-lead-plus-four-portraits
+layout as `StudioGallery` — one visual language for "a set of studio photos"
+everywhere on the site.
+
+| Prop | Type | Notes |
+|---|---|---|
+| `route` | `PhotoRoute` | For shot count, scene labels, and the download filename slug |
+| `bookingId` | `string` | Used in the zip filename |
+| `shotUrls` | `readonly (string \| null)[]` | Index 0 = shot 1 (the preview). `null` = still generating |
+
+- Opens any ready shot full screen via `ImageLightbox` (same lightbox used elsewhere — no new pattern)
+- "Download all 5 photos" is disabled until every shot is ready; bundles them client-side into a `.zip` via `downloadAllAsZip` (`src/lib/download.ts`) and shows "Preparing your download…" while zipping
+- Individual shots that fail to fetch are skipped from the zip rather than failing the whole bundle
+
+### ShotTile
+
+`src/components/booking/confirmed/ShotTile.tsx`
+
+One frame in the mosaic. **Two controls, not one** — same constraint as
+`DirectorChoiceCard`: the "open full screen" hit-target covers the whole tile,
+and the per-shot download button is a sibling positioned over it, not nested
+inside it (buttons can't nest). The download button is later in the DOM, so it
+naturally paints — and receives clicks — above the open button where they
+overlap.
+
+- Not-yet-ready shots reuse the existing blurred-placeholder treatment from the old shot-progress strip
+- Ready shots: click anywhere to open the lightbox, or the small circular icon (top-right) to download that one photo via `downloadFile`
+
+### ClosingNote
+
+`src/components/booking/confirmed/ClosingNote.tsx`
+
+The director's sign-off once the full set is ready, shown in the aside panel.
+Visually identical to `DirectorNote` (avatar, quoted note, script signature)
+but static — it reuses the director's existing `signature` copy rather than
+calling the `/api/director-note` endpoint, since this moment doesn't need a
+generated note, just a warm close.
+
+---
+
+## Downloads
+
+`src/lib/download.ts` — pure client-side helpers, used only from the studio
+reveal today.
+
+- `downloadFile(url, filename)` — fetches the image as a blob and saves it under `filename`. Necessary because shot URLs are cross-origin (R2 / the generation CDN); a plain `<a download>` is silently ignored by browsers for cross-origin hrefs. Falls back to opening the URL in a new tab if the fetch fails (e.g. no CORS headers on the source).
+- `downloadAllAsZip(files, zipName)` — bundles multiple shots into one `.zip` with `jszip`, skipping any that fail to fetch, and returns `{ succeeded, failed }`.
 
 ---
 

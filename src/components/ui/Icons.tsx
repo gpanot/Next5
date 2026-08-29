@@ -217,3 +217,10 @@ export const TrashIcon = (props: IconProps) => (
     <path d="M10 11v5M14 11v5" />
   </Svg>
 );
+
+export const DownloadIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M12 4v11M8 11l4 4 4-4" />
+    <path d="M4 17v1.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V17" />
+  </Svg>
+);

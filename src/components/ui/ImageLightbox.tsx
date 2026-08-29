@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CloseIcon } from './Icons';
@@ -11,6 +12,10 @@ type ImageLightboxProps = {
   /** Opening zoom. Use 2 for contact sheets, where the whole point is to look
    *  at one frame rather than the grid. Defaults to fit-to-screen. */
   initialScale?: number;
+  /** Anchored to the viewport corner, not the image — stays put through pan
+   *  and zoom instead of transforming with the photo. Used for the preview
+   *  watermark; most callers leave this unset. */
+  overlay?: ReactNode;
 };
 
 /**
@@ -30,6 +35,7 @@ export const ImageLightbox = ({
   alt,
   onClose,
   initialScale = 1,
+  overlay,
 }: ImageLightboxProps) => {
   const INITIAL_SCALE = initialScale;
   const MIN_SCALE = 1;
@@ -204,6 +210,8 @@ export const ImageLightbox = ({
           cursor: scale > 1 ? 'grab' : 'zoom-in',
         }}
       />
+
+      {overlay}
     </div>,
     document.body,
   );

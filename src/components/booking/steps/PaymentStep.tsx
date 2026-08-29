@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
 import { usePayment } from '../../../hooks/usePayment';
-import { formatVnd } from '../../../lib/format';
+import { applyDiscount, formatVnd } from '../../../lib/format';
 import type { PaymentIntent } from '../../../services/payment';
 import type { PaymentStatus } from '../../../types/booking';
 import { Button } from '../../ui/Button';
@@ -19,6 +19,8 @@ type PaymentStepProps = {
   onStatusChange: (status: PaymentStatus) => void;
   onConfirmed: () => void;
   onCancel: () => void;
+  /** From a claimed upsell offer — 0 when this route isn't discounted. */
+  discountPercent?: number;
 };
 
 export const PaymentStep = ({
@@ -28,9 +30,13 @@ export const PaymentStep = ({
   onStatusChange,
   onConfirmed,
   onCancel,
+  discountPercent = 0,
 }: PaymentStepProps) => {
+  const finalPriceVnd =
+    discountPercent > 0 ? applyDiscount(route.priceVnd, discountPercent) : route.priceVnd;
+
   const { intent, isCreating, error, retry, simulateTransfer } = usePayment(
-    { bookingId, amountVnd: route.priceVnd, routeTitle: route.title },
+    { bookingId, amountVnd: finalPriceVnd, routeTitle: route.title },
     onStatusChange,
   );
 
@@ -77,7 +83,12 @@ export const PaymentStep = ({
         </div>
 
         {intent && !error && (
-          <PaymentDetails intent={intent} onSimulate={simulateTransfer} />
+          <PaymentDetails
+            intent={intent}
+            onSimulate={simulateTransfer}
+            originalAmountVnd={discountPercent > 0 ? route.priceVnd : undefined}
+            discountPercent={discountPercent}
+          />
         )}
       </div>
     </StepLayout>
@@ -102,14 +113,29 @@ const QrCard = ({ intent }: { intent: PaymentIntent }) => (
 type PaymentDetailsProps = {
   intent: PaymentIntent;
   onSimulate: (() => void) | undefined;
+  originalAmountVnd?: number;
+  discountPercent?: number;
 };
 
-const PaymentDetails = ({ intent, onSimulate }: PaymentDetailsProps) => (
+const PaymentDetails = ({ intent, onSimulate, originalAmountVnd, discountPercent }: PaymentDetailsProps) => (
   <div className="mt-2 lg:mt-0">
-    <p className="font-serif text-[30px] leading-none">
-      <span className="text-gold">{formatVnd(intent.amountVnd)}</span>{' '}
-      <span className="text-[16px] text-ink">VND</span>
-    </p>
+    {originalAmountVnd && discountPercent ? (
+      <div className="flex items-center gap-2.5">
+        <p className="font-serif text-[30px] leading-none">
+          <span className="text-muted text-[16px] line-through">{formatVnd(originalAmountVnd)}</span>{' '}
+          <span className="text-gold">{formatVnd(intent.amountVnd)}</span>{' '}
+          <span className="text-[16px] text-ink">VND</span>
+        </p>
+        <span className="label-caps rounded-full bg-accent px-2.5 py-1 text-[9.5px] font-medium text-white">
+          -{discountPercent}%
+        </span>
+      </div>
+    ) : (
+      <p className="font-serif text-[30px] leading-none">
+        <span className="text-gold">{formatVnd(intent.amountVnd)}</span>{' '}
+        <span className="text-[16px] text-ink">VND</span>
+      </p>
+    )}
 
     <div className="mt-4 divide-y divide-line rounded-xl border border-line bg-surface px-4">
       <CopyField label="Transfer note" value={intent.reference} />

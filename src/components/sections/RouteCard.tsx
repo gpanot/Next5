@@ -2,15 +2,27 @@
 
 import { useState } from 'react';
 import type { PhotoRoute } from '../../data/site';
+import { applyDiscount, formatVnd } from '../../lib/format';
 import { ArrowRightIcon, HeartIcon } from '../ui/Icons';
 import { PlaceholderImage } from '../ui/PlaceholderImage';
 
 type RouteCardProps = {
   route: PhotoRoute;
   onSelect: (route: PhotoRoute) => void;
+  /** From a claimed upsell offer — 0 when this route isn't discounted. */
+  discountPercent?: number;
 };
 
-export const RouteCard = ({ route, onSelect }: RouteCardProps) => {
+/** The three tiers in the value ladder each read differently: the intro
+ *  price is a one-time hook, the bundle is time-limited, the repeat price is
+ *  just... her price now. */
+const badgeLabel = (percent: number): string => {
+  if (percent >= 50) return `-${percent}% · first studio`;
+  if (percent >= 30) return `-${percent}% today`;
+  return `-${percent}% for you`;
+};
+
+export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardProps) => {
   const [saved, setSaved] = useState(false);
 
   return (
@@ -35,6 +47,12 @@ export const RouteCard = ({ route, onSelect }: RouteCardProps) => {
         <span className="absolute top-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 font-serif text-[12px] font-medium text-ink shadow-sm">
           {route.number}
         </span>
+
+        {discountPercent > 0 && (
+          <span className="label-caps absolute bottom-3 left-3 rounded-full bg-accent px-2.5 py-1 text-[9.5px] font-medium text-white shadow-sm">
+            {badgeLabel(discountPercent)}
+          </span>
+        )}
 
         <button
           type="button"
@@ -67,7 +85,12 @@ export const RouteCard = ({ route, onSelect }: RouteCardProps) => {
         {/* mt-auto pins price + CTA to the card floor, so they line up across the row */}
         <div className="mt-auto pt-5">
           <p className="font-serif text-[19px]">
-            <span className="text-gold">{route.price}</span>{' '}
+            {discountPercent > 0 && (
+              <span className="mr-1.5 text-[13px] text-muted line-through">{route.price}</span>
+            )}
+            <span className="text-gold">
+              {discountPercent > 0 ? formatVnd(applyDiscount(route.priceVnd, discountPercent)) : route.price}
+            </span>{' '}
             <span className="text-ink">VND</span>
           </p>
           <p className="mt-0.5 text-[11px] text-muted">5 personalized photos · 4h delivery</p>

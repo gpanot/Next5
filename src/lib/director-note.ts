@@ -5,10 +5,16 @@
  * shot this for you". It is written in the director's voice and has to explain
  * *why* this frame was built the way it was, from what the customer told us.
  *
+ * Fetched once per preview and reused in two places: typed out on the waiting
+ * screen (where she first "meets" the photographer) and shown statically once
+ * the shot is ready. One note, one LLM call — no separate "in progress" copy.
+ *
  * Deliberately never given the scene name: those live in local route data, not
  * in the Airtable prompt that actually produced the image, so a note naming a
  * location could confidently describe somewhere the shot isn't.
  */
+
+import { isMockGeneration } from './mock';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 const MODEL = 'gpt-4o-mini';
@@ -55,7 +61,7 @@ export const fallbackNote = (input: DirectorNoteInput): string => {
 };
 
 export const generateDirectorNote = async (input: DirectorNoteInput): Promise<string> => {
-  if (!OPENAI_API_KEY) return fallbackNote(input);
+  if (!OPENAI_API_KEY || isMockGeneration()) return fallbackNote(input);
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);

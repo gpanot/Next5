@@ -259,7 +259,8 @@ const strokeBase = {
 `ArrowRightIcon`, `SparkleIcon`, `WhatsAppIcon`, `TicketIcon`, `SunIcon`, `CameraIcon`,
 `CloudIcon`, `HeartIcon`, `MapPinIcon`, `ClockIcon`, `StarIcon`, `GiftIcon`,
 `PhoneCheckIcon`, `CalendarIcon`, `CardIcon`, `PhotoIcon`, `MenuIcon`, `CloseIcon`,
-`ChevronDownIcon`
+`ChevronDownIcon`, `ImageIcon`, `UploadIcon`, `LockIcon`, `CheckCircleIcon`, `CheckIcon`,
+`CopyIcon`, `ExpandIcon`, `TrashIcon`, `DownloadIcon`
 
 ### Adding a new icon
 
