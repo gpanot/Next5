@@ -9,9 +9,10 @@ import type {
   ShootIntention,
 } from '../../../types/booking';
 import { Button } from '../../ui/Button';
-import { ClockIcon, LockIcon, PhotoIcon, StarIcon } from '../../ui/Icons';
+import { ClockIcon, DownloadIcon, LockIcon, PhotoIcon, StarIcon } from '../../ui/Icons';
 import { ImageLightbox } from '../../ui/ImageLightbox';
 import { Watermark } from '../../ui/Watermark';
+import { downloadFile } from '../../../lib/download';
 import { useDirectorNote } from '../../../hooks/useDirectorNote';
 import { applyDiscount, discountNoteLabel } from '../../../lib/format';
 import { DirectorNote } from '../preview/DirectorNote';
@@ -25,6 +26,10 @@ type PreviewStepProps = {
   director: CreativeDirector;
   uploadedPhoto: string;
   intention: ShootIntention;
+  /** Customer email — collected at the Upload step. Used to create the studio account. */
+  email: string;
+  /** Booking ID — generated at flow open time so the DB row can be created now. */
+  bookingId: string;
   onNext: () => void;
   /** Fired once the first shot finishes generating, so the studio reveal at
    *  the end of the flow can show her actual photo instead of a placeholder. */
@@ -66,6 +71,8 @@ export const PreviewStep = ({
   director,
   uploadedPhoto,
   intention,
+  email,
+  bookingId,
   onNext,
   onPreviewReady,
   discountPercent = 0,
@@ -126,6 +133,8 @@ export const PreviewStep = ({
           photoDataUrl: uploadedPhoto,
           studioId: route.id,
           feelings: intention.feelings,
+          email,
+          bookingId,
         }),
       });
 
@@ -148,7 +157,7 @@ export const PreviewStep = ({
         message: err instanceof Error ? err.message : 'Network error. Please retry.',
       });
     }
-  }, [uploadedPhoto, route.id, intention.feelings, poll]);
+  }, [uploadedPhoto, route.id, intention.feelings, email, bookingId, poll]);
 
   useEffect(() => {
     if (!startedRef.current) {
@@ -214,8 +223,8 @@ export const PreviewStep = ({
             originalAmountVnd={discountPercent > 0 ? route.priceVnd : undefined}
             note={
               discountPercent > 0
-                ? `${discountNoteLabel(discountPercent)} · Delivered in 4 hours`
-                : 'High-resolution · Delivered in 4 hours'
+                ? `${discountNoteLabel(discountPercent)} · Delivered in 30 min`
+                : 'High-resolution · Delivered in 30 min'
             }
           />
 
@@ -233,7 +242,7 @@ export const PreviewStep = ({
             <IncludedItem icon={<ClockIcon className="h-4.5 w-4.5" />}>
               Delivered within
               <br />
-              4 hours
+              30 min
             </IncludedItem>
           </ul>
 
@@ -250,32 +259,48 @@ export const PreviewStep = ({
       }
     >
       <div className="animate-fade-in grid gap-6 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)_minmax(0,232px)] lg:items-start lg:gap-8">
-        <button
-          type="button"
-          onClick={() => setZoomed(true)}
-          aria-label="View your first shot full screen"
-          className="relative mx-auto w-full max-w-[300px] overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgb(34_31_28/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:mx-0 lg:max-w-none"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={generatedUrl}
-            alt={`${route.title} — your first shot`}
-            className="aspect-[3/4] w-full object-cover"
-          />
-          <div className="absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/55 to-transparent p-4">
-            <span className="rounded-full bg-white/90 px-3 py-1 font-serif text-[11px] text-ink">
-              01 / 05
-            </span>
-          </div>
-          <Watermark position="bottom-left" />
-        </button>
+        <div className="relative mx-auto w-full max-w-[300px] lg:mx-0 lg:max-w-none">
+          <button
+            type="button"
+            onClick={() => setZoomed(true)}
+            aria-label="View your first shot full screen"
+            className="relative w-full overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgb(34_31_28/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={generatedUrl}
+              alt={`${route.title} — your first shot`}
+              className="aspect-[3/4] w-full object-cover"
+            />
+            <div className="absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/55 to-transparent p-4">
+              <span className="rounded-full bg-white/90 px-3 py-1 font-serif text-[11px] text-ink">
+                01 / 05
+              </span>
+            </div>
+            <Watermark position="bottom-left" />
+          </button>
+
+          {/* Download button — top-right corner of the thumbnail */}
+          <button
+            type="button"
+            onClick={() => downloadFile(generatedUrl, `next5-${route.id}-preview.jpg`)}
+            aria-label="Download preview photo"
+            className="absolute top-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-ink shadow-sm transition-colors hover:bg-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            <DownloadIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
 
         {zoomed && (
           <ImageLightbox
             src={generatedUrl}
             alt={`${route.title} — your first shot`}
             onClose={() => setZoomed(false)}
-            overlay={<Watermark />}
+            overlay={
+              <PreviewLightboxOverlay
+                onDownload={() => downloadFile(generatedUrl, `next5-${route.id}-preview.jpg`)}
+              />
+            }
           />
         )}
 
@@ -343,6 +368,22 @@ const IntentionRecap = ({ intention }: { intention: ShootIntention }) => {
     </div>
   );
 };
+
+/** Watermark + floating download button anchored to the lightbox viewport. */
+const PreviewLightboxOverlay = ({ onDownload }: { onDownload: () => void }) => (
+  <>
+    <Watermark position="bottom-right" />
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onDownload(); }}
+      aria-label="Download preview photo"
+      className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-[12px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:bottom-6 sm:left-auto sm:right-16 sm:translate-x-0"
+    >
+      <DownloadIcon className="h-3.5 w-3.5" />
+      Download
+    </button>
+  </>
+);
 
 const LockedShots = ({ route }: { route: PhotoRoute }) => (
   <div className="mt-2.5 grid grid-cols-4 gap-2 lg:grid-cols-2">

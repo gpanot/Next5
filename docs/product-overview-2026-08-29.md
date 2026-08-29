@@ -40,13 +40,13 @@ Each studio delivers **5 photos** across predefined scenes (e.g. rooftop skyline
 4. **Upload your photo** — one clear selfie is enough.
 5. **See your first shot (free preview)** — AI generates a personalized preview before any payment. A creative director's note (GPT-4o-mini) explains the shot in a human, directed voice.
 6. **Pay for the full shoot** — bank transfer (Sepay-style QR / transfer reference; mock in development).
-7. **Receive all 5 photos** — remaining 4 scenes generate after payment; full set delivered to email and available for download within ~4 hours.
+7. **Receive all 5 photos** — remaining 4 scenes generate after payment; full set delivered to email and available for download within ~30 minutes.
 
 ### What customers actually get
 
 - **5 full-resolution photos** — no watermark, no subscription, yours to keep.
 - **Creative direction** — intention-driven prompts shaped by feelings, goals, studio, and director persona.
-- **Speed** — immediate first preview; complete shoot within 4 hours.
+- **Speed** — immediate first preview; complete shoot within 30 minutes.
 - **Saigon-native aesthetics** — rooftops, colonial architecture, cafés, neon streets, luxury interiors — localized for the target market.
 
 ### Target customer

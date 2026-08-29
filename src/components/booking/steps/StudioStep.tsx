@@ -25,7 +25,7 @@ export const StudioStep = ({ route, onNext, discountPercent }: StudioStepProps) 
           <PriceTag
             amountVnd={applyDiscount(route.priceVnd, discountPercent)}
             originalAmountVnd={route.priceVnd}
-            note="5 personalized photos · 4-hour delivery"
+            note="5 personalized photos · 30-min delivery"
           />
         }
       >

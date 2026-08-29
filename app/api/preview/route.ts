@@ -2,12 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { uploadPhotoToWaveSpeed, submitEdit } from '../../../src/lib/wavespeed';
 import { getPrompt } from '../../../src/data/prompts';
 import { isMockGeneration } from '../../../src/lib/mock';
+import { uploadToR2, r2IsConfigured } from '../../../src/lib/r2';
+import { prisma, isDbConfigured, upsertUserByEmail } from '../../../src/lib/db';
 
 export type PreviewRequestBody = {
   /** base64 data URL: "data:image/jpeg;base64,..." */
   photoDataUrl: string;
   studioId: string;
   feelings: string[];
+  /** Customer email — collected at the Upload step. Used to create the studio account. */
+  email?: string;
+  /** Client-generated booking ID (e.g. "GS-1234"). */
+  bookingId?: string;
 };
 
 export type PreviewResponseBody = {
@@ -17,30 +23,35 @@ export type PreviewResponseBody = {
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as PreviewRequestBody;
-    const { photoDataUrl, studioId, feelings } = body;
+    const { photoDataUrl, studioId, feelings, email, bookingId } = body;
 
     if (!photoDataUrl || !studioId) {
       return NextResponse.json({ error: 'Missing photoDataUrl or studioId' }, { status: 400 });
     }
 
     if (isMockGeneration()) {
-      // Encodes studioId + start time so the stateless poll route below can
-      // simulate a believable wait without a database.
       return NextResponse.json({ taskId: `mock-${studioId}-${Date.now()}` } satisfies PreviewResponseBody);
     }
 
-    // 1. Decode base64 → Buffer
     const base64 = photoDataUrl.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64, 'base64');
 
-    // 2. Upload to WaveSpeed's own storage (no R2 needed for the temp reference image)
+    if (isDbConfigured() && email && bookingId) {
+      setupBookingRecord(email, bookingId, studioId, buffer, feelings).catch((err) => {
+        console.error('[preview] Background booking setup failed:', err);
+      });
+    }
+
     const imageUrl = await uploadPhotoToWaveSpeed(buffer);
-
-    // 3. Build the prompt for scene 0 (preview shot) — fetched from Airtable, falls back to hardcoded
     const prompt = await getPrompt(studioId, 0, feelings ?? []);
-
-    // 4. Submit generation task — returns a task ID immediately
     const taskId = await submitEdit({ imageUrl, prompt, aspectRatio: '3:4', resolution: '1k' });
+
+    if (isDbConfigured() && bookingId) {
+      prisma.booking
+        .update({ where: { id: bookingId }, data: { wavespeedTaskId: taskId } })
+        .then(() => {})
+        .catch((err) => console.warn('[preview] Failed to store wavespeedTaskId:', err));
+    }
 
     return NextResponse.json({ taskId } satisfies PreviewResponseBody);
   } catch (err) {
@@ -50,4 +61,57 @@ export async function POST(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+async function setupBookingRecord(
+  email: string,
+  bookingId: string,
+  studioId: string,
+  photoBuffer: Buffer,
+  feelings: string[],
+): Promise<void> {
+  const userId = await upsertUserByEmail(email);
+
+  await prisma.booking.upsert({
+    where: { id: bookingId },
+    update: {},
+    create: {
+      id: bookingId,
+      userId,
+      routeId: studioId,
+      routeTitle: studioId,
+      directorId: '',
+      directorName: '',
+      feelings,
+      goals: [],
+      paymentStatus: 'pending',
+      shootStatus: 'preview_generating',
+    },
+  });
+
+  const r2Key = `${bookingId}/customer-upload.jpg`;
+  let isStored = false;
+
+  if (r2IsConfigured()) {
+    try {
+      await uploadToR2(r2Key, photoBuffer, 'image/jpeg');
+      isStored = true;
+    } catch (err) {
+      console.warn('[preview] R2 upload failed for customer photo:', err);
+    }
+  }
+
+  await prisma.photo.create({
+    data: {
+      bookingId,
+      userId,
+      type: 'upload',
+      sceneIndex: null,
+      r2Key,
+      wavespeedUrl: null,
+      isStored,
+    },
+  }).catch((err) => {
+    if (err?.code !== 'P2002') console.warn('[preview] Failed to insert upload photo:', err);
+  });
 }

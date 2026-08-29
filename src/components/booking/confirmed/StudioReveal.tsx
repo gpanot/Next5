@@ -1,11 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
 import { downloadAllAsZip, downloadFile } from '../../../lib/download';
+import type { CreativeDirector } from '../../../types/booking';
+import type { DiscountOffer } from '../../../types/offer';
 import { Button } from '../../ui/Button';
 import { DownloadIcon } from '../../ui/Icons';
 import { ImageLightbox } from '../../ui/ImageLightbox';
+import { ClosingNote } from './ClosingNote';
+import { OfferReminder, UpsellOffer } from './UpsellOffer';
 import { ShotTile } from './ShotTile';
 
 type StudioRevealProps = {
@@ -13,6 +17,12 @@ type StudioRevealProps = {
   bookingId: string;
   /** Index 0 = shot 1 (the preview) … index 4 = shot 5. `null` = still generating. */
   shotUrls: readonly (string | null)[];
+  director: CreativeDirector;
+  activeOffer: DiscountOffer | null;
+  onClaimOffer: (offer: DiscountOffer) => void;
+  onDone: () => void;
+  /** Exposed so the parent footer CTA can scroll here. */
+  offersRef?: React.RefObject<HTMLDivElement | null>;
 };
 
 /** Same wide-lead mosaic used by `StudioGallery` — one visual language for
@@ -27,7 +37,16 @@ const frameLayout = [
 
 const shotFilename = (route: PhotoRoute, index: number) => `next5-${route.id}-shot-${String(index + 1).padStart(2, '0')}.jpg`;
 
-export const StudioReveal = ({ route, bookingId, shotUrls }: StudioRevealProps) => {
+export const StudioReveal = ({
+  route,
+  bookingId,
+  shotUrls,
+  director,
+  activeOffer,
+  onClaimOffer,
+  onDone,
+  offersRef,
+}: StudioRevealProps) => {
   const [zoomed, setZoomed] = useState<number | null>(null);
   const [isZipping, setIsZipping] = useState(false);
 
@@ -80,6 +99,18 @@ export const StudioReveal = ({ route, bookingId, shotUrls }: StudioRevealProps) 
         <DownloadIcon className="h-3.5 w-3.5" />
         {isZipping ? 'Preparing your download…' : 'Download all 5 photos'}
       </Button>
+
+      {/* Special offers + director note — always rendered so the footer CTA can scroll here */}
+      <div ref={offersRef} className="mt-6 scroll-mt-4">
+        <ClosingNote director={director} />
+        <div className="mt-4">
+          {activeOffer ? (
+            <OfferReminder offer={activeOffer} onDone={onDone} />
+          ) : (
+            <UpsellOffer route={route} onClaim={onClaimOffer} onDone={onDone} />
+          )}
+        </div>
+      </div>
 
       {zoomedUrl && (
         <ImageLightbox

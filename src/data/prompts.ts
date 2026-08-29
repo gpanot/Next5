@@ -149,8 +149,8 @@ export async function getPrompt(
   sceneIndex: number,
   feelings: readonly string[],
 ): Promise<string> {
-  // Lazy-import to avoid bundling Airtable client-side
-  const { getAirtablePrompt } = await import('../lib/airtable-prompts');
+  // Lazy-import to avoid bundling the Prisma client in browser bundles
+  const { getAirtablePrompt } = await import('../lib/supabase-prompts');
   const airtableBase = await getAirtablePrompt(studioId, sceneIndex);
   const base = airtableBase ?? getHardcodedBase(studioId, sceneIndex);
   const modifiers = feelings.map((f) => FEELING_MODIFIERS[f] ?? '').join('');

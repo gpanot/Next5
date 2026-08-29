@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { photoRoutes } from '../../../src/data/routes';
 import { getCreativeDirectors } from '../../../src/data/photographers';
-import { ClosingNote } from '../../../src/components/booking/confirmed/ClosingNote';
 import { StudioReveal } from '../../../src/components/booking/confirmed/StudioReveal';
 import { Button } from '../../../src/components/ui/Button';
 
@@ -71,8 +70,15 @@ export default function StudioPreviewPage() {
         </div>
 
         <div className="mt-8 rounded-2xl border border-line bg-surface px-5 py-5 sm:px-6 sm:py-6">
-          <StudioReveal route={route} bookingId="TEST-0001" shotUrls={shotUrls} />
-          {readyCount === 5 && <ClosingNote director={director} />}
+          <StudioReveal
+            route={route}
+            bookingId="TEST-0001"
+            shotUrls={shotUrls}
+            director={director}
+            activeOffer={null}
+            onClaimOffer={() => {}}
+            onDone={() => {}}
+          />
         </div>
       </div>
     </div>

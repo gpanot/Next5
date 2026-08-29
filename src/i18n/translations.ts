@@ -57,13 +57,13 @@ export const translations: Record<Locale, TranslationShape> = {
     },
     routes: {
       title: 'Choose your studio',
-      subtitle: '5 personalized photos · Creative direction · Delivered within 4 hours',
+      subtitle: '5 personalized photos · Creative direction · Delivered within 30 minutes',
       bannerFirstTime: 'New here? Your first studio is 149,000 VND — a first-shoot offer, applied automatically',
       bannerReturning: 'Welcome back — every studio below is already 10% off for you',
       bannerOffer: (label: string, percent: number, count: number) =>
         `Your ${label} discount (-${percent}%) is active on ${count} studio${count === 1 ? '' : 's'} below`,
       exploreStudio: 'Explore Studio',
-      meta: '5 personalized photos · 4h delivery',
+      meta: '5 personalized photos · 30 min delivery',
       badgeIntro: 'First-shoot offer',
       badgeBundle: (percent: number) => `-${percent}% today`,
       badgeRepeat: (percent: number) => `-${percent}% for you`,
@@ -95,7 +95,7 @@ export const translations: Record<Locale, TranslationShape> = {
         },
         {
           q: 'How long does delivery actually take?',
-          a: 'Your first preview is ready in under a minute. The complete set of 5 is delivered to your email within 4 hours of payment.',
+          a: 'Your first preview is ready in under a minute. The complete set of 5 is delivered to your email within 30 minutes of payment.',
         },
         {
           q: 'What payment methods do you accept?',
@@ -126,13 +126,13 @@ export const translations: Record<Locale, TranslationShape> = {
     },
     routes: {
       title: 'Chọn studio của bạn',
-      subtitle: '5 ảnh cá nhân hóa · Có định hướng sáng tạo · Giao trong 4 giờ',
+      subtitle: '5 ảnh cá nhân hóa · Có định hướng sáng tạo · Giao trong 30 phút',
       bannerFirstTime: 'Lần đầu đến đây? Studio đầu tiên chỉ 149.000 VND — ưu đãi buổi chụp đầu tiên, tự động áp dụng',
       bannerReturning: 'Chào mừng trở lại — mọi studio dưới đây đã được giảm 10% dành riêng cho bạn',
       bannerOffer: (label: string, percent: number, count: number) =>
         `Ưu đãi ${label} (-${percent}%) của bạn đang áp dụng cho ${count} studio bên dưới`,
       exploreStudio: 'Khám phá Studio',
-      meta: '5 ảnh cá nhân hóa · Giao trong 4 giờ',
+      meta: '5 ảnh cá nhân hóa · Giao trong 30 phút',
       badgeIntro: 'Ưu đãi buổi đầu',
       badgeBundle: (percent: number) => `-${percent}% hôm nay`,
       badgeRepeat: (percent: number) => `-${percent}% dành cho bạn`,
@@ -164,7 +164,7 @@ export const translations: Record<Locale, TranslationShape> = {
         },
         {
           q: 'Thời gian giao ảnh thực tế là bao lâu?',
-          a: 'Ảnh xem trước đầu tiên sẵn sàng trong chưa đầy một phút. Bộ đầy đủ 5 ảnh được gửi vào email của bạn trong vòng 4 giờ sau khi thanh toán.',
+          a: 'Ảnh xem trước đầu tiên sẵn sàng trong chưa đầy một phút. Bộ đầy đủ 5 ảnh được gửi vào email của bạn trong vòng 30 phút sau khi thanh toán.',
         },
         {
           q: 'Bạn nhận thanh toán qua những hình thức nào?',

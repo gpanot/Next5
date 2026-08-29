@@ -91,7 +91,9 @@ export const useBookingFlow = () => {
     setUploadedPhoto(null);
     setPreviewUrl(null);
     setDetails(emptyDetails);
-    setBookingId(null);
+    // Generate the booking ID immediately so it is available at preview time
+    // (before payment), allowing the DB row to be created when the preview API is called.
+    setBookingId(createBookingId(next.title));
     setPaymentStatus('pending');
     orderRecorded.current = false;
   }, []);
@@ -150,9 +152,8 @@ export const useBookingFlow = () => {
   }, []);
 
   const startPayment = useCallback(() => {
-    setBookingId((current) => current ?? createBookingId(route?.title ?? 'Next5'));
     setStep('payment');
-  }, [route]);
+  }, []);
 
   const directorOptions = useMemo(
     () => (route ? getCreativeDirectors(route.directorIds, route.id) : null),
@@ -231,16 +232,17 @@ export const useBookingFlow = () => {
             : INTRO_DISCOUNT_PERCENT;
         const amountVnd = applyDiscount(r.priceVnd, discountPercent);
 
-        // Record order in Airtable (includes customer photo upload)
         recordOrder({
           bookingId: bid,
           studioId: r.id,
           studioTitle: r.title,
+          directorId: d.id,
           directorName: d.name,
           email: det.email,
           feelings: int.feelings,
           goals: int.goals,
           amountVnd,
+          discountPercent,
         });
 
         redeemOffer(r.id);

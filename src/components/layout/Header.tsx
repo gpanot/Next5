@@ -11,7 +11,7 @@ import { LocaleToggle } from './LocaleToggle';
 export const Header = () => {
   const scrolled = useScrolled(60);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { locale, t } = useLocale();
+  const { locale } = useLocale();
   const dark = scrolled || menuOpen;
 
   return (
@@ -43,13 +43,6 @@ export const Header = () => {
 
         <div className="flex items-center gap-3">
           <LocaleToggle tone={dark ? 'dark' : 'light'} className="hidden sm:inline-flex" />
-
-          <a
-            href="#routes"
-            className="label-caps rounded-full bg-ink-block px-6 py-3 text-[10px] font-medium text-on-dark transition-transform duration-300 hover:scale-[1.03] sm:px-7"
-          >
-            {t.common.createMyShoot}
-          </a>
 
           <button
             type="button"

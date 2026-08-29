@@ -1,65 +1,88 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isMockGeneration } from '../../../src/lib/mock';
+import { prisma, isDbConfigured } from '../../../src/lib/db';
+import { signMagicToken } from '../../../src/lib/studio-auth';
 
 export type OrderPayload = {
   bookingId: string;
   studioId: string;
   studioTitle: string;
   directorName: string;
+  directorId: string;
   email: string;
   feelings: string[];
   goals: string[];
   amountVnd: number;
+  discountPercent?: number;
 };
-
-const AIRTABLE_API_KEY = process.env.AIRTABLE_API_KEY;
-const AIRTABLE_BASE_ID = process.env.AIRTABLE_BASE_ID;
-const AIRTABLE_TABLE_NAME = process.env.AIRTABLE_TABLE_NAME ?? 'Orders';
 
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as OrderPayload;
 
   if (isMockGeneration()) {
-    console.warn('[orders] Mock mode — skipping Airtable record creation.', body);
+    console.warn('[orders] Mock mode — skipping DB update.', body);
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  // If Airtable is not configured, log and return success so the UX is not blocked.
-  if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-    console.warn('[orders] Airtable env vars not set — skipping record creation.', body);
+  if (!isDbConfigured()) {
+    console.warn('[orders] DB not configured — skipping order record.', body);
     return NextResponse.json({ ok: true, skipped: true });
   }
 
-  const fields: Record<string, unknown> = {
-    'Order ID': body.bookingId,
-    'Customer Email': body.email,
-    'Studio': body.studioTitle,
-    'Creative Director': body.directorName,
-    'Feelings': body.feelings.join(', '),
-    'Goals': body.goals.join(', '),
-    'Amount': body.amountVnd,
-    'Payment Status': 'Confirmed',
-    'Shoot Status': 'Preview Sent',
-    'Booking Date': new Date().toISOString().slice(0, 10),
-  };
-
-  const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}`;
-
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ fields }),
-  });
-
-  if (!res.ok) {
-    const error = await res.text();
-    console.error('[orders] Airtable error', res.status, error);
-    return NextResponse.json({ ok: false, error }, { status: 502 });
+  try {
+    await prisma.booking.update({
+      where: { id: body.bookingId },
+      data: {
+        routeTitle: body.studioTitle,
+        directorId: body.directorId,
+        directorName: body.directorName,
+        feelings: body.feelings,
+        goals: body.goals,
+        amountVnd: body.amountVnd,
+        discountPercent: body.discountPercent ?? null,
+        paymentStatus: 'confirmed',
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'DB error';
+    console.error('[orders] Booking update error:', message);
+    return NextResponse.json({ ok: false, error: message }, { status: 502 });
   }
 
-  const data = await res.json();
-  return NextResponse.json({ ok: true, id: data.id });
+  // Send a magic-link email so the customer can access their studio post-payment.
+  try {
+    const token = signMagicToken(body.email);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const link = `${appUrl}/studio?token=${token}`;
+
+    if (process.env.RESEND_API_KEY) {
+      const { Resend } = await import('resend');
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.emails.send({
+        from: 'Next5 Studio <studio@next5.app>',
+        to: body.email,
+        subject: 'Your photos are being created — access your Next5 Studio',
+        html: `
+          <div style="font-family:serif;max-width:480px;margin:0 auto;padding:40px 24px;">
+            <h1 style="font-size:28px;letter-spacing:0.08em;text-transform:uppercase;color:#111;margin:0 0 8px;">Your photos are on their way</h1>
+            <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 32px;">
+              Thank you for booking with Next5. Your AI photographer is creating your photos now.
+              Click below to access your studio and view them when they're ready.
+            </p>
+            <a href="${link}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:14px 28px;font-family:serif;font-size:14px;letter-spacing:0.06em;text-transform:uppercase;border-radius:12px;">
+              Open my studio
+            </a>
+            <p style="font-size:12px;color:#999;margin:32px 0 0;">This link expires in 15 minutes. You can always request a new one from the studio page.</p>
+          </div>
+        `,
+      });
+      console.log('[orders] Studio access email sent to:', body.email);
+    } else {
+      console.log('[orders] Dev mode — studio link:', link);
+    }
+  } catch (err) {
+    console.warn('[orders] Magic-link email failed (non-fatal):', err);
+  }
+
+  return NextResponse.json({ ok: true });
 }

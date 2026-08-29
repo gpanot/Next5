@@ -1,16 +1,18 @@
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, RefObject } from 'react';
 
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & {
   label: string;
   error?: string;
+  inputRef?: RefObject<HTMLInputElement | null>;
 };
 
-export const Field = ({ label, error, id, className = '', ...props }: FieldProps) => (
+export const Field = ({ label, error, id, className = '', inputRef, ...props }: FieldProps) => (
   <div className={className}>
     <label htmlFor={id} className="label-caps block text-[9px] font-medium text-muted">
       {label}
     </label>
     <input
+      ref={inputRef}
       id={id}
       aria-invalid={Boolean(error)}
       aria-describedby={error ? `${id}-error` : undefined}

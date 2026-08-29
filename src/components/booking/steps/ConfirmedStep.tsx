@@ -6,10 +6,25 @@ import type { Booking, CreativeDirector } from '../../../types/booking';
 import type { DiscountOffer } from '../../../types/offer';
 import type { SceneResponseBody } from '../../../../app/api/generate/scene/route';
 import { Button } from '../../ui/Button';
-import { ClosingNote } from '../confirmed/ClosingNote';
 import { StudioReveal } from '../confirmed/StudioReveal';
-import { OfferReminder, UpsellOffer } from '../confirmed/UpsellOffer';
 import { StepActions, StepLayout } from '../ui/StepLayout';
+
+const EMAIL_COUNTDOWN_SECONDS = 15 * 60; // 15 minutes
+
+/** Counts down from `initialSeconds` and returns the remaining formatted time. */
+function useCountdown(initialSeconds: number, active: boolean) {
+  const [remaining, setRemaining] = useState(initialSeconds);
+  useEffect(() => {
+    if (!active) return;
+    const timer = setInterval(() => {
+      setRemaining((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [active]);
+  const mm = String(Math.floor(remaining / 60)).padStart(2, '0');
+  const ss = String(remaining % 60).padStart(2, '0');
+  return `${mm}:${ss}`;
+}
 
 type ConfirmedStepProps = {
   route: PhotoRoute;
@@ -39,8 +54,14 @@ export const ConfirmedStep = ({
   const [generatedShots, setGeneratedShots] = useState<GeneratedShot[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const started = useRef(false);
+  const offersRef = useRef<HTMLDivElement | null>(null);
 
   const readyCount = 1 + generatedShots.length;
+  const countdown = useCountdown(EMAIL_COUNTDOWN_SECONDS, isGenerating);
+
+  const scrollToOffers = () => {
+    offersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   useEffect(() => {
     if (started.current) return;
@@ -102,8 +123,8 @@ export const ConfirmedStep = ({
             </p>
           }
         >
-          <Button onClick={onDone} variant="dark" size="lg" fullWidth className="sm:w-auto">
-            Done
+          <Button onClick={scrollToOffers} variant="dark" size="lg" fullWidth className="sm:w-auto">
+            Special Offers
           </Button>
         </StepActions>
       }
@@ -111,50 +132,56 @@ export const ConfirmedStep = ({
       <div className="animate-fade-in">
         <header className="text-center">
           <p className="label-caps text-[10px] font-medium text-accent-strong">
-            {allReady ? 'Your studio is ready' : "Payment confirmed · Your shoot has started"}
+            {allReady ? 'Your studio is ready' : 'Payment confirmed · Your shoot has started'}
           </p>
           <h2 className="mt-2.5 font-serif text-[26px] leading-tight tracking-[0.06em] text-ink uppercase sm:text-[32px]">
-            {isGenerating ? (
-              <>
-                {director.name} is crafting your
-                <br className="hidden sm:block" /> remaining {TOTAL_POST_PAYMENT_SHOTS - generatedShots.length} photo{TOTAL_POST_PAYMENT_SHOTS - generatedShots.length !== 1 ? 's' : ''}.
-              </>
-            ) : (
-              <>Welcome to your studio.</>
-            )}
+            Welcome to your studio.
           </h2>
           <p className="mt-3 text-[13px] text-muted">
-            {isGenerating
-              ? `Browse and download each shot as it's ready — the full ${route.title} set is also on its way to your email.`
-              : 'All 5 shots are ready below, and on their way to your email too.'}
+            {allReady
+              ? 'All 5 shots are ready below, and on their way to your email too.'
+              : 'Your photos are being crafted. You will receive a link to download them directly in your email.'}
           </p>
         </header>
 
+        {isGenerating && (
+          <div className="mx-auto mt-5 max-w-lg rounded-2xl border border-line bg-surface px-5 py-4 text-center">
+            <p className="tabular-nums font-serif text-[36px] leading-none tracking-wide text-ink">
+              {countdown}
+            </p>
+            <p className="mt-2 text-[13px] font-medium text-ink">
+              Within 15 min, you will receive a link to download your photos directly in your email.
+            </p>
+            <p className="mt-1.5 text-[11.5px] text-muted">
+              You may check your spam folder if you can&apos;t find it immediately.
+            </p>
+          </div>
+        )}
+
         <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:items-start lg:gap-10">
-          <StudioReveal route={route} bookingId={booking.id} shotUrls={shotUrls} />
+          <StudioReveal
+            route={route}
+            bookingId={booking.id}
+            shotUrls={shotUrls}
+            director={director}
+            activeOffer={activeOffer}
+            onClaimOffer={onClaimOffer}
+            onDone={onDone}
+            offersRef={offersRef}
+          />
 
           <aside className="rounded-2xl border border-line bg-surface px-5 py-5">
             <p className="label-caps text-[9px] font-medium text-muted">Delivery</p>
             <p className="mt-2 text-[13px] text-ink">{booking.email}</p>
-            <p className="mt-1 text-[12px] text-muted">Within 4 hours</p>
+            <p className="mt-1 text-[12px] text-muted">Within 30 minutes</p>
 
             <div className="mt-4 border-t border-line pt-4">
               <p className="label-caps text-[9px] font-medium text-muted">Creative direction</p>
               <p className="mt-2 text-[13px] text-ink">{director.name}</p>
               <p className="mt-1 text-[12px] text-muted">{director.specialty}</p>
             </div>
-
-            {allReady && <ClosingNote director={director} />}
           </aside>
         </div>
-
-        {allReady && (
-          activeOffer ? (
-            <OfferReminder offer={activeOffer} onDone={onDone} />
-          ) : (
-            <UpsellOffer route={route} onClaim={onClaimOffer} onDone={onDone} />
-          )
-        )}
       </div>
     </StepLayout>
   );

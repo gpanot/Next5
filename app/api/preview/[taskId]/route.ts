@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { pollTask } from '../../../../src/lib/wavespeed';
 import { isMockGeneration } from '../../../../src/lib/mock';
 import { photoRoutes } from '../../../../src/data/routes';
+import { mirrorToR2, r2IsConfigured } from '../../../../src/lib/r2';
+import { prisma, isDbConfigured } from '../../../../src/lib/db';
 
 export type PollResponseBody = {
   status: string;
@@ -12,9 +14,6 @@ export type PollResponseBody = {
 const MOCK_PREFIX = 'mock-';
 const MOCK_GENERATION_MS = 5000;
 
-/** Reads back the studioId + start time `POST /api/preview` encoded into the
- *  taskId, so this stateless route can simulate a believable "processing"
- *  window before resolving to that studio's shot-1 placeholder image. */
 const pollMockTask = (taskId: string): PollResponseBody => {
   const rest = taskId.slice(MOCK_PREFIX.length);
   const lastDash = rest.lastIndexOf('-');
@@ -41,6 +40,13 @@ export async function GET(
     }
 
     const result = await pollTask(taskId);
+
+    if (result.status === 'completed' && result.url && isDbConfigured()) {
+      persistPreviewPhoto(taskId, result.url).catch((err) => {
+        console.error('[preview/poll] Failed to persist preview photo:', err);
+      });
+    }
+
     return NextResponse.json(result satisfies PollResponseBody);
   } catch (err) {
     console.error('[preview] GET poll error:', err);
@@ -49,4 +55,47 @@ export async function GET(
       { status: 500 },
     );
   }
+}
+
+async function persistPreviewPhoto(taskId: string, wavespeedUrl: string): Promise<void> {
+  const booking = await prisma.booking.findFirst({
+    where: { wavespeedTaskId: taskId },
+    select: { id: true, userId: true },
+  });
+
+  if (!booking) {
+    console.warn('[preview/poll] No booking found for taskId:', taskId);
+    return;
+  }
+
+  const { id: bookingId, userId } = booking;
+  const r2Key = `${bookingId}/shot-01.jpg`;
+
+  let isStored = false;
+  try {
+    if (r2IsConfigured()) {
+      await mirrorToR2(wavespeedUrl, r2Key);
+      isStored = true;
+    }
+  } catch (err) {
+    console.warn('[preview/poll] R2 mirror failed for preview shot:', err);
+  }
+
+  await prisma.photo.create({
+    data: {
+      bookingId,
+      userId,
+      type: 'preview',
+      sceneIndex: 0,
+      r2Key,
+      wavespeedUrl,
+      isStored,
+    },
+  }).catch((err) => {
+    if (err?.code !== 'P2002') console.warn('[preview/poll] Failed to insert preview photo:', err);
+  });
+
+  await prisma.booking
+    .update({ where: { id: bookingId }, data: { shootStatus: 'preview_ready' } })
+    .catch((err) => console.warn('[preview/poll] Failed to update shootStatus:', err));
 }

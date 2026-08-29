@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
 import type { FeelingChoice, GoalChoice, ShootIntention } from '../../../types/booking';
 import { Button } from '../../ui/Button';
@@ -50,6 +51,19 @@ export const IntentionStep = ({
   onNext,
 }: IntentionStepProps) => {
   const canContinue = intention.feelings.length > 0;
+  const goalSectionRef = useRef<HTMLDivElement>(null);
+  const prevFeelingsCount = useRef(intention.feelings.length);
+
+  useEffect(() => {
+    const prev = prevFeelingsCount.current;
+    prevFeelingsCount.current = intention.feelings.length;
+    // Scroll to the goal section only when the second feeling is just selected.
+    if (prev < 2 && intention.feelings.length === 2) {
+      setTimeout(() => {
+        goalSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
+    }
+  }, [intention.feelings.length]);
 
   return (
     <StepLayout
@@ -106,7 +120,7 @@ export const IntentionStep = ({
         </p>
       )}
 
-      <hr className="my-7 border-line" />
+      <div ref={goalSectionRef} className="my-7 border-t border-line" />
 
       <h3 className="font-serif text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
         What do you want these photos to do for you?

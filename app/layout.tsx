@@ -22,7 +22,7 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: 'NEXT5 — Your Next 5 Instagram Photos',
   description:
-    'A professional photoshoot, made for you. Choose your studio, show us your vibe, and get 5 personalized photos delivered within 4 hours. First studio 149K VND — a first-shoot offer.',
+    'A professional photoshoot, made for you. Choose your studio, show us your vibe, and get 5 personalized photos delivered within 30 minutes. First studio 149K VND — a first-shoot offer.',
 };
 
 export default function RootLayout({

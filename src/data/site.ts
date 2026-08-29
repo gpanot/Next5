@@ -35,7 +35,7 @@ export const heroFeatures: readonly { icon: Icon; lines: Bilingual<readonly [str
   },
   {
     icon: CalendarIcon,
-    lines: { en: ['Delivered', 'within 4 hours'], vi: ['Giao trong', '4 giờ'] },
+    lines: { en: ['Delivered', 'within 30 min'], vi: ['Giao trong', '30 phút'] },
   },
   {
     icon: CloudIcon,
@@ -94,8 +94,8 @@ export const howItWorksSteps: readonly HowItWorksStep[] = [
     icon: PhotoIcon,
     title: { en: 'Receive all 5 photos', vi: 'Nhận đủ 5 ảnh' },
     description: {
-      en: ['Complete shoot delivered', 'to your email in 4 hours.'],
-      vi: ['Bộ ảnh đầy đủ được gửi', 'vào email trong 4 giờ.'],
+      en: ['Complete shoot delivered', 'to your email in 30 min.'],
+      vi: ['Bộ ảnh đầy đủ được gửi', 'vào email trong 30 phút.'],
     },
   },
 ];

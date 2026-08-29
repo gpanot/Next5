@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
 import type { CustomerDetails } from '../../../types/booking';
 import { Button } from '../../ui/Button';
@@ -37,6 +37,8 @@ export const UploadStep = ({
 }: UploadStepProps) => {
   const [emailError, setEmailError] = useState('');
   const [photoError, setPhotoError] = useState('');
+  const emailSectionRef = useRef<HTMLDivElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = () => {
     const email = details.email.trim();
@@ -88,6 +90,18 @@ export const UploadStep = ({
           onPhotoChange={(dataUrl) => {
             setPhotoError('');
             onPhotoChange(dataUrl);
+            if (dataUrl) {
+              setTimeout(() => {
+                emailSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // On desktop (no software keyboard) auto-focus is safe.
+                // On mobile, focusing before the scroll settles causes the keyboard
+                // to open mid-scroll and push the field out of view — skip it there.
+                const isMobile = window.matchMedia('(pointer: coarse)').matches;
+                if (!isMobile) {
+                  setTimeout(() => emailInputRef.current?.focus(), 500);
+                }
+              }, 120);
+            }
           }}
           onRemove={() => onPhotoChange(null)}
           error={photoError}
@@ -106,14 +120,14 @@ export const UploadStep = ({
         </aside>
       </div>
 
-      <hr className="my-7 border-line" />
+      <div ref={emailSectionRef} className="my-7 border-t border-line" />
 
       <div>
         <h3 className="font-serif text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
           Where should we send your photos?
         </h3>
         <p className="mt-1.5 text-[12.5px] text-muted">
-          Your completed shoot will be delivered here within 4 hours.
+          Your completed shoot will be delivered here within 30 minutes.
         </p>
 
         <div className="mt-4 max-w-md">
@@ -126,6 +140,7 @@ export const UploadStep = ({
             placeholder="you@email.com"
             value={details.email}
             error={emailError}
+            inputRef={emailInputRef}
             onChange={(e) => {
               setEmailError('');
               onDetailsChange({ email: e.target.value });
