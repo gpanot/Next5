@@ -12,7 +12,7 @@ type UpsellOfferProps = {
   onDone: () => void;
 };
 
-const BUNDLE_PERCENT = 30;
+export const BUNDLE_PERCENT = 30;
 
 const scrollToRoutes = () => {
   requestAnimationFrame(() => {

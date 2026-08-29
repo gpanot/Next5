@@ -23,6 +23,11 @@ type StudioRevealProps = {
   onDone: () => void;
   /** Exposed so the parent footer CTA can scroll here. */
   offersRef?: React.RefObject<HTMLDivElement | null>;
+  /** False when the offer already lives elsewhere on the page (e.g. a
+   *  sidebar that's visible regardless of which shoot is selected) — showing
+   *  it again per-shoot would just be noise. The director's closing note
+   *  still shows either way; that's shoot-specific, not account-wide. */
+  showOffer?: boolean;
 };
 
 /** Same wide-lead mosaic used by `StudioGallery` — one visual language for
@@ -46,6 +51,7 @@ export const StudioReveal = ({
   onClaimOffer,
   onDone,
   offersRef,
+  showOffer = true,
 }: StudioRevealProps) => {
   const [zoomed, setZoomed] = useState<number | null>(null);
   const [isZipping, setIsZipping] = useState(false);
@@ -100,16 +106,19 @@ export const StudioReveal = ({
         {isZipping ? 'Preparing your download…' : 'Download all 5 photos'}
       </Button>
 
-      {/* Special offers + director note — always rendered so the footer CTA can scroll here */}
+      {/* Director note always shows; the offer only when it isn't already
+          shown elsewhere on the page (see `showOffer`). */}
       <div ref={offersRef} className="mt-6 scroll-mt-4">
         <ClosingNote director={director} />
-        <div className="mt-4">
-          {activeOffer ? (
-            <OfferReminder offer={activeOffer} onDone={onDone} />
-          ) : (
-            <UpsellOffer route={route} onClaim={onClaimOffer} onDone={onDone} />
-          )}
-        </div>
+        {showOffer && (
+          <div className="mt-4">
+            {activeOffer ? (
+              <OfferReminder offer={activeOffer} onDone={onDone} />
+            ) : (
+              <UpsellOffer route={route} onClaim={onClaimOffer} onDone={onDone} />
+            )}
+          </div>
+        )}
       </div>
 
       {zoomedUrl && (
