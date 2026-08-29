@@ -1,16 +1,19 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Inter } from 'next/font/google';
 import './globals.css';
+import { LocaleProvider } from '../src/i18n/LocaleContext';
 
+// 'vietnamese' subset added alongside 'latin' — the VI toggle needs full
+// diacritic coverage (ệ, ố, ữ, …), which the base latin subset doesn't carry.
 const inter = Inter({
   variable: '--font-inter',
-  subsets: ['latin'],
+  subsets: ['latin', 'vietnamese'],
   display: 'swap',
 });
 
 const cormorant = Cormorant_Garamond({
   variable: '--font-cormorant',
-  subsets: ['latin'],
+  subsets: ['latin', 'vietnamese'],
   weight: ['300', '400', '500', '600', '700'],
   style: ['normal', 'italic'],
   display: 'swap',
@@ -29,7 +32,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${cormorant.variable}`}>
-      <body className="min-h-full antialiased">{children}</body>
+      <body className="min-h-full antialiased">
+        <LocaleProvider>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import type { PhotoRoute } from '../../data/site';
-import { applyDiscount, discountBadgeLabel, formatVnd } from '../../lib/format';
+import { useLocale } from '../../i18n/LocaleContext';
+import { applyDiscount, formatVnd } from '../../lib/format';
 import { ArrowRightIcon, HeartIcon } from '../ui/Icons';
 import { PlaceholderImage } from '../ui/PlaceholderImage';
 
@@ -15,6 +16,14 @@ type RouteCardProps = {
 
 export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardProps) => {
   const [saved, setSaved] = useState(false);
+  const { t } = useLocale();
+
+  const badgeText =
+    discountPercent >= 50
+      ? t.routes.badgeIntro
+      : discountPercent >= 30
+        ? t.routes.badgeBundle(discountPercent)
+        : t.routes.badgeRepeat(discountPercent);
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-page shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgb(34_31_28/0.35)] focus-within:-translate-y-1">
@@ -41,7 +50,7 @@ export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardPro
 
         {discountPercent > 0 && (
           <span className="label-caps absolute bottom-3 left-3 rounded-full bg-accent px-2.5 py-1 text-[9.5px] font-medium text-white shadow-sm">
-            {discountBadgeLabel(discountPercent)}
+            {badgeText}
           </span>
         )}
 
@@ -84,10 +93,10 @@ export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardPro
             </span>{' '}
             <span className="text-ink">VND</span>
           </p>
-          <p className="mt-0.5 text-[11px] text-muted">5 personalized photos · 4h delivery</p>
+          <p className="mt-0.5 text-[11px] text-muted">{t.routes.meta}</p>
 
           <span className="label-caps mt-4 inline-flex w-full items-center justify-center gap-2.5 rounded-lg bg-ink-block px-4 py-2.5 text-[10px] font-medium text-on-dark transition-colors duration-300 group-hover:bg-ink-block/85">
-            Explore Studio
+            {t.routes.exploreStudio}
             <ArrowRightIcon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
           </span>
         </div>

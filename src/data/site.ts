@@ -12,22 +12,35 @@ import {
 } from '../components/ui/Icons';
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
+type Bilingual<T> = { en: T; vi: T };
 
-export const navLinks = [
-  { label: 'Studios', href: '#routes' },
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'FAQ', href: '#faq' },
-] as const;
+export const navLinks: readonly { label: Bilingual<string>; href: string }[] = [
+  { label: { en: 'Studios', vi: 'Studio' }, href: '#routes' },
+  { label: { en: 'How It Works', vi: 'Cách hoạt động' }, href: '#how-it-works' },
+  { label: { en: 'FAQ', vi: 'Hỏi đáp' }, href: '#faq' },
+];
 
 export const heroImage = heroPhoto;
 
 export const whatsAppUrl = 'https://wa.me/84000000000';
 
-export const heroFeatures: readonly { icon: Icon; lines: readonly [string, string] }[] = [
-  { icon: CameraIcon, lines: ['5 personalized', 'photos'] },
-  { icon: StarIcon, lines: ['Creative direction', 'included'] },
-  { icon: CalendarIcon, lines: ['Delivered', 'within 4 hours'] },
-  { icon: CloudIcon, lines: ['Immediate', 'first preview'] },
+export const heroFeatures: readonly { icon: Icon; lines: Bilingual<readonly [string, string]> }[] = [
+  {
+    icon: CameraIcon,
+    lines: { en: ['5 personalized', 'photos'], vi: ['5 ảnh', 'cá nhân hóa'] },
+  },
+  {
+    icon: StarIcon,
+    lines: { en: ['Creative direction', 'included'], vi: ['Có định hướng', 'sáng tạo'] },
+  },
+  {
+    icon: CalendarIcon,
+    lines: { en: ['Delivered', 'within 4 hours'], vi: ['Giao trong', '4 giờ'] },
+  },
+  {
+    icon: CloudIcon,
+    lines: { en: ['Immediate', 'first preview'], vi: ['Xem trước', 'ngay lập tức'] },
+  },
 ];
 
 export { photoRoutes, type PhotoRoute } from './routes';
@@ -35,40 +48,55 @@ export { photoRoutes, type PhotoRoute } from './routes';
 export type HowItWorksStep = {
   step: string;
   icon: Icon;
-  title: string;
-  description: readonly [string, string];
+  title: Bilingual<string>;
+  description: Bilingual<readonly [string, string]>;
 };
 
 export const howItWorksSteps: readonly HowItWorksStep[] = [
   {
     step: '1',
     icon: ImageIcon,
-    title: 'Choose your studio',
-    description: ['Pick the aesthetic that', 'matches your vibe.'],
+    title: { en: 'Choose your studio', vi: 'Chọn studio' },
+    description: {
+      en: ['Pick the aesthetic that', 'matches your vibe.'],
+      vi: ['Chọn phong cách phù hợp', 'với cá tính của bạn.'],
+    },
   },
   {
     step: '2',
     icon: SparkleIcon,
-    title: 'Tell us how you want to feel',
-    description: ['We craft your shoot', 'around your intention.'],
+    title: { en: 'Tell us how you want to feel', vi: 'Cho biết cảm giác bạn muốn' },
+    description: {
+      en: ['We craft your shoot', 'around your intention.'],
+      vi: ['Chúng tôi xây dựng bộ ảnh', 'theo mong muốn của bạn.'],
+    },
   },
   {
     step: '3',
     icon: UploadIcon,
-    title: 'Upload your photo',
-    description: ['One clear selfie is', 'all we need.'],
+    title: { en: 'Upload your photo', vi: 'Tải ảnh của bạn lên' },
+    description: {
+      en: ['One clear selfie is', 'all we need.'],
+      vi: ['Chỉ cần một ảnh selfie', 'rõ nét là đủ.'],
+    },
   },
   {
     step: '4',
     icon: CameraIcon,
-    title: 'See your first shot',
-    description: ['Get your personalized preview', 'before you pay.'],
+    title: { en: 'See your first shot', vi: 'Xem ảnh đầu tiên' },
+    description: {
+      en: ['Get your personalized preview', 'before you pay.'],
+      vi: ['Xem trước ảnh cá nhân hóa', 'trước khi thanh toán.'],
+    },
   },
   {
     step: '5',
     icon: PhotoIcon,
-    title: 'Receive all 5 photos',
-    description: ['Complete shoot delivered', 'to your email in 4 hours.'],
+    title: { en: 'Receive all 5 photos', vi: 'Nhận đủ 5 ảnh' },
+    description: {
+      en: ['Complete shoot delivered', 'to your email in 4 hours.'],
+      vi: ['Bộ ảnh đầy đủ được gửi', 'vào email trong 4 giờ.'],
+    },
   },
 ];
 

@@ -1,5 +1,8 @@
+'use client';
+
 import type { PhotoRoute } from '../../data/site';
 import { photoRoutes } from '../../data/site';
+import { useLocale } from '../../i18n/LocaleContext';
 import type { DiscountOffer } from '../../types/offer';
 import { SectionHeading } from '../ui/SectionHeading';
 import { RouteCard } from './RouteCard';
@@ -15,28 +18,16 @@ const OfferBanner = ({
   activeOffer,
   hasBookedBefore,
 }: Pick<PhotoRoutesProps, 'activeOffer' | 'hasBookedBefore'>) => {
-  if (activeOffer) {
-    return (
-      <p className="label-caps mt-5 text-center text-[10px] font-medium text-accent-strong">
-        Your {activeOffer.label} discount (-{activeOffer.percent}%) is active on{' '}
-        {activeOffer.eligibleRouteIds.length} studio{activeOffer.eligibleRouteIds.length === 1 ? '' : 's'}{' '}
-        below
-      </p>
-    );
-  }
+  const { t } = useLocale();
 
-  if (hasBookedBefore) {
-    return (
-      <p className="label-caps mt-5 text-center text-[10px] font-medium text-accent-strong">
-        Welcome back — every studio below is already 10% off for you
-      </p>
-    );
-  }
+  const message = activeOffer
+    ? t.routes.bannerOffer(activeOffer.label, activeOffer.percent, activeOffer.eligibleRouteIds.length)
+    : hasBookedBefore
+      ? t.routes.bannerReturning
+      : t.routes.bannerFirstTime;
 
   return (
-    <p className="label-caps mt-5 text-center text-[10px] font-medium text-accent-strong">
-      New here? Your first studio is 149,000 VND — a first-shoot offer, applied automatically
-    </p>
+    <p className="label-caps mt-5 text-center text-[10px] font-medium text-accent-strong">{message}</p>
   );
 };
 
@@ -45,26 +36,27 @@ export const PhotoRoutes = ({
   discountPercentFor,
   activeOffer,
   hasBookedBefore,
-}: PhotoRoutesProps) => (
-  <section id="routes" className="scroll-mt-20 bg-surface py-16 sm:py-20 lg:py-24">
-    <div className="mx-auto max-w-[1240px] px-5 sm:px-8 lg:px-10">
-      <SectionHeading
-        title="Choose your studio"
-        subtitle="5 personalized photos · Creative direction · Delivered within 4 hours"
-      />
+}: PhotoRoutesProps) => {
+  const { t } = useLocale();
 
-      <OfferBanner activeOffer={activeOffer} hasBookedBefore={hasBookedBefore} />
+  return (
+    <section id="routes" className="scroll-mt-20 bg-surface py-16 sm:py-20 lg:py-24">
+      <div className="mx-auto max-w-[1240px] px-5 sm:px-8 lg:px-10">
+        <SectionHeading title={t.routes.title} subtitle={t.routes.subtitle} />
 
-      <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:gap-4">
-        {photoRoutes.map((route) => (
-          <RouteCard
-            key={route.number}
-            route={route}
-            onSelect={onSelectRoute}
-            discountPercent={discountPercentFor(route.id)}
-          />
-        ))}
+        <OfferBanner activeOffer={activeOffer} hasBookedBefore={hasBookedBefore} />
+
+        <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 xl:gap-4">
+          {photoRoutes.map((route) => (
+            <RouteCard
+              key={route.number}
+              route={route}
+              onSelect={onSelectRoute}
+              discountPercent={discountPercentFor(route.id)}
+            />
+          ))}
+        </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
