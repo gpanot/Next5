@@ -46,7 +46,7 @@ const CreateShootPanelInner = ({
   });
 
   return (
-    <div className="-mx-6 space-y-6 sm:-mx-10">
+    <div className="space-y-6">
       <CollectionOffers missingRouteIds={missingRouteIds} activeOffer={activeOffer} onClaimOffer={onClaimOffer} />
       <PhotoRoutes
         onSelectRoute={flow.open}

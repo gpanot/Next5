@@ -131,7 +131,9 @@ export default function StudioPage() {
   if (auth.phase === 'unauthenticated' || auth.phase === 'sending' || auth.phase === 'sent') {
     return (
       <PageShell>
-        <LoginPanel auth={auth} onAuthChange={setAuth} />
+        <div className="px-6">
+          <LoginPanel auth={auth} onAuthChange={setAuth} />
+        </div>
       </PageShell>
     );
   }
@@ -139,7 +141,7 @@ export default function StudioPage() {
   if (auth.phase === 'error') {
     return (
       <PageShell>
-        <div className="mx-auto max-w-sm text-center py-20">
+        <div className="mx-auto max-w-sm px-6 text-center py-20">
           <p className="text-[14px] text-muted">{auth.message}</p>
           <button
             type="button"
@@ -163,11 +165,11 @@ export default function StudioPage() {
     >
       {studio.phase === 'loading' && <LoadingSpinner />}
       {studio.phase === 'error' && (
-        <p className="py-20 text-center text-[14px] text-muted">{studio.message}</p>
+        <p className="px-6 py-20 text-center text-[14px] text-muted">{studio.message}</p>
       )}
       {studio.phase === 'loaded' && (
         <>
-          <div className="mb-8">
+          <div className="mx-auto mb-8 max-w-6xl px-6 sm:px-10">
             <p className="label-caps text-[9.5px] font-medium text-accent-strong">Your studio</p>
             <h1 className="mt-2 font-serif text-[32px] tracking-[0.06em] text-ink uppercase leading-none">
               My Photos
@@ -224,7 +226,10 @@ function PageShell({
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10 sm:px-10">{children}</main>
+      {/* No horizontal cap here — the "create another shooting" view wants
+          the full width the studio grid gets on the homepage. Views that do
+          want the narrower reading width apply their own max-w-6xl. */}
+      <main className="py-10">{children}</main>
     </div>
   );
 }

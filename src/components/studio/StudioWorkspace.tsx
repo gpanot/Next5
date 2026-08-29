@@ -25,7 +25,11 @@ type StudioWorkspaceProps = {
 /** Each purchase is a dated shoot with a photographer, not just "more
  *  photos in a pile" — this is the sidebar-of-sessions + detail view that
  *  reflects that. Collapses to a list-then-detail pair on mobile, same
- *  pattern as any native mail/notes app. */
+ *  pattern as any native mail/notes app.
+ *
+ *  "Create another shooting" is its own full-width mode with no sidebar —
+ *  picking a studio should feel as spacious as it does on the homepage,
+ *  not squeezed into the leftover space beside a nav column. */
 export const StudioWorkspace = ({
   bookings,
   activeOffer,
@@ -66,56 +70,71 @@ export const StudioWorkspace = ({
     setMobilePane('detail');
   };
 
-  const startCreating = () => {
-    setView({ kind: 'create' });
-    setMobilePane('detail');
-  };
+  const startCreating = () => setView({ kind: 'create' });
 
   const handleBookingConfirmed = (bookingId: string) => {
     Promise.resolve(onRefresh()).then(() => selectShoot(bookingId));
   };
 
-  const selectedShoot = view.kind === 'shoot' ? shoots.find((s) => s.id === view.bookingId) ?? null : null;
-
-  return (
-    <div className="lg:flex lg:items-start lg:gap-10">
-      <div className={`${mobilePane === 'list' ? 'block' : 'hidden'} lg:block lg:w-[300px] lg:shrink-0`}>
-        <ShootSidebar
-          shoots={shoots}
-          selectedId={view.kind === 'shoot' ? view.bookingId : null}
-          isCreating={view.kind === 'create'}
-          onSelect={selectShoot}
-          onCreateNew={startCreating}
+  if (view.kind === 'create') {
+    return (
+      <div>
+        {shoots.length > 0 && (
+          <div className="mx-auto max-w-[1240px] px-5 pb-5 sm:px-8 lg:px-10">
+            <button
+              type="button"
+              onClick={() => selectShoot(shoots[0].id)}
+              className="flex items-center gap-1.5 text-[12.5px] text-muted hover:text-ink"
+            >
+              ← My Photos
+            </button>
+          </div>
+        )}
+        <CreateShootPanel
+          email={email}
+          activeOffer={activeOffer}
+          missingRouteIds={missingRouteIds}
+          onClaimOffer={onClaimOffer}
+          onBookingConfirmed={handleBookingConfirmed}
         />
       </div>
+    );
+  }
 
-      <div className={`${mobilePane === 'detail' ? 'block' : 'hidden'} min-w-0 flex-1 lg:block`}>
-        {shoots.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setMobilePane('list')}
-            className="mb-4 flex items-center gap-1.5 text-[12.5px] text-muted hover:text-ink lg:hidden"
-          >
-            ← Your shoots
-          </button>
-        )}
+  const selectedShoot = shoots.find((s) => s.id === view.bookingId) ?? null;
 
-        {view.kind === 'create' ? (
-          <CreateShootPanel
-            email={email}
-            activeOffer={activeOffer}
-            missingRouteIds={missingRouteIds}
-            onClaimOffer={onClaimOffer}
-            onBookingConfirmed={handleBookingConfirmed}
+  return (
+    <div className="mx-auto max-w-6xl px-6 sm:px-10">
+      <div className="lg:flex lg:items-start lg:gap-10">
+        <div className={`${mobilePane === 'list' ? 'block' : 'hidden'} lg:block lg:w-[300px] lg:shrink-0`}>
+          <ShootSidebar
+            shoots={shoots}
+            selectedId={view.bookingId}
+            onSelect={selectShoot}
+            onCreateNew={startCreating}
           />
-        ) : selectedShoot ? (
-          <ShootDetail
-            key={selectedShoot.id}
-            booking={selectedShoot}
-            token={token}
-            onUpdated={(updated) => onBookingsChange(bookings.map((b) => (b.id === updated.id ? updated : b)))}
-          />
-        ) : null}
+        </div>
+
+        <div className={`${mobilePane === 'detail' ? 'block' : 'hidden'} min-w-0 flex-1 lg:block`}>
+          {shoots.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setMobilePane('list')}
+              className="mb-4 flex items-center gap-1.5 text-[12.5px] text-muted hover:text-ink lg:hidden"
+            >
+              ← Your shoots
+            </button>
+          )}
+
+          {selectedShoot && (
+            <ShootDetail
+              key={selectedShoot.id}
+              booking={selectedShoot}
+              token={token}
+              onUpdated={(updated) => onBookingsChange(bookings.map((b) => (b.id === updated.id ? updated : b)))}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

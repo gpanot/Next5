@@ -3,7 +3,6 @@ import type { StudioBooking } from '../../../app/api/studio/me/route';
 type ShootSidebarProps = {
   shoots: StudioBooking[];
   selectedId: string | null;
-  isCreating: boolean;
   onSelect: (id: string) => void;
   onCreateNew: () => void;
 };
@@ -21,18 +20,16 @@ const shootStatusLabel = (shoot: StudioBooking): string => {
 
 /** Every purchase is a dated session with a photographer — this is the list
  *  of them. Doubles as the mobile "list" pane; the parent controls which
- *  pane shows on narrow screens. The collection offers live on the "create
- *  another shooting" screen, not here — this is pure navigation. */
-export const ShootSidebar = ({ shoots, selectedId, isCreating, onSelect, onCreateNew }: ShootSidebarProps) => (
+ *  pane shows on narrow screens. Only ever rendered while viewing a shoot —
+ *  "create another shooting" takes over the full width with no sidebar, so
+ *  there's no "active" state for this button to show. The collection
+ *  offers live on that screen too, not here — this is pure navigation. */
+export const ShootSidebar = ({ shoots, selectedId, onSelect, onCreateNew }: ShootSidebarProps) => (
   <div className="flex flex-col gap-5">
     <button
       type="button"
       onClick={onCreateNew}
-      aria-pressed={isCreating}
-      className={[
-        'label-caps flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-[10px] font-medium transition-colors duration-200',
-        isCreating ? 'bg-accent text-white' : 'bg-ink-block text-on-dark hover:bg-ink-block/85',
-      ].join(' ')}
+      className="label-caps flex w-full items-center justify-center gap-2 rounded-xl bg-ink-block px-4 py-3 text-[10px] font-medium text-on-dark transition-colors duration-200 hover:bg-ink-block/85"
     >
       + Create another shooting
     </button>
@@ -43,7 +40,7 @@ export const ShootSidebar = ({ shoots, selectedId, isCreating, onSelect, onCreat
         <ul className="mt-2 space-y-1.5">
           {shoots.map((shoot) => {
             const thumbnail = shootThumbnail(shoot);
-            const selected = shoot.id === selectedId && !isCreating;
+            const selected = shoot.id === selectedId;
 
             return (
               <li key={shoot.id}>
