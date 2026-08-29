@@ -34,6 +34,11 @@ model User {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  /** Claimed from the studio-reveal upsell. Null percent = no active offer. */
+  activeOfferPercent  Int?     @map("active_offer_percent")
+  activeOfferLabel    String?  @map("active_offer_label")
+  activeOfferRouteIds String[] @default([]) @map("active_offer_route_ids")
+
   bookings Booking[]
   photos   Photo[]
 

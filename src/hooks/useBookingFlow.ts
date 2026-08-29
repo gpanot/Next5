@@ -118,25 +118,48 @@ const recordOrder = (payload: OrderPayload): void => {
 
 export type BookingFlow = ReturnType<typeof useBookingFlow>;
 
-export const useBookingFlow = () => {
+export type UseBookingFlowOptions = {
+  /** Skip the 50% intro tier — pass `true` when mounting inside /studio,
+   *  where she's authenticated specifically because she already has a
+   *  booking, so every purchase from there is by definition a repeat one. */
+  initialHasBookedBefore?: boolean;
+  /** Hydrated from the server for authenticated users on /studio — unlike
+   *  the homepage's in-memory version, a claimed bundle offer is persisted
+   *  per-account now, so it needs to be seeded on mount rather than starting
+   *  at null every time. */
+  initialActiveOffer?: DiscountOffer | null;
+  /** Pre-fills the email field — used on /studio, where her address is
+   *  already known from her session, so she isn't asked to retype it. */
+  initialEmail?: string;
+  /** Called once a booking is confirmed, instead of the default hard
+   *  redirect to /studio — used when the flow is already mounted there, so
+   *  the caller can just refresh the bookings list and close the modal
+   *  in place rather than reloading the page she's already on. */
+  onBookingConfirmed?: (bookingId: string) => void;
+};
+
+export const useBookingFlow = (options: UseBookingFlowOptions = {}) => {
+  const { initialHasBookedBefore = false, initialActiveOffer = null, initialEmail = '', onBookingConfirmed } = options;
+
   const [route, setRoute] = useState<PhotoRoute | null>(null);
   const [step, setStep] = useState<BookingStep>('studio');
   const [directorId, setDirectorId] = useState<string | null>(null);
   const [intention, setIntention] = useState<ShootIntention>(emptyIntention);
   const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [details, setDetails] = useState<CustomerDetails>(emptyDetails);
+  const [details, setDetails] = useState<CustomerDetails>({ email: initialEmail });
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
-  // True while we are calling /api/orders and redirecting to /studio after payment.
-  const [isRedirectingToStudio, setIsRedirectingToStudio] = useState(false);
+  // True while we're calling /api/orders and finishing up after payment —
+  // either redirecting to /studio, or (see onBookingConfirmed) refreshing in place.
+  const [isConfirming, setIsConfirming] = useState(false);
   // Claimed from the studio-reveal upsell. Deliberately survives `open()` /
   // `close()` — she should be able to claim once and redeem it across several
   // separate bookings in the same session.
-  const [activeOffer, setActiveOffer] = useState<DiscountOffer | null>(null);
+  const [activeOffer, setActiveOffer] = useState<DiscountOffer | null>(initialActiveOffer);
   // True once she's completed one booking, ever. Drives the automatic
   // intro → repeat price step; survives `open()` / `close()` like `activeOffer`.
-  const [hasBookedBefore, setHasBookedBefore] = useState(false);
+  const [hasBookedBefore, setHasBookedBefore] = useState(initialHasBookedBefore);
 
   // Prevent recording the same order twice if re-renders fire setPaymentStatus multiple times
   const orderRecorded = useRef(false);
@@ -148,14 +171,14 @@ export const useBookingFlow = () => {
     setIntention(emptyIntention);
     setUploadedPhoto(null);
     setPreviewUrl(null);
-    setDetails(emptyDetails);
+    setDetails({ email: initialEmail });
     // Generate the booking ID immediately so it is available at preview time
     // (before payment), allowing the DB row to be created when the preview API is called.
     setBookingId(createBookingId(next.title));
     setPaymentStatus('pending');
-    setIsRedirectingToStudio(false);
+    setIsConfirming(false);
     orderRecorded.current = false;
-  }, []);
+  }, [initialEmail]);
 
   const close = useCallback(() => setRoute(null), []);
 
@@ -259,6 +282,7 @@ export const useBookingFlow = () => {
   const bookingIdRef = useRef(bookingId);
   const activeOfferRef = useRef(activeOffer);
   const hasBookedBeforeRef = useRef(hasBookedBefore);
+  const onBookingConfirmedRef = useRef(onBookingConfirmed);
   routeRef.current = route;
   directorRef.current = director;
   detailsRef.current = details;
@@ -266,6 +290,7 @@ export const useBookingFlow = () => {
   bookingIdRef.current = bookingId;
   activeOfferRef.current = activeOffer;
   hasBookedBeforeRef.current = hasBookedBefore;
+  onBookingConfirmedRef.current = onBookingConfirmed;
 
   const setPaymentStatusAndRecord = useCallback((status: PaymentStatus) => {
     setPaymentStatus(status);
@@ -304,7 +329,7 @@ export const useBookingFlow = () => {
         // Mark this booking as paid in localStorage (removes abuse flag)
         markBrowserPreviewPaid(bid);
 
-        setIsRedirectingToStudio(true);
+        setIsConfirming(true);
         redeemOffer(r.id);
         setHasBookedBefore(true);
 
@@ -323,9 +348,14 @@ export const useBookingFlow = () => {
             console.error('[orders] Failed to record order:', err);
           })
           .finally(() => {
-            // Brief pause on the "Payment confirmed" state, then navigate to studio
+            // Brief pause on the "Payment confirmed" state, then either hand
+            // back to the caller (already on /studio) or navigate there fresh.
             setTimeout(() => {
-              window.location.href = `/studio?bookingId=${bid}`;
+              if (onBookingConfirmedRef.current) {
+                onBookingConfirmedRef.current(bid);
+              } else {
+                window.location.href = `/studio?bookingId=${bid}`;
+              }
             }, 1500);
           });
       }
@@ -344,7 +374,7 @@ export const useBookingFlow = () => {
     details,
     booking,
     paymentStatus,
-    isRedirectingToStudio,
+    isConfirming,
     activeOffer,
     hasBookedBefore,
     discountPercentFor,

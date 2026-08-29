@@ -16,10 +16,10 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: payment_status; Type: TYPE; Schema: public; Owner: -
+-- Name: PaymentStatus; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public.payment_status AS ENUM (
+CREATE TYPE public."PaymentStatus" AS ENUM (
     'pending',
     'paid',
     'confirmed'
@@ -27,10 +27,10 @@ CREATE TYPE public.payment_status AS ENUM (
 
 
 --
--- Name: photo_type; Type: TYPE; Schema: public; Owner: -
+-- Name: PhotoType; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public.photo_type AS ENUM (
+CREATE TYPE public."PhotoType" AS ENUM (
     'upload',
     'preview',
     'generated'
@@ -38,10 +38,10 @@ CREATE TYPE public.photo_type AS ENUM (
 
 
 --
--- Name: shoot_status; Type: TYPE; Schema: public; Owner: -
+-- Name: ShootStatus; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public.shoot_status AS ENUM (
+CREATE TYPE public."ShootStatus" AS ENUM (
     'preview_generating',
     'preview_ready',
     'creating',
@@ -83,8 +83,8 @@ CREATE TABLE public.bookings (
     goals text[] DEFAULT '{}'::text[] NOT NULL,
     amount_vnd integer,
     discount_percent integer,
-    payment_status public.payment_status DEFAULT 'pending'::public.payment_status NOT NULL,
-    shoot_status public.shoot_status DEFAULT 'preview_generating'::public.shoot_status NOT NULL,
+    payment_status public."PaymentStatus" DEFAULT 'pending'::public."PaymentStatus" NOT NULL,
+    shoot_status public."ShootStatus" DEFAULT 'preview_generating'::public."ShootStatus" NOT NULL,
     wavespeed_task_id text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
@@ -99,7 +99,7 @@ CREATE TABLE public.photos (
     id text NOT NULL,
     booking_id text NOT NULL,
     user_id text,
-    type public.photo_type NOT NULL,
+    type public."PhotoType" NOT NULL,
     scene_index integer,
     r2_key text,
     wavespeed_url text,
@@ -142,7 +142,10 @@ CREATE TABLE public.users (
     email text NOT NULL,
     display_name text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    active_offer_percent integer,
+    active_offer_label text,
+    active_offer_route_ids text[] DEFAULT '{}'::text[] NOT NULL
 );
 
 
@@ -294,4 +297,5 @@ ALTER TABLE ONLY public.photos
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20260829000000');
+    ('20260829000000'),
+    ('20260829083650');

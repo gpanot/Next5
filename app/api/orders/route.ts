@@ -65,12 +65,26 @@ export async function POST(req: NextRequest) {
       where: { email: body.email },
       update: {},
       create: { email: body.email },
-      select: { id: true },
+      select: { id: true, activeOfferPercent: true, activeOfferRouteIds: true },
     });
     sessionToken = signSessionToken(user.id, body.email);
     console.log('[orders] Session token signed for:', body.email, '| booking:', body.bookingId);
+
+    // Redeem the persisted offer server-side too — the client's local copy
+    // (see redeemOffer in useBookingFlow) only covers the current browser;
+    // this is what makes it correct across sessions and devices.
+    if (user.activeOfferPercent && user.activeOfferRouteIds.includes(body.studioId)) {
+      const remaining = user.activeOfferRouteIds.filter((id) => id !== body.studioId);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: remaining.length > 0
+          ? { activeOfferRouteIds: remaining }
+          : { activeOfferPercent: null, activeOfferLabel: null, activeOfferRouteIds: [] },
+      });
+      console.log('[orders] Offer redeemed for studio:', body.studioId, '| remaining:', remaining);
+    }
   } catch (err) {
-    console.warn('[orders] Session token signing failed (non-fatal):', err);
+    console.warn('[orders] Session token signing / offer redemption failed (non-fatal):', err);
   }
 
   // Send a 30-day magic-link email so the customer can re-access their studio later.

@@ -3,7 +3,6 @@
 import { useCallback, useEffect } from 'react';
 import type { BookingFlow } from '../../hooks/useBookingFlow';
 import { checkBrowserPreviewAllowed } from '../../hooks/useBookingFlow';
-import { ConfirmedStep } from './steps/ConfirmedStep';
 import { IntentionStep } from './steps/IntentionStep';
 import { PaymentStep } from './steps/PaymentStep';
 import { PreviewStep } from './steps/PreviewStep';
@@ -138,29 +137,19 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
     );
   }
 
-  // Payment confirmed → redirecting to studio page instead of showing ConfirmedStep
-  if (flow.isRedirectingToStudio) {
-    return (
-      <StepLayout centered>
-        <div className="animate-fade-in flex flex-col items-center gap-5 py-20 text-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-accent" />
-          <p className="font-serif text-[22px] tracking-[0.05em] text-ink uppercase">
-            Taking you to your studio
-          </p>
-          <p className="text-[13px] text-muted">Your shoot has started…</p>
-        </div>
-      </StepLayout>
-    );
-  }
-
+  // Payment confirmed. Her studio (with the full reveal + offers) lives on
+  // /studio now, not in this modal — this is just the brief hand-off moment
+  // before the flow either redirects there or (already on /studio) refreshes
+  // the bookings list in place. See useBookingFlow's onBookingConfirmed.
   return (
-    <ConfirmedStep
-      route={route}
-      director={director}
-      booking={booking}
-      onDone={flow.close}
-      activeOffer={flow.activeOffer}
-      onClaimOffer={flow.claimOffer}
-    />
+    <StepLayout centered>
+      <div className="animate-fade-in flex flex-col items-center gap-5 py-20 text-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-accent" />
+        <p className="font-serif text-[22px] tracking-[0.05em] text-ink uppercase">
+          Payment confirmed
+        </p>
+        <p className="text-[13px] text-muted">Your shoot has started…</p>
+      </div>
+    </StepLayout>
   );
 };

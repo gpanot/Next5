@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, isDbConfigured } from '../../../../src/lib/db';
 import { verifySessionToken } from '../../../../src/lib/studio-auth';
 import { getPresignedUrl, r2IsConfigured } from '../../../../src/lib/r2';
+import type { DiscountOffer } from '../../../../src/types/offer';
 
 export type StudioPhoto = {
   id: string;
@@ -23,6 +24,7 @@ export type StudioBooking = {
   id: string;
   route_id: string;
   route_title: string;
+  director_id: string;
   director_name: string;
   shoot_status: string;
   payment_status: string;
@@ -34,6 +36,8 @@ export type StudioBooking = {
 
 export type StudioMeResponse = {
   bookings: StudioBooking[];
+  /** Persisted per-account — survives across sessions and devices. */
+  activeOffer: DiscountOffer | null;
 };
 
 const PRESIGNED_URL_TTL = 60 * 60 * 24; // 24 hours
@@ -58,22 +62,38 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
   }
 
-  const bookings = await prisma.booking.findMany({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      photos: {
-        select: {
-          id: true,
-          type: true,
-          sceneIndex: true,
-          r2Key: true,
-          wavespeedUrl: true,
-          isStored: true,
+  const [user, bookings] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { activeOfferPercent: true, activeOfferLabel: true, activeOfferRouteIds: true },
+    }),
+    prisma.booking.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        photos: {
+          select: {
+            id: true,
+            type: true,
+            sceneIndex: true,
+            r2Key: true,
+            wavespeedUrl: true,
+            isStored: true,
+          },
         },
       },
-    },
-  });
+    }),
+  ]);
+
+  const activeOffer: DiscountOffer | null =
+    user?.activeOfferPercent && user.activeOfferLabel
+      ? {
+          percent: user.activeOfferPercent,
+          label: user.activeOfferLabel,
+          eligibleRouteIds: user.activeOfferRouteIds,
+          multiUse: true,
+        }
+      : null;
 
   const result: StudioBooking[] = await Promise.all(
     bookings.map(async (booking) => {
@@ -108,6 +128,7 @@ export async function GET(req: NextRequest) {
         id: booking.id,
         route_id: booking.routeId,
         route_title: booking.routeTitle,
+        director_id: booking.directorId,
         director_name: booking.directorName,
         shoot_status: booking.shootStatus,
         payment_status: booking.paymentStatus,
@@ -119,5 +140,5 @@ export async function GET(req: NextRequest) {
     }),
   );
 
-  return NextResponse.json({ bookings: result } satisfies StudioMeResponse);
+  return NextResponse.json({ bookings: result, activeOffer } satisfies StudioMeResponse);
 }

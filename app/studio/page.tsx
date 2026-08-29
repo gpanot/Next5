@@ -1,9 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { StudioBooking } from '../api/studio/me/route';
+import Link from 'next/link';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { StudioBooking, StudioMeResponse } from '../api/studio/me/route';
 import type { SceneResponseBody } from '../api/generate/scene/route';
 import { downloadFile } from '../../src/lib/download';
+import { photoRoutes } from '../../src/data/routes';
+import type { RouteId } from '../../src/data/photos';
+import { getCreativeDirector } from '../../src/data/photographers';
+import { useBookingFlow } from '../../src/hooks/useBookingFlow';
+import { BookingModal } from '../../src/components/booking/BookingModal';
+import { PhotoRoutes } from '../../src/components/sections/PhotoRoutes';
+import { StudioReveal } from '../../src/components/booking/confirmed/StudioReveal';
+import type { CreativeDirector } from '../../src/types/booking';
+import type { DiscountOffer } from '../../src/types/offer';
 
 const STORAGE_KEY = 'studio_token';
 const TOTAL_SHOTS = 5;
@@ -21,7 +31,7 @@ type AuthState =
 
 type StudioState =
   | { phase: 'loading' }
-  | { phase: 'loaded'; bookings: StudioBooking[] }
+  | { phase: 'loaded'; bookings: StudioBooking[]; activeOffer: DiscountOffer | null }
   | { phase: 'error'; message: string };
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -82,29 +92,28 @@ export default function StudioPage() {
     }
   }, []);
 
-  const loadBookings = useCallback(
-    (token: string) => {
-      fetch('/api/studio/me', {
-        headers: { Authorization: `Bearer ${token}` },
+  const loadBookings = useCallback((token: string) => {
+    fetch('/api/studio/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (res.status === 401) {
+          localStorage.removeItem(STORAGE_KEY);
+          setAuth({ phase: 'unauthenticated' });
+          throw new Error('Session expired');
+        }
+        return res.json();
       })
-        .then((res) => {
-          if (res.status === 401) {
-            localStorage.removeItem(STORAGE_KEY);
-            setAuth({ phase: 'unauthenticated' });
-            throw new Error('Session expired');
-          }
-          return res.json();
-        })
-        .then((data) => setStudio({ phase: 'loaded', bookings: data.bookings ?? [] }))
-        .catch((err) =>
-          setStudio({
-            phase: 'error',
-            message: err instanceof Error ? err.message : 'Failed to load studio',
-          }),
-        );
-    },
-    [],
-  );
+      .then((data: StudioMeResponse) =>
+        setStudio({ phase: 'loaded', bookings: data.bookings ?? [], activeOffer: data.activeOffer ?? null }),
+      )
+      .catch((err) =>
+        setStudio({
+          phase: 'error',
+          message: err instanceof Error ? err.message : 'Failed to load studio',
+        }),
+      );
+  }, []);
 
   // Fetch bookings once authenticated
   useEffect(() => {
@@ -112,6 +121,19 @@ export default function StudioPage() {
     setStudio({ phase: 'loading' });
     loadBookings(auth.token);
   }, [auth, loadBookings]);
+
+  const claimOffer = useCallback(
+    (offer: DiscountOffer) => {
+      if (auth.phase !== 'authenticated' || studio.phase !== 'loaded') return;
+      setStudio({ ...studio, activeOffer: offer });
+      fetch('/api/studio/offer/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth.token}` },
+        body: JSON.stringify(offer),
+      }).catch((err) => console.error('[studio] Failed to persist claimed offer:', err));
+    },
+    [auth, studio],
+  );
 
   if (auth.phase === 'checking') {
     return <PageShell><LoadingSpinner /></PageShell>;
@@ -157,11 +179,15 @@ export default function StudioPage() {
       {studio.phase === 'loaded' && (
         <StudioGallery
           bookings={studio.bookings}
+          activeOffer={studio.activeOffer}
           activeBookingId={activeBookingId}
           token={auth.token}
+          email={auth.email}
+          onClaimOffer={claimOffer}
           onBookingsChange={(updated) =>
-            setStudio({ phase: 'loaded', bookings: updated })
+            setStudio({ ...studio, bookings: updated })
           }
+          onRefresh={() => loadBookings(auth.token)}
         />
       )}
     </PageShell>
@@ -183,9 +209,9 @@ function PageShell({
     <div className="min-h-screen bg-page">
       <header className="border-b border-line px-6 py-4 sm:px-10">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <a href="/" className="font-serif text-[22px] tracking-[0.12em] text-ink uppercase">
+          <Link href="/" className="font-serif text-[22px] tracking-[0.12em] text-ink uppercase">
             Next5
-          </a>
+          </Link>
           <div className="flex items-center gap-4">
             {email && (
               <span className="hidden text-[12px] text-muted sm:inline">{email}</span>
@@ -199,12 +225,6 @@ function PageShell({
                 Sign out
               </button>
             )}
-            <a
-              href="/"
-              className="rounded-full border border-line px-4 py-1.5 text-[12px] text-ink transition-colors hover:bg-surface-alt"
-            >
-              New shoot
-            </a>
           </div>
         </div>
       </header>
@@ -292,11 +312,11 @@ function LoginPanel({
               }}
               className="w-full rounded-xl border border-line bg-surface px-4 py-3 text-[14px] text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/25"
             />
-            {emailError && <p className="text-left text-[12px] text-red-500">{emailError}</p>}
+            {emailError && <p className="text-left text-[12px] text-accent-strong">{emailError}</p>}
             <button
               type="submit"
               disabled={auth.phase === 'sending'}
-              className="w-full rounded-xl bg-ink px-6 py-3 font-serif text-[15px] tracking-[0.06em] text-white uppercase transition-opacity hover:opacity-80 disabled:opacity-50"
+              className="w-full rounded-xl bg-ink-block px-6 py-3 font-serif text-[15px] tracking-[0.06em] text-white uppercase transition-opacity hover:opacity-80 disabled:opacity-50"
             >
               {auth.phase === 'sending' ? 'Sending…' : 'Access my studio'}
             </button>
@@ -311,38 +331,31 @@ function LoginPanel({
 
 function StudioGallery({
   bookings,
+  activeOffer,
   activeBookingId,
   token,
+  email,
+  onClaimOffer,
   onBookingsChange,
+  onRefresh,
 }: {
   bookings: StudioBooking[];
+  activeOffer: DiscountOffer | null;
   activeBookingId: string | null;
   token: string;
+  email: string;
+  onClaimOffer: (offer: DiscountOffer) => void;
   onBookingsChange: (updated: StudioBooking[]) => void;
+  onRefresh: () => void;
 }) {
-  const activeBooking = activeBookingId
-    ? bookings.find((b) => b.id === activeBookingId) ?? null
-    : null;
-  const otherBookings = activeBookingId
-    ? bookings.filter((b) => b.id !== activeBookingId)
-    : bookings;
+  // Abandoned/unpaid previews still create a DB row (so the account exists
+  // even if she never finishes) — those aren't "her studio" content yet.
+  const paidBookings = useMemo(() => bookings.filter((b) => b.payment_status === 'confirmed'), [bookings]);
 
-  if (bookings.length === 0) {
-    return (
-      <div className="py-20 text-center">
-        <p className="font-serif text-[22px] tracking-[0.06em] text-ink">No shoots yet</p>
-        <p className="mt-2 text-[13px] text-muted">
-          Your photos will appear here after your first shoot.
-        </p>
-        <a
-          href="/"
-          className="mt-6 inline-block rounded-xl bg-ink px-6 py-3 font-serif text-[14px] tracking-[0.06em] text-white uppercase transition-opacity hover:opacity-80"
-        >
-          Start your first shoot
-        </a>
-      </div>
-    );
-  }
+  const activeBooking = activeBookingId
+    ? paidBookings.find((b) => b.id === activeBookingId) ?? null
+    : (paidBookings[0] ?? null); // default to the most recent so the offers are visible on any visit, not just right after paying
+  const otherBookings = paidBookings.filter((b) => b.id !== activeBooking?.id);
 
   return (
     <div className="space-y-12">
@@ -351,70 +364,98 @@ function StudioGallery({
         <h1 className="mt-2 font-serif text-[32px] tracking-[0.06em] text-ink uppercase leading-none">
           My Photos
         </h1>
-        <p className="mt-1 text-[13px] text-muted">
-          {bookings.length} {bookings.length === 1 ? 'shoot' : 'shoots'}
-        </p>
+        {paidBookings.length > 0 && (
+          <p className="mt-1 text-[13px] text-muted">
+            {paidBookings.length} {paidBookings.length === 1 ? 'shoot' : 'shoots'}
+          </p>
+        )}
       </div>
 
-      {/* Active booking (just paid) shown at the top with generation progress */}
-      {activeBooking && (
-        <ActiveBookingCard
-          booking={activeBooking}
-          token={token}
-          onUpdated={(updated) =>
-            onBookingsChange(bookings.map((b) => (b.id === updated.id ? updated : b)))
-          }
-        />
+      {paidBookings.length === 0 ? (
+        <div className="py-10 text-center">
+          <p className="font-serif text-[22px] tracking-[0.06em] text-ink">No shoots yet</p>
+          <p className="mt-2 text-[13px] text-muted">Pick a studio below to start your first shoot.</p>
+        </div>
+      ) : (
+        <>
+          {activeBooking && (
+            <BookingReveal
+              booking={activeBooking}
+              token={token}
+              activeOffer={activeOffer}
+              onClaimOffer={onClaimOffer}
+              onUpdated={(updated) =>
+                onBookingsChange(bookings.map((b) => (b.id === updated.id ? updated : b)))
+              }
+            />
+          )}
+
+          {otherBookings.map((booking) => (
+            <BookingReveal
+              key={booking.id}
+              booking={booking}
+              token={token}
+              activeOffer={null}
+              onClaimOffer={onClaimOffer}
+              onUpdated={(updated) =>
+                onBookingsChange(bookings.map((b) => (b.id === updated.id ? updated : b)))
+              }
+              compact
+            />
+          ))}
+        </>
       )}
 
-      {otherBookings.map((booking) => (
-        <BookingCard key={booking.id} booking={booking} />
-      ))}
+      <div className="border-t border-line pt-10">
+        <p className="label-caps text-[9.5px] font-medium text-accent-strong">
+          {paidBookings.length === 0 ? 'Get started' : 'Want another look?'}
+        </p>
+        <h2 className="mt-2 font-serif text-[26px] tracking-[0.05em] text-ink uppercase leading-none">
+          Book another studio
+        </h2>
+        <div className="mt-6 -mx-6 sm:-mx-10">
+          <BookAnotherStudio email={email} token={token} activeOffer={activeOffer} onBookingConfirmed={onRefresh} />
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Active booking card (generating photos) ───────────────────────────────────
+// ── One booking's reveal (delivered, or still generating) ─────────────────────
 
-type GeneratedShot = { sceneIndex: number; url: string };
-
-function ActiveBookingCard({
+function BookingReveal({
   booking,
   token,
+  activeOffer,
+  onClaimOffer,
   onUpdated,
+  compact = false,
 }: {
   booking: StudioBooking;
   token: string;
+  /** Only the highlighted/active booking pitches an offer — showing it again
+   *  on every past booking would just be noise. */
+  activeOffer: DiscountOffer | null;
+  onClaimOffer: (offer: DiscountOffer) => void;
   onUpdated: (updated: StudioBooking) => void;
+  compact?: boolean;
 }) {
-  const [extraShots, setExtraShots] = useState<GeneratedShot[]>([]);
+  const [extraShots, setExtraShots] = useState<{ sceneIndex: number; url: string }[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const started = useRef(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const generatedCount =
-    booking.photos.filter((p) => p.type === 'generated' || p.type === 'preview').length +
-    extraShots.length;
-
-  const isDelivered =
-    booking.shoot_status === 'delivered' || generatedCount >= TOTAL_SHOTS;
-
-  // Determine which sceneIndexes still need generation (1–4, preview is 0)
   const existingScenes = new Set(
-    booking.photos
-      .filter((p) => p.type === 'generated' && p.scene_index !== null)
-      .map((p) => p.scene_index as number),
+    booking.photos.filter((p) => p.type === 'generated' && p.scene_index !== null).map((p) => p.scene_index as number),
   );
   const pendingScenes = [1, 2, 3, 4].filter(
     (i) => !existingScenes.has(i) && !extraShots.find((s) => s.sceneIndex === i),
   );
 
-  // Start generation for pending scenes
   useEffect(() => {
     if (started.current) return;
     if (pendingScenes.length === 0) return;
-    if (isDelivered) return;
-    if (booking.payment_status !== 'confirmed') return;
+    if (booking.shoot_status === 'delivered') return;
 
     started.current = true;
     setIsGenerating(true);
@@ -449,13 +490,12 @@ function ActiveBookingCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Poll for updated booking data after generation completes
   useEffect(() => {
     if (!isGenerating) return;
     pollRef.current = setInterval(() => {
       fetch('/api/studio/me', { headers: { Authorization: `Bearer ${token}` } })
         .then((r) => r.json())
-        .then((data: { bookings?: StudioBooking[] }) => {
+        .then((data: StudioMeResponse) => {
           const updated = data.bookings?.find((b) => b.id === booking.id);
           if (updated) onUpdated(updated);
         })
@@ -466,150 +506,88 @@ function ActiveBookingCard({
     };
   }, [isGenerating, token, booking.id, onUpdated]);
 
-  // Build the full 5-shot URL array (preview + generated)
   const previewPhoto = booking.photos.find((p) => p.type === 'preview');
   const shotUrls: (string | null)[] = Array.from({ length: TOTAL_SHOTS }, (_, i) => {
     if (i === 0) return previewPhoto?.url ?? null;
-    const existing = booking.photos.find(
-      (p) => p.type === 'generated' && p.scene_index === i,
-    );
+    const existing = booking.photos.find((p) => p.type === 'generated' && p.scene_index === i);
     if (existing?.url) return existing.url;
     return extraShots.find((s) => s.sceneIndex === i)?.url ?? null;
   });
 
-  const readyCount = shotUrls.filter(Boolean).length;
+  let route, director: CreativeDirector | null;
+  try {
+    route = photoRoutes.find((r) => r.id === booking.route_id) ?? null;
+    director = route && booking.director_id ? getCreativeDirector(booking.director_id, route.id as RouteId) : null;
+  } catch {
+    route = null;
+    director = null;
+  }
+
+  if (compact) {
+    return (
+      <CompactBookingCard booking={booking} shotUrls={shotUrls} routeTitle={route?.title ?? booking.route_title} />
+    );
+  }
+
+  if (!route || !director) {
+    // Data doesn't resolve to a known studio/director — fall back to the
+    // simple read-only card rather than crashing StudioReveal.
+    return (
+      <CompactBookingCard booking={booking} shotUrls={shotUrls} routeTitle={route?.title ?? booking.route_title} />
+    );
+  }
 
   return (
-    <article className="animate-fade-in rounded-2xl border-2 border-accent/30 bg-surface overflow-hidden shadow-[0_0_0_4px_rgba(var(--color-accent)/.06)]">
-      <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-line">
-        <div>
-          <p className="label-caps text-[9px] font-medium text-accent-strong">Just booked</p>
-          <p className="mt-0.5 font-serif text-[18px] tracking-[0.05em] text-ink">
-            {booking.route_title || booking.route_id}
-          </p>
-          <p className="text-[12px] text-muted">
-            {isDelivered
-              ? `All ${TOTAL_SHOTS} photos ready`
-              : `${readyCount} of ${TOTAL_SHOTS} photos ready · ${isGenerating ? 'Generating…' : 'Starting…'}`}
-          </p>
-        </div>
-        {isDelivered && (
-          <button
-            type="button"
-            onClick={() =>
-              downloadAll(
-                shotUrls
-                  .map((url, i) => ({ url, scene_index: i, id: `shot-${i}`, type: 'generated', is_stored: false }))
-                  .filter((p) => p.url) as (typeof booking.photos[number] & { url: string })[],
-                booking.route_id,
-              )
-            }
-            className="shrink-0 rounded-xl border border-line bg-page px-4 py-2 text-[12px] text-ink transition-colors hover:bg-surface-alt"
-          >
-            Download all
-          </button>
-        )}
-      </div>
-
-      {/* Progress bar */}
-      {!isDelivered && (
-        <div className="px-5 pt-3">
-          <div className="h-1 w-full rounded-full bg-surface-alt overflow-hidden">
-            <div
-              className="h-full rounded-full bg-accent transition-all duration-1000"
-              style={{ width: `${(readyCount / TOTAL_SHOTS) * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-5 gap-0.5 bg-line mt-3">
-        {shotUrls.map((url, index) => (
-          <div key={index} className="relative aspect-[3/4] overflow-hidden bg-surface-alt">
-            {url ? (
-              <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={url}
-                  alt={`Shot ${index + 1}`}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
-                  <span className="font-serif text-[10px] text-white/80 drop-shadow">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      downloadFile(url, `next5-${booking.route_id}-shot${String(index + 1).padStart(2, '0')}.jpg`)
-                    }
-                    className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-                    aria-label={`Download shot ${index + 1}`}
-                  >
-                    <DownloadIcon />
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="flex h-full items-center justify-center">
-                {isGenerating ? (
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-line border-t-accent" />
-                ) : (
-                  <span className="font-serif text-[11px] text-muted">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <div className="px-5 py-4">
-        <p className="text-[12px] text-muted">
-          Booking <span className="font-medium text-ink">#{booking.id}</span> · Your photos will also be sent to your email.
-        </p>
-      </div>
-    </article>
+    <div>
+      <p className="label-caps text-[9px] font-medium text-accent-strong">
+        {isGenerating ? 'Creating your shoot…' : 'Ready'}
+      </p>
+      <StudioReveal
+        route={route}
+        bookingId={booking.id}
+        shotUrls={shotUrls}
+        director={director}
+        activeOffer={activeOffer}
+        onClaimOffer={onClaimOffer}
+        onDone={() => {}}
+      />
+    </div>
   );
 }
 
-// ── Booking card ──────────────────────────────────────────────────────────────
-
-function BookingCard({ booking }: { booking: StudioBooking }) {
-  const deliveredPhotos = booking.photos.filter(
-    (p) => (p.type === 'generated' || p.type === 'preview') && p.url,
-  );
-  const statusLabel =
-    {
-      preview_generating: 'Generating preview…',
-      preview_ready: 'Preview ready',
-      creating: 'Creating your shoot…',
-      delivered: 'Delivered',
-      error: 'Error',
-    }[booking.shoot_status] ?? booking.shoot_status;
-
-  const isDelivered = booking.shoot_status === 'delivered';
+/** Plain read-only gallery — used for past bookings, and as a fallback when a
+ *  booking's route/director can't be resolved to known data. */
+function CompactBookingCard({
+  booking,
+  shotUrls,
+  routeTitle,
+}: {
+  booking: StudioBooking;
+  shotUrls: (string | null)[];
+  routeTitle: string;
+}) {
+  const ready = shotUrls.filter(Boolean) as string[];
 
   return (
     <article className="rounded-2xl border border-line bg-surface overflow-hidden">
       <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-line">
         <div>
           <p className="label-caps text-[9px] font-medium text-muted">{booking.id}</p>
-          <p className="mt-0.5 font-serif text-[18px] tracking-[0.05em] text-ink">
-            {booking.route_title}
-          </p>
+          <p className="mt-0.5 font-serif text-[18px] tracking-[0.05em] text-ink">{routeTitle}</p>
           <p className="text-[12px] text-muted">
             {booking.director_name && `With ${booking.director_name} · `}
-            {statusLabel}
+            {booking.shoot_status === 'delivered' ? 'Delivered' : 'Creating your shoot…'}
           </p>
         </div>
-
-        {isDelivered && deliveredPhotos.length > 0 && (
+        {ready.length > 0 && (
           <button
             type="button"
-            onClick={() => downloadAll(deliveredPhotos as (typeof deliveredPhotos[number] & { url: string })[], booking.route_id)}
+            onClick={async () => {
+              for (const [i, url] of ready.entries()) {
+                downloadFile(url, `next5-${booking.route_id}-shot${String(i + 1).padStart(2, '0')}.jpg`);
+                await new Promise((r) => setTimeout(r, 250));
+              }
+            }}
             className="shrink-0 rounded-xl border border-line bg-page px-4 py-2 text-[12px] text-ink transition-colors hover:bg-surface-alt"
           >
             Download all
@@ -617,77 +595,86 @@ function BookingCard({ booking }: { booking: StudioBooking }) {
         )}
       </div>
 
-      {deliveredPhotos.length > 0 ? (
+      {ready.length > 0 ? (
         <div className="grid grid-cols-2 gap-0.5 sm:grid-cols-3 md:grid-cols-5 bg-line">
-          {deliveredPhotos.map((photo, index) => (
-            <PhotoTile key={photo.id} photo={photo} index={index} routeId={booking.route_id} />
+          {ready.map((url, index) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={url}
+              src={url}
+              alt={`Shot ${index + 1}`}
+              className="aspect-[3/4] w-full object-cover"
+              loading="lazy"
+            />
           ))}
         </div>
       ) : (
-        <div className="px-5 py-8 text-center text-[13px] text-muted">
-          {isDelivered ? 'No photos found.' : 'Your photos are being created…'}
-        </div>
+        <div className="px-5 py-8 text-center text-[13px] text-muted">Your photos are being created…</div>
       )}
     </article>
   );
 }
 
-// ── Photo tile ────────────────────────────────────────────────────────────────
+// ── Book another studio ───────────────────────────────────────────────────────
 
-type PhotoTilePhoto = { id: string; url: string | null; type: string; scene_index: number | null };
-
-function PhotoTile({
-  photo,
-  index,
-  routeId,
+function BookAnotherStudio({
+  email,
+  token,
+  activeOffer,
+  onBookingConfirmed,
 }: {
-  photo: PhotoTilePhoto;
-  index: number;
-  routeId: string;
+  email: string;
+  token: string;
+  activeOffer: DiscountOffer | null;
+  onBookingConfirmed: () => void;
 }) {
-  if (!photo.url) return null;
-
-  const shotLabel =
-    photo.scene_index !== null ? `0${photo.scene_index + 1}` : `0${index + 1}`;
-
   return (
-    <div className="relative group aspect-[3/4] overflow-hidden bg-surface-alt">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={photo.url}
-        alt={`Shot ${shotLabel}`}
-        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-        loading="lazy"
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        <span className="font-serif text-[11px] text-white/90">{shotLabel}</span>
-        <button
-          type="button"
-          onClick={() => downloadFile(photo.url!, `next5-${routeId}-shot${shotLabel}.jpg`)}
-          className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm transition-colors hover:bg-white/40"
-          aria-label={`Download shot ${shotLabel}`}
-        >
-          <DownloadIcon />
-        </button>
-      </div>
-    </div>
+    <BookAnotherStudioInner
+      // Remounts (with a fresh useBookingFlow) whenever the persisted offer
+      // changes — simplest way to keep the flow's own pricing state in sync
+      // with an offer claimed elsewhere on the page, without lifting all of
+      // useBookingFlow's internals up here.
+      key={activeOffer ? `${activeOffer.percent}:${activeOffer.eligibleRouteIds.join(',')}` : 'none'}
+      email={email}
+      token={token}
+      activeOffer={activeOffer}
+      onBookingConfirmed={onBookingConfirmed}
+    />
   );
 }
 
-async function downloadAll(
-  photos: { url: string | null; scene_index?: number | null }[],
-  routeId: string,
-) {
-  for (const [index, photo] of photos.entries()) {
-    if (!photo.url) continue;
-    const label =
-      photo.scene_index != null
-        ? String(photo.scene_index + 1).padStart(2, '0')
-        : String(index + 1).padStart(2, '0');
-    downloadFile(photo.url, `next5-${routeId}-shot${label}.jpg`);
-    await new Promise((r) => setTimeout(r, 250));
-  }
+function BookAnotherStudioInner({
+  email,
+  token,
+  activeOffer,
+  onBookingConfirmed,
+}: {
+  email: string;
+  token: string;
+  activeOffer: DiscountOffer | null;
+  onBookingConfirmed: () => void;
+}) {
+  const flow = useBookingFlow({
+    initialHasBookedBefore: true,
+    initialActiveOffer: activeOffer,
+    initialEmail: email,
+    onBookingConfirmed: () => {
+      flow.close();
+      onBookingConfirmed();
+    },
+  });
+
+  return (
+    <>
+      <PhotoRoutes
+        onSelectRoute={flow.open}
+        discountPercentFor={flow.discountPercentFor}
+        activeOffer={flow.activeOffer}
+        hasBookedBefore
+      />
+      {flow.isOpen && <BookingModal flow={flow} />}
+    </>
+  );
 }
 
 // ── Utility components ────────────────────────────────────────────────────────
@@ -697,24 +684,5 @@ function LoadingSpinner() {
     <div className="flex items-center justify-center py-24">
       <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-accent" />
     </div>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
   );
 }
