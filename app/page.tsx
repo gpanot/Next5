@@ -9,7 +9,6 @@ import { Hero } from '../src/components/sections/Hero';
 import { HowItWorks } from '../src/components/sections/HowItWorks';
 import { PaymentMethods } from '../src/components/sections/PaymentMethods';
 import { PhotoRoutes } from '../src/components/sections/PhotoRoutes';
-import { ProofStrip } from '../src/components/sections/ProofStrip';
 import { ResultsGallery } from '../src/components/sections/ResultsGallery';
 import { Reviews } from '../src/components/sections/Reviews';
 import { SocialProofBar } from '../src/components/sections/SocialProofBar';
@@ -23,7 +22,6 @@ export default function HomePage() {
       <Header />
       <main>
         <Hero />
-        <ProofStrip />
         <ResultsGallery />
         <SocialProofBar />
         <PhotoRoutes
