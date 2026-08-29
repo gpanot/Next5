@@ -1,0 +1,318 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+
+/* ------------------------------------------------------------------ */
+/*  Data                                                                */
+/* ------------------------------------------------------------------ */
+
+type Person = {
+  name: string;
+  cards: { front: string; back: string }[];
+};
+
+const people: Person[] = [
+  {
+    name: 'Lily',
+    cards: [
+      { front: '/images/results-gallery/lily1.jpeg', back: '/images/results-gallery/lily2.jpeg' },
+      { front: '/images/results-gallery/lily3.jpeg', back: '/images/results-gallery/lily4.jpeg' },
+      { front: '/images/results-gallery/lily5.jpeg', back: '/images/results-gallery/lily6.jpeg' },
+      { front: '/images/results-gallery/lily7.jpeg', back: '/images/results-gallery/lily1.jpeg' },
+    ],
+  },
+  {
+    name: 'Sandra',
+    cards: [
+      { front: '/images/results-gallery/sandra1.jpeg', back: '/images/results-gallery/sandra2.jpeg' },
+      { front: '/images/results-gallery/sandra3.jpeg', back: '/images/results-gallery/sandra4.jpeg' },
+      { front: '/images/results-gallery/sandra1.jpeg', back: '/images/results-gallery/sandra3.jpeg' },
+      { front: '/images/results-gallery/sandra2.jpeg', back: '/images/results-gallery/sandra4.jpeg' },
+    ],
+  },
+];
+
+/** Flat list of every photo path for the lightbox. */
+const allPhotos = people.flatMap((p) =>
+  p.cards.flatMap((c) => [c.front, c.back]),
+);
+
+/* ------------------------------------------------------------------ */
+/*  Card                                                                */
+/* ------------------------------------------------------------------ */
+
+type CardProps = {
+  front: string;
+  back: string;
+  name: string;
+  /** Index of the front photo in the global allPhotos flat list */
+  globalFrontIndex: number;
+  onOpen: (index: number) => void;
+};
+
+const FLIP_INTERVAL_MS = 7_000;
+
+function GalleryCard({ front, back, name, globalFrontIndex, onOpen }: CardProps) {
+  const [flipped, setFlipped] = useState(false);
+  const [animating, setAnimating] = useState<'flip' | 'unflip' | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleFlip = useCallback(() => {
+    timerRef.current = setTimeout(() => {
+      setAnimating('flip');
+      setTimeout(() => {
+        setFlipped(true);
+        setAnimating(null);
+        timerRef.current = setTimeout(() => {
+          setAnimating('unflip');
+          setTimeout(() => {
+            setFlipped(false);
+            setAnimating(null);
+            scheduleFlip();
+          }, 700);
+        }, FLIP_INTERVAL_MS);
+      }, 700);
+    }, FLIP_INTERVAL_MS);
+  }, []);
+
+  useEffect(() => {
+    scheduleFlip();
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [scheduleFlip]);
+
+  const innerClass =
+    animating === 'flip'
+      ? 'animate-flip'
+      : animating === 'unflip'
+        ? 'animate-unflip'
+        : flipped
+          ? 'rotate-y-180'
+          : '';
+
+  const visiblePhoto = flipped ? back : front;
+  const visibleIndex = flipped ? globalFrontIndex + 1 : globalFrontIndex;
+
+  return (
+    <div
+      className="perspective-800 relative w-[160px] shrink-0 cursor-pointer sm:w-[190px]"
+      style={{ aspectRatio: '2/3' }}
+      onClick={() => onOpen(visibleIndex)}
+    >
+      {/* Polaroid outer frame */}
+      <div className="absolute inset-0 rounded-[4px] bg-white p-[7px] pb-8 shadow-[0_8px_32px_-8px_rgb(0_0_0/0.45)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_14px_40px_-8px_rgb(0_0_0/0.55)]">
+        {/* Flip inner */}
+        <div
+          className={`preserve-3d relative h-full w-full transition-transform duration-700 ${innerClass}`}
+          style={{ transformStyle: 'preserve-3d' }}
+        >
+          {/* Front face */}
+          <div
+            className="backface-hidden absolute inset-0 overflow-hidden rounded-[2px]"
+            style={{ backfaceVisibility: 'hidden' }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={front} alt={`${name} result`} className="h-full w-full object-cover" />
+          </div>
+
+          {/* Back face */}
+          <div
+            className="backface-hidden absolute inset-0 overflow-hidden rounded-[2px]"
+            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={back} alt={`${name} result`} className="h-full w-full object-cover" />
+          </div>
+        </div>
+
+        {/* Name label at the bottom of the polaroid */}
+        <p className="absolute bottom-0 left-0 right-0 pb-1.5 text-center font-serif text-[10px] tracking-widest text-muted">
+          {name}
+        </p>
+      </div>
+
+      {/* Watermark overlay (visible on hover) */}
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-10 right-2 select-none font-serif text-[9px] tracking-[0.22em] text-white/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100 [text-shadow:0_1px_4px_rgb(0_0_0/0.55)]"
+      >
+        NEXT5
+      </span>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Lightbox                                                            */
+/* ------------------------------------------------------------------ */
+
+type LightboxProps = {
+  photos: string[];
+  index: number;
+  onClose: () => void;
+  onNav: (index: number) => void;
+};
+
+function Lightbox({ photos, index, onClose, onNav }: LightboxProps) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') onNav((index - 1 + photos.length) % photos.length);
+      if (e.key === 'ArrowRight') onNav((index + 1) % photos.length);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [index, onClose, onNav, photos.length]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 animate-fade-in"
+      onClick={onClose}
+    >
+      {/* Image container */}
+      <div
+        className="relative flex max-h-[90dvh] max-w-[90vw] items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          key={photos[index]}
+          src={photos[index]}
+          alt="Full-screen result"
+          className="max-h-[90dvh] max-w-[90vw] rounded-sm object-contain shadow-2xl animate-fade-in"
+        />
+
+        {/* Watermark */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-4 right-4 select-none font-serif text-[13px] tracking-[0.22em] text-white/60 [text-shadow:0_1px_6px_rgb(0_0_0/0.7)]"
+        >
+          NEXT5
+        </span>
+
+        {/* Counter */}
+        <span className="absolute bottom-4 left-4 font-sans text-[11px] tracking-widest text-white/50">
+          {index + 1} / {photos.length}
+        </span>
+      </div>
+
+      {/* Prev */}
+      <button
+        aria-label="Previous photo"
+        onClick={(e) => {
+          e.stopPropagation();
+          onNav((index - 1 + photos.length) % photos.length);
+        }}
+        className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:left-6 sm:p-3"
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </button>
+
+      {/* Next */}
+      <button
+        aria-label="Next photo"
+        onClick={(e) => {
+          e.stopPropagation();
+          onNav((index + 1) % photos.length);
+        }}
+        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:right-6 sm:p-3"
+      >
+        <ChevronRight className="h-5 w-5" />
+      </button>
+
+      {/* Close */}
+      <button
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute right-3 top-3 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:right-5 sm:top-5"
+      >
+        <X className="h-5 w-5" />
+      </button>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Marquee strip                                                       */
+/* ------------------------------------------------------------------ */
+
+type StripProps = {
+  onOpen: (index: number) => void;
+};
+
+function MarqueeStrip({ onOpen }: StripProps) {
+  // Build flat card list with global indices pointing at allPhotos
+  let globalCursor = 0;
+  const cards = people.flatMap((person) =>
+    person.cards.map((card) => {
+      const fi = globalCursor;
+      globalCursor += 2; // front + back
+      return { ...card, name: person.name, globalFrontIndex: fi };
+    }),
+  );
+
+  // Duplicate the list for seamless looping
+  const doubled = [...cards, ...cards];
+
+  return (
+    /* Outer wrapper masks the overflow and contains the hover-pause logic */
+    <div className="gallery-strip overflow-hidden">
+      <div className="flex gap-5 animate-scroll-left" style={{ width: 'max-content' }}>
+        {doubled.map((card, i) => (
+          <GalleryCard
+            key={`${card.front}-${i}`}
+            front={card.front}
+            back={card.back}
+            name={card.name}
+            globalFrontIndex={card.globalFrontIndex}
+            onOpen={onOpen}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Section                                                             */
+/* ------------------------------------------------------------------ */
+
+export const ResultsGallery = () => {
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const handleOpen = useCallback((index: number) => setLightboxIndex(index), []);
+  const handleClose = useCallback(() => setLightboxIndex(null), []);
+  const handleNav = useCallback((index: number) => setLightboxIndex(index), []);
+
+  return (
+    <section className="bg-surface py-14 sm:py-20">
+      <div className="mx-auto max-w-[1240px] px-5 sm:px-8 lg:px-10">
+        <p className="label-caps text-center text-[9.5px] font-medium text-accent-strong">
+          Real results
+        </p>
+        <h2 className="mt-2 text-center font-serif text-[24px] text-ink sm:text-[30px]">
+          This is what she got
+        </h2>
+        <p className="mx-auto mt-2 max-w-md text-center text-[12.5px] text-muted">
+          Tap any card to see it full-screen. Cards flip every 7 seconds to reveal a second shot.
+        </p>
+      </div>
+
+      {/* Full-bleed marquee strip */}
+      <div className="mt-10">
+        <MarqueeStrip onOpen={handleOpen} />
+      </div>
+
+      {lightboxIndex !== null && (
+        <Lightbox
+          photos={allPhotos}
+          index={lightboxIndex}
+          onClose={handleClose}
+          onNav={handleNav}
+        />
+      )}
+    </section>
+  );
+};
