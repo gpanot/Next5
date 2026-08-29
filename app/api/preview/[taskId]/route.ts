@@ -41,6 +41,8 @@ export async function GET(
 
     const result = await pollTask(taskId);
 
+    console.log('[preview/poll]', taskId, '→ status:', result.status, result.url ? `url: ${result.url}` : '');
+
     if (result.status === 'completed' && result.url && isDbConfigured()) {
       persistPreviewPhoto(taskId, result.url).catch((err) => {
         console.error('[preview/poll] Failed to persist preview photo:', err);
@@ -49,7 +51,7 @@ export async function GET(
 
     return NextResponse.json(result satisfies PollResponseBody);
   } catch (err) {
-    console.error('[preview] GET poll error:', err);
+    console.error('[preview/poll] GET poll error:', err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Poll error', status: 'failed', url: null },
       { status: 500 },
@@ -58,24 +60,32 @@ export async function GET(
 }
 
 async function persistPreviewPhoto(taskId: string, wavespeedUrl: string): Promise<void> {
+  const t0 = Date.now();
+  console.log('[preview/poll] Persisting preview photo for taskId:', taskId, 'url:', wavespeedUrl);
+
   const booking = await prisma.booking.findFirst({
     where: { wavespeedTaskId: taskId },
     select: { id: true, userId: true },
   });
 
   if (!booking) {
-    console.warn('[preview/poll] No booking found for taskId:', taskId);
+    console.warn('[preview/poll] No booking found for taskId:', taskId, '— cannot persist photo');
     return;
   }
 
   const { id: bookingId, userId } = booking;
-  const r2Key = `${bookingId}/shot-01.jpg`;
+  console.log('[preview/poll] Found booking', bookingId, 'for taskId', taskId);
 
+  const r2Key = `${bookingId}/shot-01.jpg`;
   let isStored = false;
+
   try {
     if (r2IsConfigured()) {
       await mirrorToR2(wavespeedUrl, r2Key);
       isStored = true;
+      console.log('[preview/poll] Preview photo mirrored to R2:', r2Key, 'in', Date.now() - t0, 'ms');
+    } else {
+      console.warn('[preview/poll] R2 not configured — storing wavespeedUrl only');
     }
   } catch (err) {
     console.warn('[preview/poll] R2 mirror failed for preview shot:', err);
@@ -93,9 +103,20 @@ async function persistPreviewPhoto(taskId: string, wavespeedUrl: string): Promis
     },
   }).catch((err) => {
     if (err?.code !== 'P2002') console.warn('[preview/poll] Failed to insert preview photo:', err);
+    else console.log('[preview/poll] Preview photo record already exists (P2002 — OK)');
   });
 
   await prisma.booking
     .update({ where: { id: bookingId }, data: { shootStatus: 'preview_ready' } })
+    .then(() => console.log('[preview/poll] Booking', bookingId, 'status → preview_ready'))
     .catch((err) => console.warn('[preview/poll] Failed to update shootStatus:', err));
+
+  console.log('[preview/poll] persistPreviewPhoto complete for', bookingId, 'in', Date.now() - t0, 'ms');
+  console.log('[preview/poll] SUMMARY ✓', {
+    bookingId,
+    userId,
+    wavespeedUrl,
+    r2Key,
+    isStored,
+  });
 }

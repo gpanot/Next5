@@ -87,7 +87,12 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
 
   if (flow.step === 'preview' && flow.uploadedPhoto) {
     const browserCheck = checkBrowserPreviewAllowed(flow.details.email);
+    console.log('[booking] Browser preview check:', browserCheck, 'email:', flow.details.email, 'bookingId:', flow.booking?.id);
+    if (!flow.booking?.id) {
+      console.error('[booking] CRITICAL: bookingId is missing at PreviewStep!', { route: flow.route?.id });
+    }
     if (!browserCheck.allowed) {
+      console.warn('[booking] Browser preview BLOCKED:', browserCheck.message);
       return (
         <StepLayout centered>
           <div className="flex flex-col items-center gap-4 py-16 text-center">

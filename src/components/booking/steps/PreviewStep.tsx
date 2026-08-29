@@ -93,6 +93,7 @@ export const PreviewStep = ({
 
   const poll = useCallback(async (taskId: string) => {
     if (Date.now() > deadlineRef.current) {
+      console.error('[preview] Poll timed out for taskId:', taskId);
       setState({ phase: 'error', message: 'Generation timed out. Please retry.' });
       return;
     }
@@ -100,13 +101,17 @@ export const PreviewStep = ({
       const res = await fetch(`/api/preview/${taskId}`);
       const data = await res.json();
 
+      console.log('[preview] Poll', taskId, '→', data.status, data.url ? `url: ${data.url}` : '');
+
       if (data.status === 'completed' && data.url) {
         clearPoll();
+        console.log('[preview] ✓ Generation complete! Preview URL:', data.url);
         setState({ phase: 'done', url: data.url });
         return;
       }
       if (['failed', 'cancelled', 'timeout', 'deleted'].includes(data.status)) {
         clearPoll();
+        console.error('[preview] Generation failed with status:', data.status, data.error);
         setState({
           phase: 'error',
           message: data.error ?? `Generation ${data.status}. Please retry.`,
@@ -115,7 +120,8 @@ export const PreviewStep = ({
       }
       // Still in progress — poll again
       pollTimerRef.current = setTimeout(() => poll(taskId), POLL_INTERVAL_MS);
-    } catch {
+    } catch (err) {
+      console.warn('[preview] Poll network error, retrying:', err);
       pollTimerRef.current = setTimeout(() => poll(taskId), POLL_INTERVAL_MS);
     }
   }, []);
@@ -124,6 +130,15 @@ export const PreviewStep = ({
     startedRef.current = true;
     deadlineRef.current = Date.now() + MAX_WAIT_MS;
     setState({ phase: 'uploading' });
+
+    const t0 = Date.now();
+    console.log('[preview] Starting generation', {
+      studioId: route.id,
+      email,
+      bookingId,
+      feelings: intention.feelings,
+      photoBytes: Math.round((uploadedPhoto?.length ?? 0) * 0.75),
+    });
 
     try {
       const res = await fetch('/api/preview', {
@@ -138,8 +153,11 @@ export const PreviewStep = ({
         }),
       });
 
+      console.log('[preview] POST /api/preview response:', res.status, 'in', Date.now() - t0, 'ms');
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
+        console.error('[preview] POST /api/preview failed:', err);
         setState({
           phase: 'error',
           message: err.error ?? `Upload failed (${res.status})`,
@@ -147,11 +165,14 @@ export const PreviewStep = ({
         return;
       }
 
-      const { taskId } = await res.json();
+      const data = await res.json();
+      const { taskId } = data;
+      console.log('[preview] Task created:', taskId, 'in', Date.now() - t0, 'ms');
       taskIdRef.current = taskId;
       setState({ phase: 'generating' });
       pollTimerRef.current = setTimeout(() => poll(taskId), POLL_INTERVAL_MS);
     } catch (err) {
+      console.error('[preview] Network error calling /api/preview:', err);
       setState({
         phase: 'error',
         message: err instanceof Error ? err.message : 'Network error. Please retry.',
