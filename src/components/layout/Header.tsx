@@ -44,6 +44,18 @@ export const Header = () => {
         <div className="flex items-center gap-3">
           <LocaleToggle tone={dark ? 'dark' : 'light'} className="hidden sm:inline-flex" />
 
+          <a
+            href="/studio"
+            className={[
+              'hidden items-center rounded-full border px-4 py-1.5 text-[12px] transition-colors sm:flex',
+              dark
+                ? 'border-line text-ink hover:bg-surface-alt'
+                : 'border-white/30 text-white hover:bg-white/10',
+            ].join(' ')}
+          >
+            My Studio
+          </a>
+
           <button
             type="button"
             onClick={() => setMenuOpen((open) => !open)}
@@ -71,6 +83,13 @@ export const Header = () => {
               {link.label[locale]}
             </a>
           ))}
+          <a
+            href="/studio"
+            onClick={() => setMenuOpen(false)}
+            className="block border-b border-line/70 py-4 font-serif text-lg text-ink last:border-0"
+          >
+            My Studio
+          </a>
           <div className="pt-4 sm:hidden">
             <LocaleToggle tone="dark" />
           </div>

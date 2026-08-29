@@ -36,10 +36,14 @@ export async function POST(req: NextRequest) {
     const base64 = photoDataUrl.replace(/^data:image\/\w+;base64,/, '');
     const buffer = Buffer.from(base64, 'base64');
 
+    // Create the user/booking record synchronously BEFORE calling WaveSpeed so
+    // the account always exists even if AI generation fails later.
     if (isDbConfigured() && email && bookingId) {
-      setupBookingRecord(email, bookingId, studioId, buffer, feelings).catch((err) => {
-        console.error('[preview] Background booking setup failed:', err);
-      });
+      try {
+        await setupBookingRecord(email, bookingId, studioId, buffer, feelings);
+      } catch (err) {
+        console.error('[preview] DB setup failed (non-fatal):', err);
+      }
     }
 
     const imageUrl = await uploadPhotoToWaveSpeed(buffer);
@@ -70,7 +74,36 @@ async function setupBookingRecord(
   photoBuffer: Buffer,
   feelings: string[],
 ): Promise<void> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  // Upsert user — this is the canonical "account created" moment
+  const before = await prisma.user.findUnique({ where: { email }, select: { id: true } });
   const userId = await upsertUserByEmail(email);
+  const isNew = !before;
+
+  console.log('[user-created]', {
+    email,
+    userId,
+    bookingId,
+    studioId,
+    isNew,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Log duplicate preview attempts (same email, different booking, last 24 h)
+  const recentBooking = await prisma.booking.findFirst({
+    where: { userId, createdAt: { gte: since }, id: { not: bookingId } },
+    select: { id: true, paymentStatus: true },
+  });
+
+  if (recentBooking) {
+    console.warn('[preview] Duplicate-preview attempt', {
+      email,
+      newBookingId: bookingId,
+      existingBookingId: recentBooking.id,
+      existingPaymentStatus: recentBooking.paymentStatus,
+    });
+  }
 
   await prisma.booking.upsert({
     where: { id: bookingId },

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from 'react';
 import type { BookingFlow } from '../../hooks/useBookingFlow';
+import { checkBrowserPreviewAllowed } from '../../hooks/useBookingFlow';
 import { ConfirmedStep } from './steps/ConfirmedStep';
 import { IntentionStep } from './steps/IntentionStep';
 import { PaymentStep } from './steps/PaymentStep';
@@ -9,6 +10,7 @@ import { PreviewStep } from './steps/PreviewStep';
 import { StudioStep } from './steps/StudioStep';
 import { StyleStep } from './steps/StyleStep';
 import { UploadStep } from './steps/UploadStep';
+import { StepLayout } from './ui/StepLayout';
 
 type BookingStepsProps = {
   flow: BookingFlow;
@@ -84,6 +86,22 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
   }
 
   if (flow.step === 'preview' && flow.uploadedPhoto) {
+    const browserCheck = checkBrowserPreviewAllowed(flow.details.email);
+    if (!browserCheck.allowed) {
+      return (
+        <StepLayout centered>
+          <div className="flex flex-col items-center gap-4 py-16 text-center">
+            <p className="max-w-sm text-[14px] text-muted">{browserCheck.message}</p>
+            <a
+              href="/studio"
+              className="rounded-xl bg-ink px-6 py-3 font-serif text-[14px] tracking-[0.06em] text-white uppercase transition-opacity hover:opacity-80"
+            >
+              Access my studio
+            </a>
+          </div>
+        </StepLayout>
+      );
+    }
     return (
       <PreviewStep
         route={route}
@@ -112,6 +130,21 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
         onCancel={flow.back}
         discountPercent={flow.discountPercentFor(route.id)}
       />
+    );
+  }
+
+  // Payment confirmed → redirecting to studio page instead of showing ConfirmedStep
+  if (flow.isRedirectingToStudio) {
+    return (
+      <StepLayout centered>
+        <div className="animate-fade-in flex flex-col items-center gap-5 py-20 text-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-accent" />
+          <p className="font-serif text-[22px] tracking-[0.05em] text-ink uppercase">
+            Taking you to your studio
+          </p>
+          <p className="text-[13px] text-muted">Your shoot has started…</p>
+        </div>
+      </StepLayout>
     );
   }
 

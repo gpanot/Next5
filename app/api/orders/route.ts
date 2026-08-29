@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isMockGeneration } from '../../../src/lib/mock';
 import { prisma, isDbConfigured } from '../../../src/lib/db';
-import { signMagicToken } from '../../../src/lib/studio-auth';
+import { signLongMagicToken, signSessionToken } from '../../../src/lib/studio-auth';
 import { sendEmail } from '../../../src/lib/maileroo';
 
 export type OrderPayload = {
@@ -17,17 +17,25 @@ export type OrderPayload = {
   discountPercent?: number;
 };
 
+export type OrderResponse = {
+  ok: boolean;
+  sessionToken?: string;
+  email?: string;
+  skipped?: boolean;
+  error?: string;
+};
+
 export async function POST(req: NextRequest) {
   const body = (await req.json()) as OrderPayload;
 
   if (isMockGeneration()) {
     console.warn('[orders] Mock mode — skipping DB update.', body);
-    return NextResponse.json({ ok: true, skipped: true });
+    return NextResponse.json({ ok: true, skipped: true } satisfies OrderResponse);
   }
 
   if (!isDbConfigured()) {
     console.warn('[orders] DB not configured — skipping order record.', body);
-    return NextResponse.json({ ok: true, skipped: true });
+    return NextResponse.json({ ok: true, skipped: true } satisfies OrderResponse);
   }
 
   try {
@@ -47,14 +55,29 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'DB error';
     console.error('[orders] Booking update error:', message);
-    return NextResponse.json({ ok: false, error: message }, { status: 502 });
+    return NextResponse.json({ ok: false, error: message } satisfies OrderResponse, { status: 502 });
   }
 
-  // Send a magic-link email so the customer can access their studio post-payment.
+  // Upsert the user and sign a session token so the client can auto-login.
+  let sessionToken: string | undefined;
   try {
-    const token = signMagicToken(body.email);
+    const user = await prisma.user.upsert({
+      where: { email: body.email },
+      update: {},
+      create: { email: body.email },
+      select: { id: true },
+    });
+    sessionToken = signSessionToken(user.id, body.email);
+    console.log('[orders] Session token signed for:', body.email, '| booking:', body.bookingId);
+  } catch (err) {
+    console.warn('[orders] Session token signing failed (non-fatal):', err);
+  }
+
+  // Send a 30-day magic-link email so the customer can re-access their studio later.
+  try {
+    const magicToken = signLongMagicToken(body.email);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const link = `${appUrl}/studio?token=${token}`;
+    const link = `${appUrl}/studio?token=${magicToken}`;
 
     await sendEmail({
       to: body.email,
@@ -69,15 +92,15 @@ export async function POST(req: NextRequest) {
           <a href="${link}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:14px 28px;font-family:serif;font-size:14px;letter-spacing:0.06em;text-transform:uppercase;border-radius:12px;">
             Open my studio
           </a>
-          <p style="font-size:12px;color:#999;margin:32px 0 0;">This link expires in 15 minutes. You can always request a new one from the studio page.</p>
+          <p style="font-size:12px;color:#999;margin:32px 0 0;">This link is valid for 30 days. You can also sign in anytime at <a href="${appUrl}/studio" style="color:#111;">${appUrl.replace(/^https?:\/\//, '')}/studio</a></p>
         </div>
       `,
-      plain: `Your photos are on their way\n\nThank you for booking with Next5. Your AI photographer is creating your photos now.\n\nClick the link below to access your studio (expires in 15 minutes):\n\n${link}\n\nYou can always request a new link from the studio page.`,
+      plain: `Your photos are on their way\n\nThank you for booking with Next5. Your AI photographer is creating your photos now.\n\nClick the link below to access your studio:\n\n${link}\n\nThis link is valid for 30 days.`,
     });
     console.log('[orders] Studio access email sent to:', body.email);
   } catch (err) {
     console.warn('[orders] Magic-link email failed (non-fatal):', err);
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, sessionToken, email: body.email } satisfies OrderResponse);
 }

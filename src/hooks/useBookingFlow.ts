@@ -12,12 +12,68 @@ import type {
   PaymentStatus,
   ShootIntention,
 } from '../types/booking';
-import type { OrderPayload } from '../../app/api/orders/route';
+import type { OrderPayload, OrderResponse } from '../../app/api/orders/route';
 import type { DiscountOffer } from '../types/offer';
 import { applyDiscount } from '../lib/format';
 
 const emptyDetails: CustomerDetails = { email: '' };
 const emptyIntention: ShootIntention = { feelings: [], goals: [] };
+
+const STUDIO_TOKEN_KEY = 'studio_token';
+const BROWSER_PREVIEWS_KEY = 'next5_previewed';
+
+/** Records this preview in localStorage so we can detect cross-email abuse. */
+function recordBrowserPreview(email: string, bookingId: string) {
+  try {
+    const raw = localStorage.getItem(BROWSER_PREVIEWS_KEY);
+    const list: { email: string; bookingId: string; paid: boolean; ts: number }[] =
+      raw ? (JSON.parse(raw) as typeof list) : [];
+    list.push({ email, bookingId, paid: false, ts: Date.now() });
+    localStorage.setItem(BROWSER_PREVIEWS_KEY, JSON.stringify(list.slice(-20)));
+  } catch {
+    // localStorage may be blocked in SSR or private contexts
+  }
+}
+
+/** Marks a booking as paid in localStorage (removes abuse flag). */
+function markBrowserPreviewPaid(bookingId: string) {
+  try {
+    const raw = localStorage.getItem(BROWSER_PREVIEWS_KEY);
+    if (!raw) return;
+    const list: { email: string; bookingId: string; paid: boolean; ts: number }[] =
+      JSON.parse(raw) as typeof list;
+    const updated = list.map((p) => (p.bookingId === bookingId ? { ...p, paid: true } : p));
+    localStorage.setItem(BROWSER_PREVIEWS_KEY, JSON.stringify(updated));
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Checks if the browser has already used a free preview with a DIFFERENT email
+ * in the last 24 hours without paying — signals potential abuse.
+ */
+export function checkBrowserPreviewAllowed(email: string): { allowed: boolean; message?: string } {
+  try {
+    const raw = localStorage.getItem(BROWSER_PREVIEWS_KEY);
+    if (!raw) return { allowed: true };
+    const list: { email: string; bookingId: string; paid: boolean; ts: number }[] =
+      JSON.parse(raw) as typeof list;
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    const suspiciousEntry = list.find(
+      (p) => p.email !== email.toLowerCase().trim() && !p.paid && p.ts > cutoff,
+    );
+    if (suspiciousEntry) {
+      return {
+        allowed: false,
+        message: 'A free preview was already used from this browser today. Each browser is limited to one free preview per day.',
+      };
+    }
+  } catch {
+    // ignore errors — don't block the user if localStorage is unavailable
+  }
+  return { allowed: true };
+}
 
 // The value ladder: a first-ever booking is the low-risk entry price: every
 // studio after that is automatically the repeat-customer price, and the
@@ -72,6 +128,8 @@ export const useBookingFlow = () => {
   const [details, setDetails] = useState<CustomerDetails>(emptyDetails);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
+  // True while we are calling /api/orders and redirecting to /studio after payment.
+  const [isRedirectingToStudio, setIsRedirectingToStudio] = useState(false);
   // Claimed from the studio-reveal upsell. Deliberately survives `open()` /
   // `close()` — she should be able to claim once and redeem it across several
   // separate bookings in the same session.
@@ -95,6 +153,7 @@ export const useBookingFlow = () => {
     // (before payment), allowing the DB row to be created when the preview API is called.
     setBookingId(createBookingId(next.title));
     setPaymentStatus('pending');
+    setIsRedirectingToStudio(false);
     orderRecorded.current = false;
   }, []);
 
@@ -198,7 +257,6 @@ export const useBookingFlow = () => {
   const detailsRef = useRef(details);
   const intentionRef = useRef(intention);
   const bookingIdRef = useRef(bookingId);
-  const uploadedPhotoRef = useRef(uploadedPhoto);
   const activeOfferRef = useRef(activeOffer);
   const hasBookedBeforeRef = useRef(hasBookedBefore);
   routeRef.current = route;
@@ -206,7 +264,6 @@ export const useBookingFlow = () => {
   detailsRef.current = details;
   intentionRef.current = intention;
   bookingIdRef.current = bookingId;
-  uploadedPhotoRef.current = uploadedPhoto;
   activeOfferRef.current = activeOffer;
   hasBookedBeforeRef.current = hasBookedBefore;
 
@@ -220,7 +277,6 @@ export const useBookingFlow = () => {
       const det = detailsRef.current;
       const int = intentionRef.current;
       const bid = bookingIdRef.current;
-      const photo = uploadedPhotoRef.current;
       const offer = activeOfferRef.current;
       const bookedBefore = hasBookedBeforeRef.current;
 
@@ -232,7 +288,7 @@ export const useBookingFlow = () => {
             : INTRO_DISCOUNT_PERCENT;
         const amountVnd = applyDiscount(r.priceVnd, discountPercent);
 
-        recordOrder({
+        const payload: OrderPayload = {
           bookingId: bid,
           studioId: r.id,
           studioTitle: r.title,
@@ -243,12 +299,35 @@ export const useBookingFlow = () => {
           goals: int.goals,
           amountVnd,
           discountPercent,
-        });
+        };
 
+        // Mark this booking as paid in localStorage (removes abuse flag)
+        markBrowserPreviewPaid(bid);
+
+        setIsRedirectingToStudio(true);
         redeemOffer(r.id);
         setHasBookedBefore(true);
 
-        // Generation is now handled scene-by-scene in ConfirmedStep
+        fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+          .then((res) => res.json() as Promise<OrderResponse>)
+          .then((data) => {
+            if (data.sessionToken) {
+              try { localStorage.setItem(STUDIO_TOKEN_KEY, data.sessionToken); } catch { /* ignore */ }
+            }
+          })
+          .catch((err) => {
+            console.error('[orders] Failed to record order:', err);
+          })
+          .finally(() => {
+            // Brief pause on the "Payment confirmed" state, then navigate to studio
+            setTimeout(() => {
+              window.location.href = `/studio?bookingId=${bid}`;
+            }, 1500);
+          });
       }
     }
   }, [redeemOffer]);
@@ -265,6 +344,7 @@ export const useBookingFlow = () => {
     details,
     booking,
     paymentStatus,
+    isRedirectingToStudio,
     activeOffer,
     hasBookedBefore,
     discountPercentFor,

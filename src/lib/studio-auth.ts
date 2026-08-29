@@ -13,8 +13,11 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production';
 
-/** 15 minutes — short-lived, one-use magic link */
+/** 15 minutes — short-lived magic link for "request new link" flow */
 const MAGIC_LINK_TTL_S = 15 * 60;
+
+/** 30 days — magic link sent in post-payment email */
+const LONG_MAGIC_LINK_TTL_S = 30 * 24 * 60 * 60;
 
 /** 30 days — long-lived session */
 const SESSION_TTL_S = 30 * 24 * 60 * 60;
@@ -25,6 +28,13 @@ export type SessionPayload = { userId: string; email: string; type: 'session' };
 export function signMagicToken(email: string): string {
   return jwt.sign({ email, type: 'magic' } satisfies MagicPayload, JWT_SECRET, {
     expiresIn: MAGIC_LINK_TTL_S,
+  });
+}
+
+/** Signs a long-lived magic token (30 days) for post-payment emails. */
+export function signLongMagicToken(email: string): string {
+  return jwt.sign({ email, type: 'magic' } satisfies MagicPayload, JWT_SECRET, {
+    expiresIn: LONG_MAGIC_LINK_TTL_S,
   });
 }
 

@@ -28,6 +28,7 @@ export type StudioBooking = {
   payment_status: string;
   amount_vnd: number | null;
   created_at: string;
+  feelings: string[];
   photos: StudioPhoto[];
 };
 
@@ -112,6 +113,7 @@ export async function GET(req: NextRequest) {
         payment_status: booking.paymentStatus,
         amount_vnd: booking.amountVnd,
         created_at: booking.createdAt.toISOString(),
+        feelings: booking.feelings,
         photos,
       };
     }),

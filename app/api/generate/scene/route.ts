@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadPhotoToWaveSpeed, submitEdit, waitForTask } from '../../../../src/lib/wavespeed';
-import { mirrorToR2, getPresignedUrl, r2IsConfigured } from '../../../../src/lib/r2';
+import { mirrorToR2, getPresignedUrl, r2IsConfigured, getObjectBuffer } from '../../../../src/lib/r2';
 import { getPrompt } from '../../../../src/data/prompts';
 import { isMockGeneration } from '../../../../src/lib/mock';
 import { photoRoutes } from '../../../../src/data/routes';
 import { prisma, isDbConfigured } from '../../../../src/lib/db';
 
 export type SceneRequestBody = {
-  /** base64 data URL of the customer's uploaded photo */
-  photoDataUrl: string;
+  /**
+   * base64 data URL of the customer's uploaded photo.
+   * Optional when generating from the studio page — the server will read the
+   * photo from R2 using `bookingId/customer-upload.jpg` instead.
+   */
+  photoDataUrl?: string;
   studioId: string;
   feelings: string[];
   bookingId: string;
@@ -29,7 +33,7 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as SceneRequestBody;
     const { photoDataUrl, studioId, feelings, bookingId, sceneIndex } = body;
 
-    if (!photoDataUrl || !studioId || !bookingId || sceneIndex == null) {
+    if (!studioId || !bookingId || sceneIndex == null) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -45,8 +49,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, scene: shotNumber, url } satisfies SceneResponseBody);
     }
 
-    const base64 = photoDataUrl.replace(/^data:image\/\w+;base64,/, '');
-    const buffer = Buffer.from(base64, 'base64');
+    // Resolve the photo buffer — either from the request body or from R2 storage.
+    let buffer: Buffer;
+    if (photoDataUrl) {
+      const base64 = photoDataUrl.replace(/^data:image\/\w+;base64,/, '');
+      buffer = Buffer.from(base64, 'base64');
+    } else {
+      const customerKey = `${bookingId}/customer-upload.jpg`;
+      const downloaded = await getObjectBuffer(customerKey);
+      if (!downloaded) {
+        return NextResponse.json(
+          { error: 'Customer photo not found in storage — upload flow may not have completed.' },
+          { status: 404 },
+        );
+      }
+      buffer = downloaded;
+    }
 
     const prompt = await getPrompt(studioId, sceneIndex, feelings);
 

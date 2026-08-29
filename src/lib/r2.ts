@@ -85,3 +85,27 @@ export async function mirrorToR2(sourceUrl: string, key: string): Promise<string
 }
 
 export { isConfigured as r2IsConfigured };
+
+// ── Download ──────────────────────────────────────────────────────────────────
+
+/**
+ * Downloads an object from R2 as a Buffer.
+ * Returns null if R2 is not configured or the key does not exist.
+ */
+export async function getObjectBuffer(key: string): Promise<Buffer | null> {
+  if (!isConfigured()) return null;
+  try {
+    const response = await getClient().send(
+      new GetObjectCommand({ Bucket: BUCKET, Key: key }),
+    );
+    if (!response.Body) return null;
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+      chunks.push(chunk);
+    }
+    return Buffer.concat(chunks);
+  } catch (err: unknown) {
+    if ((err as { name?: string })?.name === 'NoSuchKey') return null;
+    throw err;
+  }
+}
