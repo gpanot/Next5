@@ -35,7 +35,7 @@ const OfferBanner = ({
 
   return (
     <p className="label-caps mt-5 text-center text-[10px] font-medium text-accent-strong">
-      New here? Your first studio is 50% off — applied automatically
+      New here? Your first studio is 149,000 VND — a first-shoot offer, applied automatically
     </p>
   );
 };

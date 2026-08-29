@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
 import { usePayment } from '../../../hooks/usePayment';
-import { applyDiscount, formatVnd } from '../../../lib/format';
+import { applyDiscount, discountBadgeLabel, formatVnd } from '../../../lib/format';
 import type { PaymentIntent } from '../../../services/payment';
 import type { PaymentStatus } from '../../../types/booking';
 import { Button } from '../../ui/Button';
@@ -127,7 +127,7 @@ const PaymentDetails = ({ intent, onSimulate, originalAmountVnd, discountPercent
           <span className="text-[16px] text-ink">VND</span>
         </p>
         <span className="label-caps rounded-full bg-accent px-2.5 py-1 text-[9.5px] font-medium text-white">
-          -{discountPercent}%
+          {discountBadgeLabel(discountPercent)}
         </span>
       </div>
     ) : (

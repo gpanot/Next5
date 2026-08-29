@@ -13,7 +13,7 @@ import { ClockIcon, LockIcon, PhotoIcon, StarIcon } from '../../ui/Icons';
 import { ImageLightbox } from '../../ui/ImageLightbox';
 import { Watermark } from '../../ui/Watermark';
 import { useDirectorNote } from '../../../hooks/useDirectorNote';
-import { applyDiscount } from '../../../lib/format';
+import { applyDiscount, discountNoteLabel } from '../../../lib/format';
 import { DirectorNote } from '../preview/DirectorNote';
 import { PreviewLoader } from '../preview/PreviewLoader';
 import { PriceTag } from '../ui/PriceTag';
@@ -214,7 +214,7 @@ export const PreviewStep = ({
             originalAmountVnd={discountPercent > 0 ? route.priceVnd : undefined}
             note={
               discountPercent > 0
-                ? `${discountPercent}% off applied · Delivered in 4 hours`
+                ? `${discountNoteLabel(discountPercent)} · Delivered in 4 hours`
                 : 'High-resolution · Delivered in 4 hours'
             }
           />

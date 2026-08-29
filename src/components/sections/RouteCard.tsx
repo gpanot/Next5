@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { PhotoRoute } from '../../data/site';
-import { applyDiscount, formatVnd } from '../../lib/format';
+import { applyDiscount, discountBadgeLabel, formatVnd } from '../../lib/format';
 import { ArrowRightIcon, HeartIcon } from '../ui/Icons';
 import { PlaceholderImage } from '../ui/PlaceholderImage';
 
@@ -11,15 +11,6 @@ type RouteCardProps = {
   onSelect: (route: PhotoRoute) => void;
   /** From a claimed upsell offer — 0 when this route isn't discounted. */
   discountPercent?: number;
-};
-
-/** The three tiers in the value ladder each read differently: the intro
- *  price is a one-time hook, the bundle is time-limited, the repeat price is
- *  just... her price now. */
-const badgeLabel = (percent: number): string => {
-  if (percent >= 50) return `-${percent}% · first studio`;
-  if (percent >= 30) return `-${percent}% today`;
-  return `-${percent}% for you`;
 };
 
 export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardProps) => {
@@ -50,7 +41,7 @@ export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardPro
 
         {discountPercent > 0 && (
           <span className="label-caps absolute bottom-3 left-3 rounded-full bg-accent px-2.5 py-1 text-[9.5px] font-medium text-white shadow-sm">
-            {badgeLabel(discountPercent)}
+            {discountBadgeLabel(discountPercent)}
           </span>
         )}
 
