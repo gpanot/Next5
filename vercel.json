@@ -1,0 +1,13 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npx prisma generate && next build",
+  "installCommand": "npm ci",
+  "functions": {
+    "app/api/generate/scene/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/generate/route.ts": {
+      "maxDuration": 120
+    }
+  }
+}
