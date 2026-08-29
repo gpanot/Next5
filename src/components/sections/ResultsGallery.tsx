@@ -97,12 +97,12 @@ function GalleryCard({ front, back, name, globalFrontIndex, onOpen }: CardProps)
 
   return (
     <div
-      className="perspective-800 relative w-[160px] shrink-0 cursor-pointer sm:w-[190px]"
+      className="perspective-800 relative w-[140px] shrink-0 cursor-pointer sm:w-[180px]"
       style={{ aspectRatio: '2/3' }}
       onClick={() => onOpen(visibleIndex)}
     >
       {/* Polaroid outer frame */}
-      <div className="absolute inset-0 rounded-[4px] bg-white p-[7px] pb-8 shadow-[0_8px_32px_-8px_rgb(0_0_0/0.45)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_14px_40px_-8px_rgb(0_0_0/0.55)]">
+      <div className="absolute inset-0 rounded-[4px] bg-white p-[6px] pb-7 shadow-[0_8px_32px_-8px_rgb(0_0_0/0.45)] transition-transform duration-300 active:scale-[0.97] hover:-translate-y-1 hover:shadow-[0_14px_40px_-8px_rgb(0_0_0/0.55)] sm:p-[7px] sm:pb-8">
         {/* Flip inner */}
         <div
           className={`preserve-3d relative h-full w-full transition-transform duration-700 ${innerClass}`}
@@ -128,7 +128,7 @@ function GalleryCard({ front, back, name, globalFrontIndex, onOpen }: CardProps)
         </div>
 
         {/* Name label at the bottom of the polaroid */}
-        <p className="absolute bottom-0 left-0 right-0 pb-1.5 text-center font-serif text-[10px] tracking-widest text-muted">
+        <p className="absolute bottom-0 left-0 right-0 pb-1 text-center font-serif text-[9px] tracking-widest text-muted sm:pb-1.5 sm:text-[10px]">
           {name}
         </p>
       </div>
@@ -156,6 +156,9 @@ type LightboxProps = {
 };
 
 function Lightbox({ photos, index, onClose, onNav }: LightboxProps) {
+  const touchStartX = useRef<number | null>(null);
+
+  /* Keyboard navigation */
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -166,70 +169,107 @@ function Lightbox({ photos, index, onClose, onNav }: LightboxProps) {
     return () => window.removeEventListener('keydown', handleKey);
   }, [index, onClose, onNav, photos.length]);
 
+  /* Lock body scroll while open */
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  /* Touch swipe handlers */
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) < 40) return; // too small — treat as tap
+    if (dx < 0) onNav((index + 1) % photos.length);
+    else onNav((index - 1 + photos.length) % photos.length);
+  };
+
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 animate-fade-in"
-      onClick={onClose}
+      className="fixed inset-0 z-[100] flex flex-col bg-black/95 animate-fade-in"
+      /* Safe-area aware padding via CSS env() — works on iPhone notch + Android gesture bar */
+      style={{
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      }}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
     >
-      {/* Image container */}
+      {/* ── Top bar: close + counter ── */}
+      <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
+        <span className="font-sans text-[11px] tracking-widest text-white/50">
+          {index + 1} / {photos.length}
+        </span>
+        <button
+          aria-label="Close"
+          onClick={onClose}
+          className="rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition-colors active:bg-white/25 hover:bg-white/20"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* ── Image (fills remaining height) ── */}
       <div
-        className="relative flex max-h-[90dvh] max-w-[90vw] items-center justify-center"
-        onClick={(e) => e.stopPropagation()}
+        className="relative flex flex-1 items-center justify-center overflow-hidden px-2"
+        onClick={onClose}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={photos[index]}
           src={photos[index]}
           alt="Full-screen result"
-          className="max-h-[90dvh] max-w-[90vw] rounded-sm object-contain shadow-2xl animate-fade-in"
+          onClick={(e) => e.stopPropagation()}
+          className="max-h-full max-w-full rounded-sm object-contain shadow-2xl animate-fade-in select-none"
+          draggable={false}
         />
 
         {/* Watermark */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-4 right-4 select-none font-serif text-[13px] tracking-[0.22em] text-white/60 [text-shadow:0_1px_6px_rgb(0_0_0/0.7)]"
+          className="pointer-events-none absolute bottom-3 right-4 select-none font-serif text-[12px] tracking-[0.22em] text-white/55 [text-shadow:0_1px_6px_rgb(0_0_0/0.7)]"
         >
           NEXT5
         </span>
-
-        {/* Counter */}
-        <span className="absolute bottom-4 left-4 font-sans text-[11px] tracking-widest text-white/50">
-          {index + 1} / {photos.length}
-        </span>
       </div>
 
-      {/* Prev */}
-      <button
-        aria-label="Previous photo"
-        onClick={(e) => {
-          e.stopPropagation();
-          onNav((index - 1 + photos.length) % photos.length);
-        }}
-        className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:left-6 sm:p-3"
-      >
-        <ChevronLeft className="h-5 w-5" />
-      </button>
+      {/* ── Bottom nav row: prev / next (finger-friendly 48 px targets) ── */}
+      <div className="flex items-center justify-between px-6 py-4 sm:px-10">
+        <button
+          aria-label="Previous photo"
+          onClick={() => onNav((index - 1 + photos.length) % photos.length)}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors active:bg-white/30 hover:bg-white/20"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
 
-      {/* Next */}
-      <button
-        aria-label="Next photo"
-        onClick={(e) => {
-          e.stopPropagation();
-          onNav((index + 1) % photos.length);
-        }}
-        className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:right-6 sm:p-3"
-      >
-        <ChevronRight className="h-5 w-5" />
-      </button>
+        {/* Dot indicators (max 16 dots shown) */}
+        <div className="flex gap-1.5 overflow-hidden">
+          {photos.slice(0, 16).map((_, i) => (
+            <button
+              key={i}
+              aria-label={`Go to photo ${i + 1}`}
+              onClick={() => onNav(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === index ? 'w-4 bg-white' : 'w-1.5 bg-white/30'
+              }`}
+            />
+          ))}
+        </div>
 
-      {/* Close */}
-      <button
-        aria-label="Close"
-        onClick={onClose}
-        className="absolute right-3 top-3 rounded-full bg-white/10 p-2 text-white backdrop-blur-sm transition-colors hover:bg-white/20 sm:right-5 sm:top-5"
-      >
-        <X className="h-5 w-5" />
-      </button>
+        <button
+          aria-label="Next photo"
+          onClick={() => onNav((index + 1) % photos.length)}
+          className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition-colors active:bg-white/30 hover:bg-white/20"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -257,9 +297,9 @@ function MarqueeStrip({ onOpen }: StripProps) {
   const doubled = [...cards, ...cards];
 
   return (
-    /* Outer wrapper masks the overflow and contains the hover-pause logic */
-    <div className="gallery-strip overflow-hidden">
-      <div className="flex gap-5 animate-scroll-left" style={{ width: 'max-content' }}>
+    /* overflow-hidden hides the duplicate half; py-4 lets polaroid shadows breathe */
+    <div className="gallery-strip overflow-hidden py-4">
+      <div className="flex gap-4 sm:gap-5 animate-scroll-left" style={{ width: 'max-content' }}>
         {doubled.map((card, i) => (
           <GalleryCard
             key={`${card.front}-${i}`}
@@ -296,7 +336,7 @@ export const ResultsGallery = () => {
           This is what she got
         </h2>
         <p className="mx-auto mt-2 max-w-md text-center text-[12.5px] text-muted">
-          Tap any card to see it full-screen. Cards flip every 7 seconds to reveal a second shot.
+          One selfie in, five studio-directed photos out — every look, every time.
         </p>
       </div>
 
