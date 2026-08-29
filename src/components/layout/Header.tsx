@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { navLinks, whatsAppUrl } from '../../data/site';
+import { navLinks } from '../../data/site';
 import { useScrolled } from '../../hooks/useScrolled';
-import { CloseIcon, MenuIcon, WhatsAppIcon } from '../ui/Icons';
+import { CloseIcon, MenuIcon } from '../ui/Icons';
 import { Logo } from './Logo';
 
 export const Header = () => {
@@ -39,21 +39,6 @@ export const Header = () => {
 
         <div className="flex items-center gap-3">
           <a
-            href={whatsAppUrl}
-            target="_blank"
-            rel="noreferrer"
-            aria-label="Chat with us on WhatsApp"
-            className={[
-              'hidden h-10 w-10 items-center justify-center rounded-full border transition-colors duration-300 sm:flex',
-              scrolled || menuOpen
-                ? 'border-line hover:border-ink/40'
-                : 'border-white/50 hover:border-white',
-            ].join(' ')}
-          >
-            <WhatsAppIcon className="h-5 w-5" />
-          </a>
-
-          <a
             href="#routes"
             className="label-caps rounded-full bg-ink-block px-6 py-3 text-[10px] font-medium text-on-dark transition-transform duration-300 hover:scale-[1.03] sm:px-7"
           >
@@ -87,14 +72,6 @@ export const Header = () => {
               {link.label}
             </a>
           ))}
-          <a
-            href={whatsAppUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-4 flex items-center gap-2 text-[13px] text-muted"
-          >
-            <WhatsAppIcon className="h-4.5 w-4.5" /> WhatsApp us
-          </a>
         </nav>
       )}
     </header>
