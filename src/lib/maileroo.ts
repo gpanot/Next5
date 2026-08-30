@@ -29,31 +29,54 @@ export async function sendEmail({ to, subject, html, plain }: MailerooEmail): Pr
   const apiKey = process.env.SENDING_KEY;
 
   if (!apiKey) {
-    console.log(`[maileroo] SENDING_KEY not set — skipping send to ${to}`);
-    console.log(`[maileroo] Subject: ${subject}`);
+    // In production this means the email was NEVER actually sent — the
+    // caller still sees a success response, so this needs to be loud.
+    const level = process.env.VERCEL_ENV === 'production' ? console.error : console.log;
+    level(
+      `[maileroo] SENDING_KEY not set — no email sent to ${to} (subject: "${subject}"). ` +
+        `${process.env.VERCEL_ENV === 'production' ? 'THIS IS A PRODUCTION MISCONFIGURATION.' : 'Expected in local dev.'}`,
+    );
     return 'dev-no-key';
   }
 
-  const res = await fetch(MAILEROO_API, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
-    },
-    body: JSON.stringify({
-      from: { address: FROM_ADDRESS, display_name: FROM_NAME },
-      to: [{ address: to }],
-      subject,
-      html,
-      plain: plain ?? '',
-    }),
-  });
-
-  const json = (await res.json()) as { success: boolean; message?: string; data?: { reference_id: string } | null };
-
-  if (!json.success) {
-    throw new Error(json.message ?? 'Maileroo send failed');
+  let res: Response;
+  try {
+    res = await fetch(MAILEROO_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-Key': apiKey,
+      },
+      body: JSON.stringify({
+        from: { address: FROM_ADDRESS, display_name: FROM_NAME },
+        to: [{ address: to }],
+        subject,
+        html,
+        plain: plain ?? '',
+      }),
+    });
+  } catch (err) {
+    console.error(`[maileroo] Network error sending to ${to}:`, err);
+    throw err;
   }
 
-  return json.data?.reference_id ?? 'queued';
+  const rawBody = await res.text();
+  let json: { success: boolean; message?: string; data?: { reference_id: string } | null };
+  try {
+    json = JSON.parse(rawBody);
+  } catch {
+    console.error(`[maileroo] Non-JSON response (status ${res.status}) sending to ${to}: ${rawBody.slice(0, 500)}`);
+    throw new Error(`Maileroo returned a non-JSON response (status ${res.status})`);
+  }
+
+  if (!res.ok || !json.success) {
+    console.error(
+      `[maileroo] Send failed (status ${res.status}) to ${to}: ${json.message ?? 'no message'} — ${rawBody.slice(0, 500)}`,
+    );
+    throw new Error(json.message ?? `Maileroo send failed (status ${res.status})`);
+  }
+
+  const referenceId = json.data?.reference_id ?? 'queued';
+  console.log(`[maileroo] Sent to ${to} — reference_id: ${referenceId}`);
+  return referenceId;
 }

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
     const link = `${appUrl}/studio?token=${token}`;
 
-    await sendEmail({
+    const reference = await sendEmail({
       to: trimmed,
       subject: 'Access your Next5 Studio',
       html: `
@@ -50,7 +50,16 @@ export async function POST(req: NextRequest) {
       `,
       plain: `Access your Next5 Studio\n\nClick the link below to open your studio (expires in 15 minutes):\n\n${link}\n\nIf you didn't request this, you can safely ignore this email.`,
     });
-    console.log('[studio/magic] Magic link sent to:', trimmed);
+
+    if (reference === 'dev-no-key' && process.env.VERCEL_ENV === 'production') {
+      // sendEmail() no-op'd (missing SENDING_KEY) — the request "succeeded"
+      // but nothing was actually delivered. Surface that as a real error
+      // instead of telling her to check an inbox that'll never get anything.
+      console.error('[studio/magic] Refusing to report success — SENDING_KEY missing in production for:', trimmed);
+      return NextResponse.json({ error: 'Studio login is temporarily unavailable' }, { status: 503 });
+    }
+
+    console.log('[studio/magic] Magic link sent to:', trimmed, '— reference:', reference);
 
     return NextResponse.json({ ok: true });
   } catch (err) {
