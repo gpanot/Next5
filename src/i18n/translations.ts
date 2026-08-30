@@ -41,14 +41,14 @@ export const translations: Record<Locale, TranslationShape> = {
   en: {
     nav: { studios: 'Studios', howItWorks: 'How It Works', faq: 'FAQ' },
     common: {
-      createMyShoot: 'Choose my studio',
+      createMyShoot: 'See your first photo FREE',
     },
     hero: {
       badge: 'Professional photoshoot · Immediate delivery',
       headlineLine1: 'Your next 5',
       headlineLine2: 'Instagram photos.',
       headlineEm: 'Made for you.',
-      subhead: 'Choose your studio, show us your vibe, and get your photos today.',
+      subhead: 'No photographer. No travel. No stress.\nJust one selfie and we do the rest.',
       sequence: 'Upload a selfie → your first photo free → 149K VND for the rest',
     },
     socialProof: {

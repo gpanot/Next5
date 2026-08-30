@@ -48,7 +48,7 @@ export const Hero = () => {
             <em className="text-[#e8cfb5] italic">{t.hero.headlineEm}</em>
           </h1>
 
-          <p className="mt-6 max-w-md text-[15px] leading-relaxed text-white/85 sm:text-base">
+          <p className="mt-6 max-w-md text-[15px] leading-relaxed text-white/85 sm:text-base whitespace-pre-line">
             {t.hero.subhead}
           </p>
 
