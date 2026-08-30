@@ -1,0 +1,47 @@
+{
+  "public/images/avatars/review-avatar-1.png": {
+    "prompt": "Portrait headshot of a young Vietnamese woman in her early twenties with long straight dark hair, warm genuine smile, casual soft beige top, natural daylight, shot in Saigon. Softly blurred neutral cream-toned background. Shot on 85mm lens, shallow depth of field, close crop on face and shoulders, centered subject with even margin on all sides for a circular avatar crop.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1024",
+    "outputSize": "128x128",
+    "bytes": 10999,
+    "alt": "Portrait of Mai T., a Next5 customer",
+    "generatedAt": "2026-08-30T03:30:23.456Z"
+  },
+  "public/images/avatars/review-avatar-2.png": {
+    "prompt": "Portrait headshot of a young Vietnamese woman in her mid-twenties with a soft wavy bob haircut, gentle friendly expression, wearing a light cream knit sweater, natural window light. Softly blurred neutral warm-toned background. Shot on 85mm lens, shallow depth of field, close crop on face and shoulders, centered subject with even margin on all sides for a circular avatar crop.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1024",
+    "outputSize": "128x128",
+    "bytes": 11548,
+    "alt": "Portrait of Trang N., a Next5 customer",
+    "generatedAt": "2026-08-30T03:30:56.696Z"
+  },
+  "public/images/avatars/review-avatar-3.png": {
+    "prompt": "Portrait headshot of an elegant Vietnamese woman in her late twenties with sleek straight black hair pulled back, confident calm smile, wearing a simple dark blouse, soft studio-style lighting. Softly blurred neutral taupe background. Shot on 85mm lens, shallow depth of field, close crop on face and shoulders, centered subject with even margin on all sides for a circular avatar crop.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1024",
+    "outputSize": "128x128",
+    "bytes": 9265,
+    "alt": "Portrait of Linh P., a Next5 customer",
+    "generatedAt": "2026-08-30T03:31:27.481Z"
+  },
+  "public/images/avatars/review-avatar-4.png": {
+    "prompt": "Portrait headshot of a young Vietnamese woman in her early twenties with short curly shoulder-length hair and bangs, playful bright smile, wearing a casual denim jacket, natural outdoor daylight. Softly blurred neutral green-toned background. Shot on 85mm lens, shallow depth of field, close crop on face and shoulders, centered subject with even margin on all sides for a circular avatar crop.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1024",
+    "outputSize": "128x128",
+    "bytes": 10933,
+    "alt": "Portrait of Anh D., a Next5 customer",
+    "generatedAt": "2026-08-30T03:31:47.006Z"
+  },
+  "public/images/avatars/review-avatar-5.png": {
+    "prompt": "Portrait headshot of a young Vietnamese woman in her mid-twenties with long hair styled in loose waves and a flower hair clip, warm relaxed smile, wearing a light linen top, soft golden-hour light. Softly blurred neutral warm background. Shot on 85mm lens, shallow depth of field, close crop on face and shoulders, centered subject with even margin on all sides for a circular avatar crop.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1024",
+    "outputSize": "128x128",
+    "bytes": 10650,
+    "alt": "Portrait of Ha V., a Next5 customer",
+    "generatedAt": "2026-08-30T03:32:17.436Z"
+  }
+}

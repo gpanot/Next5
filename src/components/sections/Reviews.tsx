@@ -4,13 +4,6 @@ import { reviews } from '../../data/reviews';
 import { useLocale } from '../../i18n/LocaleContext';
 import { StarIcon } from '../ui/Icons';
 
-const initials = (name: string) =>
-  name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
-
 export const Reviews = () => {
   const { locale, t } = useLocale();
 
@@ -41,8 +34,9 @@ export const Reviews = () => {
               </blockquote>
 
               <figcaption className="mt-4 flex items-center gap-2.5 border-t border-line pt-4">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 font-serif text-[12px] text-accent-strong">
-                  {initials(review.name)}
+                <span className="h-8 w-8 shrink-0 overflow-hidden rounded-full bg-accent/15">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={review.avatar} alt="" className="h-full w-full object-cover" />
                 </span>
                 <span>
                   <span className="block text-[12.5px] font-medium text-ink">{review.name}</span>
