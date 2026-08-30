@@ -27,7 +27,7 @@ export type TranslationShape = {
   proofStrip: { eyebrow: string; title: string; subtitle: string };
   reviews: { eyebrow: string; title: string };
   faq: { eyebrow: string; title: string; items: readonly { q: string; a: string }[] };
-  paymentMethods: { label: string };
+  paymentMethods: { label: string; privacyNote: string };
 };
 
 /**
@@ -41,7 +41,7 @@ export const translations: Record<Locale, TranslationShape> = {
   en: {
     nav: { studios: 'Studios', howItWorks: 'How It Works', faq: 'FAQ' },
     common: {
-      createMyShoot: 'Create my shoot',
+      createMyShoot: 'Choose my studio',
     },
     hero: {
       badge: 'Professional photoshoot · Immediate delivery',
@@ -105,12 +105,13 @@ export const translations: Record<Locale, TranslationShape> = {
     },
     paymentMethods: {
       label: 'Ways to pay',
+      privacyNote: 'Your selfie is used only to generate your photos, and deleted after delivery.',
     },
   },
   vi: {
     nav: { studios: 'Studio', howItWorks: 'Cách hoạt động', faq: 'Hỏi đáp' },
     common: {
-      createMyShoot: 'Tạo bộ ảnh của tôi',
+      createMyShoot: 'Chọn studio của tôi',
     },
     hero: {
       badge: 'Chụp ảnh chuyên nghiệp · Giao ngay',
@@ -174,6 +175,7 @@ export const translations: Record<Locale, TranslationShape> = {
     },
     paymentMethods: {
       label: 'Hình thức thanh toán',
+      privacyNote: 'Ảnh selfie của bạn chỉ được dùng để tạo ảnh và sẽ được xoá sau khi giao.',
     },
   },
 };

@@ -6,7 +6,9 @@ import { ChevronDownIcon } from '../ui/Icons';
 
 export const Faq = () => {
   const { t } = useLocale();
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  // The first 3 answers (look-like-me, selfie privacy, refund) are the
+  // objections a nervous first-time buyer needs answered without a click.
+  const [openIndexes, setOpenIndexes] = useState<ReadonlySet<number>>(() => new Set([0, 1, 2]));
 
   return (
     <section id="faq" className="scroll-mt-20 bg-page py-16 sm:py-20 lg:py-24">
@@ -20,13 +22,20 @@ export const Faq = () => {
 
         <div className="mt-10 divide-y divide-line border-y border-line">
           {t.faq.items.map((item, index) => {
-            const open = openIndex === index;
+            const open = openIndexes.has(index);
 
             return (
               <div key={item.q}>
                 <button
                   type="button"
-                  onClick={() => setOpenIndex(open ? null : index)}
+                  onClick={() =>
+                    setOpenIndexes((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(index)) next.delete(index);
+                      else next.add(index);
+                      return next;
+                    })
+                  }
                   aria-expanded={open}
                   aria-controls={`faq-answer-${index}`}
                   className="flex w-full items-center justify-between gap-4 py-5 text-left"

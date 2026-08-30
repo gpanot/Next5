@@ -1,8 +1,7 @@
 'use client';
 
-import { navLinks, whatsAppUrl } from '../../data/site';
+import { navLinks } from '../../data/site';
 import { useLocale } from '../../i18n/LocaleContext';
-import { WhatsAppIcon } from '../ui/Icons';
 import { Logo } from './Logo';
 import { LocaleToggle } from './LocaleToggle';
 
@@ -24,14 +23,6 @@ export const Footer = () => {
               {link.label[locale]}
             </a>
           ))}
-          <a
-            href={whatsAppUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 text-[13px] text-muted transition-colors hover:text-ink"
-          >
-            <WhatsAppIcon className="h-4 w-4" /> WhatsApp
-          </a>
           <LocaleToggle tone="dark" />
         </nav>
 

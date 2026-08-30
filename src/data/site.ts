@@ -22,8 +22,6 @@ export const navLinks: readonly { label: Bilingual<string>; href: string }[] = [
 
 export const heroImage = heroPhoto;
 
-export const whatsAppUrl = 'https://wa.me/84000000000';
-
 export const heroFeatures: readonly { icon: Icon; lines: Bilingual<readonly [string, string]> }[] = [
   {
     icon: CameraIcon,

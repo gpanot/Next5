@@ -31,6 +31,7 @@ export const PaymentMethods = () => {
             </span>
           ))}
         </div>
+        <p className="text-[11px] text-muted">{t.paymentMethods.privacyNote}</p>
       </div>
     </div>
   );

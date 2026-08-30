@@ -30,13 +30,6 @@ export const SparkleIcon = (props: IconProps) => (
   </Svg>
 );
 
-export const WhatsAppIcon = (props: IconProps) => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" {...strokeBase} {...props}>
-    <path d="M20 11.7a8 8 0 0 1-11.9 7L4 20l1.4-4A8 8 0 1 1 20 11.7Z" />
-    <path d="M9.3 9c.2-.5.4-.5.7-.5h.5c.2 0 .4 0 .6.5l.7 1.6c.1.3 0 .5-.1.7l-.4.5c-.1.2-.2.3 0 .6a6 6 0 0 0 2.6 2.2c.3.1.4 0 .6-.1l.5-.6c.2-.2.4-.2.6-.1l1.5.8c.3.1.4.3.4.5 0 .5-.3 1.3-1.4 1.5-1 .2-2.5-.2-4.2-1.4a8.7 8.7 0 0 1-2.7-3.4c-.4-1-.4-2.1.1-2.8Z" />
-  </svg>
-);
-
 export const TicketIcon = (props: IconProps) => (
   <Svg {...props}>
     <rect x="3" y="5" width="18" height="14" rx="2.5" />
