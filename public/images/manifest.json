@@ -43,5 +43,14 @@
     "bytes": 10650,
     "alt": "Portrait of Ha V., a Next5 customer",
     "generatedAt": "2026-08-30T03:32:17.436Z"
+  },
+  "public/images/post-confidence-phone.png": {
+    "prompt": "User-supplied mockup — iPhone 15 Pro showing Post Confidence app UI: photo of woman in luxury ballroom at top, score 95/100, Excellent Choice badge, Instagram/TikTok/Facebook selector, criteria bars (Face Presence 94, Lighting 96, Composition 92, Vibe Match 93, Scroll-Stopping 90), Why This Photo Works section with sparkle icon.",
+    "model": "user-supplied",
+    "size": "550x824",
+    "outputSize": "550x824",
+    "bytes": 128837,
+    "alt": "Phone mockup showing Post Confidence score of 95 with criteria breakdown",
+    "generatedAt": "2026-08-30T06:42:00.000Z"
   }
 }
