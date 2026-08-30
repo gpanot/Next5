@@ -3,7 +3,7 @@
 import { heroFeatures, heroImage } from '../../data/site';
 import { useLocale } from '../../i18n/LocaleContext';
 import { ButtonLink } from '../ui/Button';
-import { SparkleIcon } from '../ui/Icons';
+import { SparkleIcon, StarIcon } from '../ui/Icons';
 import { PlaceholderImage } from '../ui/PlaceholderImage';
 
 export const Hero = () => {
@@ -33,7 +33,7 @@ export const Hero = () => {
         aria-hidden="true"
       />
 
-      <div className="relative mx-auto w-full max-w-[1240px] px-5 pt-28 pb-16 sm:px-8 lg:px-10 lg:pt-24 lg:pb-14">
+      <div className="relative mx-auto w-full max-w-[1240px] px-5 pt-24 pb-10 sm:px-8 sm:pt-28 sm:pb-16 lg:px-10 lg:pt-24 lg:pb-14">
         <div className="max-w-[640px]">
           <span className="label-caps inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-4 py-2 text-[9.5px] font-medium text-white backdrop-blur-sm sm:text-[10px]">
             <SparkleIcon className="h-3.5 w-3.5" />
@@ -52,7 +52,7 @@ export const Hero = () => {
             {t.hero.subhead}
           </p>
 
-          <ul className="mt-9 grid max-w-lg grid-cols-2 gap-x-6 gap-y-5 sm:flex sm:max-w-none sm:flex-wrap sm:gap-x-8">
+          <ul className="mt-6 grid max-w-lg grid-cols-2 gap-x-6 gap-y-4 sm:mt-9 sm:flex sm:max-w-none sm:flex-wrap sm:gap-x-8 sm:gap-y-5">
             {heroFeatures.map(({ icon: Icon, lines }) => (
               <li key={lines.en[0]} className="flex items-center gap-2.5">
                 <Icon className="h-5 w-5 shrink-0 text-white/80" />
@@ -65,11 +65,21 @@ export const Hero = () => {
             ))}
           </ul>
 
-          <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
+          <div className="mt-6 flex flex-col gap-3 sm:mt-10 sm:flex-row sm:items-center sm:gap-6">
             <ButtonLink href="#routes" size="lg" withArrow className="">
               {t.common.createMyShoot}
             </ButtonLink>
             <p className="text-[12.5px] text-white/65">{t.hero.sequence}</p>
+          </div>
+
+          <div className="mt-3 flex items-center gap-2 sm:mt-5">
+            <span className="flex gap-0.5 text-[#e8cfb5]" aria-hidden="true">
+              {Array.from({ length: 5 }, (_, index) => (
+                <StarIcon key={index} className="h-3.5 w-3.5" />
+              ))}
+            </span>
+            <span className="text-[12px] font-medium text-white/85">4.9</span>
+            <span className="text-[12px] text-white/60">{t.socialProof.reviews}</span>
           </div>
         </div>
       </div>

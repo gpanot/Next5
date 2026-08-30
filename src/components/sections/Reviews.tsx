@@ -24,11 +24,11 @@ export const Reviews = () => {
           {t.reviews.title}
         </h2>
 
-        <div className="mt-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 flex flex-wrap justify-center gap-5">
           {reviews.map((review) => (
             <figure
               key={review.name}
-              className="flex flex-col rounded-xl border border-line bg-page p-5 shadow-card"
+              className="flex w-full flex-col rounded-xl border border-line bg-page p-5 shadow-card sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
             >
               <span className="flex gap-0.5 text-accent" aria-hidden="true">
                 {Array.from({ length: 5 }, (_, index) => (
