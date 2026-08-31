@@ -97,7 +97,7 @@ function GalleryCard({ front, back, name, globalFrontIndex, onOpen }: CardProps)
 
   return (
     <div
-      className="perspective-800 relative w-[140px] shrink-0 cursor-pointer sm:w-[180px]"
+      className="perspective-800 relative w-[182px] shrink-0 cursor-pointer sm:w-[180px]"
       style={{ aspectRatio: '2/3' }}
       onClick={() => onOpen(visibleIndex)}
     >
