@@ -80,6 +80,7 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
         onPhotoChange={flow.setUploadedPhoto}
         onDetailsChange={flow.setDetails}
         onNext={() => goTo('preview')}
+        hideEmail={flow.emailPreset}
       />
     );
   }

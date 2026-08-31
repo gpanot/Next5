@@ -16,6 +16,9 @@ type UploadStepProps = {
   onPhotoChange: (dataUrl: string | null) => void;
   onDetailsChange: (details: CustomerDetails) => void;
   onNext: () => void;
+  /** When true, the email field is hidden because the user is already
+   *  authenticated (e.g. booking from inside the studio). */
+  hideEmail?: boolean;
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -34,6 +37,7 @@ export const UploadStep = ({
   onPhotoChange,
   onDetailsChange,
   onNext,
+  hideEmail = false,
 }: UploadStepProps) => {
   const [emailError, setEmailError] = useState('');
   const [photoError, setPhotoError] = useState('');
@@ -60,15 +64,15 @@ export const UploadStep = ({
   const handleSubmit = () => {
     const email = details.email.trim();
     const photoOk = Boolean(uploadedPhoto);
-    const emailOk = emailPattern.test(email);
+    const emailOk = hideEmail || emailPattern.test(email);
 
     setPhotoError(photoOk ? '' : 'Add a photo of yourself so we can build your preview.');
-    setEmailError(emailOk ? '' : 'Please enter a valid email address.');
+    if (!hideEmail) setEmailError(emailOk ? '' : 'Please enter a valid email address.');
 
     if (photoOk && emailOk) onNext();
   };
 
-  const canContinue = Boolean(uploadedPhoto) && emailPattern.test(details.email.trim());
+  const canContinue = Boolean(uploadedPhoto) && (hideEmail || emailPattern.test(details.email.trim()));
 
   return (
     <StepLayout
@@ -78,7 +82,9 @@ export const UploadStep = ({
             <p className="text-[12px] text-muted">
               {canContinue
                 ? 'Your first shot is free — you only pay if you love it.'
-                : 'Add your photo and email to see your first shot.'}
+                : hideEmail
+                  ? 'Add your photo to see your first shot.'
+                  : 'Add your photo and email to see your first shot.'}
             </p>
           }
         >
@@ -138,34 +144,38 @@ export const UploadStep = ({
         </aside>
       </div>
 
-      <div ref={emailSectionRef} className="my-7 border-t border-line" />
+      {!hideEmail && (
+        <>
+          <div ref={emailSectionRef} className="my-7 border-t border-line" />
 
-      <div>
-        <h3 className="font-serif text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
-          Where should we send your photos?
-        </h3>
-        <p className="mt-1.5 text-[12.5px] text-muted">
-          Your completed shoot will be delivered here within 30 minutes.
-        </p>
+          <div>
+            <h3 className="font-serif text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
+              Where should we send your photos?
+            </h3>
+            <p className="mt-1.5 text-[12.5px] text-muted">
+              Your completed shoot will be delivered here within 30 minutes.
+            </p>
 
-        <div className="mt-4 max-w-md">
-          <Field
-            id="shoot-email"
-            label="Email address"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            placeholder="you@email.com"
-            value={details.email}
-            error={emailError}
-            inputRef={emailInputRef}
-            onChange={(e) => {
-              setEmailError('');
-              onDetailsChange({ email: e.target.value });
-            }}
-          />
-        </div>
-      </div>
+            <div className="mt-4 max-w-md">
+              <Field
+                id="shoot-email"
+                label="Email address"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                placeholder="you@email.com"
+                value={details.email}
+                error={emailError}
+                inputRef={emailInputRef}
+                onChange={(e) => {
+                  setEmailError('');
+                  onDetailsChange({ email: e.target.value });
+                }}
+              />
+            </div>
+          </div>
+        </>
+      )}
     </StepLayout>
   );
 };

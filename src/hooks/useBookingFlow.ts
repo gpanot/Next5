@@ -381,6 +381,9 @@ export const useBookingFlow = (options: UseBookingFlowOptions = {}) => {
     isConfirming,
     activeOffer,
     hasBookedBefore,
+    /** True when the email was pre-filled at mount (e.g. authenticated studio user).
+     *  Used by UploadStep to hide the redundant email field. */
+    emailPreset: initialEmail.trim().length > 0,
     discountPercentFor,
     claimOffer,
     isOpen: route !== null,
