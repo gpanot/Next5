@@ -14,7 +14,6 @@ import { PostConfidence } from '../src/components/sections/PostConfidence';
 import { ResultsGallery } from '../src/components/sections/ResultsGallery';
 import { Reviews } from '../src/components/sections/Reviews';
 import { SocialProofBar } from '../src/components/sections/SocialProofBar';
-import { StickyMobileCta } from '../src/components/sections/StickyMobileCta';
 import { useBookingFlow } from '../src/hooks/useBookingFlow';
 
 export default function HomePage() {
@@ -42,8 +41,6 @@ export default function HomePage() {
         <PaymentMethods />
       </main>
       <Footer />
-      <StickyMobileCta hidden={flow.isOpen} />
-
       {flow.isOpen && <BookingModal flow={flow} />}
     </div>
   );

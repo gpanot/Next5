@@ -4,6 +4,8 @@ import {
   CalendarIcon,
   CameraIcon,
   CloudIcon,
+  ClockIcon,
+  FaceIcon,
   ImageIcon,
   PhotoIcon,
   SparkleIcon,
@@ -25,19 +27,19 @@ export const heroImage = heroPhoto;
 export const heroFeatures: readonly { icon: Icon; lines: Bilingual<readonly [string, string]> }[] = [
   {
     icon: CameraIcon,
-    lines: { en: ['5 personalized', 'photos'], vi: ['5 ảnh', 'cá nhân hóa'] },
+    lines: { en: ['One selfie', "That's all we need"], vi: ['Một selfie', 'Chỉ vậy thôi'] },
+  },
+  {
+    icon: ClockIcon,
+    lines: { en: ['30 minutes', 'Super fast delivery'], vi: ['30 phút', 'Giao siêu nhanh'] },
   },
   {
     icon: StarIcon,
-    lines: { en: ['Creative direction', 'included'], vi: ['Có định hướng', 'sáng tạo'] },
+    lines: { en: ['See first photo FREE', 'Pay only if it looks like you'], vi: ['Xem ảnh đầu MIỄN PHÍ', 'Trả tiền nếu bạn thích'] },
   },
   {
-    icon: CalendarIcon,
-    lines: { en: ['Delivered', 'within 30 min'], vi: ['Giao trong', '30 phút'] },
-  },
-  {
-    icon: CloudIcon,
-    lines: { en: ['Immediate', 'first preview'], vi: ['Xem trước', 'ngay lập tức'] },
+    icon: FaceIcon,
+    lines: { en: ['Made to look like you', 'Face-match guaranteed'], vi: ['Giống bạn thật sự', 'Đảm bảo khớp khuôn mặt'] },
   },
 ];
 

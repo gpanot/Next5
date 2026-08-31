@@ -114,21 +114,31 @@ export const Hero = () => {
             <em className="text-[#e8cfb5] italic">{t.hero.headlineEm}</em>
           </h1>
 
-          <div className="mt-6 max-w-md space-y-1.5">
-            {['No photographer. No travel. No stress.', 'Just one selfie and we do the rest.'].map((line) => (
-              <div key={line} className="flex items-center gap-2.5">
-                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e8cfb5]" aria-hidden="true" />
-                <p className="text-[15px] leading-relaxed text-white/85 sm:text-base">{line}</p>
-              </div>
-            ))}
+          <div className="mt-6">
+            <p className="text-[18px] font-semibold leading-snug text-white sm:text-[20px]">
+              One selfie. Five professional-looking photos.
+            </p>
+            <p className="mt-1 text-[18px] font-semibold leading-snug text-white sm:text-[20px]">
+              See the first one free.
+            </p>
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+              {['No photographer', 'No travel', 'No stress'].map((item) => (
+                <div key={item} className="flex items-center gap-1.5">
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e8cfb5]/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[#e8cfb5]" />
+                  </span>
+                  <span className="text-[13px] text-white/85">{item}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <ul className="mt-6 grid max-w-lg grid-cols-2 gap-x-6 gap-y-4 sm:mt-9 sm:flex sm:max-w-none sm:flex-wrap sm:gap-x-8 sm:gap-y-5">
+          <ul className="mt-6 flex flex-wrap gap-x-6 gap-y-4 sm:mt-9 sm:gap-x-8">
             {heroFeatures.map(({ icon: Icon, lines }) => (
               <li key={lines.en[0]} className="flex items-center gap-2.5">
                 <Icon className="h-5 w-5 shrink-0 text-white/80" />
                 <span className="text-[11px] leading-[1.35] text-white/85 sm:text-[11.5px]">
-                  {lines[locale][0]}
+                  <span className="font-semibold text-white">{lines[locale][0]}</span>
                   <br />
                   {lines[locale][1]}
                 </span>
@@ -140,7 +150,6 @@ export const Hero = () => {
             <ButtonLink href="#routes" size="lg" withArrow className="">
               {t.common.createMyShoot}
             </ButtonLink>
-            <p className="text-[12.5px] text-white/65">{t.hero.sequence}</p>
           </div>
 
           <div className="mt-3 flex items-center gap-2 sm:mt-5">

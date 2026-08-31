@@ -42,8 +42,6 @@ export const Header = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          <LocaleToggle tone={dark ? 'dark' : 'light'} className="hidden sm:inline-flex" />
-
           <a
             href="/studio"
             className={[
@@ -90,7 +88,7 @@ export const Header = () => {
           >
             My Studio
           </a>
-          <div className="pt-4 sm:hidden">
+          <div className="pt-4">
             <LocaleToggle tone="dark" />
           </div>
         </nav>

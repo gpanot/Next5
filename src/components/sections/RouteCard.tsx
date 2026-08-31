@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import type { PhotoRoute } from '../../data/site';
 import { useLocale } from '../../i18n/LocaleContext';
 import { applyDiscount, formatVnd } from '../../lib/format';
-import { ArrowRightIcon, HeartIcon } from '../ui/Icons';
+import { ArrowRightIcon } from '../ui/Icons';
 import { PlaceholderImage } from '../ui/PlaceholderImage';
 
 type RouteCardProps = {
@@ -15,15 +14,7 @@ type RouteCardProps = {
 };
 
 export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardProps) => {
-  const [saved, setSaved] = useState(false);
   const { t } = useLocale();
-
-  const badgeText =
-    discountPercent >= 50
-      ? t.routes.badgeIntro
-      : discountPercent >= 30
-        ? t.routes.badgeBundle(discountPercent)
-        : t.routes.badgeRepeat(discountPercent);
 
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-page shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgb(34_31_28/0.35)] focus-within:-translate-y-1">
@@ -47,33 +38,12 @@ export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardPro
         <span className="absolute top-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 font-serif text-[12px] font-medium text-ink shadow-sm">
           {route.number}
         </span>
-
-        {discountPercent > 0 && (
-          <span className="label-caps absolute bottom-3 left-3 rounded-full bg-accent px-2.5 py-1 text-[9.5px] font-medium text-white shadow-sm">
-            {badgeText}
-          </span>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setSaved((value) => !value)}
-          aria-pressed={saved}
-          aria-label={saved ? `Remove ${route.title} from favourites` : `Save ${route.title}`}
-          className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 shadow-sm transition-transform duration-300 hover:scale-110"
-        >
-          <HeartIcon
-            filled={saved}
-            className={`h-4 w-4 ${saved ? 'text-accent-strong' : 'text-ink/70'}`}
-          />
-        </button>
       </div>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <h3 className="font-serif text-[16px] tracking-[0.07em] text-ink uppercase">
           {route.title}
         </h3>
-        {/* Two reserved lines: subtitles wrap on some routes and not others, and
-            a ragged baseline here misaligns every card below it. */}
         <p className="mt-1.5 line-clamp-2 min-h-[2.2em] text-[11px] leading-[1.1em] font-medium tracking-[0.08em] text-accent-strong uppercase">
           {route.subtitle}
         </p>
@@ -82,7 +52,6 @@ export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardPro
           {route.description}
         </p>
 
-        {/* mt-auto pins price + CTA to the card floor, so they line up across the row */}
         <div className="mt-auto pt-5">
           <p className="font-serif text-[19px]">
             {discountPercent > 0 && (
@@ -95,8 +64,14 @@ export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardPro
           </p>
           <p className="mt-0.5 text-[11px] text-muted">{t.routes.meta}</p>
 
-          <span className="label-caps mt-4 inline-flex w-full items-center justify-center gap-2.5 rounded-lg bg-ink-block px-4 py-2.5 text-[10px] font-medium text-on-dark transition-colors duration-300 group-hover:bg-ink-block/85">
+          {/* Mobile: gold accent pill */}
+          <span className="label-caps mt-4 inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-accent px-8 py-4 text-xs font-medium text-white transition-colors duration-300 group-hover:bg-accent-strong sm:hidden">
             {t.routes.exploreStudio}
+            <ArrowRightIcon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+          </span>
+          {/* Desktop: black pill with "Explore Studio" */}
+          <span className="label-caps mt-4 hidden w-full items-center justify-center gap-2.5 rounded-lg bg-ink-block px-4 py-2.5 text-[10px] font-medium text-on-dark transition-colors duration-300 group-hover:bg-ink-block/85 sm:inline-flex">
+            Explore Studio
             <ArrowRightIcon className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
           </span>
         </div>

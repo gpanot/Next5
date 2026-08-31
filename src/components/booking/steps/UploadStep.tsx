@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
 import type { CustomerDetails } from '../../../types/booking';
 import { Button } from '../../ui/Button';
@@ -39,6 +39,23 @@ export const UploadStep = ({
   const [photoError, setPhotoError] = useState('');
   const emailSectionRef = useRef<HTMLDivElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
+
+  // When the software keyboard opens on mobile it resizes the visualViewport.
+  // If the email input is focused, scroll it into the center of the remaining visible area.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const handleResize = () => {
+      const active = document.activeElement;
+      if (active !== emailInputRef.current) return;
+      // Give the browser a tick to apply the new layout
+      requestAnimationFrame(() => {
+        emailInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    };
+    vv.addEventListener('resize', handleResize);
+    return () => vv.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleSubmit = () => {
     const email = details.email.trim();
@@ -92,7 +109,8 @@ export const UploadStep = ({
             onPhotoChange(dataUrl);
             if (dataUrl) {
               setTimeout(() => {
-                emailSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Scroll the email input into view (center) so it's fully visible.
+                emailInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 // On desktop (no software keyboard) auto-focus is safe.
                 // On mobile, focusing before the scroll settles causes the keyboard
                 // to open mid-scroll and push the field out of view — skip it there.
@@ -100,7 +118,7 @@ export const UploadStep = ({
                 if (!isMobile) {
                   setTimeout(() => emailInputRef.current?.focus(), 500);
                 }
-              }, 120);
+              }, 200);
             }
           }}
           onRemove={() => onPhotoChange(null)}

@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocale } from '../../i18n/LocaleContext';
 import { CropIcon, EyeIcon, FaceIcon, HeartIcon, SunIcon } from '../ui/Icons';
 import { PostConfidenceGallery, type Platform } from './PostConfidenceGallery';
 import { PostConfidencePhone } from './PostConfidencePhone';
+
+const PLATFORMS: Platform[] = ['instagram', 'tiktok', 'facebook'];
+const AUTO_CYCLE_MS = 3000;
+const PAUSE_AFTER_MANUAL_MS = 9000;
 
 const criteriaIcons = [FaceIcon, SunIcon, CropIcon, HeartIcon, EyeIcon] as const;
 /* fill values map → display scores: 0.92→92, 0.88→88, etc.
@@ -121,6 +125,24 @@ export const PostConfidence = () => {
   const { locale } = useLocale();
   const c = copy[locale];
   const [platform, setPlatform] = useState<Platform>('instagram');
+  const pauseUntilRef = useRef<number>(0);
+
+  // Auto-cycle every 3s; pauses for 9s after a manual tap
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (Date.now() < pauseUntilRef.current) return;
+      setPlatform((prev) => {
+        const idx = PLATFORMS.indexOf(prev);
+        return PLATFORMS[(idx + 1) % PLATFORMS.length];
+      });
+    }, AUTO_CYCLE_MS);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleManualPlatformChange = (p: Platform) => {
+    pauseUntilRef.current = Date.now() + PAUSE_AFTER_MANUAL_MS;
+    setPlatform(p);
+  };
 
   const criteria = c.criteriaLabels.map((label, index) => ({
     icon: criteriaIcons[index],
@@ -223,7 +245,7 @@ export const PostConfidence = () => {
             <div>
               <PostConfidenceGallery
                 platform={platform}
-                onPlatformChange={setPlatform}
+                onPlatformChange={handleManualPlatformChange}
                 pickLabel={c.pickLabel[platform]}
                 platforms={c.platforms}
                 excellentChoice={c.excellentChoice}
@@ -248,7 +270,7 @@ export const PostConfidence = () => {
           <div className="mt-10 w-full">
             <PostConfidenceGallery
               platform={platform}
-              onPlatformChange={setPlatform}
+              onPlatformChange={handleManualPlatformChange}
               pickLabel={c.pickLabel[platform]}
               platforms={c.platforms}
               excellentChoice={c.excellentChoice}

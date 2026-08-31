@@ -62,7 +62,7 @@ export const translations: Record<Locale, TranslationShape> = {
       bannerReturning: 'Welcome back — every studio below is already 10% off for you',
       bannerOffer: (label: string, percent: number, count: number) =>
         `Your ${label} discount (-${percent}%) is active on ${count} studio${count === 1 ? '' : 's'} below`,
-      exploreStudio: 'Explore Studio',
+      exploreStudio: 'See Your First Photo Free',
       meta: '5 personalized photos · 30 min delivery',
       badgeIntro: 'First-shoot offer',
       badgeBundle: (percent: number) => `-${percent}% today`,
@@ -132,7 +132,7 @@ export const translations: Record<Locale, TranslationShape> = {
       bannerReturning: 'Chào mừng trở lại — mọi studio dưới đây đã được giảm 10% dành riêng cho bạn',
       bannerOffer: (label: string, percent: number, count: number) =>
         `Ưu đãi ${label} (-${percent}%) của bạn đang áp dụng cho ${count} studio bên dưới`,
-      exploreStudio: 'Khám phá Studio',
+      exploreStudio: 'Xem ảnh đầu tiên miễn phí',
       meta: '5 ảnh cá nhân hóa · Giao trong 30 phút',
       badgeIntro: 'Ưu đãi buổi đầu',
       badgeBundle: (percent: number) => `-${percent}% hôm nay`,
