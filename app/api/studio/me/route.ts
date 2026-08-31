@@ -32,6 +32,8 @@ export type StudioBooking = {
   created_at: string;
   feelings: string[];
   photos: StudioPhoto[];
+  /** Number of regenerations the player has used (max 2 within 24 h of creation). */
+  regenerate_count: number;
 };
 
 export type StudioMeResponse = {
@@ -82,6 +84,7 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      // Include regeneration tracking fields
     }),
   ]);
 
@@ -136,6 +139,7 @@ export async function GET(req: NextRequest) {
         created_at: booking.createdAt.toISOString(),
         feelings: booking.feelings,
         photos,
+        regenerate_count: booking.regenerateCount,
       };
     }),
   );

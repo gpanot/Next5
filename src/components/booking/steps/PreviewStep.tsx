@@ -317,6 +317,7 @@ export const PreviewStep = ({
             src={generatedUrl}
             alt={`${route.title} — your first shot`}
             onClose={() => setZoomed(false)}
+            imageOverlay={<Watermark position="bottom-right" />}
             overlay={
               <PreviewLightboxOverlay
                 onDownload={() => downloadFile(generatedUrl, `next5-${route.id}-preview.jpg`)}
@@ -390,20 +391,17 @@ const IntentionRecap = ({ intention }: { intention: ShootIntention }) => {
   );
 };
 
-/** Watermark + floating download button anchored to the lightbox viewport. */
+/** Floating download button anchored to the lightbox viewport. */
 const PreviewLightboxOverlay = ({ onDownload }: { onDownload: () => void }) => (
-  <>
-    <Watermark position="bottom-right" />
-    <button
-      type="button"
-      onClick={(e) => { e.stopPropagation(); onDownload(); }}
-      aria-label="Download preview photo"
-      className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-[12px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:bottom-6 sm:left-auto sm:right-16 sm:translate-x-0"
-    >
-      <DownloadIcon className="h-3.5 w-3.5" />
-      Download
-    </button>
-  </>
+  <button
+    type="button"
+    onClick={(e) => { e.stopPropagation(); onDownload(); }}
+    aria-label="Download preview photo"
+    className="absolute bottom-16 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-[12px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:bottom-6 sm:left-auto sm:right-16 sm:translate-x-0"
+  >
+    <DownloadIcon className="h-3.5 w-3.5" />
+    Download
+  </button>
 );
 
 const LockedShots = ({ route }: { route: PhotoRoute }) => (

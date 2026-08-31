@@ -76,6 +76,10 @@ model Booking {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
+  /** Regeneration tracking — players can request up to 2 regenerations per booking within 24 h. */
+  regenerateCount  Int       @default(0) @map("regenerate_count")
+  regenerateLastAt DateTime? @map("regenerate_last_at")
+
   user   User?   @relation(fields: [userId], references: [id])
   photos Photo[]
 

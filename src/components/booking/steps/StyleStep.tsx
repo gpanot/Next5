@@ -149,7 +149,6 @@ export const StyleStep = ({ route, options, selectedId, onSelect, onNext }: Styl
         <ImageLightbox
           src={previewed.portfolioImage ?? previewed.portfolio[0].src}
           alt={`${previewed.name}'s work`}
-          initialScale={2}
           onClose={() => setZoomed(false)}
         />
       )}

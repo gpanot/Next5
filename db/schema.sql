@@ -87,7 +87,9 @@ CREATE TABLE public.bookings (
     shoot_status public."ShootStatus" DEFAULT 'preview_generating'::public."ShootStatus" NOT NULL,
     wavespeed_task_id text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    regenerate_count integer DEFAULT 0 NOT NULL,
+    regenerate_last_at timestamp with time zone
 );
 
 
@@ -298,4 +300,5 @@ ALTER TABLE ONLY public.photos
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260829000000'),
-    ('20260829083650');
+    ('20260829083650'),
+    ('20260831000000');

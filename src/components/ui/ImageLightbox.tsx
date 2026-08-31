@@ -12,9 +12,12 @@ type ImageLightboxProps = {
   /** Opening zoom. Use 2 for contact sheets, where the whole point is to look
    *  at one frame rather than the grid. Defaults to fit-to-screen. */
   initialScale?: number;
+  /** Rendered inside the image transform layer — moves and scales with the
+   *  photo. Use for watermarks or badges that must sit on the image itself. */
+  imageOverlay?: ReactNode;
   /** Anchored to the viewport corner, not the image — stays put through pan
-   *  and zoom instead of transforming with the photo. Used for the preview
-   *  watermark; most callers leave this unset. */
+   *  and zoom instead of transforming with the photo. Used for floating
+   *  action buttons (e.g. download); most callers leave this unset. */
   overlay?: ReactNode;
 };
 
@@ -35,6 +38,7 @@ export const ImageLightbox = ({
   alt,
   onClose,
   initialScale = 1,
+  imageOverlay,
   overlay,
 }: ImageLightboxProps) => {
   const INITIAL_SCALE = initialScale;
@@ -189,28 +193,34 @@ export const ImageLightbox = ({
         <CloseIcon className="h-5 w-5" />
       </button>
 
-      {/* Hint */}
-      <p className="pointer-events-none absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-ink/55 px-3.5 py-1.5 text-[11px] text-white/85 backdrop-blur-sm select-none">
-        Scroll or pinch to zoom · Double-tap to reset · Drag to pan
-      </p>
-
-      {/* Image */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={alt}
-        draggable={false}
+      {/* Image + anything that must sit ON the photo (e.g. watermark) */}
+      <div
+        className="relative"
         style={{
           transform: `scale(${scale}) translate(${translate.x}%, ${translate.y}%)`,
           transition: isDragging.current ? 'none' : 'transform 0.2s ease',
           maxWidth: '100vw',
           maxHeight: '100vh',
-          objectFit: 'contain',
-          userSelect: 'none',
           cursor: scale > 1 ? 'grab' : 'zoom-in',
         }}
-      />
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          draggable={false}
+          style={{
+            display: 'block',
+            maxWidth: '100vw',
+            maxHeight: '100vh',
+            objectFit: 'contain',
+            userSelect: 'none',
+          }}
+        />
+        {imageOverlay}
+      </div>
 
+      {/* Viewport-anchored overlays (floating buttons, etc.) */}
       {overlay}
     </div>,
     document.body,

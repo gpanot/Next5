@@ -31,7 +31,7 @@ export const DirectorNote = ({ director, note, stream = false }: DirectorNotePro
 
     {note ? (
       <blockquote className="mt-3 text-[13px] leading-relaxed text-ink">
-        {stream ? <TypewriterText text={note} speed={110} /> : note}
+        {stream ? <TypewriterText text={note} speed={72} /> : note}
       </blockquote>
     ) : (
       <div className="mt-3 space-y-2" aria-label="Writing your note">

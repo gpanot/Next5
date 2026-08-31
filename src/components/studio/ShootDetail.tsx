@@ -22,9 +22,10 @@ type ShootDetailProps = {
 /** One shoot's full reveal — gallery, downloads, and the director's note.
  *  The account-level discount offer lives on the "create another shooting"
  *  screen now, not here, so this never repeats it per shoot.
- *  Callers must render this with `key={booking.id}` — its generation state
- *  is only ever correct for the shoot it mounted with, and remounting on a
- *  key change is how that resets, rather than an effect watching for it. */
+ *  Callers must render this with `key={`${booking.id}-${booking.regenerate_count}`}` —
+ *  its generation state is only ever correct for the shoot it mounted with,
+ *  and remounting on a key change is the mechanism that resets generation
+ *  both on first load and after each regeneration request. */
 export const ShootDetail = ({ booking, token, onUpdated }: ShootDetailProps) => {
   const [extraShots, setExtraShots] = useState<{ sceneIndex: number; url: string }[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -138,6 +139,28 @@ export const ShootDetail = ({ booking, token, onUpdated }: ShootDetailProps) => 
           bookingId={booking.id}
           shotUrls={shotUrls}
           director={director}
+          regenerateCount={booking.regenerate_count}
+          bookingCreatedAt={booking.created_at}
+          onRegenerate={async () => {
+            const res = await fetch('/api/studio/regenerate', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ bookingId: booking.id }),
+            });
+            const data = await res.json() as { ok: boolean; error?: string };
+            if (!res.ok || !data.ok) throw new Error(data.error ?? 'Regeneration failed');
+            // Fetch fresh booking data — regenerate_count changed and generated photos were deleted,
+            // so the updated booking triggers a re-mount of this component (key changes in StudioWorkspace).
+            const meRes = await fetch('/api/studio/me', { headers: { Authorization: `Bearer ${token}` } });
+            if (meRes.ok) {
+              const meData = await meRes.json() as { bookings: typeof booking[] };
+              const updated = meData.bookings?.find((b) => b.id === booking.id);
+              if (updated) onUpdated(updated);
+            }
+          }}
         />
       </div>
     </div>

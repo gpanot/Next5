@@ -7,6 +7,7 @@ import { Faq } from '../src/components/sections/Faq';
 import { FinalCta } from '../src/components/sections/FinalCta';
 import { Hero } from '../src/components/sections/Hero';
 import { HowItWorks } from '../src/components/sections/HowItWorks';
+import { LooksLikeYouGuarantee } from '../src/components/sections/LooksLikeYouGuarantee';
 import { PaymentMethods } from '../src/components/sections/PaymentMethods';
 import { PhotoRoutes } from '../src/components/sections/PhotoRoutes';
 import { PostConfidence } from '../src/components/sections/PostConfidence';
@@ -32,6 +33,7 @@ export default function HomePage() {
           activeOffer={flow.activeOffer}
           hasBookedBefore={flow.hasBookedBefore}
         />
+        <LooksLikeYouGuarantee />
         <HowItWorks />
         <PostConfidence />
         <Reviews />

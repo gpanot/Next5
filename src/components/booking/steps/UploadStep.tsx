@@ -73,7 +73,7 @@ export const UploadStep = ({
             className="sm:w-auto"
             disabled={!canContinue}
           >
-            Create my preview
+            Create my FREE preview
           </Button>
         </StepActions>
       }

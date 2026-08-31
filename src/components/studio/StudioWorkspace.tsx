@@ -128,7 +128,7 @@ export const StudioWorkspace = ({
 
           {selectedShoot && (
             <ShootDetail
-              key={selectedShoot.id}
+              key={`${selectedShoot.id}-${selectedShoot.regenerate_count}`}
               booking={selectedShoot}
               token={token}
               onUpdated={(updated) => onBookingsChange(bookings.map((b) => (b.id === updated.id ? updated : b)))}

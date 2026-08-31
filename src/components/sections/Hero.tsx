@@ -1,10 +1,76 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { heroFeatures, heroImage } from '../../data/site';
 import { useLocale } from '../../i18n/LocaleContext';
 import { ButtonLink } from '../ui/Button';
 import { SparkleIcon, StarIcon } from '../ui/Icons';
 import { PlaceholderImage } from '../ui/PlaceholderImage';
+
+const PLATFORMS = ['Instagram', 'Facebook', 'TikTok'] as const;
+const LONGEST_PLATFORM_CH = Math.max(...PLATFORMS.map((word) => word.length));
+const TYPE_MS = 65;
+const DELETE_MS = 35;
+const HOLD_MS = 1400;
+const GAP_MS = 250;
+
+function PlatformCycler() {
+  const [index, setIndex] = useState(0);
+  const [text, setText] = useState('');
+  const [phase, setPhase] = useState<'typing' | 'deleting'>('typing');
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReducedMotion(query.matches);
+    const onChange = () => setReducedMotion(query.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      const tick = setInterval(() => setIndex((i) => (i + 1) % PLATFORMS.length), 2400);
+      return () => clearInterval(tick);
+    }
+
+    const word = PLATFORMS[index];
+    let timeout: ReturnType<typeof setTimeout>;
+
+    if (phase === 'typing') {
+      if (text.length < word.length) {
+        timeout = setTimeout(() => setText(word.slice(0, text.length + 1)), TYPE_MS);
+      } else {
+        timeout = setTimeout(() => setPhase('deleting'), HOLD_MS);
+      }
+    } else {
+      if (text.length > 0) {
+        timeout = setTimeout(() => setText(text.slice(0, -1)), DELETE_MS);
+      } else {
+        timeout = setTimeout(() => {
+          setIndex((i) => (i + 1) % PLATFORMS.length);
+          setPhase('typing');
+        }, GAP_MS);
+      }
+    }
+
+    return () => clearTimeout(timeout);
+  }, [text, phase, index, reducedMotion]);
+
+  if (reducedMotion) {
+    return <span className="font-semibold">{PLATFORMS[index]}</span>;
+  }
+
+  return (
+    <span className="inline-flex items-baseline" style={{ minWidth: `${LONGEST_PLATFORM_CH}ch` }}>
+      <span aria-hidden="true" className="font-semibold">
+        {text}
+        <span className="animate-caret-blink ml-0.5 inline-block h-[0.8em] w-[2px] translate-y-[0.08em] bg-[#e8cfb5]" />
+      </span>
+      <span className="sr-only">{PLATFORMS[index]}</span>
+    </span>
+  );
+}
 
 export const Hero = () => {
   const { locale, t } = useLocale();
@@ -43,14 +109,19 @@ export const Hero = () => {
           <h1 className="mt-7 font-serif text-[42px] leading-[1.04] font-light text-white sm:text-[56px] lg:text-[64px] xl:text-[70px]">
             {t.hero.headlineLine1}
             <br />
-            {t.hero.headlineLine2}
+            <PlatformCycler />{' '}photos.
             <br />
             <em className="text-[#e8cfb5] italic">{t.hero.headlineEm}</em>
           </h1>
 
-          <p className="mt-6 max-w-md text-[15px] leading-relaxed text-white/85 sm:text-base whitespace-pre-line">
-            {t.hero.subhead}
-          </p>
+          <div className="mt-6 max-w-md space-y-1.5">
+            {['No photographer. No travel. No stress.', 'Just one selfie and we do the rest.'].map((line) => (
+              <div key={line} className="flex items-center gap-2.5">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e8cfb5]" aria-hidden="true" />
+                <p className="text-[15px] leading-relaxed text-white/85 sm:text-base">{line}</p>
+              </div>
+            ))}
+          </div>
 
           <ul className="mt-6 grid max-w-lg grid-cols-2 gap-x-6 gap-y-4 sm:mt-9 sm:flex sm:max-w-none sm:flex-wrap sm:gap-x-8 sm:gap-y-5">
             {heroFeatures.map(({ icon: Icon, lines }) => (

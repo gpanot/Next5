@@ -70,9 +70,28 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
-  .animate-sheet-in {
+  .animate-sheet-in,
+  .animate-caret-blink {
     animation: none;
   }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Hero platform typewriter cursor                                    */
+/* ------------------------------------------------------------------ */
+@keyframes caret-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@utility animate-caret-blink {
+  animation: caret-blink 0.9s step-end infinite;
 }
 
 /* ------------------------------------------------------------------ */
