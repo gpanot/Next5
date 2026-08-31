@@ -1,6 +1,6 @@
 'use client';
 
-import { DownloadIcon, PhotoIcon } from '../../ui/Icons';
+import { DownloadIcon, PhotoIcon, RefreshCwIcon } from '../../ui/Icons';
 
 type ShotTileProps = {
   sceneLabel: string;
@@ -9,6 +9,7 @@ type ShotTileProps = {
   layoutClassName: string;
   onOpen: () => void;
   onDownload: () => void;
+  onRegenerate?: () => void;
 };
 
 /** One frame in the studio mosaic: a finished photo (open + download), or a
@@ -23,6 +24,7 @@ export const ShotTile = ({
   layoutClassName,
   onOpen,
   onDownload,
+  onRegenerate,
 }: ShotTileProps) => {
   const ready = url !== null;
 
@@ -68,6 +70,18 @@ export const ShotTile = ({
         <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 py-1.5 text-[9.5px] font-medium text-white/85">
           <span className="animate-pulse">Creating…</span>
         </span>
+      )}
+
+      {ready && onRegenerate && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRegenerate(); }}
+          aria-label={`Regenerate ${sceneLabel}`}
+          className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/70 whitespace-nowrap"
+        >
+          <RefreshCwIcon className="h-2.5 w-2.5" />
+          Regenerate
+        </button>
       )}
 
       <span className="sr-only">{ready ? `${sceneLabel}, ready` : `${sceneLabel}, still being crafted`}</span>

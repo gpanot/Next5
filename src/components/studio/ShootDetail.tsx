@@ -167,14 +167,14 @@ export const ShootDetail = ({ booking, token, onUpdated }: ShootDetailProps) => 
           directorNote={note}
           regenerateCount={booking.regenerate_count}
           bookingCreatedAt={booking.created_at}
-          onRegenerate={async () => {
+          onRegenerate={async (sceneIndex: number) => {
             const res = await fetch('/api/studio/regenerate', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
               },
-              body: JSON.stringify({ bookingId: booking.id }),
+              body: JSON.stringify({ bookingId: booking.id, sceneIndex }),
             });
             const data = await res.json() as { ok: boolean; error?: string };
             if (!res.ok || !data.ok) throw new Error(data.error ?? 'Regeneration failed');

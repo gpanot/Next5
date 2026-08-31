@@ -1,12 +1,12 @@
 /**
  * POST /api/studio/regenerate
  *
- * Allows a player to regenerate their full photo set up to 2 times per booking,
- * within 24 hours of the booking being created.
+ * Allows a player to regenerate individual photos (or the full set) up to 2 times
+ * per booking, within 24 hours of the booking being created.
  *
- * This deletes all generated photos (keeps the preview/upload) and resets the
- * shoot status to 'creating', so the client's ShootDetail component will
- * automatically re-trigger scene generation on its next mount.
+ * When `sceneIndex` is provided, only that specific generated photo is deleted
+ * and the booking status is reset so the client re-generates just that one scene.
+ * Without `sceneIndex`, all generated photos are deleted (legacy full-set behaviour).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, isDbConfigured } from '../../../../src/lib/db';
@@ -39,9 +39,11 @@ export async function POST(req: NextRequest) {
   }
 
   let bookingId: string;
+  let sceneIndex: number | undefined;
   try {
-    const body = (await req.json()) as { bookingId?: string };
+    const body = (await req.json()) as { bookingId?: string; sceneIndex?: number };
     bookingId = body.bookingId ?? '';
+    sceneIndex = typeof body.sceneIndex === 'number' ? body.sceneIndex : undefined;
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid request body' } satisfies RegenerateResponseBody, { status: 400 });
   }
@@ -76,9 +78,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Delete all generated photos (keep preview and upload — only regenerate the AI shots)
+  // Delete the target photo(s): one specific scene when sceneIndex is given, all AI shots otherwise
   await prisma.photo.deleteMany({
-    where: { bookingId, type: 'generated' },
+    where: sceneIndex !== undefined
+      ? { bookingId, type: 'generated', sceneIndex }
+      : { bookingId, type: 'generated' },
   });
 
   // Increment counter, record timestamp, reset shoot status

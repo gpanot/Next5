@@ -5,7 +5,7 @@ import type { PhotoRoute } from '../../../data/routes';
 import { downloadAllAsZip, downloadFile } from '../../../lib/download';
 import type { CreativeDirector } from '../../../types/booking';
 import { Button } from '../../ui/Button';
-import { DownloadIcon, RefreshCwIcon } from '../../ui/Icons';
+import { DownloadIcon } from '../../ui/Icons';
 import { ImageLightbox } from '../../ui/ImageLightbox';
 import { ClosingNote } from './ClosingNote';
 import { ShotTile } from './ShotTile';
@@ -25,8 +25,8 @@ type StudioRevealProps = {
   regenerateCount?: number;
   /** ISO timestamp of when the booking was created — used to enforce the 24h window. */
   bookingCreatedAt?: string;
-  /** Called when the player requests a regeneration. */
-  onRegenerate?: () => Promise<void>;
+  /** Called when the player requests regeneration of one specific photo (0-based shot index). */
+  onRegenerate?: (sceneIndex: number) => Promise<void>;
 };
 
 const shotFilename = (route: PhotoRoute, index: number) =>
@@ -46,6 +46,7 @@ export const StudioReveal = ({
   const [isZipping, setIsZipping] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenError, setRegenError] = useState<string | null>(null);
+  const [confirmRegenIndex, setConfirmRegenIndex] = useState<number | null>(null);
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -62,12 +63,13 @@ export const StudioReveal = ({
     : false;
   const canRegenerate = regenRemaining > 0 && withinWindow && !!onRegenerate;
 
-  const handleRegenerate = async () => {
+  const handleRegenerate = async (sceneIndex: number) => {
     if (!onRegenerate || isRegenerating) return;
     setRegenError(null);
     setIsRegenerating(true);
+    setConfirmRegenIndex(null);
     try {
-      await onRegenerate();
+      await onRegenerate(sceneIndex);
     } catch (err) {
       setRegenError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
@@ -129,6 +131,7 @@ export const StudioReveal = ({
               layoutClassName="aspect-[3/4] w-full"
               onOpen={() => setZoomed(index)}
               onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
+              onRegenerate={canRegenerate && !isRegenerating ? () => setConfirmRegenIndex(index) : undefined}
             />
           </div>
         ))}
@@ -147,6 +150,7 @@ export const StudioReveal = ({
               layoutClassName="aspect-[3/4] w-full"
               onOpen={() => setZoomed(index)}
               onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
+              onRegenerate={canRegenerate && !isRegenerating ? () => setConfirmRegenIndex(index) : undefined}
             />
           ))}
         </div>
@@ -165,6 +169,7 @@ export const StudioReveal = ({
                   layoutClassName="aspect-[3/4] w-full"
                   onOpen={() => setZoomed(index)}
                   onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
+                  onRegenerate={canRegenerate && !isRegenerating ? () => setConfirmRegenIndex(index) : undefined}
                 />
               </div>
             );
@@ -187,32 +192,17 @@ export const StudioReveal = ({
       {/* Regenerate section */}
       {!!bookingCreatedAt && (
         <div className="mt-5 rounded-xl border border-line bg-surface px-4 py-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="text-[12.5px] font-medium text-ink">Not happy with a result?</p>
-              <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted">
-                {regenRemaining <= 0
-                  ? "You've used both regenerations for this shoot."
-                  : withinWindow
-                    ? `You can regenerate your full set — ${regenRemaining} of ${REGEN_LIMIT} regeneration${regenRemaining === 1 ? '' : 's'} remaining.`
-                    : 'Your 24-hour regeneration window has closed.'}
-              </p>
-              {regenError && (
-                <p className="mt-1.5 text-[11px] text-red-600">{regenError}</p>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={handleRegenerate}
-              disabled={!canRegenerate || isRegenerating}
-              className="flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-white px-4 py-1.5 text-[11.5px] font-medium text-ink shadow-sm transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <RefreshCwIcon className={`h-3.5 w-3.5 ${isRegenerating ? 'animate-spin' : ''}`} />
-              {isRegenerating ? 'Regenerating…' : 'Regenerate'}
-            </button>
-          </div>
-
+          <p className="text-[12.5px] font-medium text-ink">Not happy with a photo?</p>
+          <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted">
+            {regenRemaining <= 0
+              ? "You've used both regenerations for this shoot."
+              : withinWindow
+                ? `Tap Regenerate on any photo — ${regenRemaining} of ${REGEN_LIMIT} regeneration${regenRemaining === 1 ? '' : 's'} remaining.`
+                : 'Your 24-hour regeneration window has closed.'}
+          </p>
+          {regenError && (
+            <p className="mt-1.5 text-[11px] text-red-600">{regenError}</p>
+          )}
           <p className="mt-3 text-[10.5px] text-muted/75">
             Up to {REGEN_LIMIT} regenerations per shoot · Available within 24 hours of your session
           </p>
@@ -231,6 +221,45 @@ export const StudioReveal = ({
           onPrev={hasPrev ? goPrev : undefined}
           onNext={hasNext ? goNext : undefined}
         />
+      )}
+
+      {/* Per-photo regeneration confirmation dialog */}
+      {confirmRegenIndex !== null && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center px-4 pb-6 sm:pb-4">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setConfirmRegenIndex(null)}
+            aria-hidden="true"
+          />
+          <div className="relative w-full max-w-sm rounded-2xl bg-white px-6 py-6 shadow-xl">
+            <p className="font-medium text-[15px] text-ink">Regenerate this photo?</p>
+            <p className="mt-2 text-[13px] leading-relaxed text-muted">
+              Do you want to regenerate this photo? This will overwrite the current photo.
+            </p>
+            {regenRemaining === 1 && (
+              <p className="mt-1.5 text-[11px] text-muted/70">
+                This is your last regeneration for this shoot.
+              </p>
+            )}
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmRegenIndex(null)}
+                className="flex-1 rounded-full border border-line bg-white px-4 py-2.5 text-[13px] font-medium text-ink transition-opacity hover:opacity-80"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleRegenerate(confirmRegenIndex)}
+                disabled={isRegenerating}
+                className="flex-1 rounded-full bg-ink px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isRegenerating ? 'Regenerating…' : 'Regenerate'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
