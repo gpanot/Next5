@@ -3,12 +3,14 @@ import { PlaceholderImage } from '../../ui/PlaceholderImage';
 
 type ClosingNoteProps = {
   director: CreativeDirector;
+  /** AI-generated note from the preview step. Shows a skeleton while fetching. */
+  note: string | null;
 };
 
 /** The director's sign-off once the full set is ready — the studio visit
  *  ends with a person, not a delivery confirmation. */
-export const ClosingNote = ({ director }: ClosingNoteProps) => (
-  <figure className="mt-6 rounded-2xl border border-line bg-surface px-5 py-4.5">
+export const ClosingNote = ({ director, note }: ClosingNoteProps) => (
+  <figure className="rounded-2xl border border-line bg-surface px-5 py-4.5">
     <figcaption className="flex items-center gap-2.5">
       <PlaceholderImage
         src={director.avatar}
@@ -21,9 +23,17 @@ export const ClosingNote = ({ director }: ClosingNoteProps) => (
       <p className="text-[13.5px] font-medium text-ink">A note from {director.name}</p>
     </figcaption>
 
-    <blockquote className="mt-3 text-[13px] leading-relaxed text-ink">
-      {director.signature} Your studio is yours to keep — download whatever you love.
-    </blockquote>
+    {note ? (
+      <blockquote className="mt-3 text-[13px] leading-relaxed text-ink">
+        {note}
+      </blockquote>
+    ) : (
+      <div className="mt-3 space-y-2" aria-label="Loading note">
+        <span className="block h-2.5 w-full animate-pulse rounded-full bg-surface-alt" />
+        <span className="block h-2.5 w-[90%] animate-pulse rounded-full bg-surface-alt" />
+        <span className="block h-2.5 w-[65%] animate-pulse rounded-full bg-surface-alt" />
+      </div>
+    )}
 
     <p className="mt-3.5 font-serif text-[19px] leading-none text-ink italic">{director.name}</p>
     <p className="mt-1 text-[11px] text-muted">Your Creative Director</p>

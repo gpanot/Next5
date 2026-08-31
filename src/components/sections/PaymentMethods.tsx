@@ -22,23 +22,23 @@ export const PaymentMethods = () => {
             />
           </div>
           {/* VietQR — horizontal logo on white background */}
-          <div className="flex h-14 items-center rounded-xl border border-line bg-white px-5 shadow-sm">
+          <div className="flex h-14 items-center rounded-xl border border-line bg-white px-4 shadow-sm">
             <Image
               src="/images/logo-vietqr.webp"
               alt="VietQR"
               width={140}
-              height={48}
-              className="h-10 w-auto object-contain"
+              height={56}
+              className="h-12 w-auto object-contain"
             />
           </div>
           {/* ZaloPay — horizontal wordmark on white background */}
-          <div className="flex h-14 items-center rounded-xl border border-line bg-white px-5 shadow-sm">
+          <div className="flex h-14 items-center rounded-xl border border-line bg-white px-4 shadow-sm">
             <Image
               src="/images/logo-zalopay.png"
               alt="ZaloPay"
               width={140}
-              height={48}
-              className="h-10 w-auto object-contain"
+              height={56}
+              className="h-12 w-auto object-contain"
             />
           </div>
         </div>

@@ -19,6 +19,8 @@ type StudioRevealProps = {
   /** Index 0 = shot 1 (the preview) … index 4 = shot 5. `null` = still generating. */
   shotUrls: readonly (string | null)[];
   director: CreativeDirector;
+  /** The AI-generated director note from the preview step — shown in ClosingNote. */
+  directorNote?: string | null;
   /** How many times the player has already regenerated this shoot. */
   regenerateCount?: number;
   /** ISO timestamp of when the booking was created — used to enforce the 24h window. */
@@ -27,26 +29,15 @@ type StudioRevealProps = {
   onRegenerate?: () => Promise<void>;
 };
 
-/** Same wide-lead mosaic used by `StudioGallery` — one visual language for
- *  "a set of studio photos" everywhere on the site. Purely about the
- *  photos — the collection upsell lives on the "create another shooting"
- *  screen now, not here (see `CollectionOffers`), so this never repeats it.
- *  Regeneration: players may request up to 2 full-set regenerations within 24 h. */
-const frameLayout = [
-  'col-span-2 aspect-[16/10] sm:aspect-[2/1] lg:col-span-2 lg:row-span-2 lg:aspect-auto',
-  'aspect-[3/4] lg:row-span-2 lg:aspect-auto',
-  'aspect-[3/4] lg:row-span-2 lg:aspect-auto',
-  'aspect-[3/4] lg:row-span-2 lg:aspect-auto',
-  'aspect-[3/4] lg:row-span-2 lg:aspect-auto',
-];
-
-const shotFilename = (route: PhotoRoute, index: number) => `next5-${route.id}-shot-${String(index + 1).padStart(2, '0')}.jpg`;
+const shotFilename = (route: PhotoRoute, index: number) =>
+  `next5-${route.id}-shot-${String(index + 1).padStart(2, '0')}.jpg`;
 
 export const StudioReveal = ({
   route,
   bookingId,
   shotUrls,
   director,
+  directorNote,
   regenerateCount = 0,
   bookingCreatedAt,
   onRegenerate,
@@ -56,9 +47,6 @@ export const StudioReveal = ({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenError, setRegenError] = useState<string | null>(null);
 
-  // Re-checked on a timer so a tab left open across the 24h boundary flips
-  // to "closed" on its own, instead of staying stuck on stale eligibility
-  // until the next manual refresh.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!bookingCreatedAt) return;
@@ -101,6 +89,22 @@ export const StudioReveal = ({
     setIsZipping(false);
   };
 
+  // Navigate in lightbox — skip null urls (still generating)
+  const goPrev = () => {
+    if (zoomed === null) return;
+    for (let i = zoomed - 1; i >= 0; i--) {
+      if (shotUrls[i] !== null) { setZoomed(i); return; }
+    }
+  };
+  const goNext = () => {
+    if (zoomed === null) return;
+    for (let i = zoomed + 1; i < shotUrls.length; i++) {
+      if (shotUrls[i] !== null) { setZoomed(i); return; }
+    }
+  };
+  const hasPrev = zoomed !== null && shotUrls.slice(0, zoomed).some((u) => u !== null);
+  const hasNext = zoomed !== null && shotUrls.slice(zoomed + 1).some((u) => u !== null);
+
   return (
     <div>
       <div className="flex items-baseline justify-between">
@@ -110,18 +114,62 @@ export const StudioReveal = ({
         </p>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:gap-2.5 lg:auto-rows-[104px] lg:grid-cols-3">
+      {/* ── Gallery ───────────────────────────────────────────────────── */}
+      {/* Mobile: single-card horizontal scroll  |  Desktop: 2-up top row + 3-up scroll strip */}
+
+      {/* Mobile (hidden on sm+): all 5 in one horizontal scroll row */}
+      <div className="mt-3 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:hidden
+                      [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {route.shots.map((shot, index) => (
-          <ShotTile
-            key={shot.src}
-            sceneLabel={route.scenes[index]}
-            index={index}
-            url={shotUrls[index]}
-            layoutClassName={frameLayout[index]}
-            onOpen={() => setZoomed(index)}
-            onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
-          />
+          <div key={shot.src} className="w-[78vw] shrink-0">
+            <ShotTile
+              sceneLabel={route.scenes[index]}
+              index={index}
+              url={shotUrls[index]}
+              layoutClassName="aspect-[3/4] w-full"
+              onOpen={() => setZoomed(index)}
+              onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
+            />
+          </div>
         ))}
+      </div>
+
+      {/* Desktop (sm+): top row of 2, then horizontal scroll strip of 3 */}
+      <div className="mt-3 hidden sm:block">
+        {/* Top row — 2 equal columns */}
+        <div className="grid grid-cols-2 gap-2 sm:gap-2.5">
+          {route.shots.slice(0, 2).map((shot, index) => (
+            <ShotTile
+              key={shot.src}
+              sceneLabel={route.scenes[index]}
+              index={index}
+              url={shotUrls[index]}
+              layoutClassName="aspect-[3/4] w-full"
+              onOpen={() => setZoomed(index)}
+              onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
+            />
+          ))}
+        </div>
+
+        {/* Bottom strip — 3 cards, horizontally scrollable */}
+        <div className="mt-2 -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:gap-2.5 sm:pb-1.5
+                        [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {route.shots.slice(2).map((shot, i) => {
+            const index = i + 2;
+            return (
+              <div key={shot.src} className="w-[calc(33.333%-6px)] shrink-0 min-w-[160px]">
+                <ShotTile
+                  sceneLabel={route.scenes[index]}
+                  index={index}
+                  url={shotUrls[index]}
+                  layoutClassName="aspect-[3/4] w-full"
+                  onOpen={() => setZoomed(index)}
+                  onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <Button
@@ -172,7 +220,7 @@ export const StudioReveal = ({
       )}
 
       <div className="mt-6">
-        <ClosingNote director={director} />
+        <ClosingNote director={director} note={directorNote ?? null} />
       </div>
 
       {zoomedUrl && (
@@ -180,6 +228,8 @@ export const StudioReveal = ({
           src={zoomedUrl}
           alt={route.scenes[zoomed as number]}
           onClose={() => setZoomed(null)}
+          onPrev={hasPrev ? goPrev : undefined}
+          onNext={hasNext ? goNext : undefined}
         />
       )}
     </div>

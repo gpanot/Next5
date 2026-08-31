@@ -1,16 +1,10 @@
 import Image from 'next/image';
 
-const GUARANTEE_POINTS = [
-  "If your preview doesn't look like you, don't pay.",
-  "If your paid set misses the mark, we remake it once for free \u2014",
-  "and if you still don't love it, you get your money back.",
-] as const;
-
 function ShieldCheckIcon() {
   return (
     <svg
-      width="48"
-      height="48"
+      width="36"
+      height="36"
       viewBox="0 0 48 48"
       fill="none"
       aria-hidden="true"
@@ -41,7 +35,7 @@ export const LooksLikeYouGuarantee = () => {
         {/* Content */}
         <div className="relative z-10 flex flex-col gap-6 px-7 py-8 sm:px-10 sm:py-10 md:flex-row md:gap-10 md:px-0 md:py-0 lg:gap-14">
           {/* Left: icon + text */}
-          <div className="flex flex-col justify-center gap-5 md:flex-1 md:py-10 md:pl-10 lg:py-12 lg:pl-12">
+          <div className="flex flex-col justify-center gap-4 md:flex-1 md:py-10 md:pl-10 lg:py-12 lg:pl-12">
             <ShieldCheckIcon />
 
             <div>
@@ -49,13 +43,13 @@ export const LooksLikeYouGuarantee = () => {
                 The Looks-Like-You Guarantee
               </h2>
 
-              <ul className="mt-4 space-y-1.5">
-                {GUARANTEE_POINTS.map((point) => (
-                  <li key={point} className="text-[14px] leading-relaxed text-white/75 sm:text-[14.5px]">
-                    {point}
-                  </li>
-                ))}
-              </ul>
+              <p className="mt-3 text-[14px] leading-relaxed text-white/75 sm:text-[14.5px]">
+                If your preview doesn&apos;t look like you, don&apos;t pay.
+                <br />
+                If your paid set misses the mark, we remake it once for free —
+                <br />
+                and if you still don&apos;t love it, you get your money back.
+              </p>
             </div>
           </div>
 

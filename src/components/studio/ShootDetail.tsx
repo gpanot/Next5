@@ -6,7 +6,17 @@ import type { SceneResponseBody } from '../../../app/api/generate/scene/route';
 import { photoRoutes } from '../../data/routes';
 import type { RouteId } from '../../data/photos';
 import { getCreativeDirector } from '../../data/photographers';
+import { useDirectorNote } from '../../hooks/useDirectorNote';
 import { StudioReveal } from '../booking/confirmed/StudioReveal';
+
+const feelingLabels: Record<string, string> = {
+  beautiful: 'Beautiful & confident',
+  soft: 'Soft & feminine',
+  elegant: 'Elegant & expensive',
+  bold: 'Bold & irresistible',
+  fashion: 'Like a fashion girl',
+  noticed: 'Like everyone noticed me',
+};
 
 const TOTAL_SHOTS = 5;
 const POLL_INTERVAL_MS = 4000;
@@ -110,6 +120,21 @@ export const ShootDetail = ({ booking, token, onUpdated }: ShootDetailProps) => 
     director = null;
   }
 
+  // Fetch the same AI-generated director note that was shown during preview.
+  // Same inputs → same deterministic prompt → same note, no extra storage needed.
+  const note = useDirectorNote(
+    route && director
+      ? {
+          directorName: director.name,
+          directorSpecialty: director.specialty,
+          directorSignature: director.signature,
+          studioTitle: route.title,
+          feelings: booking.feelings.map((f) => feelingLabels[f] ?? f),
+          goals: [],
+        }
+      : null,
+  );
+
   if (!route || !director) {
     return (
       <div className="rounded-2xl border border-line bg-surface px-6 py-10 text-center">
@@ -139,6 +164,7 @@ export const ShootDetail = ({ booking, token, onUpdated }: ShootDetailProps) => 
           bookingId={booking.id}
           shotUrls={shotUrls}
           director={director}
+          directorNote={note}
           regenerateCount={booking.regenerate_count}
           bookingCreatedAt={booking.created_at}
           onRegenerate={async () => {

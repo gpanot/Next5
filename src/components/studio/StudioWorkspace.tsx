@@ -20,6 +20,8 @@ type StudioWorkspaceProps = {
   onBookingsChange: (updated: StudioBooking[]) => void;
   onRefresh: () => Promise<void> | void;
   onClaimOffer: (offer: DiscountOffer) => void;
+  /** Called whenever the mobile pane changes — lets the parent hide/show the header. */
+  onMobilePaneChange?: (pane: 'list' | 'detail') => void;
 };
 
 /** Each purchase is a dated shoot with a photographer, not just "more
@@ -39,6 +41,7 @@ export const StudioWorkspace = ({
   onBookingsChange,
   onRefresh,
   onClaimOffer,
+  onMobilePaneChange,
 }: StudioWorkspaceProps) => {
   // Abandoned/unpaid previews still create a DB row so the account exists
   // even if she never finishes — those aren't a "shoot" yet.
@@ -52,9 +55,13 @@ export const StudioWorkspace = ({
     if (initialBookingId) return { kind: 'shoot', bookingId: initialBookingId };
     return shoots[0] ? { kind: 'shoot', bookingId: shoots[0].id } : { kind: 'create' };
   });
-  const [mobilePane, setMobilePane] = useState<'list' | 'detail'>(
-    initialBookingId || shoots.length === 0 ? 'detail' : 'list',
-  );
+  const initialPane: 'list' | 'detail' = initialBookingId || shoots.length === 0 ? 'detail' : 'list';
+  const [mobilePane, setMobilePaneRaw] = useState<'list' | 'detail'>(initialPane);
+
+  const setMobilePane = (pane: 'list' | 'detail') => {
+    setMobilePaneRaw(pane);
+    onMobilePaneChange?.(pane);
+  };
 
   // If the shoot she was viewing disappears from `bookings` (shouldn't
   // normally happen), fall back to the most recent one rather than showing a

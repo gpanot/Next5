@@ -19,6 +19,9 @@ type ImageLightboxProps = {
    *  and zoom instead of transforming with the photo. Used for floating
    *  action buttons (e.g. download); most callers leave this unset. */
   overlay?: ReactNode;
+  /** When set, prev/next arrow buttons are shown. */
+  onPrev?: () => void;
+  onNext?: () => void;
 };
 
 /**
@@ -40,6 +43,8 @@ export const ImageLightbox = ({
   initialScale = 1,
   imageOverlay,
   overlay,
+  onPrev,
+  onNext,
 }: ImageLightboxProps) => {
   const INITIAL_SCALE = initialScale;
   const MIN_SCALE = 1;
@@ -66,16 +71,16 @@ export const ImageLightbox = ({
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // Escape key
+  // Escape / arrow keys
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      e.stopPropagation();
-      onClose();
+      if (e.key === 'Escape') { e.stopPropagation(); onClose(); }
+      if (e.key === 'ArrowLeft') { e.stopPropagation(); onPrev?.(); }
+      if (e.key === 'ArrowRight') { e.stopPropagation(); onNext?.(); }
     };
     document.addEventListener('keydown', handler, true);
     return () => document.removeEventListener('keydown', handler, true);
-  }, [onClose]);
+  }, [onClose, onPrev, onNext]);
 
   // Clamp translate so the image doesn't scroll too far off screen
   const clamp = (t: { x: number; y: number }, s: number) => {
@@ -192,6 +197,28 @@ export const ImageLightbox = ({
       >
         <CloseIcon className="h-5 w-5" />
       </button>
+
+      {/* Prev / Next arrows */}
+      {onPrev && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onPrev(); }}
+          aria-label="Previous photo"
+          className="absolute left-3 top-1/2 z-10 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/30 sm:left-5"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+      )}
+      {onNext && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onNext(); }}
+          aria-label="Next photo"
+          className="absolute right-3 top-1/2 z-10 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/30 sm:right-5"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+      )}
 
       {/* Image + anything that must sit ON the photo (e.g. watermark) */}
       <div

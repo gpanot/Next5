@@ -30,6 +30,8 @@ export default function StudioPage() {
   const [studio, setStudio] = useState<StudioState>({ phase: 'loading' });
   // bookingId from ?bookingId= URL param — she just paid for this one
   const [initialBookingId, setInitialBookingId] = useState<string | null>(null);
+  // Track mobile pane so the header is hidden only on detail view (not the list)
+  const [mobilePane, setMobilePane] = useState<'list' | 'detail'>('list');
 
   // On mount: consume magic ?token=, check localStorage, or read ?bookingId=
   useEffect(() => {
@@ -158,6 +160,7 @@ export default function StudioPage() {
   return (
     <PageShell
       email={auth.email}
+      hideHeaderOnMobile={mobilePane === 'detail'}
       onLogout={() => {
         localStorage.removeItem(STORAGE_KEY);
         setAuth({ phase: 'unauthenticated' });
@@ -169,7 +172,7 @@ export default function StudioPage() {
       )}
       {studio.phase === 'loaded' && (
         <>
-          <div className="mx-auto mb-8 max-w-6xl px-6 sm:px-10">
+          <div className="mx-auto mb-8 max-w-6xl px-6 sm:px-10 hidden sm:block">
             <p className="label-caps text-[9.5px] font-medium text-accent-strong">Your studio</p>
             <h1 className="mt-2 font-serif text-[32px] tracking-[0.06em] text-ink uppercase leading-none">
               My Photos
@@ -184,6 +187,7 @@ export default function StudioPage() {
             onBookingsChange={(updated) => setStudio({ ...studio, bookings: updated })}
             onRefresh={() => loadBookings(auth.token)}
             onClaimOffer={claimOffer}
+            onMobilePaneChange={setMobilePane}
           />
         </>
       )}
@@ -197,14 +201,16 @@ function PageShell({
   children,
   email,
   onLogout,
+  hideHeaderOnMobile = false,
 }: {
   children: React.ReactNode;
   email?: string;
   onLogout?: () => void;
+  hideHeaderOnMobile?: boolean;
 }) {
   return (
     <div className="min-h-screen bg-page">
-      <header className="border-b border-line px-6 py-4 sm:px-10">
+      <header className={`${hideHeaderOnMobile ? 'hidden' : ''} border-b border-line px-6 py-4 sm:block sm:px-10`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link href="/" className="font-serif text-[22px] tracking-[0.12em] text-ink uppercase">
             Next5
@@ -229,7 +235,7 @@ function PageShell({
       {/* No horizontal cap here — the "create another shooting" view wants
           the full width the studio grid gets on the homepage. Views that do
           want the narrower reading width apply their own max-w-6xl. */}
-      <main className="py-10">{children}</main>
+      <main className="py-5 sm:py-10">{children}</main>
     </div>
   );
 }
