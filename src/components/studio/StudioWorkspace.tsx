@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { StudioBooking } from '../../../app/api/studio/me/route';
 import { photoRoutes } from '../../data/routes';
 import type { DiscountOffer } from '../../types/offer';
+import { useHistoryBack } from '../../hooks/useHistoryBack';
 import { ShootSidebar } from './ShootSidebar';
 import { ShootDetail } from './ShootDetail';
 import { CreateShootPanel } from './CreateShootPanel';
@@ -62,6 +63,10 @@ export const StudioWorkspace = ({
     setMobilePaneRaw(pane);
     onMobilePaneChange?.(pane);
   };
+
+  // Browser back button: when on the detail pane (mobile), go back to the list
+  // instead of leaving the site.
+  useHistoryBack(mobilePane === 'detail', () => setMobilePane('list'));
 
   // If the shoot she was viewing disappears from `bookings` (shouldn't
   // normally happen), fall back to the most recent one rather than showing a

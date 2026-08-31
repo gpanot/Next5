@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useHistoryBack } from '../../hooks/useHistoryBack';
 import { CloseIcon } from './Icons';
 
 type ImageLightboxProps = {
@@ -52,6 +53,9 @@ export const ImageLightbox = ({
 
   const [scale, setScale] = useState(INITIAL_SCALE);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
+
+  // Close on browser back button
+  useHistoryBack(true, onClose);
 
   // Pinch state
   const lastPinchDist = useRef<number | null>(null);

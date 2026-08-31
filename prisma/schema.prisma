@@ -80,8 +80,9 @@ model Booking {
   regenerateCount  Int       @default(0) @map("regenerate_count")
   regenerateLastAt DateTime? @map("regenerate_last_at")
 
-  user   User?   @relation(fields: [userId], references: [id])
-  photos Photo[]
+  user          User?                  @relation(fields: [userId], references: [id])
+  photos        Photo[]
+  regenerations BookingRegeneration[]
 
   @@index([userId])
   @@index([wavespeedTaskId])
@@ -105,4 +106,17 @@ model Photo {
   @@index([bookingId])
   @@index([userId])
   @@map("photos")
+}
+
+model BookingRegeneration {
+  id         String   @id @default(cuid())
+  bookingId  String   @map("booking_id")
+  sceneIndex Int?     @map("scene_index")
+  reason     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("booking_regenerations")
 }

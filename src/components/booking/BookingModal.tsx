@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import type { BookingFlow } from '../../hooks/useBookingFlow';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { useHistoryBack } from '../../hooks/useHistoryBack';
 import { useLockBodyScroll } from '../../hooks/useLockBodyScroll';
 import { ArrowRightIcon, CloseIcon } from '../ui/Icons';
 import { BookingProgress } from './BookingProgress';
@@ -20,6 +21,7 @@ export const BookingModal = ({ flow }: BookingModalProps) => {
 
   useLockBodyScroll(isOpen);
   useFocusTrap(panelRef, isOpen);
+  useHistoryBack(isOpen, close);
 
   useEffect(() => {
     if (!isOpen) return;

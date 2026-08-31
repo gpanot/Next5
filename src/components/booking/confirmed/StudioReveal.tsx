@@ -26,7 +26,7 @@ type StudioRevealProps = {
   /** ISO timestamp of when the booking was created — used to enforce the 24h window. */
   bookingCreatedAt?: string;
   /** Called when the player requests regeneration of one specific photo (0-based shot index). */
-  onRegenerate?: (sceneIndex: number) => Promise<void>;
+  onRegenerate?: (sceneIndex: number, reason: string) => Promise<void>;
 };
 
 const shotFilename = (route: PhotoRoute, index: number) =>
@@ -47,6 +47,8 @@ export const StudioReveal = ({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenError, setRegenError] = useState<string | null>(null);
   const [confirmRegenIndex, setConfirmRegenIndex] = useState<number | null>(null);
+  const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const [otherText, setOtherText] = useState('');
 
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -63,13 +65,15 @@ export const StudioReveal = ({
     : false;
   const canRegenerate = regenRemaining > 0 && withinWindow && !!onRegenerate;
 
-  const handleRegenerate = async (sceneIndex: number) => {
+  const handleRegenerate = async (sceneIndex: number, reason: string) => {
     if (!onRegenerate || isRegenerating) return;
     setRegenError(null);
     setIsRegenerating(true);
     setConfirmRegenIndex(null);
+    setSelectedReason(null);
+    setOtherText('');
     try {
-      await onRegenerate(sceneIndex);
+      await onRegenerate(sceneIndex, reason);
     } catch (err) {
       setRegenError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
@@ -131,7 +135,7 @@ export const StudioReveal = ({
               layoutClassName="aspect-[3/4] w-full"
               onOpen={() => setZoomed(index)}
               onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
-              onRegenerate={canRegenerate && !isRegenerating ? () => setConfirmRegenIndex(index) : undefined}
+              onRegenerate={canRegenerate && !isRegenerating ? () => { setSelectedReason(null); setOtherText(''); setConfirmRegenIndex(index); } : undefined}
             />
           </div>
         ))}
@@ -150,7 +154,7 @@ export const StudioReveal = ({
               layoutClassName="aspect-[3/4] w-full"
               onOpen={() => setZoomed(index)}
               onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
-              onRegenerate={canRegenerate && !isRegenerating ? () => setConfirmRegenIndex(index) : undefined}
+              onRegenerate={canRegenerate && !isRegenerating ? () => { setSelectedReason(null); setOtherText(''); setConfirmRegenIndex(index); } : undefined}
             />
           ))}
         </div>
@@ -169,7 +173,7 @@ export const StudioReveal = ({
                   layoutClassName="aspect-[3/4] w-full"
                   onOpen={() => setZoomed(index)}
                   onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
-                  onRegenerate={canRegenerate && !isRegenerating ? () => setConfirmRegenIndex(index) : undefined}
+                  onRegenerate={canRegenerate && !isRegenerating ? () => { setSelectedReason(null); setOtherText(''); setConfirmRegenIndex(index); } : undefined}
                 />
               </div>
             );
@@ -232,15 +236,53 @@ export const StudioReveal = ({
             aria-hidden="true"
           />
           <div className="relative w-full max-w-sm rounded-2xl bg-white px-6 py-6 shadow-xl">
-            <p className="font-medium text-[15px] text-ink">Regenerate this photo?</p>
-            <p className="mt-2 text-[13px] leading-relaxed text-muted">
-              Do you want to regenerate this photo? This will overwrite the current photo.
+            <p className="font-medium text-[15px] text-ink">Why regenerate this photo?</p>
+            <p className="mt-1 text-[12.5px] text-muted">
+              Your feedback helps us improve future results.
             </p>
+
+            {/* Preset reason pills */}
+            <div className="mt-4 flex flex-col gap-2">
+              {(['This is not my face', "I don't like it", 'Not my style'] as const).map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => { setSelectedReason(label); setOtherText(''); }}
+                  className={`w-full rounded-xl border px-4 py-2.5 text-left text-[13px] font-medium transition-colors
+                    ${selectedReason === label
+                      ? 'border-ink bg-ink text-white'
+                      : 'border-line bg-white text-ink hover:border-ink/40'}`}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => setSelectedReason('other')}
+                className={`w-full rounded-xl border px-4 py-2.5 text-left text-[13px] font-medium transition-colors
+                  ${selectedReason === 'other'
+                    ? 'border-ink bg-ink text-white'
+                    : 'border-line bg-white text-ink hover:border-ink/40'}`}
+              >
+                Other
+              </button>
+              {selectedReason === 'other' && (
+                <textarea
+                  value={otherText}
+                  onChange={(e) => setOtherText(e.target.value)}
+                  placeholder="Tell us more…"
+                  rows={3}
+                  className="w-full resize-none rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/20"
+                />
+              )}
+            </div>
+
             {regenRemaining === 1 && (
-              <p className="mt-1.5 text-[11px] text-muted/70">
+              <p className="mt-3 text-[11px] text-muted/70">
                 This is your last regeneration for this shoot.
               </p>
             )}
+
             <div className="mt-5 flex gap-3">
               <button
                 type="button"
@@ -251,9 +293,13 @@ export const StudioReveal = ({
               </button>
               <button
                 type="button"
-                onClick={() => void handleRegenerate(confirmRegenIndex)}
-                disabled={isRegenerating}
-                className="flex-1 rounded-full bg-ink px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => {
+                  const reason = selectedReason === 'other' ? otherText.trim() : (selectedReason ?? '');
+                  if (!reason) return;
+                  void handleRegenerate(confirmRegenIndex, reason);
+                }}
+                disabled={isRegenerating || !selectedReason || (selectedReason === 'other' && !otherText.trim())}
+                className="flex-1 rounded-full bg-ink px-4 py-2.5 text-[13px] font-medium text-white transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isRegenerating ? 'Regenerating…' : 'Regenerate'}
               </button>

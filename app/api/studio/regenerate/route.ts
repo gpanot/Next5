@@ -40,10 +40,12 @@ export async function POST(req: NextRequest) {
 
   let bookingId: string;
   let sceneIndex: number | undefined;
+  let reason: string | undefined;
   try {
-    const body = (await req.json()) as { bookingId?: string; sceneIndex?: number };
+    const body = (await req.json()) as { bookingId?: string; sceneIndex?: number; reason?: string };
     bookingId = body.bookingId ?? '';
     sceneIndex = typeof body.sceneIndex === 'number' ? body.sceneIndex : undefined;
+    reason = typeof body.reason === 'string' && body.reason.trim() ? body.reason.trim() : undefined;
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid request body' } satisfies RegenerateResponseBody, { status: 400 });
   }
@@ -94,6 +96,15 @@ export async function POST(req: NextRequest) {
       shootStatus: 'creating',
     },
     select: { regenerateCount: true },
+  });
+
+  // Record the regeneration event for analytics
+  await prisma.bookingRegeneration.create({
+    data: {
+      bookingId,
+      sceneIndex: sceneIndex ?? null,
+      reason: reason ?? null,
+    },
   });
 
   const remaining = REGEN_LIMIT - updated.regenerateCount;
