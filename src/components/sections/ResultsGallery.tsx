@@ -97,12 +97,12 @@ function GalleryCard({ front, back, name, globalFrontIndex, onOpen }: CardProps)
 
   return (
     <div
-      className="perspective-800 relative w-[182px] shrink-0 cursor-pointer sm:w-[180px]"
+      className="perspective-800 relative w-[200px] shrink-0 cursor-pointer sm:w-[198px]"
       style={{ aspectRatio: '2/3' }}
       onClick={() => onOpen(visibleIndex)}
     >
       {/* Polaroid outer frame */}
-      <div className="absolute inset-0 rounded-[4px] bg-white p-[6px] pb-7 shadow-[0_8px_32px_-8px_rgb(0_0_0/0.45)] transition-transform duration-300 active:scale-[0.97] hover:-translate-y-1 hover:shadow-[0_14px_40px_-8px_rgb(0_0_0/0.55)] sm:p-[7px] sm:pb-8">
+      <div className="absolute inset-0 rounded-[4px] bg-white p-[7px] pb-8 shadow-[0_8px_32px_-8px_rgb(0_0_0/0.45)] transition-transform duration-300 active:scale-[0.97] hover:-translate-y-1 hover:shadow-[0_14px_40px_-8px_rgb(0_0_0/0.55)] sm:p-[8px] sm:pb-9">
         {/* Flip inner */}
         <div
           className={`preserve-3d relative h-full w-full transition-transform duration-700 ${innerClass}`}
@@ -299,7 +299,7 @@ function MarqueeStrip({ onOpen }: StripProps) {
   return (
     /* overflow-hidden hides the duplicate half; py-4 lets polaroid shadows breathe */
     <div className="gallery-strip overflow-hidden py-4">
-      <div className="flex gap-4 sm:gap-5 animate-scroll-left" style={{ width: 'max-content' }}>
+      <div className="flex gap-[18px] sm:gap-[22px] animate-scroll-left" style={{ width: 'max-content' }}>
         {doubled.map((card, i) => (
           <GalleryCard
             key={`${card.front}-${i}`}
