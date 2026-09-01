@@ -19,7 +19,7 @@ const positionClasses = {
 export const Watermark = ({ position = 'bottom-right' }: WatermarkProps) => (
   <span
     aria-hidden="true"
-    className={`pointer-events-none absolute select-none font-serif text-[11px] tracking-[0.22em] text-white/70 [text-shadow:0_1px_4px_rgb(0_0_0/0.55)] ${positionClasses[position]}`}
+    className={`pointer-events-none absolute select-none font-serif font-bold text-[11px] tracking-[0.22em] text-white/70 [text-shadow:0_1px_4px_rgb(0_0_0/0.55)] ${positionClasses[position]}`}
   >
     NEXT5
   </span>

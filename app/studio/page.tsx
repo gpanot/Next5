@@ -213,7 +213,7 @@ function PageShell({
       <header className={`${hideHeaderOnMobile ? 'hidden' : ''} border-b border-line px-6 py-4 sm:block sm:px-10`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <Link href="/" className="font-serif text-[22px] tracking-[0.12em] text-ink uppercase">
-            Next5
+            Studio
           </Link>
           <div className="flex items-center gap-4">
             {email && (

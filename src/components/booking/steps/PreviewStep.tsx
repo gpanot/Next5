@@ -14,10 +14,8 @@ import { ImageLightbox } from '../../ui/ImageLightbox';
 import { Watermark } from '../../ui/Watermark';
 import { downloadFile } from '../../../lib/download';
 import { useDirectorNote } from '../../../hooks/useDirectorNote';
-import { applyDiscount, discountNoteLabel } from '../../../lib/format';
 import { DirectorNote } from '../preview/DirectorNote';
 import { PreviewLoader } from '../preview/PreviewLoader';
-import { PriceTag } from '../ui/PriceTag';
 import { ShotFrame } from '../ui/ShotFrame';
 import { StepLayout } from '../ui/StepLayout';
 
@@ -234,22 +232,18 @@ export const PreviewStep = ({
   }
 
   const generatedUrl = state.url;
-  const finalPriceVnd =
-    discountPercent > 0 ? applyDiscount(route.priceVnd, discountPercent) : route.priceVnd;
 
   return (
     <StepLayout
       footer={
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
-          <PriceTag
-            amountVnd={finalPriceVnd}
-            originalAmountVnd={discountPercent > 0 ? route.priceVnd : undefined}
-            note={
-              discountPercent > 0
-                ? `${discountNoteLabel(discountPercent)} · Delivered in 30 min`
-                : 'High-resolution · Delivered in 30 min'
-            }
-          />
+          {/* Director quote — replaces price tag on mobile */}
+          <div className="flex items-baseline gap-2">
+            <span className="label-caps text-[9px] font-medium text-muted shrink-0">{director.name} says</span>
+            <p className="font-serif text-[16px] italic text-ink leading-snug">
+              &ldquo;You look amazing.&rdquo;
+            </p>
+          </div>
 
           <ul className="hidden items-center gap-6 lg:flex">
             <IncludedItem icon={<PhotoIcon className="h-4.5 w-4.5" />}>
@@ -282,7 +276,7 @@ export const PreviewStep = ({
       }
     >
       <div className="animate-fade-in grid gap-6 lg:grid-cols-[minmax(0,300px)_minmax(0,1fr)_minmax(0,232px)] lg:items-start lg:gap-8">
-        <div className="relative mx-auto w-full max-w-[300px] lg:mx-0 lg:max-w-none">
+        <div className="relative mx-auto w-[90vw] lg:mx-0 lg:w-full lg:max-w-none">
           <button
             type="button"
             onClick={() => setZoomed(true)}

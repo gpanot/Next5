@@ -92,9 +92,6 @@ export const PreviewLoader = ({
         <p className="font-serif text-[18px] leading-snug text-ink">
           What&apos;s your name?
         </p>
-        <p className="mt-1 text-[12px] text-muted">
-          We&apos;ll personalise your studio with it.
-        </p>
         <input
           ref={inputRef}
           type="text"
