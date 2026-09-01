@@ -83,7 +83,7 @@ export const translations: Record<Locale, TranslationShape> = {
       items: [
         {
           q: 'Will it actually look like me?',
-          a: "Yes — every shot is built from the selfie you upload, so it keeps your face, not a generic model's. Your free first preview is exactly so you can check this before paying for the rest.",
+          a: "Yes — we build every shot from the selfie you upload, so it keeps your face, not a generic model's. Your free first preview is exactly so you can check this before paying for the rest.",
         },
         {
           q: 'What happens to my selfie after I upload it?',
@@ -105,7 +105,7 @@ export const translations: Record<Locale, TranslationShape> = {
     },
     paymentMethods: {
       label: 'Ways to pay',
-      privacyNote: 'Your selfie is used only to generate your photos, and deleted after delivery.',
+      privacyNote: 'We use your selfie only to generate your photos, then delete it after delivery.',
     },
   },
   vi: {

@@ -93,7 +93,6 @@ export const IntentionStep = ({
       <StepHeading
         eyebrow={route.title}
         title="How do you want to feel?"
-        subtitle="Choose up to 2 that feel right for you."
       />
 
       <div className="mt-4 flex items-center justify-between border-b border-line pb-2">
@@ -115,9 +114,7 @@ export const IntentionStep = ({
       </div>
 
       {intention.feelings.length === 2 && (
-        <p className="mt-2.5 text-[11.5px] text-muted">
-          Picking a third will replace your first choice.
-        </p>
+        <p className="mt-2.5 text-[11.5px] text-muted invisible" aria-hidden="true" />
       )}
 
       <div ref={goalSectionRef} className="my-7 border-t border-line" />
@@ -125,7 +122,6 @@ export const IntentionStep = ({
       <h3 className="font-serif text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
         What do you want these photos to do for you?
       </h3>
-      <p className="mt-1.5 text-[12.5px] text-muted">Optional — choose one or two.</p>
 
       <div className="mt-4 flex items-center justify-between border-b border-line pb-2">
         <span className="label-caps text-[9px] font-medium text-muted">The goal</span>

@@ -26,7 +26,7 @@ const copy = {
     emotionalKicker: "Stop wondering if it\u2019s good enough.",
     emotionalMain: 'Know which photo to post with confidence.',
     emotionalSupport:
-      'Next5 looks at what makes a photo feel strong, natural and attention-worthy — then picks your best one.',
+      'Next5 checks what makes a photo look good and grab attention — then picks your best one.',
     link: 'See how it works',
     platforms: { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook' } as Record<Platform, string>,
     pickLabel: {
@@ -43,7 +43,7 @@ const copy = {
     benefits: [
       {
         title: 'Made for the platforms',
-        body: 'Each score is optimized for Instagram, Facebook and TikTok.',
+        body: 'Next5 scores each photo for Instagram, Facebook and TikTok.',
       },
       {
         title: 'Designed to stand out',

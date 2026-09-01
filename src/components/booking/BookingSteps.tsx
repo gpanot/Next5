@@ -115,6 +115,8 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
         intention={flow.intention}
         email={flow.details.email}
         bookingId={flow.booking?.id ?? ''}
+        name={flow.details.name ?? ''}
+        onNameChange={(n) => flow.setDetails({ ...flow.details, name: n })}
         onNext={flow.startPayment}
         onPreviewReady={flow.setPreviewUrl}
         discountPercent={flow.discountPercentFor(route.id)}

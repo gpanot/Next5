@@ -84,7 +84,7 @@ export const PhotoDropzone = ({
               <UploadIcon className="h-6 w-6 text-muted" />
             </span>
             <span>
-              <span className="block text-[14px] font-medium text-ink">Upload my photo</span>
+              <span className="block text-[14px] font-medium text-ink">Upload your selfie</span>
               <span className="mt-1 block text-[12px] text-muted">
                 Choose a file or drag it here · JPG or PNG, up to 10 MB
               </span>

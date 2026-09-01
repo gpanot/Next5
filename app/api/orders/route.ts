@@ -11,6 +11,7 @@ export type OrderPayload = {
   directorName: string;
   directorId: string;
   email: string;
+  name?: string;
   feelings: string[];
   goals: string[];
   amountVnd: number;
@@ -63,8 +64,8 @@ export async function POST(req: NextRequest) {
   try {
     const user = await prisma.user.upsert({
       where: { email: body.email },
-      update: {},
-      create: { email: body.email },
+      update: body.name ? { displayName: body.name } : {},
+      create: { email: body.email, displayName: body.name ?? null },
       select: { id: true, activeOfferPercent: true, activeOfferRouteIds: true },
     });
     sessionToken = signSessionToken(user.id, body.email);

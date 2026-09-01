@@ -169,6 +169,7 @@ export const useBookingFlow = (options: UseBookingFlowOptions = {}) => {
   const orderRecorded = useRef(false);
 
   const open = useCallback((next: PhotoRoute) => {
+    console.log('[useBookingFlow] open() called for route:', next.title);
     setRoute(next);
     setStep('studio');
     setDirectorId(null);
@@ -184,7 +185,10 @@ export const useBookingFlow = (options: UseBookingFlowOptions = {}) => {
     orderRecorded.current = false;
   }, [initialEmail]);
 
-  const close = useCallback(() => setRoute(null), []);
+  const close = useCallback(() => {
+    console.log('[useBookingFlow] close() called — stack:', new Error().stack);
+    setRoute(null);
+  }, []);
 
   // No back from the first step, from payment (which offers its own Cancel), or
   // from the terminal confirmation. Preview keeps it: a wrong photo is a
@@ -324,6 +328,7 @@ export const useBookingFlow = (options: UseBookingFlowOptions = {}) => {
           directorId: d.id,
           directorName: d.name,
           email: det.email,
+          name: det.name || undefined,
           feelings: int.feelings,
           goals: int.goals,
           amountVnd,

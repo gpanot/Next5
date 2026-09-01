@@ -104,7 +104,6 @@ export const UploadStep = ({
       <StepHeading
         eyebrow={route.title}
         title="Let's put you in the picture."
-        subtitle="Upload a clear photo of yourself and we'll create your first preview."
       />
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,320px)] lg:gap-8">
@@ -152,10 +151,6 @@ export const UploadStep = ({
             <h3 className="font-serif text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
               Where should we send your photos?
             </h3>
-            <p className="mt-1.5 text-[12.5px] text-muted">
-              Your completed shoot will be delivered here within 30 minutes.
-            </p>
-
             <div className="mt-4 max-w-md">
               <Field
                 id="shoot-email"

@@ -30,6 +30,9 @@ type PreviewStepProps = {
   email: string;
   /** Booking ID — generated at flow open time so the DB row can be created now. */
   bookingId: string;
+  /** Customer's first name — captured during generation wait. */
+  name: string;
+  onNameChange: (name: string) => void;
   onNext: () => void;
   /** Fired once the first shot finishes generating, so the studio reveal at
    *  the end of the flow can show her actual photo instead of a placeholder. */
@@ -73,6 +76,8 @@ export const PreviewStep = ({
   intention,
   email,
   bookingId,
+  name,
+  onNameChange,
   onNext,
   onPreviewReady,
   discountPercent = 0,
@@ -207,12 +212,9 @@ export const PreviewStep = ({
         <PreviewLoader
           uploadedPhoto={uploadedPhoto}
           director={director}
-          label={
-            state.phase === 'uploading'
-              ? 'Uploading your photo…'
-              : `${director.name} is preparing your shoot…`
-          }
           note={note}
+          name={name}
+          onNameChange={onNameChange}
         />
       </StepLayout>
     );

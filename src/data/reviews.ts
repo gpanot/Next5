@@ -52,7 +52,7 @@ export const reviews: readonly Review[] = [
     studio: 'Outfit Shoot',
     avatar: '/images/avatars/review-avatar-5.png',
     quote: {
-      en: "Booked the collection after my first studio. Five completely different looks and I only had to take one selfie.",
+      en: "Booked the collection after my first studio. Five unique looks and I only had to take one selfie.",
       vi: 'Mình đặt trọn bộ sưu tập sau studio đầu tiên. Năm phong cách hoàn toàn khác nhau mà chỉ cần chụp một ảnh selfie.',
     },
   },

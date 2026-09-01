@@ -50,6 +50,7 @@ export type ShootIntention = {
 
 export type CustomerDetails = {
   email: string;
+  name?: string;
 };
 
 export type PaymentStatus = 'pending' | 'paid' | 'confirmed';

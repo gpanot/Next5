@@ -24,6 +24,15 @@ export const BookingModal = ({ flow }: BookingModalProps) => {
   useHistoryBack(isOpen, close);
 
   useEffect(() => {
+    console.log('[BookingModal] mounted');
+    return () => console.log('[BookingModal] unmounted');
+  }, []);
+
+  useEffect(() => {
+    console.log('[BookingModal] isOpen/step changed — isOpen:', isOpen, '| step:', step);
+  }, [isOpen, step]);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -47,7 +56,7 @@ export const BookingModal = ({ flow }: BookingModalProps) => {
     <div className="fixed inset-0 z-60 flex items-end justify-center sm:items-center sm:p-6">
       <div
         className="animate-fade-in absolute inset-0 bg-ink/65 backdrop-blur-[3px]"
-        onClick={close}
+        onClick={() => { console.log('[BookingModal] backdrop clicked → close()'); close(); }}
         aria-hidden="true"
       />
 
