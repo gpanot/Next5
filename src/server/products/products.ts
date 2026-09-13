@@ -1,0 +1,56 @@
+// server-only — never import from a 'use client' file.
+
+import type { Product, Workspace } from '@prisma/client';
+import { isProductCategory } from '../../config/shots';
+import { prisma } from '../../lib/db';
+import type { ProductDto } from '../../types/business/products';
+import { HttpError } from '../http';
+import { normalizeUpload } from '../storage/images';
+import { productKey, type ProductPhotoSide } from '../storage/keys';
+import { presignObject, putObject } from '../storage/objectStore';
+
+export type ProductFields = { name: string; category: string; colorName: string | null; sku: string | null; fit: string | null; notes: string | null };
+
+const FITS = ['fitted', 'regular', 'oversized'];
+
+export const parseProductFields = (raw: Record<string, unknown>, label = 'product'): ProductFields => {
+  const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+  const name = str(raw.name, 80);
+  const category = str(raw.category, 20);
+  if (!name) throw new HttpError(400, 'name_required', `Add a name for the ${label}.`, { field: 'name' });
+  if (!isProductCategory(category)) throw new HttpError(400, 'category_required', `Choose a category for the ${label}.`, { field: 'category' });
+  const fit = str(raw.fit, 20);
+  return { name, category, colorName: str(raw.colorName, 40) || null, sku: str(raw.sku, 40) || null, fit: FITS.includes(fit) ? fit : null, notes: str(raw.notes, 120) || null };
+};
+
+/** Creates a product with its photos (front required). Photos are normalized before storage. */
+export const createProduct = async (
+  workspace: Workspace,
+  fields: ProductFields,
+  photos: { front: File; back?: File | null; detail?: File | null },
+): Promise<Product> => {
+  if (workspace.product !== 'shop') throw new HttpError(400, 'wrong_product', 'Products are for Shop Studio.');
+  const front = await normalizeUpload(photos.front, 'front photo');
+  const back = photos.back ? await normalizeUpload(photos.back, 'back photo') : null;
+  const detail = photos.detail ? await normalizeUpload(photos.detail, 'detail photo') : null;
+
+  const product = await prisma.product.create({ data: { workspaceId: workspace.id, ...fields, frontR2Key: 'pending' } });
+  const store = async (side: ProductPhotoSide, buffer: Buffer | null) => {
+    if (!buffer) return null;
+    const key = productKey(workspace.id, product.id, side);
+    await putObject(key, buffer);
+    return key;
+  };
+  const [frontKey, backKey, detailKey] = await Promise.all([store('front', front), store('back', back), store('detail', detail)]);
+  return prisma.product.update({ where: { id: product.id }, data: { frontR2Key: frontKey ?? '', backR2Key: backKey, detailR2Key: detailKey } });
+};
+
+export const toProductDto = async (product: Product & { _count?: { items: number } }): Promise<ProductDto> => ({
+  id: product.id, name: product.name, category: product.category, colorName: product.colorName, sku: product.sku, fit: product.fit, notes: product.notes,
+  frontUrl: product.frontR2Key ? await presignObject(product.frontR2Key) : null,
+  backUrl: product.backR2Key ? await presignObject(product.backR2Key) : null,
+  detailUrl: product.detailR2Key ? await presignObject(product.detailR2Key) : null,
+  timesUsed: product._count?.items ?? 0,
+  lastUsedAt: product.lastUsedAt?.toISOString() ?? null,
+  createdAt: product.createdAt.toISOString(),
+});

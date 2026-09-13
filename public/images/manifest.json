@@ -412,5 +412,194 @@
     "bytes": 1915967,
     "alt": "Model on a sunny pool terrace in a linen dress",
     "generatedAt": "2026-09-13T06:15:37.058Z"
+  },
+  "public/images/business/shop/models/model-an-face.png": {
+    "prompt": "Studio identity reference portrait of a Vietnamese woman, 22, petite (155 cm), long straight black hair, soft round face. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Chest-up, facing the camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 458328,
+    "alt": "Studio model An, 22",
+    "generatedAt": "2026-09-13T06:34:21.981Z"
+  },
+  "public/images/business/shop/models/model-an-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Vietnamese woman, 22, petite (155 cm), long straight black hair, soft round face. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Standing straight facing the camera, arms relaxed at the sides, the whole body from head to feet visible with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 322686,
+    "alt": "Studio model An, full body",
+    "generatedAt": "2026-09-13T06:34:28.391Z"
+  },
+  "public/images/business/shop/models/model-vy-face.png": {
+    "prompt": "Studio identity reference portrait of a Vietnamese woman, 26, tall and slim (170 cm), shoulder-length dark brown hair, defined cheekbones. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Chest-up, facing the camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 530813,
+    "alt": "Studio model Vy, 26",
+    "generatedAt": "2026-09-13T06:34:31.254Z"
+  },
+  "public/images/business/shop/models/model-vy-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Vietnamese woman, 26, tall and slim (170 cm), shoulder-length dark brown hair, defined cheekbones. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Standing straight facing the camera, arms relaxed at the sides, the whole body from head to feet visible with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 318876,
+    "alt": "Studio model Vy, full body",
+    "generatedAt": "2026-09-13T06:34:32.864Z"
+  },
+  "public/images/business/shop/models/model-thao-face.png": {
+    "prompt": "Studio identity reference portrait of a Vietnamese woman, 31, curvy plus-size figure, wavy black hair past the shoulders, warm friendly face. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Chest-up, facing the camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 562727,
+    "alt": "Studio model Thảo, 31",
+    "generatedAt": "2026-09-13T06:34:35.715Z"
+  },
+  "public/images/business/shop/models/model-thao-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Vietnamese woman, 31, curvy plus-size figure, wavy black hair past the shoulders, warm friendly face. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Standing straight facing the camera, arms relaxed at the sides, the whole body from head to feet visible with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 368726,
+    "alt": "Studio model Thảo, full body",
+    "generatedAt": "2026-09-13T06:34:37.590Z"
+  },
+  "public/images/business/shop/models/model-ngoc-face.png": {
+    "prompt": "Studio identity reference portrait of a Vietnamese woman, 35, athletic build, sleek low ponytail, tanned skin. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Chest-up, facing the camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 511255,
+    "alt": "Studio model Ngọc, 35",
+    "generatedAt": "2026-09-13T06:34:39.830Z"
+  },
+  "public/images/business/shop/models/model-ngoc-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Vietnamese woman, 35, athletic build, sleek low ponytail, tanned skin. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Standing straight facing the camera, arms relaxed at the sides, the whole body from head to feet visible with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 288055,
+    "alt": "Studio model Ngọc, full body",
+    "generatedAt": "2026-09-13T06:34:42.016Z"
+  },
+  "public/images/business/shop/models/model-hana-face.png": {
+    "prompt": "Studio identity reference portrait of a Eurasian woman of Vietnamese and European heritage, 28, medium build, light brown wavy bob. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Chest-up, facing the camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 478753,
+    "alt": "Studio model Hana, 28",
+    "generatedAt": "2026-09-13T06:34:43.398Z"
+  },
+  "public/images/business/shop/models/model-hana-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Eurasian woman of Vietnamese and European heritage, 28, medium build, light brown wavy bob. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Standing straight facing the camera, arms relaxed at the sides, the whole body from head to feet visible with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 362138,
+    "alt": "Studio model Hana, full body",
+    "generatedAt": "2026-09-13T06:34:48.318Z"
+  },
+  "public/images/business/shop/models/model-mira-face.png": {
+    "prompt": "Studio identity reference portrait of a Vietnamese woman, 42, medium build, elegant short black bob with subtle grey strands, graceful. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Chest-up, facing the camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 552035,
+    "alt": "Studio model Mira, 42",
+    "generatedAt": "2026-09-13T06:34:49.990Z"
+  },
+  "public/images/business/shop/models/model-mira-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Vietnamese woman, 42, medium build, elegant short black bob with subtle grey strands, graceful. Plain light-grey seamless studio background, even soft frontal light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, wearing a fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult, photorealistic, natural skin texture. Standing straight facing the camera, arms relaxed at the sides, the whole body from head to feet visible with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 338291,
+    "alt": "Studio model Mira, full body",
+    "generatedAt": "2026-09-13T06:34:51.981Z"
+  },
+  "public/images/business/onboarding/selfie-good.png": {
+    "prompt": "Casual smartphone selfie of a Vietnamese woman in her 30s facing the camera directly, even soft window light on her face, plain light wall behind, hair behind her ears, relaxed neutral smile, face filling the centre of the frame, natural photo.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "640x640",
+    "bytes": 644606,
+    "alt": "Good selfie: face lit evenly, looking at the camera",
+    "generatedAt": "2026-09-13T06:34:53.957Z"
+  },
+  "public/images/business/onboarding/selfie-bad-sunglasses.png": {
+    "prompt": "Casual smartphone selfie of a Vietnamese woman in her 30s outdoors wearing large dark sunglasses and a bucket hat shading her face, harsh midday sun, natural photo.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "640x640",
+    "bytes": 946137,
+    "alt": "Avoid: sunglasses and a hat hiding the face",
+    "generatedAt": "2026-09-13T06:34:56.412Z"
+  },
+  "public/images/business/onboarding/selfie-bad-dark.png": {
+    "prompt": "Smartphone selfie of a Vietnamese woman in her 30s standing in front of a bright window so her face is dark and underexposed, strong backlight, low detail on the face.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "640x640",
+    "bytes": 630781,
+    "alt": "Avoid: a dark photo with strong backlight",
+    "generatedAt": "2026-09-13T06:35:00.611Z"
+  },
+  "public/images/business/onboarding/selfie-bad-group.png": {
+    "prompt": "Casual smartphone group selfie of three young Vietnamese women friends close together laughing at a cafe, faces partially overlapping.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "640x640",
+    "bytes": 973376,
+    "alt": "Avoid: several people in the photo",
+    "generatedAt": "2026-09-13T06:35:02.681Z"
+  },
+  "public/images/business/onboarding/product-good-flatlay.png": {
+    "prompt": "Top-down photo of a single dusty-pink blouse laid flat and smooth on a plain white sheet, sleeves arranged neatly, even soft daylight, the whole garment visible with margin.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "640x640",
+    "bytes": 656506,
+    "alt": "Good product photo: a flat-lay on a plain sheet",
+    "generatedAt": "2026-09-13T06:35:06.443Z"
+  },
+  "public/images/business/onboarding/product-good-hanger.png": {
+    "prompt": "Photo of a single olive-green midi skirt on a wooden hanger hanging against a plain light wall, even daylight, the whole garment visible, nothing else in frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "640x640",
+    "bytes": 215592,
+    "alt": "Good product photo: on a hanger against a plain wall",
+    "generatedAt": "2026-09-13T06:35:09.002Z"
+  },
+  "public/images/business/onboarding/product-bad-wrinkled.png": {
+    "prompt": "Top-down photo of a crumpled black T-shirt bunched up on a patterned bedspread in dim yellow lamp light, partly out of frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "640x640",
+    "bytes": 795314,
+    "alt": "Avoid: a crumpled garment in poor light",
+    "generatedAt": "2026-09-13T06:35:11.170Z"
+  },
+  "public/images/business/onboarding/product-bad-multiple.png": {
+    "prompt": "Top-down photo of five different clothing items overlapping on a floor: jeans, two tops, a scarf and a belt, messy, uneven light.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "640x640",
+    "bytes": 916062,
+    "alt": "Avoid: several items in one photo",
+    "generatedAt": "2026-09-13T06:35:14.367Z"
+  },
+  "public/images/business/onboarding/fullbody-good.png": {
+    "prompt": "Full-body photo (not a mirror selfie) of a Vietnamese woman in her late 20s standing straight against a plain light wall in fitted everyday clothes, white T-shirt and jeans, the whole body from head to feet visible, even daylight, taken by a friend at chest height.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 712542,
+    "alt": "Good full-body photo: the whole body visible against a plain wall",
+    "generatedAt": "2026-09-13T06:35:19.284Z"
   }
 }
