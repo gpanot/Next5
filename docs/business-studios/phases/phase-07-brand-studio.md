@@ -14,7 +14,7 @@ Team features, scheduling posts to social networks, video.
 ## Tasks
 
 ### 7.1 Themes API
-- [x] `GET /api/app/themes` — `{ featured: Theme | null, library: Theme[] }`; featured = `featuredMonth` equal to the current month in `Asia/Ho_Chi_Minh`, fallback to the most recent past featured; Pro users also get next month's theme flagged `earlyAccess`.
+- [x] `GET /api/app/themes` — `{ featured: Theme | null, library: Theme[] }`; featured = `featuredMonth` equal to the current month in `Asia/Ho_Chi_Minh`, fallback to the most recent past featured; Pro users also get next month's theme flagged `earlyAccess`. *(Simplified — see notes.)*
 
 ### 7.2 Sets (`app/app/sets/…`, `src/components/app/sets/`)
 - [x] `GET/POST /api/app/sets`, `GET/PATCH/DELETE(archive) /api/app/sets/[setId]` — enforce `plan.maxSets` (trial/no plan: 1 set) → 403 `set_limit` with upgrade hint.
@@ -25,7 +25,7 @@ Team features, scheduling posts to social networks, video.
 
 ### 7.3 Create flow (`app/app/create/page.tsx` → `BrandCreateFlow`)
 - [x] In-page `Stepper` per `03-ux-ui.md` §8.3: `SetStep` (preselect last used via `localStorage` key `next5-last-set`), `ThemeStep` (featured large card + library grid; `?theme=` deep link from dashboard), `AmountStep` (8/16/24/32 chips with "≈ N posts" helper), `FormatsStep` (chips + High-res switch gated by plan).
-- [x] `CreditSummaryBar` (sticky bottom): live estimate via `POST /api/app/batches/estimate` (debounced 300 ms), multiplication shown explicitly, insufficient → warning tone + [Top up] (opens `CheckoutSheet` for top-ups) + [Upgrade].
+- [x] `CreditSummaryBar` (sticky bottom): live estimate via `POST /api/app/batches/estimate` (debounced 300 ms), multiplication shown explicitly, insufficient → warning tone + [Top up] + [Upgrade]. *(Both link to Billing rather than opening checkout inline.)*
 - [x] Generate → `POST /api/app/batches` → navigate to `/app/batches/[id]`.
 
 ### 7.4 Batch results (`app/app/batches/[batchId]/page.tsx` → `BrandBatchView`)
@@ -35,7 +35,7 @@ Team features, scheduling posts to social networks, video.
 - [x] `RedoDialog` with reason chips and optional note (note stored in `redoReason` as `reason: note`); shows "Free redo (1 left)" or "Costs 1 credit".
 - [x] `ImageLightbox` (reuse `src/components/ui/ImageLightbox.tsx`): swipe/arrow navigation, download, favourite, caption panel (Pro).
 - [x] `SelectionBar` — selected count, Download selected (client zip via existing `src/lib/download.ts` pattern for ≤ 20, else server zip), Favourite/Unfavourite.
-- [x] "Safe to leave" note while generating + email when done (P6).
+- [x] "Safe to leave" note while generating. *("Photos ready" email is P9.)*
 
 ### 7.5 Captions (Pro)
 - [x] `POST /api/app/items/[itemId]/caption` — gpt-4o-mini (reuse `src/lib/director-note.ts` client pattern), input: industry, theme title, scene label, workspace name/handle, tone = `poseEnergy`; output ≤ 280 chars, 0–3 hashtags, no emojis unless the user enables later; mock mode returns a canned caption. Cache on `BatchItem.caption`.
@@ -44,10 +44,10 @@ Team features, scheduling posts to social networks, video.
 
 ### 7.6 Library (`app/app/library/page.tsx`)
 - [x] `GET /api/app/library` — filters `setId, themeId, format, favorite, from, to`, cursor pagination (40 per page), ready items only.
-- [x] `LibraryFilters` (URL-synced query params), infinite scroll `ImageGrid` (IntersectionObserver sentinel), select mode + server zip (`GET /api/app/library/zip?ids=…` max 200).
+- [x] *(Local-state filters + Load more — see notes.)* `LibraryFilters` (URL-synced query params), infinite scroll `ImageGrid` (IntersectionObserver sentinel), select mode + server zip (`GET /api/app/library/zip?ids=…` max 200).
 
 ### 7.7 Dashboard wiring
-- [x] Featured theme card → `/app/create?theme={id}`; recent batches → batch pages; sets strip → set detail.
+- [x] Featured theme card → `/app/create?theme={id}`; recent batches → batch pages. *(No sets strip on the dashboard yet.)*
 
 ## Implementation notes (2026-09-14)
 
