@@ -38,12 +38,21 @@ set_env() { # name value — replaces the production value
 }
 
 bold "4/6 Business environment variables"
-if confirm "Set VND_PER_USD, NEXT5_STORAGE, GENERATION_MAX_CONCURRENT, NEXT5_MOCK_PAYMENTS=false, CRON_SECRET?"; then
+if confirm "Set VND_PER_USD, NEXT5_STORAGE, GENERATION_MAX_CONCURRENT, NEXT5_MOCK_PAYMENTS=false, CRON_SECRET, WAVESPEED_WEBHOOK_SECRET?"; then
   set_env VND_PER_USD 26000
   set_env NEXT5_STORAGE r2
   set_env GENERATION_MAX_CONCURRENT 6
   set_env NEXT5_MOCK_PAYMENTS false
   [[ -n "${CRON_SECRET:-}" ]] && echo "  CRON_SECRET already set — kept" || set_env CRON_SECRET "$(openssl rand -hex 32)"
+  if [[ -z "${WAVESPEED_WEBHOOK_SECRET:-}" ]]; then
+    # Business generation is webhook-driven (no cron): WaveSpeed signs callbacks with this account secret.
+    ws_secret=$(curl -fsS -H "Authorization: Bearer $WAVESPEED_API_KEY" https://api.wavespeed.ai/api/v3/webhook/secret \
+      | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const d=j.data??j;const v=typeof d==="string"?d:(d.secret??d.webhook_secret??"");process.stdout.write(v)})')
+    if [[ "$ws_secret" == whsec_* ]]; then set_env WAVESPEED_WEBHOOK_SECRET "$ws_secret"; else echo "  Could not read the WaveSpeed webhook secret — set WAVESPEED_WEBHOOK_SECRET by hand (wavespeed.ai → API keys → Webhook secret)."; fi
+  else
+    echo "  WAVESPEED_WEBHOOK_SECRET already set — kept"
+  fi
+  [[ "${NEXT_PUBLIC_APP_URL:-}" == https://* ]] || echo "  WARNING: NEXT_PUBLIC_APP_URL must be the public https URL, or WaveSpeed webhooks are not attached."
   read -r -p "Email that receives early-access request alerts (blank to skip): " admin_email
   [[ -n "$admin_email" ]] && set_env NEXT5_ADMIN_EMAIL "$admin_email"
 fi

@@ -1,13 +1,14 @@
 // server-only — never import from a 'use client' file.
 
 import type { BatchItem } from '@prisma/client';
-import { GENERATION_MAX_CONCURRENT } from '../../config/business';
+import { generationMaxConcurrent } from '../../config/business';
 import { FORMATS, isFormatId } from '../../config/formats';
 import { prisma } from '../../lib/db';
 import { isMockGeneration } from '../../lib/mock';
 import { COST_USD_MICROS, submitEdit, uploadPhotoToWaveSpeed } from '../../lib/wavespeed';
 import { getObject } from '../storage/objectStore';
 import { failItem } from './finalize';
+import { generationWebhookUrl } from './webhookUrl';
 
 const URL_CACHE_MS = 24 * 60 * 60 * 1000;
 
@@ -48,7 +49,7 @@ const submitItem = async (item: BatchItem): Promise<void> => {
     } else {
       const imageUrls = await Promise.all(item.inputR2Keys.map(waveSpeedUrlFor));
       const aspectRatio = isFormatId(item.format) ? FORMATS[item.format].ratio : '3:4';
-      taskId = await submitEdit({ imageUrls, prompt: item.prompt, aspectRatio, resolution });
+      taskId = await submitEdit({ imageUrls, prompt: item.prompt, aspectRatio, resolution, webhookUrl: generationWebhookUrl() });
     }
     await prisma.batchItem.update({ where: { id: item.id }, data: { status: 'generating', wavespeedTaskId: taskId } });
     await prisma.batch.update({
@@ -63,7 +64,7 @@ const submitItem = async (item: BatchItem): Promise<void> => {
 /** Submits queued items up to the global concurrency limit. Returns how many were submitted. */
 export const pump = async (options: { batchId?: string } = {}): Promise<number> => {
   const inFlight = await prisma.batchItem.count({ where: { status: { in: ['submitting', 'generating'] } } });
-  const slots = GENERATION_MAX_CONCURRENT - inFlight;
+  const slots = generationMaxConcurrent() - inFlight;
   if (slots <= 0) return 0;
 
   const ids = await claimQueued(slots, options.batchId);

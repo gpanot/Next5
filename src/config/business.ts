@@ -25,7 +25,7 @@ export const MAX_REFERENCE_IMAGES = 5;
  * Max WaveSpeed tasks in flight at once across all batches.
  * Default is 3 (good for testing). Set GENERATION_MAX_CONCURRENT=6 in production.
  */
-export const GENERATION_MAX_CONCURRENT: number = Number(process.env.GENERATION_MAX_CONCURRENT ?? 3);
+export const generationMaxConcurrent = (): number => Number(process.env.GENERATION_MAX_CONCURRENT ?? 3);
 
 /** Automatic attempts per generation run before an item is marked failed. */
 export const MAX_ATTEMPTS_PER_RUN = 2;

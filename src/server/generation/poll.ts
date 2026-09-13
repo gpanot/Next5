@@ -38,7 +38,7 @@ const pollOne = async (item: BatchItem): Promise<void> => {
 };
 
 /** Polls in-flight items and finalizes or fails them. Returns how many items were checked. */
-export const poll = async (options: { batchId?: string; limit?: number } = {}): Promise<number> => {
+export const poll = async (options: { batchId?: string; limit?: number; submittedBefore?: Date } = {}): Promise<number> => {
   const where = options.batchId ? { batchId: options.batchId } : {};
   // Recover items stuck in 'submitting' (e.g. the function was killed mid-submit).
   await prisma.batchItem.updateMany({
@@ -47,7 +47,7 @@ export const poll = async (options: { batchId?: string; limit?: number } = {}): 
   });
 
   const items = await prisma.batchItem.findMany({
-    where: { ...where, status: 'generating' },
+    where: { ...where, status: 'generating', ...(options.submittedBefore ? { submittedAt: { lt: options.submittedBefore } } : {}) },
     orderBy: { submittedAt: 'asc' },
     take: options.limit ?? 50,
   });
@@ -58,6 +58,13 @@ export const poll = async (options: { batchId?: string; limit?: number } = {}): 
   );
   return items.length;
 };
+
+/** A webhook normally arrives in under a minute; tasks silent for longer are polled directly. */
+export const WEBHOOK_SILENCE_MS = 3 * 60 * 1000;
+
+/** Safety net for lost webhooks: polls long-silent tasks (any batch). Cheap when there are none. */
+export const sweepStale = async (now = Date.now()): Promise<number> =>
+  poll({ submittedBefore: new Date(now - WEBHOOK_SILENCE_MS), limit: 10 });
 
 /** Pump + poll with a time budget — used by the batch GET route and the cron. */
 export const runGenerationTick = async (options: { batchId?: string; budgetMs: number }): Promise<void> => {

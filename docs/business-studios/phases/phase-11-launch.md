@@ -36,7 +36,13 @@ homepage and launch Brand (and Shop if P8 shipped).
   Custom events: onboarding_step_completed, trial_generated, checkout_opened, plan_requested, payment_paid, batch_created, item_redo, zip_downloaded.
   Page views work on Hobby; custom events are visible on Pro. Enable Analytics once in the Vercel dashboard.
 - **Production rollout:** `bash scripts/launch-business.sh` (run by Guillaume — migrations, catalog seed, env vars, flag, `vercel --prod`, each confirmed).
-- **Skipped by decision:** Sentry/monitoring (11.3), per-minute generations cron. Legal review later.
+- **Generation without a cron (D9):** business tasks are submitted with `?webhook=` → `/api/webhooks/wavespeed`
+  (only when `NEXT_PUBLIC_APP_URL` is https and `WAVESPEED_WEBHOOK_SECRET` is set; consumer tasks keep polling). The route verifies the
+  signature (required in production), answers 200 at once and in `after()`: finalizes/fails the item (retries the lookup for callbacks that
+  beat the task-id write), `pump()`s the global queue so any waiting batch gets the freed slot, and `sweepStale()` polls tasks silent for
+  more than 3 minutes. Batch creation also sweeps; the daily billing cron runs a 20 s generation tick; an open batch page still polls.
+  Tests: `tests/server/generation/webhook.test.ts`.
+- **Skipped by decision:** Sentry/monitoring (11.3). Legal review later.
   Existing lint errors are all in the consumer code (`app/studio`, `useBookingFlow`, `ResultsGallery`, …), none in business code.
 
 ## Tasks

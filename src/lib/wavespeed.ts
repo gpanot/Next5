@@ -44,34 +44,20 @@ export type SubmitEditParams = {
   aspectRatio?: string;
   /** '1k' = $0.07, '2k' = $0.105 */
   resolution?: '0.5k' | '1k' | '2k' | '4k';
+  /** Public HTTPS callback; WaveSpeed POSTs the result there when the task finishes. */
+  webhookUrl?: string | null;
 };
 
 /**
- * Builds the WaveSpeed submission URL, appending a webhook callback when the
- * app is running in production (NEXT_PUBLIC_APP_URL starts with https://).
- * In local dev the webhook is omitted — WaveSpeed cannot reach localhost.
- */
-function buildSubmitUrl(endpoint: string): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? '';
-  if (appUrl.startsWith('https://')) {
-    const webhook = `${appUrl}/api/webhooks/wavespeed`;
-    return `${BASE_URL}/${endpoint}?webhook=${encodeURIComponent(webhook)}`;
-  }
-  return `${BASE_URL}/${endpoint}`;
-}
-
-/**
  * Submits a Nano Banana 2 Edit task.
- * Returns the WaveSpeed task ID for polling.
- * In production, attaches a webhook URL so WaveSpeed calls us back on completion
- * (no page-open polling required for large batches).
+ * Returns the WaveSpeed task ID (poll it, or pass `webhookUrl` to be called back).
  */
 export async function submitEdit(params: SubmitEditParams): Promise<string> {
   if (!WAVESPEED_API_KEY) throw new Error('WAVESPEED_API_KEY is not set');
   const images = params.imageUrls && params.imageUrls.length > 0 ? [...params.imageUrls] : params.imageUrl ? [params.imageUrl] : [];
   if (images.length === 0) throw new Error('submitEdit needs at least one reference image');
 
-  const res = await fetch(buildSubmitUrl('google/nano-banana-2/edit'), {
+  const res = await fetch(`${BASE_URL}/google/nano-banana-2/edit${params.webhookUrl ? `?webhook=${encodeURIComponent(params.webhookUrl)}` : ''}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${WAVESPEED_API_KEY}`,

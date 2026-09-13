@@ -5,6 +5,7 @@ import { workspaceFromRequest } from '../../../../src/server/generation/access';
 import { createBatch } from '../../../../src/server/generation/createBatch';
 import { parseDraft } from '../../../../src/server/generation/draft';
 import { toSummaryDto } from '../../../../src/server/generation/dto';
+import { sweepStale } from '../../../../src/server/generation/poll';
 import { pump } from '../../../../src/server/generation/pump';
 import { readJsonObject } from '../../../../src/server/http';
 import { prisma } from '../../../../src/lib/db';
@@ -15,7 +16,10 @@ export const POST = authedRoute(async (req, session) => {
   const body = await readJsonObject(req);
   const workspace = await workspaceFromRequest(session.userId, body.product);
   const batch = await createBatch(workspace, parseDraft(body));
-  after(() => pump({ batchId: batch.id }).catch((err: unknown) => console.error('[batches] pump failed:', err)));
+  after(async () => {
+    await pump({ batchId: batch.id }).catch((err: unknown) => console.error('[batches] pump failed:', err));
+    await sweepStale().catch((err: unknown) => console.error('[batches] sweep failed:', err));
+  });
   return NextResponse.json({ batch: await toSummaryDto(batch) }, { status: 201 });
 });
 
