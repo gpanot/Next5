@@ -62,6 +62,16 @@ Billing page UI (P5), renewal emails (P9), Stripe/US payments.
 - [ ] `/admin` new tab **Payments**: list payments (state filter) and bank transactions with `matchStatus ≠ matched`; action "Mark paid" on a payment (writes `paidVnd = amountVnd`, calls `fulfill`) with confirmation.
 - [ ] Admin action **"Create 2,000₫ test payment"** (purpose `topup`, no credits granted — `itemId = 'test'`, `fulfill` skips it) to verify the live bank → SePay → webhook chain in production.
 
+## Implementation notes — mock provider (2026-09-14)
+
+Built: `src/server/payments/{reference,payments,fulfill,mockProvider,dto}.ts`, `src/server/api.ts` (`authedRoute` /
+`businessRoute` wrappers: flag → session → error mapping, 402 for insufficient credits), routes
+`POST/GET /api/app/payments`, `GET /api/app/payments/[paymentId]`, `POST /api/app/payments/[paymentId]/simulate`,
+client `src/lib/apiClient.ts`, `usePaymentStatus`, `useCountdown`, `src/components/checkout/{CheckoutSheet,CheckoutParts,CopyRow}.tsx`.
+`markPaidAndFulfil()` is the single entry point the SePay webhook will call later (duplicate / underpaid / 72 h late window handled).
+Simulated transfers work outside production, or in production only with `NEXT5_MOCK_PAYMENTS=true`.
+Tests: `tests/server/payments/fulfill.test.ts` (8). Deferred per D7: 2.1, `sepay.ts` + webhook, 2.5, test-payment admin action.
+
 ## Acceptance criteria
 
 - Real transfer of the smallest top-up (or a 2,000₫ test payment created by an admin-only route) is matched and fulfilled within 60 s.
