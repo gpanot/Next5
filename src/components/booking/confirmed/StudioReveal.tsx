@@ -12,6 +12,7 @@ import { ShotTile } from './ShotTile';
 
 const REGEN_LIMIT = 2;
 const REGEN_WINDOW_MS = 24 * 60 * 60 * 1000;
+const GENERATION_FAILURE_MS = 30 * 60 * 1000; // 30 minutes
 
 type StudioRevealProps = {
   route: PhotoRoute;
@@ -27,6 +28,10 @@ type StudioRevealProps = {
   bookingCreatedAt?: string;
   /** Called when the player requests regeneration of one specific photo (0-based shot index). */
   onRegenerate?: (sceneIndex: number, reason: string) => Promise<void>;
+  /** Called when a slot that never generated is retried (no reason needed, direct re-run). */
+  onRetryFailed?: (sceneIndex: number) => Promise<void>;
+  /** Scenes currently being retried server-side; these slots show "Creating…" not "Retry". */
+  retryingScenes?: Set<number>;
 };
 
 const shotFilename = (route: PhotoRoute, index: number) =>
@@ -41,10 +46,13 @@ export const StudioReveal = ({
   regenerateCount = 0,
   bookingCreatedAt,
   onRegenerate,
+  onRetryFailed,
+  retryingScenes: externalRetryingScenes,
 }: StudioRevealProps) => {
   const [zoomed, setZoomed] = useState<number | null>(null);
   const [isZipping, setIsZipping] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [retryingScenes, setRetryingScenes] = useState<Set<number>>(new Set());
   const [regenError, setRegenError] = useState<string | null>(null);
   const [confirmRegenIndex, setConfirmRegenIndex] = useState<number | null>(null);
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
@@ -59,11 +67,27 @@ export const StudioReveal = ({
     return () => clearTimeout(timeout);
   }, [bookingCreatedAt, now]);
 
+  const ageMs = bookingCreatedAt ? now - new Date(bookingCreatedAt).getTime() : 0;
   const regenRemaining = Math.max(0, REGEN_LIMIT - regenerateCount);
-  const withinWindow = bookingCreatedAt
-    ? now - new Date(bookingCreatedAt).getTime() < REGEN_WINDOW_MS
-    : false;
+  const withinWindow = bookingCreatedAt ? ageMs < REGEN_WINDOW_MS : false;
   const canRegenerate = regenRemaining > 0 && withinWindow && !!onRegenerate;
+
+  // Merge local (dialog-in-progress) and external (server-side background) retrying sets
+  const allRetryingScenes = new Set([...retryingScenes, ...(externalRetryingScenes ?? [])]);
+
+  // A slot shows "Retry" when it's been null for >30 min and isn't currently retrying
+  const isSlotRetryable = (url: string | null, sceneIndex: number) =>
+    url === null && ageMs > GENERATION_FAILURE_MS && !allRetryingScenes.has(sceneIndex);
+
+  const handleRetryFailed = async (sceneIndex: number) => {
+    if (!onRetryFailed || retryingScenes.has(sceneIndex)) return;
+    setRetryingScenes((prev) => new Set(prev).add(sceneIndex));
+    try {
+      await onRetryFailed(sceneIndex);
+    } finally {
+      setRetryingScenes((prev) => { const next = new Set(prev); next.delete(sceneIndex); return next; });
+    }
+  };
 
   const handleRegenerate = async (sceneIndex: number, reason: string) => {
     if (!onRegenerate || isRegenerating) return;
@@ -131,10 +155,12 @@ export const StudioReveal = ({
             <ShotTile
               sceneLabel={route.scenes[index]}
               index={index}
-              url={shotUrls[index]}
+              url={shotUrls[index] ?? null}
               layoutClassName="aspect-[3/4] w-full"
               onOpen={() => setZoomed(index)}
               onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
+              retrying={allRetryingScenes.has(index)}
+              onRetry={isSlotRetryable(shotUrls[index] ?? null, index) ? () => void handleRetryFailed(index) : undefined}
               onRegenerate={canRegenerate && !isRegenerating ? () => { setSelectedReason(null); setOtherText(''); setConfirmRegenIndex(index); } : undefined}
             />
           </div>
@@ -150,10 +176,12 @@ export const StudioReveal = ({
               key={shot.src}
               sceneLabel={route.scenes[index]}
               index={index}
-              url={shotUrls[index]}
+              url={shotUrls[index] ?? null}
               layoutClassName="aspect-[3/4] w-full"
               onOpen={() => setZoomed(index)}
               onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
+              retrying={allRetryingScenes.has(index)}
+              onRetry={isSlotRetryable(shotUrls[index] ?? null, index) ? () => void handleRetryFailed(index) : undefined}
               onRegenerate={canRegenerate && !isRegenerating ? () => { setSelectedReason(null); setOtherText(''); setConfirmRegenIndex(index); } : undefined}
             />
           ))}
@@ -169,10 +197,12 @@ export const StudioReveal = ({
                 <ShotTile
                   sceneLabel={route.scenes[index]}
                   index={index}
-                  url={shotUrls[index]}
+                  url={shotUrls[index] ?? null}
                   layoutClassName="aspect-[3/4] w-full"
                   onOpen={() => setZoomed(index)}
                   onDownload={() => downloadFile(shotUrls[index] as string, shotFilename(route, index))}
+                  retrying={allRetryingScenes.has(index)}
+                  onRetry={isSlotRetryable(shotUrls[index] ?? null, index) ? () => void handleRetryFailed(index) : undefined}
                   onRegenerate={canRegenerate && !isRegenerating ? () => { setSelectedReason(null); setOtherText(''); setConfirmRegenIndex(index); } : undefined}
                 />
               </div>

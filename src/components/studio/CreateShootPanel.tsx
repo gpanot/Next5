@@ -8,6 +8,8 @@ import type { DiscountOffer } from '../../types/offer';
 
 type CreateShootPanelProps = {
   email: string;
+  /** Pre-fill the user's name in the preview generation screen */
+  displayName: string | null;
   activeOffer: DiscountOffer | null;
   missingRouteIds: readonly string[];
   onClaimOffer: (offer: DiscountOffer) => void;
@@ -30,6 +32,7 @@ export const CreateShootPanel = (props: CreateShootPanelProps) => (
 
 const CreateShootPanelInner = ({
   email,
+  displayName,
   activeOffer,
   missingRouteIds,
   onClaimOffer,
@@ -39,6 +42,7 @@ const CreateShootPanelInner = ({
     initialHasBookedBefore: true,
     initialActiveOffer: activeOffer,
     initialEmail: email,
+    initialName: displayName ?? undefined,
     onBookingConfirmed: (bookingId) => {
       flow.close();
       onBookingConfirmed(bookingId);

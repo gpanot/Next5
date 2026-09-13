@@ -17,22 +17,76 @@ const saveBlob = (blob: Blob, filename: string): void => {
 };
 
 /**
- * Downloads a single remote image as `filename`.
- *
- * Photos are served from R2 or the generation CDN, both cross-origin — a plain
- * `<a download>` is silently ignored by browsers for cross-origin hrefs, so we
- * fetch the bytes ourselves and save them as a blob. If the host doesn't send
- * CORS headers the fetch fails; we fall back to opening the image in a new tab
- * so she can still save it manually.
+ * Fetches `url` and returns it as a Blob.
+ * Falls back to null if CORS blocks the fetch.
  */
-export const downloadFile = async (url: string, filename: string): Promise<void> => {
+const fetchBlob = async (url: string): Promise<Blob | null> => {
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-    saveBlob(await res.blob(), filename);
+    return await res.blob();
   } catch (err) {
-    console.warn('[download] Falling back to opening in a new tab:', err);
+    console.warn('[download] Could not fetch image blob:', err);
+    return null;
+  }
+};
+
+/**
+ * Draws `imageBlob` onto a canvas and burns the NEXT5 watermark into the
+ * bottom-left corner, then resolves with the composited JPEG blob.
+ */
+const burnWatermark = (imageBlob: Blob): Promise<Blob> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('No 2D context')); return; }
+
+      ctx.drawImage(img, 0, 0);
+
+      const fontSize = Math.round(img.naturalWidth * 0.032 * 0.6);
+      ctx.font = `${fontSize}px serif`;
+      ctx.letterSpacing = `${fontSize * 0.22}px`;
+      ctx.fillStyle = 'rgba(255,255,255,0.70)';
+      ctx.shadowColor = 'rgba(0,0,0,0.55)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetY = 1;
+      const margin = Math.round(img.naturalWidth * 0.035);
+      ctx.fillText('NEXT5', margin, img.naturalHeight - margin);
+
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error('canvas.toBlob returned null')),
+        'image/jpeg',
+        0.92,
+      );
+    };
+    img.onerror = () => reject(new Error('Image load failed'));
+    img.src = URL.createObjectURL(imageBlob);
+  });
+
+/**
+ * Downloads a single remote image with the NEXT5 watermark burned in.
+ *
+ * Photos are served cross-origin (R2 / generation CDN) — a plain
+ * `<a download>` is silently ignored by browsers for cross-origin hrefs, so we
+ * fetch the bytes ourselves, composite the watermark on a canvas, and save the
+ * result. Falls back to opening the raw image in a new tab if CORS blocks us.
+ */
+export const downloadFile = async (url: string, filename: string): Promise<void> => {
+  const blob = await fetchBlob(url);
+  if (!blob) {
     window.open(url, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  try {
+    const watermarked = await burnWatermark(blob);
+    saveBlob(watermarked, filename.replace(/\.\w+$/, '.jpg'));
+  } catch (err) {
+    console.warn('[download] Watermark compositing failed, saving original:', err);
+    saveBlob(blob, filename);
   }
 };
 

@@ -1,3 +1,4 @@
+import { after } from 'next/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadPhotoToWaveSpeed, submitEdit, waitForTask } from '../../../../src/lib/wavespeed';
 import { mirrorToR2, getPresignedUrl, r2IsConfigured, getObjectBuffer } from '../../../../src/lib/r2';
@@ -16,29 +17,38 @@ export type SceneRequestBody = {
   studioId: string;
   feelings: string[];
   bookingId: string;
-  /** 1–4 (scenes after the preview shot 0) */
+  /** 0–4 */
   sceneIndex: number;
+  /**
+   * When true the API returns immediately after submitting the WaveSpeed job.
+   * The actual R2 mirror + DB write runs in the background via after().
+   * The client should poll /api/studio/me to detect when the photo is ready.
+   */
+  background?: boolean;
 };
 
 export type SceneResponseBody = {
   ok: true;
   scene: number;
-  url: string;
+  url: string | null;
+  /** Present and true when the generation is running server-side; poll /api/studio/me for the result. */
+  background?: boolean;
 };
 
-export const maxDuration = 120;
+// 150 s: main handler (~10 s) + after() background work (~120 s WaveSpeed + R2 + DB)
+export const maxDuration = 150;
 
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as SceneRequestBody;
-    const { photoDataUrl, studioId, feelings, bookingId, sceneIndex } = body;
+    const { photoDataUrl, studioId, feelings, bookingId, sceneIndex, background = false } = body;
 
     if (!studioId || !bookingId || sceneIndex == null) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    if (sceneIndex < 1 || sceneIndex > 4) {
-      return NextResponse.json({ error: 'sceneIndex must be 1–4' }, { status: 400 });
+    if (sceneIndex < 0 || sceneIndex > 4) {
+      return NextResponse.json({ error: 'sceneIndex must be 0–4' }, { status: 400 });
     }
 
     if (isMockGeneration()) {
@@ -55,7 +65,13 @@ export async function POST(req: NextRequest) {
       const base64 = photoDataUrl.replace(/^data:image\/\w+;base64,/, '');
       buffer = Buffer.from(base64, 'base64');
     } else {
-      const customerKey = `${bookingId}/customer-upload.jpg`;
+      const uploadPhoto = isDbConfigured()
+        ? await prisma.photo.findFirst({
+            where: { bookingId, type: 'upload', isStored: true, r2Key: { not: null } },
+            select: { r2Key: true },
+          })
+        : null;
+      const customerKey = uploadPhoto?.r2Key ?? `${bookingId}/customer-upload.jpg`;
       const downloaded = await getObjectBuffer(customerKey);
       if (!downloaded) {
         return NextResponse.json(
@@ -66,15 +82,34 @@ export async function POST(req: NextRequest) {
       buffer = downloaded;
     }
 
+    const shotNumber = sceneIndex + 1;
+    const r2Key = `${bookingId}/shot-${String(shotNumber).padStart(2, '0')}.jpg`;
     const prompt = await getPrompt(studioId, sceneIndex, feelings);
-
     const imageUrl = await uploadPhotoToWaveSpeed(buffer);
     const taskId = await submitEdit({ imageUrl, prompt, aspectRatio: '3:4', resolution: '1k' });
 
-    const waveSpeedUrl = await waitForTask(taskId, { timeoutMs: 110_000 });
+    if (background) {
+      // Return immediately — the rest runs in the background via after().
+      // Client should poll /api/studio/me to detect when the photo appears.
+      after(async () => {
+        try {
+          console.log(`[scene/bg] bookingId=${bookingId} sceneIndex=${sceneIndex} taskId=${taskId} — waiting for WaveSpeed`);
+          const waveSpeedUrl = await waitForTask(taskId, { timeoutMs: 120_000 });
+          const finalUrl = await mirrorToR2(waveSpeedUrl, r2Key);
+          const isStored = r2IsConfigured() && finalUrl !== waveSpeedUrl;
+          if (isDbConfigured()) {
+            await persistScenePhoto({ bookingId, sceneIndex, shotNumber, r2Key, waveSpeedUrl, isStored });
+          }
+          console.log(`[scene/bg] bookingId=${bookingId} sceneIndex=${sceneIndex} — done`);
+        } catch (err) {
+          console.error(`[scene/bg] bookingId=${bookingId} sceneIndex=${sceneIndex} — error:`, err);
+        }
+      });
+      return NextResponse.json({ ok: true, scene: shotNumber, url: null, background: true } satisfies SceneResponseBody);
+    }
 
-    const shotNumber = sceneIndex + 1;
-    const r2Key = `${bookingId}/shot-${String(shotNumber).padStart(2, '0')}.jpg`;
+    // Synchronous path (normal auto-generation on mount)
+    const waveSpeedUrl = await waitForTask(taskId, { timeoutMs: 110_000 });
     const finalUrl = await mirrorToR2(waveSpeedUrl, r2Key);
     const isStored = r2IsConfigured() && finalUrl !== waveSpeedUrl;
 
@@ -85,9 +120,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (isDbConfigured()) {
-      persistScenePhoto({ bookingId, sceneIndex, shotNumber, r2Key, waveSpeedUrl, isStored }).catch(
-        (err) => console.error('[scene] DB persist failed:', err),
-      );
+      // Use after() so the DB write completes even if the client disconnects right now
+      after(() => persistScenePhoto({ bookingId, sceneIndex, shotNumber, r2Key, waveSpeedUrl, isStored })
+        .catch((err) => console.error('[scene] DB persist failed:', err)));
     }
 
     return NextResponse.json({ ok: true, scene: shotNumber, url: serveUrl } satisfies SceneResponseBody);

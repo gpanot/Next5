@@ -1,47 +1,6 @@
-'use client';
+import { PhotosHomePage } from '../src/components/photos/PhotosHomePage';
 
-import { BookingModal } from '../src/components/booking/BookingModal';
-import { Footer } from '../src/components/layout/Footer';
-import { Header } from '../src/components/layout/Header';
-import { Faq } from '../src/components/sections/Faq';
-import { FinalCta } from '../src/components/sections/FinalCta';
-import { Hero } from '../src/components/sections/Hero';
-import { HowItWorks } from '../src/components/sections/HowItWorks';
-import { LooksLikeYouGuarantee } from '../src/components/sections/LooksLikeYouGuarantee';
-import { PaymentMethods } from '../src/components/sections/PaymentMethods';
-import { PhotoRoutes } from '../src/components/sections/PhotoRoutes';
-import { PostConfidence } from '../src/components/sections/PostConfidence';
-import { ResultsGallery } from '../src/components/sections/ResultsGallery';
-import { Reviews } from '../src/components/sections/Reviews';
-import { SocialProofBar } from '../src/components/sections/SocialProofBar';
-import { useBookingFlow } from '../src/hooks/useBookingFlow';
-
+/** Consumer homepage — identical to /photos during P0. Replaced by business home in P3. */
 export default function HomePage() {
-  const flow = useBookingFlow();
-
-  return (
-    <div className="min-h-screen bg-page">
-      <Header />
-      <main>
-        <Hero />
-        <ResultsGallery />
-        <SocialProofBar />
-        <PhotoRoutes
-          onSelectRoute={flow.open}
-          discountPercentFor={flow.discountPercentFor}
-          activeOffer={flow.activeOffer}
-          hasBookedBefore={flow.hasBookedBefore}
-        />
-        <LooksLikeYouGuarantee />
-        <HowItWorks />
-        <PostConfidence />
-        <Reviews />
-        <Faq />
-        <FinalCta />
-        <PaymentMethods />
-      </main>
-      <Footer />
-      {flow.isOpen && <BookingModal flow={flow} />}
-    </div>
-  );
+  return <PhotosHomePage />;
 }

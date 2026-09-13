@@ -80,6 +80,10 @@ model Booking {
   regenerateCount  Int       @default(0) @map("regenerate_count")
   regenerateLastAt DateTime? @map("regenerate_last_at")
 
+  /** Preview feedback — captured on the first-shot preview screen. */
+  previewFeedback       String? @map("preview_feedback")
+  previewFeedbackDetail String? @map("preview_feedback_detail")
+
   user          User?                  @relation(fields: [userId], references: [id])
   photos        Photo[]
   regenerations BookingRegeneration[]

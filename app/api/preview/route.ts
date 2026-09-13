@@ -152,7 +152,7 @@ async function setupBookingRecord(
   console.log('[preview] Booking upserted', bookingId, 'in', Date.now() - t0, 'ms');
 
   // Upload customer photo to R2
-  const r2Key = `${bookingId}/customer-upload.jpg`;
+  const r2Key = `${bookingId}/uploaded-${bookingId}.jpg`;
   let isStored = false;
   let r2Url: string | null = null;
 

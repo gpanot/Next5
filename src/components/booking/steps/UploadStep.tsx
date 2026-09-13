@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PhotoRoute } from '../../../data/routes';
 import type { CustomerDetails } from '../../../types/booking';
 import { Button } from '../../ui/Button';
@@ -23,6 +23,46 @@ type UploadStepProps = {
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+// ── Existing-account popup ──────────────────────────────────────────────────
+
+type ExistingAccountPopupProps = {
+  email: string;
+  onCancel: () => void;
+};
+
+const ExistingAccountPopup = ({ email, onCancel }: ExistingAccountPopupProps) => {
+  const studioUrl = `/studio?email=${encodeURIComponent(email)}`;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-6 sm:items-center sm:pb-0">
+      <div className="absolute inset-0 bg-black/50" onClick={onCancel} aria-hidden="true" />
+      <div className="relative w-full max-w-sm rounded-2xl bg-page px-6 py-6 shadow-2xl">
+        <p className="font-serif text-[20px] leading-tight text-ink">
+          This account already exists.
+        </p>
+        <p className="mt-2 text-[13px] text-muted leading-relaxed">
+          Go to your Studio to access your photos and book a new shoot?
+        </p>
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2.5 text-[13px] text-muted transition-colors hover:text-ink"
+          >
+            Cancel
+          </button>
+          <a
+            href={studioUrl}
+            className="rounded-xl bg-ink px-5 py-2.5 font-serif text-[13px] tracking-[0.05em] text-white uppercase transition-opacity hover:opacity-80"
+          >
+            Yes, go to my Studio
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const tips = [
   'Face clearly visible',
   'Good, even lighting',
@@ -41,8 +81,25 @@ export const UploadStep = ({
 }: UploadStepProps) => {
   const [emailError, setEmailError] = useState('');
   const [photoError, setPhotoError] = useState('');
+  const [showExistingPopup, setShowExistingPopup] = useState(false);
   const emailSectionRef = useRef<HTMLDivElement>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
+
+  // Check if the email already has a confirmed studio account
+  const checkEmailExists = useCallback(async (email: string) => {
+    if (!emailPattern.test(email.trim())) return;
+    try {
+      const res = await fetch('/api/auth/studio/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json() as { exists: boolean };
+      if (data.exists) setShowExistingPopup(true);
+    } catch {
+      // Non-fatal — if check fails, let the user proceed normally
+    }
+  }, []);
 
   // When the software keyboard opens on mobile it resizes the visualViewport.
   // If the email input is focused, scroll it into the center of the remaining visible area.
@@ -166,10 +223,18 @@ export const UploadStep = ({
                   setEmailError('');
                   onDetailsChange({ email: e.target.value });
                 }}
+                onBlur={() => checkEmailExists(details.email)}
               />
             </div>
           </div>
         </>
+      )}
+
+      {showExistingPopup && (
+        <ExistingAccountPopup
+          email={details.email.trim()}
+          onCancel={() => setShowExistingPopup(false)}
+        />
       )}
     </StepLayout>
   );

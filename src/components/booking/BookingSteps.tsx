@@ -1,10 +1,9 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import type { BookingFlow } from '../../hooks/useBookingFlow';
 import { checkBrowserPreviewAllowed } from '../../hooks/useBookingFlow';
 import { IntentionStep } from './steps/IntentionStep';
-import { PaymentStep } from './steps/PaymentStep';
 import { PreviewStep } from './steps/PreviewStep';
 import { StudioStep } from './steps/StudioStep';
 import { StyleStep } from './steps/StyleStep';
@@ -32,7 +31,6 @@ const useStepGuard = (flow: BookingFlow) => {
 export const BookingSteps = ({ flow }: BookingStepsProps) => {
   const { route, director, directorOptions, booking, goTo } = flow;
 
-  const goToConfirmed = useCallback(() => goTo('confirmed'), [goTo]);
   const blocked = useStepGuard(flow);
 
   if (!route || !director || !directorOptions || blocked) return null;
@@ -117,7 +115,8 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
         bookingId={flow.booking?.id ?? ''}
         name={flow.details.name ?? ''}
         onNameChange={(n) => flow.setDetails({ ...flow.details, name: n })}
-        onNext={flow.startPayment}
+        paymentStatus={flow.paymentStatus}
+        onPaymentStatusChange={flow.setPaymentStatus}
         onPreviewReady={flow.setPreviewUrl}
         discountPercent={flow.discountPercentFor(route.id)}
       />
@@ -125,20 +124,6 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
   }
 
   if (!booking) return null;
-
-  if (flow.step === 'payment') {
-    return (
-      <PaymentStep
-        route={route}
-        bookingId={booking.id}
-        status={flow.paymentStatus}
-        onStatusChange={flow.setPaymentStatus}
-        onConfirmed={goToConfirmed}
-        onCancel={flow.back}
-        discountPercent={flow.discountPercentFor(route.id)}
-      />
-    );
-  }
 
   // Payment confirmed. Her studio (with the full reveal + offers) lives on
   // /studio now, not in this modal — this is just the brief hand-off moment

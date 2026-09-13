@@ -135,6 +135,9 @@ export type UseBookingFlowOptions = {
   /** Pre-fills the email field — used on /studio, where her address is
    *  already known from her session, so she isn't asked to retype it. */
   initialEmail?: string;
+  /** Pre-fills the name field — used on /studio, where her display name is
+   *  already known, so the name capture card on the preview screen is hidden. */
+  initialName?: string;
   /** Called once a booking is confirmed, instead of the default hard
    *  redirect to /studio — used when the flow is already mounted there, so
    *  the caller can just refresh the bookings list and close the modal
@@ -143,7 +146,7 @@ export type UseBookingFlowOptions = {
 };
 
 export const useBookingFlow = (options: UseBookingFlowOptions = {}) => {
-  const { initialHasBookedBefore = false, initialActiveOffer = null, initialEmail = '', onBookingConfirmed } = options;
+  const { initialHasBookedBefore = false, initialActiveOffer = null, initialEmail = '', initialName, onBookingConfirmed } = options;
 
   const [route, setRoute] = useState<PhotoRoute | null>(null);
   const [step, setStep] = useState<BookingStep>('studio');
@@ -151,7 +154,7 @@ export const useBookingFlow = (options: UseBookingFlowOptions = {}) => {
   const [intention, setIntention] = useState<ShootIntention>(emptyIntention);
   const [uploadedPhoto, setUploadedPhoto] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [details, setDetails] = useState<CustomerDetails>({ email: initialEmail });
+  const [details, setDetails] = useState<CustomerDetails>({ email: initialEmail, name: initialName });
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
   // True while we're calling /api/orders and finishing up after payment —
@@ -176,7 +179,7 @@ export const useBookingFlow = (options: UseBookingFlowOptions = {}) => {
     setIntention(emptyIntention);
     setUploadedPhoto(null);
     setPreviewUrl(null);
-    setDetails({ email: initialEmail });
+    setDetails({ email: initialEmail, name: initialName });
     // Generate the booking ID immediately so it is available at preview time
     // (before payment), allowing the DB row to be created when the preview API is called.
     setBookingId(createBookingId(next.title));

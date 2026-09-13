@@ -40,6 +40,8 @@ export type StudioMeResponse = {
   bookings: StudioBooking[];
   /** Persisted per-account — survives across sessions and devices. */
   activeOffer: DiscountOffer | null;
+  /** Display name saved from a previous booking, if any. */
+  displayName: string | null;
 };
 
 const PRESIGNED_URL_TTL = 60 * 60 * 24; // 24 hours
@@ -67,7 +69,7 @@ export async function GET(req: NextRequest) {
   const [user, bookings] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
-      select: { activeOfferPercent: true, activeOfferLabel: true, activeOfferRouteIds: true },
+      select: { displayName: true, activeOfferPercent: true, activeOfferLabel: true, activeOfferRouteIds: true },
     }),
     prisma.booking.findMany({
       where: { userId },
@@ -144,5 +146,5 @@ export async function GET(req: NextRequest) {
     }),
   );
 
-  return NextResponse.json({ bookings: result, activeOffer } satisfies StudioMeResponse);
+  return NextResponse.json({ bookings: result, activeOffer, displayName: user?.displayName ?? null } satisfies StudioMeResponse);
 }

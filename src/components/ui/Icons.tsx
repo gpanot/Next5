@@ -258,3 +258,10 @@ export const RefreshCwIcon = (props: IconProps) => (
     <path d="M8 16H3v5" />
   </Svg>
 );
+
+export const ChatIcon = (props: IconProps) => (
+  <Svg {...props}>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    <path d="M8 10h8M8 13.5h5" />
+  </Svg>
+);

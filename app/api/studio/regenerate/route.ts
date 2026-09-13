@@ -63,36 +63,43 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Booking not found' } satisfies RegenerateResponseBody, { status: 404 });
   }
 
-  // Enforce the 24-hour window from booking creation
-  const ageMs = Date.now() - booking.createdAt.getTime();
-  if (ageMs > REGEN_WINDOW_MS) {
-    return NextResponse.json(
-      { ok: false, error: 'The 24-hour regeneration window for this shoot has expired.' } satisfies RegenerateResponseBody,
-      { status: 403 },
-    );
-  }
+  // Check whether this scene was ever generated (null slot = generation failure, not a redo request)
+  const sceneExists = sceneIndex !== undefined
+    ? await prisma.photo.findFirst({ where: { bookingId, sceneIndex }, select: { id: true } })
+    : true; // full-set regeneration always counts normally
 
-  // Enforce the 2-regeneration limit
-  if (booking.regenerateCount >= REGEN_LIMIT) {
-    return NextResponse.json(
-      { ok: false, error: 'You have used both regenerations for this shoot.' } satisfies RegenerateResponseBody,
-      { status: 403 },
-    );
+  const isGenerationRetry = !sceneExists;
+
+  // Generation retries (never-generated slots) bypass the 24h window and regen limit.
+  // User-requested redos (existing photo replacement) enforce both limits.
+  if (!isGenerationRetry) {
+    const ageMs = Date.now() - booking.createdAt.getTime();
+    if (ageMs > REGEN_WINDOW_MS) {
+      return NextResponse.json(
+        { ok: false, error: 'The 24-hour regeneration window for this shoot has expired.' } satisfies RegenerateResponseBody,
+        { status: 403 },
+      );
+    }
+    if (booking.regenerateCount >= REGEN_LIMIT) {
+      return NextResponse.json(
+        { ok: false, error: 'You have used both regenerations for this shoot.' } satisfies RegenerateResponseBody,
+        { status: 403 },
+      );
+    }
   }
 
   // Delete the target photo(s): one specific scene when sceneIndex is given, all AI shots otherwise
   await prisma.photo.deleteMany({
     where: sceneIndex !== undefined
-      ? { bookingId, type: 'generated', sceneIndex }
+      ? { bookingId, sceneIndex }
       : { bookingId, type: 'generated' },
   });
 
-  // Increment counter, record timestamp, reset shoot status
+  // Only increment the regen counter for user-requested redos, not generation retries
   const updated = await prisma.booking.update({
     where: { id: bookingId },
     data: {
-      regenerateCount: { increment: 1 },
-      regenerateLastAt: new Date(),
+      ...(isGenerationRetry ? {} : { regenerateCount: { increment: 1 }, regenerateLastAt: new Date() }),
       shootStatus: 'creating',
     },
     select: { regenerateCount: true },

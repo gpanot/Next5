@@ -18,6 +18,8 @@ type StudioWorkspaceProps = {
   initialBookingId: string | null;
   token: string;
   email: string;
+  /** User's saved display name — pre-populates the name field in a new shoot. */
+  displayName?: string | null;
   onBookingsChange: (updated: StudioBooking[]) => void;
   onRefresh: () => Promise<void> | void;
   onClaimOffer: (offer: DiscountOffer) => void;
@@ -39,6 +41,7 @@ export const StudioWorkspace = ({
   initialBookingId,
   token,
   email,
+  displayName,
   onBookingsChange,
   onRefresh,
   onClaimOffer,
@@ -104,6 +107,7 @@ export const StudioWorkspace = ({
         )}
         <CreateShootPanel
           email={email}
+          displayName={displayName ?? null}
           activeOffer={activeOffer}
           missingRouteIds={missingRouteIds}
           onClaimOffer={onClaimOffer}

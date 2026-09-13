@@ -50,7 +50,7 @@ export const IntentionStep = ({
   onToggleGoal,
   onNext,
 }: IntentionStepProps) => {
-  const canContinue = intention.feelings.length > 0;
+  const canContinue = intention.feelings.length === 2 && intention.goals.length > 0;
   const goalSectionRef = useRef<HTMLDivElement>(null);
   const prevFeelingsCount = useRef(intention.feelings.length);
 
@@ -73,7 +73,9 @@ export const IntentionStep = ({
             <p className="text-[12px] text-muted">
               {canContinue
                 ? 'We’ll shape your creative direction around this.'
-                : 'Pick at least one feeling to continue.'}
+                : intention.feelings.length < 2
+                  ? 'Pick 2 feelings to continue.'
+                  : 'Pick at least one goal to continue.'}
             </p>
           }
         >

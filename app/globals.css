@@ -25,6 +25,40 @@
   --color-on-dark-muted: #cfc6bb;
 
   --shadow-card: 0 1px 2px rgb(34 31 28 / 0.05), 0 8px 24px -12px rgb(34 31 28 / 0.18);
+
+  /* ── Business surface tokens (light defaults) ── */
+  --color-app-bg: #fbfaf8;
+  --color-app-panel: #ffffff;
+  --color-app-sunken: #f4f1ec;
+  --color-app-ink: #1f1c19;
+  --color-app-muted: #6b635a;
+  --color-app-line: #e7e1d8;
+  --color-app-accent: #b8683f;
+  --color-app-accent-ink: #ffffff;
+  --color-app-accent-soft: #f6e8df;
+  --color-app-success: #3f7a52;
+  --color-app-warning: #a8741f;
+  --color-app-danger: #b2463a;
+  --color-app-info: #4d6a8c;
+}
+
+/* ── Business surface dark overrides (scoped — /photos unchanged) ── */
+@media (prefers-color-scheme: dark) {
+  [data-surface='business'] {
+    --color-app-bg: #141210;
+    --color-app-panel: #1c1916;
+    --color-app-sunken: #24201c;
+    --color-app-ink: #f1ebe3;
+    --color-app-muted: #aaa093;
+    --color-app-line: #36302a;
+    --color-app-accent: #e09a72;
+    --color-app-accent-ink: #1a1512;
+    --color-app-accent-soft: #3a2a20;
+    --color-app-success: #7fb58f;
+    --color-app-warning: #d8aa5a;
+    --color-app-danger: #de8579;
+    --color-app-info: #9db5d3;
+  }
 }
 
 html {

@@ -66,7 +66,7 @@ export const BookingModal = ({ flow }: BookingModalProps) => {
         aria-modal="true"
         aria-labelledby="booking-modal-title"
         tabIndex={-1}
-        className="animate-sheet-in relative flex h-[93vh] w-full max-w-[1060px] flex-col overflow-hidden rounded-t-2xl bg-page shadow-[0_-8px_60px_-12px_rgb(34_31_28/0.5)] outline-none sm:h-[min(88vh,860px)] sm:rounded-2xl sm:shadow-[0_30px_80px_-20px_rgb(34_31_28/0.55)]"
+        className="animate-sheet-in relative flex h-[97vh] w-full max-w-[1060px] flex-col overflow-hidden rounded-t-2xl bg-page shadow-[0_-8px_60px_-12px_rgb(34_31_28/0.5)] outline-none sm:h-[min(88vh,860px)] sm:rounded-2xl sm:shadow-[0_30px_80px_-20px_rgb(34_31_28/0.55)]"
       >
         <div className="shrink-0 border-b border-line px-5 pt-3.5 pb-3 sm:px-8 sm:pt-4 lg:px-10">
           <div className="flex items-center gap-2">

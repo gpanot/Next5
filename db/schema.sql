@@ -69,6 +69,19 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: booking_regenerations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.booking_regenerations (
+    id text DEFAULT (gen_random_uuid())::text NOT NULL,
+    booking_id text NOT NULL,
+    scene_index integer,
+    reason text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: bookings; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -89,7 +102,9 @@ CREATE TABLE public.bookings (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     regenerate_count integer DEFAULT 0 NOT NULL,
-    regenerate_last_at timestamp with time zone
+    regenerate_last_at timestamp with time zone,
+    preview_feedback text,
+    preview_feedback_detail text
 );
 
 
@@ -152,6 +167,14 @@ CREATE TABLE public.users (
 
 
 --
+-- Name: booking_regenerations booking_regenerations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.booking_regenerations
+    ADD CONSTRAINT booking_regenerations_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: bookings bookings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -205,6 +228,13 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: booking_regenerations_booking_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX booking_regenerations_booking_id_idx ON public.booking_regenerations USING btree (booking_id);
 
 
 --
@@ -264,6 +294,14 @@ CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW E
 
 
 --
+-- Name: booking_regenerations booking_regenerations_booking_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.booking_regenerations
+    ADD CONSTRAINT booking_regenerations_booking_id_fkey FOREIGN KEY (booking_id) REFERENCES public.bookings(id) ON DELETE CASCADE;
+
+
+--
 -- Name: bookings bookings_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -301,4 +339,6 @@ ALTER TABLE ONLY public.photos
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260829000000'),
     ('20260829083650'),
-    ('20260831000000');
+    ('20260831000000'),
+    ('20260831130000'),
+    ('20260901180000');

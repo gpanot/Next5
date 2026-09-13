@@ -17,9 +17,9 @@ type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 type Bilingual<T> = { en: T; vi: T };
 
 export const navLinks: readonly { label: Bilingual<string>; href: string }[] = [
-  { label: { en: 'Studios', vi: 'Studio' }, href: '#routes' },
-  { label: { en: 'How It Works', vi: 'Cách hoạt động' }, href: '#how-it-works' },
-  { label: { en: 'FAQ', vi: 'Hỏi đáp' }, href: '#faq' },
+  { label: { en: 'Studios', vi: 'Studio' }, href: '/photos#routes' },
+  { label: { en: 'How It Works', vi: 'Cách hoạt động' }, href: '/photos#how-it-works' },
+  { label: { en: 'FAQ', vi: 'Hỏi đáp' }, href: '/photos#faq' },
 ];
 
 export const heroImage = heroPhoto;

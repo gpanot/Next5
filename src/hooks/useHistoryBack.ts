@@ -43,24 +43,32 @@ export function useHistoryBack(isActive: boolean, onBack: () => void): void {
     return () => {
       window.removeEventListener('popstate', handler);
       console.log('[useHistoryBack] cleanup — my token:', token, '| activeToken:', activeTokenRef.current);
-      // Only pop if our specific push is still the active one.
+      // Only neutralise if our specific push is still the active one.
       // In Strict Mode, the re-mount runs synchronously and overwrites
       // activeTokenRef with its own new token before this cleanup fires
       // its setTimeout — so the token check will fail and back() is skipped.
       if (activeTokenRef.current !== token) {
-        console.log('[useHistoryBack] skipping history.back() — token superseded by re-mount');
+        console.log('[useHistoryBack] skipping cleanup — token superseded by re-mount');
         return;
       }
       // Deferred so Strict Mode's synchronous re-mount can overwrite the token
       // before we read it.
+      //
+      // We use replaceState instead of history.back() here: calling back() in
+      // cleanup fires a popstate event that parent useHistoryBack instances
+      // (e.g. a booking modal sitting below a lightbox) would interpret as the
+      // user pressing the browser back button and incorrectly close themselves.
+      // replaceState neutralises our pushed state without triggering popstate,
+      // so the parent stays open when a child overlay is dismissed via its
+      // close / X button.
       setTimeout(() => {
         console.log('[useHistoryBack] setTimeout — my token:', token, '| activeToken:', activeTokenRef.current);
         if (activeTokenRef.current === token) {
-          console.log('[useHistoryBack] calling history.back() — genuine UI dismissal');
+          console.log('[useHistoryBack] neutralising history entry via replaceState — genuine UI dismissal');
           activeTokenRef.current = 0;
-          window.history.back();
+          window.history.replaceState(null, '');
         } else {
-          console.log('[useHistoryBack] skipping history.back() — token superseded');
+          console.log('[useHistoryBack] skipping cleanup — token superseded');
         }
       }, 0);
     };

@@ -590,4 +590,110 @@ reveal today.
 
 ---
 
-*Last updated: August 2026*
+## Business Surface UI (P0 — `src/components/ui/`)
+
+All business-surface primitives use `app-*` tokens and support light/dark mode automatically via the scoped `[data-surface="business"]` CSS override.
+
+### BusinessSurface
+Root wrapper that sets `data-surface="business"` and applies `bg-app-bg text-app-ink`.
+```tsx
+<BusinessSurface>…page content…</BusinessSurface>
+```
+
+### AppButton
+| Prop | Type | Default |
+|---|---|---|
+| `variant` | `'primary' \| 'secondary' \| 'ghost' \| 'danger'` | `'primary'` |
+| `size` | `'sm' \| 'md' \| 'lg'` | `'md'` |
+| `loading` | `boolean` | `false` |
+| `iconLeft` / `iconRight` | `React.ReactNode` | — |
+| `fullWidth` | `boolean` | `false` |
+
+### Card / CardHeader / CardBody / CardFooter
+Raised panel with `rounded-2xl border border-app-line bg-app-panel shadow-sm`. Sub-parts add padding and dividers automatically.
+
+### Badge
+| Prop | Type |
+|---|---|
+| `tone` | `'neutral' \| 'accent' \| 'success' \| 'warning' \| 'danger' \| 'info'` |
+
+### Chip / ChipGroup
+Selectable pill. `ChipGroup` handles single- or multi-select via `value` + `onChange` + optional `multi` prop.
+
+### SegmentedControl
+Compact button-group toggle (term selector, format tabs). `options`, `value`, `onChange`.
+
+### Tabs / UrlTabs
+`Tabs` = controlled (value/onChange). `UrlTabs` = URL-synced via `?tab=` param.
+
+### Field
+Label (above) + helper or error (below). Wrap `TextInput`, `Select`, `Textarea`, or `ColorInput` as children.
+
+### TextInput / Select / Textarea / ColorInput
+Standard form controls with `error` boolean and `app-*` token styling.
+
+### Checkbox / RadioGroup / Switch
+Accessible toggle primitives. `RadioGroup` accepts `options: {value, label}[]`.
+
+### Stepper
+`steps: string[]` + `current: number` (1-indexed). Horizontal on ≥sm, compact "Step N of M" on mobile.
+
+### ProgressMeter
+`used`, `total`, optional `label`. Turns warning tone when `used/total > 80 %`.
+
+### SkeletonText / SkeletonCard / SkeletonGrid
+Shimmer placeholders matching final layout. `SkeletonGrid` accepts `count` and `cols`.
+
+### EmptyState
+`title`, optional `body`, optional `action: {label, ...AppButtonProps}`, optional `illustration` slot.
+
+### ErrorState
+`message`, optional `onRetry`, optional `supportHref`.
+
+### Dialog
+Modal overlay. Uses `useFocusTrap` + `useLockBodyScroll`. Closes on Esc / backdrop click.
+`open`, `onClose`, `title`, `description` props.
+
+### Sheet
+Slide-up bottom sheet (mobile) or right drawer (desktop). `side: 'bottom' | 'right'`. Drag handle on bottom.
+
+### Toast / ToastContainer / useToast
+```tsx
+const { toasts, toast, dismiss } = useToast();
+toast('Saved!', 'success');
+// Render at page root:
+<ToastContainer toasts={toasts} onDismiss={dismiss} />
+```
+Auto-dismisses after 4 s. Tones: `'success' | 'error'`.
+
+### FileDrop / useFileDrop
+Drag-and-drop + click file picker. `accept`, `maxBytes`, `multiple`, `onFiles`, `label`, `hint`. Underlying logic is in `src/hooks/useFileDrop.ts`.
+
+### ImageTile
+`src`, `alt`, `status: 'queued' | 'generating' | 'ready' | 'failed'`, hover action callbacks (`onFavourite`, `onDownload`, `onRedo`, `onMore`).
+
+### ImageGrid
+Responsive grid wrapper. `cols: 2 | 3 | 4`.
+
+### CompareRow
+Original pinned left, generated shots scrollable right. Used in Shop batch results.
+`originalSrc`, `generatedImages: {src?, alt}[]`, `label`.
+
+### PriceTag
+`cents` (USD, integer), `originalCents` (for strike-through), `suffix` (e.g. `'/mo'`).
+
+### Tooltip
+Hover/focus tooltip. Wraps a single child element with `content` prop.
+
+### Kbd
+Keyboard key label: `<Kbd>⌘K</Kbd>`.
+
+### Avatar
+`src`, `initials`, `size: 'sm' | 'md' | 'lg'`. Falls back to generic user icon.
+
+### Divider
+Horizontal rule with optional centred `label`.
+
+---
+
+*Last updated: Sep 2026 (P0)*

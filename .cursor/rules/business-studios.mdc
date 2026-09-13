@@ -1,0 +1,28 @@
+---
+description: Next5 Business Studios (Brand Studio + Shop Studio) build plan and conventions
+globs: app/**,src/**,db/**,prisma/**,scripts/**,tests/**
+alwaysApply: false
+---
+
+# Next5 Business Studios
+
+The build plan lives in `docs/business-studios/`. Before working on any business feature
+(`/brand`, `/shop`, `/pricing`, `/start/*`, `/app/*`, `/api/app/*`, payments, credits, generation v2):
+
+1. Read `docs/business-studios/README.md` (decisions D1–D6, phase map, non-negotiable rules).
+2. Read the phase file you are implementing in `docs/business-studios/phases/` and only the spec
+   sections it points to (`01-product-spec.md`, `02-architecture.md`, `03-ux-ui.md`, `04-image-prompts.md`).
+3. This is Next.js 16.3 — check `node_modules/next/dist/docs/` before using framework APIs (see `AGENTS.md`).
+
+Hard rules:
+- English-only UI for business surfaces; prices in USD from `src/config/plans.ts`; VND only inside the checkout sheet.
+- Money, credits and plan state are computed and changed on the server only (`src/server/**`).
+- `src/server/**` is never imported from `'use client'` files.
+- Every `/api/app/**` handler: `requireSession` + workspace ownership check.
+- Every paid API call honours `isMockGeneration()`; payments honour `NEXT5_MOCK_PAYMENTS`.
+- DB change = dbmate SQL migration in `db/migrations/` + `prisma/schema.prisma` mirror.
+- Strict TypeScript, no `any`, named exports (except Next.js page/layout/route defaults), ≤ 600 lines per file, functions < 50 lines.
+- Tailwind only; business surfaces use the `app-*` tokens inside `data-surface="business"`; every new UI has dark mode, mobile-first layout, skeleton/error/empty states.
+- Images only from `public/images/manifest.json`; generate missing ones from `04-image-prompts.md` first. Icons/illustrations are hand-written SVG.
+- Do not change `/photos` or `/studio` behaviour unless the phase file says so.
+- Tick the task checkboxes in the phase file as work lands.

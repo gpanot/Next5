@@ -9,14 +9,16 @@ type ShotTileProps = {
   layoutClassName: string;
   onOpen: () => void;
   onDownload: () => void;
+  /** Called when user requests a voluntary redo of an existing photo (shows "Regenerate" button). */
   onRegenerate?: () => void;
+  /** Called when generation failed and user wants to retry (shows "Retry" button, no dialog). */
+  onRetry?: () => void;
+  /** True while a background retry is in-flight — shows "Generating…" instead of "Creating…" */
+  retrying?: boolean;
 };
 
 /** One frame in the studio mosaic: a finished photo (open + download), or a
- *  plain "photo coming" placeholder while it's still being crafted. A
- *  blurred stock photo here used to imply "roughly what you'll get" — a
- *  neutral placeholder doesn't set that expectation, and one consistent tile
- *  reads calmer than five different blurred scenes. */
+ *  plain "photo coming" placeholder while it's still being crafted. */
 export const ShotTile = ({
   sceneLabel,
   index,
@@ -25,6 +27,8 @@ export const ShotTile = ({
   onOpen,
   onDownload,
   onRegenerate,
+  onRetry,
+  retrying = false,
 }: ShotTileProps) => {
   const ready = url !== null;
 
@@ -66,9 +70,20 @@ export const ShotTile = ({
         >
           <DownloadIcon className="h-3.5 w-3.5" />
         </button>
+      ) : onRetry ? (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onRetry(); }}
+          className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 py-2"
+        >
+          <span className="flex items-center gap-1 rounded-full bg-white/15 px-3 py-1 text-[9.5px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/25">
+            <RefreshCwIcon className="h-2.5 w-2.5" />
+            Retry
+          </span>
+        </button>
       ) : (
         <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 py-1.5 text-[9.5px] font-medium text-white/85">
-          <span className="animate-pulse">Creating…</span>
+          <span className="animate-pulse">{retrying ? 'Generating…' : 'Creating…'}</span>
         </span>
       )}
 

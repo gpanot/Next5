@@ -20,7 +20,7 @@ type AuthState =
 
 type StudioState =
   | { phase: 'loading' }
-  | { phase: 'loaded'; bookings: StudioBooking[]; activeOffer: DiscountOffer | null }
+  | { phase: 'loaded'; bookings: StudioBooking[]; activeOffer: DiscountOffer | null; displayName: string | null }
   | { phase: 'error'; message: string };
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -30,14 +30,23 @@ export default function StudioPage() {
   const [studio, setStudio] = useState<StudioState>({ phase: 'loading' });
   // bookingId from ?bookingId= URL param — she just paid for this one
   const [initialBookingId, setInitialBookingId] = useState<string | null>(null);
+  // Pre-filled email from ?email= URL param (e.g. when redirected from the upload step)
+  const [prefillEmail, setPrefillEmail] = useState('');
   // Track mobile pane so the header is hidden only on detail view (not the list)
   const [mobilePane, setMobilePane] = useState<'list' | 'detail'>('list');
 
-  // On mount: consume magic ?token=, check localStorage, or read ?bookingId=
+  // On mount: consume magic ?token=, check localStorage, or read ?bookingId= / ?email=
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const magicToken = params.get('token');
     const bookingIdParam = params.get('bookingId');
+    const emailParam = params.get('email');
+    if (emailParam) {
+      setPrefillEmail(decodeURIComponent(emailParam));
+      const url = new URL(window.location.href);
+      url.searchParams.delete('email');
+      window.history.replaceState({}, '', url.toString());
+    }
 
     if (bookingIdParam) {
       setInitialBookingId(bookingIdParam);
@@ -96,7 +105,7 @@ export default function StudioPage() {
         return res.json();
       })
       .then((data: StudioMeResponse) =>
-        setStudio({ phase: 'loaded', bookings: data.bookings ?? [], activeOffer: data.activeOffer ?? null }),
+        setStudio({ phase: 'loaded', bookings: data.bookings ?? [], activeOffer: data.activeOffer ?? null, displayName: data.displayName ?? null }),
       )
       .catch((err) =>
         setStudio({
@@ -116,7 +125,7 @@ export default function StudioPage() {
   const claimOffer = useCallback(
     (offer: DiscountOffer) => {
       if (auth.phase !== 'authenticated' || studio.phase !== 'loaded') return;
-      setStudio({ ...studio, activeOffer: offer });
+      setStudio({ ...studio, activeOffer: offer, displayName: studio.displayName });
       fetch('/api/studio/offer/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth.token}` },
@@ -134,7 +143,7 @@ export default function StudioPage() {
     return (
       <PageShell>
         <div className="px-6">
-          <LoginPanel auth={auth} onAuthChange={setAuth} />
+          <LoginPanel auth={auth} onAuthChange={setAuth} initialEmail={prefillEmail} />
         </div>
       </PageShell>
     );
@@ -184,7 +193,8 @@ export default function StudioPage() {
             initialBookingId={initialBookingId}
             token={auth.token}
             email={auth.email}
-            onBookingsChange={(updated) => setStudio({ ...studio, bookings: updated })}
+            displayName={studio.displayName}
+            onBookingsChange={(updated) => setStudio({ ...studio, bookings: updated, displayName: studio.displayName })}
             onRefresh={() => loadBookings(auth.token)}
             onClaimOffer={claimOffer}
             onMobilePaneChange={setMobilePane}
@@ -212,7 +222,7 @@ function PageShell({
     <div className="min-h-screen bg-page">
       <header className={`${hideHeaderOnMobile ? 'hidden' : ''} border-b border-line px-6 py-4 sm:block sm:px-10`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Link href="/" className="font-serif text-[22px] tracking-[0.12em] text-ink uppercase">
+          <Link href="/photos" className="font-serif text-[22px] tracking-[0.12em] text-ink uppercase">
             Studio
           </Link>
           <div className="flex items-center gap-4">
@@ -245,11 +255,13 @@ function PageShell({
 function LoginPanel({
   auth,
   onAuthChange,
+  initialEmail = '',
 }: {
   auth: AuthState;
   onAuthChange: (s: AuthState) => void;
+  initialEmail?: string;
 }) {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [emailError, setEmailError] = useState('');
 
   const handleSubmit = useCallback(
