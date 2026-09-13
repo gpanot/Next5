@@ -22,11 +22,12 @@ export const storageDriver = (): StorageDriver => {
   return process.env.NODE_ENV === 'production' ? 'r2' : 'local';
 };
 
-const localRoot = (): string => process.env.NEXT5_STORAGE_DIR ?? path.join(process.cwd(), '.data', 'object-store');
+const localRoot = (): string => process.env.NEXT5_STORAGE_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), '.data', 'object-store');
 
 const localPath = (key: string): string => {
-  const resolved = path.resolve(localRoot(), key);
-  if (!resolved.startsWith(path.resolve(localRoot()))) throw new Error('Invalid object key');
+  const root = path.resolve(/*turbopackIgnore: true*/ localRoot());
+  const resolved = path.resolve(/*turbopackIgnore: true*/ root, key);
+  if (!resolved.startsWith(root)) throw new Error('Invalid object key');
   return resolved;
 };
 
@@ -45,8 +46,8 @@ export const verifyLocalSignature = (key: string, exp: number, sig: string): boo
 export const putObject = async (key: string, body: Buffer, contentType = 'image/jpeg'): Promise<void> => {
   if (storageDriver() === 'local') {
     const file = localPath(key);
-    await mkdir(path.dirname(file), { recursive: true });
-    await writeFile(file, body);
+    await mkdir(/*turbopackIgnore: true*/ path.dirname(file), { recursive: true });
+    await writeFile(/*turbopackIgnore: true*/ file, body);
     return;
   }
   if (!r2IsConfigured()) throw new Error('R2 is not configured');
@@ -55,14 +56,14 @@ export const putObject = async (key: string, body: Buffer, contentType = 'image/
 
 export const getObject = async (key: string): Promise<Buffer | null> => {
   if (storageDriver() === 'local') {
-    return readFile(localPath(key)).catch(() => null);
+    return readFile(/*turbopackIgnore: true*/ localPath(key)).catch(() => null);
   }
   return getObjectBuffer(key);
 };
 
 export const deleteObject = async (key: string): Promise<void> => {
   if (storageDriver() === 'local') {
-    await rm(localPath(key), { force: true });
+    await rm(/*turbopackIgnore: true*/ localPath(key), { force: true });
     return;
   }
   await deleteFromR2(key);
