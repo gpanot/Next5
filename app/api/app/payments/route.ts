@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { isPlanId, isTermMonths, isTopupId, PLANS } from '../../../../src/config/plans';
 import { authedRoute } from '../../../../src/server/api';
+import { enforceRateLimit } from '../../../../src/server/rateLimit';
 import { HttpError, readJsonObject } from '../../../../src/server/http';
 import { toPaymentDto } from '../../../../src/server/payments/dto';
 import {
@@ -12,6 +13,7 @@ import { isProductLine, requireWorkspace } from '../../../../src/server/workspac
 
 /** POST /api/app/payments — create a subscription or top-up payment (QR sheet). */
 export const POST = authedRoute(async (req, session) => {
+  await enforceRateLimit(`payment:${session.userId}`, 10, 3600);
   const body = await readJsonObject(req);
 
   if (body.purpose === 'subscription') {

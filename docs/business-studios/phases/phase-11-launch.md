@@ -7,19 +7,39 @@
 Legal pages, abuse protection, SEO/OG, monitoring and end-to-end smoke tests — then swap the
 homepage and launch Brand (and Shop if P8 shipped).
 
+## Implementation notes (2026-09-14)
+
+- **Legal (drafts):** `/legal/terms`, `/legal/privacy`, `/legal/ai-and-face-data` from `src/content/business/legal.ts`, each with a
+  "Draft pending legal review" notice; linked from the marketing footer and the onboarding consent step. Consent version unchanged.
+  Payments are mocked (D7), so the SePay processor line is worded as "payment provider".
+- **Rate limits:** `rate_limits` table (migration `20260914170000_rate_limits.sql`, local DBs only so far) + `enforceRateLimit(key, limit, windowSec)`
+  → 429 `rate_limited`. Applied: account 5/IP/h, trial 3/IP/day, identity upload 20/user/day, bulk products 20 requests/user/day
+  (≤ 50 products each), payment create 10/user/h, batch create 30/user/h (solo accounts ⇒ same as per workspace), magic link 5/email/h.
+  Old windows pruned by the daily billing cron. `/api/preview` no longer logs emails.
+- **SEO/OG:** `opengraph-image.tsx` for `/brand`, `/shop`, `/pricing`, `/home-preview` (shared `ogImage.tsx`); `/` gets one at the launch switch.
+  `app/robots.ts` + `app/sitemap.ts` list business pages only when the flag is on. Marketing heroes use `next/image` with `sizes` + `priority`.
+  JSON-LD and a Lighthouse pass not done.
+- **Cron:** `vercel.json` has the daily billing cron. The per-minute generations cron needs Vercel Pro (or an external pinger
+  hitting `/api/cron/generations` with `CRON_SECRET`); until then batches advance while a user is polling the batch page.
+- **E2E:** `tests/e2e/{brand,shop,brand-create,shop-app}.mjs` (Playwright library + local Chrome, mock generation/payments),
+  `npm run test:e2e`, instructions in `tests/e2e/README.md`. Scenarios 3 (consumer /photos) and 4 (cross-workspace 404) and CI not done;
+  cross-workspace access is covered by `requireOwnedBatch` returning 404.
+- **Not done — needs a decision:** monitoring (Sentry?), cron heartbeat + alert emails, 11.6 launch switch and production migrations.
+  Existing lint errors are all in the consumer code (`app/studio`, `useBookingFlow`, `ResultsGallery`, …), none in business code.
+
 ## Tasks
 
 ### 11.1 Legal (draft in English; **review by a Vietnamese lawyer before launch**)
-- [ ] `/legal/terms` — service description, prepaid plans & credits, no auto-renewal, refunds (credits for failures; cash only for payment errors), acceptable use (own face / consented; no impersonation; no misleading listings), IP (customer owns outputs subject to model provider terms), liability.
-- [ ] `/legal/privacy` — data collected (email, photos, product photos, payment metadata), purposes, processors (WaveSpeed, OpenAI, Cloudflare R2, Railway, Vercel, Maileroo, SePay), retention (01-product-spec §5), rights (export, delete), contact.
-- [ ] `/legal/ai-and-face-data` — how face photos are used, never used to train Next5 models, deletion, AI labeling (embedded + visible), customer responsibilities under Vietnam's AI Law (labeling AI images of real people) and platform rules (TikTok AIGC, Meta AI info).
+- [x] `/legal/terms` — service description, prepaid plans & credits, no auto-renewal, refunds (credits for failures; cash only for payment errors), acceptable use (own face / consented; no impersonation; no misleading listings), IP (customer owns outputs subject to model provider terms), liability.
+- [x] `/legal/privacy` — data collected (email, photos, product photos, payment metadata), purposes, processors (WaveSpeed, OpenAI, Cloudflare R2, Railway, Vercel, Maileroo, SePay), retention (01-product-spec §5), rights (export, delete), contact.
+- [x] `/legal/ai-and-face-data` — how face photos are used, never used to train Next5 models, deletion, AI labeling (embedded + visible), customer responsibilities under Vietnam's AI Law (labeling AI images of real people) and platform rules (TikTok AIGC, Meta AI info).
 - [ ] Consent version bump if wording changed since P4 (`version`), and re-consent prompt for existing users.
 - [ ] Before any **US** launch (not now): Illinois BIPA-style written consent + retention schedule review, California SB 942 applicability check — note in this file's "Later" list.
 
 ### 11.2 Abuse & rate limits
-- [ ] `src/server/rateLimit.ts` — Postgres-backed fixed-window counter table `RateLimit { key, windowStart, count }` (no new infra), helper `enforce(key, limit, windowSec)`.
-- [ ] Apply: onboarding account 5/IP/hour; trial 3/IP/day + existing browser guard; identity upload 20/user/day; product upload 200/workspace/day; payment create 10/user/hour; batch create 30/workspace/hour; magic link 5/email/hour.
-- [ ] Trim PII from logs (`/api/preview` logs emails today — log user id instead).
+- [x] `src/server/rateLimit.ts` — Postgres-backed fixed-window counter table `RateLimit { key, windowStart, count }` (no new infra), helper `enforce(key, limit, windowSec)`.
+- [x] Apply: onboarding account 5/IP/hour; trial 3/IP/day + existing browser guard; identity upload 20/user/day; product upload 200/workspace/day; payment create 10/user/hour; batch create 30/workspace/hour; magic link 5/email/hour.
+- [x] Trim PII from logs (`/api/preview` logs emails today — log user id instead).
 
 ### 11.3 Monitoring
 - [ ] Error monitoring (recommendation: Sentry for Next.js — confirm Next 16 support in its docs) for server routes and client; tag `product`, `route`.
@@ -27,12 +47,12 @@ homepage and launch Brand (and Shop if P8 shipped).
 - [ ] WaveSpeed failure-rate alert: > 20% failed items in the last hour → admin email.
 
 ### 11.4 SEO, OG, performance
-- [ ] `opengraph-image.tsx` for `/`, `/brand`, `/shop`, `/pricing` via `next/og` (Cormorant headline + one image from the manifest); check Next 16 docs.
+- [x] `opengraph-image.tsx` for `/`, `/brand`, `/shop`, `/pricing` via `next/og` (Cormorant headline + one image from the manifest); check Next 16 docs.
 - [ ] JSON-LD `Organization` + `Product`/`Offer` for plans on `/pricing`.
 - [ ] `next/image` everywhere with correct `sizes`; hero images `priority`; LCP < 2.5 s on 4G for `/brand` and `/shop`.
 
 ### 11.5 End-to-end smoke tests (Playwright)
-- [ ] Add Playwright (dev dep) with `tests/e2e/` running against `NEXT5_MOCK_GENERATION=true NEXT5_MOCK_PAYMENTS=true`:
+- [x] Add Playwright (dev dep) with `tests/e2e/` running against `NEXT5_MOCK_GENERATION=true NEXT5_MOCK_PAYMENTS=true`:
   1. Brand: landing → Start free → onboarding (upload fixture selfies) → trial ready → choose Starter 3 mo → simulate transfer → dashboard credits 30 → create 8 × 1 format → results → download all.
   2. Shop: landing → Try it free → Studio model → add product → trial compare view → Pro 1 mo → bulk add 3 products → batch → redo "Doesn't match product" → zip.
   3. Consumer `/photos` booking with server-verified payment → `/studio` shows photos.

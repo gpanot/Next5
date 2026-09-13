@@ -8,6 +8,18 @@
     },
     "app/api/generate/route.ts": {
       "maxDuration": 120
+    },
+    "app/api/cron/billing-daily/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/app/batches/[batchId]/zip/route.ts": {
+      "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/billing-daily",
+      "schedule": "0 1 * * *"
+    }
+  ]
 }

@@ -8,6 +8,7 @@ import { creditsGrantedEmail, planEndedEmail } from '../email/templates';
 import { sendOnce } from '../email/send';
 import { expireEnded, issueDueGrants } from '../subscriptions/subscriptions';
 import { LATE_PAYMENT_WINDOW_MS } from '../payments/fulfill';
+import { pruneRateLimits } from '../rateLimit';
 import { sendRenewalReminders, sendRestockNudges, sendThemeDrops, sendTrialNudges } from './reminders';
 
 export type BillingDailySummary = {
@@ -62,6 +63,7 @@ export const runBillingDaily = async (now = new Date()): Promise<BillingDailySum
     where: { state: 'pending', expiresAt: { lt: new Date(now.getTime() - LATE_PAYMENT_WINDOW_MS) } },
     data: { state: 'expired' },
   })).count;
+  await pruneRateLimits(now);
   return {
     grants, grantEmails: emails, expiredSubscriptions, expiredCredits, expiredPayments,
     renewalReminders: await sendRenewalReminders(now),

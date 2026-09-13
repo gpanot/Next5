@@ -4,6 +4,7 @@ import { BusinessLogo } from './MarketingHeader';
 const COLUMNS = [
   { title: 'Products', links: [{ href: '/brand', label: 'Brand Studio' }, { href: '/shop', label: 'Shop Studio' }, { href: '/photos', label: 'Next5 Photos' }] },
   { title: 'Company', links: [{ href: '/pricing', label: 'Pricing' }, { href: '/app', label: 'Log in' }, { href: 'mailto:hello@next5.studio', label: 'Contact' }] },
+  { title: 'Legal', links: [{ href: '/legal/terms', label: 'Terms' }, { href: '/legal/privacy', label: 'Privacy' }, { href: '/legal/ai-and-face-data', label: 'AI & face data' }] },
 ] as const;
 
 export const MarketingFooter = () => (
@@ -13,7 +14,7 @@ export const MarketingFooter = () => (
         <BusinessLogo />
         <p className="mt-4 text-[14px] text-app-muted">On-brand and on-model photos, every month, without a photoshoot.</p>
       </div>
-      <div className="grid grid-cols-2 gap-10">
+      <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
         {COLUMNS.map((column) => (
           <div key={column.title}>
             <p className="label-caps text-[10px] font-medium text-app-muted">{column.title}</p>

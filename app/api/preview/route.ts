@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
     console.log('[preview] POST received', {
       studioId,
-      email: email ?? '(none)',
+      hasEmail: Boolean(email),
       bookingId: bookingId ?? '(none)',
       feelings,
       photoBytes: Math.round((photoDataUrl?.length ?? 0) * 0.75),

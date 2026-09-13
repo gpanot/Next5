@@ -520,3 +520,12 @@ model AdminAuditLog {
   @@index([targetType, targetId], map: "admin_audit_logs_target_idx")
   @@map("admin_audit_logs")
 }
+
+model RateLimit {
+  key         String
+  windowStart DateTime @map("window_start")
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@map("rate_limits")
+}

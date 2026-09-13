@@ -1,5 +1,6 @@
 import { after, NextResponse } from 'next/server';
 import { authedRoute } from '../../../../src/server/api';
+import { enforceRateLimit } from '../../../../src/server/rateLimit';
 import { workspaceFromRequest } from '../../../../src/server/generation/access';
 import { createBatch } from '../../../../src/server/generation/createBatch';
 import { parseDraft } from '../../../../src/server/generation/draft';
@@ -10,6 +11,7 @@ import { prisma } from '../../../../src/lib/db';
 
 /** POST /api/app/batches — create a batch (reserves credits) and start generating. */
 export const POST = authedRoute(async (req, session) => {
+  await enforceRateLimit(`batch:${session.userId}`, 30, 3600);
   const body = await readJsonObject(req);
   const workspace = await workspaceFromRequest(session.userId, body.product);
   const batch = await createBatch(workspace, parseDraft(body));

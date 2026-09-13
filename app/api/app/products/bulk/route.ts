@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authedRoute } from '../../../../../src/server/api';
+import { enforceRateLimit } from '../../../../../src/server/rateLimit';
 import { HttpError } from '../../../../../src/server/http';
 import { createProduct, parseProductFields, toProductDto, type ProductFields } from '../../../../../src/server/products/products';
 import { readForm } from '../../../../../src/server/storage/images';
@@ -14,6 +15,7 @@ type RowError = { index: number; field?: string; message: string };
  * All-or-nothing validation: nothing is created if any row is invalid.
  */
 export const POST = authedRoute(async (req, session) => {
+  await enforceRateLimit(`products:${session.userId}`, 20, 86400);
   const ws = await requireWorkspace(session.userId, 'shop');
   const form = await readForm(req);
   const fronts = form.getAll('fronts').filter((f): f is File => f instanceof File);

@@ -16,7 +16,8 @@
     "db:studio": "prisma studio",
     "generate": "prisma generate",
     "db:seed:business": "tsx scripts/seed-business.ts",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "node tests/e2e/brand.mjs && node tests/e2e/shop.mjs && node tests/e2e/brand-create.mjs && node tests/e2e/shop-app.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1120.0",
@@ -42,6 +43,7 @@
     "dbmate": "^2.35.1",
     "eslint": "^9",
     "eslint-config-next": "16.3.2",
+    "playwright": "1.61",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
     "typescript": "^5",

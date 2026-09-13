@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { apiFetch } from '../../../lib/apiClient';
 import { AppButton } from '../../ui/AppButton';
@@ -48,7 +49,7 @@ export const ConsentStep = ({ product, advance }: StepProps) => {
           </span>
         } />
         <Checkbox checked={terms} onChange={setTerms} label={
-          <span className="text-[14px] text-app-ink">I agree to the Next5 Terms and Privacy Policy.</span>
+          <span className="text-[14px] text-app-ink">I agree to the Next5 <Link href="/legal/terms" target="_blank" className="text-app-accent underline">Terms</Link>, <Link href="/legal/privacy" target="_blank" className="text-app-accent underline">Privacy Policy</Link> and <Link href="/legal/ai-and-face-data" target="_blank" className="text-app-accent underline">AI & face data</Link> notice.</span>
         } />
         {error && <p role="alert" className="text-[14px] text-app-danger">{error}</p>}
       </div>

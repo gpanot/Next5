@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { IdentityKind } from '@prisma/client';
 import { prisma } from '../../../../src/lib/db';
 import { authedRoute } from '../../../../src/server/api';
+import { enforceRateLimit } from '../../../../src/server/rateLimit';
 import { HttpError } from '../../../../src/server/http';
 import { identityKey } from '../../../../src/server/storage/keys';
 import { normalizeUpload, readForm } from '../../../../src/server/storage/images';
@@ -27,6 +28,7 @@ export const GET = authedRoute(async (req, session) => {
  * Requires a face_processing consent.
  */
 export const POST = authedRoute(async (req, session) => {
+  await enforceRateLimit(`identity:${session.userId}`, 20, 86400);
   const form = await readForm(req);
   const product = form.get('product');
   const ws = await requireWorkspace(session.userId, isProductLine(product) ? product : undefined);

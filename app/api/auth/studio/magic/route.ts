@@ -8,6 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, isDbConfigured } from '../../../../../src/lib/db';
 import { signMagicToken } from '../../../../../src/lib/studio-auth';
 import { sendEmail } from '../../../../../src/lib/maileroo';
+import { enforceRateLimit } from '../../../../../src/server/rateLimit';
+import { HttpError } from '../../../../../src/server/http';
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,6 +22,13 @@ export async function POST(req: NextRequest) {
 
     if (!isDbConfigured()) {
       return NextResponse.json({ error: 'Studio service unavailable' }, { status: 503 });
+    }
+
+    try {
+      await enforceRateLimit(`magic:${trimmed}`, 5, 3600);
+    } catch (err) {
+      if (err instanceof HttpError) return NextResponse.json({ error: err.message }, { status: 429 });
+      throw err;
     }
 
     // Ensure the user exists in the DB (creates a row the first time)
