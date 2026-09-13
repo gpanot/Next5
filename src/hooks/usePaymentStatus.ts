@@ -16,7 +16,8 @@ export const usePaymentStatus = (initial: PaymentDto | null) => {
   const [simulating, setSimulating] = useState(false);
   const payment = fetched && initial && fetched.id === initial.id ? fetched : initial;
   const paymentId = payment?.id ?? null;
-  const isPending = payment?.state === 'pending';
+  // Early-access requests are activated by an admin later — nothing to wait for on screen.
+  const isPending = payment?.state === 'pending' && !payment.isRequest;
   const timer = useRef<number | null>(null);
 
   const refresh = useCallback(async () => {

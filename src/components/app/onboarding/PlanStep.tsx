@@ -26,6 +26,7 @@ export const PlanStep = ({ product, advance }: StepProps) => {
   const [request, setRequest] = useState<CheckoutRequest | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [paid, setPaid] = useState(false);
+  const [requested, setRequested] = useState(false);
 
   const finish = async (welcome: boolean) => {
     setLeaving(true);
@@ -55,8 +56,10 @@ export const PlanStep = ({ product, advance }: StepProps) => {
         onClose={() => {
           setRequest(null);
           if (paid) void finish(true);
+          else if (requested) void finish(false);
         }}
         onPaid={() => setPaid(true)}
+        onRequested={() => setRequested(true)}
       />
     </StepCard>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Clock, Loader2 } from 'lucide-react';
+import { CheckCircle2, Clock, Loader2, MailCheck } from 'lucide-react';
 import { formatUsd, formatVnd } from '../../lib/money';
 import { formatCountdown, useCountdown } from '../../hooks/useCountdown';
 import type { PaymentDto } from '../../types/business/payments';
@@ -18,10 +18,27 @@ export const CheckoutSummary = ({ payment, savingsCents }: { payment: PaymentDto
       )}
       {savingsCents > 0 && <span className="text-[13px] font-medium text-app-success">You save {formatUsd(savingsCents)}</span>}
     </div>
+    {payment.isRequest ? (
+      <p className="mt-1 text-[13px] text-app-muted">
+        Paid by bank transfer when activated: <span className="font-semibold tabular-nums text-app-ink">{formatVnd(payment.amountVnd)}</span>
+      </p>
+    ) : (
     <p className="mt-1 text-[13px] text-app-muted">
       You&apos;ll transfer <span className="font-semibold tabular-nums text-app-ink">{formatVnd(payment.amountVnd)}</span>
       {payment.fxVndPerUsd ? ` at ${formatVnd(payment.fxVndPerUsd)}/$` : ''}
     </p>
+    )}
+  </div>
+);
+
+export const RequestReceived = ({ payment }: { payment: PaymentDto }) => (
+  <div className="flex flex-col items-center gap-3 rounded-xl border border-app-line px-4 py-6 text-center" role="status" aria-live="polite">
+    <MailCheck className="h-10 w-10 text-app-accent" aria-hidden />
+    <p className="text-[18px] font-semibold text-app-ink">Request received</p>
+    <p className="max-w-sm text-[14px] text-app-muted">
+      Paid plans are opening to a small group first. We&apos;ll email you within 24 hours to activate {payment.itemLabel}. Nothing to pay today — your free photos stay in your workspace.
+    </p>
+    <p className="text-[12px] text-app-muted">Reference <span className="font-mono text-app-ink">{payment.reference}</span></p>
   </div>
 );
 
@@ -36,9 +53,13 @@ export const QrAndBank = ({ payment }: { payment: PaymentDto }) => (
       )}
     </div>
     <div className="divide-y divide-app-line">
-      <CopyRow label="Bank" value={payment.bank.bank} />
-      <CopyRow label="Account number" value={payment.bank.accountNumber} />
-      <CopyRow label="Account name" value={payment.bank.accountName} />
+      {payment.bank && (
+        <>
+          <CopyRow label="Bank" value={payment.bank.bank} />
+          <CopyRow label="Account number" value={payment.bank.accountNumber} />
+          <CopyRow label="Account name" value={payment.bank.accountName} />
+        </>
+      )}
       <CopyRow label="Amount" value={formatVnd(payment.amountVnd)} />
       <CopyRow label="Transfer memo — must include" value={payment.reference} emphasis />
     </div>

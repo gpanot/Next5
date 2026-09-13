@@ -1,5 +1,6 @@
 'use client';
 
+import { track } from '../../../lib/analytics';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -45,6 +46,7 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
 
   const advance = useCallback(async (step: number, options?: { completed?: boolean }) => {
     await apiFetch('/api/app/onboarding/step', { method: 'PATCH', json: { product, step, completed: options?.completed } });
+    track('onboarding_step_completed', { product, step, completed: Boolean(options?.completed) });
     setViewStep(null);
     me.refresh();
   }, [product, me]);

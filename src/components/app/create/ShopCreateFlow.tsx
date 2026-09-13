@@ -1,5 +1,6 @@
 'use client';
 
+import { track } from '../../../lib/analytics';
 import { Package } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
@@ -59,6 +60,7 @@ export const ShopCreateFlow = () => {
     setSubmitError(null);
     try {
       const res = await apiFetch<{ batch: BatchSummaryDto }>('/api/app/batches', { method: 'POST', json: draft });
+      track('batch_created', { product: 'shop', items: res.batch.progress.total });
       if (setId) lastSetStore.set(setId);
       refresh();
       router.push(`/app/batches/${res.batch.id}`);

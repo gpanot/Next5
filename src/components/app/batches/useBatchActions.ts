@@ -1,5 +1,6 @@
 'use client';
 
+import { track } from '../../../lib/analytics';
 import { useState } from 'react';
 import { FORMATS, isFormatId } from '../../../config/formats';
 import { ApiError, apiFetch, downloadUrl, downloadWithAuth } from '../../../lib/apiClient';
@@ -31,6 +32,7 @@ export const useBatchActions = (batch: BatchDetailDto | null, patchItem: Patch, 
     if (!batch) return;
     try {
       await apiFetch(`/api/app/batches/${batch.id}/items/${item.id}/redo`, { method: 'POST', json: { reason, note } });
+      track('item_redo', { reason });
       patchItem(item.id, { status: 'queued' });
       notify(item.freeRedosLeft > 0 ? 'Redoing your photo — free' : 'Redoing your photo');
       void refresh();
@@ -42,6 +44,7 @@ export const useBatchActions = (batch: BatchDetailDto | null, patchItem: Patch, 
   const downloadZip = async (query: string, filename: string) => {
     if (!batch) return;
     setDownloading(true);
+    track('zip_downloaded', { scope: query ? 'filtered' : 'batch' });
     await downloadWithAuth(`/api/app/batches/${batch.id}/zip${query}`, filename).catch((err: unknown) => fail(err, 'Download failed.'));
     setDownloading(false);
   };

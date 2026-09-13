@@ -25,6 +25,20 @@ export const paymentReceiptEmail = (item: string, usdCents: number | null, vnd: 
   cta: { label: 'Go to my workspace', url: appUrl('/app') },
 });
 
+export const requestReceivedEmail = (item: string): EmailContent => ({
+  subject: `Request received: ${item}`,
+  heading: 'You’re on the list',
+  body: [`Thanks for choosing ${item}. Paid plans are opening to a small group first — we’ll email you within 24 hours to activate it.`, 'Nothing to pay today. Your free photos stay in your workspace.'],
+  cta: { label: 'Go to my workspace', url: appUrl('/app') },
+});
+
+export const planActivatedEmail = (item: string): EmailContent => ({
+  subject: `Activated: ${item}`,
+  heading: 'Your plan is active',
+  body: [`${item} is now active in your workspace. Your photos are ready to use.`],
+  cta: { label: 'Create photos', url: appUrl('/app/create') },
+});
+
 export const batchReadyEmail = (batchName: string, ready: number, batchId: string): EmailContent => ({
   subject: `Your photos are ready: ${batchName}`,
   heading: `${ready} new photo${ready === 1 ? '' : 's'} ready`,

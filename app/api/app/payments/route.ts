@@ -4,6 +4,7 @@ import { authedRoute } from '../../../../src/server/api';
 import { enforceRateLimit } from '../../../../src/server/rateLimit';
 import { HttpError, readJsonObject } from '../../../../src/server/http';
 import { toPaymentDto } from '../../../../src/server/payments/dto';
+import { afterPaymentCreated } from '../../../../src/server/payments/requests';
 import {
   createSubscriptionPayment,
   createTopupPayment,
@@ -11,7 +12,7 @@ import {
 } from '../../../../src/server/payments/payments';
 import { isProductLine, requireWorkspace } from '../../../../src/server/workspaces/workspaces';
 
-/** POST /api/app/payments — create a subscription or top-up payment (QR sheet). */
+/** POST /api/app/payments — create a subscription or top-up payment (QR sheet, or an early-access request in production). */
 export const POST = authedRoute(async (req, session) => {
   await enforceRateLimit(`payment:${session.userId}`, 10, 3600);
   const body = await readJsonObject(req);
@@ -24,6 +25,7 @@ export const POST = authedRoute(async (req, session) => {
     }
     const workspace = await requireWorkspace(session.userId, PLANS[planId].product);
     const payment = await createSubscriptionPayment({ userId: session.userId, workspaceId: workspace.id }, { planId, termMonths });
+    afterPaymentCreated(payment);
     return NextResponse.json({ payment: toPaymentDto(payment) }, { status: 201 });
   }
 
@@ -34,6 +36,7 @@ export const POST = authedRoute(async (req, session) => {
     }
     const workspace = await requireWorkspace(session.userId, body.product);
     const payment = await createTopupPayment({ userId: session.userId, workspaceId: workspace.id }, topupId);
+    afterPaymentCreated(payment);
     return NextResponse.json({ payment: toPaymentDto(payment) }, { status: 201 });
   }
 

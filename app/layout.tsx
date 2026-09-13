@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Cormorant_Garamond, Inter } from 'next/font/google';
 import './globals.css';
+import { SiteAnalytics } from '../src/components/analytics/SiteAnalytics';
 import { LocaleProvider } from '../src/i18n/LocaleContext';
 
 // 'vietnamese' subset added alongside 'latin' — the VI toggle needs full
@@ -20,9 +21,9 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  title: 'NEXT5 — Your Next 5 Instagram Photos',
-  description:
-    'A professional photoshoot, made for you. Choose your studio, show us your vibe, and get 5 personalized photos delivered within 30 minutes. First studio 149K VND — a first-shoot offer.',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
+  title: 'Next5 — Photos of you that work as hard as you do',
+  description: 'On-brand photos for professionals and on-model photos for online shops, every month, without a photoshoot.',
 };
 
 /** viewport-fit=cover is required so env(safe-area-inset-*) fires on iPhone notch/Dynamic Island */
@@ -41,6 +42,7 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${cormorant.variable}`}>
       <body className="min-h-full antialiased">
         <LocaleProvider>{children}</LocaleProvider>
+        <SiteAnalytics />
       </body>
     </html>
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import { track } from '../../lib/analytics';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getTermSavingsUsdCents, isPlanId, isTermMonths, TOPUPS, isTopupId } from '../../config/plans';
 import { usePaymentStatus } from '../../hooks/usePaymentStatus';
@@ -10,7 +11,7 @@ import { AppButton } from '../ui/AppButton';
 import { ErrorState } from '../ui/ErrorState';
 import { Sheet } from '../ui/Sheet';
 import { SkeletonText } from '../ui/Skeleton';
-import { CheckoutSummary, PaidStatus, QrAndBank, WaitingStatus } from './CheckoutParts';
+import { CheckoutSummary, PaidStatus, QrAndBank, RequestReceived, WaitingStatus } from './CheckoutParts';
 
 export type CheckoutRequest = CreatePaymentBody;
 
@@ -20,9 +21,12 @@ type CheckoutSheetProps = {
   existingPayment?: PaymentDto | null;
   onClose: () => void;
   onPaid?: (payment: PaymentDto) => void;
+  /** Fires once when an early-access request (no transfer) has been recorded. */
+  onRequested?: (payment: PaymentDto) => void;
 };
 
 const titleFor = (request: CheckoutRequest | null, payment: PaymentDto | null): string => {
+  if (payment?.isRequest) return payment.purpose === 'topup' ? 'Request a top-up' : `Request ${payment.itemLabel}`;
   if (payment) return payment.purpose === 'topup' ? 'Top up photos' : `Pay for ${payment.itemLabel}`;
   if (request?.purpose === 'topup' && isTopupId(request.topupId)) return `Top up ${TOPUPS[request.topupId].credits} photos`;
   return 'Checkout';
@@ -47,6 +51,7 @@ const useCreatedPayment = (request: CheckoutRequest | null, existing: PaymentDto
     apiFetch<{ payment: PaymentDto }>('/api/app/payments', { method: 'POST', json: request })
       .then((data) => {
         if (!cancelled) setResult({ key, payment: data.payment, error: null });
+        track(data.payment.isRequest ? 'plan_requested' : 'checkout_opened', { purpose: data.payment.purpose, item: data.payment.itemLabel });
       })
       .catch((err: unknown) => {
         const message = err instanceof ApiError ? err.message : "We couldn't open the payment.";
@@ -65,7 +70,7 @@ const useCreatedPayment = (request: CheckoutRequest | null, existing: PaymentDto
   };
 };
 
-export const CheckoutSheet = ({ request, existingPayment = null, onClose, onPaid }: CheckoutSheetProps) => {
+export const CheckoutSheet = ({ request, existingPayment = null, onClose, onPaid, onRequested }: CheckoutSheetProps) => {
   const open = request !== null || existingPayment !== null;
   const { created, error: createError, retry } = useCreatedPayment(request, existingPayment);
   const { payment, error: statusError, simulate, simulating } = usePaymentStatus(created);
@@ -74,9 +79,14 @@ export const CheckoutSheet = ({ request, existingPayment = null, onClose, onPaid
   useEffect(() => {
     if (payment?.state === 'paid' && notifiedFor.current !== payment.id) {
       notifiedFor.current = payment.id;
+      track('payment_paid', { purpose: payment.purpose, item: payment.itemLabel });
       onPaid?.(payment);
     }
-  }, [payment, onPaid]);
+    if (payment?.isRequest && payment.state === 'pending' && notifiedFor.current !== payment.id) {
+      notifiedFor.current = payment.id;
+      onRequested?.(payment);
+    }
+  }, [payment, onPaid, onRequested]);
 
   const handleClose = useCallback(() => onClose(), [onClose]);
 
@@ -116,7 +126,7 @@ const CheckoutBody = ({ payment, createError, statusError, savingsCents, simulat
   if (payment.state === 'paid') {
     return (
       <>
-        <PaidStatus title="Payment received" body="Your photos are ready to use. Thanks for choosing Next5." />
+        <PaidStatus title={payment.isRequest ? 'Plan activated' : 'Payment received'} body="Your photos are ready to use. Thanks for choosing Next5." />
         <AppButton fullWidth size="lg" onClick={onDone}>Continue</AppButton>
       </>
     );
@@ -124,6 +134,18 @@ const CheckoutBody = ({ payment, createError, statusError, savingsCents, simulat
   if (payment.state === 'underpaid') {
     const missing = payment.amountVnd - (payment.paidVnd ?? 0);
     return <ErrorState message={`We received ${formatVnd(payment.paidVnd ?? 0)} — ${formatVnd(missing)} is missing. Contact us and we'll sort it out.`} supportHref="mailto:hello@next5.studio" />;
+  }
+  if (payment.isRequest && payment.state === 'pending') {
+    return (
+      <>
+        <CheckoutSummary payment={payment} savingsCents={savingsCents} />
+        <RequestReceived payment={payment} />
+        <AppButton fullWidth size="lg" onClick={onDone}>Continue</AppButton>
+      </>
+    );
+  }
+  if (payment.state === 'expired' && payment.isRequest) {
+    return <ErrorState message="This request has expired. Send a new one and we'll get back to you within 24 hours." onRetry={onRetry} />;
   }
   if (payment.state === 'expired') {
     return <ErrorState message="This QR code has expired. Already transferred? It will still be matched automatically within 72 hours." onRetry={onRetry} />;

@@ -14,7 +14,8 @@ export const PaymentsTab = ({ token }: { token: string }) => {
   const [message, setMessage] = useState<string | null>(null);
 
   const markPaid = async (row: Row) => {
-    if (!window.confirm(`Confirm ${formatVnd(row.amountVnd)} received for ${row.reference} (${row.email})?`)) return;
+    const question = row.provider === 'request' ? `Activate ${row.item} for ${row.email}? They get an email.` : `Confirm ${formatVnd(row.amountVnd)} received for ${row.reference} (${row.email})?`;
+    if (!window.confirm(question)) return;
     try {
       const res = await adminFetch<{ outcome: string }>(token, `/api/admin/business/payments/${row.id}/mark-paid`, { method: 'POST' });
       setMessage(`${row.reference}: ${res.outcome}`);
@@ -43,9 +44,9 @@ export const PaymentsTab = ({ token }: { token: string }) => {
                 <td className="px-4 py-3">{p.email}</td>
                 <td className="px-4 py-3">{p.item}</td>
                 <td className="px-4 py-3 tabular-nums">{p.amountUsdCents !== null ? `${formatUsd(p.amountUsdCents, { showCents: true })} · ` : ''}{formatVnd(p.amountVnd)}</td>
-                <td className="px-4 py-3 font-mono text-[12px]">{p.reference}{p.provider === 'mock' ? ' · mock' : ''}</td>
+                <td className="px-4 py-3 font-mono text-[12px]">{p.reference}{p.provider === 'mock' ? ' · mock' : p.provider === 'request' ? ' · request' : ''}</td>
                 <td className="px-4 py-3 capitalize">{p.state}</td>
-                <td className="px-4 py-3">{(p.state === 'pending' || p.state === 'expired' || p.state === 'underpaid') && <button onClick={() => markPaid(p)} className="rounded-lg px-2 py-1 text-[12px] text-[#9c5c3a] hover:bg-[#f5f1ea]">Mark paid</button>}</td>
+                <td className="px-4 py-3">{(p.state === 'pending' || p.state === 'expired' || p.state === 'underpaid') && <button onClick={() => markPaid(p)} className="rounded-lg px-2 py-1 text-[12px] text-[#9c5c3a] hover:bg-[#f5f1ea]">{p.provider === 'request' ? 'Activate' : 'Mark paid'}</button>}</td>
               </tr>
             ))}
           </tbody>

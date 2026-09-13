@@ -9,7 +9,7 @@ import { withSerializable, type Tx } from '../db/transaction';
 import { HttpError } from '../http';
 import { activate } from '../subscriptions/subscriptions';
 import { sendOnceQuietly } from '../email/send';
-import { paymentReceiptEmail } from '../email/templates';
+import { planActivatedEmail, paymentReceiptEmail } from '../email/templates';
 import { describePaymentItem } from './payments';
 
 /** Payments that arrive this long after the QR expired are still honoured. */
@@ -43,11 +43,12 @@ const markPaidInTx = async (paymentId: string, paidVnd: number, now: Date): Prom
     if (!payment) throw new HttpError(404, 'payment_not_found', 'Payment not found.');
 
     if (payment.state === 'paid' || payment.fulfilledAt) return { payment, outcome: 'duplicate' };
-    if (payment.expiresAt.getTime() + LATE_PAYMENT_WINDOW_MS < now.getTime()) {
+    const isRequest = payment.provider === 'request';
+    if (!isRequest && payment.expiresAt.getTime() + LATE_PAYMENT_WINDOW_MS < now.getTime()) {
       const expired = await tx.payment.update({ where: { id: payment.id }, data: { state: 'expired' } });
       return { payment: expired, outcome: 'too_late' };
     }
-    if (paidVnd < payment.amountVnd) {
+    if (!isRequest && paidVnd < payment.amountVnd) {
       const underpaid = await tx.payment.update({ where: { id: payment.id }, data: { state: 'underpaid', paidVnd } });
       return { payment: underpaid, outcome: 'underpaid' };
     }
@@ -68,7 +69,10 @@ export const markPaidAndFulfil = async (paymentId: string, paidVnd: number, now 
   const result = await markPaidInTx(paymentId, paidVnd, now);
   if (result.outcome === 'paid') {
     const p = result.payment;
-    sendOnceQuietly({ userId: p.userId, workspaceId: p.workspaceId, template: 'payment_receipt', dedupeKey: `receipt:${p.id}`, content: paymentReceiptEmail(describePaymentItem(p), p.amountUsdCents, p.paidVnd ?? p.amountVnd, p.reference) });
+    const content = p.provider === 'request'
+      ? planActivatedEmail(describePaymentItem(p))
+      : paymentReceiptEmail(describePaymentItem(p), p.amountUsdCents, p.paidVnd ?? p.amountVnd, p.reference);
+    sendOnceQuietly({ userId: p.userId, workspaceId: p.workspaceId, template: p.provider === 'request' ? 'request_activated' : 'payment_receipt', dedupeKey: `receipt:${p.id}`, content });
   }
   return result;
 };

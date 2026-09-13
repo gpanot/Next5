@@ -9,6 +9,7 @@ import { prisma } from '../../lib/db';
 import { withSerializable } from '../db/transaction';
 import { HttpError } from '../http';
 import { createPendingSubscription } from '../subscriptions/subscriptions';
+import { currentPaymentProvider, REQUEST_TTL_MS } from './mockProvider';
 import { createReference } from './reference';
 
 export const PAYMENT_TTL_MS = 30 * 60 * 1000;
@@ -23,9 +24,9 @@ const createPaymentRow = async (
     const reference = createReference();
     const taken = await tx.payment.findUnique({ where: { reference }, select: { id: true } });
     if (taken) continue;
-    return tx.payment.create({
-      data: { ...data, reference, provider: 'mock', expiresAt: new Date(Date.now() + PAYMENT_TTL_MS) },
-    });
+    const provider = currentPaymentProvider();
+    const ttl = provider === 'request' ? REQUEST_TTL_MS : PAYMENT_TTL_MS;
+    return tx.payment.create({ data: { ...data, reference, provider, expiresAt: new Date(Date.now() + ttl) } });
   }
   throw new Error('Could not allocate a unique payment reference');
 };

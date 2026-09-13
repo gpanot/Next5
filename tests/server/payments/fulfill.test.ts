@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { prisma } from '../../../src/lib/db';
 import { getBalance } from '../../../src/server/credits/ledger';
 import { markPaidAndFulfil, LATE_PAYMENT_WINDOW_MS } from '../../../src/server/payments/fulfill';
@@ -84,5 +84,25 @@ describe('getPaymentForUser', () => {
     await expect(getPaymentForUser(payment.id, 'someone-else')).rejects.toMatchObject({ status: 404 });
     const later = new Date(payment.expiresAt.getTime() + 1_000);
     expect((await getPaymentForUser(payment.id, ws.ownerUserId, later)).state).toBe('expired');
+  });
+});
+
+describe('early-access requests (production without simulated payments)', () => {
+  it('stamps provider request, stays open 30 days, and activates on admin confirmation', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('NEXT5_MOCK_PAYMENTS', 'false');
+    try {
+      const ws = await createTestWorkspace('brand');
+      const payment = await createSubscriptionPayment({ userId: ws.ownerUserId, workspaceId: ws.id }, { planId: 'brand_pro', termMonths: 1 });
+      expect(payment.provider).toBe('request');
+      expect(payment.expiresAt.getTime() - Date.now()).toBeGreaterThan(29 * 24 * 60 * 60 * 1000);
+
+      const later = new Date(payment.expiresAt.getTime() + LATE_PAYMENT_WINDOW_MS + 60_000);
+      const result = await markPaidAndFulfil(payment.id, payment.amountVnd, later);
+      expect(result.outcome).toBe('paid');
+      expect((await getBalance(ws.id, later)).total).toBe(90);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

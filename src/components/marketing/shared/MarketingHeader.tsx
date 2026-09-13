@@ -20,7 +20,7 @@ const ctaFor = (pathname: string): { href: string; label: string } => {
 };
 
 export const BusinessLogo = () => (
-  <Link href="/home-preview" className="block leading-none text-app-ink" aria-label="Next5 for business — home">
+  <Link href="/" className="block leading-none text-app-ink" aria-label="Next5 for business — home">
     <span className="font-serif text-[22px] font-medium tracking-[0.22em]">NEXT5</span>
     <span className="label-caps mt-0.5 block text-[8px] text-app-muted">for business</span>
   </Link>

@@ -1,5 +1,6 @@
 'use client';
 
+import { track } from '../../../lib/analytics';
 import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
@@ -71,6 +72,7 @@ export const TrialStep = ({ product, me, advance }: StepProps) => {
     try {
       const res = await apiFetch<{ batch: BatchSummaryDto }>('/api/app/onboarding/trial', { method: 'POST', json: { product } });
       setStartedId(res.batch.id);
+      track('trial_generated', { product });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not start your photos.');
     } finally {

@@ -11,7 +11,9 @@ export const POST = adminRoute<Ctx>(async (_req, ctx) => {
   const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
   if (!payment) throw new HttpError(404, 'payment_not_found', 'Payment not found.');
   // Manual confirmation ignores the QR expiry window — the admin checked the bank.
-  const result = await markPaidAndFulfil(payment.id, payment.amountVnd, new Date(Math.min(Date.now(), payment.expiresAt.getTime())));
+  // Early-access requests start the plan on the day they are activated.
+  const now = payment.provider === 'request' ? new Date() : new Date(Math.min(Date.now(), payment.expiresAt.getTime()));
+  const result = await markPaidAndFulfil(payment.id, payment.amountVnd, now);
   await audit('mark_paid', 'payment', payment.id, { outcome: result.outcome, amountVnd: payment.amountVnd });
   return json({ outcome: result.outcome, state: result.payment.state });
 });

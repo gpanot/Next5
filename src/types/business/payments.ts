@@ -17,7 +17,10 @@ export type PaymentDto = {
   createdAt: string;
   /** VietQR image from the real provider; null → render the placeholder QR from `reference`. */
   qrImageUrl: string | null;
-  bank: { bank: string; accountNumber: string; accountName: string };
+  /** Null for early-access requests (no transfer yet). */
+  bank: { bank: string; accountNumber: string; accountName: string } | null;
+  /** Early-access request: no transfer; an admin activates it and the customer gets an email. */
+  isRequest: boolean;
   /** True while payments are simulated (decision D7) — the sheet shows "Simulate transfer". */
   canSimulate: boolean;
 };

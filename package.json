@@ -17,12 +17,14 @@
     "generate": "prisma generate",
     "db:seed:business": "tsx scripts/seed-business.ts",
     "test:watch": "vitest",
-    "test:e2e": "node tests/e2e/brand.mjs && node tests/e2e/shop.mjs && node tests/e2e/brand-create.mjs && node tests/e2e/shop-app.mjs"
+    "test:e2e": "node tests/e2e/brand.mjs && node tests/e2e/shop.mjs && node tests/e2e/brand-create.mjs && node tests/e2e/shop-app.mjs",
+    "test:e2e:early": "node tests/e2e/early-access.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1120.0",
     "@aws-sdk/s3-request-presigner": "^3.1120.0",
     "@prisma/client": "^6.19.3",
+    "@vercel/analytics": "^2.0.1",
     "jsonwebtoken": "^9.0.3",
     "jszip": "^3.10.1",
     "lucide-react": "^1.35.0",

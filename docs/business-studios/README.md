@@ -27,7 +27,8 @@ with **credits** from a prepaid plan.
 | D4 | **Solo accounts in v1**; teams/seats later | Data model has a `Workspace` so teams can be added without migration pain. |
 | D5 | **Vietnam launch, US-ready** | Imagery cast mostly Vietnamese / Southeast-Asian women in **internationally neutral** settings — no Saigon landmarks in the new products. |
 | D6 | **Payments must be server-verified** (SePay webhook) | The current mock / client-confirmed payment is replaced — including for `/photos`. |
-| D7 | **(2026-09-14) Validate demand before real payments.** P2 ships a **mock provider** only | Same `Payment` rows, references, QR sheet and server-side `fulfill()`; a "Simulate transfer" action stands in for the bank. SePay webhook (P2 §2.1, §2.2 sepay.ts) and the `/photos` payment fix (§2.5) are deferred until interest is confirmed. |
+| D7 | **(2026-09-14) Validate demand before real payments.** P2 ships a **mock provider** only | Same `Payment` rows, references, QR sheet and server-side `fulfill()`; a "Simulate transfer" action stands in for the bank. SePay webhook (P2 §2.1, §2.2 sepay.ts) and the `/photos` payment fix (§2.5) are deferred until interest is confirmed. **Amended at launch:** in production a plan choice is an *early-access request* (no bank details) that the admin activates — see P11 notes. |
+| D8 | **(2026-09-14) Analytics = Vercel Web Analytics** on project `prj_R2toqYAqI6B2BXpTVhQ7HduCrOqW`; Sentry and the per-minute generations cron skipped for now | Page views on every plan; custom funnel events need Vercel Pro to view. Server-side funnel numbers stay in Admin → Overview. |
 
 ---
 

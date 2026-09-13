@@ -19,7 +19,7 @@ app/
   (marketing)/brand/page.tsx       ← /brand (P3)
   (marketing)/shop/page.tsx        ← /shop (P3)
   (marketing)/pricing/page.tsx     ← /pricing (P3)
-  (marketing)/home-preview/page.tsx← business home, swapped into / at launch (P3 → P11)
+  page.tsx                         ← business home when the flag is on, consumer home otherwise (P11)
   start/[product]/page.tsx         ← onboarding wizard, product = brand | shop (P4)
   app/                             ← authenticated workspace (P5+)
     layout.tsx                     ← AppShell (sidebar / bottom tabs), auth guard
@@ -78,7 +78,7 @@ from a file that has `'use client'`. (Optionally add the `server-only` npm packa
 
 | Route | Auth | Phase | Purpose |
 |---|---|---|---|
-| `/` | public | P11 | Business homepage (Brand / Shop chooser) — built at `/home-preview` in P3, swapped in at launch |
+| `/` | public | P11 | Business homepage (Brand / Shop chooser) — built at `/home-preview` in P3, moved to `/` in P11 |
 | `/brand` | public | P3 | Brand Studio landing |
 | `/shop` | public | P3 | Shop Studio landing |
 | `/pricing` | public | P3 | Plans for both products, top-ups, billing FAQ |

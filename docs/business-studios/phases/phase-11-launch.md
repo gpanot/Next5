@@ -16,7 +16,7 @@ homepage and launch Brand (and Shop if P8 shipped).
   → 429 `rate_limited`. Applied: account 5/IP/h, trial 3/IP/day, identity upload 20/user/day, bulk products 20 requests/user/day
   (≤ 50 products each), payment create 10/user/h, batch create 30/user/h (solo accounts ⇒ same as per workspace), magic link 5/email/h.
   Old windows pruned by the daily billing cron. `/api/preview` no longer logs emails.
-- **SEO/OG:** `opengraph-image.tsx` for `/brand`, `/shop`, `/pricing`, `/home-preview` (shared `ogImage.tsx`); `/` gets one at the launch switch.
+- **SEO/OG:** `opengraph-image.tsx` for `/`, `/photos`, `/brand`, `/shop`, `/pricing` (shared `ogImage.tsx`).
   `app/robots.ts` + `app/sitemap.ts` list business pages only when the flag is on. Marketing heroes use `next/image` with `sizes` + `priority`.
   JSON-LD and a Lighthouse pass not done.
 - **Cron:** `vercel.json` has the daily billing cron. The per-minute generations cron needs Vercel Pro (or an external pinger
@@ -24,7 +24,19 @@ homepage and launch Brand (and Shop if P8 shipped).
 - **E2E:** `tests/e2e/{brand,shop,brand-create,shop-app}.mjs` (Playwright library + local Chrome, mock generation/payments),
   `npm run test:e2e`, instructions in `tests/e2e/README.md`. Scenarios 3 (consumer /photos) and 4 (cross-workspace 404) and CI not done;
   cross-workspace access is covered by `requireOwnedBatch` returning 404.
-- **Not done — needs a decision:** monitoring (Sentry?), cron heartbeat + alert emails, 11.6 launch switch and production migrations.
+- **Launch switch (code, 2026-09-14):** `app/page.tsx` renders `BusinessHome` inside `MarketingShell` when the flag is on and the
+  consumer `PhotosHomePage` when off (rollback = flag off). `/home-preview` deleted; `LegacyHashRedirect` forwards `/#routes|#how-it-works|#faq`
+  to `/photos`. Root metadata is business (+ `metadataBase`); `/photos` and `/studio` keep consumer metadata.
+- **Early-access checkout (D7 amendment):** in production without `NEXT5_MOCK_PAYMENTS=true`, payments are created with
+  `provider = 'request'` (30-day expiry): no bank details, no QR, no simulate button — the sheet says "Request received, we'll email you within 24 h".
+  Customer gets `request_received`; `NEXT5_ADMIN_EMAIL` gets an alert. Admin → Payments → **Activate** runs `markPaidAndFulfil`
+  (plan starts that day) and emails `request_activated`. `NEXT5_MOCK_PAYMENTS=true|false` overrides the default in any environment.
+  E2E: `npm run test:e2e:early`.
+- **Analytics:** Vercel Web Analytics (`@vercel/analytics`, `SiteAnalytics` in the root layout, query strings scrubbed except plan/term/welcome/product).
+  Custom events: onboarding_step_completed, trial_generated, checkout_opened, plan_requested, payment_paid, batch_created, item_redo, zip_downloaded.
+  Page views work on Hobby; custom events are visible on Pro. Enable Analytics once in the Vercel dashboard.
+- **Production rollout:** `bash scripts/launch-business.sh` (run by Guillaume — migrations, catalog seed, env vars, flag, `vercel --prod`, each confirmed).
+- **Skipped by decision:** Sentry/monitoring (11.3), per-minute generations cron. Legal review later.
   Existing lint errors are all in the consumer code (`app/studio`, `useBookingFlow`, `ResultsGallery`, …), none in business code.
 
 ## Tasks
@@ -60,9 +72,9 @@ homepage and launch Brand (and Shop if P8 shipped).
 - [ ] Run in CI (GitHub Actions) on pull requests.
 
 ### 11.6 Launch switch
-- [ ] Replace `app/page.tsx` with the business home (move `home-preview` content to `/`, delete `/home-preview`), keep `/photos`.
-- [ ] Redirect old consumer deep links: `/#routes` hash links can't redirect server-side — add a small client check on `/` that forwards `#routes|#how-it-works|#faq` to `/photos#…`.
-- [ ] Update `app/layout.tsx` default metadata to the business positioning; `/photos` keeps its own metadata.
+- [x] Replace `app/page.tsx` with the business home (move `home-preview` content to `/`, delete `/home-preview`), keep `/photos`.
+- [x] Redirect old consumer deep links: `/#routes` hash links can't redirect server-side — add a small client check on `/` that forwards `#routes|#how-it-works|#faq` to `/photos#…`.
+- [x] Update `app/layout.tsx` default metadata to the business positioning; `/photos` keeps its own metadata.
 - [ ] Production env: set all variables from `02-architecture.md` §10; SePay webhook pointed to production; cron schedules active; run a 2,000₫ live test payment (P2 admin action).
 - [ ] Set `NEXT5_BUSINESS_ENABLED=true`. Monitor errors, payments queue and generation failures for 48 h.
 

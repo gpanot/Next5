@@ -45,8 +45,8 @@ Each job is idempotent and logs a count; the route returns a JSON summary.
 - [ ] Dashboard "New this month" dot on the featured theme card (Brand) until the user opens it (localStorage key per month).
 
 ### 9.4 Analytics
-- [ ] Choose a provider (recommendation: PostHog cloud EU or Vercel Analytics custom events — decide with Guillaume) and implement `src/lib/analytics.ts` `track(event, props)` client + `trackServer` for server events; no PII (user id hash only).
-- [ ] Instrument every event in `02-architecture.md` §12.
+- [x] Choose a provider (recommendation: PostHog cloud EU or Vercel Analytics custom events — decide with Guillaume) and implement `src/lib/analytics.ts` `track(event, props)` client + `trackServer` for server events; no PII (user id hash only).
+- [ ] (partial — see P11 notes) Instrument every event in `02-architecture.md` §12.
 - [ ] Funnel definitions documented in `docs/business-studios/analytics.md`: landing → onboarding step 1 → trial generated → checkout opened → paid → first non-trial batch → renewal.
 
 ## Implementation notes (2026-09-14)
@@ -57,7 +57,7 @@ Emails wired: welcome (new account), payment receipt (after fulfil), batch ready
 renewal 7 d / 1 d (skipped when a renewal is queued), plan ended, trial nudge (24 h, no plan), brand theme drop (monthly),
 shop restock nudge (weekly). Outside production emails are logged, not sent, unless `NEXT5_SEND_DEV_EMAILS=true`.
 Not done: `trialReady` / `paymentUnderpaid` emails, retention report, in-app "new theme" dot, analytics provider
-(`src/lib/analytics.ts` is a typed no-op until Guillaume picks one — events are not yet instrumented).
+(analytics: Vercel Web Analytics chosen at launch — see P11 notes).
 Add to `vercel.json` when deploying: `{ "path": "/api/cron/billing-daily", "schedule": "0 1 * * *" }` (daily works on Hobby).
 Tests: `tests/server/lifecycle/billingDaily.test.ts` (4 scenarios, injected clock, run-twice idempotency).
 

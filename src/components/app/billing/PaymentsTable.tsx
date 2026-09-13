@@ -7,6 +7,12 @@ import { Badge, type BadgeTone } from '../../ui/Badge';
 const TONE: Record<PaymentDto['state'], BadgeTone> = { paid: 'success', pending: 'info', underpaid: 'danger', expired: 'neutral', refunded: 'neutral' };
 const LABEL: Record<PaymentDto['state'], string> = { paid: 'Paid', pending: 'Waiting', underpaid: 'Underpaid', expired: 'Expired', refunded: 'Refunded' };
 
+const labelFor = (p: PaymentDto): string => {
+  if (p.isRequest && p.state === 'pending') return 'Requested';
+  if (p.isRequest && p.state === 'paid') return 'Activated';
+  return LABEL[p.state];
+};
+
 export const PaymentsTable = ({ payments, onResume }: { payments: PaymentDto[]; onResume: (p: PaymentDto) => void }) => (
   <ul className="divide-y divide-app-line rounded-2xl border border-app-line bg-app-panel">
     {payments.map((p) => (
@@ -17,8 +23,8 @@ export const PaymentsTable = ({ payments, onResume }: { payments: PaymentDto[]; 
           {p.amountUsdCents !== null ? formatUsd(p.amountUsdCents, { showCents: true }) : formatVnd(p.amountVnd)}
           <span className="block text-[11px] text-app-muted">{formatVnd(p.amountVnd)} · {p.reference}</span>
         </span>
-        <span><Badge tone={TONE[p.state]}>{LABEL[p.state]}</Badge></span>
-        <span className="text-right">{p.state === 'pending' && <AppButton size="sm" variant="secondary" onClick={() => onResume(p)}>Resume</AppButton>}</span>
+        <span><Badge tone={TONE[p.state]}>{labelFor(p)}</Badge></span>
+        <span className="text-right">{p.state === 'pending' && !p.isRequest && <AppButton size="sm" variant="secondary" onClick={() => onResume(p)}>Resume</AppButton>}</span>
       </li>
     ))}
   </ul>
