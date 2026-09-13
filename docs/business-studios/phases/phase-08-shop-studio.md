@@ -25,25 +25,25 @@ Automatic garment-accuracy scoring (backlog), marketplace API publishing, video.
 - [x] `POST /api/app/products` — multipart: `front` (required), `back?`, `detail?`, fields per `01-product-spec` §3.3. Server image pipeline same as identity (rotate, strip EXIF, max 2048, JPEG q90) → `productKey`.
 - [x] `POST /api/app/products/bulk` — up to 20 `front` files + a JSON array of fields (same index); all-or-nothing validation, per-row errors returned `{ index, field, message }`.
 - [x] `PATCH /api/app/products/[productId]` (fields, add/replace back/detail), `DELETE` = archive (`archivedAt`).
-- [x] Retention: products unused for 12 months are listed by the billing cron for deletion (implemented in P9).
+- [ ] *(P9.)* Retention: products unused for 12 months are listed by the billing cron for deletion (implemented in P9).
 
 ### 8.3 Products page (`app/app/products/page.tsx`, `src/components/app/products/`)
-- [x] `ProductsToolbar` (search, category select, status chips "New · Photographed"), `ProductGrid` of `ProductCard` (front photo, name, category `Badge`, SKU, "New" or "Photographed 2×", selection checkbox), empty state (D6/D7 example images + tip).
-- [x] `AddProductsSheet` two steps (`03-ux-ui.md` §8.7): `BulkDrop` (up to 20) → `ProductRowsTable` (thumbnail · name · category · colour · SKU · fit; "Apply to all" for category & fit; add back/detail per row via small drop targets) → Save with per-row inline errors. Mobile: rows become stacked cards.
+- [x] `ProductsToolbar` (search, category select, status chips "New · Photographed"), `ProductGrid` of `ProductCard` (front photo, name, category `Badge`, SKU, "New" or "Photographed", selection checkbox) *(count not shown)*, empty state (D6/D7 example images + tip).
+- [x] `AddProductsSheet` two steps (`03-ux-ui.md` §8.7): `BulkDrop` (up to 20) → `ProductRowsTable` (thumbnail · name · category · colour · SKU · fit; "Apply to all" for category & fit; add back/detail per row via small drop targets *(back/detail are added in the product detail sheet instead)*) → Save with per-row inline errors. Mobile: rows become stacked cards.
 - [x] `ProductDetailSheet`: edit fields, photos, "Create photos for this product" → `/app/create?products={id}`.
 - [x] Selecting products → sticky bar "3 selected · Create photos".
 
 ### 8.4 Shop looks
 - [x] Reuse `SetsPage`/`SetBuilder` with shop variant: steps = look template → model (Me / Studio model picker) → name. Nav label "Shop looks". Same plan limits.
-- [x] "Me" requires identity refs (2 selfies + 1 full body); if missing, the model step links to Settings → Identity photos.
+- [x] "Me" requires identity refs; the look editor shows a hint when none exist (batch creation returns `identity_missing`).
 
 ### 8.5 Create flow (`ShopCreateFlow`)
-- [x] Steps per `03-ux-ui.md` §8.4: `ProductsStep` (grid with checkboxes, filter "Not photographed yet" default on, `?products=` preselect, max 40 products per batch), `LookStep` (look shows its model), `PackStep` (Listing/Full; auto "Accessory pack" note for accessory categories; Full's back shot only for products with a back photo — show "Back shot skipped for 2 products without a back photo"), `FormatsStep` (default = workspace `defaultFormats`, else `square_1_1`).
+- [x] Steps per `03-ux-ui.md` §8.4: `ProductsStep` (grid with checkboxes, filter "Not photographed yet" default on, `?products=` preselect, max 40 products per batch), `LookStep` (look shows its model), `PackStep` (Listing/Full; auto "Accessory pack" note for accessory categories; Full's back shot only for products with a back photo *(skipped silently; the estimate reflects it)*), `FormatsStep` (default = workspace `defaultFormats`, else `square_1_1`).
 - [x] `CreditSummaryBar` with explicit multiplication `12 products × 3 shots × 1 format = 36 credits`.
 
 ### 8.6 Results — Compare view (`ShopBatchView`)
-- [x] `BatchHeader` + `AiTagBadge` ("AI tag: on/off" → link to Settings).
-- [x] One `CompareRow` per product: pinned original (front; tap toggles back/detail), generated shots (horizontal scroll on mobile with snap), per-row [Download zip] (`/zip?productId=`).
+- [x] `BatchHeader`; AI tag state + Settings link live in the posting tips card.
+- [x] One `CompareRow` per product: pinned original (front only), generated shots (horizontal scroll on mobile with snap), per-row [Download zip] (`/zip?productId=`).
 - [x] Tile actions: favourite, download, redo with **shop reasons** (`product_mismatch`, `not_like_me` labelled "Doesn't look like me/model", `bad_quality` "Bad pose or hands", `other`).
 - [x] `CompareLightbox`: desktop side-by-side original ↔ generated at the same height; mobile swipe between original and generated with a "Original / Generated" segmented label.
 - [ ] *(Pending SP1.)* If SP1 was "Go with limits": products whose category/notes mark prints show a `Badge` "Check print details" on the row.

@@ -18,7 +18,7 @@ import { useUpload, type PendingPhoto } from './useUpload';
 
 type StudioModel = { slug: string; name: string; age: number; description: string; faceImage: string; available: boolean };
 
-const ModelGrid = ({ value, onChange }: { value: string; onChange: (slug: string) => void }) => {
+export const ModelGrid = ({ value, onChange }: { value: string; onChange: (slug: string) => void }) => {
   const { data, loading } = useApi<{ models: StudioModel[] }>('/api/app/studio-models');
   if (loading) return <SkeletonGrid count={6} cols={3} />;
   return (
