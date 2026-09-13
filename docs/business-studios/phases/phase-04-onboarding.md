@@ -24,11 +24,11 @@ App shell (P5), full set builder editing (P7), products library (P8).
 
 ### 4.3 Step 2 — Consent (`POST /api/app/consents`)
 - [x] Writes `ConsentRecord` rows: `terms` always; `face_processing` when the person appears (Brand always; Shop only if "Me"); `ai_labeling` acknowledgement. Store `version = "2026-09"`, IP (`x-forwarded-for` first value) and user agent.
-- [x] Copy (checkbox labels) lives in `src/content/business/consent.ts`; the full text is linked to `/legal/ai-and-face-data` (placeholder page until P11 with a clear draft notice).
+- [ ] *(Copy is inline in `ConsentStep.tsx`; `/legal/*` pages come in P11.)* Copy (checkbox labels) lives in `src/content/business/consent.ts`; the full text is linked to `/legal/ai-and-face-data` (placeholder page until P11 with a clear draft notice).
 
 ### 4.4 Step 3 — Identity
 - [x] `POST /api/app/identity` (multipart): accepts up to 3 files, kind per file. Server: validate type/size, `sharp` rotate by EXIF → strip metadata → resize longest side 2048 → JPEG q90 → R2 `identityKey` → `IdentityReference` row. Requires `face_processing` consent, else 403.
-- [x] Client `IdentityUploader` (Brand): three slots (Front · Slight left · Slight right), camera capture on mobile, live checklist, good/bad examples (D1–D4 images). Quality hints client-side: min 768 px short side, file ≤ 12 MB, warn if very dark (average luminance from a canvas sample < 60).
+- [x] Client `IdentityUploader` (Brand): three slots (Front · Slight left · Slight right), camera capture on mobile, live checklist, good/bad examples (D1–D4 images). Quality hints client-side: min 768 px short side, file ≤ 12 MB, warn if very dark (average luminance from a canvas sample < 60). *(Server-side checks only for now: size, type, ≥ 400 px.)*
 - [x] Client `ModelChooser` (Shop): "Wear it yourself" (2 selfie slots + 1 full-body slot with D5 example) or "Studio model" (grid from `GET /api/app/studio-models`; if P8 models are not seeded yet, show only "Wear it yourself").
 
 ### 4.5 Step 4 — Set / look + first product
@@ -38,7 +38,7 @@ App shell (P5), full set builder editing (P7), products library (P8).
 
 ### 4.6 Step 5 — Trial generation
 - [x] `POST /api/app/onboarding/trial`: if `workspace.trialUsedAt` is null → grant 3 `trial` credits (idempotent ref `trial:{workspaceId}`) → create a `trial` batch: Brand = featured theme, first 3 scenes, format `portrait_4_5`; Shop = the product, `listing` pack, `square_1_1` → set `trialUsedAt`.
-- [x] UI `TrialProgress` (animated steps: "Studying your photos · Setting up your set · Directing 3 shots") driven by `useBatchPolling` → results grid (Brand) / `CompareRow` (Shop) with Redo available (free redos apply).
+- [x] UI `TrialProgress` (animated steps: "Studying your photos · Setting up your set · Directing 3 shots") driven by `useBatchPolling` → results grid (both products; the Shop compare view comes in P8) with Redo available (free redos apply).
 - [x] Failure: all 3 failed → auto-refund (P6) + "Something went wrong on our side. Try again" (one retry allowed, new trial grant with ref `trial-retry:{workspaceId}`).
 
 ### 4.7 Step 6 — Plan
@@ -47,7 +47,7 @@ App shell (P5), full set builder editing (P7), products library (P8).
 ### 4.8 Wizard shell & routing
 - [x] `app/start/[product]/page.tsx` (validate `brand|shop` else 404) → `OnboardingWizard` with `Stepper`, per-step components in `src/components/app/onboarding/`, `useOnboarding` hook (loads `/api/app/me`, resumes at `onboardingStep`, `PATCH` step on completion).
 - [x] Logged-in user with completed onboarding visiting `/start/*` → redirect to `/app`.
-- [x] Login routing per `02-architecture.md` §2: update `app/api/auth/studio/verify` consumers — add `src/lib/postLoginRedirect.ts` used by `/studio` and `/app`.
+- [ ] *(Deferred — `/app` shows a studio chooser when there's no workspace.)* Login routing per `02-architecture.md` §2: update `app/api/auth/studio/verify` consumers — add `src/lib/postLoginRedirect.ts` used by `/studio` and `/app`.
 - [ ] *(Deferred to P11.)* `/studio` login screen: add "Using Next5 for your business? Go to your workspace →" link when `/api/app/me` returns a workspace.
 
 ## Implementation notes (2026-09-14)

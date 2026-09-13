@@ -2,7 +2,8 @@
 
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { useMagicToken } from '../../../hooks/useMagicToken';
 import { apiFetch } from '../../../lib/apiClient';
@@ -32,10 +33,15 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const { verifying } = useMagicToken();
   const me = useApi<MeDto>(token ? `/api/app/me?product=${product}&s=${token.slice(-10)}` : null);
   const [viewStep, setViewStep] = useState<number | null>(null);
+  const router = useRouter();
 
   const workspace = me.data?.workspace?.product === product ? me.data.workspace : null;
   const serverStep = workspace ? Math.min(6, workspace.onboardingStep + 1) : 1;
   const current = viewStep !== null && viewStep < serverStep ? viewStep : serverStep;
+
+  useEffect(() => {
+    if (workspace?.onboardingCompleted) router.replace('/app');
+  }, [workspace?.onboardingCompleted, router]);
 
   const advance = useCallback(async (step: number, options?: { completed?: boolean }) => {
     await apiFetch('/api/app/onboarding/step', { method: 'PATCH', json: { product, step, completed: options?.completed } });
