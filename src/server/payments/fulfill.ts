@@ -8,6 +8,9 @@ import { grant } from '../credits/ledger';
 import { withSerializable, type Tx } from '../db/transaction';
 import { HttpError } from '../http';
 import { activate } from '../subscriptions/subscriptions';
+import { sendOnceQuietly } from '../email/send';
+import { paymentReceiptEmail } from '../email/templates';
+import { describePaymentItem } from './payments';
 
 /** Payments that arrive this long after the QR expired are still honoured. */
 export const LATE_PAYMENT_WINDOW_MS = 72 * 60 * 60 * 1000;
@@ -34,11 +37,7 @@ const fulfilInTx = async (tx: Tx, payment: Payment, now: Date): Promise<void> =>
   // consumer_booking fulfilment moves here with the real provider (deferred — D7).
 };
 
-/**
- * Records a received transfer against a payment and fulfils it exactly once.
- * Used by the mock "simulate transfer" action now and by the SePay webhook later.
- */
-export const markPaidAndFulfil = async (paymentId: string, paidVnd: number, now = new Date()): Promise<MarkPaidResult> =>
+const markPaidInTx = async (paymentId: string, paidVnd: number, now: Date): Promise<MarkPaidResult> =>
   withSerializable(async (tx) => {
     const payment = await tx.payment.findUnique({ where: { id: paymentId } });
     if (!payment) throw new HttpError(404, 'payment_not_found', 'Payment not found.');
@@ -60,3 +59,16 @@ export const markPaidAndFulfil = async (paymentId: string, paidVnd: number, now 
     });
     return { payment: paid, outcome: 'paid' };
   });
+
+/**
+ * Records a received transfer against a payment and fulfils it exactly once, then emails a receipt.
+ * Used by the mock "simulate transfer" action now and by the SePay webhook later.
+ */
+export const markPaidAndFulfil = async (paymentId: string, paidVnd: number, now = new Date()): Promise<MarkPaidResult> => {
+  const result = await markPaidInTx(paymentId, paidVnd, now);
+  if (result.outcome === 'paid') {
+    const p = result.payment;
+    sendOnceQuietly({ userId: p.userId, workspaceId: p.workspaceId, template: 'payment_receipt', dedupeKey: `receipt:${p.id}`, content: paymentReceiptEmail(describePaymentItem(p), p.amountUsdCents, p.paidVnd ?? p.amountVnd, p.reference) });
+  }
+  return result;
+};

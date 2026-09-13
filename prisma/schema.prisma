@@ -494,3 +494,17 @@ model BankTransaction {
   @@index([matchStatus])
   @@map("bank_transactions")
 }
+
+model EmailLog {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  workspaceId String?   @map("workspace_id")
+  template    String
+  dedupeKey   String    @unique @map("dedupe_key")
+  sentAt      DateTime? @map("sent_at")
+  error       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("email_logs")
+}

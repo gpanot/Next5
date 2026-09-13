@@ -5,6 +5,8 @@ import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/maileroo';
 import { signMagicToken, signSessionToken } from '../../lib/studio-auth';
 import { HttpError } from '../http';
+import { sendOnceQuietly } from '../email/send';
+import { welcomeEmail } from '../email/templates';
 import { createWorkspace } from '../workspaces/workspaces';
 
 export type AccountInput = {
@@ -70,5 +72,6 @@ export const startAccount = async (input: AccountInput): Promise<AccountResult> 
   });
   const ws = await createWorkspace({ ownerUserId: user.id, product: input.product, name: input.businessName, industry: input.industry, handle: input.handle });
   await prisma.workspace.update({ where: { id: ws.id }, data: { onboardingStep: Math.max(ws.onboardingStep, 1) } });
+  sendOnceQuietly({ userId: user.id, workspaceId: ws.id, template: 'welcome', dedupeKey: `welcome:${ws.id}`, content: welcomeEmail(input.firstName, input.product) });
   return { status: 'session', token: signSessionToken(user.id, user.email) };
 };

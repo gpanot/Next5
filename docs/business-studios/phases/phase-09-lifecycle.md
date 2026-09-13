@@ -49,6 +49,18 @@ Each job is idempotent and logs a count; the route returns a JSON summary.
 - [ ] Instrument every event in `02-architecture.md` §12.
 - [ ] Funnel definitions documented in `docs/business-studios/analytics.md`: landing → onboarding step 1 → trial generated → checkout opened → paid → first non-trial batch → renewal.
 
+## Implementation notes (2026-09-14)
+
+Built: `email_logs` table (dedupe key unique, row written before sending), `src/server/email/{layout,templates,send}.ts`,
+`src/server/lifecycle/{billingDaily,reminders}.ts`, `GET /api/cron/billing-daily` (CRON_SECRET).
+Emails wired: welcome (new account), payment receipt (after fulfil), batch ready (> 3 min), credits granted (month 2+),
+renewal 7 d / 1 d (skipped when a renewal is queued), plan ended, trial nudge (24 h, no plan), brand theme drop (monthly),
+shop restock nudge (weekly). Outside production emails are logged, not sent, unless `NEXT5_SEND_DEV_EMAILS=true`.
+Not done: `trialReady` / `paymentUnderpaid` emails, retention report, in-app "new theme" dot, analytics provider
+(`src/lib/analytics.ts` is a typed no-op until Guillaume picks one — events are not yet instrumented).
+Add to `vercel.json` when deploying: `{ "path": "/api/cron/billing-daily", "schedule": "0 1 * * *" }` (daily works on Hobby).
+Tests: `tests/server/lifecycle/billingDaily.test.ts` (4 scenarios, injected clock, run-twice idempotency).
+
 ## Acceptance criteria
 
 - Simulated clock tests (vitest with fake timers / injected `now`) prove: a 3-month plan yields exactly 3 grants, reminders at 7 d and 1 d, `planEnded` once, no duplicate emails when the cron runs twice.
