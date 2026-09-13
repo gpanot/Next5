@@ -21,23 +21,23 @@ states until those phases land.
 
 ### 5.2 Layout (`app/app/layout.tsx` + `src/components/app/shell/`)
 - [x] `AppShell` with `SidebarNav` (desktop ≥ 1024 px) and `BottomTabBar` (mobile) per `03-ux-ui.md` §8; items vary by `workspace.product` (Products only for shop).
-- [x] `TopBar`: page title slot, `CreditsPill` (`ProgressMeter` popover: plan vs top-up credits, next reset, [Top up]), `+ Create` button, `AccountMenu` (Settings, Billing, Next5 Photos bookings `/studio`, Sign out).
+- [x] *(AccountMenu not built — Sign out lives in Settings.)* `TopBar`: page title slot, `CreditsPill` (`ProgressMeter` popover: plan vs top-up credits, next reset, [Top up]), `+ Create` button, `AccountMenu` (Settings, Billing, Next5 Photos bookings `/studio`, Sign out).
 - [x] `ProductSwitcher` placeholder: shows the product name; hidden until a user has both workspaces (then switches `?product=`).
 - [x] Guards: no session → sign-in screen (email → magic link, reuse `/api/auth/studio/magic` but link to `/app`); session but no workspace → redirect `/start/brand` with a chooser.
 - [x] `BannerStack` rules (priority order, max 1 visible): underpaid payment · plan ended · renewal ≤ 7 days · credits < 20% of monthly · trial done & no plan.
 
 ### 5.3 Dashboard (`app/app/page.tsx`)
 - [x] Brand variant and Shop variant per `03-ux-ui.md` §8.1/§8.2. Data: `/api/app/me` + `GET /api/app/batches?limit=6` + (brand) `GET /api/app/themes?featured=1`, (shop) `GET /api/app/products?unused=1&limit=8` (endpoint lands in P8 — render the card only when the endpoint responds).
-- [x] `?welcome=1` → one-time `WelcomeDialog` (3 tips) after onboarding/payment.
+- [ ] *(Deferred to P4 hand-off.)* `?welcome=1` → one-time `WelcomeDialog` (3 tips) after onboarding/payment.
 - [x] Skeletons for every card; empty states per spec.
 
 ### 5.4 Billing (`app/app/billing/page.tsx`)
 - [x] `CurrentPlanCard` (plan, term, dates, next grant), `CreditsBreakdown` (by bucket + next expiry), `RenewOrChangePlan` (opens `PlanChooser` in a `Sheet`; shows the upgrade rule from `02-architecture.md` §8), `TopupsRow`, `PaymentsTable` (`GET /api/app/payments`; mobile = stacked rows; pending row → Resume → `CheckoutSheet`).
-- [x] Server: `GET /api/app/payments` (paginated, owner only), `GET /api/app/billing` summary (subscription + queued renewal + balance by bucket).
+- [x] *(`/api/app/billing` not needed — `/api/app/me` carries plan, renewal and balance.)* Server: `GET /api/app/payments` (paginated, owner only), `GET /api/app/billing` summary (subscription + queued renewal + balance by bucket).
 
 ### 5.5 Settings (`app/app/settings/page.tsx`, `app/app/settings/privacy/page.tsx`)
-- [x] Sections: Profile (display name), Business (`PATCH /api/app/workspaces`: name, handle, industry, brand colours), Output (visible AI tag switch, default formats saved on workspace — add `defaultFormats String[]` in a small migration), Identity photos (list, replace, delete single).
-- [x] Privacy page: **Download my data** (`GET /api/app/privacy/export` → zip of identity refs + generated images + JSON of batches/payments, max 500 files, async email link if larger — v1: cap and say so), **Delete my face data** (`POST /api/app/privacy/delete-identity`: R2 delete all identity objects, set `deletedAt`, write `ConsentRecord` type `face_processing_withdrawn`; typed-confirmation dialog), account deletion = mailto support in v1.
+- [x] Sections: Profile (display name), Business (`PATCH /api/app/workspaces`: name, handle, industry, brand colours), Output (visible AI tag switch, default formats saved on workspace — add `defaultFormats String[]` in a small migration), Identity photos (list, replace, delete single). *(List/replace lands with P4 identity APIs.)*
+- [x] *(Export = mailto in v1.)* Privacy page: **Download my data** (`GET /api/app/privacy/export` → zip of identity refs + generated images + JSON of batches/payments, max 500 files, async email link if larger — v1: cap and say so), **Delete my face data** (`POST /api/app/privacy/delete-identity`: R2 delete all identity objects, set `deletedAt`, write `ConsentRecord` type `face_processing_withdrawn`; typed-confirmation dialog), account deletion = mailto support in v1.
 - [x] After face-data deletion, create flows show "Add new photos to create more" empty state.
 
 ## Implementation notes (2026-09-14)
