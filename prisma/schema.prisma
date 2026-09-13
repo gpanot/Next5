@@ -508,3 +508,15 @@ model EmailLog {
   @@index([userId])
   @@map("email_logs")
 }
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([targetType, targetId], map: "admin_audit_logs_target_idx")
+  @@map("admin_audit_logs")
+}

@@ -7,6 +7,16 @@
 Run the business day to day without touching the database: find a customer, fix a payment, adjust
 credits, edit templates/themes/prompt blocks, review flagged outputs, and see the numbers.
 
+## Implementation notes (2026-09-14) — validation-focused subset
+
+Built as **tabs on the existing `/admin`** (not sub-routes): **Overview** (signups by product, trials, trial → paid,
+paid payments + revenue, batches, redo rate by reason, provider cost, active plans; 7/30/90 days), **Workspaces**
+(search, onboarding step, plan, balance, batches/products, "Grant photos" → bonus credits), **Payments** (state filter,
+"Mark paid" → `markPaidAndFulfil`), **QA** (redone or down-rated photos with inputs beside the output and the prompt).
+`admin_audit_logs` records credit grants and manual payment confirmations. Admin page hydration bug fixed (token via local store).
+Not built yet: workspace detail page (ledger timeline, extend plan, resend link), bank-transaction matching queue (needs the
+real provider), CSV export, QA tags, catalog/theme CRUD and versioned prompt blocks, metric charts.
+
 ## Tasks
 
 ### 10.1 Structure
