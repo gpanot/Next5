@@ -21,8 +21,11 @@ export const VND_PER_USD: number = Number(process.env.VND_PER_USD ?? 26_000);
 /** nano-banana-2/edit accepts up to 14 reference images; we send at most 5 to limit drift. */
 export const MAX_REFERENCE_IMAGES = 5;
 
-/** Max WaveSpeed tasks in flight at once across all batches. */
-export const GENERATION_MAX_CONCURRENT: number = Number(process.env.GENERATION_MAX_CONCURRENT ?? 6);
+/**
+ * Max WaveSpeed tasks in flight at once across all batches.
+ * Default is 3 (good for testing). Set GENERATION_MAX_CONCURRENT=6 in production.
+ */
+export const GENERATION_MAX_CONCURRENT: number = Number(process.env.GENERATION_MAX_CONCURRENT ?? 3);
 
 /** Automatic attempts per generation run before an item is marked failed. */
 export const MAX_ATTEMPTS_PER_RUN = 2;
