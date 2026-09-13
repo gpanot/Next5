@@ -52,5 +52,365 @@
     "bytes": 128837,
     "alt": "Phone mockup showing Post Confidence score of 95 with criteria breakdown",
     "generatedAt": "2026-08-30T06:42:00.000Z"
+  },
+  "public/images/business/home/hero-professional.png": {
+    "prompt": "A Vietnamese woman in her late 30s, a confident real estate agent, standing in the open doorway of a bright modern apartment, cream tailored blazer over a white top, holding a slim tablet at her side, warm genuine smile toward camera, light oak floors and a soft sofa blurred behind her, late-morning window light from the left, 85mm lens, waist-up framing with space above her head. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1005803,
+    "alt": "Real estate agent smiling in the doorway of a bright modern apartment",
+    "generatedAt": "2026-09-13T06:13:07.961Z"
+  },
+  "public/images/business/home/hero-shop.png": {
+    "prompt": "A Vietnamese woman in her mid 20s modelling a beige linen two-piece set with a short-sleeve button shirt and wide-leg trousers, standing relaxed against a warm textured plaster wall, soft window shadows falling diagonally across the wall, one hand lightly in her pocket, calm confident expression, full body visible from head to shoes with small margin, 50mm lens, boutique fashion aesthetic. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1637255,
+    "alt": "Woman wearing a beige linen two-piece set against a warm plaster wall",
+    "generatedAt": "2026-09-13T06:13:20.266Z"
+  },
+  "public/images/business/home/card-professional.png": {
+    "prompt": "A Vietnamese woman in her early 30s, a business coach, sitting at a light wood café table with an open laptop seen from behind and a ceramic coffee cup, mid-laugh looking slightly off camera, smart casual sage-green knit top, large window with soft daylight behind her, plants softly blurred, horizontal composition with the subject on the left third. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 1417718,
+    "alt": "Business coach laughing while working on a laptop in a sunlit café",
+    "generatedAt": "2026-09-13T06:13:26.486Z"
+  },
+  "public/images/business/home/card-shop.png": {
+    "prompt": "A Vietnamese woman in her late 20s, owner of a small online clothing shop, arranging neutral-toned garments on a minimalist metal clothing rail in a bright apartment home studio, a smartphone on a small tripod and a stack of plain kraft shipping boxes nearby, soft daylight, candid focused expression, horizontal composition, tidy and aspirational. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 1183703,
+    "alt": "Online shop owner arranging clothes on a rail in her bright home studio",
+    "generatedAt": "2026-09-13T06:13:28.683Z"
+  },
+  "public/images/business/brand/hero-main.png": {
+    "prompt": "A Vietnamese woman around 40, polished real estate agent, leaning lightly on a white marble kitchen island in a bright staged modern home, navy blazer and silk camel blouse, arms relaxed, approachable confident smile, pendant lights and light oak cabinetry softly blurred, soft daylight from large windows, 85mm, three-quarter framing. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 947616,
+    "alt": "Real estate agent leaning on a kitchen island in a staged home",
+    "generatedAt": "2026-09-13T06:13:34.066Z"
+  },
+  "public/images/business/brand/step-selfies.png": {
+    "prompt": "A clean flat-lay composition of three printed smartphone selfie photos of the same Vietnamese woman in her 30s laid side by side on a warm off-white surface with soft shadows: one facing the camera, one turned slightly left, one turned slightly right, plain light wall behind her in each photo, natural indoor daylight, hair tucked behind ears, relaxed neutral smile, the same face in all three. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 1238261,
+    "alt": "Three casual smartphone selfies of the same woman from slightly different angles",
+    "generatedAt": "2026-09-13T06:13:38.584Z"
+  },
+  "public/images/business/brand/sets/modern-office.png": {
+    "prompt": "A Vietnamese woman in her early 40s, finance professional, standing beside a glass meeting-room wall in a bright modern office with light oak desks, charcoal blazer, holding a notebook, subtle confident smile, soft daylight, city skyline softly blurred through windows, 85mm, three-quarter framing. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1273346,
+    "alt": "Professional woman in a bright glass-walled office",
+    "generatedAt": "2026-09-13T06:13:42.534Z"
+  },
+  "public/images/business/brand/sets/listing-interior.png": {
+    "prompt": "A Vietnamese woman in her mid 30s, real estate agent, sitting on the arm of a cream sofa in a spacious staged living room with tall windows, linen curtains and a sculptural lamp, ivory blazer and trousers, welcoming open posture, soft afternoon light, architectural lines, 50mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1690078,
+    "alt": "Agent in a staged luxury living room",
+    "generatedAt": "2026-09-13T06:13:46.657Z"
+  },
+  "public/images/business/brand/sets/neighborhood-cafe.png": {
+    "prompt": "A Vietnamese woman in her early 30s, consultant, at a small café window table with a laptop and notebook, cream cardigan over a white tee, looking up from her work toward camera with a warm smile, morning window light, warm wood and plants softly blurred, 50mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1686153,
+    "alt": "Consultant at a café table by the window",
+    "generatedAt": "2026-09-13T06:13:52.190Z"
+  },
+  "public/images/business/brand/sets/studio-backdrop.png": {
+    "prompt": "A classic professional portrait of a Vietnamese woman in her late 30s against a seamless warm grey studio backdrop, black tailored blazer, hair neatly styled, soft large key light from the left with gentle fill, confident approachable expression, chest-up framing, 85mm, crisp and timeless. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 761775,
+    "alt": "Classic professional portrait on a warm grey backdrop",
+    "generatedAt": "2026-09-13T06:13:56.365Z"
+  },
+  "public/images/business/brand/sets/urban-outdoor.png": {
+    "prompt": "A Vietnamese woman in her early 30s walking toward camera on a clean modern city sidewalk with glass and concrete facades, camel trench coat over a white top, phone in hand, natural mid-stride, golden-hour side light, background softly blurred, 85mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1495692,
+    "alt": "Woman walking on a modern street at golden hour",
+    "generatedAt": "2026-09-13T06:13:58.717Z"
+  },
+  "public/images/business/brand/sets/home-office.png": {
+    "prompt": "A Vietnamese woman in her mid 40s, life coach, seated at a tidy home office desk with bookshelves and green plants behind her, soft blush blouse, hands loosely clasped, calm reassuring smile toward camera, soft window light, cosy but professional, 50mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1648505,
+    "alt": "Coach at a home office desk with bookshelves",
+    "generatedAt": "2026-09-13T06:14:01.113Z"
+  },
+  "public/images/business/brand/themes/just-listed.png": {
+    "prompt": "A Vietnamese woman in her 30s, real estate agent, standing at the open front door of a modern home with a light wood door and a potted olive tree, arm gesturing inward in welcome, cream blazer, bright smile, soft morning daylight, 50mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1129507,
+    "alt": "Agent welcoming at the front door of a modern home",
+    "generatedAt": "2026-09-13T06:14:03.955Z"
+  },
+  "public/images/business/brand/themes/market-update.png": {
+    "prompt": "A Vietnamese woman in her early 40s, property consultant, standing beside a large blank light-grey wall-mounted screen in a minimal meeting room, pointing toward the empty screen while looking at camera, navy blazer, expert and friendly, soft daylight, the screen completely blank. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 549560,
+    "alt": "Agent explaining beside a blank screen",
+    "generatedAt": "2026-09-13T06:14:09.303Z"
+  },
+  "public/images/business/brand/themes/client-meeting.png": {
+    "prompt": "A Vietnamese woman in her late 30s, advisor, seated at a light oak table explaining something with an open notebook, a client seen only from behind and out of focus in the foreground, warm attentive expression, bright office lounge, soft daylight, 50mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1181797,
+    "alt": "Advisor talking with a client across a table",
+    "generatedAt": "2026-09-13T06:14:12.862Z"
+  },
+  "public/images/business/brand/themes/behind-the-scenes.png": {
+    "prompt": "A Vietnamese woman in her early 30s walking along a bright modern building corridor on a phone call, plain white takeaway coffee cup in the other hand, beige blazer, candid laugh, natural motion, soft daylight, background softly blurred. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 987351,
+    "alt": "Professional on a phone call walking with a coffee",
+    "generatedAt": "2026-09-13T06:14:15.243Z"
+  },
+  "public/images/business/brand/themes/open-house.png": {
+    "prompt": "A Vietnamese woman in her mid 30s, real estate agent, placing a vase of white flowers on a dining table in a bright staged home before an open house, ivory knit top and tailored trousers, gentle smile, sunlight through sheer curtains, 50mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1449392,
+    "alt": "Agent arranging flowers in a staged dining room",
+    "generatedAt": "2026-09-13T06:14:17.608Z"
+  },
+  "public/images/business/brand/themes/new-year-goals.png": {
+    "prompt": "A Vietnamese woman in her 30s writing in a linen-covered planner at a desk beside a large window at sunrise, warm golden light, cream turtleneck, focused hopeful expression, minimal workspace with a ceramic mug, calm fresh-start mood. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1466789,
+    "alt": "Woman writing in a planner by a sunrise window",
+    "generatedAt": "2026-09-13T06:14:20.720Z"
+  },
+  "public/images/business/brand/themes/holiday-greetings.png": {
+    "prompt": "A Vietnamese woman in her late 30s in a softly decorated festive living room with warm string-light bokeh and gifts wrapped in plain kraft paper, burgundy knit sweater, waving warmly at camera, cosy evening lamp light, tasteful and understated. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1641320,
+    "alt": "Woman in a cosy festive living room",
+    "generatedAt": "2026-09-13T06:14:23.533Z"
+  },
+  "public/images/business/brand/themes/tet-greetings.png": {
+    "prompt": "A Vietnamese woman in her early 30s wearing an elegant modern red silk ao dai, standing in a bright contemporary living room beside a vase of pink peach blossom branches, holding a plain red envelope, graceful warm smile, soft daylight, refined modern Lunar New Year mood. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1446383,
+    "alt": "Woman in a modern áo dài beside peach blossoms",
+    "generatedAt": "2026-09-13T06:14:26.350Z"
+  },
+  "public/images/business/brand/industries/real-estate.png": {
+    "prompt": "A Vietnamese woman in her 30s, real estate agent, walking through a bright empty modern apartment with floor-to-ceiling windows, gesturing toward the view, cream blazer, horizontal composition, soft daylight. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 879323,
+    "alt": "Real estate agent touring a bright apartment",
+    "generatedAt": "2026-09-13T06:14:31.556Z"
+  },
+  "public/images/business/brand/industries/coaching.png": {
+    "prompt": "A Vietnamese woman in her early 40s, business coach, speaking to a small group seen from behind and out of focus, standing beside a flip chart with a blank sheet, sage blazer, open expressive hand gesture, bright workshop room, horizontal composition. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 960926,
+    "alt": "Coach speaking warmly in a small workshop room",
+    "generatedAt": "2026-09-13T06:14:34.646Z"
+  },
+  "public/images/business/brand/industries/beauty-wellness.png": {
+    "prompt": "A Vietnamese woman in her early 30s, spa owner and esthetician, standing in a serene treatment room with a neatly made treatment bed, rolled towels and soft candles, wearing a clean sand-coloured tunic, gentle welcoming smile, warm diffuse light, horizontal composition. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 808715,
+    "alt": "Spa owner in a calm treatment room",
+    "generatedAt": "2026-09-13T06:14:38.584Z"
+  },
+  "public/images/business/brand/industries/fitness.png": {
+    "prompt": "A Vietnamese woman in her late 20s, personal trainer, in a bright boutique fitness studio with light wood floor and a few kettlebells, wearing a plain matching taupe athletic set, arms crossed, energetic confident smile, soft daylight, horizontal composition. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 824891,
+    "alt": "Fitness trainer smiling in a bright studio",
+    "generatedAt": "2026-09-13T06:14:41.241Z"
+  },
+  "public/images/business/brand/industries/finance.png": {
+    "prompt": "A Vietnamese woman in her early 40s, insurance and financial advisor, seated at a tidy desk with a laptop seen from behind and a closed folder, charcoal blazer and pearl earrings, trustworthy calm smile, bright modern office, horizontal composition. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 913021,
+    "alt": "Financial advisor at a desk with a laptop",
+    "generatedAt": "2026-09-13T06:14:44.441Z"
+  },
+  "public/images/business/brand/formats-master.png": {
+    "prompt": "A Vietnamese woman in her mid 30s, professional, standing centred in a bright minimal office with light oak and white walls, camel blazer, hands relaxed, warm smile, subject perfectly centred with generous empty space on all sides so the image can be cropped vertically or square without cutting the head or hands, soft even daylight. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 723257,
+    "alt": "Professional woman in a bright office, shown in four social media formats",
+    "generatedAt": "2026-09-13T06:14:46.152Z"
+  },
+  "public/images/business/shop/slider/dress-before.png": {
+    "prompt": "Top-down flat-lay product photo of a sage green satin midi slip dress with thin straps and a bias cut, laid neatly on a plain warm white cotton sheet, even soft daylight, tidy smartphone product photo, whole garment visible with margin. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 2062174,
+    "alt": "Flat-lay photo of a sage green midi slip dress",
+    "generatedAt": "2026-09-13T06:14:48.935Z"
+  },
+  "public/images/business/shop/slider/dress-after.png": {
+    "prompt": "A Vietnamese woman in her mid 20s wearing a sage green satin midi slip dress with thin straps and a bias cut, standing against a warm plaster wall with soft window shadows, full body from head to feet, relaxed pose, 50mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1446110,
+    "alt": "Model wearing a sage green midi slip dress",
+    "generatedAt": "2026-09-13T06:14:50.929Z"
+  },
+  "public/images/business/shop/slider/set-before.png": {
+    "prompt": "Product photo of a matching cream ribbed-knit cardigan with pearl buttons and a knit midi skirt on a light wooden hanger against a plain light wall, even daylight, whole set visible. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1291530,
+    "alt": "Hanger photo of a cream knit cardigan and skirt set",
+    "generatedAt": "2026-09-13T06:14:56.174Z"
+  },
+  "public/images/business/shop/slider/set-after.png": {
+    "prompt": "Generated with the Next5 Shop pipeline (WaveSpeed google/nano-banana-2/edit) from set-before.png as the product reference: Vietnamese woman in her late 20s wearing the exact cream ribbed-knit cardigan and skirt, bright cafe, full body.",
+    "model": "google/nano-banana-2/edit",
+    "size": "1024x1280",
+    "outputSize": "928x1152",
+    "bytes": 1719328,
+    "alt": "Model wearing the same cream knit cardigan and skirt set",
+    "generatedAt": "2026-09-13T06:24:20.914Z"
+  },
+  "public/images/business/shop/slider/bag-before.png": {
+    "prompt": "Product photo of a structured tan leather shoulder bag with a short strap and gold clasp, standing upright on a plain light beige surface against a plain wall, soft daylight, unbranded. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 843234,
+    "alt": "Product photo of a tan leather shoulder bag",
+    "generatedAt": "2026-09-13T06:15:03.267Z"
+  },
+  "public/images/business/shop/slider/bag-after.png": {
+    "prompt": "A Vietnamese woman in her early 30s carrying a structured unbranded tan leather shoulder bag with a gold clasp on her shoulder, white shirt and black trousers, clean modern street, half body, 85mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1101634,
+    "alt": "Model carrying a tan leather shoulder bag",
+    "generatedAt": "2026-09-13T06:15:07.730Z"
+  },
+  "public/images/business/shop/step-upload.png": {
+    "prompt": "Overhead view of a woman's hands holding a smartphone above a neatly laid terracotta linen top on a plain white sheet on the floor of a bright room, the phone screen facing away from camera, soft daylight, clean composition, horizontal. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 1405587,
+    "alt": "Hands photographing a folded top with a smartphone",
+    "generatedAt": "2026-09-13T06:15:11.414Z"
+  },
+  "public/images/business/shop/seller-at-work.png": {
+    "prompt": "A Vietnamese woman in her late 20s packing orders at a large table in a small bright apartment studio, folded garments, plain kraft mailer bags and tissue paper, a laptop seen from behind, busy but happy, evening lamp light mixed with window light, horizontal composition. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 1226634,
+    "alt": "Shop owner packing orders at a table full of clothes",
+    "generatedAt": "2026-09-13T06:15:18.684Z"
+  },
+  "public/images/business/shop/looks/clean-white.png": {
+    "prompt": "A Vietnamese woman in her mid 20s wearing a black blazer mini dress, standing straight facing camera on a seamless light-grey to white studio background, even soft light, full body head to shoes, marketplace listing style, crisp and clean. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 391881,
+    "alt": "Model in a white studio wearing a black blazer dress",
+    "generatedAt": "2026-09-13T06:15:20.511Z"
+  },
+  "public/images/business/shop/looks/beige-wall.png": {
+    "prompt": "A Vietnamese woman in her late 20s wearing a cream puff-sleeve blouse and brown wide-leg trousers, leaning lightly on a warm beige plaster wall with diagonal window shadows, full body, boutique fashion look. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1649655,
+    "alt": "Model against a warm plaster wall in a cream blouse",
+    "generatedAt": "2026-09-13T06:15:22.967Z"
+  },
+  "public/images/business/shop/looks/cafe-lifestyle.png": {
+    "prompt": "A Vietnamese woman in her early 20s in an oversized blue-and-white striped shirt and denim shorts, standing by a sunny cafe counter holding a plain iced drink, candid smile, bright natural light, full body. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1541087,
+    "alt": "Model in a café wearing a striped shirt",
+    "generatedAt": "2026-09-13T06:15:28.129Z"
+  },
+  "public/images/business/shop/looks/street-urban.png": {
+    "prompt": "A Vietnamese woman in her late 20s walking on a clean modern street with concrete and glass buildings, wearing a khaki trench coat over a white tee and straight jeans, mid-stride, daylight, full body. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1544614,
+    "alt": "Model walking on a clean city street in a trench coat",
+    "generatedAt": "2026-09-13T06:15:31.532Z"
+  },
+  "public/images/business/shop/looks/boutique-rack.png": {
+    "prompt": "A Vietnamese woman in her early 30s in a taupe ribbed knit midi dress standing in a minimal boutique interior, a clothing rail with neutral garments softly blurred behind, warm spot lighting and daylight, full body, elegant. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1277342,
+    "alt": "Model in a minimal boutique wearing a knit dress",
+    "generatedAt": "2026-09-13T06:15:34.785Z"
+  },
+  "public/images/business/shop/looks/resort.png": {
+    "prompt": "A Vietnamese woman in her mid 20s in a white linen sundress and straw hat on a pale stone pool terrace with palm shadows, bright sunlight, relaxed summer pose, full body, resort catalogue look. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1915967,
+    "alt": "Model on a sunny pool terrace in a linen dress",
+    "generatedAt": "2026-09-13T06:15:37.058Z"
   }
 }
