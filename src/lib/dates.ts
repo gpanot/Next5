@@ -33,3 +33,17 @@ export const formatRelative = (date: Date | string | number): string => {
   if (diffDay < 30)  return `${diffDay} days ago`;
   return formatShortDate(date);
 };
+
+/**
+ * Adds calendar months, clamping to the last day of the target month
+ * (Jan 31 + 1 month → Feb 28/29). Time of day is preserved. Uses UTC fields.
+ */
+export const addMonths = (date: Date, months: number): Date => {
+  const result = new Date(date.getTime());
+  const day = result.getUTCDate();
+  result.setUTCDate(1);
+  result.setUTCMonth(result.getUTCMonth() + months);
+  const lastDay = new Date(Date.UTC(result.getUTCFullYear(), result.getUTCMonth() + 1, 0)).getUTCDate();
+  result.setUTCDate(Math.min(day, lastDay));
+  return result;
+};

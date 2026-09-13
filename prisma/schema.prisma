@@ -34,13 +34,20 @@ model User {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  /** Claimed from the studio-reveal upsell. Null percent = no active offer. */
+  /**
+   * Claimed from the studio-reveal upsell. Null percent = no active offer.
+   */
   activeOfferPercent  Int?     @map("active_offer_percent")
   activeOfferLabel    String?  @map("active_offer_label")
   activeOfferRouteIds String[] @default([]) @map("active_offer_route_ids")
 
   bookings Booking[]
   photos   Photo[]
+
+  // Business studios (Brand / Shop)
+  workspaces Workspace[]
+  consents   ConsentRecord[]
+  payments   Payment[]
 
   @@map("users")
 }
@@ -76,15 +83,19 @@ model Booking {
   createdAt       DateTime      @default(now()) @map("created_at")
   updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  /** Regeneration tracking — players can request up to 2 regenerations per booking within 24 h. */
+  /**
+   * Regeneration tracking — players can request up to 2 regenerations per booking within 24 h.
+   */
   regenerateCount  Int       @default(0) @map("regenerate_count")
   regenerateLastAt DateTime? @map("regenerate_last_at")
 
-  /** Preview feedback — captured on the first-shot preview screen. */
+  /**
+   * Preview feedback — captured on the first-shot preview screen.
+   */
   previewFeedback       String? @map("preview_feedback")
   previewFeedbackDetail String? @map("preview_feedback_detail")
 
-  user          User?                  @relation(fields: [userId], references: [id])
+  user          User?                 @relation(fields: [userId], references: [id])
   photos        Photo[]
   regenerations BookingRegeneration[]
 
@@ -123,4 +134,361 @@ model BookingRegeneration {
 
   @@index([bookingId])
   @@map("booking_regenerations")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Business studios — Next5 Brand + Next5 Shop
+// Spec: docs/business-studios/02-architecture.md §4
+// ════════════════════════════════════════════════════════════════════════════
+
+enum ProductLine {
+  brand
+  shop
+}
+
+enum IdentityKind {
+  face
+  full_body
+}
+
+enum SetStatus {
+  draft
+  active
+  archived
+}
+
+enum BatchKind {
+  trial
+  brand_theme
+  shop_products
+}
+
+enum BatchStatus {
+  queued
+  generating
+  ready
+  failed
+  cancelled
+}
+
+enum ItemStatus {
+  queued
+  submitting
+  generating
+  ready
+  failed
+}
+
+enum SubscriptionStatus {
+  pending
+  active
+  expired
+  cancelled
+}
+
+enum PaymentPurpose {
+  subscription
+  topup
+  consumer_booking
+}
+
+enum PaymentState {
+  pending
+  paid
+  underpaid
+  expired
+  refunded
+}
+
+enum LedgerReason {
+  trial_grant
+  plan_grant
+  topup_grant
+  batch_reserve
+  item_refund
+  redo_charge
+  expiry
+  admin_adjust
+}
+
+model Workspace {
+  id                    String      @id @default(cuid())
+  ownerUserId           String      @map("owner_user_id")
+  product               ProductLine
+  name                  String
+  industry              String?
+  handle                String?
+  brandColors           String[]    @default([]) @map("brand_colors")
+  visibleAiTag          Boolean     @default(false) @map("visible_ai_tag")
+  defaultFormats        String[]    @default([]) @map("default_formats")
+  trialUsedAt           DateTime?   @map("trial_used_at")
+  onboardingStep        Int         @default(0) @map("onboarding_step")
+  onboardingCompletedAt DateTime?   @map("onboarding_completed_at")
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
+
+  owner         User                @relation(fields: [ownerUserId], references: [id])
+  identities    IdentityReference[]
+  sets          StudioSet[]
+  products      Product[]
+  batches       Batch[]
+  subscriptions Subscription[]
+  ledger        CreditLedger[]
+  payments      Payment[]
+
+  @@unique([ownerUserId, product])
+  @@map("workspaces")
+}
+
+model IdentityReference {
+  id              String       @id @default(cuid())
+  workspaceId     String?      @map("workspace_id")
+  kind            IdentityKind
+  r2Key           String       @map("r2_key")
+  isStudioModel   Boolean      @default(false) @map("is_studio_model")
+  studioModelSlug String?      @map("studio_model_slug")
+  wavespeedUrl    String?      @map("wavespeed_url")
+  wavespeedUrlAt  DateTime?    @map("wavespeed_url_at")
+  deletedAt       DateTime?    @map("deleted_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@index([studioModelSlug])
+  @@map("identity_references")
+}
+
+model ConsentRecord {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  type       String
+  version    String
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  acceptedAt DateTime @default(now()) @map("accepted_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("consent_records")
+}
+
+model SetTemplate {
+  id          String      @id
+  product     ProductLine
+  name        String
+  description String
+  coverImage  String      @map("cover_image")
+  config      Json
+  sortOrder   Int         @default(0) @map("sort_order")
+  isActive    Boolean     @default(true) @map("is_active")
+
+  sets StudioSet[]
+
+  @@map("set_templates")
+}
+
+model StudioSet {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  templateId  String    @map("template_id")
+  name        String
+  locations   String[]
+  wardrobe    String?
+  poseEnergy  String?   @map("pose_energy")
+  brandColors String[]  @default([]) @map("brand_colors")
+  modelRef    String?   @map("model_ref")
+  status      SetStatus @default(active)
+  coverR2Key  String?   @map("cover_r2_key")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id])
+  template  SetTemplate @relation(fields: [templateId], references: [id])
+  batches   Batch[]
+
+  @@index([workspaceId])
+  @@map("studio_sets")
+}
+
+model Theme {
+  id            String  @id
+  title         String
+  description   String
+  coverImage    String  @map("cover_image")
+  scenes        Json
+  featuredMonth String? @map("featured_month")
+  isActive      Boolean @default(true) @map("is_active")
+  sortOrder     Int     @default(0) @map("sort_order")
+
+  batches Batch[]
+
+  @@map("themes")
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  name        String
+  category    String
+  colorName   String?   @map("color_name")
+  sku         String?
+  fit         String?
+  notes       String?
+  frontR2Key  String    @map("front_r2_key")
+  backR2Key   String?   @map("back_r2_key")
+  detailR2Key String?   @map("detail_r2_key")
+  lastUsedAt  DateTime? @map("last_used_at")
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id])
+  items     BatchItem[]
+
+  @@index([workspaceId])
+  @@map("products")
+}
+
+model Batch {
+  id              String      @id @default(cuid())
+  workspaceId     String      @map("workspace_id")
+  kind            BatchKind
+  status          BatchStatus @default(queued)
+  name            String
+  setId           String?     @map("set_id")
+  themeId         String?     @map("theme_id")
+  packId          String?     @map("pack_id")
+  formats         String[]
+  highRes         Boolean     @default(false) @map("high_res")
+  priority        Int         @default(2)
+  creditsReserved Int         @default(0) @map("credits_reserved")
+  costUsdMicros   Int         @default(0) @map("cost_usd_micros")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  completedAt     DateTime?   @map("completed_at")
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id])
+  set       StudioSet?  @relation(fields: [setId], references: [id])
+  theme     Theme?      @relation(fields: [themeId], references: [id])
+  items     BatchItem[]
+
+  @@index([workspaceId, createdAt])
+  @@map("batches")
+}
+
+model BatchItem {
+  id              String     @id @default(cuid())
+  batchId         String     @map("batch_id")
+  productId       String?    @map("product_id")
+  sceneId         String?    @map("scene_id")
+  shot            String?
+  format          String
+  prompt          String
+  inputR2Keys     String[]   @map("input_r2_keys")
+  status          ItemStatus @default(queued)
+  attempts        Int        @default(0)
+  wavespeedTaskId String?    @map("wavespeed_task_id")
+  r2Key           String?    @map("r2_key")
+  errorMessage    String?    @map("error_message")
+  freeRedosUsed   Int        @default(0) @map("free_redos_used")
+  redoReason      String?    @map("redo_reason")
+  favorite        Boolean    @default(false)
+  rating          Int?
+  caption         String?
+  submittedAt     DateTime?  @map("submitted_at")
+  completedAt     DateTime?  @map("completed_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+
+  batch   Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([batchId])
+  @@index([status, createdAt])
+  @@index([wavespeedTaskId])
+  @@map("batch_items")
+}
+
+model Subscription {
+  id           String             @id @default(cuid())
+  workspaceId  String             @map("workspace_id")
+  planId       String             @map("plan_id")
+  termMonths   Int                @map("term_months")
+  status       SubscriptionStatus @default(pending)
+  startsAt     DateTime?          @map("starts_at")
+  endsAt       DateTime?          @map("ends_at")
+  nextGrantAt  DateTime?          @map("next_grant_at")
+  grantsIssued Int                @default(0) @map("grants_issued")
+  paymentId    String?            @unique @map("payment_id")
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId, status])
+  @@index([nextGrantAt])
+  @@map("subscriptions")
+}
+
+model CreditLedger {
+  id          String       @id @default(cuid())
+  workspaceId String       @map("workspace_id")
+  delta       Int
+  reason      LedgerReason
+  bucket      String
+  grantId     String?      @map("grant_id")
+  refType     String?      @map("ref_type")
+  refId       String?      @map("ref_id")
+  expiresAt   DateTime?    @map("expires_at")
+  note        String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([reason, bucket, refType, refId, grantId])
+  @@index([workspaceId, createdAt])
+  @@index([grantId])
+  @@map("credit_ledger")
+}
+
+model Payment {
+  id             String         @id @default(cuid())
+  userId         String         @map("user_id")
+  workspaceId    String?        @map("workspace_id")
+  bookingId      String?        @map("booking_id")
+  purpose        PaymentPurpose
+  itemId         String         @map("item_id")
+  amountUsdCents Int?           @map("amount_usd_cents")
+  amountVnd      Int            @map("amount_vnd")
+  fxVndPerUsd    Int?           @map("fx_vnd_per_usd")
+  reference      String         @unique
+  provider       String         @default("mock")
+  state          PaymentState   @default(pending)
+  paidVnd        Int?           @map("paid_vnd")
+  expiresAt      DateTime       @map("expires_at")
+  paidAt         DateTime?      @map("paid_at")
+  fulfilledAt    DateTime?      @map("fulfilled_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  user      User       @relation(fields: [userId], references: [id])
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([workspaceId, createdAt])
+  @@map("payments")
+}
+
+model BankTransaction {
+  id            String   @id @default(cuid())
+  provider      String   @default("sepay")
+  providerTxnId String   @map("provider_txn_id")
+  amountVnd     Int      @map("amount_vnd")
+  content       String
+  reference     String?
+  paymentId     String?  @map("payment_id")
+  matchStatus   String   @map("match_status")
+  raw           Json
+  receivedAt    DateTime @default(now()) @map("received_at")
+
+  @@unique([provider, providerTxnId])
+  @@index([matchStatus])
+  @@map("bank_transactions")
 }

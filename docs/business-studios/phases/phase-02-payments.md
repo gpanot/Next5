@@ -2,6 +2,10 @@
 
 **Size:** M · **Depends on:** P1 · **Flag:** checkout used by `/photos` immediately (security fix); business checkout behind flag
 
+> **Scope change (D7, 2026-09-14):** build the mock-provider version now — tasks 2.2 (except `sepay.ts`
+> and the webhook route), 2.3 (fulfil tests), 2.4 and the simulate route. Tasks 2.1, the SePay webhook,
+> 2.5 (consumer fix) and the live-payment admin action wait until demand is validated.
+
 ## Goal
 
 Money is verified by the bank, not the browser. One payment service serves subscriptions, top-ups
