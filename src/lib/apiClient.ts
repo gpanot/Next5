@@ -69,3 +69,32 @@ export const apiFetch = async <T>(path: string, init: ApiInit = {}): Promise<T> 
   }
   return data as T;
 };
+
+/** Downloads an authenticated file (zip) and saves it with `filename`. */
+export const downloadWithAuth = async (path: string, filename: string): Promise<void> => {
+  const token = getStoredToken();
+  const res = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as ErrorBody;
+    throw new ApiError(res.status, body.error ?? 'download_failed', body.message ?? 'Download failed. Try again.');
+  }
+  saveBlob(await res.blob(), filename);
+};
+
+/** Downloads a public or signed URL (no auth header) and saves it. */
+export const downloadUrl = async (url: string, filename: string): Promise<void> => {
+  const res = await fetch(url);
+  if (!res.ok) throw new ApiError(res.status, 'download_failed', 'Download failed. Try again.');
+  saveBlob(await res.blob(), filename);
+};
+
+const saveBlob = (blob: Blob, filename: string): void => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};

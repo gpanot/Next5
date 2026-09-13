@@ -1,0 +1,92 @@
+'use client';
+
+import { ImagePlus } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useMemo, useState } from 'react';
+import { FORMATS, type FormatId } from '../../../config/formats';
+import { useApi } from '../../../hooks/useApi';
+import { useEstimate } from '../../../hooks/useEstimate';
+import { ApiError, apiFetch } from '../../../lib/apiClient';
+import { lastSetStore } from '../../../lib/localStore';
+import type { BatchSummaryDto } from '../../../types/business/batches';
+import type { StudioSetDto, ThemeDto } from '../../../types/business/catalog';
+import { ChipGroup } from '../../ui/Chip';
+import { EmptyState } from '../../ui/EmptyState';
+import { SkeletonCard } from '../../ui/Skeleton';
+import { useWorkspace } from '../shell/WorkspaceProvider';
+import { CreateSection } from './CreateSection';
+import { CreditSummaryBar } from './CreditSummaryBar';
+import { FormatPicker } from './FormatPicker';
+import { SetPicker } from './SetPicker';
+import { ThemePicker } from './ThemePicker';
+
+const COUNTS = [8, 16, 24, 32] as const;
+
+export const BrandCreateFlow = () => {
+  const { me, refresh } = useWorkspace();
+  const router = useRouter();
+  const params = useSearchParams();
+  const sets = useApi<{ sets: StudioSetDto[] }>('/api/app/sets?product=brand');
+  const themes = useApi<{ featured: ThemeDto | null; library: ThemeDto[] }>('/api/app/themes');
+  const lastSet = lastSetStore.useValue();
+  const defaults = (me?.workspace?.defaultFormats ?? []).filter((f): f is FormatId => f in FORMATS);
+
+  const [setChoice, setSetChoice] = useState<string | null>(null);
+  const [themeChoice, setThemeChoice] = useState<string | null>(params.get('theme'));
+  const [count, setCount] = useState<number>(16);
+  const [formats, setFormats] = useState<FormatId[]>(defaults.length ? defaults : ['portrait_4_5']);
+  const [highRes, setHighRes] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const setId = setChoice ?? sets.data?.sets.find((s) => s.id === lastSet)?.id ?? sets.data?.sets[0]?.id ?? null;
+  const themeId = themeChoice ?? themes.data?.featured?.id ?? null;
+  const draft = useMemo(() => (setId && themeId ? { product: 'brand', kind: 'brand_theme', setId, themeId, count, formats, highRes } : null), [setId, themeId, count, formats, highRes]);
+  const { estimate, error, loading } = useEstimate(draft);
+
+  if (sets.loading || themes.loading) return <div className="flex flex-col gap-4"><SkeletonCard /><SkeletonCard /></div>;
+  if (!me?.workspace?.hasIdentity) {
+    return <EmptyState illustration={<ImagePlus className="h-10 w-10" />} title="Add your selfies first" body="We need three photos of you to create your photos." action={{ label: 'Add selfies', onClick: () => router.push('/start/brand') }} />;
+  }
+
+  const submit = async () => {
+    if (!draft) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await apiFetch<{ batch: BatchSummaryDto }>('/api/app/batches', { method: 'POST', json: draft });
+      if (setId) lastSetStore.set(setId);
+      refresh();
+      router.push(`/app/batches/${res.batch.id}`);
+    } catch (err) {
+      setSubmitError(err instanceof ApiError ? err.message : 'Could not start this batch.');
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-5">
+      <CreateSection step={1} title="Set" sub="Your signature look for this batch.">
+        <SetPicker sets={sets.data?.sets ?? []} value={setId} onChange={setSetChoice} noun="Set" />
+      </CreateSection>
+      <CreateSection step={2} title="Theme">
+        <ThemePicker featured={themes.data?.featured ?? null} library={themes.data?.library ?? []} value={themeId} onChange={setThemeChoice} />
+      </CreateSection>
+      <CreateSection step={3} title="How many photos?" sub="Each is a different scene or pose from the theme.">
+        <ChipGroup options={COUNTS.map((c) => ({ value: String(c), label: `${c} photos · ≈ ${Math.round(c / 4)} weeks of posts` }))} value={String(count)} onChange={(v) => setCount(Number(v))} />
+      </CreateSection>
+      <CreateSection step={4} title="Formats" sub="Each format is created at its own shape and counts as a photo.">
+        <FormatPicker value={formats} onChange={setFormats} highRes={highRes} onHighRes={setHighRes} highResAllowed={Boolean(me.plan?.highRes)} />
+      </CreateSection>
+      <CreditSummaryBar
+        breakdown={`${count} photos × ${formats.length} format${formats.length > 1 ? 's' : ''}${highRes ? ' × 2 (high-res)' : ''}`}
+        estimate={estimate}
+        error={submitError ?? error}
+        loading={loading}
+        submitting={submitting}
+        disabled={!draft}
+        onSubmit={submit}
+      />
+    </div>
+  );
+};

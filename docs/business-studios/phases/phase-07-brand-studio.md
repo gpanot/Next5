@@ -14,40 +14,50 @@ Team features, scheduling posts to social networks, video.
 ## Tasks
 
 ### 7.1 Themes API
-- [ ] `GET /api/app/themes` — `{ featured: Theme | null, library: Theme[] }`; featured = `featuredMonth` equal to the current month in `Asia/Ho_Chi_Minh`, fallback to the most recent past featured; Pro users also get next month's theme flagged `earlyAccess`.
+- [x] `GET /api/app/themes` — `{ featured: Theme | null, library: Theme[] }`; featured = `featuredMonth` equal to the current month in `Asia/Ho_Chi_Minh`, fallback to the most recent past featured; Pro users also get next month's theme flagged `earlyAccess`.
 
 ### 7.2 Sets (`app/app/sets/…`, `src/components/app/sets/`)
-- [ ] `GET/POST /api/app/sets`, `GET/PATCH/DELETE(archive) /api/app/sets/[setId]` — enforce `plan.maxSets` (trial/no plan: 1 set) → 403 `set_limit` with upgrade hint.
-- [ ] `SetsPage`: `SetCard` grid (cover = latest ready item or template cover, name, locations, "Used in N batches"), `NewSetCard` / `UpgradeCard` when at limit, empty state.
-- [ ] `SetBuilder` (`/app/sets/new`, reused in `/app/sets/[id]` edit mode): template → locations (1–3) → wardrobe → brand colours → pose energy → name → Save. Extract step components shared with onboarding step 4 (move them from `src/components/app/onboarding/` into `src/components/app/sets/steps/` and import from both).
-- [ ] "Preview 1 photo" button on the builder → creates a 1-item `brand_theme` batch (featured theme scene 1, `portrait_4_5`, 1 credit) and shows it inline; disabled with tooltip when balance is 0.
-- [ ] Set detail: rename, edit (note "Changes apply to new batches"), archive with confirm.
+- [x] `GET/POST /api/app/sets`, `GET/PATCH/DELETE(archive) /api/app/sets/[setId]` — enforce `plan.maxSets` (trial/no plan: 1 set) → 403 `set_limit` with upgrade hint.
+- [x] `SetsPage`: `SetCard` grid (cover = latest ready item or template cover, name, locations, "Used in N batches"), `NewSetCard` / `UpgradeCard` when at limit, empty state.
+- [x] `SetBuilder` (`/app/sets/new`, reused in `/app/sets/[id]` edit mode): template → locations (1–3) → wardrobe → brand colours → pose energy → name → Save. Extract step components shared with onboarding step 4 (move them from `src/components/app/onboarding/` into `src/components/app/sets/steps/` and import from both).
+- [ ] *(Deferred.)* "Preview 1 photo" button on the builder → creates a 1-item `brand_theme` batch (featured theme scene 1, `portrait_4_5`, 1 credit) and shows it inline; disabled with tooltip when balance is 0.
+- [x] Set detail: rename, edit (note "Changes apply to new batches"), archive with confirm.
 
 ### 7.3 Create flow (`app/app/create/page.tsx` → `BrandCreateFlow`)
-- [ ] In-page `Stepper` per `03-ux-ui.md` §8.3: `SetStep` (preselect last used via `localStorage` key `next5-last-set`), `ThemeStep` (featured large card + library grid; `?theme=` deep link from dashboard), `AmountStep` (8/16/24/32 chips with "≈ N posts" helper), `FormatsStep` (chips + High-res switch gated by plan).
-- [ ] `CreditSummaryBar` (sticky bottom): live estimate via `POST /api/app/batches/estimate` (debounced 300 ms), multiplication shown explicitly, insufficient → warning tone + [Top up] (opens `CheckoutSheet` for top-ups) + [Upgrade].
-- [ ] Generate → `POST /api/app/batches` → navigate to `/app/batches/[id]`.
+- [x] In-page `Stepper` per `03-ux-ui.md` §8.3: `SetStep` (preselect last used via `localStorage` key `next5-last-set`), `ThemeStep` (featured large card + library grid; `?theme=` deep link from dashboard), `AmountStep` (8/16/24/32 chips with "≈ N posts" helper), `FormatsStep` (chips + High-res switch gated by plan).
+- [x] `CreditSummaryBar` (sticky bottom): live estimate via `POST /api/app/batches/estimate` (debounced 300 ms), multiplication shown explicitly, insufficient → warning tone + [Top up] (opens `CheckoutSheet` for top-ups) + [Upgrade].
+- [x] Generate → `POST /api/app/batches` → navigate to `/app/batches/[id]`.
 
 ### 7.4 Batch results (`app/app/batches/[batchId]/page.tsx` → `BrandBatchView`)
-- [ ] `BatchHeader` (name, progress "12 of 16 ready", formats, created date, [Download all]).
-- [ ] `FormatTabs` (only selected formats), `FavoritesFilter`, `SelectModeToggle`.
-- [ ] `ImageGrid` of `ImageTile`: states queued/generating (shimmer), ready (actions), failed ("Couldn't create this one — credit refunded" + Retry = redo with reason `bad_quality`, free).
-- [ ] `RedoDialog` with reason chips and optional note (note stored in `redoReason` as `reason: note`); shows "Free redo (1 left)" or "Costs 1 credit".
-- [ ] `ImageLightbox` (reuse `src/components/ui/ImageLightbox.tsx`): swipe/arrow navigation, download, favourite, caption panel (Pro).
-- [ ] `SelectionBar` — selected count, Download selected (client zip via existing `src/lib/download.ts` pattern for ≤ 20, else server zip), Favourite/Unfavourite.
-- [ ] "Safe to leave" note while generating + email when done (P6).
+- [x] `BatchHeader` (name, progress "12 of 16 ready", formats, created date, [Download all]).
+- [x] `FormatTabs` (only selected formats), `FavoritesFilter`, `SelectModeToggle`.
+- [x] `ImageGrid` of `ImageTile`: states queued/generating (shimmer), ready (actions), failed ("Couldn't create this one — credit refunded" + Retry = redo with reason `bad_quality`, free).
+- [x] `RedoDialog` with reason chips and optional note (note stored in `redoReason` as `reason: note`); shows "Free redo (1 left)" or "Costs 1 credit".
+- [x] `ImageLightbox` (reuse `src/components/ui/ImageLightbox.tsx`): swipe/arrow navigation, download, favourite, caption panel (Pro).
+- [x] `SelectionBar` — selected count, Download selected (client zip via existing `src/lib/download.ts` pattern for ≤ 20, else server zip), Favourite/Unfavourite.
+- [x] "Safe to leave" note while generating + email when done (P6).
 
 ### 7.5 Captions (Pro)
-- [ ] `POST /api/app/items/[itemId]/caption` — gpt-4o-mini (reuse `src/lib/director-note.ts` client pattern), input: industry, theme title, scene label, workspace name/handle, tone = `poseEnergy`; output ≤ 280 chars, 0–3 hashtags, no emojis unless the user enables later; mock mode returns a canned caption. Cache on `BatchItem.caption`.
-- [ ] Caption panel: generate, edit locally, copy button with toast "Caption copied".
-- [ ] Non-Pro: panel shows lock + "Captions are included in Pro".
+- [x] `POST /api/app/items/[itemId]/caption` — gpt-4o-mini (reuse `src/lib/director-note.ts` client pattern), input: industry, theme title, scene label, workspace name/handle, tone = `poseEnergy`; output ≤ 280 chars, 0–3 hashtags, no emojis unless the user enables later; mock mode returns a canned caption. Cache on `BatchItem.caption`.
+- [x] Caption panel: generate, edit locally, copy button with toast "Caption copied".
+- [x] Non-Pro: panel shows lock + "Captions are included in Pro".
 
 ### 7.6 Library (`app/app/library/page.tsx`)
-- [ ] `GET /api/app/library` — filters `setId, themeId, format, favorite, from, to`, cursor pagination (40 per page), ready items only.
-- [ ] `LibraryFilters` (URL-synced query params), infinite scroll `ImageGrid` (IntersectionObserver sentinel), select mode + server zip (`GET /api/app/library/zip?ids=…` max 200).
+- [x] `GET /api/app/library` — filters `setId, themeId, format, favorite, from, to`, cursor pagination (40 per page), ready items only.
+- [x] `LibraryFilters` (URL-synced query params), infinite scroll `ImageGrid` (IntersectionObserver sentinel), select mode + server zip (`GET /api/app/library/zip?ids=…` max 200).
 
 ### 7.7 Dashboard wiring
-- [ ] Featured theme card → `/app/create?theme={id}`; recent batches → batch pages; sets strip → set detail.
+- [x] Featured theme card → `/app/create?theme={id}`; recent batches → batch pages; sets strip → set detail.
+
+## Implementation notes (2026-09-14)
+
+- Themes: every theme is usable any time; "featured" = this month's or the next upcoming (no early-access gating in v1).
+- Create flow is a single scrolling page of 4 numbered sections with a sticky `CreditSummaryBar` (live, debounced `POST /api/app/batches/estimate`) instead of a paged stepper — fewer taps on phones.
+- `ResultTile` has always-visible actions (favourite / redo / download) because hover-only actions don't work on phones; `ImageTile` stays for other uses.
+- Captions: `POST /api/app/items/[itemId]/caption` (Pro only, cached, canned text in mock mode) shown inside the lightbox.
+- Library uses a "Load more" button (cursor pagination) rather than infinite scroll; library filters are format + favourites (set/theme filters are supported by the API, not yet in the UI).
+- Downloads: signed URL for single photos; authenticated zip for a batch/format or a selection (`/api/app/library/zip`).
+- Verified in Chrome: top-up via simulated payment → create 8 × 2 formats → 16/16 ready → lightbox → redo → library → sets.
 
 ## Acceptance criteria
 
