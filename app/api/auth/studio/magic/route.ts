@@ -11,7 +11,7 @@ import { sendEmail } from '../../../../../src/lib/maileroo';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = (await req.json()) as { email?: string };
+    const { email, destination } = (await req.json()) as { email?: string; destination?: 'app' | 'studio' };
     const trimmed = email?.trim().toLowerCase() ?? '';
 
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) {
@@ -31,7 +31,8 @@ export async function POST(req: NextRequest) {
 
     const token = signMagicToken(trimmed);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const link = `${appUrl}/studio?token=${token}`;
+    const path = destination === 'app' ? '/app' : '/studio';
+    const link = `${appUrl}${path}?token=${token}`;
 
     const reference = await sendEmail({
       to: trimmed,

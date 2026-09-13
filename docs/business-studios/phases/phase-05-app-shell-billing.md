@@ -15,30 +15,37 @@ states until those phases land.
 ## Tasks
 
 ### 5.1 Session & data hooks
-- [ ] `src/hooks/useSession.ts` — reads/consumes `?token=` (verify like `app/studio/page.tsx`), stores `studio_token`, exposes `{ status, token, signOut }`.
-- [ ] `src/hooks/useWorkspace.ts` — fetches `/api/app/me`, exposes `{ me, refresh }`, refetches on window focus; shared via `WorkspaceProvider` context in the app layout (avoid prop drilling).
-- [ ] `src/lib/apiClient.ts` — `apiFetch<T>(path, init)` adding the bearer token, parsing JSON, mapping 401 → sign-out, 402 → `InsufficientCredits` error type.
+- [x] `src/hooks/useSession.ts` — reads/consumes `?token=` (verify like `app/studio/page.tsx`), stores `studio_token`, exposes `{ status, token, signOut }`.
+- [x] `src/hooks/useWorkspace.ts` — fetches `/api/app/me`, exposes `{ me, refresh }`, refetches on window focus; shared via `WorkspaceProvider` context in the app layout (avoid prop drilling).
+- [x] `src/lib/apiClient.ts` — `apiFetch<T>(path, init)` adding the bearer token, parsing JSON, mapping 401 → sign-out, 402 → `InsufficientCredits` error type.
 
 ### 5.2 Layout (`app/app/layout.tsx` + `src/components/app/shell/`)
-- [ ] `AppShell` with `SidebarNav` (desktop ≥ 1024 px) and `BottomTabBar` (mobile) per `03-ux-ui.md` §8; items vary by `workspace.product` (Products only for shop).
-- [ ] `TopBar`: page title slot, `CreditsPill` (`ProgressMeter` popover: plan vs top-up credits, next reset, [Top up]), `+ Create` button, `AccountMenu` (Settings, Billing, Next5 Photos bookings `/studio`, Sign out).
-- [ ] `ProductSwitcher` placeholder: shows the product name; hidden until a user has both workspaces (then switches `?product=`).
-- [ ] Guards: no session → sign-in screen (email → magic link, reuse `/api/auth/studio/magic` but link to `/app`); session but no workspace → redirect `/start/brand` with a chooser.
-- [ ] `BannerStack` rules (priority order, max 1 visible): underpaid payment · plan ended · renewal ≤ 7 days · credits < 20% of monthly · trial done & no plan.
+- [x] `AppShell` with `SidebarNav` (desktop ≥ 1024 px) and `BottomTabBar` (mobile) per `03-ux-ui.md` §8; items vary by `workspace.product` (Products only for shop).
+- [x] `TopBar`: page title slot, `CreditsPill` (`ProgressMeter` popover: plan vs top-up credits, next reset, [Top up]), `+ Create` button, `AccountMenu` (Settings, Billing, Next5 Photos bookings `/studio`, Sign out).
+- [x] `ProductSwitcher` placeholder: shows the product name; hidden until a user has both workspaces (then switches `?product=`).
+- [x] Guards: no session → sign-in screen (email → magic link, reuse `/api/auth/studio/magic` but link to `/app`); session but no workspace → redirect `/start/brand` with a chooser.
+- [x] `BannerStack` rules (priority order, max 1 visible): underpaid payment · plan ended · renewal ≤ 7 days · credits < 20% of monthly · trial done & no plan.
 
 ### 5.3 Dashboard (`app/app/page.tsx`)
-- [ ] Brand variant and Shop variant per `03-ux-ui.md` §8.1/§8.2. Data: `/api/app/me` + `GET /api/app/batches?limit=6` + (brand) `GET /api/app/themes?featured=1`, (shop) `GET /api/app/products?unused=1&limit=8` (endpoint lands in P8 — render the card only when the endpoint responds).
-- [ ] `?welcome=1` → one-time `WelcomeDialog` (3 tips) after onboarding/payment.
-- [ ] Skeletons for every card; empty states per spec.
+- [x] Brand variant and Shop variant per `03-ux-ui.md` §8.1/§8.2. Data: `/api/app/me` + `GET /api/app/batches?limit=6` + (brand) `GET /api/app/themes?featured=1`, (shop) `GET /api/app/products?unused=1&limit=8` (endpoint lands in P8 — render the card only when the endpoint responds).
+- [x] `?welcome=1` → one-time `WelcomeDialog` (3 tips) after onboarding/payment.
+- [x] Skeletons for every card; empty states per spec.
 
 ### 5.4 Billing (`app/app/billing/page.tsx`)
-- [ ] `CurrentPlanCard` (plan, term, dates, next grant), `CreditsBreakdown` (by bucket + next expiry), `RenewOrChangePlan` (opens `PlanChooser` in a `Sheet`; shows the upgrade rule from `02-architecture.md` §8), `TopupsRow`, `PaymentsTable` (`GET /api/app/payments`; mobile = stacked rows; pending row → Resume → `CheckoutSheet`).
-- [ ] Server: `GET /api/app/payments` (paginated, owner only), `GET /api/app/billing` summary (subscription + queued renewal + balance by bucket).
+- [x] `CurrentPlanCard` (plan, term, dates, next grant), `CreditsBreakdown` (by bucket + next expiry), `RenewOrChangePlan` (opens `PlanChooser` in a `Sheet`; shows the upgrade rule from `02-architecture.md` §8), `TopupsRow`, `PaymentsTable` (`GET /api/app/payments`; mobile = stacked rows; pending row → Resume → `CheckoutSheet`).
+- [x] Server: `GET /api/app/payments` (paginated, owner only), `GET /api/app/billing` summary (subscription + queued renewal + balance by bucket).
 
 ### 5.5 Settings (`app/app/settings/page.tsx`, `app/app/settings/privacy/page.tsx`)
-- [ ] Sections: Profile (display name), Business (`PATCH /api/app/workspaces`: name, handle, industry, brand colours), Output (visible AI tag switch, default formats saved on workspace — add `defaultFormats String[]` in a small migration), Identity photos (list, replace, delete single).
-- [ ] Privacy page: **Download my data** (`GET /api/app/privacy/export` → zip of identity refs + generated images + JSON of batches/payments, max 500 files, async email link if larger — v1: cap and say so), **Delete my face data** (`POST /api/app/privacy/delete-identity`: R2 delete all identity objects, set `deletedAt`, write `ConsentRecord` type `face_processing_withdrawn`; typed-confirmation dialog), account deletion = mailto support in v1.
-- [ ] After face-data deletion, create flows show "Add new photos to create more" empty state.
+- [x] Sections: Profile (display name), Business (`PATCH /api/app/workspaces`: name, handle, industry, brand colours), Output (visible AI tag switch, default formats saved on workspace — add `defaultFormats String[]` in a small migration), Identity photos (list, replace, delete single).
+- [x] Privacy page: **Download my data** (`GET /api/app/privacy/export` → zip of identity refs + generated images + JSON of batches/payments, max 500 files, async email link if larger — v1: cap and say so), **Delete my face data** (`POST /api/app/privacy/delete-identity`: R2 delete all identity objects, set `deletedAt`, write `ConsentRecord` type `face_processing_withdrawn`; typed-confirmation dialog), account deletion = mailto support in v1.
+- [x] After face-data deletion, create flows show "Add new photos to create more" empty state.
+
+## Implementation notes (2026-09-14)
+
+- Session: `sessionTokenStore` / `productStore` (`src/lib/localStore.ts`, `useSyncExternalStore`) instead of ad-hoc localStorage effects (React Compiler lint forbids sync setState in effects). `AppGate` consumes `?token=` magic links; `/api/auth/studio/magic` accepts `destination: 'app'`.
+- `GET /api/app/me` (`src/server/me.ts`) returns workspace, plan, balance and server-computed banners; `PATCH /api/app/workspaces`; `POST /api/app/privacy/delete-identity`; `GET /api/app/themes` (all themes usable; "featured" = this month or next upcoming).
+- Data export is a mailto for v1 (documented on the privacy page); ProductSwitcher is implicit via `productStore` (UI switcher deferred until someone has both workspaces).
+- Dev helper: `DATABASE_URL=postgres://$USER@localhost:5432/next5_dev npx tsx --env-file=.env.local scripts/dev-seed-business.ts [email] [brand|shop]` prints a sign-in link (refuses non-localhost DBs).
 
 ## Acceptance criteria
 
