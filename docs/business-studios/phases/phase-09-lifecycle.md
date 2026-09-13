@@ -12,16 +12,16 @@ come back for the new theme or new stock.
 
 ### 9.1 Billing cron (`app/api/cron/billing-daily/route.ts`, 01:00 UTC)
 Each job is idempotent and logs a count; the route returns a JSON summary.
-- [ ] `issueDueGrants(now)` (P1) — monthly plan credits.
-- [ ] `expireEnded(now)` — subscriptions past `endsAt` → `expired`.
-- [ ] `expireDue(now)` (ledger) — expired grant remainders.
-- [ ] `expirePendingPayments(now)` — `pending` older than 72 h → `expired`.
-- [ ] `queueLifecycleEmails(now)` — see 9.2 (writes `EmailLog` rows first, sends after).
+- [x] `issueDueGrants(now)` (P1) — monthly plan credits.
+- [x] `expireEnded(now)` — subscriptions past `endsAt` → `expired`.
+- [x] `expireDue(now)` (ledger) — expired grant remainders.
+- [x] `expirePendingPayments(now)` — `pending` older than 72 h → `expired`.
+- [x] `queueLifecycleEmails(now)` — see 9.2 (writes `EmailLog` rows first, sends after).
 - [ ] `listRetentionDeletions(now)` — products unused 12 months, generated images of workspaces expired > 90 days → **report only** in v1 (admin reviews in P10, deletion job enabled after legal review in P11).
 
 ### 9.2 Lifecycle emails (`src/server/email/templates/`, Maileroo)
-- [ ] Migration: `EmailLog { id, userId, workspaceId, template, dedupeKey @unique, sentAt, error }` — `dedupeKey` e.g. `renewal-7d:{subscriptionId}`.
-- [ ] Shared layout `emailLayout.ts` (logo text, 560 px, light background, one CTA button, footer with "You're receiving this because you have a Next5 workspace" + manage link to `/app/settings`).
+- [x] Migration: `EmailLog { id, userId, workspaceId, template, dedupeKey @unique, sentAt, error }` — `dedupeKey` e.g. `renewal-7d:{subscriptionId}`.
+- [x] Shared layout `emailLayout.ts` (logo text, 560 px, light background, one CTA button, footer with "You're receiving this because you have a Next5 workspace" + manage link to `/app/settings`).
 
 | Template | Trigger | Dedupe key | CTA |
 |---|---|---|---|
@@ -41,7 +41,7 @@ Each job is idempotent and logs a count; the route returns a JSON summary.
 - [ ] Plain-text alternative for every template; unit tests render each template with sample data (snapshot).
 
 ### 9.3 In-app counterparts
-- [ ] `BannerStack` (P5) reads the same conditions server-side from `/api/app/me` → `banners: BannerType[]` so email and app never disagree.
+- [x] `BannerStack` (P5) reads the same conditions server-side from `/api/app/me` → `banners: BannerType[]` so email and app never disagree.
 - [ ] Dashboard "New this month" dot on the featured theme card (Brand) until the user opens it (localStorage key per month).
 
 ### 9.4 Analytics
