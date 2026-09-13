@@ -17,3 +17,12 @@ export const MAX_BATCH_ITEMS = 200;
  * Client components must NOT read this directly — get it from API responses.
  */
 export const VND_PER_USD: number = Number(process.env.VND_PER_USD ?? 26_000);
+
+/** nano-banana-2/edit accepts up to 14 reference images; we send at most 5 to limit drift. */
+export const MAX_REFERENCE_IMAGES = 5;
+
+/** Max WaveSpeed tasks in flight at once across all batches. */
+export const GENERATION_MAX_CONCURRENT: number = Number(process.env.GENERATION_MAX_CONCURRENT ?? 6);
+
+/** Automatic attempts per generation run before an item is marked failed. */
+export const MAX_ATTEMPTS_PER_RUN = 2;

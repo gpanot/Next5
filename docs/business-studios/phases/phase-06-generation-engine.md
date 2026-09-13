@@ -15,50 +15,61 @@ Create/results UI (P7/P8 build on these APIs; this phase includes a minimal dev 
 ## Tasks
 
 ### 6.1 WaveSpeed client
-- [ ] `src/lib/wavespeed.ts`: `submitEdit` accepts `imageUrls: string[]` (keep `imageUrl` for the consumer routes — map to `[imageUrl]`), `aspectRatio` from `FORMATS`, `resolution: '1k' | '2k'`. Export `COST_USD_MICROS = { '1k': 70_000, '2k': 105_000 }`.
-- [ ] Check the WaveSpeed docs: max images per request (set `MAX_REFERENCE_IMAGES` in `src/config/business.ts`), supported aspect ratios for `google/nano-banana-2/edit` (map unsupported formats to the nearest + note), webhook support (if yes, add §6.7).
+- [x] `src/lib/wavespeed.ts`: `submitEdit` accepts `imageUrls: string[]` (keep `imageUrl` for the consumer routes — map to `[imageUrl]`), `aspectRatio` from `FORMATS`, `resolution: '1k' | '2k'`. Export `COST_USD_MICROS = { '1k': 70_000, '2k': 105_000 }`.
+- [x] Check the WaveSpeed docs: max images per request (set `MAX_REFERENCE_IMAGES` in `src/config/business.ts`), supported aspect ratios for `google/nano-banana-2/edit` (map unsupported formats to the nearest + note), webhook support (if yes, add §6.7).
 
 ### 6.2 Prompt composer (`src/server/generation/composer/`)
-- [ ] `blocks.ts` — IDENTITY, GARMENT, FORMAT, QUALITY, BRAND_GUARDRAILS, SHOP_GUARDRAILS text from `02-architecture.md` §6.1 (single source of truth; admin-editable later in P10).
-- [ ] `brand.ts` — `composeBrandPrompt({ template, set, scene, format, industry })` → `{ prompt, inputKinds }`.
-- [ ] `shop.ts` — `composeShopPrompt({ template, set, product, shot, format })` → `{ prompt, inputKinds }` (includes back photo only for `back_or_side`; detail photo for `detail_closeup` and when present).
-- [ ] `inputs.ts` — `resolveInputR2Keys({ workspace, set, product?, shot? })` → ordered R2 keys per §6.1 image order; throws `HttpError(409, 'identity_missing')` if identity refs were deleted.
-- [ ] Snapshot tests `tests/generation/composer.test.ts` for 3 brand and 5 shop cases (prompt text is stable, guardrails present, garment block order correct).
+- [x] `blocks.ts` — IDENTITY, GARMENT, FORMAT, QUALITY, BRAND_GUARDRAILS, SHOP_GUARDRAILS text from `02-architecture.md` §6.1 (single source of truth; admin-editable later in P10).
+- [x] `brand.ts` — `composeBrandPrompt({ template, set, scene, format, industry })` → `{ prompt, inputKinds }`.
+- [x] `shop.ts` — `composeShopPrompt({ template, set, product, shot, format })` → `{ prompt, inputKinds }` (includes back photo only for `back_or_side`; detail photo for `detail_closeup` and when present).
+- [x] `inputs.ts` — `resolveInputR2Keys({ workspace, set, product?, shot? })` → ordered R2 keys per §6.1 image order; throws `HttpError(409, 'identity_missing')` if identity refs were deleted.
+- [x] Snapshot tests `tests/generation/composer.test.ts` for 3 brand and 5 shop cases (prompt text is stable, guardrails present, garment block order correct).
 
 ### 6.3 Batch creation
-- [ ] `src/server/generation/draft.ts` — types + validation:
+- [x] `src/server/generation/draft.ts` — types + validation:
   ```ts
   type BrandDraft = { kind: 'brand_theme'; setId: string; themeId: string; count: 8 | 16 | 24 | 32; formats: FormatId[]; highRes: boolean };
   type ShopDraft  = { kind: 'shop_products'; setId: string; productIds: string[]; packId: PackId; formats: FormatId[]; highRes: boolean };
   type TrialDraft = { kind: 'trial'; … };   // built server-side only (P4)
   ```
   Rules: set & products belong to workspace; `highRes` requires a plan with `highRes`; count of items ≤ `MAX_BATCH_ITEMS`; brand scenes cycle through theme scenes when `count` > scenes (append variation index "variation N: different pose and framing").
-- [ ] `expandDraft(draft)` → item specs (sceneId/shot, productId, format). `creditsFor(items, highRes)` = items × (highRes ? 2 : 1).
-- [ ] `POST /api/app/batches/estimate` and `POST /api/app/batches` (`app/api/app/batches/route.ts`): create batch + items + `reserveForBatch` in one transaction; name per `01-product-spec` (Brand: `{Theme} · Sep 14`; Shop: `Drop · Sep 14, 2026`); `after(() => pump({ batchId }))`; update `Product.lastUsedAt`.
-- [ ] `GET /api/app/batches` (cursor pagination, newest first, cover = first ready item presigned URL).
+- [x] `expandDraft(draft)` → item specs (sceneId/shot, productId, format). `creditsFor(items, highRes)` = items × (highRes ? 2 : 1).
+- [x] `POST /api/app/batches/estimate` and `POST /api/app/batches` (`app/api/app/batches/route.ts`): create batch + items + `reserveForBatch` in one transaction; name per `01-product-spec` (Brand: `{Theme} · Sep 14`; Shop: `Drop · Sep 14, 2026`); `after(() => pump({ batchId }))`; update `Product.lastUsedAt`.
+- [x] `GET /api/app/batches` (cursor pagination, newest first, cover = first ready item presigned URL).
 
 ### 6.4 Pump, poll, finalize (`src/server/generation/`)
-- [ ] `pump.ts`, `poll.ts`, `finalize.ts` exactly as `02-architecture.md` §6.2 (claim with `SKIP LOCKED` raw SQL, cached WaveSpeed input URLs on `IdentityReference`; for product images cache in-memory per invocation).
-- [ ] `batchStatus.ts` — recompute batch status from items; set `completedAt`; on terminal send "Your photos are ready" email **only if** the batch took > 3 min (user likely left).
-- [ ] `labeling.ts` — §6.3; unit test asserts XMP DigitalSourceType present; visible tag compositing when `workspace.visibleAiTag`.
-- [ ] Mock mode (`isMockGeneration()`): `pump` marks items `generating` with fake task ids; `poll` completes them after 2–5 s using the template cover images (copied to R2 if configured, else served from `/images/...` URL).
-- [ ] `GET /api/app/batches/[batchId]` — ownership, runs `pump({batchId})` + `poll({batchId})` bounded by 8 s total (`Promise.race` with a timer), returns batch + items (presigned URLs 24 h) + `progress { ready, failed, total }`.
-- [ ] `app/api/cron/generations/route.ts` — `CRON_SECRET` bearer check; global `poll()` then `pump()`; returns counts. Add `crons` + `functions` to `vercel.json` (§10).
+- [x] `pump.ts`, `poll.ts`, `finalize.ts` exactly as `02-architecture.md` §6.2 (claim with `SKIP LOCKED` raw SQL, cached WaveSpeed input URLs on `IdentityReference`; for product images cache in-memory per invocation).
+- [x] `batchStatus.ts` — recompute batch status from items; set `completedAt`; on terminal send "Your photos are ready" email **only if** the batch took > 3 min (user likely left).
+- [x] `labeling.ts` — §6.3; unit test asserts XMP DigitalSourceType present; visible tag compositing when `workspace.visibleAiTag`.
+- [x] Mock mode (`isMockGeneration()`): `pump` marks items `generating` with fake task ids; `poll` completes them after 2–5 s using the template cover images (copied to R2 if configured, else served from `/images/...` URL).
+- [x] `GET /api/app/batches/[batchId]` — ownership, runs `pump({batchId})` + `poll({batchId})` bounded by 8 s total (`Promise.race` with a timer), returns batch + items (presigned URLs 24 h) + `progress { ready, failed, total }`.
+- [x] `app/api/cron/generations/route.ts` — `CRON_SECRET` bearer check; global `poll()` then `pump()`; returns counts. Add `crons` + `functions` to `vercel.json` (§10).
 
 ### 6.5 Item actions
-- [ ] `POST /api/app/batches/[batchId]/items/[itemId]/redo` — §6.4 rules; reasons enum `not_like_me | product_mismatch | bad_quality | other`; store `redoReason`; 402 when a paid redo lacks credits.
-- [ ] `PATCH /api/app/batches/[batchId]/items/[itemId]` — `{ favorite?, rating? }`.
-- [ ] `GET /api/app/batches/[batchId]/zip?productId=&format=` — server zip (jszip, `generateNodeStream`) of ready items, file names per spec, `Content-Disposition` attachment, max 200 files.
+- [x] `POST /api/app/batches/[batchId]/items/[itemId]/redo` — §6.4 rules; reasons enum `not_like_me | product_mismatch | bad_quality | other`; store `redoReason`; 402 when a paid redo lacks credits.
+- [x] `PATCH /api/app/batches/[batchId]/items/[itemId]` — `{ favorite?, rating? }`.
+- [x] `GET /api/app/batches/[batchId]/zip?productId=&format=` — server zip (jszip, `generateNodeStream`) of ready items, file names per spec, `Content-Disposition` attachment, max 200 files.
 
 ### 6.6 Client hook + dev page
-- [ ] `src/hooks/useBatchPolling.ts` — polls `GET /api/app/batches/[id]` every 4 s while `queued|generating`, exponential backoff on errors (max 30 s), pauses on hidden tab, stops at terminal state; returns `{ batch, items, progress, error, refresh }`.
-- [ ] `app/dev/batches/page.tsx` (404 in production) — create a brand or shop batch from a JSON textarea and watch items resolve. Used to test before P7/P8 UI exists.
+- [x] `src/hooks/useBatchPolling.ts` — polls `GET /api/app/batches/[id]` every 4 s while `queued|generating`, exponential backoff on errors (max 30 s), pauses on hidden tab, stops at terminal state; returns `{ batch, items, progress, error, refresh }`.
+- [ ] *(Skipped — covered by `tests/server/generation/pipeline.test.ts`; P7/P8 UI exercises the API.)* `app/dev/batches/page.tsx` (404 in production) — create a brand or shop batch from a JSON textarea and watch items resolve. Used to test before P7/P8 UI exists.
 
 ### 6.7 (Only if WaveSpeed supports webhooks)
 - [ ] Submit with the webhook URL + a per-item HMAC token; `POST /api/webhooks/wavespeed` verifies token → `finalize` or failure path. Polling remains as fallback.
 
 ### 6.8 Cost tracking
-- [ ] On every submit, add provider cost to `Batch.costUsdMicros` (including auto-retries and redos). Expose in admin later (P10).
+- [x] On every submit, add provider cost to `Batch.costUsdMicros` (including auto-retries and redos). Expose in admin later (P10).
+
+## Implementation notes (2026-09-14)
+
+- WaveSpeed docs verified: nano-banana-2/edit accepts up to **14** images and all four formats' ratios; no per-request webhook → polling only (6.7 skipped). We send at most 5 references (`MAX_REFERENCE_IMAGES`).
+- **Object store** (`src/server/storage/objectStore.ts`): `local` driver (`.data/object-store`, signed URLs via `/api/dev/object`) is the default outside production so dev/test never writes to the production R2 bucket; `r2` in production. Override with `NEXT5_STORAGE`.
+- **Refund safety:** new column `batch_items.pending_refund_key` (migration `20260914120000`) — set for paid runs (original reservation or paid redo), null for free redos, so a failed free redo never refunds.
+- Raw-SQL claim writes `submitted_at` in UTC (`now() AT TIME ZONE 'UTC'`) — timestamp columns have no time zone.
+- Mock mode "generates" by relabelling the first product/identity input (or a neutral sample), after `NEXT5_MOCK_GENERATION_DELAY_MS` (default 2.5 s).
+- Routes: `POST/GET /api/app/batches`, `POST /api/app/batches/estimate`, `GET /api/app/batches/[batchId]` (runs a ≤8 s tick), `PATCH …/items/[itemId]`, `POST …/items/[itemId]/redo`, `GET …/zip`, `GET /api/cron/generations`.
+- **Cron not yet in `vercel.json`**: a per-minute schedule needs a paid Vercel plan (a Hobby deploy would fail). Client polling drives generation while a batch page is open; add the cron when the plan allows.
+- Tests: composer, file naming, full mock pipeline, concurrency, retry/refund, redo charging — 59 total passing.
 
 ## Acceptance criteria
 

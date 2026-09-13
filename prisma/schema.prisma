@@ -377,27 +377,29 @@ model Batch {
 }
 
 model BatchItem {
-  id              String     @id @default(cuid())
-  batchId         String     @map("batch_id")
-  productId       String?    @map("product_id")
-  sceneId         String?    @map("scene_id")
-  shot            String?
-  format          String
-  prompt          String
-  inputR2Keys     String[]   @map("input_r2_keys")
-  status          ItemStatus @default(queued)
-  attempts        Int        @default(0)
-  wavespeedTaskId String?    @map("wavespeed_task_id")
-  r2Key           String?    @map("r2_key")
-  errorMessage    String?    @map("error_message")
-  freeRedosUsed   Int        @default(0) @map("free_redos_used")
-  redoReason      String?    @map("redo_reason")
-  favorite        Boolean    @default(false)
-  rating          Int?
-  caption         String?
-  submittedAt     DateTime?  @map("submitted_at")
-  completedAt     DateTime?  @map("completed_at")
-  createdAt       DateTime   @default(now()) @map("created_at")
+  id               String     @id @default(cuid())
+  batchId          String     @map("batch_id")
+  productId        String?    @map("product_id")
+  sceneId          String?    @map("scene_id")
+  shot             String?
+  format           String
+  prompt           String
+  inputR2Keys      String[]   @map("input_r2_keys")
+  status           ItemStatus @default(queued)
+  attempts         Int        @default(0)
+  wavespeedTaskId  String?    @map("wavespeed_task_id")
+  r2Key            String?    @map("r2_key")
+  errorMessage     String?    @map("error_message")
+  freeRedosUsed    Int        @default(0) @map("free_redos_used")
+  redoReason       String?    @map("redo_reason")
+  /// Refund key for the current run when it was paid; null for free redos.
+  pendingRefundKey String?    @map("pending_refund_key")
+  favorite         Boolean    @default(false)
+  rating           Int?
+  caption          String?
+  submittedAt      DateTime?  @map("submitted_at")
+  completedAt      DateTime?  @map("completed_at")
+  createdAt        DateTime   @default(now()) @map("created_at")
 
   batch   Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id])

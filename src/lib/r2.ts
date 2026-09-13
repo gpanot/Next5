@@ -109,3 +109,12 @@ export async function getObjectBuffer(key: string): Promise<Buffer | null> {
     throw err;
   }
 }
+
+// ── Delete ────────────────────────────────────────────────────────────────────
+
+/** Deletes an object from R2. No-op when R2 is not configured. */
+export async function deleteFromR2(key: string): Promise<void> {
+  if (!isConfigured()) return;
+  const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+  await getClient().send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}

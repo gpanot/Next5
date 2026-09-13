@@ -34,8 +34,10 @@ export async function uploadPhotoToWaveSpeed(
 // ── Generate ──────────────────────────────────────────────────────────────────
 
 export type SubmitEditParams = {
-  /** URL of the reference image (user's uploaded photo) */
-  imageUrl: string;
+  /** URL of the reference image (user's uploaded photo). Use `imageUrls` for several references. */
+  imageUrl?: string;
+  /** Ordered reference images (max 14 for nano-banana-2/edit). Takes precedence over `imageUrl`. */
+  imageUrls?: readonly string[];
   /** Full prompt string */
   prompt: string;
   /** Portrait by default */
@@ -50,6 +52,8 @@ export type SubmitEditParams = {
  */
 export async function submitEdit(params: SubmitEditParams): Promise<string> {
   if (!WAVESPEED_API_KEY) throw new Error('WAVESPEED_API_KEY is not set');
+  const images = params.imageUrls && params.imageUrls.length > 0 ? [...params.imageUrls] : params.imageUrl ? [params.imageUrl] : [];
+  if (images.length === 0) throw new Error('submitEdit needs at least one reference image');
 
   const res = await fetch(`${BASE_URL}/google/nano-banana-2/edit`, {
     method: 'POST',
@@ -58,7 +62,7 @@ export async function submitEdit(params: SubmitEditParams): Promise<string> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      images: [params.imageUrl],
+      images,
       prompt: params.prompt,
       aspect_ratio: params.aspectRatio ?? '3:4',
       resolution: params.resolution ?? '1k',
@@ -72,6 +76,14 @@ export async function submitEdit(params: SubmitEditParams): Promise<string> {
   }
   return body.data.id as string;
 }
+
+/** Provider cost per image in micro-USD (1e-6 USD), from WaveSpeed pricing. */
+export const COST_USD_MICROS: Record<NonNullable<SubmitEditParams['resolution']>, number> = {
+  '0.5k': 45_000,
+  '1k': 70_000,
+  '2k': 105_000,
+  '4k': 140_000,
+};
 
 // ── Poll ──────────────────────────────────────────────────────────────────────
 
