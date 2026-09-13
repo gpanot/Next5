@@ -44,6 +44,6 @@ export const startTrial = async (workspace: Workspace): Promise<Batch> => {
     if (!product) throw new HttpError(409, 'product_required', 'Add a product first.');
     batch = await createBatch(workspace, { kind: 'shop_products', trial: true, setId: set.id, productIds: [product.id], packId: 'listing', formats: ['square_1_1'], highRes: false });
   }
-  await prisma.workspace.update({ where: { id: workspace.id }, data: { trialUsedAt: workspace.trialUsedAt ?? new Date(), onboardingStep: Math.max(workspace.onboardingStep, 5) } });
+  await prisma.workspace.update({ where: { id: workspace.id }, data: { trialUsedAt: workspace.trialUsedAt ?? new Date(), onboardingStep: Math.max(workspace.onboardingStep, 4) } });
   return batch;
 };

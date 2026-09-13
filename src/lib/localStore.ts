@@ -45,3 +45,4 @@ export const createLocalStore = (key: string) => {
 
 export const sessionTokenStore = createLocalStore('studio_token');
 export const productStore = createLocalStore('next5-product');
+export const onboardingModelStore = createLocalStore('next5-onboarding-model');
