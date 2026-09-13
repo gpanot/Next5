@@ -297,13 +297,13 @@
     "generatedAt": "2026-09-13T06:14:48.935Z"
   },
   "public/images/business/shop/slider/dress-after.png": {
-    "prompt": "A Vietnamese woman in her mid 20s wearing a sage green satin midi slip dress with thin straps and a bias cut, standing against a warm plaster wall with soft window shadows, full body from head to feet, relaxed pose, 50mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
-    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "prompt": "Generated with the Next5 Shop pipeline (composeShopPrompt, look beige-wall, Studio model model-vy, WaveSpeed google/nano-banana-2/edit) from dress-before.png as the product reference.",
+    "model": "google/nano-banana-2/edit",
     "size": "1024x1280",
-    "outputSize": "1024x1280",
-    "bytes": 1446110,
-    "alt": "Model wearing a sage green midi slip dress",
-    "generatedAt": "2026-09-13T06:14:50.929Z"
+    "outputSize": "928x1152",
+    "bytes": 1606417,
+    "alt": "Studio model Vy wearing the same sage green satin slip dress",
+    "generatedAt": "2026-09-13T08:51:03.920Z"
   },
   "public/images/business/shop/slider/set-before.png": {
     "prompt": "Product photo of a matching cream ribbed-knit cardigan with pearl buttons and a knit midi skirt on a light wooden hanger against a plain light wall, even daylight, whole set visible. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
@@ -333,13 +333,13 @@
     "generatedAt": "2026-09-13T06:15:03.267Z"
   },
   "public/images/business/shop/slider/bag-after.png": {
-    "prompt": "A Vietnamese woman in her early 30s carrying a structured unbranded tan leather shoulder bag with a gold clasp on her shoulder, white shirt and black trousers, clean modern street, half body, 85mm. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",
-    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "prompt": "Generated with the Next5 Shop pipeline (composeShopPrompt, look beige-wall, Studio model model-vy, WaveSpeed google/nano-banana-2/edit) from bag-before.png as the product reference.",
+    "model": "google/nano-banana-2/edit",
     "size": "1024x1280",
-    "outputSize": "1024x1280",
-    "bytes": 1101634,
-    "alt": "Model carrying a tan leather shoulder bag",
-    "generatedAt": "2026-09-13T06:15:07.730Z"
+    "outputSize": "928x1152",
+    "bytes": 1608219,
+    "alt": "Studio model Vy carrying the same tan leather shoulder bag",
+    "generatedAt": "2026-09-13T08:51:03.997Z"
   },
   "public/images/business/shop/step-upload.png": {
     "prompt": "Overhead view of a woman's hands holding a smartphone above a neatly laid terracotta linen top on a plain white sheet on the floor of a bright room, the phone screen facing away from camera, soft daylight, clean composition, horizontal. Premium commercial lifestyle photography, natural and believable. Soft directional daylight. Warm neutral palette of warm white, sand, light oak and soft taupe with restrained terracotta accents. True-to-life skin texture without plastic retouching. Full-frame camera look, shallow depth of field, clean uncluttered composition, plain surfaces without any lettering or signage.",

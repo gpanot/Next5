@@ -14,6 +14,9 @@ import { SkeletonGrid, SkeletonText } from '../../ui/Skeleton';
 import { ToastContainer } from '../../ui/Toast';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { BatchHeader } from './BatchHeader';
+import { CompareLightbox } from './CompareLightbox';
+import { PostingTips } from './PostingTips';
+import { ShopCompareGrid } from './ShopCompareGrid';
 import { CaptionPanel } from './CaptionPanel';
 import { RedoDialog } from './RedoDialog';
 import { ResultTile } from './ResultTile';
@@ -43,6 +46,8 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
 
   const toggle = (id: string) => setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   const open = openIndex !== null ? openable[openIndex] : null;
+  const isShop = batch.products.length > 0;
+  const openProduct = open && isShop ? batch.products.find((p) => p.id === open.productId) ?? null : null;
 
   return (
     <>
@@ -56,8 +61,23 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
           <AppButton size="sm" variant={selecting ? 'primary' : 'secondary'} iconLeft={<CheckSquare className="h-3.5 w-3.5" />} onClick={() => { setSelecting((v) => !v); setSelected(new Set()); }}>{selecting ? 'Done' : 'Select'}</AppButton>
         </div>
       </div>
+      {isShop && <PostingTips visibleAiTag={batch.visibleAiTag} />}
       {items.length === 0 ? (
         <p className="rounded-2xl border border-app-line bg-app-panel p-8 text-center text-[14px] text-app-muted">{favoritesOnly ? 'No favourites yet — tap the heart on photos you love.' : 'Nothing here yet.'}</p>
+      ) : isShop ? (
+        <ShopCompareGrid
+          batch={batch}
+          items={items}
+          selecting={selecting}
+          selected={selected}
+          downloading={actions.downloading}
+          onToggleSelect={toggle}
+          onOpen={(item) => setOpenIndex(openable.findIndex((o) => o.id === item.id))}
+          onFavorite={(item) => void actions.favorite(item)}
+          onDownload={(item, index) => void actions.download(item, index)}
+          onRedo={setRedoTarget}
+          onZipProduct={(productId, name) => void actions.downloadZip(`?productId=${productId}${batch.formats.length > 1 && activeFormat ? `&format=${activeFormat}` : ''}`, `${name}.zip`)}
+        />
       ) : (
         <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {items.map((item, index) => (
@@ -82,7 +102,10 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
           <AppButton loading={actions.downloading} onClick={() => void actions.downloadSelected([...selected])}>Download selected</AppButton>
         </div>
       )}
-      {open?.url && (
+      {open?.url && isShop && (
+        <CompareLightbox originalUrl={openProduct?.frontUrl ?? null} generatedUrl={open.url} title={openProduct?.name ?? batch.name} onClose={() => setOpenIndex(null)} />
+      )}
+      {open?.url && !isShop && (
         <ImageLightbox
           src={open.url}
           alt={`${batch.name} — photo`}

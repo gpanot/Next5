@@ -26,7 +26,7 @@ type PlanPickerProps = {
 export const PlanPicker = ({ open, product, currentPlanId, onClose, onChoose }: PlanPickerProps) => {
   const [term, setTerm] = useState<TermMonths>(3);
   return (
-    <Sheet open={open} onClose={onClose} title="Choose a plan" side="bottom" className="sm:left-1/2 sm:max-w-2xl sm:-translate-x-1/2">
+    <Sheet open={open} onClose={onClose} title="Choose a plan" side="bottom" className="sm:left-1/2 sm:right-auto sm:w-full sm:max-w-2xl sm:-translate-x-1/2">
       <div className="flex flex-col gap-5 overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-[15px] font-semibold text-app-ink">Choose a plan</p>

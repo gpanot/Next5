@@ -81,7 +81,7 @@ export const CheckoutSheet = ({ request, existingPayment = null, onClose, onPaid
   const handleClose = useCallback(() => onClose(), [onClose]);
 
   return (
-    <Sheet open={open} onClose={handleClose} title={titleFor(request, payment)} side="bottom" className="sm:left-1/2 sm:max-w-xl sm:-translate-x-1/2">
+    <Sheet open={open} onClose={handleClose} title={titleFor(request, payment)} side="bottom" className="sm:left-1/2 sm:right-auto sm:w-full sm:max-w-xl sm:-translate-x-1/2">
       <div className="flex flex-col gap-4 overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
         <CheckoutBody
           payment={payment}

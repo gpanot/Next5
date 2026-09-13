@@ -45,6 +45,11 @@ const validateSet = async (workspace: Workspace, input: Partial<SetInput>): Prom
   if (workspace.product === 'shop' && input.modelRef && input.modelRef !== 'me') {
     const model = await prisma.identityReference.findFirst({ where: { isStudioModel: true, studioModelSlug: input.modelRef, deletedAt: null } });
     if (!model) throw new HttpError(400, 'invalid_model', 'That Studio model is not available.');
+    const plan = await getActivePlan(workspace.id);
+    if (!plan?.allStudioModels) {
+      const other = await prisma.studioSet.findFirst({ where: { workspaceId: workspace.id, status: { not: 'archived' }, modelRef: { notIn: ['me', input.modelRef] } } });
+      if (other) throw new HttpError(403, 'model_limit', 'Your plan includes one Studio model. Upgrade to Pro to use all six.');
+    }
   }
 };
 

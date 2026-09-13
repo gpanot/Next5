@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { STUDIO_MODELS } from '../../../content/business/catalog/studioModels';
 import { hasManifestImage } from '../../../lib/manifest';
 import type { StudioSetDto } from '../../../types/business/catalog';
 
@@ -21,7 +22,7 @@ export const SetPicker = ({ sets, value, onChange, noun }: SetPickerProps) => (
               : <Image src={cover} alt={set.name} fill sizes="144px" className="object-cover" />)}
           </div>
           <span className="truncate px-1 text-[13px] font-semibold text-app-ink">{set.name}</span>
-          <span className="truncate px-1 text-[11px] text-app-muted">{set.templateName}</span>
+          <span className="truncate px-1 text-[11px] text-app-muted">{set.templateName}{set.modelRef ? ` · ${set.modelRef === 'me' ? 'You' : STUDIO_MODELS.find((m) => m.slug === set.modelRef)?.name ?? 'Model'}` : ''}</span>
         </button>
       );
     })}

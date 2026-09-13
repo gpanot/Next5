@@ -47,3 +47,4 @@ export const sessionTokenStore = createLocalStore('studio_token');
 export const productStore = createLocalStore('next5-product');
 export const onboardingModelStore = createLocalStore('next5-onboarding-model');
 export const lastSetStore = createLocalStore('next5-last-set');
+export const postingTipsStore = createLocalStore('next5-posting-tips-dismissed');

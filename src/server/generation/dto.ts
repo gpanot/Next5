@@ -50,5 +50,16 @@ export const toSummaryDto = async (batch: Batch): Promise<BatchSummaryDto> => ({
 
 export const toDetailDto = async (batch: Batch): Promise<BatchDetailDto> => {
   const items = await prisma.batchItem.findMany({ where: { batchId: batch.id }, orderBy: { createdAt: 'asc' } });
-  return { ...(await toSummaryDto(batch)), items: await Promise.all(items.map(toItemDto)) };
+  const productIds = [...new Set(items.map((i) => i.productId).filter((id): id is string => Boolean(id)))];
+  const [products, workspace] = await Promise.all([
+    prisma.product.findMany({ where: { id: { in: productIds } } }),
+    prisma.workspace.findUniqueOrThrow({ where: { id: batch.workspaceId }, select: { visibleAiTag: true } }),
+  ]);
+  const productDtos = await Promise.all(
+    productIds.map(async (id) => {
+      const p = products.find((x) => x.id === id);
+      return { id, name: p?.name ?? 'Product', sku: p?.sku ?? null, category: p?.category ?? '', colorName: p?.colorName ?? null, frontUrl: p?.frontR2Key ? await presignObject(p.frontR2Key) : null };
+    }),
+  );
+  return { ...(await toSummaryDto(batch)), items: await Promise.all(items.map(toItemDto)), products: productDtos, visibleAiTag: workspace.visibleAiTag };
 };

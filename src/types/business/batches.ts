@@ -36,6 +36,8 @@ export type BatchSummaryDto = {
   progress: BatchProgressDto;
 };
 
-export type BatchDetailDto = BatchSummaryDto & { items: BatchItemDto[] };
+export type BatchProductDto = { id: string; name: string; sku: string | null; category: string; colorName: string | null; frontUrl: string | null };
+
+export type BatchDetailDto = BatchSummaryDto & { items: BatchItemDto[]; products: BatchProductDto[]; visibleAiTag: boolean };
 
 export type BatchEstimateDto = { items: number; credits: number; balance: number; canAfford: boolean };
