@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { useMagicToken } from '../../../hooks/useMagicToken';
 import { apiFetch } from '../../../lib/apiClient';
-import { sessionTokenStore } from '../../../lib/localStore';
+import { onboardingDraftStore, sessionTokenStore } from '../../../lib/localStore';
 import type { MeDto, ProductLineDto } from '../../../types/business/me';
 import { BusinessLogo } from '../../marketing/shared/MarketingHeader';
 import { ErrorState } from '../../ui/ErrorState';
@@ -31,7 +31,7 @@ const STEPS: Record<ProductLineDto, readonly ((props: StepProps) => React.ReactN
 
 export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const token = sessionTokenStore.useValue();
-  const { verifying } = useMagicToken();
+  const { verifying, failed: linkFailed } = useMagicToken();
   const me = useApi<MeDto>(token ? `/api/app/me?product=${product}&s=${token.slice(-10)}` : null);
   const [viewStep, setViewStep] = useState<number | null>(null);
   const router = useRouter();
@@ -43,6 +43,11 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   useEffect(() => {
     if (workspace?.onboardingCompleted) router.replace('/app');
   }, [workspace?.onboardingCompleted, router]);
+
+  // The typed step-1 details are only needed until this product's workspace exists.
+  useEffect(() => {
+    if (workspace) onboardingDraftStore.set(null);
+  }, [workspace]);
 
   const advance = useCallback(async (step: number, options?: { completed?: boolean }) => {
     await apiFetch('/api/app/onboarding/step', { method: 'PATCH', json: { product, step, completed: options?.completed } });
@@ -70,7 +75,14 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
       </div>
       {loading && <SkeletonText lines={6} />}
       {!loading && me.error && <ErrorState message={me.error} onRetry={me.refresh} />}
-      {!loading && !me.error && current === 1 && <AccountStep product={product} onSession={me.refresh} />}
+      {!loading && !me.error && current === 1 && (
+        <AccountStep
+          product={product}
+          signedIn={token && me.data?.user ? { email: me.data.user.email, displayName: me.data.user.displayName } : null}
+          linkFailed={linkFailed}
+          onSession={me.refresh}
+        />
+      )}
       {!loading && !me.error && StepComponent && me.data && <StepComponent product={product} me={me.data} advance={advance} />}
     </div>
   );

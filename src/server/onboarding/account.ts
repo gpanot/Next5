@@ -22,17 +22,23 @@ export type AccountResult = { status: 'session'; token: string } | { status: 'ch
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-export const parseAccountInput = (body: Record<string, unknown>): AccountInput => {
-  const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+export type ProfileInput = Omit<AccountInput, 'email'>;
+
+const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+
+/** Profile fields shared by new sign-ups and signed-in users. Business name is optional (not used in image prompts). */
+export const parseProfileInput = (body: Record<string, unknown>): ProfileInput => {
   const product = body.product === 'shop' ? 'shop' : body.product === 'brand' ? 'brand' : null;
-  const email = str(body.email, 160).toLowerCase();
   const firstName = str(body.firstName, 60);
-  const businessName = str(body.businessName, 80);
   if (!product) throw new HttpError(400, 'invalid_product', 'Choose Brand Studio or Shop Studio.');
-  if (!EMAIL_RE.test(email)) throw new HttpError(400, 'invalid_email', 'Enter a valid email address.');
   if (!firstName) throw new HttpError(400, 'first_name_required', 'Add your first name.');
-  if (!businessName) throw new HttpError(400, 'business_required', product === 'brand' ? 'Add your business name.' : 'Add your shop name.');
-  return { product, email, firstName, businessName, industry: str(body.industryOrCategory, 30) || null, handle: str(body.handle, 60) || null };
+  return { product, firstName, businessName: str(body.businessName, 80), industry: str(body.industryOrCategory, 30) || null, handle: str(body.handle, 60) || null };
+};
+
+export const parseAccountInput = (body: Record<string, unknown>): AccountInput => {
+  const email = str(body.email, 160).toLowerCase();
+  if (!EMAIL_RE.test(email)) throw new HttpError(400, 'invalid_email', 'Enter a valid email address.');
+  return { ...parseProfileInput(body), email };
 };
 
 const sendContinueEmail = async (email: string, product: ProductLine): Promise<void> => {
@@ -50,10 +56,20 @@ const sendContinueEmail = async (email: string, product: ProductLine): Promise<v
   });
 };
 
+/** Creates (or returns) the user's workspace for this product and moves onboarding past the account step. Idempotent. */
+export const setupWorkspace = async (userId: string, input: ProfileInput): Promise<void> => {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { displayName: true } });
+  if (!user.displayName) await prisma.user.update({ where: { id: userId }, data: { displayName: input.firstName } });
+  const ws = await createWorkspace({ ownerUserId: userId, product: input.product, name: input.businessName || input.firstName, industry: input.industry, handle: input.handle });
+  if (ws.onboardingStep < 1) await prisma.workspace.update({ where: { id: ws.id }, data: { onboardingStep: 1 } });
+  sendOnceQuietly({ userId, workspaceId: ws.id, template: 'welcome', dedupeKey: `welcome:${ws.id}`, content: welcomeEmail(input.firstName, input.product) });
+};
+
 /**
  * Creates the account + workspace. New emails get a session immediately.
  * Existing users (anyone who already has bookings or a workspace) must confirm by email — never hand
- * out a session for an existing account just because someone typed its address.
+ * out a session for an existing account just because someone typed its address. The link lands on
+ * /start/{product} signed in; the wizard then calls setupWorkspace with the details saved in the browser.
  */
 export const startAccount = async (input: AccountInput): Promise<AccountResult> => {
   const existing = await prisma.user.findUnique({
@@ -70,8 +86,6 @@ export const startAccount = async (input: AccountInput): Promise<AccountResult> 
     update: { displayName: input.firstName },
     create: { email: input.email, displayName: input.firstName },
   });
-  const ws = await createWorkspace({ ownerUserId: user.id, product: input.product, name: input.businessName, industry: input.industry, handle: input.handle });
-  await prisma.workspace.update({ where: { id: ws.id }, data: { onboardingStep: Math.max(ws.onboardingStep, 1) } });
-  sendOnceQuietly({ userId: user.id, workspaceId: ws.id, template: 'welcome', dedupeKey: `welcome:${ws.id}`, content: welcomeEmail(input.firstName, input.product) });
+  await setupWorkspace(user.id, input);
   return { status: 'session', token: signSessionToken(user.id, user.email) };
 };

@@ -48,3 +48,5 @@ export const productStore = createLocalStore('next5-product');
 export const onboardingModelStore = createLocalStore('next5-onboarding-model');
 export const lastSetStore = createLocalStore('next5-last-set');
 export const postingTipsStore = createLocalStore('next5-posting-tips-dismissed');
+/** Step-1 details typed before an email check, so the magic link can finish setup without asking again. */
+export const onboardingDraftStore = createLocalStore('next5-onboarding-draft');
