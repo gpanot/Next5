@@ -12,7 +12,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'modern-office',
     product: 'brand',
     name: 'Modern Office',
-    description: 'Glass, light wood and soft daylight with a city view.',
+    description: 'Glass walls, light wood and soft daylight.',
     coverImage: `${IMG}/brand/sets/modern-office.png`,
     sortOrder: 1,
     config: {
@@ -29,7 +29,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'listing-interior',
     product: 'brand',
     name: 'Luxury Listing',
-    description: 'Bright staged homes with architectural lines.',
+    description: 'Bright, pretty homes that are ready to sell.',
     coverImage: `${IMG}/brand/sets/listing-interior.png`,
     sortOrder: 2,
     config: {
@@ -47,7 +47,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'neighborhood-cafe',
     product: 'brand',
     name: 'Neighborhood Café',
-    description: 'Warm café, laptop and coffee by the window.',
+    description: 'A warm café with a laptop and a coffee.',
     coverImage: `${IMG}/brand/sets/neighborhood-cafe.png`,
     sortOrder: 3,
     config: {
@@ -64,7 +64,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'studio-backdrop',
     product: 'brand',
     name: 'Studio Backdrop',
-    description: 'Seamless warm-grey backdrop, the classic headshot.',
+    description: 'A plain gray wall. The classic head shot.',
     coverImage: `${IMG}/brand/sets/studio-backdrop.png`,
     sortOrder: 4,
     config: {
@@ -81,7 +81,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'urban-outdoor',
     product: 'brand',
     name: 'Urban Outdoor',
-    description: 'Modern street, glass façades, golden hour.',
+    description: 'A city street in warm evening light.',
     coverImage: `${IMG}/brand/sets/urban-outdoor.png`,
     sortOrder: 5,
     config: {
@@ -98,7 +98,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'home-office',
     product: 'brand',
     name: 'Home Office',
-    description: 'Bookshelves, plants and calm natural light.',
+    description: 'Books, plants and soft window light.',
     coverImage: `${IMG}/brand/sets/home-office.png`,
     sortOrder: 6,
     config: {
@@ -118,7 +118,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'clean-white',
     product: 'shop',
     name: 'Clean Studio',
-    description: 'Seamless light background — the marketplace listing standard.',
+    description: 'A plain white background. Best for shop listings.',
     coverImage: `${IMG}/shop/looks/clean-white.png`,
     sortOrder: 1,
     config: {
@@ -131,7 +131,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'beige-wall',
     product: 'shop',
     name: 'Soft Beige Wall',
-    description: 'Warm plaster wall with window shadows — the boutique Instagram look.',
+    description: 'A warm wall with soft window shadows. Great for Instagram.',
     coverImage: `${IMG}/shop/looks/beige-wall.png`,
     sortOrder: 2,
     config: {
@@ -144,7 +144,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'cafe-lifestyle',
     product: 'shop',
     name: 'Café Lifestyle',
-    description: 'Bright café, natural light, relaxed and candid.',
+    description: 'A bright café. Easy and natural.',
     coverImage: `${IMG}/shop/looks/cafe-lifestyle.png`,
     sortOrder: 3,
     config: {
@@ -157,7 +157,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'street-urban',
     product: 'shop',
     name: 'Street',
-    description: 'Clean modern street, concrete and glass, daylight.',
+    description: 'A clean city street in daylight.',
     coverImage: `${IMG}/shop/looks/street-urban.png`,
     sortOrder: 4,
     config: {
@@ -170,7 +170,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'boutique-rack',
     product: 'shop',
     name: 'Boutique',
-    description: 'Minimal boutique interior with a clothing rail behind.',
+    description: 'A small shop with a clothes rack behind.',
     coverImage: `${IMG}/shop/looks/boutique-rack.png`,
     sortOrder: 5,
     config: {
@@ -183,7 +183,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     id: 'resort',
     product: 'shop',
     name: 'Resort',
-    description: 'Pool terrace and beach walkway, bright summer sun.',
+    description: 'A pool and a beach in bright summer sun.',
     coverImage: `${IMG}/shop/looks/resort.png`,
     sortOrder: 6,
     config: {

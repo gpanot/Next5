@@ -1,8 +1,8 @@
 import { Sparkles, UserRound } from 'lucide-react';
 
 const OPTIONS = [
-  { icon: UserRound, title: 'Wear it yourself', body: 'Upload two selfies and one full-body photo once. Every product can be worn by you — your customers already know your face.' },
-  { icon: Sparkles, title: 'Studio models', body: 'Six Next5 models of different ages and body types, available on every product. Pro plans include all six.' },
+  { icon: UserRound, title: 'Wear it yourself', body: 'Send two selfies and one full-body photo one time. Then you can wear every product. Your buyers already know your face.' },
+  { icon: Sparkles, title: 'Our models', body: 'Six Next5 models of different ages and body types. Use them on any product. Pro plans get all six.' },
 ] as const;
 
 export const ModelChoice = () => (

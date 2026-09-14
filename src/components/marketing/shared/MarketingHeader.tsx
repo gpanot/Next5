@@ -16,7 +16,7 @@ const LINKS = [
 const ctaFor = (pathname: string): { href: string; label: string } => {
   if (pathname.startsWith('/shop')) return { href: '/start/shop', label: 'Try it free' };
   if (pathname.startsWith('/brand')) return { href: '/start/brand', label: 'Start free' };
-  return { href: '/start/brand', label: 'Get started' };
+  return { href: pathname === '/' ? '/#studios' : '/start/brand', label: pathname === '/' ? 'Try it free' : 'Get started' };
 };
 
 export const BusinessLogo = () => (

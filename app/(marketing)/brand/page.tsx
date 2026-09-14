@@ -16,25 +16,25 @@ import { StickyMobileCta } from '../../../src/components/marketing/shared/Sticky
 import { BRAND } from '../../../src/content/business/marketing';
 
 export const metadata: Metadata = {
-  title: 'Next5 Brand — Monthly on-brand photos of you',
-  description: 'Upload three selfies once and get fresh, professional photos of yourself every month. Built for realtors, coaches and beauty pros.',
+  title: 'Next5 Brand — New photos of you every month',
+  description: 'Send three selfies one time. Get new pro photos of you every month. Made for realtors, coaches and beauty pros.',
 };
 
 export default function BrandPage() {
   const start = { href: '/start/brand', label: BRAND.hero.cta };
   return (
     <>
-      <ProductHero {...BRAND.hero} cta={start} secondary={{ href: '#pricing', label: 'See pricing' }} note="3 free photos. No payment details needed." visual={<BrandHeroVisual />} />
+      <ProductHero {...BRAND.hero} cta={start} secondary={{ href: '#pricing', label: 'See pricing' }} note="3 free photos. No card needed." visual={<BrandHeroVisual />} />
       <Section tone="sunken" eyebrow="Why Next5" title={BRAND.comparison.title}><OldWayComparison /></Section>
-      <Section eyebrow="How it works" title="Five minutes a month for a month of photos."><StepsGrid steps={BRAND.steps} /></Section>
-      <Section tone="sunken" eyebrow="Sets" title="Pick a set. Keep your look consistent." sub="Your set is your signature look — the same light, place and style in every batch, so your feed feels like you."><SetsGallery /></Section>
-      <Section eyebrow="Monthly themes" title="A new theme every month." sub="Fresh ideas drop on the 1st. Use the featured theme or any theme in the library."><ThemesScroller /></Section>
-      <Section tone="sunken" eyebrow="Made for your industry" title="Photos for the way you actually work."><IndustryTabs /></Section>
-      <Section eyebrow="Every format" title="Sized for every place you post." sub="Each format is created at its own shape — nothing gets awkwardly cropped."><FormatsShowcase /></Section>
+      <Section eyebrow="How it works" title="Five minutes. A whole month of photos."><StepsGrid steps={BRAND.steps} /></Section>
+      <Section tone="sunken" eyebrow="Sets" title="Pick a set. Look the same in every post." sub="Your set is your look. Same light, same place, same style every time. Your feed looks like you."><SetsGallery /></Section>
+      <Section eyebrow="Monthly themes" title="A new theme every month." sub="New ideas come out on the 1st. Use this month’s theme or any theme you like."><ThemesScroller /></Section>
+      <Section tone="sunken" eyebrow="Made for your industry" title="Photos for the work you really do."><IndustryTabs /></Section>
+      <Section eyebrow="Every format" title="The right size for every app." sub="We make each size on its own. Nothing gets cut off."><FormatsShowcase /></Section>
       <Section tone="sunken"><GuaranteeRow items={BRAND.guarantees} /></Section>
-      <Section id="pricing" eyebrow="Pricing" title="Prepaid plans. No auto-charge."><PricingPreview product="brand" /></Section>
-      <Section tone="sunken" eyebrow="FAQ" title="Questions, answered." align="center"><FaqAccordion items={BRAND.faq} /></Section>
-      <div className="pt-16 sm:pt-24"><FinalCtaBand title="Your next month of photos is five minutes away." body="Start with 3 free photos of you. No payment details needed." href={start.href} cta={start.label} /></div>
+      <Section id="pricing" eyebrow="Pricing" title="You pay first. No surprise charges."><PricingPreview product="brand" /></Section>
+      <Section tone="sunken" eyebrow="FAQ" title="Your questions, answered." align="center"><FaqAccordion items={BRAND.faq} /></Section>
+      <div className="pt-16 sm:pt-24"><FinalCtaBand title="A month of new photos is five minutes away." body="Start with 3 free photos of you. No card needed." href={start.href} cta={start.label} /></div>
       <StickyMobileCta href={start.href} label="Start free" />
     </>
   );

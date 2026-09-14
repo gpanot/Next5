@@ -21,7 +21,7 @@ page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
 await page.goto(`${BASE}/#routes`);
 await page.waitForURL(/\/photos#routes$/, { timeout: 15000 });
 await page.goto(BASE);
-await page.getByRole('link', { name: 'For professionals' }).first().waitFor();
+await page.getByRole('link', { name: 'I sell a service' }).first().waitFor();
 await page.screenshot({ path: `${OUT}/home.png` });
 
 await page.goto(link);

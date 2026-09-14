@@ -8,9 +8,9 @@ export const AccuracyPromise = () => {
     <div className="grid items-center gap-10 rounded-3xl border border-app-line bg-app-panel p-6 sm:p-10 lg:grid-cols-2">
       <div className="flex flex-col gap-4">
         <ShieldCheck aria-hidden className="h-8 w-8 text-app-accent" />
-        <h3 className="font-serif text-[32px] font-medium leading-tight text-app-ink">If the garment doesn’t match, redo it free.</h3>
+        <h3 className="font-serif text-[32px] font-medium leading-tight text-app-ink">If the clothes don’t match, we redo it free.</h3>
         <p className="text-[16px] leading-relaxed text-app-muted">
-          Every result sits next to your product photo so you can check colour, print and length before you post. Tap “Doesn’t match product” and we make it again — twice per photo, at no cost.
+          You see each new photo next to your product photo. Check the color, print and length before you post. Tap “Doesn’t match product” and we make it again. You get two free redos per photo.
         </p>
         <ul className="mt-2 flex flex-col gap-2 text-[14px] text-app-ink">
           {SHOP.posting.map((tip) => <li key={tip} className="border-l-2 border-app-accent pl-3">{tip}</li>)}

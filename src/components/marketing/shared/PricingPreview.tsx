@@ -19,7 +19,7 @@ export const PricingPreview = ({ product }: { product: ProductLineId }) => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <TermToggle value={term} onChange={setTerm} />
         <Link href={`/pricing?for=${product === 'brand' ? 'professionals' : 'shops'}`} className="text-[14px] font-medium text-app-accent transition-colors duration-200 hover:text-app-ink">
-          Compare plans and top-ups →
+          Compare plans and extra photos →
         </Link>
       </div>
       <div className="grid gap-6 md:grid-cols-2">

@@ -16,11 +16,11 @@ export const CostPerProduct = () => {
       </div>
       <div className="flex flex-col gap-6">
         <div className="rounded-2xl border border-app-line bg-app-panel p-6">
-          <p className="label-caps text-[10px] font-medium text-app-muted">A new drop of {PRODUCTS} products</p>
+          <p className="label-caps text-[10px] font-medium text-app-muted">{PRODUCTS} new products</p>
           <dl className="mt-4 grid grid-cols-2 gap-4">
             <div>
-              <dt className="text-[13px] text-app-muted">Booking a model</dt>
-              <dd className="mt-1 text-[16px] font-medium text-app-ink">A half-day shoot, per set</dd>
+              <dt className="text-[13px] text-app-muted">Hiring a model</dt>
+              <dd className="mt-1 text-[16px] font-medium text-app-ink">Half a day, for each set</dd>
             </div>
             <div>
               <dt className="text-[13px] text-app-muted">With Next5 Starter</dt>
@@ -28,11 +28,11 @@ export const CostPerProduct = () => {
             </div>
           </dl>
           <p className="mt-4 text-[13px] text-app-muted">
-            {PRODUCTS} products × {SHOTS} shots at {formatUsd(perPhoto)} per photo on the {formatUsd(PLANS.shop_starter.monthlyUsdCents)}/month plan.
+            {PRODUCTS} products × {SHOTS} photos at {formatUsd(perPhoto)} each on the {formatUsd(PLANS.shop_starter.monthlyUsdCents)} a month plan.
           </p>
         </div>
         <p className="text-[16px] leading-relaxed text-app-muted">
-          No studio booking, no model fee, no evening spent shooting mirror photos. Photos arrive the same day your stock does.
+          No studio to book. No model to pay. No late nights taking mirror photos. Your photos are ready the same day your stock comes in.
         </p>
       </div>
     </div>

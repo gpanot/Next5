@@ -16,7 +16,7 @@ export const ProductChooser = () => (
           className="group flex flex-col overflow-hidden rounded-3xl border border-app-line bg-app-panel shadow-sm transition-shadow duration-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
         >
           <div className="relative aspect-[4/3] overflow-hidden bg-app-sunken">
-            <MarketingImage src={product.image} sizes="(min-width: 768px) 45vw, 100vw" className="transition-transform duration-500 group-hover:scale-[1.03]" />
+            <MarketingImage src={product.image} sizes="(min-width: 768px) 45vw, 100vw" className="object-[center_22%] transition-transform duration-500 group-hover:scale-[1.03]" />
           </div>
           <div className="flex flex-1 flex-col gap-3 p-6 sm:p-8">
             <p className="label-caps text-[10px] font-medium text-app-accent">{product.eyebrow}</p>

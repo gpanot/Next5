@@ -11,7 +11,7 @@ export const THEMES: readonly ThemeSeed[] = [
   {
     id: 'just-listed',
     title: 'Just Listed',
-    description: 'Announce a new property with warm, welcoming photos.',
+    description: 'Show a new home with warm, happy photos.',
     coverImage: `${IMG}/just-listed.png`,
     featuredMonth: '2026-10',
     sortOrder: 1,
@@ -27,7 +27,7 @@ export const THEMES: readonly ThemeSeed[] = [
   {
     id: 'market-update',
     title: 'Market Update',
-    description: 'Look like the expert while you share the numbers.',
+    description: 'Look like the expert when you share the numbers.',
     coverImage: `${IMG}/market-update.png`,
     featuredMonth: '2026-11',
     sortOrder: 2,
@@ -43,7 +43,7 @@ export const THEMES: readonly ThemeSeed[] = [
   {
     id: 'client-meeting',
     title: 'Client Meeting',
-    description: 'Show clients what working with you feels like.',
+    description: 'Show clients what it is like to work with you.',
     coverImage: `${IMG}/client-meeting.png`,
     featuredMonth: null,
     sortOrder: 3,
@@ -59,7 +59,7 @@ export const THEMES: readonly ThemeSeed[] = [
   {
     id: 'behind-the-scenes',
     title: 'Behind the Scenes',
-    description: 'The real, busy, human side of your work.',
+    description: 'The real, busy side of your work.',
     coverImage: `${IMG}/behind-the-scenes.png`,
     featuredMonth: null,
     sortOrder: 4,
@@ -75,7 +75,7 @@ export const THEMES: readonly ThemeSeed[] = [
   {
     id: 'new-year-goals',
     title: 'New Year, New Goals',
-    description: 'A fresh-start set for January posts.',
+    description: 'Fresh-start photos for January.',
     coverImage: `${IMG}/new-year-goals.png`,
     featuredMonth: '2027-01',
     sortOrder: 5,
@@ -91,7 +91,7 @@ export const THEMES: readonly ThemeSeed[] = [
   {
     id: 'holiday-greetings',
     title: 'Holiday Greetings',
-    description: 'Warm seasonal photos for year-end wishes.',
+    description: 'Warm holiday photos for your year-end wishes.',
     coverImage: `${IMG}/holiday-greetings.png`,
     featuredMonth: '2026-12',
     sortOrder: 6,
@@ -107,7 +107,7 @@ export const THEMES: readonly ThemeSeed[] = [
   {
     id: 'tet-greetings',
     title: 'Lunar New Year Greetings',
-    description: 'Elegant Lunar New Year wishes for your clients.',
+    description: 'Lunar New Year wishes for your clients.',
     coverImage: `${IMG}/tet-greetings.png`,
     featuredMonth: '2027-02',
     sortOrder: 7,
@@ -123,7 +123,7 @@ export const THEMES: readonly ThemeSeed[] = [
   {
     id: 'open-house',
     title: 'Open House Weekend',
-    description: 'Invite buyers in with bright, welcoming scenes.',
+    description: 'Invite buyers in with bright, happy photos.',
     coverImage: `${IMG}/open-house.png`,
     featuredMonth: null,
     sortOrder: 8,
