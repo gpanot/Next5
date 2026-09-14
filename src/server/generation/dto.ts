@@ -3,7 +3,7 @@
 import type { Batch, BatchItem } from '@prisma/client';
 import { FREE_REDOS_PER_ITEM } from '../../config/business';
 import { prisma } from '../../lib/db';
-import type { BatchDetailDto, BatchItemDto, BatchSummaryDto } from '../../types/business/batches';
+import type { BatchDetailDto, BatchItemDto, BatchSummaryDto, PostKitDto, ScoreDetailsDto } from '../../types/business/batches';
 import { presignObject } from '../storage/objectStore';
 import { getProgress } from './batchStatus';
 
@@ -19,6 +19,9 @@ export const toItemDto = async (item: BatchItem): Promise<BatchItemDto> => ({
   rating: item.rating,
   freeRedosLeft: Math.max(0, FREE_REDOS_PER_ITEM - item.freeRedosUsed),
   caption: item.caption,
+  postKit: (item.postKit as PostKitDto | null) ?? null,
+  score: item.score,
+  scoreDetails: (item.scoreDetails as ScoreDetailsDto | null) ?? null,
   errorMessage: item.status === 'failed' ? item.errorMessage : null,
 });
 

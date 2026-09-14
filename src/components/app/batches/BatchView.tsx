@@ -17,7 +17,7 @@ import { BatchHeader } from './BatchHeader';
 import { CompareLightbox } from './CompareLightbox';
 import { PostingTips } from './PostingTips';
 import { ShopCompareGrid } from './ShopCompareGrid';
-import { CaptionPanel } from './CaptionPanel';
+import { PostKitPanel } from '../postKit/PostKitPanel';
 import { RedoDialog } from './RedoDialog';
 import { ResultTile } from './ResultTile';
 import { useBatchActions } from './useBatchActions';
@@ -47,6 +47,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
   const toggle = (id: string) => setSelected((prev) => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   const open = openIndex !== null ? openable[openIndex] : null;
   const isShop = batch.products.length > 0;
+  const postKitAllowed = Boolean(me?.plan?.postKit) || batch.kind === 'trial';
   const openProduct = open && isShop ? batch.products.find((p) => p.id === open.productId) ?? null : null;
 
   return (
@@ -103,7 +104,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
         </div>
       )}
       {open?.url && isShop && (
-        <CompareLightbox originalUrl={openProduct?.frontUrl ?? null} generatedUrl={open.url} title={openProduct?.name ?? batch.name} onClose={() => setOpenIndex(null)} />
+        <CompareLightbox originalUrl={openProduct?.frontUrl ?? null} generatedUrl={open.url} title={openProduct?.name ?? batch.name} onClose={() => setOpenIndex(null)} panel={<PostKitPanel key={open.id} item={open} product="shop" allowed={postKitAllowed} onCopied={(what) => toast(`${what} copied`)} />} />
       )}
       {open?.url && !isShop && (
         <ImageLightbox
@@ -112,11 +113,11 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
           onClose={() => setOpenIndex(null)}
           onPrev={openable.length > 1 ? () => setOpenIndex((i) => (i === null ? 0 : (i - 1 + openable.length) % openable.length)) : undefined}
           onNext={openable.length > 1 ? () => setOpenIndex((i) => (i === null ? 0 : (i + 1) % openable.length)) : undefined}
-          overlay={product === 'brand' && batch.kind !== 'trial' ? (
-            <div className="pointer-events-auto absolute bottom-4 left-1/2 w-[min(92vw,420px)] -translate-x-1/2">
-              <CaptionPanel key={open.id} itemId={open.id} initial={open.caption} allowed={Boolean(me?.plan?.captions)} onCopied={() => toast('Caption copied')} />
+          overlay={(
+            <div className="pointer-events-auto absolute bottom-4 left-1/2 w-[min(92vw,440px)] -translate-x-1/2">
+              <PostKitPanel key={open.id} item={open} product="brand" allowed={postKitAllowed} onCopied={(what) => toast(`${what} copied`)} />
             </div>
-          ) : undefined}
+          )}
         />
       )}
       {redoTarget && product && (

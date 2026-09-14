@@ -9,7 +9,7 @@ import { SkeletonCard } from '../../../src/components/ui/Skeleton';
 import { PRICING } from '../../../src/content/business/marketing';
 
 export const metadata: Metadata = {
-  title: 'Next5 Pricing — Prepaid plans from $15/month',
+  title: 'Next5 Pricing — Plans from $29 a month',
   description: 'Simple prepaid plans for Next5 Brand and Next5 Shop. Pay by bank transfer for 1, 3 or 6 months. No auto-charge.',
 };
 
@@ -17,7 +17,7 @@ export default function PricingPage() {
   return (
     <>
       <Section title={PRICING.title} sub={PRICING.sub} align="center" className="pb-10 sm:pb-12">
-        <Suspense fallback={<div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2"><SkeletonCard /><SkeletonCard /></div>}>
+        <Suspense fallback={<div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-2 lg:grid-cols-3"><SkeletonCard /><SkeletonCard /><SkeletonCard /></div>}>
           <PricingExplorer />
         </Suspense>
       </Section>

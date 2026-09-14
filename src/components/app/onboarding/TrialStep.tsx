@@ -9,6 +9,8 @@ import { ApiError, apiFetch } from '../../../lib/apiClient';
 import type { BatchItemDto, BatchSummaryDto } from '../../../types/business/batches';
 import { AppButton } from '../../ui/AppButton';
 import { ImageTile } from '../../ui/ImageTile';
+import { PostKitPanel } from '../postKit/PostKitPanel';
+import { ScoreBadge } from '../postKit/ScoreBadge';
 import { SkeletonText } from '../../ui/Skeleton';
 import { StepCard } from './StepCard';
 import type { StepProps } from './types';
@@ -38,20 +40,32 @@ const TrialResults = ({ batchId, product }: { batchId: string; product: 'brand' 
     await apiFetch(`/api/app/batches/${batchId}/items/${item.id}/redo`, { method: 'POST', json: { reason: product === 'shop' ? 'product_mismatch' : 'not_like_me' } }).catch(() => undefined);
   };
   const active = batch.status === 'queued' || batch.status === 'generating';
+  const best = active ? null : [...batch.items].filter((i) => i.status === 'ready' && i.score !== null).sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0] ?? null;
   return (
     <div className="flex flex-col gap-5">
       {active && <Progress ready={batch.progress.ready} total={batch.progress.total} />}
       <div className="grid grid-cols-3 gap-3">
         {batch.items.map((item) => (
-          <ImageTile
-            key={item.id}
-            src={item.url ?? undefined}
-            alt="Your free photo"
-            status={item.status === 'submitting' ? 'generating' : item.status}
-            onRedo={item.status === 'ready' && item.freeRedosLeft > 0 ? () => void redo(item) : undefined}
-          />
+          <div key={item.id} className="relative">
+            <ImageTile
+              src={item.url ?? undefined}
+              alt="Your free photo"
+              status={item.status === 'submitting' ? 'generating' : item.status}
+              onRedo={item.status === 'ready' && item.freeRedosLeft > 0 ? () => void redo(item) : undefined}
+            />
+            {item.status === 'ready' && item.score !== null && <ScoreBadge score={item.score} className="pointer-events-none absolute left-2 top-2" />}
+          </div>
         ))}
       </div>
+      {best && (
+        <div className="flex flex-col gap-2">
+          <p className="text-[14px] font-medium text-app-ink">Your best photo, ready to post</p>
+          <p className="text-[13px] text-app-muted">A free taste of Growth: the score, a tip, and the words to post with it.</p>
+          <div className="rounded-2xl ring-1 ring-app-line">
+            <PostKitPanel key={best.id} item={best} product={product} allowed onCopied={() => undefined} />
+          </div>
+        </div>
+      )}
       {batch.status === 'failed' && <p role="alert" className="text-[14px] text-app-danger">Something went wrong on our side. Your credits were returned — try again.</p>}
     </div>
   );

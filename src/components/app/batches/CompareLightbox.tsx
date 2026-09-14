@@ -1,14 +1,14 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 
-type CompareLightboxProps = { originalUrl: string | null; generatedUrl: string; title: string; onClose: () => void };
+type CompareLightboxProps = { originalUrl: string | null; generatedUrl: string; title: string; onClose: () => void; panel?: ReactNode };
 
 /** Side by side on desktop; a toggle between original and generated on phones. */
-export const CompareLightbox = ({ originalUrl, generatedUrl, title, onClose }: CompareLightboxProps) => {
+export const CompareLightbox = ({ originalUrl, generatedUrl, title, onClose, panel }: CompareLightboxProps) => {
   const [view, setView] = useState<'original' | 'generated'>('generated');
 
   useEffect(() => {
@@ -45,6 +45,7 @@ export const CompareLightbox = ({ originalUrl, generatedUrl, title, onClose }: C
           <figcaption className="label-caps text-[10px] text-white/70">Next5</figcaption>
         </figure>
       </div>
+      {panel && <div className="mx-auto w-full max-w-xl shrink-0">{panel}</div>}
     </div>,
     document.body,
   );

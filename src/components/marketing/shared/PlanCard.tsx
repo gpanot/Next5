@@ -25,7 +25,7 @@ export const PlanCard = ({ plan, term }: PlanCardProps) => {
         <span className="label-caps absolute -top-3 left-6 rounded-full bg-app-accent px-3 py-1 text-[10px] font-semibold text-app-accent-ink">Most popular</span>
       )}
       <header>
-        <p className="text-[14px] font-medium text-app-muted">{productLabel} {plan.name}</p>
+        <p className="text-[14px] font-medium text-app-muted">{productLabel} {plan.name} · <span className="text-app-accent">{plan.audience}</span></p>
         <p className="mt-2 flex items-baseline gap-1">
           <span className="text-[44px] font-semibold leading-none tabular-nums text-app-ink">{formatUsd(monthly)}</span>
           <span className="text-[15px] text-app-muted">/mo</span>
@@ -45,7 +45,7 @@ export const PlanCard = ({ plan, term }: PlanCardProps) => {
         ))}
       </ul>
       <CtaLink href={`/start/${plan.product}?plan=${plan.id}&term=${term}`} variant={plan.mostPopular ? 'primary' : 'secondary'} className="w-full">
-        Start free
+        {plan.id.endsWith('_agency') ? 'Get Agency' : 'Start free'}
       </CtaLink>
     </article>
   );

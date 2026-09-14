@@ -8,10 +8,11 @@ import { PromptsTab } from '../../src/components/admin/PromptsTab';
 import { UsersTab } from '../../src/components/admin/UsersTab';
 import { OverviewTab } from '../../src/components/admin/business/OverviewTab';
 import { PaymentsTab } from '../../src/components/admin/business/PaymentsTab';
+import { PromiseTab } from '../../src/components/admin/business/PromiseTab';
 import { QaTab } from '../../src/components/admin/business/QaTab';
 import { WorkspacesTab } from '../../src/components/admin/business/WorkspacesTab';
 
-type Tab = 'overview' | 'workspaces' | 'payments' | 'qa' | 'users' | 'bookings' | 'prompts';
+type Tab = 'overview' | 'workspaces' | 'payments' | 'promise' | 'qa' | 'users' | 'bookings' | 'prompts';
 const adminTokenStore = createLocalStore('admin_token');
 
 const isAdminToken = (token: string): boolean => {
@@ -51,7 +52,7 @@ export default function AdminPage() {
 
       <div className="border-b border-[#e9e1d6] bg-white px-6">
         <div className="mx-auto flex max-w-7xl gap-1">
-          {(['overview', 'workspaces', 'payments', 'qa', 'bookings', 'users', 'prompts'] as Tab[]).map((t) => (
+          {(['overview', 'workspaces', 'payments', 'promise', 'qa', 'bookings', 'users', 'prompts'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -72,6 +73,7 @@ export default function AdminPage() {
         {tab === 'overview'   && <OverviewTab   token={token} />}
         {tab === 'workspaces' && <WorkspacesTab token={token} />}
         {tab === 'payments'   && <PaymentsTab   token={token} />}
+        {tab === 'promise'    && <PromiseTab    token={token} />}
         {tab === 'qa'         && <QaTab         token={token} />}
         {tab === 'users'    && <UsersTab    token={token} />}
         {tab === 'bookings' && <BookingsTab token={token} />}

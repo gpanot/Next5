@@ -5,7 +5,7 @@ import { CtaLink } from './CtaLink';
 
 /** Bottom CTA bar on phones, shown once the hero has scrolled away. */
 export const StickyMobileCta = ({ href, label }: { href: string; label: string }) => {
-  const visible = useScrolled(560);
+  const visible = useScrolled(160);
   return (
     <div
       aria-hidden={!visible}

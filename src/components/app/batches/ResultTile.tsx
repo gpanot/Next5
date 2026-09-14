@@ -3,6 +3,7 @@
 import { AlertTriangle, Check, Download, Heart, Loader2, Maximize2, RefreshCw } from 'lucide-react';
 import { FORMATS, isFormatId } from '../../../config/formats';
 import type { BatchItemDto } from '../../../types/business/batches';
+import { ScoreBadge } from '../postKit/ScoreBadge';
 
 type ResultTileProps = {
   item: BatchItemDto;
@@ -51,6 +52,7 @@ export const ResultTile = ({ item, alt, selecting, selected, onToggleSelect, onO
             {selected && <Check aria-hidden className="h-4 w-4" />}
           </span>
         )}
+        {ready && !selecting && item.score !== null && <ScoreBadge score={item.score} className="absolute left-2 top-2" />}
         {ready && !selecting && <Maximize2 aria-hidden className="absolute right-2 top-2 h-4 w-4 text-white opacity-80 drop-shadow" />}
       </button>
       {!selecting && (

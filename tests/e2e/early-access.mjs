@@ -28,7 +28,7 @@ await page.goto(link);
 await page.getByText('Recent batches').waitFor({ timeout: 20000 });
 await page.goto(`${BASE}/app/billing`);
 await page.getByRole('button', { name: /Choose a plan|Renew or change plan/ }).click();
-await page.getByRole('button', { name: /^Choose Pro$/ }).click();
+await page.getByRole('button', { name: /^Choose Growth$/ }).click();
 await page.getByText('Request received').waitFor({ timeout: 15000 });
 if (await page.getByText('Transfer memo').count()) throw new Error('bank details shown for a request');
 if (await page.getByRole('button', { name: /Simulate transfer/ }).count()) throw new Error('simulate shown in request mode');
@@ -46,7 +46,7 @@ if (res.outcome !== 'paid') throw new Error(`activation failed: ${JSON.stringify
 
 await page.reload();
 await page.getByText('Activated').first().waitFor({ timeout: 15000 });
-await page.getByText(/Brand Pro · 3 months/).first().waitFor();
+await page.getByText(/Brand Growth · 3 months/).first().waitFor();
 await page.screenshot({ path: `${OUT}/request-activated.png`, fullPage: true });
 await browser.close();
 console.log('E2E early access OK', email);

@@ -23,7 +23,7 @@ const validate = (expanded: ExpandedBatch, plan: Plan | null): BatchEstimate => 
   if (expanded.items.length > MAX_BATCH_ITEMS) {
     throw new HttpError(400, 'batch_too_large', `A batch can have up to ${MAX_BATCH_ITEMS} photos. Choose fewer products or formats.`);
   }
-  if (expanded.highRes && !plan?.highRes) throw new HttpError(403, 'plan_required', 'High-res photos are included in Pro.');
+  if (expanded.highRes && !plan?.highRes) throw new HttpError(403, 'plan_required', 'Big 2K photos are included in Growth.');
   return { items: expanded.items.length, credits: expanded.items.length * creditsPerItem(expanded.highRes) };
 };
 

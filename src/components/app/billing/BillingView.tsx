@@ -7,6 +7,7 @@ import { formatShortDate } from '../../../lib/dates';
 import { formatUsd } from '../../../lib/money';
 import type { PaymentDto } from '../../../types/business/payments';
 import { CheckoutSheet, type CheckoutRequest } from '../../checkout/CheckoutSheet';
+import { PromiseCard } from '../promise/PromiseCard';
 import { AppButton } from '../../ui/AppButton';
 import { Card, CardBody } from '../../ui/Card';
 import { EmptyState } from '../../ui/EmptyState';
@@ -69,6 +70,8 @@ export const BillingView = () => {
           </div>
         </CardBody>
       </Card>
+
+      <PromiseCard product={product} />
 
       <section className="flex flex-col gap-3">
         <h2 className="text-[17px] font-semibold text-app-ink">Payments</h2>

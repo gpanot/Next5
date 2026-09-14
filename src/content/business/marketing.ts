@@ -7,18 +7,7 @@ const IMG = '/images/business';
 
 export type FaqItem = { q: string; a: string };
 
-export type ComparisonRow = { label: string; old: string; next5: string };
-
 export const HOME = {
-  hero: {
-    eyebrow: 'Try it free · No card needed',
-    title: 'Fresh photos every month. No photo shoot.',
-    sub: 'Send us a few selfies or a photo of what you sell. Get pro photos back in minutes. Your first 3 photos are free.',
-    note: '3 free photos. No card. About 5 minutes.',
-    brandImage: `${IMG}/home/hero-professional.png`,
-    shopBefore: `${IMG}/shop/slider/dress-before.png`,
-    shopAfter: `${IMG}/shop/slider/dress-after.png`,
-  },
   proof: {
     eyebrow: 'See it work',
     title: 'You take a quick photo. We make it look pro.',
@@ -28,18 +17,6 @@ export const HOME = {
       'Worn by you or one of our models.',
       'Ready to post in minutes.',
     ],
-  },
-  comparison: {
-    eyebrow: 'The math',
-    title: 'A photo shoot costs a lot. Next5 costs a little.',
-    oldLabel: 'A photo shoot',
-    next5Label: 'Next5',
-    rows: [
-      { label: 'Price', old: '$1,200 or more', next5: 'From $15 a month' },
-      { label: 'Your time', old: 'A full day', next5: 'About 5 minutes' },
-      { label: 'Wait', old: 'Days or weeks for edits', next5: 'Photos in minutes' },
-      { label: 'New photos', old: 'Once or twice a year', next5: 'Every month' },
-    ] satisfies ComparisonRow[],
   },
   products: [
     {
@@ -66,17 +43,6 @@ export const HOME = {
     { title: 'Pick a look', body: 'Choose a place and a style. It stays the same every month.' },
     { title: 'Post all month', body: 'Get photos sized for Instagram, TikTok and your shop.' },
   ],
-  promise: {
-    eyebrow: 'Our promise',
-    title: 'It looks right, or we fix it for free.',
-    sub: 'If a photo does not look like you, or like your product, tap Redo. We make it again for free, two times per photo. If a photo fails, you get your photo credit back.',
-  },
-  guarantees: [
-    { title: 'Free to try', body: '3 free photos. No card needed.' },
-    { title: 'Free redos', body: 'Two free redos for every photo.' },
-    { title: 'No surprise bills', body: 'You pay first. Nothing renews on its own.' },
-    { title: 'Your photos are yours', body: 'Use them anywhere. Delete your selfies any time.' },
-  ],
   final: {
     title: 'Stop posting the same old photos.',
     body: 'Get 3 free photos today. Paid plans are opening to a small group first.',
@@ -86,7 +52,8 @@ export const HOME = {
   faq: [
     { q: 'Will the photos look like me?', a: 'Yes. We use your selfies for every photo. If one looks off, redo it for free. You get two free redos per photo.' },
     { q: 'Will my product look right?', a: 'We keep the color, print and length the same. You see your photo next to the new one. If it does not match, redo it for free.' },
-    { q: 'How much does it cost?', a: 'Plans start at $15 a month for shops and $19 a month for people who sell a service. Your first 3 photos are free.' },
+    { q: 'Can’t I just use ChatGPT?', a: 'You can make one photo. But your face or your product changes each time, and you still write every post. Next5 keeps you and your product the same, makes 30 photos at once, and writes the hook, caption and hashtags.' },
+    { q: 'How much does it cost?', a: 'Plans start at $29 a month. Growth is $99 a month and includes the Post Kit. Your first 3 photos are free.' },
     { q: 'How fast do I get my photos?', a: 'Most photos are ready in a few minutes. We email you when a big batch is done.' },
     { q: 'How do I pay?', a: 'You pay by bank transfer for 1, 3 or 6 months. Nothing renews on its own. We remind you before your plan ends.' },
     { q: 'Who owns the photos?', a: 'You do. Use them on social media, your website, your listings and your ads.' },
@@ -96,22 +63,6 @@ export const HOME = {
 };
 
 export const BRAND = {
-  hero: {
-    eyebrow: 'Brand Studio',
-    title: 'New photos of you every month. No photo shoot.',
-    sub: 'Send three selfies one time. Pick your look. Get new pro photos every month for your posts, listings and profile.',
-    cta: 'Start free: get 3 photos',
-    image: `${IMG}/brand/hero-main.png`,
-  },
-  comparison: {
-    title: 'A photo shoot takes a day. Then your photos get old.',
-    rows: [
-      { label: 'Cost', old: '$1,200 or more per shoot', next5: 'From $19 a month' },
-      { label: 'How often', old: 'Once or twice a year', next5: 'New photos every month' },
-      { label: 'Time', old: 'A full day to get ready and pose', next5: 'About 5 minutes' },
-      { label: 'Variety', old: 'The same 30 photos, again and again', next5: 'A new theme every month' },
-    ] satisfies ComparisonRow[],
-  },
   steps: [
     { title: 'Send three selfies', body: 'Look at the camera. Then turn a little left, then a little right. Use good light. No sunglasses.', image: `${IMG}/brand/step-selfies.png` },
     { title: 'Make your set', body: 'Pick a place, your clothes and your brand colors. This is your look.', image: `${IMG}/brand/sets/modern-office.png` },
@@ -124,14 +75,10 @@ export const BRAND = {
     { id: 'fitness', label: 'Fitness', image: `${IMG}/brand/industries/fitness.png`, points: ['Posts for new classes and programs', 'Bright, fun profile and cover photos', 'New photos for every challenge'] },
     { id: 'finance', label: 'Finance & insurance', image: `${IMG}/brand/industries/finance.png`, points: ['LinkedIn and Facebook photos people trust', 'Photos of you meeting with clients', 'New Year and Lunar New Year cards'] },
   ],
-  formatsImage: `${IMG}/brand/formats-master.png`,
-  guarantees: [
-    { title: 'Looks like you', body: 'Redo any photo for free, two times.' },
-    { title: 'No auto-charge', body: 'You pay first. Renew only if you want.' },
-    { title: 'Your face, your choice', body: 'Delete your selfies any time.' },
-    { title: 'AI label built in', body: 'Every file has the AI label that apps ask for.' },
-  ],
   faq: [
+    { q: 'Can’t I just use ChatGPT?', a: 'You can make one photo. But your face changes a little each time, and you still have to write every post. Next5 keeps your face the same every month, makes all your photos at once, and writes the hook, caption and hashtags.' },
+    { q: 'What is the Scroll-Stop Score?', a: 'Every photo gets a score from 0 to 100. AI checks six things that make people stop scrolling, like light, a clear face and how it looks small. You also get one tip to post it better.' },
+    { q: 'What is the Beat-your-feed promise?', a: 'Post 12 Next5 photos in 30 days. Then compare them with your last 12 posts in your own stats. If they did not do better, tell us in the app and your next month is free.' },
     { q: 'Will it look like me?', a: 'We use your three selfies for every photo. We keep your face, skin and hair the same. If a photo looks off, redo it for free, two times.' },
     { q: 'What do I need to send?', a: 'Three new selfies in good light. One looking at the camera, one turned a little left, one turned a little right. No sunglasses or hats. Just you in the photo.' },
     { q: 'Who owns the photos?', a: 'You do. Use them on social media and your website. Use them on listing sites, business cards and ads.' },
@@ -144,18 +91,11 @@ export const BRAND = {
 };
 
 export const SHOP = {
-  hero: {
-    eyebrow: 'Shop Studio',
-    title: 'New stock this morning. Photos of it worn by lunch.',
-    sub: 'Take a photo of your product on a hanger or laid flat. We show it worn by you or one of our models. Every photo fits TikTok Shop, Shopee and Instagram.',
-    cta: 'Try it free with one product',
-  },
   slider: [
     { id: 'dress', label: 'Dress', before: `${IMG}/shop/slider/dress-before.png`, after: `${IMG}/shop/slider/dress-after.png` },
     { id: 'set', label: 'Set', before: `${IMG}/shop/slider/set-before.png`, after: `${IMG}/shop/slider/set-after.png` },
     { id: 'bag', label: 'Bag', before: `${IMG}/shop/slider/bag-before.png`, after: `${IMG}/shop/slider/bag-after.png` },
   ],
-  costImage: `${IMG}/shop/seller-at-work.png`,
   steps: [
     { title: 'Send product photos', body: 'Take a clear photo from the front on a plain background. Add back and close-up photos for better results.', image: `${IMG}/shop/step-upload.png` },
     { title: 'Pick a model and a look', body: 'Wear it yourself or pick one of our models. Pick a look that fits your shop.', image: `${IMG}/shop/looks/beige-wall.png` },
@@ -166,12 +106,10 @@ export const SHOP = {
     { label: 'Video cover', format: 'story_9_16' as const, image: `${IMG}/shop/looks/street-urban.png` },
     { label: 'Instagram post', format: 'portrait_4_5' as const, image: `${IMG}/shop/looks/cafe-lifestyle.png` },
   ],
-  posting: [
-    'Turn on the AI label when you post on TikTok Shop.',
-    'Your photo must match the real product: the color, print and length.',
-    'Keep real customer photos real. Use Next5 for your shop and ad photos.',
-  ],
   faq: [
+    { q: 'Can’t I just use ChatGPT?', a: 'ChatGPT often changes the color, print or length of your product. That leads to returns. Next5 keeps your real product, uses the same models every time, and writes the hook, description and hashtags for every photo.' },
+    { q: 'What is the Scroll-Stop Score?', a: 'Every photo gets a score from 0 to 100. AI checks six things that make shoppers stop, like a clear product, good light and how it looks as a small photo. You also get a tip, like which photo to use as your cover.' },
+    { q: 'What is the Beat-your-feed promise?', a: 'Post 12 Next5 photos in 30 days. Then compare them with your last 12 posts in your own stats. If they did not do better, tell us in the app and your next month is free.' },
     { q: 'What product photos work best?', a: 'One item on a hanger or laid flat. Use a plain, light background and daylight. Add a close-up for prints, buttons or lace.' },
     { q: 'Can I wear the clothes in the photos?', a: 'Yes. Send two selfies and one full-body photo one time. Then every product can be worn by you.' },
     { q: 'Will the colors and prints match?', a: 'We tell the AI to keep the color, print, length and details the same. You see each new photo next to your product photo. If it does not match, redo it for free, two times.' },

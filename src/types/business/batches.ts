@@ -14,7 +14,20 @@ export type BatchItemDto = {
   rating: number | null;
   freeRedosLeft: number;
   caption: string | null;
+  postKit: PostKitDto | null;
+  /** Scroll-Stop Score 0–100; null until scored. */
+  score: number | null;
+  scoreDetails: ScoreDetailsDto | null;
   errorMessage: string | null;
+};
+
+export type PostKitDto = { hook: string; caption: string; hashtags: string[]; description: string | null };
+
+export type ScoreDetailsDto = {
+  version: 1;
+  criteria: Record<'stop' | 'subject' | 'thumbnail' | 'light' | 'fresh' | 'real', number>;
+  tip: string;
+  bestFor: 'feed' | 'story' | 'listing' | 'profile' | 'ad';
 };
 
 export type BatchProgressDto = { total: number; ready: number; failed: number; inFlight: number };

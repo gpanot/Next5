@@ -48,7 +48,7 @@ const validateSet = async (workspace: Workspace, input: Partial<SetInput>): Prom
     const plan = await getActivePlan(workspace.id);
     if (!plan?.allStudioModels) {
       const other = await prisma.studioSet.findFirst({ where: { workspaceId: workspace.id, status: { not: 'archived' }, modelRef: { notIn: ['me', input.modelRef] } } });
-      if (other) throw new HttpError(403, 'model_limit', 'Your plan includes one Studio model. Upgrade to Pro to use all six.');
+      if (other) throw new HttpError(403, 'model_limit', 'Your plan includes one Studio model. Upgrade to Growth to use all six.');
     }
   }
 };
@@ -59,7 +59,7 @@ export const createSet = async (workspace: Workspace, input: Partial<SetInput>):
   const limit = plan?.maxSets ?? NO_PLAN_MAX_SETS;
   const count = await prisma.studioSet.count({ where: { workspaceId: workspace.id, status: { not: 'archived' } } });
   if (count >= limit) {
-    throw new HttpError(403, 'set_limit', plan ? `Your plan includes ${limit} ${workspace.product === 'shop' ? 'shop looks' : 'sets'}. Upgrade to Pro for more.` : 'Pick a plan to add more.');
+    throw new HttpError(403, 'set_limit', plan ? `Your plan includes ${limit} ${workspace.product === 'shop' ? 'shop looks' : 'sets'}. Upgrade to Growth for more.` : 'Pick a plan to add more.');
   }
   const template = await prisma.setTemplate.findUniqueOrThrow({ where: { id: input.templateId ?? '' } });
   return prisma.studioSet.create({

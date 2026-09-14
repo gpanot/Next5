@@ -73,8 +73,8 @@ export const buildMe = async (userId: string, product?: 'brand' | 'shop', now = 
     subscription: toSubscriptionDto(active),
     queuedRenewal: toSubscriptionDto(queued),
     plan: plan
-      ? { id: plan.id, name: plan.name, highRes: plan.highRes, captions: plan.captions, maxSets: plan.maxSets, allStudioModels: plan.allStudioModels }
-      : { id: 'none', name: 'No plan', highRes: false, captions: false, maxSets: NO_PLAN_MAX_SETS, allStudioModels: false },
+      ? { id: plan.id, name: plan.name, highRes: plan.highRes, postKit: plan.postKit, maxSets: plan.maxSets, allStudioModels: plan.allStudioModels }
+      : { id: 'none', name: 'No plan', highRes: false, postKit: false, maxSets: NO_PLAN_MAX_SETS, allStudioModels: false },
     balance: { ...balance.byBucket, total: balance.total, nextExpiry: balance.nextExpiry ? { at: balance.nextExpiry.at.toISOString(), credits: balance.nextExpiry.credits } : null },
     banners: await computeBanners({ ws, active, queued, plan, balance, now }),
   };

@@ -8,10 +8,12 @@ const ROWS: readonly Row[] = [
   { label: 'Sets / shop looks', value: (p) => String(p.maxSets) },
   { label: 'All formats (4:5, 9:16, 1:1, 3:4)', value: () => true },
   { label: 'Free redos (2 per photo)', value: () => true },
-  { label: 'High-res 2K photos', value: (p) => p.highRes },
-  { label: 'Ready-to-post captions', value: (p) => p.captions },
+  { label: 'Scroll-Stop Score on every photo', value: () => true },
+  { label: 'Big 2K photos', value: (p) => p.highRes },
+  { label: 'Post Kit (hooks, captions, hashtags)', value: (p) => p.postKit },
   { label: 'All 6 Studio models', value: (p) => p.allStudioModels },
-  { label: 'Priority generation', value: (p) => p.priority },
+  { label: 'Photos made first', value: (p) => p.priority },
+  { label: 'Setup call with our team', value: (p) => p.id.endsWith('_agency') },
 ];
 
 const Cell = ({ value }: { value: string | boolean }) => {
@@ -22,7 +24,7 @@ const Cell = ({ value }: { value: string | boolean }) => {
 
 export const ComparisonTable = ({ product }: { product: ProductLineId }) => {
   const plans = plansForProduct(product);
-  const rows = product === 'brand' ? ROWS.filter((r) => r.label !== 'All 6 Studio models') : ROWS.filter((r) => r.label !== 'Ready-to-post captions');
+  const rows = product === 'brand' ? ROWS.filter((r) => r.label !== 'All 6 Studio models') : ROWS;
   return (
     <div className="overflow-x-auto rounded-2xl border border-app-line bg-app-panel">
       <table className="w-full min-w-[480px] text-[14px] text-app-ink">

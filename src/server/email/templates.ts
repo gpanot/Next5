@@ -14,7 +14,7 @@ export const welcomeEmail = (firstName: string | null, product: 'brand' | 'shop'
 export const trialNudgeEmail = (product: 'brand' | 'shop'): EmailContent => ({
   subject: 'Liked your free photos?',
   heading: 'Keep creating every month',
-  body: [product === 'brand' ? 'Your free photos are waiting. Plans start at $19 a month — a fresh drop of on-brand photos, no photoshoot.' : 'Your free product photos are waiting. Plans start at $15 a month — photograph every new drop the day it arrives.', 'Prepaid by bank transfer. Nothing renews automatically.'],
+  body: [product === 'brand' ? 'Your free photos are waiting. With Growth you get new photos every month, plus the hook, caption and hashtags for each one.' : 'Your free product photos are waiting. With Growth every new product gets photos, a product description and hashtags.', 'Plans start at $29 a month. You pay first. Nothing renews on its own.'],
   cta: { label: 'Pick a plan', url: appUrl('/app/billing') },
 });
 

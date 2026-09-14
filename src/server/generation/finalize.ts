@@ -1,6 +1,6 @@
 // server-only — never import from a 'use client' file.
 
-import type { BatchItem } from '@prisma/client';
+import { Prisma, type BatchItem } from '@prisma/client';
 import { MAX_ATTEMPTS_PER_RUN } from '../../config/business';
 import { prisma } from '../../lib/db';
 import { refundItem } from '../credits/ledger';
@@ -10,6 +10,7 @@ import { deleteObject, putObject } from '../storage/objectStore';
 import { recomputeBatchStatus } from './batchStatus';
 import { creditsPerItem } from './draft';
 import { labelImage } from './labeling';
+import { scoreItem } from '../score/score';
 
 /** Stores a finished image (labelled), marks the item ready, replaces any previous version. */
 export const finalizeItem = async (item: BatchItem, image: Buffer): Promise<void> => {
@@ -23,7 +24,7 @@ export const finalizeItem = async (item: BatchItem, image: Buffer): Promise<void
 
   const updated = await prisma.batchItem.updateMany({
     where: { id: item.id, status: 'generating' },
-    data: { status: 'ready', r2Key: key, completedAt: new Date(), errorMessage: null, pendingRefundKey: null },
+    data: { status: 'ready', r2Key: key, completedAt: new Date(), errorMessage: null, pendingRefundKey: null, score: null, scoreDetails: Prisma.DbNull, postKit: Prisma.DbNull },
   });
   if (updated.count === 0) {
     await deleteObject(key); // another worker already finished this run
@@ -31,6 +32,7 @@ export const finalizeItem = async (item: BatchItem, image: Buffer): Promise<void
   }
   if (item.r2Key && item.r2Key !== key) await deleteObject(item.r2Key).catch(() => undefined);
   await recomputeBatchStatus(item.batchId);
+  await scoreItem(item.id); // never throws; a redo gets a fresh score and Post Kit
 };
 
 /** Retries a failed run, or marks the item failed and refunds a paid run. */

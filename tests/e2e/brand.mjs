@@ -37,7 +37,7 @@ await page.waitForFunction(() => document.querySelectorAll('img[alt="Your free p
 await shot(page, '5-trial');
 await page.getByRole('button', { name: 'Continue' }).click();
 await page.getByText('Keep creating every month').waitFor();
-await page.getByRole('button', { name: 'Choose Pro' }).click();
+await page.getByRole('button', { name: 'Choose Growth' }).click();
 await page.getByText('Transfer memo').waitFor();
 await shot(page, '6-checkout');
 await page.getByRole('button', { name: /Simulate transfer/ }).click();

@@ -57,7 +57,7 @@ describe('activate', () => {
     expect(pro.startsAt).toEqual(at('2026-10-01T00:00:00Z'));
     const old = await prisma.subscription.findUniqueOrThrow({ where: { id: starter.id } });
     expect(old.status).toBe('cancelled');
-    expect((await getBalance(ws.id, at('2026-10-01T00:00:00Z'))).total).toBe(30 + 90);
+    expect((await getBalance(ws.id, at('2026-10-01T00:00:00Z'))).total).toBe(30 + 120);
   });
 });
 
@@ -80,7 +80,7 @@ describe('issueDueGrants', () => {
   it('plan credits from a past month are no longer spendable', async () => {
     const ws = await createTestWorkspace();
     await buyAndActivate(ws.id, 'shop_starter', 1, at('2026-09-14T00:00:00Z'));
-    expect((await getBalance(ws.id, at('2026-10-13T00:00:00Z'))).total).toBe(50);
+    expect((await getBalance(ws.id, at('2026-10-13T00:00:00Z'))).total).toBe(60);
     expect((await getBalance(ws.id, at('2026-10-14T00:00:00Z'))).total).toBe(0);
   });
 });

@@ -25,15 +25,15 @@ describe('subscription payments', () => {
   it('prices in USD, freezes VND, and activates with credits when paid', async () => {
     const ws = await createTestWorkspace('brand');
     const payment = await createSubscriptionPayment({ userId: ws.ownerUserId, workspaceId: ws.id }, { planId: 'brand_pro', termMonths: 3 });
-    expect(payment.amountUsdCents).toBe(13_200);
-    expect(payment.amountVnd).toBe(3_432_000);
-    expect(describePaymentItem(payment)).toBe('Brand Pro · 3 months');
+    expect(payment.amountUsdCents).toBe(26_700);
+    expect(payment.amountVnd).toBe(6_942_000);
+    expect(describePaymentItem(payment)).toBe('Brand Growth · 3 months');
 
     const result = await markPaidAndFulfil(payment.id, payment.amountVnd);
     expect(result.outcome).toBe('paid');
     const sub = await prisma.subscription.findFirstOrThrow({ where: { paymentId: payment.id } });
     expect(sub.status).toBe('active');
-    expect((await getBalance(ws.id)).total).toBe(90);
+    expect((await getBalance(ws.id)).total).toBe(120);
   });
 
   it('fulfils exactly once', async () => {
@@ -100,7 +100,7 @@ describe('early-access requests (production without simulated payments)', () => 
       const later = new Date(payment.expiresAt.getTime() + LATE_PAYMENT_WINDOW_MS + 60_000);
       const result = await markPaidAndFulfil(payment.id, payment.amountVnd, later);
       expect(result.outcome).toBe('paid');
-      expect((await getBalance(ws.id, later)).total).toBe(90);
+      expect((await getBalance(ws.id, later)).total).toBe(120);
     } finally {
       vi.unstubAllEnvs();
     }

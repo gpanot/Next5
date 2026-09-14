@@ -120,3 +120,22 @@ describe('generation pipeline (mock mode)', () => {
     expect((await getBalance(ws.id)).total).toBe(0);
   });
 });
+
+describe('Scroll-Stop Score and Post Kit', () => {
+  it('scores every finished photo and writes a Post Kit for trial photos', async () => {
+    const { getPostKit } = await import('../../../src/server/postKit/postKit');
+    const { ws, set } = await setupBrand(20);
+    const batch = await createBatch(ws, { kind: 'brand_theme', setId: set.id, themeId: 'just-listed', count: 2, formats: ['portrait_4_5'], highRes: false });
+    await drain(batch.id);
+    const items = await prisma.batchItem.findMany({ where: { batchId: batch.id } });
+    expect(items.every((i) => typeof i.score === 'number' && i.score >= 0 && i.score <= 100)).toBe(true);
+
+    // No Growth plan and not a trial → locked.
+    await expect(getPostKit(ws.ownerUserId, items[0]!.id)).rejects.toMatchObject({ status: 403 });
+    await prisma.batch.update({ where: { id: batch.id }, data: { kind: 'trial' } });
+    const kit = await getPostKit(ws.ownerUserId, items[0]!.id);
+    expect(kit.hook.length).toBeGreaterThan(5);
+    expect(kit.hashtags.length).toBeGreaterThan(3);
+    expect((await prisma.batchItem.findUniqueOrThrow({ where: { id: items[0]!.id } })).postKit).toMatchObject({ hook: kit.hook });
+  });
+});

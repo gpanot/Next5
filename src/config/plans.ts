@@ -8,20 +8,24 @@
 
 export type ProductLineId = 'brand' | 'shop';
 
-export type PlanId = 'brand_starter' | 'brand_pro' | 'shop_starter' | 'shop_pro';
+export type PlanId = 'brand_starter' | 'brand_pro' | 'brand_agency' | 'shop_starter' | 'shop_pro' | 'shop_agency';
 
 export type TermMonths = 1 | 3 | 6;
 
 export type Plan = {
   id: PlanId;
   product: ProductLineId;
+  /** Display name. `*_pro` ids are sold as "Growth" (ids kept stable for stored subscriptions). */
   name: string;
   tagline: string;
+  /** Who it is for, shown on plan cards. */
+  audience: string;
   monthlyUsdCents: number;
   monthlyCredits: number;
   maxSets: number;
   highRes: boolean;
-  captions: boolean;
+  /** Post Kit: hook, caption, hashtags (and a product description on Shop) for every photo. */
+  postKit: boolean;
   allStudioModels: boolean;
   priority: boolean;
   mostPopular: boolean;
@@ -33,75 +37,126 @@ export const PLANS: Record<PlanId, Plan> = {
     id: 'brand_starter',
     product: 'brand',
     name: 'Starter',
-    tagline: 'Fresh photos for your weekly posts.',
-    monthlyUsdCents: 1_900,
+    tagline: 'New photos of you for your weekly posts.',
+    audience: 'To get started',
+    monthlyUsdCents: 2_900,
     monthlyCredits: 30,
     maxSets: 2,
     highRes: false,
-    captions: false,
+    postKit: false,
     allStudioModels: false,
     priority: false,
     mostPopular: false,
-    features: ['30 photos every month', '2 sets', 'Every monthly theme', 'All social formats'],
+    features: ['30 photos every month', 'Scroll-Stop Score on every photo', '2 sets', 'Every monthly trend theme', 'All social sizes'],
   },
   brand_pro: {
     id: 'brand_pro',
     product: 'brand',
-    name: 'Pro',
-    tagline: 'For people who post every day.',
-    monthlyUsdCents: 4_900,
-    monthlyCredits: 90,
+    name: 'Growth',
+    tagline: 'Your whole month of posts, done.',
+    audience: 'For solo pros who want to grow',
+    monthlyUsdCents: 9_900,
+    monthlyCredits: 120,
     maxSets: 5,
     highRes: true,
-    captions: true,
+    postKit: true,
     allStudioModels: false,
     priority: true,
     mostPopular: true,
     features: [
-      '90 photos every month',
-      '5 sets',
-      'Big 2K photos',
-      'Captions ready to post',
-      'Get new themes first',
+      '120 photos every month',
+      'Post Kit: a hook, caption and hashtags for every photo',
+      'Scroll-Stop Score and tips on every photo',
+      '5 sets and every trend theme',
+      'Big 2K photos, made first',
+    ],
+  },
+  brand_agency: {
+    id: 'brand_agency',
+    product: 'brand',
+    name: 'Agency',
+    tagline: 'Photos and posts for your whole team.',
+    audience: 'For brokerages and teams',
+    monthlyUsdCents: 75_900,
+    monthlyCredits: 1_200,
+    maxSets: 30,
+    highRes: true,
+    postKit: true,
+    allStudioModels: false,
+    priority: true,
+    mostPopular: false,
+    features: [
+      '1,200 photos every month',
+      'Everything in Growth',
+      '30 sets for your team and brands',
+      'Setup call with our team',
+      'Priority support',
     ],
   },
   shop_starter: {
     id: 'shop_starter',
     product: 'shop',
     name: 'Starter',
-    tagline: 'Photos for all your new stock.',
-    monthlyUsdCents: 1_500,
-    monthlyCredits: 50,
+    tagline: 'Photos for your new stock.',
+    audience: 'To get started',
+    monthlyUsdCents: 2_900,
+    monthlyCredits: 60,
     maxSets: 2,
     highRes: false,
-    captions: false,
+    postKit: false,
     allStudioModels: false,
     priority: false,
     mostPopular: false,
-    features: ['50 photos every month', '2 shop looks', 'You or 1 Studio model', 'Every shop size'],
+    features: ['60 photos every month', 'Scroll-Stop Score on every photo', '2 shop looks', 'You or 1 Studio model', 'Every shop size'],
   },
   shop_pro: {
     id: 'shop_pro',
     product: 'shop',
-    name: 'Pro',
-    tagline: 'For shops with new stock every week.',
-    monthlyUsdCents: 3_900,
-    monthlyCredits: 150,
+    name: 'Growth',
+    tagline: 'Photos and listings that sell.',
+    audience: 'For shops that want more sales',
+    monthlyUsdCents: 9_900,
+    monthlyCredits: 300,
     maxSets: 5,
     highRes: true,
-    captions: false,
+    postKit: true,
     allStudioModels: true,
     priority: true,
     mostPopular: true,
     features: [
-      '150 photos every month',
-      '5 shop looks',
-      'All 6 Studio models',
-      'Big 2K photos',
-      'Your photos made first',
+      '300 photos every month',
+      'Post Kit: a hook, product description and hashtags for every photo',
+      'Scroll-Stop Score and tips on every photo',
+      'All 6 Studio models and 5 shop looks',
+      'Big 2K photos, made first',
+    ],
+  },
+  shop_agency: {
+    id: 'shop_agency',
+    product: 'shop',
+    name: 'Agency',
+    tagline: 'For agencies that run many shops.',
+    audience: 'For TikTok Shop agencies',
+    monthlyUsdCents: 75_900,
+    monthlyCredits: 3_000,
+    maxSets: 30,
+    highRes: true,
+    postKit: true,
+    allStudioModels: true,
+    priority: true,
+    mostPopular: false,
+    features: [
+      '3,000 photos every month',
+      'Everything in Growth',
+      '30 shop looks for all your brands',
+      'Setup call with our team',
+      'Priority support',
     ],
   },
 };
+
+/** Plans a solo buyer is shown during onboarding (Agency is offered on pricing and billing). */
+export const isSoloPlan = (plan: Plan): boolean => !plan.id.endsWith('_agency');
 
 export const TERMS: readonly TermMonths[] = [1, 3, 6];
 

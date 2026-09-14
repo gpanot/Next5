@@ -38,7 +38,7 @@ export const FormatPicker = ({ value, onChange, highRes, onHighRes, highResAllow
       checked={highRes && highResAllowed}
       disabled={!highResAllowed}
       onChange={onHighRes}
-      label={<span className="text-[14px] text-app-ink">High-res 2K <span className="text-app-muted">— 2 photos each{highResAllowed ? '' : ' · included in Pro'}</span></span>}
+      label={<span className="text-[14px] text-app-ink">High-res 2K <span className="text-app-muted">— 2 photos each{highResAllowed ? '' : ' · included in Growth'}</span></span>}
     />
   </div>
 );

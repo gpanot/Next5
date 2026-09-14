@@ -235,6 +235,7 @@ model Workspace {
   subscriptions Subscription[]
   ledger        CreditLedger[]
   payments      Payment[]
+  promiseClaims PromiseClaim[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
@@ -397,6 +398,11 @@ model BatchItem {
   favorite         Boolean    @default(false)
   rating           Int?
   caption          String?
+  /// Post Kit: { hook, caption, hashtags[], description? } — generated on demand, cached.
+  postKit          Json?      @map("post_kit")
+  /// Scroll-Stop Score 0–100 from the vision rubric (src/server/score).
+  score            Int?
+  scoreDetails     Json?      @map("score_details")
   submittedAt      DateTime?  @map("submitted_at")
   completedAt      DateTime?  @map("completed_at")
   createdAt        DateTime   @default(now()) @map("created_at")
@@ -528,4 +534,33 @@ model RateLimit {
 
   @@id([key, windowStart])
   @@map("rate_limits")
+}
+
+/// "Beat your feed" promise claim: the customer compares her Next5 posts with her earlier posts (self-reported).
+model PromiseClaim {
+  id              String    @id @default(cuid())
+  workspaceId     String    @map("workspace_id")
+  userId          String    @map("user_id")
+  platform        String
+  /// likes | views | saves | clicks
+  metric          String
+  beforeAverage   Int       @map("before_average")
+  afterAverage    Int       @map("after_average")
+  postsCounted    Int       @map("posts_counted")
+  links           String[]  @default([])
+  note            String?
+  sharePermission Boolean   @default(false) @map("share_permission")
+  /// pending | granted | declined
+  status          String    @default("pending")
+  /// won (Next5 posts did better) | missed (free month owed)
+  outcome         String
+  adminNote       String?   @map("admin_note")
+  decidedAt       DateTime? @map("decided_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([status, createdAt])
+  @@map("promise_claims")
 }
