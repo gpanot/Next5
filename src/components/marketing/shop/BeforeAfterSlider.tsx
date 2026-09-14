@@ -7,7 +7,7 @@ import { hasManifestImage } from '../../../lib/manifest';
 import { Chip } from '../../ui/Chip';
 import { MarketingImage } from '../shared/MarketingImage';
 
-/** Compare the product photo with the on-model result: hover (desktop), touch-hold and slide (mobile), or arrow keys. */
+/** Compare the product photo with the on-model result: hover (desktop), horizontal slide (mobile — vertical still scrolls), or arrow keys. */
 export const BeforeAfterSlider = () => {
   const samples = SHOP.slider.filter((s) => hasManifestImage(s.before) && hasManifestImage(s.after));
   const [activeId, setActiveId] = useState(samples[0]?.id ?? '');
@@ -51,7 +51,7 @@ export const BeforeAfterSlider = () => {
           className={`pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/55 px-3 py-1.5 text-[12px] text-white transition-opacity duration-300 motion-reduce:transition-none ${touched ? 'opacity-0' : 'opacity-100'}`}
         >
           <span className="pointer-coarse:hidden">Move your mouse across the photo</span>
-          <span className="hidden pointer-coarse:inline">Touch and hold, then slide</span>
+          <span className="hidden pointer-coarse:inline">Slide left or right to compare</span>
         </span>
       </div>
       <div className="flex flex-wrap items-center gap-2" aria-label="Choose a sample">

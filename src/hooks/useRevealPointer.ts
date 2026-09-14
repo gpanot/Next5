@@ -1,16 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState, type PointerEvent, type RefObject } from 'react';
+import { useEffect, useState, type PointerEvent, type RefObject } from 'react';
 
-/** How long a finger must rest before the reveal takes over from page scrolling. */
-const HOLD_MS = 180;
-/** Movement allowed during the hold before it counts as a scroll instead. */
-const HOLD_SLOP_PX = 10;
+/** Finger travel needed before we decide between page scroll (vertical) and reveal (horizontal). */
+const DIRECTION_SLOP_PX = 8;
 
 type RevealPointer = {
   position: number;
   setPosition: (update: (p: number) => number) => void;
-  /** True while a finger is holding the reveal (touch). */
+  /** True while a finger is driving the reveal (touch). */
   holding: boolean;
   /** True once the visitor has moved the reveal at least once. */
   touched: boolean;
@@ -25,13 +23,13 @@ const percentAt = (el: HTMLElement, clientX: number): number => {
 /**
  * Before/after reveal input:
  * - mouse/pen: the divider follows the cursor — no click or drag;
- * - touch: touch and hold, then slide left/right. A quick swipe still scrolls the page.
+ * - touch: slide left/right on the photo (with or without holding first). Moving up/down always scrolls the page —
+ *   the first few pixels of movement decide, and a vertical gesture is never captured.
  */
 export const useRevealPointer = (frame: RefObject<HTMLElement | null>, initial = 50): RevealPointer => {
   const [position, setPositionState] = useState(initial);
   const [holding, setHolding] = useState(false);
   const [touched, setTouched] = useState(false);
-  const holdingRef = useRef(false);
 
   const setPosition = (update: (p: number) => number) => {
     setTouched(true);
@@ -48,13 +46,11 @@ export const useRevealPointer = (frame: RefObject<HTMLElement | null>, initial =
   useEffect(() => {
     const el = frame.current;
     if (!el) return;
-    let timer: number | null = null;
+    let mode: 'idle' | 'deciding' | 'reveal' | 'scroll' = 'idle';
     let start = { x: 0, y: 0 };
 
     const release = () => {
-      if (timer) window.clearTimeout(timer);
-      timer = null;
-      holdingRef.current = false;
+      mode = 'idle';
       setHolding(false);
     };
 
@@ -62,23 +58,26 @@ export const useRevealPointer = (frame: RefObject<HTMLElement | null>, initial =
       if (e.touches.length !== 1) return release();
       const t = e.touches[0];
       start = { x: t.clientX, y: t.clientY };
-      timer = window.setTimeout(() => {
-        holdingRef.current = true;
-        setHolding(true);
-        setTouched(true);
-        setPositionState(percentAt(el, start.x));
-      }, HOLD_MS);
+      mode = 'deciding';
     };
 
     const onMove = (e: TouchEvent) => {
       const t = e.touches[0];
-      if (!t) return;
-      if (holdingRef.current) {
-        e.preventDefault(); // the finger now drives the reveal, not the page
-        setPositionState(percentAt(el, t.clientX));
-      } else if (Math.hypot(t.clientX - start.x, t.clientY - start.y) > HOLD_SLOP_PX) {
-        release(); // it's a scroll
+      if (!t || mode === 'idle' || mode === 'scroll') return;
+      if (mode === 'deciding') {
+        const dx = Math.abs(t.clientX - start.x);
+        const dy = Math.abs(t.clientY - start.y);
+        if (Math.max(dx, dy) < DIRECTION_SLOP_PX) return;
+        if (dy >= dx) {
+          mode = 'scroll'; // leave the whole gesture to the page
+          return;
+        }
+        mode = 'reveal';
+        setHolding(true);
+        setTouched(true);
       }
+      e.preventDefault(); // horizontal: the finger drives the reveal, the page stays put
+      setPositionState(percentAt(el, t.clientX));
     };
 
     el.addEventListener('touchstart', onStart, { passive: true });
@@ -86,7 +85,6 @@ export const useRevealPointer = (frame: RefObject<HTMLElement | null>, initial =
     el.addEventListener('touchend', release);
     el.addEventListener('touchcancel', release);
     return () => {
-      release();
       el.removeEventListener('touchstart', onStart);
       el.removeEventListener('touchmove', onMove);
       el.removeEventListener('touchend', release);
