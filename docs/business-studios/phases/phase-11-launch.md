@@ -43,6 +43,7 @@ homepage and launch Brand (and Shop if P8 shipped).
   more than 3 minutes. Batch creation also sweeps; the daily billing cron runs a 20 s generation tick; an open batch page still polls.
   Tests: `tests/server/generation/webhook.test.ts`.
 - **Skipped by decision:** Sentry/monitoring (11.3). Legal review later.
+- **Migrations on deploy (2026-09-15):** `vercel.json` builds with `scripts/vercel-build.sh`: `prisma generate` → on `VERCEL_ENV=production`, `dbmate up` against `DATABASE_URL` (Prisma pool params stripped, `sslmode=require` by default) → `next build`. A failed migration fails the build, so the live deployment keeps running. Added after a deploy shipped the P12 code before its migration: trial batches were created but every item read failed (`batch_items.post_kit does not exist`), so nothing reached WaveSpeed and the batch page returned 500.
   Existing lint errors are all in the consumer code (`app/studio`, `useBookingFlow`, `ResultsGallery`, …), none in business code.
 
 ## Tasks
