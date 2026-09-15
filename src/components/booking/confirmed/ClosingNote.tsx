@@ -35,7 +35,7 @@ export const ClosingNote = ({ director, note }: ClosingNoteProps) => (
       </div>
     )}
 
-    <p className="mt-3.5 font-serif text-[19px] leading-none text-ink italic">{director.name}</p>
+    <p className="mt-3.5 font-display text-[19px] leading-none text-ink italic">{director.name}</p>
     <p className="mt-1 text-[11px] text-muted">Your Creative Director</p>
   </figure>
 );

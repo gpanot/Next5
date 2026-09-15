@@ -13,7 +13,7 @@ const VARIANTS = {
   primary: 'bg-app-accent text-app-accent-ink hover:opacity-90 shadow-sm',
   secondary: 'border border-app-line bg-app-panel text-app-ink hover:bg-app-sunken',
   ghost: 'text-app-ink hover:bg-app-sunken',
-  inverse: 'bg-white text-[#1f1c19] hover:bg-white/90',
+  inverse: 'bg-white text-ink hover:bg-white/90',
 } as const;
 
 const SIZES = { md: 'h-10 px-4 text-[13px]', lg: 'h-12 px-6 text-[15px]' } as const;

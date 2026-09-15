@@ -70,7 +70,7 @@ export const SettingsForm = ({ me, onSaved }: SettingsFormProps) => {
             <Field label="Brand colours" helper="Used as subtle accents in your photos.">
               <div className="flex gap-4">
                 {[0, 1].map((i) => (
-                  <ColorInput key={i} label={`Brand colour ${i + 1}`} value={colors[i] ?? '#b8683f'} onChange={(v) => setColors((prev) => { const next = [...prev]; next[i] = v; return next.slice(0, 2); })} />
+                  <ColorInput key={i} label={`Brand colour ${i + 1}`} value={colors[i] ?? '#8e2a5c'} onChange={(v) => setColors((prev) => { const next = [...prev]; next[i] = v; return next.slice(0, 2); })} />
                 ))}
               </div>
             </Field>

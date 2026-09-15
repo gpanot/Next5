@@ -183,7 +183,7 @@ export default function StudioPage() {
         <>
           <div className="mx-auto mb-8 max-w-6xl px-6 sm:px-10 hidden sm:block">
             <p className="label-caps text-[9.5px] font-medium text-accent-strong">Your studio</p>
-            <h1 className="mt-2 font-serif text-[32px] tracking-[0.06em] text-ink uppercase leading-none">
+            <h1 className="mt-2 font-display text-[32px] tracking-[0.06em] text-ink uppercase leading-none">
               My Photos
             </h1>
           </div>
@@ -222,7 +222,7 @@ function PageShell({
     <div className="min-h-screen bg-page">
       <header className={`${hideHeaderOnMobile ? 'hidden' : ''} border-b border-line px-6 py-4 sm:block sm:px-10`}>
         <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <Link href="/photos" className="font-serif text-[22px] tracking-[0.12em] text-ink uppercase">
+          <Link href="/photos" className="font-display text-[22px] tracking-[0.12em] text-ink uppercase">
             Studio
           </Link>
           <div className="flex items-center gap-4">
@@ -296,7 +296,7 @@ function LoginPanel({
   return (
     <div className="mx-auto max-w-sm pt-20 pb-10 text-center">
       <p className="label-caps text-[9.5px] font-medium text-accent-strong">Your studio</p>
-      <h1 className="mt-3 font-serif text-[34px] tracking-[0.06em] text-ink uppercase leading-none">
+      <h1 className="mt-3 font-display text-[34px] tracking-[0.06em] text-ink uppercase leading-none">
         My Photos
       </h1>
       <p className="mt-3 text-[13.5px] text-muted leading-relaxed">
@@ -334,7 +334,7 @@ function LoginPanel({
             <button
               type="submit"
               disabled={auth.phase === 'sending'}
-              className="w-full rounded-xl bg-ink-block px-6 py-3 font-serif text-[15px] tracking-[0.06em] text-white uppercase transition-opacity hover:opacity-80 disabled:opacity-50"
+              className="w-full rounded-xl bg-ink-block px-6 py-3 font-display text-[15px] tracking-[0.06em] text-white uppercase transition-opacity hover:opacity-80 disabled:opacity-50"
             >
               {auth.phase === 'sending' ? 'Sending…' : 'Access my studio'}
             </button>

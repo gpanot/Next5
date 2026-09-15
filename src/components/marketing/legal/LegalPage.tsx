@@ -12,7 +12,7 @@ export const LegalPage = ({ title, updated, intro, sections }: LegalPageProps) =
       Draft pending legal review. This text will be reviewed by a Vietnamese lawyer before Next5 Brand and Next5 Shop launch publicly.
     </p>
     <header className="flex flex-col gap-3">
-      <h1 className="font-serif text-[40px] font-medium leading-tight text-app-ink sm:text-[48px]">{title}</h1>
+      <h1 className="font-display text-[34px] font-semibold leading-tight tracking-[-0.02em] text-app-ink sm:text-[42px]">{title}</h1>
       <p className="text-[13px] text-app-muted">Last updated {updated}</p>
       <p className="text-[16px] leading-relaxed text-app-muted">{intro}</p>
     </header>

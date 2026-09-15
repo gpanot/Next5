@@ -56,7 +56,7 @@ export const DevGallery = () => {
   const [checked, setChecked]   = useState(false);
   const [radio, setRadio]       = useState('a');
   const [on, setOn]             = useState(false);
-  const [color, setColor]       = useState('#b8683f');
+  const [color, setColor]       = useState('#8e2a5c');
   const [dialogOpen, setDialog] = useState(false);
   const [sheetOpen, setSheet]   = useState(false);
   const [stepperStep, setStep]  = useState(2);

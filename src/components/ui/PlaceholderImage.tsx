@@ -15,8 +15,8 @@ type PlaceholderImageProps = {
 };
 
 const toneStyles: Record<'light' | 'dark', string> = {
-  light: 'bg-[linear-gradient(135deg,#efe6da_0%,#e2d3c3_45%,#d8c6b4_100%)] text-[#8a7663]',
-  dark: 'bg-[linear-gradient(135deg,#3a322b_0%,#282220_45%,#1d1815_100%)] text-[#a2917f]',
+  light: 'bg-[linear-gradient(135deg,#f5e6ee_0%,#eadfe5_45%,#dccbd5_100%)] text-muted',
+  dark: 'bg-[linear-gradient(135deg,#3a2f3b_0%,#251e26_45%,#1d1520_100%)] text-subtle',
 };
 
 export const PlaceholderImage = ({

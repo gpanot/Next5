@@ -65,7 +65,7 @@ function PlatformCycler() {
     <span className="inline-flex items-baseline" style={{ minWidth: `${LONGEST_PLATFORM_CH}ch` }}>
       <span aria-hidden="true" className="font-semibold">
         {text}
-        <span className="animate-caret-blink ml-0.5 inline-block h-[0.8em] w-[2px] translate-y-[0.08em] bg-[#e8cfb5]" />
+        <span className="animate-caret-blink ml-0.5 inline-block h-[0.8em] w-[2px] translate-y-[0.08em] bg-cream" />
       </span>
       <span className="sr-only">{PLATFORMS[index]}</span>
     </span>
@@ -106,12 +106,12 @@ export const Hero = () => {
             {t.hero.badge}
           </span>
 
-          <h1 className="mt-3 sm:mt-7 font-serif text-[52px] leading-[1.04] font-light text-white sm:text-[56px] lg:text-[64px] xl:text-[70px]">
+          <h1 className="mt-3 sm:mt-7 font-display text-[52px] leading-[1.04] font-light text-white sm:text-[56px] lg:text-[64px] xl:text-[70px]">
             {t.hero.headlineLine1}
             <br />
             <PlatformCycler />{' '}photos.
             <br />
-            <em className="text-[#e8cfb5] italic">{t.hero.headlineEm}</em>
+            <em className="text-cream italic">{t.hero.headlineEm}</em>
           </h1>
 
           <div className="mt-6">
@@ -124,8 +124,8 @@ export const Hero = () => {
             <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
               {['No photographer', 'No travel', 'No stress'].map((item) => (
                 <div key={item} className="flex items-center gap-1.5">
-                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[#e8cfb5]/20">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[#e8cfb5]" />
+                  <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cream/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-cream" />
                   </span>
                   <span className="text-[13px] text-white/85">{item}</span>
                 </div>
@@ -153,7 +153,7 @@ export const Hero = () => {
           </div>
 
           <div className="mt-3 flex items-center justify-center gap-2 sm:mt-5 sm:justify-start">
-            <span className="flex gap-0.5 text-[#e8cfb5]" aria-hidden="true">
+            <span className="flex gap-0.5 text-cream" aria-hidden="true">
               {Array.from({ length: 5 }, (_, index) => (
                 <StarIcon key={index} className="h-3.5 w-3.5" />
               ))}

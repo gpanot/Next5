@@ -121,7 +121,7 @@ export const IntentionStep = ({
 
       <div ref={goalSectionRef} className="my-7 border-t border-line" />
 
-      <h3 className="font-serif text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
+      <h3 className="font-display text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
         What do you want these photos to do for you?
       </h3>
 

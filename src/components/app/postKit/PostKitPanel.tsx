@@ -14,12 +14,12 @@ type PostKitPanelProps = { item: BatchItemDto; product: 'brand' | 'shop'; allowe
 const CopyBlock = ({ label, text, onCopy }: { label: string; text: string; onCopy: () => void }) => (
   <div className="flex flex-col gap-1">
     <div className="flex items-center justify-between">
-      <p className="text-[11px] font-medium uppercase tracking-wide text-[#8a8178]">{label}</p>
-      <button type="button" onClick={onCopy} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[12px] text-[#9c5c3a] hover:bg-[#f5efe7]" aria-label={`Copy ${label.toLowerCase()}`}>
+      <p className="text-[11px] font-medium uppercase tracking-wide text-subtle">{label}</p>
+      <button type="button" onClick={onCopy} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[12px] text-accent-strong hover:bg-surface-alt" aria-label={`Copy ${label.toLowerCase()}`}>
         <Copy aria-hidden className="h-3 w-3" /> Copy
       </button>
     </div>
-    <p className="whitespace-pre-line text-[14px] leading-snug text-[#1f1c19]">{text}</p>
+    <p className="whitespace-pre-line text-[14px] leading-snug text-ink">{text}</p>
   </div>
 );
 
@@ -51,23 +51,23 @@ export const PostKitPanel = ({ item, product, allowed, onCopied }: PostKitPanelP
   const all = kit ? [kit.hook, kit.caption, kit.hashtags.join(' ')].join('\n\n') : '';
 
   return (
-    <div className="flex max-h-[46vh] flex-col gap-4 overflow-y-auto rounded-2xl bg-white p-4 text-[#1f1c19] shadow-lg">
+    <div className="flex max-h-[46vh] flex-col gap-4 overflow-y-auto rounded-2xl bg-white p-4 text-ink shadow-lg">
       {item.score !== null && <ScoreCard score={item.score} details={item.scoreDetails} />}
       {!allowed && !kit && (
-        <p className="flex items-start gap-2 rounded-lg bg-[#f5efe7] px-3 py-2 text-[13px]">
+        <p className="flex items-start gap-2 rounded-lg bg-surface-alt px-3 py-2 text-[13px]">
           <Lock aria-hidden className="mt-0.5 h-4 w-4 shrink-0" />
-          <span>With Growth, we write the hook, caption{product === 'shop' ? ', product description' : ''} and hashtags for this photo. <Link href="/app/billing" className="font-medium text-[#9c5c3a] underline">See Growth</Link></span>
+          <span>With Growth, we write the hook, caption{product === 'shop' ? ', product description' : ''} and hashtags for this photo. <Link href="/app/billing" className="font-medium text-accent-strong underline">See Growth</Link></span>
         </p>
       )}
       {allowed && !kit && (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[13px] text-[#6b635a]">Get a hook, caption{product === 'shop' ? ', description' : ''} and hashtags for this photo.</p>
+          <p className="text-[13px] text-muted">Get a hook, caption{product === 'shop' ? ', description' : ''} and hashtags for this photo.</p>
           <AppButton size="sm" loading={busy} iconLeft={<Sparkles className="h-3.5 w-3.5" />} onClick={generate}>Post Kit</AppButton>
         </div>
       )}
       {error && <p className="text-[12px] text-red-700">{error}</p>}
       {kit && (
-        <section aria-label="Post Kit" className="flex flex-col gap-3 border-t border-[#ece5dc] pt-3">
+        <section aria-label="Post Kit" className="flex flex-col gap-3 border-t border-line pt-3">
           <CopyBlock label="Hook" text={kit.hook} onCopy={() => void copy('Hook', kit.hook)} />
           <CopyBlock label="Caption" text={kit.caption} onCopy={() => void copy('Caption', kit.caption)} />
           <CopyBlock label="Hashtags" text={kit.hashtags.join(' ')} onCopy={() => void copy('Hashtags', kit.hashtags.join(' '))} />

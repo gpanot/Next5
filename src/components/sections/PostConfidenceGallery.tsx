@@ -92,7 +92,7 @@ const Card = ({ photo, isWinner, excellentChoice, pickLabel, variant }: CardProp
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/50 to-transparent px-3 pt-12 pb-3 text-center text-on-dark">
         {isWinner ? (
           <>
-            <p className={`font-serif leading-none text-gold ${variant === 'desktop-winner' ? 'text-[42px]' : 'text-[38px]'}`}>
+            <p className={`font-display leading-none text-gold ${variant === 'desktop-winner' ? 'text-[42px]' : 'text-[38px]'}`}>
               {photo.score}
             </p>
             <p className="label-caps mt-1 text-[9px] font-semibold uppercase tracking-widest text-white">
@@ -102,7 +102,7 @@ const Card = ({ photo, isWinner, excellentChoice, pickLabel, variant }: CardProp
           </>
         ) : (
           <>
-            <p className={`font-serif leading-none text-white ${variant === 'desktop-side' ? 'text-[24px]' : 'text-[16px]'}`}>
+            <p className={`font-display leading-none text-white ${variant === 'desktop-side' ? 'text-[24px]' : 'text-[16px]'}`}>
               {photo.score}
             </p>
             <p className={`mt-0.5 text-white/70 ${variant === 'desktop-side' ? 'text-[8.5px]' : 'text-[7px]'}`}>
@@ -177,7 +177,7 @@ export const PostConfidenceGallery = ({
                   <span className="absolute -top-4 left-1/2 z-30 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full bg-gold text-white shadow-lg">
                     <CrownIcon className="h-[18px] w-[18px]" />
                   </span>
-                  <div className="rounded-2xl border-2 border-gold p-1.5 shadow-[0_28px_70px_-10px_rgba(34,31,28,0.55)]">
+                  <div className="rounded-2xl border-2 border-gold p-1.5 shadow-[0_28px_70px_-10px_rgba(29,21,32,0.55)]">
                     <div className="overflow-hidden rounded-[14px]">
                       <Card
                         key={photo.src}
@@ -193,7 +193,7 @@ export const PostConfidenceGallery = ({
               );
             }
             return (
-              <div key={i} className="relative z-10 w-[127px] shrink-0 overflow-hidden rounded-2xl shadow-[0_12px_32px_-8px_rgba(34,31,28,0.28)] ring-2 ring-white">
+              <div key={i} className="relative z-10 w-[127px] shrink-0 overflow-hidden rounded-2xl shadow-[0_12px_32px_-8px_rgba(29,21,32,0.28)] ring-2 ring-white">
                 <Card
                   key={photo.src}
                   photo={photo}
@@ -218,7 +218,7 @@ export const PostConfidenceGallery = ({
               <span className="absolute -top-3 left-1/2 z-30 flex h-8 w-8 -translate-x-1/2 items-center justify-center rounded-full bg-gold text-white shadow-md">
                 <CrownIcon className="h-4 w-4" />
               </span>
-              <div className="rounded-2xl border-2 border-gold p-1.5 shadow-[0_20px_50px_-15px_rgba(34,31,28,0.4)]">
+              <div className="rounded-2xl border-2 border-gold p-1.5 shadow-[0_20px_50px_-15px_rgba(29,21,32,0.4)]">
                 <div className="overflow-hidden rounded-[14px]">
                   <Card
                     key={photo.src}
@@ -237,7 +237,7 @@ export const PostConfidenceGallery = ({
           {photos
             .filter((p) => p.score !== winnerScore)
             .map((photo, i) => (
-              <div key={i} className="relative w-20 shrink-0 overflow-hidden rounded-xl shadow-[0_8px_20px_-8px_rgba(34,31,28,0.25)] ring-2 ring-white">
+              <div key={i} className="relative w-20 shrink-0 overflow-hidden rounded-xl shadow-[0_8px_20px_-8px_rgba(29,21,32,0.25)] ring-2 ring-white">
                 <Card
                   key={photo.src}
                   photo={photo}

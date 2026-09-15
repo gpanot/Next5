@@ -32,7 +32,7 @@ export const PostPhoneMock = ({ post, handle, priority = false }: { post: Exampl
         <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-app-sunken">
           <MarketingImage src={post.before} sizes="110px" alt="The product photo the seller took" />
         </div>
-        <figcaption className="label-caps pt-1 text-center text-[8px] font-medium text-[#6b625a]">Your photo</figcaption>
+        <figcaption className="label-caps pt-1 text-center text-[8px] font-medium text-muted">Your photo</figcaption>
       </figure>
     )}
     <p className="label-caps absolute -right-6 top-[58%] rotate-[4deg] rounded-full bg-app-accent px-2.5 py-1 text-[9px] font-semibold text-app-accent-ink shadow-md sm:-right-8">Written for you</p>

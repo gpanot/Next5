@@ -45,7 +45,7 @@ export const StyleOptions = ({ template, value, onChange }: StyleOptionsProps) =
           {value.brandColors.length > 0 && (
             <div className="flex gap-4">
               {[0, 1].map((i) => (
-                <ColorInput key={i} label={`Brand colour ${i + 1}`} value={value.brandColors[i] ?? '#b8683f'} onChange={(c) => { const next = [...value.brandColors]; next[i] = c; onChange({ ...value, brandColors: next.slice(0, 2) }); }} />
+                <ColorInput key={i} label={`Brand colour ${i + 1}`} value={value.brandColors[i] ?? '#8e2a5c'} onChange={(c) => { const next = [...value.brandColors]; next[i] = c; onChange({ ...value, brandColors: next.slice(0, 2) }); }} />
               ))}
             </div>
           )}

@@ -4,6 +4,7 @@ import type { ProductLine } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/maileroo';
 import { signMagicToken, signSessionToken } from '../../lib/studio-auth';
+import { THEME } from '../../config/theme';
 import { HttpError } from '../http';
 import { sendOnceQuietly } from '../email/send';
 import { welcomeEmail } from '../email/templates';
@@ -51,7 +52,7 @@ const sendContinueEmail = async (email: string, product: ProductLine): Promise<v
   await sendEmail({
     to: email,
     subject: 'Continue setting up Next5',
-    html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#1f1c19"><h1 style="font-size:22px;margin:0 0 12px">Continue your Next5 setup</h1><p style="font-size:15px;color:#6b635a;line-height:1.6;margin:0 0 24px">Use this secure link to pick up where you left off. It expires in 15 minutes.</p><a href="${link}" style="display:inline-block;background:#b8683f;color:#fff;text-decoration:none;padding:12px 22px;border-radius:12px;font-size:15px">Continue setup</a></div>`,
+    html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:${THEME.ink}"><h1 style="font-size:22px;margin:0 0 12px">Continue your Next5 setup</h1><p style="font-size:15px;color:${THEME.muted};line-height:1.6;margin:0 0 24px">Use this secure link to pick up where you left off. It expires in 15 minutes.</p><a href="${link}" style="display:inline-block;background:${THEME.accent};color:#fff;text-decoration:none;padding:12px 22px;border-radius:12px;font-size:15px">Continue setup</a></div>`,
     plain: `Continue your Next5 setup: ${link}\nThis link expires in 15 minutes.`,
   });
 };

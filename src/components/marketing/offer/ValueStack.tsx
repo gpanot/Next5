@@ -25,7 +25,7 @@ export const ValueStack = ({ items, totalValue, priceLine, footnote, cta }: Valu
     <div className="flex flex-col items-start gap-4 bg-app-sunken p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
       <div>
         <p className="text-[14px] text-app-muted">Total value <span className="font-semibold tabular-nums text-app-ink line-through decoration-app-muted/60">{totalValue}</span> a month</p>
-        <p className="font-serif text-[32px] font-medium leading-tight text-app-ink">{priceLine}</p>
+        <p className="font-display text-[32px] font-medium leading-tight text-app-ink">{priceLine}</p>
       </div>
       <CtaLink href={cta.href} className="w-full sm:w-auto">{cta.label}</CtaLink>
     </div>

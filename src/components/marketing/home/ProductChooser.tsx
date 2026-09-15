@@ -20,7 +20,7 @@ export const ProductChooser = () => (
           </div>
           <div className="flex flex-1 flex-col gap-3 p-6 sm:p-8">
             <p className="label-caps text-[10px] font-medium text-app-accent">{product.eyebrow}</p>
-            <h3 className="font-serif text-[30px] font-medium leading-tight text-app-ink">{product.title}</h3>
+            <h3 className="font-display text-[30px] font-medium leading-tight text-app-ink">{product.title}</h3>
             <p className="text-[15px] leading-relaxed text-app-muted">{product.body}</p>
             <div className="mt-auto flex items-center justify-between pt-4">
               <span className="text-[14px] text-app-muted">From <span className="font-semibold tabular-nums text-app-ink">{formatUsd(from)}</span>/mo</span>

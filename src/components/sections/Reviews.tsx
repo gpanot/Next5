@@ -13,7 +13,7 @@ export const Reviews = () => {
         <p className="label-caps text-center text-[9.5px] font-medium text-accent-strong">
           {t.reviews.eyebrow}
         </p>
-        <h2 className="mt-2 text-center font-serif text-[26px] uppercase tracking-[0.08em] text-ink sm:text-[30px]">
+        <h2 className="mt-2 text-center font-display text-[26px] uppercase tracking-[0.08em] text-ink sm:text-[30px]">
           {t.reviews.title}
         </h2>
 

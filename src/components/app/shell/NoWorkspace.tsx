@@ -10,7 +10,7 @@ export const NoWorkspace = ({ email, hasConsumerBookings }: NoWorkspaceProps) =>
   <div className="flex min-h-screen flex-col items-center justify-center gap-8 px-5 py-12 text-center">
     <BusinessLogo />
     <div className="max-w-lg">
-      <h1 className="font-serif text-[36px] font-medium leading-tight text-app-ink">Set up your studio</h1>
+      <h1 className="font-display text-[36px] font-medium leading-tight text-app-ink">Set up your studio</h1>
       <p className="mt-2 text-[15px] text-app-muted">You’re signed in as {email}. Choose the studio that fits your work.</p>
     </div>
     <div className="grid w-full max-w-lg gap-4 sm:grid-cols-2">

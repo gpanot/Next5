@@ -49,7 +49,7 @@ export const QrAndBank = ({ payment }: { payment: PaymentDto }) => (
         // eslint-disable-next-line @next/next/no-img-element -- external VietQR image from the payment provider
         <img src={payment.qrImageUrl} alt={`Payment QR code for ${payment.reference}`} className="h-auto w-full" />
       ) : (
-        <QrPlaceholder value={payment.reference} className="h-auto w-full text-[#1a1714]" />
+        <QrPlaceholder value={payment.reference} className="h-auto w-full text-ink" />
       )}
     </div>
     <div className="divide-y divide-app-line">

@@ -97,7 +97,7 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
             <p className="max-w-sm text-[14px] text-muted">{browserCheck.message}</p>
             <a
               href="/studio"
-              className="rounded-xl bg-ink px-6 py-3 font-serif text-[14px] tracking-[0.06em] text-white uppercase transition-opacity hover:opacity-80"
+              className="rounded-xl bg-ink px-6 py-3 font-display text-[14px] tracking-[0.06em] text-white uppercase transition-opacity hover:opacity-80"
             >
               Access my studio
             </a>
@@ -133,7 +133,7 @@ export const BookingSteps = ({ flow }: BookingStepsProps) => {
     <StepLayout centered>
       <div className="animate-fade-in flex flex-col items-center gap-5 py-20 text-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-line border-t-accent" />
-        <p className="font-serif text-[22px] tracking-[0.05em] text-ink uppercase">
+        <p className="font-display text-[22px] tracking-[0.05em] text-ink uppercase">
           Payment confirmed
         </p>
         <p className="text-[13px] text-muted">Your shoot has started…</p>

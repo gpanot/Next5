@@ -104,7 +104,7 @@ export const PreviewLoader = ({
       {/* Name capture — hidden if the name is already known */}
       {!hideName && (
         <div className="w-full max-w-[380px] rounded-2xl border border-line bg-surface px-5 py-5 text-left">
-          <p className="font-serif text-[18px] leading-snug text-ink">
+          <p className="font-display text-[18px] leading-snug text-ink">
             What&apos;s your name?
           </p>
           <div className="mt-3 flex items-center gap-2">

@@ -93,7 +93,7 @@ export const StyleStep = ({ route, options, selectedId, onSelect, onNext }: Styl
               />
               <span
                 className={[
-                  'font-serif text-[15px] leading-none tracking-[0.05em] uppercase',
+                  'font-display text-[15px] leading-none tracking-[0.05em] uppercase',
                   isPreviewed ? 'text-ink' : 'text-muted',
                 ].join(' ')}
               >
@@ -136,7 +136,7 @@ export const StyleStep = ({ route, options, selectedId, onSelect, onNext }: Styl
           />
 
           <div className="min-w-0 flex-1">
-            <h3 className="font-serif text-[18px] leading-none tracking-[0.06em] text-ink uppercase">
+            <h3 className="font-display text-[18px] leading-none tracking-[0.06em] text-ink uppercase">
               {previewed.name}
             </h3>
             <p className="mt-1 truncate text-[11px] text-accent-strong">{previewed.specialty}</p>

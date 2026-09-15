@@ -10,7 +10,7 @@ type PriceTagProps = {
 
 export const PriceTag = ({ amountVnd, originalAmountVnd, note, tone = 'light' }: PriceTagProps) => (
   <div>
-    <p className="font-serif text-[21px] leading-none sm:text-[23px]">
+    <p className="font-display text-[21px] leading-none sm:text-[23px]">
       {originalAmountVnd && originalAmountVnd > amountVnd && (
         <span
           className={`mr-2 text-[14px] line-through ${tone === 'dark' ? 'text-on-dark-muted' : 'text-muted'}`}

@@ -32,7 +32,7 @@ function Td({ children, className = '' }: { children?: React.ReactNode; classNam
 function Spinner() {
   return (
     <div className="flex items-center justify-center py-20">
-      <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#e9e1d6] border-t-[#221f1c]" />
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-line border-t-ink" />
     </div>
   );
 }
@@ -62,13 +62,13 @@ export const UsersTab = ({ token }: UsersTabProps) => {
   return (
     <div>
       <div className="mb-4 flex items-baseline gap-2">
-        <h2 className="font-serif text-[22px] tracking-[0.04em] text-[#221f1c] uppercase">Users</h2>
-        <span className="text-[13px] text-[#6e655c]">{users.length}</span>
+        <h2 className="font-display text-[22px] tracking-[0.04em] text-ink uppercase">Users</h2>
+        <span className="text-[13px] text-muted">{users.length}</span>
       </div>
-      <div className="overflow-hidden rounded-2xl border border-[#e9e1d6] bg-white">
+      <div className="overflow-hidden rounded-2xl border border-line bg-white">
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b border-[#e9e1d6] bg-[#fdfbf8] text-left text-[10px] uppercase tracking-[0.12em] text-[#6e655c]">
+            <tr className="border-b border-line bg-surface text-left text-[10px] uppercase tracking-[0.12em] text-muted">
               <Th>Email</Th>
               <Th>Bookings</Th>
               <Th>Photos</Th>
@@ -79,8 +79,8 @@ export const UsersTab = ({ token }: UsersTabProps) => {
           </thead>
           <tbody>
             {users.map((u, i) => (
-              <tr key={u.id} className={`border-b border-[#e9e1d6] last:border-0 ${i % 2 === 1 ? 'bg-[#fdfbf8]' : ''}`}>
-                <Td className="font-medium text-[#221f1c]">{u.email}</Td>
+              <tr key={u.id} className={`border-b border-line last:border-0 ${i % 2 === 1 ? 'bg-surface' : ''}`}>
+                <Td className="font-medium text-ink">{u.email}</Td>
                 <Td>{u.booking_count}</Td>
                 <Td>{u.photo_count}</Td>
                 <Td>{u.last_booking?.route_title ?? '—'}</Td>
@@ -89,13 +89,13 @@ export const UsersTab = ({ token }: UsersTabProps) => {
                     <StatusBadge value={u.last_booking.payment_status} map={PAYMENT_BADGE} />
                   ) : '—'}
                 </Td>
-                <Td className="text-[#6e655c]">{fmtDate(u.created_at)}</Td>
+                <Td className="text-muted">{fmtDate(u.created_at)}</Td>
               </tr>
             ))}
           </tbody>
         </table>
         {users.length === 0 && (
-          <p className="px-5 py-10 text-center text-[13px] text-[#6e655c]">No users yet.</p>
+          <p className="px-5 py-10 text-center text-[13px] text-muted">No users yet.</p>
         )}
       </div>
     </div>

@@ -30,7 +30,7 @@ export const FinalCta = () => {
           <PolaroidStack />
 
           <div className="lg:pl-2">
-            <h2 className="font-serif text-[30px] leading-[1.15] font-light text-on-dark sm:text-[36px] lg:text-[40px]">
+            <h2 className="font-display text-[30px] leading-[1.15] font-light text-on-dark sm:text-[36px] lg:text-[40px]">
               {c.headline}
             </h2>
             <p className="mt-3 text-[14px] text-on-dark-muted sm:text-[15px]">{c.subline}</p>

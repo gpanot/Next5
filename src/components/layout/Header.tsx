@@ -76,7 +76,7 @@ export const Header = () => {
               key={link.href}
               href={link.href}
               onClick={() => setMenuOpen(false)}
-              className="block border-b border-line/70 py-4 font-serif text-lg text-ink last:border-0"
+              className="block border-b border-line/70 py-4 font-display text-lg text-ink last:border-0"
             >
               {link.label[locale]}
             </a>
@@ -84,7 +84,7 @@ export const Header = () => {
           <a
             href="/studio"
             onClick={() => setMenuOpen(false)}
-            className="block border-b border-line/70 py-4 font-serif text-lg text-ink last:border-0"
+            className="block border-b border-line/70 py-4 font-display text-lg text-ink last:border-0"
           >
             My Studio
           </a>

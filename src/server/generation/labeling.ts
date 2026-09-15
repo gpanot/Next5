@@ -2,6 +2,7 @@
 // AI labeling for every generated image. Spec: docs/business-studios/02-architecture.md §6.3.
 
 import sharp from 'sharp';
+import { THEME } from '../../config/theme';
 
 export const DIGITAL_SOURCE_TYPE = 'http://cv.iptc.org/newscodes/digitalsourcetype/trainedAlgorithmicMedia';
 
@@ -54,6 +55,6 @@ export const mockSampleImage = async (label: string, ratio: string): Promise<Buf
   const width = 768;
   const height = Math.round((width * (rh || 1)) / (rw || 1));
   const safe = label.replace(/[<>&"]/g, '');
-  const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="#e9e1d6"/><text x="50%" y="50%" font-family="Helvetica, Arial" font-size="28" fill="#6b635a" text-anchor="middle">${safe}</text></svg>`;
+  const svg = `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" fill="${THEME.sunken}"/><text x="50%" y="50%" font-family="Helvetica, Arial" font-size="28" fill="${THEME.muted}" text-anchor="middle">${safe}</text></svg>`;
   return sharp(Buffer.from(svg)).jpeg({ quality: 85 }).toBuffer();
 };

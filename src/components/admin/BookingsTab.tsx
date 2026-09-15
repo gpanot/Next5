@@ -43,7 +43,7 @@ function ChevronIcon({ open }: { open: boolean }) {
       width="14" height="14" viewBox="0 0 24 24"
       fill="none" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round"
-      className={`text-[#6e655c] transition-transform ${open ? 'rotate-180' : ''}`}
+      className={`text-muted transition-transform ${open ? 'rotate-180' : ''}`}
     >
       <polyline points="6 9 12 15 18 9" />
     </svg>
@@ -53,7 +53,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 function Spinner() {
   return (
     <div className="flex items-center justify-center py-20">
-      <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#e9e1d6] border-t-[#221f1c]" />
+      <div className="h-7 w-7 animate-spin rounded-full border-2 border-line border-t-ink" />
     </div>
   );
 }
@@ -64,9 +64,9 @@ function ErrMsg({ msg }: { msg: string }) {
 
 function KpiCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-[#e9e1d6] bg-white p-5">
-      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-[#6e655c]">{label}</p>
-      <p className="mt-1.5 font-serif text-[22px] tracking-tight text-[#221f1c]">{value}</p>
+    <div className="rounded-2xl border border-line bg-white p-5">
+      <p className="text-[10px] font-medium uppercase tracking-[0.12em] text-muted">{label}</p>
+      <p className="mt-1.5 font-display text-[22px] tracking-tight text-ink">{value}</p>
     </div>
   );
 }
@@ -76,26 +76,26 @@ function BookingDetail({ booking }: { booking: AdminBooking }) {
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4 text-[12px] sm:grid-cols-4">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.12em] text-[#6e655c]">Director</p>
-          <p className="mt-0.5 text-[13px] text-[#221f1c]">{booking.director_name || '—'}</p>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Director</p>
+          <p className="mt-0.5 text-[13px] text-ink">{booking.director_name || '—'}</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.12em] text-[#6e655c]">Feelings</p>
-          <p className="mt-0.5 text-[13px] text-[#221f1c]">{booking.feelings.join(', ') || '—'}</p>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Feelings</p>
+          <p className="mt-0.5 text-[13px] text-ink">{booking.feelings.join(', ') || '—'}</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.12em] text-[#6e655c]">Goals</p>
-          <p className="mt-0.5 text-[13px] text-[#221f1c]">{booking.goals.join(', ') || '—'}</p>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Goals</p>
+          <p className="mt-0.5 text-[13px] text-ink">{booking.goals.join(', ') || '—'}</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-[0.12em] text-[#6e655c]">Discount</p>
-          <p className="mt-0.5 text-[13px] text-[#221f1c]">{booking.discount_percent ? `${booking.discount_percent}%` : '—'}</p>
+          <p className="text-[10px] uppercase tracking-[0.12em] text-muted">Discount</p>
+          <p className="mt-0.5 text-[13px] text-ink">{booking.discount_percent ? `${booking.discount_percent}%` : '—'}</p>
         </div>
       </div>
 
       {booking.photos.length > 0 && (
         <div>
-          <p className="mb-2 text-[10px] uppercase tracking-[0.12em] text-[#6e655c]">
+          <p className="mb-2 text-[10px] uppercase tracking-[0.12em] text-muted">
             Photos ({booking.photos.length})
           </p>
           <div className="flex flex-wrap gap-2">
@@ -108,15 +108,15 @@ function BookingDetail({ booking }: { booking: AdminBooking }) {
                       src={photo.url}
                       alt={`${photo.type} ${photo.scene_index ?? ''}`}
                       style={{ width: 72 }}
-                      className="h-24 w-18 rounded-lg border border-[#e9e1d6] object-cover transition-opacity hover:opacity-80"
+                      className="h-24 w-18 rounded-lg border border-line object-cover transition-opacity hover:opacity-80"
                     />
                   </a>
                 ) : (
-                  <div className="flex h-24 w-[72px] items-center justify-center rounded-lg border border-[#e9e1d6] bg-[#f5f1ea] text-[10px] text-[#6e655c]">
+                  <div className="flex h-24 w-[72px] items-center justify-center rounded-lg border border-line bg-surface-alt text-[10px] text-muted">
                     No URL
                   </div>
                 )}
-                <span className="mt-0.5 block text-center text-[9px] capitalize text-[#6e655c]">
+                <span className="mt-0.5 block text-center text-[9px] capitalize text-muted">
                   {photo.type}{photo.scene_index != null ? ` ${photo.scene_index}` : ''}
                 </span>
               </div>
@@ -161,14 +161,14 @@ export const BookingsTab = ({ token }: BookingsTabProps) => {
       </div>
 
       <div className="flex items-baseline gap-2">
-        <h2 className="font-serif text-[22px] tracking-[0.04em] text-[#221f1c] uppercase">Bookings</h2>
-        <span className="text-[13px] text-[#6e655c]">{bookings.length}</span>
+        <h2 className="font-display text-[22px] tracking-[0.04em] text-ink uppercase">Bookings</h2>
+        <span className="text-[13px] text-muted">{bookings.length}</span>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-[#e9e1d6] bg-white">
+      <div className="overflow-hidden rounded-2xl border border-line bg-white">
         <table className="w-full text-[13px]">
           <thead>
-            <tr className="border-b border-[#e9e1d6] bg-[#fdfbf8] text-left text-[10px] uppercase tracking-[0.12em] text-[#6e655c]">
+            <tr className="border-b border-line bg-surface text-left text-[10px] uppercase tracking-[0.12em] text-muted">
               <Th>ID</Th>
               <Th>Studio</Th>
               <Th>Customer</Th>
@@ -185,21 +185,21 @@ export const BookingsTab = ({ token }: BookingsTabProps) => {
               <>
                 <tr
                   key={b.id}
-                  className={`cursor-pointer border-b border-[#e9e1d6] hover:bg-[#fdfbf8] ${i % 2 === 1 ? 'bg-[#fdfbf8]' : ''} ${expanded === b.id ? 'bg-[#fdf9f5]' : ''}`}
+                  className={`cursor-pointer border-b border-line hover:bg-surface ${i % 2 === 1 ? 'bg-surface' : ''} ${expanded === b.id ? 'bg-surface' : ''}`}
                   onClick={() => setExpanded(expanded === b.id ? null : b.id)}
                 >
-                  <Td className="font-mono text-[11px] text-[#6e655c]">{b.id}</Td>
-                  <Td className="font-medium text-[#221f1c]">{b.route_title}</Td>
-                  <Td className="text-[#6e655c]">{b.user_email ?? '—'}</Td>
+                  <Td className="font-mono text-[11px] text-muted">{b.id}</Td>
+                  <Td className="font-medium text-ink">{b.route_title}</Td>
+                  <Td className="text-muted">{b.user_email ?? '—'}</Td>
                   <Td><StatusBadge value={b.payment_status} map={PAYMENT_BADGE} /></Td>
                   <Td><StatusBadge value={b.shoot_status}   map={SHOOT_BADGE}   /></Td>
                   <Td>{fmtVnd(b.amount_vnd)}{b.discount_percent ? ` (-${b.discount_percent}%)` : ''}</Td>
                   <Td>{b.photo_count}</Td>
-                  <Td className="text-[#6e655c]">{fmtDate(b.created_at)}</Td>
+                  <Td className="text-muted">{fmtDate(b.created_at)}</Td>
                   <Td><ChevronIcon open={expanded === b.id} /></Td>
                 </tr>
                 {expanded === b.id && (
-                  <tr key={`${b.id}-detail`} className="border-b border-[#e9e1d6] bg-[#fdf9f5]">
+                  <tr key={`${b.id}-detail`} className="border-b border-line bg-surface">
                     <td colSpan={9} className="px-5 py-4">
                       <BookingDetail booking={b} />
                     </td>
@@ -210,7 +210,7 @@ export const BookingsTab = ({ token }: BookingsTabProps) => {
           </tbody>
         </table>
         {bookings.length === 0 && (
-          <p className="px-5 py-10 text-center text-[13px] text-[#6e655c]">No bookings yet.</p>
+          <p className="px-5 py-10 text-center text-[13px] text-muted">No bookings yet.</p>
         )}
       </div>
     </div>

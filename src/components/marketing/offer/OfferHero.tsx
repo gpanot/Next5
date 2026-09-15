@@ -23,7 +23,7 @@ export const OfferHero = ({ eyebrow, title, sub, cta, secondary, note, platforms
     <div className="mx-auto grid max-w-6xl gap-x-16 gap-y-6 lg:grid-cols-[1.05fr_1fr] lg:items-center">
       <div className="flex flex-col items-start gap-3 lg:col-start-1 lg:row-start-1 lg:self-end">
         <p className="label-caps text-[10px] font-medium text-app-accent">{eyebrow}</p>
-        <h1 className="font-serif text-[34px] font-medium leading-[1.04] tracking-[-0.015em] text-balance text-app-ink sm:text-[54px] lg:text-[60px]">{title}</h1>
+        <h1 className="font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] text-balance text-app-ink sm:text-[46px] lg:text-[52px]">{title}</h1>
         <PlatformMarks platforms={platforms} className="lg:hidden" />
       </div>
       <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">{visual}</div>

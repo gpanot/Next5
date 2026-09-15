@@ -4,60 +4,63 @@
 /*  NEXT5 design tokens                                                */
 /* ------------------------------------------------------------------ */
 @theme {
-  --font-serif: var(--font-cormorant), 'Cormorant Garamond', 'Times New Roman', serif;
+  --font-display: var(--font-bricolage), 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-display);
   --font-sans: var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  --color-page: #ffffff;
-  --color-surface: #fdfbf8;
-  --color-surface-alt: #f5f1ea;
-  --color-cream: #f7f4f0;
+  /* Mulberry Atelier (D11). Keep in sync with src/config/theme.ts. */
+  --color-page: #faf7f8;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f3ecef;
+  --color-cream: #f5e6ee;
 
-  --color-ink: #221f1c;
-  --color-muted: #6e655c;
-  --color-line: #e9e1d6;
+  --color-ink: #1d1520;
+  --color-muted: #6e6270;
+  --color-subtle: #9a8d9c;
+  --color-line: #eadfe5;
 
-  --color-accent: #d89873;
-  --color-accent-strong: #9c5c3a;
-  --color-gold: #a9825e;
+  --color-accent: #c2548b;
+  --color-accent-strong: #8e2a5c;
+  --color-gold: #c2548b;
 
-  --color-ink-block: #1a1714;
+  --color-ink-block: #1d1520;
   --color-on-dark: #ffffff;
-  --color-on-dark-muted: #cfc6bb;
+  --color-on-dark-muted: #d9c8d2;
 
-  --shadow-card: 0 1px 2px rgb(34 31 28 / 0.05), 0 8px 24px -12px rgb(34 31 28 / 0.18);
+  --shadow-card: 0 1px 2px rgb(29 21 32 / 0.05), 0 8px 24px -12px rgb(29 21 32 / 0.18);
 
   /* ── Business surface tokens (light defaults) ── */
-  --color-app-bg: #fbfaf8;
+  --color-app-bg: #faf7f8;
   --color-app-panel: #ffffff;
-  --color-app-sunken: #f4f1ec;
-  --color-app-ink: #1f1c19;
-  --color-app-muted: #6b635a;
-  --color-app-line: #e7e1d8;
-  --color-app-accent: #b8683f;
+  --color-app-sunken: #f3ecef;
+  --color-app-ink: #1d1520;
+  --color-app-muted: #6e6270;
+  --color-app-line: #eadfe5;
+  --color-app-accent: #8e2a5c;
   --color-app-accent-ink: #ffffff;
-  --color-app-accent-soft: #f6e8df;
-  --color-app-success: #3f7a52;
-  --color-app-warning: #a8741f;
-  --color-app-danger: #b2463a;
-  --color-app-info: #4d6a8c;
+  --color-app-accent-soft: #f5e6ee;
+  --color-app-success: #1f7a57;
+  --color-app-warning: #a36a12;
+  --color-app-danger: #b3263e;
+  --color-app-info: #3f5e8c;
 }
 
-/* ── Business surface dark overrides (scoped — /photos unchanged) ── */
+/* ── Business surface dark overrides ── */
 @media (prefers-color-scheme: dark) {
   [data-surface='business'] {
-    --color-app-bg: #141210;
-    --color-app-panel: #1c1916;
-    --color-app-sunken: #24201c;
-    --color-app-ink: #f1ebe3;
-    --color-app-muted: #aaa093;
-    --color-app-line: #36302a;
-    --color-app-accent: #e09a72;
-    --color-app-accent-ink: #1a1512;
-    --color-app-accent-soft: #3a2a20;
-    --color-app-success: #7fb58f;
-    --color-app-warning: #d8aa5a;
-    --color-app-danger: #de8579;
-    --color-app-info: #9db5d3;
+    --color-app-bg: #141015;
+    --color-app-panel: #1c171d;
+    --color-app-sunken: #251e26;
+    --color-app-ink: #f4ecf1;
+    --color-app-muted: #ad9fae;
+    --color-app-line: #3a2f3b;
+    --color-app-accent: #e08ab6;
+    --color-app-accent-ink: #1a1117;
+    --color-app-accent-soft: #3a2130;
+    --color-app-success: #7cc4a2;
+    --color-app-warning: #e0b25c;
+    --color-app-danger: #f08a9a;
+    --color-app-info: #9db7e0;
   }
 }
 

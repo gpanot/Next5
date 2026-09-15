@@ -3,7 +3,7 @@ import { scoreBand } from '../../../lib/scoreRubric';
 
 const TONE = {
   great: 'bg-emerald-600 text-white',
-  good: 'bg-white/90 text-[#1f1c19]',
+  good: 'bg-white/90 text-ink',
   fair: 'bg-black/55 text-white',
 } as const;
 

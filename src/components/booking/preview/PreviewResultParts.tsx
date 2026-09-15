@@ -110,7 +110,7 @@ export const LockedShots = ({ route }: { route: PhotoRoute }) => (
         <ShotFrame shot={shot} alt="" loading="lazy" interactive={false} className="h-full w-full scale-110 blur-[6px] brightness-75" />
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/25">
           <LockIcon className="h-4 w-4 text-white/85" />
-          <span className="font-serif text-[10px] text-white/85">{String(index + 2).padStart(2, '0')}</span>
+          <span className="font-display text-[10px] text-white/85">{String(index + 2).padStart(2, '0')}</span>
         </div>
         <span className="sr-only">Shot {index + 2}, {route.scenes[index + 1]} — unlocked with the full shoot</span>
       </div>
@@ -145,7 +145,7 @@ export const FullShootPanel = ({ route }: { route: PhotoRoute }) => (
     <ul className="mt-3 space-y-1">
       {route.scenes.slice(1).map((scene, index) => (
         <li key={scene} className="flex items-baseline gap-2 text-[11.5px] text-muted">
-          <span className="font-serif text-[10px] text-accent-strong">{String(index + 2).padStart(2, '0')}</span>
+          <span className="font-display text-[10px] text-accent-strong">{String(index + 2).padStart(2, '0')}</span>
           {scene}
         </li>
       ))}

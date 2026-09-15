@@ -128,7 +128,7 @@ function GalleryCard({ front, back, name, globalFrontIndex, onOpen }: CardProps)
         </div>
 
         {/* Name label at the bottom of the polaroid */}
-        <p className="absolute bottom-0 left-0 right-0 pb-1 text-center font-serif text-[9px] tracking-widest text-muted sm:pb-1.5 sm:text-[10px]">
+        <p className="absolute bottom-0 left-0 right-0 pb-1 text-center font-display text-[9px] tracking-widest text-muted sm:pb-1.5 sm:text-[10px]">
           {name}
         </p>
       </div>
@@ -136,7 +136,7 @@ function GalleryCard({ front, back, name, globalFrontIndex, onOpen }: CardProps)
       {/* Watermark overlay (visible on hover) */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-10 right-2 select-none font-serif text-[9px] tracking-[0.22em] text-white/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100 [text-shadow:0_1px_4px_rgb(0_0_0/0.55)]"
+        className="pointer-events-none absolute bottom-10 right-2 select-none font-display text-[9px] tracking-[0.22em] text-white/60 opacity-0 transition-opacity duration-300 group-hover:opacity-100 [text-shadow:0_1px_4px_rgb(0_0_0/0.55)]"
       >
         NEXT5
       </span>
@@ -232,7 +232,7 @@ function Lightbox({ photos, index, onClose, onNav }: LightboxProps) {
         {/* Watermark */}
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute bottom-3 right-4 select-none font-serif text-[12px] tracking-[0.22em] text-white/55 [text-shadow:0_1px_6px_rgb(0_0_0/0.7)]"
+          className="pointer-events-none absolute bottom-3 right-4 select-none font-display text-[12px] tracking-[0.22em] text-white/55 [text-shadow:0_1px_6px_rgb(0_0_0/0.7)]"
         >
           NEXT5
         </span>
@@ -332,7 +332,7 @@ export const ResultsGallery = () => {
         <p className="label-caps text-center text-[9.5px] font-medium text-accent-strong">
           Real results
         </p>
-        <h2 className="mt-2 text-center font-serif text-[24px] text-ink sm:text-[30px]">
+        <h2 className="mt-2 text-center font-display text-[24px] text-ink sm:text-[30px]">
           This is what she got
         </h2>
         <p className="mx-auto mt-2 max-w-md text-center text-[12.5px] text-muted">

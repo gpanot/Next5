@@ -24,6 +24,8 @@
 
 ## P13 — Theme: Mulberry Atelier (1–2 days)
 
+> **Done 2026-09-15.** Tokens in `app/globals.css`, the same values in `src/config/theme.ts` (emails, OG, server SVG), kept in sync by `tests/config/theme.test.ts`, which also fails on old-palette hex. 193 hard-coded hex classes mapped to tokens across 27 files. Bricolage Grotesque via `font-display` (`font-serif` is an alias). Applied to `/photos` and `/studio` too (P13.5, per Guillaume). Headline sizes reduced for the grotesque.
+
 **Tokens** (`app/globals.css`; the `app-*` names stay, only the values change):
 
 | Token | Light | Dark |

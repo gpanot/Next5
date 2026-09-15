@@ -17,7 +17,7 @@ export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardPro
   const { t } = useLocale();
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-page shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgb(34_31_28/0.35)] focus-within:-translate-y-1">
+    <article className="group relative flex flex-col overflow-hidden rounded-xl border border-line bg-page shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgb(29_21_32/0.35)] focus-within:-translate-y-1">
       <button
         type="button"
         onClick={() => onSelect(route)}
@@ -35,13 +35,13 @@ export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardPro
           imageClassName="transition-transform duration-700 group-hover:scale-105"
         />
 
-        <span className="absolute top-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 font-serif text-[12px] font-medium text-ink shadow-sm">
+        <span className="absolute top-3 left-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 font-display text-[12px] font-medium text-ink shadow-sm">
           {route.number}
         </span>
       </div>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
-        <h3 className="font-serif text-[16px] tracking-[0.07em] text-ink uppercase">
+        <h3 className="font-display text-[16px] tracking-[0.07em] text-ink uppercase">
           {route.title}
         </h3>
         <p className="mt-1.5 line-clamp-2 min-h-[2.2em] text-[11px] leading-[1.1em] font-medium tracking-[0.08em] text-accent-strong uppercase">
@@ -53,7 +53,7 @@ export const RouteCard = ({ route, onSelect, discountPercent = 0 }: RouteCardPro
         </p>
 
         <div className="mt-auto pt-5">
-          <p className="font-serif text-[19px]">
+          <p className="font-display text-[19px]">
             {discountPercent > 0 && (
               <span className="mr-1.5 text-[13px] text-muted line-through">{route.price}</span>
             )}

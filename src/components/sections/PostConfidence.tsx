@@ -163,7 +163,7 @@ export const PostConfidence = () => {
       </div>
 
       {/* Headline */}
-      <h2 className={`mt-4 font-serif font-normal text-ink ${mobile ? 'text-[28px] sm:text-[34px] text-center' : 'text-[46px] xl:text-[52px]'} leading-[1.1]`}>
+      <h2 className={`mt-4 font-display font-normal text-ink ${mobile ? 'text-[28px] sm:text-[34px] text-center' : 'text-[46px] xl:text-[52px]'} leading-[1.1]`}>
         {c.headlinePre}
         <span className="text-gold italic">{c.headlineEm}</span>
       </h2>
@@ -193,7 +193,7 @@ export const PostConfidence = () => {
       {/* Emotional kicker */}
       <div className="mt-6">
         <p className="label-caps text-[10px] font-medium text-accent-strong">{c.emotionalKicker}</p>
-        <p className={`mt-2 font-serif leading-snug text-ink ${mobile ? 'text-[22px] text-center' : 'text-[22px]'}`}>
+        <p className={`mt-2 font-display leading-snug text-ink ${mobile ? 'text-[22px] text-center' : 'text-[22px]'}`}>
           {c.emotionalMain}
         </p>
         <p className={`mt-3 text-[12.5px] leading-relaxed text-muted ${mobile ? 'text-center max-w-sm mx-auto' : 'max-w-[300px]'}`}>

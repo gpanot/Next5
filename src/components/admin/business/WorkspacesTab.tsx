@@ -26,27 +26,27 @@ export const WorkspacesTab = ({ token }: { token: string }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or email" className="w-72 rounded-lg border border-[#e9e1d6] bg-white px-3 py-2 text-[13px]" />
-      {message && <p className="text-[13px] text-[#221f1c]">{message}</p>}
+      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or email" className="w-72 rounded-lg border border-line bg-white px-3 py-2 text-[13px]" />
+      {message && <p className="text-[13px] text-ink">{message}</p>}
       {error && <p className="text-[13px] text-red-700">{error}</p>}
-      {loading && !data && <p className="text-[13px] text-[#6e655c]">Loading…</p>}
-      <div className="overflow-x-auto rounded-xl border border-[#e9e1d6] bg-white">
+      {loading && !data && <p className="text-[13px] text-muted">Loading…</p>}
+      <div className="overflow-x-auto rounded-xl border border-line bg-white">
         <table className="w-full min-w-[900px] text-left text-[13px]">
-          <thead className="bg-[#f8f7f5] text-[11px] uppercase tracking-wider text-[#6e655c]">
+          <thead className="bg-surface text-[11px] uppercase tracking-wider text-muted">
             <tr>{['Workspace', 'Owner', 'Product', 'Onboarding', 'Plan', 'Photos', 'Batches', 'Created', ''].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}</tr>
           </thead>
           <tbody>
             {(data?.workspaces ?? []).map((w) => (
-              <tr key={w.id} className="border-t border-[#f1ece5]">
-                <td className="px-4 py-3 font-medium text-[#221f1c]">{w.name}</td>
-                <td className="px-4 py-3 text-[#6e655c]">{w.email}</td>
+              <tr key={w.id} className="border-t border-line">
+                <td className="px-4 py-3 font-medium text-ink">{w.name}</td>
+                <td className="px-4 py-3 text-muted">{w.email}</td>
                 <td className="px-4 py-3 capitalize">{w.product}</td>
                 <td className="px-4 py-3">{w.onboardingCompleted ? 'Done' : `Step ${w.onboardingStep + 1}`}{w.trialUsed ? ' · trial' : ''}</td>
                 <td className="px-4 py-3">{w.plan ?? '—'}</td>
                 <td className="px-4 py-3 tabular-nums">{w.balance}</td>
                 <td className="px-4 py-3 tabular-nums">{w.batches}{w.product === 'shop' ? ` · ${w.products} products` : ''}</td>
-                <td className="px-4 py-3 text-[#6e655c]">{w.createdAt.slice(0, 10)}</td>
-                <td className="px-4 py-3"><button onClick={() => grantCredits(w)} className="rounded-lg px-2 py-1 text-[12px] text-[#9c5c3a] hover:bg-[#f5f1ea]">Grant photos</button></td>
+                <td className="px-4 py-3 text-muted">{w.createdAt.slice(0, 10)}</td>
+                <td className="px-4 py-3"><button onClick={() => grantCredits(w)} className="rounded-lg px-2 py-1 text-[12px] text-accent-strong hover:bg-surface-alt">Grant photos</button></td>
               </tr>
             ))}
           </tbody>

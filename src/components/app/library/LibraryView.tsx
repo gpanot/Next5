@@ -81,7 +81,7 @@ export const LibraryView = () => {
           <AppButton onClick={() => void downloadWithAuth(`/api/app/library/zip?ids=${[...selected].join(',')}`, 'next5-photos.zip').catch(() => toast('Download failed', 'error'))}>Download selected</AppButton>
         </div>
       )}
-      {open?.url && <ImageLightbox src={open.url} alt={`${open.batchName} — photo`} onClose={() => setOpen(null)} overlay={<Link href={`/app/batches/${open.batchId}`} className="pointer-events-auto absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white px-4 py-2 text-[13px] font-medium text-[#1f1c19]">Open batch</Link>} />}
+      {open?.url && <ImageLightbox src={open.url} alt={`${open.batchName} — photo`} onClose={() => setOpen(null)} overlay={<Link href={`/app/batches/${open.batchId}`} className="pointer-events-auto absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white px-4 py-2 text-[13px] font-medium text-ink">Open batch</Link>} />}
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>
   );

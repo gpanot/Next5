@@ -35,22 +35,22 @@ export default function AdminPage() {
   if (!token) return <AdminLogin onToken={handleToken} />;
 
   return (
-    <div className="min-h-screen bg-[#f8f7f5]">
-      <header className="border-b border-[#e9e1d6] bg-white px-6 py-3.5">
+    <div className="min-h-screen bg-surface">
+      <header className="border-b border-line bg-white px-6 py-3.5">
         <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="font-serif text-[20px] tracking-[0.12em] text-[#221f1c] uppercase">Next5</span>
-            <span className="rounded-full bg-[#221f1c] px-2 py-0.5 text-[9px] font-medium tracking-widest text-white uppercase">
+            <span className="font-display text-[20px] tracking-[0.12em] text-ink uppercase">Next5</span>
+            <span className="rounded-full bg-ink px-2 py-0.5 text-[9px] font-medium tracking-widest text-white uppercase">
               Admin
             </span>
           </div>
-          <button onClick={logout} className="text-[12px] text-[#6e655c] hover:text-[#221f1c]">
+          <button onClick={logout} className="text-[12px] text-muted hover:text-ink">
             Sign out
           </button>
         </div>
       </header>
 
-      <div className="border-b border-[#e9e1d6] bg-white px-6">
+      <div className="border-b border-line bg-white px-6">
         <div className="mx-auto flex max-w-7xl gap-1">
           {(['overview', 'workspaces', 'payments', 'promise', 'qa', 'bookings', 'users', 'prompts'] as Tab[]).map((t) => (
             <button
@@ -59,8 +59,8 @@ export default function AdminPage() {
               className={[
                 'border-b-2 -mb-px px-4 py-3 text-[13px] font-medium capitalize transition-colors',
                 tab === t
-                  ? 'border-[#221f1c] text-[#221f1c]'
-                  : 'border-transparent text-[#6e655c] hover:text-[#221f1c]',
+                  ? 'border-ink text-ink'
+                  : 'border-transparent text-muted hover:text-ink',
               ].join(' ')}
             >
               {t}

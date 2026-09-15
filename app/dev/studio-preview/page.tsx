@@ -28,7 +28,7 @@ export default function StudioPreviewPage() {
     <div className="min-h-screen bg-page">
       <div className="mx-auto max-w-[720px] px-5 py-10 sm:px-8">
         <p className="label-caps text-[10px] font-medium text-accent-strong">Dev preview</p>
-        <h1 className="mt-1 font-serif text-[24px] text-ink">Studio reveal — no generation required</h1>
+        <h1 className="mt-1 font-display text-[24px] text-ink">Studio reveal — no generation required</h1>
         <p className="mt-2 text-[13px] text-muted">
           Uses each studio&apos;s existing placeholder shots as stand-ins. Not linked from the
           site; only reachable if you know the URL, and disabled in production.

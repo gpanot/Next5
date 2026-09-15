@@ -37,7 +37,7 @@ const ExistingAccountPopup = ({ email, onCancel }: ExistingAccountPopupProps) =>
     <div className="fixed inset-0 z-50 flex items-end justify-center px-4 pb-6 sm:items-center sm:pb-0">
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} aria-hidden="true" />
       <div className="relative w-full max-w-sm rounded-2xl bg-page px-6 py-6 shadow-2xl">
-        <p className="font-serif text-[20px] leading-tight text-ink">
+        <p className="font-display text-[20px] leading-tight text-ink">
           This account already exists.
         </p>
         <p className="mt-2 text-[13px] text-muted leading-relaxed">
@@ -53,7 +53,7 @@ const ExistingAccountPopup = ({ email, onCancel }: ExistingAccountPopupProps) =>
           </button>
           <a
             href={studioUrl}
-            className="rounded-xl bg-ink px-5 py-2.5 font-serif text-[13px] tracking-[0.05em] text-white uppercase transition-opacity hover:opacity-80"
+            className="rounded-xl bg-ink px-5 py-2.5 font-display text-[13px] tracking-[0.05em] text-white uppercase transition-opacity hover:opacity-80"
           >
             Yes, go to my Studio
           </a>
@@ -205,7 +205,7 @@ export const UploadStep = ({
           <div ref={emailSectionRef} className="my-7 border-t border-line" />
 
           <div>
-            <h3 className="font-serif text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
+            <h3 className="font-display text-[20px] tracking-[0.04em] text-ink sm:text-[22px]">
               Where should we send your photos?
             </h3>
             <div className="mt-4 max-w-md">

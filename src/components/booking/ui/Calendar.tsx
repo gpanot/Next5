@@ -36,7 +36,7 @@ export const Calendar = ({ initialMonth, selected, isAvailable, onSelect }: Cale
           disabled={!canGoBack}
           onClick={() => setMonth((current) => addMonths(current, -1))}
         />
-        <p className="font-serif text-[19px] tracking-[0.06em] text-ink">
+        <p className="font-display text-[19px] tracking-[0.06em] text-ink">
           {formatMonthYear(month)}
         </p>
         <MonthArrow direction="next" onClick={() => setMonth((current) => addMonths(current, 1))} />

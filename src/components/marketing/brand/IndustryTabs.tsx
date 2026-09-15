@@ -20,7 +20,7 @@ export const IndustryTabs = () => {
           <MarketingImage key={industry.image} src={industry.image} sizes="(min-width: 768px) 45vw, 100vw" className="animate-fade-in" />
         </div>
         <div>
-          <h3 className="font-serif text-[30px] font-medium text-app-ink">{industry.label}</h3>
+          <h3 className="font-display text-[30px] font-medium text-app-ink">{industry.label}</h3>
           <ul className="mt-5 flex flex-col gap-3">
             {industry.points.map((point) => (
               <li key={point} className="flex gap-3 text-[16px] text-app-ink">

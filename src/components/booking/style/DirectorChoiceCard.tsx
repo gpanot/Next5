@@ -61,7 +61,7 @@ export const DirectorChoiceCard = ({
         />
 
         <div className="min-w-0 flex-1">
-          <h3 className="font-serif text-[20px] leading-none tracking-[0.06em] text-ink uppercase">
+          <h3 className="font-display text-[20px] leading-none tracking-[0.06em] text-ink uppercase">
             {director.name}
           </h3>
           <p className="mt-1.5 truncate text-[11.5px] text-accent-strong">{director.specialty}</p>

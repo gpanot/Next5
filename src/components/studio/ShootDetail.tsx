@@ -253,7 +253,7 @@ export const ShootDetail = ({ booking, token, onUpdated }: ShootDetailProps) => 
       <p className="label-caps text-[9px] font-medium text-accent-strong">
         {isGenerating ? 'Creating your shoot…' : 'Ready'}
       </p>
-      <h2 className="mt-1.5 font-serif text-[24px] tracking-[0.05em] text-ink uppercase leading-none">
+      <h2 className="mt-1.5 font-display text-[24px] tracking-[0.05em] text-ink uppercase leading-none">
         {route.title}
       </h2>
       <p className="mt-1.5 text-[12.5px] text-muted">

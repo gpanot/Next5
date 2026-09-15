@@ -185,7 +185,7 @@ export const PreviewStep = ({
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
             <div className="flex items-baseline gap-2">
               <span className="label-caps text-[9px] font-medium text-muted shrink-0">{director.name} says</span>
-              <p className="font-serif text-[16px] italic text-ink leading-snug">&ldquo;You look amazing.&rdquo;</p>
+              <p className="font-display text-[16px] italic text-ink leading-snug">&ldquo;You look amazing.&rdquo;</p>
             </div>
             <IncludedItems directorName={director.name} />
             <div className="lg:shrink-0">
@@ -211,7 +211,7 @@ export const PreviewStep = ({
             onClick={() => !isRegenerating && setZoomed(true)}
             aria-label="View your first shot full screen"
             disabled={isRegenerating}
-            className="relative w-full overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgb(34_31_28/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className="relative w-full overflow-hidden rounded-2xl shadow-[0_20px_60px_-15px_rgb(29_21_32/0.35)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -222,15 +222,15 @@ export const PreviewStep = ({
             {!isRegenerating && (
               <>
                 <div className="absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/55 to-transparent p-4">
-                  <span className="rounded-full bg-white/90 px-3 py-1 font-serif text-[11px] text-ink">01 / 05</span>
+                  <span className="rounded-full bg-white/90 px-3 py-1 font-display text-[11px] text-ink">01 / 05</span>
                 </div>
                 <Watermark position="bottom-left" />
               </>
             )}
             {isRegenerating && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center">
-                <p className="font-serif text-[15px] leading-snug text-white">Regenerating your first photo…</p>
-                <p className="font-serif text-[38px] leading-none tabular-nums text-white/90">{regenSecondsLeft}</p>
+                <p className="font-display text-[15px] leading-snug text-white">Regenerating your first photo…</p>
+                <p className="font-display text-[38px] leading-none tabular-nums text-white/90">{regenSecondsLeft}</p>
                 <p className="text-[11px] text-white/60">seconds left</p>
               </div>
             )}
@@ -302,7 +302,7 @@ export const PreviewStep = ({
       {/* ── Feedback popups ────────────────────────────────────────────── */}
       {showNotMePopup && (
         <FeedbackPopup onClose={() => setShowNotMePopup(false)}>
-          <p className="font-serif text-[20px] leading-tight text-ink">What feels off?</p>
+          <p className="font-display text-[20px] leading-tight text-ink">What feels off?</p>
           <div className="mt-4 flex flex-col gap-2">
             {NOT_ME_REASONS.map(({ id, label }) => (
               <RadioRow key={id} label={label} selected={notMeReason === id} onSelect={() => setNotMeReason(id)} />
@@ -317,7 +317,7 @@ export const PreviewStep = ({
                 setFeedbackGiven(null);
                 regenGenerate();
               }}
-              className="font-serif text-[15px] italic text-accent-strong transition-opacity hover:opacity-70"
+              className="font-display text-[15px] italic text-accent-strong transition-opacity hover:opacity-70"
             >
               Try another →
             </button>
@@ -327,7 +327,7 @@ export const PreviewStep = ({
 
       {showLikeButPopup && (
         <FeedbackPopup onClose={() => setShowLikeButPopup(false)}>
-          <p className="font-serif text-[20px] leading-tight text-ink">Totally fair.</p>
+          <p className="font-display text-[20px] leading-tight text-ink">Totally fair.</p>
           <p className="mt-1 text-[13px] text-muted">What are you unsure about?</p>
           <div className="mt-4 flex flex-col gap-2">
             {LIKE_BUT_REASONS.map(({ id, label }) => (
@@ -338,7 +338,7 @@ export const PreviewStep = ({
             <button
               type="button"
               onClick={() => { recordFeedback('like_but', likeButReason ?? undefined); setShowLikeButPopup(false); }}
-              className="font-serif text-[15px] italic text-accent-strong transition-opacity hover:opacity-70"
+              className="font-display text-[15px] italic text-accent-strong transition-opacity hover:opacity-70"
             >
               Continue →
             </button>

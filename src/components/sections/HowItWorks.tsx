@@ -16,7 +16,7 @@ export const HowItWorks = () => {
           {howItWorksSteps.map((step, index) => (
             <li key={step.step} className="relative flex flex-col items-center text-center">
               <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#eee0d1] font-serif text-[13px] font-medium text-ink">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-line font-display text-[13px] font-medium text-ink">
                   {step.step}
                 </span>
                 <step.icon className="h-9 w-9 text-ink" strokeWidth={1.2} />

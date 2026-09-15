@@ -19,7 +19,7 @@ export const Section = ({ id, eyebrow, title, sub, tone = 'plain', align = 'left
         <header className={`mb-10 flex max-w-2xl flex-col gap-3 sm:mb-14 ${align === 'center' ? 'mx-auto items-center text-center' : ''}`}>
           {eyebrow && <p className="label-caps text-[11px] font-medium text-app-accent">{eyebrow}</p>}
           {title && (
-            <h2 className="font-serif text-[32px] font-medium leading-[1.08] tracking-[-0.01em] text-balance text-app-ink sm:text-[42px]">
+            <h2 className="font-display text-[28px] font-semibold leading-[1.1] tracking-[-0.02em] text-balance text-app-ink sm:text-[36px]">
               {title}
             </h2>
           )}

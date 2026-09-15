@@ -43,7 +43,7 @@ export const StudioGallery = ({ route }: StudioGalleryProps) => {
 
             <span className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent" />
 
-            <span className="absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 font-serif text-[10px] text-ink">
+            <span className="absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 font-display text-[10px] text-ink">
               {String(index + 1).padStart(2, '0')}
             </span>
 

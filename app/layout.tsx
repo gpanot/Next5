@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Cormorant_Garamond, Inter } from 'next/font/google';
+import { Bricolage_Grotesque, Inter } from 'next/font/google';
 import './globals.css';
 import { SiteAnalytics } from '../src/components/analytics/SiteAnalytics';
 import { LocaleProvider } from '../src/i18n/LocaleContext';
@@ -12,11 +12,9 @@ const inter = Inter({
   display: 'swap',
 });
 
-const cormorant = Cormorant_Garamond({
-  variable: '--font-cormorant',
+const bricolage = Bricolage_Grotesque({
+  variable: '--font-bricolage',
   subsets: ['latin', 'vietnamese'],
-  weight: ['300', '400', '500', '600', '700'],
-  style: ['normal', 'italic'],
   display: 'swap',
 });
 
@@ -39,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${cormorant.variable}`}>
+    <html lang="en" className={`${inter.variable} ${bricolage.variable}`}>
       <body className="min-h-full antialiased">
         <LocaleProvider>{children}</LocaleProvider>
         <SiteAnalytics />

@@ -30,7 +30,7 @@ export const PaymentReceived = () => (
         <path d="m4.5 12.5 5 5 10-11" />
       </svg>
     </span>
-    <p className="mt-5 font-serif text-[24px] tracking-[0.05em] text-ink uppercase">Payment confirmed</p>
+    <p className="mt-5 font-display text-[24px] tracking-[0.05em] text-ink uppercase">Payment confirmed</p>
     <p className="mt-2 text-[13px] text-muted">Your shoot has started…</p>
   </div>
 );
@@ -60,7 +60,7 @@ export const InlinePaymentSection = ({
     <div>
       <div className="mb-6">
         <p className="label-caps text-[9px] font-medium text-muted">Step 2 of 2</p>
-        <h3 className="mt-1 font-serif text-[24px] leading-tight text-ink">
+        <h3 className="mt-1 font-display text-[24px] leading-tight text-ink">
           Complete payment to go to your studio.
         </h3>
         <p className="mt-1.5 text-[13px] text-muted">
@@ -92,7 +92,7 @@ export const InlinePaymentSection = ({
           <div className="mt-2 lg:mt-0">
             {discountPercent > 0 ? (
               <div className="flex items-center gap-2.5">
-                <p className="font-serif text-[30px] leading-none">
+                <p className="font-display text-[30px] leading-none">
                   <span className="text-[16px] text-muted line-through">{formatVnd(route.priceVnd)}</span>{' '}
                   <span className="text-gold">{formatVnd(intent.amountVnd)}</span>{' '}
                   <span className="text-[16px] text-ink">VND</span>
@@ -102,7 +102,7 @@ export const InlinePaymentSection = ({
                 </span>
               </div>
             ) : (
-              <p className="font-serif text-[30px] leading-none">
+              <p className="font-display text-[30px] leading-none">
                 <span className="text-gold">{formatVnd(intent.amountVnd)}</span>{' '}
                 <span className="text-[16px] text-ink">VND</span>
               </p>

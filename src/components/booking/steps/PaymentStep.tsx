@@ -121,7 +121,7 @@ const PaymentDetails = ({ intent, onSimulate, originalAmountVnd, discountPercent
   <div className="mt-2 lg:mt-0">
     {originalAmountVnd && discountPercent ? (
       <div className="flex items-center gap-2.5">
-        <p className="font-serif text-[30px] leading-none">
+        <p className="font-display text-[30px] leading-none">
           <span className="text-muted text-[16px] line-through">{formatVnd(originalAmountVnd)}</span>{' '}
           <span className="text-gold">{formatVnd(intent.amountVnd)}</span>{' '}
           <span className="text-[16px] text-ink">VND</span>
@@ -131,7 +131,7 @@ const PaymentDetails = ({ intent, onSimulate, originalAmountVnd, discountPercent
         </span>
       </div>
     ) : (
-      <p className="font-serif text-[30px] leading-none">
+      <p className="font-display text-[30px] leading-none">
         <span className="text-gold">{formatVnd(intent.amountVnd)}</span>{' '}
         <span className="text-[16px] text-ink">VND</span>
       </p>
@@ -209,7 +209,7 @@ const PaymentReceived = () => (
         <path d="m4.5 12.5 5 5 10-11" />
       </svg>
     </span>
-    <p className="mt-5 font-serif text-[24px] tracking-[0.05em] text-ink uppercase">
+    <p className="mt-5 font-display text-[24px] tracking-[0.05em] text-ink uppercase">
       Payment confirmed
     </p>
     <p className="mt-2 text-[13px] text-muted">Your shoot has started…</p>

@@ -38,7 +38,7 @@ export const StudioStep = ({ route, onNext, discountPercent }: StudioStepProps) 
     <header className="flex items-end justify-between gap-6">
       <div>
         <p className="label-caps text-[9.5px] font-medium text-accent-strong">Your studio</p>
-        <h2 className="mt-2 font-serif text-[26px] leading-none tracking-[0.08em] text-ink uppercase sm:text-[30px]">
+        <h2 className="mt-2 font-display text-[26px] leading-none tracking-[0.08em] text-ink uppercase sm:text-[30px]">
           {route.title}
         </h2>
         <p className="mt-2 text-[13.5px] text-muted">

@@ -49,15 +49,15 @@ export const ShotTile = ({
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#3a322b_0%,#282220_45%,#1d1815_100%)]">
-            <PhotoIcon className="h-6 w-6 text-[#a2917f]/70" />
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(135deg,#3a2f3b_0%,#251e26_45%,#1d1520_100%)]">
+            <PhotoIcon className="h-6 w-6 text-subtle/70" />
           </div>
         )}
       </button>
 
       <span className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent" />
 
-      <span className="pointer-events-none absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 font-serif text-[10px] text-ink">
+      <span className="pointer-events-none absolute top-2 left-2 flex h-6 w-6 items-center justify-center rounded-full bg-white/90 font-display text-[10px] text-ink">
         {String(index + 1).padStart(2, '0')}
       </span>
 
