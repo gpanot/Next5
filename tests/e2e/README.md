@@ -15,6 +15,7 @@ Mock-mode browser runs of the business product. They use the locally installed G
    node tests/e2e/brand-create.mjs   # top-up → create 8 × 2 formats → batch → lightbox → redo → library
    node tests/e2e/shop-app.mjs       # bulk add products → create → compare view → redo → zip
    node tests/e2e/studios.mjs        # two studios: legacy redirects, Add Shop Studio, switcher, batch deep link
+   node tests/e2e/shop-store.mjs     # needs NEXT5_SHOP_IMPORT_MOCK=true: store import onboarding → trial → TikTok library pack → zip
    ```
    Onboarding creates accounts from your IP; the account rate limit is 5 per hour.
 4. Early-access checkout (the production default while payments are not live): restart the server with

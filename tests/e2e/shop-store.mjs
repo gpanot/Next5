@@ -1,0 +1,64 @@
+// Shop Studio with a TikTok store: onboarding import → best seller trial → drop → TikTok library pack → zip.
+// Run the dev server with NEXT5_SHOP_IMPORT_MOCK=true so no scraper credit is spent (see README).
+import { chromium } from 'playwright';
+import { mkdirSync, statSync } from 'node:fs';
+
+const OUT = process.env.E2E_OUT ?? '.data/e2e';
+mkdirSync(OUT, { recursive: true });
+const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:3100';
+const STORE = 'https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588';
+const browser = await chromium.launch({ channel: 'chrome' });
+const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, acceptDownloads: true });
+const page = await context.newPage();
+page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
+const step = (msg) => console.log('✓', msg);
+
+await page.goto(`${BASE}/start/shop`);
+await page.getByLabel('Email').fill(`e2e-store-${Date.now()}@example.com`);
+await page.getByLabel('First name').fill('Vy');
+await page.getByRole('button', { name: 'Continue' }).click();
+await page.getByText('A few things before we start').waitFor();
+for (const cb of await page.locator('input[type=checkbox]').all()) await cb.check({ force: true });
+await page.getByRole('button', { name: 'Agree and continue' }).click();
+await page.getByText('Who wears your products?').waitFor();
+await page.getByRole('button', { name: /Studio model/ }).click();
+await page.getByRole('radio').first().click();
+await page.getByRole('button', { name: 'Continue' }).click();
+await page.getByText('Pick your shop look').waitFor();
+await page.getByRole('radio').nth(1).click();
+await page.getByLabel('Your TikTok Shop link').fill(STORE);
+await page.getByText('I own or manage this shop.').click();
+await page.getByRole('button', { name: 'Import my store' }).click();
+await page.getByText(/Pick one for your free photos/).waitFor({ timeout: 60000 });
+const pick = page.getByRole('radiogroup', { name: 'Product for your free photos' }).getByRole('radio').first();
+await page.waitForFunction(() => { const r = document.querySelector('[aria-label="Product for your free photos"] [role=radio]'); return r && !r.hasAttribute('disabled'); }, null, { timeout: 60000 });
+await pick.click();
+await page.screenshot({ path: `${OUT}/store-onboarding.png`, fullPage: true });
+step('onboarding imported the store and picked the best seller');
+await page.getByRole('button', { name: 'Continue' }).click();
+await page.getByRole('button', { name: 'Create my free photos' }).click();
+await page.waitForFunction(() => document.querySelectorAll('img[alt="Your free photo"]').length === 3, null, { timeout: 90000 });
+step('free photos of the picked product');
+await page.getByRole('button', { name: 'Continue' }).click();
+await page.getByRole('button', { name: /Not now/ }).click();
+await page.waitForURL(/\/app\/shop/, { timeout: 20000 });
+
+await page.goto(`${BASE}/app/shop/library`);
+const card = page.locator('a[href^="/app/shop/library/"]').first();
+await card.waitFor({ timeout: 20000 });
+await card.click();
+await page.getByText(/Listing photos · \d\/9 in upload order/).waitFor({ timeout: 20000 });
+const firstBefore = await page.locator('figure img[alt="Slot 1"]').getAttribute('src');
+await page.getByRole('button', { name: 'Move slot 2 earlier' }).click();
+await page.waitForFunction((src) => document.querySelector('figure img[alt="Slot 1"]')?.getAttribute('src') !== src, firstBefore, { timeout: 15000 });
+step('reordered the pack');
+await page.getByRole('button', { name: 'Ready to list' }).click();
+await page.waitForTimeout(800);
+await page.screenshot({ path: `${OUT}/store-pack.png`, fullPage: true });
+const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Download pack' }).click()]);
+const file = `${OUT}/${download.suggestedFilename()}`;
+await download.saveAs(file);
+if (statSync(file).size < 1000) throw new Error('zip too small');
+step(`downloaded ${download.suggestedFilename()}`);
+await browser.close();
+console.log('E2E shop store OK');

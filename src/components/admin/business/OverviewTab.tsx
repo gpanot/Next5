@@ -40,6 +40,15 @@ export const OverviewTab = ({ token }: { token: string }) => {
             <Stat label="Provider cost" value={`$${m.providerCostUsd.toFixed(2)}`} sub={m.revenueUsdCents ? `margin ${pct(1 - (m.providerCostUsd * 100) / m.revenueUsdCents)}` : 'no revenue yet'} />
             <Stat label="Active plans" value={String(Object.values(m.activePlans).reduce((a, b) => a + b, 0))} sub={Object.entries(m.activePlans).map(([k, v]) => `${k} ${v}`).join(' · ') || '—'} />
           </section>
+          <section className="rounded-xl border border-line bg-white p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-[11px] uppercase tracking-widest text-muted">Shop first-try accuracy (launch gate ≥ 80% on 30+ photos)</p>
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${m.shopAccuracy.passesGate ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'}`}>{m.shopAccuracy.passesGate ? 'Gate passed' : 'Not yet'}</span>
+            </div>
+            <p className="mt-1 text-[24px] font-semibold tabular-nums text-ink">{m.shopAccuracy.rate === null ? '—' : pct(m.shopAccuracy.rate)}</p>
+            <p className="text-[12px] text-muted">{m.shopAccuracy.firstTry} of {m.shopAccuracy.photos} product photos never redone as “doesn’t match product”</p>
+            {m.shopAccuracy.byCategory.length > 0 && <p className="mt-2 text-[12px] text-ink">{m.shopAccuracy.byCategory.map((c) => `${c.category} ${pct(c.rate)} (${c.photos})`).join(' · ')}</p>}
+          </section>
           <p className="text-[12px] text-muted">Payments are simulated while demand is validated (D7) — revenue here counts simulated transfers.</p>
         </>
       )}

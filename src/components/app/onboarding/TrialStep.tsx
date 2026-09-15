@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { useBatchPolling } from '../../../hooks/useBatchPolling';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
+import { trialProductStore } from '../../../lib/localStore';
 import type { BatchItemDto, BatchSummaryDto } from '../../../types/business/batches';
 import { AppButton } from '../../ui/AppButton';
 import { ImageTile } from '../../ui/ImageTile';
@@ -84,7 +85,7 @@ export const TrialStep = ({ product, me, advance }: StepProps) => {
     setBusy(true);
     setError(null);
     try {
-      const res = await apiFetch<{ batch: BatchSummaryDto }>('/api/app/onboarding/trial', { method: 'POST', json: { product } });
+      const res = await apiFetch<{ batch: BatchSummaryDto }>('/api/app/onboarding/trial', { method: 'POST', json: { product, productId: product === 'shop' ? trialProductStore.get() : null } });
       setStartedId(res.batch.id);
       track('trial_generated', { product });
     } catch (err) {

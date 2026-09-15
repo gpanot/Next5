@@ -139,3 +139,33 @@ describe('Scroll-Stop Score and Post Kit', () => {
     expect((await prisma.batchItem.findUniqueOrThrow({ where: { id: items[0]!.id } })).postKit).toMatchObject({ hook: kit.hook });
   });
 });
+
+describe('TikTok listing pack', () => {
+  it('builds a pack from a shop batch, saves order and status, and zips in upload order', async () => {
+    const JSZip = (await import('jszip')).default;
+    const { getPack, savePack, zipPack } = await import('../../../src/server/shop/listingPacks');
+    const ws = await createTestWorkspace('shop');
+    await withSerializable((tx) => grant(tx, { workspaceId: ws.id, bucket: 'topup', amount: 40, reason: 'topup_grant', refType: 'payment', refId: `p-${ws.id}`, expiresAt: null }));
+    await putObject(`ws/${ws.id}/identity/face.jpg`, await sampleJpeg());
+    await prisma.identityReference.create({ data: { workspaceId: ws.id, kind: 'face', r2Key: `ws/${ws.id}/identity/face.jpg` } });
+    await putObject(`ws/${ws.id}/products/p/front.jpg`, await sampleJpeg());
+    const product = await prisma.product.create({ data: { workspaceId: ws.id, name: 'Satin Slip Dress', category: 'dress', sku: 'SSD-1', frontR2Key: `ws/${ws.id}/products/p/front.jpg` } });
+    const set = await prisma.studioSet.create({ data: { workspaceId: ws.id, templateId: 'beige-wall', name: 'Beige', locations: [], modelRef: 'me' } });
+    const batch = await createBatch(ws, { kind: 'shop_products', setId: set.id, productIds: [product.id], packId: 'listing', formats: ['square_1_1', 'story_9_16'], highRes: false });
+    await drain(batch.id);
+
+    const { pack } = await getPack(ws, product.id);
+    expect(pack.slots).toHaveLength(3);
+    expect(pack.coverItemId).toBeTruthy();
+    await savePack(ws, product.id, { slotItemIds: [...pack.slots].reverse(), status: 'ready' });
+    await expect(savePack(ws, product.id, { coverItemId: pack.slots[0] })).rejects.toMatchObject({ code: 'invalid_cover' });
+    const saved = await getPack(ws, product.id);
+    expect(saved.status).toBe('ready');
+    expect(saved.pack.slots).toEqual([...pack.slots].reverse());
+
+    const { buffer, name } = await zipPack(ws, product.id);
+    expect(name).toBe('ssd-1-tiktok-listing.zip');
+    const files = Object.keys((await JSZip.loadAsync(buffer)).files).sort();
+    expect(files).toEqual(['description.txt', 'ssd-1_01_main.jpg', 'ssd-1_02.jpg', 'ssd-1_03.jpg', 'ssd-1_cover_9x16.jpg']);
+  });
+});

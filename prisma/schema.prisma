@@ -237,6 +237,7 @@ model Workspace {
   payments      Payment[]
   promiseClaims PromiseClaim[]
   shopConnections ShopConnection[]
+  listingPacks    ListingPack[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
@@ -366,6 +367,7 @@ model Product {
   workspace Workspace   @relation(fields: [workspaceId], references: [id])
   items     BatchItem[]
   snapshots ProductSnapshot[]
+  listingPack ListingPack?
 
   @@index([workspaceId])
   @@unique([workspaceId, source, externalId])
@@ -628,4 +630,25 @@ model ProductSnapshot {
 
   @@index([productId, capturedAt])
   @@map("product_snapshots")
+}
+
+/// A product's TikTok Shop listing pack: up to 9 photos in upload order plus a 9:16 cover. Only saved once the seller edits it.
+model ListingPack {
+  id            String    @id @default(cuid())
+  workspaceId   String    @map("workspace_id")
+  productId     String    @unique @map("product_id")
+  /// draft | ready | uploaded
+  status        String    @default("draft")
+  slotItemIds   String[]  @default([]) @map("slot_item_ids")
+  hiddenItemIds String[]  @default([]) @map("hidden_item_ids")
+  coverItemId   String?   @map("cover_item_id")
+  uploadedAt    DateTime? @map("uploaded_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@map("listing_packs")
 }

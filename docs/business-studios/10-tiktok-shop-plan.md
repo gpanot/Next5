@@ -118,6 +118,14 @@
 
 ## P16 — TikTok Shop studio flows (5–7 days)
 
+> **Done 2026-09-16 (except weekly drop schedule → moved to P17).**
+> - **Onboarding:** the Shop look step offers "Import from my TikTok Shop": link, ownership checkbox, import, then pick one of the best sellers. "Add one by hand" remains. The trial uses the picked product, else the best-selling product with a photo, else the newest (`startTrial({ productId })`).
+> - **TikTok library:** `/app/shop/library` has one listing pack per product (`listing_packs` table, only saved once edited). `resolvePack` orders square photos first with the full body as main, keeps the seller's saved order, never shows hidden photos, caps at 9, and uses the newest 9:16 photo as the cover. It warns about a non-square main image or a missing cover.
+> - **Pack editor:** `/app/shop/library/:productId` has move earlier/later, remove/add, cover picker, status (Draft / Ready to list / Uploaded), the AI-label notice (red if the visible tag is off), the product description with copy, and **Download pack**. The zip holds `{sku}_01_main.jpg … _09.jpg`, `{sku}_cover_9x16.jpg` and `description.txt`.
+> - **Admin:** Overview shows **Shop first-try accuracy** (product photos never redone as "doesn't match product"), by category, with the ≥ 80% on 30+ photos gate.
+> - **Queue fix:** batch page ticks and trial starts also sweep long-silent tasks from other batches, so a lost callback can't hold every global slot.
+> - **Tests:** `tests/server/shop/listingPacks.test.ts`, the pack zip test in `pipeline.test.ts`, the stuck-slots test in `webhook.test.ts`, and e2e `tests/e2e/shop-store.mjs` (run with `NEXT5_SHOP_IMPORT_MOCK=true`).
+
 - **Onboarding (Shop):**
   1. Account.
   2. **Connect your store** (paste URL, or upload the export, or "skip, add products by hand").

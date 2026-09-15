@@ -19,7 +19,7 @@ const featuredThemeId = async (): Promise<string> => {
 };
 
 /** Grants the free trial (once per workspace, one retry if everything failed) and starts a 3-photo batch. */
-export const startTrial = async (workspace: Workspace): Promise<Batch> => {
+export const startTrial = async (workspace: Workspace, options: { productId?: string | null } = {}): Promise<Batch> => {
   const previous = await prisma.batch.findFirst({ where: { workspaceId: workspace.id, kind: 'trial' }, orderBy: { createdAt: 'desc' } });
   const isRetry = previous?.status === 'failed';
   if (workspace.trialUsedAt && !isRetry) throw new HttpError(409, 'trial_used', 'Your free photos have already been created.');
@@ -40,7 +40,12 @@ export const startTrial = async (workspace: Workspace): Promise<Batch> => {
     const sceneIds = (theme.scenes as unknown as ThemeScene[]).slice(0, TRIAL_CREDITS).map((s) => s.id);
     batch = await createBatch(workspace, { kind: 'brand_theme', trial: true, setId: set.id, themeId, count: TRIAL_CREDITS, sceneIds, formats: ['portrait_4_5'], highRes: false });
   } else {
-    const product = await prisma.product.findFirst({ where: { workspaceId: workspace.id, archivedAt: null }, orderBy: { createdAt: 'desc' } });
+    // The product the seller picked, else their best-selling product with a photo ready, else the newest.
+    const ready = { workspaceId: workspace.id, archivedAt: null, frontR2Key: { notIn: ['', 'pending'] } };
+    const product =
+      (options.productId ? await prisma.product.findFirst({ where: { ...ready, id: options.productId } }) : null) ??
+      (await prisma.product.findFirst({ where: { ...ready, soldCount: { not: null } }, orderBy: { soldCount: 'desc' } })) ??
+      (await prisma.product.findFirst({ where: ready, orderBy: { createdAt: 'desc' } }));
     if (!product) throw new HttpError(409, 'product_required', 'Add a product first.');
     batch = await createBatch(workspace, { kind: 'shop_products', trial: true, setId: set.id, productIds: [product.id], packId: 'listing', formats: ['square_1_1'], highRes: false });
   }

@@ -97,3 +97,23 @@ describe('handleWaveSpeedWebhook', () => {
     expect(await handleWaveSpeedWebhook({ id: 'ws-late', status: 'completed', outputs: ['https://cdn.example/x.jpg'] }, { retryDelaysMs: [300] })).toBe('handled');
   });
 });
+
+describe('stuck slots', () => {
+  it('a batch page tick recovers long-silent tasks from other batches that hold every slot', async () => {
+    const { runGenerationTick } = await import('../../../src/server/generation/poll');
+    process.env.NEXT5_MOCK_GENERATION_DELAY_MS = '0';
+    process.env.GENERATION_MAX_CONCURRENT = '1';
+    const ws = await createTestWorkspace('brand');
+    await putObject(`ws/${ws.id}/identity/face1.jpg`, await jpeg());
+    await prisma.identityReference.create({ data: { workspaceId: ws.id, kind: 'face', r2Key: `ws/${ws.id}/identity/face1.jpg` } });
+    const set = await prisma.studioSet.create({ data: { workspaceId: ws.id, templateId: 'modern-office', name: 'Office', locations: ['glass-meeting-room'] } });
+    await withSerializable((tx) => grant(tx, { workspaceId: ws.id, bucket: 'topup', amount: 50, reason: 'topup_grant', refType: 'payment', refId: `p-${ws.id}`, expiresAt: null }));
+    const stuck = await createBatch(ws, { kind: 'brand_theme', setId: set.id, themeId: 'just-listed', count: 8, formats: ['portrait_4_5'], highRes: false });
+    await pump({ batchId: stuck.id });
+    await prisma.batchItem.updateMany({ where: { batchId: stuck.id, status: 'generating' }, data: { submittedAt: new Date(Date.now() - 10 * 60 * 1000) } });
+    const waiting = await createBatch(ws, { kind: 'brand_theme', setId: set.id, themeId: 'just-listed', count: 8, formats: ['portrait_4_5'], highRes: false });
+    await runGenerationTick({ batchId: waiting.id, budgetMs: 5_000 });
+    expect(await prisma.batchItem.count({ where: { batchId: waiting.id, status: 'generating' } })).toBe(1);
+    process.env.NEXT5_MOCK_GENERATION_DELAY_MS = '600000';
+  });
+});

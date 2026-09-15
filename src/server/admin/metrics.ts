@@ -3,6 +3,7 @@
 import { prisma } from '../../lib/db';
 
 import type { BusinessMetrics } from '../../types/business/admin';
+import { shopAccuracy } from './accuracy';
 
 export type { BusinessMetrics };
 
@@ -46,5 +47,6 @@ export const businessMetrics = async (days: number, now = new Date()): Promise<B
     redoReasons: reasonCounts,
     providerCostUsd: (cost._sum.costUsdMicros ?? 0) / 1_000_000,
     trialToPaid: trialWorkspaces.length ? trialWorkspaces.filter((w) => paidSet.has(w.id)).length / trialWorkspaces.length : 0,
+    shopAccuracy: await shopAccuracy(from),
   };
 };

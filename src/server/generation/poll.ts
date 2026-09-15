@@ -70,6 +70,8 @@ export const sweepStale = async (now = Date.now()): Promise<number> =>
 export const runGenerationTick = async (options: { batchId?: string; budgetMs: number }): Promise<void> => {
   const work = (async () => {
     await poll({ batchId: options.batchId });
+    // Long-silent tasks from any batch hold global slots; recover them so this batch isn't stuck behind them.
+    if (options.batchId) await sweepStale();
     await pump({ batchId: options.batchId });
   })();
   await Promise.race([work, new Promise((resolve) => setTimeout(resolve, options.budgetMs))]);

@@ -16,4 +16,5 @@ export type BusinessMetrics = {
   redoReasons: Record<string, number>;
   providerCostUsd: number;
   trialToPaid: number;
+  shopAccuracy: { photos: number; firstTry: number; rate: number | null; byCategory: { category: string; photos: number; rate: number }[]; passesGate: boolean };
 };

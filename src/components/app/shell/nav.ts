@@ -13,7 +13,7 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
         { href: s('/store'), label: 'Store', icon: Store },
         { href: s('/products'), label: 'Products', icon: Package },
         { href: s('/create'), label: 'Create drop', icon: Plus, primary: true },
-        { href: s('/library'), label: 'Library', icon: Images },
+        { href: s('/library'), label: 'TikTok library', icon: Images },
         { href: s('/sets'), label: 'Shop looks', icon: Layers },
         { href: s('/billing'), label: 'Billing', icon: CreditCard },
         { href: '/app/settings', label: 'Settings', icon: Settings },
