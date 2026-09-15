@@ -37,7 +37,7 @@ const shortDate = (now: Date, withYear: boolean): string =>
 
 const loadSet = async (workspaceId: string, setId: string): Promise<StudioSet & { template: SetTemplate }> => {
   const set = await prisma.studioSet.findFirst({ where: { id: setId, workspaceId, status: { not: 'archived' } }, include: { template: true } });
-  if (!set) throw new HttpError(404, 'set_not_found', 'That set no longer exists.');
+  if (!set) throw new HttpError(404, 'set_not_found', 'That look was archived or no longer exists. Pick another one.');
   return set;
 };
 

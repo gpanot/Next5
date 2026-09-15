@@ -10,7 +10,7 @@ import { HttpError } from '../http';
 export const createCoverBatch = async (ws: Workspace, productId: string): Promise<Batch> => {
   if (ws.product !== 'shop') throw new HttpError(400, 'wrong_product', 'Covers are part of Shop Studio.');
   const latest = await prisma.batchItem.findFirst({
-    where: { productId, status: 'ready', batch: { workspaceId: ws.id, setId: { not: null } } },
+    where: { productId, status: 'ready', batch: { workspaceId: ws.id, set: { status: { not: 'archived' } } } },
     orderBy: { completedAt: 'desc' },
     select: { batch: { select: { setId: true, highRes: true } } },
   });

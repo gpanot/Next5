@@ -15,12 +15,14 @@ import { useWorkspace } from '../shell/WorkspaceProvider';
 import { ChipGroup } from '../../ui/Chip';
 import { defaultStyle, StyleOptions, type BrandStyle } from './steps/StyleOptions';
 import { TemplateGrid } from './steps/TemplateGrid';
+import { ArchiveSetDialog } from './ArchiveSetDialog';
+import { IdentityPhotosCard } from './IdentityPhotosCard';
 
 type SetEditorProps = { existing?: StudioSetDto };
 
 /** Create (no `existing`) or edit a set / shop look. Template can't change after creation. */
 export const SetEditor = ({ existing }: SetEditorProps) => {
-  const { me, product, refresh } = useWorkspace();
+  const { product, refresh } = useWorkspace();
   const router = useAppRouter();
   const templates = useApi<{ templates: SetTemplateDto[] }>(product ? `/api/app/templates?product=${product}` : null);
   const [templateId, setTemplateId] = useState<string | null>(existing?.templateId ?? null);
@@ -29,6 +31,7 @@ export const SetEditor = ({ existing }: SetEditorProps) => {
   const [modelRef, setModelRef] = useState<string>(existing?.modelRef ?? 'me');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [archiving, setArchiving] = useState(false);
   const template = templates.data?.templates.find((t) => t.id === templateId) ?? null;
   const noun = product === 'shop' ? 'shop look' : 'set';
 
@@ -63,9 +66,10 @@ export const SetEditor = ({ existing }: SetEditorProps) => {
             <Field label="Name" htmlFor="set-name" required><TextInput id="set-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} /></Field>
             {product === 'brand' && template && style && <StyleOptions template={template} value={style} onChange={setStyle} />}
             {product === 'shop' && (
-              <Field label="Who wears the products?" helper={modelRef === 'me' && !me?.workspace?.hasIdentity ? 'Add your selfies in onboarding first, or pick a Studio model.' : undefined}>
+              <Field label="Who wears the products?">
                 <div className="flex flex-col gap-4">
                   <ChipGroup options={[{ value: 'me', label: 'Me' }, { value: 'studio', label: 'Studio model' }]} value={modelRef === 'me' ? 'me' : 'studio'} onChange={(v) => setModelRef(v === 'me' ? 'me' : '')} />
+                  {modelRef === 'me' && <IdentityPhotosCard product="shop" compact />}
                   {modelRef !== 'me' && <ModelGrid value={modelRef} onChange={setModelRef} />}
                 </div>
               </Field>
@@ -75,10 +79,12 @@ export const SetEditor = ({ existing }: SetEditorProps) => {
         </Card>
       )}
       {error && <p role="alert" className="text-[14px] text-app-danger">{error}</p>}
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2">
+        {existing && <AppButton variant="ghost" className="mr-auto text-app-danger" onClick={() => setArchiving(true)}>Archive {noun}</AppButton>}
         <AppButton variant="ghost" onClick={() => router.push('/app/sets')}>Cancel</AppButton>
         <AppButton size="lg" loading={busy} disabled={!name || (!existing && !templateId) || (product === 'shop' && !modelRef)} onClick={save}>{existing ? 'Save changes' : `Create ${noun}`}</AppButton>
       </div>
+      {existing && archiving && <ArchiveSetDialog setId={existing.id} name={existing.name} noun={noun} onClose={() => setArchiving(false)} onArchived={() => { refresh(); router.push('/app/sets'); }} />}
     </div>
   );
 };

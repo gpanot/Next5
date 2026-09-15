@@ -8,7 +8,7 @@ import type { StudioSetDto } from '../../types/business/catalog';
 import { getActivePlan } from '../generation/createBatch';
 import { HttpError } from '../http';
 import { presignObject } from '../storage/objectStore';
-import { NO_PLAN_MAX_SETS } from '../../config/plans';
+import { NO_PLAN_MAX_SETS, PLANS } from '../../config/plans';
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -59,7 +59,11 @@ export const createSet = async (workspace: Workspace, input: Partial<SetInput>):
   const limit = plan?.maxSets ?? NO_PLAN_MAX_SETS;
   const count = await prisma.studioSet.count({ where: { workspaceId: workspace.id, status: { not: 'archived' } } });
   if (count >= limit) {
-    throw new HttpError(403, 'set_limit', plan ? `Your plan includes ${limit} ${workspace.product === 'shop' ? 'shop looks' : 'sets'}. Upgrade to Growth for more.` : 'Pick a plan to add more.');
+    const noun = workspace.product === 'shop' ? 'shop looks' : 'sets';
+    const bigger = Object.values(PLANS).find((p) => p.product === workspace.product && !p.contactOnly && p.maxSets > limit);
+    throw new HttpError(403, 'set_limit', !plan
+      ? 'Pick a plan to add more.'
+      : `You use all ${limit} ${noun} in your plan. Archive one you don't use${bigger ? `, or move to ${bigger.name} for ${bigger.maxSets}` : ''}.`);
   }
   const template = await prisma.setTemplate.findUniqueOrThrow({ where: { id: input.templateId ?? '' } });
   return prisma.studioSet.create({

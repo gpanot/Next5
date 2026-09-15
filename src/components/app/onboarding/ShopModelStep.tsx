@@ -4,17 +4,14 @@ import { Check, UserRound } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
-import { apiFetch } from '../../../lib/apiClient';
 import { onboardingModelStore } from '../../../lib/localStore';
 import { hasManifestImage } from '../../../lib/manifest';
 import { AppButton } from '../../ui/AppButton';
-import { Checkbox } from '../../ui/Checkbox';
 import { SkeletonGrid } from '../../ui/Skeleton';
-import { PhotoSlot } from '../shared/PhotoSlot';
-import { GuideImages, SELFIE_GUIDES } from './GuideImages';
 import { StepCard } from './StepCard';
-import { stepError, type StepProps } from './types';
-import { useUpload, type PendingPhoto } from './useUpload';
+import { SelfieFields } from './SelfieFields';
+import type { StepProps } from './types';
+import { useSelfieUpload } from './useSelfieUpload';
 
 type StudioModel = { slug: string; name: string; age: number; description: string; faceImage: string; available: boolean };
 
@@ -38,14 +35,10 @@ export const ModelGrid = ({ value, onChange }: { value: string; onChange: (slug:
 };
 
 export const ShopModelStep = ({ product, me, advance }: StepProps) => {
-  const faceConsentGiven = me.user.consents.includes('face_processing');
   const stored = onboardingModelStore.useValue();
   const [mode, setMode] = useState<'me' | 'studio'>(stored && stored !== 'me' ? 'studio' : 'me');
   const [slug, setSlug] = useState(stored && stored !== 'me' ? stored : '');
-  const [photos, setPhotos] = useState<(PendingPhoto | null)[]>([null, null, null]);
-  const [consent, setConsent] = useState(false);
-  const { upload, busy, error, setError } = useUpload();
-  const meReady = photos[0] && photos[2];
+  const selfies = useSelfieUpload(product, me.user.consents.includes('face_processing'));
 
   const submit = async () => {
     if (mode === 'studio') {
@@ -53,18 +46,9 @@ export const ShopModelStep = ({ product, me, advance }: StepProps) => {
       await advance(3);
       return;
     }
-    try {
-      if (consent) await apiFetch('/api/app/consents', { method: 'POST', json: { types: ['terms', 'face_processing'] } });
-      const form = new FormData();
-      form.set('product', product);
-      form.set('replace', 'true');
-      photos.forEach((p, i) => { if (p) { form.append('files', p.file); form.append('kinds', i === 2 ? 'full_body' : 'face'); } });
-      if (await upload('/api/app/identity', form)) {
-        onboardingModelStore.set('me');
-        await advance(3);
-      }
-    } catch (err) {
-      setError(stepError(err, 'Could not save your photos.'));
+    if (await selfies.save()) {
+      onboardingModelStore.set('me');
+      await advance(3);
     }
   };
 
@@ -72,7 +56,7 @@ export const ShopModelStep = ({ product, me, advance }: StepProps) => {
     <StepCard
       title="Who wears your products?"
       sub="Wear them yourself — your customers know your face — or pick a Studio model."
-      footer={<AppButton size="lg" loading={busy} disabled={mode === 'studio' ? !slug : !meReady} onClick={submit}>Continue</AppButton>}
+      footer={<AppButton size="lg" loading={selfies.busy} disabled={mode === 'studio' ? !slug : !selfies.ready} onClick={submit}>Continue</AppButton>}
     >
       <div className="grid grid-cols-2 gap-3">
         {([['me', 'Wear it yourself', '2 selfies + 1 full-body photo'], ['studio', 'Studio model', '6 models to choose from']] as const).map(([value, title, sub]) => (
@@ -83,20 +67,7 @@ export const ShopModelStep = ({ product, me, advance }: StepProps) => {
           </button>
         ))}
       </div>
-      {mode === 'studio' ? (
-        <ModelGrid value={slug} onChange={setSlug} />
-      ) : (
-        <>
-          <div className="grid grid-cols-3 gap-3">
-            {['Selfie, facing camera', 'Selfie, slight angle', 'Full body'].map((label, i) => (
-              <PhotoSlot key={label} label={label} hint={i === 1 ? 'Optional' : undefined} capture={i === 2 ? 'environment' : 'user'} previewUrl={photos[i]?.previewUrl ?? null} onFile={(file, previewUrl) => setPhotos((prev) => prev.map((p, j) => (j === i ? { file, previewUrl } : p)))} />
-            ))}
-          </div>
-          <GuideImages guides={SELFIE_GUIDES} />
-          {!faceConsentGiven && <Checkbox checked={consent} onChange={setConsent} label={<span className="text-[14px] text-app-ink">These are photos of me and I agree that Next5 processes my face to create photos. <span className="text-app-muted">Skip if you already agreed.</span></span>} />}
-        </>
-      )}
-      {error && <p role="alert" className="text-[14px] text-app-danger">{error}</p>}
+      {mode === 'studio' ? <ModelGrid value={slug} onChange={setSlug} /> : <SelfieFields upload={selfies} />}
     </StepCard>
   );
 };
