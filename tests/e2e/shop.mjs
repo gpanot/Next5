@@ -37,7 +37,7 @@ await page.screenshot({ path: `${OUT}/shop-trial.png` });
 await page.getByRole('button', { name: 'Continue' }).click();
 await page.getByText('Keep creating every month').waitFor();
 await page.getByRole('button', { name: /Not now/ }).click();
-await page.waitForURL(/\/app/, { timeout: 20000 });
+await page.waitForURL(/\/app\/shop/, { timeout: 20000 });
 await page.getByText('Recent batches').waitFor({ timeout: 20000 });
 await page.waitForTimeout(1200);
 await page.screenshot({ path: `${OUT}/shop-dashboard.png` });

@@ -12,6 +12,7 @@ import {
   type TermMonths,
 } from '../../../config/plans';
 import { formatUsd } from '../../../lib/money';
+import { studioHref } from '../../../lib/studioPaths';
 import { CheckoutSheet, type CheckoutRequest } from '../../checkout/CheckoutSheet';
 import { TermToggle } from '../../marketing/shared/PricingPreview';
 import { AppButton } from '../../ui/AppButton';
@@ -32,7 +33,7 @@ export const PlanStep = ({ product, advance }: StepProps) => {
   const finish = async (welcome: boolean) => {
     setLeaving(true);
     await advance(6, { completed: true });
-    router.push(welcome ? '/app?welcome=1' : '/app');
+    router.push(`${studioHref(product)}${welcome ? '?welcome=1' : ''}`);
   };
 
   return (

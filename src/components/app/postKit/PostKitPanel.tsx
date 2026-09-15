@@ -1,7 +1,7 @@
 'use client';
 
 import { Copy, Lock, Sparkles } from 'lucide-react';
-import Link from 'next/link';
+import { AppLink as Link } from '../shell/AppLink';
 import { useState } from 'react';
 import { track } from '../../../lib/analytics';
 import { ApiError, apiFetch } from '../../../lib/apiClient';

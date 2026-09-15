@@ -4,19 +4,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { formatShortDate } from '../../../lib/dates';
 import { BusinessLogo } from '../../marketing/shared/MarketingHeader';
+import { StudioSwitcher } from './StudioSwitcher';
 import { useWorkspace } from './WorkspaceProvider';
 import { isActive, navFor } from './nav';
 
 export const SidebarNav = () => {
   const pathname = usePathname();
-  const { me, product } = useWorkspace();
+  const { me, product, href } = useWorkspace();
   if (!product) return null;
   const sub = me?.subscription;
 
   return (
     <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-app-line bg-app-panel px-4 py-6 lg:flex">
       <div className="px-2"><BusinessLogo /></div>
-      <p className="label-caps mt-6 px-2 text-[10px] font-medium text-app-muted">{product === 'brand' ? 'Brand Studio' : 'Shop Studio'} · {me?.workspace?.name}</p>
+      <div className="mt-5"><StudioSwitcher /></div>
+      <p className="label-caps mt-4 truncate px-2 text-[10px] font-medium text-app-muted">{me?.workspace?.name}</p>
       <nav aria-label="App" className="mt-3 flex flex-col gap-1">
         {navFor(product).map(({ href, label, icon: Icon, primary }) => {
           const active = isActive(pathname, href);
@@ -39,7 +41,7 @@ export const SidebarNav = () => {
       <div className="mt-auto rounded-xl bg-app-sunken p-3 text-[13px]">
         <p className="font-medium text-app-ink">{sub ? sub.planName : 'No plan yet'}</p>
         <p className="mt-0.5 text-app-muted">{sub?.endsAt ? `Ends ${formatShortDate(sub.endsAt)}` : 'Pick a plan to keep creating'}</p>
-        <Link href="/app/billing" className="mt-2 inline-block font-medium text-app-accent hover:text-app-ink">{sub ? 'Manage' : 'See plans'}</Link>
+        <Link href={href('/billing')} className="mt-2 inline-block font-medium text-app-accent hover:text-app-ink">{sub ? 'Manage' : 'See plans'}</Link>
       </div>
     </aside>
   );

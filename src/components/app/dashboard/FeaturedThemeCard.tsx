@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { AppLink as Link } from '../shell/AppLink';
 import { useApi } from '../../../hooks/useApi';
 import { hasManifestImage } from '../../../lib/manifest';
 import type { ThemeDto } from '../../../types/business/catalog';

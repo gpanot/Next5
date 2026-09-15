@@ -1,7 +1,7 @@
 'use client';
 
 import { Info, X } from 'lucide-react';
-import Link from 'next/link';
+import { AppLink as Link } from '../shell/AppLink';
 import { postingTipsStore } from '../../../lib/localStore';
 
 export const PostingTips = ({ visibleAiTag }: { visibleAiTag: boolean }) => {

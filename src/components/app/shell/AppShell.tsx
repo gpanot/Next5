@@ -1,21 +1,23 @@
 'use client';
 
 import { Plus } from 'lucide-react';
-import Link from 'next/link';
+import { AppLink as Link } from './AppLink';
 import type { ReactNode } from 'react';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard, SkeletonText } from '../../ui/Skeleton';
 import { BannerStack } from './BannerStack';
 import { BottomTabBar } from './BottomTabBar';
 import { CreditsPill } from './CreditsPill';
+import { AddStudio } from './AddStudio';
 import { NoWorkspace } from './NoWorkspace';
+import { StudioSwitcher } from './StudioSwitcher';
 import { SidebarNav } from './SidebarNav';
 import { useWorkspace } from './WorkspaceProvider';
 
-type PageFrameProps = { title: string; actions?: ReactNode; children: ReactNode };
+type PageFrameProps = { title: string; actions?: ReactNode; children: ReactNode; /** Show the studio switcher on phones (the sidebar has it on desktop). */ studioSwitcher?: boolean };
 
 /** Page chrome inside the shell: title row, credits pill, banner, content. */
-export const AppPage = ({ title, actions, children }: PageFrameProps) => (
+export const AppPage = ({ title, actions, children, studioSwitcher = false }: PageFrameProps) => (
   <div className="flex min-w-0 flex-1 flex-col">
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-app-line bg-app-bg/90 px-5 backdrop-blur-md sm:px-8">
       <h1 className="truncate text-[20px] font-semibold text-app-ink sm:text-[22px]">{title}</h1>
@@ -28,6 +30,7 @@ export const AppPage = ({ title, actions, children }: PageFrameProps) => (
       </div>
     </header>
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 pb-28 pt-6 sm:px-8 lg:pb-12">
+      {studioSwitcher && <div className="lg:hidden"><StudioSwitcher compact /></div>}
       <BannerStack />
       {children}
     </div>
@@ -35,9 +38,10 @@ export const AppPage = ({ title, actions, children }: PageFrameProps) => (
 );
 
 export const AppShell = ({ children }: { children: ReactNode }) => {
-  const { me, loading, error, refresh } = useWorkspace();
+  const { me, loading, error, refresh, routeStudio } = useWorkspace();
+  const wrongStudio = Boolean(routeStudio && me?.workspace && me.workspace.product !== routeStudio);
 
-  if (!me && loading) {
+  if ((!me || wrongStudio) && loading) {
     return (
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-5 py-10 sm:px-8">
         <SkeletonText lines={2} />
@@ -47,6 +51,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   }
   if (!me) return <div className="mx-auto max-w-md px-5 py-24"><ErrorState message={error ?? 'Could not load your workspace.'} onRetry={refresh} /></div>;
   if (!me.workspace) return <NoWorkspace email={me.user.email} hasConsumerBookings={me.hasConsumerBookings} />;
+  if (wrongStudio && routeStudio) return <AddStudio studio={routeStudio} />;
 
   return (
     <div className="flex min-h-screen">

@@ -26,7 +26,7 @@ await page.screenshot({ path: `${OUT}/home.png` });
 
 await page.goto(link);
 await page.getByText('Recent batches').waitFor({ timeout: 20000 });
-await page.goto(`${BASE}/app/billing`);
+await page.goto(`${BASE}/app/brand/billing`);
 await page.getByRole('button', { name: /Choose a plan|Renew or change plan/ }).click();
 await page.getByRole('button', { name: /^Choose Growth$/ }).click();
 await page.getByText('Request received').waitFor({ timeout: 15000 });

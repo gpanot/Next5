@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from '../shell/AppLink';
 import { formatShortDate } from '../../../lib/dates';
 import type { MeDto } from '../../../types/business/me';
 import { Card, CardBody } from '../../ui/Card';

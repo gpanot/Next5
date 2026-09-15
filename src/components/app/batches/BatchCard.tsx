@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { AppLink as Link } from '../shell/AppLink';
 import { formatRelative } from '../../../lib/dates';
 import type { BatchSummaryDto } from '../../../types/business/batches';
 import { Badge } from '../../ui/Badge';

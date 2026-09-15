@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import { AppLink as Link } from '../shell/AppLink';
 import { STUDIO_MODELS } from '../../../content/business/catalog/studioModels';
 import { hasManifestImage } from '../../../lib/manifest';
 import type { StudioSetDto } from '../../../types/business/catalog';

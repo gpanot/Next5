@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { AppLink as Link } from '../shell/AppLink';
 import type { BatchEstimateDto } from '../../../types/business/batches';
 import { AppButton } from '../../ui/AppButton';
 

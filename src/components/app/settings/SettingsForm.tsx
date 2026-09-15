@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { AppLink as Link } from '../shell/AppLink';
 import { useState, type FormEvent } from 'react';
 import { FORMAT_IDS, FORMATS, type FormatId } from '../../../config/formats';
 import { INDUSTRIES, SHOP_CATEGORIES } from '../../../content/business/catalog/types';

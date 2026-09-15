@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '../shell/AppLink';
 import { useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
@@ -21,7 +21,7 @@ type SetEditorProps = { existing?: StudioSetDto };
 /** Create (no `existing`) or edit a set / shop look. Template can't change after creation. */
 export const SetEditor = ({ existing }: SetEditorProps) => {
   const { me, product, refresh } = useWorkspace();
-  const router = useRouter();
+  const router = useAppRouter();
   const templates = useApi<{ templates: SetTemplateDto[] }>(product ? `/api/app/templates?product=${product}` : null);
   const [templateId, setTemplateId] = useState<string | null>(existing?.templateId ?? null);
   const [name, setName] = useState(existing?.name ?? '');

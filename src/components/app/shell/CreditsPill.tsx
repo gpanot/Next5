@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { AppLink as Link } from './AppLink';
 import { useEffect, useRef, useState } from 'react';
 import { formatShortDate } from '../../../lib/dates';
 import { ProgressMeter } from '../../ui/ProgressMeter';

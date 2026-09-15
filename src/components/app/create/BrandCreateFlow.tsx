@@ -2,7 +2,8 @@
 
 import { track } from '../../../lib/analytics';
 import { ImagePlus } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useAppRouter } from '../shell/AppLink';
 import { useMemo, useState } from 'react';
 import { FORMATS, type FormatId } from '../../../config/formats';
 import { useApi } from '../../../hooks/useApi';
@@ -25,7 +26,7 @@ const COUNTS = [8, 16, 24, 32] as const;
 
 export const BrandCreateFlow = () => {
   const { me, refresh } = useWorkspace();
-  const router = useRouter();
+  const router = useAppRouter();
   const params = useSearchParams();
   const sets = useApi<{ sets: StudioSetDto[] }>('/api/app/sets?product=brand');
   const themes = useApi<{ featured: ThemeDto | null; library: ThemeDto[] }>('/api/app/themes');

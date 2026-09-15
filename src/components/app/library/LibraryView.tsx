@@ -1,8 +1,8 @@
 'use client';
 
 import { CheckSquare, Heart, Images } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { AppLink as Link } from '../shell/AppLink';
+import { useAppRouter } from '../shell/AppLink';
 import { useCallback, useEffect, useState } from 'react';
 import { FORMAT_IDS, FORMATS } from '../../../config/formats';
 import { useToast } from '../../../hooks/useToast';
@@ -24,7 +24,7 @@ type State = { key: string; items: LibraryItem[]; nextCursor: string | null; err
 
 export const LibraryView = () => {
   const { product } = useWorkspace();
-  const router = useRouter();
+  const router = useAppRouter();
   const [format, setFormat] = useState('');
   const [favorite, setFavorite] = useState(false);
   const [state, setState] = useState<State | null>(null);

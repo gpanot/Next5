@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, Package, Plus, Search } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useAppRouter } from '../shell/AppLink';
 import { useEffect, useState } from 'react';
 import { PRODUCT_CATEGORIES } from '../../../config/shots';
 import { useApi } from '../../../hooks/useApi';
@@ -22,7 +22,7 @@ import { ProductDetailSheet } from './ProductDetailSheet';
 const STATUS = [{ value: 'all', label: 'All' }, { value: 'unused', label: 'New' }, { value: 'used', label: 'Photographed' }] as const;
 
 export const ProductsView = () => {
-  const router = useRouter();
+  const router = useAppRouter();
   const [search, setSearch] = useState('');
   const [debounced, setDebounced] = useState('');
   const [category, setCategory] = useState('');

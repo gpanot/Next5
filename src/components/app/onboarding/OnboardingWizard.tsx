@@ -9,6 +9,7 @@ import { useApi } from '../../../hooks/useApi';
 import { useMagicToken } from '../../../hooks/useMagicToken';
 import { apiFetch } from '../../../lib/apiClient';
 import { onboardingDraftStore, sessionTokenStore } from '../../../lib/localStore';
+import { studioHref } from '../../../lib/studioPaths';
 import type { MeDto, ProductLineDto } from '../../../types/business/me';
 import { BusinessLogo } from '../../marketing/shared/MarketingHeader';
 import { ErrorState } from '../../ui/ErrorState';
@@ -41,8 +42,8 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const current = viewStep !== null && viewStep < serverStep ? viewStep : serverStep;
 
   useEffect(() => {
-    if (workspace?.onboardingCompleted) router.replace('/app');
-  }, [workspace?.onboardingCompleted, router]);
+    if (workspace?.onboardingCompleted) router.replace(studioHref(product));
+  }, [workspace?.onboardingCompleted, router, product]);
 
   // The typed step-1 details are only needed until this product's workspace exists.
   useEffect(() => {

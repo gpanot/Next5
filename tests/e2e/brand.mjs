@@ -43,7 +43,7 @@ await shot(page, '6-checkout');
 await page.getByRole('button', { name: /Simulate transfer/ }).click();
 await page.getByText('Payment received').waitFor({ timeout: 20000 });
 await page.getByRole('button', { name: 'Continue' }).click();
-await page.waitForURL(/\/app/, { timeout: 20000 });
+await page.waitForURL(/\/app\/brand/, { timeout: 20000 });
 await page.getByText('Recent batches').waitFor({ timeout: 20000 });
 await page.waitForTimeout(1500);
 await shot(page, '7-dashboard');

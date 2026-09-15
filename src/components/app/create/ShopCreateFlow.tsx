@@ -2,7 +2,8 @@
 
 import { track } from '../../../lib/analytics';
 import { Package } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
+import { useAppRouter } from '../shell/AppLink';
 import { useMemo, useState } from 'react';
 import { FORMATS, type FormatId } from '../../../config/formats';
 import { PACKS, type PackId } from '../../../config/shots';
@@ -26,7 +27,7 @@ const PACK_CHOICES: PackId[] = ['listing', 'full'];
 
 export const ShopCreateFlow = () => {
   const { me, refresh } = useWorkspace();
-  const router = useRouter();
+  const router = useAppRouter();
   const params = useSearchParams();
   const products = useApi<{ products: ProductDto[] }>('/api/app/products');
   const sets = useApi<{ sets: StudioSetDto[] }>('/api/app/sets?product=shop');

@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const { me, refresh } = useWorkspace();
   const workspace = me?.workspace;
   return (
-    <AppPage title="Settings">
+    <AppPage title="Settings" studioSwitcher>
       {me && workspace && <SettingsForm key={workspace.id} me={{ ...me, workspace }} onSaved={refresh} />}
       <div className="flex justify-center border-t border-app-line pt-6">
         <AppButton variant="ghost" onClick={() => sessionTokenStore.set(null)}>Sign out</AppButton>

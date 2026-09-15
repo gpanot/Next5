@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertTriangle, CalendarClock, Sparkles } from 'lucide-react';
-import Link from 'next/link';
+import { AppLink as Link } from './AppLink';
 import { formatShortDate } from '../../../lib/dates';
 import type { BannerDto } from '../../../types/business/me';
 import { useWorkspace } from './WorkspaceProvider';

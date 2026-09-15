@@ -1,8 +1,8 @@
 'use client';
 
 import { ImagePlus, Package } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { AppLink as Link } from '../shell/AppLink';
+import { useAppRouter } from '../shell/AppLink';
 import { useApi } from '../../../hooks/useApi';
 import type { BatchSummaryDto } from '../../../types/business/batches';
 import { EmptyState } from '../../ui/EmptyState';
@@ -36,7 +36,7 @@ const RecentBatches = ({ product }: { product: 'brand' | 'shop' }) => {
 
 export const DashboardView = () => {
   const { me, product } = useWorkspace();
-  const router = useRouter();
+  const router = useAppRouter();
   if (!me?.workspace || !product) return null;
   const setupIncomplete = !me.workspace.onboardingCompleted && (!me.workspace.hasIdentity || me.workspace.setCount === 0);
 

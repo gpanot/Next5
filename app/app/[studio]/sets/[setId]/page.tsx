@@ -1,19 +1,19 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { use, useState } from 'react';
-import { SetEditor } from '../../../../src/components/app/sets/SetEditor';
-import { AppPage } from '../../../../src/components/app/shell/AppShell';
-import { AppButton } from '../../../../src/components/ui/AppButton';
-import { ErrorState } from '../../../../src/components/ui/ErrorState';
-import { SkeletonCard } from '../../../../src/components/ui/Skeleton';
-import { useApi } from '../../../../src/hooks/useApi';
-import { apiFetch } from '../../../../src/lib/apiClient';
-import type { StudioSetDto } from '../../../../src/types/business/catalog';
+import { SetEditor } from '../../../../../src/components/app/sets/SetEditor';
+import { useAppRouter } from '../../../../../src/components/app/shell/AppLink';
+import { AppPage } from '../../../../../src/components/app/shell/AppShell';
+import { AppButton } from '../../../../../src/components/ui/AppButton';
+import { ErrorState } from '../../../../../src/components/ui/ErrorState';
+import { SkeletonCard } from '../../../../../src/components/ui/Skeleton';
+import { useApi } from '../../../../../src/hooks/useApi';
+import { apiFetch } from '../../../../../src/lib/apiClient';
+import type { StudioSetDto } from '../../../../../src/types/business/catalog';
 
 export default function SetDetailPage({ params }: { params: Promise<{ setId: string }> }) {
   const { setId } = use(params);
-  const router = useRouter();
+  const router = useAppRouter();
   const { data, error, loading, refresh } = useApi<{ set: StudioSetDto }>(`/api/app/sets/${setId}`);
   const [archiving, setArchiving] = useState(false);
 

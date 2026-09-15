@@ -1,12 +1,8 @@
 'use client';
 
-import { DashboardView } from '../../src/components/app/dashboard/DashboardView';
-import { AppPage } from '../../src/components/app/shell/AppShell';
+import { LegacyRedirect } from '../../src/components/app/shell/LegacyRedirect';
 
-export default function AppHomePage() {
-  return (
-    <AppPage title="Home">
-      <DashboardView />
-    </AppPage>
-  );
+/** /app → the last-used studio (or the only one the user has). */
+export default function AppIndexPage() {
+  return <LegacyRedirect />;
 }

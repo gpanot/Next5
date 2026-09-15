@@ -2,8 +2,8 @@
 
 import { Layers, Plus } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { AppLink as Link } from '../shell/AppLink';
+import { useAppRouter } from '../shell/AppLink';
 import { useApi } from '../../../hooks/useApi';
 import { hasManifestImage } from '../../../lib/manifest';
 import type { StudioSetDto } from '../../../types/business/catalog';
@@ -14,7 +14,7 @@ import { useWorkspace } from '../shell/WorkspaceProvider';
 
 export const SetsList = () => {
   const { me, product } = useWorkspace();
-  const router = useRouter();
+  const router = useAppRouter();
   const { data, error, loading, refresh } = useApi<{ sets: StudioSetDto[] }>(product ? `/api/app/sets?product=${product}` : null);
   const noun = product === 'shop' ? 'shop look' : 'set';
   if (loading) return <SkeletonGrid count={3} cols={3} />;

@@ -1,7 +1,7 @@
 'use client';
 
 import { Check } from 'lucide-react';
-import Link from 'next/link';
+import { AppLink as Link } from '../shell/AppLink';
 import type { ProductDto } from '../../../types/business/products';
 import { Switch } from '../../ui/Switch';
 

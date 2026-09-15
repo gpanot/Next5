@@ -49,6 +49,15 @@
 
 ## P14 — Two studios, one account (2–3 days)
 
+> **Done 2026-09-15.**
+> - **Routes:** pages live in `app/app/[studio]/` (`brand` | `shop`); `/app/settings` stays shared.
+> - **Studio source:** `WorkspaceProvider` reads the studio from the URL and remembers the last studio you own.
+> - **Old links:** `/app` and old deep links (`/app/create`, `/app/batches/:id`, …) go through `LegacyRedirect`. Batches open in their own studio.
+> - **Link scoping:** app components use `AppLink` / `useAppRouter`, which scope `/app/...` hrefs automatically. Email buttons are scoped per workspace in `sendOnce`.
+> - **Screens:** `StudioSwitcher` in the sidebar, plus on Home/Settings on phones. `AddStudio` shows when you open a studio you don't have yet.
+> - **Shop menu:** Home · Products · Create drop · Library · Shop looks · Billing. Store and TikTok library arrive in P15/P16.
+> - **Tests:** `tests/e2e/studios.mjs` and `tests/lib/studioPaths.test.ts`.
+
 - **Routes:** `/app/brand/...` and `/app/shop/...`. Old `/app/*` redirects to the last-used studio, or the only one the user has.
   - The studio comes from the URL, not local storage (`WorkspaceProvider` reads the route segment).
   - `/app/settings` stays shared (account, privacy).

@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { AppLink as Link } from '../shell/AppLink';
 import { useState } from 'react';
 import { PRODUCT_CATEGORIES } from '../../../config/shots';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
