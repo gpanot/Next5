@@ -125,7 +125,8 @@ export const zipPack = async (ws: Workspace, productId: string): Promise<{ buffe
     const body = key ? await getObject(key) : null;
     if (body) zip.file(names.cover, body);
   }
-  const kit = (byId.get(pack.slots[0]!)?.postKit as PostKitDto | null) ?? null;
+  // The listing Post Kit (whole series) wins over an older per-photo kit.
+  const kit = (product.postKit as PostKitDto | null) ?? (byId.get(pack.slots[0]!)?.postKit as PostKitDto | null) ?? null;
   const text = [product.name, '', kit?.hook ?? '', kit?.description ?? product.description ?? '', '', kit?.hashtags.join(' ') ?? '', '', 'Photos are AI-generated. Turn on the AI-generated label when you list them on TikTok Shop.'].join('\n').replace(/\n{3,}/g, '\n\n').trim();
   zip.file('description.txt', `${text}\n`);
   return { buffer: await zip.generateAsync({ type: 'nodebuffer', compression: 'STORE' }), name: `${slugify(label)}-tiktok-listing.zip` };

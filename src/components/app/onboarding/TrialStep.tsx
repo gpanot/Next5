@@ -11,7 +11,9 @@ import { trialProductStore } from '../../../lib/localStore';
 import type { BatchItemDto, BatchSummaryDto } from '../../../types/business/batches';
 import { AppButton } from '../../ui/AppButton';
 import { ImageTile } from '../../ui/ImageTile';
+import { PostKitBody } from '../postKit/PostKitBody';
 import { PostKitPanel } from '../postKit/PostKitPanel';
+import { ScoreCard } from '../postKit/ScoreCard';
 import { ScoreBadge } from '../postKit/ScoreBadge';
 import { SkeletonText } from '../../ui/Skeleton';
 import { StepCard } from './StepCard';
@@ -72,10 +74,18 @@ const TrialResults = ({ batchId, product }: { batchId: string; product: 'brand' 
       </div>
       {best && (
         <div className="flex flex-col gap-2">
-          <p className="text-[14px] font-medium text-app-ink">Your best photo, ready to post</p>
+          <p className="text-[14px] font-medium text-app-ink">{product === 'shop' ? 'Your listing, ready to post' : 'Your best photo, ready to post'}</p>
           <p className="text-[13px] text-app-muted">A free taste of Growth: the score, a tip, and the words to post with it.</p>
           <div className="rounded-2xl ring-1 ring-app-line">
-            <PostKitPanel key={best.id} item={best} product={product} allowed onCopied={() => undefined} />
+            {product === 'shop' && best.productId ? (
+              // Shop: one Post Kit for the whole photo series of the product.
+              <div className="flex flex-col gap-4 rounded-2xl bg-app-panel p-4">
+                {best.score !== null && <ScoreCard score={best.score} details={best.scoreDetails} />}
+                <PostKitBody key={best.productId} initialKit={null} endpoint={`/api/app/shop/products/${best.productId}/post-kit`} product="shop" subject="this listing" allowed onCopied={() => undefined} />
+              </div>
+            ) : (
+              <PostKitPanel key={best.id} item={best} product={product} allowed onCopied={() => undefined} />
+            )}
           </div>
         </div>
       )}

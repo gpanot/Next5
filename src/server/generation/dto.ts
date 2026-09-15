@@ -73,6 +73,7 @@ export const toDetailDto = async (batch: Batch): Promise<BatchDetailDto> => {
         frontUrl: p?.frontR2Key ? await presignObject(p.frontR2Key) : null,
         angleCount: shots.length,
         nextShots: p && !p.archivedAt ? nextShotsForProduct(p.category, Boolean(p.backR2Key), shots) : [],
+        postKit: (p?.postKit as PostKitDto | null) ?? null,
       };
     }),
   );

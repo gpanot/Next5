@@ -349,6 +349,8 @@ model Product {
   externalUrl      String?   @map("external_url")
   categoryPath     String?   @map("category_path")
   description      String?
+  /// Shop Post Kit for the whole listing (all photos of this product); generated on demand, cached.
+  postKit          Json?     @map("post_kit")
   priceCents       Int?      @map("price_cents")
   currency         String?
   soldCount        Int?      @map("sold_count")

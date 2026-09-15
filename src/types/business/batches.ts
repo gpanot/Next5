@@ -64,6 +64,8 @@ export type BatchProductDto = {
   angleCount: number;
   /** The angles "Create more photos" would add next (empty when every angle is done). */
   nextShots: string[];
+  /** Post Kit for the whole listing (Shop), null until written. */
+  postKit: PostKitDto | null;
 };
 
 export type BatchDetailDto = BatchSummaryDto & { items: BatchItemDto[]; products: BatchProductDto[]; visibleAiTag: boolean };

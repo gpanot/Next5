@@ -24,7 +24,8 @@ export const toPackDto = async (ws: Workspace, p: { product: Product & { listing
   const pick = (ids: string[]) => Promise.all(ids.map((id) => byId.get(id)).filter((i): i is BatchItem => Boolean(i)).map(photo));
   const hidden = p.product.listingPack?.hiddenItemIds ?? [];
   const main = byId.get(p.pack.slots[0] ?? '');
-  const kit = (main?.postKit as PostKitDto | null) ?? null;
+  // The listing Post Kit (whole series) wins over an older per-photo kit.
+  const kit = (p.product.postKit as PostKitDto | null) ?? (main?.postKit as PostKitDto | null) ?? null;
   return {
     productId: p.product.id, name: p.product.name, sku: p.product.sku, externalUrl: p.product.externalUrl, originalUrl: await original(p.product), status: p.status,
     slots: await pick(p.pack.slots),

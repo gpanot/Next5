@@ -166,6 +166,30 @@ describe('Scroll-Stop Score and Post Kit', () => {
     expect(kit.hashtags.length).toBeGreaterThan(3);
     expect((await prisma.batchItem.findUniqueOrThrow({ where: { id: items[0]!.id } })).postKit).toMatchObject({ hook: kit.hook });
   });
+
+  it('writes one Post Kit per Shop listing, cached on the product, with a rewrite option', async () => {
+    const { getProductPostKit } = await import('../../../src/server/postKit/postKit');
+    const ws = await createTestWorkspace('shop');
+    await withSerializable((tx) => grant(tx, { workspaceId: ws.id, bucket: 'topup', amount: 40, reason: 'topup_grant', refType: 'payment', refId: `p-${ws.id}`, expiresAt: null }));
+    await putObject(`ws/${ws.id}/identity/face.jpg`, await sampleJpeg());
+    await prisma.identityReference.create({ data: { workspaceId: ws.id, kind: 'face', r2Key: `ws/${ws.id}/identity/face.jpg` } });
+    await putObject(`ws/${ws.id}/products/p/front.jpg`, await sampleJpeg());
+    const product = await prisma.product.create({ data: { workspaceId: ws.id, name: 'Leopard Mesh Dress', category: 'dress', frontR2Key: `ws/${ws.id}/products/p/front.jpg` } });
+    const set = await prisma.studioSet.create({ data: { workspaceId: ws.id, templateId: 'beige-wall', name: 'Beige', locations: [], modelRef: 'me' } });
+
+    await expect(getProductPostKit(ws.ownerUserId, product.id)).rejects.toMatchObject({ code: 'no_photos' });
+    const batch = await createBatch(ws, { kind: 'shop_products', setId: set.id, productIds: [product.id], packId: 'listing', formats: ['square_1_1'], highRes: false });
+    await drain(batch.id);
+    await expect(getProductPostKit(ws.ownerUserId, product.id)).rejects.toMatchObject({ status: 403 }); // no Growth, not a trial
+
+    await prisma.batch.update({ where: { id: batch.id }, data: { kind: 'trial' } });
+    const kit = await getProductPostKit(ws.ownerUserId, product.id);
+    expect(kit.description).toBeTruthy();
+    expect((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).postKit).toMatchObject({ hook: kit.hook });
+    await prisma.product.update({ where: { id: product.id }, data: { postKit: { ...kit, hook: 'Cached hook' } } });
+    expect((await getProductPostKit(ws.ownerUserId, product.id)).hook).toBe('Cached hook');
+    expect((await getProductPostKit(ws.ownerUserId, product.id, { rewrite: true })).hook).not.toBe('Cached hook');
+  });
 });
 
 describe('TikTok listing pack', () => {
