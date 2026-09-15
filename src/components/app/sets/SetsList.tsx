@@ -27,7 +27,12 @@ export const SetsList = () => {
   const atLimit = sets.length >= (me?.plan?.maxSets ?? 1);
 
   if (sets.length === 0) {
-    return <EmptyState illustration={<Layers className="h-10 w-10" />} title={`No ${noun}s yet`} body={`A ${noun} keeps every batch in the same look.`} action={{ label: `Create a ${noun}`, onClick: () => router.push('/app/sets/new') }} />;
+    return (
+      <div className="flex flex-col gap-6">
+        {product && <IdentityPhotosCard product={product} />}
+        <EmptyState illustration={<Layers className="h-10 w-10" />} title={`No ${noun}s yet`} body={`A ${noun} keeps every batch in the same look.`} action={{ label: `Create a ${noun}`, onClick: () => router.push('/app/sets/new') }} />
+      </div>
+    );
   }
 
   return (
