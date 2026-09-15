@@ -4,6 +4,7 @@ import type { BatchItem, Product, Workspace } from '@prisma/client';
 import type { PostKitDto } from '../../types/business/batches';
 import type { ListingPackDto, ListingPackSummaryDto, PackPhotoDto, PackStatusDto } from '../../types/business/shop';
 import { presignObject } from '../storage/objectStore';
+import { coversInProgress } from './cover';
 import type { resolvePack } from './listingPacks';
 
 type Pack = ReturnType<typeof resolvePack>;
@@ -29,9 +30,11 @@ export const toPackDto = async (ws: Workspace, p: { product: Product & { listing
   return {
     productId: p.product.id, name: p.product.name, sku: p.product.sku, externalUrl: p.product.externalUrl, originalUrl: await original(p.product), status: p.status,
     slots: await pick(p.pack.slots),
-    extra: await pick([...p.pack.extra, ...hidden.filter((id) => byId.has(id) && byId.get(id)!.format !== 'story_9_16')]),
+    // pack.extra already holds every still photo outside the slots, hidden ones included (listing them again duplicated them).
+    extra: await pick(p.pack.extra),
     covers: await Promise.all(p.items.filter((i) => i.format === 'story_9_16').map(photo)),
     coverItemId: p.pack.coverItemId, hiddenItemIds: hidden, warnings: p.pack.warnings, visibleAiTag: ws.visibleAiTag,
     description: kit?.description ?? p.product.description, mainItemId: main?.id ?? null,
+    postKit: kit, coversInProgress: await coversInProgress(ws.id, p.product.id),
   };
 };

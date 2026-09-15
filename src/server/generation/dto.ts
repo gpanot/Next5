@@ -59,21 +59,28 @@ export const toSummaryDto = async (batch: Batch): Promise<BatchSummaryDto> => ({
 export const toDetailDto = async (batch: Batch): Promise<BatchDetailDto> => {
   const items = await prisma.batchItem.findMany({ where: { batchId: batch.id }, orderBy: { createdAt: 'asc' } });
   const productIds = [...new Set(items.map((i) => i.productId).filter((id): id is string => Boolean(id)))];
-  const [products, workspace, made] = await Promise.all([
+  const [products, workspace, made, others] = await Promise.all([
     prisma.product.findMany({ where: { id: { in: productIds } } }),
     prisma.workspace.findUniqueOrThrow({ where: { id: batch.workspaceId }, select: { visibleAiTag: true } }),
     productIds.length > 0 ? madeShotsByProduct(batch.workspaceId, productIds) : Promise.resolve(new Map<string, string[]>()),
+    productIds.length > 0
+      ? prisma.batchItem.findMany({ where: { productId: { in: productIds }, status: 'ready', r2Key: { not: null }, batchId: { not: batch.id }, batch: { workspaceId: batch.workspaceId } }, orderBy: { completedAt: 'asc' } })
+      : Promise.resolve([]),
   ]);
   const productDtos = await Promise.all(
     productIds.map(async (id) => {
       const p = products.find((x) => x.id === id);
       const shots = made.get(id) ?? [];
+      const mine = others.filter((o) => o.productId === id);
+      // A kit written per photo before listing kits existed still counts as this listing's kit.
+      const olderKit = [...items, ...mine].reverse().find((i) => i.productId === id && (i.postKit as PostKitDto | null)?.hook)?.postKit as PostKitDto | null | undefined;
       return {
         id, name: p?.name ?? 'Product', sku: p?.sku ?? null, category: p?.category ?? '', colorName: p?.colorName ?? null,
         frontUrl: p?.frontR2Key ? await presignObject(p.frontR2Key) : null,
         angleCount: shots.length,
         nextShots: p && !p.archivedAt ? nextShotsForProduct(p.category, Boolean(p.backR2Key), shots) : [],
-        postKit: (p?.postKit as PostKitDto | null) ?? null,
+        postKit: (p?.postKit as PostKitDto | null) ?? olderKit ?? null,
+        otherPhotos: await Promise.all(mine.map(async (o) => ({ id: o.id, batchId: o.batchId, url: o.r2Key ? await presignObject(o.r2Key) : null, shot: o.shot, format: o.format, score: o.score }))),
       };
     }),
   );

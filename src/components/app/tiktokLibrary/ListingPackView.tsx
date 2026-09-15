@@ -1,7 +1,7 @@
 'use client';
 
-import { AlertTriangle, Copy, Download, ExternalLink, Plus, Tag } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { AlertTriangle, Copy, Download, ExternalLink, Tag } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
 import { useToast } from '../../../hooks/useToast';
 import { track } from '../../../lib/analytics';
 import { ApiError, apiFetch, downloadWithAuth } from '../../../lib/apiClient';
@@ -11,7 +11,10 @@ import { ErrorState } from '../../ui/ErrorState';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { SkeletonGrid } from '../../ui/Skeleton';
 import { ToastContainer } from '../../ui/Toast';
+import { PostKitBody } from '../postKit/PostKitBody';
 import { AppLink } from '../shell/AppLink';
+import { useWorkspace } from '../shell/WorkspaceProvider';
+import { PackCover } from './PackCover';
 import { PackSlot } from './PackSlot';
 
 const STATUS_OPTIONS: { value: PackStatusDto; label: string }[] = [{ value: 'draft', label: 'Draft' }, { value: 'ready', label: 'Ready to list' }, { value: 'uploaded', label: 'Uploaded' }];
@@ -22,6 +25,16 @@ export const ListingPackView = ({ productId }: { productId: string }) => {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { toasts, toast, dismiss } = useToast();
+  const { me } = useWorkspace();
+
+  const load = useCallback(async () => {
+    try {
+      const r = await apiFetch<{ pack: ListingPackDto }>(`/api/app/shop/library/${productId}`);
+      setPack(r.pack);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load this pack.');
+    }
+  }, [productId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,7 +110,7 @@ export const ListingPackView = ({ productId }: { productId: string }) => {
         <section aria-label="Listing photos in upload order" className="flex flex-col gap-3">
           <p className="text-[15px] font-semibold text-app-ink">Listing photos · {pack.slots.length}/9 in upload order</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            {pack.slots.map((photo, i) => <PackSlot key={photo.itemId} photo={photo} index={i} count={pack.slots.length} busy={busy} onMove={(dir) => move(i, dir)} onHide={() => hide(photo.itemId)} />)}
+            {pack.slots.map((photo, i) => <PackSlot key={photo.itemId} mode="slot" photo={photo} index={i} count={pack.slots.length} busy={busy} onMove={(dir) => move(i, dir)} onRemove={() => hide(photo.itemId)} />)}
           </div>
         </section>
         <aside className="flex flex-col gap-4">
@@ -108,38 +121,34 @@ export const ListingPackView = ({ productId }: { productId: string }) => {
               <img src={pack.originalUrl} alt={`${pack.name} — original`} className="aspect-[3/4] w-full rounded-xl object-cover ring-1 ring-app-line" referrerPolicy="no-referrer" />
             </figure>
           )}
-          <div className="flex flex-col gap-2">
-            <p className="text-[13px] font-medium text-app-muted">Video cover · 9:16</p>
-            {pack.covers.length === 0 ? <p className="text-[13px] text-app-muted">Add the 9:16 format to a drop to get a cover.</p> : (
-              <div role="radiogroup" aria-label="Video cover" className="grid grid-cols-3 gap-2">
-                {pack.covers.map((c) => (
-                  <button key={c.itemId} type="button" role="radio" aria-checked={pack.coverItemId === c.itemId} disabled={busy} onClick={() => void save({ coverItemId: c.itemId })} className={`relative aspect-[9/16] overflow-hidden rounded-lg ring-2 ${pack.coverItemId === c.itemId ? 'ring-app-accent' : 'ring-transparent'}`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URL */}
-                    {c.url && <img src={c.url} alt="Cover option" className="h-full w-full object-cover" />}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          <PackCover pack={pack} busy={busy} onPick={(itemId) => void save({ coverItemId: itemId })} onReload={load} onError={(message) => toast(message, 'error')} />
         </aside>
       </div>
 
       {pack.extra.length > 0 && (
         <section aria-label="Photos not in the pack" className="flex flex-col gap-3">
-          <p className="text-[15px] font-semibold text-app-ink">Not in the pack</p>
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-            {pack.extra.map((p) => (
-              <button key={p.itemId} type="button" disabled={busy || pack.slots.length >= 9} onClick={() => add(p.itemId)} className="group relative aspect-square overflow-hidden rounded-xl bg-app-sunken disabled:opacity-50" aria-label="Add to the pack">
-                {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URL */}
-                {p.url && <img src={p.url} alt="" className="h-full w-full object-cover" loading="lazy" />}
-                <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition-opacity duration-200 group-hover:bg-black/35 group-hover:opacity-100"><Plus aria-hidden className="h-6 w-6" /></span>
-              </button>
-            ))}
+          <p className="text-[15px] font-semibold text-app-ink">Not in the pack · {pack.extra.length}</p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {pack.extra.map((photo) => <PackSlot key={photo.itemId} mode="extra" photo={photo} busy={busy} full={pack.slots.length >= 9} onAdd={() => add(photo.itemId)} />)}
           </div>
         </section>
       )}
 
-      {pack.description && (
+      {me?.plan?.postKit || pack.postKit ? (
+        <section aria-label="Listing Post Kit" className="flex flex-col gap-3 rounded-2xl border border-app-line bg-app-panel p-4 shadow-sm">
+          <p className="text-[15px] font-semibold text-app-ink">Listing Post Kit</p>
+          <PostKitBody
+            initialKit={pack.postKit}
+            endpoint={`/api/app/shop/products/${pack.productId}/post-kit`}
+            product="shop"
+            subject="this listing"
+            allowed={Boolean(me?.plan?.postKit) || Boolean(pack.postKit)}
+            allowRewrite={Boolean(me?.plan?.postKit)}
+            onGenerated={() => void load()}
+            onCopied={(what) => toast(`${what} copied`)}
+          />
+        </section>
+      ) : pack.description && (
         <section className="flex flex-col gap-2 rounded-2xl border border-app-line bg-app-panel p-4">
           <div className="flex items-center justify-between">
             <p className="text-[15px] font-semibold text-app-ink">Product description</p>

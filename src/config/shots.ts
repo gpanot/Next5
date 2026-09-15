@@ -180,6 +180,9 @@ const SHOT_SEQUENCE: Record<'apparel' | 'accessory', readonly ShotId[]> = {
   accessory: ['worn_half_body', 'detail_closeup', 'lifestyle_in_hand_or_on_foot', 'full_body_styled', 'walking_motion', 'side_profile'],
 };
 
+/** The angle used for a 9:16 video cover: the product's main shot (full body, or worn for accessories). */
+export const coverShotFor = (category: string): ShotId => SHOT_SEQUENCE[isAccessoryCategory(category) ? 'accessory' : 'apparel'][0]!;
+
 /** The next angles this product doesn't have yet (skipping shots that need a back photo it lacks). */
 export const nextShotsForProduct = (
   category: string,

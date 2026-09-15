@@ -25,11 +25,13 @@ export type ShopDraft = {
   highRes: boolean;
   /** Instead of the pack: the next new angles for each product ("Create more photos"). */
   more?: boolean;
+  /** Also make one 9:16 video cover per product (skipped when 9:16 is already a chosen format). */
+  withCover?: boolean;
 };
 
 /** Built server-side only (onboarding trial, set preview) — never parsed from a request body. */
 export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & { kind: 'brand_theme'; trial?: boolean; sceneIds?: string[] };
-export type InternalShopDraft = Omit<ShopDraft, 'kind'> & { kind: 'shop_products'; trial?: boolean };
+export type InternalShopDraft = Omit<ShopDraft, 'kind'> & { kind: 'shop_products'; trial?: boolean; /** Only the 9:16 cover per product (TikTok library). */ coverOnly?: boolean };
 
 export type BatchDraft = BrandDraft | ShopDraft;
 export type AnyDraft = InternalBrandDraft | InternalShopDraft;
@@ -67,7 +69,7 @@ export const parseDraft = (body: Record<string, unknown>): BatchDraft => {
     if (productIds.length > MAX_PRODUCTS_PER_BATCH) throw bad(`Choose up to ${MAX_PRODUCTS_PER_BATCH} products per batch.`);
     const packId = String(body.packId ?? '');
     if (!isPackId(packId)) throw bad('Choose a shot pack.');
-    return { kind: 'shop_products', setId: parseId(body.setId, 'shop look'), productIds, packId, formats, highRes, more: body.more === true };
+    return { kind: 'shop_products', setId: parseId(body.setId, 'shop look'), productIds, packId, formats, highRes, more: body.more === true, withCover: body.withCover === true };
   }
 
   throw bad('Unknown batch type.');

@@ -2,7 +2,7 @@
 
 import type { SetTemplate, StudioSet, Workspace } from '@prisma/client';
 import type { FormatId } from '../../config/formats';
-import { nextShotsForProduct, shotsForProduct, type ShotId } from '../../config/shots';
+import { coverShotFor, nextShotsForProduct, shotsForProduct, type ShotId } from '../../config/shots';
 import type { SetTemplateConfig, ThemeScene } from '../../content/business/catalog/types';
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
@@ -83,24 +83,27 @@ const expandShop = async (workspace: Workspace, draft: InternalShopDraft, now: D
   }
 
   const items: ItemSpec[] = [];
+  const addItem = (product: (typeof products)[number], shot: ShotId, format: FormatId) => {
+    const productKeys = productInputKeys(product, shot, identity.keys.length);
+    const prompt = composeShopPrompt({
+      template, shot, format, garment: product, isStudioModel: identity.isStudioModel,
+      identityImageCount: identity.keys.length, productImageCount: productKeys.length,
+    });
+    items.push({ sceneId: null, shot, productId: product.id, format, prompt, inputR2Keys: [...identity.keys, ...productKeys] });
+  };
+  // A separate 9:16 cover is only needed when 9:16 isn't already one of the formats.
+  const addCover = draft.coverOnly || (draft.withCover && !draft.formats.includes('story_9_16'));
   for (const product of products) {
     const hasBack = Boolean(product.backR2Key);
-    const shots = made ? nextShotsForProduct(product.category, hasBack, made.get(product.id) ?? []) : shotsForProduct(product.category, draft.packId, hasBack);
-    for (const shot of shots) {
-      const productKeys = productInputKeys(product, shot, identity.keys.length);
-      for (const format of draft.formats) {
-        const prompt = composeShopPrompt({
-          template, shot, format, garment: product, isStudioModel: identity.isStudioModel,
-          identityImageCount: identity.keys.length, productImageCount: productKeys.length,
-        });
-        items.push({ sceneId: null, shot, productId: product.id, format, prompt, inputR2Keys: [...identity.keys, ...productKeys] });
-      }
-    }
+    const shots = draft.coverOnly ? [] : made ? nextShotsForProduct(product.category, hasBack, made.get(product.id) ?? []) : shotsForProduct(product.category, draft.packId, hasBack);
+    for (const shot of shots) for (const format of draft.formats) addItem(product, shot, format);
+    if (addCover) addItem(product, coverShotFor(product.category), 'story_9_16');
   }
+  const label = draft.coverOnly ? 'Cover' : draft.more ? 'More photos' : 'Drop';
   return {
     kind: draft.trial ? 'trial' : 'shop_products',
-    name: draft.trial ? 'Free trial' : `${draft.more ? 'More photos' : 'Drop'} · ${shortDate(now, true)}`,
-    setId: set.id, themeId: null, packId: draft.packId, formats: draft.formats, highRes: draft.highRes, items,
+    name: draft.trial ? 'Free trial' : `${label} · ${shortDate(now, true)}`,
+    setId: set.id, themeId: null, packId: draft.packId, formats: draft.coverOnly ? ['story_9_16'] : draft.formats, highRes: draft.highRes, items,
   };
 };
 

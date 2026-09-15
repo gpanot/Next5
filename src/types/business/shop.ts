@@ -1,5 +1,7 @@
 /** Client-safe DTOs for the TikTok Shop store import (Shop Studio). */
 
+import type { PostKitDto } from './batches';
+
 export type ShopConnectionDto = {
   id: string;
   source: 'scrape' | 'export' | 'api';
@@ -48,4 +50,8 @@ export type ListingPackDto = {
   visibleAiTag: boolean;
   description: string | null;
   mainItemId: string | null;
+  /** Listing Post Kit (whole series), null until written. */
+  postKit: PostKitDto | null;
+  /** 9:16 covers still being created. */
+  coversInProgress: number;
 };

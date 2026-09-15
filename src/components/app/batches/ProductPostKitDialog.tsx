@@ -1,12 +1,13 @@
 'use client';
 
-import type { BatchItemDto, BatchProductDto, PostKitDto } from '../../../types/business/batches';
+import type { BatchProductDto, PostKitDto } from '../../../types/business/batches';
 import { Dialog } from '../../ui/Dialog';
 import { PostKitBody } from '../postKit/PostKitBody';
 
 type ProductPostKitDialogProps = {
   product: BatchProductDto;
-  photos: BatchItemDto[];
+  /** Every photo of the listing (this batch and earlier ones). */
+  photoUrls: string[];
   allowed: boolean;
   onClose: () => void;
   onGenerated: (kit: PostKitDto) => void;
@@ -14,16 +15,15 @@ type ProductPostKitDialogProps = {
 };
 
 /** One Post Kit for a whole listing: the product's photo series, written together. */
-export const ProductPostKitDialog = ({ product, photos, allowed, onClose, onGenerated, onCopied }: ProductPostKitDialogProps) => {
-  const ready = photos.filter((p) => p.status === 'ready' && p.url);
+export const ProductPostKitDialog = ({ product, photoUrls, allowed, onClose, onGenerated, onCopied }: ProductPostKitDialogProps) => {
   return (
     <Dialog open onClose={onClose} title="Listing Post Kit" description={product.name} className="max-h-[90vh] overflow-y-auto">
       <div className="flex flex-col gap-4">
-        {ready.length > 0 && (
+        {photoUrls.length > 0 && (
           <div className="flex gap-2 overflow-x-auto pb-1">
-            {ready.map((photo) => (
+            {photoUrls.map((url) => (
               // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
-              <img key={photo.id} src={photo.url ?? ''} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />
+              <img key={url} src={url} alt="" className="h-20 w-20 shrink-0 rounded-lg object-cover" />
             ))}
           </div>
         )}

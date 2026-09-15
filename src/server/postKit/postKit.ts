@@ -1,5 +1,6 @@
 // server-only — never import from a 'use client' file.
 
+import { Prisma } from '@prisma/client';
 import { INDUSTRIES } from '../../content/business/catalog/types';
 import { prisma } from '../../lib/db';
 import type { PostKitDto } from '../../types/business/batches';
@@ -80,6 +81,15 @@ export const getProductPostKit = async (userId: string, productId: string, optio
   if (!product) throw new HttpError(404, 'product_not_found', 'Product not found.');
   const cached = product.postKit as PostKitDto | null;
   if (cached?.hook && !options.rewrite) return cached;
+  if (!options.rewrite) {
+    // Kits written per photo (before listing kits) become the listing kit, so nothing written is lost.
+    const older = await prisma.batchItem.findFirst({ where: { productId, postKit: { not: Prisma.DbNull } }, orderBy: { completedAt: 'desc' }, select: { postKit: true } });
+    const olderKit = older?.postKit as PostKitDto | null;
+    if (olderKit?.hook) {
+      await prisma.product.update({ where: { id: product.id }, data: { postKit: olderKit } });
+      return olderKit;
+    }
+  }
 
   const items = await prisma.batchItem.findMany({
     where: { productId, status: 'ready', r2Key: { not: null } },

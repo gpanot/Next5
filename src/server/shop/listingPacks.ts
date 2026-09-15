@@ -41,7 +41,7 @@ export const resolvePack = (items: readonly PackItem[], saved: Pick<ListingPack,
   const warnings: string[] = [];
   const main = slots[0] ? byId.get(slots[0]) : null;
   if (main && main.format !== 'square_1_1') warnings.push('TikTok Shop recommends a square (1:1) main image. Make square photos, or move one to slot 1.');
-  if (!coverItemId) warnings.push('No 9:16 video cover yet. Add the 9:16 format to your next drop.');
+  if (!coverItemId) warnings.push('No 9:16 video cover yet. Create one in the cover section.');
   return { slots, extra, coverItemId, warnings };
 };
 

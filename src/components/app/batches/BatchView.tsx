@@ -5,13 +5,15 @@ import { useMemo, useState } from 'react';
 import { FORMATS, isFormatId } from '../../../config/formats';
 import { useBatchPolling } from '../../../hooks/useBatchPolling';
 import { useToast } from '../../../hooks/useToast';
-import type { BatchItemDto } from '../../../types/business/batches';
+import type { BatchItemDto, ProductPhotoDto } from '../../../types/business/batches';
+import { downloadPhoto } from '../../../lib/apiClient';
 import { AppButton } from '../../ui/AppButton';
 import { ErrorState } from '../../ui/ErrorState';
 import { ImageLightbox } from '../../ui/ImageLightbox';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { SkeletonGrid, SkeletonText } from '../../ui/Skeleton';
 import { ToastContainer } from '../../ui/Toast';
+import { useAppRouter } from '../shell/AppLink';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { BatchHeader } from './BatchHeader';
 import { CompareLightbox } from './CompareLightbox';
@@ -29,6 +31,7 @@ import { useBatchActions } from './useBatchActions';
 export const BatchView = ({ batchId }: { batchId: string }) => {
   const { batch, error, loading, refresh, patchItem } = useBatchPolling(batchId);
   const { me, product } = useWorkspace();
+  const router = useAppRouter();
   const { toasts, toast, dismiss } = useToast();
   const actions = useBatchActions(batch, patchItem, refresh, toast);
   const [format, setFormat] = useState<string | null>(null);
@@ -39,6 +42,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [postKitId, setPostKitId] = useState<string | null>(null);
   const [postKitProductId, setPostKitProductId] = useState<string | null>(null);
+  const [earlierPhoto, setEarlierPhoto] = useState<{ photo: ProductPhotoDto; name: string } | null>(null);
   // A failed photo retries straight away on the fallback model; a ready one asks what to fix.
   const openRedo = (item: BatchItemDto) => (item.status === 'failed' ? void actions.redo(item, 'other', '') : setRedoTarget(item));
 
@@ -88,6 +92,8 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
           onDownload={(item, index) => void actions.download(item, index)}
           onRedo={openRedo}
           onPostKit={(p) => setPostKitProductId(p.id)}
+          onOpenEarlier={(photo, p) => setEarlierPhoto({ photo, name: p.name })}
+          onDownloadEarlier={(photo, p) => void downloadPhoto(photo.batchId, photo.id, `${p.name.slice(0, 40)}-${photo.shot ?? 'photo'}.jpg`).catch(() => toast('Download failed.', 'error'))}
           productFooter={(p) => <ProductMorePhotos batch={batch} product={p} onStarted={() => void refresh()} onError={(message) => toast(message, 'error')} />}
           onZipProduct={(productId, name) => void actions.downloadZip(`?productId=${productId}${batch.formats.length > 1 && activeFormat ? `&format=${activeFormat}` : ''}`, `${name}.zip`)}
         />
@@ -136,10 +142,23 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
           )}
         />
       )}
+      {earlierPhoto?.photo.url && (
+        <ImageLightbox
+          src={earlierPhoto.photo.url}
+          alt={`${earlierPhoto.name} — earlier photo`}
+          onClose={() => setEarlierPhoto(null)}
+          overlay={(
+            <div className="pointer-events-auto absolute bottom-6 left-1/2 flex -translate-x-1/2 gap-2">
+              <AppButton size="sm" variant="secondary" iconLeft={<Download className="h-3.5 w-3.5" />} onClick={() => void downloadPhoto(earlierPhoto.photo.batchId, earlierPhoto.photo.id, `${earlierPhoto.name.slice(0, 40)}.jpg`).catch(() => toast('Download failed.', 'error'))}>Download</AppButton>
+              <AppButton size="sm" variant="secondary" onClick={() => { setEarlierPhoto(null); router.push(`/app/batches/${earlierPhoto.photo.batchId}`); }}>Open its batch</AppButton>
+            </div>
+          )}
+        />
+      )}
       {postKitProduct && (
         <ProductPostKitDialog
           product={postKitProduct}
-          photos={batch.items.filter((i) => i.productId === postKitProduct.id)}
+          photoUrls={[...batch.items.filter((i) => i.productId === postKitProduct.id && i.status === 'ready'), ...postKitProduct.otherPhotos].map((p) => p.url).filter((url): url is string => Boolean(url))}
           allowed={postKitAllowed}
           onClose={() => setPostKitProductId(null)}
           onGenerated={() => void refresh()}

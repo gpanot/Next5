@@ -66,7 +66,11 @@ export type BatchProductDto = {
   nextShots: string[];
   /** Post Kit for the whole listing (Shop), null until written. */
   postKit: PostKitDto | null;
+  /** Ready photos of this product from its other batches, oldest first — the row shows the whole listing. */
+  otherPhotos: ProductPhotoDto[];
 };
+
+export type ProductPhotoDto = { id: string; batchId: string; url: string | null; shot: string | null; format: string; score: number | null };
 
 export type BatchDetailDto = BatchSummaryDto & { items: BatchItemDto[]; products: BatchProductDto[]; visibleAiTag: boolean };
 

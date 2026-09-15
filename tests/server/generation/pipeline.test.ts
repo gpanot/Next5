@@ -221,6 +221,48 @@ describe('TikTok listing pack', () => {
     expect(files).toEqual(['description.txt', 'ssd-1_01_main.jpg', 'ssd-1_02.jpg', 'ssd-1_03.jpg', 'ssd-1_cover_9x16.jpg']);
   });
 
+  it('adds a 9:16 cover per product, makes cover-only batches, and never lists a removed photo twice', async () => {
+    const { createCoverBatch } = await import('../../../src/server/shop/cover');
+    const { getPack, savePack } = await import('../../../src/server/shop/listingPacks');
+    const { toPackDto } = await import('../../../src/server/shop/packDto');
+    const { getProductPostKit } = await import('../../../src/server/postKit/postKit');
+    const ws = await createTestWorkspace('shop');
+    await withSerializable((tx) => grant(tx, { workspaceId: ws.id, bucket: 'topup', amount: 40, reason: 'topup_grant', refType: 'payment', refId: `p-${ws.id}`, expiresAt: null }));
+    await putObject(`ws/${ws.id}/identity/face.jpg`, await sampleJpeg());
+    await prisma.identityReference.create({ data: { workspaceId: ws.id, kind: 'face', r2Key: `ws/${ws.id}/identity/face.jpg` } });
+    await putObject(`ws/${ws.id}/products/p/front.jpg`, await sampleJpeg());
+    const product = await prisma.product.create({ data: { workspaceId: ws.id, name: 'Vacation Set', category: 'set', frontR2Key: `ws/${ws.id}/products/p/front.jpg` } });
+    const set = await prisma.studioSet.create({ data: { workspaceId: ws.id, templateId: 'beige-wall', name: 'Beige', locations: [], modelRef: 'me' } });
+    const draft = { kind: 'shop_products' as const, setId: set.id, productIds: [product.id], packId: 'listing' as const, formats: ['square_1_1' as const], highRes: false };
+
+    const batch = await createBatch(ws, { ...draft, withCover: true });
+    const items = await prisma.batchItem.findMany({ where: { batchId: batch.id } });
+    expect(items.map((i) => i.format).sort()).toEqual(['square_1_1', 'square_1_1', 'square_1_1', 'story_9_16']);
+    expect(items.find((i) => i.format === 'story_9_16')?.shot).toBe('full_body_front');
+    // 9:16 already chosen: no extra cover.
+    const both = await createBatch(ws, { ...draft, formats: ['square_1_1', 'story_9_16'], withCover: true });
+    expect(await prisma.batchItem.count({ where: { batchId: both.id } })).toBe(6);
+    await prisma.batch.delete({ where: { id: both.id } }); // only needed for the count
+    await drain(batch.id);
+
+    const cover = await createCoverBatch(ws, product.id);
+    expect(cover.name).toMatch(/^Cover/);
+    expect(await prisma.batchItem.findMany({ where: { batchId: cover.id }, select: { format: true } })).toEqual([{ format: 'story_9_16' }]);
+
+    // Remove a photo from the pack: it shows once under "Not in the pack".
+    const before = await getPack(ws, product.id);
+    await savePack(ws, product.id, { slotItemIds: before.pack.slots.slice(1), hiddenItemIds: [before.pack.slots[0]!] });
+    const dto = await toPackDto(ws, await getPack(ws, product.id));
+    expect(dto.extra.map((p) => p.itemId)).toEqual([before.pack.slots[0]]);
+    expect(dto.coversInProgress).toBe(1);
+
+    // A kit written per photo (before listing kits) is kept as the listing kit.
+    const oldKit = { hook: 'Old photo hook', caption: 'Old caption', hashtags: ['#old'], description: 'Old description' };
+    await prisma.batchItem.update({ where: { id: before.pack.slots[1]! }, data: { postKit: oldKit } });
+    expect((await getProductPostKit(ws.ownerUserId, product.id)).hook).toBe('Old photo hook');
+    expect((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).postKit).toMatchObject({ hook: 'Old photo hook' });
+  });
+
   it('adds the next 3 new angles per product, then refuses when every angle is done', async () => {
     const { toDetailDto } = await import('../../../src/server/generation/dto');
     const ws = await createTestWorkspace('shop');

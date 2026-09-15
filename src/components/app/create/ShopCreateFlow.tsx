@@ -15,6 +15,7 @@ import type { BatchSummaryDto } from '../../../types/business/batches';
 import type { StudioSetDto } from '../../../types/business/catalog';
 import type { ProductDto } from '../../../types/business/products';
 import { EmptyState } from '../../ui/EmptyState';
+import { Switch } from '../../ui/Switch';
 import { SkeletonCard } from '../../ui/Skeleton';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { CreateSection } from './CreateSection';
@@ -44,12 +45,14 @@ export const ShopCreateFlow = () => {
   const [packId, setPackId] = useState<PackId>(urlPack === 'full' || urlPack === 'accessory' ? urlPack : 'listing');
   const [formats, setFormats] = useState<FormatId[]>(urlFormats.length ? urlFormats : defaults.length ? defaults : ['square_1_1']);
   const [highRes, setHighRes] = useState(false);
+  const [withCover, setWithCover] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const setId = setChoice ?? sets.data?.sets.find((s) => s.id === lastSet)?.id ?? sets.data?.sets[0]?.id ?? null;
   const productIds = useMemo(() => [...selected], [selected]);
-  const draft = useMemo(() => (setId && productIds.length ? { product: 'shop', kind: 'shop_products', setId, productIds, packId, formats, highRes } : null), [setId, productIds, packId, formats, highRes]);
+  const coverExtra = withCover && !formats.includes('story_9_16');
+  const draft = useMemo(() => (setId && productIds.length ? { product: 'shop', kind: 'shop_products', setId, productIds, packId, formats, highRes, withCover } : null), [setId, productIds, packId, formats, highRes, withCover]);
   const { estimate, error, loading } = useEstimate(draft);
 
   if (products.loading || sets.loading) return <div className="flex flex-col gap-4"><SkeletonCard /><SkeletonCard /></div>;
@@ -93,10 +96,23 @@ export const ShopCreateFlow = () => {
         </div>
       </CreateSection>
       <CreateSection step={4} title="Formats">
-        <FormatPicker value={formats} onChange={setFormats} highRes={highRes} onHighRes={setHighRes} highResAllowed={Boolean(me?.plan?.highRes)} />
+        <div className="flex flex-col gap-4">
+          <FormatPicker value={formats} onChange={setFormats} highRes={highRes} onHighRes={setHighRes} highResAllowed={Boolean(me?.plan?.highRes)} />
+          <Switch
+            checked={withCover || formats.includes('story_9_16')}
+            disabled={formats.includes('story_9_16')}
+            onChange={setWithCover}
+            label={(
+              <span className="flex flex-col">
+                <span className="text-[14px] font-medium text-app-ink">Add a 9:16 video cover for each product</span>
+                <span className="text-[13px] text-app-muted">{formats.includes('story_9_16') ? 'Every photo is already made in 9:16, so you have covers.' : 'One extra photo per product. TikTok shows it on your listing video. Your square photos stay the same.'}</span>
+              </span>
+            )}
+          />
+        </div>
       </CreateSection>
       <CreditSummaryBar
-        breakdown={`${productIds.length} product${productIds.length === 1 ? '' : 's'} × up to ${PACKS[packId].shots.length} shots × ${formats.length} format${formats.length > 1 ? 's' : ''}`}
+        breakdown={`${productIds.length} product${productIds.length === 1 ? '' : 's'} × up to ${PACKS[packId].shots.length} shots × ${formats.length} format${formats.length > 1 ? 's' : ''}${coverExtra ? ' + 1 cover each' : ''}`}
         estimate={estimate}
         error={submitError ?? error}
         loading={loading}
