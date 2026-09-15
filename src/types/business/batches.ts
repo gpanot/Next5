@@ -21,6 +21,8 @@ export type BatchItemDto = {
   errorMessage: string | null;
   /** Failed, and the one free retry on the fallback model is still available. */
   canRetry: boolean;
+  /** When the current run was sent to the image model (in-flight items only) — drives the progress timer. */
+  startedAt: string | null;
 };
 
 export type PostKitDto = { hook: string; caption: string; hashtags: string[]; description: string | null };

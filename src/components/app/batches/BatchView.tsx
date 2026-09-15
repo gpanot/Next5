@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckSquare, Heart } from 'lucide-react';
+import { CheckSquare, Download, Heart } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { FORMATS, isFormatId } from '../../../config/formats';
 import { useBatchPolling } from '../../../hooks/useBatchPolling';
@@ -106,7 +106,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
         </div>
       )}
       {open?.url && isShop && (
-        <CompareLightbox originalUrl={openProduct?.frontUrl ?? null} generatedUrl={open.url} title={openProduct?.name ?? batch.name} onClose={() => setOpenIndex(null)} panel={<PostKitPanel key={open.id} item={open} product="shop" allowed={postKitAllowed} onCopied={(what) => toast(`${what} copied`)} />} />
+        <CompareLightbox originalUrl={openProduct?.frontUrl ?? null} generatedUrl={open.url} title={openProduct?.name ?? batch.name} onClose={() => setOpenIndex(null)} onDownload={() => void actions.download(open, openIndex ?? 0)} downloading={actions.savingPhoto} panel={<PostKitPanel key={open.id} item={open} product="shop" allowed={postKitAllowed} onCopied={(what) => toast(`${what} copied`)} />} />
       )}
       {open?.url && !isShop && (
         <ImageLightbox
@@ -116,9 +116,12 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
           onPrev={openable.length > 1 ? () => setOpenIndex((i) => (i === null ? 0 : (i - 1 + openable.length) % openable.length)) : undefined}
           onNext={openable.length > 1 ? () => setOpenIndex((i) => (i === null ? 0 : (i + 1) % openable.length)) : undefined}
           overlay={(
-            <div className="pointer-events-auto absolute bottom-4 left-1/2 w-[min(92vw,440px)] -translate-x-1/2">
-              <PostKitPanel key={open.id} item={open} product="brand" allowed={postKitAllowed} onCopied={(what) => toast(`${what} copied`)} />
-            </div>
+            <>
+              <AppButton size="sm" variant="secondary" className="pointer-events-auto absolute left-4 top-4" iconLeft={<Download className="h-3.5 w-3.5" />} loading={actions.savingPhoto} onClick={() => void actions.download(open, openIndex ?? 0)}>Download</AppButton>
+              <div className="pointer-events-auto absolute bottom-4 left-1/2 w-[min(92vw,440px)] -translate-x-1/2">
+                <PostKitPanel key={open.id} item={open} product="brand" allowed={postKitAllowed} onCopied={(what) => toast(`${what} copied`)} />
+              </div>
+            </>
           )}
         />
       )}

@@ -1,10 +1,11 @@
 'use client';
 
-import { AlertTriangle, Check, Download, Heart, Loader2, Maximize2, RefreshCw } from 'lucide-react';
+import { AlertTriangle, Check, Download, Heart, Maximize2, RefreshCw } from 'lucide-react';
 import { FORMATS, isFormatId } from '../../../config/formats';
 import { failedPhotoText } from '../../../lib/generationErrors';
 import type { BatchItemDto } from '../../../types/business/batches';
 import { ScoreBadge } from '../postKit/ScoreBadge';
+import { GenerationTimer } from './GenerationTimer';
 
 type ResultTileProps = {
   item: BatchItemDto;
@@ -37,12 +38,7 @@ export const ResultTile = ({ item, alt, selecting, selected, onToggleSelect, onO
           // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
           <img src={item.url} alt={alt} loading="lazy" className={`h-full w-full object-cover ${busy ? 'opacity-40' : ''}`} />
         )}
-        {busy && (
-          <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-[12px] text-app-muted">
-            <Loader2 aria-hidden className="h-6 w-6 animate-spin text-app-accent" />
-            {item.status === 'queued' ? 'Queued' : 'Creating…'}
-          </span>
-        )}
+        {busy && <GenerationTimer startedAt={item.startedAt} queued={item.status === 'queued'} />}
         {item.status === 'failed' && (
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center text-[12px] text-app-muted">
             <AlertTriangle aria-hidden className="h-6 w-6 text-app-warning" />

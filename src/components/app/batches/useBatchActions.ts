@@ -3,7 +3,7 @@
 import { track } from '../../../lib/analytics';
 import { useState } from 'react';
 import { FORMATS, isFormatId } from '../../../config/formats';
-import { ApiError, apiFetch, downloadUrl, downloadWithAuth } from '../../../lib/apiClient';
+import { ApiError, apiFetch, downloadPhoto, downloadWithAuth } from '../../../lib/apiClient';
 import type { BatchDetailDto, BatchItemDto } from '../../../types/business/batches';
 import type { RedoReason } from './RedoDialog';
 
@@ -12,6 +12,7 @@ type Patch = (itemId: string, patch: Partial<BatchItemDto>) => void;
 /** Favourite, download, redo and zip actions for one batch, with optimistic updates. */
 export const useBatchActions = (batch: BatchDetailDto | null, patchItem: Patch, refresh: () => Promise<unknown>, notify: (msg: string, tone?: 'success' | 'error') => void) => {
   const [downloading, setDownloading] = useState(false);
+  const [savingPhoto, setSavingPhoto] = useState(false);
 
   const fail = (err: unknown, fallback: string) => notify(err instanceof ApiError ? err.message : fallback, 'error');
 
@@ -25,7 +26,9 @@ export const useBatchActions = (batch: BatchDetailDto | null, patchItem: Patch, 
   const download = async (item: BatchItemDto, index: number) => {
     if (!item.url || !batch) return;
     const suffix = isFormatId(item.format) ? FORMATS[item.format].filenameSuffix : item.format;
-    await downloadUrl(item.url, `${batch.name.replace(/[^a-z0-9]+/gi, '-')}-${index + 1}-${suffix}.jpg`).catch((err: unknown) => fail(err, 'Download failed.'));
+    setSavingPhoto(true);
+    await downloadPhoto(batch.id, item.id, `${batch.name.replace(/[^a-z0-9]+/gi, '-')}-${index + 1}-${suffix}.jpg`).catch((err: unknown) => fail(err, 'Download failed.'));
+    setSavingPhoto(false);
   };
 
   const redo = async (item: BatchItemDto, reason: RedoReason, note: string) => {
@@ -55,5 +58,5 @@ export const useBatchActions = (batch: BatchDetailDto | null, patchItem: Patch, 
     setDownloading(false);
   };
 
-  return { favorite, download, redo, downloadZip, downloadSelected, downloading };
+  return { favorite, download, redo, downloadZip, downloadSelected, downloading, savingPhoto };
 };

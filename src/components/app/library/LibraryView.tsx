@@ -6,7 +6,7 @@ import { useAppRouter } from '../shell/AppLink';
 import { useCallback, useEffect, useState } from 'react';
 import { FORMAT_IDS, FORMATS } from '../../../config/formats';
 import { useToast } from '../../../hooks/useToast';
-import { ApiError, apiFetch, downloadUrl, downloadWithAuth } from '../../../lib/apiClient';
+import { ApiError, apiFetch, downloadPhoto, downloadWithAuth } from '../../../lib/apiClient';
 import type { BatchItemDto } from '../../../types/business/batches';
 import { AppButton } from '../../ui/AppButton';
 import { EmptyState } from '../../ui/EmptyState';
@@ -70,7 +70,7 @@ export const LibraryView = () => {
       ) : (
         <div className="grid grid-cols-2 items-start gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {current.items.map((item, index) => (
-            <ResultTile key={item.id} item={item} alt={`${item.batchName} — photo`} selecting={selecting} selected={selected.has(item.id)} onToggleSelect={() => toggle(item.id)} onOpen={() => setOpen(item)} onFavorite={() => void favoriteItem(item)} onDownload={() => item.url && void downloadUrl(item.url, `next5-${index + 1}.jpg`)} onRedo={() => router.push(`/app/batches/${item.batchId}`)} />
+            <ResultTile key={item.id} item={item} alt={`${item.batchName} — photo`} selecting={selecting} selected={selected.has(item.id)} onToggleSelect={() => toggle(item.id)} onOpen={() => setOpen(item)} onFavorite={() => void favoriteItem(item)} onDownload={() => item.url && void downloadPhoto(item.batchId, item.id, `next5-${index + 1}.jpg`).catch(() => toast('Download failed', 'error'))} onRedo={() => router.push(`/app/batches/${item.batchId}`)} />
           ))}
         </div>
       )}

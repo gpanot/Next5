@@ -25,6 +25,7 @@ export const toItemDto = async (item: BatchItem): Promise<BatchItemDto> => ({
   scoreDetails: (item.scoreDetails as ScoreDetailsDto | null) ?? null,
   errorMessage: item.status === 'failed' ? item.errorMessage : null,
   canRetry: canRetryFailed(item),
+  startedAt: item.status === 'submitting' || item.status === 'generating' ? item.submittedAt?.toISOString() ?? null : null,
 });
 
 const coverFor = async (batchId: string): Promise<string | null> => {

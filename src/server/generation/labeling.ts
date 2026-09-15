@@ -41,12 +41,31 @@ const visibleTagSvg = (width: number, height: number): Buffer => {
   );
 };
 
-/** Re-encodes to JPEG (quality 82 + mozjpeg: no visible loss, about 40% smaller than 90), embeds the IPTC "AI-generated" XMP label, and optionally burns a visible tag. */
+/** Size budget per stored photo (about what TinyPNG gets from a 1.5–2 MB PNG). */
+export const MAX_PHOTO_BYTES = 300_000;
+/** Quality 90 first; step down only when a photo is over budget, never below 80. */
+const QUALITY_STEPS = [90, 87, 84, 82, 80] as const;
+
+/**
+ * Re-encodes to JPEG (mozjpeg) at the highest quality that fits MAX_PHOTO_BYTES, embeds the IPTC
+ * "AI-generated" XMP label, and optionally burns a visible tag. Very large images (2K) may stay
+ * over budget at quality 80 — quality wins over size there.
+ */
 export const labelImage = async (input: Buffer, options: { visibleTag: boolean }): Promise<Buffer> => {
   const base = sharp(input).rotate();
   const { width = 1024, height = 1024 } = await base.metadata();
   const pipeline = options.visibleTag ? base.composite([{ input: visibleTagSvg(width, height) }]) : base;
-  return pipeline.jpeg({ quality: 82, mozjpeg: true }).withXmp(xmpPacket()).toBuffer();
+  // Decode + composite once, then only the JPEG encode repeats per quality step.
+  const { data, info } = await pipeline.raw().toBuffer({ resolveWithObject: true });
+  let encoded = Buffer.alloc(0);
+  for (const quality of QUALITY_STEPS) {
+    encoded = await sharp(data, { raw: { width: info.width, height: info.height, channels: info.channels } })
+      .jpeg({ quality, mozjpeg: true })
+      .withXmp(xmpPacket())
+      .toBuffer();
+    if (encoded.length <= MAX_PHOTO_BYTES) break;
+  }
+  return encoded;
 };
 
 /** A neutral sample image for mock mode when there is no input to reuse. */

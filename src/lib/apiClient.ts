@@ -81,12 +81,9 @@ export const downloadWithAuth = async (path: string, filename: string): Promise<
   saveBlob(await res.blob(), filename);
 };
 
-/** Downloads a public or signed URL (no auth header) and saves it. */
-export const downloadUrl = async (url: string, filename: string): Promise<void> => {
-  const res = await fetch(url);
-  if (!res.ok) throw new ApiError(res.status, 'download_failed', 'Download failed. Try again.');
-  saveBlob(await res.blob(), filename);
-};
+/** Downloads one generated photo through our API (signed storage URLs can't be fetched cross-origin). */
+export const downloadPhoto = (batchId: string, itemId: string, filename: string): Promise<void> =>
+  downloadWithAuth(`/api/app/batches/${batchId}/items/${itemId}/download?name=${encodeURIComponent(filename)}`, filename);
 
 const saveBlob = (blob: Blob, filename: string): void => {
   const url = URL.createObjectURL(blob);
