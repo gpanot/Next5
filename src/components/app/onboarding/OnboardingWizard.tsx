@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { hasRequiredConsents } from '../../../config/consents';
 import { useApi } from '../../../hooks/useApi';
 import { useMagicToken } from '../../../hooks/useMagicToken';
 import { apiFetch } from '../../../lib/apiClient';
@@ -57,6 +58,9 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
     me.refresh();
   }, [product, me]);
 
+  // Consent already given (e.g. when adding a second studio): that step is skipped, so Back can't return to it.
+  const consentDone = me.data ? hasRequiredConsents(product, me.data.user.consents) : false;
+  const hasOtherStudio = Boolean(me.data && me.data.workspaces.length > 0);
   const loading = token === undefined || verifying || (Boolean(token) && me.loading && !me.data);
   const StepComponent = current > 1 && me.data ? STEPS[product][current - 2] : null;
 
@@ -64,10 +68,10 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-5 pb-16 pt-6 sm:px-8">
       <header className="flex items-center justify-between gap-4">
         <BusinessLogo />
-        <Link href="/app" className="text-[14px] text-app-muted hover:text-app-ink">Log in</Link>
+        <Link href="/app" className="text-[14px] text-app-muted hover:text-app-ink">{hasOtherStudio ? 'Back to my studio' : 'Log in'}</Link>
       </header>
       <div className="flex items-center gap-3">
-        {current > 2 && current < 6 && (
+        {current > (consentDone ? 3 : 2) && current < 6 && (
           <button type="button" onClick={() => setViewStep(current - 1)} aria-label="Back" className="flex h-9 w-9 items-center justify-center rounded-full border border-app-line text-app-ink transition-colors duration-200 hover:bg-app-sunken">
             <ArrowLeft aria-hidden className="h-4 w-4" />
           </button>
@@ -81,6 +85,7 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
           product={product}
           signedIn={token && me.data?.user ? { email: me.data.user.email, displayName: me.data.user.displayName } : null}
           linkFailed={linkFailed}
+          hasOtherStudio={hasOtherStudio}
           onSession={me.refresh}
         />
       )}

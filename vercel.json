@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
+  "regions": ["sin1"],
   "buildCommand": "bash scripts/vercel-build.sh",
   "installCommand": "npm ci",
   "functions": {

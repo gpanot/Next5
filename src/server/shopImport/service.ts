@@ -148,7 +148,7 @@ export const refreshConnection = async (connection: ShopConnection, now = new Da
 const storeReference = async (workspaceId: string, productId: string, url: string): Promise<string> => {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Image download failed (${res.status})`);
-  const jpeg = await sharp(Buffer.from(await res.arrayBuffer())).rotate().resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 90 }).toBuffer();
+  const jpeg = await sharp(Buffer.from(await res.arrayBuffer())).rotate().resize({ width: 2048, height: 2048, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 82, mozjpeg: true }).toBuffer();
   const key = productKey(workspaceId, productId, 'front');
   await putObject(key, jpeg);
   return key;

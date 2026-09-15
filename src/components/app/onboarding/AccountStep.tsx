@@ -25,6 +25,8 @@ type AccountStepProps = {
   signedIn: SignedInUser | null;
   /** The magic link in the URL was expired or already used. */
   linkFailed: boolean;
+  /** Signed in with another studio already: create this one from that profile, no form. */
+  hasOtherStudio: boolean;
   onSession: () => void;
 };
 
@@ -41,7 +43,7 @@ const profileBody = (product: ProductLineDto, p: Profile) => ({ product, firstNa
 
 const FIELD_ERRORS = ['invalid_email', 'first_name_required'];
 
-export const AccountStep = ({ product, signedIn, linkFailed, onSession }: AccountStepProps) => {
+export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onSession }: AccountStepProps) => {
   const draft = readDraft(onboardingDraftStore.useValue(), product);
   const [form, setForm] = useState({ email: '', firstName: draft?.firstName ?? signedIn?.displayName ?? '', businessName: draft?.businessName ?? '', industry: draft?.industry ?? '', handle: draft?.handle ?? '' });
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
@@ -51,12 +53,12 @@ export const AccountStep = ({ product, signedIn, linkFailed, onSession }: Accoun
   const autoStarted = useRef(false);
   const set = (key: keyof typeof form) => (value: string) => setForm((f) => ({ ...f, [key]: value }));
 
-  // Back from the email link with the details already typed: finish setup without asking again.
-  const autoCreate = Boolean(signedIn && draft) && !autoFailed;
+  // Back from the email link with the details already typed, or adding a second studio: finish setup without asking again.
+  const autoCreate = Boolean(signedIn && (draft || hasOtherStudio)) && !autoFailed;
   useEffect(() => {
-    if (!autoCreate || !draft || autoStarted.current) return;
+    if (!autoCreate || autoStarted.current) return;
     autoStarted.current = true;
-    apiFetch('/api/app/onboarding/workspace', { method: 'POST', json: profileBody(product, draft) })
+    apiFetch('/api/app/onboarding/workspace', { method: 'POST', json: draft ? profileBody(product, draft) : { product, fromExisting: true } })
       .then(() => onSession())
       .catch(() => setAutoFailed(true));
   }, [autoCreate, draft, product, onSession]);
@@ -86,7 +88,7 @@ export const AccountStep = ({ product, signedIn, linkFailed, onSession }: Accoun
 
   if (autoCreate) {
     return (
-      <StepCard title="Setting up your studio…" sub="Welcome back. This takes a second.">
+      <StepCard title={hasOtherStudio ? `Adding ${product === 'brand' ? 'Brand' : 'Shop'} Studio…` : 'Setting up your studio…'} sub="Welcome back. This takes a second.">
         <SkeletonText lines={3} />
       </StepCard>
     );

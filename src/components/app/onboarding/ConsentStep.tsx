@@ -1,14 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { hasRequiredConsents } from '../../../config/consents';
 import { apiFetch } from '../../../lib/apiClient';
 import { AppButton } from '../../ui/AppButton';
 import { Checkbox } from '../../ui/Checkbox';
+import { SkeletonText } from '../../ui/Skeleton';
 import { StepCard } from './StepCard';
 import { stepError, type StepProps } from './types';
 
-export const ConsentStep = ({ product, advance }: StepProps) => {
+export const ConsentStep = ({ product, me, advance }: StepProps) => {
+  const alreadyGiven = hasRequiredConsents(product, me.user.consents);
+  const skipped = useRef(false);
+  // Accepted before (sign-up or the other studio): don't ask twice.
+  useEffect(() => {
+    if (!alreadyGiven || skipped.current) return;
+    skipped.current = true;
+    void advance(2).catch(() => { skipped.current = false; });
+  }, [alreadyGiven, advance]);
+
   const [terms, setTerms] = useState(false);
   const [face, setFace] = useState(false);
   const [labels, setLabels] = useState(false);
@@ -29,6 +40,8 @@ export const ConsentStep = ({ product, advance }: StepProps) => {
       setBusy(false);
     }
   };
+
+  if (alreadyGiven) return <SkeletonText lines={4} />;
 
   return (
     <StepCard

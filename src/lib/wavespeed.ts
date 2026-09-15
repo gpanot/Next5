@@ -48,28 +48,42 @@ export type SubmitEditParams = {
   webhookUrl?: string | null;
 };
 
+export type ImageModel = 'nano-banana-2' | 'gpt-image-2';
+
+/** Fallback model for a manual retry after the default model fails (e.g. its safety filter blocks the photo). */
+export const FALLBACK_MODEL: ImageModel = 'gpt-image-2';
+
+export const isImageModel = (value: unknown): value is ImageModel => value === 'nano-banana-2' || value === 'gpt-image-2';
+
+const MODEL_PATHS: Record<ImageModel, string> = {
+  'nano-banana-2': 'google/nano-banana-2/edit',
+  'gpt-image-2': 'openai/gpt-image-2/edit',
+};
+
+const requestBody = (model: ImageModel, images: string[], params: SubmitEditParams): Record<string, unknown> => {
+  // gpt-image-2 has no 0.5k tier; its quality defaults to medium (same price as nano-banana-2 at 1k).
+  const resolution = model === 'gpt-image-2' && params.resolution === '0.5k' ? '1k' : params.resolution ?? '1k';
+  const body = { images, prompt: params.prompt, aspect_ratio: params.aspectRatio ?? '3:4', resolution, output_format: 'jpeg' };
+  return model === 'gpt-image-2' ? { ...body, quality: 'medium' } : body;
+};
+
 /**
- * Submits a Nano Banana 2 Edit task.
+ * Submits an image edit task (Nano Banana 2 by default, GPT Image 2 as the fallback).
  * Returns the WaveSpeed task ID (poll it, or pass `webhookUrl` to be called back).
  */
-export async function submitEdit(params: SubmitEditParams): Promise<string> {
+export async function submitEdit(params: SubmitEditParams & { model?: ImageModel }): Promise<string> {
   if (!WAVESPEED_API_KEY) throw new Error('WAVESPEED_API_KEY is not set');
   const images = params.imageUrls && params.imageUrls.length > 0 ? [...params.imageUrls] : params.imageUrl ? [params.imageUrl] : [];
   if (images.length === 0) throw new Error('submitEdit needs at least one reference image');
+  const model = params.model ?? 'nano-banana-2';
 
-  const res = await fetch(`${BASE_URL}/google/nano-banana-2/edit${params.webhookUrl ? `?webhook=${encodeURIComponent(params.webhookUrl)}` : ''}`, {
+  const res = await fetch(`${BASE_URL}/${MODEL_PATHS[model]}${params.webhookUrl ? `?webhook=${encodeURIComponent(params.webhookUrl)}` : ''}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${WAVESPEED_API_KEY}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      images,
-      prompt: params.prompt,
-      aspect_ratio: params.aspectRatio ?? '3:4',
-      resolution: params.resolution ?? '1k',
-      output_format: 'jpeg',
-    }),
+    body: JSON.stringify(requestBody(model, images, params)),
   });
 
   const body = await res.json().catch(() => ({}));
@@ -86,6 +100,17 @@ export const COST_USD_MICROS: Record<NonNullable<SubmitEditParams['resolution']>
   '2k': 105_000,
   '4k': 140_000,
 };
+
+/** GPT Image 2 Edit (medium quality): per resolution, plus $0.012 per reference image. */
+const GPT_IMAGE_2_COST_USD_MICROS: Record<NonNullable<SubmitEditParams['resolution']>, number> = {
+  '0.5k': 70_000,
+  '1k': 70_000,
+  '2k': 110_000,
+  '4k': 190_000,
+};
+
+export const costUsdMicros = (model: ImageModel, resolution: NonNullable<SubmitEditParams['resolution']>, inputImages: number): number =>
+  model === 'gpt-image-2' ? GPT_IMAGE_2_COST_USD_MICROS[resolution] + 12_000 * inputImages : COST_USD_MICROS[resolution];
 
 // ── Poll ──────────────────────────────────────────────────────────────────────
 

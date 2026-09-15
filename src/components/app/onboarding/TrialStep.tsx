@@ -4,6 +4,7 @@ import { track } from '../../../lib/analytics';
 import { Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
+import { failedPhotoText } from '../../../lib/generationErrors';
 import { useBatchPolling } from '../../../hooks/useBatchPolling';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
 import { trialProductStore } from '../../../lib/localStore';
@@ -34,11 +35,20 @@ const Progress = ({ ready, total }: { ready: number; total: number }) => {
 };
 
 const TrialResults = ({ batchId, product }: { batchId: string; product: 'brand' | 'shop' }) => {
-  const { batch, patchItem } = useBatchPolling(batchId);
+  const { batch, patchItem, refresh } = useBatchPolling(batchId);
+  const [redoError, setRedoError] = useState<string | null>(null);
   if (!batch) return <SkeletonText lines={3} />;
   const redo = async (item: BatchItemDto) => {
+    setRedoError(null);
     patchItem(item.id, { status: 'queued', url: item.url });
-    await apiFetch(`/api/app/batches/${batchId}/items/${item.id}/redo`, { method: 'POST', json: { reason: product === 'shop' ? 'product_mismatch' : 'not_like_me' } }).catch(() => undefined);
+    // A failed photo retries on the fallback model (server decides); a ready one is a free redo.
+    const reason = item.status === 'failed' ? 'other' : product === 'shop' ? 'product_mismatch' : 'not_like_me';
+    try {
+      await apiFetch(`/api/app/batches/${batchId}/items/${item.id}/redo`, { method: 'POST', json: { reason } });
+    } catch (err) {
+      setRedoError(err instanceof ApiError ? err.message : 'Could not try again. Refresh the page.');
+    }
+    await refresh();
   };
   const active = batch.status === 'queued' || batch.status === 'generating';
   const best = active ? null : [...batch.items].filter((i) => i.status === 'ready' && i.score !== null).sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0] ?? null;
@@ -53,6 +63,8 @@ const TrialResults = ({ batchId, product }: { batchId: string; product: 'brand' 
               alt="Your free photo"
               status={item.status === 'submitting' ? 'generating' : item.status}
               onRedo={item.status === 'ready' && item.freeRedosLeft > 0 ? () => void redo(item) : undefined}
+              failedText={item.status === 'failed' ? failedPhotoText(item.errorMessage, item.canRetry) : undefined}
+              onRetry={item.canRetry ? () => void redo(item) : undefined}
             />
             {item.status === 'ready' && item.score !== null && <ScoreBadge score={item.score} className="pointer-events-none absolute left-2 top-2" />}
           </div>
@@ -67,7 +79,8 @@ const TrialResults = ({ batchId, product }: { batchId: string; product: 'brand' 
           </div>
         </div>
       )}
-      {batch.status === 'failed' && <p role="alert" className="text-[14px] text-app-danger">Something went wrong on our side. Your credits were returned — try again.</p>}
+      {redoError && <p role="alert" className="text-[14px] text-app-danger">{redoError}</p>}
+      {batch.status === 'failed' && <p role="alert" className="text-[14px] text-app-danger">{batch.items.some((i) => i.canRetry) ? 'None of your photos worked. Tap “Try again” on each photo.' : 'Your photos didn’t work. Continue, then add a different product photo.'}</p>}
     </div>
   );
 };
@@ -77,9 +90,9 @@ export const TrialStep = ({ product, me, advance }: StepProps) => {
   const [startedId, setStartedId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leaving, setLeaving] = useState(false);
   const trial = batches.data?.batches.find((b) => b.kind === 'trial');
   const batchId = startedId ?? trial?.id ?? null;
-  const canRetry = trial?.status === 'failed';
 
   const start = async () => {
     setBusy(true);
@@ -95,19 +108,30 @@ export const TrialStep = ({ product, me, advance }: StepProps) => {
     }
   };
 
+  const next = async () => {
+    setLeaving(true);
+    setError(null);
+    try {
+      await advance(5);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not continue. Try again.');
+      setLeaving(false);
+    }
+  };
+
   return (
     <StepCard
       title={batchId ? 'Your free photos' : 'Create your 3 free photos'}
       sub={product === 'brand' ? 'Three photos from this month’s theme, in your set.' : 'Your product, worn, in your shop look — listing format.'}
-      footer={batchId && !canRetry ? <AppButton size="lg" onClick={() => advance(5)}>Continue</AppButton> : undefined}
+      footer={batchId ? <AppButton size="lg" loading={leaving} onClick={() => void next()}>Continue</AppButton> : undefined}
     >
-      {batches.loading ? <SkeletonText lines={2} /> : batchId && !canRetry ? (
+      {batches.loading ? <SkeletonText lines={2} /> : batchId ? (
         <TrialResults batchId={batchId} product={product} />
       ) : (
         <div className="flex flex-col items-start gap-4">
           <Sparkles aria-hidden className="h-8 w-8 text-app-accent" />
           <p className="text-[15px] text-app-muted">It takes about a minute. You can redo any photo for free.</p>
-          <AppButton size="lg" loading={busy} onClick={start} disabled={Boolean(me.workspace?.trialUsed) && !canRetry}>{canRetry ? 'Try again' : 'Create my free photos'}</AppButton>
+          <AppButton size="lg" loading={busy} onClick={start} disabled={Boolean(me.workspace?.trialUsed)}>Create my free photos</AppButton>
         </div>
       )}
       {error && <p role="alert" className="text-[14px] text-app-danger">{error}</p>}

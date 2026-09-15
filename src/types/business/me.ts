@@ -38,7 +38,8 @@ export type WorkspaceDto = {
 };
 
 export type MeDto = {
-  user: { id: string; email: string; displayName: string | null };
+  /** `consents`: consent types accepted at the current version. */
+  user: { id: string; email: string; displayName: string | null; consents: string[] };
   workspaces: { id: string; product: ProductLineDto; name: string }[];
   workspace: WorkspaceDto | null;
   subscription: SubscriptionDto | null;

@@ -6,6 +6,7 @@ import { prisma } from '../../lib/db';
 import type { BatchDetailDto, BatchItemDto, BatchSummaryDto, PostKitDto, ScoreDetailsDto } from '../../types/business/batches';
 import { presignObject } from '../storage/objectStore';
 import { getProgress } from './batchStatus';
+import { canRetryFailed } from './redo';
 
 export const toItemDto = async (item: BatchItem): Promise<BatchItemDto> => ({
   id: item.id,
@@ -23,6 +24,7 @@ export const toItemDto = async (item: BatchItem): Promise<BatchItemDto> => ({
   score: item.score,
   scoreDetails: (item.scoreDetails as ScoreDetailsDto | null) ?? null,
   errorMessage: item.status === 'failed' ? item.errorMessage : null,
+  canRetry: canRetryFailed(item),
 });
 
 const coverFor = async (batchId: string): Promise<string | null> => {

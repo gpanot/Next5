@@ -5,6 +5,7 @@ import { NO_PLAN_MAX_SETS, PLANS, isPlanId, type Plan } from '../config/plans';
 import { prisma } from '../lib/db';
 import type { BannerDto, MeDto, SubscriptionDto, WorkspaceDto } from '../types/business/me';
 import { getBalance, type Balance } from './credits/ledger';
+import { givenConsents } from './onboarding/account';
 import { getActiveSubscription, getQueuedRenewal } from './subscriptions/subscriptions';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -57,19 +58,23 @@ const computeBanners = async ({ ws, active, queued, plan, balance, now }: Banner
 
 /** Everything the app shell needs in one call. `product` picks the workspace when a user has both. */
 export const buildMe = async (userId: string, product?: 'brand' | 'shop', now = new Date()): Promise<MeDto> => {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { id: true, email: true, displayName: true } });
-  const workspaces = await prisma.workspace.findMany({ where: { ownerUserId: userId }, orderBy: { createdAt: 'asc' } });
+  // Independent queries run together: each one is a network round trip to the database.
+  const [user, workspaces, bookings, consents] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { id: true, email: true, displayName: true } }),
+    prisma.workspace.findMany({ where: { ownerUserId: userId }, orderBy: { createdAt: 'asc' } }),
+    prisma.booking.count({ where: { userId } }),
+    givenConsents(userId),
+  ]);
   const ws = workspaces.find((w) => w.product === product) ?? workspaces[0] ?? null;
-  const hasConsumerBookings = (await prisma.booking.count({ where: { userId } })) > 0;
   const emptyBalance = { total: 0, trial: 0, plan: 0, topup: 0, bonus: 0, nextExpiry: null };
-  const base = { user, workspaces: workspaces.map((w) => ({ id: w.id, product: w.product, name: w.name })), hasConsumerBookings };
+  const base = { user: { ...user, consents }, workspaces: workspaces.map((w) => ({ id: w.id, product: w.product, name: w.name })), hasConsumerBookings: bookings > 0 };
   if (!ws) return { ...base, workspace: null, subscription: null, queuedRenewal: null, plan: null, balance: emptyBalance, banners: [] };
 
-  const [active, queued, balance] = await Promise.all([getActiveSubscription(ws.id, now), getQueuedRenewal(ws.id, now), getBalance(ws.id, now)]);
+  const [active, queued, balance, workspace] = await Promise.all([getActiveSubscription(ws.id, now), getQueuedRenewal(ws.id, now), getBalance(ws.id, now), toWorkspaceDto(ws)]);
   const plan = active && isPlanId(active.planId) ? PLANS[active.planId] : null;
   return {
     ...base,
-    workspace: await toWorkspaceDto(ws),
+    workspace,
     subscription: toSubscriptionDto(active),
     queuedRenewal: toSubscriptionDto(queued),
     plan: plan

@@ -34,7 +34,7 @@ export const useBatchActions = (batch: BatchDetailDto | null, patchItem: Patch, 
       await apiFetch(`/api/app/batches/${batch.id}/items/${item.id}/redo`, { method: 'POST', json: { reason, note } });
       track('item_redo', { reason });
       patchItem(item.id, { status: 'queued' });
-      notify(item.freeRedosLeft > 0 ? 'Redoing your photo — free' : 'Redoing your photo');
+      notify(item.status === 'failed' ? 'Trying again with our second AI model — free' : item.freeRedosLeft > 0 ? 'Redoing your photo — free' : 'Redoing your photo');
       void refresh();
     } catch (err) {
       fail(err, 'Could not redo this photo.');

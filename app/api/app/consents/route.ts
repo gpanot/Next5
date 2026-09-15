@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
+import { CONSENT_TYPES as TYPES, CONSENT_VERSION } from '../../../../src/config/consents';
 import { prisma } from '../../../../src/lib/db';
 import { authedRoute } from '../../../../src/server/api';
 import { HttpError, readJsonObject } from '../../../../src/server/http';
-
-const CONSENT_VERSION = '2026-09';
-const TYPES = ['terms', 'face_processing', 'ai_labeling'] as const;
 
 /** POST /api/app/consents — { types: ('terms' | 'face_processing' | 'ai_labeling')[] } */
 export const POST = authedRoute(async (req, session) => {

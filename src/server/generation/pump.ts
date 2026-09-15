@@ -5,7 +5,7 @@ import { generationMaxConcurrent } from '../../config/business';
 import { FORMATS, isFormatId } from '../../config/formats';
 import { prisma } from '../../lib/db';
 import { isMockGeneration } from '../../lib/mock';
-import { COST_USD_MICROS, submitEdit, uploadPhotoToWaveSpeed } from '../../lib/wavespeed';
+import { costUsdMicros, isImageModel, submitEdit, uploadPhotoToWaveSpeed } from '../../lib/wavespeed';
 import { getObject } from '../storage/objectStore';
 import { failItem } from './finalize';
 import { generationWebhookUrl } from './webhookUrl';
@@ -42,6 +42,7 @@ const waveSpeedUrlFor = async (key: string): Promise<string> => {
 const submitItem = async (item: BatchItem): Promise<void> => {
   const batch = await prisma.batch.findUniqueOrThrow({ where: { id: item.batchId }, select: { highRes: true } });
   const resolution = batch.highRes ? '2k' : '1k';
+  const model = isImageModel(item.model) ? item.model : 'nano-banana-2';
   try {
     let taskId: string;
     if (isMockGeneration()) {
@@ -49,12 +50,12 @@ const submitItem = async (item: BatchItem): Promise<void> => {
     } else {
       const imageUrls = await Promise.all(item.inputR2Keys.map(waveSpeedUrlFor));
       const aspectRatio = isFormatId(item.format) ? FORMATS[item.format].ratio : '3:4';
-      taskId = await submitEdit({ imageUrls, prompt: item.prompt, aspectRatio, resolution, webhookUrl: generationWebhookUrl() });
+      taskId = await submitEdit({ model, imageUrls, prompt: item.prompt, aspectRatio, resolution, webhookUrl: generationWebhookUrl() });
     }
     await prisma.batchItem.update({ where: { id: item.id }, data: { status: 'generating', wavespeedTaskId: taskId } });
     await prisma.batch.update({
       where: { id: item.batchId },
-      data: { costUsdMicros: { increment: isMockGeneration() ? 0 : COST_USD_MICROS[resolution] }, status: 'generating' },
+      data: { costUsdMicros: { increment: isMockGeneration() ? 0 : costUsdMicros(model, resolution, item.inputR2Keys.length) }, status: 'generating' },
     });
   } catch (err) {
     await failItem(item, err instanceof Error ? err.message : 'Submit failed');

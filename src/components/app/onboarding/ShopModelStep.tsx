@@ -37,7 +37,8 @@ export const ModelGrid = ({ value, onChange }: { value: string; onChange: (slug:
   );
 };
 
-export const ShopModelStep = ({ product, advance }: StepProps) => {
+export const ShopModelStep = ({ product, me, advance }: StepProps) => {
+  const faceConsentGiven = me.user.consents.includes('face_processing');
   const stored = onboardingModelStore.useValue();
   const [mode, setMode] = useState<'me' | 'studio'>(stored && stored !== 'me' ? 'studio' : 'me');
   const [slug, setSlug] = useState(stored && stored !== 'me' ? stored : '');
@@ -92,7 +93,7 @@ export const ShopModelStep = ({ product, advance }: StepProps) => {
             ))}
           </div>
           <GuideImages guides={SELFIE_GUIDES} />
-          <Checkbox checked={consent} onChange={setConsent} label={<span className="text-[14px] text-app-ink">These are photos of me and I agree that Next5 processes my face to create photos. <span className="text-app-muted">Skip if you already agreed.</span></span>} />
+          {!faceConsentGiven && <Checkbox checked={consent} onChange={setConsent} label={<span className="text-[14px] text-app-ink">These are photos of me and I agree that Next5 processes my face to create photos. <span className="text-app-muted">Skip if you already agreed.</span></span>} />}
         </>
       )}
       {error && <p role="alert" className="text-[14px] text-app-danger">{error}</p>}

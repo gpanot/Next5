@@ -12,6 +12,7 @@ import { DIGITAL_SOURCE_TYPE } from '../../../src/server/generation/labeling';
 import { poll } from '../../../src/server/generation/poll';
 import { pump } from '../../../src/server/generation/pump';
 import { redoItem } from '../../../src/server/generation/redo';
+import { toItemDto } from '../../../src/server/generation/dto';
 import { getObject, putObject } from '../../../src/server/storage/objectStore';
 import { createTestWorkspace, resetBusinessTables } from '../../helpers/db';
 
@@ -113,11 +114,38 @@ describe('generation pipeline (mock mode)', () => {
     await failItem({ ...running, attempts: 2 }, 'fail');
     expect((await getBalance(ws.id)).total).toBe(1);
 
+    // Retrying the failed photo is free, runs on the fallback model and keeps the free redo.
+    expect(await redo()).toEqual({ charged: false, freeRedosLeft: 1 });
+    expect((await prisma.batchItem.findUniqueOrThrow({ where: { id: item.id } })).model).toBe('gpt-image-2');
+    await drain(batch.id);
+
     expect((await redo()).charged).toBe(false);
     await drain(batch.id);
-    const third = await redo();
-    expect(third.charged).toBe(true);
+    const fourth = await redo();
+    expect(fourth.charged).toBe(true);
     expect((await getBalance(ws.id)).total).toBe(0);
+  });
+
+  it('fails a safety-flagged run at once, allows one fallback retry, then no more', async () => {
+    const { ws, set } = await setupBrand(8);
+    const batch = await createBatch(ws, { kind: 'brand_theme', setId: set.id, themeId: 'just-listed', count: 8, formats: ['portrait_4_5'], highRes: false });
+    await pump({ batchId: batch.id });
+    const item = await prisma.batchItem.findFirstOrThrow({ where: { batchId: batch.id, status: 'generating' } });
+    const flagged = 'Content flagged as potentially sensitive. Please try different prompts or images';
+    await failItem(item, flagged);
+    let stored = await prisma.batchItem.findUniqueOrThrow({ where: { id: item.id } });
+    expect(stored.status).toBe('failed'); // no paid auto-retry on the same model
+    expect((await toItemDto(stored)).canRetry).toBe(true);
+
+    const redo = () => redoItem({ workspaceId: ws.id, batchId: batch.id, itemId: item.id, reason: 'other' });
+    expect((await redo()).charged).toBe(false);
+    // Stand-in for the pump picking this item up (other queued items may take the free slots first).
+    stored = await prisma.batchItem.update({ where: { id: item.id }, data: { status: 'generating', attempts: 1 } });
+    expect(stored.model).toBe('gpt-image-2');
+    await failItem({ ...stored, attempts: 2 }, flagged);
+    stored = await prisma.batchItem.findUniqueOrThrow({ where: { id: item.id } });
+    expect((await toItemDto(stored)).canRetry).toBe(false);
+    await expect(redo()).rejects.toMatchObject({ code: 'retry_used' });
   });
 });
 

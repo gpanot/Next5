@@ -33,6 +33,8 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [redoTarget, setRedoTarget] = useState<BatchItemDto | null>(null);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  // A failed photo retries straight away on the fallback model; a ready one asks what to fix.
+  const openRedo = (item: BatchItemDto) => (item.status === 'failed' ? void actions.redo(item, 'other', '') : setRedoTarget(item));
 
   const activeFormat = format ?? batch?.formats[0] ?? null;
   const items = useMemo(
@@ -76,7 +78,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
           onOpen={(item) => setOpenIndex(openable.findIndex((o) => o.id === item.id))}
           onFavorite={(item) => void actions.favorite(item)}
           onDownload={(item, index) => void actions.download(item, index)}
-          onRedo={setRedoTarget}
+          onRedo={openRedo}
           onZipProduct={(productId, name) => void actions.downloadZip(`?productId=${productId}${batch.formats.length > 1 && activeFormat ? `&format=${activeFormat}` : ''}`, `${name}.zip`)}
         />
       ) : (
@@ -92,7 +94,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
               onOpen={() => setOpenIndex(openable.findIndex((o) => o.id === item.id))}
               onFavorite={() => void actions.favorite(item)}
               onDownload={() => void actions.download(item, index)}
-              onRedo={() => setRedoTarget(item)}
+              onRedo={() => openRedo(item)}
             />
           ))}
         </div>

@@ -1,6 +1,7 @@
 // server-only — never import from a 'use client' file.
 
 import type { ProductLine } from '@prisma/client';
+import { CONSENT_VERSION, hasRequiredConsents } from '../../config/consents';
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/maileroo';
 import { signMagicToken, signSessionToken } from '../../lib/studio-auth';
@@ -57,13 +58,38 @@ const sendContinueEmail = async (email: string, product: ProductLine): Promise<v
   });
 };
 
-/** Creates (or returns) the user's workspace for this product and moves onboarding past the account step. Idempotent. */
+/** Consent types the user accepted at the current version. */
+export const givenConsents = async (userId: string): Promise<string[]> => {
+  const rows = await prisma.consentRecord.findMany({ where: { userId, version: CONSENT_VERSION }, select: { type: true }, distinct: ['type'] });
+  return rows.map((row) => row.type);
+};
+
+/**
+ * Creates (or returns) the user's workspace for this product and moves onboarding past the account step,
+ * and past consent too when the user already accepted everything this studio needs. Idempotent.
+ */
 export const setupWorkspace = async (userId: string, input: ProfileInput): Promise<void> => {
-  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { displayName: true } });
+  const [user, consents] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { displayName: true } }),
+    givenConsents(userId),
+  ]);
   if (!user.displayName) await prisma.user.update({ where: { id: userId }, data: { displayName: input.firstName } });
   const ws = await createWorkspace({ ownerUserId: userId, product: input.product, name: input.businessName || input.firstName, industry: input.industry, handle: input.handle });
-  if (ws.onboardingStep < 1) await prisma.workspace.update({ where: { id: ws.id }, data: { onboardingStep: 1 } });
+  const step = hasRequiredConsents(input.product, consents) ? 2 : 1;
+  if (ws.onboardingStep < step) await prisma.workspace.update({ where: { id: ws.id }, data: { onboardingStep: step } });
   sendOnceQuietly({ userId, workspaceId: ws.id, template: 'welcome', dedupeKey: `welcome:${ws.id}`, content: welcomeEmail(input.firstName, input.product) });
+};
+
+/** A signed-in user with one studio adds the other: reuse their name and handle instead of asking again. */
+export const addStudio = async (userId: string, product: ProductLine): Promise<void> => {
+  const [user, existing] = await Promise.all([
+    prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { displayName: true } }),
+    prisma.workspace.findFirst({ where: { ownerUserId: userId }, orderBy: { createdAt: 'asc' }, select: { name: true, handle: true } }),
+  ]);
+  const firstName = user.displayName ?? existing?.name;
+  if (!firstName) throw new HttpError(400, 'first_name_required', 'Add your first name.');
+  // Industry lists differ per studio (industries vs shop categories), so it is not copied.
+  await setupWorkspace(userId, { product, firstName, businessName: existing?.name ?? '', industry: null, handle: existing?.handle ?? null });
 };
 
 /**

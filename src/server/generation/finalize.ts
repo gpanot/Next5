@@ -3,6 +3,7 @@
 import { Prisma, type BatchItem } from '@prisma/client';
 import { MAX_ATTEMPTS_PER_RUN } from '../../config/business';
 import { prisma } from '../../lib/db';
+import { isContentFlagged } from '../../lib/generationErrors';
 import { refundItem } from '../credits/ledger';
 import { withSerializable } from '../db/transaction';
 import { batchItemKey } from '../storage/keys';
@@ -37,7 +38,11 @@ export const finalizeItem = async (item: BatchItem, image: Buffer): Promise<void
 
 /** Retries a failed run, or marks the item failed and refunds a paid run. */
 export const failItem = async (item: BatchItem, message: string): Promise<void> => {
-  if (item.attempts < MAX_ATTEMPTS_PER_RUN) {
+  const flagged = isContentFlagged(message);
+  // Kept in the logs so we can tune prompts per category and see how often the fallback model is needed.
+  console.warn('[generation] run failed', JSON.stringify({ itemId: item.id, batchId: item.batchId, model: item.model ?? 'nano-banana-2', attempt: item.attempts, flagged, error: message }));
+  // A safety refusal repeats on the same model: fail now (no paid auto-retry) so the seller can retry on the fallback model.
+  if (!flagged && item.attempts < MAX_ATTEMPTS_PER_RUN) {
     await prisma.batchItem.updateMany({
       where: { id: item.id, status: { in: ['submitting', 'generating'] } },
       data: { status: 'queued', wavespeedTaskId: null, errorMessage: message },

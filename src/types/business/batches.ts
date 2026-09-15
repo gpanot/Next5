@@ -19,6 +19,8 @@ export type BatchItemDto = {
   score: number | null;
   scoreDetails: ScoreDetailsDto | null;
   errorMessage: string | null;
+  /** Failed, and the one free retry on the fallback model is still available. */
+  canRetry: boolean;
 };
 
 export type PostKitDto = { hook: string; caption: string; hashtags: string[]; description: string | null };

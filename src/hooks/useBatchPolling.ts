@@ -38,8 +38,11 @@ export const useBatchPolling = (batchId: string | null) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [batchId]);
 
+  // Polling stops once the batch is done; a redo makes it active again, which restarts the loop.
+  const active = isActive(state.batch);
+
   useEffect(() => {
-    if (!batchId) return;
+    if (!batchId || (!active && state.batch)) return;
     let stopped = false;
 
     const tick = async () => {
@@ -55,9 +58,9 @@ export const useBatchPolling = (batchId: string | null) => {
       stopped = true;
       if (timer.current) window.clearTimeout(timer.current);
     };
-    // Restart polling only when the batch changes.
+    // Restart polling only when the batch changes or becomes active again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [batchId, load]);
+  }, [batchId, load, active]);
 
   /** Replace one item locally after an action (favourite, redo) without waiting for the next poll. */
   const patchItem = useCallback((itemId: string, patch: Partial<BatchDetailDto['items'][number]>) => {

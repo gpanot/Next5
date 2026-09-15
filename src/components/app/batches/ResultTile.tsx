@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Check, Download, Heart, Loader2, Maximize2, RefreshCw } from 'lucide-react';
 import { FORMATS, isFormatId } from '../../../config/formats';
+import { failedPhotoText } from '../../../lib/generationErrors';
 import type { BatchItemDto } from '../../../types/business/batches';
 import { ScoreBadge } from '../postKit/ScoreBadge';
 
@@ -44,7 +45,9 @@ export const ResultTile = ({ item, alt, selecting, selected, onToggleSelect, onO
         )}
         {item.status === 'failed' && (
           <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-3 text-center text-[12px] text-app-muted">
-            <AlertTriangle aria-hidden className="h-6 w-6 text-app-warning" />Couldn’t create this one — credit returned
+            <AlertTriangle aria-hidden className="h-6 w-6 text-app-warning" />
+            <span role="alert">{failedPhotoText(item.errorMessage, item.canRetry)}</span>
+            <span className="text-[11px]">No credit used.</span>
           </span>
         )}
         {selecting && (
@@ -61,7 +64,7 @@ export const ResultTile = ({ item, alt, selecting, selected, onToggleSelect, onO
             <Heart aria-hidden className={`h-4 w-4 ${item.favorite ? 'fill-current' : ''}`} />
           </IconButton>
           <div className="flex">
-            {(ready || item.status === 'failed') && <IconButton label="Redo" onClick={onRedo}><RefreshCw aria-hidden className="h-4 w-4" /></IconButton>}
+            {(ready || item.canRetry) && <IconButton label="Redo" onClick={onRedo}><RefreshCw aria-hidden className="h-4 w-4" /></IconButton>}
             {ready && <IconButton label="Download" onClick={onDownload}><Download aria-hidden className="h-4 w-4" /></IconButton>}
           </div>
         </figcaption>

@@ -14,6 +14,10 @@ type ImageTileProps = {
   onDownload?: () => void;
   onRedo?: () => void;
   onMore?: () => void;
+  /** Failed tiles: what went wrong, in plain words. */
+  failedText?: string;
+  /** Failed tiles: shows a "Try again" button. */
+  onRetry?: () => void;
   className?: string;
 };
 
@@ -38,6 +42,8 @@ export const ImageTile = ({
   onDownload,
   onRedo,
   onMore,
+  failedText,
+  onRetry,
   className = '',
 }: ImageTileProps) => {
   const [hovered, setHovered] = useState(false);
@@ -58,8 +64,19 @@ export const ImageTile = ({
       {showOverlay && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/40">
           {STATUS_OVERLAY[status]}
-          {STATUS_LABEL[status] && (
+          {status === 'failed' && failedText ? (
+            <span role="alert" className="px-2 text-center text-[11px] leading-snug text-white/90">{failedText}</span>
+          ) : STATUS_LABEL[status] && (
             <span className="text-[11px] text-white/80">{STATUS_LABEL[status]}</span>
+          )}
+          {status === 'failed' && onRetry && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onRetry(); }}
+              className="mt-1 inline-flex h-8 items-center gap-1 rounded-lg bg-white px-3 text-[12px] font-medium text-black transition-opacity duration-200 hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+            >
+              <RefreshCw aria-hidden className="h-3.5 w-3.5" />Try again
+            </button>
           )}
 
           {/* Actions (only on ready + hover) */}
