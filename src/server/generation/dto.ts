@@ -2,9 +2,11 @@
 
 import type { Batch, BatchItem } from '@prisma/client';
 import { FREE_REDOS_PER_ITEM } from '../../config/business';
+import { nextShotsForProduct } from '../../config/shots';
 import { prisma } from '../../lib/db';
 import type { BatchDetailDto, BatchItemDto, BatchSummaryDto, PostKitDto, ScoreDetailsDto } from '../../types/business/batches';
 import { presignObject } from '../storage/objectStore';
+import { madeShotsByProduct } from '../shop/morePhotos';
 import { getProgress } from './batchStatus';
 import { canRetryFailed } from './redo';
 
@@ -57,14 +59,21 @@ export const toSummaryDto = async (batch: Batch): Promise<BatchSummaryDto> => ({
 export const toDetailDto = async (batch: Batch): Promise<BatchDetailDto> => {
   const items = await prisma.batchItem.findMany({ where: { batchId: batch.id }, orderBy: { createdAt: 'asc' } });
   const productIds = [...new Set(items.map((i) => i.productId).filter((id): id is string => Boolean(id)))];
-  const [products, workspace] = await Promise.all([
+  const [products, workspace, made] = await Promise.all([
     prisma.product.findMany({ where: { id: { in: productIds } } }),
     prisma.workspace.findUniqueOrThrow({ where: { id: batch.workspaceId }, select: { visibleAiTag: true } }),
+    productIds.length > 0 ? madeShotsByProduct(batch.workspaceId, productIds) : Promise.resolve(new Map<string, string[]>()),
   ]);
   const productDtos = await Promise.all(
     productIds.map(async (id) => {
       const p = products.find((x) => x.id === id);
-      return { id, name: p?.name ?? 'Product', sku: p?.sku ?? null, category: p?.category ?? '', colorName: p?.colorName ?? null, frontUrl: p?.frontR2Key ? await presignObject(p.frontR2Key) : null };
+      const shots = made.get(id) ?? [];
+      return {
+        id, name: p?.name ?? 'Product', sku: p?.sku ?? null, category: p?.category ?? '', colorName: p?.colorName ?? null,
+        frontUrl: p?.frontR2Key ? await presignObject(p.frontR2Key) : null,
+        angleCount: shots.length,
+        nextShots: p && !p.archivedAt ? nextShotsForProduct(p.category, Boolean(p.backR2Key), shots) : [],
+      };
     }),
   );
   return { ...(await toSummaryDto(batch)), items: await Promise.all(items.map(toItemDto)), products: productDtos, visibleAiTag: workspace.visibleAiTag };

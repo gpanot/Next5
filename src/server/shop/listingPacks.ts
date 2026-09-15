@@ -14,7 +14,7 @@ export const isPackStatus = (v: unknown): v is PackStatus => v === 'draft' || v 
 
 type PackItem = Pick<BatchItem, 'id' | 'format' | 'shot' | 'completedAt'>;
 
-const SHOT_RANK = ['full_body_front', 'half_body', 'walking_motion', 'back_or_side', 'worn_half_body', 'lifestyle_in_hand_or_on_foot', 'detail_closeup'];
+const SHOT_RANK = ['full_body_front', 'full_body_styled', 'half_body', 'walking_motion', 'side_profile', 'back_or_side', 'seated_pose', 'worn_half_body', 'lifestyle_candid', 'lifestyle_in_hand_or_on_foot', 'detail_closeup'];
 const FORMAT_RANK = ['square_1_1', 'portrait_3_4', 'portrait_4_5'];
 const rank = (list: readonly string[], value: string | null) => {
   const i = list.indexOf(value ?? '');

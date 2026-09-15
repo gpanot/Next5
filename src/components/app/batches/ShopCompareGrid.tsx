@@ -17,6 +17,7 @@ type ShopCompareGridProps = {
   onFavorite: (item: BatchItemDto) => void;
   onDownload: (item: BatchItemDto, index: number) => void;
   onRedo: (item: BatchItemDto) => void;
+  onPostKit: (item: BatchItemDto) => void;
   onZipProduct: (productId: string, name: string) => void;
 };
 
@@ -26,7 +27,7 @@ const shotRank = (shot: string | null) => (shot ? SHOT_ORDER.indexOf(shot) : 99)
 const shotLabel = (shot: string | null) => (shot && shot in SHOTS ? SHOTS[shot as ShotId].label : 'Photo');
 
 /** One row per product: the original photo pinned left, generated shots scroll horizontally. */
-export const ShopCompareGrid = ({ batch, items, selecting, selected, downloading, onToggleSelect, onOpen, onFavorite, onDownload, onRedo, onZipProduct }: ShopCompareGridProps) => (
+export const ShopCompareGrid = ({ batch, items, selecting, selected, downloading, onToggleSelect, onOpen, onFavorite, onDownload, onRedo, onPostKit, onZipProduct }: ShopCompareGridProps) => (
   <div className="flex flex-col gap-4">
     {batch.products.map((product) => {
       const shots = items.filter((i) => i.productId === product.id).sort((a, b) => shotRank(a.shot) - shotRank(b.shot));
@@ -60,6 +61,7 @@ export const ShopCompareGrid = ({ batch, items, selecting, selected, downloading
                   onFavorite={() => onFavorite(item)}
                   onDownload={() => onDownload(item, index)}
                   onRedo={() => onRedo(item)}
+                  onPostKit={() => onPostKit(item)}
                 />
                 <span className="text-center text-[11px] text-app-muted">{shotLabel(item.shot)}</span>
               </div>

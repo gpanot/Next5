@@ -196,4 +196,26 @@ describe('TikTok listing pack', () => {
     const files = Object.keys((await JSZip.loadAsync(buffer)).files).sort();
     expect(files).toEqual(['description.txt', 'ssd-1_01_main.jpg', 'ssd-1_02.jpg', 'ssd-1_03.jpg', 'ssd-1_cover_9x16.jpg']);
   });
+
+  it('adds the next 3 new angles per product, then refuses when every angle is done', async () => {
+    const { toDetailDto } = await import('../../../src/server/generation/dto');
+    const ws = await createTestWorkspace('shop');
+    await withSerializable((tx) => grant(tx, { workspaceId: ws.id, bucket: 'topup', amount: 40, reason: 'topup_grant', refType: 'payment', refId: `p-${ws.id}`, expiresAt: null }));
+    await putObject(`ws/${ws.id}/identity/face.jpg`, await sampleJpeg());
+    await prisma.identityReference.create({ data: { workspaceId: ws.id, kind: 'face', r2Key: `ws/${ws.id}/identity/face.jpg` } });
+    await putObject(`ws/${ws.id}/products/p/front.jpg`, await sampleJpeg());
+    const product = await prisma.product.create({ data: { workspaceId: ws.id, name: 'Mesh Maxi Dress', category: 'dress', frontR2Key: `ws/${ws.id}/products/p/front.jpg` } });
+    const set = await prisma.studioSet.create({ data: { workspaceId: ws.id, templateId: 'beige-wall', name: 'Beige', locations: [], modelRef: 'me' } });
+    const draft = { kind: 'shop_products' as const, setId: set.id, productIds: [product.id], packId: 'listing' as const, formats: ['square_1_1' as const], highRes: false };
+    const first = await createBatch(ws, draft);
+    expect((await toDetailDto(first)).products[0]).toMatchObject({ angleCount: 3, nextShots: ['walking_motion', 'seated_pose', 'side_profile'] });
+
+    const more = await createBatch(ws, { ...draft, more: true });
+    const shots = (await prisma.batchItem.findMany({ where: { batchId: more.id }, orderBy: { createdAt: 'asc' } })).map((i) => i.shot).sort();
+    expect(shots).toEqual(['seated_pose', 'side_profile', 'walking_motion']);
+    expect(more.name).toMatch(/^More photos/);
+
+    await createBatch(ws, { ...draft, more: true }); // lifestyle_candid — the last angle without a back photo
+    await expect(createBatch(ws, { ...draft, more: true })).rejects.toMatchObject({ code: 'no_more_shots' });
+  });
 });

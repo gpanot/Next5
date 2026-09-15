@@ -53,7 +53,18 @@ export type BatchSummaryDto = {
   progress: BatchProgressDto;
 };
 
-export type BatchProductDto = { id: string; name: string; sku: string | null; category: string; colorName: string | null; frontUrl: string | null };
+export type BatchProductDto = {
+  id: string;
+  name: string;
+  sku: string | null;
+  category: string;
+  colorName: string | null;
+  frontUrl: string | null;
+  /** Photo angles this product has across all batches (made or in progress). */
+  angleCount: number;
+  /** The angles "Create more photos" would add next (empty when every angle is done). */
+  nextShots: string[];
+};
 
 export type BatchDetailDto = BatchSummaryDto & { items: BatchItemDto[]; products: BatchProductDto[]; visibleAiTag: boolean };
 

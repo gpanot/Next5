@@ -2,10 +2,11 @@
 
 import type { SetTemplate, StudioSet, Workspace } from '@prisma/client';
 import type { FormatId } from '../../config/formats';
-import { shotsForProduct, type ShotId } from '../../config/shots';
+import { nextShotsForProduct, shotsForProduct, type ShotId } from '../../config/shots';
 import type { SetTemplateConfig, ThemeScene } from '../../content/business/catalog/types';
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
+import { madeShotsByProduct } from '../shop/morePhotos';
 import { composeBrandPrompt } from './composer/brand';
 import { composeShopPrompt } from './composer/shop';
 import type { AnyDraft, InternalBrandDraft, InternalShopDraft } from './draft';
@@ -76,9 +77,16 @@ const expandShop = async (workspace: Workspace, draft: InternalShopDraft, now: D
   const identity = await resolveIdentity(workspace, set);
   const template = set.template.config as unknown as SetTemplateConfig;
 
+  const made = draft.more ? await madeShotsByProduct(workspace.id, draft.productIds) : null;
+  if (made && products.every((p) => nextShotsForProduct(p.category, Boolean(p.backR2Key), made.get(p.id) ?? []).length === 0)) {
+    throw new HttpError(400, 'no_more_shots', 'These products already have every photo angle we make.');
+  }
+
   const items: ItemSpec[] = [];
   for (const product of products) {
-    for (const shot of shotsForProduct(product.category, draft.packId, Boolean(product.backR2Key))) {
+    const hasBack = Boolean(product.backR2Key);
+    const shots = made ? nextShotsForProduct(product.category, hasBack, made.get(product.id) ?? []) : shotsForProduct(product.category, draft.packId, hasBack);
+    for (const shot of shots) {
       const productKeys = productInputKeys(product, shot, identity.keys.length);
       for (const format of draft.formats) {
         const prompt = composeShopPrompt({
@@ -91,7 +99,7 @@ const expandShop = async (workspace: Workspace, draft: InternalShopDraft, now: D
   }
   return {
     kind: draft.trial ? 'trial' : 'shop_products',
-    name: draft.trial ? 'Free trial' : `Drop · ${shortDate(now, true)}`,
+    name: draft.trial ? 'Free trial' : `${draft.more ? 'More photos' : 'Drop'} · ${shortDate(now, true)}`,
     setId: set.id, themeId: null, packId: draft.packId, formats: draft.formats, highRes: draft.highRes, items,
   };
 };

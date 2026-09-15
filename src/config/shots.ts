@@ -41,7 +41,11 @@ export type ShotId =
   | 'walking_motion'
   | 'back_or_side'
   | 'worn_half_body'
-  | 'lifestyle_in_hand_or_on_foot';
+  | 'lifestyle_in_hand_or_on_foot'
+  | 'seated_pose'
+  | 'side_profile'
+  | 'lifestyle_candid'
+  | 'full_body_styled';
 
 export type Shot = { id: ShotId; label: string; direction: string; requiresBackPhoto: boolean };
 
@@ -89,6 +93,30 @@ export const SHOTS: Record<ShotId, Shot> = {
     label: 'Lifestyle',
     direction:
       'Candid lifestyle moment focused on the accessory in hand or on foot, the item sharp and prominent.',
+    requiresBackPhoto: false,
+  },
+  seated_pose: {
+    id: 'seated_pose',
+    label: 'Seated',
+    direction: 'Seated relaxed on a chair, step or ledge, full outfit visible, showing how the garment sits and folds.',
+    requiresBackPhoto: false,
+  },
+  side_profile: {
+    id: 'side_profile',
+    label: 'Side',
+    direction: 'Full body in side profile, showing the silhouette, fit and length of the item from the side.',
+    requiresBackPhoto: false,
+  },
+  lifestyle_candid: {
+    id: 'lifestyle_candid',
+    label: 'Lifestyle',
+    direction: 'Candid everyday moment in the location (laughing, adjusting hair or holding a coffee), the item clearly visible and sharp.',
+    requiresBackPhoto: false,
+  },
+  full_body_styled: {
+    id: 'full_body_styled',
+    label: 'Full outfit',
+    direction: 'Full body styled outfit, standing and facing the camera, the accessory clearly visible as part of the look.',
     requiresBackPhoto: false,
   },
 };
@@ -139,3 +167,26 @@ export const shotsForProduct = (
   PACKS[packForCategory(category, requested)].shots.filter(
     (shot) => hasBackPhoto || !SHOTS[shot].requiresBackPhoto,
   );
+
+/** Photos per TikTok Shop listing that sell best. */
+export const TIKTOK_PHOTO_SWEET_SPOT = { min: 5, max: 9 } as const;
+
+/** How many new angles "Create more photos" adds per product. */
+export const MORE_PHOTOS_STEP = 3;
+
+/** Every angle for a product, in the order photos get made: the first pack, then "Create more photos". */
+const SHOT_SEQUENCE: Record<'apparel' | 'accessory', readonly ShotId[]> = {
+  apparel: ['full_body_front', 'half_body', 'detail_closeup', 'walking_motion', 'back_or_side', 'seated_pose', 'side_profile', 'lifestyle_candid'],
+  accessory: ['worn_half_body', 'detail_closeup', 'lifestyle_in_hand_or_on_foot', 'full_body_styled', 'walking_motion', 'side_profile'],
+};
+
+/** The next angles this product doesn't have yet (skipping shots that need a back photo it lacks). */
+export const nextShotsForProduct = (
+  category: string,
+  hasBackPhoto: boolean,
+  madeShots: readonly string[],
+  limit = MORE_PHOTOS_STEP,
+): ShotId[] =>
+  SHOT_SEQUENCE[isAccessoryCategory(category) ? 'accessory' : 'apparel']
+    .filter((shot) => !madeShots.includes(shot) && (hasBackPhoto || !SHOTS[shot].requiresBackPhoto))
+    .slice(0, limit);

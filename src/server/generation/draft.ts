@@ -23,6 +23,8 @@ export type ShopDraft = {
   packId: PackId;
   formats: FormatId[];
   highRes: boolean;
+  /** Instead of the pack: the next new angles for each product ("Create more photos"). */
+  more?: boolean;
 };
 
 /** Built server-side only (onboarding trial, set preview) — never parsed from a request body. */
@@ -65,7 +67,7 @@ export const parseDraft = (body: Record<string, unknown>): BatchDraft => {
     if (productIds.length > MAX_PRODUCTS_PER_BATCH) throw bad(`Choose up to ${MAX_PRODUCTS_PER_BATCH} products per batch.`);
     const packId = String(body.packId ?? '');
     if (!isPackId(packId)) throw bad('Choose a shot pack.');
-    return { kind: 'shop_products', setId: parseId(body.setId, 'shop look'), productIds, packId, formats, highRes };
+    return { kind: 'shop_products', setId: parseId(body.setId, 'shop look'), productIds, packId, formats, highRes, more: body.more === true };
   }
 
   throw bad('Unknown batch type.');

@@ -18,6 +18,8 @@ import { CompareLightbox } from './CompareLightbox';
 import { PostingTips } from './PostingTips';
 import { ShopCompareGrid } from './ShopCompareGrid';
 import { PostKitPanel } from '../postKit/PostKitPanel';
+import { PostKitDialog } from './PostKitDialog';
+import { MorePhotosCta } from './MorePhotosCta';
 import { RedoDialog } from './RedoDialog';
 import { ResultTile } from './ResultTile';
 import { useBatchActions } from './useBatchActions';
@@ -33,6 +35,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [redoTarget, setRedoTarget] = useState<BatchItemDto | null>(null);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [postKitId, setPostKitId] = useState<string | null>(null);
   // A failed photo retries straight away on the fallback model; a ready one asks what to fix.
   const openRedo = (item: BatchItemDto) => (item.status === 'failed' ? void actions.redo(item, 'other', '') : setRedoTarget(item));
 
@@ -50,6 +53,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
   const open = openIndex !== null ? openable[openIndex] : null;
   const isShop = batch.products.length > 0;
   const postKitAllowed = Boolean(me?.plan?.postKit) || batch.kind === 'trial';
+  const postKitItem = postKitId ? batch.items.find((i) => i.id === postKitId && i.status === 'ready') ?? null : null;
   const openProduct = open && isShop ? batch.products.find((p) => p.id === open.productId) ?? null : null;
 
   return (
@@ -65,6 +69,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
         </div>
       </div>
       {isShop && <PostingTips visibleAiTag={batch.visibleAiTag} />}
+      {isShop && <MorePhotosCta batch={batch} onError={(message) => toast(message, 'error')} />}
       {items.length === 0 ? (
         <p className="rounded-2xl border border-app-line bg-app-panel p-8 text-center text-[14px] text-app-muted">{favoritesOnly ? 'No favourites yet — tap the heart on photos you love.' : 'Nothing here yet.'}</p>
       ) : isShop ? (
@@ -79,6 +84,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
           onFavorite={(item) => void actions.favorite(item)}
           onDownload={(item, index) => void actions.download(item, index)}
           onRedo={openRedo}
+          onPostKit={(item) => setPostKitId(item.id)}
           onZipProduct={(productId, name) => void actions.downloadZip(`?productId=${productId}${batch.formats.length > 1 && activeFormat ? `&format=${activeFormat}` : ''}`, `${name}.zip`)}
         />
       ) : (
@@ -95,6 +101,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
               onFavorite={() => void actions.favorite(item)}
               onDownload={() => void actions.download(item, index)}
               onRedo={() => openRedo(item)}
+              onPostKit={() => setPostKitId(item.id)}
             />
           ))}
         </div>
@@ -106,7 +113,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
         </div>
       )}
       {open?.url && isShop && (
-        <CompareLightbox originalUrl={openProduct?.frontUrl ?? null} generatedUrl={open.url} title={openProduct?.name ?? batch.name} onClose={() => setOpenIndex(null)} onDownload={() => void actions.download(open, openIndex ?? 0)} downloading={actions.savingPhoto} panel={<PostKitPanel key={open.id} item={open} product="shop" allowed={postKitAllowed} onCopied={(what) => toast(`${what} copied`)} />} />
+        <CompareLightbox originalUrl={openProduct?.frontUrl ?? null} generatedUrl={open.url} title={openProduct?.name ?? batch.name} onClose={() => setOpenIndex(null)} onDownload={() => void actions.download(open, openIndex ?? 0)} downloading={actions.savingPhoto} panel={<PostKitPanel key={open.id} item={open} product="shop" allowed={postKitAllowed} onGenerated={(kit) => patchItem(open.id, { postKit: kit })} onCopied={(what) => toast(`${what} copied`)} />} />
       )}
       {open?.url && !isShop && (
         <ImageLightbox
@@ -119,10 +126,21 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
             <>
               <AppButton size="sm" variant="secondary" className="pointer-events-auto absolute left-4 top-4" iconLeft={<Download className="h-3.5 w-3.5" />} loading={actions.savingPhoto} onClick={() => void actions.download(open, openIndex ?? 0)}>Download</AppButton>
               <div className="pointer-events-auto absolute bottom-4 left-1/2 w-[min(92vw,440px)] -translate-x-1/2">
-                <PostKitPanel key={open.id} item={open} product="brand" allowed={postKitAllowed} onCopied={(what) => toast(`${what} copied`)} />
+                <PostKitPanel key={open.id} item={open} product="brand" allowed={postKitAllowed} onGenerated={(kit) => patchItem(open.id, { postKit: kit })} onCopied={(what) => toast(`${what} copied`)} />
               </div>
             </>
           )}
+        />
+      )}
+      {postKitItem && (
+        <PostKitDialog
+          item={postKitItem}
+          title={batch.products.find((p) => p.id === postKitItem.productId)?.name ?? batch.name}
+          product={isShop ? 'shop' : 'brand'}
+          allowed={postKitAllowed}
+          onClose={() => setPostKitId(null)}
+          onGenerated={(kit) => patchItem(postKitItem.id, { postKit: kit })}
+          onCopied={(what) => toast(`${what} copied`)}
         />
       )}
       {redoTarget && product && (
