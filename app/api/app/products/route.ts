@@ -1,12 +1,13 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { prisma } from '../../../../src/lib/db';
 import { authedRoute } from '../../../../src/server/api';
 import { HttpError } from '../../../../src/server/http';
 import { createProduct, parseProductFields, toProductDto } from '../../../../src/server/products/products';
+import { downloadPendingImages } from '../../../../src/server/shopImport/service';
 import { readForm } from '../../../../src/server/storage/images';
 import { requireWorkspace } from '../../../../src/server/workspaces/workspaces';
 
-/** GET /api/app/products?search=&category=&status=unused|used&cursor= (40 per page) */
+/** GET /api/app/products?search=&category=&status=unused|used|pending&sort=newest|best_selling&cursor= (40 per page) */
 export const GET = authedRoute(async (req, session) => {
   const ws = await requireWorkspace(session.userId, 'shop');
   const params = new URL(req.url).searchParams;
@@ -22,12 +23,13 @@ export const GET = authedRoute(async (req, session) => {
       ...(category ? { category } : {}),
       ...(status === 'unused' ? { lastUsedAt: null } : status === 'used' ? { lastUsedAt: { not: null } } : {}),
     },
-    include: { _count: { select: { items: true } } },
-    orderBy: { createdAt: 'desc' },
+    include: { _count: { select: { items: true } }, snapshots: { orderBy: { capturedAt: 'asc' }, take: 1, select: { soldCount: true } } },
+    orderBy: params.get('sort') === 'best_selling' ? [{ soldCount: { sort: 'desc', nulls: 'last' } }, { id: 'asc' }] : [{ createdAt: 'desc' }, { id: 'asc' }],
     take: 41,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });
   const page = products.slice(0, 40);
+  if (page.some((p) => !p.frontR2Key && p.frontImageUrl)) after(() => downloadPendingImages(ws.id, 24).then(() => undefined));
   return NextResponse.json({ products: await Promise.all(page.map(toProductDto)), nextCursor: products.length > 40 ? page[page.length - 1]?.id ?? null : null });
 });
 

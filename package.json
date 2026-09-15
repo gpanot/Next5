@@ -32,6 +32,7 @@
     "prisma": "^6.19.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "read-excel-file": "^9.3.10",
     "resend": "^6.25.0",
     "sharp": "^0.35.4",
     "tinify": "^1.8.3"

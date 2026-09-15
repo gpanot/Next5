@@ -71,6 +71,8 @@ const expandShop = async (workspace: Workspace, draft: InternalShopDraft, now: D
   const set = await loadSet(workspace.id, draft.setId);
   const products = await prisma.product.findMany({ where: { id: { in: draft.productIds }, workspaceId: workspace.id, archivedAt: null } });
   if (products.length !== draft.productIds.length) throw new HttpError(404, 'product_not_found', 'Some products no longer exist.');
+  const preparing = products.filter((p) => !p.frontR2Key || p.frontR2Key === 'pending');
+  if (preparing.length) throw new HttpError(409, 'product_photo_pending', `We are still getting the photo for ${preparing.length === 1 ? `“${preparing[0]!.name}”` : `${preparing.length} products`}. Try again in a minute.`);
   const identity = await resolveIdentity(workspace, set);
   const template = set.template.config as unknown as SetTemplateConfig;
 

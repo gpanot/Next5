@@ -9,7 +9,7 @@ import { track as vercelTrack } from '@vercel/analytics';
 export type AnalyticsEvent =
   | 'landing_viewed' | 'cta_clicked' | 'onboarding_step_completed' | 'trial_generated' | 'checkout_opened'
   | 'plan_requested' | 'payment_paid' | 'batch_created' | 'batch_completed' | 'item_redo' | 'item_downloaded'
-  | 'zip_downloaded' | 'topup_purchased' | 'renewal_reminder_clicked' | 'post_kit_created' | 'promise_claimed';
+  | 'zip_downloaded' | 'topup_purchased' | 'renewal_reminder_clicked' | 'post_kit_created' | 'promise_claimed' | 'store_connected';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 

@@ -74,6 +74,15 @@
 
 ## P15 — TikTok Shop import V1 (4–6 days, spike first)
 
+> **Done 2026-09-16.**
+> - **Data:** migration `20260916090000_shop_import.sql` (`shop_connections`, product import columns, `product_snapshots`).
+> - **Server:** `src/server/shopImport/{normalize,exportFile,apify,service,dto}.ts`.
+> - **Routes:** `GET/POST /api/app/shop/connection` (GET is the poll fallback), `POST …/connection/sync`, `POST /api/app/shop/import-file` (xlsx/csv via `read-excel-file`), `POST /api/app/shop/products/details`, `POST /api/app/shop/products/:id/reference`, `POST /api/webhooks/apify?secret=`.
+> - **Background:** reference photos download after import (`downloadPendingImages`). Weekly re-sync runs from the billing cron for paid plans. Generation refuses products whose photo is still downloading.
+> - **Store page:** `/app/shop/store` has connect by link (with the ownership checkbox) or export upload, a catalog grid (price, sold, "Needs photos", "+N since import") and a reference-image picker that loads all 9 images and variants. Selecting products leads to Create drop.
+> - **Budget guard:** `NEXT5_SHOP_IMPORT_MAX` (default **10**) caps every scraper run while testing; raise it to 500 for launch. Without `APIFY_TOKEN` (local/tests) it replays the spike fixtures. The sold count always uses the store's `salesVolume`, so before/after deltas stay honest.
+> - **Verified with a real import:** flux hoodies, ready in 27 s, 9 images per product. Apify spend so far is $0.61.
+
 **15.0 Spike (½–1 day, before building):**
 - Try 2–3 Apify TikTok Shop catalog actors on 3 real US apparel shops. Check coverage (products, variants, all images, price, sold count, category), speed, cost per 500 products and failure rate. Pick one and record the input/output shape.
 - Get a real **Seller Center product export** file and record its columns.

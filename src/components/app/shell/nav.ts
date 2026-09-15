@@ -1,4 +1,4 @@
-import { CreditCard, Grid3x3, Home, Images, Layers, Package, Plus, Settings, type LucideIcon } from 'lucide-react';
+import { CreditCard, Grid3x3, Home, Images, Layers, Package, Plus, Settings, Store, type LucideIcon } from 'lucide-react';
 import { studioHref } from '../../../lib/studioPaths';
 import type { ProductLineDto } from '../../../types/business/me';
 
@@ -10,6 +10,7 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
   return studio === 'shop'
     ? [
         { href: s(''), label: 'Home', icon: Home },
+        { href: s('/store'), label: 'Store', icon: Store },
         { href: s('/products'), label: 'Products', icon: Package },
         { href: s('/create'), label: 'Create drop', icon: Plus, primary: true },
         { href: s('/library'), label: 'Library', icon: Images },
@@ -27,14 +28,14 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
       ];
 };
 
-/** Bottom bar on phones: Home · Library · Create · Products/Sets · More. */
+/** Bottom bar on phones: Home · Library · Create · Store/Sets · More. */
 export const mobileTabsFor = (studio: ProductLineDto): NavItem[] => {
   const s = (path: string) => studioHref(studio, path);
   return [
     { href: s(''), label: 'Home', icon: Home },
     { href: s('/library'), label: 'Library', icon: Images },
     { href: s('/create'), label: 'Create', icon: Plus, primary: true },
-    studio === 'shop' ? { href: s('/products'), label: 'Products', icon: Package } : { href: s('/sets'), label: 'Sets', icon: Layers },
+    studio === 'shop' ? { href: s('/store'), label: 'Store', icon: Store } : { href: s('/sets'), label: 'Sets', icon: Layers },
     { href: '/app/settings', label: 'More', icon: Grid3x3 },
   ];
 };

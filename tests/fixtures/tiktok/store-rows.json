@@ -1,0 +1,433 @@
+[
+ {
+  "type": "store",
+  "sellerId": "8652615273314554588",
+  "globalSellerId": "7494220147003983580",
+  "shopName": "flux hoodies",
+  "creatorName": "flux hoodies",
+  "shopUrl": "https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588",
+  "shopLogo": "https://p16-oec-general.ttcdn-us.com/tos-alisg-i-aphluv4xwc-sg/92fcacd29d3e4ead9897ef5bd7bd19de~tplv-fhlh96nyum-resize-webp:300:300.webp?dr=12185&t=555f072d&ps=933b5bde&shp=905da467&shcp=a6e80448&idc=useast5&from=2422056039",
+  "backgroundImage": "https://p16-oec-general.ttcdn-us.com/tos-alisg-i-aphluv4xwc-sg/92fcacd29d3e4ead9897ef5bd7bd19de~tplv-fhlh96nyum-resize-webp:300:300.webp?dr=12185&t=555f072d&ps=933b5bde&shp=905da467&shcp=a6e80448&idc=useast5&from=2422056039",
+  "region": "US",
+  "shopRating": "4.3",
+  "worstRating": "0",
+  "bestRating": "5",
+  "soldCount": 16872,
+  "formatSoldCount": "16.9K",
+  "globalSoldCount": "29970",
+  "reviewCount": 1079,
+  "onSaleProductCount": 193,
+  "displayOnSaleProductCount": "193",
+  "followersCount": "654",
+  "formatFollowersCount": "600+",
+  "videoCount": "512",
+  "enableFollow": true,
+  "storeSubScores": {
+   "Product Quality": {
+    "score": 0,
+    "percentage": "0",
+    "highlight": false
+   },
+   "Logistics Speed": {
+    "score": 0,
+    "percentage": "0",
+    "highlight": false
+   },
+   "Service Quality": {
+    "score": 0.7967,
+    "percentage": "80",
+    "highlight": false
+   }
+  },
+  "identityLabel": null,
+  "identityLabelType": null,
+  "description": "Shop flux hoodies on TikTok Shop! 16.9K sold, 600+ followers. 80+% positive feedback. 0+% Ships in 48h, 0+% replies in 24h. Join the trend!",
+  "query": "https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588",
+  "productCount": 40,
+  "estimatedGmv": {
+   "totalEstimatedGmv": 274600.15,
+   "totalSoldCount": 10677,
+   "productCount": 40,
+   "products": [
+    {
+     "productId": "1732187387400393436",
+     "title": "Women's Casual Sportswear Set, Solid Sports Sets, Short Slee",
+     "price": 33.67,
+     "soldCount": 2225,
+     "estimatedGmv": 74915.75
+    },
+    {
+     "productId": "1732285182777266908",
+     "title": "Women's Spring Summer Casual Set Two-Piece Slim Fit Zipper T",
+     "price": 35.31,
+     "soldCount": 887,
+     "estimatedGmv": 31319.97
+    },
+    {
+     "productId": "1732457399492907740",
+     "title": "Two-Pack Women's Ruffle Batwing Sleeve V-Neck Lightweight T-",
+     "price": 30.5,
+     "soldCount": 891,
+     "estimatedGmv": 27175.5
+    },
+    {
+     "productId": "1732553846251295452",
+     "title": "Women's Two-Piece Set, Fall Winter Casual, Asymmetrical Swea",
+     "price": 28.97,
+     "soldCount": 707,
+     "estimatedGmv": 20481.79
+    },
+    {
+     "productId": "1732457431898952412",
+     "title": "Three-Piece Women's Ruffle Batwing Sleeve V-Neck T-Shirt Set",
+     "price": 42.68,
+     "soldCount": 269,
+     "estimatedGmv": 11480.92
+    },
+    {
+     "productId": "1732385610629944028",
+     "title": "Women's Ruched Henley Neck Half Button Short T-Shirt, Y2K Lo",
+     "price": 13.03,
+     "soldCount": 682,
+     "estimatedGmv": 8886.46
+    },
+    {
+     "productId": "1732441137667609308",
+     "title": "Women's 5-Pack Basic T-Shirt Set, Spring Summer Slim Fit Sho",
+     "price": 31.43,
+     "soldCount": 246,
+     "estimatedGmv": 7731.78
+    },
+    {
+     "productId": "1732396510779052764",
+     "title": "3-Pack Women's T-Shirts, Spring Summer Basic Casual Stylish ",
+     "price": 22.98,
+     "soldCount": 284,
+     "estimatedGmv": 6526.32
+    },
+    {
+     "productId": "1732476141675385564",
+     "title": "Women's 3-Pack Ruched Waist Pleated Cropped T-Shirt, Y2K Tre",
+     "price": 21.02,
+     "soldCount": 305,
+     "estimatedGmv": 6411.1
+    },
+    {
+     "productId": "1732313529462330076",
+     "title": "Women's Casual Sportswear Set, Pure Color Round Neck Short S",
+     "price": 33.51,
+     "soldCount": 164,
+     "estimatedGmv": 5495.64
+    },
+    {
+     "productId": "1732488831966876380",
+     "title": "3-Pack Women's Ruched-Waist Cropped T-Shirts, Deep V-Neck Sh",
+     "price": 27.19,
+     "soldCount": 197,
+     "estimatedGmv": 5356.43
+    },
+    {
+     "productId": "1732415616862753500",
+     "title": "3-Pack Women's Deep V-Neck Ruched Waist Cropped T-Shirts, Sh",
+     "price": 24.42,
+     "soldCount": 213,
+     "estimatedGmv": 5201.46
+    },
+    {
+     "productId": "1732499344916714204",
+     "title": "Two-Pack Women's Basic Solid Color Slim T-Shirts, Casual Sho",
+     "price": 19.49,
+     "soldCount": 256,
+     "estimatedGmv": 4989.44
+    },
+    {
+     "productId": "1732408544419877596",
+     "title": "Two-Pack Women's Solid Color T-Shirts, Casual Short Sleeve S",
+     "price": 17.22,
+     "soldCount": 278,
+     "estimatedGmv": 4787.16
+    },
+    {
+     "productId": "1732515123666195164",
+     "title": "Women's Batwing Sleeve Slim Fit T-Shirt, Casual Summer Top, ",
+     "price": 32.17,
+     "soldCount": 136,
+     "estimatedGmv": 4375.12
+    },
+    {
+     "productId": "1732406266651972316",
+     "title": "Three-piece set of women's solid color off-shoulder cropped ",
+     "price": 25.75,
+     "soldCount": 137,
+     "estimatedGmv": 3527.75
+    },
+    {
+     "productId": "1732187357462237916",
+     "title": "Women's Casual Sportswear Set, Loose Sweatsuit Workout Sets,",
+     "price": 25.18,
+     "soldCount": 140,
+     "estimatedGmv": 3525.2
+    },
+    {
+     "productId": "1732482423892710108",
+     "title": "Three-Pack Women's Plain Asymmetrical Neckline Short Sleeve ",
+     "price": 27.48,
+     "soldCount": 128,
+     "estimatedGmv": 3517.44
+    },
+    {
+     "productId": "1732441141449691868",
+     "title": "5-Pack Women's T-Shirts Set, Matching Shirts, Spring Summer ",
+     "price": 39.3,
+     "soldCount": 80,
+     "estimatedGmv": 3144
+    },
+    {
+     "productId": "1732438221324718812",
+     "title": "2-Pack/1-Pack Women's Ruffle Batwing Sleeve V-Neck T-Shirt, ",
+     "price": 8.71,
+     "soldCount": 322,
+     "estimatedGmv": 2804.62
+    },
+    {
+     "productId": "1732405552762360540",
+     "title": "Women's Two-Piece Set: Basic Crew Neck T-Shirt Top and Casua",
+     "price": 29.56,
+     "soldCount": 88,
+     "estimatedGmv": 2601.28
+    },
+    {
+     "productId": "1732484190955279068",
+     "title": "Women's Batwing Sleeve Slim Fit T-Shirt, Casual Summer Top, ",
+     "price": 7.52,
+     "soldCount": 330,
+     "estimatedGmv": 2481.6
+    },
+    {
+     "productId": "1732468345707467484",
+     "title": "Women's Leopard Print & Polka Dot Asymmetrical One Shoulder ",
+     "price": 10.82,
+     "soldCount": 195,
+     "estimatedGmv": 2109.9
+    },
+    {
+     "productId": "1732394346740028124",
+     "title": "Women's Two-Piece Set, Casual Everyday Summer, Basic Solid P",
+     "price": 32.85,
+     "soldCount": 64,
+     "estimatedGmv": 2102.4
+    },
+    {
+     "productId": "1729479905543034588",
+     "title": "Women's Casual Active Sportswear Set, Halter Top and Long Pa",
+     "price": 23.03,
+     "soldCount": 88,
+     "estimatedGmv": 2026.64
+    },
+    {
+     "productId": "1732322485653770972",
+     "title": "Women's Fashion Casual Everyday Two-Piece Set, Tomboy Femme ",
+     "price": 15.11,
+     "soldCount": 134,
+     "estimatedGmv": 2024.74
+    },
+    {
+     "productId": "1732469765683843804",
+     "title": "Women's Pleated Waist Cinch Short T-Shirt, Y2K Trendy Elasti",
+     "price": 8.13,
+     "soldCount": 246,
+     "estimatedGmv": 1999.98
+    },
+    {
+     "productId": "1732430126559433436",
+     "title": "3-Pack Women's T-Shirts, Basic Tee Shirts, Spring Summer Sli",
+     "price": 23.75,
+     "soldCount": 83,
+     "estimatedGmv": 1971.25
+    },
+    {
+     "productId": "1732419856470414044",
+     "title": "Women's Two-Piece Casual Set, Summer Matching Set, Outfit, S",
+     "price": 22.33,
+     "soldCount": 80,
+     "estimatedGmv": 1786.4
+    },
+    {
+     "productId": "1732447486047392476",
+     "title": "Women's Casual Beach Style V Neck Batwing Sleeve Dress, Summ",
+     "price": 12.48,
+     "soldCount": 133,
+     "estimatedGmv": 1659.84
+    },
+    {
+     "productId": "1732380266628879068",
+     "title": "Women's Slim Fit Waist-Tucking Round Neck T-Shirt, Cherry He",
+     "price": 11.95,
+     "soldCount": 138,
+     "estimatedGmv": 1649.1
+    },
+    {
+     "productId": "1732515129365140188",
+     "title": "Women's Ruffle Batwing Sleeve Slim Fit T-Shirt, Basic Casual",
+     "price": 22.18,
+     "soldCount": 72,
+     "estimatedGmv": 1596.96
+    },
+    {
+     "productId": "1732446379166110428",
+     "title": "Women's 3-Pack Pleated Waist Short Round Neck T-Shirt, Y2K T",
+     "price": 25.32,
+     "soldCount": 57,
+     "estimatedGmv": 1443.24
+    },
+    {
+     "productId": "1732543194758746844",
+     "title": "Women's Two-Piece Set, Spring Fall Fashion Ruffle Batwing V-",
+     "price": 24.27,
+     "soldCount": 53,
+     "estimatedGmv": 1286.31
+    },
+    {
+     "productId": "1732350121432552156",
+     "title": "Women's Two-Piece Streetwear Set, Loose, Casual, Everyday, S",
+     "price": 24.74,
+     "soldCount": 51,
+     "estimatedGmv": 1261.74
+    },
+    {
+     "productId": "1732106971175621340",
+     "title": "Elegant Women's Soft Faux Fur Collar Zipper Collared Jacket ",
+     "price": 21.4,
+     "soldCount": 54,
+     "estimatedGmv": 1155.6
+    },
+    {
+     "productId": "1732439770356749020",
+     "title": "Women's 3-Pack Pleated Waist Henry Neck Button Front Design ",
+     "price": 19.69,
+     "soldCount": 54,
+     "estimatedGmv": 1063.26
+    },
+    {
+     "productId": "1732425024867308252",
+     "title": "Women's 2-Piece Set: Ruched Waist Cropped T-Shirts \u2014 Stylish",
+     "price": 17.32,
+     "soldCount": 61,
+     "estimatedGmv": 1056.52
+    },
+    {
+     "productId": "1732428561115091676",
+     "title": "Women's Polka Dot Print Off-Shoulder Slim Fit Short Tee, Top",
+     "price": 10.9,
+     "soldCount": 85,
+     "estimatedGmv": 926.5
+    },
+    {
+     "productId": "1732052947142152924",
+     "title": "Women's Sportswear Casual Slim Fit Polo Neck Long Sleeve Top",
+     "price": 11.61,
+     "soldCount": 64,
+     "estimatedGmv": 743.04
+    }
+   ]
+  },
+  "storefront": "us",
+  "currency": "USD"
+ },
+ {
+  "type": "store_product",
+  "productId": "1732187387400393436",
+  "title": "Women's Casual Sportswear Set, Solid Sports Sets, Short Sleeves Set, Pure Color Round Neck Short Sleeve T-Shirt, Split Hem Top, Striped Long Pants, Spring Summer Two-Piece, Athleisure Outfits",
+  "productUrl": "https://shop.tiktok.com/us/pdp/womens-casual-athleisure-set-fitted-top-striped-pants/1732187387400393436",
+  "imageUrls": [
+   "https://p16-oec-general.ttcdn-us.com/tos-maliva-i-o3syd03w52-us/90270e3e1b7548528ae0eec6b1fd15fa~tplv-fhlh96nyum-crop-webp:1350:1800.webp?dr=12190&t=555f072d&ps=933b5bde&shp=8dbd94bf&shcp=a6e80448&idc=useast5&from=2378011839",
+   "https://p19-oec-general.ttcdn-us.com/tos-maliva-i-o3syd03w52-us/90270e3e1b7548528ae0eec6b1fd15fa~tplv-fhlh96nyum-crop-webp:1350:1800.webp?dr=12190&t=555f072d&ps=933b5bde&shp=8dbd94bf&shcp=a6e80448&idc=useast5&from=2378011839"
+  ],
+  "currentPrice": "33.67",
+  "originalPrice": "35.89",
+  "discountPercent": "6%",
+  "salesVolume": 2225,
+  "rating": 4.7,
+  "reviewCount": "1179",
+  "sellerName": "flux hoodies",
+  "tags": [],
+  "query": "https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588",
+  "storefront": "us",
+  "currency": "USD",
+  "sellerId": "8652615273314554588",
+  "shopName": "flux hoodies",
+  "shopUrl": "https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588"
+ },
+ {
+  "type": "store_product",
+  "productId": "1732457399492907740",
+  "title": "Two-Pack Women's Ruffle Batwing Sleeve V-Neck Lightweight T-Shirt, Slim Fit Summer Top, Casual Daily Wear, Elastic Waist, Multiple Colors Available, Womenswear",
+  "productUrl": "https://shop.tiktok.com/us/pdp/two-pack-womens-ruffle-batwing-sleeve-v-neck-t-shirt-slim-fit/1732457399492907740",
+  "imageUrls": [
+   "https://p16-oec-general.ttcdn-us.com/tos-alisg-i-aphluv4xwc-sg/19914f2568ff407b993a87c716b9fbd5~tplv-fhlh96nyum-crop-webp:1350:1800.webp?dr=12190&t=555f072d&ps=933b5bde&shp=8dbd94bf&shcp=a6e80448&idc=useast5&from=2378011839",
+   "https://p19-oec-general.ttcdn-us.com/tos-alisg-i-aphluv4xwc-sg/19914f2568ff407b993a87c716b9fbd5~tplv-fhlh96nyum-crop-webp:1350:1800.webp?dr=12190&t=555f072d&ps=933b5bde&shp=8dbd94bf&shcp=a6e80448&idc=useast5&from=2378011839"
+  ],
+  "currentPrice": "30.5",
+  "originalPrice": null,
+  "discountPercent": null,
+  "salesVolume": 891,
+  "rating": 4,
+  "reviewCount": "76",
+  "sellerName": "flux hoodies",
+  "tags": [],
+  "query": "https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588",
+  "storefront": "us",
+  "currency": "USD",
+  "sellerId": "8652615273314554588",
+  "shopName": "flux hoodies",
+  "shopUrl": "https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588"
+ },
+ {
+  "type": "store_product",
+  "productId": "1732285182777266908",
+  "title": "Women's Spring Summer Casual Set Two-Piece Slim Fit Zipper Top & Long Pants, Perfect for Daily Wear, Outdoor, Formal & Casual Suits, Clothes",
+  "productUrl": "https://shop.tiktok.com/us/pdp/womens-spring-summer-casual-set-slim-fit-zipper-top-pants/1732285182777266908",
+  "imageUrls": [
+   "https://p16-oec-general.ttcdn-us.com/tos-maliva-i-o3syd03w52-us/a2113af28f784776994ce06c42c26090~tplv-fhlh96nyum-crop-webp:1350:1800.webp?dr=12190&t=555f072d&ps=933b5bde&shp=8dbd94bf&shcp=a6e80448&idc=useast5&from=2378011839",
+   "https://p19-oec-general.ttcdn-us.com/tos-maliva-i-o3syd03w52-us/a2113af28f784776994ce06c42c26090~tplv-fhlh96nyum-crop-webp:1350:1800.webp?dr=12190&t=555f072d&ps=933b5bde&shp=8dbd94bf&shcp=a6e80448&idc=useast5&from=2378011839"
+  ],
+  "currentPrice": "35.31",
+  "originalPrice": "38.19",
+  "discountPercent": "8%",
+  "salesVolume": 887,
+  "rating": 4.5,
+  "reviewCount": "96",
+  "sellerName": "flux hoodies",
+  "tags": [],
+  "query": "https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588",
+  "storefront": "us",
+  "currency": "USD",
+  "sellerId": "8652615273314554588",
+  "shopName": "flux hoodies",
+  "shopUrl": "https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588"
+ },
+ {
+  "type": "store_product",
+  "productId": "1732553846251295452",
+  "title": "Women's Two-Piece Set, Fall Winter Casual, Asymmetrical Sweatshirt & Wide Leg Pants, Soft Knit Fabric, Multi-Color Options",
+  "productUrl": "https://shop.tiktok.com/us/pdp/womens-two-piece-soft-knit-set-fall-winter-casual-outfit/1732553846251295452",
+  "imageUrls": [
+   "https://p16-oec-general.ttcdn-us.com/tos-alisg-i-aphluv4xwc-sg/574523d6f5fe4db89ab416437b0c7f2d~tplv-fhlh96nyum-crop-webp:1350:1800.webp?dr=12190&t=555f072d&ps=933b5bde&shp=8dbd94bf&shcp=a6e80448&idc=useast5&from=2378011839",
+   "https://p19-oec-general.ttcdn-us.com/tos-alisg-i-aphluv4xwc-sg/574523d6f5fe4db89ab416437b0c7f2d~tplv-fhlh96nyum-crop-webp:1350:1800.webp?dr=12190&t=555f072d&ps=933b5bde&shp=8dbd94bf&shcp=a6e80448&idc=useast5&from=2378011839"
+  ],
+  "currentPrice": "28.97",
+  "originalPrice": null,
+  "discountPercent": null,
+  "salesVolume": 707,
+  "rating": 4.5,
+  "reviewCount": "12",
+  "sellerName": "flux hoodies",
+  "tags": [],
+  "query": "https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588",
+  "storefront": "us",
+  "currency": "USD",
+  "sellerId": "8652615273314554588",
+  "shopName": "flux hoodies",
+  "shopUrl": "https://shop.tiktok.com/us/store/flux-hoodies/8652615273314554588"
+ }
+]

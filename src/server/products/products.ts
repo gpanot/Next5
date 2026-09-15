@@ -45,12 +45,30 @@ export const createProduct = async (
   return prisma.product.update({ where: { id: product.id }, data: { frontR2Key: frontKey ?? '', backR2Key: backKey, detailR2Key: detailKey } });
 };
 
-export const toProductDto = async (product: Product & { _count?: { items: number } }): Promise<ProductDto> => ({
+type VariantJson = { color?: string | null }[];
+
+export const toProductDto = async (product: Product & { _count?: { items: number }; snapshots?: { soldCount: number | null }[] }): Promise<ProductDto> => {
+  const variants = Array.isArray(product.variants) ? (product.variants as VariantJson) : [];
+  const baseline = product.snapshots?.[0]?.soldCount;
+  return {
+  source: product.source,
+  externalUrl: product.externalUrl,
+  priceCents: product.priceCents,
+  currency: product.currency,
+  soldCount: product.soldCount,
+  soldSinceImport: baseline != null && product.soldCount != null ? Math.max(0, product.soldCount - baseline) : null,
+  imageUrls: product.imageUrls,
+  frontImageUrl: product.frontImageUrl,
+  photoPending: !product.frontR2Key || product.frontR2Key === 'pending',
+  variantCount: variants.length,
+  colors: [...new Set(variants.map((v) => v.color).filter((c): c is string => Boolean(c)))],
+  detailsFetched: Boolean(product.detailsFetchedAt),
   id: product.id, name: product.name, category: product.category, colorName: product.colorName, sku: product.sku, fit: product.fit, notes: product.notes,
-  frontUrl: product.frontR2Key ? await presignObject(product.frontR2Key) : null,
+  frontUrl: product.frontR2Key && product.frontR2Key !== 'pending' ? await presignObject(product.frontR2Key) : null,
   backUrl: product.backR2Key ? await presignObject(product.backR2Key) : null,
   detailUrl: product.detailR2Key ? await presignObject(product.detailR2Key) : null,
   timesUsed: product._count?.items ?? 0,
   lastUsedAt: product.lastUsedAt?.toISOString() ?? null,
   createdAt: product.createdAt.toISOString(),
-});
+  };
+};

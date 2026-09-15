@@ -14,4 +14,20 @@ export type ProductDto = {
   timesUsed: number;
   lastUsedAt: string | null;
   createdAt: string;
+  /** upload | tiktok_scrape | tiktok_export | tiktok_api */
+  source: string;
+  externalUrl: string | null;
+  priceCents: number | null;
+  currency: string | null;
+  soldCount: number | null;
+  /** Sold since the first import snapshot (null when there is no baseline yet). */
+  soldSinceImport: number | null;
+  /** Listing images (imported products); the reference is `frontImageUrl`. */
+  imageUrls: string[];
+  frontImageUrl: string | null;
+  /** Reference photo still downloading — can't generate yet. */
+  photoPending: boolean;
+  variantCount: number;
+  colors: string[];
+  detailsFetched: boolean;
 };

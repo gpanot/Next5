@@ -236,6 +236,7 @@ model Workspace {
   ledger        CreditLedger[]
   payments      Payment[]
   promiseClaims PromiseClaim[]
+  shopConnections ShopConnection[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
@@ -340,14 +341,34 @@ model Product {
   frontR2Key  String    @map("front_r2_key")
   backR2Key   String?   @map("back_r2_key")
   detailR2Key String?   @map("detail_r2_key")
+  /// upload | tiktok_scrape | tiktok_export | tiktok_api
+  source           String    @default("upload")
+  externalId       String?   @map("external_id")
+  externalUrl      String?   @map("external_url")
+  categoryPath     String?   @map("category_path")
+  description      String?
+  priceCents       Int?      @map("price_cents")
+  currency         String?
+  soldCount        Int?      @map("sold_count")
+  imageUrls        String[]  @default([]) @map("image_urls")
+  /// The listing image used as the product reference (downloaded to frontR2Key).
+  frontImageUrl    String?   @map("front_image_url")
+  /// [{ id, name, color, size, priceCents, stock, imageUrl }]
+  variants         Json?
+  specifications   Json?
+  detailsFetchedAt DateTime? @map("details_fetched_at")
+  importedAt       DateTime? @map("imported_at")
+  lastSyncedAt     DateTime? @map("last_synced_at")
   lastUsedAt  DateTime? @map("last_used_at")
   archivedAt  DateTime? @map("archived_at")
   createdAt   DateTime  @default(now()) @map("created_at")
 
   workspace Workspace   @relation(fields: [workspaceId], references: [id])
   items     BatchItem[]
+  snapshots ProductSnapshot[]
 
   @@index([workspaceId])
+  @@unique([workspaceId, source, externalId])
   @@map("products")
 }
 
@@ -563,4 +584,48 @@ model PromiseClaim {
   @@index([workspaceId])
   @@index([status, createdAt])
   @@map("promise_claims")
+}
+
+/// A seller's store connected to Shop Studio (V1: public scrape or Seller Center export; later the TikTok Shop API).
+model ShopConnection {
+  id              String    @id @default(cuid())
+  workspaceId     String    @map("workspace_id")
+  platform        String    @default("tiktok_shop")
+  /// scrape | export | api
+  source          String
+  shopUrl         String?   @map("shop_url")
+  externalShopId  String?   @map("external_shop_id")
+  shopName        String?   @map("shop_name")
+  shopLogoUrl     String?   @map("shop_logo_url")
+  /// pending | syncing | ready | failed
+  status          String    @default("pending")
+  runId           String?   @map("run_id")
+  productCount    Int       @default(0) @map("product_count")
+  totalSold       Int?      @map("total_sold")
+  lastSyncedAt    DateTime? @map("last_synced_at")
+  nextSyncAt      DateTime? @map("next_sync_at")
+  error           String?
+  ownerAttestedAt DateTime? @map("owner_attested_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, platform])
+  @@index([status, nextSyncAt])
+  @@map("shop_connections")
+}
+
+/// Sold count / price over time — the before/after baseline for imported products.
+model ProductSnapshot {
+  id         String   @id @default(cuid())
+  productId  String   @map("product_id")
+  soldCount  Int?     @map("sold_count")
+  priceCents Int?     @map("price_cents")
+  capturedAt DateTime @default(now()) @map("captured_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, capturedAt])
+  @@map("product_snapshots")
 }
