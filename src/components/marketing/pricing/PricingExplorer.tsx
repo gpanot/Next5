@@ -28,7 +28,7 @@ export const PricingExplorer = () => {
         <SegmentedControl options={PRODUCT_OPTIONS} value={audience} onChange={setAudience} />
         <TermToggle value={term} onChange={setTerm} />
       </div>
-      <div className="mx-auto grid w-full max-w-6xl gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className={`mx-auto grid w-full max-w-6xl gap-6 md:grid-cols-2 ${plansForProduct(product).length > 3 ? 'xl:grid-cols-4' : 'lg:grid-cols-3'}`}>
         {plansForProduct(product).map((plan) => <PlanCard key={plan.id} plan={plan} term={term} />)}
       </div>
       <div className="mx-auto w-full max-w-4xl">

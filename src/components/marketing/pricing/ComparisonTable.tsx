@@ -4,7 +4,10 @@ import { plansForProduct, type Plan, type ProductLineId } from '../../../config/
 type Row = { label: string; value: (plan: Plan) => string | boolean };
 
 const ROWS: readonly Row[] = [
-  { label: 'Photos every month', value: (p) => String(p.monthlyCredits) },
+  { label: 'Photos every month', value: (p) => (p.contactOnly ? 'Custom' : p.monthlyCredits.toLocaleString('en-US')) },
+  { label: 'Products imported from your store', value: (p) => (p.storeProducts ? String(p.storeProducts) : false) },
+  { label: 'Weekly drops + weekly store sync', value: (p) => p.drops },
+  { label: 'TikTok listing packs', value: (p) => p.product === 'shop' },
   { label: 'Sets / shop looks', value: (p) => String(p.maxSets) },
   { label: 'All formats (4:5, 9:16, 1:1, 3:4)', value: () => true },
   { label: 'Free redos (2 per photo)', value: () => true },
@@ -24,7 +27,8 @@ const Cell = ({ value }: { value: string | boolean }) => {
 
 export const ComparisonTable = ({ product }: { product: ProductLineId }) => {
   const plans = plansForProduct(product);
-  const rows = product === 'brand' ? ROWS.filter((r) => r.label !== 'All 6 Studio models') : ROWS;
+  const shopOnly = ['All 6 Studio models', 'Products imported from your store', 'Weekly drops + weekly store sync', 'TikTok listing packs'];
+  const rows = product === 'brand' ? ROWS.filter((r) => !shopOnly.includes(r.label)) : ROWS;
   return (
     <div className="overflow-x-auto rounded-2xl border border-app-line bg-app-panel">
       <table className="w-full min-w-[480px] text-[14px] text-app-ink">

@@ -3,6 +3,7 @@
 
 import { Prisma, type ShopConnection, type Workspace } from '@prisma/client';
 import sharp from 'sharp';
+import { PLANS, isPlanId } from '../../config/plans';
 import { prisma } from '../../lib/db';
 import { getActivePlan } from '../generation/createBatch';
 import { HttpError } from '../http';
@@ -21,8 +22,9 @@ export const importMax = (): number => {
   return Number.isFinite(n) && n > 0 ? n : 10;
 };
 
-/** Products imported per store: Growth, Scale and Agency plans get 500; no plan or Starter get 50 — never above importMax(). */
-export const importCapFor = (planId: string | null | undefined): number => Math.min(planId && /_(pro|scale|agency)$/.test(planId) ? 500 : 50, importMax());
+/** Products imported per store: the plan's allowance (no plan: 50) — never above importMax(). */
+export const importCapFor = (planId: string | null | undefined): number =>
+  Math.min(planId && isPlanId(planId) && PLANS[planId].storeProducts > 0 ? PLANS[planId].storeProducts : 50, importMax());
 
 const webhookUrl = (): string | null => {
   const app = process.env.NEXT_PUBLIC_APP_URL ?? '';
@@ -200,13 +202,13 @@ export const fetchDetails = async (ws: Workspace, productIds: string[], now = ne
   return updated;
 };
 
-/** Daily cron: re-sync scrape connections that are due (paid plans only; weekly). */
+/** Daily cron: re-sync scrape connections that are due (weekly, on plans with drops: Growth, Scale, Agency). */
 export const syncDueConnections = async (now = new Date(), limit = 20): Promise<number> => {
   const due = await prisma.shopConnection.findMany({ where: { source: 'scrape', status: { in: ['ready', 'failed'] }, nextSyncAt: { lte: now } }, take: limit });
   let started = 0;
   for (const c of due) {
     const plan = await getActivePlan(c.workspaceId, now);
-    if (!plan) {
+    if (!plan?.drops) {
       await prisma.shopConnection.update({ where: { id: c.id }, data: { nextSyncAt: new Date(now.getTime() + SYNC_EVERY_MS) } });
       continue;
     }

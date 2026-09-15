@@ -80,3 +80,10 @@ export const restockNudgeEmail = (newProducts: number): EmailContent => ({
   body: [`You added ${newProducts} product${newProducts === 1 ? '' : 's'} this week. Create on-model photos for them in one batch.`],
   cta: { label: 'Create photos', url: appUrl('/app/create') },
 });
+
+export const dropReadyEmail = (count: number, names: string[], createQuery: string): EmailContent => ({
+  subject: `Your drop is ready: ${count} product${count === 1 ? '' : 's'} to photograph`,
+  heading: `${count} product${count === 1 ? '' : 's'} picked for this week`,
+  body: [`We picked the products that need photos most: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` and ${names.length - 3} more` : ''}.`, 'Check the list and create the photos in one click. Nothing is made until you say so.'],
+  cta: { label: 'Review my drop', url: appUrl(`/app/create?${createQuery}`) },
+});

@@ -80,7 +80,7 @@ describe('issueDueGrants', () => {
   it('plan credits from a past month are no longer spendable', async () => {
     const ws = await createTestWorkspace();
     await buyAndActivate(ws.id, 'shop_starter', 1, at('2026-09-14T00:00:00Z'));
-    expect((await getBalance(ws.id, at('2026-10-13T00:00:00Z'))).total).toBe(60);
+    expect((await getBalance(ws.id, at('2026-10-13T00:00:00Z'))).total).toBe(100);
     expect((await getBalance(ws.id, at('2026-10-14T00:00:00Z'))).total).toBe(0);
   });
 });

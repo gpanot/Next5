@@ -43,7 +43,7 @@ export const PlanStep = ({ product, advance }: StepProps) => {
       footer={<AppButton variant="ghost" loading={leaving} onClick={() => finish(false)}>Not now — go to my workspace</AppButton>}
     >
       <TermToggle value={term} onChange={setTerm} />
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {plansForProduct(product).filter(isSoloPlan).map((plan) => (
           <div key={plan.id} className={`flex flex-col gap-3 rounded-2xl border p-5 ${plan.id === urlPlan || (!isPlanId(urlPlan) && plan.mostPopular) ? 'border-app-accent ring-1 ring-app-accent' : 'border-app-line'}`}>
             <p className="text-[16px] font-semibold text-app-ink">{plan.name}</p>

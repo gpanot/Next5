@@ -95,11 +95,11 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
   shop: {
     platforms: ['tiktok', 'instagram', 'shopee', 'facebook'],
     hero: {
-      eyebrow: 'For TikTok Shop, Shopee and Instagram sellers',
-      title: 'Photos and listings that sell. Ready in minutes.',
-      sub: 'Take a photo of your product. Get it worn by a model in your shop’s style. We write the hook, description and hashtags too.',
-      cta: 'Try it free with one product',
-      note: 'No card needed. Your first 3 photos are free.',
+      eyebrow: 'For TikTok Shop sellers',
+      title: 'Your new drops, photographed every week.',
+      sub: 'Paste your TikTok Shop link. We bring in your products and make listing-ready photos worn by a model, in your shop’s style. The description and hashtags are written for you.',
+      cta: 'Paste my shop link: 3 free photos',
+      note: 'No card needed. We photograph your best seller for free.',
     },
     example: {
       image: `${IMG}/shop/slider/dress-after.png`,
@@ -113,10 +113,11 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
     },
     chatgpt: {
       title: 'Why not just use ChatGPT?',
-      sub: 'You can try. Here is what happens when you list 30 products a week.',
+      sub: 'You can make one photo. Here is what happens when you list 30 new products a week.',
       rows: [
         { topic: 'Your product', chatgpt: 'Often changes the color, print or length. Buyers return it.', next5: 'Keeps your real product. Checked side by side, with free redos.' },
-        { topic: 'Your time', chatgpt: 'One photo at a time. Write prompts, fix crops.', next5: 'A whole drop in one go, in every shop size.' },
+        { topic: 'Your time', chatgpt: 'Download each product photo, write prompts, fix crops.', next5: 'Your store comes in by link. A whole drop in one click.' },
+        { topic: 'Upload order', chatgpt: 'You sort and rename every file.', next5: 'Listing packs in TikTok’s upload order, with a video cover.' },
         { topic: 'Listings', chatgpt: 'You still write every description.', next5: 'Hook, product description and hashtags for every photo.' },
         { topic: 'Your brand', chatgpt: 'A new model and a new look every time.', next5: 'Same models and same shop look on every product.' },
         { topic: 'Will it sell?', chatgpt: 'No way to know before you post.', next5: 'A Scroll-Stop Score and a tip for every photo.' },
@@ -126,14 +127,15 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
     stack: {
       title: 'Everything you get with Growth',
       items: [
-        { title: '300 on-model photos, every month', body: 'Your products, worn, in every shop size.', value: '$690', basis: 'Half-day studio and model fee for about 30 products, Ho Chi Minh City, 2026 estimate' },
-        { title: 'Post Kit for every photo', body: 'Hook, product description and hashtags, ready to paste.', value: '$150', basis: 'Freelance listing writer, about 30 listings a month' },
+        { title: '400 on-model photos every month', body: 'Your products, worn, in every TikTok Shop size.', value: '$1,170', basis: '30 photos at soona’s $39 per photo (2026 price list); Growth includes 400' },
+        { title: 'Weekly drops and store sync', body: 'New stock found and picked for you every week.', value: '$200', basis: 'About 5 hours a month of a virtual assistant preparing listings, US freelance rates' },
+        { title: 'TikTok listing packs', body: 'Up to 9 photos in upload order, plus a video cover.', value: '$150', basis: 'Sorting, resizing and naming listing photos, about 3 hours a month' },
+        { title: 'Post Kit for every product', body: 'Hook, product description and hashtags, ready to paste.', value: '$150', basis: 'Freelance listing writer, about 30 listings a month' },
         { title: 'All 6 Studio models', body: 'Different ages and body types. No model to book.', value: '$150', basis: 'One half-day model booking' },
-        { title: 'Scroll-Stop Score and tips', body: 'Know which photo to use as your cover.', value: '$50', basis: 'One hour with an e-commerce coach' },
       ],
-      totalValue: '$1,040',
-      priceLine: 'Your price: $99 a month',
-      footnote: 'Values are typical prices for the same work in Ho Chi Minh City in 2026. Your prices may differ.',
+      totalValue: '$1,820',
+      priceLine: 'Your price: $199 a month',
+      footnote: 'Values are typical US prices for the same work in 2026 (soona’s public photo pricing and freelance rates). Your prices may differ.',
     },
     testimonials: [
       { id: 'shop-example-1', name: 'Ngoc', role: 'TikTok Shop seller, women’s clothing', city: 'Ho Chi Minh City', quote: 'I used to shoot in the mirror at night. Now my new stock is listed the same morning.', result: { label: 'Listings posted a week', before: '8', after: '30' }, verified: false },

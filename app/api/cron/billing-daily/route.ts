@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { runGenerationTick } from '../../../../src/server/generation/poll';
 import { runBillingDaily } from '../../../../src/server/lifecycle/billingDaily';
+import { runDueDrops } from '../../../../src/server/shop/drops';
 import { syncDueConnections } from '../../../../src/server/shopImport/service';
 
 export const maxDuration = 60;
@@ -13,6 +14,7 @@ export async function GET(req: Request): Promise<Response> {
   }
   const summary = await runBillingDaily();
   const storeSyncs = await syncDueConnections().catch(() => 0);
+  const drops = await runDueDrops().catch(() => 0);
   await runGenerationTick({ budgetMs: 20_000 });
-  return NextResponse.json({ ok: true, summary, storeSyncs });
+  return NextResponse.json({ ok: true, summary, storeSyncs, drops });
 }

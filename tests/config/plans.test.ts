@@ -16,8 +16,9 @@ describe('term pricing', () => {
     ['brand_starter', 6, 13_900], // $139.20
     ['brand_pro', 3, 26_700], // $267.30
     ['brand_pro', 6, 47_500], // $475.20
-    ['shop_agency', 3, 204_900], // $2,049.30
-    ['shop_pro', 6, 47_500],
+    ['shop_starter', 3, 13_200], // $132.30
+    ['shop_pro', 6, 95_500], // $955.20
+    ['shop_scale', 1, 39_900],
   ] as const)('%s × %i months = %i cents', (planId, term, cents) => {
     expect(getTermPriceUsdCents(planId, term)).toBe(cents);
   });
@@ -30,12 +31,12 @@ describe('term pricing', () => {
 
   it('computes price per photo', () => {
     expect(getPricePerPhotoUsdCents('brand_starter')).toBe(97);
-    expect(getPricePerPhotoUsdCents('shop_starter')).toBe(48);
+    expect(getPricePerPhotoUsdCents('shop_starter')).toBe(49);
   });
 
   it('lists two plans per product', () => {
     expect(plansForProduct('brand').map((p) => p.id)).toEqual(['brand_starter', 'brand_pro', 'brand_agency']);
-    expect(plansForProduct('shop').map((p) => p.id)).toEqual(['shop_starter', 'shop_pro', 'shop_agency']);
+    expect(plansForProduct('shop').map((p) => p.id)).toEqual(['shop_starter', 'shop_pro', 'shop_scale', 'shop_agency']);
   });
 });
 

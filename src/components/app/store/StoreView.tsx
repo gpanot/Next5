@@ -16,6 +16,7 @@ import { ToastContainer } from '../../ui/Toast';
 import { useAppRouter } from '../shell/AppLink';
 import { CatalogGrid } from './CatalogGrid';
 import { ConnectStoreCard } from './ConnectStoreCard';
+import { DropScheduleCard } from './DropScheduleCard';
 import { ReferencePickerSheet } from './ReferencePickerSheet';
 import { StoreHeader } from './StoreHeader';
 
@@ -70,6 +71,7 @@ export const StoreView = () => {
   return (
     <>
       <StoreHeader connection={shop.connection} onChange={shop.setConnection} onReconnect={() => setReconnect(true)} />
+      {status === 'ready' && <DropScheduleCard />}
       {status === 'syncing' && <SkeletonGrid count={8} cols={4} />}
       {status === 'failed' && shop.connection.productCount === 0 && <EmptyState illustration={<Store className="h-10 w-10" />} title="No products yet" body="Check the store link, or upload your product export from Seller Center." action={{ label: 'Try again', onClick: () => setReconnect(true) }} />}
       {status === 'ready' && (

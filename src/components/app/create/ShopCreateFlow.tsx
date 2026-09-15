@@ -37,9 +37,12 @@ export const ShopCreateFlow = () => {
 
   const [selected, setSelected] = useState<Set<string>>(new Set(preselected));
   const [onlyNew, setOnlyNew] = useState(preselected.length === 0);
-  const [setChoice, setSetChoice] = useState<string | null>(null);
-  const [packId, setPackId] = useState<PackId>('listing');
-  const [formats, setFormats] = useState<FormatId[]>(defaults.length ? defaults : ['square_1_1']);
+  // A drop link can carry its look, shots and sizes (?set=&pack=&formats=).
+  const urlPack = params.get('pack');
+  const urlFormats = (params.get('formats') ?? '').split(',').filter((f): f is FormatId => f in FORMATS);
+  const [setChoice, setSetChoice] = useState<string | null>(params.get('set'));
+  const [packId, setPackId] = useState<PackId>(urlPack === 'full' || urlPack === 'accessory' ? urlPack : 'listing');
+  const [formats, setFormats] = useState<FormatId[]>(urlFormats.length ? urlFormats : defaults.length ? defaults : ['square_1_1']);
   const [highRes, setHighRes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);

@@ -159,6 +159,11 @@
 
 ## P17 — Shop pricing and offer refresh (2 days)
 
+> **Done 2026-09-16.**
+> - **Plans:** Shop Starter $49 (100 photos, 50 store products) · **Growth $199** (400 photos, weekly drops, weekly store sync up to 500 products, Post Kit, all models, 2K) · Scale $399 (1,000 photos, 10 looks, priority) · Agency **Talk to us** (`contactOnly`: mailto CTA, hidden in billing, refused by checkout). New plan fields: `storeProducts`, `drops`, `contactOnly`. Import caps use `storeProducts`; weekly sync only runs on plans with drops.
+> - **Weekly drops:** `drop_schedules` + `src/server/shop/drops.ts`. You set the day, how often (weekly or every 2 weeks), products per drop, look, shots and sizes. The daily cron picks products that need photos (new stock since the last drop first, then best sellers, photo ready only) and emails "Review my drop". The link opens Create with products, look, shots and sizes filled in. It never spends credits by itself. A card on the Store page includes an upsell for plans without drops.
+> - **/shop:** new hero ("Your new drops, photographed every week", "Paste my shop link: 3 free photos"). Steps are shop link → look → weekly listing packs. The ChatGPT comparison adds an upload-order row, and there are new FAQs (store import, weekly drops, listing packs). The Growth value stack uses US anchors (soona $39/photo): $1,820 of value for $199. The pricing grid shows 4 columns on wide screens.
+
 | Plan | Price | Photos/mo | Store | Includes |
 |---|---|---|---|---|
 | Starter | $49 | 100 | 1 store · up to 50 products | Store import, listing packs, score |

@@ -53,7 +53,7 @@ export const HOME = {
     { q: 'Will the photos look like me?', a: 'Yes. We use your selfies for every photo. If one looks off, redo it for free. You get two free redos per photo.' },
     { q: 'Will my product look right?', a: 'We keep the color, print and length the same. You see your photo next to the new one. If it does not match, redo it for free.' },
     { q: 'Can’t I just use ChatGPT?', a: 'You can make one photo. But your face or your product changes each time, and you still write every post. Next5 keeps you and your product the same, makes 30 photos at once, and writes the hook, caption and hashtags.' },
-    { q: 'How much does it cost?', a: 'Plans start at $29 a month. Growth is $99 a month and includes the Post Kit. Your first 3 photos are free.' },
+    { q: 'How much does it cost?', a: 'Brand Studio starts at $29 a month. Shop Studio starts at $49 a month. Your first 3 photos are free.' },
     { q: 'How fast do I get my photos?', a: 'Most photos are ready in a few minutes. We email you when a big batch is done.' },
     { q: 'How do I pay?', a: 'You pay by bank transfer for 1, 3 or 6 months. Nothing renews on its own. We remind you before your plan ends.' },
     { q: 'Who owns the photos?', a: 'You do. Use them on social media, your website, your listings and your ads.' },
@@ -97,9 +97,9 @@ export const SHOP = {
     { id: 'bag', label: 'Bag', before: `${IMG}/shop/slider/bag-before.png`, after: `${IMG}/shop/slider/bag-after.png` },
   ],
   steps: [
-    { title: 'Send product photos', body: 'Take a clear photo from the front on a plain background. Add back and close-up photos for better results.', image: `${IMG}/shop/step-upload.png` },
-    { title: 'Pick a model and a look', body: 'Wear it yourself or pick one of our models. Pick a look that fits your shop.', image: `${IMG}/shop/looks/beige-wall.png` },
-    { title: 'Download every size', body: 'Square for listings, tall for TikTok, 4:5 for Instagram. Each file is named with your product code.', image: `${IMG}/shop/slider/dress-after.png` },
+    { title: 'Paste your shop link', body: 'We bring in your products, prices and sales in about a minute. No TikTok login needed.', image: `${IMG}/shop/step-upload.png` },
+    { title: 'Pick a look and a model', body: 'Wear it yourself or pick one of our models. Every product comes out in your shop’s style.', image: `${IMG}/shop/looks/beige-wall.png` },
+    { title: 'Get listing packs every week', body: 'Each week we pick your new stock. You get up to 9 photos per product in TikTok’s upload order, plus a video cover.', image: `${IMG}/shop/slider/dress-after.png` },
   ],
   marketplaces: [
     { label: 'Shop listing', format: 'square_1_1' as const, image: `${IMG}/shop/looks/clean-white.png` },
@@ -107,6 +107,9 @@ export const SHOP = {
     { label: 'Instagram post', format: 'portrait_4_5' as const, image: `${IMG}/shop/looks/cafe-lifestyle.png` },
   ],
   faq: [
+    { q: 'Can you bring in my TikTok Shop?', a: 'Yes. Paste your shop link and we bring in your products, prices and sales. You can also upload the product export from TikTok Seller Center. You must own or manage the shop.' },
+    { q: 'How do weekly drops work?', a: 'Pick a day. Each week we find your new products and best sellers that still need photos, and email you a drop. You check it and create the photos in one click. Nothing is made until you say so.' },
+    { q: 'What is a listing pack?', a: 'Up to 9 photos for one product, in the order TikTok Shop shows them, plus a 9:16 video cover and the description. Download it as one zip and upload.' },
     { q: 'Can’t I just use ChatGPT?', a: 'ChatGPT often changes the color, print or length of your product. That leads to returns. Next5 keeps your real product, uses the same models every time, and writes the hook, description and hashtags for every photo.' },
     { q: 'What is the Scroll-Stop Score?', a: 'Every photo gets a score from 0 to 100. AI checks six things that make shoppers stop, like a clear product, good light and how it looks as a small photo. You also get a tip, like which photo to use as your cover.' },
     { q: 'What is the Beat-your-feed promise?', a: 'Post 12 Next5 photos in 30 days. Then compare them with your last 12 posts in your own stats. If they did not do better, tell us in the app and your next month is free.' },

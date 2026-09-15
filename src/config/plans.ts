@@ -8,7 +8,7 @@
 
 export type ProductLineId = 'brand' | 'shop';
 
-export type PlanId = 'brand_starter' | 'brand_pro' | 'brand_agency' | 'shop_starter' | 'shop_pro' | 'shop_agency';
+export type PlanId = 'brand_starter' | 'brand_pro' | 'brand_agency' | 'shop_starter' | 'shop_pro' | 'shop_scale' | 'shop_agency';
 
 export type TermMonths = 1 | 3 | 6;
 
@@ -29,8 +29,17 @@ export type Plan = {
   allStudioModels: boolean;
   priority: boolean;
   mostPopular: boolean;
+  /** Shop: products imported from the store per sync. */
+  storeProducts: number;
+  /** Shop: weekly/biweekly drop schedule. */
+  drops: boolean;
+  /** Sold by conversation, not self-serve checkout (D13: Shop Agency is on request). */
+  contactOnly: boolean;
   features: readonly string[];
 };
+
+/** Where "Talk to us" plans send people. */
+export const SALES_EMAIL = 'hello@next5.studio';
 
 export const PLANS: Record<PlanId, Plan> = {
   brand_starter: {
@@ -47,6 +56,9 @@ export const PLANS: Record<PlanId, Plan> = {
     allStudioModels: false,
     priority: false,
     mostPopular: false,
+    storeProducts: 0,
+    drops: false,
+    contactOnly: false,
     features: ['30 photos every month', 'Scroll-Stop Score on every photo', '2 sets', 'Every monthly trend theme', 'All social sizes'],
   },
   brand_pro: {
@@ -63,6 +75,9 @@ export const PLANS: Record<PlanId, Plan> = {
     allStudioModels: false,
     priority: true,
     mostPopular: true,
+    storeProducts: 0,
+    drops: false,
+    contactOnly: false,
     features: [
       '120 photos every month',
       'Post Kit: a hook, caption and hashtags for every photo',
@@ -85,6 +100,9 @@ export const PLANS: Record<PlanId, Plan> = {
     allStudioModels: false,
     priority: true,
     mostPopular: false,
+    storeProducts: 0,
+    drops: false,
+    contactOnly: false,
     features: [
       '1,200 photos every month',
       'Everything in Growth',
@@ -98,37 +116,68 @@ export const PLANS: Record<PlanId, Plan> = {
     product: 'shop',
     name: 'Starter',
     tagline: 'Photos for your new stock.',
-    audience: 'To get started',
-    monthlyUsdCents: 2_900,
-    monthlyCredits: 60,
+    audience: 'For small shops',
+    monthlyUsdCents: 4_900,
+    monthlyCredits: 100,
     maxSets: 2,
     highRes: false,
     postKit: false,
     allStudioModels: false,
     priority: false,
     mostPopular: false,
-    features: ['60 photos every month', 'Scroll-Stop Score on every photo', '2 shop looks', 'You or 1 Studio model', 'Every shop size'],
+    storeProducts: 50,
+    drops: false,
+    contactOnly: false,
+    features: ['100 photos every month', 'Import up to 50 products from your store', 'TikTok listing packs', 'Scroll-Stop Score on every photo', 'You or 1 Studio model'],
   },
   shop_pro: {
     id: 'shop_pro',
     product: 'shop',
     name: 'Growth',
-    tagline: 'Photos and listings that sell.',
-    audience: 'For shops that want more sales',
-    monthlyUsdCents: 9_900,
-    monthlyCredits: 300,
+    tagline: 'Your new drops, photographed every week.',
+    audience: 'For shops with 100–500 products',
+    monthlyUsdCents: 19_900,
+    monthlyCredits: 400,
     maxSets: 5,
     highRes: true,
     postKit: true,
     allStudioModels: true,
     priority: true,
     mostPopular: true,
+    storeProducts: 500,
+    drops: true,
+    contactOnly: false,
     features: [
-      '300 photos every month',
-      'Post Kit: a hook, product description and hashtags for every photo',
-      'Scroll-Stop Score and tips on every photo',
-      'All 6 Studio models and 5 shop looks',
-      'Big 2K photos, made first',
+      '400 photos every month',
+      'Weekly drops: new products picked for you',
+      'Store sync every week, up to 500 products',
+      'Post Kit: hook, product description and hashtags',
+      'All 6 Studio models, 5 shop looks, big 2K photos',
+    ],
+  },
+  shop_scale: {
+    id: 'shop_scale',
+    product: 'shop',
+    name: 'Scale',
+    tagline: 'For big catalogs and fast restocks.',
+    audience: 'For shops with 500+ products',
+    monthlyUsdCents: 39_900,
+    monthlyCredits: 1_000,
+    maxSets: 10,
+    highRes: true,
+    postKit: true,
+    allStudioModels: true,
+    priority: true,
+    mostPopular: false,
+    storeProducts: 500,
+    drops: true,
+    contactOnly: false,
+    features: [
+      '1,000 photos every month',
+      'Everything in Growth',
+      '10 shop looks',
+      'Photos made first',
+      'First access to automatic TikTok Shop sync',
     ],
   },
   shop_agency: {
@@ -145,18 +194,15 @@ export const PLANS: Record<PlanId, Plan> = {
     allStudioModels: true,
     priority: true,
     mostPopular: false,
-    features: [
-      '3,000 photos every month',
-      'Everything in Growth',
-      '30 shop looks for all your brands',
-      'Setup call with our team',
-      'Priority support',
-    ],
+    storeProducts: 500,
+    drops: true,
+    contactOnly: true,
+    features: ['Many shops, one team', 'Custom photo volume', 'Setup call with our team', 'Priority support'],
   },
 };
 
 /** Plans a solo buyer is shown during onboarding (Agency is offered on pricing and billing). */
-export const isSoloPlan = (plan: Plan): boolean => !plan.id.endsWith('_agency');
+export const isSoloPlan = (plan: Plan): boolean => !plan.id.endsWith('_agency') && !plan.contactOnly;
 
 export const TERMS: readonly TermMonths[] = [1, 3, 6];
 

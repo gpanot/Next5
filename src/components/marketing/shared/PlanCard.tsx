@@ -3,6 +3,7 @@ import {
   getEffectiveMonthlyUsdCents,
   getTermPriceUsdCents,
   getTermSavingsUsdCents,
+  SALES_EMAIL,
   type Plan,
   type TermMonths,
 } from '../../../config/plans';
@@ -27,12 +28,13 @@ export const PlanCard = ({ plan, term }: PlanCardProps) => {
       <header>
         <p className="text-[14px] font-medium text-app-muted">{productLabel} {plan.name} · <span className="text-app-accent">{plan.audience}</span></p>
         <p className="mt-2 flex items-baseline gap-1">
+          {plan.contactOnly ? <span className="text-[32px] font-semibold leading-none text-app-ink">Custom</span> : <>
           <span className="text-[44px] font-semibold leading-none tabular-nums text-app-ink">{formatUsd(monthly)}</span>
-          <span className="text-[15px] text-app-muted">/mo</span>
+          <span className="text-[15px] text-app-muted">/mo</span></>}
         </p>
         <p className="mt-2 min-h-5 text-[13px] text-app-muted">
-          {term === 1 ? 'Billed monthly, prepaid' : `Billed ${formatUsd(total)} for ${term} months`}
-          {savings > 0 && <span className="ml-1 font-medium text-app-success">· Save {formatUsd(savings)}</span>}
+          {plan.contactOnly ? 'Priced for your shops' : term === 1 ? 'Billed monthly, prepaid' : `Billed ${formatUsd(total)} for ${term} months`}
+          {savings > 0 && !plan.contactOnly && <span className="ml-1 font-medium text-app-success">· Save {formatUsd(savings)}</span>}
         </p>
         <p className="mt-3 text-[15px] text-app-ink">{plan.tagline}</p>
       </header>
@@ -44,8 +46,8 @@ export const PlanCard = ({ plan, term }: PlanCardProps) => {
           </li>
         ))}
       </ul>
-      <CtaLink href={`/start/${plan.product}?plan=${plan.id}&term=${term}`} variant={plan.mostPopular ? 'primary' : 'secondary'} className="w-full">
-        {plan.id.endsWith('_agency') ? 'Get Agency' : 'Start free'}
+      <CtaLink href={plan.contactOnly ? `mailto:${SALES_EMAIL}?subject=${encodeURIComponent(`Next5 ${plan.name}`)}` : `/start/${plan.product}?plan=${plan.id}&term=${term}`} variant={plan.mostPopular ? 'primary' : 'secondary'} className="w-full">
+        {plan.contactOnly ? 'Talk to us' : 'Start free'}
       </CtaLink>
     </article>
   );

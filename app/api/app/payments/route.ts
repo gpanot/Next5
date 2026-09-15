@@ -23,6 +23,7 @@ export const POST = authedRoute(async (req, session) => {
     if (!isPlanId(planId) || !isTermMonths(termMonths)) {
       throw new HttpError(400, 'invalid_plan', 'Choose a plan and a term of 1, 3 or 6 months.');
     }
+    if (PLANS[planId].contactOnly) throw new HttpError(400, 'contact_sales', 'Agency plans are set up with our team. Email hello@next5.studio.');
     const workspace = await requireWorkspace(session.userId, PLANS[planId].product);
     const payment = await createSubscriptionPayment({ userId: session.userId, workspaceId: workspace.id }, { planId, termMonths });
     afterPaymentCreated(payment);

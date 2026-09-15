@@ -238,6 +238,7 @@ model Workspace {
   promiseClaims PromiseClaim[]
   shopConnections ShopConnection[]
   listingPacks    ListingPack[]
+  dropSchedule    DropSchedule?
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
@@ -651,4 +652,29 @@ model ListingPack {
 
   @@index([workspaceId, status])
   @@map("listing_packs")
+}
+
+/// Shop Growth/Scale: every week (or two) we pick products that need photos and email a drop to review. Never spends credits by itself.
+model DropSchedule {
+  id              String    @id @default(cuid())
+  workspaceId     String    @unique @map("workspace_id")
+  active          Boolean   @default(true)
+  /// weekly | biweekly
+  cadence         String    @default("weekly")
+  /// 0 = Sunday … 6 = Saturday (UTC)
+  weekday         Int       @default(1)
+  productsPerDrop Int       @default(10) @map("products_per_drop")
+  setId           String?   @map("set_id")
+  packId          String    @default("listing") @map("pack_id")
+  formats         String[]  @default(["square_1_1", "story_9_16"])
+  nextRunAt       DateTime? @map("next_run_at")
+  lastRunAt       DateTime? @map("last_run_at")
+  lastProductIds  String[]  @default([]) @map("last_product_ids")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([active, nextRunAt])
+  @@map("drop_schedules")
 }

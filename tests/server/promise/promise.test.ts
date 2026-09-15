@@ -30,7 +30,7 @@ describe('Beat-your-feed promise', () => {
     expect(missed).toMatchObject({ outcome: 'missed', status: 'pending' });
     const before = (await getBalance(ws.id, at('2026-11-03T00:00:00Z'))).total;
     await decideClaim(missed.id, 'grant', 'checked links', at('2026-11-03T00:00:00Z'));
-    expect((await getBalance(ws.id, at('2026-11-03T00:00:00Z'))).total).toBe(before + 300);
+    expect((await getBalance(ws.id, at('2026-11-03T00:00:00Z'))).total).toBe(before + 400);
     await expect(decideClaim(missed.id, 'grant', null)).rejects.toMatchObject({ status: 409 });
   });
 

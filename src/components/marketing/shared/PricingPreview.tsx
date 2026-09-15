@@ -22,7 +22,7 @@ export const PricingPreview = ({ product }: { product: ProductLineId }) => {
           Compare plans and extra photos →
         </Link>
       </div>
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className={`grid gap-6 md:grid-cols-2 ${plansForProduct(product).length > 3 ? 'xl:grid-cols-4' : 'lg:grid-cols-3'}`}>
         {plansForProduct(product).map((plan) => <PlanCard key={plan.id} plan={plan} term={term} />)}
       </div>
     </div>

@@ -7,6 +7,7 @@ import {
   getTermPriceUsdCents,
   getTermSavingsUsdCents,
   plansForProduct,
+  SALES_EMAIL,
   type PlanId,
   type TermMonths,
 } from '../../../config/plans';
@@ -33,7 +34,7 @@ export const PlanPicker = ({ open, product, currentPlanId, onClose, onChoose }: 
           <TermToggle value={term} onChange={setTerm} />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          {plansForProduct(product).map((plan) => {
+          {plansForProduct(product).filter((plan) => !plan.contactOnly).map((plan) => {
             const savings = getTermSavingsUsdCents(plan.id, term);
             const isCurrent = plan.id === currentPlanId;
             return (
@@ -54,6 +55,7 @@ export const PlanPicker = ({ open, product, currentPlanId, onClose, onChoose }: 
             );
           })}
         </div>
+        {plansForProduct(product).some((plan) => plan.contactOnly) && <p className="text-[13px] text-app-muted">Running many shops? <a href={`mailto:${SALES_EMAIL}?subject=Next5%20Agency`} className="font-medium text-app-accent hover:text-app-ink">Talk to us about Agency</a>.</p>}
         <p className="text-[12px] text-app-muted">Same plan: your renewal starts when your current plan ends. Different plan: it starts right away and replaces the current one (no proration). Your remaining photos this month stay until they expire.</p>
       </div>
     </Sheet>
