@@ -13,7 +13,7 @@ export const GET = authedRoute(async (_req, session) => {
   const used = (await prisma.studioSet.findMany({ where: { workspaceId: ws.id, status: { not: 'archived' }, modelRef: { not: 'me' } }, select: { modelRef: true } })).map((s) => s.modelRef);
   const chosen = used.find(Boolean) ?? null;
   const models = STUDIO_MODELS.filter((m) => seeded.has(m.slug)).map((m) => ({
-    slug: m.slug, name: m.name, age: m.age, description: m.description, faceImage: m.faceImage,
+    slug: m.slug, name: m.name, age: m.age, ethnicity: m.ethnicity, description: m.description, faceImage: m.faceImage,
     available: Boolean(plan?.allStudioModels) || !chosen || chosen === m.slug,
   }));
   return NextResponse.json({ models, allModels: Boolean(plan?.allStudioModels) });

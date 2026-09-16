@@ -152,7 +152,7 @@ export const PLANS: Record<PlanId, Plan> = {
       'Weekly drops: new products picked for you',
       'Store sync every week, up to 500 products',
       'Post Kit: hook, product description and hashtags',
-      'All 6 Studio models, 20 shop looks, big 2K photos',
+      'All 14 Studio models, 20 shop looks, big 2K photos',
     ],
   },
   shop_scale: {

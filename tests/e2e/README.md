@@ -18,6 +18,7 @@ Mock-mode browser runs of the business product. They use the locally installed G
    node tests/e2e/shop-store.mjs     # needs NEXT5_SHOP_IMPORT_MOCK=true: store import onboarding → trial → TikTok library pack → zip
    node tests/e2e/shop-listing.mjs   # needs NEXT5_SHOP_IMPORT_MOCK=true and GENERATION_MAX_CONCURRENT=30: listing Post Kit, more photos, earlier photos, Remove/Add, 9:16 cover, photos of you, archive a look
    E2E_ADMIN_SECRET=… node tests/e2e/admin-model-test.mjs  # admin model bench: the form, a run, one result card per model (models fail without WAVESPEED_API_KEY, which still proves the flow)
+   node tests/e2e/shop-models.mjs    # Studio models for all 5 markets and the market filter (needs a seeded database)
    ```
    Onboarding creates accounts from your IP; the account rate limit is 5 per hour.
 4. Early-access checkout (the production default while payments are not live): restart the server with

@@ -149,7 +149,7 @@ works. Only if the pipeline is not ready yet, use the fallback prompt and replac
 | C13 | `public/images/business/shop/looks/boutique-rack.png` | Model in a minimal boutique wearing a knit dress | A Vietnamese woman in her early 30s in a taupe ribbed knit midi dress standing in a minimal boutique interior, a clothing rail with neutral garments softly blurred behind, warm spot lighting and daylight, full body, elegant. |
 | C14 | `public/images/business/shop/looks/resort.png` | Model on a sunny pool terrace in a linen dress | A Vietnamese woman in her mid 20s in a white linen sundress and straw hat on a pale stone pool terrace with palm shadows, bright sunlight, relaxed summer pose, full body, resort catalogue look. |
 
-### C15–C26 Studio models (identity references) · Used in: Shop models section (face images), model picker, and **seeded as `IdentityReference` rows** (both images uploaded to R2 by `scripts/seed-business.ts`)
+### C15–C42 Studio models (5 markets: Asian, White, Black, Arabic, Latina) (identity references) · Used in: Shop models section (face images), model picker, and **seeded as `IdentityReference` rows** (both images uploaded to R2 by `scripts/seed-business.ts`)
 
 Shared model prompt rules: plain light-grey seamless background, even soft frontal light, neutral
 relaxed expression with a slight smile, hair away from face, minimal makeup, **fitted plain white
@@ -165,6 +165,14 @@ relaxed at sides, feet visible, facing camera.
 | C21/C22 | `…/shop/models/model-ngoc-face.jpg` | `…/shop/models/model-ngoc-full.jpg` | **Ngọc**, 35 | Vietnamese woman, 35, athletic build, sleek low ponytail, tanned skin |
 | C23/C24 | `…/shop/models/model-hana-face.jpg` | `…/shop/models/model-hana-full.jpg` | **Hana**, 28 | Eurasian woman (Vietnamese and European heritage), 28, medium build, light brown wavy bob |
 | C25/C26 | `…/shop/models/model-mira-face.jpg` | `…/shop/models/model-mira-full.jpg` | **Mira**, 42 | Vietnamese woman, 42, medium build, elegant short black bob with subtle grey strands, graceful |
+| C27/C28 | `…/shop/models/model-emma-face.png` | `…/shop/models/model-emma-full.png` | **Emma**, 27 | white American woman, 27, medium build (170 cm), long wavy light brown hair, fair skin with light freckles |
+| C29/C30 | `…/shop/models/model-chloe-face.png` | `…/shop/models/model-chloe-full.png` | **Chloe**, 34 | white European woman, 34, curvy plus-size figure (US size 16), straight blonde shoulder-length hair, fair skin |
+| C31/C32 | `…/shop/models/model-amara-face.png` | `…/shop/models/model-amara-full.png` | **Amara**, 25 | Black woman of West African heritage, 25, tall and slim (173 cm), short natural coily hair, deep brown skin |
+| C33/C34 | `…/shop/models/model-nia-face.png` | `…/shop/models/model-nia-full.png` | **Nia**, 31 | Black American woman, 31, curvy figure (US size 14), long box braids, warm brown skin |
+| C35/C36 | `…/shop/models/model-layla-face.png` | `…/shop/models/model-layla-full.png` | **Layla**, 26 | Middle Eastern woman of Levantine heritage, 26, medium build, long dark wavy hair, olive skin |
+| C37/C38 | `…/shop/models/model-salma-face.png` | `…/shop/models/model-salma-full.png` | **Salma**, 33 | Middle Eastern woman of Gulf heritage, 33, medium build, wearing a plain black hijab covering her hair, olive skin |
+| C39/C40 | `…/shop/models/model-sofia-face.png` | `…/shop/models/model-sofia-full.png` | **Sofia**, 24 | Latina woman of Mexican heritage, 24, petite curvy figure, long dark brown hair, tan skin |
+| C41/C42 | `…/shop/models/model-valentina-face.png` | `…/shop/models/model-valentina-full.png` | **Valentina**, 30 | Latina woman of Colombian heritage, 30, athletic build, shoulder-length wavy black hair, bronze skin |
 
 (`…` = `public/images/business`.) Alt: "Studio model {Name}, {age}" / "Studio model {Name}, full body".
 

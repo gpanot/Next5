@@ -131,7 +131,7 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
         { title: 'Weekly drops and store sync', body: 'New stock found and picked for you every week.', value: '$200', basis: 'About 5 hours a month of a virtual assistant preparing listings, US freelance rates' },
         { title: 'TikTok listing packs', body: 'Up to 9 photos in upload order, plus a video cover.', value: '$150', basis: 'Sorting, resizing and naming listing photos, about 3 hours a month' },
         { title: 'Post Kit for every product', body: 'Hook, product description and hashtags, ready to paste.', value: '$150', basis: 'Freelance listing writer, about 30 listings a month' },
-        { title: 'All 6 Studio models', body: 'Different ages and body types. No model to book.', value: '$150', basis: 'One half-day model booking' },
+        { title: 'All 14 Studio models', body: 'Asian, White, Black, Arabic and Latina models, different ages and body types. No model to book.', value: '$150', basis: 'One half-day model booking' },
       ],
       totalValue: '$1,820',
       priceLine: 'Your price: $199 a month',
