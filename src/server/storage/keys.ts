@@ -15,3 +15,6 @@ export const batchItemKey = (workspaceId: string, batchId: string, itemId: strin
 
 export const studioModelKey = (slug: string, kind: 'face' | 'full'): string =>
   `studio-models/${slug}/${kind}.jpg`;
+
+/** Admin model bench: uploaded garment photos and each model's result. */
+export const modelTestKey = (runId: string, name: string): string => `admin/model-tests/${runId}/${name}.jpg`;

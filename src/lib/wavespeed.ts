@@ -1,4 +1,7 @@
-const WAVESPEED_API_KEY = process.env.WAVESPEED_API_KEY;
+import { IMAGE_MODELS, isImageModelId, modelCostUsdMicros, type ImageModelId, type ModelResolution } from '../config/imageModels';
+
+/** Read per call so tests and local runs can set it after import. */
+const apiKey = (): string | undefined => process.env.WAVESPEED_API_KEY;
 const BASE_URL = 'https://api.wavespeed.ai/api/v3';
 
 // ── Upload ────────────────────────────────────────────────────────────────────
@@ -11,7 +14,8 @@ export async function uploadPhotoToWaveSpeed(
   buffer: Buffer,
   ext: 'jpg' | 'jpeg' | 'png' = 'jpg',
 ): Promise<string> {
-  if (!WAVESPEED_API_KEY) throw new Error('WAVESPEED_API_KEY is not set');
+  const key = apiKey();
+  if (!key) throw new Error('WAVESPEED_API_KEY is not set');
 
   const formData = new FormData();
   // Convert to Uint8Array first to satisfy strict BlobPart typing
@@ -20,7 +24,7 @@ export async function uploadPhotoToWaveSpeed(
 
   const res = await fetch(`${BASE_URL}/media/upload/binary`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${WAVESPEED_API_KEY}` },
+    headers: { Authorization: `Bearer ${key}` },
     body: formData,
   });
 
@@ -48,39 +52,43 @@ export type SubmitEditParams = {
   webhookUrl?: string | null;
 };
 
-export type ImageModel = 'nano-banana-2' | 'gpt-image-2';
+/** Re-exported so callers keep using one name for the model id. */
+export type ImageModel = ImageModelId;
 
 /** Fallback model for a manual retry after the default model fails (e.g. its safety filter blocks the photo). */
-export const FALLBACK_MODEL: ImageModel = 'gpt-image-2';
+export const FALLBACK_MODEL: ImageModelId = 'gpt-image-2';
 
-export const isImageModel = (value: unknown): value is ImageModel => value === 'nano-banana-2' || value === 'gpt-image-2';
-
-const MODEL_PATHS: Record<ImageModel, string> = {
-  'nano-banana-2': 'google/nano-banana-2/edit',
-  'gpt-image-2': 'openai/gpt-image-2/edit',
-};
+export const isImageModel = isImageModelId;
 
 const requestBody = (model: ImageModel, images: string[], params: SubmitEditParams): Record<string, unknown> => {
-  // gpt-image-2 has no 0.5k tier; its quality defaults to medium (same price as nano-banana-2 at 1k).
-  const resolution = model === 'gpt-image-2' && params.resolution === '0.5k' ? '1k' : params.resolution ?? '1k';
-  const body = { images, prompt: params.prompt, aspect_ratio: params.aspectRatio ?? '3:4', resolution, output_format: 'jpeg' };
-  return model === 'gpt-image-2' ? { ...body, quality: 'medium' } : body;
+  const spec = IMAGE_MODELS[model];
+  // Models without a resolution setting keep the input size; 0.5k only exists on nano-banana-2.
+  const resolution: ModelResolution = params.resolution === '2k' || params.resolution === '4k' ? '2k' : '1k';
+  return {
+    ...(spec.imagesField === 'image' ? { image: images[0] } : { images: images.slice(0, spec.maxImages) }),
+    prompt: params.prompt,
+    ...(spec.supportsAspectRatio ? { aspect_ratio: params.aspectRatio ?? '3:4' } : {}),
+    ...(spec.supportsResolution ? { resolution } : {}),
+    output_format: 'jpeg',
+    ...spec.extraBody,
+  };
 };
 
 /**
- * Submits an image edit task (Nano Banana 2 by default, GPT Image 2 as the fallback).
+ * Submits an image edit task (Nano Banana 2 by default; see `IMAGE_MODELS` for the rest).
  * Returns the WaveSpeed task ID (poll it, or pass `webhookUrl` to be called back).
  */
 export async function submitEdit(params: SubmitEditParams & { model?: ImageModel }): Promise<string> {
-  if (!WAVESPEED_API_KEY) throw new Error('WAVESPEED_API_KEY is not set');
+  const key = apiKey();
+  if (!key) throw new Error('WAVESPEED_API_KEY is not set');
   const images = params.imageUrls && params.imageUrls.length > 0 ? [...params.imageUrls] : params.imageUrl ? [params.imageUrl] : [];
   if (images.length === 0) throw new Error('submitEdit needs at least one reference image');
-  const model = params.model ?? 'nano-banana-2';
+  const model: ImageModel = params.model ?? 'nano-banana-2';
 
-  const res = await fetch(`${BASE_URL}/${MODEL_PATHS[model]}${params.webhookUrl ? `?webhook=${encodeURIComponent(params.webhookUrl)}` : ''}`, {
+  const res = await fetch(`${BASE_URL}/${IMAGE_MODELS[model].path}${params.webhookUrl ? `?webhook=${encodeURIComponent(params.webhookUrl)}` : ''}`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${WAVESPEED_API_KEY}`,
+      Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(requestBody(model, images, params)),
@@ -93,24 +101,9 @@ export async function submitEdit(params: SubmitEditParams & { model?: ImageModel
   return body.data.id as string;
 }
 
-/** Provider cost per image in micro-USD (1e-6 USD), from WaveSpeed pricing. */
-export const COST_USD_MICROS: Record<NonNullable<SubmitEditParams['resolution']>, number> = {
-  '0.5k': 45_000,
-  '1k': 70_000,
-  '2k': 105_000,
-  '4k': 140_000,
-};
-
-/** GPT Image 2 Edit (medium quality): per resolution, plus $0.012 per reference image. */
-const GPT_IMAGE_2_COST_USD_MICROS: Record<NonNullable<SubmitEditParams['resolution']>, number> = {
-  '0.5k': 70_000,
-  '1k': 70_000,
-  '2k': 110_000,
-  '4k': 190_000,
-};
-
+/** Provider cost per image in micro-USD (1e-6 USD), including each model's charge for reference photos. */
 export const costUsdMicros = (model: ImageModel, resolution: NonNullable<SubmitEditParams['resolution']>, inputImages: number): number =>
-  model === 'gpt-image-2' ? GPT_IMAGE_2_COST_USD_MICROS[resolution] + 12_000 * inputImages : COST_USD_MICROS[resolution];
+  modelCostUsdMicros(model, resolution === '2k' || resolution === '4k' ? '2k' : '1k', inputImages);
 
 // ── Poll ──────────────────────────────────────────────────────────────────────
 
@@ -137,10 +130,11 @@ export function isTerminal(status: TaskStatus): boolean {
 
 /** Single poll — call this from your polling loop or API route. */
 export async function pollTask(taskId: string): Promise<PollResult> {
-  if (!WAVESPEED_API_KEY) throw new Error('WAVESPEED_API_KEY is not set');
+  const key = apiKey();
+  if (!key) throw new Error('WAVESPEED_API_KEY is not set');
 
   const res = await fetch(`${BASE_URL}/predictions/${taskId}/result`, {
-    headers: { Authorization: `Bearer ${WAVESPEED_API_KEY}` },
+    headers: { Authorization: `Bearer ${key}` },
   });
 
   const body = await res.json().catch(() => ({}));

@@ -148,6 +148,8 @@ export const PACKS: Record<PackId, Pack> = {
 
 export const isPackId = (value: string): value is PackId => value in PACKS;
 
+export const isShotId = (value: string): value is ShotId => value in SHOTS;
+
 export const isProductCategory = (value: string): value is ProductCategory =>
   PRODUCT_CATEGORIES.some((category) => category.id === value);
 

@@ -684,3 +684,43 @@ model DropSchedule {
   @@index([active, nextRunAt])
   @@map("drop_schedules")
 }
+
+/// Admin model bench: one product prompt run through several image models.
+model ModelTestRun {
+  id          String   @id @default(cuid())
+  label       String?
+  prompt      String
+  shot        String
+  format      String
+  resolution  String   @default("1k")
+  templateId  String?  @map("template_id")
+  modelRef    String?  @map("model_ref")
+  productName String?  @map("product_name")
+  inputR2Keys String[] @map("input_r2_keys")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  items ModelTestItem[]
+
+  @@map("model_test_runs")
+}
+
+model ModelTestItem {
+  id              String    @id @default(cuid())
+  runId           String    @map("run_id")
+  /// Image model id from src/config/imageModels.ts.
+  model           String
+  /// generating | ready | failed
+  status          String    @default("generating")
+  wavespeedTaskId String?   @map("wavespeed_task_id")
+  r2Key           String?   @map("r2_key")
+  error           String?
+  costUsdMicros   Int       @default(0) @map("cost_usd_micros")
+  submittedAt     DateTime? @map("submitted_at")
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  run ModelTestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@map("model_test_items")
+}
