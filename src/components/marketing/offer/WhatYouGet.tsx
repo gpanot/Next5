@@ -17,7 +17,8 @@ export const WhatYouGet = ({ post, shop }: { post: ExamplePost; shop: boolean })
     </div>
     <div className="grid gap-4 md:grid-cols-2">
       <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
-        <ScoreCard score={post.score} details={post.details} />
+        {/* The sales page is showing off the rubric, so it starts open. */}
+        <ScoreCard score={post.score} details={post.details} defaultOpen />
       </div>
       <div className="flex flex-col gap-3 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/5">
         <p className="text-[13px] font-medium text-muted">Post Kit</p>
