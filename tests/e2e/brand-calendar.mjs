@@ -83,18 +83,12 @@ await page.getByRole('button', { name: 'Save', exact: true }).click();
 await page.getByText(/You post on .*Mon/).waitFor({ timeout: 10000 });
 await shot(page, 'cal-4-cadence');
 
-// The drop box: her own listing becomes a planned post.
-await page.getByText('Your listings').scrollIntoViewIfNeeded();
-await page.locator('section:has-text("Your listings") input[type=file]').setInputFiles([
-  `${ROOT}/brand/sets/modern-office.png`,
-  `${ROOT}/brand/themes/just-listed.png`,
-]);
-await page.getByText('2 waiting for photos').waitFor({ timeout: 20000 });
-await shot(page, 'cal-5-dropbox');
-
-// Removing one takes it back out.
-await page.getByRole('button', { name: /^Remove / }).first().click();
-await page.getByText('1 waiting for photos').waitFor({ timeout: 10000 });
+// Her properties are one tap from listing mode.
+await page.getByText('Your properties').scrollIntoViewIfNeeded();
+await shot(page, 'cal-5-properties');
+await page.getByRole('link', { name: 'Property' }).click();
+await page.waitForURL(/\/app\/brand\/create\?listing=new/, { timeout: 15000 });
+await page.getByLabel('Address or name').waitFor({ timeout: 15000 });
 
 console.log('E2E brand calendar OK', email, `${days} days planned`);
 await browser.close();

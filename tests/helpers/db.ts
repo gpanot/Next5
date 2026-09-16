@@ -3,6 +3,7 @@ import { prisma } from '../../src/lib/db';
 
 const BUSINESS_TABLES = [
   'post_slots',
+  'listings',
   'post_materials',
   'post_schedules',
   'drop_schedules',

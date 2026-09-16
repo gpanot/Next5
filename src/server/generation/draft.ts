@@ -14,6 +14,10 @@ export type BrandDraft = {
   count: number;
   formats: FormatId[];
   highRes: boolean;
+  /** Listing mode: build the batch from this property's rooms only. */
+  listingId?: string | null;
+  /** Looks per room in listing mode (1-3). */
+  variations?: number;
 };
 
 export type ShopDraft = {
@@ -30,7 +34,7 @@ export type ShopDraft = {
 };
 
 /** Built server-side only (onboarding trial, set preview) — never parsed from a request body. */
-export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & { kind: 'brand_theme'; trial?: boolean; sceneIds?: string[]; /** Off for the trial and set previews, which must not consume her drop box. */ useMaterials?: boolean };
+export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & { kind: 'brand_theme'; trial?: boolean; sceneIds?: string[] };
 export type InternalShopDraft = Omit<ShopDraft, 'kind'> & { kind: 'shop_products'; trial?: boolean; /** Only the 9:16 cover per product (TikTok library). */ coverOnly?: boolean };
 
 export type BatchDraft = BrandDraft | ShopDraft;
@@ -58,6 +62,14 @@ export const parseDraft = (body: Record<string, unknown>): BatchDraft => {
   const highRes = body.highRes === true;
 
   if (body.kind === 'brand_theme') {
+    // Listing mode: the count comes from her rooms, not from a picker.
+    if (body.listingId) {
+      return {
+        kind: 'brand_theme', setId: parseId(body.setId, 'set'), themeId: parseId(body.themeId, 'theme'),
+        count: 0, formats, highRes,
+        listingId: parseId(body.listingId, 'property'), variations: Number(body.variations ?? 2),
+      };
+    }
     const count = Number(body.count);
     if (!(BRAND_COUNTS as readonly number[]).includes(count)) throw bad('Choose 8, 16, 24 or 32 photos.');
     return { kind: 'brand_theme', setId: parseId(body.setId, 'set'), themeId: parseId(body.themeId, 'theme'), count, formats, highRes };

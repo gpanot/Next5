@@ -242,6 +242,7 @@ model Workspace {
   postSchedule    PostSchedule?
   postMaterials   PostMaterial[]
   postSlots       PostSlot[]
+  listings        Listing[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
@@ -397,12 +398,15 @@ model Batch {
   priority        Int         @default(2)
   creditsReserved Int         @default(0) @map("credits_reserved")
   costUsdMicros   Int         @default(0) @map("cost_usd_micros")
+  /// Set when the batch was built from one property's photos.
+  listingId       String?     @map("listing_id")
   createdAt       DateTime    @default(now()) @map("created_at")
   completedAt     DateTime?   @map("completed_at")
 
   workspace Workspace   @relation(fields: [workspaceId], references: [id])
   set       StudioSet?  @relation(fields: [setId], references: [id])
   theme     Theme?      @relation(fields: [themeId], references: [id])
+  listing   Listing?    @relation(fields: [listingId], references: [id])
   items     BatchItem[]
 
   @@index([workspaceId, createdAt])
@@ -772,11 +776,14 @@ model PostMaterial {
   kind        String    @default("listing")
   label       String?
   note        String?
+  /// The property this photo belongs to. Null for loose brand material.
+  listingId   String?   @map("listing_id")
   usedAt      DateTime? @map("used_at")
   archivedAt  DateTime? @map("archived_at")
   createdAt   DateTime  @default(now()) @map("created_at")
 
   workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listing   Listing?    @relation(fields: [listingId], references: [id], onDelete: Cascade)
   slots     PostSlot[]
   items     BatchItem[]
 
@@ -818,4 +825,26 @@ model PostSlot {
   @@index([workspaceId, status, postedAt])
   @@index([itemId])
   @@map("post_slots")
+}
+
+/// A property she represents. Photos of it are grouped so a batch is built only
+/// from rooms she gave us — we never invent a room (docs/business-studios/12-listing-mode-plan.md).
+model Listing {
+  id           String    @id @default(cuid())
+  workspaceId  String    @map("workspace_id")
+  label        String
+  /// She confirmed she represents this property.
+  attestedAt   DateTime  @default(now()) @map("attested_at")
+  /// Off by default; visible-label rules differ by state and MLS, so it is her call.
+  visibleAiTag Boolean   @default(false) @map("visible_ai_tag")
+  archivedAt   DateTime? @map("archived_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  materials PostMaterial[]
+  batches   Batch[]
+
+  @@index([workspaceId, createdAt])
+  @@map("listings")
 }

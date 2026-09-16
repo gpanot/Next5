@@ -1,6 +1,6 @@
 # P20 — Listing mode (Brand Studio, real estate)
 
-Status: **proposal, awaiting review**. Written 2026-09-16.
+Status: **built 2026-09-16**. Two questions still open (§6).
 Trigger: one uploaded exterior photo produced 8 photos — 1 of the real house, **7 invented interiors**.
 Related: [11-calendar-plan.md](11-calendar-plan.md) (the drop box this corrects).
 
@@ -114,14 +114,44 @@ The prompt block already tells the model to leave the architecture, furniture an
 
 ---
 
-## 5. Questions for Guillaume
+## 5. Decisions (2026-09-16)
 
-1. **Variations per room** — default 2, allow up to 3? Or fix it at 2 and let her upload more rooms?
-2. **Non-listing brand photos for agents.** Keep the current themes for "photos of me" batches, or restrict
-   real-estate themes to settings that cannot be mistaken for a property (office, outdoors, portrait)?
-3. **Force the visible AI label on listing photos?** My recommendation is yes, non-optional — it is what the
-   rules ask for and it is cheap. It does put a mark on her photo.
-4. **What about the 7 photos already generated?** Suggest we flag existing brand batches that used a stock
-   interior for a real-estate workspace, so nobody posts them by accident.
-5. **Other industries.** The same "never invent the place" rule would help a spa or a gym showing their own
-   room. Apply it wherever a material exists, or keep it real-estate-only for now?
+1. **Looks per room: 1 to 3, default 2.** The count is derived — rooms × looks × formats — and never typed.
+2. **The visible AI label is a per-property toggle, off by default.** Not forced. The screen explains that some
+   states and MLSs ask for a visible label, and that every file already carries a hidden one. A property's choice
+   overrides the workspace default for photos made from it.
+3. **No action on photos already generated.**
+
+## What shipped
+
+| Piece | Where |
+|---|---|
+| Migration: `listings`, `post_materials.listing_id`, `batches.listing_id` | `db/migrations/20260921090000_listings.sql` |
+| Listings, rooms, attestation, looks cap | `src/server/listings/listings.ts` |
+| Listing mode — **no stock fallback** | `expandBrand` in `src/server/generation/expand.ts` |
+| Per-property visible label | `finalize.ts` reads `batch.listing.visibleAiTag` first |
+| Post Kit guard: describe only what is visible | `src/server/postKit/postKit.ts` |
+| Routes | `app/api/app/listings/**` |
+| Create: "Who is it for?" → property → looks per room | `ListingPicker.tsx`, `BrandCreateFlow.tsx` |
+| Calendar: "Your properties" deep-links into Create | `PropertiesCard.tsx` |
+| Tests | `tests/server/listings/*`, `tests/e2e/brand-listing.mjs` |
+
+The test that matters: `listing mode never invents a room` asserts every item in a listing batch has a
+`materialId`, sends her room photo as an input, and that no prompt contains a stock `Setting:` line.
+
+Also removed: **the loose calendar drop box from P19.** Once listing mode stopped consuming loose materials, its
+uploads went nowhere while the UI still promised "your next photos put you inside it" — the same shape of bug that
+started this. Its prompt tests moved to `tests/server/listings/prompt.test.ts`.
+
+Found while building: `getOrCreateSchedule` raced when several photos of one batch finished at once (unique
+violation on `workspace_id`). Fixed with create-and-catch rather than upsert, because an upsert touches
+`updatedAt`, which `enableAfterFirstBatch` reads.
+
+## 6. Still open
+
+1. **Real-estate themes and autopilot.** "Just me" batches for an agent still use the set's stock settings, some of
+   which are interiors — and autopilot makes those batches on its own. A generic kitchen is honest when the subject
+   is plainly her, but it sits next to her listings in the same feed. Worth deciding whether real-estate themes
+   should drop interior scenes, or whether autopilot should prefer her properties when she has any.
+2. **Other industries.** The "never invent the place" rule would suit a spa or a gym showing its own room. Kept to
+   listings for now.

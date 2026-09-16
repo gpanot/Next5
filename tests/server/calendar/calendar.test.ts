@@ -62,6 +62,15 @@ describe('schedule', () => {
     expect((await getOrCreateSchedule(ws)).id).toBe(schedule.id);
   });
 
+  it('survives many photos asking for the schedule at the same moment', async () => {
+    const ws = await createTestWorkspace('brand');
+    const schedules = await Promise.all(Array.from({ length: 8 }, () => getOrCreateSchedule(ws)));
+    expect(new Set(schedules.map((s) => s.id)).size).toBe(1);
+    // Still reads as untouched, so autopilot can switch itself on later.
+    const [first] = schedules;
+    expect(first!.updatedAt.getTime()).toBe(first!.createdAt.getTime());
+  });
+
   it('is Brand only', async () => {
     const shop = await createTestWorkspace('shop');
     await expect(getOrCreateSchedule(shop)).rejects.toMatchObject({ status: 400 });

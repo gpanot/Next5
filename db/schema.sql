@@ -274,7 +274,8 @@ CREATE TABLE public.batches (
     credits_reserved integer DEFAULT 0 NOT NULL,
     cost_usd_micros integer DEFAULT 0 NOT NULL,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    completed_at timestamp(3) without time zone
+    completed_at timestamp(3) without time zone,
+    listing_id text
 );
 
 
@@ -427,6 +428,22 @@ CREATE TABLE public.listing_packs (
 
 
 --
+-- Name: listings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.listings (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    label text NOT NULL,
+    attested_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    visible_ai_tag boolean DEFAULT false NOT NULL,
+    archived_at timestamp(3) without time zone,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
 -- Name: model_test_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -519,7 +536,8 @@ CREATE TABLE public.post_materials (
     note text,
     used_at timestamp(3) without time zone,
     archived_at timestamp(3) without time zone,
-    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    listing_id text
 );
 
 
@@ -915,6 +933,14 @@ ALTER TABLE ONLY public.listing_packs
 
 
 --
+-- Name: listings listings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.listings
+    ADD CONSTRAINT listings_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: model_test_items model_test_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1266,6 +1292,13 @@ CREATE INDEX listing_packs_workspace_id_status_idx ON public.listing_packs USING
 
 
 --
+-- Name: listings_workspace_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX listings_workspace_id_created_at_idx ON public.listings USING btree (workspace_id, created_at);
+
+
+--
 -- Name: model_test_items_run_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1291,6 +1324,13 @@ CREATE INDEX payments_user_id_created_at_idx ON public.payments USING btree (use
 --
 
 CREATE INDEX payments_workspace_id_created_at_idx ON public.payments USING btree (workspace_id, created_at);
+
+
+--
+-- Name: post_materials_listing_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX post_materials_listing_id_idx ON public.post_materials USING btree (listing_id);
 
 
 --
@@ -1472,6 +1512,14 @@ ALTER TABLE ONLY public.batch_items
 
 
 --
+-- Name: batches batches_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.batches
+    ADD CONSTRAINT batches_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
 -- Name: batches batches_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1560,6 +1608,14 @@ ALTER TABLE ONLY public.listing_packs
 
 
 --
+-- Name: listings listings_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.listings
+    ADD CONSTRAINT listings_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: model_test_items model_test_items_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1597,6 +1653,14 @@ ALTER TABLE ONLY public.photos
 
 ALTER TABLE ONLY public.photos
     ADD CONSTRAINT photos_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: post_materials post_materials_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.post_materials
+    ADD CONSTRAINT post_materials_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -1749,4 +1813,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260917120000'),
     ('20260918090000'),
     ('20260919090000'),
-    ('20260920090000');
+    ('20260920090000'),
+    ('20260921090000');

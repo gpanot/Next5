@@ -13,7 +13,8 @@ Mock-mode browser runs of the business product. They use the locally installed G
    node tests/e2e/brand.mjs          # Brand onboarding → trial → Pro checkout (simulated) → dashboard
    node tests/e2e/shop.mjs           # Shop onboarding on 390 px → Studio model → product → trial
    node tests/e2e/brand-create.mjs   # top-up → create 8 × 2 formats → batch → lightbox → redo → library
-   node tests/e2e/brand-calendar.mjs # calendar: month planned by itself → post sheet → counts itself → cadence → drop box
+   node tests/e2e/brand-calendar.mjs # calendar: month grid → post sheet → counts itself → cadence → properties link
+   node tests/e2e/brand-listing.mjs  # listing mode: attest → 1 room = 2 photos → looks per room → visible AI label toggle
    node tests/e2e/shop-app.mjs       # bulk add products → create → compare view → redo → zip
    node tests/e2e/studios.mjs        # two studios: legacy redirects, Add Shop Studio, switcher, batch deep link
    node tests/e2e/shop-store.mjs     # needs NEXT5_SHOP_IMPORT_MOCK=true: store import onboarding → trial → TikTok library pack → zip

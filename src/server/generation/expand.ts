@@ -10,7 +10,7 @@ import { madeShotsByProduct } from '../shop/morePhotos';
 import { composeBrandPrompt } from './composer/brand';
 import { composeShopPrompt } from './composer/shop';
 import type { AnyDraft, InternalBrandDraft, InternalShopDraft } from './draft';
-import { nextUnusedMaterials } from '../calendar/materials';
+import { clampVariations, getListing, roomsFor } from '../listings/listings';
 import { productInputKeys, resolveIdentity } from './inputs';
 
 export type ItemSpec = {
@@ -26,6 +26,8 @@ export type ItemSpec = {
 
 export type ExpandedBatch = {
   kind: 'trial' | 'brand_theme' | 'shop_products';
+  /** Set when the batch was built from one property's photos. */
+  listingId?: string | null;
   name: string;
   setId: string;
   themeId: string | null;
@@ -53,24 +55,51 @@ const expandBrand = async (workspace: Workspace, draft: InternalBrandDraft, now:
   const scenes = draft.sceneIds ? allScenes.filter((s) => draft.sceneIds?.includes(s.id)) : allScenes;
   const template = set.template.config as unknown as SetTemplateConfig;
 
-  // Drop box first: a photo of her real listing beats a stock office every time.
-  const materials = draft.useMaterials === false ? [] : await nextUnusedMaterials(workspace.id, draft.count);
-
   const items: ItemSpec[] = [];
+
+  if (draft.listingId) {
+    // Listing mode: every photo comes from a room she gave us. There is no fallback to a
+    // stock location here by design — inventing a room of a real property misrepresents it
+    // (docs/business-studios/12-listing-mode-plan.md).
+    const listing = await getListing(workspace.id, draft.listingId);
+    const rooms = roomsFor(listing);
+    if (rooms.length === 0) throw new HttpError(400, 'no_rooms', 'Add at least one photo of this property first.');
+    const variations = clampVariations(draft.variations);
+
+    for (const [roomIndex, room] of rooms.entries()) {
+      for (let variation = 0; variation < variations; variation += 1) {
+        const scene = scenes[(roomIndex * variations + variation) % scenes.length];
+        for (const format of draft.formats) {
+          const prompt = composeBrandPrompt({
+            template, set, scene, index: variation, sceneCount: 1, format,
+            industry: workspace.industry, identityImageCount: identity.keys.length,
+            material: { kind: room.kind, label: room.label },
+          });
+          items.push({
+            sceneId: scene.id, shot: null, productId: null, format, prompt,
+            inputR2Keys: [...identity.keys, room.r2Key],
+            materialId: room.id,
+          });
+        }
+      }
+    }
+    return {
+      kind: 'brand_theme',
+      name: `${listing.label} · ${shortDate(now, false)}`,
+      setId: set.id, themeId: theme.id, packId: null, formats: draft.formats, highRes: draft.highRes,
+      listingId: listing.id, items,
+    };
+  }
+
   for (let index = 0; index < draft.count; index += 1) {
     const scene = scenes[index % scenes.length];
-    const material = materials[index] ?? null;
     for (const format of draft.formats) {
       const prompt = composeBrandPrompt({
         template, set, scene, index, sceneCount: scenes.length, format,
         industry: workspace.industry, identityImageCount: identity.keys.length,
-        material: material ? { kind: material.kind, label: material.label } : null,
+        material: null,
       });
-      items.push({
-        sceneId: scene.id, shot: null, productId: null, format, prompt,
-        inputR2Keys: material ? [...identity.keys, material.r2Key] : identity.keys,
-        materialId: material?.id ?? null,
-      });
+      items.push({ sceneId: scene.id, shot: null, productId: null, format, prompt, inputR2Keys: identity.keys, materialId: null });
     }
   }
   return {

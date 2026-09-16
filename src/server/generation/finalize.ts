@@ -19,9 +19,11 @@ import { scoreItem } from '../score/score';
 export const finalizeItem = async (item: BatchItem, image: Buffer): Promise<void> => {
   const batch = await prisma.batch.findUniqueOrThrow({
     where: { id: item.batchId },
-    select: { workspaceId: true, kind: true, workspace: { select: { visibleAiTag: true } } },
+    select: { workspaceId: true, kind: true, listing: { select: { visibleAiTag: true } }, workspace: { select: { visibleAiTag: true } } },
   });
-  const labelled = await labelImage(image, { visibleTag: batch.workspace.visibleAiTag });
+  // A listing carries its own choice, because the rules that drive it are about the property.
+  const visibleTag = batch.listing?.visibleAiTag ?? batch.workspace.visibleAiTag;
+  const labelled = await labelImage(image, { visibleTag });
   const key = batchItemKey(batch.workspaceId, item.batchId, item.id, Date.now());
   await putObject(key, labelled);
 

@@ -31,6 +31,7 @@ type KitContext = { shop: boolean; business: string; handle: string | null; indu
 const SYSTEM = `You write social media posts for small businesses, most of them run by women: service pros (realtors, coaches, beauty pros) and online shops on TikTok Shop, Instagram and Shopee.
 Write in simple, warm, confident English a 10-year-old can read. Short sentences.
 Rules: never mention AI or that the photo was generated. Never invent facts: no prices, discounts, awards, sales numbers, materials, sizes or addresses. No emoji in the hook.
+For a photo of a property, describe only what is visible in that photo. Never name rooms, finishes, square footage, lot size or features you cannot see, and never imply the home has more than the photo shows.
 Return JSON:
 {"hook": "first line that stops the scroll, max 70 characters",
  "caption": "1-3 short sentences, max 300 characters, ending with a soft call to action",

@@ -3,7 +3,7 @@
 // Plan: docs/business-studios/11-calendar-plan.md.
 
 import { randomBytes } from 'node:crypto';
-import type { PostSchedule, PostSlot, Workspace } from '@prisma/client';
+import { Prisma, type PostSchedule, type PostSlot, type Workspace } from '@prisma/client';
 import { PROMISE } from '../../config/promise';
 import { prisma } from '../../lib/db';
 import type { ScoreDetails } from '../../lib/scoreRubric';
@@ -30,14 +30,26 @@ const brandOnly = (ws: Workspace): void => {
   if (ws.product !== 'brand') throw new HttpError(400, 'wrong_product', 'The calendar is part of Brand Studio.');
 };
 
-/** Her schedule, created with sensible defaults the first time she opens the calendar. */
+/**
+ * Her schedule, created with sensible defaults the first time she opens the calendar.
+ * Create-and-catch rather than upsert: several photos of one batch finish at once and each
+ * asks for the schedule, but an upsert's update path would touch `updatedAt` — which is the
+ * very thing `enableAfterFirstBatch` reads to tell a default schedule from one she has changed.
+ */
 export const getOrCreateSchedule = async (ws: Workspace): Promise<PostSchedule> => {
   brandOnly(ws);
   const existing = await prisma.postSchedule.findUnique({ where: { workspaceId: ws.id } });
   if (existing) return existing;
-  return prisma.postSchedule.create({
-    data: { workspaceId: ws.id, weekdays: DEFAULT_WEEKDAYS, icsToken: randomBytes(24).toString('base64url') },
-  });
+  try {
+    return await prisma.postSchedule.create({
+      data: { workspaceId: ws.id, weekdays: DEFAULT_WEEKDAYS, icsToken: randomBytes(24).toString('base64url') },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      return prisma.postSchedule.findUniqueOrThrow({ where: { workspaceId: ws.id } });
+    }
+    throw err;
+  }
 };
 
 export const parseScheduleInput = (body: Record<string, unknown>): ScheduleInput => {

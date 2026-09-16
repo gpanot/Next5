@@ -12,10 +12,10 @@ import { SkeletonCard } from '../../ui/Skeleton';
 import { ToastContainer } from '../../ui/Toast';
 import { useAppRouter } from '../shell/AppLink';
 import { CadenceCard } from './CadenceCard';
-import { DropBox } from './DropBox';
 import { MonthGrid } from './MonthGrid';
 import { PostSheet } from './PostSheet';
 import { ProgressHeader } from './ProgressHeader';
+import { PropertiesCard } from './PropertiesCard';
 import { SlotCard } from './SlotCard';
 
 /**
@@ -84,7 +84,7 @@ export const CalendarView = () => {
         </div>
       )}
 
-      <DropBox onCreate={() => router.push('/app/create')} />
+      <PropertiesCard />
 
       <CadenceCard calendar={calendar} onSaved={setLocal} />
 
