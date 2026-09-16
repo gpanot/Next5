@@ -34,7 +34,7 @@ Two details matter for our design:
 1. **Disclosure has to be on the image.** Caption or agent-remarks text is explicitly not enough.
    Our invisible metadata label does not satisfy this on its own.
 2. **The original must be reachable.** We already store her upload in R2, so we can do this — and it is a
-   feature competitors do not have.
+   feature competitors do not have. *(Not yet surfaced in the UI — see §6.)*
 
 > Not legal advice, and these are mostly secondary sources. Before this ships to US agents it wants a lawyer's
 > read, which is already on the list.
@@ -89,7 +89,7 @@ This industry's rules are a moat if we build to them.
 | | What we do |
 |---|---|
 | **Attest** | Creating a listing asks "I represent this property" — the same shape as Shop's store attestation |
-| **Visible label** | `visibleAiTag` is **forced on** for listing photos, not optional. The on-image label is what AB 723 and the MLSs ask for |
+| **Visible label** | A per-property toggle, **off by default** (decision §5.2). The on-image label is what AB 723 and the MLSs ask for, so the screen says so |
 | **Keep the original** | Her upload stays in R2, downloadable next to the generated photo, and included in the zip — this is the "access to the original" AB 723 requires |
 | **Honest Post Kit** | The caption writer is told never to describe rooms, finishes or features it cannot see in her photo |
 | **Say it plainly** | The listing screen states: we place you in your photo; we never redecorate, restage or invent a room |
@@ -108,7 +108,7 @@ The prompt block already tells the model to leave the architecture, furniture an
 | `composeBrandPrompt` | Variation index drives pose/framing within the same real room |
 | Create screen | Pick a listing → see its rooms → choose looks per room; count is derived, not typed |
 | Drop box | Becomes "Listings": grouped, named, attested |
-| Labelling | Force the visible tag for any photo built from a listing material |
+| Labelling | Per-property visible-label toggle, overriding the workspace default |
 | Post Kit | Prompt guard against describing unseen features |
 | Themes | Review the real-estate theme scenes: the ones that render an interior should be listing-only |
 
@@ -153,5 +153,7 @@ violation on `workspace_id`). Fixed with create-and-catch rather than upsert, be
    which are interiors — and autopilot makes those batches on its own. A generic kitchen is honest when the subject
    is plainly her, but it sits next to her listings in the same feed. Worth deciding whether real-estate themes
    should drop interior scenes, or whether autopilot should prefer her properties when she has any.
-2. **Other industries.** The "never invent the place" rule would suit a spa or a gym showing its own room. Kept to
+2. **Download the original next to the generated photo.** The room photo is stored and grouped with its property,
+   but there is no button for it yet. It is the "access to the original" AB 723 asks for.
+3. **Other industries.** The "never invent the place" rule would suit a spa or a gym showing its own room. Kept to
    listings for now.
