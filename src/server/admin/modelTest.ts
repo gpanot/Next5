@@ -3,7 +3,7 @@
 // It uses the same prompt builder and reference images as a real drop, so results match what customers would get.
 
 import type { ModelTestItem, ModelTestRun } from '@prisma/client';
-import { IMAGE_MODELS, isImageModelId, modelCostUsdMicros, type ImageModelId, type ModelResolution } from '../../config/imageModels';
+import { IMAGE_MODELS, IMAGE_MODEL_IDS, modelCostUsdMicros, type ModelResolution } from '../../config/imageModels';
 import { isFormatId, FORMATS, type FormatId } from '../../config/formats';
 import { isShotId, type ShotId } from '../../config/shots';
 import type { SetTemplateConfig } from '../../content/business/catalog/types';
@@ -13,6 +13,7 @@ import { composeShopPrompt } from '../generation/composer/shop';
 import { labelImage } from '../generation/labeling';
 import { HttpError } from '../http';
 import { modelTestKey } from '../storage/keys';
+import { findBenchModel, listBenchModels, type BenchModel } from './wavespeedCatalog';
 import { getObject, presignObject, putObject } from '../storage/objectStore';
 
 export type ModelTestInput = {
@@ -24,18 +25,26 @@ export type ModelTestInput = {
   shot: ShotId;
   format: FormatId;
   resolution: ModelResolution;
-  models: readonly ImageModelId[];
+  /** WaveSpeed model ids, e.g. google/nano-banana-2/edit. */
+  models: readonly string[];
   product: { name: string; category: string; colorName: string | null; fit: string | null; notes: string | null };
 };
 
 /** A run times out after this; a model still working then counts as failed. */
 const RUN_TIMEOUT_MS = 6 * 60 * 1000;
 
-export const parseModels = (value: unknown): ImageModelId[] => {
+export const parseModels = async (value: unknown): Promise<string[]> => {
   const ids = Array.isArray(value) ? [...new Set(value.map(String))] : [];
-  const models = ids.filter(isImageModelId);
+  const known = new Set((await listBenchModels()).map((model) => model.id));
+  const models = ids.filter((id) => known.has(id));
   if (models.length === 0) throw new HttpError(400, 'no_models', 'Choose at least one model.');
   return models;
+};
+
+/** Our own models keep their exact price, which changes with the resolution; the rest use WaveSpeed's listed price. */
+export const benchCostUsdMicros = (model: BenchModel, resolution: ModelResolution, inputImages: number): number => {
+  const own = IMAGE_MODEL_IDS.find((id) => IMAGE_MODELS[id].path === model.id);
+  return own ? modelCostUsdMicros(own, resolution, inputImages) : model.priceUsdMicros;
 };
 
 export const parseShot = (value: unknown): ShotId => {
@@ -120,8 +129,10 @@ export const startModelTest = async (input: ModelTestInput): Promise<ModelTestRu
   await Promise.all(
     run.items.map(async (item) => {
       try {
+        const spec = await findBenchModel(item.model);
+        if (!spec) throw new Error(`Unknown model ${item.model}`);
         const taskId = await submitEdit({
-          model: item.model as ImageModelId,
+          spec,
           imageUrls: urls,
           prompt,
           aspectRatio,
@@ -145,6 +156,7 @@ const finishItem = async (item: ModelTestItem, run: ModelTestRun): Promise<void>
     await prisma.modelTestItem.update({ where: { id: item.id }, data: { status: 'failed', error: item.error ?? 'Never started', completedAt: new Date() } });
     return;
   }
+  const spec = await findBenchModel(item.model);
   const result = await pollTask(item.wavespeedTaskId);
   if (result.status === 'completed' && result.url) {
     const res = await fetch(result.url);
@@ -158,7 +170,7 @@ const finishItem = async (item: ModelTestItem, run: ModelTestRun): Promise<void>
         status: 'ready',
         r2Key: key,
         completedAt: new Date(),
-        costUsdMicros: modelCostUsdMicros(item.model as ImageModelId, run.resolution === '2k' ? '2k' : '1k', run.inputR2Keys.length),
+        costUsdMicros: spec ? benchCostUsdMicros(spec, run.resolution === '2k' ? '2k' : '1k', run.inputR2Keys.length) : 0,
       },
     });
     return;
@@ -189,7 +201,7 @@ export const pollModelTest = async (runId: string) => {
 
 export type ModelTestItemDto = {
   id: string;
-  model: ImageModelId;
+  model: string;
   label: string;
   status: string;
   url: string | null;
@@ -198,7 +210,9 @@ export type ModelTestItemDto = {
   costUsdMicros: number;
 };
 
-export const toRunDto = async (run: ModelTestRun & { items: ModelTestItem[] }) => ({
+export const toRunDto = async (run: ModelTestRun & { items: ModelTestItem[] }) => {
+  const catalog = await listBenchModels();
+  return {
   id: run.id,
   label: run.label,
   prompt: run.prompt,
@@ -211,8 +225,8 @@ export const toRunDto = async (run: ModelTestRun & { items: ModelTestItem[] }) =
   items: await Promise.all(
     run.items.map(async (item) => ({
       id: item.id,
-      model: item.model as ImageModelId,
-      label: isImageModelId(item.model) ? IMAGE_MODELS[item.model].label : item.model,
+      model: item.model,
+      label: catalog.find((model) => model.id === item.model)?.label ?? item.model,
       status: item.status,
       url: item.r2Key ? await presignObject(item.r2Key) : null,
       error: item.error,
@@ -220,7 +234,8 @@ export const toRunDto = async (run: ModelTestRun & { items: ModelTestItem[] }) =
       costUsdMicros: item.costUsdMicros,
     })),
   ),
-});
+  };
+};
 
 export const listModelTests = async (limit = 20) => {
   const runs = await prisma.modelTestRun.findMany({ orderBy: { createdAt: 'desc' }, take: limit, include: { items: { orderBy: { createdAt: 'asc' } } } });

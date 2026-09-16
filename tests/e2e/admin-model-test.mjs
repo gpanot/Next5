@@ -1,6 +1,7 @@
-// Admin model bench: the form lists the models, a run starts, and every model gets a result card.
-// Needs the dev server and E2E_ADMIN_SECRET (the local ADMIN_SECRET). Without a WaveSpeed key the
-// models fail, which still proves the whole flow: upload → prompt → per-model cards with time and price.
+// Admin model bench: the form lists every WaveSpeed editing model, a run starts, and each model gets a result card.
+// Needs the dev server and E2E_ADMIN_SECRET (the local ADMIN_SECRET). With a real WaveSpeed key it runs two of the
+// cheapest models (about $0.02); without one the models fail, which still proves the flow:
+// upload → prompt → per-model cards with time and price.
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
@@ -8,7 +9,7 @@ const OUT = process.env.E2E_OUT ?? '.data/e2e';
 mkdirSync(OUT, { recursive: true });
 const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:3100';
 const SECRET = process.env.E2E_ADMIN_SECRET;
-const PHOTO = process.env.E2E_BIG_PHOTO ?? `${process.cwd()}/public/images/business/onboarding/product-good.png`;
+const PHOTO = process.env.E2E_BIG_PHOTO ?? `${process.cwd()}/public/images/business/onboarding/product-good-hanger.png`;
 if (!SECRET) throw new Error('set E2E_ADMIN_SECRET');
 
 const auth = await fetch(`${BASE}/api/admin/auth`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ secret: SECRET }) });
@@ -30,14 +31,23 @@ await page.getByRole('button', { name: 'models' }).click();
 await page.getByText('Model test').waitFor({ timeout: 20000 });
 const modelButtons = page.locator('button[aria-pressed]');
 assert(await modelButtons.count() >= 5, 'the bench should list every model');
-step('the bench lists the models with their price');
+
+// The search box narrows the list down to one vendor's models.
+await page.getByLabel('Search a model').fill('klein-4b');
+await page.waitForFunction(() => document.querySelectorAll('button[aria-pressed]').length <= 4, null, { timeout: 5000 });
+step('the bench lists the models with their price, and the search narrows them');
 
 await page.locator('input[type=file]').first().setInputFiles(PHOTO);
-await page.getByRole('button', { name: /Seedream 5 Pro/ }).click(); // two models selected
+// Two of the cheapest models, so a real run costs about $0.02.
+await page.getByRole('button', { name: 'Clear' }).click();
+await page.getByRole('button', { name: /flux-2-klein-4b\/edit$/ }).first().click();
+await page.getByLabel('Search a model').fill('z-image-turbo');
+await page.getByRole('button', { name: /z-image-turbo/ }).first().click();
+await page.getByLabel('Search a model').fill('');
 await page.screenshot({ path: `${OUT}/admin-bench-form.png`, fullPage: true });
 await page.getByRole('button', { name: /^Run 2 models/ }).click();
-await page.getByText(/\d\/2 done/).first().waitFor({ timeout: 60000 });
-const newestRun = page.locator('section').nth(1); // section 0 is the form
+const newestRun = page.locator('section').nth(1); // section 0 is the form, and a new run goes on top
+await newestRun.getByText('Z Image Turbo').waitFor({ timeout: 90000 });
 const cards = newestRun.locator('figure');
 await cards.first().waitFor({ timeout: 30000 });
 assert(await cards.count() === 2, `expected 2 result cards, got ${await cards.count()}`);

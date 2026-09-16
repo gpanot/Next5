@@ -1,4 +1,4 @@
-import { IMAGE_MODELS, isImageModelId, modelCostUsdMicros, type ImageModelId, type ModelResolution } from '../config/imageModels';
+import { IMAGE_MODELS, isImageModelId, modelCostUsdMicros, resolutionFor, sizeForRatio, type ImageModelId, type ModelRequestSpec, type ModelResolution } from '../config/imageModels';
 
 /** Read per call so tests and local runs can set it after import. */
 const apiKey = (): string | undefined => process.env.WAVESPEED_API_KEY;
@@ -60,38 +60,41 @@ export const FALLBACK_MODEL: ImageModelId = 'gpt-image-2';
 
 export const isImageModel = isImageModelId;
 
-const requestBody = (model: ImageModel, images: string[], params: SubmitEditParams): Record<string, unknown> => {
-  const spec = IMAGE_MODELS[model];
+const requestBody = (spec: ModelRequestSpec, images: string[], params: SubmitEditParams): Record<string, unknown> => {
   // Models without a resolution setting keep the input size; 0.5k only exists on nano-banana-2.
   const resolution: ModelResolution = params.resolution === '2k' || params.resolution === '4k' ? '2k' : '1k';
+  const ratio = params.aspectRatio ?? '3:4';
+  const ratioOk = spec.supportsAspectRatio && (!spec.aspectRatios?.length || spec.aspectRatios.includes(ratio));
   return {
-    ...(spec.imagesField === 'image' ? { image: images[0] } : { images: images.slice(0, spec.maxImages) }),
+    ...(spec.imagesField === 'image' ? { image: images[0] } : { [spec.imagesField]: images.slice(0, spec.maxImages) }),
     prompt: params.prompt,
-    ...(spec.supportsAspectRatio ? { aspect_ratio: params.aspectRatio ?? '3:4' } : {}),
-    ...(spec.supportsResolution ? { resolution } : {}),
-    output_format: 'jpeg',
+    ...(ratioOk ? { aspect_ratio: ratio } : {}),
+    ...(spec.supportsResolution ? { resolution: resolutionFor(resolution, spec.resolutions) } : {}),
+    ...(spec.supportsSize && !ratioOk ? { size: sizeForRatio(ratio, resolution) } : {}),
+    ...(spec.supportsOutputFormat === false ? {} : { output_format: 'jpeg' }),
     ...spec.extraBody,
   };
 };
 
 /**
  * Submits an image edit task (Nano Banana 2 by default; see `IMAGE_MODELS` for the rest).
+ * Pass `spec` to run a model that is not in our own catalog — the admin bench derives one per WaveSpeed model.
  * Returns the WaveSpeed task ID (poll it, or pass `webhookUrl` to be called back).
  */
-export async function submitEdit(params: SubmitEditParams & { model?: ImageModel }): Promise<string> {
+export async function submitEdit(params: SubmitEditParams & { model?: ImageModel; spec?: ModelRequestSpec }): Promise<string> {
   const key = apiKey();
   if (!key) throw new Error('WAVESPEED_API_KEY is not set');
   const images = params.imageUrls && params.imageUrls.length > 0 ? [...params.imageUrls] : params.imageUrl ? [params.imageUrl] : [];
   if (images.length === 0) throw new Error('submitEdit needs at least one reference image');
-  const model: ImageModel = params.model ?? 'nano-banana-2';
+  const spec: ModelRequestSpec = params.spec ?? IMAGE_MODELS[params.model ?? 'nano-banana-2'];
 
-  const res = await fetch(`${BASE_URL}/${IMAGE_MODELS[model].path}${params.webhookUrl ? `?webhook=${encodeURIComponent(params.webhookUrl)}` : ''}`, {
+  const res = await fetch(`${BASE_URL}/${spec.path}${params.webhookUrl ? `?webhook=${encodeURIComponent(params.webhookUrl)}` : ''}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${key}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(requestBody(model, images, params)),
+    body: JSON.stringify(requestBody(spec, images, params)),
   });
 
   const body = await res.json().catch(() => ({}));

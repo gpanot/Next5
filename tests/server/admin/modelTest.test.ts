@@ -4,6 +4,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { IMAGE_MODELS, modelCostUsdMicros } from '../../../src/config/imageModels';
+import { resetBenchModels } from '../../../src/server/admin/wavespeedCatalog';
 import { prisma } from '../../../src/lib/db';
 import { pollModelTest, startModelTest } from '../../../src/server/admin/modelTest';
 import { putObject } from '../../../src/server/storage/objectStore';
@@ -23,15 +24,31 @@ afterAll(async () => {
 beforeEach(async () => {
   await resetBusinessTables();
   await prisma.modelTestRun.deleteMany();
+  resetBenchModels();
 });
 afterEach(() => vi.unstubAllGlobals());
 
 const jpeg = () => sharp({ create: { width: 900, height: 1200, channels: 3, background: '#c8b9d2' } }).jpeg().toBuffer();
 
-/** WaveSpeed stand-in: upload → URL, submit → task id per model, poll → completed, download → a JPEG. */
+const NANO = 'google/nano-banana-2/edit';
+const SEEDREAM = 'bytedance/seedream-v5.0-pro/edit';
+const QWEN = 'wavespeed-ai/qwen-image/edit';
+
+/** WaveSpeed's model list, trimmed to the three the tests run. */
+const modelList = () => Response.json({
+  code: 200,
+  data: [
+    { model_id: NANO, base_price: 0.07, type: 'image-to-image', description: 'Edits photos.', api_schema: { api_schemas: [{ request_schema: { required: ['prompt', 'images'], properties: { prompt: { type: 'string' }, images: { type: 'array', maxItems: 14 }, aspect_ratio: { type: 'string' }, resolution: { type: 'string' } } } }] } },
+    { model_id: SEEDREAM, base_price: 0.045, type: 'image-to-image', description: 'Edits photos.', api_schema: { api_schemas: [{ request_schema: { required: ['prompt', 'images'], properties: { prompt: { type: 'string' }, images: { type: 'array', maxItems: 10 }, aspect_ratio: { type: 'string' }, resolution: { type: 'string' } } } }] } },
+    { model_id: QWEN, base_price: 0.02, type: 'image-to-image', description: 'Edits one photo.', api_schema: { api_schemas: [{ request_schema: { required: ['prompt', 'image'], properties: { prompt: { type: 'string' }, image: { type: 'string' }, size: { type: 'string' } } } }] } },
+  ],
+});
+
+/** WaveSpeed stand-in: model list, upload → URL, submit → task id per model, poll → completed, download → a JPEG. */
 const stubWaveSpeed = (submitted: string[]) => {
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
+    if (url.endsWith('/api/v3/models')) return modelList();
     if (url.includes('/media/upload/binary')) return Response.json({ code: 200, data: { download_url: 'https://cdn.test/input.jpg' } });
     if (url.includes('/predictions/')) return Response.json({ code: 200, data: { status: 'completed', outputs: ['https://cdn.test/out.jpg'], error: '' } });
     if (url.startsWith('https://cdn.test/out.jpg')) return new Response(new Uint8Array(await jpeg()));
@@ -55,7 +72,7 @@ describe('admin model bench', () => {
       shot: 'full_body_front',
       format: 'square_1_1',
       resolution: '1k',
-      models: ['nano-banana-2', 'seedream-v5-pro'],
+      models: [NANO, SEEDREAM],
       product: { name: 'Leopard dress', category: 'dress', colorName: 'brown', fit: null, notes: null },
     });
 
@@ -67,8 +84,9 @@ describe('admin model bench', () => {
     const polled = await pollModelTest(run.id);
     expect(polled.items.map((i) => i.status)).toEqual(['ready', 'ready']);
     expect(polled.items.every((i) => i.url && i.seconds !== null && i.seconds >= 0)).toBe(true);
-    expect(polled.items.find((i) => i.model === 'seedream-v5-pro')?.costUsdMicros).toBe(modelCostUsdMicros('seedream-v5-pro', '1k', 2));
-    expect(polled.items.find((i) => i.model === 'nano-banana-2')?.costUsdMicros).toBe(70_000);
+    expect(polled.items.find((i) => i.model === SEEDREAM)?.costUsdMicros).toBe(modelCostUsdMicros('seedream-v5-pro', '1k', 2));
+    expect(polled.items.find((i) => i.model === NANO)?.costUsdMicros).toBe(70_000);
+    expect(polled.items.find((i) => i.model === NANO)?.label).toBe('Nano Banana 2');
   });
 
   it('marks a model failed without stopping the others', async () => {
@@ -77,6 +95,7 @@ describe('admin model bench', () => {
     await putObject('bench/front2.jpg', await jpeg());
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
+      if (url.endsWith('/api/v3/models')) return modelList();
       if (url.includes('/media/upload/binary')) return Response.json({ code: 200, data: { download_url: 'https://cdn.test/input.jpg' } });
       if (url.includes(IMAGE_MODELS['qwen-image'].path)) return Response.json({ code: 400, message: 'model unavailable' }, { status: 400 });
       if (url.includes('/predictions/')) return Response.json({ code: 200, data: { status: 'failed', outputs: [], error: 'Content flagged as potentially sensitive' } });
@@ -90,13 +109,13 @@ describe('admin model bench', () => {
       shot: 'half_body',
       format: 'square_1_1',
       resolution: '1k',
-      models: ['qwen-image', 'nano-banana-2'],
+      models: [QWEN, NANO],
       product: { name: 'Lace set', category: 'set', colorName: null, fit: null, notes: null },
     });
 
     const polled = await pollModelTest(run.id);
-    const qwen = polled.items.find((i) => i.model === 'qwen-image');
-    const nano = polled.items.find((i) => i.model === 'nano-banana-2');
+    const qwen = polled.items.find((i) => i.model === QWEN);
+    const nano = polled.items.find((i) => i.model === NANO);
     expect(qwen).toMatchObject({ status: 'failed' });
     expect(qwen?.error).toContain('model unavailable');
     expect(nano).toMatchObject({ status: 'failed' });

@@ -14,18 +14,29 @@ export type ImageModelId =
 
 export type ModelResolution = '1k' | '2k';
 
-export type ImageModel = {
-  id: ImageModelId;
-  label: string;
+/** Everything needed to build one model's request body. The admin bench derives this from WaveSpeed's model list. */
+export type ModelRequestSpec = {
   /** Path after /api/v3/. */
   path: string;
   /** Field name for the reference images, and whether it takes a list. */
-  imagesField: 'images' | 'image';
+  imagesField: 'images' | 'image' | 'image_urls';
   maxImages: number;
   supportsAspectRatio: boolean;
   supportsResolution: boolean;
+  /** Model takes a `size` in pixels (width*height) instead of an aspect ratio. */
+  supportsSize?: boolean;
+  /** Values the model accepts, when it only takes some. Empty or missing means ours are fine. */
+  aspectRatios?: readonly string[];
+  resolutions?: readonly string[];
+  /** Most models take `output_format`; a few reject anything they did not publish. Defaults to true. */
+  supportsOutputFormat?: boolean;
   /** Extra body fields this model needs. */
   extraBody?: Readonly<Record<string, string>>;
+};
+
+export type ImageModel = ModelRequestSpec & {
+  id: ImageModelId;
+  label: string;
   /** Price per image, plus per reference image beyond the first where the model charges for them. */
   priceUsdMicros: Readonly<Record<ModelResolution, number>>;
   perImageUsdMicros?: number;
@@ -88,6 +99,7 @@ export const IMAGE_MODELS: Record<ImageModelId, ImageModel> = {
     maxImages: 10,
     supportsAspectRatio: false,
     supportsResolution: false,
+    supportsSize: true,
     priceUsdMicros: { '1k': 16_000, '2k': 16_000 },
     note: 'Very cheap and fast; keeps the input size.',
   },
@@ -99,6 +111,7 @@ export const IMAGE_MODELS: Record<ImageModelId, ImageModel> = {
     maxImages: 1,
     supportsAspectRatio: false,
     supportsResolution: false,
+    supportsSize: true,
     priceUsdMicros: { '1k': 20_000, '2k': 20_000 },
     note: 'Takes one reference photo only.',
   },
@@ -108,6 +121,31 @@ export const IMAGE_MODEL_IDS = Object.keys(IMAGE_MODELS) as ImageModelId[];
 
 export const isImageModelId = (value: unknown): value is ImageModelId =>
   typeof value === 'string' && value in IMAGE_MODELS;
+
+/**
+ * Pixel size for models that take `size` (width*height) instead of an aspect ratio.
+ * Keeps the asked ratio and lands on about 1 or 4 megapixels, on a 32 px grid, inside WaveSpeed's 512–4096 range.
+ */
+export const sizeForRatio = (ratio: string, resolution: ModelResolution): string => {
+  const [w, h] = ratio.split(':').map(Number);
+  if (!w || !h) return resolution === '2k' ? '2048*2048' : '1024*1024';
+  const long = resolution === '2k' ? 2048 : 1024;
+  const scale = long / Math.sqrt(w * h);
+  const round = (value: number) => Math.min(4096, Math.max(512, Math.round((value * scale) / 32) * 32));
+  return `${round(w)}*${round(h)}`;
+};
+
+/**
+ * The value a model accepts for the resolution we want. Models name sizes differently ('2k', '2K', '1080p'),
+ * so we take an exact match first, then anything carrying the same digit, then the model's first choice.
+ */
+export const resolutionFor = (wanted: ModelResolution, allowed: readonly string[] | undefined): string => {
+  if (!allowed || allowed.length === 0) return wanted;
+  const digit = wanted[0];
+  return allowed.find((value) => value.toLowerCase() === wanted)
+    ?? allowed.find((value) => value.includes(digit))
+    ?? allowed[0];
+};
 
 /** Price for one image from this model, including its charge for extra reference photos. */
 export const modelCostUsdMicros = (id: ImageModelId, resolution: ModelResolution, inputImages: number): number => {

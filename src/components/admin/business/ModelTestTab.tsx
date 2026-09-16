@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { adminFetch, useAdminApi } from './useAdminApi';
 import { ModelTestRunCard, type RunDto } from './ModelTestRunCard';
+import { ModelPicker, type BenchModelDto } from './ModelPicker';
 
 type Bench = {
-  models: { id: string; label: string; note: string; price1k: number; price2k: number }[];
+  models: BenchModelDto[];
   studioModels: { slug: string; photos: number }[];
   templates: { id: string; name: string }[];
   shots: { id: string; label: string }[];
@@ -14,6 +15,9 @@ type Bench = {
   runs: RunDto[];
 };
 
+/** What customers get today, so a run always compares against the live model. */
+const DEFAULT_MODEL = 'google/nano-banana-2/edit';
+
 const field = 'w-full rounded-lg border border-line px-3 py-2 text-[13px] text-ink';
 const labelClass = 'flex flex-col gap-1 text-[12px] font-medium text-muted';
 
@@ -21,7 +25,7 @@ const labelClass = 'flex flex-col gap-1 text-[12px] font-medium text-muted';
 export const ModelTestTab = ({ token }: { token: string }) => {
   const { data, error, loading, refresh } = useAdminApi<Bench>(token, '/api/admin/model-tests');
   const [form, setForm] = useState({ studioModel: '', templateId: '', shot: 'full_body_front', format: 'square_1_1', resolution: '1k', name: '', category: 'dress', colorName: '', fit: '', notes: '', label: '' });
-  const [models, setModels] = useState<string[]>(['nano-banana-2']);
+  const [models, setModels] = useState<string[]>([DEFAULT_MODEL]);
   const [files, setFiles] = useState<{ front: File | null; detail: File | null; back: File | null }>({ front: null, detail: null, back: null });
   const [running, setRunning] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -34,7 +38,6 @@ export const ModelTestTab = ({ token }: { token: string }) => {
   const templateId = form.templateId || (data?.templates[0]?.id ?? '');
 
   const set = (key: keyof typeof form) => (value: string) => setForm((f) => ({ ...f, [key]: value }));
-  const toggleModel = (id: string) => setModels((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]));
 
   const run = async () => {
     if (!files.front || models.length === 0) return;
@@ -128,27 +131,7 @@ export const ModelTestTab = ({ token }: { token: string }) => {
           </label>
         </div>
 
-        <div className="flex flex-col gap-2">
-          <p className="text-[12px] font-medium text-muted">Models ({models.length} selected)</p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {data.models.map((m) => {
-              const price = form.resolution === '2k' ? m.price2k : m.price1k;
-              const on = models.includes(m.id);
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => toggleModel(m.id)}
-                  className={`flex flex-col gap-0.5 rounded-xl border px-3 py-2 text-left transition-colors ${on ? 'border-ink bg-surface-alt' : 'border-line hover:border-ink/40'}`}
-                >
-                  <span className="text-[13px] font-medium text-ink">{m.label} · ${(price / 1_000_000).toFixed(3)}</span>
-                  <span className="text-[11px] text-muted">{m.note}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <ModelPicker models={data.models} selected={models} onChange={setModels} />
 
         {message && <p className="text-[13px] text-red-700">{message}</p>}
         <div className="flex items-center gap-3">
@@ -161,7 +144,7 @@ export const ModelTestTab = ({ token }: { token: string }) => {
             {running ? 'Starting…' : `Run ${models.length} model${models.length === 1 ? '' : 's'}`}
           </button>
           <span className="text-[12px] text-muted">
-            About ${(models.reduce((sum, id) => sum + (data.models.find((m) => m.id === id)?.[form.resolution === '2k' ? 'price2k' : 'price1k'] ?? 0), 0) / 1_000_000).toFixed(3)} per run
+            About ${(models.reduce((sum, id) => sum + (data.models.find((m) => m.id === id)?.price ?? 0), 0) / 1_000_000).toFixed(3)} per run
           </span>
         </div>
       </section>

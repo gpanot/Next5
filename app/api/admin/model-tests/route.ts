@@ -1,10 +1,10 @@
-import { IMAGE_MODELS, IMAGE_MODEL_IDS } from '../../../../src/config/imageModels';
 import { FORMAT_IDS } from '../../../../src/config/formats';
 import { PRODUCT_CATEGORIES, SHOTS } from '../../../../src/config/shots';
 import { adminRoute, json } from '../../../../src/server/admin/route';
 import {
   benchIdentities, benchTemplates, listModelTests, parseFormat, parseModels, parseShot, startModelTest, toRunDto,
 } from '../../../../src/server/admin/modelTest';
+import { listBenchModels } from '../../../../src/server/admin/wavespeedCatalog';
 import { HttpError } from '../../../../src/server/http';
 import { normalizeUpload, readForm } from '../../../../src/server/storage/images';
 import { modelTestKey } from '../../../../src/server/storage/keys';
@@ -15,9 +15,9 @@ export const maxDuration = 120;
 
 /** GET — what the bench can run (models, looks, studio models, shots) plus the latest runs. */
 export const GET = adminRoute(async () => {
-  const [identities, templates, runs] = await Promise.all([benchIdentities(), benchTemplates(), listModelTests()]);
+  const [identities, templates, runs, models] = await Promise.all([benchIdentities(), benchTemplates(), listModelTests(), listBenchModels()]);
   return json({
-    models: IMAGE_MODEL_IDS.map((id) => ({ id, label: IMAGE_MODELS[id].label, note: IMAGE_MODELS[id].note, price1k: IMAGE_MODELS[id].priceUsdMicros['1k'], price2k: IMAGE_MODELS[id].priceUsdMicros['2k'] })),
+    models: models.map((m) => ({ id: m.id, label: m.label, family: m.family, note: m.note, price: m.priceUsdMicros, maxImages: m.maxImages, keepsInputShape: m.keepsInputShape })),
     studioModels: identities.map((i) => ({ slug: i.slug, photos: i.keys.length })),
     templates: templates.map((t) => ({ id: t.id, name: t.name })),
     shots: Object.values(SHOTS).map((s) => ({ id: s.id, label: s.label })),
@@ -40,7 +40,7 @@ export const POST = adminRoute(async (req) => {
 
   const identity = (await benchIdentities()).find((i) => i.slug === text('studioModel'));
   if (!identity) throw new HttpError(400, 'invalid_model', 'Pick a Studio model.');
-  const models = parseModels(JSON.parse(text('models') || '[]'));
+  const models = await parseModels(JSON.parse(text('models') || '[]'));
   const shot = parseShot(text('shot'));
   const format = parseFormat(text('format') || 'square_1_1');
   const resolution = text('resolution') === '2k' ? '2k' : '1k';
