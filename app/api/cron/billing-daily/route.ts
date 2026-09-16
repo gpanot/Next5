@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { runDueAutopilot } from '../../../../src/server/calendar/autopilot';
+import { sendWeeklyDigests } from '../../../../src/server/calendar/digest';
 import { runGenerationTick } from '../../../../src/server/generation/poll';
 import { runBillingDaily } from '../../../../src/server/lifecycle/billingDaily';
 import { runDueDrops } from '../../../../src/server/shop/drops';
@@ -15,6 +17,8 @@ export async function GET(req: Request): Promise<Response> {
   const summary = await runBillingDaily();
   const storeSyncs = await syncDueConnections().catch(() => 0);
   const drops = await runDueDrops().catch(() => 0);
+  const autopilot = await runDueAutopilot().catch(() => 0);
+  const digests = await sendWeeklyDigests().catch(() => 0);
   await runGenerationTick({ budgetMs: 20_000 });
-  return NextResponse.json({ ok: true, summary, storeSyncs, drops });
+  return NextResponse.json({ ok: true, summary, storeSyncs, drops, autopilot, digests });
 }

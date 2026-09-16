@@ -87,3 +87,19 @@ export const dropReadyEmail = (count: number, names: string[], createQuery: stri
   body: [`We picked the products that need photos most: ${names.slice(0, 3).join(', ')}${names.length > 3 ? ` and ${names.length - 3} more` : ''}.`, 'Check the list and create the photos in one click. Nothing is made until you say so.'],
   cta: { label: 'Review my drop', url: appUrl(`/app/create?${createQuery}`) },
 });
+
+/**
+ * Weekly calendar delivery — never a reminder. It says "here is what we made you",
+ * and it never mentions posts she missed (docs/business-studios/11-calendar-plan.md §2.2).
+ */
+export const postsReadyEmail = (count: number, firstHook: string | null, postedLastWeek: number): EmailContent => ({
+  subject: `${count} post${count === 1 ? '' : 's'} ready for this week`,
+  heading: `Your week is ready`,
+  body: [
+    `${count} post${count === 1 ? ' is' : 's are'} waiting in your calendar, photo and words done.${firstHook ? ` First up: “${firstHook}”.` : ''}`,
+    postedLastWeek > 0
+      ? `You posted ${postedLastWeek} time${postedLastWeek === 1 ? '' : 's'} last week. Nice work.`
+      : 'Open a post, save the photo, copy the caption. About twenty seconds each.',
+  ],
+  cta: { label: 'Open my calendar', url: appUrl('/app/brand/calendar') },
+});

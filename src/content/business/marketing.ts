@@ -78,7 +78,10 @@ export const BRAND = {
   faq: [
     { q: 'Can’t I just use ChatGPT?', a: 'You can make one photo. But your face changes a little each time, and you still have to write every post. Next5 keeps your face the same every month, makes all your photos at once, and writes the hook, caption and hashtags.' },
     { q: 'What is the Scroll-Stop Score?', a: 'Every photo gets a score from 0 to 100. AI checks six things that make people stop scrolling, like light, a clear face and how it looks small. You also get one tip to post it better.' },
-    { q: 'What is the Beat-your-feed promise?', a: 'Post 12 Next5 photos in 30 days. Then compare them with your last 12 posts in your own stats. If they did not do better, tell us in the app and your next month is free.' },
+    { q: 'Do I have to plan my posts?', a: 'No. Pick the days you want to post. We put your best photo on each day, ready to go. Open one, save the photo, copy the caption. About twenty seconds.' },
+    { q: 'Can you post for me?', a: 'Not yet. Instagram and TikTok only let apps post in ways that would slow you down. So we do everything up to the last step: the photo and the words are ready, and you tap post.' },
+    { q: 'Can I use my own photos of a house or my salon?', a: 'Yes. Add a photo of a listing or your place, and your next photos put you inside it. One upload turns into a post.' },
+    { q: 'What is the Beat-your-feed promise?', a: 'Post 12 Next5 photos in 30 days. Then compare them with your last 12 posts in your own stats. If they did not do better, tell us in the app and your next month is free. The app counts your 12 posts for you.' },
     { q: 'Will it look like me?', a: 'We use your three selfies for every photo. We keep your face, skin and hair the same. If a photo looks off, redo it for free, two times.' },
     { q: 'What do I need to send?', a: 'Three new selfies in good light. One looking at the camera, one turned a little left, one turned a little right. No sunglasses or hats. Just you in the photo.' },
     { q: 'Who owns the photos?', a: 'You do. Use them on social media and your website. Use them on listing sites, business cards and ads.' },

@@ -10,6 +10,7 @@ import { madeShotsByProduct } from '../shop/morePhotos';
 import { composeBrandPrompt } from './composer/brand';
 import { composeShopPrompt } from './composer/shop';
 import type { AnyDraft, InternalBrandDraft, InternalShopDraft } from './draft';
+import { nextUnusedMaterials } from '../calendar/materials';
 import { productInputKeys, resolveIdentity } from './inputs';
 
 export type ItemSpec = {
@@ -19,6 +20,8 @@ export type ItemSpec = {
   format: FormatId;
   prompt: string;
   inputR2Keys: string[];
+  /** Drop-box photo this was built from, so the calendar can label the post "24 Oak St". */
+  materialId?: string | null;
 };
 
 export type ExpandedBatch = {
@@ -50,15 +53,24 @@ const expandBrand = async (workspace: Workspace, draft: InternalBrandDraft, now:
   const scenes = draft.sceneIds ? allScenes.filter((s) => draft.sceneIds?.includes(s.id)) : allScenes;
   const template = set.template.config as unknown as SetTemplateConfig;
 
+  // Drop box first: a photo of her real listing beats a stock office every time.
+  const materials = draft.useMaterials === false ? [] : await nextUnusedMaterials(workspace.id, draft.count);
+
   const items: ItemSpec[] = [];
   for (let index = 0; index < draft.count; index += 1) {
     const scene = scenes[index % scenes.length];
+    const material = materials[index] ?? null;
     for (const format of draft.formats) {
       const prompt = composeBrandPrompt({
         template, set, scene, index, sceneCount: scenes.length, format,
         industry: workspace.industry, identityImageCount: identity.keys.length,
+        material: material ? { kind: material.kind, label: material.label } : null,
       });
-      items.push({ sceneId: scene.id, shot: null, productId: null, format, prompt, inputR2Keys: identity.keys });
+      items.push({
+        sceneId: scene.id, shot: null, productId: null, format, prompt,
+        inputR2Keys: material ? [...identity.keys, material.r2Key] : identity.keys,
+        materialId: material?.id ?? null,
+      });
     }
   }
   return {

@@ -227,18 +227,21 @@ model Workspace {
   createdAt             DateTime    @default(now()) @map("created_at")
   updatedAt             DateTime    @updatedAt @map("updated_at")
 
-  owner         User                @relation(fields: [ownerUserId], references: [id])
-  identities    IdentityReference[]
-  sets          StudioSet[]
-  products      Product[]
-  batches       Batch[]
-  subscriptions Subscription[]
-  ledger        CreditLedger[]
-  payments      Payment[]
-  promiseClaims PromiseClaim[]
+  owner           User                @relation(fields: [ownerUserId], references: [id])
+  identities      IdentityReference[]
+  sets            StudioSet[]
+  products        Product[]
+  batches         Batch[]
+  subscriptions   Subscription[]
+  ledger          CreditLedger[]
+  payments        Payment[]
+  promiseClaims   PromiseClaim[]
   shopConnections ShopConnection[]
   listingPacks    ListingPack[]
   dropSchedule    DropSchedule?
+  postSchedule    PostSchedule?
+  postMaterials   PostMaterial[]
+  postSlots       PostSlot[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
@@ -332,17 +335,17 @@ model Theme {
 }
 
 model Product {
-  id          String    @id @default(cuid())
-  workspaceId String    @map("workspace_id")
-  name        String
-  category    String
-  colorName   String?   @map("color_name")
-  sku         String?
-  fit         String?
-  notes       String?
-  frontR2Key  String    @map("front_r2_key")
-  backR2Key   String?   @map("back_r2_key")
-  detailR2Key String?   @map("detail_r2_key")
+  id               String    @id @default(cuid())
+  workspaceId      String    @map("workspace_id")
+  name             String
+  category         String
+  colorName        String?   @map("color_name")
+  sku              String?
+  fit              String?
+  notes            String?
+  frontR2Key       String    @map("front_r2_key")
+  backR2Key        String?   @map("back_r2_key")
+  detailR2Key      String?   @map("detail_r2_key")
   /// upload | tiktok_scrape | tiktok_export | tiktok_api
   source           String    @default("upload")
   externalId       String?   @map("external_id")
@@ -363,19 +366,20 @@ model Product {
   detailsFetchedAt DateTime? @map("details_fetched_at")
   importedAt       DateTime? @map("imported_at")
   lastSyncedAt     DateTime? @map("last_synced_at")
-  lastUsedAt  DateTime? @map("last_used_at")
-  archivedAt  DateTime? @map("archived_at")
+  lastUsedAt       DateTime? @map("last_used_at")
+  archivedAt       DateTime? @map("archived_at")
   /// The seller archived it by hand: a store sync must not bring it back.
-  archivedBySeller Boolean @default(false) @map("archived_by_seller")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  archivedBySeller Boolean   @default(false) @map("archived_by_seller")
+  createdAt        DateTime  @default(now()) @map("created_at")
 
-  workspace Workspace   @relation(fields: [workspaceId], references: [id])
-  items     BatchItem[]
-  snapshots ProductSnapshot[]
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id])
+  items       BatchItem[]
+  snapshots   ProductSnapshot[]
+  postSlots   PostSlot[]
   listingPack ListingPack?
 
-  @@index([workspaceId])
   @@unique([workspaceId, source, externalId])
+  @@index([workspaceId])
   @@map("products")
 }
 
@@ -433,12 +437,16 @@ model BatchItem {
   /// Scroll-Stop Score 0–100 from the vision rubric (src/server/score).
   score            Int?
   scoreDetails     Json?      @map("score_details")
+  /// The drop-box material this photo was built from, so a slot can show "24 Oak St".
+  materialId       String?    @map("material_id")
   submittedAt      DateTime?  @map("submitted_at")
   completedAt      DateTime?  @map("completed_at")
   createdAt        DateTime   @default(now()) @map("created_at")
 
-  batch   Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  product Product? @relation(fields: [productId], references: [id])
+  batch    Batch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  product  Product?      @relation(fields: [productId], references: [id])
+  material PostMaterial? @relation(fields: [materialId], references: [id])
+  slots    PostSlot[]
 
   @@index([batchId])
   @@index([status, createdAt])
@@ -723,4 +731,91 @@ model ModelTestItem {
 
   @@index([runId])
   @@map("model_test_items")
+}
+
+/// Brand Studio calendar: her posting cadence, and the autopilot that keeps it stocked.
+model PostSchedule {
+  id              String    @id @default(cuid())
+  workspaceId     String    @unique @map("workspace_id")
+  active          Boolean   @default(true)
+  /// 0-6, Sunday = 0. Default Tue/Thu/Sat — 12 posts a month, the promise threshold.
+  weekdays        Int[]     @default([2, 4, 6])
+  /// IANA zone, read from the browser on first save.
+  timezone        String    @default("UTC")
+  /// Place finished photos into open slots.
+  autoFill        Boolean   @default(true) @map("auto_fill")
+  /// Generate on her behalf. Off until her first manual batch (docs 11-calendar-plan §5.8).
+  autopilot       Boolean   @default(false)
+  /// How far ahead autopilot keeps her stocked.
+  bufferDays      Int       @default(14) @map("buffer_days")
+  weeklyDigest    Boolean   @default(true) @map("weekly_digest")
+  icsToken        String    @unique @map("ics_token")
+  lastFilledAt    DateTime? @map("last_filled_at")
+  lastGeneratedAt DateTime? @map("last_generated_at")
+  /// Autopilot stopped because nothing has been posted in a fortnight — the churn alarm.
+  pausedAt        DateTime? @map("paused_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  slots     PostSlot[]
+
+  @@map("post_schedules")
+}
+
+/// The drop box: her own photos (a listing, a treatment room) that we put her into.
+model PostMaterial {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  r2Key       String    @map("r2_key")
+  /// listing | room | other
+  kind        String    @default("listing")
+  label       String?
+  note        String?
+  usedAt      DateTime? @map("used_at")
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  slots     PostSlot[]
+  items     BatchItem[]
+
+  @@index([workspaceId, createdAt])
+  @@map("post_materials")
+}
+
+/// One dated post. The photo is optional until autopilot or auto-fill lands one in it.
+model PostSlot {
+  id              String    @id @default(cuid())
+  workspaceId     String    @map("workspace_id")
+  scheduleId      String?   @map("schedule_id")
+  scheduledFor    DateTime  @map("scheduled_for") @db.Date
+  /// morning | midday | evening
+  slotOfDay       String    @default("evening") @map("slot_of_day")
+  itemId          String?   @map("item_id")
+  materialId      String?   @map("material_id")
+  /// Reserved for a Shop calendar; unused in P19.
+  productId       String?   @map("product_id")
+  platform        String    @default("instagram")
+  /// planned | posted | skipped
+  status          String    @default("planned")
+  postUrl         String?   @map("post_url")
+  postedAt        DateTime? @map("posted_at")
+  captionOverride String?   @map("caption_override")
+  /// auto | manual | drop
+  source          String    @default("auto")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  schedule  PostSchedule? @relation(fields: [scheduleId], references: [id])
+  item      BatchItem?    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  material  PostMaterial? @relation(fields: [materialId], references: [id])
+  product   Product?      @relation(fields: [productId], references: [id])
+
+  @@unique([workspaceId, itemId])
+  @@index([workspaceId, scheduledFor])
+  @@index([workspaceId, status, postedAt])
+  @@index([itemId])
+  @@map("post_slots")
 }

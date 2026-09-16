@@ -59,7 +59,7 @@ export const PLANS: Record<PlanId, Plan> = {
     storeProducts: 0,
     drops: false,
     contactOnly: false,
-    features: ['30 photos every month', 'Scroll-Stop Score on every photo', '2 sets', 'Every monthly trend theme', 'All social sizes'],
+    features: ['30 photos every month', 'Your posting calendar, planned for you', 'Scroll-Stop Score on every photo', '2 sets', 'Every monthly trend theme', 'All social sizes'],
   },
   brand_pro: {
     id: 'brand_pro',
@@ -80,6 +80,7 @@ export const PLANS: Record<PlanId, Plan> = {
     contactOnly: false,
     features: [
       '120 photos every month',
+      'Your posting calendar, planned and made for you',
       'Post Kit: a hook, caption and hashtags for every photo',
       'Scroll-Stop Score and tips on every photo',
       '5 sets and every trend theme',

@@ -38,7 +38,7 @@ export const startTrial = async (workspace: Workspace, options: { productId?: st
     const themeId = await featuredThemeId();
     const theme = await prisma.theme.findUniqueOrThrow({ where: { id: themeId } });
     const sceneIds = (theme.scenes as unknown as ThemeScene[]).slice(0, TRIAL_CREDITS).map((s) => s.id);
-    batch = await createBatch(workspace, { kind: 'brand_theme', trial: true, setId: set.id, themeId, count: TRIAL_CREDITS, sceneIds, formats: ['portrait_4_5'], highRes: false });
+    batch = await createBatch(workspace, { kind: 'brand_theme', trial: true, useMaterials: false, setId: set.id, themeId, count: TRIAL_CREDITS, sceneIds, formats: ['portrait_4_5'], highRes: false });
   } else {
     // The product the seller picked, else their best-selling product with a photo ready, else the newest.
     const ready = { workspaceId: workspace.id, archivedAt: null, frontR2Key: { notIn: ['', 'pending'] } };

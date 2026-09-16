@@ -12,6 +12,20 @@ export const identityBlock = (imageCount: number, isStudioModel: boolean): strin
   );
 };
 
+/**
+ * Drop box: her own photo of a place (a listing, a treatment room) becomes the setting,
+ * and she is placed into it. The room is the thing that must not change.
+ */
+export const materialBlock = (imageNumber: number, kind: string, label: string | null): string => {
+  const place = kind === 'listing' ? 'property' : kind === 'room' ? 'room' : 'place';
+  return (
+    `Image ${imageNumber} shows a real ${place}${label ? ` (${label})` : ''}. Place the person naturally inside this ` +
+    `exact ${place}, keeping its architecture, layout, furniture, materials and colours unchanged. ` +
+    'Match the lighting of the photo, and keep her scale and perspective believable for the space. ' +
+    'Do not redecorate, restyle or invent any part of it.'
+  );
+};
+
 export type GarmentInfo = {
   category: string;
   name: string;

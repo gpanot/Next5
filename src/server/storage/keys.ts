@@ -18,3 +18,7 @@ export const studioModelKey = (slug: string, kind: 'face' | 'full'): string =>
 
 /** Admin model bench: uploaded garment photos and each model's result. */
 export const modelTestKey = (runId: string, name: string): string => `admin/model-tests/${runId}/${name}.jpg`;
+
+/** Drop box: her own photo of a listing or a room, which we place her into. */
+export const materialKey = (workspaceId: string, materialId: string): string =>
+  `ws/${workspaceId}/materials/${materialId}.jpg`;

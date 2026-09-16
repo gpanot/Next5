@@ -68,6 +68,9 @@ export const createBatch = async (workspace: Workspace, draft: AnyDraft, now = n
     await reserveForBatch(tx, { workspaceId: workspace.id, batchId: batch.id, credits: estimate.credits, isTrial: expanded.kind === 'trial', now });
     const productIds = [...new Set(expanded.items.map((i) => i.productId).filter((id): id is string => Boolean(id)))];
     if (productIds.length > 0) await tx.product.updateMany({ where: { id: { in: productIds } }, data: { lastUsedAt: now } });
+    // A drop-box photo is spent once: the next batch moves on to her newer listings.
+    const materialIds = [...new Set(expanded.items.map((i) => i.materialId).filter((id): id is string => Boolean(id)))];
+    if (materialIds.length > 0) await tx.postMaterial.updateMany({ where: { id: { in: materialIds } }, data: { usedAt: now } });
     return batch;
   });
 };

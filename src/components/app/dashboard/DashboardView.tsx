@@ -12,6 +12,7 @@ import { BatchCard } from '../batches/BatchCard';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { CreditsCard } from './CreditsCard';
 import { FeaturedThemeCard } from './FeaturedThemeCard';
+import { TodaysPostCard } from './TodaysPostCard';
 
 const greeting = (): string => {
   const hour = new Date().getHours();
@@ -55,11 +56,12 @@ export const DashboardView = () => {
       <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
         <CreditsCard me={me} />
         {product === 'brand' ? (
-          <FeaturedThemeCard />
+          <TodaysPostCard />
         ) : (
           <EmptyState illustration={<Package className="h-9 w-9" />} title="New stock in?" body="Add products and create on-model photos in one go." action={{ label: 'Add products', onClick: () => router.push('/app/products') }} />
         )}
       </div>
+      {product === 'brand' && <FeaturedThemeCard />}
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-[17px] font-semibold text-app-ink">Recent batches</h2>

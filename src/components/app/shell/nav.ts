@@ -1,4 +1,4 @@
-import { CreditCard, Grid3x3, Home, Images, Layers, Package, Plus, Settings, Store, type LucideIcon } from 'lucide-react';
+import { CalendarDays, CreditCard, Grid3x3, Home, Images, Layers, Package, Plus, Settings, Store, type LucideIcon } from 'lucide-react';
 import { studioHref } from '../../../lib/studioPaths';
 import type { ProductLineDto } from '../../../types/business/me';
 
@@ -20,6 +20,7 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
       ]
     : [
         { href: s(''), label: 'Home', icon: Home },
+        { href: s('/calendar'), label: 'Calendar', icon: CalendarDays },
         { href: s('/create'), label: 'Create', icon: Plus, primary: true },
         { href: s('/library'), label: 'Library', icon: Images },
         { href: s('/sets'), label: 'Sets', icon: Layers },
@@ -28,14 +29,14 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
       ];
 };
 
-/** Bottom bar on phones: Home · Library · Create · Store/Sets · More. */
+/** Bottom bar on phones: Home · Calendar/Library · Create · Store/Calendar · More. */
 export const mobileTabsFor = (studio: ProductLineDto): NavItem[] => {
   const s = (path: string) => studioHref(studio, path);
   return [
     { href: s(''), label: 'Home', icon: Home },
     { href: s('/library'), label: 'Library', icon: Images },
     { href: s('/create'), label: 'Create', icon: Plus, primary: true },
-    studio === 'shop' ? { href: s('/store'), label: 'Store', icon: Store } : { href: s('/sets'), label: 'Sets', icon: Layers },
+    studio === 'shop' ? { href: s('/store'), label: 'Store', icon: Store } : { href: s('/calendar'), label: 'Calendar', icon: CalendarDays },
     { href: '/app/settings', label: 'More', icon: Grid3x3 },
   ];
 };

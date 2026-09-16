@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authedRoute } from '../../../../src/server/api';
 import { readJsonObject } from '../../../../src/server/http';
+import { postedLinks, postsInWindow } from '../../../../src/server/calendar/calendar';
 import { parseClaim, promiseStatus, submitClaim } from '../../../../src/server/promise/promise';
 import { enforceRateLimit } from '../../../../src/server/rateLimit';
 import { isProductLine, requireWorkspace } from '../../../../src/server/workspaces/workspaces';
@@ -9,7 +10,9 @@ import { isProductLine, requireWorkspace } from '../../../../src/server/workspac
 export const GET = authedRoute(async (req, session) => {
   const product = new URL(req.url).searchParams.get('product');
   const ws = await requireWorkspace(session.userId, isProductLine(product) ? product : undefined);
-  return NextResponse.json(await promiseStatus(ws.id));
+  // The app counts her posts for her, so the claim is not a number typed from memory.
+  const [status, counted, links] = await Promise.all([promiseStatus(ws.id), postsInWindow(ws.id), postedLinks(ws.id)]);
+  return NextResponse.json({ ...status, counted, links });
 });
 
 /** POST /api/app/promise — submit a claim (self-reported averages, optional post links). */

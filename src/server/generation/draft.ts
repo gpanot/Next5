@@ -30,7 +30,7 @@ export type ShopDraft = {
 };
 
 /** Built server-side only (onboarding trial, set preview) — never parsed from a request body. */
-export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & { kind: 'brand_theme'; trial?: boolean; sceneIds?: string[] };
+export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & { kind: 'brand_theme'; trial?: boolean; sceneIds?: string[]; /** Off for the trial and set previews, which must not consume her drop box. */ useMaterials?: boolean };
 export type InternalShopDraft = Omit<ShopDraft, 'kind'> & { kind: 'shop_products'; trial?: boolean; /** Only the 9:16 cover per product (TikTok library). */ coverOnly?: boolean };
 
 export type BatchDraft = BrandDraft | ShopDraft;

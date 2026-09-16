@@ -16,13 +16,14 @@ type Result = { outcome: 'won' | 'missed'; status: string };
 const PLATFORM_LABEL: Record<PromisePlatform, string> = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook', shopee: 'Shopee', other: 'Other' };
 
 /** Self-reported before/after averages. Wins become testimonial leads; misses become a free month for admin review. */
-export const PromiseClaimForm = ({ product, onDone }: { product: 'brand' | 'shop'; onDone: (result: Result) => void }) => {
+export const PromiseClaimForm = ({ product, onDone, counted = 0, links: countedLinks = [] }: { product: 'brand' | 'shop'; onDone: (result: Result) => void; counted?: number; links?: string[] }) => {
   const [platform, setPlatform] = useState<PromisePlatform>('instagram');
   const [metric, setMetric] = useState<PromiseMetric>('likes');
   const [before, setBefore] = useState('');
   const [after, setAfter] = useState('');
-  const [posts, setPosts] = useState(String(PROMISE.postsRequired));
-  const [links, setLinks] = useState('');
+  // Prefilled from what the calendar counted, so she is not recalling numbers.
+  const [posts, setPosts] = useState(String(Math.max(counted, PROMISE.postsRequired)));
+  const [links, setLinks] = useState(countedLinks.join('\n'));
   const [share, setShare] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

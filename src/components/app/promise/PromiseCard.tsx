@@ -10,7 +10,7 @@ import { Card, CardBody } from '../../ui/Card';
 import { Dialog } from '../../ui/Dialog';
 import { PromiseClaimForm } from './PromiseClaimForm';
 
-type Status = { eligible: boolean; reason: 'no_plan' | 'too_early' | 'cooldown' | null; eligibleFrom: string | null; lastClaim: { status: string; outcome: string; createdAt: string } | null };
+type Status = { eligible: boolean; reason: 'no_plan' | 'too_early' | 'cooldown' | null; eligibleFrom: string | null; lastClaim: { status: string; outcome: string; createdAt: string } | null; counted: number; links: string[] };
 
 const statusLine = (s: Status): string => {
   if (s.eligible) return 'Your first 30 days are up. Compare your posts and tell us how it went.';
@@ -37,6 +37,11 @@ export const PromiseCard = ({ product }: { product: 'brand' | 'shop' }) => {
               Post {PROMISE.postsRequired} Next5 photos in {PROMISE.windowDays} days. If they don’t beat your last {PROMISE.postsRequired} posts, your next month is free.
             </p>
             <p className="mt-2 text-[13px] text-app-ink">{message ?? statusLine(status.data)}</p>
+            {status.data.counted > 0 && (
+              <p className="mt-1 text-[13px] text-app-muted tabular-nums">
+                We counted {status.data.counted} of your {PROMISE.postsRequired} posts{product === 'brand' ? ' from your calendar' : ''}.
+              </p>
+            )}
           </div>
         </div>
         {status.data.eligible && !message && <AppButton onClick={() => setOpen(true)}>Check my results</AppButton>}
@@ -44,6 +49,8 @@ export const PromiseCard = ({ product }: { product: 'brand' | 'shop' }) => {
       <Dialog open={open} onClose={() => setOpen(false)} title="Check your results" description="Open your app’s stats. Compare your Next5 posts with your posts before.">
         <PromiseClaimForm
           product={product}
+          counted={status.data.counted}
+          links={status.data.links}
           onDone={(result) => {
             setOpen(false);
             setMessage(result.outcome === 'won' ? 'Your Next5 posts did better. Nice work! Keep going.' : 'Your free month is on its way. We will check and add it within 2 days.');
