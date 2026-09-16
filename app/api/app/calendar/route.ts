@@ -9,14 +9,19 @@ import { requireWorkspace } from '../../../../src/server/workspaces/workspaces';
 
 const DAY = 86_400_000;
 /** One request returns the whole page: she never navigates to see her month. */
-const PAST_DAYS = 7;
-const FUTURE_DAYS = 45;
+const FUTURE_DAYS = 70;
+
+/** From the 1st of this month, so the month grid is never missing its own first week. */
+const windowStartDate = (now: Date): Date => {
+  const first = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+  return new Date(first.getTime() - 7 * DAY);
+};
 
 const build = async (req: Request, ws: Workspace): Promise<Response> => {
   const now = new Date();
   const [schedule, slots, posted, plan] = await Promise.all([
     getOrCreateSchedule(ws),
-    listSlots(ws.id, new Date(now.getTime() - PAST_DAYS * DAY), new Date(now.getTime() + FUTURE_DAYS * DAY)),
+    listSlots(ws.id, windowStartDate(now), new Date(now.getTime() + FUTURE_DAYS * DAY)),
     postsInWindow(ws.id, undefined, now),
     getActivePlan(ws.id),
   ]);

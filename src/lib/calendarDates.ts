@@ -25,3 +25,34 @@ export const groupByDay = <T extends { scheduledFor: string }>(slots: readonly T
   for (const slot of slots) days.set(slot.scheduledFor, [...(days.get(slot.scheduledFor) ?? []), slot]);
   return [...days.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, list]) => ({ date, slots: list }));
 };
+
+/** `YYYY-MM` for a date string. */
+export const monthOf = (iso: string): string => iso.slice(0, 7);
+
+/** "September 2026". */
+export const monthLabel = (month: string): string =>
+  new Date(`${month}-15T00:00:00Z`).toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+export const addMonths = (month: string, delta: number): string => {
+  const [year, m] = month.split('-').map(Number);
+  const d = new Date(Date.UTC(year!, (m! - 1) + delta, 1));
+  return d.toISOString().slice(0, 7);
+};
+
+/**
+ * The calendar grid for a month: whole weeks from Sunday, so the month always
+ * sits in a rectangle. Days outside the month are included and flagged.
+ */
+export const monthGrid = (month: string): { date: string; inMonth: boolean }[] => {
+  const first = new Date(`${month}-01T00:00:00Z`);
+  const start = new Date(first.getTime() - first.getUTCDay() * 86_400_000);
+  const days: { date: string; inMonth: boolean }[] = [];
+  for (let i = 0; i < 42; i += 1) {
+    const day = new Date(start.getTime() + i * 86_400_000);
+    const date = day.toISOString().slice(0, 10);
+    days.push({ date, inMonth: monthOf(date) === month });
+    // Stop after the week that closes the month.
+    if (i >= 27 && day.getUTCDay() === 6 && monthOf(date) !== month) break;
+  }
+  return days;
+};

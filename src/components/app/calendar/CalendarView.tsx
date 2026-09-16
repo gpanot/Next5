@@ -13,6 +13,7 @@ import { ToastContainer } from '../../ui/Toast';
 import { useAppRouter } from '../shell/AppLink';
 import { CadenceCard } from './CadenceCard';
 import { DropBox } from './DropBox';
+import { MonthGrid } from './MonthGrid';
 import { PostSheet } from './PostSheet';
 import { ProgressHeader } from './ProgressHeader';
 import { SlotCard } from './SlotCard';
@@ -60,6 +61,8 @@ export const CalendarView = () => {
     <>
       <ProgressHeader progress={calendar.progress} />
 
+      <MonthGrid slots={calendar.slots} onOpen={setOpen} />
+
       {days.length === 0 ? (
         <EmptyState
           illustration={<CalendarDays className="h-10 w-10" />}
@@ -69,6 +72,7 @@ export const CalendarView = () => {
         />
       ) : (
         <div className="flex flex-col gap-5">
+          <h2 className="text-[15px] font-semibold text-app-ink">What’s next</h2>
           {days.map(({ date, slots }) => (
             <section key={date} className="flex flex-col gap-2">
               <h2 className={`text-[13px] font-semibold uppercase tracking-wide ${isToday(date) ? 'text-app-accent' : 'text-app-muted'}`}>

@@ -52,10 +52,13 @@ await page.getByText(/post this month|Your feed this month/).waitFor({ timeout: 
 await page.waitForFunction(() => document.querySelectorAll('section h2').length > 0, null, { timeout: 15000 });
 const days = await page.locator('section h2').count();
 if (days === 0) throw new Error('calendar is empty: auto-fill did not run');
+
+// The month grid, with her photos in the days.
+await page.getByRole('button', { name: /^Post on \d{4}-\d{2}-\d{2}$/ }).first().waitFor({ timeout: 15000 });
 await shot(page, 'cal-1-month');
 
-// One tap opens the post.
-await page.locator('section button').first().click();
+// One tap on a day in the month opens that post.
+await page.getByRole('button', { name: /^Post on \d{4}-\d{2}-\d{2}$/ }).first().click();
 await page.getByRole('dialog').waitFor();
 await page.getByRole('button', { name: 'Save photo' }).waitFor();
 await page.waitForTimeout(600); // let the sheet finish animating in
