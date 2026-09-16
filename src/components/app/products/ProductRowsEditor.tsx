@@ -1,16 +1,35 @@
 'use client';
 
+import { Trash2 } from 'lucide-react';
 import { PRODUCT_CATEGORIES } from '../../../config/shots';
 import { Select } from '../../ui/Select';
 import { TextInput } from '../../ui/TextInput';
 
-export type ProductRow = { file: File; previewUrl: string; name: string; category: string; colorName: string; sku: string; fit: string };
+export type ProductRow = {
+  file: File;
+  previewUrl: string;
+  name: string;
+  category: string;
+  colorName: string;
+  sku: string;
+  fit: string;
+  /** Set when the photo itself can't be used (too small), so it is flagged before saving. */
+  photoError?: string | null;
+};
 export type RowError = { index: number; field?: string; message: string };
 
-type ProductRowsEditorProps = { rows: ProductRow[]; errors: RowError[]; onChange: (rows: ProductRow[]) => void };
+type ProductRowsEditorProps = { rows: ProductRow[]; errors: RowError[]; onChange: (rows: ProductRow[]) => void; onRemove: (index: number) => void };
+
+/** Everything that stops a row from being saved, checked as the seller types (the server checks again). */
+export const rowProblems = (rows: readonly ProductRow[]): RowError[] =>
+  rows.flatMap((row, index) => [
+    ...(row.photoError ? [{ index, field: 'photo', message: row.photoError }] : []),
+    ...(row.name.trim() ? [] : [{ index, field: 'name', message: 'Add a name.' }]),
+    ...(row.category ? [] : [{ index, field: 'category', message: 'Choose a category.' }]),
+  ]);
 
 /** One editable row per uploaded front photo. Stacks into cards on phones. */
-export const ProductRowsEditor = ({ rows, errors, onChange }: ProductRowsEditorProps) => {
+export const ProductRowsEditor = ({ rows, errors, onChange, onRemove }: ProductRowsEditorProps) => {
   const update = (index: number, patch: Partial<ProductRow>) => onChange(rows.map((r, i) => (i === index ? { ...r, ...patch } : r)));
   const applyCategory = (category: string) => onChange(rows.map((r) => ({ ...r, category })));
 
@@ -29,9 +48,11 @@ export const ProductRowsEditor = ({ rows, errors, onChange }: ProductRowsEditorP
         {rows.map((row, index) => {
           const rowErrors = errors.filter((e) => e.index === index);
           return (
-            <li key={row.previewUrl} className={`grid grid-cols-[64px_1fr] gap-3 rounded-2xl border p-3 sm:grid-cols-[64px_2fr_1.3fr_1fr_1fr_1fr] sm:items-center ${rowErrors.length ? 'border-app-danger/50' : 'border-app-line'}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
-              <img src={row.previewUrl} alt="" className="row-span-3 h-16 w-16 rounded-lg object-cover sm:row-span-1" />
+            <li key={row.previewUrl} className={`grid grid-cols-[64px_1fr] gap-3 rounded-2xl border p-3 sm:grid-cols-[64px_2fr_1.3fr_1fr_1fr_1fr_40px] sm:items-center ${rowErrors.length ? 'border-app-danger' : 'border-app-line'}`}>
+              <div className="relative row-span-3 h-16 w-16 sm:row-span-1">
+                {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
+                <img src={row.previewUrl} alt="" className={`h-16 w-16 rounded-lg object-cover ${row.photoError ? 'ring-2 ring-app-danger' : ''}`} />
+              </div>
               <TextInput aria-label={`Product ${index + 1} name`} placeholder="Name" value={row.name} error={rowErrors.some((e) => e.field === 'name')} onChange={(e) => update(index, { name: e.target.value })} />
               <Select aria-label={`Product ${index + 1} category`} value={row.category} error={rowErrors.some((e) => e.field === 'category')} onChange={(e) => update(index, { category: e.target.value })}>
                 <option value="">Category</option>
@@ -42,7 +63,16 @@ export const ProductRowsEditor = ({ rows, errors, onChange }: ProductRowsEditorP
               <Select aria-label={`Product ${index + 1} fit`} value={row.fit} onChange={(e) => update(index, { fit: e.target.value })}>
                 <option value="">Fit</option><option value="fitted">Fitted</option><option value="regular">Regular</option><option value="oversized">Oversized</option>
               </Select>
-              {rowErrors.length > 0 && <p role="alert" className="col-span-2 text-[12px] text-app-danger sm:col-span-6">{rowErrors.map((e) => e.message).join(' ')}</p>}
+              <button
+                type="button"
+                aria-label={`Remove ${row.name || `product ${index + 1}`}`}
+                title="Remove this photo"
+                onClick={() => onRemove(index)}
+                className="justify-self-end rounded-full p-2 text-app-muted transition-colors duration-200 hover:bg-app-sunken hover:text-app-danger"
+              >
+                <Trash2 aria-hidden className="h-4 w-4" />
+              </button>
+              {rowErrors.length > 0 && <p role="alert" className="col-span-2 text-[12px] text-app-danger sm:col-span-7">{rowErrors.map((e) => e.message).join(' ')}</p>}
             </li>
           );
         })}

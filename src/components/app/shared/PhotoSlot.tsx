@@ -2,7 +2,7 @@
 
 import { Camera, RefreshCw } from 'lucide-react';
 import { useId, useRef, useState } from 'react';
-import { compressImage } from '../../../lib/imageCompress';
+import { compressImage, photoProblem, readSize } from '../../../lib/imageCompress';
 
 type PhotoSlotProps = {
   label: string;
@@ -19,6 +19,7 @@ export const PhotoSlot = ({ label, hint, previewUrl, onFile, capture, aspect = '
   const inputRef = useRef<HTMLInputElement>(null);
   const id = useId();
   const [preparing, setPreparing] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -29,12 +30,12 @@ export const PhotoSlot = ({ label, hint, previewUrl, onFile, capture, aspect = '
         className={[
           'group relative flex w-full items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed transition-colors duration-200',
           aspect === 'square' ? 'aspect-square' : 'aspect-[3/4]',
-          error ? 'border-app-danger' : previewUrl ? 'border-transparent' : 'border-app-line bg-app-sunken hover:border-app-accent',
+          error || photoError ? 'border-app-danger' : previewUrl ? 'border-transparent' : 'border-app-line bg-app-sunken hover:border-app-accent',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent',
         ].join(' ')}
       >
         {preparing && <span className="absolute inset-0 z-10 flex items-center justify-center bg-app-sunken/80 text-[12px] text-app-muted">Preparing…</span>}
-        {previewUrl ? (
+        {previewUrl && !photoError ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
             <img src={previewUrl} alt={`${label} preview`} className="h-full w-full object-cover" />
@@ -62,14 +63,19 @@ export const PhotoSlot = ({ label, hint, previewUrl, onFile, capture, aspect = '
           if (!file) return;
           // Shrunk here so big phone photos fit in one upload; the server stores this size anyway.
           setPreparing(true);
-          void compressImage(file)
-            .then((ready) => onFile(ready, URL.createObjectURL(ready)))
-            .finally(() => setPreparing(false));
+          setPhotoError(null);
+          void (async () => {
+            const ready = await compressImage(file);
+            // A photo too small for the server is refused now, not after Save.
+            const problem = photoProblem(await readSize(ready));
+            if (problem) setPhotoError(problem);
+            else onFile(ready, URL.createObjectURL(ready));
+          })().finally(() => setPreparing(false));
         }}
       />
       <p id={`${id}-label`} className="text-[13px] font-medium text-app-ink">{label}</p>
       {hint && <p className="text-[12px] text-app-muted">{hint}</p>}
-      {error && <p role="alert" className="text-[12px] text-app-danger">{error}</p>}
+      {(photoError ?? error) && <p role="alert" className="text-[12px] text-app-danger">{photoError ?? error}</p>}
     </div>
   );
 };

@@ -171,6 +171,27 @@ if (bigPhoto) {
   assert(uploadBytes > 0 && uploadBytes < 4.5 * 1024 * 1024, `the upload must stay under 4.5 MB, was ${uploadBytes}`);
   assert(uploadBytes < original, 'the photo should be smaller after the browser shrinks it');
   step('a big photo is shrunk before upload');
+
+  // A too-small photo and a missing category are flagged before Save, and a row can be removed.
+  const tiny = process.env.E2E_TINY_PHOTO;
+  if (tiny) {
+    await page.getByRole('button', { name: 'Add products' }).first().click();
+    await page.locator('input[type=file]').first().setInputFiles([bigPhoto, tiny]);
+    await page.getByText(/This photo is too small/).waitFor({ timeout: 20000 });
+    await page.getByText(/2 products still need something/).waitFor({ timeout: 10000 });
+    const saveButton = page.getByRole('button', { name: /^Save 2 products/ });
+    assert(await saveButton.isDisabled(), 'Save must stay off while a row is not ready');
+    await shot('9-row-errors');
+    await page.getByRole('button', { name: /^Remove / }).nth(1).click(); // drop the too-small photo
+    await page.getByRole('combobox', { name: /Product 1 category/ }).selectOption('dress');
+    const readySave = page.getByRole('button', { name: /^Save 1 product/ });
+    await readySave.waitFor({ timeout: 10000 });
+    await page.waitForFunction(() => !document.querySelector('[role=alert]')?.textContent?.includes('still need'), null, { timeout: 10000 });
+    assert(await readySave.isEnabled(), 'Save must work once every row is ready');
+    await readySave.click();
+    await page.getByText(/1 product added/).waitFor({ timeout: 30000 });
+    step('bad rows are flagged in red, can be removed, and Save waits for them');
+  }
 }
 
 // 8. Create drop offers the 9:16 cover.

@@ -13,6 +13,9 @@
 export const MAX_SIDE = 2048;
 /** Target for one photo; quality steps down until it fits. */
 export const TARGET_BYTES = 2 * 1024 * 1024;
+/** Smallest photo the server accepts (`normalizeUpload`). */
+export const MIN_SIDE = 400;
+
 /** Photos already small and not oversized are sent untouched. */
 const SKIP_BYTES = 1.5 * 1024 * 1024;
 const QUALITY_STEPS = [0.92, 0.86, 0.8];
@@ -65,6 +68,25 @@ export const compressImage = async (file: File): Promise<File> => {
 };
 
 export const compressImages = (files: readonly File[]): Promise<File[]> => Promise.all(files.map(compressImage));
+
+/** Width and height of a photo, or null when the browser can't read it (the server then decides). */
+export const readSize = async (file: File): Promise<{ width: number; height: number } | null> => {
+  if (!canCompress()) return null;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const size = { width: bitmap.width, height: bitmap.height };
+    bitmap.close();
+    return size;
+  } catch {
+    return null;
+  }
+};
+
+/** The reason this photo can't be used, in plain words — or null when it is fine. */
+export const photoProblem = (size: { width: number; height: number } | null): string | null =>
+  size && (size.width < MIN_SIDE || size.height < MIN_SIDE)
+    ? `This photo is too small (${size.width} × ${size.height}). Use one at least ${MIN_SIDE} px wide and tall.`
+    : null;
 
 /**
  * Splits photos into upload requests that stay under the 4.5 MB limit

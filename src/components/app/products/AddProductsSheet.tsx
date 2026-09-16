@@ -2,12 +2,12 @@
 
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
-import { chunkBySize, compressImages } from '../../../lib/imageCompress';
+import { chunkBySize, compressImage, photoProblem, readSize } from '../../../lib/imageCompress';
 import { AppButton } from '../../ui/AppButton';
 import { FileDrop } from '../../ui/FileDrop';
 import { Sheet } from '../../ui/Sheet';
 import { GuideImages, PRODUCT_GUIDES } from '../onboarding/GuideImages';
-import { ProductRowsEditor, type ProductRow, type RowError } from './ProductRowsEditor';
+import { ProductRowsEditor, rowProblems, type ProductRow, type RowError } from './ProductRowsEditor';
 
 const MAX = 20;
 
@@ -26,18 +26,37 @@ export const AddProductsSheet = ({ open, onClose, onSaved }: AddProductsSheetPro
     setMessage(files.length > room ? `You can add up to ${MAX} products at a time.` : null);
     setPreparing(true);
     try {
-      // Phone photos are shrunk here: uploads stay under the 4.5 MB per request the server accepts.
-      const ready = await compressImages(files.slice(0, room));
-      const next = ready.map((file, i) => ({ file, previewUrl: URL.createObjectURL(file), name: (files[i]?.name ?? file.name).replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').slice(0, 60), category: '', colorName: '', sku: '', fit: '' }));
+      // Phone photos are shrunk here (uploads stay under the 4.5 MB per request the server accepts)
+      // and a photo that is too small is flagged now, not after Save.
+      const next = await Promise.all(files.slice(0, room).map(async (original) => {
+        const file = await compressImage(original);
+        return {
+          file,
+          previewUrl: URL.createObjectURL(file),
+          name: original.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ').slice(0, 60),
+          category: '', colorName: '', sku: '', fit: '',
+          photoError: photoProblem(await readSize(file)),
+        };
+      }));
       setRows((prev) => [...prev, ...next]);
     } finally {
       setPreparing(false);
     }
   };
 
+  const removeRow = (index: number) => {
+    URL.revokeObjectURL(rows[index]!.previewUrl);
+    setRows(rows.filter((_, i) => i !== index));
+    setErrors([]);
+    setMessage(null);
+  };
+
   const close = () => {
     rows.forEach((r) => URL.revokeObjectURL(r.previewUrl));
     setRows([]);
+    setSaving(false);
+    setPreparing(false);
+    setProgress(null);
     setErrors([]);
     setMessage(null);
     onClose();
@@ -45,6 +64,7 @@ export const AddProductsSheet = ({ open, onClose, onSaved }: AddProductsSheetPro
 
   /** Uploads in groups that fit one request; products already saved stay saved if a later group fails. */
   const save = async () => {
+    if (problems.length > 0) return;
     setSaving(true);
     setErrors([]);
     setMessage(null);
@@ -76,9 +96,14 @@ export const AddProductsSheet = ({ open, onClose, onSaved }: AddProductsSheetPro
       }
     }
     setProgress(null);
+    setSaving(false);
     onSaved(saved);
     close();
   };
+
+  // Shown in red while the seller types, so nothing is a surprise after Save.
+  const problems = rowProblems(rows);
+  const missing = new Set(problems.map((p) => p.index)).size;
 
   return (
     <Sheet open={open} onClose={close} title="Add products" side="bottom" className="sm:left-1/2 sm:right-auto sm:w-full sm:max-w-4xl sm:-translate-x-1/2">
@@ -88,11 +113,12 @@ export const AddProductsSheet = ({ open, onClose, onSaved }: AddProductsSheetPro
         {preparing && <p className="text-[13px] text-app-muted" aria-live="polite">Preparing your photos…</p>}
         {progress && <p className="text-[13px] text-app-muted" aria-live="polite">Saving {progress.done} of {progress.total}…</p>}
         {rows.length === 0 && <GuideImages guides={PRODUCT_GUIDES} />}
-        {rows.length > 0 && <ProductRowsEditor rows={rows} errors={errors} onChange={setRows} />}
+        {rows.length > 0 && <ProductRowsEditor rows={rows} errors={[...problems, ...errors]} onChange={setRows} onRemove={removeRow} />}
+        {missing > 0 && <p role="alert" className="text-[14px] text-app-danger">{missing} product{missing === 1 ? '' : 's'} still need{missing === 1 ? 's' : ''} something — see the rows in red.</p>}
         {message && <p role="alert" className="text-[14px] text-app-danger">{message}</p>}
         <div className="flex justify-end gap-2 border-t border-app-line pt-4">
           <AppButton variant="ghost" onClick={close}>Cancel</AppButton>
-          <AppButton loading={saving || preparing} disabled={rows.length === 0 || preparing} onClick={() => void save()}>Save {rows.length || ''} product{rows.length === 1 ? '' : 's'}</AppButton>
+          <AppButton loading={saving || preparing} disabled={rows.length === 0 || preparing || problems.length > 0} onClick={() => void save()}>Save {rows.length || ''} product{rows.length === 1 ? '' : 's'}</AppButton>
         </div>
       </div>
     </Sheet>
