@@ -745,5 +745,293 @@
     "bytes": 381791,
     "alt": "Studio model Valentina, 30, full body",
     "generatedAt": "2026-09-16T03:19:28.463Z"
+  },
+  "public/images/business/shop/models/model-grace-face.png": {
+    "prompt": "Studio identity reference portrait of a white British woman, 22, petite (157 cm), long straight dark blonde hair, fair skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 621635,
+    "alt": "Studio model Grace, 22",
+    "generatedAt": "2026-09-16T08:10:47.306Z"
+  },
+  "public/images/business/shop/models/model-grace-full.png": {
+    "prompt": "Studio identity reference full-body photo of a white British woman, 22, petite (157 cm), long straight dark blonde hair, fair skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 358426,
+    "alt": "Studio model Grace, 22, full body",
+    "generatedAt": "2026-09-16T08:10:49.316Z"
+  },
+  "public/images/business/shop/models/model-ivy-face.png": {
+    "prompt": "Studio identity reference portrait of a white Eastern European woman, 26, tall and slim (175 cm), sleek dark brown low ponytail, fair skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 457330,
+    "alt": "Studio model Ivy, 26",
+    "generatedAt": "2026-09-16T08:10:51.081Z"
+  },
+  "public/images/business/shop/models/model-ivy-full.png": {
+    "prompt": "Studio identity reference full-body photo of a white Eastern European woman, 26, tall and slim (175 cm), sleek dark brown low ponytail, fair skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 330987,
+    "alt": "Studio model Ivy, 26, full body",
+    "generatedAt": "2026-09-16T08:10:52.687Z"
+  },
+  "public/images/business/shop/models/model-sarah-face.png": {
+    "prompt": "Studio identity reference portrait of a white American woman, 31, athletic toned build, shoulder-length auburn hair, fair skin with freckles. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 619781,
+    "alt": "Studio model Sarah, 31",
+    "generatedAt": "2026-09-16T08:10:54.335Z"
+  },
+  "public/images/business/shop/models/model-sarah-full.png": {
+    "prompt": "Studio identity reference full-body photo of a white American woman, 31, athletic toned build, shoulder-length auburn hair, fair skin with freckles. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 374953,
+    "alt": "Studio model Sarah, 31, full body",
+    "generatedAt": "2026-09-16T08:10:56.314Z"
+  },
+  "public/images/business/shop/models/model-diane-face.png": {
+    "prompt": "Studio identity reference portrait of a white French woman, 45, medium build, elegant short silver-grey bob, fair skin with soft natural lines. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 549120,
+    "alt": "Studio model Diane, 45",
+    "generatedAt": "2026-09-16T08:10:58.270Z"
+  },
+  "public/images/business/shop/models/model-diane-full.png": {
+    "prompt": "Studio identity reference full-body photo of a white French woman, 45, medium build, elegant short silver-grey bob, fair skin with soft natural lines. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 340822,
+    "alt": "Studio model Diane, 45, full body",
+    "generatedAt": "2026-09-16T08:11:01.066Z"
+  },
+  "public/images/business/shop/models/model-zuri-face.png": {
+    "prompt": "Studio identity reference portrait of a Black woman of East African heritage, 22, petite (158 cm), short twisted locs, deep brown skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 437402,
+    "alt": "Studio model Zuri, 22",
+    "generatedAt": "2026-09-16T08:11:02.551Z"
+  },
+  "public/images/business/shop/models/model-zuri-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Black woman of East African heritage, 22, petite (158 cm), short twisted locs, deep brown skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 381311,
+    "alt": "Studio model Zuri, 22, full body",
+    "generatedAt": "2026-09-16T08:11:04.414Z"
+  },
+  "public/images/business/shop/models/model-imani-face.png": {
+    "prompt": "Studio identity reference portrait of a Black woman of Caribbean heritage, 28, medium build, rounded natural afro, warm brown skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 613714,
+    "alt": "Studio model Imani, 28",
+    "generatedAt": "2026-09-16T08:11:06.145Z"
+  },
+  "public/images/business/shop/models/model-imani-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Black woman of Caribbean heritage, 28, medium build, rounded natural afro, warm brown skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 369382,
+    "alt": "Studio model Imani, 28, full body",
+    "generatedAt": "2026-09-16T08:11:08.263Z"
+  },
+  "public/images/business/shop/models/model-keisha-face.png": {
+    "prompt": "Studio identity reference portrait of a Black American woman, 35, athletic toned build, sleek straight shoulder-length hair, medium brown skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 596915,
+    "alt": "Studio model Keisha, 35",
+    "generatedAt": "2026-09-16T08:11:10.007Z"
+  },
+  "public/images/business/shop/models/model-keisha-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Black American woman, 35, athletic toned build, sleek straight shoulder-length hair, medium brown skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 343312,
+    "alt": "Studio model Keisha, 35, full body",
+    "generatedAt": "2026-09-16T08:11:11.726Z"
+  },
+  "public/images/business/shop/models/model-yvonne-face.png": {
+    "prompt": "Studio identity reference portrait of a Black woman of Nigerian heritage, 44, medium build, elegant short grey-flecked natural hair, deep brown skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 588644,
+    "alt": "Studio model Yvonne, 44",
+    "generatedAt": "2026-09-16T08:11:13.805Z"
+  },
+  "public/images/business/shop/models/model-yvonne-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Black woman of Nigerian heritage, 44, medium build, elegant short grey-flecked natural hair, deep brown skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 393688,
+    "alt": "Studio model Yvonne, 44, full body",
+    "generatedAt": "2026-09-16T08:11:16.390Z"
+  },
+  "public/images/business/shop/models/model-noor-face.png": {
+    "prompt": "Studio identity reference portrait of a Middle Eastern woman of Levantine heritage, 22, petite (156 cm), long straight dark brown hair, light olive skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 496055,
+    "alt": "Studio model Noor, 22",
+    "generatedAt": "2026-09-16T08:11:18.190Z"
+  },
+  "public/images/business/shop/models/model-noor-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Middle Eastern woman of Levantine heritage, 22, petite (156 cm), long straight dark brown hair, light olive skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 333960,
+    "alt": "Studio model Noor, 22, full body",
+    "generatedAt": "2026-09-16T08:11:19.911Z"
+  },
+  "public/images/business/shop/models/model-dalia-face.png": {
+    "prompt": "Studio identity reference portrait of a Middle Eastern woman of Egyptian heritage, 28, curvy plus-size figure (US size 16), thick wavy dark hair, olive skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 648169,
+    "alt": "Studio model Dalia, 28",
+    "generatedAt": "2026-09-16T08:11:21.766Z"
+  },
+  "public/images/business/shop/models/model-dalia-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Middle Eastern woman of Egyptian heritage, 28, curvy plus-size figure (US size 16), thick wavy dark hair, olive skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 405326,
+    "alt": "Studio model Dalia, 28, full body",
+    "generatedAt": "2026-09-16T08:11:23.885Z"
+  },
+  "public/images/business/shop/models/model-rania-face.png": {
+    "prompt": "Studio identity reference portrait of a Middle Eastern woman of Moroccan heritage, 30, athletic toned build, wearing a plain beige hijab covering her hair, olive skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 508587,
+    "alt": "Studio model Rania, 30",
+    "generatedAt": "2026-09-16T08:11:25.668Z"
+  },
+  "public/images/business/shop/models/model-rania-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Middle Eastern woman of Moroccan heritage, 30, athletic toned build, wearing a plain beige hijab covering her hair, olive skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 345644,
+    "alt": "Studio model Rania, 30, full body",
+    "generatedAt": "2026-09-16T08:11:27.631Z"
+  },
+  "public/images/business/shop/models/model-hoda-face.png": {
+    "prompt": "Studio identity reference portrait of a Middle Eastern woman of Gulf heritage, 43, medium build, elegant short dark bob with subtle grey strands, olive skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 563404,
+    "alt": "Studio model Hoda, 43",
+    "generatedAt": "2026-09-16T08:11:29.510Z"
+  },
+  "public/images/business/shop/models/model-hoda-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Middle Eastern woman of Gulf heritage, 43, medium build, elegant short dark bob with subtle grey strands, olive skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 339124,
+    "alt": "Studio model Hoda, 43, full body",
+    "generatedAt": "2026-09-16T08:11:31.130Z"
+  },
+  "public/images/business/shop/models/model-camila-face.png": {
+    "prompt": "Studio identity reference portrait of a Latina woman of Brazilian heritage, 22, tall and slim (174 cm), long wavy light brown hair, tan skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 689020,
+    "alt": "Studio model Camila, 22",
+    "generatedAt": "2026-09-16T08:11:33.178Z"
+  },
+  "public/images/business/shop/models/model-camila-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Latina woman of Brazilian heritage, 22, tall and slim (174 cm), long wavy light brown hair, tan skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 359506,
+    "alt": "Studio model Camila, 22, full body",
+    "generatedAt": "2026-09-16T08:11:35.617Z"
+  },
+  "public/images/business/shop/models/model-lucia-face.png": {
+    "prompt": "Studio identity reference portrait of a Latina woman of Peruvian heritage, 27, medium build, straight black shoulder-length hair, bronze skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 555797,
+    "alt": "Studio model Lucia, 27",
+    "generatedAt": "2026-09-16T08:11:37.683Z"
+  },
+  "public/images/business/shop/models/model-lucia-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Latina woman of Peruvian heritage, 27, medium build, straight black shoulder-length hair, bronze skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 339029,
+    "alt": "Studio model Lucia, 27, full body",
+    "generatedAt": "2026-09-16T08:11:39.404Z"
+  },
+  "public/images/business/shop/models/model-mariana-face.png": {
+    "prompt": "Studio identity reference portrait of a Latina woman of Dominican heritage, 35, curvy plus-size figure (US size 16), curly dark hair past shoulders, brown skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 607397,
+    "alt": "Studio model Mariana, 35",
+    "generatedAt": "2026-09-16T08:11:41.112Z"
+  },
+  "public/images/business/shop/models/model-mariana-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Latina woman of Dominican heritage, 35, curvy plus-size figure (US size 16), curly dark hair past shoulders, brown skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 396365,
+    "alt": "Studio model Mariana, 35, full body",
+    "generatedAt": "2026-09-16T08:11:44.294Z"
+  },
+  "public/images/business/shop/models/model-elena-face.png": {
+    "prompt": "Studio identity reference portrait of a Latina woman of Argentinian heritage, 44, medium build, elegant short dark bob with grey strands, olive skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Chest-up, facing camera directly, head straight, 85mm, sharp focus on the eyes.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1024",
+    "outputSize": "1024x1024",
+    "bytes": 553050,
+    "alt": "Studio model Elena, 44",
+    "generatedAt": "2026-09-16T08:11:46.520Z"
+  },
+  "public/images/business/shop/models/model-elena-full.png": {
+    "prompt": "Studio identity reference full-body photo of a Latina woman of Argentinian heritage, 44, medium build, elegant short dark bob with grey strands, olive skin. plain light-grey seamless background, even soft frontal studio light, neutral relaxed expression with a slight smile, hair away from the face, minimal makeup, fitted plain white crew-neck T-shirt and black straight trousers, no jewellery, no accessories, clearly an adult. Standing straight facing the camera, arms relaxed at sides, whole body from head to feet with margin, 50mm.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "832x1248",
+    "outputSize": "832x1248",
+    "bytes": 320065,
+    "alt": "Studio model Elena, 44, full body",
+    "generatedAt": "2026-09-16T08:11:48.540Z"
   }
 }

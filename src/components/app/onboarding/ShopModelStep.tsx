@@ -81,7 +81,7 @@ export const ShopModelStep = ({ product, me, advance }: StepProps) => {
       footer={<AppButton size="lg" loading={selfies.busy} disabled={mode === 'studio' ? !slug : !selfies.ready} onClick={submit}>Continue</AppButton>}
     >
       <div className="grid grid-cols-2 gap-3">
-        {([['me', 'Wear it yourself', '2 selfies + 1 full-body photo'], ['studio', 'Studio model', '14 models, 5 markets']] as const).map(([value, title, sub]) => (
+        {([['me', 'Wear it yourself', '2 selfies + 1 full-body photo'], ['studio', 'Studio model', '30 models, 6 per market']] as const).map(([value, title, sub]) => (
           <button key={value} type="button" onClick={() => setMode(value)} aria-pressed={mode === value} className={`flex flex-col gap-1 rounded-2xl border p-4 text-left transition-colors duration-200 ${mode === value ? 'border-app-accent bg-app-accent-soft' : 'border-app-line hover:bg-app-sunken'}`}>
             <UserRound aria-hidden className="h-5 w-5 text-app-accent" />
             <span className="text-[15px] font-semibold text-app-ink">{title}</span>

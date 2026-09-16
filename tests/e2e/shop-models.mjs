@@ -1,4 +1,4 @@
-// The shop look editor offers Studio models for every market (Asian, White, Black, Arabic, Latina).
+// The shop look editor offers 6 Studio models for every market (Asian, White, Black, Arabic, Latina).
 // Needs the dev server in mock mode and a seeded database (npm run db:seed:business).
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -28,12 +28,12 @@ await page.getByRole('button', { name: /Studio model/ }).click();
 const markets = ['All', 'Asian', 'White', 'Black', 'Arabic', 'Latina'];
 for (const market of markets) await page.getByRole('button', { name: market, exact: true }).waitFor({ timeout: 20000 });
 const all = await page.getByRole('radio').count();
-assert(all === 14, `expected 14 studio models, got ${all}`);
+assert(all === 30, `expected 30 studio models, got ${all}`);
 await page.screenshot({ path: `${OUT}/models-all.png`, fullPage: true });
 
 for (const market of ['White', 'Black', 'Arabic', 'Latina']) {
   await page.getByRole('button', { name: market, exact: true }).click();
-  await page.waitForFunction(() => document.querySelectorAll('[role=radio]').length === 2, null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('[role=radio]').length === 6, null, { timeout: 10000 });
 }
 await page.screenshot({ path: `${OUT}/models-latina.png`, fullPage: true });
 step('every market has models, and the filter shows them');

@@ -149,7 +149,7 @@ works. Only if the pipeline is not ready yet, use the fallback prompt and replac
 | C13 | `public/images/business/shop/looks/boutique-rack.png` | Model in a minimal boutique wearing a knit dress | A Vietnamese woman in her early 30s in a taupe ribbed knit midi dress standing in a minimal boutique interior, a clothing rail with neutral garments softly blurred behind, warm spot lighting and daylight, full body, elegant. |
 | C14 | `public/images/business/shop/looks/resort.png` | Model on a sunny pool terrace in a linen dress | A Vietnamese woman in her mid 20s in a white linen sundress and straw hat on a pale stone pool terrace with palm shadows, bright sunlight, relaxed summer pose, full body, resort catalogue look. |
 
-### C15–C42 Studio models (5 markets: Asian, White, Black, Arabic, Latina) (identity references) · Used in: Shop models section (face images), model picker, and **seeded as `IdentityReference` rows** (both images uploaded to R2 by `scripts/seed-business.ts`)
+### C15–C74 Studio models (6 each for Asian, White, Black, Arabic, Latina) (identity references) · Used in: Shop models section (face images), model picker, and **seeded as `IdentityReference` rows** (both images uploaded to R2 by `scripts/seed-business.ts`)
 
 Shared model prompt rules: plain light-grey seamless background, even soft frontal light, neutral
 relaxed expression with a slight smile, hair away from face, minimal makeup, **fitted plain white
@@ -173,6 +173,22 @@ relaxed at sides, feet visible, facing camera.
 | C37/C38 | `…/shop/models/model-salma-face.png` | `…/shop/models/model-salma-full.png` | **Salma**, 33 | Middle Eastern woman of Gulf heritage, 33, medium build, wearing a plain black hijab covering her hair, olive skin |
 | C39/C40 | `…/shop/models/model-sofia-face.png` | `…/shop/models/model-sofia-full.png` | **Sofia**, 24 | Latina woman of Mexican heritage, 24, petite curvy figure, long dark brown hair, tan skin |
 | C41/C42 | `…/shop/models/model-valentina-face.png` | `…/shop/models/model-valentina-full.png` | **Valentina**, 30 | Latina woman of Colombian heritage, 30, athletic build, shoulder-length wavy black hair, bronze skin |
+| C43/C44 | `…/shop/models/model-grace-face.png` | `…/shop/models/model-grace-full.png` | **Grace**, 22 | white British woman, 22, petite (157 cm), long straight dark blonde hair, fair skin |
+| C45/C46 | `…/shop/models/model-ivy-face.png` | `…/shop/models/model-ivy-full.png` | **Ivy**, 26 | white Eastern European woman, 26, tall and slim (175 cm), sleek dark brown low ponytail, fair skin |
+| C47/C48 | `…/shop/models/model-sarah-face.png` | `…/shop/models/model-sarah-full.png` | **Sarah**, 31 | white American woman, 31, athletic toned build, shoulder-length auburn hair, fair skin with freckles |
+| C49/C50 | `…/shop/models/model-diane-face.png` | `…/shop/models/model-diane-full.png` | **Diane**, 45 | white French woman, 45, medium build, elegant short silver-grey bob |
+| C51/C52 | `…/shop/models/model-zuri-face.png` | `…/shop/models/model-zuri-full.png` | **Zuri**, 22 | Black woman of East African heritage, 22, petite (158 cm), short twisted locs, deep brown skin |
+| C53/C54 | `…/shop/models/model-imani-face.png` | `…/shop/models/model-imani-full.png` | **Imani**, 28 | Black woman of Caribbean heritage, 28, medium build, rounded natural afro, warm brown skin |
+| C55/C56 | `…/shop/models/model-keisha-face.png` | `…/shop/models/model-keisha-full.png` | **Keisha**, 35 | Black American woman, 35, athletic toned build, sleek straight shoulder-length hair, medium brown skin |
+| C57/C58 | `…/shop/models/model-yvonne-face.png` | `…/shop/models/model-yvonne-full.png` | **Yvonne**, 44 | Black woman of Nigerian heritage, 44, medium build, elegant short grey-flecked natural hair, deep brown skin |
+| C59/C60 | `…/shop/models/model-noor-face.png` | `…/shop/models/model-noor-full.png` | **Noor**, 22 | Middle Eastern woman of Levantine heritage, 22, petite (156 cm), long straight dark brown hair, light olive skin |
+| C61/C62 | `…/shop/models/model-dalia-face.png` | `…/shop/models/model-dalia-full.png` | **Dalia**, 28 | Middle Eastern woman of Egyptian heritage, 28, curvy plus-size figure (US size 16), thick wavy dark hair, olive skin |
+| C63/C64 | `…/shop/models/model-rania-face.png` | `…/shop/models/model-rania-full.png` | **Rania**, 30 | Middle Eastern woman of Moroccan heritage, 30, athletic toned build, plain beige hijab covering her hair, olive skin |
+| C65/C66 | `…/shop/models/model-hoda-face.png` | `…/shop/models/model-hoda-full.png` | **Hoda**, 43 | Middle Eastern woman of Gulf heritage, 43, medium build, elegant short dark bob with subtle grey strands, olive skin |
+| C67/C68 | `…/shop/models/model-camila-face.png` | `…/shop/models/model-camila-full.png` | **Camila**, 22 | Latina woman of Brazilian heritage, 22, tall and slim (174 cm), long wavy light brown hair, tan skin |
+| C69/C70 | `…/shop/models/model-lucia-face.png` | `…/shop/models/model-lucia-full.png` | **Lucia**, 27 | Latina woman of Peruvian heritage, 27, medium build, straight black shoulder-length hair, bronze skin |
+| C71/C72 | `…/shop/models/model-mariana-face.png` | `…/shop/models/model-mariana-full.png` | **Mariana**, 35 | Latina woman of Dominican heritage, 35, curvy plus-size figure (US size 16), curly dark hair past shoulders, brown skin |
+| C73/C74 | `…/shop/models/model-elena-face.png` | `…/shop/models/model-elena-full.png` | **Elena**, 44 | Latina woman of Argentinian heritage, 44, medium build, elegant short dark bob with grey strands, olive skin |
 
 (`…` = `public/images/business`.) Alt: "Studio model {Name}, {age}" / "Studio model {Name}, full body".
 
