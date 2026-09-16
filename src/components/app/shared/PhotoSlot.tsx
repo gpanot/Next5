@@ -1,7 +1,8 @@
 'use client';
 
 import { Camera, RefreshCw } from 'lucide-react';
-import { useId, useRef } from 'react';
+import { useId, useRef, useState } from 'react';
+import { compressImage } from '../../../lib/imageCompress';
 
 type PhotoSlotProps = {
   label: string;
@@ -17,6 +18,7 @@ type PhotoSlotProps = {
 export const PhotoSlot = ({ label, hint, previewUrl, onFile, capture, aspect = 'portrait', error }: PhotoSlotProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const id = useId();
+  const [preparing, setPreparing] = useState(false);
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -31,6 +33,7 @@ export const PhotoSlot = ({ label, hint, previewUrl, onFile, capture, aspect = '
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent',
         ].join(' ')}
       >
+        {preparing && <span className="absolute inset-0 z-10 flex items-center justify-center bg-app-sunken/80 text-[12px] text-app-muted">Preparing…</span>}
         {previewUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element -- local object URL preview */}
@@ -55,8 +58,13 @@ export const PhotoSlot = ({ label, hint, previewUrl, onFile, capture, aspect = '
         tabIndex={-1}
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) onFile(file, URL.createObjectURL(file));
           e.target.value = '';
+          if (!file) return;
+          // Shrunk here so big phone photos fit in one upload; the server stores this size anyway.
+          setPreparing(true);
+          void compressImage(file)
+            .then((ready) => onFile(ready, URL.createObjectURL(ready)))
+            .finally(() => setPreparing(false));
         }}
       />
       <p id={`${id}-label`} className="text-[13px] font-medium text-app-ink">{label}</p>

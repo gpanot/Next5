@@ -152,7 +152,28 @@ await page.getByRole('dialog', { name: /Bring .* back\?/ }).getByRole('button', 
 await page.getByText(/1 product back in your list/).waitFor({ timeout: 20000 });
 step('archived a product from the Products page and brought it back');
 
-// 7. Create drop offers the 9:16 cover.
+// 7. A phone-sized photo is shrunk in the browser before it is uploaded.
+const bigPhoto = process.env.E2E_BIG_PHOTO;
+if (bigPhoto) {
+  const { statSync } = await import('node:fs');
+  const original = statSync(bigPhoto).size;
+  let uploadBytes = 0;
+  // Playwright can't read a multipart body, so the request's own content-length is used.
+  page.on('request', async (r) => { if (r.url().includes('/api/app/products/bulk')) uploadBytes = Number((await r.allHeaders())['content-length'] ?? 0); });
+  await page.goto(`${BASE}/app/shop/products`);
+  await page.getByRole('button', { name: 'Add products' }).first().click();
+  await page.locator('input[type=file]').first().setInputFiles(bigPhoto);
+  await page.getByRole('textbox', { name: /Product 1 name/ }).waitFor({ timeout: 20000 });
+  await page.getByRole('combobox', { name: /Product 1 category/ }).selectOption('dress');
+  await page.getByRole('button', { name: /^Save 1 product/ }).click();
+  await page.getByText(/1 product added/).waitFor({ timeout: 30000 });
+  console.log(`  original ${Math.round(original / 1024)} KB → uploaded ${Math.round(uploadBytes / 1024)} KB`);
+  assert(uploadBytes > 0 && uploadBytes < 4.5 * 1024 * 1024, `the upload must stay under 4.5 MB, was ${uploadBytes}`);
+  assert(uploadBytes < original, 'the photo should be smaller after the browser shrinks it');
+  step('a big photo is shrunk before upload');
+}
+
+// 8. Create drop offers the 9:16 cover.
 await page.goto(`${BASE}/app/shop/create`);
 await page.getByText('Add a 9:16 video cover for each product').waitFor({ timeout: 20000 });
 await shot('8-create');
