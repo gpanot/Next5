@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { resolutionFor, sizeForRatio } from '../../../src/config/imageModels';
-import { toBenchModel } from '../../../src/server/admin/wavespeedCatalog';
+import { toBenchModel, type RawModel, type RawProperty } from '../../../src/server/admin/wavespeedCatalog';
 
-const raw = (model_id: string, properties: Record<string, unknown>, extra: Record<string, unknown> = {}) => ({
+const raw = (model_id: string, properties: Record<string, RawProperty>, extra: Partial<RawModel> = {}): RawModel => ({
   model_id,
   base_price: 0.045,
   type: 'image-to-image',

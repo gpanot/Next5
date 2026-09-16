@@ -22,14 +22,14 @@ const IMAGE_FIELDS = ['images', 'image_urls', 'image'] as const;
 /** Models that take a prompt and a photo but do something other than edit it. */
 const NOT_AN_EDIT = /(lora|trainer|inpaint|upscal|remov|try-?on|relight|restor|colorize|face-?swap|portrait|watermark|outpaint|layer|material-extract|sam3|image-blend|ic-light|generate-background)/i;
 
-type RawModel = {
+export type RawModel = {
   model_id: string;
   base_price: number;
   description?: string;
   type?: string;
   api_schema?: { api_schemas?: { request_schema?: { properties?: Record<string, RawProperty>; required?: string[] } }[] };
 };
-type RawProperty = { type?: string; maxItems?: number; enum?: string[]; default?: string };
+export type RawProperty = { type?: string; maxItems?: number; enum?: string[]; default?: string };
 
 const humanize = (value: string) =>
   value.split(/[-_]/).map((word) => (/^[a-z]/.test(word) ? word[0].toUpperCase() + word.slice(1) : word)).join(' ');
