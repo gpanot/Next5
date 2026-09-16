@@ -132,10 +132,30 @@ await page.getByRole('region', { name: 'Photos of you' }).waitFor(); // still th
 await shot('6-looks');
 step('archived a look');
 
-// 6. Create drop offers the 9:16 cover.
+// 6. Products: archive the selected products, then bring one back.
+await page.goto(`${BASE}/app/shop/products`);
+await page.getByRole('button', { name: /^Select / }).first().click();
+await page.getByRole('button', { name: 'Archive', exact: true }).click();
+await page.getByRole('dialog').getByRole('button', { name: 'Archive', exact: true }).click();
+await page.getByText(/1 product archived/).waitFor({ timeout: 20000 });
+await page.getByRole('button', { name: 'Archived' }).click();
+await page.getByText('Archived products stay out of new drops').waitFor({ timeout: 20000 });
+const archivedCards = page.getByRole('button', { name: /^Select / });
+await archivedCards.first().waitFor({ timeout: 20000 });
+assert(await archivedCards.count() === 1, `the archived list should hold 1 product, has ${await archivedCards.count()}`);
+assert(await page.getByRole('button', { name: 'Archived' }).getAttribute('aria-pressed') === 'true', 'the Archived chip should look selected');
+await page.getByText('Archived', { exact: true }).nth(1).waitFor({ timeout: 10000 }); // the card says Archived
+await shot('7-archived');
+await page.getByRole('button', { name: /^Select / }).first().click();
+await page.getByRole('button', { name: 'Bring back' }).click();
+await page.getByRole('dialog', { name: /Bring .* back\?/ }).getByRole('button', { name: 'Bring back' }).click();
+await page.getByText(/1 product back in your list/).waitFor({ timeout: 20000 });
+step('archived a product from the Products page and brought it back');
+
+// 7. Create drop offers the 9:16 cover.
 await page.goto(`${BASE}/app/shop/create`);
 await page.getByText('Add a 9:16 video cover for each product').waitFor({ timeout: 20000 });
-await shot('7-create');
+await shot('8-create');
 step('create drop shows the cover option');
 
 await browser.close();

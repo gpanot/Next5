@@ -11,6 +11,8 @@ export type ProductDto = {
   frontUrl: string | null;
   backUrl: string | null;
   detailUrl: string | null;
+  /** Archived products are hidden from drops until the seller brings them back. */
+  archived: boolean;
   timesUsed: number;
   lastUsedAt: string | null;
   createdAt: string;

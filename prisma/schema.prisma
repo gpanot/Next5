@@ -365,6 +365,8 @@ model Product {
   lastSyncedAt     DateTime? @map("last_synced_at")
   lastUsedAt  DateTime? @map("last_used_at")
   archivedAt  DateTime? @map("archived_at")
+  /// The seller archived it by hand: a store sync must not bring it back.
+  archivedBySeller Boolean @default(false) @map("archived_by_seller")
   createdAt   DateTime  @default(now()) @map("created_at")
 
   workspace Workspace   @relation(fields: [workspaceId], references: [id])

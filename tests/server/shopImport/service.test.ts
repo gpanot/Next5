@@ -62,6 +62,20 @@ describe('TikTok Shop import', () => {
     expect(after).toMatchObject({ name: 'My set', soldCount: 2300 });
     expect(await prisma.product.count({ where: { workspaceId: ws.id, archivedAt: { not: null } } })).toBe(1);
     expect(await prisma.productSnapshot.count({ where: { productId: product.id } })).toBe(2);
+
+    // The seller archives a product they no longer sell: the next sync leaves it archived.
+    const { setProductsArchived } = await import('../../../src/server/products/products');
+    expect(await setProductsArchived(ws.id, [product.id], true)).toBe(1);
+    await ingestCatalog(ready, next, 'tiktok_scrape', null, 50);
+    expect(await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).toMatchObject({ archivedBySeller: true });
+    expect((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).archivedAt).not.toBeNull();
+
+    // Brought back by the seller, and a product that left the store returns when the store has it again.
+    await setProductsArchived(ws.id, [product.id], false);
+    const gone = await prisma.product.findFirstOrThrow({ where: { workspaceId: ws.id, archivedAt: { not: null } } });
+    await ingestCatalog(ready, normalizeProducts(JSON.parse(JSON.stringify((await import('../../../tests/fixtures/tiktok/store-rows.json')).default))), 'tiktok_scrape', null, 50);
+    expect((await prisma.product.findUniqueOrThrow({ where: { id: gone.id } })).archivedAt).toBeNull();
+    expect((await prisma.product.findUniqueOrThrow({ where: { id: product.id } })).archivedAt).toBeNull();
   });
 
   it('fetches details and lets the seller pick the reference image', async () => {

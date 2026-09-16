@@ -67,8 +67,21 @@ export const toProductDto = async (product: Product & { _count?: { items: number
   frontUrl: product.frontR2Key && product.frontR2Key !== 'pending' ? await presignObject(product.frontR2Key) : null,
   backUrl: product.backR2Key ? await presignObject(product.backR2Key) : null,
   detailUrl: product.detailR2Key ? await presignObject(product.detailR2Key) : null,
+  archived: Boolean(product.archivedAt),
   timesUsed: product._count?.items ?? 0,
   lastUsedAt: product.lastUsedAt?.toISOString() ?? null,
   createdAt: product.createdAt.toISOString(),
   };
+};
+
+/**
+ * Archives or brings back products the seller picked. Archived products stay out of drops, the store page
+ * and weekly syncs; photos already created stay in the library.
+ */
+export const setProductsArchived = async (workspaceId: string, productIds: readonly string[], archived: boolean, now = new Date()): Promise<number> => {
+  const { count } = await prisma.product.updateMany({
+    where: { workspaceId, id: { in: [...productIds] } },
+    data: { archivedAt: archived ? now : null, archivedBySeller: archived },
+  });
+  return count;
 };

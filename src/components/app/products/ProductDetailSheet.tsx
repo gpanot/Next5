@@ -12,14 +12,20 @@ import { Sheet } from '../../ui/Sheet';
 import { TextInput } from '../../ui/TextInput';
 import { PhotoSlot } from '../shared/PhotoSlot';
 
-type ProductDetailSheetProps = { product: ProductDto | null; onClose: () => void; onChanged: () => void };
-
-export const ProductDetailSheet = ({ product, onClose, onChanged }: ProductDetailSheetProps) => {
-  if (!product) return null;
-  return <ProductDetailBody key={product.id} product={product} onClose={onClose} onChanged={onChanged} />;
+type ProductDetailSheetProps = {
+  product: ProductDto | null;
+  onClose: () => void;
+  onChanged: () => void;
+  /** Asks the page to confirm archiving (or bringing back) this product. */
+  onArchive: (productId: string, archived: boolean) => void;
 };
 
-const ProductDetailBody = ({ product, onClose, onChanged }: { product: ProductDto; onClose: () => void; onChanged: () => void }) => {
+export const ProductDetailSheet = ({ product, onClose, onChanged, onArchive }: ProductDetailSheetProps) => {
+  if (!product) return null;
+  return <ProductDetailBody key={product.id} product={product} onClose={onClose} onChanged={onChanged} onArchive={onArchive} />;
+};
+
+const ProductDetailBody = ({ product, onClose, onChanged, onArchive }: { product: ProductDto; onClose: () => void; onChanged: () => void; onArchive: (productId: string, archived: boolean) => void }) => {
   const [fields, setFields] = useState({ name: product.name, category: product.category, colorName: product.colorName ?? '', sku: product.sku ?? '', fit: product.fit ?? '', notes: product.notes ?? '' });
   const [files, setFiles] = useState<Record<'front' | 'back' | 'detail', { file: File; url: string } | null>>({ front: null, back: null, detail: null });
   const [busy, setBusy] = useState(false);
@@ -43,13 +49,6 @@ const ProductDetailBody = ({ product, onClose, onChanged }: { product: ProductDt
     }
   };
 
-  const archive = async () => {
-    if (!window.confirm('Archive this product? Photos you created stay in your library.')) return;
-    await apiFetch(`/api/app/products/${product.id}`, { method: 'DELETE' }).catch(() => undefined);
-    onChanged();
-    onClose();
-  };
-
   return (
     <Sheet open onClose={onClose} title={product.name} side="right">
       <div className="flex flex-col gap-5 overflow-y-auto p-5">
@@ -70,7 +69,7 @@ const ProductDetailBody = ({ product, onClose, onChanged }: { product: ProductDt
         <Field label="Notes" htmlFor="pd-notes" helper="Up to 120 characters, e.g. “cropped length”"><TextInput id="pd-notes" maxLength={120} value={fields.notes} onChange={(e) => setFields((f) => ({ ...f, notes: e.target.value }))} /></Field>
         {error && <p role="alert" className="text-[14px] text-app-danger">{error}</p>}
         <div className="flex flex-wrap justify-between gap-2 border-t border-app-line pt-4">
-          <AppButton variant="ghost" onClick={archive}>Archive</AppButton>
+          <AppButton variant="ghost" onClick={() => onArchive(product.id, !product.archived)}>{product.archived ? 'Bring back' : 'Archive'}</AppButton>
           <div className="flex gap-2">
             <Link href={`/app/create?products=${product.id}`} className="inline-flex h-10 items-center rounded-xl border border-app-line px-4 text-[13px] font-medium text-app-ink hover:bg-app-sunken">Create photos</Link>
             <AppButton loading={busy} onClick={save}>Save</AppButton>

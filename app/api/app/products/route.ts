@@ -15,10 +15,11 @@ export const GET = authedRoute(async (req, session) => {
   const category = params.get('category');
   const status = params.get('status');
   const cursor = params.get('cursor');
+  const archived = params.get('archived') === 'true';
   const products = await prisma.product.findMany({
     where: {
       workspaceId: ws.id,
-      archivedAt: null,
+      archivedAt: archived ? { not: null } : null,
       ...(search ? { OR: [{ name: { contains: search, mode: 'insensitive' } }, { sku: { contains: search, mode: 'insensitive' } }] } : {}),
       ...(category ? { category } : {}),
       ...(status === 'unused' ? { lastUsedAt: null } : status === 'used' ? { lastUsedAt: { not: null } } : {}),

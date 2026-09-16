@@ -82,7 +82,7 @@ const upsertProduct = (tx: Prisma.TransactionClient, workspaceId: string, source
     },
     // Name, category and the chosen reference image are the seller's to edit — a sync never overwrites them.
     update: {
-      externalUrl: p.externalUrl, priceCents: p.priceCents, currency: p.currency, soldCount: p.soldCount, lastSyncedAt: now, archivedAt: null,
+      externalUrl: p.externalUrl, priceCents: p.priceCents, currency: p.currency, soldCount: p.soldCount, lastSyncedAt: now,
       ...(p.variants ? { variants: p.variants, specifications: p.specifications ?? Prisma.DbNull, description: p.description, categoryPath: p.categoryPath, detailsFetchedAt: now } : {}),
     },
     select: { id: true, soldCount: true, priceCents: true, imageUrls: true },
@@ -101,6 +101,8 @@ export const ingestCatalog = async (connection: ShopConnection, products: Normal
     }
     await prisma.productSnapshot.createMany({ data: saved.map((row) => ({ productId: row.id, soldCount: row.soldCount, priceCents: row.priceCents, capturedAt: now })) });
   }
+  // Products still in the store come back, unless the seller archived them by hand.
+  await prisma.product.updateMany({ where: { id: { in: ids }, archivedAt: { not: null }, archivedBySeller: false }, data: { archivedAt: null } });
   // Only a complete catalog (below the cap) tells us which products left the store.
   if (products.length > 0 && products.length < cap) {
     await prisma.product.updateMany({ where: { workspaceId: connection.workspaceId, source, id: { notIn: ids }, archivedAt: null }, data: { archivedAt: now } });

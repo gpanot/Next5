@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Package, Plus, Search } from 'lucide-react';
+import { Archive, ArchiveRestore, Check, Package, Plus, Search } from 'lucide-react';
 import { useAppRouter } from '../shell/AppLink';
 import { useEffect, useState } from 'react';
 import { PRODUCT_CATEGORIES } from '../../../config/shots';
@@ -17,9 +17,10 @@ import { SkeletonGrid } from '../../ui/Skeleton';
 import { TextInput } from '../../ui/TextInput';
 import { ToastContainer } from '../../ui/Toast';
 import { AddProductsSheet } from './AddProductsSheet';
+import { ArchiveProductsDialog } from './ArchiveProductsDialog';
 import { ProductDetailSheet } from './ProductDetailSheet';
 
-const STATUS = [{ value: 'all', label: 'All' }, { value: 'unused', label: 'New' }, { value: 'used', label: 'Photographed' }] as const;
+const STATUS = [{ value: 'all', label: 'All' }, { value: 'unused', label: 'New' }, { value: 'used', label: 'Photographed' }, { value: 'archived', label: 'Archived' }] as const;
 
 export const ProductsView = () => {
   const router = useAppRouter();
@@ -30,6 +31,8 @@ export const ProductsView = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [adding, setAdding] = useState(false);
   const [detail, setDetail] = useState<ProductDto | null>(null);
+  const [archiving, setArchiving] = useState<string[] | null>(null);
+  const [archiveMode, setArchiveMode] = useState(true);
   const { toasts, toast, dismiss } = useToast();
 
   useEffect(() => {
@@ -37,7 +40,8 @@ export const ProductsView = () => {
     return () => window.clearTimeout(id);
   }, [search]);
 
-  const query = new URLSearchParams({ ...(debounced ? { search: debounced } : {}), ...(category ? { category } : {}), ...(status !== 'all' ? { status } : {}) });
+  const showArchived = status === 'archived';
+  const query = new URLSearchParams({ ...(debounced ? { search: debounced } : {}), ...(category ? { category } : {}), ...(status !== 'all' && !showArchived ? { status } : {}), ...(showArchived ? { archived: 'true' } : {}) });
   const { data, error, loading, refresh } = useApi<{ products: ProductDto[] }>(`/api/app/products?${query.toString()}`);
   const toggle = (id: string) => setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
@@ -52,10 +56,15 @@ export const ProductsView = () => {
         <ChipGroup options={STATUS} value={status} onChange={(v) => setStatus(String(v))} />
         <AppButton iconLeft={<Plus className="h-4 w-4" />} onClick={() => setAdding(true)} className="ml-auto">Add products</AppButton>
       </div>
+      {showArchived && (
+        <p className="text-[13px] text-app-muted">Archived products stay out of new drops and weekly store syncs. Their photos stay in your library.</p>
+      )}
       {loading && !data && <SkeletonGrid count={8} cols={4} />}
       {error && <ErrorState message={error} onRetry={refresh} />}
       {data && data.products.length === 0 && (
-        <EmptyState illustration={<Package className="h-10 w-10" />} title={debounced || category || status !== 'all' ? 'No products match' : 'Add your first products'} body="A clear front photo on a plain background works best." action={{ label: 'Add products', onClick: () => setAdding(true) }} />
+        showArchived
+          ? <EmptyState illustration={<Archive className="h-10 w-10" />} title="No archived products" body="Archive products you don’t sell anymore to keep this list short." />
+          : <EmptyState illustration={<Package className="h-10 w-10" />} title={debounced || category || status !== 'all' ? 'No products match' : 'Add your first products'} body="A clear front photo on a plain background works best." action={{ label: 'Add products', onClick: () => setAdding(true) }} />
       )}
       {data && data.products.length > 0 && (
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -72,7 +81,7 @@ export const ProductsView = () => {
                 <span className="truncate text-[14px] font-semibold text-app-ink">{p.name}</span>
                 <div className="flex items-center justify-between gap-2">
                   <Badge tone="neutral">{PRODUCT_CATEGORIES.find((c) => c.id === p.category)?.label ?? p.category}</Badge>
-                  <span className="text-[12px] text-app-muted">{p.lastUsedAt ? 'Photographed' : 'New'}</span>
+                  <span className={`text-[12px] ${p.archived ? 'text-app-warning' : 'text-app-muted'}`}>{p.archived ? 'Archived' : p.lastUsedAt ? 'Photographed' : 'New'}</span>
                 </div>
                 {p.sku && <span className="truncate text-[12px] text-app-muted">SKU {p.sku}</span>}
               </div>
@@ -81,13 +90,31 @@ export const ProductsView = () => {
         </ul>
       )}
       {selected.size > 0 && (
-        <div className="sticky bottom-20 z-10 flex items-center justify-between gap-3 rounded-2xl border border-app-line bg-app-panel p-3 shadow-lg lg:bottom-4">
+        <div className="sticky bottom-20 z-10 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-app-line bg-app-panel p-3 shadow-lg lg:bottom-4">
           <span className="text-[14px] font-medium text-app-ink">{selected.size} selected</span>
-          <AppButton onClick={() => router.push(`/app/create?products=${[...selected].join(',')}`)}>Create photos</AppButton>
+          <div className="flex gap-2">
+            <AppButton variant="secondary" iconLeft={showArchived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />} onClick={() => { setArchiveMode(!showArchived); setArchiving([...selected]); }}>
+              {showArchived ? 'Bring back' : 'Archive'}
+            </AppButton>
+            {!showArchived && <AppButton onClick={() => router.push(`/app/create?products=${[...selected].join(',')}`)}>Create photos</AppButton>}
+          </div>
         </div>
       )}
       <AddProductsSheet open={adding} onClose={() => setAdding(false)} onSaved={(n) => { toast(`${n} product${n === 1 ? '' : 's'} added`); refresh(); }} />
-      <ProductDetailSheet product={detail} onClose={() => setDetail(null)} onChanged={refresh} />
+      <ProductDetailSheet product={detail} onClose={() => setDetail(null)} onChanged={refresh} onArchive={(id, archived) => { setDetail(null); setArchiving([id]); setArchiveMode(archived); }} />
+      {archiving && (
+        <ArchiveProductsDialog
+          productIds={archiving}
+          archived={archiveMode}
+          onClose={() => setArchiving(null)}
+          onDone={(n) => {
+            setArchiving(null);
+            setSelected(new Set());
+            toast(archiveMode ? `${n} product${n === 1 ? '' : 's'} archived` : `${n} product${n === 1 ? '' : 's'} back in your list`);
+            refresh();
+          }}
+        />
+      )}
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>
   );
