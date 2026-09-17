@@ -154,6 +154,22 @@ await page.getByRole('button', { name: 'Save photo' }).waitFor({ timeout: 10000 
 await page.keyboard.press('Escape');
 await page.getByRole('button', { name: 'Save photo' }).waitFor({ state: 'detached', timeout: 10000 });
 
+// Tapping an empty day in the month opens the photo picker for that date — no scrolling to its row.
+await page.getByRole('button', { name: /^Remove from / }).first().click(); // frees one photo to add
+await page.getByText(/^Removed from /).first().waitFor({ timeout: 10000 });
+await page.evaluate(() => window.scrollTo({ top: 0 }));
+const emptyDay = page.getByRole('button', { name: /^Add photos to \d{4}-\d{2}-\d{2}$/ }).last();
+const emptyDate = (await emptyDay.getAttribute('aria-label')).match(/\d{4}-\d{2}-\d{2}/)[0];
+await emptyDay.tap();
+const dayPicker = page.getByRole('dialog', { name: /^Add to / });
+await dayPicker.waitFor({ timeout: 10000 });
+await dayPicker.getByRole('button', { name: /^Pick: / }).first().tap({ timeout: 15000 });
+await page.waitForTimeout(400);
+await shot(page, 'cal-8-empty-day-picker');
+await dayPicker.getByRole('button', { name: 'Add 1 photo' }).tap();
+await page.getByText(/^Added 1 photo to /).first().waitFor({ timeout: 10000 });
+await page.getByRole('button', { name: `1 post on ${emptyDate}` }).waitFor({ timeout: 10000 });
+
 // Her days, changed without leaving the page.
 await page.getByRole('button', { name: /You post on/ }).click();
 await page.getByRole('button', { name: 'Mon', exact: true }).click();
