@@ -118,14 +118,15 @@ export const BrandCreateFlow = () => {
 
   return (
     <div className="flex flex-col gap-5">
-      <CreateSection step={1} title="Set" sub="Your signature look for this batch.">
+      {/* First, because it decides what every step below means. */}
+      <CreateSection step={1} title="Who is it for?" sub="A property, or photos of just you.">
+        <ListingPicker listings={listings.data?.listings ?? []} value={listingId} onChange={setListingId} onRefresh={listings.refresh} onAdded={onAdded} onReady={() => setReady(true)} startAdding={listingParam === 'new'} />
+      </CreateSection>
+      <CreateSection step={2} title="Set" sub="Your signature look for this batch.">
         <SetPicker sets={sets.data?.sets ?? []} value={setId} onChange={setSetChoice} noun="Set" />
       </CreateSection>
-      <CreateSection step={2} title="Theme">
+      <CreateSection step={3} title="Theme">
         <ThemePicker featured={themes.data?.featured ?? null} library={themes.data?.library ?? []} value={themeId} onChange={setThemeChoice} />
-      </CreateSection>
-      <CreateSection step={3} title="Who is it for?" sub="A property, or photos of just you.">
-        <ListingPicker listings={listings.data?.listings ?? []} value={listingId} onChange={setListingId} onRefresh={listings.refresh} onAdded={onAdded} onReady={() => setReady(true)} startAdding={listingParam === 'new'} />
       </CreateSection>
       {listing ? (
         <CreateSection step={4} title="How many looks per photo?" sub={rooms > 0 ? `${rooms} photo${rooms === 1 ? '' : 's'} × ${variations} = ${rooms * variations} photos.` : 'Add a photo of the property first.'}>
