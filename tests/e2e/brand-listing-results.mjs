@@ -35,7 +35,9 @@ await page.locator('input[type=checkbox]').first().check();
 await page.getByRole('button', { name: 'Add property' }).click();
 await page.getByText(/We put you in the photos you keep here/).waitFor({ timeout: 15000 });
 await page.locator('input[type=file]').first().setInputFiles(`${process.cwd()}/public/images/business/brand/themes/just-listed.png`);
-await page.getByText('1 photo × 2 = 2 photos.').waitFor({ timeout: 20000 });
+await page.getByText('1 photo × 1 = 1 photo.').waitFor({ timeout: 20000 });
+await page.getByRole('button', { name: '2 looks per photo' }).click();
+await page.getByText('1 photo × 2 = 2 photos.').waitFor({ timeout: 10000 });
 
 // Recents…: only the picked property shows; earlier ones live in the pop-up.
 await page.getByRole('button', { name: 'Just me' }).click();
@@ -46,9 +48,9 @@ await shot(page, 'results-1-recents');
 await page.getByRole('button', { name: /24 Oak St/ }).click();
 await page.getByText('1 photo × 2 = 2 photos.').waitFor({ timeout: 10000 });
 
-// Make the photos from the Ready step.
-await page.getByRole('button', { name: 'Done with my photos' }).click();
-await page.getByRole('button', { name: /Make my \d+ photos/ }).click({ timeout: 15000 });
+// Make the photos from the button at the bottom.
+await page.getByRole('button', { name: 'Open house', exact: true }).click();
+await page.getByRole('button', { name: /^Generate \d+ photos/ }).click({ timeout: 15000 });
 await page.waitForURL(/\/app\/brand\/batches\//, { timeout: 20000 });
 await page.waitForFunction(() => /2 of 2 ready|2 photos/.test(document.body.innerText) && document.querySelectorAll('button[aria-pressed]').length >= 2, null, { timeout: 120000 });
 await page.getByRole('button', { name: 'Add to calendar' }).first().waitFor({ timeout: 30000 });

@@ -18,15 +18,13 @@ type Props = {
   onAdded: (listing: ListingDto) => void;
   /** Opened from "Add property" elsewhere: go straight to adding one. */
   startAdding?: boolean;
-  /** She is done cleaning up the picked property's photos. */
-  onReady?: () => void;
 };
 
 /**
  * Pick a property, or add one from a Zillow link or her own photos. Photos are only ever made from
  * photos of the property she gives us — we never invent a room (docs/business-studios/12-listing-mode-plan.md).
  */
-export const ListingPicker = ({ listings, value, onChange, onRefresh, onAdded, startAdding = false, onReady }: Props) => {
+export const ListingPicker = ({ listings, value, onChange, onRefresh, onAdded, startAdding = false }: Props) => {
   const [importing, setImporting] = useState(startAdding);
   const [resume, setResume] = useState<ListingDto | null>(null);
   const [recentsOpen, setRecentsOpen] = useState(false);
@@ -128,7 +126,6 @@ export const ListingPicker = ({ listings, value, onChange, onRefresh, onAdded, s
             setImporting(true);
           }}
           onRemoved={() => onChange(null)}
-          onReady={onReady}
         />
       )}
 

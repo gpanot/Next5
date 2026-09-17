@@ -22,7 +22,7 @@ Upload stays a first-class path: not every agent uses Zillow, and some want to u
 | Z2 | **The unit is a photo, not a room.** | Copy says "photo" everywhere ("looks per photo"). Room tags stay internal: the prompt label and a hint on weak photos. |
 | Z3 | ~~One-button Ready screen after picking~~ — **moved after cleanup (Z7).** | |
 | Z6 | **(2026-09-17) Import everything, she cleans up.** Link + "I represent this property" → **Add property** → every gallery photo (up to 60) lands on the property. | No confirm or pick screen. She removes photos with ×, adds her own, or adds removed ones back ("N more on Zillow"). `MAX_ROOMS_PER_LISTING` is 60. |
-| Z7 | **(2026-09-17) Ready step after cleanup.** "Done with my photos" on the property opens a one-button card: photos × looks, set, theme, formats, balance, **Make my N photos**. | "Change photos or settings" returns to the full Create form. Works for uploaded properties too. |
+| Z7 | ~~**(2026-09-17) Ready step after cleanup.** "Done with my photos" opened a one-button card.~~ — **removed (2026-09-17):** the **Generate** button at the bottom of Create is the only way to make photos. | Looks per photo starts at 1. |
 | Z4 | **Never remove MLS logos** or other marks burned into a photo. | "Replace with your original" per photo instead. |
 | Z5 | **Actor: `maxcopell/zillow-detail-scraper`**, async run + poll, same pattern as the TikTok Shop import. | Mock fixtures for dev and tests; no credits spent locally. |
 
@@ -47,7 +47,7 @@ One sheet, opened from "+ Property" in Create and "Add property" on the Calendar
 - Failure: the panel shows the reason with **Try again** and **Remove property**.
 - The same Zillow home pasted again opens the property she already has.
 - Create starts from the theme that fits the status (§4); the batch count is photos kept × looks per photo.
-- **Done with my photos** → Ready card with **Make my N photos** (Z7); "Change photos or settings" goes back.
+- Looks per photo starts at 1; **Generate** at the bottom makes the photos (Z7).
 
 ## 4. Listing status drives theme and captions
 
@@ -138,7 +138,7 @@ Size: **M** (3–5 dev-days).
 | Webhook finishes Zillow runs too | `app/api/webhooks/apify/route.ts` |
 | Post Kit uses listing facts (status, price, beds, baths, sqft, city) | `src/server/postKit/postKit.ts` |
 | Sheet (link + attest), property panel with loading / failed / cleanup grid | `src/components/app/listings/*` |
-| "Looks per photo" copy, theme from status, Ready step | `BrandCreateFlow.tsx`, `ListingReadyCard.tsx` |
+| "Looks per photo" copy, theme from status | `BrandCreateFlow.tsx` |
 | Tests | `tests/lib/listingPhotos.test.ts`, `tests/server/listings/zillow*.test.ts`, `tests/e2e/brand-listing.mjs`, fixtures in `tests/fixtures/zillow/` |
 
 Notes from the build:

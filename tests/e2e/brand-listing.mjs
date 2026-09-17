@@ -64,8 +64,9 @@ await shot(page, 'listing-1-added');
 
 // One photo → the count must follow her photos, not a picker.
 await page.locator('input[type=file]').first().setInputFiles(`${ROOT}/brand/themes/just-listed.png`);
-await page.getByText('1 photo × 2 = 2 photos.').waitFor({ timeout: 20000 });
-await page.getByText(/^2 photos × 1 format/).waitFor({ timeout: 10000 });
+// One look per photo unless she asks for more.
+await page.getByText('1 photo × 1 = 1 photo.').waitFor({ timeout: 20000 });
+await page.getByText(/^1 photo × 1 format/).waitFor({ timeout: 10000 });
 await shot(page, 'listing-2-one-room');
 
 // Three looks per photo from one photo.
@@ -146,15 +147,7 @@ await shot(page, 'zillow-4-add-back');
 await page.getByRole('button', { name: 'Add 1 photo' }).click();
 await page.getByText('20 photos', { exact: true }).waitFor({ timeout: 30000 });
 await shot(page, 'zillow-5-cleaned');
-
-// Done cleaning up → one-button Ready step, and back.
-await page.getByRole('button', { name: 'Done with my photos' }).click();
-await page.getByText('20 photos × 2 looks = 40 photos').waitFor({ timeout: 10000 });
-await page.getByText('Just listed', { exact: true }).first().waitFor();
-await page.getByText(/You have \d+/).waitFor({ timeout: 10000 });
-await shot(page, 'zillow-6-ready');
-await page.getByRole('button', { name: 'Change photos or settings' }).click();
-await page.getByText('How many looks per photo?').waitFor({ timeout: 10000 });
+if (await page.getByRole('button', { name: 'Done with my photos' }).count()) throw new Error('Done with my photos is back');
 
 console.log('E2E brand listing OK', email);
 await browser.close();

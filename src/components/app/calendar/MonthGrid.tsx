@@ -6,12 +6,15 @@ import { addMonths, groupByDay, isPast, isToday, monthGrid, monthLabel, monthOf,
 import type { SlotDto } from '../../../types/business/calendar';
 import { useDroppableDay } from './CalendarDnd';
 
-type Props = { slots: SlotDto[]; onDay: (date: string) => void };
+type Props = { slots: SlotDto[]; onDay: (date: string) => void; onAdd: (date: string) => void };
 
-type CellProps = { date: string; inMonth: boolean; slots: readonly SlotDto[]; onDay: (date: string) => void };
+type CellProps = { date: string; inMonth: boolean; slots: readonly SlotDto[]; onDay: (date: string) => void; onAdd: (date: string) => void };
 
-/** One day in the month. Tapping it jumps to its row; dropping a photo on it moves the post there. */
-const MonthDayCell = ({ date, inMonth, slots, onDay }: CellProps) => {
+/**
+ * One day in the month. Tapping a day with posts jumps to its row; tapping an empty day from today on
+ * adds photos to it, like "Add" on its row. Dropping a photo on it moves the post there.
+ */
+const MonthDayCell = ({ date, inMonth, slots, onDay, onAdd }: CellProps) => {
   const first = slots[0];
   const today = isToday(date);
   const day = Number(date.slice(8));
@@ -26,7 +29,7 @@ const MonthDayCell = ({ date, inMonth, slots, onDay }: CellProps) => {
       <button
         ref={setNodeRef}
         type="button"
-        onClick={() => onDay(date)}
+        onClick={() => onAdd(date)}
         disabled={!canAdd}
         aria-label={canAdd ? `Add photos to ${date}` : date}
         className={`flex aspect-square items-center justify-center rounded-lg text-[12px] tabular-nums transition duration-150 disabled:cursor-default ${dropRing} ${
@@ -72,10 +75,10 @@ const MonthDayCell = ({ date, inMonth, slots, onDay }: CellProps) => {
 
 /**
  * Her month as a month: the first photo sits in the day, with a count when there are more,
- * so a glance shows how full the feed is. Tapping a day takes her to that day's row below,
- * where she adds or removes photos; carrying a photo onto a day moves it there.
+ * so a glance shows how full the feed is. Tapping a day with posts takes her to that day's row below;
+ * tapping an empty day adds photos to it; carrying a photo onto a day moves it there.
  */
-export const MonthGrid = ({ slots, onDay }: Props) => {
+export const MonthGrid = ({ slots, onDay, onAdd }: Props) => {
   const [month, setMonth] = useState(monthOf(todayIso()));
   const byDate = new Map(groupByDay(slots.filter((s) => s.status !== 'skipped')).map((d) => [d.date, d.slots]));
   const days = monthGrid(month);
@@ -115,7 +118,7 @@ export const MonthGrid = ({ slots, onDay }: Props) => {
         ))}
 
         {days.map(({ date, inMonth }) => (
-          <MonthDayCell key={date} date={date} inMonth={inMonth} slots={byDate.get(date) ?? []} onDay={onDay} />
+          <MonthDayCell key={date} date={date} inMonth={inMonth} slots={byDate.get(date) ?? []} onDay={onDay} onAdd={onAdd} />
         ))}
       </div>
     </section>

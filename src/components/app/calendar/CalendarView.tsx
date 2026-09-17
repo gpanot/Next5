@@ -109,7 +109,7 @@ export const CalendarView = () => {
       <ProgressHeader progress={calendar.progress} />
 
       <CalendarDnd onMove={(slot, date) => void move(slot, date)}>
-        <MonthGrid slots={calendar.slots} onDay={setFocused} />
+        <MonthGrid slots={calendar.slots} onDay={setFocused} onAdd={setPickerDate} />
 
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-0.5">

@@ -22,7 +22,6 @@ import { CreateSection } from './CreateSection';
 import { CreditSummaryBar } from './CreditSummaryBar';
 import { FormatPicker } from './FormatPicker';
 import { ListingPicker } from './ListingPicker';
-import { ListingReadyCard } from './ListingReadyCard';
 import { OccasionPicker } from './OccasionPicker';
 import { SetPicker } from './SetPicker';
 import { StyleLine, type Style } from './StyleLine';
@@ -51,13 +50,11 @@ export const BrandCreateFlow = () => {
   const [count, setCount] = useState<number>(16);
   const listingParam = params.get('listing');
   const [listingId, setListingId] = useState<string | null>(listingParam && listingParam !== 'new' ? listingParam : null);
-  const [variations, setVariations] = useState<number>(2);
+  const [variations, setVariations] = useState<number>(1);
   // Her pick per property. Without one, only Zillow's own status fills it in — an uploaded home stays empty.
   const [occasionByListing, setOccasionByListing] = useState<Record<string, Occasion>>({});
   const [style, setStyle] = useState<Style>({ wardrobe: null, poseEnergy: null });
   const [imported, setImported] = useState<ListingDto | null>(null);
-  // After cleaning up a property's photos: one button instead of the full form (13-zillow-import-plan.md, Z7).
-  const [ready, setReady] = useState(false);
   const [formats, setFormats] = useState<FormatId[]>(defaults.length ? defaults : ['portrait_4_5']);
   const [highRes, setHighRes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -123,33 +120,11 @@ export const BrandCreateFlow = () => {
 
   const styleFallback = { wardrobe: fallbackWardrobe, poseEnergy: fallbackPose };
 
-  if (ready && listing && rooms > 0) {
-    return (
-      <ListingReadyCard
-        listing={listing}
-        looks={variations}
-        occasion={occasion}
-        occasionFromZillow={occasionFromZillow}
-        onOccasion={pickOccasion}
-        styleValue={style}
-        styleFallback={styleFallback}
-        onStyle={setStyle}
-        formatsLabel={formats.map((f) => FORMATS[f].ratio).join(', ')}
-        estimate={estimate}
-        loading={loading}
-        error={submitError ?? error}
-        submitting={submitting}
-        onSubmit={() => void submit()}
-        onBack={() => setReady(false)}
-      />
-    );
-  }
-
   return (
     <div className="flex flex-col gap-5">
       {/* First, because it decides what every step below means. */}
       <CreateSection step={1} title="Who is it for?" sub="A property, or photos of just you.">
-        <ListingPicker listings={listings.data?.listings ?? []} value={listingId} onChange={setListingId} onRefresh={listings.refresh} onAdded={onAdded} onReady={() => setReady(true)} startAdding={listingParam === 'new'} />
+        <ListingPicker listings={listings.data?.listings ?? []} value={listingId} onChange={setListingId} onRefresh={listings.refresh} onAdded={onAdded} startAdding={listingParam === 'new'} />
       </CreateSection>
 
       {listing ? (
@@ -157,7 +132,7 @@ export const BrandCreateFlow = () => {
           <CreateSection step={2} title="What’s happening?" sub="With this home, right now.">
             <OccasionPicker value={occasion} onChange={pickOccasion} fromZillow={occasionFromZillow} />
           </CreateSection>
-          <CreateSection step={3} title="How many looks per photo?" sub={rooms > 0 ? `${rooms} photo${rooms === 1 ? '' : 's'} × ${variations} = ${rooms * variations} photos.` : 'Add a photo of the property first.'}>
+          <CreateSection step={3} title="How many looks per photo?" sub={rooms > 0 ? `${rooms} photo${rooms === 1 ? '' : 's'} × ${variations} = ${rooms * variations} photo${rooms * variations === 1 ? '' : 's'}.` : 'Add a photo of the property first.'}>
             <ChipGroup options={VARIATIONS.map((v) => ({ value: String(v), label: `${v} look${v === 1 ? '' : 's'} per photo` }))} value={String(variations)} onChange={(v) => setVariations(Number(v))} />
           </CreateSection>
           <CreateSection step={4} title="Your style" sub="How you look. The home stays exactly as photographed.">
@@ -182,7 +157,7 @@ export const BrandCreateFlow = () => {
         <FormatPicker value={formats} onChange={setFormats} highRes={highRes} onHighRes={setHighRes} highResAllowed={Boolean(me.plan?.highRes)} />
       </CreateSection>
       <CreditSummaryBar
-        breakdown={`${photoCount} photos × ${formats.length} format${formats.length > 1 ? 's' : ''}${highRes ? ' × 2 (high-res)' : ''}`}
+        breakdown={`${photoCount} photo${photoCount === 1 ? '' : 's'} × ${formats.length} format${formats.length > 1 ? 's' : ''}${highRes ? ' × 2 (high-res)' : ''}`}
         estimate={estimate}
         error={submitError ?? error}
         hint={listing && rooms > 0 && !occasion ? 'Pick what’s happening with this home.' : undefined}

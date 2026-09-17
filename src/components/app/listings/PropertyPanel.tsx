@@ -1,10 +1,9 @@
 'use client';
 
-import { ArrowRight, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { useState } from 'react';
 import { apiFetch } from '../../../lib/apiClient';
 import type { ListingDto } from '../../../types/business/listings';
-import { AppButton } from '../../ui/AppButton';
 import { PropertyPhotos } from './PropertyPhotos';
 import { ZillowFacts } from './ZillowFacts';
 import { ZillowImportStatus } from './ZillowImportStatus';
@@ -16,12 +15,10 @@ type Props = {
   onAddFromZillow: () => void;
   /** The property was removed (a failed import she gave up on). */
   onRemoved: () => void;
-  /** She is done with the photos: show the one-button Ready step. */
-  onReady?: () => void;
 };
 
 /** The picked property: its facts, its photos, and the visible-label choice. */
-export const PropertyPanel = ({ listing, onRefresh, onAddFromZillow, onRemoved, onReady }: Props) => {
+export const PropertyPanel = ({ listing, onRefresh, onAddFromZillow, onRemoved }: Props) => {
   const [error, setError] = useState<string | null>(null);
   // The label ticks the moment she taps it; the server catches up behind.
   const [labelOverride, setLabelOverride] = useState<boolean | null>(null);
@@ -57,11 +54,6 @@ export const PropertyPanel = ({ listing, onRefresh, onAddFromZillow, onRemoved, 
       </div>
 
       <PropertyPhotos listing={listing} onRefresh={onRefresh} />
-      {onReady && listing.rooms.length > 0 && (
-        <AppButton size="lg" fullWidth iconRight={<ArrowRight aria-hidden className="h-4 w-4" />} onClick={onReady}>
-          Done with my photos
-        </AppButton>
-      )}
 
       <label className="flex items-start gap-2">
         <input id={`listing-ai-label-${listing.id}`} type="checkbox" checked={labelOn} onChange={(e) => void toggleLabel(e.target.checked)} className="mt-1 h-4 w-4 accent-[var(--app-accent)]" />

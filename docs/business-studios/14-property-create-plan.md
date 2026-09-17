@@ -72,7 +72,6 @@ The Post Kit receives the occasion for every property batch — uploads included
 | Uploaded photos tagged by room in the background | `tagUntaggedRooms` in `src/server/listings/listings.ts`, rooms route |
 | Post Kit mood and facts from the occasion, uploads included | `src/server/postKit/postKit.ts` |
 | Create: What's happening? · looks · Your style; hint instead of an error | `BrandCreateFlow.tsx`, `OccasionPicker.tsx`, `StyleLine.tsx`, `CreditSummaryBar.tsx` |
-| Ready card: occasion picked inline when missing | `ListingReadyCard.tsx` |
 | Tests | `tests/server/listings/{listings,prompt,zillowImport}.test.ts`, `tests/e2e/brand-listing.mjs` |
 
 Tests that hold the line: a property batch contains no theme scene text; every property prompt ends with the
