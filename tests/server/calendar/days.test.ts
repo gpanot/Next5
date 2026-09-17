@@ -8,6 +8,7 @@ import {
   listAddablePhotos,
   listSlots,
   markPosted,
+  moveSlot,
   removeFromCalendar,
   removeSlot,
 } from '../../../src/server/calendar/calendar';
@@ -140,5 +141,30 @@ describe('photos she can add', () => {
     const second = await listAddablePhotos(ws.id, first.nextCursor, 2);
     expect(second.rows.map((r) => r.id)).toEqual([items[1]!.id]);
     expect(second.nextCursor).toBeNull();
+  });
+});
+
+describe('moving a post to another day', () => {
+  it('moves it, even onto a day that already has posts', async () => {
+    const ws = await createTestWorkspace('brand');
+    const [a, b] = await photos(ws, 2);
+    await addPhotosToDay(ws, '2026-09-17', [a!.id], NOW);
+    await addPhotosToDay(ws, '2026-09-19', [b!.id], NOW);
+    const [slot] = await onDay(ws, '2026-09-17');
+    expect(isoDate((await moveSlot(ws.id, slot!.id, '2026-09-19', NOW)).scheduledFor)).toBe('2026-09-19');
+    expect(await onDay(ws, '2026-09-19')).toHaveLength(2);
+    expect(await onDay(ws, '2026-09-17')).toHaveLength(0);
+  });
+
+  it('refuses a past day, a posted post and someone else’s post', async () => {
+    const ws = await createTestWorkspace('brand');
+    const [item] = await photos(ws, 1);
+    await addPhotosToDay(ws, '2026-09-17', [item!.id], NOW);
+    const [slot] = await onDay(ws, '2026-09-17');
+    await expect(moveSlot(ws.id, slot!.id, '2026-09-14', NOW)).rejects.toMatchObject({ status: 400 });
+    await expect(moveSlot(ws.id, slot!.id, '2026-02-30', NOW)).rejects.toMatchObject({ status: 400 });
+    await expect(moveSlot((await createTestWorkspace('brand')).id, slot!.id, '2026-09-18', NOW)).rejects.toMatchObject({ status: 404 });
+    await markPosted(ws.id, slot!.id, null, NOW);
+    await expect(moveSlot(ws.id, slot!.id, '2026-09-18', NOW)).rejects.toMatchObject({ status: 409 });
   });
 });

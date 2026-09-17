@@ -300,10 +300,14 @@ export const skipSlot = async (workspaceId: string, slotId: string): Promise<Pos
   return prisma.postSlot.update({ where: { id: slotId }, data: { status: 'skipped' } });
 };
 
-export const moveSlot = async (workspaceId: string, slotId: string, date: string): Promise<PostSlot> => {
-  await ownedSlot(workspaceId, slotId);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new HttpError(400, 'invalid_date', 'Pick a day.');
-  return prisma.postSlot.update({ where: { id: slotId }, data: { scheduledFor: new Date(`${date}T00:00:00.000Z`), status: 'planned' } });
+/** Moves a post to another day — by drag and drop, or the date field in the post sheet. */
+export const moveSlot = async (workspaceId: string, slotId: string, date: string, now = new Date()): Promise<PostSlot> => {
+  const slot = await ownedSlot(workspaceId, slotId);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) throw new HttpError(400, 'invalid_date', 'Pick a day.');
+  if (date < isoDate(now)) throw new HttpError(400, 'past_date', 'Pick today or a day ahead.');
+  // A post she already published happened on its day; moving it would rewrite what she did.
+  if (slot.status === 'posted') throw new HttpError(409, 'already_posted', 'This one is already posted.');
+  return prisma.postSlot.update({ where: { id: slot.id }, data: { scheduledFor: new Date(`${date}T00:00:00.000Z`), status: 'planned' } });
 };
 
 /** Swaps the photo in a slot for another of hers — the "not this one" escape hatch. */

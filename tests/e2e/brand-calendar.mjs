@@ -12,9 +12,28 @@ const BASE = process.env.E2E_BASE_URL ?? 'http://localhost:3100';
 const ROOT = `${process.cwd()}/public/images/business`;
 const shot = (page, name) => page.screenshot({ path: `${OUT}/${name}.png`, fullPage: false });
 
+/** A real finger: press, hold until the photo lifts, slide to the target, let go. */
+const touchDrag = async (page, from, to, { shotName } = {}) => {
+  const client = await page.context().newCDPSession(page);
+  const a = await from.boundingBox();
+  const b = await to.boundingBox();
+  const start = { x: a.x + a.width / 2, y: a.y + a.height / 2 };
+  const end = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [start] });
+  await page.waitForTimeout(450);
+  for (let i = 1; i <= 14; i += 1) {
+    await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: start.x + ((end.x - start.x) * i) / 14, y: start.y + ((end.y - start.y) * i) / 14 }] });
+    await page.waitForTimeout(25);
+  }
+  await page.waitForTimeout(250);
+  if (shotName) await shot(page, shotName);
+  await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await client.detach();
+};
+
 const browser = await chromium.launch({ channel: 'chrome' });
 // A phone: this feature is used between client calls, not at a desk.
-const page = await browser.newPage({ viewport: { width: 390, height: 844 }, permissions: ['clipboard-read', 'clipboard-write'] });
+const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, permissions: ['clipboard-read', 'clipboard-write'] });
 page.on('pageerror', (e) => console.log('PAGEERROR', e.message));
 page.on('console', (m) => m.type() === 'error' && console.log('CONSOLE', m.text()));
 
@@ -107,6 +126,33 @@ await page.getByText(/^Added 1 photo to /).waitFor({ timeout: 10000 });
 await page.locator(`#${targetId}`).getByText('2 posts').waitFor({ timeout: 10000 });
 await page.locator(`#${targetId}`).scrollIntoViewIfNeeded();
 await shot(page, 'cal-3b-two-on-a-day');
+
+// Drag one of that day's photos onto the next day, with a finger.
+const rows = page.locator('section[id^="day-"]');
+const ids = await rows.evaluateAll((els) => els.map((e) => e.id));
+const nextId = ids[ids.indexOf(targetId) + 1];
+await page.locator(`#${targetId}`).evaluate((el) => window.scrollBy({ top: el.getBoundingClientRect().top - 90 }));
+await page.waitForTimeout(300);
+const source = page.locator(`#${targetId}`).getByRole('button', { name: /^Open post: / }).last();
+const nextBefore = await page.locator(`#${nextId}`).getByRole('button', { name: /^Open post: / }).count();
+await touchDrag(page, source, page.locator(`#${nextId}`), { shotName: 'cal-6-dragging' });
+await page.getByText(/^Moved to /).waitFor({ timeout: 10000 });
+await page.locator(`#${targetId}`).getByText('1 post', { exact: true }).waitFor({ timeout: 10000 });
+if ((await page.locator(`#${nextId}`).getByRole('button', { name: /^Open post: / }).count()) !== nextBefore + 1) throw new Error('the photo did not land on the next day');
+// The drop must not also open the post.
+if (await page.getByRole('dialog').count()) throw new Error('dropping a photo opened it');
+await shot(page, 'cal-7-moved');
+
+// Still there after a reload.
+await page.reload();
+await page.locator(`#${nextId}`).getByRole('button', { name: /^Open post: / }).first().waitFor({ timeout: 20000 });
+if ((await page.locator(`#${nextId}`).getByRole('button', { name: /^Open post: / }).count()) !== nextBefore + 1) throw new Error('the move was not saved');
+
+// A quick tap still opens the post (the hold is what starts a drag).
+await page.locator(`#${nextId}`).getByRole('button', { name: /^Open post: / }).first().tap();
+await page.getByRole('button', { name: 'Save photo' }).waitFor({ timeout: 10000 });
+await page.keyboard.press('Escape');
+await page.getByRole('button', { name: 'Save photo' }).waitFor({ state: 'detached', timeout: 10000 });
 
 // Her days, changed without leaving the page.
 await page.getByRole('button', { name: /You post on/ }).click();

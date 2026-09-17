@@ -1,9 +1,10 @@
 'use client';
 
-import { Check, Copy, Download, ExternalLink, Trash2, Undo2 } from 'lucide-react';
+import { CalendarDays, Check, Copy, Download, ExternalLink, Trash2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { track } from '../../../lib/analytics';
 import { ApiError, apiFetch, downloadPhoto } from '../../../lib/apiClient';
+import { dayLabel, todayIso } from '../../../lib/calendarDates';
 import type { SlotDto } from '../../../types/business/calendar';
 import { AppButton } from '../../ui/AppButton';
 import { Sheet } from '../../ui/Sheet';
@@ -147,6 +148,25 @@ export const PostSheet = ({ slot, postKitAllowed, onClose, onChanged, onToast }:
               <button type="button" onClick={() => void act('remove').then(onClose)} disabled={busy !== null} className="inline-flex items-center gap-1.5 text-[13px] text-app-muted hover:text-app-danger">
                 <Trash2 aria-hidden className="h-3.5 w-3.5" /> Remove from calendar
               </button>
+            )}
+            {!posted && (
+              // The phone's own date picker: the way to move a post without dragging.
+              <label className="inline-flex items-center gap-1.5 text-[13px] text-app-muted">
+                <CalendarDays aria-hidden className="h-3.5 w-3.5" />
+                <span>Move to</span>
+                <input
+                  id={`move-${slot.id}`}
+                  type="date"
+                  value={slot.scheduledFor}
+                  min={todayIso()}
+                  disabled={busy !== null}
+                  onChange={(e) => {
+                    const date = e.target.value;
+                    if (date && date !== slot.scheduledFor) void act('move', { date }).then((moved) => moved && onToast(`Moved to ${dayLabel(date)}`));
+                  }}
+                  className="h-9 rounded-lg border border-app-line bg-app-panel px-2 text-[13px] text-app-ink"
+                />
+              </label>
             )}
             {posted && !slot.postUrl && (
               <button type="button" onClick={() => setShowLink((v) => !v)} className="text-[13px] text-app-accent hover:text-app-ink">

@@ -10,6 +10,7 @@ import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeleton';
 import { ToastContainer } from '../../ui/Toast';
 import { CadenceCard } from './CadenceCard';
+import { CalendarDnd } from './CalendarDnd';
 import { DayRow } from './DayRow';
 import { MonthGrid } from './MonthGrid';
 import { PhotoPickerSheet } from './PhotoPickerSheet';
@@ -87,29 +88,48 @@ export const CalendarView = () => {
     }
   };
 
+  /** Drag and drop: the photo moves at once, and comes back if the server says no. */
+  const move = async (slot: SlotDto, date: string) => {
+    applySlot({ ...slot, scheduledFor: date, status: 'planned' });
+    try {
+      const res = await apiFetch<{ slot: SlotDto }>(`/api/app/calendar/slots/${slot.id}`, { method: 'PATCH', json: { action: 'move', date } });
+      applySlot(res.slot);
+      toast(`Moved to ${dayLabel(date)}`, 'success');
+    } catch (err) {
+      applySlot(slot);
+      toast(err instanceof ApiError ? err.message : 'Could not move that photo.', 'error');
+    }
+  };
+
   const days = daysToShow(calendar, focused);
+  const canDrag = calendar.slots.some((s) => s.status === 'planned' && !isPast(s.scheduledFor));
 
   return (
     <>
       <ProgressHeader progress={calendar.progress} />
 
-      <MonthGrid slots={calendar.slots} onDay={setFocused} />
+      <CalendarDnd onMove={(slot, date) => void move(slot, date)}>
+        <MonthGrid slots={calendar.slots} onDay={setFocused} />
 
-      <div className="flex flex-col gap-5">
-        <h2 className="text-[15px] font-semibold text-app-ink">What’s next</h2>
-        {days.map(({ date, slots }) => (
-          <DayRow
-            key={date}
-            date={date}
-            slots={slots}
-            highlighted={focused === date}
-            onOpen={setOpen}
-            onAdd={setPickerDate}
-            onRemove={(slot) => void remove(slot)}
-            busySlotId={removing}
-          />
-        ))}
-      </div>
+        <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-0.5">
+            <h2 className="text-[15px] font-semibold text-app-ink">What’s next</h2>
+            {canDrag && <p className="text-[13px] text-app-muted">Hold a photo, then drag it to another day.</p>}
+          </div>
+          {days.map(({ date, slots }) => (
+            <DayRow
+              key={date}
+              date={date}
+              slots={slots}
+              highlighted={focused === date}
+              onOpen={setOpen}
+              onAdd={setPickerDate}
+              onRemove={(slot) => void remove(slot)}
+              busySlotId={removing}
+            />
+          ))}
+        </div>
+      </CalendarDnd>
 
       <PropertiesCard />
 
