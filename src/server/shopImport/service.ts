@@ -9,6 +9,7 @@ import { getActivePlan } from '../generation/createBatch';
 import { HttpError } from '../http';
 import { productKey } from '../storage/keys';
 import { putObject } from '../storage/objectStore';
+import { apifyWebhookUrl } from '../apify/client';
 import { fetchProductDetails, getDatasetItems, getRun, isShopImportMock, startStoreRun, type ApifyRow } from './apify';
 import { normalizeProducts, normalizeStore, parseShopUrl, type NormalizedProduct } from './normalize';
 
@@ -25,12 +26,6 @@ export const importMax = (): number => {
 /** Products imported per store: the plan's allowance (no plan: 50) — never above importMax(). */
 export const importCapFor = (planId: string | null | undefined): number =>
   Math.min(planId && isPlanId(planId) && PLANS[planId].storeProducts > 0 ? PLANS[planId].storeProducts : 50, importMax());
-
-const webhookUrl = (): string | null => {
-  const app = process.env.NEXT_PUBLIC_APP_URL ?? '';
-  const secret = process.env.APIFY_WEBHOOK_SECRET;
-  return app.startsWith('https://') && secret ? `${app.replace(/\/$/, '')}/api/webhooks/apify?secret=${encodeURIComponent(secret)}` : null;
-};
 
 const requireShop = (ws: Workspace) => {
   if (ws.product !== 'shop') throw new HttpError(400, 'wrong_product', 'Store import is part of Shop Studio.');
@@ -53,7 +48,7 @@ export const connectStore = async (ws: Workspace, rawUrl: string, attest: boolea
   if (!attest) throw new HttpError(400, 'attest_required', 'Confirm that you own or manage this shop.');
   const store = await storeUrlFor(rawUrl);
   const plan = await getActivePlan(ws.id, now);
-  const { runId } = await startStoreRun(store.url, importCapFor(plan?.id), webhookUrl());
+  const { runId } = await startStoreRun(store.url, importCapFor(plan?.id), apifyWebhookUrl());
   return prisma.shopConnection.upsert({
     where: { workspaceId_platform: { workspaceId: ws.id, platform: 'tiktok_shop' } },
     update: { source: 'scrape', shopUrl: store.url, externalShopId: store.sellerId, status: 'syncing', runId, error: null, ownerAttestedAt: now },
@@ -66,7 +61,7 @@ export const syncStore = async (connection: ShopConnection): Promise<ShopConnect
   if (connection.source !== 'scrape' || !connection.shopUrl) throw new HttpError(409, 'sync_unavailable', 'Upload a new export file to update this store.');
   if (connection.status === 'syncing') return connection;
   const plan = await getActivePlan(connection.workspaceId);
-  const { runId } = await startStoreRun(connection.shopUrl, importCapFor(plan?.id), webhookUrl());
+  const { runId } = await startStoreRun(connection.shopUrl, importCapFor(plan?.id), apifyWebhookUrl());
   return prisma.shopConnection.update({ where: { id: connection.id }, data: { status: 'syncing', runId, error: null } });
 };
 

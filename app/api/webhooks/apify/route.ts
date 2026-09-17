@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { after, NextResponse } from 'next/server';
 import { prisma } from '../../../../src/lib/db';
+import { refreshZillowImport } from '../../../../src/server/listings/zillowImport';
 import { downloadPendingImages, refreshConnection } from '../../../../src/server/shopImport/service';
 
 export const maxDuration = 60;
@@ -13,12 +14,17 @@ const validSecret = (given: string | null): boolean => {
   return a.length === b.length && timingSafeEqual(a, b);
 };
 
-/** Apify run finished → ingest the store catalog. Idempotent (the run is claimed before ingest). */
+/** Apify run finished → ingest the store catalog or the Zillow home. Idempotent (the run is claimed before ingest). */
 export async function POST(req: Request): Promise<Response> {
   if (!validSecret(new URL(req.url).searchParams.get('secret'))) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   const body = (await req.json().catch(() => ({}))) as { resource?: { id?: string } };
   const runId = body.resource?.id;
   if (!runId) return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
+  const listing = await prisma.listing.findFirst({ where: { runId } });
+  if (listing) {
+    after(() => refreshZillowImport(listing).then(() => undefined));
+    return NextResponse.json({ ok: true });
+  }
   const connection = await prisma.shopConnection.findFirst({ where: { runId } });
   if (!connection) return NextResponse.json({ ok: true, note: 'unknown_run' });
   after(async () => {

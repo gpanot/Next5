@@ -1,7 +1,8 @@
 // server-only — never import from a 'use client' file.
 
-import { Prisma } from '@prisma/client';
+import { Prisma, type Listing } from '@prisma/client';
 import { INDUSTRIES } from '../../content/business/catalog/types';
+import { factsLine, statusLabel } from '../../lib/listingPhotos';
 import { prisma } from '../../lib/db';
 import type { PostKitDto } from '../../types/business/batches';
 import { chatJson, isOpenAiEnabled } from '../ai/openai';
@@ -26,12 +27,12 @@ const normalizeKit = (raw: RawKit | null, shop: boolean): PostKitDto | null => {
   };
 };
 
-type KitContext = { shop: boolean; business: string; handle: string | null; industry: string; look: string; product: string | null; listing?: string | null; photoCount?: number };
+type KitContext = { shop: boolean; business: string; handle: string | null; industry: string; look: string; product: string | null; listing?: string | null; photoCount?: number; property?: string | null };
 
 const SYSTEM = `You write social media posts for small businesses, most of them run by women: service pros (realtors, coaches, beauty pros) and online shops on TikTok Shop, Instagram and Shopee.
 Write in simple, warm, confident English a 10-year-old can read. Short sentences.
-Rules: never mention AI or that the photo was generated. Never invent facts: no prices, discounts, awards, sales numbers, materials, sizes or addresses. No emoji in the hook.
-For a photo of a property, describe only what is visible in that photo. Never name rooms, finishes, square footage, lot size or features you cannot see, and never imply the home has more than the photo shows.
+Rules: never mention AI or that the photo was generated. Never invent facts: no prices, discounts, awards, sales numbers, materials, sizes or addresses. Listing facts given to you are true and you may use them, and only them. No emoji in the hook.
+For a photo of a property, describe only what is visible in that photo, plus the listing facts given to you. Never name rooms, finishes, square footage, lot size or features you cannot see and were not given, and never imply the home has more than that.
 Return JSON:
 {"hook": "first line that stops the scroll, max 70 characters",
  "caption": "1-3 short sentences, max 300 characters, ending with a soft call to action",
@@ -43,7 +44,7 @@ const userText = (c: KitContext): string =>
     ? `Shop: ${c.business}${c.handle ? ` (${c.handle})` : ''}. Product: ${c.product ?? 'a clothing item'}. Photo look: ${c.look}.${c.listing ? ` Seller's listing text (use only these facts): ${c.listing}` : ''} The ${c.photoCount} photos show the same product from different angles. Write one post and one listing description for this product's photo series.`
     : c.shop
     ? `Shop: ${c.business}${c.handle ? ` (${c.handle})` : ''}. Product: ${c.product ?? 'a clothing item'}. Photo look: ${c.look}. Write the post and the listing description for this photo.`
-    : `Business: ${c.business}${c.handle ? ` (${c.handle})` : ''}, ${c.industry}. Post theme: ${c.look}. Write the post for this photo.`;
+    : `Business: ${c.business}${c.handle ? ` (${c.handle})` : ''}, ${c.industry}. Post theme: ${c.look}.${c.property ? ` Listing facts: ${c.property}.` : ''} Write the post for this photo.`;
 
 const mockKit = (c: KitContext): PostKitDto => ({
   hook: c.shop ? `New in: ${c.product ?? 'this piece'} you will wear all week` : `${c.look}: here is what you need to know`,
@@ -120,11 +121,19 @@ export const getProductPostKit = async (userId: string, productId: string, optio
   return kit;
 };
 
+/** "Just listed · $399,000 · 3 bd · 2 ba · Smyrna, GA" for a batch made from an imported Zillow home. */
+const propertyFacts = (listing: Listing | null): string | null => {
+  if (!listing || listing.source !== 'zillow') return null;
+  const address = listing.address as { city?: string | null; state?: string | null } | null;
+  const place = [address?.city, address?.state].filter(Boolean).join(', ');
+  return [statusLabel(listing.status), factsLine(listing), place].filter(Boolean).join(' · ') || null;
+};
+
 /** Post Kit for one photo (cached on the item). Growth/Agency plans, and free-trial photos as a taste. */
 export const getPostKit = async (userId: string, itemId: string): Promise<PostKitDto> => {
   const item = await prisma.batchItem.findFirst({
     where: { id: itemId, status: 'ready', batch: { workspace: { ownerUserId: userId } } },
-    include: { product: true, batch: { include: { workspace: true, theme: true, set: true } } },
+    include: { product: true, batch: { include: { workspace: true, theme: true, set: true, listing: true } } },
   });
   if (!item?.r2Key) throw new HttpError(404, 'item_not_found', 'Photo not found.');
   const cached = item.postKit as PostKitDto | null;
@@ -142,6 +151,7 @@ export const getPostKit = async (userId: string, itemId: string): Promise<PostKi
     industry: INDUSTRIES.find((i) => i.id === ws.industry)?.label ?? 'small business',
     look: item.batch.theme?.title ?? item.batch.set?.name ?? 'new photos',
     product: item.product ? [item.product.colorName, item.product.name].filter(Boolean).join(' ') : null,
+    property: propertyFacts(item.batch.listing),
   };
 
   const kit = await writeKit(context, [item.r2Key]);

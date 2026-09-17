@@ -435,11 +435,27 @@ CREATE TABLE public.listings (
     id text NOT NULL,
     workspace_id text NOT NULL,
     label text NOT NULL,
-    attested_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    attested_at timestamp(3) without time zone,
     visible_ai_tag boolean DEFAULT false NOT NULL,
     archived_at timestamp(3) without time zone,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    source text DEFAULT 'upload'::text NOT NULL,
+    zpid text,
+    source_url text,
+    address jsonb,
+    price_cents integer,
+    beds integer,
+    baths double precision,
+    sqft integer,
+    status text,
+    days_on_market integer,
+    candidates jsonb,
+    import_status text DEFAULT 'ready'::text NOT NULL,
+    import_error text,
+    run_id text,
+    imported_at timestamp(3) without time zone,
+    synced_at timestamp(3) without time zone
 );
 
 
@@ -537,7 +553,11 @@ CREATE TABLE public.post_materials (
     used_at timestamp(3) without time zone,
     archived_at timestamp(3) without time zone,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    listing_id text
+    listing_id text,
+    source_url text,
+    width integer,
+    height integer,
+    tag text
 );
 
 
@@ -1292,10 +1312,24 @@ CREATE INDEX listing_packs_workspace_id_status_idx ON public.listing_packs USING
 
 
 --
+-- Name: listings_run_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX listings_run_id_idx ON public.listings USING btree (run_id);
+
+
+--
 -- Name: listings_workspace_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX listings_workspace_id_created_at_idx ON public.listings USING btree (workspace_id, created_at);
+
+
+--
+-- Name: listings_workspace_id_zpid_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX listings_workspace_id_zpid_key ON public.listings USING btree (workspace_id, zpid);
 
 
 --
@@ -1814,4 +1848,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260918090000'),
     ('20260919090000'),
     ('20260920090000'),
-    ('20260921090000');
+    ('20260921090000'),
+    ('20260922090000');

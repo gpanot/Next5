@@ -19,7 +19,9 @@ import { useWorkspace } from '../shell/WorkspaceProvider';
 import { CreateSection } from './CreateSection';
 import { CreditSummaryBar } from './CreditSummaryBar';
 import { FormatPicker } from './FormatPicker';
-import { ListingPicker, type ListingDto } from './ListingPicker';
+import type { ListingDto } from '../../../types/business/listings';
+import { ListingPicker } from './ListingPicker';
+import { ListingReadyCard } from './ListingReadyCard';
 import { SetPicker } from './SetPicker';
 import { ThemePicker } from './ThemePicker';
 
@@ -42,6 +44,9 @@ export const BrandCreateFlow = () => {
   const listingParam = params.get('listing');
   const [listingId, setListingId] = useState<string | null>(listingParam && listingParam !== 'new' ? listingParam : null);
   const [variations, setVariations] = useState<number>(2);
+  const [imported, setImported] = useState<ListingDto | null>(null);
+  // After cleaning up a property's photos: one button instead of the full form (13-zillow-import-plan.md, Z7).
+  const [ready, setReady] = useState(false);
   const [formats, setFormats] = useState<FormatId[]>(defaults.length ? defaults : ['portrait_4_5']);
   const [highRes, setHighRes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -49,7 +54,8 @@ export const BrandCreateFlow = () => {
 
   const setId = setChoice ?? sets.data?.sets.find((s) => s.id === lastSet)?.id ?? sets.data?.sets[0]?.id ?? null;
   const themeId = themeChoice ?? themes.data?.featured?.id ?? null;
-  const listing = listings.data?.listings.find((l) => l.id === listingId) ?? null;
+  // The import's own copy covers the moment before the list refreshes.
+  const listing = listings.data?.listings.find((l) => l.id === listingId) ?? (imported?.id === listingId ? imported : null);
   const rooms = listing?.rooms.length ?? 0;
   // In listing mode the count is what her rooms allow, never a number she picks.
   const photoCount = listing ? rooms * variations : count;
@@ -61,6 +67,15 @@ export const BrandCreateFlow = () => {
     [setId, themeId, count, formats, highRes, listing, rooms, variations],
   );
   const { estimate, error, loading } = useEstimate(draft);
+
+  const onAdded = (next: ListingDto) => {
+    setImported(next);
+    listings.refresh();
+    setListingId(next.id);
+    // A Zillow home starts from the theme that fits its status (just listed, open house).
+    const theme = themes.data?.library.find((t) => t.id === next.themeId);
+    if (theme) setThemeChoice(theme.id);
+  };
 
   if (sets.loading || themes.loading) return <div className="flex flex-col gap-4"><SkeletonCard /><SkeletonCard /></div>;
   if (!me?.workspace?.hasIdentity) {
@@ -83,6 +98,24 @@ export const BrandCreateFlow = () => {
     }
   };
 
+  if (ready && listing && rooms > 0) {
+    return (
+      <ListingReadyCard
+        listing={listing}
+        looks={variations}
+        setName={sets.data?.sets.find((s) => s.id === setId)?.name ?? null}
+        themeTitle={themes.data?.library.find((t) => t.id === themeId)?.title ?? null}
+        formatsLabel={formats.map((f) => FORMATS[f].ratio).join(', ')}
+        estimate={estimate}
+        loading={loading}
+        error={submitError ?? error}
+        submitting={submitting}
+        onSubmit={() => void submit()}
+        onBack={() => setReady(false)}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <CreateSection step={1} title="Set" sub="Your signature look for this batch.">
@@ -92,11 +125,11 @@ export const BrandCreateFlow = () => {
         <ThemePicker featured={themes.data?.featured ?? null} library={themes.data?.library ?? []} value={themeId} onChange={setThemeChoice} />
       </CreateSection>
       <CreateSection step={3} title="Who is it for?" sub="A property, or photos of just you.">
-        <ListingPicker listings={listings.data?.listings ?? []} value={listingId} onChange={setListingId} onRefresh={listings.refresh} startAdding={listingParam === 'new'} />
+        <ListingPicker listings={listings.data?.listings ?? []} value={listingId} onChange={setListingId} onRefresh={listings.refresh} onAdded={onAdded} onReady={() => setReady(true)} startAdding={listingParam === 'new'} />
       </CreateSection>
       {listing ? (
-        <CreateSection step={4} title="How many looks per room?" sub={rooms > 0 ? `${rooms} room${rooms === 1 ? '' : 's'} × ${variations} = ${rooms * variations} photos.` : 'Add a photo of a room first.'}>
-          <ChipGroup options={VARIATIONS.map((v) => ({ value: String(v), label: `${v} look${v === 1 ? '' : 's'} per room` }))} value={String(variations)} onChange={(v) => setVariations(Number(v))} />
+        <CreateSection step={4} title="How many looks per photo?" sub={rooms > 0 ? `${rooms} photo${rooms === 1 ? '' : 's'} × ${variations} = ${rooms * variations} photos.` : 'Add a photo of the property first.'}>
+          <ChipGroup options={VARIATIONS.map((v) => ({ value: String(v), label: `${v} look${v === 1 ? '' : 's'} per photo` }))} value={String(variations)} onChange={(v) => setVariations(Number(v))} />
         </CreateSection>
       ) : (
         <CreateSection step={4} title="How many photos?" sub="Each is a different scene or pose from the theme.">

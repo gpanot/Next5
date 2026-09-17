@@ -778,6 +778,12 @@ model PostMaterial {
   note        String?
   /// The property this photo belongs to. Null for loose brand material.
   listingId   String?   @map("listing_id")
+  /// The Zillow photo this was imported from. Null for her own uploads.
+  sourceUrl   String?   @map("source_url")
+  width       Int?
+  height      Int?
+  /// Room type from the import tagger (kitchen, exterior…). Used for preselecting and the prompt label.
+  tag         String?
   usedAt      DateTime? @map("used_at")
   archivedAt  DateTime? @map("archived_at")
   createdAt   DateTime  @default(now()) @map("created_at")
@@ -833,10 +839,31 @@ model Listing {
   id           String    @id @default(cuid())
   workspaceId  String    @map("workspace_id")
   label        String
-  /// She confirmed she represents this property.
-  attestedAt   DateTime  @default(now()) @map("attested_at")
+  /// She confirmed she represents this property (a self-declaration).
+  attestedAt   DateTime? @map("attested_at")
   /// Off by default; visible-label rules differ by state and MLS, so it is her call.
   visibleAiTag Boolean   @default(false) @map("visible_ai_tag")
+  /// upload | zillow (docs/business-studios/13-zillow-import-plan.md)
+  source       String    @default("upload")
+  zpid         String?
+  sourceUrl    String?   @map("source_url")
+  /// { street, city, state, zip, full }
+  address      Json?
+  priceCents   Int?      @map("price_cents")
+  beds         Int?
+  baths        Float?
+  sqft         Int?
+  /// coming_soon | just_listed | for_sale | open_house | pending | sold | off_market
+  status       String?
+  daysOnMarket Int?      @map("days_on_market")
+  /// Every photo of the Zillow gallery: { id, url, thumbUrl, tag }[]
+  candidates   Json?
+  /// fetching | failed while importing; ready once the photos are in
+  importStatus String    @default("ready") @map("import_status")
+  importError  String?   @map("import_error")
+  runId        String?   @map("run_id")
+  importedAt   DateTime? @map("imported_at")
+  syncedAt     DateTime? @map("synced_at")
   archivedAt   DateTime? @map("archived_at")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
@@ -845,6 +872,8 @@ model Listing {
   materials PostMaterial[]
   batches   Batch[]
 
+  @@unique([workspaceId, zpid])
   @@index([workspaceId, createdAt])
+  @@index([runId])
   @@map("listings")
 }

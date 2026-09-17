@@ -1,0 +1,850 @@
+[
+ {
+  "zpid": 14312548,
+  "propertyUrl": "https://www.zillow.com/homedetails/2720-Carolyn-Dr-SE-Smyrna-GA-30080/14312548_zpid/",
+  "listingStatus": "forSale",
+  "listingType": {
+   "isFSBA": true,
+   "isFSBO": false,
+   "isComingSoon": false,
+   "isPending": false,
+   "isOpenHouse": false,
+   "isNewHome": false,
+   "isForAuction": false,
+   "isForeclosure": false,
+   "isBankOwned": false
+  },
+  "listingAddress": {
+   "street": "2720 Carolyn Dr SE",
+   "city": "Smyrna",
+   "state": "GA",
+   "zipCode": "30080",
+   "county": "Cobb County",
+   "country": "USA",
+   "neighborhood": "30080",
+   "subdivision": "Rolling View Acres",
+   "timeZone": "America/New_York",
+   "full": "2720 Carolyn Dr SE, Smyrna, GA 30080"
+  },
+  "listingPrice": {
+   "amount": 399000,
+   "currency": "USD",
+   "formatted": "$399,000"
+  },
+  "bedrooms": 3,
+  "bathrooms": 2,
+  "livingArea": 1350,
+  "yearBuilt": 1966,
+  "homeType": "SINGLE_FAMILY",
+  "description": "Welcome to this charming, updated ranch just a mile from the famed Battery, home of the Atlanta Braves. The property features a rare, impressively flat walkout backyard with endless possibilities. Walk up to the front door and you're greeted by a charming front patio, perfect for rocking chairs and waving at neighbors out for a walk. Step inside to an open floor plan, with the updated kitchen at the rear of the property. An ideal bar separates the kitchen and living space, creating a perfect flow between the two. An additional room adjacent to the kitchen, featuring a stylish brick wall, can s",
+  "daysOnZillow": 6,
+  "onMarketDate": "2026-09-10T00:00:00.000Z",
+  "photoCount": 20,
+  "listingPhotos": [
+   {
+    "url": "https://photos.zillowstatic.com/fp/dcf4a8c7ede14a15c3b4179502975233-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/f672f53d2d406117381959691dc8d2b3-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a2df2ec451efb42e430b4a345dbf66d9-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/e152a9fe15f988eda3af25767a219ad2-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/bdf355dd30597c120bdd1dad8f5364e6-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/17feb1c9582c99be1f5784a36cbcd8f1-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/b83c5739e102e6c1a962fd85ad553753-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/07f6e970b1c2338761f6133d2415e9a1-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/e110cea1ec7feb4fe94aae404a082849-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/99ca5784fec0f2c0cc995510be2b7eae-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/9893791bf9653af620f935c24430f24a-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/fa5d16f76103e6f97b49edc45e80ef29-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/371b9688e1bbac06dd3f52d696e21779-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/b0f32fb6f1610df727c6eb8d2cc10a91-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/1a53eb983d948a0c5076bb00aa070f27-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/70cf4720df411bb3fd9eb56ea07851a2-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/9d8654ca252d7df9e690c9bb052a3ec5-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/09ba555c33bbcefde0d1d536256c46dd-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/46dfc7e779ecabea3ede8420852b5940-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/d14d585d702068dc04ad320860c3a077-uncropped_scaled_within_1536_1152.jpg"
+   }
+  ],
+  "mainImage": {
+   "thumbnail": "https://photos.zillowstatic.com/fp/dcf4a8c7ede14a15c3b4179502975233-p_a.jpg",
+   "hiRes": "https://photos.zillowstatic.com/fp/dcf4a8c7ede14a15c3b4179502975233-p_f.jpg"
+  },
+  "agent": {
+   "name": "Test Agent",
+   "licenseNumber": "000000"
+  },
+  "broker": {
+   "name": "Ansley RE|Christie's Int'l RE"
+  },
+  "mls": {
+   "id": "10843388",
+   "name": "GAMLS"
+  }
+ },
+ {
+  "zpid": 89551754,
+  "propertyUrl": "https://www.zillow.com/homedetails/11113-Lost-Maples-Trl-Austin-TX-78748/89551754_zpid/",
+  "listingStatus": "forSale",
+  "listingType": {
+   "isFSBA": true,
+   "isFSBO": false,
+   "isComingSoon": false,
+   "isPending": false,
+   "isOpenHouse": false,
+   "isNewHome": false,
+   "isForAuction": false,
+   "isForeclosure": false,
+   "isBankOwned": false
+  },
+  "listingAddress": {
+   "street": "11113 Lost Maples Trl",
+   "city": "Austin",
+   "state": "TX",
+   "zipCode": "78748",
+   "county": "Travis County",
+   "country": "USA",
+   "neighborhood": "Slaughter Creek",
+   "subdivision": "Ravenscroft Twnhms Amd",
+   "timeZone": "America/Chicago",
+   "full": "11113 Lost Maples Trl, Austin, TX 78748"
+  },
+  "listingPrice": {
+   "amount": 399900,
+   "currency": "USD",
+   "formatted": "$399,900"
+  },
+  "bedrooms": 3,
+  "bathrooms": 3,
+  "livingArea": 1821,
+  "yearBuilt": 2008,
+  "homeType": "TOWNHOUSE",
+  "description": "Beautifully maintained two-story townhome in the desirable Canterbury Trails community of South Austin. This inviting home has a spacious, functional floor plan with abundant natural light, comfortable living and dining areas, and a well-appointed kitchen with ample cabinet and counter space. The generously sized bedrooms provide flexibility for family, guests, or a home office. Enjoy low-maintenance living with an attached garage and convenient access to neighborhood amenities. Ideally located near Menchaca Rd, shopping, dining, parks, and major roadways, with easy access to Downtown Austin. ",
+  "daysOnZillow": 0,
+  "onMarketDate": "2026-09-16T12:03:42.000Z",
+  "photoCount": 30,
+  "listingPhotos": [
+   {
+    "url": "https://photos.zillowstatic.com/fp/672303bf63eedeff99d54d8cd0b40de4-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/c3d28963fab4018d65a747fd14450983-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/384b3a6a10c9ac0ad0d452c371adbebb-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/ea4d2c65c2c8d70010cb3de2b1c1533e-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/149a57106d8b8860b85cd7b59a7628ea-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/ce63636db03aa7b4035ae4a19d19a9f1-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/e4a7baee71c0c0697fb82a255a2a24f0-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/725a594811969331dd94095f3a03bbfc-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a447f231763f7147104f72508b37d5da-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/abe2f3fb60a0bb5b0c90c49cae3c17f6-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/4c328af8e5217a46c2b06761dd07e73a-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a0b048729f211e51df818b99f9c2c447-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/5cec2da9d731f51dabb0903e0084f357-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/2723bafaf69d5f0a712499d174cbcb81-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/3c7ecc9461b898392e0d8a9fddec1587-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/7ce063e3788caf5b7f0f0ec0a185f66f-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/1f626f7936f8b0290055dc9a734f2b64-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/5f94a17afd47d1b46cc04902fec6dd36-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/d99c6d9b46b12fc4518453660535fcd9-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/7a8942ec045402047cbeb3e481da9f01-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a7f95e4e888a8334da3d559b43c6e0e6-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/14b0761b2553aac02c566a8a453c7c03-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/f7bb0f05eaeb76f2689d5a2cbb5188ae-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/28047749ad946dd525f9c4ec9c39e62a-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/71af6644788d1305547bbd88f95d4168-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/9415a6c48ee40c386b1c80c23d581ca4-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/87573dd899079e94d9322a79d62e6106-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/dbd77b2cf0868a99c19a42f625edcb94-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/4a3c70e3bf37bffc899875184b8abbf8-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/cc2175d2d53a1bbb8d1cb72684c5e229-uncropped_scaled_within_1536_1152.jpg"
+   }
+  ],
+  "mainImage": {
+   "thumbnail": "https://photos.zillowstatic.com/fp/672303bf63eedeff99d54d8cd0b40de4-p_a.jpg",
+   "hiRes": "https://photos.zillowstatic.com/fp/672303bf63eedeff99d54d8cd0b40de4-p_f.jpg"
+  },
+  "agent": {
+   "name": "Test Agent",
+   "licenseNumber": "000000"
+  },
+  "broker": {
+   "name": "HomePlus Realty Group"
+  },
+  "mls": {
+   "id": "43328930",
+   "name": "HAR"
+  }
+ },
+ {
+  "zpid": 7579008,
+  "propertyUrl": "https://www.zillow.com/homedetails/7314-E-Fillmore-St-Scottsdale-AZ-85257/7579008_zpid/",
+  "listingStatus": "sold",
+  "listingType": {
+   "isFSBA": false,
+   "isFSBO": false,
+   "isComingSoon": false,
+   "isPending": false,
+   "isOpenHouse": false,
+   "isNewHome": false,
+   "isForAuction": false,
+   "isForeclosure": false,
+   "isBankOwned": false
+  },
+  "listingAddress": {
+   "street": "7314 E FILLMORE Street",
+   "city": "Scottsdale",
+   "state": "AZ",
+   "zipCode": "85257",
+   "county": "Maricopa County",
+   "country": "USA",
+   "neighborhood": "85257",
+   "subdivision": "NEW PAPAGO PARKWAY 13 LOTS 779-912 & TR J",
+   "timeZone": "America/Phoenix",
+   "full": "7314 E FILLMORE Street, Scottsdale, AZ 85257"
+  },
+  "listingPrice": {
+   "amount": 1190000,
+   "currency": "USD",
+   "formatted": "$1,190,000"
+  },
+  "bedrooms": 5,
+  "bathrooms": 4,
+  "livingArea": 2210,
+  "yearBuilt": 1961,
+  "homeType": "SINGLE_FAMILY",
+  "description": "Welcome to Posh Scottsdale--an exceptional, fully remodeled property offering the perfect blend of luxury living and proven investment performance. Situated on a desirable corner lot with no HOA, just minutes from Old Town Scottsdale, this home is ideal as a primary residence, second home, or high-performing short-term rental.\r\n\r\nA highly successful 4.97-star-rated Airbnb, the property has consistently outperformed projections with an impressive 3-year average gross revenue of approximately $168K. Furniture is negotiable for those seeking a turnkey home where the next owner can seamlessly cont",
+  "daysOnZillow": 0,
+  "onMarketDate": "2026-07-11T00:00:00.000Z",
+  "photoCount": 63,
+  "listingPhotos": [
+   {
+    "url": "https://photos.zillowstatic.com/fp/57a9bb8b263bafaa34762b26fba821ab-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/2b4224b881aa3bd8c66c53f2caa4864e-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/12fbc678045b6a6f0a2fe78a13e91501-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a68b3db02e603daead4223392b741f02-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/48e25cf6a4ccf7eca22d03c02b5c60e2-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/9188a0c880f4a523e84ad36fe475586f-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/45c2e85a8047558f4c3e0a349f396930-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/54ed0bc259b38891d43ad55565177436-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/d713b27ab73f2206d1ca9cce3b8102fb-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/d887ae86fdac458d558f2ecadaa73c39-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/401f5329ff4f101cf48689f467fad0a7-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/0801b29595e37487e9864d3d26f33c1d-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/24784b6a1724e50006db718f48db7ef2-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/5a61c34e22de4e874e683a54b09b90d6-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/cb76ef5b996f0b1fa15603438f1bdc6b-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/61209a8f98a0e291c212d04f0a604a51-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/465ac8764a2ae3f5f2727992a5439569-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/ff97a0c066f06c131f66c920cedbcff5-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/44430a99762b997c79648881f69c742e-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/d2e256e186264a13278b61a66531dcc1-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/25ea18b3bc240bcf728141b621e845c3-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/ac823d7c5524918ab11e440ecae5fa4a-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/d93707fb7e76676ce0aa7f140af4797c-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/391ddc45fc82984a25fbcfca760609e8-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/904c3fbcb90aabfdd7206fe888efa0ad-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a9ee7661f20d27a43f58fc395b68fb6e-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/6e3a4d5cbe1f91fdf0196c0c2196abfa-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/873b712736371c0e07ac870985dd9fa7-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/3b7235c1c45b66e97c279d9d438229d6-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/270194771bfc3d98b366ce5058ab17c8-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/d61545ade4651155c831eb922cf4249f-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/094de4699cb37e2de988a727be96e407-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/de9c93a3be5da045a596285a8f2b0268-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/95dc8fac5089af49686985345cf1500a-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/31837bedfa94fa69d28985681d44d9b6-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/7749380d629a71b684ee2df7fa9e7bd7-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/d8bbd71cb8c52ef0e434f1adf60b1bc5-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/d6a2ee9348491f8762e92d79d544bdfe-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/3836340555dd7d5f294608a839254615-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/4491080650668448f48cd9b1d050c18f-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/5281431e2d03c9d6d957ae4ef3cb68a4-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/daab252112bfa8e6924f1e5ce2963cbb-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/1e3b2ced938bf9b6ed71864fe39a60df-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/1a2e0312013d39ff954c253579160d85-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/c6942843189f438f62c8cc817cce45ba-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/be79898160c724ab150e3f8aabdf1d62-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/0dd2cee0433125cd6fd9e8637736d5f0-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/0de5f93ac1ca525acbb7ca18d6ef3bff-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/763f09616c23f32724b73d26e958cf3b-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/f1fcdeda647f4dae46c991f07dd5932c-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/81e869c234fd212bf5f28b2ae12ad948-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/4996c45acce1a1bada40189e9bf10ef0-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/6b5ac0bcc0dfdd171cb8a17efbce4b98-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/9f2cfce09e8a4f6769917e16e2932746-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/f0f0e932567635881b464fd7d2325d4e-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/670d4ce0b72c3e59f86c2fa95ab4d1b0-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/d057c5c20204ab7164523ff41923cbca-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/fda9f39c4fc23ce0c71cb0bb46c9ea51-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/605b59f9bba78ea37c4bc211725becd8-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/da90274a856276a1443cf1953f415101-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/5708da49a2379042251f748ba924e162-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/cd24c26a7b7b9c6bf41ec084c0b1e5da-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/46d3f6b50fa89f4293f1e997b2537a11-uncropped_scaled_within_1536_1152.jpg"
+   }
+  ],
+  "mainImage": {
+   "thumbnail": "https://photos.zillowstatic.com/fp/57a9bb8b263bafaa34762b26fba821ab-p_a.jpg"
+  },
+  "agent": {
+   "name": "Test Agent",
+   "licenseNumber": "000000"
+  },
+  "broker": {
+   "name": "Berkshire Hathaway HomeServices Arizona Properties"
+  },
+  "mls": {
+   "id": "7051180",
+   "name": "ARMLS"
+  }
+ },
+ {
+  "zpid": 452213175,
+  "propertyUrl": "https://www.zillow.com/homedetails/1631-Tryon-Rd-NE-Atlanta-GA-30319/452213175_zpid/",
+  "listingStatus": "forSale",
+  "listingType": {
+   "isFSBA": false,
+   "isFSBO": false,
+   "isComingSoon": true,
+   "isPending": false,
+   "isOpenHouse": false,
+   "isNewHome": false,
+   "isForAuction": false,
+   "isForeclosure": false,
+   "isBankOwned": false
+  },
+  "listingAddress": {
+   "street": "1631 Tryon Rd NE",
+   "city": "Atlanta",
+   "state": "GA",
+   "zipCode": "30319",
+   "county": "Dekalb County",
+   "country": "USA",
+   "neighborhood": "Ashford Park",
+   "subdivision": "Ashford Park",
+   "timeZone": "America/New_York",
+   "full": "1631 Tryon Rd NE, Atlanta, GA 30319"
+  },
+  "listingPrice": {
+   "amount": 750000,
+   "currency": "USD",
+   "formatted": "$750,000"
+  },
+  "bedrooms": 5,
+  "bathrooms": 3,
+  "livingArea": 1813,
+  "yearBuilt": 1955,
+  "homeType": "SINGLE_FAMILY",
+  "description": "Right in the heart of Ashford Park, 1631 Tryon Rd NE is a beautifully updated 5-bedroom, 3-bath home offering flexible living space and a backyard designed for entertaining. With approximately 1,800 square feet, this Brookhaven home combines thoughtful renovations with features that are hard to find at this price point.    The kitchen and bathrooms were renovated in 2020, along with refinished hardwood floors that bring warmth and character throughout the main living areas. The home's versatile layout includes a separate basement with its own kitchen, full bathroom, and laundry\u2014ideal for guest",
+  "daysOnZillow": 1,
+  "onMarketDate": "2026-09-15T00:00:00.000Z",
+  "photoCount": 45,
+  "listingPhotos": [
+   {
+    "url": "https://photos.zillowstatic.com/fp/efa9ca32217c95fb1588213bfd7dad8b-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/273ad02a5ffa93fa1d2e199b81f2de09-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/6bde8310bde5574580ce82d20ebdd110-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/b47a5cc6120fb4b88ed5b936d6d5815b-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/f21e44eac5b27bf3a1e8efd9ea33d9d8-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/008708f64a03afb6ea39d433fb9f9519-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/ca7fd8c5e92373bd426b80c4989dba50-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/e53fa86ace171a7a95d4490ae2bff8eb-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/722da2d299d1bad8e8140a8ecb05195d-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/c91b13f9efffdb474f4a0cb85306d1cb-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/c1ce06251c961955a4d27b715e1e8a3d-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/1fd9dbaa40f1487f3b65d9f153fa6bef-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/0b5384aa688bd24f6d52df48ee66eec9-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/714e06ebbdeee47b522ed29bd4d1ff14-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/2d3a6533614bfadfadb4fe405f36bc7a-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/edad39ab9bca0b49489120fdf5609570-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/5a2fd4ea3c196767007e6f06f9689ba5-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/82b98957ac3b5398e83f76e8b0546212-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/94709629b72ff2320ef77b0d6cbbb0d8-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/77ad46d88b257cb65f8972503d4a176d-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/f86785fe55c163bee0213a272f671e29-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/df49042aee4c0bcb98fe0998af9414e3-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/82f2631196862679b9413e3f333c894c-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/fb9528cea69f4f7324e8ad9083452797-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/f2b283a36de1dd301a3c91681789b56d-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/0202ddde3e18c6db20416078af5aaa89-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/ef33aad9a729f77e67681a3214cd8864-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/4d84f3eb8edab9d9a1538e424372beae-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/f376cbfc9bd376a570834aaf9bdc941d-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/9e649f4b9070809826da7ec4a44b89a9-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/ae369261c3d629f9a835ebc077fa735c-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/c3975284c5a55eb457a05116c47cee90-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/13bb2579565c64134aa75d3886070a5e-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/286108cfe26dbff46a2e3eb33d766c47-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/55cf7d12058f6630faddbeedd6923392-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a12c241e5cf308b5db8e16fc1ae8117b-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/e13dfbc2d332d93a624c9beb6faa48cb-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/9a5677d592e253ee2f2f0a4c458d2e5f-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/5e5cd68b15a5c772795770c87cbe6912-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/2232d8a22ec5f68c806005408a890c02-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a4e6012f24c8db2d5fb160624fd0327f-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/c5535fff61c5bea1029cb22389ea1b7f-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/57420374c6d08c99b2cd0951ce58d474-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/5e2383fa484dc487c37257b1e34ec8ac-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/346db03ae627970f809d02c67ac98bd3-uncropped_scaled_within_1536_1152.jpg"
+   }
+  ],
+  "mainImage": {
+   "thumbnail": "https://photos.zillowstatic.com/fp/efa9ca32217c95fb1588213bfd7dad8b-p_a.jpg",
+   "hiRes": "https://photos.zillowstatic.com/fp/efa9ca32217c95fb1588213bfd7dad8b-p_f.jpg"
+  },
+  "agent": {
+   "name": "Test Agent",
+   "licenseNumber": "000000"
+  },
+  "broker": {
+   "name": "Virtual Properties Realty. Biz"
+  },
+  "mls": {
+   "id": "7837841",
+   "name": "FMLS GA"
+  }
+ },
+ {
+  "zpid": 20521927,
+  "propertyUrl": "https://www.zillow.com/homedetails/826-Greenway-Dr-Beverly-Hills-CA-90210/20521927_zpid/",
+  "listingStatus": "forSale",
+  "listingType": {
+   "isFSBA": true,
+   "isFSBO": false,
+   "isComingSoon": false,
+   "isPending": false,
+   "isOpenHouse": false,
+   "isNewHome": false,
+   "isForAuction": false,
+   "isForeclosure": false,
+   "isBankOwned": false
+  },
+  "listingAddress": {
+   "street": "826 Greenway Dr",
+   "city": "Beverly Hills",
+   "state": "CA",
+   "zipCode": "90210",
+   "county": "Los Angeles County",
+   "country": "USA",
+   "neighborhood": "The Flats",
+   "timeZone": "America/Los_Angeles",
+   "full": "826 Greenway Dr, Beverly Hills, CA 90210"
+  },
+  "listingPrice": {
+   "amount": 35000000,
+   "currency": "USD",
+   "formatted": "$35,000,000"
+  },
+  "bedrooms": 5,
+  "bathrooms": 11,
+  "livingArea": 13678,
+  "yearBuilt": 1938,
+  "homeType": "SINGLE_FAMILY",
+  "description": "The Rutherford House is a masterpiece of architectural design, showcasing unparalleled quality and attention to detail. Located on the most desirable street in Beverly Hills, the one-of-a-kind residence blends old Hollywood with modern luxury. Upon entering the grand entrance, guests are greeted by a classic, winding staircase and a magnificent view that reveals the impressive back grounds. The main level features a formal living and dining room, Ruhlmann-inspired library and billiard room, bar, and grand morning room lined with 18th-century wallpaper and original fireplace. The kitchen is fun",
+  "daysOnZillow": 26,
+  "onMarketDate": "2026-08-20T20:36:23.000Z",
+  "photoCount": 27,
+  "listingPhotos": [
+   {
+    "url": "https://photos.zillowstatic.com/fp/116728133c90d0dd3b6f2dd4256980fb-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/8fbb0f09c1cef5321814b059bb72972d-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/7853a7dafc22c5ddb4f15f5feb6bcdc1-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/54eb7210a5f3754e8d2c329613d1ae87-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/12b30b69097a2502bdfc8b367c793b7f-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/26b381bee6e60b0de743b1d9be62f474-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/0a439a4888e16a0066af0388729fb5b0-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/e10f53675add94981f45817e1a8e8713-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/2c42afeaf85a3e40ec044f3b7a5a37e7-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/e764a73147b56f60d52caba84749d75e-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/6c2be4edd78e9696794e36bf32cbd511-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a0824ede6eb1b2f291f9dc41eb667676-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/936ce6128a286a1c362132c98f9b5bf3-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/58977a10135009b1698127328082ec54-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/f7fe60e1ea22242ff0e8dab8f1d3b4ec-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/53210cd727490c832af6568ae7fb714b-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/861c62997fc8eabf8d7cac17ba76c751-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/19f62544da82ccc38097fd3fb8a5aa34-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/84bf91e5428ad016f9ddaa90378e11df-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/c98c77cd0284d961291f066ca7d10627-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/fb905c78de7a6d1884bd1a97b60ad16a-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/5270c0e09845430a9a8c0fa33bf7cf87-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a98f7d5400bc01d42a44be2b0f231461-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/a6343a6127e0b131d3712731c62c4e46-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/1ab0ce3387e269546cd03030ea2f4070-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/0962e9b2d140b2f3117aa634b9008a3c-uncropped_scaled_within_1536_1152.jpg"
+   },
+   {
+    "url": "https://photos.zillowstatic.com/fp/2b094958a4205692d207ee1214f8081d-uncropped_scaled_within_1536_1152.jpg"
+   }
+  ],
+  "mainImage": {
+   "thumbnail": "https://photos.zillowstatic.com/fp/116728133c90d0dd3b6f2dd4256980fb-p_a.jpg",
+   "hiRes": "https://photos.zillowstatic.com/fp/116728133c90d0dd3b6f2dd4256980fb-p_f.jpg"
+  },
+  "agent": {
+   "name": "Test Agent",
+   "licenseNumber": "000000"
+  },
+  "broker": {
+   "name": "Carolwood Estates"
+  },
+  "mls": {
+   "id": "26874523",
+   "name": "CLAW"
+  }
+ }
+]

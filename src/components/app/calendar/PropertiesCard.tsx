@@ -2,7 +2,7 @@
 
 import { Home, Plus } from 'lucide-react';
 import { useApi } from '../../../hooks/useApi';
-import type { ListingDto } from '../create/ListingPicker';
+import type { ListingDto } from '../../../types/business/listings';
 import { AppLink as Link } from '../shell/AppLink';
 
 /**
@@ -17,7 +17,7 @@ export const PropertiesCard = () => {
     <section className="rounded-2xl border border-app-line bg-app-panel p-4">
       <h2 className="text-[15px] font-semibold text-app-ink">Your properties</h2>
       <p className="mt-1 text-[13px] text-app-muted">
-        Add photos of a listing and we put you inside those real rooms. We never invent a room.
+        Paste a Zillow link or add photos of a listing. We put you inside those real photos. We never invent a room.
       </p>
 
       <ul className="mt-3 flex gap-2 overflow-x-auto pb-1">
