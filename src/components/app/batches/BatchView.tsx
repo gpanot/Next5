@@ -43,13 +43,15 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
   const [postKitId, setPostKitId] = useState<string | null>(null);
   const [postKitProductId, setPostKitProductId] = useState<string | null>(null);
   const [earlierPhoto, setEarlierPhoto] = useState<{ photo: ProductPhotoDto; name: string } | null>(null);
+  // Archived photos disappear at once; the next poll no longer returns them.
+  const [archived, setArchived] = useState<Set<string>>(new Set());
   // A failed photo retries straight away on the fallback model; a ready one asks what to fix.
   const openRedo = (item: BatchItemDto) => (item.status === 'failed' ? void actions.redo(item, 'other', '') : setRedoTarget(item));
 
   const activeFormat = format ?? batch?.formats[0] ?? null;
   const items = useMemo(
-    () => (batch?.items ?? []).filter((i) => (!activeFormat || batch?.formats.length === 1 || i.format === activeFormat) && (!favoritesOnly || i.favorite)),
-    [batch, activeFormat, favoritesOnly],
+    () => (batch?.items ?? []).filter((i) => !archived.has(i.id) && (!activeFormat || batch?.formats.length === 1 || i.format === activeFormat) && (!favoritesOnly || i.favorite)),
+    [batch, activeFormat, favoritesOnly, archived],
   );
   const openable = items.filter((i) => i.status === 'ready' && i.url);
 
@@ -112,6 +114,9 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
               onDownload={() => void actions.download(item, index)}
               onRedo={() => openRedo(item)}
               onPostKit={() => setPostKitId(item.id)}
+              onArchive={() => void actions.archive(item, (gone) => setArchived((prev) => { const next = new Set(prev); if (gone) next.add(item.id); else next.delete(item.id); return next; }))}
+              onCalendar={batch.listingId ? () => void actions.toggleCalendar(item) : undefined}
+              calendarBusy={actions.calendarBusy === item.id}
             />
           ))}
         </div>

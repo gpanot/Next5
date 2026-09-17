@@ -251,7 +251,8 @@ CREATE TABLE public.batch_items (
     score integer,
     score_details jsonb,
     model text,
-    material_id text
+    material_id text,
+    archived_at timestamp(3) without time zone
 );
 
 
@@ -1849,4 +1850,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260919090000'),
     ('20260920090000'),
     ('20260921090000'),
-    ('20260922090000');
+    ('20260922090000'),
+    ('20260923090000');

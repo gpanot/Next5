@@ -1,6 +1,6 @@
 // server-only — never import from a 'use client' file.
 
-import type { Batch, BatchItem } from '@prisma/client';
+import type { Batch, BatchItem, PostSlot } from '@prisma/client';
 import { FREE_REDOS_PER_ITEM } from '../../config/business';
 import { nextShotsForProduct } from '../../config/shots';
 import { prisma } from '../../lib/db';
@@ -10,7 +10,7 @@ import { madeShotsByProduct } from '../shop/morePhotos';
 import { getProgress } from './batchStatus';
 import { canRetryFailed } from './redo';
 
-export const toItemDto = async (item: BatchItem): Promise<BatchItemDto> => ({
+export const toItemDto = async (item: BatchItem, slot: Pick<PostSlot, 'scheduledFor' | 'status'> | null = null): Promise<BatchItemDto> => ({
   id: item.id,
   status: item.status,
   format: item.format,
@@ -28,11 +28,12 @@ export const toItemDto = async (item: BatchItem): Promise<BatchItemDto> => ({
   errorMessage: item.status === 'failed' ? item.errorMessage : null,
   canRetry: canRetryFailed(item),
   startedAt: item.status === 'submitting' || item.status === 'generating' ? item.submittedAt?.toISOString() ?? null : null,
+  calendar: slot ? { date: slot.scheduledFor.toISOString().slice(0, 10), status: slot.status as 'planned' | 'posted' | 'skipped' } : null,
 });
 
 const coverFor = async (batchId: string): Promise<string | null> => {
   const first = await prisma.batchItem.findFirst({
-    where: { batchId, status: 'ready', r2Key: { not: null } },
+    where: { batchId, status: 'ready', r2Key: { not: null }, archivedAt: null },
     orderBy: { createdAt: 'asc' },
     select: { r2Key: true },
   });
@@ -57,7 +58,8 @@ export const toSummaryDto = async (batch: Batch): Promise<BatchSummaryDto> => ({
 });
 
 export const toDetailDto = async (batch: Batch): Promise<BatchDetailDto> => {
-  const items = await prisma.batchItem.findMany({ where: { batchId: batch.id }, orderBy: { createdAt: 'asc' } });
+  const items = await prisma.batchItem.findMany({ where: { batchId: batch.id, archivedAt: null }, orderBy: { createdAt: 'asc' } });
+  const slots = await prisma.postSlot.findMany({ where: { itemId: { in: items.map((i) => i.id) } }, select: { itemId: true, scheduledFor: true, status: true } });
   const productIds = [...new Set(items.map((i) => i.productId).filter((id): id is string => Boolean(id)))];
   const [products, workspace, made, others] = await Promise.all([
     prisma.product.findMany({ where: { id: { in: productIds } } }),
@@ -84,5 +86,11 @@ export const toDetailDto = async (batch: Batch): Promise<BatchDetailDto> => {
       };
     }),
   );
-  return { ...(await toSummaryDto(batch)), items: await Promise.all(items.map(toItemDto)), products: productDtos, visibleAiTag: workspace.visibleAiTag };
+  return {
+    ...(await toSummaryDto(batch)),
+    items: await Promise.all(items.map((i) => toItemDto(i, slots.find((s) => s.itemId === i.id) ?? null))),
+    products: productDtos,
+    visibleAiTag: workspace.visibleAiTag,
+    listingId: batch.listingId,
+  };
 };

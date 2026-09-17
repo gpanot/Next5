@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Check, Download, Heart, Maximize2, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertTriangle, CalendarCheck, CalendarPlus, Check, Download, Heart, Loader2, Maximize2, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { FORMATS, isFormatId } from '../../../config/formats';
 import { failedPhotoText } from '../../../lib/generationErrors';
 import type { BatchItemDto } from '../../../types/business/batches';
@@ -19,6 +19,34 @@ type ResultTileProps = {
   onRedo: () => void;
   /** Opens the Post Kit for this photo without leaving the page. */
   onPostKit?: () => void;
+  /** Trash icon: archives the photo. */
+  onArchive?: () => void;
+  /** "Add to calendar" / take it off again. Shown on photos she picks by hand (made from a property). */
+  onCalendar?: () => void;
+  calendarBusy?: boolean;
+};
+
+const dayLabel = (iso: string): string =>
+  new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+
+/** Full-width calendar toggle under a photo: the one decision she makes per photo. */
+const CalendarButton = ({ item, busy, onClick }: { item: BatchItemDto; busy: boolean; onClick: () => void }) => {
+  const on = item.calendar && item.calendar.status !== 'skipped';
+  const posted = item.calendar?.status === 'posted';
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy || posted}
+      aria-pressed={Boolean(on)}
+      aria-label={posted ? 'Posted' : on && item.calendar ? `On calendar, ${dayLabel(item.calendar.date)}. Tap to take it off.` : 'Add to calendar'}
+      title={on && !posted ? 'Tap to take it off the calendar' : undefined}
+      className={`mx-1 flex h-9 items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:cursor-default ${on ? 'bg-app-accent-soft text-app-accent' : 'bg-app-accent text-app-accent-ink hover:opacity-90'}`}
+    >
+      {busy ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : on ? <CalendarCheck aria-hidden className="h-4 w-4" /> : <CalendarPlus aria-hidden className="h-4 w-4" />}
+      <span className="truncate">{posted ? 'Posted' : on && item.calendar ? dayLabel(item.calendar.date) : 'Add to calendar'}</span>
+    </button>
+  );
 };
 
 const IconButton = ({ label, onClick, children, active = false, tone = 'danger' }: { label: string; onClick: () => void; children: React.ReactNode; active?: boolean; tone?: 'danger' | 'accent' }) => (
@@ -28,7 +56,7 @@ const IconButton = ({ label, onClick, children, active = false, tone = 'danger' 
 );
 
 /** A generated photo with always-visible actions (works without hover on phones). */
-export const ResultTile = ({ item, alt, selecting, selected, onToggleSelect, onOpen, onFavorite, onDownload, onRedo, onPostKit }: ResultTileProps) => {
+export const ResultTile = ({ item, alt, selecting, selected, onToggleSelect, onOpen, onFavorite, onDownload, onRedo, onPostKit, onArchive, onCalendar, calendarBusy = false }: ResultTileProps) => {
   const aspect = isFormatId(item.format) ? FORMATS[item.format].cssAspect : '3 / 4';
   const busy = item.status === 'queued' || item.status === 'submitting' || item.status === 'generating';
   const ready = item.status === 'ready' && item.url;
@@ -56,6 +84,7 @@ export const ResultTile = ({ item, alt, selecting, selected, onToggleSelect, onO
         {ready && !selecting && item.score !== null && <ScoreBadge score={item.score} className="absolute left-2 top-2" />}
         {ready && !selecting && <Maximize2 aria-hidden className="absolute right-2 top-2 h-4 w-4 text-white opacity-80 drop-shadow" />}
       </button>
+      {!selecting && ready && onCalendar && <div className="flex flex-col pt-1"><CalendarButton item={item} busy={calendarBusy} onClick={onCalendar} /></div>}
       {!selecting && (
         <figcaption className="flex items-center justify-between px-1 py-1">
           <IconButton label={item.favorite ? 'Remove from favourites' : 'Add to favourites'} onClick={onFavorite} active={item.favorite}>
@@ -65,6 +94,7 @@ export const ResultTile = ({ item, alt, selecting, selected, onToggleSelect, onO
             {ready && onPostKit && <IconButton label={item.postKit ? 'See Post Kit' : 'Write Post Kit'} onClick={onPostKit} active={Boolean(item.postKit)} tone="accent"><Sparkles aria-hidden className={`h-4 w-4 ${item.postKit ? 'fill-current' : ''}`} /></IconButton>}
             {(ready || item.canRetry) && <IconButton label="Redo" onClick={onRedo}><RefreshCw aria-hidden className="h-4 w-4" /></IconButton>}
             {ready && <IconButton label="Download" onClick={onDownload}><Download aria-hidden className="h-4 w-4" /></IconButton>}
+            {(ready || item.status === 'failed') && onArchive && <IconButton label="Archive" onClick={onArchive}><Trash2 aria-hidden className="h-4 w-4" /></IconButton>}
           </div>
         </figcaption>
       )}

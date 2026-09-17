@@ -12,7 +12,7 @@ export const GET = authedRoute(async (req, session) => {
   const ids = (new URL(req.url).searchParams.get('ids') ?? '').split(',').filter(Boolean).slice(0, MAX_ZIP_FILES);
   if (ids.length === 0) throw new HttpError(400, 'no_items', 'Select photos to download.');
   const items = await prisma.batchItem.findMany({
-    where: { id: { in: ids }, status: 'ready', r2Key: { not: null }, batch: { workspace: { ownerUserId: session.userId } } },
+    where: { id: { in: ids }, status: 'ready', r2Key: { not: null }, archivedAt: null, batch: { workspace: { ownerUserId: session.userId } } },
     include: { product: { select: { sku: true, name: true } }, batch: { select: { themeId: true } } },
   });
   if (items.length === 0) throw new HttpError(404, 'nothing_ready', 'Those photos are not available.');

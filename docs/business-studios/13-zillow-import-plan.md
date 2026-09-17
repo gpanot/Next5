@@ -111,6 +111,15 @@ Limit: 20 imports per workspace per day. Imports cost no credits.
 
 Size: **M** (3–5 dev-days).
 
+## 5b. After generation (2026-09-17)
+
+| # | Decision | Where |
+|---|---|---|
+| Z8 | **Recents…** — "Who is it for?" shows Just me, the picked property and + Property only; earlier properties open in a pop-up. | `ListingPicker.tsx`, `RecentPropertiesSheet.tsx` |
+| Z9 | **Property photos are added to the calendar by hand.** Each photo of a property batch has **Add to calendar** (next open posting day; tap again to take it off). Auto-fill skips property batches; theme batches still fill in (autopilot depends on it). | `addToCalendar` / `removeFromCalendar` in `calendar.ts`, `POST/DELETE …/items/[itemId]/calendar`, `ResultTile.tsx` |
+| Z10 | **Trash icon archives a photo** (`batch_items.archived_at`): hidden from the batch, library, zips, auto-fill; a planned post for it is removed, a posted one stays. | migration `20260923090000_batch_item_archive.sql`, `PATCH …/items/[itemId] { archived }` |
+| Z11 | **Library by series**: one card per generation labelled "Zillow · 2720 Carolyn Dr SE", "Property · …", the theme, or "Free photos"; filters All / Properties / Themes; tap opens the series. "All photos" keeps the old grid. | `GET /api/app/library/series`, `LibrarySeriesView.tsx`, `SeriesCard.tsx` |
+
 ## 6. Decided after review (2026-09-16)
 1. **Virtually staged photos:** the visible AI label stays her choice, as for every property. No extra question.
 2. **Photo rights:** covered by our Terms — she must own or have the rights to the photos she uses. No separate legal review.

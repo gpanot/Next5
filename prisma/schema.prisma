@@ -443,6 +443,8 @@ model BatchItem {
   scoreDetails     Json?      @map("score_details")
   /// The drop-box material this photo was built from, so a slot can show "24 Oak St".
   materialId       String?    @map("material_id")
+  /// She archived it (trash icon): hidden from the batch, library, zips and calendar.
+  archivedAt       DateTime?  @map("archived_at")
   submittedAt      DateTime?  @map("submitted_at")
   completedAt      DateTime?  @map("completed_at")
   createdAt        DateTime   @default(now()) @map("created_at")

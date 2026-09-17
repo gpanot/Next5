@@ -110,7 +110,8 @@ export const autoFill = async (ws: Workspace, now = new Date()): Promise<number>
   if (!schedule.active || !schedule.autoFill) return 0;
 
   const unbooked = await prisma.batchItem.findMany({
-    where: { batch: { workspaceId: ws.id }, status: 'ready', r2Key: { not: null }, slots: { none: {} } },
+    // Photos made from a property are hers to pick one by one ("Add to calendar"); archived ones never go on.
+    where: { batch: { workspaceId: ws.id, listingId: null }, status: 'ready', r2Key: { not: null }, archivedAt: null, slots: { none: {} } },
     select: { id: true, score: true, scoreDetails: true, sceneId: true, createdAt: true },
     orderBy: { createdAt: 'desc' },
     take: HORIZON_SLOTS,
@@ -134,6 +135,32 @@ export const autoFill = async (ws: Workspace, now = new Date()): Promise<number>
   });
   await prisma.postSchedule.update({ where: { id: schedule.id }, data: { lastFilledAt: now } });
   return created.count;
+};
+
+/** "Add to calendar" on one photo: booked on her next open posting day. Returns the photo's slot (existing or new). */
+export const addToCalendar = async (ws: Workspace, itemId: string, now = new Date()): Promise<PostSlot> => {
+  const schedule = await getOrCreateSchedule(ws);
+  const item = await prisma.batchItem.findFirst({ where: { id: itemId, batch: { workspaceId: ws.id }, status: 'ready', r2Key: { not: null }, archivedAt: null } });
+  if (!item) throw new HttpError(404, 'item_not_found', 'That photo is not ready yet.');
+  const existing = await prisma.postSlot.findFirst({ where: { workspaceId: ws.id, itemId } });
+  if (existing?.status === 'skipped') return prisma.postSlot.update({ where: { id: existing.id }, data: { status: 'planned' } });
+  if (existing) return existing;
+  const [date] = nextSlotDates(now, schedule.weekdays, 1, await takenDates(ws.id, now));
+  if (!date) throw new HttpError(409, 'calendar_full', 'Your calendar is full. Remove a post first.');
+  const [placement] = placeItems([toPlaceable(item)], [date]);
+  try {
+    return await prisma.postSlot.create({
+      data: { workspaceId: ws.id, scheduleId: schedule.id, scheduledFor: new Date(`${date}T00:00:00.000Z`), slotOfDay: placement?.slotOfDay ?? 'evening', itemId, source: 'manual' },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') return prisma.postSlot.findFirstOrThrow({ where: { workspaceId: ws.id, itemId } });
+    throw err;
+  }
+};
+
+/** Takes a photo off the calendar. A post she already marked done stays. */
+export const removeFromCalendar = async (workspaceId: string, itemId: string): Promise<void> => {
+  await prisma.postSlot.deleteMany({ where: { workspaceId, itemId, status: { not: 'posted' } } });
 };
 
 /** Called when a batch finishes; never throws into the generation pipeline. */

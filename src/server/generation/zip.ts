@@ -38,6 +38,7 @@ export const zipBatch = async (
       batchId,
       status: 'ready',
       r2Key: { not: null },
+      archivedAt: null,
       ...(filter.productId ? { productId: filter.productId } : {}),
       ...(filter.format ? { format: filter.format } : {}),
     },

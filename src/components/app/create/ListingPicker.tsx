@@ -1,11 +1,12 @@
 'use client';
 
-import { Loader2, Plus } from 'lucide-react';
+import { History, Loader2, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
 import type { ListingDto } from '../../../types/business/listings';
 import { AppButton } from '../../ui/AppButton';
 import { PropertyPanel } from '../listings/PropertyPanel';
+import { RecentPropertiesSheet } from '../listings/RecentPropertiesSheet';
 import { ZillowImportSheet } from '../listings/ZillowImportSheet';
 
 type Props = {
@@ -28,6 +29,7 @@ type Props = {
 export const ListingPicker = ({ listings, value, onChange, onRefresh, onAdded, startAdding = false, onReady }: Props) => {
   const [importing, setImporting] = useState(startAdding);
   const [resume, setResume] = useState<ListingDto | null>(null);
+  const [recentsOpen, setRecentsOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [label, setLabel] = useState('');
   const [attest, setAttest] = useState(false);
@@ -69,18 +71,12 @@ export const ListingPicker = ({ listings, value, onChange, onRefresh, onAdded, s
         >
           Just me
         </button>
-        {listings.map((l) => (
-          <button
-            key={l.id}
-            type="button"
-            onClick={() => onChange(l.id)}
-            aria-pressed={value === l.id}
-            className={`h-10 rounded-xl px-3 text-[13px] font-medium transition-colors duration-200 ${value === l.id ? 'bg-app-accent text-app-accent-ink' : 'border border-app-line text-app-muted hover:bg-app-sunken'}`}
-          >
-            {l.importStatus === 'fetching' && <Loader2 aria-hidden className="mr-1.5 inline h-3.5 w-3.5 animate-spin" />}
-            {l.label}
-          </button>
-        ))}
+        {selected && (
+          <span className="flex h-10 max-w-full items-center truncate rounded-xl bg-app-accent px-3 text-[13px] font-medium text-app-accent-ink">
+            {selected.importStatus === 'fetching' && <Loader2 aria-hidden className="mr-1.5 inline h-3.5 w-3.5 animate-spin" />}
+            {selected.label}
+          </span>
+        )}
         <button
           type="button"
           onClick={() => setImporting(true)}
@@ -88,6 +84,15 @@ export const ListingPicker = ({ listings, value, onChange, onRefresh, onAdded, s
         >
           <Plus aria-hidden className="h-4 w-4" /> Property
         </button>
+        {listings.some((l) => l.id !== value) && (
+          <button
+            type="button"
+            onClick={() => setRecentsOpen(true)}
+            className="flex h-10 items-center gap-1 rounded-xl px-3 text-[13px] text-app-muted transition-colors duration-200 hover:bg-app-sunken hover:text-app-ink"
+          >
+            <History aria-hidden className="h-4 w-4" /> Recents…
+          </button>
+        )}
       </div>
 
       {adding && (
@@ -128,6 +133,18 @@ export const ListingPicker = ({ listings, value, onChange, onRefresh, onAdded, s
       )}
 
       {error && <p className="text-[13px] text-app-danger">{error}</p>}
+
+      {recentsOpen && (
+        <RecentPropertiesSheet
+          listings={listings}
+          value={value}
+          onClose={() => setRecentsOpen(false)}
+          onPick={(id) => {
+            setRecentsOpen(false);
+            onChange(id);
+          }}
+        />
+      )}
 
       {importing && (
         <ZillowImportSheet

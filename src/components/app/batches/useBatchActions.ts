@@ -9,10 +9,11 @@ import type { RedoReason } from './RedoDialog';
 
 type Patch = (itemId: string, patch: Partial<BatchItemDto>) => void;
 
-/** Favourite, download, redo and zip actions for one batch, with optimistic updates. */
+/** Favourite, download, redo, zip, archive and calendar actions for one batch, with optimistic updates. */
 export const useBatchActions = (batch: BatchDetailDto | null, patchItem: Patch, refresh: () => Promise<unknown>, notify: (msg: string, tone?: 'success' | 'error') => void) => {
   const [downloading, setDownloading] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
+  const [calendarBusy, setCalendarBusy] = useState<string | null>(null);
 
   const fail = (err: unknown, fallback: string) => notify(err instanceof ApiError ? err.message : fallback, 'error');
 
@@ -58,5 +59,35 @@ export const useBatchActions = (batch: BatchDetailDto | null, patchItem: Patch, 
     setDownloading(false);
   };
 
-  return { favorite, download, redo, downloadZip, downloadSelected, downloading, savingPhoto };
+  /** Trash icon. The page hides the photo at once; `onDone(false)` puts it back if the server says no. */
+  const archive = async (item: BatchItemDto, onDone: (archived: boolean) => void) => {
+    if (!batch) return;
+    onDone(true);
+    try {
+      await apiFetch(`/api/app/batches/${batch.id}/items/${item.id}`, { method: 'PATCH', json: { archived: true } });
+      notify('Photo archived');
+    } catch (err) {
+      onDone(false);
+      fail(err, 'Could not archive this photo.');
+    }
+  };
+
+  /** "Add to calendar", or take it off again. */
+  const toggleCalendar = async (item: BatchItemDto) => {
+    if (!batch) return;
+    const on = item.calendar && item.calendar.status !== 'skipped';
+    setCalendarBusy(item.id);
+    try {
+      const res = await apiFetch<{ item: BatchItemDto }>(`/api/app/batches/${batch.id}/items/${item.id}/calendar`, { method: on ? 'DELETE' : 'POST' });
+      patchItem(item.id, { calendar: res.item.calendar });
+      if (!on) track('calendar_planned', { source: 'manual' });
+      notify(on ? 'Taken off your calendar' : 'Added to your calendar');
+    } catch (err) {
+      fail(err, 'Could not update your calendar.');
+    } finally {
+      setCalendarBusy(null);
+    }
+  };
+
+  return { favorite, download, redo, downloadZip, downloadSelected, archive, toggleCalendar, calendarBusy, downloading, savingPhoto };
 };
