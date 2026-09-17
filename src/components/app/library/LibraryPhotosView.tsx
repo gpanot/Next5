@@ -11,11 +11,12 @@ import type { BatchItemDto } from '../../../types/business/batches';
 import { AppButton } from '../../ui/AppButton';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
-import { ImageLightbox } from '../../ui/ImageLightbox';
 import { Select } from '../../ui/Select';
 import { SkeletonGrid } from '../../ui/Skeleton';
 import { ToastContainer } from '../../ui/Toast';
 import { ResultTile } from '../batches/ResultTile';
+import { PhotoFeedViewer } from '../photos/PhotoFeedViewer';
+import { PostKitPanel } from '../postKit/PostKitPanel';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 
 type LibraryItem = BatchItemDto & { batchId: string; batchName: string };
@@ -24,8 +25,9 @@ type State = { key: string; items: LibraryItem[]; nextCursor: string | null; err
 
 /** Every photo in one grid, with format and favourite filters. */
 export const LibraryPhotosView = () => {
-  const { product } = useWorkspace();
+  const { product, me } = useWorkspace();
   const router = useAppRouter();
+  const postKitAllowed = Boolean(me?.plan?.postKit);
   const [format, setFormat] = useState('');
   const [favorite, setFavorite] = useState(false);
   const [state, setState] = useState<State | null>(null);
@@ -54,6 +56,9 @@ export const LibraryPhotosView = () => {
   if (current.error && current.items.length === 0) return <ErrorState message={current.error} onRetry={() => void load(null, false)} />;
 
   const toggle = (id: string) => setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const openable = current.items.filter((i) => i.status === 'ready' && i.url);
+  const patchItem = (id: string, patch: Partial<LibraryItem>) =>
+    setState((prev) => prev && { ...prev, items: prev.items.map((i) => (i.id === id ? { ...i, ...patch } : i)) });
   const favoriteItem = async (item: LibraryItem) => {
     setState((prev) => prev && { ...prev, items: prev.items.map((i) => (i.id === item.id ? { ...i, favorite: !i.favorite } : i)) });
     await apiFetch(`/api/app/batches/${item.batchId}/items/${item.id}`, { method: 'PATCH', json: { favorite: !item.favorite } }).catch(() => toast('Could not update favourite', 'error'));
@@ -92,7 +97,21 @@ export const LibraryPhotosView = () => {
           <AppButton onClick={() => void downloadWithAuth(`/api/app/library/zip?ids=${[...selected].join(',')}`, 'next5-photos.zip').catch(() => toast('Download failed', 'error'))}>Download selected</AppButton>
         </div>
       )}
-      {open?.url && <ImageLightbox src={open.url} alt={`${open.batchName} — photo`} onClose={() => setOpen(null)} overlay={<Link href={`/app/batches/${open.batchId}`} className="pointer-events-auto absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full bg-white px-4 py-2 text-[13px] font-medium text-ink">Open batch</Link>} />}
+      {open?.url && (
+        <PhotoFeedViewer
+          photos={openable}
+          startIndex={Math.max(0, openable.findIndex((i) => i.id === open.id))}
+          alt={(item) => `${item.batchName} — photo`}
+          onClose={() => setOpen(null)}
+          onDownload={(item, index) => void downloadPhoto(item.batchId, item.id, `next5-${index + 1}.jpg`).catch(() => toast('Download failed', 'error'))}
+          action={(item) => (
+            <Link href={`/app/batches/${item.batchId}`} className="inline-flex h-10 items-center rounded-xl border border-app-line px-4 text-[13px] font-medium text-app-ink transition-colors duration-200 hover:bg-app-sunken">Open its batch</Link>
+          )}
+          details={(item) => (
+            <PostKitPanel key={item.id} item={item} product={product ?? 'brand'} variant="plain" allowed={postKitAllowed || item.postKit !== null} onGenerated={(kit) => patchItem(item.id, { postKit: kit })} onCopied={(what) => toast(`${what} copied`)} />
+          )}
+        />
+      )}
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>
   );

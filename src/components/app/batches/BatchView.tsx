@@ -20,6 +20,7 @@ import { CompareLightbox } from './CompareLightbox';
 import { PostingTips } from './PostingTips';
 import { ShopCompareGrid } from './ShopCompareGrid';
 import { PostKitPanel } from '../postKit/PostKitPanel';
+import { PhotoFeedViewer } from '../photos/PhotoFeedViewer';
 import { PostKitDialog } from './PostKitDialog';
 import { ProductMorePhotos } from './ProductMorePhotos';
 import { ProductPostKitDialog } from './ProductPostKitDialog';
@@ -131,19 +132,15 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
         <CompareLightbox originalUrl={openProduct?.frontUrl ?? null} generatedUrl={open.url} title={openProduct?.name ?? batch.name} onClose={() => setOpenIndex(null)} onDownload={() => void actions.download(open, openIndex ?? 0)} downloading={actions.savingPhoto} panel={<ShopPhotoPanel item={open} product={openProduct} onOpenPostKit={() => { setOpenIndex(null); setPostKitProductId(open.productId); }} />} />
       )}
       {open?.url && !isShop && (
-        <ImageLightbox
-          src={open.url}
-          alt={`${batch.name} — photo`}
+        <PhotoFeedViewer
+          photos={openable}
+          startIndex={openIndex ?? 0}
+          alt={() => `${batch.name} — photo`}
           onClose={() => setOpenIndex(null)}
-          onPrev={openable.length > 1 ? () => setOpenIndex((i) => (i === null ? 0 : (i - 1 + openable.length) % openable.length)) : undefined}
-          onNext={openable.length > 1 ? () => setOpenIndex((i) => (i === null ? 0 : (i + 1) % openable.length)) : undefined}
-          overlay={(
-            <>
-              <AppButton size="sm" variant="secondary" className="pointer-events-auto absolute left-4 top-4" iconLeft={<Download className="h-3.5 w-3.5" />} loading={actions.savingPhoto} onClick={() => void actions.download(open, openIndex ?? 0)}>Download</AppButton>
-              <div className="pointer-events-auto absolute bottom-4 left-1/2 w-[min(92vw,440px)] -translate-x-1/2">
-                <PostKitPanel key={open.id} item={open} product="brand" allowed={postKitAllowed} onGenerated={(kit) => patchItem(open.id, { postKit: kit })} onCopied={(what) => toast(`${what} copied`)} />
-              </div>
-            </>
+          onDownload={(item, index) => void actions.download(item, index)}
+          downloading={actions.savingPhoto}
+          details={(item) => (
+            <PostKitPanel key={item.id} item={item} product="brand" variant="plain" allowed={postKitAllowed} onGenerated={(kit) => patchItem(item.id, { postKit: kit })} onCopied={(what) => toast(`${what} copied`)} />
           )}
         />
       )}
