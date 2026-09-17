@@ -2,6 +2,7 @@
 
 import { Prisma, type Listing } from '@prisma/client';
 import { INDUSTRIES } from '../../content/business/catalog/types';
+import { occasionLabel } from '../../lib/listingOccasions';
 import { factsLine, statusLabel } from '../../lib/listingPhotos';
 import { prisma } from '../../lib/db';
 import type { PostKitDto } from '../../types/business/batches';
@@ -121,12 +122,17 @@ export const getProductPostKit = async (userId: string, productId: string, optio
   return kit;
 };
 
-/** "Just listed · $399,000 · 3 bd · 2 ba · Smyrna, GA" for a batch made from an imported Zillow home. */
-const propertyFacts = (listing: Listing | null): string | null => {
-  if (!listing || listing.source !== 'zillow') return null;
+/**
+ * "Open house · $399,000 · 3 bd · 2 ba · Smyrna, GA". The occasion she picked for the batch comes first and wins
+ * over Zillow's status; price, beds and place are only known for an imported Zillow home.
+ */
+const propertyFacts = (listing: Listing | null, occasion: string | null): string | null => {
+  if (!listing) return null;
+  const moment = occasionLabel(occasion) ?? (listing.source === 'zillow' ? statusLabel(listing.status) : null);
+  if (listing.source !== 'zillow') return moment;
   const address = listing.address as { city?: string | null; state?: string | null } | null;
   const place = [address?.city, address?.state].filter(Boolean).join(', ');
-  return [statusLabel(listing.status), factsLine(listing), place].filter(Boolean).join(' · ') || null;
+  return [moment, factsLine(listing), place].filter(Boolean).join(' · ') || null;
 };
 
 /** Post Kit for one photo (cached on the item). Growth/Agency plans, and free-trial photos as a taste. */
@@ -149,9 +155,9 @@ export const getPostKit = async (userId: string, itemId: string): Promise<PostKi
     business: ws.name,
     handle: ws.handle,
     industry: INDUSTRIES.find((i) => i.id === ws.industry)?.label ?? 'small business',
-    look: item.batch.theme?.title ?? item.batch.set?.name ?? 'new photos',
+    look: occasionLabel(item.batch.occasion) ?? item.batch.theme?.title ?? item.batch.set?.name ?? 'new photos',
     product: item.product ? [item.product.colorName, item.product.name].filter(Boolean).join(' ') : null,
-    property: propertyFacts(item.batch.listing),
+    property: propertyFacts(item.batch.listing, item.batch.occasion),
   };
 
   const kit = await writeKit(context, [item.r2Key]);

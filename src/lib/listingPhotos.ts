@@ -32,9 +32,6 @@ const STATUS_LABELS: Record<ListingStatus, string> = {
 export const statusLabel = (status: string | null | undefined): string | null =>
   status && (LISTING_STATUSES as readonly string[]).includes(status) ? STATUS_LABELS[status as ListingStatus] : null;
 
-/** The theme Create starts from. Only themes that exist today; the Post Kit carries the exact status. */
-export const themeIdForStatus = (status: string | null | undefined): string => (status === 'open_house' ? 'open-house' : 'just-listed');
-
 export type ZillowLink = { zpid: string; url: string };
 
 /** Any zillow.com link with a `<digits>_zpid` segment → the zpid and a clean link without tracking. */

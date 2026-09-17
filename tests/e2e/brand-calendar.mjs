@@ -88,7 +88,7 @@ await page.getByText('Your properties').scrollIntoViewIfNeeded();
 await shot(page, 'cal-5-properties');
 await page.getByRole('link', { name: 'Property' }).click();
 await page.waitForURL(/\/app\/brand\/create\?listing=new/, { timeout: 15000 });
-await page.getByLabel('Address or name').waitFor({ timeout: 15000 });
+await page.getByLabel('Paste your Zillow link').waitFor({ timeout: 15000 });
 
 console.log('E2E brand calendar OK', email, `${days} days planned`);
 await browser.close();

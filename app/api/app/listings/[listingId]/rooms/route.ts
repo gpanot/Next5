@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { authedRoute } from '../../../../../../src/server/api';
-import { MAX_ROOMS_PER_LISTING, addRoom, getListing, toListingDto } from '../../../../../../src/server/listings/listings';
+import { MAX_ROOMS_PER_LISTING, addRoom, getListing, tagUntaggedRooms, toListingDto } from '../../../../../../src/server/listings/listings';
 import { HttpError } from '../../../../../../src/server/http';
 import { enforceRateLimit } from '../../../../../../src/server/rateLimit';
 import { normalizeUpload, readForm } from '../../../../../../src/server/storage/images';
@@ -22,5 +22,7 @@ export const POST = authedRoute(async (req, session, { params }: Ctx) => {
   for (const [i, file] of files.entries()) {
     await addRoom(ws, listingId, await normalizeUpload(file, `photo ${i + 1}`), labels[i]?.trim() || null);
   }
+  // Room tags pick the pose for each photo; tag in the background so the upload stays fast.
+  after(() => tagUntaggedRooms(ws.id, listingId).catch((err: unknown) => console.error('[listings] tagging failed:', err)));
   return NextResponse.json({ listing: await toListingDto(await getListing(ws.id, listingId)) });
 });

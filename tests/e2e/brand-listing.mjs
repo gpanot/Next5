@@ -78,6 +78,27 @@ await page.locator('input[type=file]').first().setInputFiles(`${ROOT}/brand/sets
 await page.getByText('2 photos × 2 = 4 photos.').waitFor({ timeout: 20000 });
 await shot(page, 'listing-3-two-rooms');
 
+// A property has no set and no theme: it asks what is happening and how she looks.
+for (const gone of ['Set', 'Theme']) {
+  if (await page.getByRole('heading', { name: gone, exact: true }).count()) throw new Error(`${gone} is still shown for a property`);
+}
+await page.getByText('Your style').waitFor();
+// An uploaded home: nothing is picked for her, and she cannot generate until she picks.
+await page.getByText('What’s happening?').waitFor();
+if (await page.locator('[aria-pressed=true]').filter({ hasText: /^(Coming soon|Just listed|For sale|Open house|Under contract|Just sold)$/ }).count()) {
+  throw new Error('an occasion was guessed for an uploaded home');
+}
+await page.getByText('Pick what’s happening with this home.').waitFor();
+if (await page.getByRole('button', { name: /^Generate/ }).isEnabled()) throw new Error('could generate without an occasion');
+await page.getByRole('button', { name: 'Open house', exact: true }).click();
+await page.getByText('Pick what’s happening with this home.').waitFor({ state: 'detached', timeout: 10000 });
+// With an occasion the estimate comes back (this trial account then shows Top up, not Generate).
+await page.getByText('4 photos × 1 format = 4 photos').waitFor({ timeout: 15000 });
+// Her style is one line until she changes it.
+await page.getByRole('button', { name: 'Change', exact: true }).click();
+await page.getByRole('button', { name: 'Business formal', exact: true }).click();
+await shot(page, 'listing-3b-occasion-style');
+
 // The visible AI label is off by default and she can turn it on.
 const tag = page.getByRole('checkbox', { name: /visible “AI” label/ });
 if (await tag.isChecked()) throw new Error('the visible AI label was on by default');
@@ -88,6 +109,7 @@ await shot(page, 'listing-4-label-on');
 // Back to "just me" and the old photo-count picker returns.
 await page.getByRole('button', { name: 'Just me' }).click();
 await page.getByText('How many photos?').waitFor({ timeout: 10000 });
+await page.getByRole('heading', { name: 'Theme', exact: true }).waitFor();
 
 // Zillow: paste a home link, say she represents it, Add property → every photo comes in → she cleans up.
 await page.getByRole('button', { name: /Property/ }).click();
@@ -106,6 +128,9 @@ await shot(page, 'zillow-2-loading');
 await page.getByText('20 photos', { exact: true }).waitFor({ timeout: 120000 });
 await page.getByText(/\$399,000 · 3 bd · 2 ba/).waitFor();
 await page.getByText('20 photos × 2 = 40 photos.').waitFor({ timeout: 10000 });
+// Zillow says it: the occasion is picked from the listing status.
+await page.locator('[aria-pressed=true]', { hasText: 'Just listed' }).waitFor({ timeout: 10000 });
+await page.getByText('From the Zillow listing.', { exact: false }).waitFor();
 await page.mouse.wheel(0, 650);
 await page.waitForTimeout(1500);
 await shot(page, 'zillow-3-imported');
@@ -125,6 +150,7 @@ await shot(page, 'zillow-5-cleaned');
 // Done cleaning up → one-button Ready step, and back.
 await page.getByRole('button', { name: 'Done with my photos' }).click();
 await page.getByText('20 photos × 2 looks = 40 photos').waitFor({ timeout: 10000 });
+await page.getByText('Just listed', { exact: true }).first().waitFor();
 await page.getByText(/You have \d+/).waitFor({ timeout: 10000 });
 await shot(page, 'zillow-6-ready');
 await page.getByRole('button', { name: 'Change photos or settings' }).click();

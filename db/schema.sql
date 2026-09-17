@@ -276,7 +276,8 @@ CREATE TABLE public.batches (
     cost_usd_micros integer DEFAULT 0 NOT NULL,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     completed_at timestamp(3) without time zone,
-    listing_id text
+    listing_id text,
+    occasion text
 );
 
 
@@ -1851,4 +1852,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260920090000'),
     ('20260921090000'),
     ('20260922090000'),
-    ('20260923090000');
+    ('20260923090000'),
+    ('20260924090000');

@@ -1,3 +1,5 @@
+import type { Occasion } from '../../lib/listingOccasions';
+
 /** A photo on a property that we can place her into. */
 export type RoomDto = {
   id: string;
@@ -40,8 +42,11 @@ export type ListingDto = {
   facts: string | null;
   status: string | null;
   statusLabel: string | null;
-  /** The theme Create starts from for this property. */
-  themeId: string | null;
+  /**
+   * The occasion Create starts from, only when Zillow says it (just listed, open house…).
+   * Null for uploaded homes and off-market ones: she picks.
+   */
+  occasion: Occasion | null;
   candidates: CandidateDto[];
   rooms: RoomDto[];
 };

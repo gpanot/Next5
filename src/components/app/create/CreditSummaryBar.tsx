@@ -11,11 +11,13 @@ type CreditSummaryBarProps = {
   loading: boolean;
   submitting: boolean;
   disabled: boolean;
+  /** What is still missing, said as the next step rather than an error. */
+  hint?: string;
   onSubmit: () => void;
 };
 
 /** Sticky bottom bar: explicit multiplication, balance after, and the Generate button. */
-export const CreditSummaryBar = ({ breakdown, estimate, error, loading, submitting, disabled, onSubmit }: CreditSummaryBarProps) => {
+export const CreditSummaryBar = ({ breakdown, estimate, error, hint, loading, submitting, disabled, onSubmit }: CreditSummaryBarProps) => {
   const short = estimate && !estimate.canAfford;
   return (
     <div className="sticky bottom-20 z-10 lg:bottom-4">
@@ -25,7 +27,7 @@ export const CreditSummaryBar = ({ breakdown, estimate, error, loading, submitti
             <>
               <p className="font-medium text-app-ink">{breakdown}{estimate ? ` = ${estimate.credits} photos` : ''}</p>
               <p className="text-[13px] text-app-muted">
-                {loading ? 'Checking your balance…' : estimate ? (short ? `You have ${estimate.balance} — ${estimate.credits - estimate.balance} short.` : `You have ${estimate.balance} → ${estimate.balance - estimate.credits} after.`) : 'Choose your options.'}
+                {loading ? 'Checking your balance…' : estimate ? (short ? `You have ${estimate.balance} — ${estimate.credits - estimate.balance} short.` : `You have ${estimate.balance} → ${estimate.balance - estimate.credits} after.`) : hint ?? 'Choose your options.'}
               </p>
             </>
           )}

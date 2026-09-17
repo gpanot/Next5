@@ -8,7 +8,7 @@ import {
   type SetTemplateConfig,
   type ThemeScene,
 } from '../../../content/business/catalog/types';
-import { BRAND_GUARDRAILS, QUALITY_BLOCK, formatBlock, identityBlock, join, materialBlock } from './blocks';
+import { BRAND_GUARDRAILS, QUALITY_BLOCK, formatBlock, identityBlock, join } from './blocks';
 
 export type BrandComposeInput = {
   template: SetTemplateConfig;
@@ -20,8 +20,6 @@ export type BrandComposeInput = {
   format: FormatId;
   industry: string | null;
   identityImageCount: number;
-  /** Drop box: her own photo of the place, used as the setting instead of the set's stock location. */
-  material?: { kind: string; label: string | null } | null;
 };
 
 const pickLocation = (input: BrandComposeInput): string => {
@@ -45,15 +43,13 @@ const styleBlock = (input: BrandComposeInput): string => {
   ).replace(/\n\n/g, ' ');
 };
 
-/** Composes the prompt for one Brand Studio photo. Pure — snapshot-tested. */
+/** Composes the prompt for one "just me" Brand Studio photo. Property photos use composeListingPrompt. Pure — snapshot-tested. */
 export const composeBrandPrompt = (input: BrandComposeInput): string => {
   const variation = Math.floor(input.index / Math.max(1, input.sceneCount));
   const variationNote = variation > 0 ? ` Variation ${variation + 1}: use a different pose, angle and framing than before.` : '';
   return join(
     identityBlock(input.identityImageCount, false),
-    input.material
-      ? materialBlock(input.identityImageCount + 1, input.material.kind, input.material.label)
-      : `Setting: ${pickLocation(input)} ${input.template.lighting}`,
+    `Setting: ${pickLocation(input)} ${input.template.lighting}`,
     `Styling: ${styleBlock(input)}`,
     `Scene: ${input.scene.direction}${variationNote}`,
     formatBlock(input.format),

@@ -400,6 +400,8 @@ model Batch {
   costUsdMicros   Int         @default(0) @map("cost_usd_micros")
   /// Set when the batch was built from one property's photos.
   listingId       String?     @map("listing_id")
+  /// Property batches: coming_soon | just_listed | for_sale | open_house | under_contract | just_sold.
+  occasion        String?
   createdAt       DateTime    @default(now()) @map("created_at")
   completedAt     DateTime?   @map("completed_at")
 

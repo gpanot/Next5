@@ -17,13 +17,16 @@ const liveRefs = (where: { workspaceId?: string | null; studioModelSlug?: string
     select: { kind: true, r2Key: true },
   });
 
+/** Brand: her own faces, up to 2. Needs no set, so property batches can use it. */
+export const resolveBrandIdentity = async (workspace: Workspace): Promise<IdentityInputs> => {
+  const faces = (await liveRefs({ workspaceId: workspace.id })).filter((r) => r.kind === 'face').slice(0, 2);
+  if (faces.length === 0) throw missing('Add your selfies before creating photos.');
+  return { keys: faces.map((r) => r.r2Key), isStudioModel: false };
+};
+
 /** Ordered identity reference keys for a batch. Brand: up to 2 faces. Shop: face + full body of "me" or a Studio model. */
 export const resolveIdentity = async (workspace: Workspace, set: StudioSet): Promise<IdentityInputs> => {
-  if (workspace.product === 'brand') {
-    const faces = (await liveRefs({ workspaceId: workspace.id })).filter((r) => r.kind === 'face').slice(0, 2);
-    if (faces.length === 0) throw missing('Add your selfies before creating photos.');
-    return { keys: faces.map((r) => r.r2Key), isStudioModel: false };
-  }
+  if (workspace.product === 'brand') return resolveBrandIdentity(workspace);
 
   const modelRef = set.modelRef ?? 'me';
   const refs = modelRef === 'me'

@@ -72,15 +72,21 @@ describe('listings', () => {
   });
 });
 
+/** A property batch as Create sends it. */
+const property = (listingId: string, over: Record<string, unknown> = {}) => ({
+  kind: 'brand_property' as const, listingId, occasion: 'just_listed' as const, variations: 2,
+  wardrobe: null, poseEnergy: null, formats: ['portrait_4_5' as const], highRes: false, ...over,
+});
+
 describe('listing mode never invents a room', () => {
   it('makes one photo per room per look, and no more', async () => {
-    const { ws, setId, themeId } = await ready();
+    const { ws } = await ready();
     const listing = await withRooms(ws, 3);
 
-    const expanded = await expandDraft(ws, { kind: 'brand_theme', setId, themeId, count: 0, formats: ['portrait_4_5'], highRes: false, listingId: listing.id, variations: 2 }, NOW);
+    const expanded = await expandDraft(ws, property(listing.id), NOW);
     expect(expanded.items).toHaveLength(6); // 3 rooms × 2 looks
     expect(expanded.listingId).toBe(listing.id);
-    expect(expanded.name).toContain('2720 Ashford Dr');
+    expect(expanded.name).toContain('2720 Ashford Dr · Just listed');
 
     // Every single photo is built from one of her rooms — none is an invented setting.
     expect(expanded.items.every((i) => i.materialId !== null)).toBe(true);
@@ -95,25 +101,23 @@ describe('listing mode never invents a room', () => {
   });
 
   it('refuses to run when the property has no photos', async () => {
-    const { ws, setId, themeId } = await ready();
+    const { ws } = await ready();
     const listing = await createListing(ws, { label: 'Empty', attest: true, visibleAiTag: false });
-    await expect(
-      expandDraft(ws, { kind: 'brand_theme', setId, themeId, count: 0, formats: ['portrait_4_5'], highRes: false, listingId: listing.id, variations: 2 }, NOW),
-    ).rejects.toMatchObject({ status: 400 });
+    await expect(expandDraft(ws, property(listing.id), NOW)).rejects.toMatchObject({ status: 400 });
   });
 
   it('caps the looks per room even if the request asks for more', async () => {
-    const { ws, setId, themeId } = await ready();
+    const { ws } = await ready();
     const listing = await withRooms(ws, 2);
-    const expanded = await expandDraft(ws, { kind: 'brand_theme', setId, themeId, count: 0, formats: ['portrait_4_5'], highRes: false, listingId: listing.id, variations: 99 }, NOW);
+    const expanded = await expandDraft(ws, property(listing.id, { variations: 99 }), NOW);
     expect(expanded.items).toHaveLength(6); // 2 rooms × 3, the cap
   });
 
-  it('multiplies by formats, not by a count she typed', async () => {
-    const { ws, setId, themeId } = await ready();
+  it('multiplies by formats', async () => {
+    const { ws } = await ready();
     const listing = await withRooms(ws, 2);
-    const expanded = await expandDraft(ws, { kind: 'brand_theme', setId, themeId, count: 32, formats: ['portrait_4_5', 'square_1_1'], highRes: false, listingId: listing.id, variations: 1 }, NOW);
-    expect(expanded.items).toHaveLength(4); // 2 rooms × 1 look × 2 formats — the 32 is ignored
+    const expanded = await expandDraft(ws, property(listing.id, { variations: 1, formats: ['portrait_4_5', 'square_1_1'] }), NOW);
+    expect(expanded.items).toHaveLength(4); // 2 rooms × 1 look × 2 formats
   });
 
   it('leaves ordinary brand batches on their stock settings', async () => {
@@ -125,10 +129,75 @@ describe('listing mode never invents a room', () => {
   });
 });
 
+describe('a property batch has no set and no theme', () => {
+  it('uses no theme scene and no set location, only the room, the occasion and her style', async () => {
+    const { ws } = await ready();
+    const listing = await withRooms(ws, 1);
+    await prisma.postMaterial.updateMany({ where: { listingId: listing.id }, data: { tag: 'exterior' } });
+
+    const expanded = await expandDraft(ws, property(listing.id, { occasion: 'open_house', variations: 3 }), NOW);
+    expect(expanded.setId).toBeNull();
+    expect(expanded.themeId).toBeNull();
+    expect(expanded.occasion).toBe('open_house');
+
+    const themeScenes = (await prisma.theme.findMany()).flatMap((t) => (t.scenes as { direction: string }[]).map((sc) => sc.direction));
+    for (const item of expanded.items) {
+      // Nothing from a theme — no kitchen island on the front of the house, no vase, no balcony.
+      expect(themeScenes.some((d) => item.prompt.includes(d))).toBe(false);
+      expect(item.prompt).toContain('Mood: Welcoming and open');
+      expect(item.prompt).toContain('Keep the property exactly as photographed');
+    }
+    // The front of the home gets front-of-home poses, one per look, none repeated.
+    const poses = expanded.items.map((i) => i.prompt.match(/Pose: (.*)/)?.[1]);
+    expect(new Set(poses).size).toBe(3);
+    expect(poses.every((p) => /front|home|entrance/i.test(p ?? ''))).toBe(true);
+    expect(expanded.items.map((i) => i.sceneId)).toEqual(['exterior-1', 'exterior-2', 'exterior-3']);
+  });
+
+  it('dresses her in the style she picked, and keeps brand colours off the property', async () => {
+    const { ws } = await ready();
+    await prisma.studioSet.updateMany({ where: { workspaceId: ws.id }, data: { brandColors: ['navy'] } });
+    const listing = await withRooms(ws, 1);
+
+    const picked = await expandDraft(ws, property(listing.id, { wardrobe: 'business_formal', poseEnergy: 'confident_expert', variations: 1 }), NOW);
+    expect(picked.items[0]!.prompt).toContain('business formal');
+    expect(picked.items[0]!.prompt).toContain('calm authority');
+    expect(picked.items[0]!.prompt).toContain('navy as a subtle accent in her outfit or accessories only');
+    expect(picked.items[0]!.prompt).not.toContain('décor');
+  });
+
+  it('falls back to her set’s look when she did not change it', async () => {
+    const { ws } = await ready();
+    await prisma.studioSet.updateMany({ where: { workspaceId: ws.id }, data: { wardrobe: 'smart_casual', poseEnergy: 'dynamic_candid' } });
+    const listing = await withRooms(ws, 1);
+    const expanded = await expandDraft(ws, property(listing.id, { variations: 1 }), NOW);
+    expect(expanded.items[0]!.prompt).toContain('smart casual');
+    expect(expanded.items[0]!.prompt).toContain('candid movement');
+  });
+
+  it('needs no set at all', async () => {
+    const ws = await createTestWorkspace('brand');
+    await prisma.identityReference.create({ data: { workspaceId: ws.id, kind: 'face', r2Key: 'face.jpg' } });
+    const listing = await withRooms(ws, 1);
+    const expanded = await expandDraft(ws, property(listing.id, { variations: 1 }), NOW);
+    expect(expanded.items).toHaveLength(1);
+  });
+});
+
 describe('parseDraft', () => {
-  it('takes the count from the rooms in listing mode', () => {
-    const draft = parseDraft({ kind: 'brand_theme', setId: 's', themeId: 't', formats: ['portrait_4_5'], listingId: 'l1', variations: 3 });
-    expect(draft).toMatchObject({ listingId: 'l1', variations: 3, count: 0 });
+  it('reads a property batch and takes the count from her photos', () => {
+    const draft = parseDraft({ kind: 'brand_property', formats: ['portrait_4_5'], listingId: 'l1', occasion: 'just_sold', variations: 3, wardrobe: 'smart_casual', poseEnergy: 'nope' });
+    expect(draft).toMatchObject({ kind: 'brand_property', listingId: 'l1', occasion: 'just_sold', variations: 3, wardrobe: 'smart_casual', poseEnergy: null });
+  });
+
+  it('never assumes what is happening with a home', () => {
+    expect(() => parseDraft({ kind: 'brand_property', formats: ['portrait_4_5'], listingId: 'l1' })).toThrow(/what is happening/);
+    expect(() => parseDraft({ kind: 'brand_property', formats: ['portrait_4_5'], listingId: 'l1', occasion: 'party' })).toThrow(/what is happening/);
+  });
+
+  it('routes an older tab’s theme-with-a-listing request the same way', () => {
+    expect(() => parseDraft({ kind: 'brand_theme', setId: 's', themeId: 't', formats: ['portrait_4_5'], listingId: 'l1' })).toThrow(/what is happening/);
+    expect(parseDraft({ kind: 'brand_theme', formats: ['portrait_4_5'], listingId: 'l1', occasion: 'for_sale' })).toMatchObject({ kind: 'brand_property' });
   });
 
   it('still requires a valid count without a property', () => {

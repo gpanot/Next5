@@ -68,7 +68,8 @@ describe('Zillow import', () => {
     expect(listing.materials.map((m) => m.sourceUrl)).toEqual((listing.candidates as { url: string }[]).map((c) => c.url));
 
     const dto = await toListingDto(listing);
-    expect(dto).toMatchObject({ facts: '$399,000 · 3 bd · 2 ba · 1,350 sqft', statusLabel: 'Just listed', themeId: 'just-listed' });
+    // Zillow says it is just listed, so Create starts there; she can still change it.
+    expect(dto).toMatchObject({ facts: '$399,000 · 3 bd · 2 ba · 1,350 sqft', statusLabel: 'Just listed', occasion: 'just_listed' });
     expect(dto.rooms.every((r) => r.fromZillow && r.lowRes)).toBe(true);
     expect(dto.candidates.every((c) => c.imported)).toBe(true);
 
@@ -100,11 +101,9 @@ describe('Zillow import', () => {
     const { ws, listing } = await imported();
     const property = await getListing(ws.id, listing.id);
     for (const m of property.materials.slice(2)) await removeRoom(ws.id, m.id);
-    const template = await prisma.setTemplate.findFirstOrThrow();
-    const set = await prisma.studioSet.create({ data: { workspaceId: ws.id, templateId: template.id, name: 'My set', locations: [], status: 'active' } });
     await prisma.identityReference.create({ data: { workspaceId: ws.id, kind: 'face', r2Key: 'face.jpg' } });
-    const theme = await prisma.theme.findFirstOrThrow({ where: { isActive: true } });
-    const draft = parseDraft({ product: 'brand', kind: 'brand_theme', setId: set.id, themeId: theme.id, count: 8, formats: ['portrait_4_5'], listingId: listing.id, variations: 2 });
+    // A property batch needs no set and no theme — only what is happening with the home.
+    const draft = parseDraft({ product: 'brand', kind: 'brand_property', formats: ['portrait_4_5'], listingId: listing.id, occasion: 'just_listed', variations: 2 });
     const expanded = await expandDraft(ws, draft);
     expect(expanded.items).toHaveLength(4);
     expect(expanded.items.every((i) => i.materialId)).toBe(true);

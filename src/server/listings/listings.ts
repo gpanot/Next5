@@ -5,11 +5,14 @@
 
 import type { Listing, PostMaterial, Workspace } from '@prisma/client';
 import type { CandidateDto, ListingDto, ListingImportStatus } from '../../types/business/listings';
-import { factsLine, isLowRes, isWeakTag, statusLabel, tagLabel, themeIdForStatus } from '../../lib/listingPhotos';
+import { occasionForStatus } from '../../lib/listingOccasions';
+import { factsLine, isLowRes, isWeakTag, statusLabel, tagLabel } from '../../lib/listingPhotos';
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
 import { materialKey } from '../storage/keys';
+import { imageDataUrl } from '../ai/imageInput';
 import { deleteObject, presignObject, putObject } from '../storage/objectStore';
+import { MAX_TAGGED, tagPhotos } from './photoTags';
 
 /** Looks she can get from one room photo. More than this and the poses start repeating. */
 export const MIN_VARIATIONS = 1;
@@ -149,7 +152,7 @@ export const toListingDto = async (listing: Listing & { materials?: PostMaterial
     facts: listing.source === 'zillow' ? factsLine(listing) : null,
     status: listing.status,
     statusLabel: statusLabel(listing.status),
-    themeId: listing.source === 'zillow' ? themeIdForStatus(listing.status) : null,
+    occasion: listing.source === 'zillow' ? occasionForStatus(listing.status) : null,
     candidates: candidateDtos(listing, materials),
     rooms: await Promise.all(
       materials.map(async (m) => ({
@@ -163,4 +166,25 @@ export const toListingDto = async (listing: Listing & { materials?: PostMaterial
       })),
     ),
   };
+};
+
+/**
+ * Tags her uploaded photos by room so each gets a pose that fits it. Zillow imports are tagged on import;
+ * uploads were not. Best effort: an untagged photo still works, with poses that fit any space.
+ */
+export const tagUntaggedRooms = async (workspaceId: string, listingId: string): Promise<void> => {
+  const rooms = await prisma.postMaterial.findMany({
+    where: { workspaceId, listingId, archivedAt: null, tag: null, r2Key: { not: 'pending' } },
+    orderBy: { createdAt: 'asc' },
+    take: MAX_TAGGED,
+    select: { id: true, r2Key: true },
+  });
+  if (rooms.length === 0) return;
+  // Data URLs, not signed links: the tagger must be able to read the photo from anywhere.
+  const images = await Promise.all(rooms.map((r) => imageDataUrl(r.r2Key)));
+  const readable = rooms.filter((_, i) => images[i]);
+  const tags = await tagPhotos(images.filter((u): u is string => Boolean(u)));
+  await Promise.all(
+    readable.map((room, i) => (tags[i] ? prisma.postMaterial.update({ where: { id: room.id }, data: { tag: tags[i] } }) : null)),
+  );
 };

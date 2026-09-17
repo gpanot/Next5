@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { factsLine, isLowRes, isWeakTag, parseZillowUrl, statusLabel, tagLabel, themeIdForStatus } from '../../src/lib/listingPhotos';
+import { factsLine, isLowRes, isWeakTag, parseZillowUrl, statusLabel, tagLabel } from '../../src/lib/listingPhotos';
 
 describe('parseZillowUrl', () => {
   it('reads the zpid from a home link and drops tracking', () => {
@@ -31,11 +31,9 @@ describe('photo tags', () => {
 });
 
 describe('listing copy', () => {
-  it('labels status, picks a theme and writes the facts line', () => {
+  it('labels status and writes the facts line', () => {
     expect(statusLabel('pending')).toBe('Under contract');
     expect(statusLabel('nope')).toBeNull();
-    expect(themeIdForStatus('open_house')).toBe('open-house');
-    expect(themeIdForStatus('sold')).toBe('just-listed');
     expect(factsLine({ priceCents: 39_900_000, beds: 3, baths: 2, sqft: 1350 })).toBe('$399,000 · 3 bd · 2 ba · 1,350 sqft');
     expect(isLowRes(800)).toBe(true);
     expect(isLowRes(1536)).toBe(false);

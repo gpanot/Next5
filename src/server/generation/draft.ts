@@ -2,6 +2,8 @@
 
 import { isFormatId, type FormatId } from '../../config/formats';
 import { isPackId, type PackId } from '../../config/shots';
+import { POSE_ENERGIES, WARDROBES, type PoseEnergyId, type WardrobeId } from '../../content/business/catalog/types';
+import { isOccasion, type Occasion } from '../../lib/listingOccasions';
 import { HttpError } from '../http';
 
 export const BRAND_COUNTS = [8, 16, 24, 32] as const;
@@ -14,10 +16,23 @@ export type BrandDraft = {
   count: number;
   formats: FormatId[];
   highRes: boolean;
-  /** Listing mode: build the batch from this property's rooms only. */
-  listingId?: string | null;
-  /** Looks per room in listing mode (1-3). */
-  variations?: number;
+};
+
+/**
+ * Photos of her in one property's photos. No set and no theme: the room is the photo, the pose comes from
+ * the room, the mood from the occasion (docs/business-studios/14-property-create-plan.md).
+ */
+export type BrandPropertyDraft = {
+  kind: 'brand_property';
+  listingId: string;
+  occasion: Occasion;
+  /** Looks per photo (1-3). */
+  variations: number;
+  /** Null: her latest set's look. */
+  wardrobe: WardrobeId | null;
+  poseEnergy: PoseEnergyId | null;
+  formats: FormatId[];
+  highRes: boolean;
 };
 
 export type ShopDraft = {
@@ -37,8 +52,8 @@ export type ShopDraft = {
 export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & { kind: 'brand_theme'; trial?: boolean; sceneIds?: string[] };
 export type InternalShopDraft = Omit<ShopDraft, 'kind'> & { kind: 'shop_products'; trial?: boolean; /** Only the 9:16 cover per product (TikTok library). */ coverOnly?: boolean };
 
-export type BatchDraft = BrandDraft | ShopDraft;
-export type AnyDraft = InternalBrandDraft | InternalShopDraft;
+export type BatchDraft = BrandDraft | BrandPropertyDraft | ShopDraft;
+export type AnyDraft = InternalBrandDraft | BrandPropertyDraft | InternalShopDraft;
 
 export const MAX_PRODUCTS_PER_BATCH = 40;
 
@@ -57,19 +72,34 @@ const parseId = (value: unknown, label: string): string => {
 };
 
 /** Validates a create-batch request body into a typed draft. Throws 400 with a readable message. */
+const optionalId = <T extends string>(value: unknown, allowed: readonly { id: T }[]): T | null =>
+  allowed.some((a) => a.id === value) ? (value as T) : null;
+
+/** The count comes from her photos, not a picker, and the occasion is never assumed. */
+const parsePropertyDraft = (body: Record<string, unknown>, formats: FormatId[], highRes: boolean): BrandPropertyDraft => {
+  if (!isOccasion(body.occasion)) throw bad('Pick what is happening with this home.');
+  return {
+    kind: 'brand_property',
+    listingId: parseId(body.listingId, 'property'),
+    occasion: body.occasion,
+    variations: Number(body.variations ?? 2),
+    wardrobe: optionalId(body.wardrobe, WARDROBES),
+    poseEnergy: optionalId(body.poseEnergy, POSE_ENERGIES),
+    formats,
+    highRes,
+  };
+};
+
 export const parseDraft = (body: Record<string, unknown>): BatchDraft => {
   const formats = parseFormats(body.formats);
   const highRes = body.highRes === true;
 
+  // A property batch. `brand_theme` with a listing is what an older open tab still sends.
+  if (body.kind === 'brand_property' || (body.kind === 'brand_theme' && body.listingId)) {
+    return parsePropertyDraft(body, formats, highRes);
+  }
+
   if (body.kind === 'brand_theme') {
-    // Listing mode: the count comes from her rooms, not from a picker.
-    if (body.listingId) {
-      return {
-        kind: 'brand_theme', setId: parseId(body.setId, 'set'), themeId: parseId(body.themeId, 'theme'),
-        count: 0, formats, highRes,
-        listingId: parseId(body.listingId, 'property'), variations: Number(body.variations ?? 2),
-      };
-    }
     const count = Number(body.count);
     if (!(BRAND_COUNTS as readonly number[]).includes(count)) throw bad('Choose 8, 16, 24 or 32 photos.');
     return { kind: 'brand_theme', setId: parseId(body.setId, 'set'), themeId: parseId(body.themeId, 'theme'), count, formats, highRes };
