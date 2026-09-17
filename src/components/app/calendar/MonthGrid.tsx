@@ -2,18 +2,19 @@
 
 import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { addMonths, isToday, monthGrid, monthLabel, monthOf, todayIso, WEEKDAY_LABELS } from '../../../lib/calendarDates';
+import { addMonths, groupByDay, isPast, isToday, monthGrid, monthLabel, monthOf, todayIso, WEEKDAY_LABELS } from '../../../lib/calendarDates';
 import type { SlotDto } from '../../../types/business/calendar';
 
-type Props = { slots: SlotDto[]; onOpen: (slot: SlotDto) => void };
+type Props = { slots: SlotDto[]; onDay: (date: string) => void };
 
 /**
- * Her month as a month: the photo itself sits in the day, so a glance shows
- * how full the feed is. Tapping a day opens that post.
+ * Her month as a month: the first photo sits in the day, with a count when there are more,
+ * so a glance shows how full the feed is. Tapping a day takes her to that day's row below,
+ * where she adds or removes photos.
  */
-export const MonthGrid = ({ slots, onOpen }: Props) => {
+export const MonthGrid = ({ slots, onDay }: Props) => {
   const [month, setMonth] = useState(monthOf(todayIso()));
-  const byDate = new Map(slots.map((s) => [s.scheduledFor, s]));
+  const byDate = new Map(groupByDay(slots.filter((s) => s.status !== 'skipped')).map((d) => [d.date, d.slots]));
   const days = monthGrid(month);
   const planned = slots.filter((s) => monthOf(s.scheduledFor) === month && s.status === 'planned').length;
   const posted = slots.filter((s) => monthOf(s.scheduledFor) === month && s.status === 'posted').length;
@@ -51,22 +52,28 @@ export const MonthGrid = ({ slots, onOpen }: Props) => {
         ))}
 
         {days.map(({ date, inMonth }) => {
-          const slot = byDate.get(date);
+          const daySlots = byDate.get(date) ?? [];
+          const first = daySlots[0];
           const today = isToday(date);
           const day = Number(date.slice(8));
-          const posted = slot?.status === 'posted';
-          const skipped = slot?.status === 'skipped';
+          const allPosted = daySlots.length > 0 && daySlots.every((sl) => sl.status === 'posted');
+          // An empty day in the past does nothing when tapped: she can only plan ahead.
+          const canAdd = !isPast(date);
 
-          if (!slot) {
+          if (!first) {
             return (
-              <div
+              <button
                 key={date}
-                className={`flex aspect-square items-center justify-center rounded-lg text-[12px] tabular-nums ${
-                  today ? 'bg-app-accent-soft font-semibold text-app-accent ring-1 ring-app-accent' : inMonth ? 'text-app-muted' : 'text-app-muted/40'
+                type="button"
+                onClick={() => onDay(date)}
+                disabled={!canAdd}
+                aria-label={canAdd ? `Add photos to ${date}` : date}
+                className={`flex aspect-square items-center justify-center rounded-lg text-[12px] tabular-nums transition-colors duration-200 disabled:cursor-default ${
+                  today ? 'bg-app-accent-soft font-semibold text-app-accent ring-1 ring-app-accent' : inMonth ? 'text-app-muted enabled:hover:bg-app-sunken' : 'text-app-muted/40'
                 }`}
               >
                 {day}
-              </div>
+              </button>
             );
           }
 
@@ -74,21 +81,26 @@ export const MonthGrid = ({ slots, onOpen }: Props) => {
             <button
               key={date}
               type="button"
-              onClick={() => onOpen(slot)}
-              aria-label={`${posted ? 'Posted' : 'Post'} on ${date}`}
+              onClick={() => onDay(date)}
+              aria-label={`${daySlots.length} post${daySlots.length === 1 ? '' : 's'} on ${date}`}
               className={`relative aspect-square overflow-hidden rounded-lg bg-app-sunken ring-offset-1 ring-offset-app-panel transition-transform duration-200 hover:scale-[1.04] ${
-                today ? 'ring-2 ring-app-accent' : posted ? 'ring-1 ring-emerald-600/50' : 'ring-1 ring-app-line'
-              } ${skipped ? 'opacity-40' : ''} ${inMonth ? '' : 'opacity-60'}`}
+                today ? 'ring-2 ring-app-accent' : allPosted ? 'ring-1 ring-emerald-600/50' : 'ring-1 ring-app-line'
+              } ${inMonth ? '' : 'opacity-60'}`}
             >
-              {slot.photo?.url && (
+              {first.photo?.url && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={slot.photo.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                <img src={first.photo.url} alt="" className="absolute inset-0 h-full w-full object-cover" />
               )}
               {/* The day number has to stay readable on top of any photo. */}
               <span className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/60 to-transparent px-1 pb-2 pt-0.5 text-left text-[11px] font-semibold tabular-nums text-white">
                 {day}
               </span>
-              {posted && (
+              {daySlots.length > 1 && (
+                <span className="absolute bottom-0.5 right-0.5 rounded-full bg-black/65 px-1 text-[10px] font-semibold leading-4 tabular-nums text-white">
+                  {daySlots.length}
+                </span>
+              )}
+              {allPosted && (
                 <span className="absolute inset-0 flex items-center justify-center bg-emerald-600/55">
                   <Check aria-hidden className="h-4 w-4 text-white" />
                 </span>

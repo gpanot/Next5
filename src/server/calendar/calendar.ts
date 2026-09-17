@@ -11,6 +11,13 @@ import { HttpError } from '../http';
 import { isValidWeekdays, isoDate, nextSlotDates, placeItems, startOfDay, windowStart, type PlaceableItem } from './schedule';
 
 export const DEFAULT_WEEKDAYS = [2, 4, 6];
+/**
+ * A slot she took a photo off stays as `removed`, so auto-fill never books that photo again.
+ * Skipped is the older, softer state. Neither counts as on the calendar.
+ */
+export const OFF_CALENDAR = ['skipped', 'removed'];
+export const isOnCalendar = (status: string): boolean => !OFF_CALENDAR.includes(status);
+const MAX_PHOTOS_PER_ADD = 30;
 /** How much of the future we ever show or fill at once. */
 const HORIZON_SLOTS = 60;
 const PLATFORMS = ['instagram', 'tiktok', 'facebook', 'linkedin', 'other'] as const;
@@ -86,7 +93,7 @@ export const saveSchedule = async (ws: Workspace, input: ScheduleInput, now = ne
 /** Dates in the future that already hold a slot — so we never double-book a day. */
 const takenDates = async (workspaceId: string, from: Date): Promise<Set<string>> => {
   const slots = await prisma.postSlot.findMany({
-    where: { workspaceId, scheduledFor: { gte: startOfDay(from) }, status: { not: 'skipped' } },
+    where: { workspaceId, scheduledFor: { gte: startOfDay(from) }, status: { notIn: OFF_CALENDAR } },
     select: { scheduledFor: true },
   });
   return new Set(slots.map((s) => isoDate(s.scheduledFor)));
@@ -143,14 +150,16 @@ export const addToCalendar = async (ws: Workspace, itemId: string, now = new Dat
   const item = await prisma.batchItem.findFirst({ where: { id: itemId, batch: { workspaceId: ws.id }, status: 'ready', r2Key: { not: null }, archivedAt: null } });
   if (!item) throw new HttpError(404, 'item_not_found', 'That photo is not ready yet.');
   const existing = await prisma.postSlot.findFirst({ where: { workspaceId: ws.id, itemId } });
-  if (existing?.status === 'skipped') return prisma.postSlot.update({ where: { id: existing.id }, data: { status: 'planned' } });
-  if (existing) return existing;
+  if (existing && isOnCalendar(existing.status)) return existing;
   const [date] = nextSlotDates(now, schedule.weekdays, 1, await takenDates(ws.id, now));
   if (!date) throw new HttpError(409, 'calendar_full', 'Your calendar is full. Remove a post first.');
+  const scheduledFor = new Date(`${date}T00:00:00.000Z`);
+  // Back on after she took it off: a fresh day, not the old one that may have passed.
+  if (existing) return prisma.postSlot.update({ where: { id: existing.id }, data: { status: 'planned', scheduledFor, source: 'manual' } });
   const [placement] = placeItems([toPlaceable(item)], [date]);
   try {
     return await prisma.postSlot.create({
-      data: { workspaceId: ws.id, scheduleId: schedule.id, scheduledFor: new Date(`${date}T00:00:00.000Z`), slotOfDay: placement?.slotOfDay ?? 'evening', itemId, source: 'manual' },
+      data: { workspaceId: ws.id, scheduleId: schedule.id, scheduledFor, slotOfDay: placement?.slotOfDay ?? 'evening', itemId, source: 'manual' },
     });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') return prisma.postSlot.findFirstOrThrow({ where: { workspaceId: ws.id, itemId } });
@@ -158,9 +167,58 @@ export const addToCalendar = async (ws: Workspace, itemId: string, now = new Dat
   }
 };
 
-/** Takes a photo off the calendar. A post she already marked done stays. */
+/** Takes a photo off the calendar, and keeps it off. A post she already marked done stays. */
 export const removeFromCalendar = async (workspaceId: string, itemId: string): Promise<void> => {
-  await prisma.postSlot.deleteMany({ where: { workspaceId, itemId, status: { not: 'posted' } } });
+  await prisma.postSlot.updateMany({ where: { workspaceId, itemId, status: { not: 'posted' } }, data: { status: 'removed' } });
+};
+
+/**
+ * Puts the photos she picked on one day — several on a day is fine. A photo already planned elsewhere
+ * moves to this day; one she already posted stays where it was.
+ */
+export const addPhotosToDay = async (ws: Workspace, date: string, itemIds: readonly string[], now = new Date()): Promise<number> => {
+  const schedule = await getOrCreateSchedule(ws);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) throw new HttpError(400, 'invalid_date', 'Pick a day.');
+  if (date < isoDate(now)) throw new HttpError(400, 'past_date', 'Pick today or a day ahead.');
+  const ids = [...new Set(itemIds)].slice(0, MAX_PHOTOS_PER_ADD);
+  if (ids.length === 0) throw new HttpError(400, 'no_photos', 'Pick at least one photo.');
+
+  const items = await prisma.batchItem.findMany({
+    where: { id: { in: ids }, batch: { workspaceId: ws.id }, status: 'ready', r2Key: { not: null }, archivedAt: null },
+    select: { id: true, slots: { select: { id: true, status: true } } },
+  });
+  const scheduledFor = new Date(`${date}T00:00:00.000Z`);
+  let added = 0;
+  for (const item of items) {
+    const slot = item.slots[0];
+    if (slot?.status === 'posted') continue;
+    if (slot) {
+      await prisma.postSlot.update({ where: { id: slot.id }, data: { scheduledFor, status: 'planned', source: 'manual' } });
+    } else {
+      await prisma.postSlot.create({ data: { workspaceId: ws.id, scheduleId: schedule.id, scheduledFor, itemId: item.id, source: 'manual' } });
+    }
+    added += 1;
+  }
+  return added;
+};
+
+/** Takes one post off her calendar by its slot. */
+export const removeSlot = async (workspaceId: string, slotId: string): Promise<PostSlot> => {
+  const slot = await ownedSlot(workspaceId, slotId);
+  if (slot.status === 'posted') throw new HttpError(409, 'already_posted', 'This one is already posted.');
+  return prisma.postSlot.update({ where: { id: slot.id }, data: { status: 'removed' } });
+};
+
+/** Photos she can add to a day: ready, kept, and not already planned or posted. Newest first. */
+export const listAddablePhotos = async (workspaceId: string, cursor: string | null, take = 30) => {
+  const rows = await prisma.batchItem.findMany({
+    where: { batch: { workspaceId }, status: 'ready', r2Key: { not: null }, archivedAt: null, slots: { none: { status: { notIn: OFF_CALENDAR } } } },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take: take + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    select: { id: true, r2Key: true, batch: { select: { name: true } } },
+  });
+  return { rows: rows.slice(0, take), nextCursor: rows.length > take ? rows[take - 1]!.id : null };
 };
 
 /** Called when a batch finishes; never throws into the generation pipeline. */
@@ -191,7 +249,7 @@ export type SlotWithItem = PostSlot & {
 
 export const listSlots = async (workspaceId: string, from: Date, to: Date): Promise<SlotWithItem[]> =>
   prisma.postSlot.findMany({
-    where: { workspaceId, scheduledFor: { gte: startOfDay(from), lte: startOfDay(to) } },
+    where: { workspaceId, scheduledFor: { gte: startOfDay(from), lte: startOfDay(to) }, status: { not: 'removed' } },
     include: {
       item: { select: { id: true, batchId: true, r2Key: true, postKit: true, score: true, scoreDetails: true, sceneId: true, batch: { select: { name: true } } } },
       material: { select: { id: true, label: true } },

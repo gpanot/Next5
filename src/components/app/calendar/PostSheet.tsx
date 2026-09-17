@@ -1,13 +1,12 @@
 'use client';
 
-import { Check, Copy, Download, ExternalLink, SkipForward, Undo2 } from 'lucide-react';
+import { Check, Copy, Download, ExternalLink, Trash2, Undo2 } from 'lucide-react';
 import { useState } from 'react';
 import { track } from '../../../lib/analytics';
 import { ApiError, apiFetch, downloadPhoto } from '../../../lib/apiClient';
 import type { SlotDto } from '../../../types/business/calendar';
 import { AppButton } from '../../ui/AppButton';
 import { Sheet } from '../../ui/Sheet';
-import { ScoreBadge } from '../postKit/ScoreBadge';
 
 type Props = {
   slot: SlotDto | null;
@@ -90,7 +89,6 @@ export const PostSheet = ({ slot, postKitAllowed, onClose, onChanged, onToast }:
             <div className="relative mx-auto w-full max-w-[280px] overflow-hidden rounded-2xl bg-app-sunken">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={slot.photo.url} alt="Your post" className="w-full object-cover" />
-              {slot.photo.score != null && <ScoreBadge score={slot.photo.score} className="absolute left-2 top-2" />}
               {posted && (
                 <span className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-semibold text-white">
                   <Check aria-hidden className="h-3 w-3" /> Posted
@@ -146,8 +144,8 @@ export const PostSheet = ({ slot, postKitAllowed, onClose, onChanged, onToast }:
                 <Undo2 aria-hidden className="h-3.5 w-3.5" /> Not posted yet
               </button>
             ) : (
-              <button type="button" onClick={() => void act('skip').then(onClose)} disabled={busy !== null} className="inline-flex items-center gap-1.5 text-[13px] text-app-muted hover:text-app-ink">
-                <SkipForward aria-hidden className="h-3.5 w-3.5" /> Skip this one
+              <button type="button" onClick={() => void act('remove').then(onClose)} disabled={busy !== null} className="inline-flex items-center gap-1.5 text-[13px] text-app-muted hover:text-app-danger">
+                <Trash2 aria-hidden className="h-3.5 w-3.5" /> Remove from calendar
               </button>
             )}
             {posted && !slot.postUrl && (

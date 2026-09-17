@@ -7,7 +7,6 @@ import type { CalendarDto } from '../../../types/business/calendar';
 import { Card } from '../../ui/Card';
 import { SkeletonCard } from '../../ui/Skeleton';
 import { AppLink as Link } from '../shell/AppLink';
-import { ScoreBadge } from '../postKit/ScoreBadge';
 
 /** What she should post today, on the first screen she sees. One tap to the calendar. */
 export const TodaysPostCard = () => {
@@ -45,7 +44,6 @@ export const TodaysPostCard = () => {
           ) : (
             <span className="flex h-full w-full items-center justify-center text-app-muted"><CalendarDays aria-hidden className="h-7 w-7" /></span>
           )}
-          {slot.photo?.score != null && <ScoreBadge score={slot.photo.score} className="absolute left-2 top-2" />}
         </div>
         <div className="flex flex-col gap-2 p-4 sm:p-5">
           <p className="label-caps text-[10px] font-medium text-app-accent">{isToday ? 'Today’s post' : 'Up next'}</p>

@@ -1,33 +1,57 @@
 'use client';
 
-import { CalendarDays } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { useToast } from '../../../hooks/useToast';
-import { dayLabel, groupByDay, isPast, isToday } from '../../../lib/calendarDates';
+import { ApiError, apiFetch } from '../../../lib/apiClient';
+import { dayLabel, groupByDay, isPast, upcomingPostingDays } from '../../../lib/calendarDates';
 import type { CalendarDto, SlotDto } from '../../../types/business/calendar';
-import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeleton';
 import { ToastContainer } from '../../ui/Toast';
-import { useAppRouter } from '../shell/AppLink';
 import { CadenceCard } from './CadenceCard';
+import { DayRow } from './DayRow';
 import { MonthGrid } from './MonthGrid';
+import { PhotoPickerSheet } from './PhotoPickerSheet';
 import { PostSheet } from './PostSheet';
 import { ProgressHeader } from './ProgressHeader';
 import { PropertiesCard } from './PropertiesCard';
-import { SlotCard } from './SlotCard';
+
+/** Empty posting days show this far ahead, so there is always somewhere to add a photo. */
+const EMPTY_DAYS_AHEAD = 14;
+
+/** Upcoming days with posts, her next posting days even when empty, and a day she tapped in the month. */
+const daysToShow = (calendar: CalendarDto, focused: string | null): { date: string; slots: SlotDto[] }[] => {
+  const shown = calendar.slots.filter((s) => s.status !== 'skipped');
+  const byDate = new Map(groupByDay(shown).map((d) => [d.date, d.slots]));
+  const dates = new Set<string>([
+    ...[...byDate.keys()].filter((d) => !isPast(d)),
+    ...upcomingPostingDays(calendar.schedule.weekdays, EMPTY_DAYS_AHEAD),
+    ...(focused ? [focused] : []),
+  ]);
+  return [...dates].sort().map((date) => ({ date, slots: byDate.get(date) ?? [] }));
+};
 
 /**
- * Her whole month on one page: progress, the next posts, and her days.
- * Nothing here navigates — opening a post is a sheet, changing her days is inline.
+ * Her month on one page: the month at a glance, then each day as a row of photos she can add to
+ * or take from. Opening a post and adding photos are sheets — nothing here navigates away.
  */
 export const CalendarView = () => {
   const { data, error, loading, refresh } = useApi<CalendarDto>('/api/app/calendar');
   const [local, setLocal] = useState<CalendarDto | null>(null);
   const [open, setOpen] = useState<SlotDto | null>(null);
+  const [pickerDate, setPickerDate] = useState<string | null>(null);
+  const [focused, setFocused] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const { toasts, toast, dismiss } = useToast();
-  const router = useAppRouter();
+
+  // After a tap in the month, bring that day's row into view and outline it for a moment.
+  useEffect(() => {
+    if (!focused) return;
+    document.getElementById(`day-${focused}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const timer = window.setTimeout(() => setFocused((current) => (current === focused ? null : current)), 1800);
+    return () => window.clearTimeout(timer);
+  }, [focused]);
 
   const calendar = local ?? data;
   if (loading && !calendar) return <div className="flex flex-col gap-3"><SkeletonCard /><SkeletonCard /></div>;
@@ -38,51 +62,54 @@ export const CalendarView = () => {
   const applySlot = (slot: SlotDto) => {
     setLocal((prev) => {
       const base = prev ?? calendar;
-      const slots = base.slots.map((s) => (s.id === slot.id ? slot : s));
+      const slots = slot.status === 'removed' ? base.slots.filter((s) => s.id !== slot.id) : base.slots.map((s) => (s.id === slot.id ? slot : s));
       const wasPosted = base.slots.find((s) => s.id === slot.id)?.status === 'posted';
       const delta = slot.status === 'posted' && !wasPosted ? 1 : wasPosted && slot.status !== 'posted' ? -1 : 0;
       return {
         ...base,
         slots,
-        progress: {
-          ...base.progress,
-          posted: Math.max(0, base.progress.posted + delta),
-          planned: slots.filter((s) => s.status === 'planned').length,
-        },
+        progress: { ...base.progress, posted: Math.max(0, base.progress.posted + delta), planned: slots.filter((s) => s.status === 'planned').length },
       };
     });
-    setOpen((current) => (current && current.id === slot.id ? slot : current));
+    setOpen((current) => (current && current.id === slot.id ? (slot.status === 'removed' ? null : slot) : current));
   };
 
-  const upcoming = calendar.slots.filter((s) => !isPast(s.scheduledFor) || isToday(s.scheduledFor));
-  const days = groupByDay(upcoming);
+  const remove = async (slot: SlotDto) => {
+    setRemoving(slot.id);
+    try {
+      const res = await apiFetch<{ slot: SlotDto }>(`/api/app/calendar/slots/${slot.id}`, { method: 'PATCH', json: { action: 'remove' } });
+      applySlot(res.slot);
+      toast(`Removed from ${dayLabel(slot.scheduledFor)}`, 'success');
+    } catch (err) {
+      toast(err instanceof ApiError ? err.message : 'Could not remove that photo.', 'error');
+    } finally {
+      setRemoving(null);
+    }
+  };
+
+  const days = daysToShow(calendar, focused);
 
   return (
     <>
       <ProgressHeader progress={calendar.progress} />
 
-      <MonthGrid slots={calendar.slots} onOpen={setOpen} />
+      <MonthGrid slots={calendar.slots} onDay={setFocused} />
 
-      {days.length === 0 ? (
-        <EmptyState
-          illustration={<CalendarDays className="h-10 w-10" />}
-          title="Your month is waiting for photos"
-          body="Create a batch and we plan your posts for you — best photo first, one per posting day."
-          action={{ label: 'Create photos', onClick: () => router.push('/app/create') }}
-        />
-      ) : (
-        <div className="flex flex-col gap-5">
-          <h2 className="text-[15px] font-semibold text-app-ink">What’s next</h2>
-          {days.map(({ date, slots }) => (
-            <section key={date} className="flex flex-col gap-2">
-              <h2 className={`text-[13px] font-semibold uppercase tracking-wide ${isToday(date) ? 'text-app-accent' : 'text-app-muted'}`}>
-                {dayLabel(date)}
-              </h2>
-              {slots.map((slot) => <SlotCard key={slot.id} slot={slot} onOpen={setOpen} />)}
-            </section>
-          ))}
-        </div>
-      )}
+      <div className="flex flex-col gap-5">
+        <h2 className="text-[15px] font-semibold text-app-ink">What’s next</h2>
+        {days.map(({ date, slots }) => (
+          <DayRow
+            key={date}
+            date={date}
+            slots={slots}
+            highlighted={focused === date}
+            onOpen={setOpen}
+            onAdd={setPickerDate}
+            onRemove={(slot) => void remove(slot)}
+            busySlotId={removing}
+          />
+        ))}
+      </div>
 
       <PropertiesCard />
 
@@ -94,6 +121,17 @@ export const CalendarView = () => {
         onClose={() => setOpen(null)}
         onChanged={applySlot}
         onToast={(message) => toast(message, 'success')}
+      />
+      <PhotoPickerSheet
+        key={pickerDate ?? 'closed'}
+        date={pickerDate}
+        onClose={() => setPickerDate(null)}
+        onAdded={(next, count) => {
+          const date = pickerDate;
+          setLocal(next);
+          setPickerDate(null);
+          toast(`Added ${count} photo${count === 1 ? '' : 's'}${date ? ` to ${dayLabel(date)}` : ''}`, 'success');
+        }}
       />
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
     </>

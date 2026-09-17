@@ -6,6 +6,7 @@ import type { PostKitDto } from '../../types/business/batches';
 import { prisma } from '../../lib/db';
 import { sendOnce } from '../email/send';
 import { postsReadyEmail } from '../email/templates';
+import { OFF_CALENDAR } from './calendar';
 import { isoDate, startOfDay } from './schedule';
 
 const DAY = 86_400_000;
@@ -71,7 +72,7 @@ export const buildIcs = async (icsToken: string, now = new Date()): Promise<stri
   if (!schedule) return null;
 
   const slots = await prisma.postSlot.findMany({
-    where: { workspaceId: schedule.workspaceId, status: { not: 'skipped' }, scheduledFor: { gte: startOfDay(new Date(now.getTime() - 30 * DAY)) } },
+    where: { workspaceId: schedule.workspaceId, status: { notIn: OFF_CALENDAR }, scheduledFor: { gte: startOfDay(new Date(now.getTime() - 30 * DAY)) } },
     include: { item: { select: { postKit: true } }, material: { select: { label: true } } },
     orderBy: { scheduledFor: 'asc' },
   });

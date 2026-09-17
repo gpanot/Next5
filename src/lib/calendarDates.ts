@@ -56,3 +56,14 @@ export const monthGrid = (month: string): { date: string; inMonth: boolean }[] =
   }
   return days;
 };
+
+/** Her posting days from today for `days` days, as `YYYY-MM-DD` — shown even when nothing is planned yet. */
+export const upcomingPostingDays = (weekdays: readonly number[], days: number, now = new Date()): string[] => {
+  const start = new Date(`${todayIso(now)}T00:00:00Z`);
+  const out: string[] = [];
+  for (let i = 0; i < days; i += 1) {
+    const d = new Date(start.getTime() + i * 86_400_000);
+    if (weekdays.includes(d.getUTCDay())) out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+};

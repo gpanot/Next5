@@ -2,6 +2,7 @@
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
+import { OFF_CALENDAR } from '../calendar/calendar';
 
 export type LibraryFilters = {
   workspaceId: string;
@@ -53,7 +54,7 @@ export const listSeries = async (workspaceId: string, filter: SeriesFilter, curs
     include: {
       listing: { select: { label: true, source: true } },
       theme: { select: { title: true } },
-      items: { where: { status: 'ready', r2Key: { not: null }, archivedAt: null }, orderBy: { createdAt: 'asc' }, select: { r2Key: true, _count: { select: { slots: true } } } },
+      items: { where: { status: 'ready', r2Key: { not: null }, archivedAt: null }, orderBy: { createdAt: 'asc' }, select: { r2Key: true, _count: { select: { slots: { where: { status: { notIn: OFF_CALENDAR } } } } } } },
     },
   });
   const page = batches.slice(0, take);

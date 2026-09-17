@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authedRoute } from '../../../../../../src/server/api';
-import { markPosted, moveSlot, skipSlot, swapPhoto, undoPosted } from '../../../../../../src/server/calendar/calendar';
+import { markPosted, moveSlot, removeSlot, skipSlot, swapPhoto, undoPosted } from '../../../../../../src/server/calendar/calendar';
 import { toSlotDto } from '../../../../../../src/server/calendar/dto';
 import { HttpError, readJsonObject } from '../../../../../../src/server/http';
 import { prisma } from '../../../../../../src/lib/db';
@@ -35,6 +35,9 @@ export const PATCH = authedRoute(async (req, session, { params }: Ctx) => {
       break;
     case 'undo':
       await undoPosted(ws.id, slotId);
+      break;
+    case 'remove':
+      await removeSlot(ws.id, slotId);
       break;
     case 'skip':
       await skipSlot(ws.id, slotId);

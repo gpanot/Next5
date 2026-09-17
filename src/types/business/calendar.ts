@@ -2,7 +2,7 @@
 
 import type { PostKitDto, ScoreDetailsDto } from './batches';
 
-export type SlotStatusDto = 'planned' | 'posted' | 'skipped';
+export type SlotStatusDto = 'planned' | 'posted' | 'skipped' | 'removed';
 export type SlotOfDayDto = 'morning' | 'midday' | 'evening';
 export type PlatformDto = 'instagram' | 'tiktok' | 'facebook' | 'linkedin' | 'other';
 

@@ -7,6 +7,7 @@ import { isFormatId } from '../../config/formats';
 import { prisma } from '../../lib/db';
 import { getBalance } from '../credits/ledger';
 import { createBatch, getActivePlan } from '../generation/createBatch';
+import { OFF_CALENDAR } from './calendar';
 import { isoDate, slotDatesUntil, startOfDay } from './schedule';
 
 const DAY = 86_400_000;
@@ -20,7 +21,7 @@ const QUIET_MISSED = 4;
 export const missingSlots = async (schedule: PostSchedule, now: Date): Promise<number> => {
   const until = new Date(now.getTime() + schedule.bufferDays * DAY);
   const booked = await prisma.postSlot.findMany({
-    where: { workspaceId: schedule.workspaceId, scheduledFor: { gte: startOfDay(now), lte: startOfDay(until) }, status: { not: 'skipped' } },
+    where: { workspaceId: schedule.workspaceId, scheduledFor: { gte: startOfDay(now), lte: startOfDay(until) }, status: { notIn: OFF_CALENDAR } },
     select: { scheduledFor: true },
   });
   return slotDatesUntil(now, until, schedule.weekdays, new Set(booked.map((b) => isoDate(b.scheduledFor)))).length;

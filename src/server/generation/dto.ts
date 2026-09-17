@@ -28,7 +28,8 @@ export const toItemDto = async (item: BatchItem, slot: Pick<PostSlot, 'scheduled
   errorMessage: item.status === 'failed' ? item.errorMessage : null,
   canRetry: canRetryFailed(item),
   startedAt: item.status === 'submitting' || item.status === 'generating' ? item.submittedAt?.toISOString() ?? null : null,
-  calendar: slot ? { date: slot.scheduledFor.toISOString().slice(0, 10), status: slot.status as 'planned' | 'posted' | 'skipped' } : null,
+  // A photo she took off the calendar reads as not on it.
+  calendar: slot && slot.status !== 'removed' ? { date: slot.scheduledFor.toISOString().slice(0, 10), status: slot.status as 'planned' | 'posted' | 'skipped' } : null,
 });
 
 const coverFor = async (batchId: string): Promise<string | null> => {

@@ -49,16 +49,24 @@ await shot(page, 'cal-0-dashboard');
 // The calendar should already hold the trial photos — she never asked for a plan.
 await page.goto(`${BASE}/app/brand/calendar`);
 await page.getByText(/post this month|Your feed this month/).waitFor({ timeout: 20000 });
-await page.waitForFunction(() => document.querySelectorAll('section h2').length > 0, null, { timeout: 15000 });
-const days = await page.locator('section h2').count();
+const thumbs = page.getByRole('button', { name: /^Open post: / });
+await thumbs.first().waitFor({ timeout: 20000 });
+const days = await page.getByRole('button', { name: /posts? on \d{4}-\d{2}-\d{2}$/ }).count();
 if (days === 0) throw new Error('calendar is empty: auto-fill did not run');
-
-// The month grid, with her photos in the days.
-await page.getByRole('button', { name: /^Post on \d{4}-\d{2}-\d{2}$/ }).first().waitFor({ timeout: 15000 });
+// No score on the calendar: she chose these photos already.
+if (await page.getByTitle('Scroll-Stop Score').count()) throw new Error('a score badge is still shown on the calendar');
 await shot(page, 'cal-1-month');
 
-// One tap on a day in the month opens that post.
-await page.getByRole('button', { name: /^Post on \d{4}-\d{2}-\d{2}$/ }).first().click();
+// Tapping a day in the month brings that day's row into view.
+const firstDay = page.getByRole('button', { name: /posts? on \d{4}-\d{2}-\d{2}$/ }).first();
+const date = (await firstDay.getAttribute('aria-label')).match(/\d{4}-\d{2}-\d{2}/)[0];
+await firstDay.click();
+await page.locator(`#day-${date}`).waitFor();
+await page.waitForTimeout(700);
+await shot(page, 'cal-1b-day');
+
+// One tap on a photo opens the post.
+await page.locator(`#day-${date}`).getByRole('button', { name: /^Open post: / }).first().click();
 await page.getByRole('dialog').waitFor();
 await page.getByRole('button', { name: 'Save photo' }).waitFor();
 await page.waitForTimeout(600); // let the sheet finish animating in
@@ -75,6 +83,30 @@ await page.getByText(/Posted|copied/).first().waitFor({ timeout: 10000 });
 await page.keyboard.press('Escape');
 await page.getByText(/1 post this month/).waitFor({ timeout: 10000 });
 await shot(page, 'cal-3-counted');
+
+// Remove a photo from its day. It must stay removed after a reload (auto-fill used to put it back).
+const before = await thumbs.count();
+await page.getByRole('button', { name: /^Remove from / }).first().click();
+await page.getByText(/^Removed from /).waitFor({ timeout: 10000 });
+await page.waitForFunction((n) => document.querySelectorAll('button[aria-label^="Open post: "]').length === n - 1, before, { timeout: 10000 });
+await page.reload();
+await thumbs.first().waitFor({ timeout: 20000 });
+if ((await thumbs.count()) !== before - 1) throw new Error('a removed photo came back after a reload');
+
+// Add it back — to a day that already has a post, so the day holds two.
+const target = page.locator('section[id^="day-"]').filter({ has: page.getByRole('button', { name: /^Open post: / }) }).first();
+const targetId = await target.getAttribute('id');
+await target.getByRole('button', { name: /^Add photos to / }).click();
+const picker = page.getByRole('dialog', { name: /^Add to / });
+await picker.waitFor();
+await picker.getByRole('button', { name: /^Pick: / }).first().click({ timeout: 15000 });
+await page.waitForTimeout(500);
+await shot(page, 'cal-3a-picker');
+await picker.getByRole('button', { name: 'Add 1 photo' }).click();
+await page.getByText(/^Added 1 photo to /).waitFor({ timeout: 10000 });
+await page.locator(`#${targetId}`).getByText('2 posts').waitFor({ timeout: 10000 });
+await page.locator(`#${targetId}`).scrollIntoViewIfNeeded();
+await shot(page, 'cal-3b-two-on-a-day');
 
 // Her days, changed without leaving the page.
 await page.getByRole('button', { name: /You post on/ }).click();
