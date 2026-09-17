@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
-import type { PlatformId } from '../../../content/business/offer';
+import type { ImportSourceId, PlatformId } from '../../../content/business/offer';
 import { CtaLink } from '../shared/CtaLink';
+import { ImportSources, ImportSourcesRow } from './ImportSources';
 import { PlatformMarks } from './PlatformMarks';
 
 type OfferHeroProps = {
@@ -11,6 +12,8 @@ type OfferHeroProps = {
   secondary?: { href: string; label: string };
   note: string;
   platforms: readonly PlatformId[];
+  /** "Paste your link" sources, shown with their logos. */
+  sources?: readonly ImportSourceId[];
   visual: ReactNode;
 };
 
@@ -18,13 +21,14 @@ type OfferHeroProps = {
  * Mobile-first hero: on phones the visual sits right under the headline, so the first screen shows what Next5 makes.
  * On desktop: copy left, visual right.
  */
-export const OfferHero = ({ eyebrow, title, sub, cta, secondary, note, platforms, visual }: OfferHeroProps) => (
+export const OfferHero = ({ eyebrow, title, sub, cta, secondary, note, platforms, sources = [], visual }: OfferHeroProps) => (
   <section className="px-5 pb-14 pt-6 sm:px-8 sm:pb-24 sm:pt-14">
     <div className="mx-auto grid max-w-6xl gap-x-16 gap-y-6 lg:grid-cols-[1.05fr_1fr] lg:items-center">
       <div className="flex flex-col items-start gap-3 lg:col-start-1 lg:row-start-1 lg:self-end">
         <p className="label-caps text-[10px] font-medium text-app-accent">{eyebrow}</p>
         <h1 className="font-display text-[32px] font-semibold leading-[1.05] tracking-[-0.025em] text-balance text-app-ink sm:text-[46px] lg:text-[52px]">{title}</h1>
         <PlatformMarks platforms={platforms} className="lg:hidden" />
+        {sources.length > 0 && <ImportSourcesRow sources={sources} className="lg:hidden" />}
       </div>
       <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1">{visual}</div>
       <div className="flex flex-col items-start gap-5 lg:col-start-1 lg:row-start-2 lg:self-start">
@@ -34,6 +38,7 @@ export const OfferHero = ({ eyebrow, title, sub, cta, secondary, note, platforms
           {secondary && <CtaLink href={secondary.href} variant="ghost">{secondary.label}</CtaLink>}
         </div>
         <p className="text-[13px] text-app-muted">{note}</p>
+        {sources.length > 0 && <ImportSources sources={sources} className="hidden lg:flex" />}
         <PlatformMarks platforms={platforms} className="hidden lg:flex" />
       </div>
     </div>

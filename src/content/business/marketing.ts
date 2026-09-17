@@ -77,6 +77,7 @@ export const BRAND = {
   ],
   faq: [
     { q: 'Can’t I just use ChatGPT?', a: 'You can make one photo. But your face changes a little each time, and you still have to write every post. Next5 keeps your face the same every month, makes all your photos at once, and writes the hook, caption and hashtags.' },
+    { q: 'I’m a realtor. Can I use my Zillow listing?', a: 'Yes. Paste your Zillow link. We bring in the photos and the price, beds and baths. You pick the photos you want to be in, and we put you inside those real rooms. We never add a room that is not there. You must represent the property.' },
     { q: 'What is the Scroll-Stop Score?', a: 'Every photo gets a score from 0 to 100. AI checks six things that make people stop scrolling, like light, a clear face and how it looks small. You also get one tip to post it better.' },
     { q: 'Do I have to plan my posts?', a: 'No. Pick the days you want to post. We put your best photo on each day, ready to go. Open one, save the photo, copy the caption. About twenty seconds.' },
     { q: 'Can you post for me?', a: 'Not yet. Instagram and TikTok only let apps post in ways that would slow you down. So we do everything up to the last step: the photo and the words are ready, and you tap post.' },

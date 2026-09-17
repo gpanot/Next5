@@ -33,6 +33,7 @@ export const BusinessHome = () => (
       cta={{ href: '/brand', label: 'I sell a service' }}
       secondary={{ href: '/shop', label: 'I sell products online →' }}
       platforms={OFFER_HOME.platforms}
+      sources={OFFER_HOME.sources}
       visual={<HomeVisual />}
     />
     <Section tone="sunken" eyebrow="Not just photos" title="Every photo comes ready to post." sub="Each photo gets a Scroll-Stop Score and a Post Kit: the hook, the caption and the hashtags."><WhatYouGet post={OFFER.brand.example} shop={false} /></Section>

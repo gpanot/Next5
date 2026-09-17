@@ -1,10 +1,14 @@
 import type { PlatformId } from '../../../content/business/offer';
+import { TIKTOK_MARK } from '../shared/BrandLogos';
+
+/** The official TikTok note, drawn in the chip's text color like the other marks. */
+const TikTokPaths = () => <path d={TIKTOK_MARK} fill="currentColor" transform="translate(2.4 2.4) scale(0.8)" />;
 
 /** Simple hand-drawn platform marks (nominative use: "made for" — no endorsement implied). */
 const MARKS: Record<PlatformId, { label: string; svg: React.ReactNode }> = {
   tiktok: {
     label: 'TikTok',
-    svg: <path d="M14 3c.4 2.3 1.9 3.9 4.2 4.1v3a7.2 7.2 0 0 1-4.1-1.3v6.1a5.6 5.6 0 1 1-5.6-5.6c.3 0 .6 0 .9.1v3.1a2.6 2.6 0 1 0 1.7 2.4V3H14Z" fill="currentColor" />,
+    svg: <TikTokPaths />,
   },
   instagram: {
     label: 'Instagram',

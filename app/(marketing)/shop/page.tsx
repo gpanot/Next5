@@ -30,7 +30,7 @@ export default function ShopPage() {
   const growth = { href: '/start/shop?plan=shop_pro&term=3', label: 'Start free, then Growth' };
   return (
     <>
-      <OfferHero {...offer.hero} cta={start} secondary={{ href: '#pricing', label: 'See pricing' }} platforms={offer.platforms} visual={<PostPhoneMock post={offer.example} handle="your.shop" priority />} />
+      <OfferHero {...offer.hero} cta={start} secondary={{ href: '#pricing', label: 'See pricing' }} platforms={offer.platforms} sources={offer.sources} visual={<PostPhoneMock post={offer.example} handle="your.shop" priority />} />
       <Section tone="sunken" eyebrow="See it work" title="Your product in. A model wearing it out." sub="Slide across the photo. Same color, same print, same length.">
         <div className="mx-auto max-w-md"><BeforeAfterSlider /></div>
       </Section>

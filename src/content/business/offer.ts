@@ -9,6 +9,8 @@ import type { ScoreDetailsDto } from '../../types/business/batches';
 const IMG = '/images/business';
 
 export type PlatformId = 'tiktok' | 'instagram' | 'facebook' | 'shopee' | 'linkedin';
+/** Where a "paste your link" import can bring things in from. */
+export type ImportSourceId = 'zillow' | 'tiktok_shop';
 export type ChatGptRow = { topic: string; chatgpt: string; next5: string };
 export type StackItem = { title: string; body: string; value: string; basis: string };
 export type ExamplePost = { image: string; before?: string; score: number; details: ScoreDetailsDto; hook: string; caption: string; hashtags: string[]; description?: string };
@@ -25,6 +27,7 @@ export type Testimonial = {
 
 type ProductOffer = {
   platforms: readonly PlatformId[];
+  sources: readonly ImportSourceId[];
   hero: { eyebrow: string; title: string; sub: string; cta: string; note: string };
   example: ExamplePost;
   chatgpt: { title: string; sub: string; rows: readonly ChatGptRow[] };
@@ -46,6 +49,7 @@ export const OFFER_SHARED = {
 export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
   brand: {
     platforms: ['instagram', 'facebook', 'linkedin', 'tiktok'],
+    sources: ['zillow'],
     hero: {
       eyebrow: 'For realtors, coaches and beauty pros',
       title: 'Your month of posts, done in 10 minutes.',
@@ -96,6 +100,7 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
   },
   shop: {
     platforms: ['tiktok', 'instagram', 'shopee', 'facebook'],
+    sources: ['tiktok_shop'],
     hero: {
       eyebrow: 'For TikTok Shop sellers',
       title: 'Your new drops, photographed every week.',
@@ -150,6 +155,7 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
 
 export const OFFER_HOME = {
   platforms: ['instagram', 'tiktok', 'facebook', 'shopee', 'linkedin'] as readonly PlatformId[],
+  sources: ['zillow', 'tiktok_shop'] as readonly ImportSourceId[],
   hero: {
     eyebrow: 'Try it free · No card needed',
     title: 'Your photos and posts for the month. Ready in minutes.',

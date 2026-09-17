@@ -29,7 +29,7 @@ export default function BrandPage() {
   const growth = { href: '/start/brand?plan=brand_pro&term=3', label: 'Start free, then Growth' };
   return (
     <>
-      <OfferHero {...offer.hero} cta={start} secondary={{ href: '#pricing', label: 'See pricing' }} platforms={offer.platforms} visual={<PostPhoneMock post={offer.example} handle="your.name" priority />} />
+      <OfferHero {...offer.hero} cta={start} secondary={{ href: '#pricing', label: 'See pricing' }} platforms={offer.platforms} sources={offer.sources} visual={<PostPhoneMock post={offer.example} handle="your.name" priority />} />
       <Section tone="sunken" eyebrow="Not just photos" title="Every photo comes ready to post." sub="Each photo gets a Scroll-Stop Score and a Post Kit: the hook, the caption and the hashtags."><WhatYouGet post={offer.example} shop={false} /></Section>
       <Section eyebrow="The big question" title={offer.chatgpt.title} sub={offer.chatgpt.sub}><ChatGptCompare rows={offer.chatgpt.rows} /></Section>
       <Section tone="sunken" eyebrow="How it works" title="Five minutes. A whole month of posts."><StepsGrid steps={BRAND.steps} /></Section>
