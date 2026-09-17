@@ -3,7 +3,13 @@ import { adminRoute } from '../../../../../src/server/admin/route';
 import { uploadToR2, getPresignedUrl } from '../../../../../src/lib/r2';
 
 export const POST = adminRoute(async (req: NextRequest) => {
-  const formData = await req.formData();
+  let formData: FormData;
+  try {
+    formData = await req.formData();
+  } catch {
+    return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+  }
+
   const file = formData.get('file') as File | null;
 
   if (!file) {

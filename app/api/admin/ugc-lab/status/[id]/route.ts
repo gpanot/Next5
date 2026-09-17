@@ -16,10 +16,18 @@ type TaskStatus = {
 export const GET = adminRoute(async (_req, ctx: { params: Promise<{ id: string }> }) => {
   const { id } = await ctx.params;
 
-  const result = await tregCall<TaskStatus>(
-    'reapi.tasks.get',
-    { query: { id }, timeoutMs: 15_000 },
-  );
+  let result: TaskStatus;
+  try {
+    result = await tregCall<TaskStatus>(
+      'reapi.tasks.get',
+      { query: { id }, timeoutMs: 15_000 },
+    );
+  } catch (err) {
+    return NextResponse.json(
+      { status: 'failed', error: err instanceof Error ? err.message : 'Polling error' },
+      { status: 502 },
+    );
+  }
 
   const status = result.status ?? result.state ?? 'unknown';
   const video_url =

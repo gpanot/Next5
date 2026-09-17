@@ -76,7 +76,13 @@ const TREG_BASE = 'https://treg.to/call';
 
 type TregResponse<T> = { data: T; error?: never } | { error: string; data?: never };
 
-/** Low-level treg call wrapper. Endpoint: e.g. "tikhub.tiktok.search.videos" */
+/** Low-level treg call wrapper. Endpoint: e.g. "tikhub.tiktok.search.videos"
+ *
+ * Treg endpoints return two different shapes:
+ *  - Some wrap in `{ code, data: {...} }` — we extract `.data`
+ *  - Others return the payload directly at the top level
+ * We try `.data` first; if undefined we return the whole response.
+ */
 export async function tregCall<T>(
   endpointId: string,
   options: {
@@ -111,11 +117,15 @@ export async function tregCall<T>(
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
 
-    const json = (await res.json()) as TregResponse<T>;
-    if (!res.ok || json.error) {
-      throw new Error(`treg ${endpointId}: ${json.error ?? res.statusText}`);
+    const json = (await res.json()) as Record<string, unknown>;
+    if (!res.ok) {
+      const errMsg = typeof json.error === 'string' ? json.error
+        : typeof json.detail === 'string' ? json.detail
+        : res.statusText;
+      throw new Error(`treg ${endpointId}: ${errMsg}`);
     }
-    return json.data as T;
+    // Return inner `.data` if present, otherwise the whole response
+    return ('data' in json ? json.data : json) as T;
   } finally {
     clearTimeout(timer);
   }
@@ -189,16 +199,39 @@ export async function deepinfraImageGen(prompt: string): Promise<string> {
 
 // ── TikTok transcript helper ──────────────────────────────────────────────────
 
-type TranscriptResult = { transcript?: string; captions?: string; text?: string };
+type TranscriptResult = {
+  success?: boolean;
+  transcript?: string;   // WebVTT format
+  captions?: string;
+  text?: string;
+};
 
-/** Fetch transcript for a TikTok video ID. Returns raw text or empty string on failure. */
-export async function fetchTikTokTranscript(videoId: string): Promise<string> {
+/** Strip WebVTT tags and timing lines, return plain text. */
+function parseWebVtt(vtt: string): string {
+  return vtt
+    .split('\n')
+    .filter((line) => {
+      if (line.startsWith('WEBVTT')) return false;
+      if (/^\d{2}:\d{2}/.test(line)) return false; // timing lines
+      if (line.trim() === '') return false;
+      return true;
+    })
+    .join(' ')
+    .replace(/<[^>]+>/g, '') // strip any inline tags
+    .trim();
+}
+
+/** Fetch transcript for a TikTok video URL. Returns plain text or empty string on failure. */
+export async function fetchTikTokTranscript(videoUrl: string): Promise<string> {
+  if (!videoUrl) return '';
   try {
     const result = await tregCall<TranscriptResult>(
       'scrapecreators.x.v1-tiktok-video-transcript',
-      { query: { video_id: videoId }, timeoutMs: 30_000 },
+      { query: { url: videoUrl }, timeoutMs: 30_000 },
     );
-    return result.transcript ?? result.captions ?? result.text ?? '';
+    if (!result.success && !result.transcript) return '';
+    const raw = result.transcript ?? result.captions ?? result.text ?? '';
+    return raw.includes('WEBVTT') ? parseWebVtt(raw) : raw;
   } catch {
     return '';
   }
