@@ -50,7 +50,7 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: 'To get started',
     monthlyUsdCents: 2_900,
     monthlyCredits: 30,
-    maxSets: 2,
+    maxSets: 6,
     highRes: false,
     postKit: false,
     allStudioModels: false,
@@ -69,7 +69,7 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: 'For solo pros who want to grow',
     monthlyUsdCents: 9_900,
     monthlyCredits: 120,
-    maxSets: 5,
+    maxSets: 6,
     highRes: true,
     postKit: true,
     allStudioModels: false,
@@ -120,7 +120,7 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: 'For small shops',
     monthlyUsdCents: 4_900,
     monthlyCredits: 100,
-    maxSets: 3,
+    maxSets: 6,
     highRes: false,
     postKit: false,
     allStudioModels: false,
@@ -219,8 +219,11 @@ export const TOPUPS: Record<TopupId, Topup> = {
   topup_150: { id: 'topup_150', credits: 150, usdCents: 3_200, validityMonths: 12 },
 };
 
-/** Credits a trial or no-plan workspace may hold sets for. */
-export const NO_PLAN_MAX_SETS = 1;
+/**
+ * Styles a trial or no-plan workspace may hold. Six on every plan, so trying a different
+ * look never costs an upgrade — the plan sells credits, not places to keep a style in.
+ */
+export const NO_PLAN_MAX_SETS = 6;
 
 export const isPlanId = (value: string): value is PlanId => value in PLANS;
 

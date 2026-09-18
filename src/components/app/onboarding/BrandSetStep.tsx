@@ -36,16 +36,16 @@ export const BrandSetStep = ({ me, advance }: StepProps) => {
       await apiFetch('/api/app/sets', { method: 'POST', json: { product: 'brand', templateId: template.id, name: template.name, ...style } });
       await advance(4);
     } catch (err) {
-      setError(stepError(err, 'Could not save your set.'));
+      setError(stepError(err, 'Could not save your style.'));
       setBusy(false);
     }
   };
 
   return (
     <StepCard
-      title="Pick your set"
-      sub="Your set is your signature look. Every batch uses it, so your feed stays consistent."
-      footer={<AppButton size="lg" loading={busy} disabled={!template && !hasSet} onClick={submit}>{template ? 'Save my set' : 'Continue'}</AppButton>}
+      title="Pick your style"
+      sub="Your style is your signature look. Every batch uses it, so your feed stays consistent."
+      footer={<AppButton size="lg" loading={busy} disabled={!template && !hasSet} onClick={submit}>{template ? 'Save my style' : 'Continue'}</AppButton>}
     >
       {loading ? <SkeletonGrid count={6} cols={3} /> : <TemplateGrid templates={data?.templates ?? []} value={templateId} onChange={pick} />}
       {template && style && (

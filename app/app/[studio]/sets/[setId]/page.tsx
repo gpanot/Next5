@@ -18,14 +18,14 @@ export default function SetDetailPage({ params }: { params: Promise<{ setId: str
   const [archiving, setArchiving] = useState(false);
 
   const archive = async () => {
-    if (!window.confirm('Archive this set? Your photos stay in the library.')) return;
+    if (!window.confirm('Archive this style? Your photos stay in the library.')) return;
     setArchiving(true);
     await apiFetch(`/api/app/sets/${setId}`, { method: 'DELETE' }).catch(() => undefined);
     router.push('/app/sets');
   };
 
   return (
-    <AppPage title={data?.set.name ?? 'Set'} actions={data ? <AppButton size="sm" variant="ghost" loading={archiving} onClick={archive}>Archive</AppButton> : undefined}>
+    <AppPage title={data?.set.name ?? 'Style'} actions={data ? <AppButton size="sm" variant="ghost" loading={archiving} onClick={archive}>Archive</AppButton> : undefined}>
       {loading && <SkeletonCard />}
       {error && <ErrorState message={error} onRetry={refresh} />}
       {data && <SetEditor key={data.set.id} existing={data.set} />}

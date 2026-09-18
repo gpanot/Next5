@@ -7,7 +7,6 @@ import { prisma } from '../../lib/db';
 import type { StudioSetDto } from '../../types/business/catalog';
 import { getActivePlan } from '../generation/createBatch';
 import { HttpError } from '../http';
-import { presignObject } from '../storage/objectStore';
 import { NO_PLAN_MAX_SETS, PLANS } from '../../config/plans';
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
@@ -59,7 +58,7 @@ export const createSet = async (workspace: Workspace, input: Partial<SetInput>):
   const limit = plan?.maxSets ?? NO_PLAN_MAX_SETS;
   const count = await prisma.studioSet.count({ where: { workspaceId: workspace.id, status: { not: 'archived' } } });
   if (count >= limit) {
-    const noun = workspace.product === 'shop' ? 'shop looks' : 'sets';
+    const noun = workspace.product === 'shop' ? 'shop looks' : 'styles';
     const bigger = Object.values(PLANS).find((p) => p.product === workspace.product && !p.contactOnly && p.maxSets > limit);
     throw new HttpError(403, 'set_limit', !plan
       ? 'Pick a plan to add more.'
@@ -82,19 +81,17 @@ export const createSet = async (workspace: Workspace, input: Partial<SetInput>):
 
 export const updateSet = async (workspace: Workspace, setId: string, input: Partial<SetInput>): Promise<StudioSet> => {
   const set = await prisma.studioSet.findFirst({ where: { id: setId, workspaceId: workspace.id } });
-  if (!set) throw new HttpError(404, 'set_not_found', 'Set not found.');
+  if (!set) throw new HttpError(404, 'set_not_found', workspace.product === 'shop' ? 'Shop look not found.' : 'Style not found.');
   await validateSet(workspace, { ...input, templateId: input.templateId ?? set.templateId });
   return prisma.studioSet.update({ where: { id: set.id }, data: { ...input, templateId: undefined } });
 };
 
+/** The cover is always the template's own picture: a style must look the same every time she picks it. */
 export const toSetDto = async (set: StudioSet & { template: { name: string; coverImage: string } }): Promise<StudioSetDto> => {
-  const [cover, batchCount] = await Promise.all([
-    prisma.batchItem.findFirst({ where: { batch: { setId: set.id }, status: 'ready', r2Key: { not: null } }, orderBy: { completedAt: 'desc' }, select: { r2Key: true } }),
-    prisma.batch.count({ where: { setId: set.id, kind: { not: 'trial' } } }),
-  ]);
+  const batchCount = await prisma.batch.count({ where: { setId: set.id, kind: { not: 'trial' } } });
   return {
     id: set.id, name: set.name, templateId: set.templateId, templateName: set.template.name, coverImage: set.template.coverImage,
-    coverUrl: cover?.r2Key ? await presignObject(cover.r2Key) : null, locations: set.locations, wardrobe: set.wardrobe,
+    locations: set.locations, wardrobe: set.wardrobe,
     poseEnergy: set.poseEnergy, brandColors: set.brandColors, modelRef: set.modelRef, status: set.status, batchCount, createdAt: set.createdAt.toISOString(),
   };
 };

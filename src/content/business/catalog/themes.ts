@@ -10,8 +10,8 @@ const IMG = '/images/business/brand/themes';
 export const THEMES: readonly ThemeSeed[] = [
   {
     id: 'just-listed',
-    title: 'Just Listed',
-    description: 'Show a new home with warm, happy photos.',
+    title: 'Showing a Home',
+    description: 'Warm, happy photos of you showing a new home.',
     coverImage: `${IMG}/just-listed.png`,
     featuredMonth: '2026-10',
     sortOrder: 1,

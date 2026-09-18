@@ -10,7 +10,7 @@ Read [README.md](README.md) first for the decisions (D1–D6).
 |---|---|---|
 | **Identity** | `IdentityReference` | 1–3 photos of the person who appears in the images. Brand: always the customer. Shop: the customer ("Me") **or** a Next5 **Studio model**. Saved once, reused forever, deletable anytime. |
 | **Set** (Brand) / **Shop look** (Shop) | `StudioSet` | The customer's owned, consistent visual look: location(s), light, wardrobe direction, palette, pose style. Built from a **template**, then customised. Every batch uses one set, so the feed stays consistent. |
-| **Theme** (Brand only) | `Theme` | A monthly content idea ("Just Listed", "Market Update") with 6–8 scene directions. A new featured theme drops on the 1st of every month. |
+| **Theme** (Brand only) | `Theme` | A monthly content idea ("Showing a Home", "Market Update") with 6–8 scene directions. A new featured theme drops on the 1st of every month. |
 | **Product** (Shop only) | `Product` | One item for sale, with 1–3 reference photos (front required; back, detail optional) and metadata. |
 | **Batch** | `Batch` | One generation request: e.g. "Just Listed × 16 images × 4:5 + 9:16", or "12 products × Listing pack". Made of **items** (one image each). |
 | **Credit** | `CreditLedger` | 1 credit = 1 image at standard resolution (1K). High-res (2K) = 2 credits. |
@@ -69,7 +69,7 @@ Each format is **generated natively at that ratio** (not cropped). Each format �
 
    | Theme id | Title | Scenes (6–8 directions) |
    |---|---|---|
-   | `just-listed` | Just Listed | Arms-open at doorway, reviewing plans at kitchen island, walking through bright hallway, keys-in-hand close-up (no house numbers), balcony view, candid laugh on sofa |
+   | `just-listed` | Showing a Home | Arms-open at doorway, reviewing plans at kitchen island, walking through bright hallway, keys-in-hand close-up (no house numbers), balcony view, candid laugh on sofa |
    | `market-update` | Market Update | Pointing at a blank screen/whiteboard, desk with laptop and notes, talking-to-camera half body, thoughtful look out window, walking with tablet, confident arms-crossed |
    | `client-meeting` | Client Meeting | Handshake (other person's face out of frame/blurred), explaining at table, listening with notebook, welcoming at door, coffee chat, signing-ready pen close-up |
    | `behind-the-scenes` | Behind the Scenes | Phone call walking, car door (no brand logos), prepping documents, coffee on the go, laughing candid, end-of-day desk |

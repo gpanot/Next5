@@ -30,7 +30,6 @@ export type StudioSetDto = {
   templateId: string;
   templateName: string;
   coverImage: string;
-  coverUrl: string | null;
   locations: string[];
   wardrobe: string | null;
   poseEnergy: string | null;

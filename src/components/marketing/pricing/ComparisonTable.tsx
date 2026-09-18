@@ -8,7 +8,7 @@ const ROWS: readonly Row[] = [
   { label: 'Products imported from your store', value: (p) => (p.storeProducts ? String(p.storeProducts) : false) },
   { label: 'Weekly drops + weekly store sync', value: (p) => p.drops },
   { label: 'TikTok listing packs', value: (p) => p.product === 'shop' },
-  { label: 'Sets / shop looks', value: (p) => String(p.maxSets) },
+  { label: 'Styles / shop looks', value: (p) => String(p.maxSets) },
   { label: 'All formats (4:5, 9:16, 1:1, 3:4)', value: () => true },
   { label: 'Free redos (2 per photo)', value: () => true },
   { label: 'Scroll-Stop Score on every photo', value: () => true },

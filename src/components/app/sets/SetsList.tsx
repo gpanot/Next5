@@ -20,7 +20,7 @@ export const SetsList = () => {
   const router = useAppRouter();
   const { data, error, loading, refresh } = useApi<{ sets: StudioSetDto[] }>(product ? `/api/app/sets?product=${product}` : null);
   const [archiving, setArchiving] = useState<StudioSetDto | null>(null);
-  const noun = product === 'shop' ? 'shop look' : 'set';
+  const noun = product === 'shop' ? 'shop look' : 'style';
   if (loading) return <SkeletonGrid count={3} cols={3} />;
   if (error) return <ErrorState message={error} onRetry={refresh} />;
   const sets = data?.sets ?? [];
@@ -40,16 +40,13 @@ export const SetsList = () => {
     {product && <IdentityPhotosCard product={product} />}
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
       {sets.map((set) => {
-        const cover = set.coverUrl ?? (hasManifestImage(set.coverImage) ? set.coverImage : null);
+        const cover = hasManifestImage(set.coverImage) ? set.coverImage : null;
         return (
           <div key={set.id} className="relative">
           <button type="button" onClick={() => setArchiving(set)} aria-label={`Archive ${set.name}`} title="Archive" className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"><Archive aria-hidden className="h-4 w-4" /></button>
           <Link href={`/app/sets/${set.id}`} className="group flex h-full flex-col overflow-hidden rounded-2xl border border-app-line bg-app-panel shadow-sm transition-shadow duration-200 hover:shadow-md">
             <div className="relative aspect-[4/5] bg-app-sunken">
-              {cover && (set.coverUrl
-                // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
-                ? <img src={cover} alt={set.name} className="h-full w-full object-cover" />
-                : <Image src={cover} alt={set.name} fill sizes="(min-width: 1024px) 30vw, 45vw" className="object-cover" />)}
+              {cover && <Image src={cover} alt={set.name} fill sizes="(min-width: 1024px) 30vw, 45vw" className="object-cover" />}
             </div>
             <div className="flex flex-col gap-0.5 p-4">
               <span className="text-[15px] font-semibold text-app-ink">{set.name}</span>

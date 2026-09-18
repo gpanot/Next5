@@ -34,7 +34,7 @@ const countLabel = (c: number): string => (c === 1 ? '1 photo · just to try' : 
 const VARIATIONS = [1, 2, 3] as const;
 
 /**
- * Two forms behind one first question. "Just me" chooses a set and a theme, because we choose the place.
+ * Two forms behind one first question. "Just me" chooses a style and a theme, because we choose the place.
  * A property has a place already — its photos — so it asks what is happening and how she looks instead
  * (docs/business-studios/14-property-create-plan.md).
  */
@@ -138,14 +138,14 @@ export const BrandCreateFlow = () => {
           <CreateSection step={3} title="How many looks per photo?" sub={rooms > 0 ? `${rooms} photo${rooms === 1 ? '' : 's'} × ${variations} = ${rooms * variations} photo${rooms * variations === 1 ? '' : 's'}.` : 'Add a photo of the property first.'}>
             <ChipGroup options={VARIATIONS.map((v) => ({ value: String(v), label: `${v} look${v === 1 ? '' : 's'} per photo` }))} value={String(variations)} onChange={(v) => setVariations(Number(v))} />
           </CreateSection>
-          <CreateSection step={4} title="Your style" sub="How you look. The home stays exactly as photographed.">
+          <CreateSection step={4} title="How you look" sub="Your clothes and energy. The home stays exactly as photographed.">
             <StyleLine value={style} onChange={setStyle} fallback={styleFallback} />
           </CreateSection>
         </>
       ) : (
         <>
-          <CreateSection step={2} title="Set" sub="Your signature look for this batch.">
-            <SetPicker sets={allSets} value={setId} onChange={setSetChoice} noun="Set" />
+          <CreateSection step={2} title="Your style" sub="Pick a saved style, then put a theme on it.">
+            <SetPicker sets={allSets} value={setId} onChange={setSetChoice} noun="Style" />
           </CreateSection>
           <CreateSection step={3} title="Theme">
             <ThemePicker featured={themes.data?.featured ?? null} library={themes.data?.library ?? []} value={themeId} onChange={setThemeChoice} />

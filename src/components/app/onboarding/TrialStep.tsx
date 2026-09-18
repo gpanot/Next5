@@ -132,7 +132,7 @@ export const TrialStep = ({ product, me, advance }: StepProps) => {
   return (
     <StepCard
       title={batchId ? 'Your free photos' : 'Create your 3 free photos'}
-      sub={product === 'brand' ? 'Three photos from this month’s theme, in your set.' : 'Your product, worn, in your shop look — listing format.'}
+      sub={product === 'brand' ? 'Three photos from this month’s theme, in your style.' : 'Your product, worn, in your shop look — listing format.'}
       footer={batchId ? <AppButton size="lg" loading={leaving} onClick={() => void next()}>Continue</AppButton> : undefined}
     >
       {batches.loading ? <SkeletonText lines={2} /> : batchId ? (

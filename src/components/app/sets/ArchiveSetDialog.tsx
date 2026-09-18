@@ -7,7 +7,7 @@ import { Dialog } from '../../ui/Dialog';
 
 type ArchiveSetDialogProps = { setId: string; name: string; noun: string; onClose: () => void; onArchived: () => void };
 
-/** Confirms archiving a set / shop look. Its photos stay; it frees a place in the plan. */
+/** Confirms archiving a style / shop look. Its photos stay; it frees a place in the plan. */
 export const ArchiveSetDialog = ({ setId, name, noun, onClose, onArchived }: ArchiveSetDialogProps) => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

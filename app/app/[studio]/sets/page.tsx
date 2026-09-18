@@ -6,5 +6,5 @@ import { useWorkspace } from '../../../../src/components/app/shell/WorkspaceProv
 
 export default function SetsPage() {
   const { product } = useWorkspace();
-  return <AppPage title={product === 'shop' ? 'Shop looks' : 'Sets'}><SetsList /></AppPage>;
+  return <AppPage title={product === 'shop' ? 'Shop looks' : 'Styles'}><SetsList /></AppPage>;
 }

@@ -20,7 +20,7 @@ import { IdentityPhotosCard } from './IdentityPhotosCard';
 
 type SetEditorProps = { existing?: StudioSetDto };
 
-/** Create (no `existing`) or edit a set / shop look. Template can't change after creation. */
+/** Create (no `existing`) or edit a style / shop look. Template can't change after creation. */
 export const SetEditor = ({ existing }: SetEditorProps) => {
   const { product, refresh } = useWorkspace();
   const router = useAppRouter();
@@ -33,7 +33,7 @@ export const SetEditor = ({ existing }: SetEditorProps) => {
   const [error, setError] = useState<string | null>(null);
   const [archiving, setArchiving] = useState(false);
   const template = templates.data?.templates.find((t) => t.id === templateId) ?? null;
-  const noun = product === 'shop' ? 'shop look' : 'set';
+  const noun = product === 'shop' ? 'shop look' : 'style';
 
   const pick = (id: string) => {
     setTemplateId(id);
