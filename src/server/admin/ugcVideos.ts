@@ -55,35 +55,41 @@ const buildRequest = (provider: UgcProvider, character: UgcCharacter, script: st
 
 type Started = { provider: UgcProvider; providerTaskId: string; mode: string; prompt: string };
 
+const messageOf = (err: unknown): string => (err instanceof Error ? err.message : String(err));
+
 /**
  * Sends the job to the first route that takes it. A route that refuses costs nothing — it refuses
- * before making anything — so the next one is tried and only the last error is raised.
+ * before making anything — so the next one is tried. Every refusal is logged and kept in the error details.
+ * A server setup problem (503, e.g. no Treg key) fails every route the same way, so it is raised at once.
  */
 const startJob = async (character: UgcCharacter, script: string, duration: UgcDuration): Promise<Started> => {
   const imageUrl = await vendorUrl(character.imageKey);
-  let lastError: unknown = null;
+  const refusals: Record<string, string> = {};
 
   for (const provider of UGC_PROVIDER_ORDER) {
     const { mode, kind, prompt } = buildRequest(provider, character, script);
     try {
       const providerTaskId = await submitTask(provider, { prompt, duration, resolution: UGC_RESOLUTION, imageUrl, kind });
       if (providerTaskId) return { provider, providerTaskId, mode, prompt };
-      lastError = new Error(`${provider} returned no task ID`);
+      refusals[provider] = 'returned no task ID';
     } catch (err) {
-      console.warn(`[ugc] ${provider} refused the job:`, err instanceof Error ? err.message : err);
-      lastError = err;
+      if (err instanceof HttpError && err.status === 503) throw err;
+      refusals[provider] = messageOf(err);
     }
+    console.warn(`[ugc] ${provider} refused video for character ${character.id}: ${refusals[provider]}`);
   }
-  throw new HttpError(502, 'no_task_id', lastError instanceof Error ? lastError.message : 'No route would take this video.');
+  const last = Object.values(refusals).at(-1) ?? 'No route would take this video.';
+  throw new HttpError(502, 'no_task_id', last, { characterId: character.id, duration, refusals });
 };
 
 export const submitVideo = async (characterId: string, script: string, duration: UgcDuration): Promise<VideoWithCharacter> => {
   const character = await prisma.ugcCharacter.findUnique({ where: { id: characterId } });
   if (!character) throw new HttpError(404, 'character_not_found', 'That character is gone.');
 
+  console.info(`[ugc] generate start: character ${characterId} (${character.kind}), ${duration}s`);
   const { provider, providerTaskId, mode, prompt } = await startJob(character, script, duration);
 
-  return prisma.ugcVideo.create({
+  const video = await prisma.ugcVideo.create({
     data: {
       characterId, mode, script, prompt, durationSec: duration, resolution: UGC_RESOLUTION, provider, providerTaskId,
       estimatedCostUsdMicros: estimateMicros(provider, duration),
@@ -91,6 +97,8 @@ export const submitVideo = async (characterId: string, script: string, duration:
     },
     include: { character: true },
   });
+  console.info(`[ugc] generate submitted: video ${video.id} on ${provider}, task ${providerTaskId}`);
+  return video;
 };
 
 const update = (id: string, data: Parameters<typeof prisma.ugcVideo.update>[0]['data']) =>
@@ -110,6 +118,7 @@ const saveFinished = async (video: VideoWithCharacter, state: TaskState): Promis
     if (state.videoUrl) await mirrorFile(state.videoUrl, key, 'video/mp4');
     else await putFile(key, await fetchVideo(providerOf(video), video.providerTaskId ?? ''), 'video/mp4');
   } catch (err) {
+    console.warn(`[ugc] saving video ${video.id} failed: ${messageOf(err)}`);
     if (err instanceof HttpError && err.status === 410) {
       return update(video.id, { status: 'failed', error: 'The video link expired before it was saved.' });
     }
@@ -142,11 +151,13 @@ const checkVideo = async (video: VideoWithCharacter): Promise<VideoWithCharacter
   try {
     state = await checkTask(providerOf(video), video.providerTaskId);
   } catch (err) {
+    console.warn(`[ugc] status check failed for video ${video.id}: ${messageOf(err)}`);
     return update(video.id, { lastPollError: err instanceof Error ? err.message : 'Status check failed' });
   }
 
   if (state.state === 'done') return saveFinished(video, state);
   if (state.state === 'failed') {
+    console.warn(`[ugc] video ${video.id} failed on ${providerOf(video)}: ${state.error ?? 'no reason given'}`);
     return update(video.id, { status: 'failed', error: state.error ?? 'Seedance could not make this video.', lastPollError: null });
   }
   const startedAt = (video.submittedAt ?? video.createdAt).getTime();

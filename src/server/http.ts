@@ -26,6 +26,8 @@ export type ApiErrorBody = {
 /** Converts any thrown value into a JSON error response. Unknown errors become a 500. */
 export const toErrorResponse = (err: unknown): NextResponse<ApiErrorBody> => {
   if (err instanceof HttpError) {
+    // 4xx are the caller's mistake; 5xx are ours and must leave a trace in the logs.
+    if (err.status >= 500) console.error(`[api] ${err.status} ${err.code}: ${err.message}`, err.details ?? '');
     return NextResponse.json(
       { error: err.code, message: err.message, details: err.details },
       { status: err.status },

@@ -1,5 +1,7 @@
 // server-only — never import from a 'use client' file.
 
+import { HttpError } from '../http';
+
 // ── Shared types ───────────────────────────────────────────────────────────────
 
 export type TrendingVideo = {
@@ -58,6 +60,13 @@ export const PORTRAIT_NEGATIVE =
 
 const TREG_BASE = 'https://treg.to/call';
 
+/** A missing key is a server setup problem, not a bad request: say so plainly instead of a bare 500. */
+function tregKey(): string {
+  const key = process.env.TREG_API_KEY;
+  if (!key) throw new HttpError(503, 'treg_not_configured', 'TREG_API_KEY is not set on the server.');
+  return key;
+}
+
 /** Treg errors arrive as `{ detail: { error, message } }`, `{ detail: "..." }` or `{ error: "..." }`. */
 function tregErrorMessage(json: Record<string, unknown>, fallback: string): string {
   const detail = json.detail;
@@ -88,8 +97,7 @@ export async function tregCall<T>(
     timeoutMs?: number;
   } = {},
 ): Promise<T> {
-  const key = process.env.TREG_API_KEY;
-  if (!key) throw new Error('TREG_API_KEY not set');
+  const key = tregKey();
 
   const { method = 'GET', query, body, timeoutMs = 60_000 } = options;
   const url = new URL(`${TREG_BASE}/${endpointId}`);
@@ -138,8 +146,7 @@ export async function tregBinary(
   endpointId: string,
   options: { query?: Record<string, string | number>; timeoutMs?: number } = {},
 ): Promise<Buffer> {
-  const key = process.env.TREG_API_KEY;
-  if (!key) throw new Error('TREG_API_KEY not set');
+  const key = tregKey();
 
   const { query, timeoutMs = 120_000 } = options;
   const url = new URL(`${TREG_BASE}/${endpointId}`);
