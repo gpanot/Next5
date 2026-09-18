@@ -6,7 +6,8 @@ import { POSE_ENERGIES, WARDROBES, type PoseEnergyId, type WardrobeId } from '..
 import { isOccasion, type Occasion } from '../../lib/listingOccasions';
 import { HttpError } from '../http';
 
-export const BRAND_COUNTS = [8, 16, 24, 32] as const;
+/** 1 is the try-it size: one photo, one credit, to see the look before spending a batch. */
+export const BRAND_COUNTS = [1, 8, 16, 24, 32] as const;
 export type BrandCount = (typeof BRAND_COUNTS)[number];
 
 export type BrandDraft = {
@@ -101,7 +102,7 @@ export const parseDraft = (body: Record<string, unknown>): BatchDraft => {
 
   if (body.kind === 'brand_theme') {
     const count = Number(body.count);
-    if (!(BRAND_COUNTS as readonly number[]).includes(count)) throw bad('Choose 8, 16, 24 or 32 photos.');
+    if (!(BRAND_COUNTS as readonly number[]).includes(count)) throw bad('Choose 1, 8, 16, 24 or 32 photos.');
     return { kind: 'brand_theme', setId: parseId(body.setId, 'set'), themeId: parseId(body.themeId, 'theme'), count, formats, highRes };
   }
 

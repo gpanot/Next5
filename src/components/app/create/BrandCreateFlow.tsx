@@ -27,7 +27,10 @@ import { SetPicker } from './SetPicker';
 import { StyleLine, type Style } from './StyleLine';
 import { ThemePicker } from './ThemePicker';
 
-const COUNTS = [8, 16, 24, 32] as const;
+const COUNTS = [1, 8, 16, 24, 32] as const;
+
+/** One photo is the try-it size; the rest are read as weeks of posting. */
+const countLabel = (c: number): string => (c === 1 ? '1 photo · just to try' : `${c} photos · ≈ ${Math.round(c / 4)} weeks of posts`);
 const VARIATIONS = [1, 2, 3] as const;
 
 /**
@@ -148,7 +151,7 @@ export const BrandCreateFlow = () => {
             <ThemePicker featured={themes.data?.featured ?? null} library={themes.data?.library ?? []} value={themeId} onChange={setThemeChoice} />
           </CreateSection>
           <CreateSection step={4} title="How many photos?" sub="Each is a different scene or pose from the theme.">
-            <ChipGroup options={COUNTS.map((c) => ({ value: String(c), label: `${c} photos · ≈ ${Math.round(c / 4)} weeks of posts` }))} value={String(count)} onChange={(v) => setCount(Number(v))} />
+            <ChipGroup options={COUNTS.map((c) => ({ value: String(c), label: countLabel(c) }))} value={String(count)} onChange={(v) => setCount(Number(v))} />
           </CreateSection>
         </>
       )}
