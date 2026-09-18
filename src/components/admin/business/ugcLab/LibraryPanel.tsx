@@ -64,20 +64,15 @@ const LegacyImport = ({ token, onImported }: { token: string; onImported: (video
 
 export function LibraryPanel({ token }: { token: string }) {
   const { videos, etas, error, loading, reload, update, remove, addMany } = useUgcVideos(token);
-  // Most viewers are on a phone, so the feed shows the clips the way they are really watched.
-  const [view, setView] = useState<'grid' | 'feed'>('grid');
+  // Most viewers are on a phone, so the feed takes over the screen and shows the clips the way they are really watched.
+  const [feedOpen, setFeedOpen] = useState(false);
   const cost = videos.reduce((sum, v) => sum + (v.status === 'failed' ? 0 : v.costUsd ?? v.estimatedCostUsd), 0);
 
   return (
     <Section
       title="Library"
       description={loading ? 'Loading videos…' : `${videos.length} video${videos.length === 1 ? '' : 's'} · about $${cost.toFixed(2)} spent`}
-      actions={
-        <>
-          <Pill active={view === 'grid'} onClick={() => setView('grid')}>Grid</Pill>
-          <Pill active={view === 'feed'} onClick={() => setView('feed')}>Feed</Pill>
-        </>
-      }
+      actions={<Pill active={feedOpen} onClick={() => setFeedOpen(true)}>Feed view</Pill>}
     >
       <LegacyImport token={token} onImported={addMany} />
       {loading && <MediaGridSkeleton />}
@@ -85,8 +80,8 @@ export function LibraryPanel({ token }: { token: string }) {
       {!loading && !error && videos.length === 0 && (
         <EmptyState title="No videos yet." hint="Videos you generate are saved here and stay available." />
       )}
-      {videos.length > 0 && view === 'feed' && <VideoFeed videos={videos} />}
-      {videos.length > 0 && view === 'grid' && (
+      {feedOpen && <VideoFeed videos={videos} onClose={() => setFeedOpen(false)} />}
+      {videos.length > 0 && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {videos.map((v) => <VideoCard key={v.id} token={token} video={v} eta={etas[v.durationSec]} onChange={update} onDelete={remove} />)}
         </div>
