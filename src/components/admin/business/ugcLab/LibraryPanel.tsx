@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import type { UgcVideoDto } from '../../../../types/admin/ugc';
 import { errorOf, ugcRequest } from './api';
-import { EmptyState, ErrorLine, MediaGridSkeleton, PrimaryButton, Section, Spinner } from './ui';
+import { EmptyState, ErrorLine, MediaGridSkeleton, Pill, PrimaryButton, Section, Spinner } from './ui';
 import { VideoCard } from './VideoCard';
+import { VideoFeed } from './VideoFeed';
 import { useUgcVideos } from './useUgcVideos';
 
 /** Where the first version of the lab kept videos, in this browser only. */
@@ -63,12 +64,20 @@ const LegacyImport = ({ token, onImported }: { token: string; onImported: (video
 
 export function LibraryPanel({ token }: { token: string }) {
   const { videos, etas, error, loading, reload, update, remove, addMany } = useUgcVideos(token);
+  // Most viewers are on a phone, so the feed shows the clips the way they are really watched.
+  const [view, setView] = useState<'grid' | 'feed'>('grid');
   const cost = videos.reduce((sum, v) => sum + (v.status === 'failed' ? 0 : v.costUsd ?? v.estimatedCostUsd), 0);
 
   return (
     <Section
       title="Library"
       description={loading ? 'Loading videos…' : `${videos.length} video${videos.length === 1 ? '' : 's'} · about $${cost.toFixed(2)} spent`}
+      actions={
+        <>
+          <Pill active={view === 'grid'} onClick={() => setView('grid')}>Grid</Pill>
+          <Pill active={view === 'feed'} onClick={() => setView('feed')}>Feed</Pill>
+        </>
+      }
     >
       <LegacyImport token={token} onImported={addMany} />
       {loading && <MediaGridSkeleton />}
@@ -76,7 +85,8 @@ export function LibraryPanel({ token }: { token: string }) {
       {!loading && !error && videos.length === 0 && (
         <EmptyState title="No videos yet." hint="Videos you generate are saved here and stay available." />
       )}
-      {videos.length > 0 && (
+      {videos.length > 0 && view === 'feed' && <VideoFeed videos={videos} />}
+      {videos.length > 0 && view === 'grid' && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {videos.map((v) => <VideoCard key={v.id} token={token} video={v} eta={etas[v.durationSec]} onChange={update} onDelete={remove} />)}
         </div>
