@@ -65,7 +65,7 @@ export const HOME = {
 export const BRAND = {
   steps: [
     { title: 'Send three selfies', body: 'Look at the camera. Then turn a little left, then a little right. Use good light. No sunglasses.', image: `${IMG}/brand/step-selfies.png` },
-    { title: 'Make your set', body: 'Pick a place, your clothes and your brand colors. This is your look.', image: `${IMG}/brand/sets/modern-office.png` },
+    { title: 'Make your style', body: 'Pick a place, your clothes and your brand colors. This is your look.', image: `${IMG}/brand/sets/modern-office.png` },
     { title: 'Get your photos each month', body: 'Pick this month’s theme and how many photos you want. They are ready in minutes.', image: `${IMG}/brand/themes/just-listed.png` },
   ],
   industries: [

@@ -75,13 +75,13 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
         { topic: 'When to post', chatgpt: 'You decide, every single time.', next5: 'Your month is already planned, on the days you pick.' },
         { topic: 'Trends', chatgpt: 'You guess what is popular.', next5: 'New trend themes every month, made for your job.' },
         { topic: 'Will it work?', chatgpt: 'No way to know before you post.', next5: 'A Scroll-Stop Score and a tip for every photo.' },
-        { topic: 'Your brand', chatgpt: 'A new look every time.', next5: 'Your set keeps the same place, colors and style.' },
+        { topic: 'Your brand', chatgpt: 'A new look every time.', next5: 'Your style keeps the same place, colors and look.' },
       ],
     },
     stack: {
       title: 'Everything you get with Growth',
       items: [
-        { title: '120 new photos of you, every month', body: 'Trend themes, your set, every size.', value: '$690', basis: 'Half-day photo studio with hair and makeup, Ho Chi Minh City, 2026 estimate' },
+        { title: '120 new photos of you, every month', body: 'Trend themes, your style, every size.', value: '$690', basis: 'Half-day photo studio with hair and makeup, Ho Chi Minh City, 2026 estimate' },
         { title: 'Post Kit for every photo', body: 'The hook, caption and hashtags, ready to paste.', value: '$200', basis: 'Freelance social media writer, about 20 posts a month' },
         { title: 'Scroll-Stop Score and tips', body: 'Know which photo to post first, and how.', value: '$50', basis: 'One hour with a social media coach' },
         { title: 'New trend themes every month', body: 'Fresh ideas for your job, ready on the 1st.', value: '$50', basis: 'Monthly content idea packs' },

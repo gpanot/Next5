@@ -16,7 +16,7 @@ import { ArchiveSetDialog } from './ArchiveSetDialog';
 import { IdentityPhotosCard } from './IdentityPhotosCard';
 
 export const SetsList = () => {
-  const { me, product } = useWorkspace();
+  const { product } = useWorkspace();
   const router = useAppRouter();
   const { data, error, loading, refresh } = useApi<{ sets: StudioSetDto[] }>(product ? `/api/app/sets?product=${product}` : null);
   const [archiving, setArchiving] = useState<StudioSetDto | null>(null);
@@ -24,13 +24,12 @@ export const SetsList = () => {
   if (loading) return <SkeletonGrid count={3} cols={3} />;
   if (error) return <ErrorState message={error} onRetry={refresh} />;
   const sets = data?.sets ?? [];
-  const atLimit = sets.length >= (me?.plan?.maxSets ?? 1);
 
   if (sets.length === 0) {
     return (
       <div className="flex flex-col gap-6">
         {product && <IdentityPhotosCard product={product} />}
-        <EmptyState illustration={<Layers className="h-10 w-10" />} title={`No ${noun}s yet`} body={`A ${noun} keeps every batch in the same look.`} action={{ label: `Create a ${noun}`, onClick: () => router.push('/app/sets/new') }} />
+        <EmptyState illustration={<Layers className="h-10 w-10" />} title={`No ${noun}s yet`} body={`A ${noun} keeps every batch in the same look.`} action={{ label: `Add a ${noun}`, onClick: () => router.push('/app/sets/new') }} />
       </div>
     );
   }
@@ -57,10 +56,10 @@ export const SetsList = () => {
           </div>
         );
       })}
-      <Link href={atLimit ? '/app/billing' : '/app/sets/new'} className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-app-line p-6 text-center transition-colors duration-200 hover:border-app-accent">
+      <Link href="/app/sets/new" className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-app-line p-6 text-center transition-colors duration-200 hover:border-app-accent">
         <Plus aria-hidden className="h-6 w-6 text-app-accent" />
-        <span className="text-[14px] font-semibold text-app-ink">{atLimit ? `Upgrade for more ${noun}s` : `New ${noun}`}</span>
-        <span className="text-[12px] text-app-muted">{sets.length} of {me?.plan?.maxSets ?? 1} used{atLimit ? ' · archive one to free a place' : ''}</span>
+        <span className="text-[14px] font-semibold text-app-ink">Add {noun}</span>
+        <span className="text-[12px] text-app-muted">{sets.length} {noun}{sets.length === 1 ? '' : 's'} so far</span>
       </Link>
     </div>
     {archiving && <ArchiveSetDialog setId={archiving.id} name={archiving.name} noun={noun} onClose={() => setArchiving(null)} onArchived={() => { setArchiving(null); refresh(); }} />}

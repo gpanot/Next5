@@ -7,7 +7,7 @@ import { appUrl, type EmailContent } from './layout';
 export const welcomeEmail = (firstName: string | null, product: 'brand' | 'shop'): EmailContent => ({
   subject: 'Welcome to Next5',
   heading: `Welcome${firstName ? `, ${firstName}` : ''}`,
-  body: [product === 'brand' ? 'Your Brand Studio is ready. Add your selfies and pick a set to get 3 free photos of you.' : 'Your Shop Studio is ready. Add a product and pick a look to get 3 free on-model photos.'],
+  body: [product === 'brand' ? 'Your Brand Studio is ready. Add your selfies and pick a style to get 3 free photos of you.' : 'Your Shop Studio is ready. Add a product and pick a look to get 3 free on-model photos.'],
   cta: { label: 'Continue setup', url: appUrl(`/start/${product}`) },
 });
 

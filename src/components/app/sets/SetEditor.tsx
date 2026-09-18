@@ -82,7 +82,7 @@ export const SetEditor = ({ existing }: SetEditorProps) => {
       <div className="flex flex-wrap justify-end gap-2">
         {existing && <AppButton variant="ghost" className="mr-auto text-app-danger" onClick={() => setArchiving(true)}>Archive {noun}</AppButton>}
         <AppButton variant="ghost" onClick={() => router.push('/app/sets')}>Cancel</AppButton>
-        <AppButton size="lg" loading={busy} disabled={!name || (!existing && !templateId) || (product === 'shop' && !modelRef)} onClick={save}>{existing ? 'Save changes' : `Create ${noun}`}</AppButton>
+        <AppButton size="lg" loading={busy} disabled={!name || (!existing && !templateId) || (product === 'shop' && !modelRef)} onClick={save}>{existing ? 'Save changes' : `Add ${noun}`}</AppButton>
       </div>
       {existing && archiving && <ArchiveSetDialog setId={existing.id} name={existing.name} noun={noun} onClose={() => setArchiving(false)} onArchived={() => { refresh(); router.push('/app/sets'); }} />}
     </div>

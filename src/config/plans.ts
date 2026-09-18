@@ -22,7 +22,6 @@ export type Plan = {
   audience: string;
   monthlyUsdCents: number;
   monthlyCredits: number;
-  maxSets: number;
   highRes: boolean;
   /** Post Kit: hook, caption, hashtags (and a product description on Shop) for every photo. */
   postKit: boolean;
@@ -50,7 +49,6 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: 'To get started',
     monthlyUsdCents: 2_900,
     monthlyCredits: 30,
-    maxSets: 6,
     highRes: false,
     postKit: false,
     allStudioModels: false,
@@ -59,7 +57,7 @@ export const PLANS: Record<PlanId, Plan> = {
     storeProducts: 0,
     drops: false,
     contactOnly: false,
-    features: ['30 photos every month', 'Your posting calendar, planned for you', 'Scroll-Stop Score on every photo', '2 sets', 'Every monthly trend theme', 'All social sizes'],
+    features: ['30 photos every month', 'Your posting calendar, planned for you', 'Scroll-Stop Score on every photo', 'Every monthly trend theme', 'All social sizes'],
   },
   brand_pro: {
     id: 'brand_pro',
@@ -69,7 +67,6 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: 'For solo pros who want to grow',
     monthlyUsdCents: 9_900,
     monthlyCredits: 120,
-    maxSets: 6,
     highRes: true,
     postKit: true,
     allStudioModels: false,
@@ -83,7 +80,7 @@ export const PLANS: Record<PlanId, Plan> = {
       'Your posting calendar, planned and made for you',
       'Post Kit: a hook, caption and hashtags for every photo',
       'Scroll-Stop Score and tips on every photo',
-      '5 sets and every trend theme',
+      'Every trend theme',
       'Big 2K photos, made first',
     ],
   },
@@ -95,7 +92,6 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: 'For brokerages and teams',
     monthlyUsdCents: 75_900,
     monthlyCredits: 1_200,
-    maxSets: 30,
     highRes: true,
     postKit: true,
     allStudioModels: false,
@@ -107,7 +103,6 @@ export const PLANS: Record<PlanId, Plan> = {
     features: [
       '1,200 photos every month',
       'Everything in Growth',
-      '30 sets for your team and brands',
       'Setup call with our team',
       'Priority support',
     ],
@@ -120,7 +115,6 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: 'For small shops',
     monthlyUsdCents: 4_900,
     monthlyCredits: 100,
-    maxSets: 6,
     highRes: false,
     postKit: false,
     allStudioModels: false,
@@ -139,7 +133,6 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: 'For shops with 100–500 products',
     monthlyUsdCents: 19_900,
     monthlyCredits: 400,
-    maxSets: 20,
     highRes: true,
     postKit: true,
     allStudioModels: true,
@@ -153,7 +146,7 @@ export const PLANS: Record<PlanId, Plan> = {
       'Weekly drops: new products picked for you',
       'Store sync every week, up to 500 products',
       'Post Kit: hook, product description and hashtags',
-      'All 30 Studio models, 20 shop looks, big 2K photos',
+      'All 30 Studio models, big 2K photos',
     ],
   },
   shop_scale: {
@@ -164,7 +157,6 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: 'For shops with 500+ products',
     monthlyUsdCents: 39_900,
     monthlyCredits: 1_000,
-    maxSets: 50,
     highRes: true,
     postKit: true,
     allStudioModels: true,
@@ -176,7 +168,6 @@ export const PLANS: Record<PlanId, Plan> = {
     features: [
       '1,000 photos every month',
       'Everything in Growth',
-      '50 shop looks',
       'Photos made first',
       'First access to automatic TikTok Shop sync',
     ],
@@ -189,7 +180,6 @@ export const PLANS: Record<PlanId, Plan> = {
     audience: 'For TikTok Shop agencies',
     monthlyUsdCents: 75_900,
     monthlyCredits: 3_000,
-    maxSets: 100,
     highRes: true,
     postKit: true,
     allStudioModels: true,
@@ -218,12 +208,6 @@ export const TOPUPS: Record<TopupId, Topup> = {
   topup_60: { id: 'topup_60', credits: 60, usdCents: 1_500, validityMonths: 12 },
   topup_150: { id: 'topup_150', credits: 150, usdCents: 3_200, validityMonths: 12 },
 };
-
-/**
- * Styles a trial or no-plan workspace may hold. Six on every plan, so trying a different
- * look never costs an upgrade — the plan sells credits, not places to keep a style in.
- */
-export const NO_PLAN_MAX_SETS = 6;
 
 export const isPlanId = (value: string): value is PlanId => value in PLANS;
 

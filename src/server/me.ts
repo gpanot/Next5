@@ -1,7 +1,7 @@
 // server-only — never import from a 'use client' file.
 
 import type { Subscription, Workspace } from '@prisma/client';
-import { NO_PLAN_MAX_SETS, PLANS, isPlanId, type Plan } from '../config/plans';
+import { PLANS, isPlanId, type Plan } from '../config/plans';
 import { prisma } from '../lib/db';
 import type { BannerDto, MeDto, SubscriptionDto, WorkspaceDto } from '../types/business/me';
 import { getBalance, type Balance } from './credits/ledger';
@@ -78,8 +78,8 @@ export const buildMe = async (userId: string, product?: 'brand' | 'shop', now = 
     subscription: toSubscriptionDto(active),
     queuedRenewal: toSubscriptionDto(queued),
     plan: plan
-      ? { id: plan.id, name: plan.name, highRes: plan.highRes, postKit: plan.postKit, maxSets: plan.maxSets, allStudioModels: plan.allStudioModels }
-      : { id: 'none', name: 'No plan', highRes: false, postKit: false, maxSets: NO_PLAN_MAX_SETS, allStudioModels: false },
+      ? { id: plan.id, name: plan.name, highRes: plan.highRes, postKit: plan.postKit, allStudioModels: plan.allStudioModels }
+      : { id: 'none', name: 'No plan', highRes: false, postKit: false, allStudioModels: false },
     balance: { ...balance.byBucket, total: balance.total, nextExpiry: balance.nextExpiry ? { at: balance.nextExpiry.at.toISOString(), credits: balance.nextExpiry.credits } : null },
     banners: await computeBanners({ ws, active, queued, plan, balance, now }),
   };

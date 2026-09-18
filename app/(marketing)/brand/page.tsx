@@ -34,7 +34,7 @@ export default function BrandPage() {
       <Section eyebrow="The big question" title={offer.chatgpt.title} sub={offer.chatgpt.sub}><ChatGptCompare rows={offer.chatgpt.rows} /></Section>
       <Section tone="sunken" eyebrow="How it works" title="Five minutes. A whole month of posts."><StepsGrid steps={BRAND.steps} /></Section>
       <Section eyebrow="Trends" title="New trend themes every month." sub="New ideas come out on the 1st, made for your job. Use this month’s theme or any theme you like."><ThemesScroller /></Section>
-      <Section tone="sunken" eyebrow="Your brand" title="Pick a set. Look the same in every post." sub="Your set is your look. Same light, same place, same style every time. Your feed looks like you."><SetsGallery /></Section>
+      <Section tone="sunken" eyebrow="Your brand" title="Pick a style. Look the same in every post." sub="Your style is your look. Same light, same place, same feel every time. Your feed looks like you."><SetsGallery /></Section>
       <Section eyebrow="Made for your job" title="Photos for the work you really do."><IndustryTabs /></Section>
       <Section tone="sunken" eyebrow="The offer" title={offer.stack.title} align="center"><ValueStack {...offer.stack} cta={growth} /></Section>
       <Section eyebrow="Our promise" title="You can’t lose."><PromiseBlock matchPromise={offer.promiseMatch} /></Section>

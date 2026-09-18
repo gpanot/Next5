@@ -9,7 +9,7 @@ export type Style = { wardrobe: WardrobeId | null; poseEnergy: PoseEnergyId | nu
 type Props = {
   value: Style;
   onChange: (style: Style) => void;
-  /** Her latest set's look, used when she has not changed it here. */
+  /** Her latest style's look, used when she has not changed it here. */
   fallback: { wardrobe: string | null; poseEnergy: string | null };
 };
 

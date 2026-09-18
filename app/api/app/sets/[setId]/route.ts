@@ -27,7 +27,7 @@ export const PATCH = authedRoute<Ctx>(async (req, session, ctx) => {
   return NextResponse.json({ set: await toSetDto(await ownedSet(session.userId, setId)) });
 });
 
-/** DELETE — archives the set (its batches and photos stay in the library). */
+/** DELETE — archives the style / shop look (its batches and photos stay in the library). */
 export const DELETE = authedRoute<Ctx>(async (_req, session, ctx) => {
   const { setId } = await ctx.params;
   const set = await ownedSet(session.userId, setId);

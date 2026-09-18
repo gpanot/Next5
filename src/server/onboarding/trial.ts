@@ -27,7 +27,7 @@ export const startTrial = async (workspace: Workspace, options: { productId?: st
   if (retries >= 2) throw new HttpError(409, 'trial_used', 'Your free photos have already been created.');
 
   const set = await prisma.studioSet.findFirst({ where: { workspaceId: workspace.id, status: { not: 'archived' } }, orderBy: { createdAt: 'desc' } });
-  if (!set) throw new HttpError(409, 'set_required', 'Pick a set first.');
+  if (!set) throw new HttpError(409, 'set_required', 'Pick a style first.');
 
   await withSerializable((tx) =>
     grant(tx, { workspaceId: workspace.id, bucket: 'trial', amount: TRIAL_CREDITS, reason: 'trial_grant', refType: 'trial', refId: `${workspace.id}:${retries}`, expiresAt: null }),

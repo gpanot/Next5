@@ -10,7 +10,7 @@ export const SetsGallery = () => (
             src={template.coverImage}
             sizes="(min-width: 1024px) 30vw, 45vw"
             className="transition-transform duration-500 group-hover:scale-[1.03]"
-            caption={`Set ${String(index + 1).padStart(2, '0')} · ${template.name}`}
+            caption={`Style ${String(index + 1).padStart(2, '0')} · ${template.name}`}
           />
         </div>
         <div>

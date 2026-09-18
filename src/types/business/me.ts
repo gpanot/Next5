@@ -44,7 +44,7 @@ export type MeDto = {
   workspace: WorkspaceDto | null;
   subscription: SubscriptionDto | null;
   queuedRenewal: SubscriptionDto | null;
-  plan: { id: string; name: string; highRes: boolean; postKit: boolean; maxSets: number; allStudioModels: boolean } | null;
+  plan: { id: string; name: string; highRes: boolean; postKit: boolean; allStudioModels: boolean } | null;
   balance: { total: number; trial: number; plan: number; topup: number; bonus: number; nextExpiry: { at: string; credits: number } | null };
   banners: BannerDto[];
   hasConsumerBookings: boolean;
