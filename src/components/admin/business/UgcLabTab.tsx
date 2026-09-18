@@ -1,129 +1,104 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
-import { ResearchPanel } from './ugcLab/ResearchPanel';
+import type { UgcCharacterDto } from '../../../types/admin/ugc';
 import { CharacterPanel } from './ugcLab/CharacterPanel';
-import { VideoPanel } from './ugcLab/VideoPanel';
+import { LibraryPanel } from './ugcLab/LibraryPanel';
+import type { RealPersonReady } from './ugcLab/RealPersonPanel';
+import { ResearchPanel } from './ugcLab/ResearchPanel';
+import { Pill } from './ugcLab/ui';
+import { VideoPanel, type VideoSelection } from './ugcLab/VideoPanel';
 
-type Step = 1 | 2 | 3;
+type Step = 'research' | 'character' | 'video' | 'library';
 
-const STEP_LABELS: Record<Step, string> = {
-  1: 'Research Hooks',
-  2: 'Build Character',
-  3: 'Generate Video',
-};
+const STEPS: { id: Step; label: string }[] = [
+  { id: 'research', label: '1 · Research' },
+  { id: 'character', label: '2 · Character' },
+  { id: 'video', label: '3 · Video' },
+  { id: 'library', label: 'Library' },
+];
 
-type UgcLabTabProps = {
-  token: string;
-};
+type UgcLabTabProps = { token: string };
+
+const SelectionBar = ({ hook, selection, onClearHook, onClearSelection }: {
+  hook: string;
+  selection: VideoSelection | null;
+  onClearHook: () => void;
+  onClearSelection: () => void;
+}) => (
+  <div className="flex flex-wrap items-center gap-x-5 gap-y-2 rounded-xl border border-line bg-white px-4 py-2.5 text-[12px]">
+    {hook && (
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="text-muted">Hook</span>
+        <span className="max-w-[240px] truncate text-ink">{hook}</span>
+        <button type="button" onClick={onClearHook} className="text-subtle underline hover:text-ink">Clear</button>
+      </span>
+    )}
+    {selection && (
+      <span className="flex items-center gap-2">
+        <span className="text-muted">{selection.character.kind === 'photo' ? 'Photo' : 'Character'}</span>
+        {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URL */}
+        <img src={selection.character.url} alt="" className="h-9 w-[20px] rounded object-cover ring-1 ring-line" />
+        <span className="text-ink tabular-nums">{selection.duration} s</span>
+        <button type="button" onClick={onClearSelection} className="text-subtle underline hover:text-ink">Clear</button>
+      </span>
+    )}
+  </div>
+);
 
 export function UgcLabTab({ token }: UgcLabTabProps) {
-  const [step, setStep] = useState<Step>(1);
+  const [step, setStep] = useState<Step>('research');
   const [hook, setHook] = useState('');
-  const [characterUrl, setCharacterUrl] = useState('');
+  const [selection, setSelection] = useState<VideoSelection | null>(null);
 
-  function handleHookSelected(selected: string) {
+  function selectHook(selected: string) {
     setHook(selected);
-    setStep(2);
+    setStep('character');
   }
 
-  function handleCharacterSelected(url: string) {
-    setCharacterUrl(url);
+  // AI characters speak the hook itself; duration is picked on the video step.
+  function selectAiCharacter(character: UgcCharacterDto) {
+    setSelection({ character, script: hook, duration: 8 });
   }
 
-  function goToVideoStep() {
-    if (hook && characterUrl) setStep(3);
+  function selectPhotoScript({ character, script, duration }: RealPersonReady) {
+    setSelection({ character, script, duration });
+    setStep('video');
   }
+
+  const aiReady = selection?.character.kind === 'ai' && Boolean(selection.script.trim());
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Step navigation */}
-      <div className="flex items-center gap-0 mb-8 border border-zinc-800 rounded-xl overflow-hidden">
-        {([1, 2, 3] as Step[]).map((s) => (
-          <button
-            key={s}
-            onClick={() => {
-              if (s <= step || (s === 2 && hook) || (s === 3 && hook && characterUrl)) {
-                setStep(s);
-              }
-            }}
-            className={[
-              'flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition-colors border-r border-zinc-800 last:border-0',
-              step === s
-                ? 'bg-zinc-800 text-white'
-                : s < step || (s === 2 && hook) || (s === 3 && hook && characterUrl)
-                ? 'text-zinc-400 hover:text-white hover:bg-zinc-900 cursor-pointer'
-                : 'text-zinc-600 cursor-default',
-            ].join(' ')}
-          >
-            {(s === 2 && hook && step > 2) || (s === 3 && characterUrl && step === 3) ? (
-              <CheckCircle2 className="w-4 h-4 text-green-400" />
-            ) : (
-              <span
-                className={[
-                  'w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold',
-                  step === s ? 'bg-white text-black' : 'bg-zinc-700 text-zinc-400',
-                ].join(' ')}
-              >
-                {s}
-              </span>
-            )}
-            {STEP_LABELS[s]}
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {STEPS.map((s) => (
+            <Pill key={s.id} active={step === s.id} onClick={() => setStep(s.id)}>{s.label}</Pill>
+          ))}
+        </div>
+        {step === 'character' && aiReady && (
+          <button type="button" onClick={() => setStep('video')} className="text-[13px] font-medium text-ink underline">
+            Continue to video →
           </button>
-        ))}
+        )}
       </div>
 
-      {/* State summary bar */}
-      {(hook || characterUrl) && (
-        <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl bg-zinc-900 border border-zinc-800 px-5 py-3">
-          {hook && (
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="text-xs text-zinc-500 shrink-0">Hook:</span>
-              <span className="text-xs text-white truncate max-w-[280px]">{hook}</span>
-              <button
-                onClick={() => { setHook(''); setStep(1); }}
-                className="text-xs text-zinc-600 hover:text-zinc-400 shrink-0"
-              >
-                ×
-              </button>
-            </div>
-          )}
-          {characterUrl && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-zinc-500">Character:</span>
-              <img src={characterUrl} alt="character" className="w-7 h-10 rounded object-cover" />
-              <button
-                onClick={() => { setCharacterUrl(''); if (step === 3) setStep(2); }}
-                className="text-xs text-zinc-600 hover:text-zinc-400"
-              >
-                ×
-              </button>
-            </div>
-          )}
-          {hook && characterUrl && step === 2 && (
-            <button
-              onClick={goToVideoStep}
-              className="ml-auto rounded-lg bg-white px-4 py-1.5 text-xs font-medium text-black hover:bg-zinc-100 transition-colors"
-            >
-              Proceed to video →
-            </button>
-          )}
-        </div>
+      {(hook || selection) && step !== 'library' && (
+        <SelectionBar hook={hook} selection={selection} onClearHook={() => setHook('')} onClearSelection={() => setSelection(null)} />
       )}
 
-      {/* Step panels */}
-      <div className="rounded-xl bg-zinc-900 border border-zinc-800 p-6">
-        {step === 1 && (
-          <ResearchPanel token={token} onHookSelected={handleHookSelected} />
-        )}
-        {step === 2 && (
-          <CharacterPanel token={token} onCharacterSelected={handleCharacterSelected} />
-        )}
-        {step === 3 && (
-          <VideoPanel token={token} hook={hook} characterUrl={characterUrl} />
-        )}
-      </div>
+      {step === 'research' && <ResearchPanel token={token} onHookSelected={selectHook} />}
+      {step === 'character' && (
+        <CharacterPanel
+          token={token}
+          hook={hook}
+          selectedId={selection?.character.id ?? null}
+          onCharacterSelected={selectAiCharacter}
+          onRealPersonReady={selectPhotoScript}
+        />
+      )}
+      {step === 'video' && <VideoPanel token={token} selection={selection} onOpenLibrary={() => setStep('library')} />}
+      {step === 'library' && <LibraryPanel token={token} />}
     </div>
   );
 }

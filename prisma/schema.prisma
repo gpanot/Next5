@@ -881,3 +881,61 @@ model Listing {
   @@index([runId])
   @@map("listings")
 }
+
+/// UGC Lab: a saved on-screen character — an AI portrait or an uploaded photo (cropped to 9:16).
+model UgcCharacter {
+  id        String   @id @default(cuid())
+  /// ai | photo
+  kind      String
+  imageKey  String   @map("image_key")
+  /// Image model for AI portraits, e.g. gemini-3-pro.
+  model     String?
+  /// Photo kind: what the photo shows — { person, setting, action, shot }.
+  scene     Json?
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  videos UgcVideo[]
+
+  @@index([kind, archived])
+  @@map("ugc_characters")
+}
+
+/// UGC Lab: one Seedance talking-head video. Files live in R2; provider URLs are never stored.
+model UgcVideo {
+  id                     String    @id @default(cuid())
+  characterId            String?   @map("character_id")
+  /// ai-character (image as look reference) | real-person (photo as first frame) | imported
+  mode                   String
+  script                 String
+  prompt                 String    @default("")
+  durationSec            Int       @map("duration_sec")
+  resolution             String
+  providerTaskId         String?   @unique @map("provider_task_id")
+  /// generating | ready | failed
+  status                 String    @default("generating")
+  rawKey                 String?   @map("raw_key")
+  captionedKey           String?   @map("captioned_key")
+  transcript             String?
+  error                  String?
+  lastPollError          String?   @map("last_poll_error")
+  estimatedCostUsdMicros Int       @default(0) @map("estimated_cost_usd_micros")
+  /// Real cost from the provider (reapi usage.credits × 1000). 0 until the video finishes.
+  costUsdMicros          Int       @default(0) @map("cost_usd_micros")
+  /// Last status check that found the video still generating.
+  lastCheckedAt          DateTime? @map("last_checked_at")
+  /// Submit → finish. The provider gives no finish time, so this is the midpoint between the last
+  /// "still generating" check and the first "done" check.
+  generationSeconds      Int?      @map("generation_seconds")
+  /// True when those two checks were at most 30 s apart — only precise timings feed wait estimates.
+  timingPrecise          Boolean   @default(false) @map("timing_precise")
+  submittedAt            DateTime? @map("submitted_at")
+  completedAt            DateTime? @map("completed_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+
+  character UgcCharacter? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("ugc_videos")
+}

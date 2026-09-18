@@ -15,7 +15,7 @@ export type TrendingVideo = {
 
 export type CharacterCandidate = {
   url: string;
-  model: 'gemini-3-pro' | 'flux-1-dev';
+  model: 'gemini-3-pro';
 };
 
 export type GenTask = {
@@ -27,11 +27,6 @@ export type GenTask = {
 };
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-/** USD per second at 480p via reapi.video-gen.seedance-2-5.unrestricted */
-export const SEEDANCE_COST_PER_SEC = 0.1186;
-/** Hard budget cap (USD) — requires explicit confirm above this */
-export const BUDGET_CAP_USD = 5;
 
 /** Portrait-clone inspired text prompt for generating a relatable UGC creator.
  *  NO quality boosters. Real-person aesthetic, de-slopped per portrait-clone skill rules.
@@ -59,22 +54,23 @@ export const PORTRAIT_NEGATIVE =
   'beauty campaign, 3D render, CGI, illustration, cartoon, watermark, text, subtitles, ' +
   'extra fingers, missing fingers, fused fingers, deformed hands';
 
-/** Seedance 2.5 prompt template — fill {hook} at call time */
-export const SEEDANCE_PROMPT_TEMPLATE = (hook: string): string =>
-  `The person in @image1 talks directly to the camera in a vertical smartphone selfie video ` +
-  `shot from a phone on a fixed tripod. Same room, same soft bright window daylight. ` +
-  `She says, lips precisely synced to every word: "${hook}". ` +
-  `Her free hand gestures outward toward the camera or rests at her side; ` +
-  `she never points at herself, never touches her face or lips. ` +
-  `Natural head movement, eye contact with the lens throughout. ` +
-  `Camera locked off, no handheld sway, no cuts, no zoom, no captions, ` +
-  `no on-screen text, no music, only her voice and quiet room tone.`;
-
 // ── Treg HTTP client ──────────────────────────────────────────────────────────
 
 const TREG_BASE = 'https://treg.to/call';
 
-type TregResponse<T> = { data: T; error?: never } | { error: string; data?: never };
+/** Treg errors arrive as `{ detail: { error, message } }`, `{ detail: "..." }` or `{ error: "..." }`. */
+function tregErrorMessage(json: Record<string, unknown>, fallback: string): string {
+  const detail = json.detail;
+  if (typeof detail === 'string') return detail;
+  if (typeof detail === 'object' && detail !== null) {
+    const d = detail as Record<string, unknown>;
+    if (typeof d.message === 'string') return d.message;
+    if (typeof d.error === 'string') return d.error;
+  }
+  if (typeof json.error === 'string') return json.error;
+  if (typeof json.message === 'string') return json.message;
+  return fallback;
+}
 
 /** Low-level treg call wrapper. Endpoint: e.g. "tikhub.tiktok.search.videos"
  *
@@ -117,15 +113,18 @@ export async function tregCall<T>(
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
 
-    const json = (await res.json()) as Record<string, unknown>;
+    const text = await res.text();
+    let json: Record<string, unknown>;
+    try {
+      json = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      throw new Error(`treg ${endpointId}: HTTP ${res.status} ${text.slice(0, 200)}`);
+    }
     if (!res.ok) {
-      const errMsg = typeof json.error === 'string' ? json.error
-        : typeof json.detail === 'string' ? json.detail
-        : res.statusText;
-      throw new Error(`treg ${endpointId}: ${errMsg}`);
+      throw new Error(`treg ${endpointId}: ${tregErrorMessage(json, res.statusText)}`);
     }
     // Return inner `.data` if present, otherwise the whole response
-    return ('data' in json ? json.data : json) as T;
+    return (json.data ?? json) as T;
   } finally {
     clearTimeout(timer);
   }
@@ -148,53 +147,6 @@ export async function tregPollTask(taskId: string): Promise<{ status: string; ou
     }
   }
   throw new Error(`tregPollTask: timeout after 5 min for task ${taskId}`);
-}
-
-// ── Budget guard ──────────────────────────────────────────────────────────────
-
-export type BudgetCheck =
-  | { ok: true; estimated_cost_usd: number }
-  | { ok: false; estimated_cost_usd: number; cap_usd: number };
-
-export function checkBudget(durationSeconds: number): BudgetCheck {
-  const estimated_cost_usd = Math.round(SEEDANCE_COST_PER_SEC * durationSeconds * 100) / 100;
-  if (estimated_cost_usd > BUDGET_CAP_USD) {
-    return { ok: false, estimated_cost_usd, cap_usd: BUDGET_CAP_USD };
-  }
-  return { ok: true, estimated_cost_usd };
-}
-
-// ── DeepInfra image generation (Candidate B) ──────────────────────────────────
-
-/** Generate an image via DeepInfra's OpenAI-compatible images endpoint. */
-export async function deepinfraImageGen(prompt: string): Promise<string> {
-  const token = process.env.DEEPINFRA_TOKEN;
-  if (!token) throw new Error('DEEPINFRA_TOKEN not set');
-
-  const res = await fetch('https://api.deepinfra.com/v1/openai/images/generations', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      model: 'black-forest-labs/FLUX-1-dev',
-      prompt,
-      n: 1,
-      size: '1024x1024',
-      response_format: 'url',
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`DeepInfra image gen failed: ${res.status} ${text}`);
-  }
-
-  const data = (await res.json()) as { data?: { url?: string }[] };
-  const url = data.data?.[0]?.url;
-  if (!url) throw new Error('DeepInfra returned no image URL');
-  return url;
 }
 
 // ── TikTok transcript helper ──────────────────────────────────────────────────

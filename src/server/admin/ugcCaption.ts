@@ -1,21 +1,26 @@
-// server-only — FFmpeg + Whisper caption burn-in for UGC videos.
+// server-only — Caption burn-in for UGC videos.
+// Strategy: Whisper API (Node.js) → word-timing JSON → caption_burn.py (PIL + FFmpeg overlay).
+// No libass required. PIL renders bold white text with black stroke; FFmpeg composites it.
 
 import { execFile } from 'child_process';
 import { createWriteStream, mkdirSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { pipeline } from 'stream/promises';
 import { promisify } from 'util';
 
 const execFileAsync = promisify(execFile);
+
+// Path to the caption_burn.py script (relative to project root)
+const CAPTION_SCRIPT = resolve(process.cwd(), 'scripts/caption_burn.py');
 
 // ── Whisper word timestamps ────────────────────────────────────────────────────
 
 type WhisperWord = { word: string; start: number; end: number };
 type WhisperResponse = { text: string; words?: WhisperWord[] };
 
-/** Transcribe a local audio file via OpenAI Whisper API. Returns word timestamps. */
-async function whisperTranscribe(wavPath: string): Promise<WhisperWord[]> {
+/** Transcribe a local WAV file via OpenAI Whisper API. Returns word timestamps. */
+async function whisperTranscribe(wavPath: string, scriptHint?: string): Promise<{ words: WhisperWord[]; text: string }> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error('OPENAI_API_KEY not set');
 
@@ -27,6 +32,8 @@ async function whisperTranscribe(wavPath: string): Promise<WhisperWord[]> {
   form.append('response_format', 'verbose_json');
   form.append('timestamp_granularities[]', 'word');
   form.append('language', 'en');
+  // The intended script steers Whisper's spelling of names, numbers and prices.
+  if (scriptHint?.trim()) form.append('prompt', scriptHint.trim().slice(0, 800));
   form.append(
     'file',
     new Blob([audioBytes], { type: 'audio/wav' }),
@@ -44,95 +51,25 @@ async function whisperTranscribe(wavPath: string): Promise<WhisperWord[]> {
   }
 
   const data = (await res.json()) as WhisperResponse;
-  return data.words ?? [];
-}
-
-// ── ASS subtitle builder ───────────────────────────────────────────────────────
-
-type CaptionChunk = { text: string; start: number; end: number };
-
-/** Auto-chunk words into 1-3 word captions, breaking on punctuation or gaps. */
-function autoChunk(words: WhisperWord[]): CaptionChunk[] {
-  const chunks: CaptionChunk[] = [];
-  let current: WhisperWord[] = [];
-
-  for (let i = 0; i < words.length; i++) {
-    current.push(words[i]);
-    const gap =
-      i + 1 < words.length ? words[i + 1].start - words[i].end : 9;
-    const isPunct = /[.,!?]$/.test(words[i].word);
-    const isLongEnough = current.length >= 3;
-
-    if (isLongEnough || isPunct || gap > 0.4) {
-      const startSec = current[0].start;
-      const endSec =
-        i + 1 < words.length
-          ? words[i + 1].start - 0.002 // trim 2ms to avoid overlap
-          : current[current.length - 1].end + 0.3;
-
-      chunks.push({
-        text: current.map((w) => w.word).join(' ').replace(/[,.]$/, ''),
-        start: startSec,
-        end: Math.max(endSec, startSec + 0.15),
-      });
-      current = [];
-    }
-  }
-
-  if (current.length > 0) {
-    chunks.push({
-      text: current.map((w) => w.word).join(' '),
-      start: current[0].start,
-      end: current[current.length - 1].end + 0.3,
-    });
-  }
-
-  return chunks;
-}
-
-/** Convert seconds to ASS time format: h:mm:ss.cs */
-function toAssTime(secs: number): string {
-  const h = Math.floor(secs / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = Math.floor(secs % 60);
-  const cs = Math.floor((secs % 1) * 100);
-  return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
-}
-
-/** Build an ASS subtitle string with TikTok-style bold white text + black outline. */
-function buildAss(chunks: CaptionChunk[]): string {
-  const header = `[Script Info]
-ScriptType: v4.00+
-PlayResX: 720
-PlayResY: 1280
-
-[V4+ Styles]
-Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: UGC,Helvetica,58,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,4,0,2,30,30,980,1
-
-[Events]
-Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
-`;
-  const events = chunks
-    .map(
-      ({ text, start, end }) =>
-        `Dialogue: 0,${toAssTime(start)},${toAssTime(end)},UGC,,0,0,0,,{\\b1}${text.toUpperCase()}`,
-    )
-    .join('\n');
-
-  return header + events + '\n';
+  return { words: data.words ?? [], text: data.text ?? '' };
 }
 
 // ── Main export: burnCaptions ─────────────────────────────────────────────────
 
-/** Download video, transcribe, burn TikTok-style captions, return captioned buffer. */
-export async function burnCaptions(videoUrl: string): Promise<{ buffer: Buffer; transcript: string }> {
+/**
+ * Download video → extract audio → Whisper word timestamps →
+ * caption_burn.py (PIL text PNG overlays via FFmpeg) → return buffer.
+ *
+ * caption_burn.py uses --words (pre-saved Whisper JSON) + auto-chunking;
+ * no --phrases needed. Header is set to a space so it renders nothing visible.
+ */
+export async function burnCaptions(videoUrl: string, scriptHint?: string): Promise<{ buffer: Buffer; transcript: string }> {
   const workDir = join(tmpdir(), `ugc-cap-${Date.now()}`);
   mkdirSync(workDir, { recursive: true });
 
   const rawPath = join(workDir, 'raw.mp4');
   const wavPath = join(workDir, 'audio.wav');
-  const assPath = join(workDir, 'subs.ass');
+  const wordsPath = join(workDir, 'words.json');
   const outPath = join(workDir, 'captioned.mp4');
 
   try {
@@ -142,7 +79,7 @@ export async function burnCaptions(videoUrl: string): Promise<{ buffer: Buffer; 
     const writer = createWriteStream(rawPath);
     await pipeline(res.body as unknown as NodeJS.ReadableStream, writer);
 
-    // 2. Extract mono audio for Whisper
+    // 2. Extract mono 16kHz WAV for Whisper
     await execFileAsync('ffmpeg', [
       '-v', 'error', '-y',
       '-i', rawPath,
@@ -151,29 +88,34 @@ export async function burnCaptions(videoUrl: string): Promise<{ buffer: Buffer; 
     ]);
 
     // 3. Whisper word timestamps
-    const words = await whisperTranscribe(wavPath);
-    const transcript = words.map((w) => w.word).join(' ');
+    const { words, text } = await whisperTranscribe(wavPath, scriptHint);
 
-    // 4. Build ASS subtitles
-    const chunks = autoChunk(words);
-    const ass = buildAss(chunks);
+    // 4. Save words JSON for caption_burn.py (it reads --words directly)
     const { writeFileSync, readFileSync } = await import('fs');
-    writeFileSync(assPath, ass, 'utf-8');
+    writeFileSync(wordsPath, JSON.stringify({ text, words }), 'utf-8');
 
-    // 5. Burn captions with FFmpeg
-    await execFileAsync('ffmpeg', [
-      '-v', 'error', '-y',
-      '-i', rawPath,
-      '-vf', `ass=${assPath}`,
-      '-c:v', 'libx264', '-crf', '18', '-preset', 'medium',
-      '-pix_fmt', 'yuv420p',
-      '-c:a', 'copy',
-      '-movflags', '+faststart',
-      outPath,
-    ]);
+    // 5. Spawn caption_burn.py — auto-chunks via PIL, no libass needed.
+    //    --header " " renders a blank top line (keeps the layout consistent).
+    const { stderr, stdout } = await execFileAsync('python3', [
+      CAPTION_SCRIPT,
+      '--video', rawPath,
+      '--header', ' ',          // blank header — no top text overlay
+      '--words', wordsPath,     // skip Whisper re-call inside the script
+      '--out', outPath,
+    ], {
+      timeout: 5 * 60_000,      // 5-minute hard cap
+      env: { ...process.env },  // pass OPENAI_API_KEY in case script needs it
+    });
+
+    if (stderr) {
+      console.log('[ugcCaption] caption_burn stderr:', stderr);
+    }
+    if (stdout) {
+      console.log('[ugcCaption] caption_burn stdout:', stdout);
+    }
 
     const buffer = readFileSync(outPath);
-    return { buffer, transcript };
+    return { buffer, transcript: text };
   } finally {
     try { rmSync(workDir, { recursive: true, force: true }); } catch { /* ignore */ }
   }
