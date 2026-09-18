@@ -9,10 +9,36 @@ export type UgcDuration = (typeof UGC_DURATIONS)[number];
 export const isUgcDuration = (value: unknown): value is UgcDuration =>
   typeof value === 'number' && (UGC_DURATIONS as readonly number[]).includes(value);
 
-/** reapi.video-gen.seedance-2-5.unrestricted at 480p, per second of output (Treg catalog, checked 2026-09-14). */
-export const SEEDANCE_USD_PER_SECOND = 0.1186;
+/** Which Treg route generates the videos. */
+export type UgcProvider = 'openrouter' | 'reapi';
 
-/** Runs above this ask for a confirm. An 8 s clip ($0.95) goes straight through. */
+/**
+ * OpenRouter is ByteDance's official route and the cheapest at 480p; reapi's "less restriction" route
+ * costs more and is kept for the videos already made with it (Treg catalog, checked 2026-09-14).
+ */
+export const UGC_PROVIDERS: Record<UgcProvider, { label: string; shortLabel: string; usdPerSecond: number }> = {
+  openrouter: { label: 'Seedance 2.5 via OpenRouter', shortLabel: 'OpenRouter', usdPerSecond: 0.1028 },
+  reapi: { label: 'Seedance 2.5 (less restriction) via reAPI', shortLabel: 'reAPI', usdPerSecond: 0.1186 },
+};
+
+/**
+ * Routes to try, in order. OpenRouter is cheaper ($0.1028/s vs $0.1186/s at 480p) so it goes first,
+ * but ByteDance's official route refuses a photo of a real person as the first frame
+ * (InputImageSensitiveContentDetected.PrivacyInformation) — and that refusal costs nothing, because
+ * it happens before any video is made. So a rejected job falls through to reapi's less-restricted
+ * route and the video still gets made.
+ */
+export const UGC_PROVIDER_ORDER: readonly UgcProvider[] = ['openrouter', 'reapi'];
+
+/** The route a price is quoted from before the job is sent. */
+export const UGC_PROVIDER: UgcProvider = UGC_PROVIDER_ORDER[0];
+
+export const isUgcProvider = (value: unknown): value is UgcProvider => value === 'openrouter' || value === 'reapi';
+
+/** Per second of 480p output on the route new videos use. */
+export const SEEDANCE_USD_PER_SECOND = UGC_PROVIDERS[UGC_PROVIDER].usdPerSecond;
+
+/** Runs above this ask for a confirm. An 8 s clip ($0.82 to $0.95) goes straight through. */
 export const UGC_CONFIRM_ABOVE_USD = 1;
 
 export const estimateSeedanceUsd = (durationSec: number): number =>

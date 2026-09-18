@@ -2,24 +2,22 @@
 // UGC Lab video lifecycle: submit to Seedance via Treg, refresh status, copy the finished video to R2.
 
 import type { UgcCharacter, UgcVideo } from '@prisma/client';
-import { SEEDANCE_USD_PER_SECOND, UGC_RESOLUTION, UGC_VIDEO_TIMEOUT_SEC, type UgcDuration, type UgcScene } from '../../config/ugcLab';
+import {
+  UGC_PROVIDERS, UGC_PROVIDER_ORDER, UGC_RESOLUTION, UGC_VIDEO_TIMEOUT_SEC,
+  isUgcProvider, type UgcDuration, type UgcProvider, type UgcScene,
+} from '../../config/ugcLab';
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
-import { tregCall } from './ugcLab';
+import { checkTask, estimateMicros, fetchVideo, submitTask, type TaskState } from './ugcProviders';
 import { buildFirstFramePrompt, buildReferencePrompt } from './ugcPrompt';
-import { mirrorFile, ugcKeys, vendorUrl } from './ugcStore';
+import { mirrorFile, putFile, ugcKeys, vendorUrl } from './ugcStore';
 
 type VideoWithCharacter = UgcVideo & { character: UgcCharacter | null };
 
-const SEEDANCE_ENDPOINT = 'reapi.video-gen.seedance-2-5.unrestricted';
 const VIDEO_TIMEOUT_MS = UGC_VIDEO_TIMEOUT_SEC * 1000;
 
-type TaskStatus = {
-  status?: string;
-  output?: { video_url?: string; url?: string; video_urls?: string[] };
-  usage?: { credits?: number };
-  error?: unknown;
-};
+/** Videos made before the second route existed are all reapi. */
+const providerOf = (video: UgcVideo): UgcProvider => (isUgcProvider(video.provider) ? video.provider : 'reapi');
 
 /** Two checks this close together pin the finish time well enough for wait estimates. */
 const PRECISE_GAP_MS = 30_000;
@@ -38,49 +36,57 @@ const finishTiming = (video: VideoWithCharacter, now: Date) => {
   };
 };
 
-/** reapi bills in credits; 1 credit = $0.001. */
-const costMicros = (task: TaskStatus | null): number | undefined =>
-  typeof task?.usage?.credits === 'number' ? Math.round(task.usage.credits * 1000) : undefined;
-
-const errorText = (error: unknown): string | null => {
-  if (typeof error === 'string') return error;
-  if (typeof error === 'object' && error !== null && typeof (error as { message?: unknown }).message === 'string') {
-    return (error as { message: string }).message;
-  }
-  return null;
-};
-
 const sceneOf = (character: UgcCharacter): UgcScene | null =>
   typeof character.scene === 'object' && character.scene !== null ? (character.scene as unknown as UgcScene) : null;
 
 /**
- * Photos are the first frame, so the video keeps their place and light.
- * AI portraits are a look reference; Seedance invents the room.
+ * A photo is the first frame, so the video keeps its place and light. On reapi an AI portrait is a
+ * look reference and Seedance invents the room; OpenRouter has no such mode, so the portrait starts
+ * the video there too and the prompt has to carry the scene.
  */
-const buildRequest = async (character: UgcCharacter, script: string, duration: UgcDuration) => {
-  const url = await vendorUrl(character.imageKey);
-  const shared = { model: 'doubao-seedance-2.5-face', content_filter: false, duration, resolution: UGC_RESOLUTION, generate_audio: true };
-  if (character.kind === 'photo') {
-    const prompt = buildFirstFramePrompt(script, sceneOf(character));
-    return { mode: 'real-person', prompt, body: { ...shared, prompt, size: 'adaptive', image_with_roles: [{ url, role: 'first_frame' }] } };
+const buildRequest = (provider: UgcProvider, character: UgcCharacter, script: string) => {
+  const asFirstFrame = character.kind === 'photo' || provider === 'openrouter';
+  return {
+    mode: character.kind === 'photo' ? 'real-person' : 'ai-character',
+    kind: character.kind === 'photo' ? ('photo' as const) : ('ai' as const),
+    prompt: asFirstFrame ? buildFirstFramePrompt(script, sceneOf(character)) : buildReferencePrompt(script),
+  };
+};
+
+type Started = { provider: UgcProvider; providerTaskId: string; mode: string; prompt: string };
+
+/**
+ * Sends the job to the first route that takes it. A route that refuses costs nothing — it refuses
+ * before making anything — so the next one is tried and only the last error is raised.
+ */
+const startJob = async (character: UgcCharacter, script: string, duration: UgcDuration): Promise<Started> => {
+  const imageUrl = await vendorUrl(character.imageKey);
+  let lastError: unknown = null;
+
+  for (const provider of UGC_PROVIDER_ORDER) {
+    const { mode, kind, prompt } = buildRequest(provider, character, script);
+    try {
+      const providerTaskId = await submitTask(provider, { prompt, duration, resolution: UGC_RESOLUTION, imageUrl, kind });
+      if (providerTaskId) return { provider, providerTaskId, mode, prompt };
+      lastError = new Error(`${provider} returned no task ID`);
+    } catch (err) {
+      console.warn(`[ugc] ${provider} refused the job:`, err instanceof Error ? err.message : err);
+      lastError = err;
+    }
   }
-  const prompt = buildReferencePrompt(script);
-  return { mode: 'ai-character', prompt, body: { ...shared, prompt, size: '9:16', image_urls: [url] } };
+  throw new HttpError(502, 'no_task_id', lastError instanceof Error ? lastError.message : 'No route would take this video.');
 };
 
 export const submitVideo = async (characterId: string, script: string, duration: UgcDuration): Promise<VideoWithCharacter> => {
   const character = await prisma.ugcCharacter.findUnique({ where: { id: characterId } });
   if (!character) throw new HttpError(404, 'character_not_found', 'That character is gone.');
 
-  const { mode, prompt, body } = await buildRequest(character, script, duration);
-  const task = await tregCall<{ id?: string; task_id?: string } | null>(SEEDANCE_ENDPOINT, { method: 'POST', body, timeoutMs: 30_000 });
-  const providerTaskId = task?.id ?? task?.task_id;
-  if (!providerTaskId) throw new HttpError(502, 'no_task_id', 'Seedance returned no task ID.');
+  const { provider, providerTaskId, mode, prompt } = await startJob(character, script, duration);
 
   return prisma.ugcVideo.create({
     data: {
-      characterId, mode, script, prompt, durationSec: duration, resolution: UGC_RESOLUTION, providerTaskId,
-      estimatedCostUsdMicros: Math.round(SEEDANCE_USD_PER_SECOND * duration * 1_000_000),
+      characterId, mode, script, prompt, durationSec: duration, resolution: UGC_RESOLUTION, provider, providerTaskId,
+      estimatedCostUsdMicros: estimateMicros(provider, duration),
       submittedAt: new Date(),
     },
     include: { character: true },
@@ -90,15 +96,19 @@ export const submitVideo = async (characterId: string, script: string, duration:
 const update = (id: string, data: Parameters<typeof prisma.ugcVideo.update>[0]['data']) =>
   prisma.ugcVideo.update({ where: { id }, data, include: { character: true } });
 
-/** Copies the finished video to R2. A dead link (expired) fails the video; other errors retry on the next check. */
-const saveFinished = async (video: VideoWithCharacter, url: string, task: TaskStatus | null): Promise<VideoWithCharacter> => {
+/**
+ * Copies the finished video to R2, from a link when the route gives one and from its own content
+ * endpoint otherwise. A dead link (expired) fails the video; other errors retry on the next check.
+ */
+const saveFinished = async (video: VideoWithCharacter, state: TaskState): Promise<VideoWithCharacter> => {
   const now = new Date();
   // Timing is taken when the video is first seen done, before the download, and kept if the save is retried.
   const timing = video.generationSeconds === null && video.mode !== 'imported' ? finishTiming(video, now) : {};
-  const cost = costMicros(task);
+  const cost = state.costMicros;
   const key = ugcKeys.raw(video.id);
   try {
-    await mirrorFile(url, key, 'video/mp4');
+    if (state.videoUrl) await mirrorFile(state.videoUrl, key, 'video/mp4');
+    else await putFile(key, await fetchVideo(providerOf(video), video.providerTaskId ?? ''), 'video/mp4');
   } catch (err) {
     if (err instanceof HttpError && err.status === 410) {
       return update(video.id, { status: 'failed', error: 'The video link expired before it was saved.' });
@@ -128,20 +138,16 @@ export const refreshVideo = async (video: VideoWithCharacter): Promise<VideoWith
 const checkVideo = async (video: VideoWithCharacter): Promise<VideoWithCharacter> => {
   if (video.status !== 'generating' || !video.providerTaskId) return video;
 
-  let task: TaskStatus | null;
+  let state: TaskState;
   try {
-    task = await tregCall<TaskStatus | null>('reapi.tasks.get', { query: { id: video.providerTaskId }, timeoutMs: 20_000 });
+    state = await checkTask(providerOf(video), video.providerTaskId);
   } catch (err) {
     return update(video.id, { lastPollError: err instanceof Error ? err.message : 'Status check failed' });
   }
 
-  const status = (task?.status ?? '').toLowerCase();
-  if (status === 'completed') {
-    const url = task?.output?.video_urls?.[0] ?? task?.output?.video_url ?? task?.output?.url;
-    if (url) return saveFinished(video, url, task);
-  }
-  if (status === 'failed') {
-    return update(video.id, { status: 'failed', error: errorText(task?.error) ?? 'Seedance could not make this video.', lastPollError: null });
+  if (state.state === 'done') return saveFinished(video, state);
+  if (state.state === 'failed') {
+    return update(video.id, { status: 'failed', error: state.error ?? 'Seedance could not make this video.', lastPollError: null });
   }
   const startedAt = (video.submittedAt ?? video.createdAt).getTime();
   if (Date.now() - startedAt > VIDEO_TIMEOUT_MS) {
@@ -158,8 +164,8 @@ export const importVideo = async (input: { taskId: string; script: string; estim
   const createdAt = Number.isNaN(Date.parse(input.createdAt)) ? new Date() : new Date(input.createdAt);
   const video = await prisma.ugcVideo.create({
     data: {
-      mode: 'imported', script: input.script || '(imported)', resolution: UGC_RESOLUTION,
-      durationSec: Math.max(1, Math.round(input.estimatedCostUsd / SEEDANCE_USD_PER_SECOND)),
+      mode: 'imported', script: input.script || '(imported)', resolution: UGC_RESOLUTION, provider: 'reapi',
+      durationSec: Math.max(1, Math.round(input.estimatedCostUsd / UGC_PROVIDERS.reapi.usdPerSecond)),
       providerTaskId: input.taskId, estimatedCostUsdMicros: Math.round(input.estimatedCostUsd * 1_000_000),
       // Started long ago: refresh saves it if it finished, otherwise the timeout marks it failed.
       submittedAt: createdAt, createdAt,

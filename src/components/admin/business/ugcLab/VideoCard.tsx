@@ -17,6 +17,7 @@ type VideoCardProps = {
 };
 
 const MODE_LABEL: Record<string, string> = { 'real-person': 'Photo', 'ai-character': 'AI character', imported: 'Imported' };
+const ROUTE_LABEL: Record<string, string> = { openrouter: 'OpenRouter', reapi: 'reAPI' };
 
 /** 95 → "1:35". */
 const clock = (seconds: number): string => `${Math.floor(seconds / 60)}:${String(Math.max(0, Math.floor(seconds % 60))).padStart(2, '0')}`;
@@ -112,7 +113,7 @@ export function VideoCard({ token, video, eta, onChange, onDelete }: VideoCardPr
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill status={video.status} />
           <span className="text-[11px] text-muted tabular-nums">
-            {MODE_LABEL[video.mode] ?? video.mode} · {video.durationSec}s · {video.resolution} · {usd(video.costUsd ?? video.estimatedCostUsd)}
+            {MODE_LABEL[video.mode] ?? video.mode} · {video.durationSec}s · {video.resolution} · {ROUTE_LABEL[video.provider] ?? video.provider} · {usd(video.costUsd ?? video.estimatedCostUsd)}
             {video.status === 'ready' && video.seconds !== null ? ` · made in ${clock(video.seconds)}` : ''}
           </span>
         </div>

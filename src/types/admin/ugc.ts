@@ -19,6 +19,8 @@ export type UgcVideoDto = {
   script: string;
   durationSec: number;
   resolution: string;
+  /** Which Treg route made it: openrouter | reapi. */
+  provider: string;
   status: UgcVideoStatus;
   characterUrl: string | null;
   characterKind: 'ai' | 'photo' | null;

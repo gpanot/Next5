@@ -130,6 +130,42 @@ export async function tregCall<T>(
   }
 }
 
+/**
+ * Same call, but for an endpoint that answers with a file rather than JSON (OpenRouter serves the
+ * finished video itself). A JSON answer here is an error page, so it is read and raised.
+ */
+export async function tregBinary(
+  endpointId: string,
+  options: { query?: Record<string, string | number>; timeoutMs?: number } = {},
+): Promise<Buffer> {
+  const key = process.env.TREG_API_KEY;
+  if (!key) throw new Error('TREG_API_KEY not set');
+
+  const { query, timeoutMs = 120_000 } = options;
+  const url = new URL(`${TREG_BASE}/${endpointId}`);
+  for (const [k, v] of Object.entries(query ?? {})) url.searchParams.set(k, String(v));
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url.toString(), { signal: controller.signal, headers: { 'X-Treg-Token': key } });
+    const type = res.headers.get('content-type') ?? '';
+    if (!res.ok || type.includes('application/json')) {
+      const text = await res.text();
+      let message = text.slice(0, 200);
+      try {
+        message = tregErrorMessage(JSON.parse(text) as Record<string, unknown>, message);
+      } catch {
+        // Not JSON after all: the raw text is the best message there is.
+      }
+      throw new Error(`treg ${endpointId}: HTTP ${res.status} ${message}`);
+    }
+    return Buffer.from(await res.arrayBuffer());
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** Poll a reapi task until completed or failed. Max wait: 5 minutes. */
 export async function tregPollTask(taskId: string): Promise<{ status: string; output?: { image_urls?: string[]; video_url?: string } }> {
   const maxMs = 5 * 60_000;

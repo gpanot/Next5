@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import {
-  UGC_CONFIRM_ABOVE_USD, UGC_DURATIONS, UGC_RESOLUTION, estimateSeedanceUsd, type UgcDuration,
+  UGC_CONFIRM_ABOVE_USD, UGC_DURATIONS, UGC_PROVIDERS, UGC_PROVIDER_ORDER, UGC_RESOLUTION, estimateSeedanceUsd, type UgcDuration,
 } from '../../../../config/ugcLab';
 import type { UgcCharacterDto, UgcVideoDto } from '../../../../types/admin/ugc';
 import { errorOf, ugcRequest } from './api';
@@ -57,7 +57,7 @@ export function VideoPanel({ token, selection, onOpenLibrary }: VideoPanelProps)
     <div className="flex flex-col gap-6">
       <Section
         title="Generate video"
-        description={`Seedance 2.5 (less restriction) via Treg · ${UGC_RESOLUTION} while testing · ${usd(estimateSeedanceUsd(8))} for 8 s`}
+        description={`${UGC_PROVIDER_ORDER.map((p) => UGC_PROVIDERS[p].shortLabel).join(', then ')} · ${UGC_RESOLUTION} while testing · ${usd(estimateSeedanceUsd(8))}–${usd(UGC_PROVIDERS.reapi.usdPerSecond * 8)} for 8 s`}
       >
         {!selection ? (
           <EmptyState title="Pick a character and a script first." hint="Go to Character, choose a photo or an AI character." />

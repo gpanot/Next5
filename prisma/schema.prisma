@@ -911,6 +911,8 @@ model UgcVideo {
   prompt                 String    @default("")
   durationSec            Int       @map("duration_sec")
   resolution             String
+  /// Which Treg route made it: openrouter | reapi. Older videos are all reapi.
+  provider               String    @default("reapi")
   providerTaskId         String?   @unique @map("provider_task_id")
   /// generating | ready | failed
   status                 String    @default("generating")
