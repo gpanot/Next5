@@ -36,7 +36,7 @@ export const HOME_HERO = {
     { id: 'brand', href: '/brand', label: 'I’m a realtor', line: 'Photos of you + videos', image: `${US}/realtor-hero.png` },
     { id: 'shop', href: '/shop', label: 'I sell on TikTok Shop', line: 'Your products on a model + videos', image: `${US}/shop-dress-after.png` },
   ] satisfies HomeDoor[],
-  trust: ['3 free photos', 'No card needed', '2 free redos per photo'],
+  trust: ['3 free photos', 'No card needed', 'Free redos'],
 };
 
 export type MonthTile = { image: string; kind: 'photo' | 'video'; who: 'Realtor' | 'TikTok Shop' };
@@ -63,16 +63,10 @@ export const HOME_PROOF = {
   points: ['Same color, print and length.', 'Worn by you or one of our models.', 'Ready in minutes.'],
   kit: {
     title: 'The words come with it',
-    sub: 'Hook, description and hashtags, written like top-selling posts.',
+    sub: 'Hook, description and hashtags, written like top-selling posts. Plus a score from 0 to 100.',
     example: 'Example · the dress',
   },
   cta: 'Get 3 free photos',
-};
-
-export const HOME_POST_KIT = {
-  eyebrow: 'The words too',
-  title: 'Every photo comes ready to post.',
-  sub: 'We write the hook, the caption and the hashtags. We also score each photo from 0 to 100.',
 };
 
 export const HOME_CHOOSER = {

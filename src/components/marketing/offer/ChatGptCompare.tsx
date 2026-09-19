@@ -11,12 +11,12 @@ export const ChatGptCompare = ({ rows }: { rows: readonly ChatGptRow[] }) => (
     </div>
     <ul>
       {rows.map((row) => (
-        <li key={row.topic} className="grid gap-2 border-b border-app-line p-4 last:border-0 md:grid-cols-[160px_1fr_1fr] md:gap-0 md:p-0">
+        <li key={row.topic} className="grid gap-1.5 border-b border-app-line p-3 last:border-0 sm:gap-2 sm:p-4 md:grid-cols-[160px_1fr_1fr] md:gap-0 md:p-0">
           <span className="label-caps text-[11px] font-medium text-app-muted md:p-4">{row.topic}</span>
-          <span className="flex gap-2 text-[15px] text-app-muted md:p-4">
+          <span className="flex gap-2 text-[14px] text-app-muted sm:text-[15px] md:p-4">
             <X aria-label="ChatGPT" className="mt-0.5 h-4 w-4 shrink-0 text-app-danger" />{row.chatgpt}
           </span>
-          <span className="flex gap-2 rounded-lg bg-app-accent-soft/60 p-2 text-[15px] font-medium text-app-ink md:rounded-none md:p-4">
+          <span className="flex gap-2 rounded-lg bg-app-accent-soft/60 p-2 text-[14px] font-medium sm:text-[15px] text-app-ink md:rounded-none md:p-4">
             <Check aria-label="Next5" className="mt-0.5 h-4 w-4 shrink-0 text-app-accent" />{row.next5}
           </span>
         </li>

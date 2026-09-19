@@ -21,10 +21,10 @@ export const HomeHero = () => (
           {HOME_HERO.doors.map((door) => <AudienceDoor key={door.id} door={door} priority />)}
         </div>
       </div>
-      <ul className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+      <ul className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:gap-x-5">
         {HOME_HERO.trust.map((item) => (
-          <li key={item} className="flex items-center gap-1.5 text-[14px] text-app-ink sm:text-[15px]">
-            <Check aria-hidden className="h-4 w-4 text-app-success" /> {item}
+          <li key={item} className="flex items-center gap-1 text-[13px] text-app-ink sm:gap-1.5 sm:text-[15px]">
+            <Check aria-hidden className="h-3.5 w-3.5 text-app-success sm:h-4 sm:w-4" /> {item}
           </li>
         ))}
       </ul>

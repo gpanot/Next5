@@ -3,7 +3,7 @@ import { HOME_MONTH, type MonthTile } from '../../../content/business/home';
 import { MarketingImage } from '../shared/MarketingImage';
 
 const Tile = ({ tile }: { tile: MonthTile }) => (
-  <li className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-app-sunken ring-1 ring-black/5 dark:ring-white/10">
+  <li className="relative aspect-[4/5] w-[44%] shrink-0 snap-start overflow-hidden rounded-2xl sm:w-auto bg-app-sunken ring-1 ring-black/5 dark:ring-white/10">
     <MarketingImage src={tile.image} sizes="(min-width: 1024px) 30vw, 50vw" className="object-[center_20%]" />
     {tile.kind === 'video' && (
       <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 shadow-md" aria-hidden>
@@ -19,7 +19,7 @@ const Tile = ({ tile }: { tile: MonthTile }) => (
 
 /** Six sample outputs, photos and videos, for both buyers. Pictures first, almost no words. */
 export const MonthGrid = () => (
-  <ul className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
+  <ul className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3" aria-label="Sample posts. Swipe to see more.">
     {HOME_MONTH.tiles.map((tile) => <Tile key={tile.image} tile={tile} />)}
   </ul>
 );

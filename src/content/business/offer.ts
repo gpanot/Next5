@@ -166,8 +166,6 @@ export const OFFER_HOME = {
       { topic: 'You or your product', chatgpt: 'Your face or your product changes a little every time.', next5: 'Stays true in every photo, checked with free redos.' },
       { topic: 'Your time', chatgpt: 'One photo at a time. Prompts, fixes, crops.', next5: 'Your month of photos in one click.' },
       { topic: 'What to post', chatgpt: 'You still write every post.', next5: 'Hook, caption and hashtags written for each photo.' },
-      { topic: 'Will it work?', chatgpt: 'No way to know before you post.', next5: 'A Scroll-Stop Score and a tip for every photo.' },
-      { topic: 'Your brand', chatgpt: 'A new look every time.', next5: 'The same style on every post, every month.' },
       { topic: 'Videos', chatgpt: 'Won’t make your weekly TikToks and Reels.', next5: 'UGC videos every month, made by our team.' },
     ] satisfies ChatGptRow[],
   },

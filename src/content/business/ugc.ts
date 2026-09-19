@@ -86,11 +86,10 @@ export const UGC: { brand: UgcOffer; shop: UgcOffer } = {
 export const UGC_HOME = {
   eyebrow: 'Videos too',
   title: 'Plus UGC videos, made by our team.',
-  sub: 'Short videos are how new people find you on TikTok and Reels. Each month our team makes them for you: a strong hook, a short script and captions on screen.',
+  sub: 'Short videos are how new people find you on TikTok and Reels. We make them for you.',
   points: [
-    `Realtors: ${videoCount(UGC_VIDEOS_PER_MONTH.brand_pro ?? 0)} a month on Growth, made for your page.`,
-    `TikTok Shop: ${videoCount(UGC_VIDEOS_PER_MONTH.shop_pro ?? 0)} a month on Growth, made from your products.`,
-    'Starter plans get 1 video a month to try it.',
+    `${videoCount(UGC_VIDEOS_PER_MONTH.brand_pro ?? 0)} a month on Growth. 1 on Starter.`,
+    'Realtors get videos for their page. Sellers get videos of their products.',
     SHARED_POINTS[0]!,
   ],
 };

@@ -11,11 +11,11 @@ type UgcOfferProps = {
 
 /** UGC video offer: the phone(s) first on mobile, then plain checkable points. */
 export const UgcOffer = ({ points, visual }: UgcOfferProps) => (
-  <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
+  <div className="grid items-center gap-6 sm:gap-10 lg:grid-cols-[1fr_1.1fr] lg:gap-16">
     <div className="order-2 lg:order-1">
-      <ul className="flex flex-col gap-3">
+      <ul className="flex flex-col gap-2 sm:gap-3">
         {points.map((point) => (
-          <li key={point} className="flex gap-3 text-[17px] text-app-ink sm:text-[18px]">
+          <li key={point} className="flex gap-3 text-[16px] text-app-ink sm:text-[18px]">
             <Check aria-hidden className="mt-1 h-5 w-5 shrink-0 text-app-accent" />
             {point}
           </li>
