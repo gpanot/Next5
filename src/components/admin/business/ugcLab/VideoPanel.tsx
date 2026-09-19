@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import {
-  UGC_CONFIRM_ABOVE_USD, UGC_DURATIONS, UGC_PROVIDERS, UGC_PROVIDER_ORDER, UGC_RESOLUTION, estimateSeedanceUsd, type UgcDuration,
+  UGC_CONFIRM_ABOVE_USD, UGC_PROVIDERS, UGC_PROVIDER_ORDER, UGC_RESOLUTION, estimateSeedanceUsd, type UgcDuration,
 } from '../../../../config/ugcLab';
 import type { UgcCharacterDto, UgcVideoDto } from '../../../../types/admin/ugc';
 import { errorOf, ugcRequest } from './api';
-import { EmptyState, ErrorLine, MediaGridSkeleton, Notice, Pill, PrimaryButton, SecondaryButton, Section, Spinner, usd } from './ui';
+import { EmptyState, ErrorLine, MediaGridSkeleton, Notice, PrimaryButton, SecondaryButton, Section, Spinner, usd } from './ui';
 import { VideoCard } from './VideoCard';
 import { useUgcVideos } from './useUgcVideos';
 
@@ -25,9 +25,8 @@ type GenerateResponse = { video?: UgcVideoDto; estimated_cost_usd?: number };
 export function VideoPanel({ token, selection, onOpenLibrary }: VideoPanelProps) {
   const { videos, etas, error, loading, reload, add, update, remove } = useUgcVideos(token);
   const isPhoto = selection?.character.kind === 'photo';
-  const [durationChoice, setDurationChoice] = useState<UgcDuration>(selection?.duration ?? 8);
-  // Photo scripts are written for one length; AI characters speak the hook at any length.
-  const duration = isPhoto && selection ? selection.duration : durationChoice;
+  // Scripts are written for one length, so the picked script sets it.
+  const duration: UgcDuration = selection?.duration ?? 8;
   const cost = estimateSeedanceUsd(duration);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -60,7 +59,7 @@ export function VideoPanel({ token, selection, onOpenLibrary }: VideoPanelProps)
         description={`${UGC_PROVIDER_ORDER.map((p) => UGC_PROVIDERS[p].shortLabel).join(', then ')} · ${UGC_RESOLUTION} while testing · ${usd(estimateSeedanceUsd(8))}–${usd(UGC_PROVIDERS.reapi.usdPerSecond * 8)} for 8 s`}
       >
         {!selection ? (
-          <EmptyState title="Pick a character and a script first." hint="Go to Character, choose a photo or an AI character." />
+          <EmptyState title="Pick a character and a script first." hint="On the Character step, choose a photo or an AI character, then a script." />
         ) : (
           <div className="flex flex-col gap-4 sm:flex-row">
             {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URL */}
@@ -71,13 +70,9 @@ export function VideoPanel({ token, selection, onOpenLibrary }: VideoPanelProps)
               </p>
               {selection.script.trim()
                 ? <p className="text-[13px] leading-relaxed text-ink">{selection.script}</p>
-                : <p className="text-[13px] text-red-700">No script yet. Pick a hook in Research first.</p>}
+                : <p className="text-[13px] text-red-700">No script yet. Pick one on the Character step.</p>}
               <div className="flex flex-wrap items-center gap-2">
-                {isPhoto ? (
-                  <span className="text-[12px] text-muted">{duration} s, set by the script</span>
-                ) : (
-                  UGC_DURATIONS.map((d) => <Pill key={d} active={durationChoice === d} onClick={() => setDurationChoice(d)}>{d} s</Pill>)
-                )}
+                <span className="text-[12px] text-muted">{duration} s, set by the script</span>
               </div>
 
               {confirmCost !== null ? (

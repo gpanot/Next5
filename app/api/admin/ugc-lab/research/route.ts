@@ -8,6 +8,8 @@ import { chatJson, type ChatMessage } from '../../../../../src/server/ai/openai'
 type AwemeInfo = {
   aweme_id?: string;
   share_url?: string;
+  /** Unix seconds. */
+  create_time?: number;
   author?: { nickname?: string; unique_id?: string };
   statistics?: { play_count?: number; digg_count?: number };
   video?: {
@@ -40,12 +42,17 @@ function collectAwemes(data: TikTokSearchData): AwemeInfo[] {
   return data.aweme_list ?? [];
 }
 
+/** Clean /@user/video/id URL first: share_url carries tracking params the transcript API can trip on. */
 function buildTikTokUrl(aweme: AwemeInfo): string {
-  if (aweme.share_url) return aweme.share_url;
   const id = aweme.aweme_id;
   const user = aweme.author?.unique_id;
   if (id && user) return `https://www.tiktok.com/@${user}/video/${id}`;
-  return '';
+  return aweme.share_url ?? '';
+}
+
+function extractPostedAt(aweme: AwemeInfo): string | null {
+  const seconds = aweme.create_time;
+  return typeof seconds === 'number' && seconds > 0 ? new Date(seconds * 1000).toISOString() : null;
 }
 
 function extractThumbnail(aweme: AwemeInfo): string {
@@ -87,6 +94,9 @@ async function extractHook(transcript: string): Promise<string> {
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
+// Search (≤30 s) + AI transcript fallback (≤60 s) + hook (≤15 s) can pass the 60 s default.
+export const maxDuration = 120;
+
 export const POST = adminRoute(async (req: NextRequest) => {
   const body = (await req.json()) as { industry?: string };
   const industry = body.industry?.trim();
@@ -110,7 +120,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
     return NextResponse.json({ videos: [] });
   }
 
-  // 2. Fetch transcripts + extract hooks in parallel
+  // 2. Fetch full transcripts, then extract each hook, all videos in parallel
   const videos: TrendingVideo[] = await Promise.all(
     awemes.map(async (a): Promise<TrendingVideo> => {
       const id = a.aweme_id ?? '';
@@ -120,11 +130,12 @@ export const POST = adminRoute(async (req: NextRequest) => {
 
       return {
         id,
-        video_url: buildTikTokUrl(a),
+        video_url: videoUrl,
         thumbnail: extractThumbnail(a),
         author: a.author?.nickname ?? a.author?.unique_id ?? 'Unknown',
         views: a.statistics?.play_count ?? 0,
         likes: a.statistics?.digg_count ?? 0,
+        posted_at: extractPostedAt(a),
         raw_transcript,
         hook,
       };

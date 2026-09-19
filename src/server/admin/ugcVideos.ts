@@ -185,3 +185,13 @@ export const importVideo = async (input: { taskId: string; script: string; estim
   });
   return refreshVideo(video);
 };
+
+/**
+ * Daily safety net: checks every video still generating and copies finished ones to R2.
+ * Provider links last 7 days, so a video must not depend on someone opening the lab to be saved.
+ */
+export const saveGeneratingVideos = async (): Promise<number> => {
+  const videos = await prisma.ugcVideo.findMany({ where: { status: 'generating' }, include: { character: true }, take: 50 });
+  const refreshed = await Promise.all(videos.map((v) => refreshVideo(v)));
+  return refreshed.filter((v) => v.status === 'ready').length;
+};

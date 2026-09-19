@@ -1,6 +1,6 @@
 'use client';
 
-import type { ResearchVideo } from './ResearchPanel';
+import type { ResearchVideo } from './ResearchCard';
 
 /** The last hook search, kept in this browser so leaving the tab does not cost another search. */
 const KEY = 'ugc_lab_research';
@@ -28,10 +28,12 @@ export const readResearch = (): ResearchCache | null => {
   }
 };
 
-/** Transcripts are dropped: they are long, and only the hook is used after the search. */
+/** Transcripts are kept (capped) so "See script" still works when the panel comes back. */
+const MAX_SCRIPT_CHARS = 8_000;
+
 export const writeResearch = (cache: ResearchCache): void => {
   try {
-    const slim = { ...cache, videos: cache.videos.map((v) => ({ ...v, raw_transcript: '' })) };
+    const slim = { ...cache, videos: cache.videos.map((v) => ({ ...v, raw_transcript: v.raw_transcript.slice(0, MAX_SCRIPT_CHARS) })) };
     window.localStorage.setItem(KEY, JSON.stringify(slim));
   } catch {
     // A full or blocked store only costs the shortcut, never the search itself.

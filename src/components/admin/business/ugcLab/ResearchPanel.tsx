@@ -2,57 +2,14 @@
 
 import { useState } from 'react';
 import { errorOf, ugcRequest } from './api';
+import { ResearchCard, type ResearchVideo } from './ResearchCard';
 import { ago, clearResearch, readResearch, writeResearch, type ResearchCache } from './researchCache';
 import { EmptyState, PrimaryButton, SecondaryButton, Section, Skeleton, Spinner, fieldClass, labelClass } from './ui';
-
-export type ResearchVideo = {
-  id: string;
-  video_url: string;
-  thumbnail: string;
-  author: string;
-  views: number;
-  likes: number;
-  hook: string;
-  raw_transcript: string;
-};
 
 type ResearchPanelProps = {
   token: string;
   onHookSelected: (hook: string) => void;
 };
-
-const formatCount = (n: number): string => {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return String(n);
-};
-
-const ResearchCard = ({ video, selected, onSelect }: { video: ResearchVideo; selected: boolean; onSelect: () => void }) => (
-  <article
-    className={`flex gap-3 rounded-xl border bg-white p-3 transition-shadow ${selected ? 'border-ink ring-1 ring-ink' : 'border-line'}`}
-  >
-    <button type="button" onClick={onSelect} className="h-28 w-20 shrink-0 overflow-hidden rounded-lg bg-surface-alt" aria-label={`Use the hook from @${video.author}`}>
-      {video.thumbnail && (
-        // eslint-disable-next-line @next/next/no-img-element -- TikTok cover URL
-        <img src={video.thumbnail} alt="" className="h-full w-full object-cover" />
-      )}
-    </button>
-    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[12px] text-muted">@{video.author}</span>
-        <span className="shrink-0 text-[11px] text-muted tabular-nums">{formatCount(video.views)} views · {formatCount(video.likes)} likes</span>
-      </div>
-      <button type="button" onClick={onSelect} className="text-left text-[13px] leading-snug text-ink line-clamp-3">
-        {video.hook || <span className="italic text-subtle">No hook found</span>}
-      </button>
-      {video.video_url && (
-        <a href={video.video_url} target="_blank" rel="noopener noreferrer" className="self-start text-[12px] text-ink underline">
-          Open on TikTok
-        </a>
-      )}
-    </div>
-  </article>
-);
 
 export function ResearchPanel({ token, onHookSelected }: ResearchPanelProps) {
   // The last search comes back with the panel, so leaving this tab does not cost another search.
@@ -109,7 +66,7 @@ export function ResearchPanel({ token, onHookSelected }: ResearchPanelProps) {
   }
 
   return (
-    <Section title="Research hooks" description="Enter a niche. We pull 10 TikTok videos and pull the opening hook from each.">
+    <Section title="Research hooks" description="Enter a niche. We pull 10 TikTok videos, get the full script of each, and pull out its opening hook.">
       <form
         className="flex flex-col gap-2 sm:flex-row sm:items-end"
         onSubmit={(e) => { e.preventDefault(); void search(); }}

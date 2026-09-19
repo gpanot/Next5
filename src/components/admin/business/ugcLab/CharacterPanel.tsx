@@ -4,24 +4,31 @@ import { useState } from 'react';
 import type { UgcCharacterDto } from '../../../../types/admin/ugc';
 import { errorOf, ugcRequest } from './api';
 import { CharacterGrid } from './CharacterGrid';
-import { RealPersonPanel, type RealPersonReady } from './RealPersonPanel';
+import { RealPersonPanel } from './RealPersonPanel';
+import { ScriptFlowView } from './ScriptFlowView';
 import {
   EmptyState, ErrorLine, FileButton, MediaGridSkeleton, Pill, PrimaryButton, SecondaryButton, Section, Spinner,
+  fieldClass, labelClass,
 } from './ui';
+import { useScriptFlow, type ScriptReady } from './useScriptFlow';
 import { useUgcCharacters } from './useUgcCharacters';
 
 type CharacterPanelProps = {
   token: string;
   hook: string;
-  selectedId: string | null;
-  onCharacterSelected: (character: UgcCharacterDto) => void;
-  onRealPersonReady: (params: RealPersonReady) => void;
+  onReady: (ready: ScriptReady) => void;
 };
 
 type Reference = { key: string; url: string };
 
-const AiCharacters = ({ token, selectedId, onSelect }: { token: string; selectedId: string | null; onSelect: (c: UgcCharacterDto) => void }) => {
-  const { characters, error, loading, reload, add, archive } = useUgcCharacters(token, 'ai');
+type AiCharactersProps = {
+  token: string;
+  characters: ReturnType<typeof useUgcCharacters>;
+  selectedId: string | null;
+  onSelect: (c: UgcCharacterDto) => void;
+};
+
+const AiCharacters = ({ token, characters, selectedId, onSelect }: AiCharactersProps) => {
   const [reference, setReference] = useState<Reference | null>(null);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -49,7 +56,7 @@ const AiCharacters = ({ token, selectedId, onSelect }: { token: string; selected
       setActionError(res ? errorOf(res) : 'Generation failed');
       return;
     }
-    add(res.data.character);
+    characters.add(res.data.character);
     onSelect(res.data.character);
   }
 
@@ -74,35 +81,57 @@ const AiCharacters = ({ token, selectedId, onSelect }: { token: string; selected
         {actionError && <p className="text-[12px] text-red-700">{actionError}</p>}
       </div>
 
-      {loading && <MediaGridSkeleton count={6} />}
-      {error && <ErrorLine message={error} onRetry={reload} />}
-      {!loading && !error && characters.length === 0 && (
+      {characters.loading && <MediaGridSkeleton count={6} />}
+      {characters.error && <ErrorLine message={characters.error} onRetry={characters.reload} />}
+      {!characters.loading && !characters.error && characters.characters.length === 0 && (
         <EmptyState title="No AI characters yet." hint="Generate one above. It is saved for next time." />
       )}
-      {characters.length > 0 && <CharacterGrid characters={characters} selectedId={selectedId} onSelect={onSelect} onArchive={archive} />}
+      {characters.characters.length > 0 && (
+        <CharacterGrid characters={characters.characters} selectedId={selectedId} onSelect={onSelect} onArchive={characters.archive} />
+      )}
     </div>
   );
 };
 
-export function CharacterPanel({ token, hook, selectedId, onCharacterSelected, onRealPersonReady }: CharacterPanelProps) {
+/** Pick a photo or an AI character, then the same hook → scripts flow for both. */
+export function CharacterPanel({ token, hook, onReady }: CharacterPanelProps) {
   const [mode, setMode] = useState<'photo' | 'ai'>('photo');
+  const photos = useUgcCharacters(token, 'photo');
+  const aiCharacters = useUgcCharacters(token, 'ai');
+  const flow = useScriptFlow(token, hook, (c) => (c.kind === 'photo' ? photos.update(c) : aiCharacters.update(c)));
+  const selectedId = flow.selected?.id ?? null;
+
+  function switchMode(next: 'photo' | 'ai') {
+    if (next === mode) return;
+    setMode(next);
+    flow.reset();
+  }
 
   return (
     <Section
       title="Character"
       description={mode === 'photo'
         ? 'Use a photo. The video starts on this exact photo and keeps its place and light.'
-        : 'Use an AI portrait. Seedance keeps the look and invents the room.'}
+        : 'Use an AI portrait. Seedance keeps the look.'}
       actions={
         <>
-          <Pill active={mode === 'photo'} onClick={() => setMode('photo')}>Photo</Pill>
-          <Pill active={mode === 'ai'} onClick={() => setMode('ai')}>AI character</Pill>
+          <Pill active={mode === 'photo'} onClick={() => switchMode('photo')}>Photo</Pill>
+          <Pill active={mode === 'ai'} onClick={() => switchMode('ai')}>AI character</Pill>
         </>
       }
     >
-      {mode === 'photo'
-        ? <RealPersonPanel token={token} hook={hook} onReady={onRealPersonReady} />
-        : <AiCharacters token={token} selectedId={selectedId} onSelect={onCharacterSelected} />}
+      <div className="flex flex-col gap-4">
+        <label className={labelClass}>
+          Hook
+          <input value={flow.hookDraft} onChange={(e) => flow.setHookDraft(e.target.value)} placeholder="Pick one in Research or type it" className={fieldClass} />
+        </label>
+
+        {mode === 'photo'
+          ? <RealPersonPanel token={token} photos={photos} selectedId={selectedId} onSelect={(c) => void flow.choose(c)} />
+          : <AiCharacters token={token} characters={aiCharacters} selectedId={selectedId} onSelect={(c) => void flow.choose(c)} />}
+
+        <ScriptFlowView flow={flow} onReady={onReady} />
+      </div>
     </Section>
   );
 }

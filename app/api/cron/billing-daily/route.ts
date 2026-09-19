@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { saveGeneratingVideos } from '../../../../src/server/admin/ugcVideos';
 import { runDueAutopilot } from '../../../../src/server/calendar/autopilot';
 import { sendWeeklyDigests } from '../../../../src/server/calendar/digest';
 import { runGenerationTick } from '../../../../src/server/generation/poll';
@@ -19,6 +20,7 @@ export async function GET(req: Request): Promise<Response> {
   const drops = await runDueDrops().catch(() => 0);
   const autopilot = await runDueAutopilot().catch(() => 0);
   const digests = await sendWeeklyDigests().catch(() => 0);
+  const ugcVideosSaved = await saveGeneratingVideos().catch(() => 0);
   await runGenerationTick({ budgetMs: 20_000 });
-  return NextResponse.json({ ok: true, summary, storeSyncs, drops, autopilot, digests });
+  return NextResponse.json({ ok: true, summary, storeSyncs, drops, autopilot, digests, ugcVideosSaved });
 }

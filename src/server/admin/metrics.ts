@@ -13,13 +13,18 @@ const count = (rows: { key: string | null; n: number }[]): Record<string, number
 /** Funnel + unit economics for the last `days` days. */
 export const businessMetrics = async (days: number, now = new Date()): Promise<BusinessMetrics> => {
   const from = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-  const [brand, shop, completed, trials, paid, active, batches, ready, failed, redos, cost, paidWorkspaces] = await Promise.all([
+
+  // Run in two batches of 6 to avoid exhausting the connection pool (limit=20 but shared with UGC and
+  // other admin endpoints).  Each batch opens at most 6 connections; sequential batches reuse them.
+  const [brand, shop, completed, trials, paid, active] = await Promise.all([
     prisma.workspace.count({ where: { product: 'brand', createdAt: { gte: from } } }),
     prisma.workspace.count({ where: { product: 'shop', createdAt: { gte: from } } }),
     prisma.workspace.count({ where: { onboardingCompletedAt: { gte: from } } }),
     prisma.workspace.count({ where: { trialUsedAt: { gte: from } } }),
     prisma.payment.aggregate({ where: { state: 'paid', paidAt: { gte: from } }, _count: true, _sum: { amountUsdCents: true, paidVnd: true } }),
     prisma.subscription.groupBy({ by: ['planId'], where: { status: 'active', endsAt: { gt: now } }, _count: { _all: true } }),
+  ]);
+  const [batches, ready, failed, redos, cost, paidWorkspaces] = await Promise.all([
     prisma.batch.count({ where: { createdAt: { gte: from }, kind: { not: 'trial' } } }),
     prisma.batchItem.count({ where: { status: 'ready', createdAt: { gte: from } } }),
     prisma.batchItem.count({ where: { status: 'failed', createdAt: { gte: from } } }),

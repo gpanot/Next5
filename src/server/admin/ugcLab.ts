@@ -11,6 +11,9 @@ export type TrendingVideo = {
   author: string;
   views: number;
   likes: number;
+  /** When the video was posted (ISO), or null when TikTok did not say. */
+  posted_at: string | null;
+  /** The full spoken script. Empty when no transcript could be found. */
   raw_transcript: string;
   hook: string; // extracted by gpt-4o-mini
 };
@@ -216,13 +219,17 @@ function parseWebVtt(vtt: string): string {
     .trim();
 }
 
-/** Fetch transcript for a TikTok video URL. Returns plain text or empty string on failure. */
+/**
+ * Fetch the full transcript for a TikTok video URL. Returns plain text or empty string on failure.
+ * English captions first; when a video has none, ScrapeCreators transcribes the audio with AI
+ * (10 credits instead of 1, videos under 2 minutes only), so most videos come back with a script.
+ */
 export async function fetchTikTokTranscript(videoUrl: string): Promise<string> {
   if (!videoUrl) return '';
   try {
     const result = await tregCall<TranscriptResult>(
       'scrapecreators.x.v1-tiktok-video-transcript',
-      { query: { url: videoUrl }, timeoutMs: 30_000 },
+      { query: { url: videoUrl, language: 'en', use_ai_as_fallback: 'true' }, timeoutMs: 60_000 },
     );
     if (!result.success && !result.transcript) return '';
     const raw = result.transcript ?? result.captions ?? result.text ?? '';
