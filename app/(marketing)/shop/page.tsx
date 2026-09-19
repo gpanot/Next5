@@ -4,6 +4,7 @@ import { OfferHero } from '../../../src/components/marketing/offer/OfferHero';
 import { PostPhoneMock } from '../../../src/components/marketing/offer/PostPhoneMock';
 import { PromiseBlock } from '../../../src/components/marketing/offer/PromiseBlock';
 import { Testimonials } from '../../../src/components/marketing/offer/Testimonials';
+import { UgcOfferFor } from '../../../src/components/marketing/offer/UgcOffer';
 import { ValueStack } from '../../../src/components/marketing/offer/ValueStack';
 import { WhatYouGet } from '../../../src/components/marketing/offer/WhatYouGet';
 import { FaqAccordion } from '../../../src/components/marketing/shared/FaqAccordion';
@@ -18,10 +19,11 @@ import { MarketplaceFrames } from '../../../src/components/marketing/shop/Market
 import { ModelChoice } from '../../../src/components/marketing/shop/ModelChoice';
 import { SHOP } from '../../../src/content/business/marketing';
 import { OFFER } from '../../../src/content/business/offer';
+import { UGC } from '../../../src/content/business/ugc';
 
 export const metadata: Metadata = {
-  title: 'Next5 Shop — Your new drops, photographed every week',
-  description: 'Paste your TikTok Shop link. Get listing-ready photos of every new product, worn by a model, every week. Listing packs, descriptions and hashtags included.',
+  title: 'Next5 for TikTok Shop — Photos and UGC videos for every new drop',
+  description: 'Paste your TikTok Shop link. Get listing-ready photos of every new product, worn by a model, every week, plus UGC videos made by our team. Listing packs, descriptions and hashtags included.',
 };
 
 export default function ShopPage() {
@@ -35,16 +37,18 @@ export default function ShopPage() {
         <div className="mx-auto max-w-md"><BeforeAfterSlider /></div>
       </Section>
       <Section eyebrow="Not just photos" title="Every photo comes ready to sell." sub="Each photo gets a Scroll-Stop Score and a Post Kit: the hook, the product description and the hashtags."><WhatYouGet post={offer.example} shop /></Section>
-      <Section tone="sunken" eyebrow="The big question" title={offer.chatgpt.title} sub={offer.chatgpt.sub}><ChatGptCompare rows={offer.chatgpt.rows} /></Section>
-      <Section eyebrow="How it works" title="From your shop link to listing packs."><StepsGrid steps={SHOP.steps} /></Section>
-      <Section tone="sunken" eyebrow="Your brand" title="One look for your whole shop." sub="Pick a look that fits your shop. Every product comes out in the same light and place."><LooksGallery /></Section>
-      <Section eyebrow="Models" title="Wear it yourself, or pick one of our models."><ModelChoice /></Section>
-      <Section tone="sunken" eyebrow="Every size" title="Made for the places you sell."><MarketplaceFrames /></Section>
-      <Section eyebrow="The offer" title={offer.stack.title} align="center"><ValueStack {...offer.stack} cta={growth} /></Section>
-      <Section tone="sunken" eyebrow="Our promise" title="You can’t lose."><PromiseBlock matchPromise={offer.promiseMatch} /></Section>
-      <Testimonials items={offer.testimonials} />
-      <Section tone="sunken" id="pricing" eyebrow="Pricing" title="Pick your plan. Try it free first." sub="Growth is built for shops with 100 to 500 products and new stock every week."><PricingPreview product="shop" /></Section>
-      <Section eyebrow="FAQ" title="Your questions, answered." align="center"><FaqAccordion items={SHOP.faq} /></Section>
+      <Section tone="sunken" eyebrow={UGC.shop.eyebrow} title={UGC.shop.title} sub={UGC.shop.sub}><UgcOfferFor offer={UGC.shop} /></Section>
+      <Section eyebrow="The big question" title={offer.chatgpt.title} sub={offer.chatgpt.sub}><ChatGptCompare rows={offer.chatgpt.rows} /></Section>
+      <Section tone="sunken" eyebrow="How it works" title="From your shop link to listing packs."><StepsGrid steps={SHOP.steps} /></Section>
+      <Section eyebrow="Your brand" title="One look for your whole shop." sub="Pick a look that fits your shop. Every product comes out in the same light and place."><LooksGallery /></Section>
+      <Section tone="sunken" eyebrow="Models" title="Wear it yourself, or pick one of our models."><ModelChoice /></Section>
+      <Section eyebrow="Every size" title="Made for the places you sell."><MarketplaceFrames /></Section>
+      <Section tone="sunken" eyebrow="The offer" title={offer.stack.title} align="center"><ValueStack {...offer.stack} cta={growth} /></Section>
+      <Section eyebrow="Our promise" title="You can’t lose."><PromiseBlock matchPromise={offer.promiseMatch} /></Section>
+      <Testimonials items={offer.testimonials} tone="sunken" />
+      <Section id="pricing" eyebrow="Pricing" title="Pick your plan. Try it free first." sub="Growth is built for shops with 100 to 500 products and new stock every week. Every plan comes with UGC videos."><PricingPreview product="shop" /></Section>
+      <Section tone="sunken" eyebrow="FAQ" title="Your questions, answered." align="center"><FaqAccordion items={SHOP.faq} /></Section>
+      <div className="pt-16 sm:pt-24" />
       <FinalCtaBand title="Your next drop, listing-ready." body="Paste your shop link. We photograph your best seller for free." href={start.href} cta={start.label} />
       <StickyMobileCta href={start.href} label="Paste my shop link" />
     </>

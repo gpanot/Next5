@@ -8,8 +8,8 @@ import { useScrolled } from '../../../hooks/useScrolled';
 import { CtaLink } from './CtaLink';
 
 const LINKS = [
-  { href: '/brand', label: 'For professionals' },
-  { href: '/shop', label: 'For shops' },
+  { href: '/brand', label: 'For realtors' },
+  { href: '/shop', label: 'For TikTok Shop' },
   { href: '/pricing', label: 'Pricing' },
 ] as const;
 

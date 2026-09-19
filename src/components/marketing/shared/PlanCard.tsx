@@ -7,6 +7,7 @@ import {
   type Plan,
   type TermMonths,
 } from '../../../config/plans';
+import { ugcFeatureLine } from '../../../content/business/ugc';
 import { formatUsd } from '../../../lib/money';
 import { CtaLink } from './CtaLink';
 
@@ -16,7 +17,10 @@ export const PlanCard = ({ plan, term }: PlanCardProps) => {
   const monthly = getEffectiveMonthlyUsdCents(plan.id, term);
   const total = getTermPriceUsdCents(plan.id, term);
   const savings = getTermSavingsUsdCents(plan.id, term);
-  const productLabel = plan.product === 'brand' ? 'Brand' : 'Shop';
+  const productLabel = plan.product === 'brand' ? 'Realtor' : 'Shop';
+  // UGC videos are made by our team (not a studio feature), so the line sits beside plan.features, second.
+  const [first, ...rest] = plan.features;
+  const features = first === undefined ? [ugcFeatureLine(plan)] : [first, ugcFeatureLine(plan), ...rest];
 
   return (
     <article
@@ -39,7 +43,7 @@ export const PlanCard = ({ plan, term }: PlanCardProps) => {
         <p className="mt-3 text-[15px] text-app-ink">{plan.tagline}</p>
       </header>
       <ul className="flex flex-1 flex-col gap-2.5">
-        {plan.features.map((feature) => (
+        {features.map((feature) => (
           <li key={feature} className="flex gap-2.5 text-[14px] text-app-ink">
             <Check aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-app-accent" />
             {feature}

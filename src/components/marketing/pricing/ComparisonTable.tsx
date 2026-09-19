@@ -1,10 +1,12 @@
 import { Check, Minus } from 'lucide-react';
 import { plansForProduct, type Plan, type ProductLineId } from '../../../config/plans';
+import { ugcTableValue } from '../../../content/business/ugc';
 
 type Row = { label: string; value: (plan: Plan) => string | boolean };
 
 const ROWS: readonly Row[] = [
   { label: 'Photos every month', value: (p) => (p.contactOnly ? 'Custom' : p.monthlyCredits.toLocaleString('en-US')) },
+  { label: 'UGC videos every month, made by our team', value: ugcTableValue },
   { label: 'Products imported from your store', value: (p) => (p.storeProducts ? String(p.storeProducts) : false) },
   { label: 'Weekly drops + weekly store sync', value: (p) => p.drops },
   { label: 'TikTok listing packs', value: (p) => p.product === 'shop' },

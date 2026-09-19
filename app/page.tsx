@@ -8,8 +8,8 @@ import { isBusinessEnabled } from '../src/config/business';
 export const generateMetadata = (): Metadata =>
   isBusinessEnabled()
     ? {
-        title: 'Next5 — Photos of you that work as hard as you do',
-        description: 'On-brand photos for professionals and on-model photos for online shops, every month, without a photoshoot.',
+        title: 'Next5 — Photos and videos for realtors and TikTok Shop sellers',
+        description: 'New photos of you in your real listings, or of your products on a model. Plus UGC videos made by our team, every month, without a photoshoot.',
       }
     : { title: 'NEXT5 Photos — Your Next 5 Instagram Photos' };
 

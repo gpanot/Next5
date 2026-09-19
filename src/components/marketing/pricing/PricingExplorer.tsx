@@ -9,8 +9,8 @@ import { TermToggle } from '../shared/PricingPreview';
 import { ComparisonTable } from './ComparisonTable';
 
 const PRODUCT_OPTIONS = [
-  { value: 'professionals', label: 'For professionals' },
-  { value: 'shops', label: 'For online shops' },
+  { value: 'professionals', label: 'For realtors' },
+  { value: 'shops', label: 'For TikTok Shop' },
 ] as const;
 
 export const PricingExplorer = () => {

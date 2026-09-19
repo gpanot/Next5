@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { BusinessLogo } from './MarketingHeader';
 
 const COLUMNS = [
-  { title: 'Products', links: [{ href: '/brand', label: 'Brand Studio' }, { href: '/shop', label: 'Shop Studio' }, { href: '/photos', label: 'Next5 Photos' }] },
+  { title: 'Products', links: [{ href: '/brand', label: 'For realtors' }, { href: '/shop', label: 'For TikTok Shop' }] },
   { title: 'Company', links: [{ href: '/pricing', label: 'Pricing' }, { href: '/app', label: 'Log in' }, { href: 'mailto:hello@next5.studio', label: 'Contact' }] },
   { title: 'Legal', links: [{ href: '/legal/terms', label: 'Terms' }, { href: '/legal/privacy', label: 'Privacy' }, { href: '/legal/ai-and-face-data', label: 'AI & face data' }] },
 ] as const;
@@ -12,7 +12,7 @@ export const MarketingFooter = () => (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 sm:flex-row sm:justify-between">
       <div className="max-w-xs">
         <BusinessLogo />
-        <p className="mt-4 text-[14px] text-app-muted">On-brand and on-model photos, every month, without a photoshoot.</p>
+        <p className="mt-4 text-[14px] text-app-muted">Photos and UGC videos for realtors and TikTok Shop sellers, every month, without a photoshoot.</p>
       </div>
       <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
         {COLUMNS.map((column) => (
@@ -29,6 +29,6 @@ export const MarketingFooter = () => (
         ))}
       </div>
     </div>
-    <p className="mx-auto mt-10 max-w-6xl text-[12px] text-app-muted">© {new Date().getFullYear()} Next5. Photos are AI-generated and labelled as such.</p>
+    <p className="mx-auto mt-10 max-w-6xl text-[12px] text-app-muted">© {new Date().getFullYear()} Next5. Photos and videos are AI-generated and labelled as such.</p>
   </footer>
 );
