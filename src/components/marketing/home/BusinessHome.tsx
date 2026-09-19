@@ -1,4 +1,4 @@
-import { HOME_CHOOSER, HOME_FAQ, HOME_FINAL, HOME_MONTH, HOME_POST_KIT, HOME_PROOF, HOME_STEPS } from '../../../content/business/home';
+import { HOME_CHOOSER, HOME_FAQ, HOME_FINAL, HOME_MONTH, HOME_POST_KIT, HOME_PROOF } from '../../../content/business/home';
 import { HOME_TESTIMONIALS, OFFER, OFFER_HOME } from '../../../content/business/offer';
 import { UGC, UGC_HOME } from '../../../content/business/ugc';
 import { ChatGptCompare } from '../offer/ChatGptCompare';
@@ -10,9 +10,9 @@ import { WhatYouGet } from '../offer/WhatYouGet';
 import { FaqAccordion } from '../shared/FaqAccordion';
 import { FinalCtaBand } from '../shared/FinalCtaBand';
 import { Section } from '../shared/Section';
-import { StepsGrid } from '../shared/StepsGrid';
 import { StickyMobileCta } from '../shared/StickyMobileCta';
 import { HomeHero } from './HomeHero';
+import { HomeHowItWorks } from './HomeHowItWorks';
 import { HomeProof } from './HomeProof';
 import { MonthGrid } from './MonthGrid';
 import { ProductChooser } from './ProductChooser';
@@ -37,7 +37,7 @@ export const BusinessHome = () => (
     <Section eyebrow={UGC_HOME.eyebrow} title={UGC_HOME.title} sub={UGC_HOME.sub}><UgcOffer points={UGC_HOME.points} visual={<HomeUgcVisual />} /></Section>
     <Section tone="sunken" eyebrow={HOME_PROOF.eyebrow} title={HOME_PROOF.title} sub={HOME_PROOF.sub}><HomeProof /></Section>
     <Section eyebrow={HOME_POST_KIT.eyebrow} title={HOME_POST_KIT.title} sub={HOME_POST_KIT.sub}><WhatYouGet post={OFFER.brand.example} shop={false} /></Section>
-    <Section tone="sunken" eyebrow="How it works" title="Set it up once. Post all month."><StepsGrid steps={HOME_STEPS} /></Section>
+    <Section tone="sunken" eyebrow="How it works" title="Set it up once. Post all month."><HomeHowItWorks /></Section>
     <Section eyebrow="The big question" title={OFFER_HOME.chatgpt.title} sub={OFFER_HOME.chatgpt.sub}><ChatGptCompare rows={OFFER_HOME.chatgpt.rows} /></Section>
     <Section tone="sunken" id="studios" eyebrow={HOME_CHOOSER.eyebrow} title={HOME_CHOOSER.title}><ProductChooser /></Section>
     <Section eyebrow="Our promise" title="You can’t lose."><PromiseBlock matchPromise={OFFER_HOME.promiseMatch} /></Section>

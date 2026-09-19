@@ -14,7 +14,12 @@ export const BRAND = {
     { title: 'Get your photos and videos each month', body: 'Pick this month’s theme or one of your listings. Photos are ready in minutes. Our team sends your UGC videos.', image: `${IMG}/us/realtor-hero.png` },
   ],
   listings: {
-    image: `${IMG}/us/realtor-listing.png`,
+    /** Real listing photo in, the same room with the agent in it out. Made with the listing-mode edit model. */
+    slider: [
+      { id: 'living', label: 'Living room', before: `${IMG}/us/listing/living-before.png`, after: `${IMG}/us/listing/living-after.png` },
+      { id: 'kitchen', label: 'Kitchen', before: `${IMG}/us/listing/kitchen-before.png`, after: `${IMG}/us/listing/kitchen-after.png` },
+      { id: 'porch', label: 'Front yard', before: `${IMG}/us/listing/porch-before.png`, after: `${IMG}/us/listing/porch-after.png` },
+    ],
     points: [
       'Paste your Zillow link. We bring in the photos, price, beds and baths.',
       'Pick the rooms you want to be in. We put you inside those real rooms.',

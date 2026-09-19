@@ -1306,5 +1306,74 @@
     "bytes": 963760,
     "alt": "Real estate agent presenting beside a blank screen",
     "generatedAt": "2026-09-19T13:52:54.240Z"
+  },
+  "public/images/business/us/listing/living-before.png": {
+    "prompt": "Staged living room of a modern American suburban home for sale: light gray sofa with cream pillows, round wooden coffee table, jute rug, large black-framed windows with a green yard outside, white walls, light oak floors, a floor lamp and a potted fiddle leaf fig. Professional real estate listing photograph, vertical format, wide-angle 24mm lens at chest height, bright even daylight, straight vertical lines, empty of people, clean and tidy, realistic.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1827116,
+    "alt": "Listing photo of a bright living room with a gray sofa and large windows",
+    "generatedAt": "2026-09-19T14:17:21.531Z"
+  },
+  "public/images/business/us/listing/kitchen-before.png": {
+    "prompt": "Bright kitchen of a modern American farmhouse-style home for sale: white shaker cabinets, white marble island with three wooden stools, black pendant lights, subway tile backsplash, stainless steel range, window over the sink, light oak floors, a bowl of lemons on the island. Professional real estate listing photograph, vertical format, wide-angle 24mm lens at chest height, bright even daylight, straight vertical lines, empty of people, clean and tidy, realistic.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1504802,
+    "alt": "Listing photo of a white kitchen with a marble island",
+    "generatedAt": "2026-09-19T14:17:34.569Z"
+  },
+  "public/images/business/us/listing/porch-before.png": {
+    "prompt": "Front exterior of a charming blue-gray craftsman-style American home for sale: covered front porch with white columns, dark wood front door, two potted plants by the steps, concrete walkway through a green lawn, clear blue sky, late afternoon sun. Professional real estate listing photograph, vertical format, wide-angle 24mm lens at chest height, bright even daylight, straight vertical lines, empty of people, clean and tidy, realistic.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 2228039,
+    "alt": "Listing photo of the front porch of a craftsman home",
+    "generatedAt": "2026-09-19T14:17:46.176Z"
+  },
+  "public/images/business/us/listing/living-after.png": {
+    "prompt": "Place the woman from the second and third images (same face, hair, skin and age), wearing a navy blazer over a cream top and dark trousers into the first photo, standing beside the sofa and smiling at the camera with one hand gesturing toward the windows, natural relaxed pose, realistic scale and shadows. Keep the room from the first image exactly the same: same furniture, walls, windows, floors, doors, decor, layout, camera angle and lighting. Do not add, remove, move or restyle anything in the room. The only change is that she is now in it. Realistic real estate marketing photograph.",
+    "model": "google/nano-banana-2/edit",
+    "sources": [
+      "public/images/business/us/listing/living-before.png",
+      "public/images/business/us/brand/sets/studio-backdrop.png",
+      "public/images/business/us/brand/sets/modern-office.png"
+    ],
+    "size": "928x1152",
+    "outputSize": "928x1152",
+    "bytes": 1936279,
+    "alt": "The same living room with the real estate agent standing in it",
+    "generatedAt": "2026-09-19T14:18:48.193Z"
+  },
+  "public/images/business/us/listing/kitchen-after.png": {
+    "prompt": "Place the woman from the second and third images (same face, hair, skin and age), wearing a navy blazer over a cream top and dark trousers into the first photo, standing behind the marble island with both hands resting on it and smiling at the camera, realistic scale and shadows. Keep the room from the first image exactly the same: same furniture, walls, windows, floors, doors, decor, layout, camera angle and lighting. Do not add, remove, move or restyle anything in the room. The only change is that she is now in it. Realistic real estate marketing photograph.",
+    "model": "google/nano-banana-2/edit",
+    "sources": [
+      "public/images/business/us/listing/kitchen-before.png",
+      "public/images/business/us/brand/sets/studio-backdrop.png",
+      "public/images/business/us/brand/sets/modern-office.png"
+    ],
+    "size": "928x1152",
+    "outputSize": "928x1152",
+    "bytes": 1828366,
+    "alt": "The same kitchen with the real estate agent leaning on the island",
+    "generatedAt": "2026-09-19T14:18:57.189Z"
+  },
+  "public/images/business/us/listing/porch-after.png": {
+    "prompt": "Place the woman from the second and third images (same face, hair, skin and age), wearing a navy blazer over a cream top and dark trousers into the first photo, standing on the front walkway in the foreground, close to the camera, three-quarter body filling the lower half of the frame, smiling at the camera with a welcoming open-hand gesture toward the house behind her, realistic scale, perspective and shadows. Keep the room from the first image exactly the same: same furniture, walls, windows, floors, doors, decor, layout, camera angle and lighting. Do not add, remove, move or restyle anything in the room. The only change is that she is now in it. Realistic real estate marketing photograph.",
+    "model": "google/nano-banana-2/edit",
+    "sources": [
+      "public/images/business/us/listing/porch-before.png",
+      "public/images/business/us/brand/sets/studio-backdrop.png",
+      "public/images/business/us/brand/sets/modern-office.png"
+    ],
+    "size": "928x1152",
+    "outputSize": "928x1152",
+    "bytes": 2188058,
+    "alt": "The same front porch with the real estate agent welcoming at the door",
+    "generatedAt": "2026-09-19T14:20:30.293Z"
   }
 }

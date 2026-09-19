@@ -1,13 +1,13 @@
 import { Check } from 'lucide-react';
 import { BRAND } from '../../../content/business/marketing';
 import { ImportSourcesRow } from '../offer/ImportSources';
-import { MarketingImage } from '../shared/MarketingImage';
+import { BeforeAfterSlider } from '../shop/BeforeAfterSlider';
 
-/** Realtor listing mode: paste a Zillow link, appear in the real rooms, post for every listing moment. */
+/** Realtor listing mode: the listing photo in, the same room with her in it out. Then the rules and the moments. */
 export const ListingMode = () => (
   <div className="grid items-center gap-8 md:grid-cols-2 md:gap-12">
-    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-app-sunken shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-      <MarketingImage src={BRAND.listings.image} sizes="(min-width: 768px) 45vw, 100vw" caption="Example photo" />
+    <div className="mx-auto w-full max-w-md">
+      <BeforeAfterSlider samples={BRAND.listings.slider} beforeLabel="Listing photo" ariaLabel="Compare the listing photo and the same room with the agent in it" />
     </div>
     <div className="flex flex-col gap-5">
       <ImportSourcesRow sources={['zillow']} />

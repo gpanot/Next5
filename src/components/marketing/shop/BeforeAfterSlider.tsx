@@ -7,9 +7,18 @@ import { hasManifestImage } from '../../../lib/manifest';
 import { Chip } from '../../ui/Chip';
 import { MarketingImage } from '../shared/MarketingImage';
 
-/** Compare the product photo with the on-model result: hover (desktop), horizontal slide (mobile — vertical still scrolls), or arrow keys. */
-export const BeforeAfterSlider = () => {
-  const samples = SHOP.slider.filter((s) => hasManifestImage(s.before) && hasManifestImage(s.after));
+export type SliderSample = { id: string; label: string; before: string; after: string };
+
+type BeforeAfterSliderProps = {
+  /** Defaults to the Shop product samples. */
+  samples?: readonly SliderSample[];
+  beforeLabel?: string;
+  ariaLabel?: string;
+};
+
+/** Compare the input photo with the Next5 result: hover (desktop), horizontal slide (mobile — vertical still scrolls), or arrow keys. */
+export const BeforeAfterSlider = ({ samples: input = SHOP.slider, beforeLabel = 'Your photo', ariaLabel = 'Compare product photo and on-model photo' }: BeforeAfterSliderProps) => {
+  const samples = input.filter((s) => hasManifestImage(s.before) && hasManifestImage(s.after));
   const [activeId, setActiveId] = useState(samples[0]?.id ?? '');
   const frame = useRef<HTMLDivElement>(null);
   const { position, setPosition, holding, touched, onPointerMove } = useRevealPointer(frame);
@@ -28,7 +37,7 @@ export const BeforeAfterSlider = () => {
         ref={frame}
         role="slider"
         tabIndex={0}
-        aria-label="Compare product photo and on-model photo"
+        aria-label={ariaLabel}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={Math.round(position)}
@@ -41,7 +50,7 @@ export const BeforeAfterSlider = () => {
         <div className="absolute inset-0" style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}>
           <MarketingImage key={`b-${sample.id}`} src={sample.before} sizes="(min-width: 1024px) 45vw, 100vw" priority />
         </div>
-        <span className="label-caps absolute left-3 top-3 rounded-full bg-black/50 px-2.5 py-1 text-[9px] font-medium text-white">Your photo</span>
+        <span className="label-caps absolute left-3 top-3 rounded-full bg-black/50 px-2.5 py-1 text-[9px] font-medium text-white">{beforeLabel}</span>
         <span className="label-caps absolute right-3 top-3 rounded-full bg-app-accent px-2.5 py-1 text-[9px] font-medium text-app-accent-ink">Next5</span>
         <div className="pointer-events-none absolute inset-y-0 w-0.5 bg-white shadow" style={{ left: `${position}%` }}>
           <span className={`absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[13px] text-ink shadow-md transition-transform duration-200 ${holding ? 'scale-125' : ''}`}>↔</span>

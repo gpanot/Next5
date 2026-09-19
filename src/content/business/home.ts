@@ -61,6 +61,11 @@ export const HOME_PROOF = {
   title: 'Your product in. A model wearing it out.',
   sub: 'Slide across the photo. Left is the plain photo. Right is what Next5 made.',
   points: ['Same color, print and length.', 'Worn by you or one of our models.', 'Ready in minutes.'],
+  kit: {
+    title: 'The words come with it',
+    sub: 'Hook, description and hashtags, written like top-selling posts.',
+    example: 'Example · the dress',
+  },
   cta: 'Get 3 free photos',
 };
 
@@ -95,10 +100,29 @@ export const HOME_CHOOSER = {
   ],
 };
 
+const CAL = `${US}/brand`;
+
+/** One example month on Growth: posts on Tue, Thu and Sat. Saturday posts are the videos. */
+export const HOME_CALENDAR = {
+  month: 'Your month',
+  /** Day 1 falls on a Tuesday (Monday-first week). */
+  firstWeekday: 1,
+  days: 30,
+  postWeekdays: [1, 3, 5],
+  videoWeekday: 5,
+  photos: [
+    `${CAL}/themes/just-listed.png`, `${CAL}/sets/modern-office.png`, `${CAL}/themes/open-house.png`,
+    `${CAL}/sets/neighborhood-cafe.png`, `${CAL}/themes/client-meeting.png`, `${CAL}/sets/listing-interior.png`,
+    `${CAL}/sets/urban-outdoor.png`, `${CAL}/sets/home-office.png`, `${CAL}/sets/studio-backdrop.png`,
+  ],
+  videos: [`${US}/realtor-video.png`, `${CAL}/themes/behind-the-scenes.png`, `${CAL}/themes/market-update.png`, `${CAL}/themes/new-year-goals.png`],
+  caption: 'Example month on Growth. 3 posts a week, placed for you. 4 of them are videos.',
+};
+
 export const HOME_STEPS = [
   { title: 'Send your photos', body: 'Realtors send 3 selfies. Sellers paste their shop link.' },
   { title: 'Pick a look', body: 'Pick a place and a style. It stays the same every month.' },
-  { title: 'Post all month', body: 'Get your photos in minutes. Our team sends your videos.' },
+  { title: 'Post all month', body: 'Your photos land on your calendar. Our team sends your videos.' },
 ];
 
 const brand = STARTER.brand;

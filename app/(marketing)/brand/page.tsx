@@ -33,7 +33,7 @@ export default function BrandPage() {
     <>
       <OfferHero {...offer.hero} cta={start} secondary={{ href: '#pricing', label: 'See pricing' }} platforms={offer.platforms} sources={offer.sources} visual={<PostPhoneMock post={offer.example} handle="your.name" priority />} />
       <Section tone="sunken" eyebrow="Not just photos" title="Every photo comes ready to post." sub="Each photo gets a Scroll-Stop Score and a Post Kit: the hook, the caption and the hashtags."><WhatYouGet post={offer.example} shop={false} /></Section>
-      <Section eyebrow="Your listings" title="Show up inside your real listings." sub="Paste a Zillow link or upload your photos. Get a post for every step of the sale."><ListingMode /></Section>
+      <Section eyebrow="Your listings" title="Show up inside your real listings." sub="Slide across the photo. Left is the listing photo. Right is you, in the same room. Nothing in the home changes."><ListingMode /></Section>
       <Section tone="sunken" eyebrow={UGC.brand.eyebrow} title={UGC.brand.title} sub={UGC.brand.sub}><UgcOfferFor offer={UGC.brand} /></Section>
       <Section eyebrow="The big question" title={offer.chatgpt.title} sub={offer.chatgpt.sub}><ChatGptCompare rows={offer.chatgpt.rows} /></Section>
       <Section tone="sunken" eyebrow="How it works" title="Five minutes. A whole month of posts."><StepsGrid steps={BRAND.steps} /></Section>
