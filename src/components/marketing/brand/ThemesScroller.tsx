@@ -1,4 +1,5 @@
 import { THEMES } from '../../../content/business/catalog/themes';
+import { themeCover } from '../../../content/business/marketingCovers';
 import { MarketingImage } from '../shared/MarketingImage';
 
 const monthLabel = (month: string | null): string | null =>
@@ -13,7 +14,7 @@ export const ThemesScroller = () => {
         {ordered.map((theme) => (
           <li key={theme.id} className="flex w-56 snap-start flex-col gap-3 sm:w-64">
             <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-app-sunken ring-1 ring-black/5 dark:ring-white/10">
-              <MarketingImage src={theme.coverImage} sizes="256px" caption={`${theme.scenes.length} scenes`} />
+              <MarketingImage src={themeCover(theme.id, theme.coverImage)} sizes="256px" caption={`${theme.scenes.length} scenes`} />
             </div>
             <div>
               <p className="label-caps text-[10px] font-medium text-app-accent">{monthLabel(theme.featuredMonth) ?? 'Any time'}</p>

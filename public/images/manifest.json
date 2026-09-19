@@ -1033,5 +1033,278 @@
     "bytes": 320065,
     "alt": "Studio model Elena, 44, full body",
     "generatedAt": "2026-09-16T08:11:48.540Z"
+  },
+  "public/images/business/us/shop-video.png": {
+    "prompt": "A young white American woman in her mid 20s with wavy auburn hair, wearing a beige trench coat over a white t-shirt, holding the coat lapel and smiling at the camera in a bright apartment bedroom with a clothing rail behind her. Casual selfie-style framing at eye level, natural daylight, realistic candid photograph, clean full frame photo with nothing overlaid. Face and coat in the upper half of the frame, calm lower area.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "864x1536",
+    "outputSize": "864x1536",
+    "bytes": 2149451,
+    "alt": "Young woman showing a beige trench coat to the camera in her bright bedroom",
+    "generatedAt": "2026-09-19T13:30:32.746Z"
+  },
+  "public/images/business/us/realtor-listing.png": {
+    "prompt": "A white American woman real estate agent in her late 30s with blonde hair in a low ponytail, wearing a camel blazer and white blouse, gesturing toward large windows while touring a bright staged living room with light oak floors and a neutral sofa in a modern American home for sale. Soft overcast daylight through the windows, calm warm neutral palette. Realistic editorial photograph, 35mm lens, natural skin texture, subject on the right third of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 1557067,
+    "alt": "Real estate agent touring a bright living room in a home for sale",
+    "generatedAt": "2026-09-19T13:29:43.987Z"
+  },
+  "public/images/business/us/realtor-hero.png": {
+    "prompt": "A friendly white American woman real estate agent in her early 40s with shoulder-length light brown hair, wearing a tailored navy blazer over a cream top, smiling warmly while standing at the open front door of a bright modern farmhouse-style home in a US suburb, holding a set of house keys. Soft late-afternoon daylight, white porch, green lawn. Realistic editorial photograph, shot on a 50mm lens, shallow depth of field, natural skin texture. Subject centered in the upper two thirds of the frame, calm space at the bottom for a caption overlay.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1484847,
+    "alt": "Real estate agent smiling at the front door of a bright suburban home, holding keys",
+    "generatedAt": "2026-09-19T13:29:44.392Z"
+  },
+  "public/images/business/us/realtor-video.png": {
+    "prompt": "Vertical smartphone video still: a white American woman real estate agent in her early 40s with shoulder-length light brown hair, wearing a navy blazer, talking to the camera with an open friendly expression and one hand raised mid-gesture, standing in the bright modern kitchen of a home for sale. Handheld phone camera look at eye level, natural window light, authentic social media creator style, realistic photograph. Face in the upper third of the frame, calm plain lower area for captions.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "864x1536",
+    "outputSize": "864x1536",
+    "bytes": 1663243,
+    "alt": "Real estate agent talking to the camera in a bright kitchen, filmed on a phone",
+    "generatedAt": "2026-09-19T13:29:45.235Z"
+  },
+  "public/images/business/us/shop-dress-after.png": {
+    "prompt": "Photograph a white American woman model in her late 20s with light brown hair in a low bun wearing this exact sage green satin midi slip dress. The hem falls to mid-calf, below the knee, exactly as long as in the reference. Keep the product exactly the same as in the reference photo: same color, fabric, texture, print, length, straps, neckline, buttons and details. Do not add logos or text. Full body, relaxed standing pose against a warm beige plaster wall, soft window light, realistic e-commerce fashion photo.",
+    "model": "google/nano-banana-2/edit",
+    "source": "public/images/business/shop/slider/dress-before.png",
+    "size": "928x1152",
+    "outputSize": "928x1152",
+    "bytes": 1659665,
+    "alt": "Model wearing the same sage green slip dress",
+    "generatedAt": "2026-09-19T13:35:21.292Z"
+  },
+  "public/images/business/us/shop-set-after.png": {
+    "prompt": "Photograph a white American woman model in her early 30s with shoulder-length blonde hair wearing this exact cream knit cardigan and skirt set. Keep the product exactly the same as in the reference photo: same color, fabric, texture, print, length, straps, neckline, buttons and details. Do not add logos or text. Full body, relaxed standing pose against a warm beige plaster wall, soft window light, realistic e-commerce fashion photo.",
+    "model": "google/nano-banana-2/edit",
+    "source": "public/images/business/shop/slider/set-before.png",
+    "size": "928x1152",
+    "outputSize": "928x1152",
+    "bytes": 1664907,
+    "alt": "Model wearing the same cream knit cardigan and skirt set",
+    "generatedAt": "2026-09-19T13:31:40.944Z"
+  },
+  "public/images/business/us/shop-bag-after.png": {
+    "prompt": "Photograph a white American woman model in her late 20s with light brown hair carrying this exact tan leather shoulder bag on her shoulder, wearing a simple cream knit top and light wash jeans. Keep the product exactly the same as in the reference photo: same color, fabric, texture, print, length, straps, neckline, buttons and details. Do not add logos or text. Three-quarter body, relaxed pose against a warm beige plaster wall, soft window light, realistic e-commerce fashion photo.",
+    "model": "google/nano-banana-2/edit",
+    "source": "public/images/business/shop/slider/bag-before.png",
+    "size": "928x1152",
+    "outputSize": "928x1152",
+    "bytes": 1427466,
+    "alt": "Model carrying the same tan leather shoulder bag",
+    "generatedAt": "2026-09-19T13:33:52.755Z"
+  },
+  "public/images/business/us/realtor-open-house.png": {
+    "prompt": "A white American man real estate agent in his late 30s with short dark blond hair, wearing a light blue button-down shirt and navy chinos, smiling and welcoming guests with an open hand gesture in the bright dining room of a staged American home during an open house, flowers on the table. Soft natural daylight, warm neutral palette. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, subject centered.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1797672,
+    "alt": "Real estate agent welcoming visitors at an open house in a bright dining room",
+    "generatedAt": "2026-09-19T13:41:29.857Z"
+  },
+  "public/images/business/us/realtor-front-yard.png": {
+    "prompt": "A white American woman real estate agent in her early 50s with short silver-blonde hair, wearing a burgundy blazer and black top, smiling confidently with arms relaxed while standing on the front walkway of a charming craftsman-style house with a porch and autumn trees in a US neighborhood. Golden hour sunlight, warm tones. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, subject centered in the upper two thirds.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 2666564,
+    "alt": "Real estate agent smiling in front of a craftsman house for sale",
+    "generatedAt": "2026-09-19T13:41:43.053Z"
+  },
+  "public/images/business/us/brand/sets/modern-office.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a charcoal blazer and holding a tablet, standing in a bright modern office with glass walls and a softly blurred city view. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1564651,
+    "alt": "Real estate agent in a bright glass-walled office",
+    "generatedAt": "2026-09-19T13:48:41.747Z"
+  },
+  "public/images/business/us/brand/sets/listing-interior.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a cream pantsuit, sitting on the arm of a cream sofa in a staged luxury living room with tall windows and linen curtains. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1636403,
+    "alt": "Real estate agent in a staged luxury living room",
+    "generatedAt": "2026-09-19T13:48:50.544Z"
+  },
+  "public/images/business/us/brand/sets/neighborhood-cafe.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a soft beige cardigan over a white tee, smiling at a café window table with a laptop and a ceramic coffee cup, plants and warm wood blurred behind. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 2284846,
+    "alt": "Real estate agent at a café table by the window",
+    "generatedAt": "2026-09-19T13:48:58.748Z"
+  },
+  "public/images/business/us/brand/sets/studio-backdrop.png": {
+    "prompt": "Head-and-shoulders portrait of a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a black blazer over a cream top, against a seamless warm grey studio backdrop. Classic professional headshot lighting. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1217439,
+    "alt": "Classic professional portrait on a warm grey backdrop",
+    "generatedAt": "2026-09-19T13:49:06.700Z"
+  },
+  "public/images/business/us/brand/sets/urban-outdoor.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a camel trench coat and holding a phone, walking toward the camera on a clean modern city sidewalk with glass and stone facades at golden hour. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1705420,
+    "alt": "Real estate agent walking on a modern street at golden hour",
+    "generatedAt": "2026-09-19T13:49:16.509Z"
+  },
+  "public/images/business/us/brand/sets/home-office.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a blush pink blouse, sitting at a tidy home office desk with bookshelves and green plants behind her, hands folded. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 2092740,
+    "alt": "Real estate agent at a home office desk with bookshelves",
+    "generatedAt": "2026-09-19T13:49:29.075Z"
+  },
+  "public/images/business/us/brand/themes/just-listed.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a light cream blazer, standing in the open wooden front door of a bright modern American home, arm gesturing inward in welcome, potted olive tree beside the door. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1763904,
+    "alt": "Real estate agent welcoming at the front door of a modern home",
+    "generatedAt": "2026-09-19T13:49:39.378Z"
+  },
+  "public/images/business/us/brand/themes/client-meeting.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a light beige blouse, listening and taking notes at a wooden table, a client seen from behind and out of focus in the foreground. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1428530,
+    "alt": "Real estate agent talking with a client across a table",
+    "generatedAt": "2026-09-19T13:49:57.964Z"
+  },
+  "public/images/business/us/brand/themes/behind-the-scenes.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a sand-colored blazer, laughing on a phone call and holding a plain takeaway coffee cup while walking along a bright corridor, candid. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1455805,
+    "alt": "Real estate agent laughing on a phone call with a coffee",
+    "generatedAt": "2026-09-19T13:50:08.815Z"
+  },
+  "public/images/business/us/brand/themes/new-year-goals.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a cream knit sweater, writing in a linen-covered planner at a table by a window with golden sunrise light. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 2048227,
+    "alt": "Real estate agent writing in a planner by a sunrise window",
+    "generatedAt": "2026-09-19T13:50:17.500Z"
+  },
+  "public/images/business/us/brand/themes/holiday-greetings.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a burgundy knit sweater, waving warmly at the camera in a cozy living room with warm string-light bokeh and gifts wrapped in plain kraft paper. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1935553,
+    "alt": "Real estate agent waving in a cozy festive living room",
+    "generatedAt": "2026-09-19T13:50:30.131Z"
+  },
+  "public/images/business/us/brand/themes/tet-greetings.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing an elegant red silk dress, holding a plain red envelope and smiling beside a vase of pink blossom branches in a bright modern living room, Lunar New Year mood. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1863336,
+    "alt": "Real estate agent holding a red envelope beside blossom branches",
+    "generatedAt": "2026-09-19T13:50:39.512Z"
+  },
+  "public/images/business/us/brand/themes/open-house.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a cream sweater and light trousers, placing a vase of white flowers on a wooden dining table in a bright staged home for an open house. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1885174,
+    "alt": "Real estate agent placing flowers in a staged dining room",
+    "generatedAt": "2026-09-19T13:50:48.795Z"
+  },
+  "public/images/business/us/brand/step-selfies.png": {
+    "prompt": "Three smartphones lying side by side on a warm beige surface, each screen showing a casual selfie of the same white American woman in her early 40s with shoulder-length light brown hair: one looking straight at the camera, one turned slightly left, one turned slightly right. Even soft daylight on her face, plain background, top-down product photograph, clean composition.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1216x912",
+    "outputSize": "1216x912",
+    "bytes": 1556500,
+    "alt": "Three smartphone selfies of the same woman from slightly different angles",
+    "generatedAt": "2026-09-19T13:50:59.753Z"
+  },
+  "public/images/business/us/shop/looks/clean-white.png": {
+    "prompt": "A white American woman model in her late 20s with straight blonde hair, wearing a black blazer mini dress and nude heels, standing relaxed in a seamless light grey to white studio. Realistic e-commerce fashion photograph, full body, natural skin texture, subject centered with even margin around her.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 408800,
+    "alt": "Model in a white studio wearing a black blazer dress",
+    "generatedAt": "2026-09-19T13:51:06.717Z"
+  },
+  "public/images/business/us/shop/looks/beige-wall.png": {
+    "prompt": "A white American woman model in her mid 20s with wavy brown hair, wearing a cream puff-sleeve blouse and rust wide-leg trousers, leaning against a warm beige plaster wall with soft window light shadows. Realistic e-commerce fashion photograph, full body, natural skin texture, subject centered with even margin around her.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1982353,
+    "alt": "Model against a warm plaster wall in a cream blouse",
+    "generatedAt": "2026-09-19T13:51:15.178Z"
+  },
+  "public/images/business/us/shop/looks/cafe-lifestyle.png": {
+    "prompt": "A white American woman model in her mid 20s with long light brown hair, wearing a blue and white striped shirt and denim shorts, holding an iced coffee in a bright sunny café with light wood and plants. Realistic e-commerce fashion photograph, full body, natural skin texture, subject centered with even margin around her.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 2360991,
+    "alt": "Model in a café wearing a striped shirt",
+    "generatedAt": "2026-09-19T13:51:26.739Z"
+  },
+  "public/images/business/us/shop/looks/street-urban.png": {
+    "prompt": "A white American woman model in her late 20s with shoulder-length red hair, wearing an olive trench coat, white tee and straight jeans, walking toward the camera on a clean modern city street between pale stone buildings. Realistic e-commerce fashion photograph, full body, natural skin texture, subject centered with even margin around her.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1519120,
+    "alt": "Model walking on a clean city street in a trench coat",
+    "generatedAt": "2026-09-19T13:51:35.107Z"
+  },
+  "public/images/business/us/shop/looks/boutique-rack.png": {
+    "prompt": "A white American woman model in her early 30s with long dark blonde hair, wearing a fitted taupe ribbed knit maxi dress, standing in a minimal boutique with a wooden clothing rail of neutral garments behind her. Realistic e-commerce fashion photograph, full body, natural skin texture, subject centered with even margin around her.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1117589,
+    "alt": "Model in a minimal boutique wearing a knit dress",
+    "generatedAt": "2026-09-19T13:51:45.608Z"
+  },
+  "public/images/business/us/shop/looks/resort.png": {
+    "prompt": "A white American woman model in her mid 20s with wavy blonde hair and a straw sun hat, wearing a white linen sundress, standing on a sunny pool terrace with palm trees. Realistic e-commerce fashion photograph, full body, natural skin texture, subject centered with even margin around her.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 2617241,
+    "alt": "Model on a sunny pool terrace in a linen dress",
+    "generatedAt": "2026-09-19T13:51:54.288Z"
+  },
+  "public/images/business/us/brand/themes/market-update.png": {
+    "prompt": "a white American woman real estate agent in her early 40s with shoulder-length light brown hair and a warm natural smile, wearing a navy blazer, pointing toward a completely blank wall-mounted screen while looking at the camera in a bright meeting room. Realistic editorial photograph, 50mm lens, shallow depth of field, natural skin texture, soft natural light, warm neutral palette, subject centered in the upper two thirds of the frame.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 963760,
+    "alt": "Real estate agent presenting beside a blank screen",
+    "generatedAt": "2026-09-19T13:52:54.240Z"
   }
 }

@@ -1,4 +1,5 @@
 import { BRAND_TEMPLATES } from '../../../content/business/catalog/templates';
+import { setCover } from '../../../content/business/marketingCovers';
 import { MarketingImage } from '../shared/MarketingImage';
 
 export const SetsGallery = () => (
@@ -7,7 +8,7 @@ export const SetsGallery = () => (
       <li key={template.id} className="group flex flex-col gap-3">
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-app-sunken ring-1 ring-black/5 dark:ring-white/10">
           <MarketingImage
-            src={template.coverImage}
+            src={setCover(template.id, template.coverImage)}
             sizes="(min-width: 1024px) 30vw, 45vw"
             className="transition-transform duration-500 group-hover:scale-[1.03]"
             caption={`Style ${String(index + 1).padStart(2, '0')} · ${template.name}`}

@@ -58,7 +58,7 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
       note: 'No card needed. Takes about 5 minutes.',
     },
     example: {
-      image: `${IMG}/brand/hero-main.png`,
+      image: `${IMG}/us/realtor-hero.png`,
       score: 88,
       details: { version: 1, criteria: { stop: 9, subject: 9, thumbnail: 8, light: 9, fresh: 8, real: 9 }, tip: 'Post it Tuesday evening with a question in the first line.', bestFor: 'feed' },
       hook: 'The one thing buyers notice first in a home',
@@ -70,7 +70,7 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
       sub: 'You can try. Here is what happens when you post every week.',
       rows: [
         { topic: 'Your face', chatgpt: 'Changes a little in every photo. People notice.', next5: 'Looks like you in every photo, every month.' },
-        { topic: 'Your time', chatgpt: 'Write a prompt, wait, fix it, try again. One photo at a time.', next5: '30 photos in every size, in one click.' },
+        { topic: 'Your time', chatgpt: 'Write a prompt, wait, fix it, try again. One photo at a time.', next5: 'Your month of photos in every size, in one click.' },
         { topic: 'What to post', chatgpt: 'You still have to think of the post.', next5: 'Hook, caption and hashtags written for each photo.' },
         { topic: 'When to post', chatgpt: 'You decide, every single time.', next5: 'Your month is already planned, on the days you pick.' },
         { topic: 'Trends', chatgpt: 'You guess what is popular.', next5: 'New trend themes every month, made for your job.' },
@@ -111,7 +111,7 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
       note: 'No card needed. We photograph your best seller for free.',
     },
     example: {
-      image: `${IMG}/shop/slider/dress-after.png`,
+      image: `${IMG}/us/shop-dress-after.png`,
       before: `${IMG}/shop/slider/dress-before.png`,
       score: 91,
       details: { version: 1, criteria: { stop: 9, subject: 10, thumbnail: 9, light: 9, fresh: 9, real: 9 }, tip: 'Use it as your first listing photo and your video cover.', bestFor: 'listing' },
@@ -159,19 +159,12 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
 
 export const OFFER_HOME = {
   platforms: ['tiktok', 'instagram', 'facebook', 'linkedin'] as readonly PlatformId[],
-  sources: ['zillow', 'tiktok_shop'] as readonly ImportSourceId[],
-  hero: {
-    eyebrow: 'For realtors and TikTok Shop sellers',
-    title: 'Your photos and videos for the month. Done for you.',
-    sub: 'Realtors get new photos of themselves. TikTok Shop sellers get their products on a model. Both get UGC videos made by our team, plus the hook, caption and hashtags. No photo shoot.',
-    note: 'Your first 3 photos are free. No card needed.',
-  },
   chatgpt: {
     title: 'Why not just use ChatGPT?',
     sub: 'You can make one photo. Posting every week is a different job.',
     rows: [
       { topic: 'You or your product', chatgpt: 'Your face or your product changes a little every time.', next5: 'Stays true in every photo, checked with free redos.' },
-      { topic: 'Your time', chatgpt: 'One photo at a time. Prompts, fixes, crops.', next5: '30 photos in every size, in one click.' },
+      { topic: 'Your time', chatgpt: 'One photo at a time. Prompts, fixes, crops.', next5: 'Your month of photos in one click.' },
       { topic: 'What to post', chatgpt: 'You still write every post.', next5: 'Hook, caption and hashtags written for each photo.' },
       { topic: 'Will it work?', chatgpt: 'No way to know before you post.', next5: 'A Scroll-Stop Score and a tip for every photo.' },
       { topic: 'Your brand', chatgpt: 'A new look every time.', next5: 'The same style on every post, every month.' },

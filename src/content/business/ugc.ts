@@ -63,7 +63,7 @@ export const UGC: { brand: UgcOffer; shop: UgcOffer } = {
     sub: 'Short videos are how new buyers and sellers find you. Each month our team makes UGC videos for your page: a strong hook, a short script and captions on screen.',
     points: [`${videoCount(UGC_VIDEOS_PER_MONTH.brand_pro ?? 0)} a month on Growth. 1 on Starter.`, 'Hooks taken from real estate videos that already do well.', ...SHARED_POINTS],
     video: {
-      poster: `${IMG}/brand/themes/just-listed.png`,
+      poster: `${IMG}/us/realtor-video.png`,
       handle: 'your.name',
       captions: ['3 things buyers', 'check first', 'at a showing'],
       duration: '0:15',
@@ -75,7 +75,7 @@ export const UGC: { brand: UgcOffer; shop: UgcOffer } = {
     sub: 'On TikTok Shop, people find products in videos. Each month our team makes UGC videos for your best sellers: a strong hook, a short script and captions on screen.',
     points: [`${videoCount(UGC_VIDEOS_PER_MONTH.shop_pro ?? 0)} a month on Growth. 1 on Starter.`, 'Hooks taken from TikTok Shop videos that already sell.', ...SHARED_POINTS],
     video: {
-      poster: `${IMG}/shop/looks/street-urban.png`,
+      poster: `${IMG}/us/shop-video.png`,
       handle: 'your.shop',
       captions: ['The coat I wear', 'every single day', 'this fall'],
       duration: '0:12',
