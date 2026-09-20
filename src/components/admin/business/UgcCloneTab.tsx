@@ -470,8 +470,34 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         </Notice>
       </Section>
 
-      {/* ── Step 1: Character image ────────────────────────────────────────── */}
-      <Section title="1 · Character image" description="The face and look of the new performer">
+      {/* ── Step 1: Duration ──────────────────────────────────────────────── */}
+      <Section title="1 · Duration" description="How many seconds to generate — the reference video is trimmed to match">
+        <div className="grid grid-cols-5 gap-2">
+          {MAX_DURATION_OPTIONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => {
+                setMaxDurationSec(s);
+                if (refVideoFileRef.current) void uploadVideo(refVideoFileRef.current, s);
+              }}
+              className={`flex flex-col items-center justify-center rounded-xl border py-3 text-[13px] font-medium transition-colors ${
+                maxDurationSec === s
+                  ? 'border-ink bg-ink text-white'
+                  : 'border-line bg-white text-ink hover:bg-surface-alt'
+              }`}
+            >
+              <span className="text-[15px] font-semibold">{s}s</span>
+              <span className={`text-[11px] ${maxDurationSec === s ? 'text-white/70' : 'text-muted'}`}>
+                ≈ {estimateCost(s)}
+              </span>
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      {/* ── Step 2: Character image ────────────────────────────────────────── */}
+      <Section title="2 · Character image" description="The face and look of the new performer">
         <DropZone
           title="Character photo"
           subtitle="JPEG, PNG, or WebP · max 12 MB · portrait works best"
@@ -505,28 +531,8 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         {characterError && <ErrorLine message={characterError} />}
       </Section>
 
-      {/* ── Step 2: Reference video ────────────────────────────────────────── */}
-      <Section title="2 · Reference video" description="The TikTok scene to clone — first frame used as scene anchor">
-        {/* Duration dropdown — choose BEFORE uploading so the server trims on upload */}
-        <label className="flex flex-col gap-1 text-[12px] font-medium text-muted">
-          Duration
-          <select
-            className="w-full rounded-lg border border-line px-3 py-2 text-[13px] text-ink"
-            value={maxDurationSec}
-            onChange={(e) => {
-              const next = Number(e.target.value) as MaxDuration;
-              setMaxDurationSec(next);
-              if (refVideoFileRef.current) void uploadVideo(refVideoFileRef.current, next);
-            }}
-          >
-            {MAX_DURATION_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s} s — est. {estimateCost(s)}
-              </option>
-            ))}
-          </select>
-        </label>
-
+      {/* ── Step 3: Reference video ────────────────────────────────────────── */}
+      <Section title="3 · Reference video" description="The TikTok to clone — trimmed to the selected duration on upload">
         <DropZone
           title="Reference TikTok / MP4"
           subtitle="MP4 or MOV · max 200 MB · longer clips are trimmed to the selected duration"
@@ -572,9 +578,9 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         )}
       </Section>
 
-      {/* ── Step 3: Voice (optional) ───────────────────────────────────────── */}
+      {/* ── Step 4: Voice (optional) ───────────────────────────────────────── */}
       <Section
-        title="3 · Voice reference (optional)"
+        title="4 · Voice reference (optional)"
         description="If provided, added to audio_urls — prompt auto-updates to mention it"
       >
         <DropZone
@@ -615,9 +621,9 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         {voiceError && <ErrorLine message={voiceError} />}
       </Section>
 
-      {/* ── Step 4: Prompt ────────────────────────────────────────────────── */}
+      {/* ── Step 5: Prompt ────────────────────────────────────────────────── */}
       <Section
-        title="4 · Prompt"
+        title="5 · Prompt"
         description="Edit before generating — use @image1 for the character face, @audio1 if voice is uploaded"
       >
         <textarea
@@ -652,7 +658,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         {!character && !refVideo && (
           <EmptyState
             title="Upload a character image and a reference video to get started."
-            hint="Steps 1 and 2 above."
+            hint="Steps 2 and 3 above."
           />
         )}
 
