@@ -37,8 +37,9 @@ export const useScriptFlow = (token: string, initialHook: string, onDescribed: (
     return described;
   }
 
-  async function writeScripts(character: UgcCharacterDto) {
-    if (!hookDraft.trim()) {
+  async function writeScripts(character: UgcCharacterDto, hookOverride?: string) {
+    const hook = hookOverride ?? hookDraft;
+    if (!hook.trim()) {
       setBusy('');
       setError('Type a hook first (or pick one in Research).');
       return;
@@ -46,7 +47,7 @@ export const useScriptFlow = (token: string, initialHook: string, onDescribed: (
     setBusy('scripts');
     setError('');
     const res = await ugcRequest<{ scripts?: ScriptOption[] }>(token, '/api/admin/ugc-lab/scripts', {
-      json: { hook: hookDraft, scene: character.scene },
+      json: { hook, scene: character.scene },
     }).catch(() => null);
     setBusy('');
     if (res?.ok && res.data.scripts) setScripts(res.data.scripts.filter((s) => s.text));
@@ -63,9 +64,22 @@ export const useScriptFlow = (token: string, initialHook: string, onDescribed: (
     await writeScripts(described);
   }
 
+  /** For the Hook step: hook is already known; character was selected in the previous step. */
+  async function chooseWithHook(character: UgcCharacterDto, hook: string) {
+    setHookDraft(hook);
+    setSelected(character);
+    setError('');
+    setScripts([]);
+    setDuration(null);
+    const described = await describe(character);
+    setSelected(described);
+    await writeScripts(described, hook);
+  }
+
   return {
     hookDraft, setHookDraft, selected, busy, error, scripts, duration, edited, setEdited,
     choose,
+    chooseWithHook,
     rewrite: () => (selected ? writeScripts(selected) : Promise.resolve()),
     pick: (script: ScriptOption) => {
       setDuration(script.duration);

@@ -2,33 +2,34 @@
 
 import { useState } from 'react';
 import type { UgcCharacterDto } from '../../../../types/admin/ugc';
-import { errorOf, ugcRequest } from './api';
+import { AvatarPanel } from './AvatarPanel';
 import { CharacterGrid } from './CharacterGrid';
 import { RealPersonPanel } from './RealPersonPanel';
-import { ScriptFlowView } from './ScriptFlowView';
 import {
-  EmptyState, ErrorLine, FileButton, MediaGridSkeleton, Pill, PrimaryButton, SecondaryButton, Section, Spinner,
-  fieldClass, labelClass,
+  EmptyState, ErrorLine, FileButton, MediaGridSkeleton, Pill, PrimaryButton, Section, SecondaryButton, Spinner, fieldClass, labelClass,
 } from './ui';
-import { useScriptFlow, type ScriptReady } from './useScriptFlow';
 import { useUgcCharacters } from './useUgcCharacters';
+import { errorOf, ugcRequest } from './api';
 
 type CharacterPanelProps = {
   token: string;
-  hook: string;
-  onReady: (ready: ScriptReady) => void;
+  /** Called when the user picks a character (photo, AI, or avatar). The Hook step opens next. */
+  onCharacterSelected: (character: UgcCharacterDto) => void;
 };
 
 type Reference = { key: string; url: string };
 
-type AiCharactersProps = {
+const AiCharacters = ({
+  token,
+  characters,
+  selectedId,
+  onSelect,
+}: {
   token: string;
   characters: ReturnType<typeof useUgcCharacters>;
   selectedId: string | null;
   onSelect: (c: UgcCharacterDto) => void;
-};
-
-const AiCharacters = ({ token, characters, selectedId, onSelect }: AiCharactersProps) => {
+}) => {
   const [reference, setReference] = useState<Reference | null>(null);
   const [uploading, setUploading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -93,45 +94,53 @@ const AiCharacters = ({ token, characters, selectedId, onSelect }: AiCharactersP
   );
 };
 
-/** Pick a photo or an AI character, then the same hook → scripts flow for both. */
-export function CharacterPanel({ token, hook, onReady }: CharacterPanelProps) {
-  const [mode, setMode] = useState<'photo' | 'ai'>('photo');
+/** Pick a photo, AI character, or your own avatar. Scripts are generated later in the Hook step. */
+export function CharacterPanel({ token, onCharacterSelected }: CharacterPanelProps) {
+  const [mode, setMode] = useState<'photo' | 'ai' | 'avatar'>('photo');
   const photos = useUgcCharacters(token, 'photo');
   const aiCharacters = useUgcCharacters(token, 'ai');
-  const flow = useScriptFlow(token, hook, (c) => (c.kind === 'photo' ? photos.update(c) : aiCharacters.update(c)));
-  const selectedId = flow.selected?.id ?? null;
+  const avatars = useUgcCharacters(token, 'avatar');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  function switchMode(next: 'photo' | 'ai') {
+  function switchMode(next: 'photo' | 'ai' | 'avatar') {
     if (next === mode) return;
     setMode(next);
-    flow.reset();
+    setSelectedId(null);
   }
+
+  function handleSelect(c: UgcCharacterDto) {
+    setSelectedId(c.id);
+    onCharacterSelected(c);
+  }
+
+  const description =
+    mode === 'photo'
+      ? 'Use a photo. The video starts on this exact photo and keeps its place and light.'
+      : mode === 'ai'
+        ? 'Use an AI portrait. Seedance keeps the look.'
+        : 'Your own avatar. Upload a photo, generate a portrait JSON to lock every visual detail.';
 
   return (
     <Section
       title="Character"
-      description={mode === 'photo'
-        ? 'Use a photo. The video starts on this exact photo and keeps its place and light.'
-        : 'Use an AI portrait. Seedance keeps the look.'}
+      description={description}
       actions={
         <>
           <Pill active={mode === 'photo'} onClick={() => switchMode('photo')}>Photo</Pill>
           <Pill active={mode === 'ai'} onClick={() => switchMode('ai')}>AI character</Pill>
+          <Pill active={mode === 'avatar'} onClick={() => switchMode('avatar')}>Your Avatar</Pill>
         </>
       }
     >
-      <div className="flex flex-col gap-4">
-        <label className={labelClass}>
-          Hook
-          <input value={flow.hookDraft} onChange={(e) => flow.setHookDraft(e.target.value)} placeholder="Pick one in Research or type it" className={fieldClass} />
-        </label>
-
-        {mode === 'photo'
-          ? <RealPersonPanel token={token} photos={photos} selectedId={selectedId} onSelect={(c) => void flow.choose(c)} />
-          : <AiCharacters token={token} characters={aiCharacters} selectedId={selectedId} onSelect={(c) => void flow.choose(c)} />}
-
-        <ScriptFlowView flow={flow} onReady={onReady} />
-      </div>
+      {mode === 'photo' && (
+        <RealPersonPanel token={token} photos={photos} selectedId={selectedId} onSelect={handleSelect} />
+      )}
+      {mode === 'ai' && (
+        <AiCharacters token={token} characters={aiCharacters} selectedId={selectedId} onSelect={handleSelect} />
+      )}
+      {mode === 'avatar' && (
+        <AvatarPanel token={token} avatars={avatars} selectedId={selectedId} onSelect={handleSelect} />
+      )}
     </Section>
   );
 }

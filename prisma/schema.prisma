@@ -885,13 +885,15 @@ model Listing {
 /// UGC Lab: a saved on-screen character — an AI portrait or an uploaded photo (cropped to 9:16).
 model UgcCharacter {
   id        String   @id @default(cuid())
-  /// ai | photo
+  /// ai | photo | avatar
   kind      String
   imageKey  String   @map("image_key")
   /// Image model for AI portraits, e.g. gemini-3-pro.
   model     String?
   /// Photo kind: what the photo shows — { person, setting, action, shot }.
   scene     Json?
+  /// Avatar kind: portrait-clone JSON locking every visual attribute for consistent Seedance prompts.
+  portraitJson Json?  @map("portrait_json")
   archived  Boolean  @default(false)
   createdAt DateTime @default(now()) @map("created_at")
 

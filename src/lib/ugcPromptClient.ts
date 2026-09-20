@@ -1,6 +1,7 @@
-// server-only — Seedance 2.5 prompts for the UGC Lab.
+// Client-safe prompt builders — no server-only imports. Keep in sync with ugcPrompt.ts.
+// These are used in the UI to preview the exact prompt that will be sent to Seedance.
 
-import type { UgcScene, UgcShot } from '../../config/ugcLab';
+import type { UgcScene, UgcShot } from '../config/ugcLab';
 
 /** Rules shared by every clip: clean talking-head output with nothing added in post. */
 const DELIVERY_RULES =
@@ -19,8 +20,8 @@ const MOVEMENT: Record<UgcShot, string> = {
 };
 
 /**
- * Photo flow: the uploaded photo is the first frame (`image_with_roles`), so the video must
- * continue that exact moment — same person, outfit, place and light — instead of a new scene.
+ * Photo / avatar flow: the uploaded photo is the first frame, so the video must
+ * continue that exact moment.
  */
 export const buildFirstFramePrompt = (script: string, scene: UgcScene | null): string => {
   const where = scene?.setting ? ` in ${scene.setting}` : '';
@@ -34,7 +35,7 @@ export const buildFirstFramePrompt = (script: string, scene: UgcScene | null): s
   ].join(' ');
 };
 
-/** AI character flow: the portrait is a look reference only, so describe the room ourselves. */
+/** AI character flow: the portrait is a look reference only. */
 export const buildReferencePrompt = (script: string): string =>
   [
     'The person in @image1 talks directly to the camera in a vertical smartphone selfie video, phone on a fixed tripod.',
@@ -45,8 +46,8 @@ export const buildReferencePrompt = (script: string): string =>
   ].join(' ');
 
 /**
- * Avatar flow: first-frame mode enriched with portrait-clone JSON so Seedance stays
- * locked on every visual detail and resists model-default drift across generations.
+ * Avatar flow: first-frame mode enriched with portrait-clone JSON fields so Seedance
+ * stays locked on every visual detail across generations.
  */
 export const buildAvatarPrompt = (
   script: string,
@@ -79,4 +80,16 @@ export const buildAvatarPrompt = (
     `They speak to the camera, lips synced to every word: "${quoteScript(script)}"`,
     DELIVERY_RULES,
   ].join(' ');
+};
+
+/** Resolves which prompt to build based on the character kind and available data. */
+export const buildPromptForCharacter = (
+  kind: 'photo' | 'ai' | 'avatar',
+  script: string,
+  scene: UgcScene | null,
+  portraitJson: Record<string, unknown> | null,
+): string => {
+  if (kind === 'ai') return buildReferencePrompt(script);
+  if (kind === 'avatar') return buildAvatarPrompt(script, scene, portraitJson);
+  return buildFirstFramePrompt(script, scene);
 };

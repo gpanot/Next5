@@ -3,10 +3,13 @@ import type { UgcScene } from '../../config/ugcLab';
 /** A saved UGC Lab character, as the admin UI receives it. URLs are signed for 24 h. */
 export type UgcCharacterDto = {
   id: string;
-  kind: 'ai' | 'photo';
+  /** ai | photo | avatar */
+  kind: 'ai' | 'photo' | 'avatar';
   url: string;
   model: string | null;
   scene: UgcScene | null;
+  /** Portrait-clone JSON locking visual attributes for consistent Seedance prompts. Avatar kind only. */
+  portraitJson: Record<string, unknown> | null;
   createdAt: string;
 };
 

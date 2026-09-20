@@ -4,14 +4,23 @@ import { adminRoute } from '../../../../../src/server/admin/route';
 import { toVideoDto } from '../../../../../src/server/admin/ugcStore';
 import { submitVideo } from '../../../../../src/server/admin/ugcVideos';
 
-type GenerateBody = { characterId?: string; script?: string; duration?: number; confirmOverBudget?: boolean };
+type GenerateBody = {
+  characterId?: string;
+  script?: string;
+  duration?: number;
+  confirmOverBudget?: boolean;
+  /** Optional R2 key for a custom voice sample (stored but not yet wired to a provider). */
+  voiceKey?: string;
+};
 
 /**
- * POST { characterId, script, duration, confirmOverBudget? } → { video }.
- * Photo characters are sent as the first frame; AI portraits as a look reference. 480p only.
+ * POST { characterId, script, duration, confirmOverBudget?, voiceKey? } → { video }.
+ * Photo and avatar characters are sent as the first frame; AI portraits as a look reference. 480p only.
+ * voiceKey is accepted and logged for future voice-cloning provider integration.
  */
 export const POST = adminRoute(async (req: NextRequest) => {
-  const { characterId, script, duration = 8, confirmOverBudget = false } = (await req.json()) as GenerateBody;
+  const { characterId, script, duration = 8, confirmOverBudget = false, voiceKey } = (await req.json()) as GenerateBody;
+  void voiceKey; // accepted, not yet wired to the provider — wire when the Seedance/Treg voice API is live
 
   if (!characterId) {
     return NextResponse.json({ error: 'Pick a character first' }, { status: 400 });

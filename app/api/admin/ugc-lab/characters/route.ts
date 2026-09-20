@@ -6,7 +6,7 @@ import { prisma } from '../../../../../src/lib/db';
 export const GET = adminRoute(async (req) => {
   const kind = req.nextUrl.searchParams.get('kind');
   const characters = await prisma.ugcCharacter.findMany({
-    where: { archived: false, ...(kind === 'ai' || kind === 'photo' ? { kind } : {}) },
+    where: { archived: false, ...(kind === 'ai' || kind === 'photo' || kind === 'avatar' ? { kind } : {}) },
     orderBy: { createdAt: 'desc' },
     take: 60,
   });

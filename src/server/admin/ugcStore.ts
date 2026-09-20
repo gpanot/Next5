@@ -16,10 +16,12 @@ const VENDOR_LINK_SECONDS = 7 * 24 * 60 * 60;
 
 export const ugcKeys = {
   photo: (stamp: string, ext: string) => `ugc-lab/photos/${stamp}.${ext}`,
+  avatar: (stamp: string, ext: string) => `ugc-lab/avatars/${stamp}.${ext}`,
   reference: (stamp: string, ext: string) => `ugc-lab/references/${stamp}.${ext}`,
   character: (stamp: string) => `ugc-lab/characters/${stamp}.jpg`,
   raw: (videoId: string) => `ugc-lab/videos/${videoId}/raw.mp4`,
   captioned: (videoId: string) => `ugc-lab/videos/${videoId}/captioned.mp4`,
+  voice: (stamp: string, ext: string) => `ugc-lab/voices/${stamp}.${ext}`,
 };
 
 export const uniqueStamp = (): string => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -54,12 +56,16 @@ export const deleteFiles = async (keys: (string | null)[]): Promise<void> => {
 const isScene = (value: unknown): value is UgcScene =>
   typeof value === 'object' && value !== null && typeof (value as { setting?: unknown }).setting === 'string';
 
+const toKind = (kind: string): UgcCharacterDto['kind'] =>
+  kind === 'photo' ? 'photo' : kind === 'avatar' ? 'avatar' : 'ai';
+
 export const toCharacterDto = async (c: UgcCharacter): Promise<UgcCharacterDto> => ({
   id: c.id,
-  kind: c.kind === 'photo' ? 'photo' : 'ai',
+  kind: toKind(c.kind),
   url: await browserUrl(c.imageKey),
   model: c.model,
   scene: isScene(c.scene) ? c.scene : null,
+  portraitJson: (c.portraitJson && typeof c.portraitJson === 'object') ? (c.portraitJson as Record<string, unknown>) : null,
   createdAt: c.createdAt.toISOString(),
 });
 

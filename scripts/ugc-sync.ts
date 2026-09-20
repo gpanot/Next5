@@ -48,8 +48,13 @@ async function main() {
 
     // Characters first: videos point at them. A null scene has to be written as Prisma's JSON null.
     for (const character of characters) {
-      const data = { ...character, scene: character.scene ?? Prisma.DbNull } satisfies Omit<UgcCharacter, 'scene'> & {
+      const data = {
+        ...character,
+        scene: character.scene ?? Prisma.DbNull,
+        portraitJson: character.portraitJson ?? Prisma.DbNull,
+      } satisfies Omit<UgcCharacter, 'scene' | 'portraitJson'> & {
         scene: Prisma.InputJsonValue | typeof Prisma.DbNull;
+        portraitJson: Prisma.InputJsonValue | typeof Prisma.DbNull;
       };
       await target.ugcCharacter.upsert({ where: { id: character.id }, create: data, update: data });
     }

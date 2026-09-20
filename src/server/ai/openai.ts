@@ -6,8 +6,8 @@ export type ChatMessage = { role: 'system' | 'user'; content: Content };
 /** True when real OpenAI calls are allowed (key present, not in mock mode). */
 export const isOpenAiEnabled = (): boolean => Boolean(process.env.OPENAI_API_KEY) && process.env.NEXT5_MOCK_GENERATION !== 'true';
 
-/** One gpt-4o-mini JSON completion. Returns null on any failure — callers keep a fallback. */
-export const chatJson = async <T>(messages: ChatMessage[], options: { maxTokens: number; temperature?: number; timeoutMs?: number }): Promise<T | null> => {
+/** One OpenAI JSON completion. Defaults to gpt-4o-mini. Returns null on any failure — callers keep a fallback. */
+export const chatJson = async <T>(messages: ChatMessage[], options: { maxTokens: number; temperature?: number; timeoutMs?: number; model?: string }): Promise<T | null> => {
   const key = process.env.OPENAI_API_KEY;
   if (!key) return null;
   const controller = new AbortController();
@@ -18,7 +18,7 @@ export const chatJson = async <T>(messages: ChatMessage[], options: { maxTokens:
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: options.model ?? 'gpt-4o-mini',
         temperature: options.temperature ?? 0.7,
         max_tokens: options.maxTokens,
         response_format: { type: 'json_object' },

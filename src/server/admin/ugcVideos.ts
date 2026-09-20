@@ -9,7 +9,7 @@ import {
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
 import { checkTask, estimateMicros, fetchVideo, submitTask, type TaskState } from './ugcProviders';
-import { buildFirstFramePrompt, buildReferencePrompt } from './ugcPrompt';
+import { buildAvatarPrompt, buildFirstFramePrompt, buildReferencePrompt } from './ugcPrompt';
 import { mirrorFile, putFile, ugcKeys, vendorUrl } from './ugcStore';
 
 type VideoWithCharacter = UgcVideo & { character: UgcCharacter | null };
@@ -39,18 +39,33 @@ const finishTiming = (video: VideoWithCharacter, now: Date) => {
 const sceneOf = (character: UgcCharacter): UgcScene | null =>
   typeof character.scene === 'object' && character.scene !== null ? (character.scene as unknown as UgcScene) : null;
 
+const portraitJsonOf = (character: UgcCharacter): Record<string, unknown> | null =>
+  character.portraitJson && typeof character.portraitJson === 'object'
+    ? (character.portraitJson as Record<string, unknown>)
+    : null;
+
 /**
- * A photo is the first frame, so the video keeps its place and light. On reapi an AI portrait is a
- * look reference and Seedance invents the room; OpenRouter has no such mode, so the portrait starts
- * the video there too and the prompt has to carry the scene.
+ * A photo or avatar is the first frame, so the video keeps its place and light.
+ * An avatar additionally uses the portrait-clone JSON to lock visual details in the prompt.
+ * On reapi an AI portrait is a look reference and Seedance invents the room;
+ * OpenRouter has no such mode, so the portrait starts the video there too.
  */
 const buildRequest = (provider: UgcProvider, character: UgcCharacter, script: string) => {
-  const asFirstFrame = character.kind === 'photo' || provider === 'openrouter';
-  return {
-    mode: character.kind === 'photo' ? 'real-person' : 'ai-character',
-    kind: character.kind === 'photo' ? ('photo' as const) : ('ai' as const),
-    prompt: asFirstFrame ? buildFirstFramePrompt(script, sceneOf(character)) : buildReferencePrompt(script),
-  };
+  const isAvatarOrPhoto = character.kind === 'photo' || character.kind === 'avatar';
+  const asFirstFrame = isAvatarOrPhoto || provider === 'openrouter';
+  const mode = isAvatarOrPhoto ? 'real-person' : 'ai-character';
+  const kind: 'photo' | 'ai' = isAvatarOrPhoto ? 'photo' : 'ai';
+
+  let prompt: string;
+  if (character.kind === 'avatar') {
+    prompt = buildAvatarPrompt(script, sceneOf(character), portraitJsonOf(character));
+  } else if (asFirstFrame) {
+    prompt = buildFirstFramePrompt(script, sceneOf(character));
+  } else {
+    prompt = buildReferencePrompt(script);
+  }
+
+  return { mode, kind, prompt };
 };
 
 type Started = { provider: UgcProvider; providerTaskId: string; mode: string; prompt: string };

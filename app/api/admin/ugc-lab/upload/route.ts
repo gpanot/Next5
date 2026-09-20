@@ -55,11 +55,14 @@ export const POST = adminRoute(async (req: NextRequest) => {
   const original = Buffer.from(await file.arrayBuffer());
   const stamp = uniqueStamp();
 
-  if (formData.get('purpose') === 'photo') {
+  const purpose = formData.get('purpose');
+
+  if (purpose === 'photo' || purpose === 'avatar') {
     // Seedance first-frame mode keeps the photo's shape, so photos become 9:16.
-    const imageKey = ugcKeys.photo(stamp, 'jpg');
+    const kind = purpose === 'avatar' ? 'avatar' : 'photo';
+    const imageKey = kind === 'avatar' ? ugcKeys.avatar(stamp, 'jpg') : ugcKeys.photo(stamp, 'jpg');
     await putFile(imageKey, await cropToVertical(original), 'image/jpeg');
-    const character = await prisma.ugcCharacter.create({ data: { kind: 'photo', imageKey } });
+    const character = await prisma.ugcCharacter.create({ data: { kind, imageKey } });
     return NextResponse.json({ character: await toCharacterDto(character) });
   }
 
