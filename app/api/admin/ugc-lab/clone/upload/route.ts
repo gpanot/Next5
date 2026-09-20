@@ -1,12 +1,25 @@
 import { execFile } from 'child_process';
+import { existsSync } from 'fs';
 import { writeFile, readFile, unlink } from 'fs/promises';
 import { tmpdir } from 'os';
 import path from 'path';
 import { promisify } from 'util';
 import { NextResponse, type NextRequest } from 'next/server';
-import ffmpegPath from 'ffmpeg-static';
 import { adminRoute } from '../../../../../../src/server/admin/route';
 import { browserUrl, putFile, uniqueStamp, vendorUrl } from '../../../../../../src/server/admin/ugcStore';
+
+// Resolve ffmpeg at runtime via process.cwd() — avoids Next.js webpack bundling
+// replacing ffmpeg-static's internal __dirname with /ROOT/ (ENOENT in route handlers).
+const FFMPEG_PATH = (() => {
+  // ffmpeg-static ships the binary at node_modules/ffmpeg-static/ffmpeg (macOS/Linux)
+  const p = path.join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg');
+  if (existsSync(p)) return p;
+  // Fallback: system ffmpeg (e.g. Railway with ffmpeg layer)
+  for (const fallback of ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg']) {
+    if (existsSync(fallback)) return fallback;
+  }
+  return null;
+})();
 
 // Videos can be up to 200 MB — give the upload route 5 minutes to receive, trim, and store
 export const maxDuration = 300;
@@ -24,8 +37,8 @@ const execFileAsync = promisify(execFile);
  * Never silently falls back to the original — callers must handle null explicitly.
  */
 async function trimVideo(input: Buffer, durationSec: number): Promise<Buffer | null> {
-  if (!ffmpegPath) {
-    console.error('[trimVideo] ffmpeg-static path is null — cannot trim');
+  if (!FFMPEG_PATH) {
+    console.error('[trimVideo] ffmpeg binary not found — cannot trim');
     return null;
   }
 
@@ -43,7 +56,7 @@ async function trimVideo(input: Buffer, durationSec: number): Promise<Buffer | n
     // ── Pass 1: stream copy (fast, no re-encode) ──────────────────────────
     let copied = false;
     try {
-      await execFileAsync(ffmpegPath, [
+      await execFileAsync(FFMPEG_PATH, [
         '-y', '-i', inPath,
         '-t', String(trimSec),
         '-c', 'copy',
@@ -58,7 +71,7 @@ async function trimVideo(input: Buffer, durationSec: number): Promise<Buffer | n
     // ── Pass 2: H.264 + AAC re-encode (handles MOV/HEVC and any input) ───
     if (!copied) {
       try {
-        await execFileAsync(ffmpegPath, [
+        await execFileAsync(FFMPEG_PATH, [
           '-y', '-i', inPath,
           '-t', String(trimSec),
           '-c:v', 'libx264', '-crf', '23', '-preset', 'fast',
