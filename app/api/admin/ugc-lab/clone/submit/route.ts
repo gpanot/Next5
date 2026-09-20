@@ -6,32 +6,33 @@ import { createCloneJob } from '../../../../../../src/server/admin/cloneVideos';
 export const maxDuration = 30;
 
 // --------------------------------------------------------------------------
-// Seedance 2.5 face model via reapi (same infrastructure as UGC Lab)
-// No video_urls → no video-editing mode → explicit duration → table pricing
+// Seedance 2.5 face model via reapi — video editing mode
+//
+// We pass `video_urls` so reapi can reference @video1 in the prompt.
+// This is video-editing mode → reapi requires duration: -1 (output matches input length).
+// Treg cost: charged based on actual video length by reapi.
 // --------------------------------------------------------------------------
 const SEEDANCE_ENDPOINT = 'reapi.video-gen.seedance-2-5.unrestricted';
 const SEEDANCE_MODEL    = 'doubao-seedance-2.5-face';
 
-/** USD per second for doubao-seedance-2.5-face at 480p (reapi pricing). */
-const USD_PER_SEC = 0.59 / 5; // ~$0.118 / sec
+/** Prompt — image + video only */
+const PROMPT_BASE =
+  'Keep the entire original video from @video1, including all animations, background, motion and audio. ' +
+  'Only replace the face in the video with the face of the character from @image1. ' +
+  'Preserve all movements, expressions, timing, and background exactly.';
 
-function buildPrompt(hasAudio: boolean): string {
-  const base =
-    'The person in @image1 speaks naturally and expressively to camera ' +
-    'in a casual UGC selfie video. Replace any person in the scene with the face ' +
-    'from @image1 while preserving the original background, lighting, and energy. ' +
-    'Natural facial expressions and movements, handheld 9:16 vertical framing.';
-
-  return hasAudio
-    ? base + ' Use the voice from @audio1 as the speech audio reference.'
-    : base;
-}
+/** Prompt — image + video + audio reference */
+const PROMPT_WITH_AUDIO =
+  'Keep the entire original video from @video1, including all animations, background, motion and audio. ' +
+  'Only replace the face in the video with the face of the character from @image1. ' +
+  'Preserve all movements, expressions, timing, and background exactly. ' +
+  'Use the audio as a reference.';
 
 type SubmitBody = {
-  /** Vendor URL for the character face image (accessed by Seedance) */
+  /** Vendor URL for the character face image */
   imageVendorUrl?: string;
-  /** Vendor URL for the first frame of the reference video (first_frame role) */
-  frameVendorUrl?: string;
+  /** Vendor URL for the reference video (passed as video_urls → @video1) */
+  videoVendorUrl?: string;
   /** Vendor URL for an optional voice/audio reference */
   voiceVendorUrl?: string;
   /** R2 keys — stored in the DB so the library can re-sign them */
@@ -41,17 +42,14 @@ type SubmitBody = {
 };
 
 /**
- * POST {
- *   imageVendorUrl, frameVendorUrl?, voiceVendorUrl?,
- *   characterKey, refVideoKey, durationSec
- * }
- * → submits to reapi Seedance 2.5 face (same as UGC Lab)
- * → returns { taskId, body } — body shown in the UI preview
+ * POST { imageVendorUrl, videoVendorUrl, voiceVendorUrl?, characterKey, refVideoKey, durationSec }
+ * → submits to reapi Seedance 2.5 face in video-editing mode
+ * → returns { taskId }
  */
 export const POST = adminRoute(async (req: NextRequest) => {
   const {
     imageVendorUrl,
-    frameVendorUrl,
+    videoVendorUrl,
     voiceVendorUrl,
     characterKey,
     refVideoKey,
@@ -64,40 +62,36 @@ export const POST = adminRoute(async (req: NextRequest) => {
       { status: 400 },
     );
   }
+  if (!videoVendorUrl?.trim()) {
+    return NextResponse.json(
+      { error: 'videoVendorUrl is required — upload a reference video first' },
+      { status: 400 },
+    );
+  }
 
   const hasAudio = Boolean(voiceVendorUrl?.trim());
-  const hasFrame = Boolean(frameVendorUrl?.trim());
-  const prompt   = buildPrompt(hasAudio);
+  const prompt   = hasAudio ? PROMPT_WITH_AUDIO : PROMPT_BASE;
 
-  // Build the Seedance request body — same schema as UGC Lab
+  // Video editing mode:
+  //  - image_urls: character face (@image1)
+  //  - video_urls: reference video (@video1)
+  //  - duration: -1 (required — output inherits input video duration)
   const seedanceBody: Record<string, unknown> = {
     model:          SEEDANCE_MODEL,
     content_filter: false,
     prompt,
-    duration:       durationSec,
-    resolution:     '480p',
+    duration:       -1,  // video editing mode requires -1
     generate_audio: true,
+    image_urls:     [imageVendorUrl],
+    video_urls:     [videoVendorUrl],
   };
-
-  if (hasFrame) {
-    // image_with_roles: character as reference_image + video first-frame as scene anchor
-    seedanceBody.size = 'adaptive';
-    seedanceBody.image_with_roles = [
-      { url: imageVendorUrl, role: 'reference_image' },
-      { url: frameVendorUrl, role: 'first_frame' },
-    ];
-  } else {
-    // Fallback: character image only
-    seedanceBody.size = '9:16';
-    seedanceBody.image_urls = [imageVendorUrl];
-  }
 
   if (hasAudio) {
     seedanceBody.audio_urls = [voiceVendorUrl];
   }
 
   // ------------------------------------------------------------------
-  // Submit to reapi via Treg — identical to UGC Lab generation call
+  // Submit to reapi via Treg
   // ------------------------------------------------------------------
   let taskId: string;
   try {
@@ -119,7 +113,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
   if (characterKey && refVideoKey) {
     try {
       await createCloneJob({
-        poyoTaskId: taskId, // field reused for reapi task ID
+        poyoTaskId: taskId,
         characterKey,
         refVideoKey,
         durationSec,
@@ -129,23 +123,5 @@ export const POST = adminRoute(async (req: NextRequest) => {
     }
   }
 
-  // Return the body we sent (with URLs masked to first 60 chars for the UI preview)
-  const previewBody = {
-    ...seedanceBody,
-    image_with_roles: hasFrame
-      ? [
-          { url: `${imageVendorUrl.slice(0, 60)}…`, role: 'reference_image' },
-          { url: `${(frameVendorUrl ?? '').slice(0, 60)}…`, role: 'first_frame' },
-        ]
-      : undefined,
-    image_urls: !hasFrame ? [`${imageVendorUrl.slice(0, 60)}…`] : undefined,
-    audio_urls: hasAudio ? [`${(voiceVendorUrl ?? '').slice(0, 60)}…`] : undefined,
-  };
-
-  const estimatedCost = (USD_PER_SEC * durationSec).toFixed(2);
-
-  return NextResponse.json(
-    { taskId, body: previewBody, estimatedCost },
-    { status: 201 },
-  );
+  return NextResponse.json({ taskId }, { status: 201 });
 });

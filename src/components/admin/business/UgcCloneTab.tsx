@@ -16,7 +16,6 @@ import { CloneLibrary } from './ugcClone/CloneLibrary';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const SEEDANCE_USD_PER_SECOND = 0.59 / 5; // doubao-seedance-2.5-face 480p via reapi
 const POLL_INTERVAL_MS = 4_000;
 
 const MAX_DURATION_OPTIONS = [5, 10, 15, 20, 30] as const;
@@ -45,8 +44,12 @@ type JobStatus = 'idle' | 'submitting' | 'polling' | 'done' | 'failed';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+// Video editing mode (duration: -1) — reapi charges based on actual video length.
+// Estimate based on the selected duration from the dropdown.
+const REAPI_USD_PER_SEC = 0.59 / 5; // ~$0.118/s for doubao-seedance-2.5-face
+
 const estimateCost = (durationSec: number): string =>
-  usd(Math.round(SEEDANCE_USD_PER_SECOND * durationSec * 100) / 100);
+  usd(Math.round(REAPI_USD_PER_SEC * durationSec * 100) / 100);
 
 const readVideoDuration = (file: File): Promise<number> =>
   new Promise((resolve) => {
@@ -100,6 +103,19 @@ const DropZone = ({ title, subtitle, accept, busy, onFile, children }: DropZoneP
   );
 };
 
+// ── Prompts (mirrored from submit route for preview) ─────────────────────────
+
+const PROMPT_BASE =
+  'Keep the entire original video from @video1, including all animations, background, motion and audio. ' +
+  'Only replace the face in the video with the face of the character from @image1. ' +
+  'Preserve all movements, expressions, timing, and background exactly.';
+
+const PROMPT_WITH_AUDIO =
+  'Keep the entire original video from @video1, including all animations, background, motion and audio. ' +
+  'Only replace the face in the video with the face of the character from @image1. ' +
+  'Preserve all movements, expressions, timing, and background exactly. ' +
+  'Use the audio as a reference.';
+
 // ── API Preview ──────────────────────────────────────────────────────────────
 
 type ApiPreviewProps = {
@@ -111,31 +127,18 @@ type ApiPreviewProps = {
 
 const ApiPreview = ({ character, refVideo, voice, durationSec }: ApiPreviewProps) => {
   const hasAudio = Boolean(voice);
-  const hasFrame = Boolean(refVideo.frameVendorUrl);
+  const prompt   = hasAudio ? PROMPT_WITH_AUDIO : PROMPT_BASE;
 
-  const prompt = hasAudio
-    ? 'The person in @image1 speaks naturally and expressively to camera in a casual UGC selfie video. Replace any person in the scene with the face from @image1 while preserving the original background, lighting, and energy. Natural facial expressions and movements, handheld 9:16 vertical framing. Use the voice from @audio1 as the speech audio reference.'
-    : 'The person in @image1 speaks naturally and expressively to camera in a casual UGC selfie video. Replace any person in the scene with the face from @image1 while preserving the original background, lighting, and energy. Natural facial expressions and movements, handheld 9:16 vertical framing.';
-
+  // Exact body that will be sent to reapi (URLs truncated for readability)
   const body: Record<string, unknown> = {
-    model: 'doubao-seedance-2.5-face',
+    model:          'doubao-seedance-2.5-face',
     content_filter: false,
     prompt,
-    duration: durationSec,
-    resolution: '480p',
+    duration:       -1,   // video editing mode — output inherits input video length
     generate_audio: true,
+    image_urls:     [`${character.vendorUrl.slice(0, 55)}…`],
+    video_urls:     [`${refVideo.vendorUrl.slice(0, 55)}…`],
   };
-
-  if (hasFrame) {
-    body.size = 'adaptive';
-    body.image_with_roles = [
-      { url: `${character.vendorUrl.slice(0, 55)}…`, role: 'reference_image' },
-      { url: `${(refVideo.frameVendorUrl ?? '').slice(0, 55)}…`, role: 'first_frame' },
-    ];
-  } else {
-    body.size = '9:16';
-    body.image_urls = [`${character.vendorUrl.slice(0, 55)}…`];
-  }
 
   if (hasAudio) {
     body.audio_urls = [`${voice!.voiceVendorUrl.slice(0, 55)}…`];
@@ -151,22 +154,17 @@ const ApiPreview = ({ character, refVideo, voice, durationSec }: ApiPreviewProps
           reapi.video-gen.seedance-2-5.unrestricted
         </span>
         <span className="rounded bg-purple-100 px-2 py-0.5 font-mono text-purple-800">
-          {body.model as string}
+          doubao-seedance-2.5-face
         </span>
         <span className="rounded bg-green-100 px-2 py-0.5 font-mono text-green-800">
-          {durationSec}s · {body.resolution as string}
+          {durationSec}s ref · duration: -1 (video editing)
         </span>
         <span className="rounded bg-amber-100 px-2 py-0.5 font-mono text-amber-800">
-          ≈ {estimateCost(durationSec)}
+          reapi ≈ {estimateCost(durationSec)}
         </span>
-        {hasFrame && (
-          <span className="rounded bg-teal-100 px-2 py-0.5 text-teal-800">
-            first_frame from video ✓
-          </span>
-        )}
         {hasAudio && (
           <span className="rounded bg-pink-100 px-2 py-0.5 text-pink-800">
-            audio reference ✓
+            @audio1 ✓
           </span>
         )}
       </div>
@@ -358,7 +356,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
       token, '/api/admin/ugc-lab/clone/submit', {
         json: {
           imageVendorUrl:  character.vendorUrl,
-          frameVendorUrl:  refVideo.frameVendorUrl,
+          videoVendorUrl:  refVideo.vendorUrl,
           voiceVendorUrl:  voice?.voiceVendorUrl,
           characterKey:    character.key,
           refVideoKey:     refVideo.key,
@@ -451,12 +449,13 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
       {/* ── Explainer ─────────────────────────────────────────────────────── */}
       <Section
         title="UGC Clone"
-        description="Swap a creator's face with your character using Seedance 2.5 · 480p · ~$0.118/sec"
+        description="Face-swap a viral TikTok using Seedance 2.5 video editing mode · @video1 → @image1"
       >
         <Notice>
-          Upload your character image (the new face), a reference TikTok video (sets the scene), and
-          optionally a voice sample. Seedance will generate a video featuring your character in the same
-          style — same API as UGC Lab, explicit duration, table-based pricing.
+          Upload your character image and a reference TikTok video. Seedance keeps every frame of the
+          original video intact and replaces only the face with your character. The reference video is
+          trimmed to the selected duration before upload — that determines the output length.
+          Optionally add a voice reference.
         </Notice>
       </Section>
 
@@ -599,7 +598,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
       {/* ── Generate (with API preview) ────────────────────────────────────── */}
       <Section
         title="Generate"
-        description="Seedance 2.5 face · reapi · 480p · explicit duration → table pricing"
+        description="Seedance 2.5 face · reapi · video editing mode (@video1 → @image1 face swap)"
       >
         {!character && !refVideo && (
           <EmptyState
@@ -649,7 +648,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
                 >
                   {isGenerating
                     ? <><Spinner /> Working…</>
-                    : `Clone · ${estimateCost(maxDurationSec)}`}
+                    : 'Clone video'}
                 </PrimaryButton>
                 {!character && <p className="text-[12px] text-red-700">Missing: character image</p>}
                 {!refVideo  && <p className="text-[12px] text-red-700">Missing: reference video</p>}
