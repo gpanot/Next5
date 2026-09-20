@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../../src/server/admin/route';
+import { createCloneJob } from '../../../../../../src/server/admin/cloneVideos';
 
 export const maxDuration = 30;
 
@@ -39,6 +40,10 @@ The result should look like the same UGC video was filmed by a different charact
 type SubmitBody = {
   imageVendorUrl?: string;
   videoVendorUrl?: string;
+  /** R2 keys — stored in the DB so the library can re-sign them */
+  characterKey?: string;
+  refVideoKey?: string;
+  durationSec?: number;
 };
 
 type PoyoSubmitResponse = {
@@ -53,7 +58,7 @@ type PoyoSubmitResponse = {
  * → returns { taskId }
  */
 export const POST = adminRoute(async (req: NextRequest) => {
-  const { imageVendorUrl, videoVendorUrl } = (await req.json()) as SubmitBody;
+  const { imageVendorUrl, videoVendorUrl, characterKey, refVideoKey, durationSec } = (await req.json()) as SubmitBody;
 
   if (!imageVendorUrl?.trim()) {
     return NextResponse.json({ error: 'imageVendorUrl is required — upload a character image first' }, { status: 400 });
@@ -92,5 +97,22 @@ export const POST = adminRoute(async (req: NextRequest) => {
     return NextResponse.json({ error: msg }, { status: 502 });
   }
 
-  return NextResponse.json({ taskId: poyoData.data.task_id }, { status: 201 });
+  const taskId = poyoData.data.task_id;
+
+  // Persist to the library DB so the video is saved to R2 when it finishes and doesn't expire
+  if (characterKey && refVideoKey) {
+    try {
+      await createCloneJob({
+        poyoTaskId: taskId,
+        characterKey,
+        refVideoKey,
+        durationSec: durationSec ?? 5,
+      });
+    } catch (err) {
+      // Non-fatal: log and continue — the client can still poll for status
+      console.error('[clone/submit] failed to persist job to DB:', err);
+    }
+  }
+
+  return NextResponse.json({ taskId }, { status: 201 });
 });

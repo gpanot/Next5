@@ -1,6 +1,6 @@
 \restrict dbmate
 
--- Dumped from database version 16.14 (Homebrew)
+-- Dumped from database version 18.6 (Debian 18.6-1.pgdg13+2)
 -- Dumped by pg_dump version 18.3
 
 SET statement_timeout = 0;
@@ -318,6 +318,27 @@ CREATE TABLE public.bookings (
     regenerate_last_at timestamp with time zone,
     preview_feedback text,
     preview_feedback_detail text
+);
+
+
+--
+-- Name: clone_videos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.clone_videos (
+    id text NOT NULL,
+    poyo_task_id text NOT NULL,
+    character_key text NOT NULL,
+    ref_video_key text NOT NULL,
+    duration_sec integer NOT NULL,
+    status text DEFAULT 'generating'::text NOT NULL,
+    raw_key text,
+    error text,
+    cost_usd_micros integer DEFAULT 0 NOT NULL,
+    submitted_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -687,6 +708,22 @@ CREATE TABLE public.promise_claims (
 
 
 --
+-- Name: promo_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.promo_sessions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    booking_id text NOT NULL,
+    admin_email text DEFAULT 'giompanot@gmail.com'::text NOT NULL,
+    chosen_photo_id text,
+    rater_email text,
+    is_claimed boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    claimed_at timestamp with time zone
+);
+
+
+--
 -- Name: prompts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -711,6 +748,40 @@ CREATE TABLE public.rate_limits (
     window_start timestamp(3) without time zone NOT NULL,
     count integer DEFAULT 0 NOT NULL
 );
+
+
+--
+-- Name: ratings; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ratings (
+    id integer NOT NULL,
+    rater_id text NOT NULL,
+    session_id text NOT NULL,
+    displayed_order text NOT NULL,
+    chosen_image text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: ratings_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.ratings_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: ratings_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.ratings_id_seq OWNED BY public.ratings.id;
 
 
 --
@@ -821,6 +892,53 @@ CREATE TABLE public.themes (
 
 
 --
+-- Name: ugc_characters; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ugc_characters (
+    id text NOT NULL,
+    kind text NOT NULL,
+    image_key text NOT NULL,
+    model text,
+    scene jsonb,
+    archived boolean DEFAULT false NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    portrait_json jsonb
+);
+
+
+--
+-- Name: ugc_videos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ugc_videos (
+    id text NOT NULL,
+    character_id text,
+    mode text NOT NULL,
+    script text NOT NULL,
+    prompt text DEFAULT ''::text NOT NULL,
+    duration_sec integer NOT NULL,
+    resolution text NOT NULL,
+    provider_task_id text,
+    status text DEFAULT 'generating'::text NOT NULL,
+    raw_key text,
+    captioned_key text,
+    transcript text,
+    error text,
+    last_poll_error text,
+    estimated_cost_usd_micros integer DEFAULT 0 NOT NULL,
+    submitted_at timestamp(3) without time zone,
+    completed_at timestamp(3) without time zone,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    cost_usd_micros integer DEFAULT 0 NOT NULL,
+    last_checked_at timestamp(3) without time zone,
+    generation_seconds integer,
+    timing_precise boolean DEFAULT false NOT NULL,
+    provider text DEFAULT 'reapi'::text NOT NULL
+);
+
+
+--
 -- Name: users; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -856,6 +974,13 @@ CREATE TABLE public.workspaces (
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp(3) without time zone NOT NULL
 );
+
+
+--
+-- Name: ratings id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ratings ALTER COLUMN id SET DEFAULT nextval('public.ratings_id_seq'::regclass);
 
 
 --
@@ -904,6 +1029,14 @@ ALTER TABLE ONLY public.booking_regenerations
 
 ALTER TABLE ONLY public.bookings
     ADD CONSTRAINT bookings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: clone_videos clone_videos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clone_videos
+    ADD CONSTRAINT clone_videos_pkey PRIMARY KEY (id);
 
 
 --
@@ -1043,6 +1176,14 @@ ALTER TABLE ONLY public.promise_claims
 
 
 --
+-- Name: promo_sessions promo_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.promo_sessions
+    ADD CONSTRAINT promo_sessions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: prompts prompts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1064,6 +1205,14 @@ ALTER TABLE ONLY public.prompts
 
 ALTER TABLE ONLY public.rate_limits
     ADD CONSTRAINT rate_limits_pkey PRIMARY KEY (key, window_start);
+
+
+--
+-- Name: ratings ratings_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ratings
+    ADD CONSTRAINT ratings_pkey PRIMARY KEY (id);
 
 
 --
@@ -1112,6 +1261,22 @@ ALTER TABLE ONLY public.subscriptions
 
 ALTER TABLE ONLY public.themes
     ADD CONSTRAINT themes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ugc_characters ugc_characters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ugc_characters
+    ADD CONSTRAINT ugc_characters_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ugc_videos ugc_videos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ugc_videos
+    ADD CONSTRAINT ugc_videos_pkey PRIMARY KEY (id);
 
 
 --
@@ -1192,6 +1357,27 @@ CREATE INDEX batches_workspace_id_created_at_idx ON public.batches USING btree (
 --
 
 CREATE INDEX booking_regenerations_booking_id_idx ON public.booking_regenerations USING btree (booking_id);
+
+
+--
+-- Name: clone_videos_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX clone_videos_created_at_idx ON public.clone_videos USING btree (created_at DESC);
+
+
+--
+-- Name: clone_videos_poyo_task_id_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX clone_videos_poyo_task_id_key ON public.clone_videos USING btree (poyo_task_id);
+
+
+--
+-- Name: clone_videos_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX clone_videos_status_idx ON public.clone_videos USING btree (status);
 
 
 --
@@ -1454,6 +1640,13 @@ CREATE INDEX promise_claims_workspace_id_idx ON public.promise_claims USING btre
 
 
 --
+-- Name: ratings_rater_session; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX ratings_rater_session ON public.ratings USING btree (rater_id, session_id);
+
+
+--
 -- Name: shop_connections_status_next_sync_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1493,6 +1686,34 @@ CREATE UNIQUE INDEX subscriptions_payment_id_key ON public.subscriptions USING b
 --
 
 CREATE INDEX subscriptions_workspace_id_status_idx ON public.subscriptions USING btree (workspace_id, status);
+
+
+--
+-- Name: ugc_characters_kind_archived_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ugc_characters_kind_archived_idx ON public.ugc_characters USING btree (kind, archived);
+
+
+--
+-- Name: ugc_videos_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ugc_videos_created_at_idx ON public.ugc_videos USING btree (created_at);
+
+
+--
+-- Name: ugc_videos_provider_task_id_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX ugc_videos_provider_task_id_key ON public.ugc_videos USING btree (provider_task_id);
+
+
+--
+-- Name: ugc_videos_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ugc_videos_status_idx ON public.ugc_videos USING btree (status);
 
 
 --
@@ -1812,6 +2033,14 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
+-- Name: ugc_videos ugc_videos_character_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ugc_videos
+    ADD CONSTRAINT ugc_videos_character_id_fkey FOREIGN KEY (character_id) REFERENCES public.ugc_characters(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
 -- Name: workspaces workspaces_owner_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1836,6 +2065,8 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260831000000'),
     ('20260831130000'),
     ('20260901180000'),
+    ('20260902000000'),
+    ('20260902120000'),
     ('20260914090000'),
     ('20260914120000'),
     ('20260914150000'),
@@ -1850,7 +2081,33 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260918090000'),
     ('20260919090000'),
     ('20260920090000'),
+    ('20260920120000'),
     ('20260921090000'),
     ('20260922090000'),
     ('20260923090000'),
-    ('20260924090000');
+    ('20260924090000'),
+    ('20260925090000'),
+    ('20260926090000'),
+    ('20260927090000'),
+    ('20260928000000');
+
+CREATE TABLE public.clone_videos (
+    id text NOT NULL,
+    poyo_task_id text NOT NULL,
+    character_key text NOT NULL,
+    ref_video_key text NOT NULL,
+    duration_sec integer NOT NULL,
+    status text DEFAULT 'generating'::text NOT NULL,
+    raw_key text,
+    error text,
+    cost_usd_micros integer DEFAULT 0 NOT NULL,
+    submitted_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX clone_videos_poyo_task_id_key ON public.clone_videos USING btree (poyo_task_id);
+CREATE INDEX clone_videos_status_idx ON public.clone_videos USING btree (status);
+CREATE INDEX clone_videos_created_at_idx ON public.clone_videos USING btree (created_at DESC);

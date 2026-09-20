@@ -943,3 +943,26 @@ model UgcVideo {
   @@index([status])
   @@map("ugc_videos")
 }
+
+/// UGC Clone: one Kling 3.0 motion-control video. Files live in R2; PoYo CDN URLs are never stored.
+model CloneVideo {
+  id            String    @id @default(cuid())
+  poyoTaskId    String    @unique @map("poyo_task_id")
+  characterKey  String    @map("character_key")
+  refVideoKey   String    @map("ref_video_key")
+  durationSec   Int       @map("duration_sec")
+  /// generating | ready | failed
+  status        String    @default("generating")
+  /// R2 key for the mirrored output video (set when status = ready)
+  rawKey        String?   @map("raw_key")
+  error         String?
+  costUsdMicros Int       @default(0) @map("cost_usd_micros")
+  submittedAt   DateTime? @map("submitted_at")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("clone_videos")
+}

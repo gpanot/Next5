@@ -12,6 +12,7 @@ import {
   Spinner,
   usd,
 } from './ugcLab/ui';
+import { CloneLibrary } from './ugcClone/CloneLibrary';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -266,7 +267,14 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
 
     const res = await ugcRequest<{ taskId?: string; error?: string }>(
       token, '/api/admin/ugc-lab/clone/submit', {
-        json: { imageVendorUrl: character.vendorUrl, videoVendorUrl: refVideo.vendorUrl },
+        json: {
+          imageVendorUrl: character.vendorUrl,
+          videoVendorUrl: refVideo.vendorUrl,
+          // Keys stored in DB so the library can re-sign them and mirror the output to R2
+          characterKey: character.key,
+          refVideoKey: refVideo.key,
+          durationSec: effectiveDuration ?? maxDurationSec,
+        },
       },
     ).catch(() => null);
 
@@ -595,6 +603,9 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
           Poyo task ID: <code className="font-mono">{taskId}</code>
         </p>
       )}
+
+      {/* ── Library ──────────────────────────────────────────────────────── */}
+      <CloneLibrary token={token} />
     </div>
   );
 }
