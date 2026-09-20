@@ -21,6 +21,15 @@ const POLL_INTERVAL_MS = 4_000;
 const MAX_DURATION_OPTIONS = [5, 10, 15, 20, 30] as const;
 type MaxDuration = (typeof MAX_DURATION_OPTIONS)[number];
 
+const DEFAULT_PROMPT =
+  'Replace the face in the scene with the face of the character in @image1. ' +
+  'Preserve all movements, expressions, timing, and background exactly.';
+
+const DEFAULT_PROMPT_WITH_AUDIO =
+  'Replace the face in the scene with the face of the character in @image1. ' +
+  'Preserve all movements, expressions, timing, and background exactly. ' +
+  'Use the audio as a reference.';
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type UploadState = {
@@ -103,38 +112,25 @@ const DropZone = ({ title, subtitle, accept, busy, onFile, children }: DropZoneP
   );
 };
 
-// ── Prompts (mirrored from submit route for preview) ─────────────────────────
-
-const PROMPT_BASE =
-  'Keep the entire original video from @video1, including all animations, background, motion and audio. ' +
-  'Only replace the face in the video with the face of the character from @image1. ' +
-  'Preserve all movements, expressions, timing, and background exactly.';
-
-const PROMPT_WITH_AUDIO =
-  'Keep the entire original video from @video1, including all animations, background, motion and audio. ' +
-  'Only replace the face in the video with the face of the character from @image1. ' +
-  'Preserve all movements, expressions, timing, and background exactly. ' +
-  'Use the audio as a reference.';
-
 // ── API Preview ──────────────────────────────────────────────────────────────
 
 type ApiPreviewProps = {
   character: UploadState;
   refVideo: UploadState;
   voice: VoiceState | null;
+  prompt: string;
   durationSec: number;
 };
 
-const ApiPreview = ({ character, refVideo, voice, durationSec }: ApiPreviewProps) => {
+const ApiPreview = ({ character, refVideo, voice, prompt, durationSec }: ApiPreviewProps) => {
   const hasAudio = Boolean(voice);
-  const prompt   = hasAudio ? PROMPT_WITH_AUDIO : PROMPT_BASE;
 
   // Exact body that will be sent to reapi (URLs truncated for readability)
   const body: Record<string, unknown> = {
     model:          'doubao-seedance-2.5-face',
     content_filter: false,
     prompt,
-    duration:       -1,   // video editing mode — output inherits input video length
+    duration:       durationSec,   // explicit from dropdown — never -1
     generate_audio: true,
     image_urls:     [`${character.vendorUrl.slice(0, 55)}…`],
     video_urls:     [`${refVideo.vendorUrl.slice(0, 55)}…`],
@@ -157,14 +153,11 @@ const ApiPreview = ({ character, refVideo, voice, durationSec }: ApiPreviewProps
           doubao-seedance-2.5-face
         </span>
         <span className="rounded bg-green-100 px-2 py-0.5 font-mono text-green-800">
-          {durationSec}s ref · duration: -1 (video editing)
-        </span>
-        <span className="rounded bg-amber-100 px-2 py-0.5 font-mono text-amber-800">
-          reapi ≈ {estimateCost(durationSec)}
+          duration: {durationSec}s · ≈ {estimateCost(durationSec)}
         </span>
         {hasAudio && (
           <span className="rounded bg-pink-100 px-2 py-0.5 text-pink-800">
-            @audio1 ✓
+            audio_urls ✓
           </span>
         )}
       </div>
@@ -230,6 +223,11 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
   const [maxDurationSec, setMaxDurationSec] = useState<MaxDuration>(5);
   // Keep file ref to re-upload on cap change
   const refVideoFileRef = useRef<File | null>(null);
+
+  // Editable prompt — auto-updated when voice is added/removed
+  const [promptText, setPromptText] = useState(DEFAULT_PROMPT);
+  // Track whether user has manually edited the prompt
+  const promptEditedRef = useRef(false);
 
   // Generation states
   const [jobStatus, setJobStatus] = useState<JobStatus>('idle');
@@ -337,9 +335,18 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         voiceVendorUrl: res.data.voiceVendorUrl ?? res.data.voiceUrl,
         previewUrl: URL.createObjectURL(file),
       });
+      // Auto-switch to audio prompt if user hasn't manually edited it
+      if (!promptEditedRef.current) setPromptText(DEFAULT_PROMPT_WITH_AUDIO);
     } else {
       setVoiceError(res ? errorOf(res) : 'Upload failed');
     }
+  }
+
+  function removeVoice() {
+    if (voice?.previewUrl) URL.revokeObjectURL(voice.previewUrl);
+    setVoice(null);
+    // Revert to base prompt if not manually edited
+    if (!promptEditedRef.current) setPromptText(DEFAULT_PROMPT);
   }
 
   // ── Generate ───────────────────────────────────────────────────────────────
@@ -358,6 +365,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
           imageVendorUrl:  character.vendorUrl,
           videoVendorUrl:  refVideo.vendorUrl,
           voiceVendorUrl:  voice?.voiceVendorUrl,
+          prompt:          promptText.trim(),
           characterKey:    character.key,
           refVideoKey:     refVideo.key,
           durationSec:     maxDurationSec,
@@ -424,12 +432,16 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
     setCharacterError('');
     setVideoError('');
     setVoiceError('');
+    promptEditedRef.current = false;
+    setPromptText(DEFAULT_PROMPT);
   }
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
   const videoWasTrimmed = Boolean(refVideo?.durationSec && refVideo.durationSec > maxDurationSec);
-  const canGenerate = Boolean(character && refVideo) && (jobStatus === 'idle' || jobStatus === 'failed');
+  const canGenerate =
+    Boolean(character && refVideo && promptText.trim()) &&
+    (jobStatus === 'idle' || jobStatus === 'failed');
   const isGenerating = jobStatus === 'submitting' || jobStatus === 'polling';
   const showPreview = Boolean(character && refVideo) && !isGenerating && jobStatus !== 'done';
 
@@ -449,13 +461,12 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
       {/* ── Explainer ─────────────────────────────────────────────────────── */}
       <Section
         title="UGC Clone"
-        description="Face-swap a viral TikTok using Seedance 2.5 video editing mode · @video1 → @image1"
+        description="Face-swap a TikTok with your character · Seedance 2.5 · reapi · explicit duration"
       >
         <Notice>
-          Upload your character image and a reference TikTok video. Seedance keeps every frame of the
-          original video intact and replaces only the face with your character. The reference video is
-          trimmed to the selected duration before upload — that determines the output length.
-          Optionally add a voice reference.
+          Upload your character image and a reference TikTok video. Seedance replaces the face in the
+          reference video with your character. The video is trimmed to the selected duration before
+          upload — that determines the output length. Edit the prompt below before generating.
         </Notice>
       </Section>
 
@@ -564,7 +575,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
       {/* ── Step 3: Voice (optional) ───────────────────────────────────────── */}
       <Section
         title="3 · Voice reference (optional)"
-        description="If provided, Seedance uses it as audio reference and updates the prompt with @audio1"
+        description="If provided, added to audio_urls — prompt auto-updates to mention it"
       >
         <DropZone
           title="Voice sample"
@@ -577,28 +588,66 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
             <div className="flex flex-col items-center gap-3">
               {/* eslint-disable-next-line jsx-a11y/media-has-caption -- user voice sample */}
               <audio controls src={voice.previewUrl} className="w-full max-w-sm" />
-              <label
-                className={`inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-ink transition-colors hover:bg-surface-alt ${voiceBusy ? 'pointer-events-none opacity-40' : ''}`}
-              >
-                {voiceBusy ? <><Spinner /> Uploading…</> : 'Replace'}
-                <input
-                  type="file"
-                  accept=".mp3,.wav,.m4a,.aac,audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac"
-                  className="sr-only"
-                  disabled={voiceBusy}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadVoice(f); e.target.value = ''; }}
-                />
-              </label>
+              <div className="flex gap-2">
+                <label
+                  className={`inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-ink transition-colors hover:bg-surface-alt ${voiceBusy ? 'pointer-events-none opacity-40' : ''}`}
+                >
+                  {voiceBusy ? <><Spinner /> Uploading…</> : 'Replace'}
+                  <input
+                    type="file"
+                    accept=".mp3,.wav,.m4a,.aac,audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a,audio/aac"
+                    className="sr-only"
+                    disabled={voiceBusy}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadVoice(f); e.target.value = ''; }}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={removeVoice}
+                  className="inline-flex min-h-9 items-center justify-center rounded-lg border border-red-200 px-3 py-1.5 text-[12px] text-red-600 transition-colors hover:bg-red-50"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           ) : null}
         </DropZone>
         {voiceError && <ErrorLine message={voiceError} />}
       </Section>
 
+      {/* ── Step 4: Prompt ────────────────────────────────────────────────── */}
+      <Section
+        title="4 · Prompt"
+        description="Edit before generating — use @image1 for the character face, @audio1 if voice is uploaded"
+      >
+        <textarea
+          value={promptText}
+          onChange={(e) => {
+            setPromptText(e.target.value);
+            promptEditedRef.current = true;
+          }}
+          rows={5}
+          className="w-full rounded-xl border border-line bg-white p-3 text-[13px] text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-ink/20"
+          placeholder="Describe what Seedance should do…"
+        />
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setPromptText(voice ? DEFAULT_PROMPT_WITH_AUDIO : DEFAULT_PROMPT);
+              promptEditedRef.current = false;
+            }}
+            className="text-[11px] text-muted underline-offset-2 hover:underline"
+          >
+            Reset to default
+          </button>
+        </div>
+      </Section>
+
       {/* ── Generate (with API preview) ────────────────────────────────────── */}
       <Section
         title="Generate"
-        description="Seedance 2.5 face · reapi · video editing mode (@video1 → @image1 face swap)"
+        description="Seedance 2.5 face · reapi · explicit duration from dropdown"
       >
         {!character && !refVideo && (
           <EmptyState
@@ -616,6 +665,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
                 character={character}
                 refVideo={refVideo}
                 voice={voice}
+                prompt={promptText}
                 durationSec={maxDurationSec}
               />
             )}

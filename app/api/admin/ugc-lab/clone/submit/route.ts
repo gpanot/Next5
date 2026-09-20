@@ -6,44 +6,34 @@ import { createCloneJob } from '../../../../../../src/server/admin/cloneVideos';
 export const maxDuration = 30;
 
 // --------------------------------------------------------------------------
-// Seedance 2.5 face model via reapi — video editing mode
-//
-// We pass `video_urls` so reapi can reference @video1 in the prompt.
-// This is video-editing mode → reapi requires duration: -1 (output matches input length).
-// Treg cost: charged based on actual video length by reapi.
+// Seedance 2.5 face model via reapi
+// Explicit duration from the dropdown — NEVER -1.
+// video_urls is passed so the model sees the reference footage as context.
+// The prompt must NOT contain @video1 to avoid reapi forcing duration: -1.
 // --------------------------------------------------------------------------
 const SEEDANCE_ENDPOINT = 'reapi.video-gen.seedance-2-5.unrestricted';
 const SEEDANCE_MODEL    = 'doubao-seedance-2.5-face';
 
-/** Prompt — image + video only */
-const PROMPT_BASE =
-  'Keep the entire original video from @video1, including all animations, background, motion and audio. ' +
-  'Only replace the face in the video with the face of the character from @image1. ' +
-  'Preserve all movements, expressions, timing, and background exactly.';
-
-/** Prompt — image + video + audio reference */
-const PROMPT_WITH_AUDIO =
-  'Keep the entire original video from @video1, including all animations, background, motion and audio. ' +
-  'Only replace the face in the video with the face of the character from @image1. ' +
-  'Preserve all movements, expressions, timing, and background exactly. ' +
-  'Use the audio as a reference.';
-
 type SubmitBody = {
   /** Vendor URL for the character face image */
   imageVendorUrl?: string;
-  /** Vendor URL for the reference video (passed as video_urls → @video1) */
+  /** Vendor URL for the reference video (passed as video_urls for context) */
   videoVendorUrl?: string;
   /** Vendor URL for an optional voice/audio reference */
   voiceVendorUrl?: string;
+  /** User-edited prompt — shown and editable in the UI before submission */
+  prompt?: string;
   /** R2 keys — stored in the DB so the library can re-sign them */
   characterKey?: string;
   refVideoKey?: string;
+  /** Explicit duration from the dropdown — always used as-is, never -1 */
   durationSec?: number;
 };
 
 /**
- * POST { imageVendorUrl, videoVendorUrl, voiceVendorUrl?, characterKey, refVideoKey, durationSec }
- * → submits to reapi Seedance 2.5 face in video-editing mode
+ * POST { imageVendorUrl, videoVendorUrl?, voiceVendorUrl?, prompt,
+ *         characterKey, refVideoKey, durationSec }
+ * → submits to reapi Seedance 2.5 face with explicit duration
  * → returns { taskId }
  */
 export const POST = adminRoute(async (req: NextRequest) => {
@@ -51,6 +41,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
     imageVendorUrl,
     videoVendorUrl,
     voiceVendorUrl,
+    prompt,
     characterKey,
     refVideoKey,
     durationSec = 5,
@@ -62,29 +53,29 @@ export const POST = adminRoute(async (req: NextRequest) => {
       { status: 400 },
     );
   }
-  if (!videoVendorUrl?.trim()) {
+  if (!prompt?.trim()) {
     return NextResponse.json(
-      { error: 'videoVendorUrl is required — upload a reference video first' },
+      { error: 'prompt is required' },
       { status: 400 },
     );
   }
 
   const hasAudio = Boolean(voiceVendorUrl?.trim());
-  const prompt   = hasAudio ? PROMPT_WITH_AUDIO : PROMPT_BASE;
+  const hasVideo = Boolean(videoVendorUrl?.trim());
 
-  // Video editing mode:
-  //  - image_urls: character face (@image1)
-  //  - video_urls: reference video (@video1)
-  //  - duration: -1 (required — output inherits input video duration)
   const seedanceBody: Record<string, unknown> = {
     model:          SEEDANCE_MODEL,
     content_filter: false,
-    prompt,
-    duration:       -1,  // video editing mode requires -1
+    prompt:         prompt.trim(),
+    duration:       durationSec,   // explicit — NEVER -1
     generate_audio: true,
     image_urls:     [imageVendorUrl],
-    video_urls:     [videoVendorUrl],
   };
+
+  // Pass the reference video as context (model uses it visually without @video1 forcing -1)
+  if (hasVideo) {
+    seedanceBody.video_urls = [videoVendorUrl];
+  }
 
   if (hasAudio) {
     seedanceBody.audio_urls = [voiceVendorUrl];
