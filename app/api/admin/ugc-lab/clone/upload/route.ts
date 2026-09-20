@@ -14,32 +14,68 @@ export const maxDuration = 300;
 const execFileAsync = promisify(execFile);
 
 /**
- * Trim a video buffer to the first `durationSec` seconds using ffmpeg.
- * Uses -c copy (stream copy, no re-encode) so it's nearly instant regardless of file size.
- * Falls back to the original buffer if ffmpeg is unavailable or the trim fails.
+ * Trim a video buffer to the first `durationSec` seconds.
+ *
+ * Strategy:
+ *   1. Try stream copy (-c copy) — instant, no quality loss, works for H.264/AAC MP4.
+ *   2. If copy fails (MOV/HEVC or incompatible codec), re-encode to H.264/AAC.
+ *
+ * Returns the trimmed Buffer on success, or null if both attempts fail.
+ * Never silently falls back to the original — callers must handle null explicitly.
  */
-async function trimVideo(input: Buffer, durationSec: number): Promise<Buffer> {
-  if (!ffmpegPath) return input; // ffmpeg-static not available — pass through
+async function trimVideo(input: Buffer, durationSec: number): Promise<Buffer | null> {
+  if (!ffmpegPath) {
+    console.error('[trimVideo] ffmpeg-static path is null — cannot trim');
+    return null;
+  }
+
+  // Subtract a small safety margin so Kling's duration check always passes
+  const trimSec = Math.max(1, durationSec - 0.1);
 
   const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  const inPath  = path.join(tmpdir(), `clone-in-${stamp}.mp4`);
+  // No extension on input — ffmpeg reads the container header, not the filename
+  const inPath  = path.join(tmpdir(), `clone-in-${stamp}`);
   const outPath = path.join(tmpdir(), `clone-out-${stamp}.mp4`);
 
   try {
     await writeFile(inPath, input);
-    await execFileAsync(ffmpegPath, [
-      '-y',
-      '-i', inPath,
-      '-t', String(durationSec),
-      '-c', 'copy',
-      '-f', 'mp4',
-      '-movflags', '+faststart',
-      outPath,
-    ]);
+
+    // ── Pass 1: stream copy (fast, no re-encode) ──────────────────────────
+    let copied = false;
+    try {
+      await execFileAsync(ffmpegPath, [
+        '-y', '-i', inPath,
+        '-t', String(trimSec),
+        '-c', 'copy',
+        '-f', 'mp4', '-movflags', '+faststart',
+        outPath,
+      ]);
+      copied = true;
+    } catch (copyErr) {
+      console.warn('[trimVideo] stream copy failed, falling back to re-encode:', (copyErr as Error).message?.split('\n')[0]);
+    }
+
+    // ── Pass 2: H.264 + AAC re-encode (handles MOV/HEVC and any input) ───
+    if (!copied) {
+      try {
+        await execFileAsync(ffmpegPath, [
+          '-y', '-i', inPath,
+          '-t', String(trimSec),
+          '-c:v', 'libx264', '-crf', '23', '-preset', 'fast',
+          '-c:a', 'aac', '-b:a', '128k',
+          '-f', 'mp4', '-movflags', '+faststart',
+          outPath,
+        ]);
+      } catch (encodeErr) {
+        console.error('[trimVideo] re-encode also failed:', (encodeErr as Error).message?.split('\n')[0]);
+        return null;
+      }
+    }
+
     return await readFile(outPath);
-  } catch {
-    // Trim failed (corrupt video, unsupported codec, etc.) — return original
-    return input;
+  } catch (err) {
+    console.error('[trimVideo] unexpected error:', err);
+    return null;
   } finally {
     await Promise.all([
       unlink(inPath).catch(() => {}),
@@ -137,10 +173,14 @@ export const POST = adminRoute(async (req: NextRequest) => {
     let trimmed = false;
     if (maxDurationSec && maxDurationSec > 0) {
       const trimmedBuffer = await trimVideo(videoBuffer, maxDurationSec);
-      if (trimmedBuffer !== videoBuffer) {
-        videoBuffer = trimmedBuffer;
-        trimmed = true;
+      if (trimmedBuffer === null) {
+        // Both stream-copy and re-encode failed — refuse upload rather than sending an untrimmed video
+        return NextResponse.json({
+          error: `Could not trim the video to ${maxDurationSec} s. Please upload a clip that is already shorter.`,
+        }, { status: 422 });
       }
+      videoBuffer = trimmedBuffer;
+      trimmed = true;
     }
 
     // Always store as mp4 (trimVideo outputs mp4; original may be mov)
