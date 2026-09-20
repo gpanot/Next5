@@ -121,6 +121,9 @@ export const POST = adminRoute(async (req: NextRequest) => {
         characterKey,
         refVideoKey,
         durationSec,
+        model:      SEEDANCE_MODEL,
+        resolution: '480p',
+        prompt:     prompt.trim(),
       });
     } catch (err) {
       console.error('[clone/submit] failed to persist job to DB:', err);

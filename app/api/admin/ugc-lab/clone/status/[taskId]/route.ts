@@ -44,7 +44,7 @@ export const GET = adminRoute(async (_req: NextRequest, { params }: { params: Pr
   // ── Path 2: orphan task not in DB — poll reapi directly ──────────────────
   try {
     const result = await tregCall<RreapiTaskResult>('reapi.tasks.get', {
-      query: { task_id: taskId },
+      query: { id: taskId },  // reapi path param is `id`, NOT `task_id`
       timeoutMs: 30_000,
     });
 

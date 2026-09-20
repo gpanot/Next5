@@ -944,7 +944,7 @@ model UgcVideo {
   @@map("ugc_videos")
 }
 
-/// UGC Clone: one Kling 3.0 motion-control video. Files live in R2; PoYo CDN URLs are never stored.
+/// UGC Clone: one Seedance 2.5 face-swap video. Files live in R2; reapi CDN URLs are never stored.
 model CloneVideo {
   id            String    @id @default(cuid())
   poyoTaskId    String    @unique @map("poyo_task_id")
@@ -957,6 +957,12 @@ model CloneVideo {
   rawKey        String?   @map("raw_key")
   error         String?
   costUsdMicros Int       @default(0) @map("cost_usd_micros")
+  /// Seedance model used (e.g. doubao-seedance-2.5-face)
+  model         String?
+  /// Resolution (e.g. 480p)
+  resolution    String?
+  /// Prompt sent to Seedance
+  prompt        String?
   submittedAt   DateTime? @map("submitted_at")
   completedAt   DateTime? @map("completed_at")
   createdAt     DateTime  @default(now()) @map("created_at")

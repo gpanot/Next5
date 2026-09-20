@@ -14,6 +14,7 @@ import {
   StatusPill,
   usd,
 } from '../ugcLab/ui';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 
 const POLL_MS = 6_000;
 
@@ -118,7 +119,7 @@ function CloneCard({
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill status={video.status === 'ready' ? 'ready' : video.status === 'failed' ? 'failed' : 'generating'} />
           <span className="text-[11px] text-muted tabular-nums">
-            {video.durationSec} s · Kling 3.0 · {usd(video.estimatedCostUsd)}
+            {video.durationSec} s · {video.model ?? 'Seedance 2.5'} · {usd(video.estimatedCostUsd)}
           </span>
         </div>
 
@@ -136,6 +137,9 @@ function CloneCard({
             Reference clip
           </a>
         )}
+
+        {/* See API call */}
+        <ApiCallPanel video={video} />
 
         <div className="flex flex-wrap gap-2">
           {video.status === 'ready' && video.videoUrl && (
@@ -161,6 +165,68 @@ function CloneCard({
         {deleteError && <p className="text-[12px] text-red-700">{deleteError}</p>}
       </div>
     </article>
+  );
+}
+
+// ── ApiCallPanel ─────────────────────────────────────────────────────────────
+
+function ApiCallPanel({ video }: { video: CloneVideoDto }) {
+  const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  /** Reconstruct a representative Seedance API body (minus vendor URLs that have expired) */
+  const body = {
+    model:          video.model ?? 'doubao-seedance-2.5-face',
+    duration:       video.durationSec,
+    resolution:     video.resolution ?? '480p',
+    generate_audio: true,
+    content_filter: false,
+    prompt:         video.prompt ?? '(not stored)',
+    image_with_roles: [
+      { url: '<character-vendor-url>',  role: 'reference_image' },
+      { url: '<first-frame-vendor-url>', role: 'first_frame' },
+    ],
+    // audio_urls: ['<voice-vendor-url>']  // included when voice was uploaded
+  };
+
+  const json = JSON.stringify(body, null, 2);
+
+  async function copyJson() {
+    await navigator.clipboard.writeText(json).catch(() => null);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 text-[11px] text-blue-600 hover:underline"
+      >
+        {open ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+        See API call
+      </button>
+      {open && (
+        <div className="mt-1.5 rounded-lg border border-line bg-surface-alt p-2">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] font-medium text-muted uppercase tracking-wide">
+              reapi · {video.model ?? 'doubao-seedance-2.5-face'}
+            </span>
+            <button
+              type="button"
+              onClick={() => void copyJson()}
+              className="text-[10px] text-blue-600 hover:underline"
+            >
+              {copied ? 'Copied!' : 'Copy JSON'}
+            </button>
+          </div>
+          <pre className="overflow-x-auto whitespace-pre-wrap break-all text-[10px] text-ink leading-relaxed">
+            {json}
+          </pre>
+        </div>
+      )}
+    </div>
   );
 }
 

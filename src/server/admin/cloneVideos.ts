@@ -38,7 +38,7 @@ type TaskResult =
 
 async function checkReapi(taskId: string): Promise<TaskResult> {
   const result = await tregCall<RreapiTaskResult>('reapi.tasks.get', {
-    query: { task_id: taskId },
+    query: { id: taskId },   // reapi path param is `id`, NOT `task_id`
     timeoutMs: 30_000,
   });
 
@@ -77,14 +77,20 @@ export async function createCloneJob(opts: {
   characterKey: string;
   refVideoKey: string;
   durationSec: number;
+  model?: string;
+  resolution?: string;
+  prompt?: string;
 }): Promise<CloneVideo> {
-  const { poyoTaskId, characterKey, refVideoKey, durationSec } = opts;
+  const { poyoTaskId, characterKey, refVideoKey, durationSec, model, resolution, prompt } = opts;
   return prisma.cloneVideo.create({
     data: {
       poyoTaskId,
       characterKey,
       refVideoKey,
       durationSec,
+      model,
+      resolution,
+      prompt,
       costUsdMicros: estimateMicros(durationSec),
       submittedAt: new Date(),
     },
@@ -146,6 +152,12 @@ export type CloneVideoDto = {
   estimatedCostUsd: number;
   submittedAt: string;
   createdAt: string;
+  /** Seedance model name stored at submission time */
+  model: string | null;
+  /** Resolution stored at submission time (e.g. "480p") */
+  resolution: string | null;
+  /** Prompt sent to Seedance */
+  prompt: string | null;
 };
 
 async function toDto(video: CloneVideo): Promise<CloneVideoDto> {
@@ -166,6 +178,9 @@ async function toDto(video: CloneVideo): Promise<CloneVideoDto> {
     estimatedCostUsd: video.costUsdMicros / 1_000_000,
     submittedAt: video.submittedAt?.toISOString() ?? video.createdAt.toISOString(),
     createdAt: video.createdAt.toISOString(),
+    model: video.model ?? null,
+    resolution: video.resolution ?? null,
+    prompt: video.prompt ?? null,
   };
 }
 

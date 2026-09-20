@@ -338,7 +338,10 @@ CREATE TABLE public.clone_videos (
     submitted_at timestamp with time zone,
     completed_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    model text,
+    resolution text,
+    prompt text
 );
 
 
@@ -2082,6 +2085,7 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260919090000'),
     ('20260920090000'),
     ('20260920120000'),
+    ('20260920200000'),
     ('20260921090000'),
     ('20260922090000'),
     ('20260923090000'),
@@ -2090,24 +2094,3 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260926090000'),
     ('20260927090000'),
     ('20260928000000');
-
-CREATE TABLE public.clone_videos (
-    id text NOT NULL,
-    poyo_task_id text NOT NULL,
-    character_key text NOT NULL,
-    ref_video_key text NOT NULL,
-    duration_sec integer NOT NULL,
-    status text DEFAULT 'generating'::text NOT NULL,
-    raw_key text,
-    error text,
-    cost_usd_micros integer DEFAULT 0 NOT NULL,
-    submitted_at timestamp with time zone,
-    completed_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    PRIMARY KEY (id)
-);
-
-CREATE UNIQUE INDEX clone_videos_poyo_task_id_key ON public.clone_videos USING btree (poyo_task_id);
-CREATE INDEX clone_videos_status_idx ON public.clone_videos USING btree (status);
-CREATE INDEX clone_videos_created_at_idx ON public.clone_videos USING btree (created_at DESC);
