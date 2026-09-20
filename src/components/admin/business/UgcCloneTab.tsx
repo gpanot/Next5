@@ -18,6 +18,9 @@ import {
 const POYO_USD_PER_SECOND = 0.045; // Kling 3.0 Motion Control 720p
 const POLL_INTERVAL_MS = 3_000;
 
+const MAX_DURATION_OPTIONS = [5, 10, 15, 20, 30] as const;
+type MaxDuration = (typeof MAX_DURATION_OPTIONS)[number];
+
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type UploadState = {
@@ -150,6 +153,9 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [voiceError, setVoiceError] = useState('');
   const [voice, setVoice] = useState<VoiceState | null>(null);
+
+  // Max duration cap selected by the user before uploading
+  const [maxDurationSec, setMaxDurationSec] = useState<MaxDuration>(30);
 
   // Generation states
   const [jobStatus, setJobStatus] = useState<JobStatus>('idle');
@@ -324,9 +330,15 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  const costEstimate = estimateCost(refVideo?.durationSec);
+  // True when the uploaded video exceeds the selected cap
+  const videoTooLong = Boolean(refVideo?.durationSec && refVideo.durationSec > maxDurationSec);
+  // Cost is based on actual video duration (capped at maxDurationSec for the estimate)
+  const effectiveDuration = refVideo?.durationSec
+    ? Math.min(refVideo.durationSec, maxDurationSec)
+    : undefined;
+  const costEstimate = estimateCost(effectiveDuration);
   // Allow retrying immediately after a failure without having to click "Try again" first
-  const canGenerate = Boolean(character && refVideo) && (jobStatus === 'idle' || jobStatus === 'failed');
+  const canGenerate = Boolean(character && refVideo) && !videoTooLong && (jobStatus === 'idle' || jobStatus === 'failed');
   const isGenerating = jobStatus === 'submitting' || jobStatus === 'polling';
 
   if (jobStatus === 'done' && resultUrl) {
@@ -389,6 +401,20 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
 
       {/* ── Step 2: Reference video ────────────────────────────────────────── */}
       <Section title="2 · Reference video" description="The TikTok performance to clone">
+        {/* Duration cap — choose before uploading so you know upfront if the clip fits */}
+        <label className="flex flex-col gap-1 text-[12px] font-medium text-muted">
+          Max duration
+          <select
+            className="w-full rounded-lg border border-line px-3 py-2 text-[13px] text-ink"
+            value={maxDurationSec}
+            onChange={(e) => setMaxDurationSec(Number(e.target.value) as MaxDuration)}
+          >
+            {MAX_DURATION_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s} sec — est. {usd(Math.round(POYO_USD_PER_SECOND * s * 100) / 100)}</option>
+            ))}
+          </select>
+        </label>
+
         <DropZone
           title="Reference TikTok / MP4"
           subtitle="MP4 or MOV · max 200 MB · up to 30 s supported"
@@ -427,6 +453,12 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
           ) : null}
         </DropZone>
         {videoError && <ErrorLine message={videoError} />}
+        {videoTooLong && refVideo?.durationSec && (
+          <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
+            This clip is {Math.round(refVideo.durationSec)} s — longer than the {maxDurationSec} s cap you selected.
+            Upload a shorter clip or increase the max duration above.
+          </p>
+        )}
       </Section>
 
       {/* ── Step 3: Voice (optional) ───────────────────────────────────────── */}
