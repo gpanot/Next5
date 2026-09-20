@@ -1,66 +1,67 @@
 // server-only — never import from a 'use client' file.
-// UGC Clone video lifecycle: persist PoYo task in DB, mirror the finished video to R2.
+// UGC Clone video lifecycle: persist reapi (Seedance) task in DB, mirror the finished video to R2.
 
 import type { CloneVideo } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
 import { browserUrl, deleteFiles, mirrorFile, vendorUrl } from './ugcStore';
+import { tregCall } from './ugcLab';
 
 // ── Cost ────────────────────────────────────────────────────────────────────
 
-const POYO_USD_PER_SECOND = 0.045; // Kling 3.0 Motion Control 720p
+const SEEDANCE_USD_PER_SECOND = 0.59 / 5; // doubao-seedance-2.5-face 480p via reapi
 
 /** Estimated cost in micros (millionths of a dollar). */
 const estimateMicros = (durationSec: number): number =>
-  Math.round(POYO_USD_PER_SECOND * durationSec * 1_000_000);
+  Math.round(SEEDANCE_USD_PER_SECOND * durationSec * 1_000_000);
 
 // ── R2 keys ─────────────────────────────────────────────────────────────────
 
 export const cloneKey = (id: string) => `ugc-lab/clone/library/${id}/raw.mp4`;
 
-// ── PoYo status proxy ────────────────────────────────────────────────────────
+// ── reapi task status proxy ───────────────────────────────────────────────────
 
-const POYO_STATUS_BASE = 'https://api.poyo.ai/api/generate/status';
-
-type PoyoFile = { file_url: string; file_type: string };
-type PoyoStatusResponse = {
-  code: number;
-  data?: {
-    status: 'not_started' | 'running' | 'finished' | 'failed';
-    progress: number;
-    files?: PoyoFile[];
-    error_message?: string | null;
+type RreapiTaskResult = {
+  id?: string;
+  status?: string;   // 'pending' | 'processing' | 'completed' | 'failed'
+  output?: {
+    video_urls?: string[];
+    video_url?: string;
   };
+  error?: string | { message?: string };
 };
 
-type PoYoResult =
+type TaskResult =
   | { state: 'running'; progress: number }
   | { state: 'done'; videoUrl: string }
   | { state: 'failed'; error: string };
 
-async function checkPoyo(taskId: string): Promise<PoYoResult> {
-  const apiKey = process.env.POYO_API_KEY;
-  if (!apiKey) throw new HttpError(503, 'no_poyo_key', 'POYO_API_KEY not configured');
-
-  const res = await fetch(`${POYO_STATUS_BASE}/${taskId}`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-    cache: 'no-store',
+async function checkReapi(taskId: string): Promise<TaskResult> {
+  const result = await tregCall<RreapiTaskResult>('reapi.tasks.get', {
+    query: { task_id: taskId },
+    timeoutMs: 30_000,
   });
 
-  const data = (await res.json()) as PoyoStatusResponse;
-  if (!res.ok || !data.data) throw new HttpError(502, 'poyo_error', `PoYo returned ${res.status}`);
+  const status = result.status ?? '';
 
-  const { status, progress, files, error_message } = data.data;
-
-  if (status === 'finished') {
-    const videoUrl = files?.find((f) => f.file_type === 'video')?.file_url;
-    if (!videoUrl) return { state: 'failed', error: 'PoYo finished but returned no video file.' };
+  if (status === 'completed') {
+    const videoUrl =
+      result.output?.video_urls?.[0] ??
+      result.output?.video_url ??
+      '';
+    if (!videoUrl) return { state: 'failed', error: 'reapi completed but returned no video URL.' };
     return { state: 'done', videoUrl };
   }
+
   if (status === 'failed') {
-    return { state: 'failed', error: error_message ?? 'PoYo generation failed.' };
+    const errMsg =
+      typeof result.error === 'string'
+        ? result.error
+        : result.error?.message ?? 'reapi generation failed.';
+    return { state: 'failed', error: errMsg };
   }
-  return { state: 'running', progress: progress ?? 0 };
+
+  return { state: 'running', progress: 0 };
 }
 
 // ── DB helpers ───────────────────────────────────────────────────────────────
@@ -70,7 +71,7 @@ const upd = (id: string, data: Parameters<typeof prisma.cloneVideo.update>[0]['d
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
-/** Called right after a PoYo task is accepted. Creates the library record. */
+/** Called right after a reapi task is accepted. Creates the library record. */
 export async function createCloneJob(opts: {
   poyoTaskId: string;
   characterKey: string;
@@ -90,15 +91,15 @@ export async function createCloneJob(opts: {
   });
 }
 
-/** Checks PoYo for a single generating video and saves to R2 if finished. */
+/** Checks reapi for a single generating video and saves to R2 if finished. */
 export async function refreshCloneVideo(video: CloneVideo): Promise<CloneVideo> {
   if (video.status !== 'generating') return video;
 
-  let result: PoYoResult;
+  let result: TaskResult;
   try {
-    result = await checkPoyo(video.poyoTaskId);
+    result = await checkReapi(video.poyoTaskId);
   } catch (err) {
-    console.warn('[clone] PoYo status check failed for', video.id, err);
+    console.warn('[clone] reapi status check failed for', video.id, err);
     return video;
   }
 
@@ -115,7 +116,7 @@ export async function refreshCloneVideo(video: CloneVideo): Promise<CloneVideo> 
   } catch (err) {
     console.error('[clone] mirror failed for', video.id, err);
     if (err instanceof HttpError && err.status === 410) {
-      return upd(video.id, { status: 'failed', error: 'PoYo CDN link expired before the video was saved.' });
+      return upd(video.id, { status: 'failed', error: 'reapi CDN link expired before the video was saved.' });
     }
     // Transient error — leave as generating so next poll retries
     return video;

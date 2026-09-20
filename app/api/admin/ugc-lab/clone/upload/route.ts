@@ -128,15 +128,47 @@ const MAX_AUDIO_BYTES = 10 * 1024 * 1024;  // 10 MB
 const cloneKeys = {
   character: (stamp: string, ext: string) => `ugc-lab/clone/characters/${stamp}.${ext}`,
   video:     (stamp: string, ext: string) => `ugc-lab/clone/videos/${stamp}.${ext}`,
+  frame:     (stamp: string)              => `ugc-lab/clone/frames/${stamp}.jpg`,
   voice:     (stamp: string, ext: string) => `ugc-lab/clone/voices/${stamp}.${ext}`,
 };
 
 /**
+ * Extract the first video frame as a JPEG for use as a first_frame scene reference.
+ * Returns null if ffmpeg is unavailable or extraction fails.
+ */
+async function extractFirstFrame(input: Buffer): Promise<Buffer | null> {
+  if (!FFMPEG_PATH) return null;
+
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const inPath  = path.join(tmpdir(), `frame-in-${stamp}`);
+  const outPath = path.join(tmpdir(), `frame-out-${stamp}.jpg`);
+
+  try {
+    await writeFile(inPath, input);
+    await execFileAsync(FFMPEG_PATH, [
+      '-y', '-i', inPath,
+      '-vframes', '1',
+      '-q:v', '2',    // JPEG quality 2 (1=best, 31=worst)
+      outPath,
+    ]);
+    return await readFile(outPath);
+  } catch (err) {
+    console.warn('[extractFirstFrame] failed:', (err as Error).message?.split('\n')[0]);
+    return null;
+  } finally {
+    await Promise.all([
+      unlink(inPath).catch(() => {}),
+      unlink(outPath).catch(() => {}),
+    ]);
+  }
+}
+
+/**
  * POST multipart: file + purpose ("character" | "video" | "voice")
  *
- * character → JPEG/PNG/WebP image stored in R2; returns { key, vendorUrl } (7-day link for Poyo)
- * video     → MP4/MOV reference video stored in R2; returns { key, vendorUrl } (7-day link for Poyo)
- * voice     → MP3/WAV/M4A/AAC audio stored in R2; returns { key, voiceUrl } (24-hr browser link)
+ * character → JPEG/PNG/WebP image stored in R2; returns { key, vendorUrl } (7-day vendor link)
+ * video     → MP4/MOV stored in R2; returns { key, vendorUrl, trimmed, frameKey, frameVendorUrl }
+ * voice     → MP3/WAV/M4A/AAC stored in R2; returns { key, voiceUrl, voiceVendorUrl }
  */
 export const POST = adminRoute(async (req: NextRequest) => {
   let formData: FormData;
@@ -202,7 +234,18 @@ export const POST = adminRoute(async (req: NextRequest) => {
     const key = cloneKeys.video(stamp, storeExt);
     await putFile(key, videoBuffer, storeType);
     const url = await vendorUrl(key);
-    return NextResponse.json({ key, vendorUrl: url, trimmed });
+
+    // Extract first frame → stored as scene reference for Seedance (first_frame role)
+    let frameKey: string | undefined;
+    let frameVendorUrl: string | undefined;
+    const frameBuffer = await extractFirstFrame(videoBuffer);
+    if (frameBuffer) {
+      frameKey = cloneKeys.frame(stamp);
+      await putFile(frameKey, frameBuffer, 'image/jpeg');
+      frameVendorUrl = await vendorUrl(frameKey);
+    }
+
+    return NextResponse.json({ key, vendorUrl: url, trimmed, frameKey, frameVendorUrl });
   }
 
   if (purpose === 'voice') {
@@ -215,8 +258,11 @@ export const POST = adminRoute(async (req: NextRequest) => {
     }
     const key = cloneKeys.voice(stamp, ext);
     await putFile(key, Buffer.from(await file.arrayBuffer()), file.type);
-    const voiceUrl = await browserUrl(key);
-    return NextResponse.json({ key, voiceUrl });
+    const [voiceUrl, voiceVendorUrl] = await Promise.all([
+      browserUrl(key),
+      vendorUrl(key),
+    ]);
+    return NextResponse.json({ key, voiceUrl, voiceVendorUrl });
   }
 
   return NextResponse.json({ error: 'purpose must be "character", "video", or "voice"' }, { status: 400 });

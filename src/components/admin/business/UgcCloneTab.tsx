@@ -16,8 +16,8 @@ import { CloneLibrary } from './ugcClone/CloneLibrary';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const POYO_USD_PER_SECOND = 0.045; // Kling 3.0 Motion Control 720p
-const POLL_INTERVAL_MS = 3_000;
+const SEEDANCE_USD_PER_SECOND = 0.59 / 5; // doubao-seedance-2.5-face 480p via reapi
+const POLL_INTERVAL_MS = 4_000;
 
 const MAX_DURATION_OPTIONS = [5, 10, 15, 20, 30] as const;
 type MaxDuration = (typeof MAX_DURATION_OPTIONS)[number];
@@ -27,15 +27,17 @@ type MaxDuration = (typeof MAX_DURATION_OPTIONS)[number];
 type UploadState = {
   key: string;
   vendorUrl: string;
-  /** Local object URL for previewing the file in the browser */
   previewUrl: string;
   /** Duration in seconds (video only) */
   durationSec?: number;
+  /** Vendor URL for the first frame JPEG (video only — for first_frame Seedance role) */
+  frameVendorUrl?: string;
 };
 
 type VoiceState = {
   key: string;
-  voiceUrl: string;
+  voiceUrl: string;        // browser 24-hr URL
+  voiceVendorUrl: string;  // vendor 7-day URL (passed to Seedance)
   previewUrl: string;
 };
 
@@ -43,19 +45,14 @@ type JobStatus = 'idle' | 'submitting' | 'polling' | 'done' | 'failed';
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
-const estimateCost = (durationSec: number | undefined): string | null => {
-  if (!durationSec || durationSec <= 0) return null;
-  return usd(Math.round(POYO_USD_PER_SECOND * durationSec * 100) / 100);
-};
+const estimateCost = (durationSec: number): string =>
+  usd(Math.round(SEEDANCE_USD_PER_SECOND * durationSec * 100) / 100);
 
 const readVideoDuration = (file: File): Promise<number> =>
   new Promise((resolve) => {
     const el = document.createElement('video');
     el.preload = 'metadata';
-    el.onloadedmetadata = () => {
-      resolve(el.duration);
-      URL.revokeObjectURL(el.src);
-    };
+    el.onloadedmetadata = () => { resolve(el.duration); URL.revokeObjectURL(el.src); };
     el.onerror = () => resolve(0);
     el.src = URL.createObjectURL(file);
   });
@@ -85,7 +82,6 @@ const DropZone = ({ title, subtitle, accept, busy, onFile, children }: DropZoneP
       <p className="text-[13px] font-medium text-ink">{title}</p>
       <p className="text-[12px] text-muted">{subtitle}</p>
       {children ?? (
-        /* No file yet — show the primary "Choose file" picker */
         <label
           className={`mx-auto inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 ${busy ? 'pointer-events-none opacity-40' : ''}`}
         >
@@ -100,6 +96,83 @@ const DropZone = ({ title, subtitle, accept, busy, onFile, children }: DropZoneP
           />
         </label>
       )}
+    </div>
+  );
+};
+
+// ── API Preview ──────────────────────────────────────────────────────────────
+
+type ApiPreviewProps = {
+  character: UploadState;
+  refVideo: UploadState;
+  voice: VoiceState | null;
+  durationSec: number;
+};
+
+const ApiPreview = ({ character, refVideo, voice, durationSec }: ApiPreviewProps) => {
+  const hasAudio = Boolean(voice);
+  const hasFrame = Boolean(refVideo.frameVendorUrl);
+
+  const prompt = hasAudio
+    ? 'The person in @image1 speaks naturally and expressively to camera in a casual UGC selfie video. Replace any person in the scene with the face from @image1 while preserving the original background, lighting, and energy. Natural facial expressions and movements, handheld 9:16 vertical framing. Use the voice from @audio1 as the speech audio reference.'
+    : 'The person in @image1 speaks naturally and expressively to camera in a casual UGC selfie video. Replace any person in the scene with the face from @image1 while preserving the original background, lighting, and energy. Natural facial expressions and movements, handheld 9:16 vertical framing.';
+
+  const body: Record<string, unknown> = {
+    model: 'doubao-seedance-2.5-face',
+    content_filter: false,
+    prompt,
+    duration: durationSec,
+    resolution: '480p',
+    generate_audio: true,
+  };
+
+  if (hasFrame) {
+    body.size = 'adaptive';
+    body.image_with_roles = [
+      { url: `${character.vendorUrl.slice(0, 55)}…`, role: 'reference_image' },
+      { url: `${(refVideo.frameVendorUrl ?? '').slice(0, 55)}…`, role: 'first_frame' },
+    ];
+  } else {
+    body.size = '9:16';
+    body.image_urls = [`${character.vendorUrl.slice(0, 55)}…`];
+  }
+
+  if (hasAudio) {
+    body.audio_urls = [`${voice!.voiceVendorUrl.slice(0, 55)}…`];
+  }
+
+  return (
+    <div className="rounded-xl border border-line bg-zinc-50 p-4 text-left">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
+        API call preview — verify before clicking Clone
+      </p>
+      <div className="mb-3 flex flex-wrap gap-3 text-[12px]">
+        <span className="rounded bg-blue-100 px-2 py-0.5 font-mono text-blue-800">
+          reapi.video-gen.seedance-2-5.unrestricted
+        </span>
+        <span className="rounded bg-purple-100 px-2 py-0.5 font-mono text-purple-800">
+          {body.model as string}
+        </span>
+        <span className="rounded bg-green-100 px-2 py-0.5 font-mono text-green-800">
+          {durationSec}s · {body.resolution as string}
+        </span>
+        <span className="rounded bg-amber-100 px-2 py-0.5 font-mono text-amber-800">
+          ≈ {estimateCost(durationSec)}
+        </span>
+        {hasFrame && (
+          <span className="rounded bg-teal-100 px-2 py-0.5 text-teal-800">
+            first_frame from video ✓
+          </span>
+        )}
+        {hasAudio && (
+          <span className="rounded bg-pink-100 px-2 py-0.5 text-pink-800">
+            audio reference ✓
+          </span>
+        )}
+      </div>
+      <pre className="overflow-x-auto rounded-lg bg-zinc-900 p-3 text-[11px] leading-5 text-green-300">
+        {JSON.stringify(body, null, 2)}
+      </pre>
     </div>
   );
 };
@@ -155,9 +228,9 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
   const [voiceError, setVoiceError] = useState('');
   const [voice, setVoice] = useState<VoiceState | null>(null);
 
-  // Max duration cap selected by the user
-  const [maxDurationSec, setMaxDurationSec] = useState<MaxDuration>(30);
-  // The original File object for the reference video, kept so we can re-upload when the cap changes
+  // Duration cap from dropdown
+  const [maxDurationSec, setMaxDurationSec] = useState<MaxDuration>(5);
+  // Keep file ref to re-upload on cap change
   const refVideoFileRef = useRef<File | null>(null);
 
   // Generation states
@@ -168,11 +241,11 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
   const [submitError, setSubmitError] = useState('');
   const [resultUrl, setResultUrl] = useState<string | null>(null);
 
-  // Refs for intervals so we can clear them on unmount or reset
+  // Refs for intervals
   const elapsedRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollRef    = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Elapsed-second ticker — only runs while polling
+  // Elapsed-second ticker — only while polling
   useEffect(() => {
     if (jobStatus === 'polling') {
       elapsedRef.current = setInterval(() => setElapsedSec((s) => s + 1), 1000);
@@ -182,7 +255,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
     return () => { if (elapsedRef.current) clearInterval(elapsedRef.current); };
   }, [jobStatus]);
 
-  // Clear both intervals on unmount (e.g. switching tabs)
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (elapsedRef.current) clearInterval(elapsedRef.current);
@@ -214,23 +287,31 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
   async function uploadVideo(file: File, capSec?: MaxDuration) {
     setVideoBusy(true);
     setVideoError('');
-    // Read duration locally before uploading so we can show cost estimate immediately
     const durationSec = await readVideoDuration(file);
     const form = new FormData();
     form.append('file', file);
     form.append('purpose', 'video');
-    // capSec is passed directly when called from the dropdown onChange (state not yet updated)
     form.append('maxDuration', String(capSec ?? maxDurationSec));
-    const res = await ugcRequest<{ key?: string; vendorUrl?: string; trimmed?: boolean; error?: string }>(
-      token, '/api/admin/ugc-lab/clone/upload', { form },
-    ).catch(() => null);
+    const res = await ugcRequest<{
+      key?: string;
+      vendorUrl?: string;
+      trimmed?: boolean;
+      frameKey?: string;
+      frameVendorUrl?: string;
+      error?: string;
+    }>(token, '/api/admin/ugc-lab/clone/upload', { form }).catch(() => null);
     setVideoBusy(false);
     if (res?.ok && res.data.key && res.data.vendorUrl) {
       const prev = refVideo?.previewUrl;
       if (prev) URL.revokeObjectURL(prev);
       refVideoFileRef.current = file;
-      // Store the original duration for display, effective stored duration is min(durationSec, maxDurationSec)
-      setRefVideo({ key: res.data.key, vendorUrl: res.data.vendorUrl, previewUrl: URL.createObjectURL(file), durationSec });
+      setRefVideo({
+        key: res.data.key,
+        vendorUrl: res.data.vendorUrl,
+        previewUrl: URL.createObjectURL(file),
+        durationSec,
+        frameVendorUrl: res.data.frameVendorUrl,
+      });
     } else {
       setVideoError(res ? errorOf(res) : 'Upload failed');
     }
@@ -242,14 +323,22 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
     const form = new FormData();
     form.append('file', file);
     form.append('purpose', 'voice');
-    const res = await ugcRequest<{ key?: string; voiceUrl?: string; error?: string }>(
-      token, '/api/admin/ugc-lab/clone/upload', { form },
-    ).catch(() => null);
+    const res = await ugcRequest<{
+      key?: string;
+      voiceUrl?: string;
+      voiceVendorUrl?: string;
+      error?: string;
+    }>(token, '/api/admin/ugc-lab/clone/upload', { form }).catch(() => null);
     setVoiceBusy(false);
     if (res?.ok && res.data.key && res.data.voiceUrl) {
       const prev = voice?.previewUrl;
       if (prev) URL.revokeObjectURL(prev);
-      setVoice({ key: res.data.key, voiceUrl: res.data.voiceUrl, previewUrl: URL.createObjectURL(file) });
+      setVoice({
+        key: res.data.key,
+        voiceUrl: res.data.voiceUrl,
+        voiceVendorUrl: res.data.voiceVendorUrl ?? res.data.voiceUrl,
+        previewUrl: URL.createObjectURL(file),
+      });
     } else {
       setVoiceError(res ? errorOf(res) : 'Upload failed');
     }
@@ -268,12 +357,12 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
     const res = await ugcRequest<{ taskId?: string; error?: string }>(
       token, '/api/admin/ugc-lab/clone/submit', {
         json: {
-          imageVendorUrl: character.vendorUrl,
-          videoVendorUrl: refVideo.vendorUrl,
-          // Keys stored in DB so the library can re-sign them and mirror the output to R2
-          characterKey: character.key,
-          refVideoKey: refVideo.key,
-          durationSec: effectiveDuration ?? maxDurationSec,
+          imageVendorUrl:  character.vendorUrl,
+          frameVendorUrl:  refVideo.frameVendorUrl,
+          voiceVendorUrl:  voice?.voiceVendorUrl,
+          characterKey:    character.key,
+          refVideoKey:     refVideo.key,
+          durationSec:     maxDurationSec,
         },
       },
     ).catch(() => null);
@@ -290,18 +379,17 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
   }
 
   const pollStatus = useCallback((id: string) => {
-    // Clear any previous poll (safety guard)
     if (pollRef.current) clearInterval(pollRef.current);
 
     pollRef.current = setInterval(async () => {
-      const res = await ugcRequest<{ status?: string; progress?: number; videoUrl?: string | null; error?: string | null }>(
-        token, `/api/admin/ugc-lab/clone/status/${id}`,
-      ).catch(() => null);
+      const res = await ugcRequest<{
+        status?: string;
+        progress?: number;
+        videoUrl?: string | null;
+        error?: string | null;
+      }>(token, `/api/admin/ugc-lab/clone/status/${id}`).catch(() => null);
 
-      if (!res?.ok) {
-        // Transient error — keep polling
-        return;
-      }
+      if (!res?.ok) return; // transient — keep polling
 
       const { status, progress: prog, videoUrl } = res.data;
       setProgress(prog ?? 0);
@@ -312,17 +400,15 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         setJobStatus('done');
       } else if (status === 'failed') {
         if (pollRef.current) clearInterval(pollRef.current);
-        setSubmitError(res.data.error ?? 'Kling returned a failure — try again');
+        setSubmitError(res.data.error ?? 'Generation failed — try again');
         setJobStatus('failed');
       }
-      // not_started / running → keep polling
     }, POLL_INTERVAL_MS);
   }, [token]);
 
   // ── Reset ──────────────────────────────────────────────────────────────────
 
   function reset() {
-    // Stop any in-flight poll
     if (pollRef.current) clearInterval(pollRef.current);
     if (elapsedRef.current) clearInterval(elapsedRef.current);
     if (character?.previewUrl) URL.revokeObjectURL(character.previewUrl);
@@ -342,18 +428,14 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
     setVoiceError('');
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Derived ────────────────────────────────────────────────────────────────
 
-  // Whether the original clip was longer than the cap (server will have trimmed it already)
   const videoWasTrimmed = Boolean(refVideo?.durationSec && refVideo.durationSec > maxDurationSec);
-  // Cost is based on effective stored duration (capped at maxDurationSec)
-  const effectiveDuration = refVideo?.durationSec
-    ? Math.min(refVideo.durationSec, maxDurationSec)
-    : undefined;
-  const costEstimate = estimateCost(effectiveDuration);
-  // Allow retrying immediately after a failure without having to click "Try again" first
   const canGenerate = Boolean(character && refVideo) && (jobStatus === 'idle' || jobStatus === 'failed');
   const isGenerating = jobStatus === 'submitting' || jobStatus === 'polling';
+  const showPreview = Boolean(character && refVideo) && !isGenerating && jobStatus !== 'done';
+
+  // ── Result view ────────────────────────────────────────────────────────────
 
   if (jobStatus === 'done' && resultUrl) {
     return (
@@ -369,12 +451,12 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
       {/* ── Explainer ─────────────────────────────────────────────────────── */}
       <Section
         title="UGC Clone"
-        description="Duplicate a viral TikTok video using a new character. Powered by Kling 3.0 Motion Control via Poyo AI · 720p · $0.045/sec"
+        description="Swap a creator's face with your character using Seedance 2.5 · 480p · ~$0.118/sec"
       >
         <Notice>
-          Upload a character image and a reference video. Kling will transfer every gesture, expression,
-          and movement from the reference video onto your character — as if the same UGC was filmed by a
-          different person.
+          Upload your character image (the new face), a reference TikTok video (sets the scene), and
+          optionally a voice sample. Seedance will generate a video featuring your character in the same
+          style — same API as UGC Lab, explicit duration, table-based pricing.
         </Notice>
       </Section>
 
@@ -414,30 +496,30 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
       </Section>
 
       {/* ── Step 2: Reference video ────────────────────────────────────────── */}
-      <Section title="2 · Reference video" description="The TikTok performance to clone">
-        {/* Duration cap — choose before uploading so you know upfront if the clip fits */}
+      <Section title="2 · Reference video" description="The TikTok scene to clone — first frame used as scene anchor">
+        {/* Duration dropdown — choose BEFORE uploading so the server trims on upload */}
         <label className="flex flex-col gap-1 text-[12px] font-medium text-muted">
-          Max duration
+          Duration
           <select
             className="w-full rounded-lg border border-line px-3 py-2 text-[13px] text-ink"
             value={maxDurationSec}
             onChange={(e) => {
-            const next = Number(e.target.value) as MaxDuration;
-            setMaxDurationSec(next);
-            // Re-upload the video with the new trim cap if one is already loaded
-            // Pass `next` directly — state hasn't updated yet (React batching)
-            if (refVideoFileRef.current) void uploadVideo(refVideoFileRef.current, next);
-          }}
+              const next = Number(e.target.value) as MaxDuration;
+              setMaxDurationSec(next);
+              if (refVideoFileRef.current) void uploadVideo(refVideoFileRef.current, next);
+            }}
           >
             {MAX_DURATION_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s} sec — est. {usd(Math.round(POYO_USD_PER_SECOND * s * 100) / 100)}</option>
+              <option key={s} value={s}>
+                {s} s — est. {estimateCost(s)}
+              </option>
             ))}
           </select>
         </label>
 
         <DropZone
           title="Reference TikTok / MP4"
-          subtitle="MP4 or MOV · max 200 MB · up to 30 s supported"
+          subtitle="MP4 or MOV · max 200 MB · longer clips are trimmed to the selected duration"
           accept="video/mp4,video/quicktime"
           busy={videoBusy}
           onFile={(f) => void uploadVideo(f, maxDurationSec)}
@@ -451,12 +533,12 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
                 playsInline
                 className="mx-auto max-h-64 max-w-xs rounded-xl ring-1 ring-line"
               />
-              {refVideo.durationSec && refVideo.durationSec > 0 && (
-                <p className="text-[12px] text-muted">
-                  Duration: {Math.round(refVideo.durationSec)} s
-                  {costEstimate && <> · Estimated cost: <span className="font-medium text-ink">{costEstimate}</span></>}
-                </p>
-              )}
+              <p className="text-[12px] text-muted">
+                {refVideo.durationSec && refVideo.durationSec > 0
+                  ? `Original: ${Math.round(refVideo.durationSec)} s · Cloning: ${maxDurationSec} s · Est. ${estimateCost(maxDurationSec)}`
+                  : `Cloning: ${maxDurationSec} s · Est. ${estimateCost(maxDurationSec)}`}
+                {refVideo.frameVendorUrl && <> · <span className="text-teal-700">first frame captured ✓</span></>}
+              </p>
               <label
                 className={`inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-ink transition-colors hover:bg-surface-alt ${videoBusy ? 'pointer-events-none opacity-40' : ''}`}
               >
@@ -475,7 +557,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         {videoError && <ErrorLine message={videoError} />}
         {videoWasTrimmed && refVideo?.durationSec && (
           <p className="rounded-lg bg-blue-50 px-3 py-2 text-[12px] text-blue-800">
-            Your clip is {Math.round(refVideo.durationSec)} s — the server trimmed it to the first {maxDurationSec} s before upload.
+            Your clip is {Math.round(refVideo.durationSec)} s — trimmed to the first {maxDurationSec} s before upload.
           </p>
         )}
       </Section>
@@ -483,7 +565,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
       {/* ── Step 3: Voice (optional) ───────────────────────────────────────── */}
       <Section
         title="3 · Voice reference (optional)"
-        description="Stored in R2 · not yet wired to Kling generation — reserved for a future audio-swap step"
+        description="If provided, Seedance uses it as audio reference and updates the prompt with @audio1"
       >
         <DropZone
           title="Voice sample"
@@ -514,14 +596,10 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         {voiceError && <ErrorLine message={voiceError} />}
       </Section>
 
-      {/* ── Generate ──────────────────────────────────────────────────────── */}
+      {/* ── Generate (with API preview) ────────────────────────────────────── */}
       <Section
         title="Generate"
-        description={
-          costEstimate
-            ? `Kling 3.0 Motion Control · 720p · estimated ${costEstimate}`
-            : 'Kling 3.0 Motion Control · 720p · $0.045/sec of reference video'
-        }
+        description="Seedance 2.5 face · reapi · 480p · explicit duration → table pricing"
       >
         {!character && !refVideo && (
           <EmptyState
@@ -532,38 +610,24 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
 
         {(character || refVideo) && (
           <div className="flex flex-col gap-4">
-            {/* Summary row */}
-            <div className="flex flex-wrap gap-4">
-              {character && (
-                <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- local object URL */}
-                  <img src={character.previewUrl} alt="" className="h-10 w-5 rounded object-cover" />
-                  <span className="text-[12px] text-ink">Character ready</span>
-                </div>
-              )}
-              {refVideo && (
-                <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
-                  <span className="text-[12px] text-muted">Reference</span>
-                  <span className="text-[12px] text-ink">
-                    {refVideo.durationSec ? `${Math.round(refVideo.durationSec)} s` : 'ready'}
-                  </span>
-                </div>
-              )}
-              {voice && (
-                <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
-                  <span className="text-[12px] text-muted">Voice</span>
-                  <span className="text-[12px] text-ink">stored</span>
-                </div>
-              )}
-            </div>
 
-            {/* Progress / polling */}
+            {/* API call preview — shown before submit so user can verify */}
+            {showPreview && character && refVideo && (
+              <ApiPreview
+                character={character}
+                refVideo={refVideo}
+                voice={voice}
+                durationSec={maxDurationSec}
+              />
+            )}
+
+            {/* Progress */}
             {isGenerating && (
               <div className="flex items-center gap-3">
                 <Spinner />
                 <span className="text-[13px] text-muted">
                   {jobStatus === 'submitting'
-                    ? 'Submitting to Kling…'
+                    ? 'Submitting to Seedance…'
                     : `Generating… ${progress > 0 ? `${progress}%` : ''} (${elapsedSec}s elapsed)`}
                 </span>
               </div>
@@ -585,9 +649,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
                 >
                   {isGenerating
                     ? <><Spinner /> Working…</>
-                    : costEstimate
-                      ? `Clone · ${costEstimate}`
-                      : 'Clone video'}
+                    : `Clone · ${estimateCost(maxDurationSec)}`}
                 </PrimaryButton>
                 {!character && <p className="text-[12px] text-red-700">Missing: character image</p>}
                 {!refVideo  && <p className="text-[12px] text-red-700">Missing: reference video</p>}
@@ -600,7 +662,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
       {/* Task ID for debugging */}
       {taskId && jobStatus !== 'idle' && (
         <p className="text-[11px] text-muted">
-          Poyo task ID: <code className="font-mono">{taskId}</code>
+          Task ID: <code className="font-mono">{taskId}</code>
         </p>
       )}
 
