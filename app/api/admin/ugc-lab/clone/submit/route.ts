@@ -68,6 +68,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
     content_filter: false,
     prompt:         prompt.trim(),
     duration:       durationSec,   // explicit — NEVER -1
+    resolution:     '480p',
     generate_audio: true,
     image_urls:     [imageVendorUrl],
   };

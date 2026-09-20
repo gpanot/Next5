@@ -131,6 +131,7 @@ const ApiPreview = ({ character, refVideo, voice, prompt, durationSec }: ApiPrev
     content_filter: false,
     prompt,
     duration:       durationSec,   // explicit from dropdown — never -1
+    resolution:     '480p',
     generate_audio: true,
     image_urls:     [`${character.vendorUrl.slice(0, 55)}…`],
     video_urls:     [`${refVideo.vendorUrl.slice(0, 55)}…`],
