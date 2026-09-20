@@ -17,8 +17,8 @@ const SEEDANCE_MODEL    = 'doubao-seedance-2.5-face';
 type SubmitBody = {
   /** Vendor URL for the character face image */
   imageVendorUrl?: string;
-  /** Vendor URL for the reference video (passed as video_urls for context) */
-  videoVendorUrl?: string;
+  /** Vendor URL for the first frame JPEG of the reference video (first_frame role) */
+  frameVendorUrl?: string;
   /** Vendor URL for an optional voice/audio reference */
   voiceVendorUrl?: string;
   /** User-edited prompt — shown and editable in the UI before submission */
@@ -39,7 +39,7 @@ type SubmitBody = {
 export const POST = adminRoute(async (req: NextRequest) => {
   const {
     imageVendorUrl,
-    videoVendorUrl,
+    frameVendorUrl,
     voiceVendorUrl,
     prompt,
     characterKey,
@@ -61,7 +61,12 @@ export const POST = adminRoute(async (req: NextRequest) => {
   }
 
   const hasAudio = Boolean(voiceVendorUrl?.trim());
-  const hasVideo = Boolean(videoVendorUrl?.trim());
+
+  // KEY FINDING: passing video_urls ALWAYS forces reapi into video editing mode (duration: -1),
+  // regardless of prompt content. To use explicit duration we must use first_frame instead.
+  // character image → reference_image role (face reference)
+  // first frame of video → first_frame role (scene/background anchor)
+  const hasFrame = Boolean(frameVendorUrl?.trim());
 
   const seedanceBody: Record<string, unknown> = {
     model:          SEEDANCE_MODEL,
@@ -70,12 +75,19 @@ export const POST = adminRoute(async (req: NextRequest) => {
     duration:       durationSec,   // explicit — NEVER -1
     resolution:     '480p',
     generate_audio: true,
-    image_urls:     [imageVendorUrl],
   };
 
-  // Pass the reference video as context (model uses it visually without @video1 forcing -1)
-  if (hasVideo) {
-    seedanceBody.video_urls = [videoVendorUrl];
+  if (hasFrame) {
+    // image_with_roles: character face + first frame as scene anchor
+    seedanceBody.size = 'adaptive';
+    seedanceBody.image_with_roles = [
+      { url: imageVendorUrl,     role: 'reference_image' },
+      { url: frameVendorUrl,     role: 'first_frame' },
+    ];
+  } else {
+    // No frame extracted — fallback to character only
+    seedanceBody.size = '9:16';
+    seedanceBody.image_urls = [imageVendorUrl];
   }
 
   if (hasAudio) {

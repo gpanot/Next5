@@ -125,6 +125,8 @@ type ApiPreviewProps = {
 const ApiPreview = ({ character, refVideo, voice, prompt, durationSec }: ApiPreviewProps) => {
   const hasAudio = Boolean(voice);
 
+  const hasFrame = Boolean(refVideo.frameVendorUrl);
+
   // Exact body that will be sent to reapi (URLs truncated for readability)
   const body: Record<string, unknown> = {
     model:          'doubao-seedance-2.5-face',
@@ -133,9 +135,18 @@ const ApiPreview = ({ character, refVideo, voice, prompt, durationSec }: ApiPrev
     duration:       durationSec,   // explicit from dropdown — never -1
     resolution:     '480p',
     generate_audio: true,
-    image_urls:     [`${character.vendorUrl.slice(0, 55)}…`],
-    video_urls:     [`${refVideo.vendorUrl.slice(0, 55)}…`],
   };
+
+  if (hasFrame) {
+    body.size = 'adaptive';
+    body.image_with_roles = [
+      { url: `${character.vendorUrl.slice(0, 55)}…`, role: 'reference_image' },
+      { url: `${(refVideo.frameVendorUrl ?? '').slice(0, 55)}…`, role: 'first_frame' },
+    ];
+  } else {
+    body.size = '9:16';
+    body.image_urls = [`${character.vendorUrl.slice(0, 55)}…`];
+  }
 
   if (hasAudio) {
     body.audio_urls = [`${voice!.voiceVendorUrl.slice(0, 55)}…`];
@@ -156,6 +167,11 @@ const ApiPreview = ({ character, refVideo, voice, prompt, durationSec }: ApiPrev
         <span className="rounded bg-green-100 px-2 py-0.5 font-mono text-green-800">
           duration: {durationSec}s · ≈ {estimateCost(durationSec)}
         </span>
+        {hasFrame && (
+          <span className="rounded bg-teal-100 px-2 py-0.5 text-teal-800">
+            first_frame ✓
+          </span>
+        )}
         {hasAudio && (
           <span className="rounded bg-pink-100 px-2 py-0.5 text-pink-800">
             audio_urls ✓
@@ -364,7 +380,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
       token, '/api/admin/ugc-lab/clone/submit', {
         json: {
           imageVendorUrl:  character.vendorUrl,
-          videoVendorUrl:  refVideo.vendorUrl,
+          frameVendorUrl:  refVideo.frameVendorUrl,   // first frame — no video_urls (forces -1)
           voiceVendorUrl:  voice?.voiceVendorUrl,
           prompt:          promptText.trim(),
           characterKey:    character.key,
