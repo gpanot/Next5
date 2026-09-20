@@ -1,9 +1,52 @@
+import { execFile } from 'child_process';
+import { writeFile, readFile, unlink } from 'fs/promises';
+import { tmpdir } from 'os';
+import path from 'path';
+import { promisify } from 'util';
 import { NextResponse, type NextRequest } from 'next/server';
+import ffmpegPath from 'ffmpeg-static';
 import { adminRoute } from '../../../../../../src/server/admin/route';
 import { browserUrl, putFile, uniqueStamp, vendorUrl } from '../../../../../../src/server/admin/ugcStore';
 
-// Videos can be up to 200 MB — give the upload route 5 minutes to receive and store
+// Videos can be up to 200 MB — give the upload route 5 minutes to receive, trim, and store
 export const maxDuration = 300;
+
+const execFileAsync = promisify(execFile);
+
+/**
+ * Trim a video buffer to the first `durationSec` seconds using ffmpeg.
+ * Uses -c copy (stream copy, no re-encode) so it's nearly instant regardless of file size.
+ * Falls back to the original buffer if ffmpeg is unavailable or the trim fails.
+ */
+async function trimVideo(input: Buffer, durationSec: number): Promise<Buffer> {
+  if (!ffmpegPath) return input; // ffmpeg-static not available — pass through
+
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  const inPath  = path.join(tmpdir(), `clone-in-${stamp}.mp4`);
+  const outPath = path.join(tmpdir(), `clone-out-${stamp}.mp4`);
+
+  try {
+    await writeFile(inPath, input);
+    await execFileAsync(ffmpegPath, [
+      '-y',
+      '-i', inPath,
+      '-t', String(durationSec),
+      '-c', 'copy',
+      '-f', 'mp4',
+      '-movflags', '+faststart',
+      outPath,
+    ]);
+    return await readFile(outPath);
+  } catch {
+    // Trim failed (corrupt video, unsupported codec, etc.) — return original
+    return input;
+  } finally {
+    await Promise.all([
+      unlink(inPath).catch(() => {}),
+      unlink(outPath).catch(() => {}),
+    ]);
+  }
+}
 
 const IMAGE_TYPES = new Map([
   ['image/jpeg', 'jpg'],
@@ -84,10 +127,29 @@ export const POST = adminRoute(async (req: NextRequest) => {
     if (file.size > MAX_VIDEO_BYTES) {
       return NextResponse.json({ error: 'Video is larger than 200 MB' }, { status: 413 });
     }
-    const key = cloneKeys.video(stamp, ext);
-    await putFile(key, Buffer.from(await file.arrayBuffer()), file.type);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let videoBuffer: Buffer = Buffer.from(await file.arrayBuffer() as any);
+
+    // Trim to the requested max duration if provided (always output as mp4 after trim)
+    const maxDurationRaw = formData.get('maxDuration');
+    const maxDurationSec = maxDurationRaw ? Number(maxDurationRaw) : null;
+    let trimmed = false;
+    if (maxDurationSec && maxDurationSec > 0) {
+      const trimmedBuffer = await trimVideo(videoBuffer, maxDurationSec);
+      if (trimmedBuffer !== videoBuffer) {
+        videoBuffer = trimmedBuffer;
+        trimmed = true;
+      }
+    }
+
+    // Always store as mp4 (trimVideo outputs mp4; original may be mov)
+    const storeExt = trimmed ? 'mp4' : ext;
+    const storeType = trimmed ? 'video/mp4' : file.type;
+    const key = cloneKeys.video(stamp, storeExt);
+    await putFile(key, videoBuffer, storeType);
     const url = await vendorUrl(key);
-    return NextResponse.json({ key, vendorUrl: url });
+    return NextResponse.json({ key, vendorUrl: url, trimmed });
   }
 
   if (purpose === 'voice') {

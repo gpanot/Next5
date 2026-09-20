@@ -154,8 +154,10 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
   const [voiceError, setVoiceError] = useState('');
   const [voice, setVoice] = useState<VoiceState | null>(null);
 
-  // Max duration cap selected by the user before uploading
+  // Max duration cap selected by the user
   const [maxDurationSec, setMaxDurationSec] = useState<MaxDuration>(30);
+  // The original File object for the reference video, kept so we can re-upload when the cap changes
+  const refVideoFileRef = useRef<File | null>(null);
 
   // Generation states
   const [jobStatus, setJobStatus] = useState<JobStatus>('idle');
@@ -208,7 +210,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
     }
   }
 
-  async function uploadVideo(file: File) {
+  async function uploadVideo(file: File, capSec?: MaxDuration) {
     setVideoBusy(true);
     setVideoError('');
     // Read duration locally before uploading so we can show cost estimate immediately
@@ -216,13 +218,17 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
     const form = new FormData();
     form.append('file', file);
     form.append('purpose', 'video');
-    const res = await ugcRequest<{ key?: string; vendorUrl?: string; error?: string }>(
+    // capSec is passed directly when called from the dropdown onChange (state not yet updated)
+    form.append('maxDuration', String(capSec ?? maxDurationSec));
+    const res = await ugcRequest<{ key?: string; vendorUrl?: string; trimmed?: boolean; error?: string }>(
       token, '/api/admin/ugc-lab/clone/upload', { form },
     ).catch(() => null);
     setVideoBusy(false);
     if (res?.ok && res.data.key && res.data.vendorUrl) {
       const prev = refVideo?.previewUrl;
       if (prev) URL.revokeObjectURL(prev);
+      refVideoFileRef.current = file;
+      // Store the original duration for display, effective stored duration is min(durationSec, maxDurationSec)
       setRefVideo({ key: res.data.key, vendorUrl: res.data.vendorUrl, previewUrl: URL.createObjectURL(file), durationSec });
     } else {
       setVideoError(res ? errorOf(res) : 'Upload failed');
@@ -330,15 +336,15 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
-  // True when the uploaded video exceeds the selected cap
-  const videoTooLong = Boolean(refVideo?.durationSec && refVideo.durationSec > maxDurationSec);
-  // Cost is based on actual video duration (capped at maxDurationSec for the estimate)
+  // Whether the original clip was longer than the cap (server will have trimmed it already)
+  const videoWasTrimmed = Boolean(refVideo?.durationSec && refVideo.durationSec > maxDurationSec);
+  // Cost is based on effective stored duration (capped at maxDurationSec)
   const effectiveDuration = refVideo?.durationSec
     ? Math.min(refVideo.durationSec, maxDurationSec)
     : undefined;
   const costEstimate = estimateCost(effectiveDuration);
   // Allow retrying immediately after a failure without having to click "Try again" first
-  const canGenerate = Boolean(character && refVideo) && !videoTooLong && (jobStatus === 'idle' || jobStatus === 'failed');
+  const canGenerate = Boolean(character && refVideo) && (jobStatus === 'idle' || jobStatus === 'failed');
   const isGenerating = jobStatus === 'submitting' || jobStatus === 'polling';
 
   if (jobStatus === 'done' && resultUrl) {
@@ -407,7 +413,13 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
           <select
             className="w-full rounded-lg border border-line px-3 py-2 text-[13px] text-ink"
             value={maxDurationSec}
-            onChange={(e) => setMaxDurationSec(Number(e.target.value) as MaxDuration)}
+            onChange={(e) => {
+            const next = Number(e.target.value) as MaxDuration;
+            setMaxDurationSec(next);
+            // Re-upload the video with the new trim cap if one is already loaded
+            // Pass `next` directly — state hasn't updated yet (React batching)
+            if (refVideoFileRef.current) void uploadVideo(refVideoFileRef.current, next);
+          }}
           >
             {MAX_DURATION_OPTIONS.map((s) => (
               <option key={s} value={s}>{s} sec — est. {usd(Math.round(POYO_USD_PER_SECOND * s * 100) / 100)}</option>
@@ -420,7 +432,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
           subtitle="MP4 or MOV · max 200 MB · up to 30 s supported"
           accept="video/mp4,video/quicktime"
           busy={videoBusy}
-          onFile={(f) => void uploadVideo(f)}
+          onFile={(f) => void uploadVideo(f, maxDurationSec)}
         >
           {refVideo ? (
             <div className="flex flex-col items-center gap-3">
@@ -446,17 +458,16 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
                   accept="video/mp4,video/quicktime"
                   className="sr-only"
                   disabled={videoBusy}
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadVideo(f); e.target.value = ''; }}
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) void uploadVideo(f, maxDurationSec); e.target.value = ''; }}
                 />
               </label>
             </div>
           ) : null}
         </DropZone>
         {videoError && <ErrorLine message={videoError} />}
-        {videoTooLong && refVideo?.durationSec && (
-          <p className="rounded-lg bg-amber-50 px-3 py-2 text-[12px] text-amber-800">
-            This clip is {Math.round(refVideo.durationSec)} s — longer than the {maxDurationSec} s cap you selected.
-            Upload a shorter clip or increase the max duration above.
+        {videoWasTrimmed && refVideo?.durationSec && (
+          <p className="rounded-lg bg-blue-50 px-3 py-2 text-[12px] text-blue-800">
+            Your clip is {Math.round(refVideo.durationSec)} s — the server trimmed it to the first {maxDurationSec} s before upload.
           </p>
         )}
       </Section>
