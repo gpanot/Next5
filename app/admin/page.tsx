@@ -13,12 +13,13 @@ import { QaTab } from '../../src/components/admin/business/QaTab';
 import { WorkspacesTab } from '../../src/components/admin/business/WorkspacesTab';
 import { ModelTestTab } from '../../src/components/admin/business/ModelTestTab';
 import { UgcLabTab } from '../../src/components/admin/business/UgcLabTab';
+import { UgcCloneTab } from '../../src/components/admin/business/UgcCloneTab';
 
-type Tab = 'overview' | 'workspaces' | 'payments' | 'promise' | 'qa' | 'models' | 'users' | 'bookings' | 'prompts' | 'ugc-lab';
+type Tab = 'overview' | 'workspaces' | 'payments' | 'promise' | 'qa' | 'models' | 'users' | 'bookings' | 'prompts' | 'ugc-lab' | 'ugc-clone';
 
 const TAB_LABELS: Record<Tab, string> = {
   overview: 'Overview', workspaces: 'Workspaces', payments: 'Payments', promise: 'Promise', qa: 'QA',
-  models: 'Models', users: 'Users', bookings: 'Bookings', prompts: 'Prompts', 'ugc-lab': 'UGC Lab',
+  models: 'Models', users: 'Users', bookings: 'Bookings', prompts: 'Prompts', 'ugc-lab': 'UGC Lab', 'ugc-clone': 'UGC Clone',
 };
 const adminTokenStore = createLocalStore('admin_token');
 
@@ -59,7 +60,7 @@ export default function AdminPage() {
 
       <div className="border-b border-line bg-white px-6">
         <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto">
-          {(['overview', 'workspaces', 'payments', 'promise', 'qa', 'models', 'bookings', 'users', 'prompts', 'ugc-lab'] as Tab[]).map((t) => (
+          {(['overview', 'workspaces', 'payments', 'promise', 'qa', 'models', 'bookings', 'users', 'prompts', 'ugc-lab', 'ugc-clone'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -87,6 +88,7 @@ export default function AdminPage() {
         {tab === 'bookings'  && <BookingsTab  token={token} />}
         {tab === 'prompts'   && <PromptsTab   token={token} />}
         {tab === 'ugc-lab'   && <UgcLabTab    token={token} />}
+        {tab === 'ugc-clone' && <UgcCloneTab  token={token} />}
       </main>
     </div>
   );
