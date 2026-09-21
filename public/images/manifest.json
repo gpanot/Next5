@@ -1816,5 +1816,50 @@
     "bytes": 1819039,
     "alt": "Sarah wearing a tan bag in the Resort look",
     "generatedAt": "2026-09-21T05:54:13.546Z"
+  },
+  "public/images/business/us/ai-avatars/avatar-1-ashley.jpg": {
+    "prompt": "Professional real estate agent headshot — white American woman, 38, blonde navy blazer",
+    "model": "gemini-3-pro-image-preview (reAPI)",
+    "size": "1K 4:5",
+    "outputSize": "832x1040",
+    "bytes": 679813,
+    "alt": "AI-generated professional headshot of a female realtor with blonde hair in a navy blazer",
+    "generatedAt": "2026-09-21T14:02:00.000Z"
+  },
+  "public/images/business/us/ai-avatars/avatar-2-maria.jpg": {
+    "prompt": "Professional real estate agent headshot — Latina American woman, 42, dark brown hair burgundy blazer",
+    "model": "gemini-3-pro-image-preview (reAPI)",
+    "size": "1K 4:5",
+    "outputSize": "832x1040",
+    "bytes": 703734,
+    "alt": "AI-generated professional headshot of a Latina female realtor with dark wavy hair in a burgundy blazer",
+    "generatedAt": "2026-09-21T14:02:00.000Z"
+  },
+  "public/images/business/us/ai-avatars/avatar-3-jennifer.jpg": {
+    "prompt": "Professional real estate agent headshot — African American woman, 35, natural curls charcoal blazer",
+    "model": "gemini-3-pro-image-preview (reAPI)",
+    "size": "1K 4:5",
+    "outputSize": "832x1040",
+    "bytes": 710079,
+    "alt": "AI-generated professional headshot of a Black female realtor with natural curls in a charcoal blazer",
+    "generatedAt": "2026-09-21T14:02:00.000Z"
+  },
+  "public/images/business/us/ai-avatars/avatar-4-sarah.jpg": {
+    "prompt": "Professional real estate agent headshot — East Asian American woman, 45, bob haircut cream blazer",
+    "model": "gemini-3-pro-image-preview (reAPI)",
+    "size": "1K 4:5",
+    "outputSize": "832x1040",
+    "bytes": 536200,
+    "alt": "AI-generated professional headshot of an East Asian female realtor with a sleek bob in a cream blazer",
+    "generatedAt": "2026-09-21T14:02:00.000Z"
+  },
+  "public/images/business/us/ai-avatars/avatar-5-diana.jpg": {
+    "prompt": "Professional real estate agent headshot — mixed-heritage American woman, 31, auburn waves sage green blazer",
+    "model": "gemini-3-pro-image-preview (reAPI)",
+    "size": "1K 4:5",
+    "outputSize": "832x1040",
+    "bytes": 787092,
+    "alt": "AI-generated professional headshot of a mixed-heritage female realtor with auburn waves in a sage green blazer",
+    "generatedAt": "2026-09-21T14:02:00.000Z"
   }
 }

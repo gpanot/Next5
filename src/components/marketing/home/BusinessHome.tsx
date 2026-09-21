@@ -9,6 +9,7 @@ import { FinalCtaBand } from '../shared/FinalCtaBand';
 import { Section } from '../shared/Section';
 import { StickyMobileCta } from '../shared/StickyMobileCta';
 import { UgcWall } from '../ugc/UgcWall';
+import { AiAvatarSection } from './AiAvatarSection';
 import { CalendarHero } from './CalendarHero';
 import { HomeHowItWorks } from './HomeHowItWorks';
 import { HomeProof } from './HomeProof';
@@ -26,7 +27,8 @@ export const BusinessHome = () => (
     <CalendarHero />
     <Section tone="sunken" eyebrow={UGC_WALL.eyebrow} title={UGC_WALL.title} sub={UGC_WALL.sub}><UgcWall /></Section>
     <Section eyebrow={HOME_MONTH.eyebrow} title={HOME_MONTH.title} sub={HOME_MONTH.sub}><MonthGrid /></Section>
-    <Section tone="sunken" eyebrow={HOME_PROOF.eyebrow} title={HOME_PROOF.title} sub={HOME_PROOF.sub}><HomeProof /></Section>
+    <Section tone="sunken" eyebrow="AI headshots" title="Don't want to show your face? Create a professional AI avatar in minutes." sub="One selfie is all it takes. Our AI generates a polished, photo-real headshot — no photoshoot, no studio, no camera."><AiAvatarSection /></Section>
+    <Section tone="plain" eyebrow={HOME_PROOF.eyebrow} title={HOME_PROOF.title} sub={HOME_PROOF.sub}><HomeProof /></Section>
     <Section eyebrow="How it works" title="Set it up once. Post all month."><HomeHowItWorks /></Section>
     <Section tone="sunken" id="studios" eyebrow={HOME_CHOOSER.eyebrow} title={HOME_CHOOSER.title}><ProductChooser /></Section>
     <Section eyebrow="The big question" title={OFFER_HOME.chatgpt.title} sub={OFFER_HOME.chatgpt.sub}><ChatGptCompare rows={OFFER_HOME.chatgpt.rows} /></Section>
