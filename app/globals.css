@@ -64,6 +64,36 @@
   }
 }
 
+/* ── Marketing "fresh" look (2026-09): neutral ink + signal coral, replaces the mulberry base on /, /brand, /shop, /pricing.
+      Scoped to the marketing shell, so the studio after login keeps its palette. ── */
+[data-surface='business'][data-look='fresh'] {
+  --color-ink: #0b0b0c;
+  --color-app-bg: #ffffff;
+  --color-app-panel: #ffffff;
+  --color-app-sunken: #f4f4f5;
+  --color-app-ink: #0b0b0c;
+  --color-app-muted: #5b5b63;
+  --color-app-line: #e7e7ea;
+  --color-app-accent: #d9381e;
+  --color-app-accent-ink: #ffffff;
+  --color-app-accent-soft: #fdece8;
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-surface='business'][data-look='fresh'] {
+    --color-ink: #0b0b0c;
+    --color-app-bg: #09090b;
+    --color-app-panel: #131316;
+    --color-app-sunken: #18181b;
+    --color-app-ink: #fafafa;
+    --color-app-muted: #a1a1aa;
+    --color-app-line: #27272a;
+    --color-app-accent: #ff6a4d;
+    --color-app-accent-ink: #0b0b0c;
+    --color-app-accent-soft: #3a1a13;
+  }
+}
+
 html {
   scroll-behavior: smooth;
 }

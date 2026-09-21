@@ -5,7 +5,7 @@ import { MarketingHeader } from './MarketingHeader';
 
 /** Business marketing chrome: header, main, footer on the business surface. */
 export const MarketingShell = ({ children }: { children: ReactNode }) => (
-  <BusinessSurface>
+  <BusinessSurface look="fresh">
     <MarketingHeader />
     <main>{children}</main>
     <MarketingFooter />

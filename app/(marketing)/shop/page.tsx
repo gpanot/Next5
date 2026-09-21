@@ -4,7 +4,7 @@ import { OfferHero } from '../../../src/components/marketing/offer/OfferHero';
 import { PostPhoneMock } from '../../../src/components/marketing/offer/PostPhoneMock';
 import { PromiseBlock } from '../../../src/components/marketing/offer/PromiseBlock';
 import { Testimonials } from '../../../src/components/marketing/offer/Testimonials';
-import { UgcOfferFor } from '../../../src/components/marketing/offer/UgcOffer';
+import { UgcOffer } from '../../../src/components/marketing/offer/UgcOffer';
 import { ValueStack } from '../../../src/components/marketing/offer/ValueStack';
 import { WhatYouGet } from '../../../src/components/marketing/offer/WhatYouGet';
 import { FaqAccordion } from '../../../src/components/marketing/shared/FaqAccordion';
@@ -17,6 +17,7 @@ import { BeforeAfterSlider } from '../../../src/components/marketing/shop/Before
 import { LooksGallery } from '../../../src/components/marketing/shop/LooksGallery';
 import { MarketplaceFrames } from '../../../src/components/marketing/shop/MarketplaceFrames';
 import { ModelChoice } from '../../../src/components/marketing/shop/ModelChoice';
+import { UgcWallFor } from '../../../src/components/marketing/ugc/UgcWall';
 import { SHOP } from '../../../src/content/business/marketing';
 import { OFFER } from '../../../src/content/business/offer';
 import { UGC } from '../../../src/content/business/ugc';
@@ -37,7 +38,7 @@ export default function ShopPage() {
         <div className="mx-auto max-w-md"><BeforeAfterSlider /></div>
       </Section>
       <Section eyebrow="Not just photos" title="Every photo comes ready to sell." sub="Each photo gets a Scroll-Stop Score and a Post Kit: the hook, the product description and the hashtags."><WhatYouGet post={offer.example} shop /></Section>
-      <Section tone="sunken" eyebrow={UGC.shop.eyebrow} title={UGC.shop.title} sub={UGC.shop.sub}><UgcOfferFor offer={UGC.shop} /></Section>
+      <Section tone="sunken" eyebrow={UGC.shop.eyebrow} title={UGC.shop.title} sub={UGC.shop.sub}><UgcOffer points={UGC.shop.points} visual={<UgcWallFor audience="shop" />} /></Section>
       <Section eyebrow="The big question" title={offer.chatgpt.title} sub={offer.chatgpt.sub}><ChatGptCompare rows={offer.chatgpt.rows} /></Section>
       <Section tone="sunken" eyebrow="How it works" title="From your shop link to listing packs."><StepsGrid steps={SHOP.steps} /></Section>
       <Section eyebrow="Your brand" title="One look for your whole shop." sub="Pick a look that fits your shop. Every product comes out in the same light and place."><LooksGallery /></Section>

@@ -7,7 +7,7 @@ import { OfferHero } from '../../../src/components/marketing/offer/OfferHero';
 import { PostPhoneMock } from '../../../src/components/marketing/offer/PostPhoneMock';
 import { PromiseBlock } from '../../../src/components/marketing/offer/PromiseBlock';
 import { Testimonials } from '../../../src/components/marketing/offer/Testimonials';
-import { UgcOfferFor } from '../../../src/components/marketing/offer/UgcOffer';
+import { UgcOffer } from '../../../src/components/marketing/offer/UgcOffer';
 import { ValueStack } from '../../../src/components/marketing/offer/ValueStack';
 import { WhatYouGet } from '../../../src/components/marketing/offer/WhatYouGet';
 import { FaqAccordion } from '../../../src/components/marketing/shared/FaqAccordion';
@@ -16,6 +16,7 @@ import { PricingPreview } from '../../../src/components/marketing/shared/Pricing
 import { Section } from '../../../src/components/marketing/shared/Section';
 import { StepsGrid } from '../../../src/components/marketing/shared/StepsGrid';
 import { StickyMobileCta } from '../../../src/components/marketing/shared/StickyMobileCta';
+import { UgcWallFor } from '../../../src/components/marketing/ugc/UgcWall';
 import { BRAND } from '../../../src/content/business/marketing';
 import { OFFER } from '../../../src/content/business/offer';
 import { UGC } from '../../../src/content/business/ugc';
@@ -34,7 +35,7 @@ export default function BrandPage() {
       <OfferHero {...offer.hero} cta={start} secondary={{ href: '#pricing', label: 'See pricing' }} platforms={offer.platforms} sources={offer.sources} visual={<PostPhoneMock post={offer.example} handle="your.name" priority />} />
       <Section tone="sunken" eyebrow="Not just photos" title="Every photo comes ready to post." sub="Each photo gets a Scroll-Stop Score and a Post Kit: the hook, the caption and the hashtags."><WhatYouGet post={offer.example} shop={false} /></Section>
       <Section eyebrow="Your listings" title="Show up inside your real listings." sub="Slide across the photo. Left is the listing photo. Right is you, in the same room. Nothing in the home changes."><ListingMode /></Section>
-      <Section tone="sunken" eyebrow={UGC.brand.eyebrow} title={UGC.brand.title} sub={UGC.brand.sub}><UgcOfferFor offer={UGC.brand} /></Section>
+      <Section tone="sunken" eyebrow={UGC.brand.eyebrow} title={UGC.brand.title} sub={UGC.brand.sub}><UgcOffer points={UGC.brand.points} visual={<UgcWallFor audience="realtor" />} /></Section>
       <Section eyebrow="The big question" title={offer.chatgpt.title} sub={offer.chatgpt.sub}><ChatGptCompare rows={offer.chatgpt.rows} /></Section>
       <Section tone="sunken" eyebrow="How it works" title="Five minutes. A whole month of posts."><StepsGrid steps={BRAND.steps} /></Section>
       <Section eyebrow="Trends" title="New real estate themes every month." sub="New ideas come out on the 1st, made for agents. Use this month’s theme or any theme you like."><ThemesScroller /></Section>

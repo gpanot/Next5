@@ -139,3 +139,50 @@ export const HOME_FINAL = {
   shop: { href: '/start/shop', cta: 'Start free for my shop' },
 };
 
+
+export type HeroAudience = 'realtor' | 'shop';
+
+export type HeroCalendarContent = {
+  /** Mon=0 … Sun=6. */
+  postWeekdays: readonly number[];
+  videoWeekday: number;
+  photos: readonly string[];
+  videos: readonly string[];
+  platforms: readonly ('tiktok' | 'instagram' | 'facebook')[];
+  next: { image: string; when: string; platform: string; hook: string };
+  cta: { href: string; label: string };
+};
+
+/** Calendar-first hero: the month we fill for you is the picture. One switch for the two buyers. */
+export const CALENDAR_HERO = {
+  badge: 'For realtors and TikTok Shop sellers',
+  title: 'A month of posts. On your calendar. Done for you.',
+  sub: 'New photos and UGC videos, placed on the days you post. The hook, caption and hashtags are written too.',
+  switchLabel: 'I am a',
+  tabs: { realtor: 'Realtor', shop: 'TikTok Shop seller' } satisfies Record<HeroAudience, string>,
+  trust: ['3 free photos', 'No card needed', 'Free redos'],
+  legend: { photo: 'Photo', video: 'UGC video' },
+  audiences: {
+    realtor: {
+      postWeekdays: [1, 3, 5],
+      videoWeekday: 5,
+      photos: HOME_CALENDAR.photos,
+      videos: HOME_CALENDAR.videos,
+      platforms: ['instagram', 'tiktok', 'facebook'],
+      next: { image: `${US}/realtor-open-house.png`, when: 'Thu · 6:30 PM', platform: 'Instagram', hook: 'The one thing buyers notice first in a home' },
+      cta: { href: '/start/brand', label: 'Start free as a realtor' },
+    },
+    shop: {
+      postWeekdays: [0, 2, 4, 5],
+      videoWeekday: 4,
+      photos: [
+        `${US}/shop-dress-after.png`, `${US}/shop/looks/beige-wall.png`, `${US}/shop-set-after.png`, `${US}/shop/looks/cafe-lifestyle.png`,
+        `${US}/shop-bag-after.png`, `${US}/shop/looks/street-urban.png`, `${US}/shop/looks/resort.png`, `${US}/shop/looks/boutique-rack.png`,
+      ],
+      videos: [`${US}/shop-video.png`, `${US}/shop/looks/clean-white.png`],
+      platforms: ['tiktok', 'instagram', 'tiktok'],
+      next: { image: `${US}/shop-dress-after.png`, when: 'Fri · 7:00 PM', platform: 'TikTok', hook: 'The green dress you will wear all summer' },
+      cta: { href: '/start/shop', label: 'Start free for my shop' },
+    },
+  } satisfies Record<HeroAudience, HeroCalendarContent>,
+};

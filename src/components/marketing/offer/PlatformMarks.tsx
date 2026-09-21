@@ -58,3 +58,8 @@ export const PlatformMarks = ({ platforms, label = 'Made for', className = '' }:
     </ul>
   </div>
 );
+
+/** One platform mark on its own, in the current text color. */
+export const PlatformIcon = ({ id, className = 'h-4 w-4' }: { id: PlatformId; className?: string }) => (
+  <svg viewBox="0 0 24 24" aria-label={MARKS[id].label} role="img" className={className}>{MARKS[id].svg}</svg>
+);
