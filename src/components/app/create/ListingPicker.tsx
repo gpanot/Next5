@@ -30,7 +30,7 @@ const tabClass = (on: boolean) =>
 /** No Zillow link: name the home, confirm she represents it, then add its photos in the panel. */
 const UploadForm = ({ onCreated, onBack }: { onCreated: (label: string) => Promise<void>; onBack: () => void }) => {
   const [label, setLabel] = useState('');
-  const [attest, setAttest] = useState(false);
+  const [attest, setAttest] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

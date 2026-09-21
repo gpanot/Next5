@@ -17,7 +17,7 @@ type Props = {
 export const ZillowLinkStep = ({ busy, error, onSubmit, onUploadInstead }: Props) => {
   const [url, setUrl] = useState('');
   const [touched, setTouched] = useState(false);
-  const [attest, setAttest] = useState(false);
+  const [attest, setAttest] = useState(true);
   const valid = parseZillowUrl(url) !== null;
   const hint = touched && url.trim() && !valid ? 'Open the home on Zillow, then copy that link.' : null;
 
