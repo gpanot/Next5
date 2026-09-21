@@ -4,7 +4,9 @@ import {
   getPricePerPhotoUsdCents,
   getTermPriceUsdCents,
   getTermSavingsUsdCents,
+  isTermMonths,
   plansForProduct,
+  TERMS,
 } from '../../src/config/plans';
 import { packForCategory, shotsForProduct } from '../../src/config/shots';
 import { addMonths } from '../../src/lib/dates';
@@ -12,20 +14,20 @@ import { addMonths } from '../../src/lib/dates';
 describe('term pricing', () => {
   it.each([
     ['brand_starter', 1, 2_900],
-    ['brand_starter', 3, 7_800], // $78.30 rounds down
-    ['brand_starter', 6, 13_900], // $139.20
-    ['brand_pro', 3, 26_700], // $267.30
-    ['brand_pro', 6, 47_500], // $475.20
-    ['shop_starter', 3, 13_200], // $132.30
-    ['shop_pro', 6, 95_500], // $955.20
+    ['brand_starter', 12, 27_600], // $23.20/mo rounds to $23 × 12
+    ['brand_pro', 12, 94_800], // $79 × 12
+    ['brand_agency', 12, 728_400], // $607 × 12
+    ['shop_starter', 12, 46_800], // $39 × 12
+    ['shop_pro', 12, 190_800], // $159 × 12
     ['shop_scale', 1, 39_900],
+    ['shop_scale', 12, 382_800], // $319 × 12
   ] as const)('%s × %i months = %i cents', (planId, term, cents) => {
     expect(getTermPriceUsdCents(planId, term)).toBe(cents);
   });
 
   it('computes savings and effective monthly price', () => {
-    expect(getTermSavingsUsdCents('brand_pro', 3)).toBe(3_000);
-    expect(getEffectiveMonthlyUsdCents('brand_pro', 3)).toBe(8_900);
+    expect(getTermSavingsUsdCents('brand_pro', 12)).toBe(24_000);
+    expect(getEffectiveMonthlyUsdCents('brand_pro', 12)).toBe(7_900);
     expect(getTermSavingsUsdCents('brand_starter', 1)).toBe(0);
   });
 
@@ -34,9 +36,15 @@ describe('term pricing', () => {
     expect(getPricePerPhotoUsdCents('shop_starter')).toBe(49);
   });
 
-  it('lists two plans per product', () => {
+  it('offers monthly or yearly only', () => {
+    expect(TERMS).toEqual([1, 12]);
+    expect(isTermMonths(3)).toBe(false);
+    expect(isTermMonths(6)).toBe(false);
+  });
+
+  it('lists three plans per product', () => {
     expect(plansForProduct('brand').map((p) => p.id)).toEqual(['brand_starter', 'brand_pro', 'brand_agency']);
-    expect(plansForProduct('shop').map((p) => p.id)).toEqual(['shop_starter', 'shop_pro', 'shop_scale', 'shop_agency']);
+    expect(plansForProduct('shop').map((p) => p.id)).toEqual(['shop_starter', 'shop_pro', 'shop_scale']);
   });
 });
 

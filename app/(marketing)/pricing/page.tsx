@@ -10,7 +10,7 @@ import { PRICING } from '../../../src/content/business/marketing';
 
 export const metadata: Metadata = {
   title: 'Next5 Pricing — Plans from $29 a month',
-  description: 'Simple prepaid plans for realtors and TikTok Shop sellers. Photos and UGC videos every month. Pay by bank transfer for 1, 3 or 6 months. No auto-charge.',
+  description: 'Simple prepaid plans for realtors and TikTok Shop sellers. Photos and UGC videos every month. Pay by bank transfer, monthly or yearly. No auto-charge.',
 };
 
 export default function PricingPage() {

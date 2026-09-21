@@ -3,12 +3,13 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import {
+  DEFAULT_TERM,
   getEffectiveMonthlyUsdCents,
   getTermPriceUsdCents,
   isPlanId,
-  isSoloPlan,
   isTermMonths,
   plansForProduct,
+  termLabel,
   type TermMonths,
 } from '../../../config/plans';
 import { formatUsd } from '../../../lib/money';
@@ -24,7 +25,7 @@ export const PlanStep = ({ product, advance }: StepProps) => {
   const params = useSearchParams();
   const urlTerm = Number(params.get('term'));
   const urlPlan = params.get('plan') ?? '';
-  const [term, setTerm] = useState<TermMonths>(isTermMonths(urlTerm) ? urlTerm : 3);
+  const [term, setTerm] = useState<TermMonths>(isTermMonths(urlTerm) ? urlTerm : DEFAULT_TERM);
   const [request, setRequest] = useState<CheckoutRequest | null>(null);
   const [leaving, setLeaving] = useState(false);
   const [paid, setPaid] = useState(false);
@@ -44,11 +45,11 @@ export const PlanStep = ({ product, advance }: StepProps) => {
     >
       <TermToggle value={term} onChange={setTerm} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {plansForProduct(product).filter(isSoloPlan).map((plan) => (
+        {plansForProduct(product).map((plan) => (
           <div key={plan.id} className={`flex flex-col gap-3 rounded-2xl border p-5 ${plan.id === urlPlan || (!isPlanId(urlPlan) && plan.mostPopular) ? 'border-app-accent ring-1 ring-app-accent' : 'border-app-line'}`}>
             <p className="text-[16px] font-semibold text-app-ink">{plan.name}</p>
             <p className="text-[30px] font-semibold tabular-nums text-app-ink">{formatUsd(getEffectiveMonthlyUsdCents(plan.id, term))}<span className="text-[14px] font-normal text-app-muted">/mo</span></p>
-            <p className="text-[13px] text-app-muted">{plan.monthlyCredits} photos a month · {formatUsd(getTermPriceUsdCents(plan.id, term))} for {term} {term === 1 ? 'month' : 'months'}</p>
+            <p className="text-[13px] text-app-muted">{plan.monthlyCredits} photos a month · {formatUsd(getTermPriceUsdCents(plan.id, term))} {termLabel(term).toLowerCase()}</p>
             <AppButton variant={plan.mostPopular ? 'primary' : 'secondary'} fullWidth onClick={() => setRequest({ purpose: 'subscription', planId: plan.id, termMonths: term })}>Choose {plan.name}</AppButton>
           </div>
         ))}

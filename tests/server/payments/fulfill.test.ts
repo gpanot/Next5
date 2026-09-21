@@ -24,10 +24,10 @@ describe('references', () => {
 describe('subscription payments', () => {
   it('prices in USD, freezes VND, and activates with credits when paid', async () => {
     const ws = await createTestWorkspace('brand');
-    const payment = await createSubscriptionPayment({ userId: ws.ownerUserId, workspaceId: ws.id }, { planId: 'brand_pro', termMonths: 3 });
-    expect(payment.amountUsdCents).toBe(26_700);
-    expect(payment.amountVnd).toBe(6_942_000);
-    expect(describePaymentItem(payment)).toBe('Brand Growth · 3 months');
+    const payment = await createSubscriptionPayment({ userId: ws.ownerUserId, workspaceId: ws.id }, { planId: 'brand_pro', termMonths: 12 });
+    expect(payment.amountUsdCents).toBe(94_800);
+    expect(payment.amountVnd).toBe(24_648_000);
+    expect(describePaymentItem(payment)).toBe('Brand Growth · Yearly');
 
     const result = await markPaidAndFulfil(payment.id, payment.amountVnd);
     expect(result.outcome).toBe('paid');

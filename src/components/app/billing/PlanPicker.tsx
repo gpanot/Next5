@@ -6,8 +6,9 @@ import {
   getEffectiveMonthlyUsdCents,
   getTermPriceUsdCents,
   getTermSavingsUsdCents,
+  DEFAULT_TERM,
   plansForProduct,
-  SALES_EMAIL,
+  termLabel,
   type PlanId,
   type TermMonths,
 } from '../../../config/plans';
@@ -25,16 +26,16 @@ type PlanPickerProps = {
 };
 
 export const PlanPicker = ({ open, product, currentPlanId, onClose, onChoose }: PlanPickerProps) => {
-  const [term, setTerm] = useState<TermMonths>(3);
+  const [term, setTerm] = useState<TermMonths>(DEFAULT_TERM);
   return (
-    <Sheet open={open} onClose={onClose} title="Choose a plan" side="bottom" className="sm:left-1/2 sm:right-auto sm:w-full sm:max-w-2xl sm:-translate-x-1/2">
+    <Sheet open={open} onClose={onClose} title="Choose a plan" side="bottom" className="sm:left-1/2 sm:right-auto sm:w-full sm:max-w-3xl sm:-translate-x-1/2">
       <div className="flex flex-col gap-5 overflow-y-auto px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-[15px] font-semibold text-app-ink">Choose a plan</p>
           <TermToggle value={term} onChange={setTerm} />
         </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {plansForProduct(product).filter((plan) => !plan.contactOnly).map((plan) => {
+        <div className="grid gap-4 md:grid-cols-3">
+          {plansForProduct(product).map((plan) => {
             const savings = getTermSavingsUsdCents(plan.id, term);
             const isCurrent = plan.id === currentPlanId;
             return (
@@ -44,7 +45,7 @@ export const PlanPicker = ({ open, product, currentPlanId, onClose, onChoose }: 
                   {isCurrent && <span className="text-[12px] text-app-muted">Current plan</span>}
                 </div>
                 <p className="text-[28px] font-semibold tabular-nums text-app-ink">{formatUsd(getEffectiveMonthlyUsdCents(plan.id, term))}<span className="text-[14px] font-normal text-app-muted">/mo</span></p>
-                <p className="text-[13px] text-app-muted">{formatUsd(getTermPriceUsdCents(plan.id, term))} for {term} {term === 1 ? 'month' : 'months'}{savings > 0 ? ` · save ${formatUsd(savings)}` : ''}</p>
+                <p className="text-[13px] text-app-muted">{formatUsd(getTermPriceUsdCents(plan.id, term))} {termLabel(term).toLowerCase()}{savings > 0 ? ` · save ${formatUsd(savings)}` : ''}</p>
                 <ul className="flex flex-col gap-1.5 text-[13px] text-app-ink">
                   {plan.features.map((f) => <li key={f} className="flex gap-2"><Check aria-hidden className="mt-0.5 h-3.5 w-3.5 text-app-accent" />{f}</li>)}
                 </ul>
@@ -55,7 +56,6 @@ export const PlanPicker = ({ open, product, currentPlanId, onClose, onChoose }: 
             );
           })}
         </div>
-        {plansForProduct(product).some((plan) => plan.contactOnly) && <p className="text-[13px] text-app-muted">Running many shops? <a href={`mailto:${SALES_EMAIL}?subject=Next5%20Agency`} className="font-medium text-app-accent hover:text-app-ink">Talk to us about Agency</a>.</p>}
         <p className="text-[12px] text-app-muted">Same plan: your renewal starts when your current plan ends. Different plan: it starts right away and replaces the current one (no proration). Your remaining photos this month stay until they expire.</p>
       </div>
     </Sheet>

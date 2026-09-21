@@ -17,7 +17,7 @@ describe('Beat-your-feed promise', () => {
     expect((await promiseStatus(ws.id, at('2026-09-20T00:00:00Z'))).reason).toBe('no_plan');
 
     await withSerializable(async (tx) => {
-      const sub = await createPendingSubscription(tx, { workspaceId: ws.id, planId: 'shop_pro', termMonths: 3 });
+      const sub = await createPendingSubscription(tx, { workspaceId: ws.id, planId: 'shop_pro', termMonths: 12 });
       return activate(tx, sub.id, at('2026-09-01T00:00:00Z'));
     });
     await expect(submitClaim(ws.ownerUserId, ws.id, claim(40, 30), at('2026-09-20T00:00:00Z'))).rejects.toMatchObject({ status: 409 });

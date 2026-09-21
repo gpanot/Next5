@@ -42,7 +42,7 @@ export const BRAND = {
     { q: 'What do I need to send?', a: 'Three new selfies in good light. One looking at the camera, one turned a little left, one turned a little right. No sunglasses or hats. Just you in the photo.' },
     { q: 'Who owns the photos and videos?', a: 'You do. Use them on social media and your website. Use them on listing sites, business cards and ads.' },
     { q: 'Can I use them in ads?', a: 'Yes. Just do not use them to say things that are not true, like fake awards or fake sales. We never make those.' },
-    { q: 'How do I pay?', a: 'You pay up front for 1, 3 or 6 months. New photos come each month. Nothing renews on its own.' },
+    { q: 'How do I pay?', a: 'Pay monthly, or pay once a year and save 20%. New photos come each month. Nothing renews on its own.' },
     { q: 'What happens when my plan ends?', a: 'You can still download your photos for 90 days. Renew any time to make more.' },
     { q: 'Is my face safe with you?', a: 'We keep your selfies private. We only use them to make your photos, and never to train AI. Delete them any time in Settings.' },
     { q: 'Do I have to say my photos are AI?', a: 'Instagram and TikTok ask you to label AI photos of real people. Some states, like California, also ask agents to say when a listing photo was changed. Every file already has a hidden label. You can add one people can see, too.' },
@@ -79,7 +79,7 @@ export const SHOP = {
     { q: 'Will the colors and prints match?', a: 'We tell the AI to keep the color, print, length and details the same. You see each new photo next to your product photo. If it does not match, redo it for free, two times.' },
     { q: 'What sizes do I get?', a: 'Square (1:1) for listings. Tall (9:16) for TikTok and Stories. 4:5 for Instagram. 3:4 for your website.' },
     { q: 'Can I sell on TikTok Shop with these photos?', a: 'Yes. The photo must match the real item. You must also add the AI label TikTok asks for.' },
-    { q: 'How do I pay?', a: 'You pay up front for 1, 3 or 6 months. Buy more photos any time. Nothing renews on its own.' },
+    { q: 'How do I pay?', a: 'Pay monthly, or pay once a year and save 20%. Buy more photos any time. Nothing renews on its own.' },
     { q: 'Can I add a lot of products at once?', a: 'Yes. Add up to 20 products at a time. Then make photos for up to 40 products in one go.' },
     { q: 'What happens to my photos?', a: 'We keep product photos for 12 months after you last use them. We keep your selfies until you delete them. You can download everything any time.' },
   ] satisfies FaqItem[],
@@ -87,9 +87,9 @@ export const SHOP = {
 
 export const PRICING = {
   title: 'Simple plans. Prepaid. No surprises.',
-  sub: 'Pay by bank transfer for 1, 3 or 6 months. Top up anytime. Nothing renews automatically — we remind you before your plan ends.',
+  sub: 'Pay by bank transfer, monthly or yearly. Top up anytime. Nothing renews automatically — we remind you before your plan ends.',
   billingSteps: [
-    { title: 'Scan and pay', body: 'Pay for 1, 3 or 6 months by bank transfer QR. Longer terms save up to 20%.' },
+    { title: 'Scan and pay', body: 'Pay monthly or yearly by bank transfer QR. Yearly saves 20%.' },
     { title: 'Photos arrive monthly', body: 'Your monthly photos land on the same day each month. Unused photos expire at the end of the month.' },
     { title: 'Renew when you want', body: 'We email you 7 days before your plan ends. Top-ups last 12 months.' },
   ],

@@ -12,7 +12,7 @@ beforeEach(async () => {
 });
 afterAll(() => prisma.$disconnect());
 
-const buy = (workspaceId: string, termMonths: 1 | 3, paidAt: Date) =>
+const buy = (workspaceId: string, termMonths: 1 | 12, paidAt: Date) =>
   withSerializable(async (tx) => {
     const sub = await createPendingSubscription(tx, { workspaceId, planId: 'brand_starter', termMonths });
     return activate(tx, sub.id, paidAt);
@@ -23,7 +23,7 @@ const emails = (template: string) => prisma.emailLog.count({ where: { template }
 describe('runBillingDaily', () => {
   it('grants monthly credits with one email per grant and never double-sends', async () => {
     const ws = await createTestWorkspace('brand');
-    await buy(ws.id, 3, at('2026-09-14T00:00:00Z'));
+    await buy(ws.id, 12, at('2026-09-14T00:00:00Z'));
 
     const first = await runBillingDaily(at('2026-10-14T02:00:00Z'));
     expect(first.grants).toBe(1);

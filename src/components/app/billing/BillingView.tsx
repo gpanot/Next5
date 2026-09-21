@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { TOPUPS, topupList, type PlanId, type TermMonths } from '../../../config/plans';
+import { TOPUPS, termLabel, topupList, type PlanId, type TermMonths } from '../../../config/plans';
 import { useApi } from '../../../hooks/useApi';
 import { formatShortDate } from '../../../lib/dates';
 import { formatUsd } from '../../../lib/money';
@@ -42,7 +42,7 @@ export const BillingView = () => {
         <CardBody className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="label-caps text-[10px] font-medium text-app-muted">Current plan</p>
-            <p className="mt-1 text-[22px] font-semibold text-app-ink">{sub ? `${sub.planName} · ${sub.termMonths} ${sub.termMonths === 1 ? 'month' : 'months'}` : 'No plan'}</p>
+            <p className="mt-1 text-[22px] font-semibold text-app-ink">{sub ? `${sub.planName} · ${termLabel(sub.termMonths)}` : 'No plan'}</p>
             <p className="mt-1 text-[14px] text-app-muted">
               {sub?.startsAt && sub.endsAt ? `${formatShortDate(sub.startsAt)} → ${formatShortDate(sub.endsAt)}` : 'Pick a plan to get photos every month.'}
               {sub?.nextGrantAt ? ` · Next photos ${formatShortDate(sub.nextGrantAt)} (+${sub.monthlyCredits})` : ''}

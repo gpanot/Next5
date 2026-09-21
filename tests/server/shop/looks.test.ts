@@ -12,7 +12,7 @@ describe('shop looks', () => {
   it('lets a workspace keep as many looks as it wants, whatever the plan', async () => {
     const ws = await createTestWorkspace('shop');
     await withSerializable(async (tx) => {
-      const sub = await createPendingSubscription(tx, { workspaceId: ws.id, planId: 'shop_starter', termMonths: 6 });
+      const sub = await createPendingSubscription(tx, { workspaceId: ws.id, planId: 'shop_starter', termMonths: 12 });
       return activate(tx, sub.id, new Date());
     });
     const template = await prisma.setTemplate.findFirstOrThrow({ where: { product: 'shop', isActive: true } });

@@ -8,9 +8,10 @@
 
 export type ProductLineId = 'brand' | 'shop';
 
-export type PlanId = 'brand_starter' | 'brand_pro' | 'brand_agency' | 'shop_starter' | 'shop_pro' | 'shop_scale' | 'shop_agency';
+export type PlanId = 'brand_starter' | 'brand_pro' | 'brand_agency' | 'shop_starter' | 'shop_pro' | 'shop_scale';
 
-export type TermMonths = 1 | 3 | 6;
+/** Monthly or yearly, both prepaid. Older 3- and 6-month subscriptions stay valid in the database (term_months is an int). */
+export type TermMonths = 1 | 12;
 
 export type Plan = {
   id: PlanId;
@@ -32,13 +33,8 @@ export type Plan = {
   storeProducts: number;
   /** Shop: weekly/biweekly drop schedule. */
   drops: boolean;
-  /** Sold by conversation, not self-serve checkout (D13: Shop Agency is on request). */
-  contactOnly: boolean;
   features: readonly string[];
 };
-
-/** Where "Talk to us" plans send people. */
-export const SALES_EMAIL = 'hello@next5.studio';
 
 export const PLANS: Record<PlanId, Plan> = {
   brand_starter: {
@@ -56,7 +52,6 @@ export const PLANS: Record<PlanId, Plan> = {
     mostPopular: false,
     storeProducts: 0,
     drops: false,
-    contactOnly: false,
     features: ['30 photos every month', 'Your posting calendar, planned for you', 'Scroll-Stop Score on every photo', 'Every monthly trend theme', 'All social sizes'],
   },
   brand_pro: {
@@ -74,7 +69,6 @@ export const PLANS: Record<PlanId, Plan> = {
     mostPopular: true,
     storeProducts: 0,
     drops: false,
-    contactOnly: false,
     features: [
       '120 photos every month',
       'Your posting calendar, planned and made for you',
@@ -99,7 +93,6 @@ export const PLANS: Record<PlanId, Plan> = {
     mostPopular: false,
     storeProducts: 0,
     drops: false,
-    contactOnly: false,
     features: [
       '1,200 photos every month',
       'Everything in Growth',
@@ -122,7 +115,6 @@ export const PLANS: Record<PlanId, Plan> = {
     mostPopular: false,
     storeProducts: 50,
     drops: false,
-    contactOnly: false,
     features: ['100 photos every month', 'Import up to 50 products from your store', 'TikTok listing packs', 'Scroll-Stop Score on every photo', 'You or 1 Studio model'],
   },
   shop_pro: {
@@ -140,7 +132,6 @@ export const PLANS: Record<PlanId, Plan> = {
     mostPopular: true,
     storeProducts: 500,
     drops: true,
-    contactOnly: false,
     features: [
       '400 photos every month',
       'Weekly drops: new products picked for you',
@@ -164,7 +155,6 @@ export const PLANS: Record<PlanId, Plan> = {
     mostPopular: false,
     storeProducts: 500,
     drops: true,
-    contactOnly: false,
     features: [
       '1,000 photos every month',
       'Everything in Growth',
@@ -172,32 +162,17 @@ export const PLANS: Record<PlanId, Plan> = {
       'First access to automatic TikTok Shop sync',
     ],
   },
-  shop_agency: {
-    id: 'shop_agency',
-    product: 'shop',
-    name: 'Agency',
-    tagline: 'For agencies that run many shops.',
-    audience: 'For TikTok Shop agencies',
-    monthlyUsdCents: 75_900,
-    monthlyCredits: 3_000,
-    highRes: true,
-    postKit: true,
-    allStudioModels: true,
-    priority: true,
-    mostPopular: false,
-    storeProducts: 500,
-    drops: true,
-    contactOnly: true,
-    features: ['Many shops, one team', 'Custom photo volume', 'Setup call with our team', 'Priority support'],
-  },
 };
 
-/** Plans a solo buyer is shown during onboarding (Agency is offered on pricing and billing). */
-export const isSoloPlan = (plan: Plan): boolean => !plan.id.endsWith('_agency') && !plan.contactOnly;
+export const TERMS: readonly TermMonths[] = [1, 12];
 
-export const TERMS: readonly TermMonths[] = [1, 3, 6];
+export const TERM_DISCOUNT: Record<TermMonths, number> = { 1: 0, 12: 0.2 };
 
-export const TERM_DISCOUNT: Record<TermMonths, number> = { 1: 0, 3: 0.1, 6: 0.2 };
+/** Term shown by default on pricing and plan pickers. */
+export const DEFAULT_TERM: TermMonths = 12;
+
+/** "Monthly" / "Yearly"; any other stored length (older 3- or 6-month plans) reads "N months". */
+export const termLabel = (months: number): string => (months === 1 ? 'Monthly' : months === 12 ? 'Yearly' : `${months} months`);
 
 export type TopupId = 'topup_20' | 'topup_60' | 'topup_150';
 
@@ -216,11 +191,10 @@ export const isTopupId = (value: string): value is TopupId => value in TOPUPS;
 export const isTermMonths = (value: number): value is TermMonths =>
   (TERMS as readonly number[]).includes(value);
 
-/** Full price for a prepaid term, rounded to the nearest whole dollar, in cents. */
+/** Full price for a prepaid term, in cents. Yearly = the discounted monthly price, rounded to a whole dollar, × 12. */
 export const getTermPriceUsdCents = (planId: PlanId, term: TermMonths): number => {
-  const plan = PLANS[planId];
-  const dollars = (plan.monthlyUsdCents / 100) * term * (1 - TERM_DISCOUNT[term]);
-  return Math.round(dollars) * 100;
+  const monthlyDollars = Math.round((PLANS[planId].monthlyUsdCents / 100) * (1 - TERM_DISCOUNT[term]));
+  return monthlyDollars * term * 100;
 };
 
 /** What the customer saves versus paying month by month, in cents. */

@@ -3,7 +3,7 @@
 
 import { Prisma, type Payment } from '@prisma/client';
 import { VND_PER_USD } from '../../config/business';
-import { PLANS, TOPUPS, getTermPriceUsdCents, type PlanId, type TermMonths, type TopupId } from '../../config/plans';
+import { PLANS, TOPUPS, getTermPriceUsdCents, termLabel, type PlanId, type TermMonths, type TopupId } from '../../config/plans';
 import { usdCentsToVnd } from '../../lib/money';
 import { prisma } from '../../lib/db';
 import { withSerializable } from '../db/transaction';
@@ -77,7 +77,7 @@ export const getPaymentForUser = async (paymentId: string, userId: string, now =
 export const listPaymentsForWorkspace = async (workspaceId: string, take = 50): Promise<Payment[]> =>
   prisma.payment.findMany({ where: { workspaceId }, orderBy: { createdAt: 'desc' }, take });
 
-/** Human label for a payment line item, e.g. "Brand Pro · 3 months" or "60 photos top-up". */
+/** Human label for a payment line item, e.g. "Brand Growth · Yearly" or "60 photos top-up". */
 export const describePaymentItem = (payment: Pick<Payment, 'purpose' | 'itemId'>): string => {
   if (payment.purpose === 'topup' && payment.itemId in TOPUPS) {
     return `${TOPUPS[payment.itemId as TopupId].credits} photos top-up`;
@@ -86,7 +86,7 @@ export const describePaymentItem = (payment: Pick<Payment, 'purpose' | 'itemId'>
   if (planId && planId in PLANS) {
     const plan = PLANS[planId as PlanId];
     const product = plan.product === 'brand' ? 'Brand' : 'Shop';
-    return `${product} ${plan.name} · ${term} ${term === '1' ? 'month' : 'months'}`;
+    return `${product} ${plan.name} · ${termLabel(Number(term))}`;
   }
   return payment.purpose === 'consumer_booking' ? 'Next5 Photos shoot' : payment.itemId;
 };

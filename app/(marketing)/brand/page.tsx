@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 export default function BrandPage() {
   const offer = OFFER.brand;
   const start = { href: '/start/brand', label: offer.hero.cta };
-  const growth = { href: '/start/brand?plan=brand_pro&term=3', label: 'Start free, then Growth' };
+  const growth = { href: '/start/brand?plan=brand_pro&term=12', label: 'Start free, then Growth' };
   return (
     <>
       <OfferHero {...offer.hero} cta={start} secondary={{ href: '#pricing', label: 'See pricing' }} platforms={offer.platforms} sources={offer.sources} visual={<PostPhoneMock post={offer.example} handle="your.name" priority />} />

@@ -26,11 +26,11 @@ describe('activate', () => {
   it('starts now, grants month 1, and is idempotent', async () => {
     const ws = await createTestWorkspace();
     const paidAt = at('2026-09-14T10:00:00Z');
-    const sub = await buyAndActivate(ws.id, 'brand_starter', 3, paidAt);
+    const sub = await buyAndActivate(ws.id, 'brand_starter', 12, paidAt);
 
     expect(sub.status).toBe('active');
     expect(sub.startsAt).toEqual(paidAt);
-    expect(sub.endsAt).toEqual(at('2026-12-14T10:00:00Z'));
+    expect(sub.endsAt).toEqual(at('2027-09-14T10:00:00Z'));
     expect(sub.grantsIssued).toBe(1);
     expect((await getBalance(ws.id, paidAt)).total).toBe(30);
 
@@ -51,7 +51,7 @@ describe('activate', () => {
 
   it('starts an upgrade immediately and cancels the current plan', async () => {
     const ws = await createTestWorkspace();
-    const starter = await buyAndActivate(ws.id, 'brand_starter', 3, at('2026-09-14T00:00:00Z'));
+    const starter = await buyAndActivate(ws.id, 'brand_starter', 12, at('2026-09-14T00:00:00Z'));
     const pro = await buyAndActivate(ws.id, 'brand_pro', 1, at('2026-10-01T00:00:00Z'));
 
     expect(pro.startsAt).toEqual(at('2026-10-01T00:00:00Z'));
@@ -64,17 +64,17 @@ describe('activate', () => {
 describe('issueDueGrants', () => {
   it('issues exactly termMonths grants across simulated months', async () => {
     const ws = await createTestWorkspace();
-    await buyAndActivate(ws.id, 'shop_starter', 3, at('2026-01-31T00:00:00Z'));
+    await buyAndActivate(ws.id, 'shop_starter', 12, at('2026-01-31T00:00:00Z'));
 
     const run = (iso: string) => withSerializable((tx) => issueDueGrants(tx, at(iso)));
     expect(await run('2026-02-15T00:00:00Z')).toBe(0);
     expect(await run('2026-02-28T00:00:00Z')).toBe(1); // Jan 31 + 1 month clamps to Feb 28
     expect(await run('2026-02-28T12:00:00Z')).toBe(0);
-    expect(await run('2026-06-01T00:00:00Z')).toBe(1); // catches up the 3rd and final grant
-    expect(await run('2026-09-01T00:00:00Z')).toBe(0);
+    expect(await run('2027-06-01T00:00:00Z')).toBe(10); // catches up the 3rd to 12th and final grants
+    expect(await run('2027-09-01T00:00:00Z')).toBe(0);
 
     const grants = await prisma.creditLedger.count({ where: { workspaceId: ws.id, reason: 'plan_grant' } });
-    expect(grants).toBe(3);
+    expect(grants).toBe(12);
   });
 
   it('plan credits from a past month are no longer spendable', async () => {
