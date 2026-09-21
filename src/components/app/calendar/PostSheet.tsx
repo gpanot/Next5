@@ -8,6 +8,7 @@ import { dayLabel, todayIso } from '../../../lib/calendarDates';
 import type { SlotDto } from '../../../types/business/calendar';
 import { AppButton } from '../../ui/AppButton';
 import { Sheet } from '../../ui/Sheet';
+import { PublishNow } from './PublishNow';
 
 type Props = {
   slot: SlotDto | null;
@@ -103,6 +104,8 @@ export const PostSheet = ({ slot, postKitAllowed, onClose, onChanged, onToast }:
           )}
 
           {/* The three things she actually needs, as big targets. */}
+          {!posted && <PublishNow slot={slot} onChanged={onChanged} onToast={onToast} />}
+
           <div className="flex flex-col gap-2">
             <AppButton size="lg" fullWidth loading={busy === 'save'} onClick={() => void save()} iconLeft={<Download aria-hidden className="h-4 w-4" />}>
               Save photo

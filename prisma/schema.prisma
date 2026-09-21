@@ -227,22 +227,24 @@ model Workspace {
   createdAt             DateTime    @default(now()) @map("created_at")
   updatedAt             DateTime    @updatedAt @map("updated_at")
 
-  owner           User                @relation(fields: [ownerUserId], references: [id])
-  identities      IdentityReference[]
-  sets            StudioSet[]
-  products        Product[]
-  batches         Batch[]
-  subscriptions   Subscription[]
-  ledger          CreditLedger[]
-  payments        Payment[]
-  promiseClaims   PromiseClaim[]
-  shopConnections ShopConnection[]
-  listingPacks    ListingPack[]
-  dropSchedule    DropSchedule?
-  postSchedule    PostSchedule?
-  postMaterials   PostMaterial[]
-  postSlots       PostSlot[]
-  listings        Listing[]
+  owner             User                @relation(fields: [ownerUserId], references: [id])
+  identities        IdentityReference[]
+  sets              StudioSet[]
+  products          Product[]
+  batches           Batch[]
+  subscriptions     Subscription[]
+  ledger            CreditLedger[]
+  payments          Payment[]
+  promiseClaims     PromiseClaim[]
+  shopConnections   ShopConnection[]
+  listingPacks      ListingPack[]
+  dropSchedule      DropSchedule?
+  postSchedule      PostSchedule?
+  postMaterials     PostMaterial[]
+  postSlots         PostSlot[]
+  listings          Listing[]
+  socialConnections SocialConnection[]
+  socialPosts       SocialPost[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
@@ -824,11 +826,12 @@ model PostSlot {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  workspace Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  schedule  PostSchedule? @relation(fields: [scheduleId], references: [id])
-  item      BatchItem?    @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  material  PostMaterial? @relation(fields: [materialId], references: [id])
-  product   Product?      @relation(fields: [productId], references: [id])
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  schedule    PostSchedule? @relation(fields: [scheduleId], references: [id])
+  item        BatchItem?    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  material    PostMaterial? @relation(fields: [materialId], references: [id])
+  product     Product?      @relation(fields: [productId], references: [id])
+  socialPosts SocialPost[]
 
   @@unique([workspaceId, itemId])
   @@index([workspaceId, scheduledFor])
@@ -884,18 +887,18 @@ model Listing {
 
 /// UGC Lab: a saved on-screen character — an AI portrait or an uploaded photo (cropped to 9:16).
 model UgcCharacter {
-  id        String   @id @default(cuid())
+  id           String   @id @default(cuid())
   /// ai | photo | avatar
-  kind      String
-  imageKey  String   @map("image_key")
+  kind         String
+  imageKey     String   @map("image_key")
   /// Image model for AI portraits, e.g. gemini-3-pro.
-  model     String?
+  model        String?
   /// Photo kind: what the photo shows — { person, setting, action, shot }.
-  scene     Json?
+  scene        Json?
   /// Avatar kind: portrait-clone JSON locking every visual attribute for consistent Seedance prompts.
-  portraitJson Json?  @map("portrait_json")
-  archived  Boolean  @default(false)
-  createdAt DateTime @default(now()) @map("created_at")
+  portraitJson Json?    @map("portrait_json")
+  archived     Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
 
   videos UgcVideo[]
 
@@ -971,4 +974,48 @@ model CloneVideo {
   @@index([status])
   @@index([createdAt(sort: Desc)])
   @@map("clone_videos")
+}
+
+/// An Instagram or TikTok account a workspace connected in Settings > Integrations.
+/// Tokens are encrypted by the app (src/server/social/crypto.ts).
+model SocialConnection {
+  id               String    @id @default(cuid())
+  workspaceId      String    @map("workspace_id")
+  /// instagram | tiktok
+  provider         String
+  externalId       String    @map("external_id")
+  username         String?
+  avatarUrl        String?   @map("avatar_url")
+  accessToken      String    @map("access_token")
+  refreshToken     String?   @map("refresh_token")
+  expiresAt        DateTime? @map("expires_at")
+  refreshExpiresAt DateTime? @map("refresh_expires_at")
+  scopes           String[]  @default([])
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, provider])
+  @@map("social_connections")
+}
+
+/// One "Post now" from the calendar: where it went and what the platform answered.
+model SocialPost {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  slotId      String?  @map("slot_id")
+  provider    String
+  /// sent | failed
+  status      String
+  externalId  String?  @map("external_id")
+  postUrl     String?  @map("post_url")
+  error       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  slot      PostSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@map("social_posts")
 }

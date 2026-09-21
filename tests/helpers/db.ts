@@ -2,6 +2,8 @@ import type { ProductLine } from '@prisma/client';
 import { prisma } from '../../src/lib/db';
 
 const BUSINESS_TABLES = [
+  'social_posts',
+  'social_connections',
   'post_slots',
   'listings',
   'post_materials',
