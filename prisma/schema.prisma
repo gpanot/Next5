@@ -404,6 +404,8 @@ model Batch {
   listingId       String?     @map("listing_id")
   /// Property batches: coming_soon | just_listed | for_sale | open_house | under_contract | just_sold.
   occasion        String?
+  /// Free "preview on me" photos for one style; kept out of the library, batch list and calendar.
+  preview         Boolean     @default(false)
   createdAt       DateTime    @default(now()) @map("created_at")
   completedAt     DateTime?   @map("completed_at")
 
@@ -414,6 +416,7 @@ model Batch {
   items     BatchItem[]
 
   @@index([workspaceId, createdAt])
+  @@index([setId, preview])
   @@map("batches")
 }
 

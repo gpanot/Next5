@@ -7,6 +7,7 @@ import { prisma } from '../../lib/db';
 import type { StudioSetDto } from '../../types/business/catalog';
 import { getActivePlan } from '../generation/createBatch';
 import { HttpError } from '../http';
+import { previewFor } from './preview';
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
@@ -77,10 +78,10 @@ export const updateSet = async (workspace: Workspace, setId: string, input: Part
 
 /** The cover is always the template's own picture: a style must look the same every time she picks it. */
 export const toSetDto = async (set: StudioSet & { template: { name: string; coverImage: string } }): Promise<StudioSetDto> => {
-  const batchCount = await prisma.batch.count({ where: { setId: set.id, kind: { not: 'trial' } } });
+  const [batchCount, preview] = await Promise.all([prisma.batch.count({ where: { setId: set.id, kind: { not: 'trial' }, preview: false } }), previewFor(set.id)]);
   return {
     id: set.id, name: set.name, templateId: set.templateId, templateName: set.template.name, coverImage: set.template.coverImage,
     locations: set.locations, wardrobe: set.wardrobe,
-    poseEnergy: set.poseEnergy, brandColors: set.brandColors, modelRef: set.modelRef, status: set.status, batchCount, createdAt: set.createdAt.toISOString(),
+    poseEnergy: set.poseEnergy, brandColors: set.brandColors, modelRef: set.modelRef, status: set.status, batchCount, preview, createdAt: set.createdAt.toISOString(),
   };
 };

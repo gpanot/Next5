@@ -1375,5 +1375,446 @@
     "bytes": 2188058,
     "alt": "The same front porch with the real estate agent welcoming at the door",
     "generatedAt": "2026-09-19T14:20:30.293Z"
+  },
+  "public/images/business/us/influencer/sarah-face.png": {
+    "prompt": "Head-and-shoulders portrait of Sarah, a friendly white American woman aged 35 with shoulder-length light brown hair with soft waves, hazel eyes, natural light makeup, warm genuine closed-mouth smile, wearing a simple ivory crew-neck knit top, facing the camera straight on, even soft studio daylight from the front, plain warm light-grey seamless backdrop. Premium commercial portrait photography, true-to-life skin texture without plastic retouching, 85mm lens, sharp focus on the eyes, centered subject with even margin, clean uncluttered background.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 1827145,
+    "alt": "Sarah, the Next5 demo influencer: portrait of a smiling woman with light brown hair",
+    "generatedAt": "2026-09-21T05:47:10.241Z"
+  },
+  "public/images/business/us/influencer/brand/listing-interior-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Bright designer kitchen with a white marble island, pendant lights and light oak cabinetry. Bright afternoon daylight through tall windows, airy and luxurious.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Laughing naturally mid-conversation, looking slightly off camera, as if talking with a client.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1547855,
+    "alt": "Sarah in the Luxury Listing style: candid shot",
+    "generatedAt": "2026-09-21T05:48:38.734Z"
+  },
+  "public/images/business/us/influencer/brand/listing-interior-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Modern apartment balcony with glass railing and a wide open city view, soft sky. Bright afternoon daylight through tall windows, airy and luxurious.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Holding a tablet showing a listing, glancing up at the camera with a friendly expression.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1467518,
+    "alt": "Sarah in the Luxury Listing style: working shot",
+    "generatedAt": "2026-09-21T05:48:41.655Z"
+  },
+  "public/images/business/us/influencer/brand/listing-interior-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Spacious staged living room with a cream sofa, tall windows, linen curtains and a sculptural lamp. Bright afternoon daylight through tall windows, airy and luxurious.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Standing relaxed and confident, facing the camera with a warm smile, three-quarter framing.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1672540,
+    "alt": "Sarah in the Luxury Listing style: hero shot",
+    "generatedAt": "2026-09-21T05:48:42.516Z"
+  },
+  "public/images/business/us/influencer/brand/listing-interior-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Elegant entrance hall of a modern home with a wide wooden door and a potted olive tree. Bright afternoon daylight through tall windows, airy and luxurious.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Close portrait from the chest up, soft smile, eyes to camera, background gently blurred.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1607756,
+    "alt": "Sarah in the Luxury Listing style: close shot",
+    "generatedAt": "2026-09-21T05:48:45.390Z"
+  },
+  "public/images/business/us/influencer/brand/neighborhood-cafe-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Small café window table with a laptop, notebook and ceramic coffee cup, warm wood and plants blurred behind. Warm morning window light, soft shadows, cosy atmosphere.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Standing relaxed and confident, facing the camera with a warm smile, three-quarter framing.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1830536,
+    "alt": "Sarah in the Neighborhood Café style: hero shot",
+    "generatedAt": "2026-09-21T05:49:26.165Z"
+  },
+  "public/images/business/us/influencer/brand/modern-office-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Minimal office reception lounge with a sculptural sofa, warm wood slats and soft indirect lighting. Soft natural daylight from large windows, gentle fill, clean and bright.\n\nStyling: She is a professional in real estate. Tailored business formal outfit — blazer, crisp blouse or shirt, refined accessories. Confident composed expression, upright posture, calm authority.\n\nScene: Holding a tablet showing a listing, glancing up at the camera with a friendly expression.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1698651,
+    "alt": "Sarah in the Modern Office style: working shot",
+    "generatedAt": "2026-09-21T05:49:26.168Z"
+  },
+  "public/images/business/us/influencer/brand/modern-office-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Bright modern office beside a glass meeting-room wall, light oak desks, city skyline softly blurred through windows. Soft natural daylight from large windows, gentle fill, clean and bright.\n\nStyling: She is a professional in real estate. Tailored business formal outfit — blazer, crisp blouse or shirt, refined accessories. Confident composed expression, upright posture, calm authority.\n\nScene: Close portrait from the chest up, soft smile, eyes to camera, background gently blurred.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1653360,
+    "alt": "Sarah in the Modern Office style: close shot",
+    "generatedAt": "2026-09-21T05:49:32.701Z"
+  },
+  "public/images/business/us/influencer/brand/modern-office-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Bright modern office beside a glass meeting-room wall, light oak desks, city skyline softly blurred through windows. Soft natural daylight from large windows, gentle fill, clean and bright.\n\nStyling: She is a professional in real estate. Tailored business formal outfit — blazer, crisp blouse or shirt, refined accessories. Confident composed expression, upright posture, calm authority.\n\nScene: Standing relaxed and confident, facing the camera with a warm smile, three-quarter framing.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1427698,
+    "alt": "Sarah in the Modern Office style: hero shot",
+    "generatedAt": "2026-09-21T05:49:42.302Z"
+  },
+  "public/images/business/us/influencer/brand/neighborhood-cafe-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Standing at a light wood café counter with pastries and plants softly blurred, no readable menus. Warm morning window light, soft shadows, cosy atmosphere.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Laughing naturally mid-conversation, looking slightly off camera, as if talking with a client.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1715802,
+    "alt": "Sarah in the Neighborhood Café style: candid shot",
+    "generatedAt": "2026-09-21T05:49:48.939Z"
+  },
+  "public/images/business/us/influencer/brand/studio-backdrop-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Seamless warm grey studio backdrop. Soft large key light from the left with gentle fill, crisp and timeless studio lighting.\n\nStyling: She is a professional in real estate. Tailored business formal outfit — blazer, crisp blouse or shirt, refined accessories. Confident composed expression, upright posture, calm authority.\n\nScene: Standing relaxed and confident, facing the camera with a warm smile, three-quarter framing.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1293185,
+    "alt": "Sarah in the Studio Backdrop style: hero shot",
+    "generatedAt": "2026-09-21T05:49:57.515Z"
+  },
+  "public/images/business/us/influencer/brand/neighborhood-cafe-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Small café window table with a laptop, notebook and ceramic coffee cup, warm wood and plants blurred behind. Warm morning window light, soft shadows, cosy atmosphere.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Close portrait from the chest up, soft smile, eyes to camera, background gently blurred.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1794507,
+    "alt": "Sarah in the Neighborhood Café style: close shot",
+    "generatedAt": "2026-09-21T05:50:00.585Z"
+  },
+  "public/images/business/us/influencer/brand/modern-office-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Airy open-plan office with light wood tables, green plants and white walls, softly blurred colleagues-free background. Soft natural daylight from large windows, gentle fill, clean and bright.\n\nStyling: She is a professional in real estate. Tailored business formal outfit — blazer, crisp blouse or shirt, refined accessories. Confident composed expression, upright posture, calm authority.\n\nScene: Laughing naturally mid-conversation, looking slightly off camera, as if talking with a client.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1622094,
+    "alt": "Sarah in the Modern Office style: candid shot",
+    "generatedAt": "2026-09-21T05:50:02.093Z"
+  },
+  "public/images/business/us/influencer/brand/studio-backdrop-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Seamless soft cream studio backdrop with a subtle vignette. Soft large key light from the left with gentle fill, crisp and timeless studio lighting.\n\nStyling: She is a professional in real estate. Tailored business formal outfit — blazer, crisp blouse or shirt, refined accessories. Confident composed expression, upright posture, calm authority.\n\nScene: Laughing naturally mid-conversation, looking slightly off camera, as if talking with a client.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1455521,
+    "alt": "Sarah in the Studio Backdrop style: candid shot",
+    "generatedAt": "2026-09-21T05:50:07.425Z"
+  },
+  "public/images/business/us/influencer/brand/studio-backdrop-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Seamless deep charcoal studio backdrop with gentle rim light. Soft large key light from the left with gentle fill, crisp and timeless studio lighting.\n\nStyling: She is a professional in real estate. Tailored business formal outfit — blazer, crisp blouse or shirt, refined accessories. Confident composed expression, upright posture, calm authority.\n\nScene: Holding a tablet showing a listing, glancing up at the camera with a friendly expression.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1358261,
+    "alt": "Sarah in the Studio Backdrop style: working shot",
+    "generatedAt": "2026-09-21T05:50:08.118Z"
+  },
+  "public/images/business/us/influencer/brand/urban-outdoor-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Wide stone steps of a modern plaza with minimal architecture. Golden-hour side light, warm tones, softly blurred background.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Natural candid movement, mid-gesture or mid-laugh, energetic.\n\nScene: Laughing naturally mid-conversation, looking slightly off camera, as if talking with a client.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1603700,
+    "alt": "Sarah in the Urban Outdoor style: candid shot",
+    "generatedAt": "2026-09-21T05:50:21.319Z"
+  },
+  "public/images/business/us/influencer/brand/studio-backdrop-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Seamless warm grey studio backdrop. Soft large key light from the left with gentle fill, crisp and timeless studio lighting.\n\nStyling: She is a professional in real estate. Tailored business formal outfit — blazer, crisp blouse or shirt, refined accessories. Confident composed expression, upright posture, calm authority.\n\nScene: Close portrait from the chest up, soft smile, eyes to camera, background gently blurred.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1448184,
+    "alt": "Sarah in the Studio Backdrop style: close shot",
+    "generatedAt": "2026-09-21T05:50:22.616Z"
+  },
+  "public/images/business/us/influencer/brand/urban-outdoor-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Clean modern city sidewalk with glass and concrete façades, no readable signs. Golden-hour side light, warm tones, softly blurred background.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Natural candid movement, mid-gesture or mid-laugh, energetic.\n\nScene: Standing relaxed and confident, facing the camera with a warm smile, three-quarter framing.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1589406,
+    "alt": "Sarah in the Urban Outdoor style: hero shot",
+    "generatedAt": "2026-09-21T05:50:25.541Z"
+  },
+  "public/images/business/us/influencer/brand/urban-outdoor-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Quiet tree-lined business street with soft dappled light. Golden-hour side light, warm tones, softly blurred background.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Natural candid movement, mid-gesture or mid-laugh, energetic.\n\nScene: Holding a tablet showing a listing, glancing up at the camera with a friendly expression.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1875116,
+    "alt": "Sarah in the Urban Outdoor style: working shot",
+    "generatedAt": "2026-09-21T05:50:32.589Z"
+  },
+  "public/images/business/us/influencer/brand/urban-outdoor-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Clean modern city sidewalk with glass and concrete façades, no readable signs. Golden-hour side light, warm tones, softly blurred background.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Natural candid movement, mid-gesture or mid-laugh, energetic.\n\nScene: Close portrait from the chest up, soft smile, eyes to camera, background gently blurred.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1724233,
+    "alt": "Sarah in the Urban Outdoor style: close shot",
+    "generatedAt": "2026-09-21T05:50:39.802Z"
+  },
+  "public/images/business/us/influencer/brand/neighborhood-cafe-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Leafy café terrace with rattan chairs and dappled sunlight. Warm morning window light, soft shadows, cosy atmosphere.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Holding a tablet showing a listing, glancing up at the camera with a friendly expression.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1958996,
+    "alt": "Sarah in the Neighborhood Café style: working shot",
+    "generatedAt": "2026-09-21T05:50:43.755Z"
+  },
+  "public/images/business/us/influencer/brand/home-office-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Tidy home office desk with bookshelves and green plants behind. Calm soft window light, warm and inviting.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Standing relaxed and confident, facing the camera with a warm smile, three-quarter framing.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1750660,
+    "alt": "Sarah in the Home Office style: hero shot",
+    "generatedAt": "2026-09-21T05:50:50.535Z"
+  },
+  "public/images/business/us/influencer/brand/home-office-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Minimal desk by a large window with a laptop and a ceramic mug. Calm soft window light, warm and inviting.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Holding a tablet showing a listing, glancing up at the camera with a friendly expression.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1716505,
+    "alt": "Sarah in the Home Office style: working shot",
+    "generatedAt": "2026-09-21T05:50:57.217Z"
+  },
+  "public/images/business/us/influencer/brand/home-office-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Tidy home office desk with bookshelves and green plants behind. Calm soft window light, warm and inviting.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Close portrait from the chest up, soft smile, eyes to camera, background gently blurred.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1794718,
+    "alt": "Sarah in the Home Office style: close shot",
+    "generatedAt": "2026-09-21T05:50:58.298Z"
+  },
+  "public/images/business/us/influencer/shop/clean-white-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (set: Ribbed-knit cardigan and midi skirt set; colour: cream). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Seamless light-grey to white studio background, clean floor. Even soft studio light, no harsh shadows, true-to-life colours.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1138016,
+    "alt": "Sarah wearing a cream set in the Clean Studio look",
+    "generatedAt": "2026-09-21T05:51:02.798Z"
+  },
+  "public/images/business/us/influencer/shop/clean-white-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (bag: Structured leather shoulder bag; colour: tan). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Seamless light-grey to white studio background, clean floor. Even soft studio light, no harsh shadows, true-to-life colours.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1175232,
+    "alt": "Sarah wearing a tan bag in the Clean Studio look",
+    "generatedAt": "2026-09-21T05:51:09.732Z"
+  },
+  "public/images/business/us/influencer/shop/clean-white-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Seamless light-grey to white studio background, clean floor. Even soft studio light, no harsh shadows, true-to-life colours.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 715039,
+    "alt": "Sarah wearing a sage green dress in the Clean Studio look",
+    "generatedAt": "2026-09-21T05:51:18.599Z"
+  },
+  "public/images/business/us/influencer/shop/beige-wall-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (set: Ribbed-knit cardigan and midi skirt set; colour: cream). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Warm beige textured plaster wall with a light wooden floor. Soft window light with gentle diagonal shadows across the wall.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1459624,
+    "alt": "Sarah wearing a cream set in the Soft Beige Wall look",
+    "generatedAt": "2026-09-21T05:51:21.357Z"
+  },
+  "public/images/business/us/influencer/shop/clean-white-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Seamless light-grey to white studio background, clean floor. Even soft studio light, no harsh shadows, true-to-life colours.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1141028,
+    "alt": "Sarah wearing a sage green dress in the Clean Studio look",
+    "generatedAt": "2026-09-21T05:51:25.966Z"
+  },
+  "public/images/business/us/influencer/shop/beige-wall-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (bag: Structured leather shoulder bag; colour: tan). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Warm beige textured plaster wall with a light wooden floor. Soft window light with gentle diagonal shadows across the wall.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1590621,
+    "alt": "Sarah wearing a tan bag in the Soft Beige Wall look",
+    "generatedAt": "2026-09-21T05:51:28.130Z"
+  },
+  "public/images/business/us/influencer/shop/beige-wall-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Warm beige textured plaster wall with a light wooden floor. Soft window light with gentle diagonal shadows across the wall.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1570287,
+    "alt": "Sarah wearing a sage green dress in the Soft Beige Wall look",
+    "generatedAt": "2026-09-21T05:51:37.817Z"
+  },
+  "public/images/business/us/influencer/shop/beige-wall-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Warm beige textured plaster wall with a light wooden floor. Soft window light with gentle diagonal shadows across the wall.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1165075,
+    "alt": "Sarah wearing a sage green dress in the Soft Beige Wall look",
+    "generatedAt": "2026-09-21T05:51:39.934Z"
+  },
+  "public/images/business/us/influencer/shop/cafe-lifestyle-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (set: Ribbed-knit cardigan and midi skirt set; colour: cream). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Bright sunny café interior with light wood and plants, no readable signs or logos. Bright natural daylight, airy and relaxed.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1719911,
+    "alt": "Sarah wearing a cream set in the Café Lifestyle look",
+    "generatedAt": "2026-09-21T05:51:47.779Z"
+  },
+  "public/images/business/us/influencer/shop/cafe-lifestyle-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Bright sunny café interior with light wood and plants, no readable signs or logos. Bright natural daylight, airy and relaxed.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1898807,
+    "alt": "Sarah wearing a sage green dress in the Café Lifestyle look",
+    "generatedAt": "2026-09-21T05:51:49.204Z"
+  },
+  "public/images/business/us/influencer/shop/cafe-lifestyle-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (bag: Structured leather shoulder bag; colour: tan). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Bright sunny café interior with light wood and plants, no readable signs or logos. Bright natural daylight, airy and relaxed.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1848307,
+    "alt": "Sarah wearing a tan bag in the Café Lifestyle look",
+    "generatedAt": "2026-09-21T05:52:00.022Z"
+  },
+  "public/images/business/us/influencer/shop/cafe-lifestyle-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Bright sunny café interior with light wood and plants, no readable signs or logos. Bright natural daylight, airy and relaxed.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1748405,
+    "alt": "Sarah wearing a sage green dress in the Café Lifestyle look",
+    "generatedAt": "2026-09-21T05:52:02.124Z"
+  },
+  "public/images/business/us/influencer/shop/street-urban-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (bag: Structured leather shoulder bag; colour: tan). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Clean modern street with concrete and glass buildings, no readable signs. Natural daylight, slightly warm, softly blurred background.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1642496,
+    "alt": "Sarah wearing a tan bag in the Street look",
+    "generatedAt": "2026-09-21T05:52:14.338Z"
+  },
+  "public/images/business/us/influencer/shop/street-urban-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (set: Ribbed-knit cardigan and midi skirt set; colour: cream). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Clean modern street with concrete and glass buildings, no readable signs. Natural daylight, slightly warm, softly blurred background.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1624501,
+    "alt": "Sarah wearing a cream set in the Street look",
+    "generatedAt": "2026-09-21T05:52:16.589Z"
+  },
+  "public/images/business/us/influencer/shop/street-urban-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Clean modern street with concrete and glass buildings, no readable signs. Natural daylight, slightly warm, softly blurred background.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1634529,
+    "alt": "Sarah wearing a sage green dress in the Street look",
+    "generatedAt": "2026-09-21T05:52:25.809Z"
+  },
+  "public/images/business/us/influencer/shop/boutique-rack-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Minimal boutique interior with a neutral clothing rail softly blurred behind. Warm spot lighting mixed with soft daylight, elegant.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1553134,
+    "alt": "Sarah wearing a sage green dress in the Boutique look",
+    "generatedAt": "2026-09-21T05:52:27.427Z"
+  },
+  "public/images/business/us/influencer/shop/street-urban-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Clean modern street with concrete and glass buildings, no readable signs. Natural daylight, slightly warm, softly blurred background.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1322835,
+    "alt": "Sarah wearing a sage green dress in the Street look",
+    "generatedAt": "2026-09-21T05:52:38.162Z"
+  },
+  "public/images/business/us/influencer/shop/boutique-rack-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (bag: Structured leather shoulder bag; colour: tan). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Minimal boutique interior with a neutral clothing rail softly blurred behind. Warm spot lighting mixed with soft daylight, elegant.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1717929,
+    "alt": "Sarah wearing a tan bag in the Boutique look",
+    "generatedAt": "2026-09-21T05:52:42.232Z"
+  },
+  "public/images/business/us/influencer/shop/boutique-rack-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (set: Ribbed-knit cardigan and midi skirt set; colour: cream). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Minimal boutique interior with a neutral clothing rail softly blurred behind. Warm spot lighting mixed with soft daylight, elegant.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1738750,
+    "alt": "Sarah wearing a cream set in the Boutique look",
+    "generatedAt": "2026-09-21T05:52:42.869Z"
+  },
+  "public/images/business/us/influencer/shop/boutique-rack-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Minimal boutique interior with a neutral clothing rail softly blurred behind. Warm spot lighting mixed with soft daylight, elegant.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1687888,
+    "alt": "Sarah wearing a sage green dress in the Boutique look",
+    "generatedAt": "2026-09-21T05:52:54.552Z"
+  },
+  "public/images/business/us/influencer/shop/resort-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (set: Ribbed-knit cardigan and midi skirt set; colour: cream). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Pale stone pool terrace with palm shadows and a clear blue pool edge. Bright summer sunlight with palm shadows, fresh and vivid.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1672393,
+    "alt": "Sarah wearing a cream set in the Resort look",
+    "generatedAt": "2026-09-21T05:53:02.705Z"
+  },
+  "public/images/business/us/influencer/shop/resort-1.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Pale stone pool terrace with palm shadows and a clear blue pool edge. Bright summer sunlight with palm shadows, fresh and vivid.\n\nShot: Full body, standing and facing the camera, the whole garment visible from head to toe, relaxed natural pose.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1587114,
+    "alt": "Sarah wearing a sage green dress in the Resort look",
+    "generatedAt": "2026-09-21T05:53:08.867Z"
+  },
+  "public/images/business/us/influencer/shop/resort-4.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (dress: Satin midi slip dress; colour: sage green). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Pale stone pool terrace with palm shadows and a clear blue pool edge. Bright summer sunlight with palm shadows, fresh and vivid.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1477563,
+    "alt": "Sarah wearing a sage green dress in the Resort look",
+    "generatedAt": "2026-09-21T05:53:24.203Z"
+  },
+  "public/images/business/us/influencer/brand/home-office-2.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nSetting: Cosy reading corner with a linen armchair, floor lamp and plants. Calm soft window light, warm and inviting.\n\nStyling: She is a professional in real estate. Polished smart casual outfit — soft knit or blouse, tailored trousers, minimal jewelry. Warm genuine smile, open relaxed body language, approachable.\n\nScene: Laughing naturally mid-conversation, looking slightly off camera, as if talking with a client.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: awards, trophies, certificates, diplomas, \"sold\" signs, price tags, house numbers, company logos or brand names, identifiable faces of other people (other people must be out of frame, turned away or blurred), car badges, alcohol labels, children, medical imagery or uniforms of real companies.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1571411,
+    "alt": "Sarah in the Home Office style: candid shot",
+    "generatedAt": "2026-09-21T05:53:57.084Z"
+  },
+  "public/images/business/us/influencer/shop/resort-3.png": {
+    "prompt": "Image 1 shows the person. Keep this exact person's face, facial structure, skin tone, hair colour and hairstyle unchanged and fully recognisable. Do not beautify, slim or alter any features or body shape.\n\nImage 2 shows the product (bag: Structured leather shoulder bag; colour: tan). The person must wear or carry this exact item: identical colour, pattern and print placement, fabric texture, neckline, sleeve length, hem length, buttons, zips, logos and fit. Do not add, remove or redesign any detail. Do not add other clothing items or accessories that hide the product.\n\nSetting: Pale stone pool terrace with palm shadows and a clear blue pool edge. Bright summer sunlight with palm shadows, fresh and vivid.\n\nShot: Waist-up framing, slight three-quarter turn, the upper part of the garment clearly visible.\n\nCompose for a 4:5 instagram feed frame with safe margins; do not crop the subject at the joints.\n\nPhotorealistic commercial photography, natural skin texture, true-to-life colour, sharp focus. No text, no watermark, no logos, no brand names, no extra people facing the camera.\n\nDo not include: changes to the product, accessories that are not in the product photos, sexualised poses, brand logos that are not on the product, text overlays or other people.",
+    "model": "google/nano-banana-2/edit (WaveSpeed, reference: sarah-face.png)",
+    "size": "1k 4:5",
+    "outputSize": "800x993",
+    "bytes": 1819039,
+    "alt": "Sarah wearing a tan bag in the Resort look",
+    "generatedAt": "2026-09-21T05:54:13.546Z"
   }
 }

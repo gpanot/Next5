@@ -19,7 +19,7 @@ import { scoreItem } from '../score/score';
 export const finalizeItem = async (item: BatchItem, image: Buffer): Promise<void> => {
   const batch = await prisma.batch.findUniqueOrThrow({
     where: { id: item.batchId },
-    select: { workspaceId: true, kind: true, listing: { select: { visibleAiTag: true } }, workspace: { select: { visibleAiTag: true } } },
+    select: { workspaceId: true, kind: true, preview: true, listing: { select: { visibleAiTag: true } }, workspace: { select: { visibleAiTag: true } } },
   });
   // A listing carries its own choice, because the rules that drive it are about the property.
   const visibleTag = batch.listing?.visibleAiTag ?? batch.workspace.visibleAiTag;
@@ -42,7 +42,7 @@ export const finalizeItem = async (item: BatchItem, image: Buffer): Promise<void
   if (status === 'ready' || status === 'failed') {
     await autoFillWorkspace(batch.workspaceId).catch((err: unknown) => console.error('[calendar] auto-fill failed:', err));
     // She has now seen a batch she asked for, so we may start making the next ones for her.
-    if (batch.kind !== 'trial') {
+    if (batch.kind !== 'trial' && !batch.preview) {
       await enableAfterFirstBatch(batch.workspaceId).catch((err: unknown) => console.error('[calendar] autopilot enable failed:', err));
     }
   }

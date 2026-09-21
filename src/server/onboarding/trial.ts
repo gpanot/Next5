@@ -9,7 +9,8 @@ import { withSerializable } from '../db/transaction';
 import { createBatch } from '../generation/createBatch';
 import { HttpError } from '../http';
 
-const featuredThemeId = async (): Promise<string> => {
+/** This month's theme (or the next dated one), else the first theme. Also used for style previews. */
+export const featuredThemeId = async (): Promise<string> => {
   const month = new Date().toISOString().slice(0, 7);
   const themes = await prisma.theme.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
   const dated = themes.filter((t) => t.featuredMonth).sort((a, b) => (a.featuredMonth ?? '').localeCompare(b.featuredMonth ?? ''));

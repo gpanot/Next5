@@ -46,7 +46,7 @@ export const resolvePack = (items: readonly PackItem[], saved: Pick<ListingPack,
 };
 
 const readyItems = (workspaceId: string, productId: string) =>
-  prisma.batchItem.findMany({ where: { productId, status: 'ready', r2Key: { not: null }, batch: { workspaceId } }, orderBy: { completedAt: 'asc' } });
+  prisma.batchItem.findMany({ where: { productId, status: 'ready', r2Key: { not: null }, batch: { workspaceId, preview: false } }, orderBy: { completedAt: 'asc' } });
 
 const ownedProduct = async (ws: Workspace, productId: string): Promise<Product & { listingPack: ListingPack | null }> => {
   if (ws.product !== 'shop') throw new HttpError(400, 'wrong_product', 'Listing packs are part of Shop Studio.');

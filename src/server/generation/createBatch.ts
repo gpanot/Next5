@@ -35,7 +35,7 @@ export const estimateBatch = async (workspace: Workspace, draft: AnyDraft, now =
 
 const priorityFor = (expanded: ExpandedBatch, plan: Plan | null): number => {
   if (plan?.priority) return 0;
-  return expanded.kind === 'trial' ? 1 : 2;
+  return expanded.kind === 'trial' || expanded.preview ? 1 : 2;
 };
 
 /** Creates the batch, its items and the credit reservation atomically. Call `pump()` afterwards. */
@@ -55,6 +55,7 @@ export const createBatch = async (workspace: Workspace, draft: AnyDraft, now = n
         packId: expanded.packId,
         listingId: expanded.listingId ?? null,
         occasion: expanded.occasion ?? null,
+        preview: Boolean(expanded.preview),
         formats: expanded.formats,
         highRes: expanded.highRes,
         priority: priorityFor(expanded, plan),
@@ -67,7 +68,7 @@ export const createBatch = async (workspace: Workspace, draft: AnyDraft, now = n
         return { id, batchId: batch.id, ...item, pendingRefundKey: id };
       }),
     });
-    await reserveForBatch(tx, { workspaceId: workspace.id, batchId: batch.id, credits: estimate.credits, isTrial: expanded.kind === 'trial', now });
+    await reserveForBatch(tx, { workspaceId: workspace.id, batchId: batch.id, credits: estimate.credits, isTrial: expanded.kind === 'trial' || Boolean(expanded.preview), now });
     const productIds = [...new Set(expanded.items.map((i) => i.productId).filter((id): id is string => Boolean(id)))];
     if (productIds.length > 0) await tx.product.updateMany({ where: { id: { in: productIds } }, data: { lastUsedAt: now } });
     // A drop-box photo is spent once: the next batch moves on to her newer listings.

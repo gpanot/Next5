@@ -24,6 +24,9 @@ export type SetTemplateDto = {
   defaults: { wardrobe?: string; poseEnergy?: string };
 };
 
+/** Free photos of her in one style: none yet, being made, or ready (signed URLs). */
+export type SetPreviewDto = { status: 'none' | 'generating' | 'ready' | 'failed'; photos: string[] };
+
 export type StudioSetDto = {
   id: string;
   name: string;
@@ -37,5 +40,6 @@ export type StudioSetDto = {
   modelRef: string | null;
   status: 'draft' | 'active' | 'archived';
   batchCount: number;
+  preview: SetPreviewDto;
   createdAt: string;
 };

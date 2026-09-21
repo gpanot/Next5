@@ -1,6 +1,6 @@
 /**
  * Set templates (Brand "sets", Shop "looks"). Spec: 01-product-spec.md §2.3 and §3.3.
- * Cover paths reference docs/business-studios/04-image-prompts.md (B3–B8, C9–C14).
+ * Covers are the demo influencer's first sample photo (src/content/business/influencer.ts).
  */
 
 import type { SetTemplateSeed } from './types';
@@ -13,7 +13,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'brand',
     name: 'Modern Office',
     description: 'Glass walls, light wood and soft daylight.',
-    coverImage: `${IMG}/brand/sets/modern-office.png`,
+    coverImage: `${IMG}/us/influencer/brand/modern-office-1.png`,
     sortOrder: 1,
     config: {
       lighting: 'Soft natural daylight from large windows, gentle fill, clean and bright.',
@@ -30,7 +30,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'brand',
     name: 'Luxury Listing',
     description: 'Bright, pretty homes that are ready to sell.',
-    coverImage: `${IMG}/brand/sets/listing-interior.png`,
+    coverImage: `${IMG}/us/influencer/brand/listing-interior-1.png`,
     sortOrder: 2,
     config: {
       lighting: 'Bright afternoon daylight through tall windows, airy and luxurious.',
@@ -48,7 +48,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'brand',
     name: 'Neighborhood Café',
     description: 'A warm café with a laptop and a coffee.',
-    coverImage: `${IMG}/brand/sets/neighborhood-cafe.png`,
+    coverImage: `${IMG}/us/influencer/brand/neighborhood-cafe-1.png`,
     sortOrder: 3,
     config: {
       lighting: 'Warm morning window light, soft shadows, cosy atmosphere.',
@@ -65,7 +65,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'brand',
     name: 'Studio Backdrop',
     description: 'A plain gray wall. The classic head shot.',
-    coverImage: `${IMG}/brand/sets/studio-backdrop.png`,
+    coverImage: `${IMG}/us/influencer/brand/studio-backdrop-1.png`,
     sortOrder: 4,
     config: {
       lighting: 'Soft large key light from the left with gentle fill, crisp and timeless studio lighting.',
@@ -82,7 +82,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'brand',
     name: 'Urban Outdoor',
     description: 'A city street in warm evening light.',
-    coverImage: `${IMG}/brand/sets/urban-outdoor.png`,
+    coverImage: `${IMG}/us/influencer/brand/urban-outdoor-1.png`,
     sortOrder: 5,
     config: {
       lighting: 'Golden-hour side light, warm tones, softly blurred background.',
@@ -99,7 +99,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'brand',
     name: 'Home Office',
     description: 'Books, plants and soft window light.',
-    coverImage: `${IMG}/brand/sets/home-office.png`,
+    coverImage: `${IMG}/us/influencer/brand/home-office-1.png`,
     sortOrder: 6,
     config: {
       lighting: 'Calm soft window light, warm and inviting.',
@@ -119,7 +119,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'shop',
     name: 'Clean Studio',
     description: 'A plain white background. Best for shop listings.',
-    coverImage: `${IMG}/shop/looks/clean-white.png`,
+    coverImage: `${IMG}/us/influencer/shop/clean-white-1.png`,
     sortOrder: 1,
     config: {
       lighting: 'Even soft studio light, no harsh shadows, true-to-life colours.',
@@ -132,7 +132,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'shop',
     name: 'Soft Beige Wall',
     description: 'A warm wall with soft window shadows. Great for Instagram.',
-    coverImage: `${IMG}/shop/looks/beige-wall.png`,
+    coverImage: `${IMG}/us/influencer/shop/beige-wall-1.png`,
     sortOrder: 2,
     config: {
       lighting: 'Soft window light with gentle diagonal shadows across the wall.',
@@ -145,7 +145,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'shop',
     name: 'Café Lifestyle',
     description: 'A bright café. Easy and natural.',
-    coverImage: `${IMG}/shop/looks/cafe-lifestyle.png`,
+    coverImage: `${IMG}/us/influencer/shop/cafe-lifestyle-1.png`,
     sortOrder: 3,
     config: {
       lighting: 'Bright natural daylight, airy and relaxed.',
@@ -158,7 +158,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'shop',
     name: 'Street',
     description: 'A clean city street in daylight.',
-    coverImage: `${IMG}/shop/looks/street-urban.png`,
+    coverImage: `${IMG}/us/influencer/shop/street-urban-1.png`,
     sortOrder: 4,
     config: {
       lighting: 'Natural daylight, slightly warm, softly blurred background.',
@@ -171,7 +171,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'shop',
     name: 'Boutique',
     description: 'A small shop with a clothes rack behind.',
-    coverImage: `${IMG}/shop/looks/boutique-rack.png`,
+    coverImage: `${IMG}/us/influencer/shop/boutique-rack-1.png`,
     sortOrder: 5,
     config: {
       lighting: 'Warm spot lighting mixed with soft daylight, elegant.',
@@ -184,7 +184,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
     product: 'shop',
     name: 'Resort',
     description: 'A pool and a beach in bright summer sun.',
-    coverImage: `${IMG}/shop/looks/resort.png`,
+    coverImage: `${IMG}/us/influencer/shop/resort-1.png`,
     sortOrder: 6,
     config: {
       lighting: 'Bright summer sunlight with palm shadows, fresh and vivid.',

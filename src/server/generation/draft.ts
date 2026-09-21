@@ -50,8 +50,8 @@ export type ShopDraft = {
 };
 
 /** Built server-side only (onboarding trial, set preview) — never parsed from a request body. */
-export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & { kind: 'brand_theme'; trial?: boolean; sceneIds?: string[] };
-export type InternalShopDraft = Omit<ShopDraft, 'kind'> & { kind: 'shop_products'; trial?: boolean; /** Only the 9:16 cover per product (TikTok library). */ coverOnly?: boolean };
+export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & { kind: 'brand_theme'; trial?: boolean; /** Free style preview. */ preview?: boolean; sceneIds?: string[] };
+export type InternalShopDraft = Omit<ShopDraft, 'kind'> & { kind: 'shop_products'; trial?: boolean; /** Free look preview. */ preview?: boolean; /** Only the 9:16 cover per product (TikTok library). */ coverOnly?: boolean };
 
 export type BatchDraft = BrandDraft | BrandPropertyDraft | ShopDraft;
 export type AnyDraft = InternalBrandDraft | BrandPropertyDraft | InternalShopDraft;

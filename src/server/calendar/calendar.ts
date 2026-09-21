@@ -118,7 +118,7 @@ export const autoFill = async (ws: Workspace, now = new Date()): Promise<number>
 
   const unbooked = await prisma.batchItem.findMany({
     // Photos made from a property are hers to pick one by one ("Add to calendar"); archived ones never go on.
-    where: { batch: { workspaceId: ws.id, listingId: null }, status: 'ready', r2Key: { not: null }, archivedAt: null, slots: { none: {} } },
+    where: { batch: { workspaceId: ws.id, listingId: null, preview: false }, status: 'ready', r2Key: { not: null }, archivedAt: null, slots: { none: {} } },
     select: { id: true, score: true, scoreDetails: true, sceneId: true, createdAt: true },
     orderBy: { createdAt: 'desc' },
     take: HORIZON_SLOTS,
@@ -184,7 +184,7 @@ export const addPhotosToDay = async (ws: Workspace, date: string, itemIds: reado
   if (ids.length === 0) throw new HttpError(400, 'no_photos', 'Pick at least one photo.');
 
   const items = await prisma.batchItem.findMany({
-    where: { id: { in: ids }, batch: { workspaceId: ws.id }, status: 'ready', r2Key: { not: null }, archivedAt: null },
+    where: { id: { in: ids }, batch: { workspaceId: ws.id, preview: false }, status: 'ready', r2Key: { not: null }, archivedAt: null },
     select: { id: true, slots: { select: { id: true, status: true } } },
   });
   const scheduledFor = new Date(`${date}T00:00:00.000Z`);
@@ -212,7 +212,7 @@ export const removeSlot = async (workspaceId: string, slotId: string): Promise<P
 /** Photos she can add to a day: ready, kept, and not already planned or posted. Newest first. */
 export const listAddablePhotos = async (workspaceId: string, cursor: string | null, take = 30) => {
   const rows = await prisma.batchItem.findMany({
-    where: { batch: { workspaceId }, status: 'ready', r2Key: { not: null }, archivedAt: null, slots: { none: { status: { notIn: OFF_CALENDAR } } } },
+    where: { batch: { workspaceId, preview: false }, status: 'ready', r2Key: { not: null }, archivedAt: null, slots: { none: { status: { notIn: OFF_CALENDAR } } } },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: take + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),

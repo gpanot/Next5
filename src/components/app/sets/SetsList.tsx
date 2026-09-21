@@ -1,68 +1,110 @@
 'use client';
 
-import { Archive, Layers, Plus } from 'lucide-react';
+import { Pencil, Plus, Sparkles } from 'lucide-react';
 import { useState } from 'react';
-import Image from 'next/image';
-import { AppLink as Link } from '../shell/AppLink';
-import { useAppRouter } from '../shell/AppLink';
+import { DEMO_INFLUENCER, influencerSamples } from '../../../content/business/influencer';
 import { useApi } from '../../../hooks/useApi';
-import { hasManifestImage } from '../../../lib/manifest';
-import type { StudioSetDto } from '../../../types/business/catalog';
-import { EmptyState } from '../../ui/EmptyState';
+import type { SetTemplateDto, StudioSetDto } from '../../../types/business/catalog';
+import type { ProductLineDto } from '../../../types/business/me';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonGrid } from '../../ui/Skeleton';
+import { AppLink as Link } from '../shell/AppLink';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { ArchiveSetDialog } from './ArchiveSetDialog';
-import { IdentityPhotosCard } from './IdentityPhotosCard';
+import { InfluencerCard } from './InfluencerCard';
+import { LookCard, type LookPhoto } from './LookCard';
+import { useStylePreviews } from './useStylePreviews';
 
+const primary = 'inline-flex h-10 items-center gap-1.5 rounded-full bg-app-cta px-4 text-[13px] font-medium text-app-cta-ink transition-opacity duration-200 hover:opacity-90';
+const secondary = 'inline-flex h-10 items-center gap-1.5 rounded-full border border-app-line px-4 text-[13px] font-medium text-app-ink transition-colors duration-200 hover:bg-app-sunken';
+
+const samplePhotos = (product: ProductLineDto, templateId: string, name: string): LookPhoto[] =>
+  influencerSamples(product, templateId).map((src, i) => ({ src, alt: `${DEMO_INFLUENCER.name} in the ${name} ${product === 'shop' ? 'look' : 'style'}, photo ${i + 1}` }));
+
+const SectionTitle = ({ title, sub }: { title: string; sub: string }) => (
+  <div className="flex flex-col gap-0.5">
+    <h2 className="text-[18px] font-semibold text-app-ink">{title}</h2>
+    <p className="text-[14px] text-app-muted">{sub}</p>
+  </div>
+);
+
+/**
+ * Your AI influencer (you) and her looks. Each style shows real sample photos, so she sees what a style
+ * means before she uses it. Styles she has not added yet sit below, one tap from "Add".
+ */
 export const SetsList = () => {
-  const { product } = useWorkspace();
-  const router = useAppRouter();
-  const { data, error, loading, refresh } = useApi<{ sets: StudioSetDto[] }>(product ? `/api/app/sets?product=${product}` : null);
+  const { product, me } = useWorkspace();
+  const sets = useApi<{ sets: StudioSetDto[] }>(product ? `/api/app/sets?product=${product}` : null);
+  const templates = useApi<{ templates: SetTemplateDto[] }>(product ? `/api/app/templates?product=${product}` : null);
   const [archiving, setArchiving] = useState<StudioSetDto | null>(null);
-  const noun = product === 'shop' ? 'shop look' : 'style';
-  if (loading) return <SkeletonGrid count={3} cols={3} />;
-  if (error) return <ErrorState message={error} onRetry={refresh} />;
-  const sets = data?.sets ?? [];
+  // Brand previews need her selfies; a Shop look may use a Studio model, so the server decides.
+  const canPreview = product === 'shop' || Boolean(me?.workspace?.hasIdentity);
+  const previews = useStylePreviews(sets.data?.sets, canPreview, sets.refresh);
+  if (!product) return null;
+  if ((sets.loading && !sets.data) || (templates.loading && !templates.data)) return <SkeletonGrid count={4} cols={2} />;
+  if (sets.error && !sets.data) return <ErrorState message={sets.error} onRetry={sets.refresh} />;
 
-  if (sets.length === 0) {
-    return (
-      <div className="flex flex-col gap-6">
-        {product && <IdentityPhotosCard product={product} />}
-        <EmptyState illustration={<Layers className="h-10 w-10" />} title={`No ${noun}s yet`} body={`A ${noun} keeps every batch in the same look.`} action={{ label: `Add a ${noun}`, onClick: () => router.push('/app/sets/new') }} />
-      </div>
-    );
-  }
+  const noun = product === 'shop' ? 'look' : 'style';
+  const mine = sets.data?.sets ?? [];
+  const used = new Set(mine.map((s) => s.templateId));
+  const more = (templates.data?.templates ?? []).filter((t) => !used.has(t.id));
+  const captionFor = (set: StudioSetDto): string => {
+    const preview = previews.previewOf(set);
+    if (preview.status === 'ready') return `First ${preview.photos.length === 1 ? 'photo is' : `${preview.photos.length} photos are`} you, free. Then examples of ${DEMO_INFLUENCER.name}.`;
+    if (preview.status === 'generating') return 'Making your free preview. It takes about a minute.';
+    return previews.blockedReason(set.id) ?? `Example photos of ${DEMO_INFLUENCER.name}. Add your selfies to see yourself here.`;
+  };
 
   return (
-    <div className="flex flex-col gap-6">
-    {product && <IdentityPhotosCard product={product} />}
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-3">
-      {sets.map((set) => {
-        const cover = hasManifestImage(set.coverImage) ? set.coverImage : null;
-        return (
-          <div key={set.id} className="relative">
-          <button type="button" onClick={() => setArchiving(set)} aria-label={`Archive ${set.name}`} title="Archive" className="absolute right-2 top-2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/65 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"><Archive aria-hidden className="h-4 w-4" /></button>
-          <Link href={`/app/sets/${set.id}`} className="group flex h-full flex-col overflow-hidden rounded-2xl border border-app-line bg-app-panel shadow-sm transition-shadow duration-200 hover:shadow-md">
-            <div className="relative aspect-[4/5] bg-app-sunken">
-              {cover && <Image src={cover} alt={set.name} fill sizes="(min-width: 1024px) 30vw, 45vw" className="object-cover" />}
-            </div>
-            <div className="flex flex-col gap-0.5 p-4">
-              <span className="text-[15px] font-semibold text-app-ink">{set.name}</span>
-              <span className="text-[13px] text-app-muted">{set.templateName}{set.locations.length ? ` · ${set.locations.length} location${set.locations.length > 1 ? 's' : ''}` : ''}</span>
-              <span className="text-[12px] text-app-muted">Used in {set.batchCount} batch{set.batchCount === 1 ? '' : 'es'}</span>
-            </div>
-          </Link>
+    <div className="flex flex-col gap-8">
+      <InfluencerCard product={product} styleCount={mine.length} />
+
+      {mine.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <SectionTitle title={`Your ${noun}s`} sub={`Pick one when you create. Every photo in a ${noun} has the same light and place.`} />
+          <div className="grid gap-4 lg:grid-cols-2">
+            {mine.map((set) => (
+              <LookCard
+                key={set.id}
+                title={set.name}
+                subtitle={`${set.templateName} · Used in ${set.batchCount} batch${set.batchCount === 1 ? '' : 'es'}`}
+                photos={[
+                  ...previews.previewOf(set).photos.map((src, i) => ({ src, alt: `You in ${set.name}, preview ${i + 1}`, remote: true })),
+                  ...samplePhotos(product, set.templateId, set.templateName),
+                ]}
+                pending={previews.previewOf(set).status === 'generating' ? (product === 'shop' ? 3 : 2) : 0}
+                caption={captionFor(set)}
+                onArchive={() => setArchiving(set)}
+                actions={
+                  <>
+                    <Link href={`/app/create?set=${set.id}`} className={primary}><Sparkles aria-hidden className="h-4 w-4" /> Create with this {noun}</Link>
+                    <Link href={`/app/sets/${set.id}`} className={secondary}><Pencil aria-hidden className="h-4 w-4" /> Edit</Link>
+                  </>
+                }
+              />
+            ))}
           </div>
-        );
-      })}
-      <Link href="/app/sets/new" className="flex min-h-48 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-app-line p-6 text-center transition-colors duration-200 hover:border-app-accent">
-        <Plus aria-hidden className="h-6 w-6 text-app-accent" />
-        <span className="text-[14px] font-semibold text-app-ink">Add {noun}</span>
-        <span className="text-[12px] text-app-muted">{sets.length} {noun}{sets.length === 1 ? '' : 's'} so far</span>
-      </Link>
-    </div>
-    {archiving && <ArchiveSetDialog setId={archiving.id} name={archiving.name} noun={noun} onClose={() => setArchiving(null)} onArchived={() => { setArchiving(null); refresh(); }} />}
+        </section>
+      )}
+
+      {more.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <SectionTitle title={mine.length ? `Add a ${noun}` : `Pick your first ${noun}`} sub={`Swipe to see real photos. Add as many ${noun}s as you like.`} />
+          <div className="grid gap-4 lg:grid-cols-2">
+            {more.map((t) => (
+              <LookCard
+                key={t.id}
+                title={t.name}
+                subtitle={t.description}
+                photos={samplePhotos(product, t.id, t.name)}
+                actions={<Link href={`/app/sets/new?template=${t.id}`} className={secondary}><Plus aria-hidden className="h-4 w-4" /> Add this {noun}</Link>}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {archiving && <ArchiveSetDialog setId={archiving.id} name={archiving.name} noun={product === 'shop' ? 'shop look' : 'style'} onClose={() => setArchiving(null)} onArchived={() => { setArchiving(null); sets.refresh(); }} />}
     </div>
   );
 };

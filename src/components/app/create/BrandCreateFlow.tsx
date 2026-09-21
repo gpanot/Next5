@@ -49,13 +49,13 @@ export const BrandCreateFlow = () => {
   const lastSet = lastSetStore.useValue();
   const defaults = (me?.workspace?.defaultFormats ?? []).filter((f): f is FormatId => f in FORMATS);
 
-  const [setChoice, setSetChoice] = useState<string | null>(null);
+  const [setChoice, setSetChoice] = useState<string | null>(params.get('set'));
   const [themeChoice, setThemeChoice] = useState<string | null>(params.get('theme'));
   const [count, setCount] = useState<number>(16);
   const listingParam = params.get('listing');
   const [listingId, setListingId] = useState<string | null>(listingParam && listingParam !== 'new' ? listingParam : null);
-  // Realtors first: a property unless she came from a theme ("Use this theme") to make photos of just her.
-  const [mode, setMode] = useState<WhoMode>(params.get('theme') && !listingParam ? 'me' : 'property');
+  // Realtors first: a property unless she came from a theme or a style to make photos of just her.
+  const [mode, setMode] = useState<WhoMode>((params.get('theme') || params.get('set')) && !listingParam ? 'me' : 'property');
   const [variations, setVariations] = useState<number>(1);
   // Her pick per property. Without one, only Zillow's own status fills it in — an uploaded home stays empty.
   const [occasionByListing, setOccasionByListing] = useState<Record<string, Occasion>>({});

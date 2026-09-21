@@ -11,7 +11,7 @@ import { useSelfieUpload } from '../onboarding/useSelfieUpload';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { IdentityPhotoGrid, type Identity } from './IdentityPhotoGrid';
 
-const EditPhotosDialog = ({ product, onClose, onSaved }: { product: ProductLineDto; onClose: () => void; onSaved: () => void }) => {
+export const EditPhotosDialog = ({ product, onClose, onSaved }: { product: ProductLineDto; onClose: () => void; onSaved: () => void }) => {
   const { me } = useWorkspace();
   const selfies = useSelfieUpload(product, Boolean(me?.user.consents.includes('face_processing')));
   const save = async () => { if (await selfies.save()) onSaved(); };

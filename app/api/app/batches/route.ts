@@ -30,7 +30,7 @@ export const GET = authedRoute(async (req, session) => {
   const limit = Math.min(50, Math.max(1, Number(params.get('limit') ?? 20)));
   const cursor = params.get('cursor');
   const batches = await prisma.batch.findMany({
-    where: { workspaceId: workspace.id },
+    where: { workspaceId: workspace.id, preview: false },
     orderBy: { createdAt: 'desc' },
     take: limit + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),

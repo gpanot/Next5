@@ -1,6 +1,7 @@
 'use client';
 
 import { useAppRouter } from '../shell/AppLink';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
@@ -25,14 +26,17 @@ export const SetEditor = ({ existing }: SetEditorProps) => {
   const { product, refresh } = useWorkspace();
   const router = useAppRouter();
   const templates = useApi<{ templates: SetTemplateDto[] }>(product ? `/api/app/templates?product=${product}` : null);
-  const [templateId, setTemplateId] = useState<string | null>(existing?.templateId ?? null);
+  // "Add this style" on the Styles page arrives with ?template=<id> already picked.
+  const urlTemplate = useSearchParams().get('template');
+  const [templateId, setTemplateId] = useState<string | null>(existing?.templateId ?? urlTemplate);
   const [name, setName] = useState(existing?.name ?? '');
-  const [style, setStyle] = useState<BrandStyle | null>(existing ? { locations: existing.locations, wardrobe: existing.wardrobe ?? 'smart_casual', poseEnergy: existing.poseEnergy ?? 'warm_approachable', brandColors: existing.brandColors } : null);
+  const [styleChoice, setStyle] = useState<BrandStyle | null>(existing ? { locations: existing.locations, wardrobe: existing.wardrobe ?? 'smart_casual', poseEnergy: existing.poseEnergy ?? 'warm_approachable', brandColors: existing.brandColors } : null);
   const [modelRef, setModelRef] = useState<string>(existing?.modelRef ?? 'me');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [archiving, setArchiving] = useState(false);
   const template = templates.data?.templates.find((t) => t.id === templateId) ?? null;
+  const style = styleChoice ?? (template ? defaultStyle(template) : null);
   const noun = product === 'shop' ? 'shop look' : 'style';
 
   const pick = (id: string) => {
@@ -46,7 +50,7 @@ export const SetEditor = ({ existing }: SetEditorProps) => {
     setBusy(true);
     setError(null);
     try {
-      const body = { product, name, ...(product === 'brand' ? style : { modelRef }) };
+      const body = { product, name: name || template?.name || '', ...(product === 'brand' ? style : { modelRef }) };
       if (existing) await apiFetch(`/api/app/sets/${existing.id}`, { method: 'PATCH', json: body });
       else await apiFetch('/api/app/sets', { method: 'POST', json: { ...body, templateId } });
       refresh();
@@ -63,7 +67,7 @@ export const SetEditor = ({ existing }: SetEditorProps) => {
       {(template || existing) && (
         <Card>
           <CardBody className="flex flex-col gap-6">
-            <Field label="Name" htmlFor="set-name" required><TextInput id="set-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} /></Field>
+            <Field label="Name" htmlFor="set-name" required><TextInput id="set-name" value={name || (existing ? '' : template?.name ?? '')} onChange={(e) => setName(e.target.value)} maxLength={60} /></Field>
             {product === 'brand' && template && style && <StyleOptions template={template} value={style} onChange={setStyle} />}
             {product === 'shop' && (
               <Field label="Who wears the products?">
@@ -82,7 +86,7 @@ export const SetEditor = ({ existing }: SetEditorProps) => {
       <div className="flex flex-wrap justify-end gap-2">
         {existing && <AppButton variant="ghost" className="mr-auto text-app-danger" onClick={() => setArchiving(true)}>Archive {noun}</AppButton>}
         <AppButton variant="ghost" onClick={() => router.push('/app/sets')}>Cancel</AppButton>
-        <AppButton size="lg" loading={busy} disabled={!name || (!existing && !templateId) || (product === 'shop' && !modelRef)} onClick={save}>{existing ? 'Save changes' : `Add ${noun}`}</AppButton>
+        <AppButton size="lg" loading={busy} disabled={!(name || template?.name) || (!existing && !templateId) || (product === 'shop' && !modelRef)} onClick={save}>{existing ? 'Save changes' : `Add ${noun}`}</AppButton>
       </div>
       {existing && archiving && <ArchiveSetDialog setId={existing.id} name={existing.name} noun={noun} onClose={() => setArchiving(false)} onArchived={() => { refresh(); router.push('/app/sets'); }} />}
     </div>

@@ -67,7 +67,7 @@ export const toDetailDto = async (batch: Batch): Promise<BatchDetailDto> => {
     prisma.workspace.findUniqueOrThrow({ where: { id: batch.workspaceId }, select: { visibleAiTag: true } }),
     productIds.length > 0 ? madeShotsByProduct(batch.workspaceId, productIds) : Promise.resolve(new Map<string, string[]>()),
     productIds.length > 0
-      ? prisma.batchItem.findMany({ where: { productId: { in: productIds }, status: 'ready', r2Key: { not: null }, batchId: { not: batch.id }, batch: { workspaceId: batch.workspaceId } }, orderBy: { completedAt: 'asc' } })
+      ? prisma.batchItem.findMany({ where: { productId: { in: productIds }, status: 'ready', r2Key: { not: null }, batchId: { not: batch.id }, batch: { workspaceId: batch.workspaceId, preview: false } }, orderBy: { completedAt: 'asc' } })
       : Promise.resolve([]),
   ]);
   const productDtos = await Promise.all(
