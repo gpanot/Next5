@@ -55,12 +55,12 @@ export const DashboardView = () => {
       )}
       {product === 'brand' ? (
         <>
-          {/* Realtors land on their month: the calendar is the home. */}
-          <CalendarView variant="home" />
+          {/* Photos left this month and this month's theme, then the month itself. */}
           <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
             <CreditsCard me={me} />
             <FeaturedThemeCard />
           </div>
+          <CalendarView variant="home" />
         </>
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">

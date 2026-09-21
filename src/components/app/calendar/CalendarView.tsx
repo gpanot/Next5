@@ -17,7 +17,8 @@ import { PhotoPickerSheet } from './PhotoPickerSheet';
 import { PostSheet } from './PostSheet';
 import { ProgressHeader } from './ProgressHeader';
 import { PropertiesCard } from './PropertiesCard';
-import { AppLink as Link } from '../shell/AppLink';
+import { useSearchParams } from 'next/navigation';
+import { AppLink as Link, useAppRouter } from '../shell/AppLink';
 
 /** Empty posting days show this far ahead, so there is always somewhere to add a photo. */
 const EMPTY_DAYS_AHEAD = 14;
@@ -35,7 +36,7 @@ const daysToShow = (calendar: CalendarDto, focused: string | null): { date: stri
 };
 
 /**
- * Her month on one page (also the top of the brand home, as `variant="home"`, without the settings cards): the month at a glance, then each day as a row of photos she can add to
+ * Her month on one page (also on the brand home, as `variant="home"`: the month only, without "What's next" or the settings cards): the month at a glance, then each day as a row of photos she can add to
  * or take from. Opening a post and adding photos are sheets — nothing here navigates away.
  */
 export const CalendarView = ({ variant = 'full' }: { variant?: 'full' | 'home' }) => {
@@ -43,7 +44,10 @@ export const CalendarView = ({ variant = 'full' }: { variant?: 'full' | 'home' }
   const [local, setLocal] = useState<CalendarDto | null>(null);
   const [open, setOpen] = useState<SlotDto | null>(null);
   const [pickerDate, setPickerDate] = useState<string | null>(null);
-  const [focused, setFocused] = useState<string | null>(null);
+  const router = useAppRouter();
+  // Opened from a day tapped on the home month: start on that day's row.
+  const dayParam = useSearchParams().get('day');
+  const [focused, setFocused] = useState<string | null>(variant === 'full' && dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) ? dayParam : null);
   const [removing, setRemoving] = useState<string | null>(null);
   const { toasts, toast, dismiss } = useToast();
 
@@ -110,26 +114,28 @@ export const CalendarView = ({ variant = 'full' }: { variant?: 'full' | 'home' }
       <ProgressHeader progress={calendar.progress} />
 
       <CalendarDnd onMove={(slot, date) => void move(slot, date)}>
-        <MonthGrid slots={calendar.slots} onDay={setFocused} onAdd={setPickerDate} />
+        <MonthGrid slots={calendar.slots} onDay={variant === 'full' ? setFocused : (day) => router.push(`/app/calendar?day=${day}`)} onAdd={setPickerDate} />
 
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-0.5">
-            <h2 className="text-[15px] font-semibold text-app-ink">What’s next</h2>
-            {canDrag && <p className="text-[13px] text-app-muted">Hold a photo, then drag it to another day.</p>}
+        {variant === 'full' && (
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-0.5">
+              <h2 className="text-[15px] font-semibold text-app-ink">What’s next</h2>
+              {canDrag && <p className="text-[13px] text-app-muted">Hold a photo, then drag it to another day.</p>}
+            </div>
+            {days.map(({ date, slots }) => (
+              <DayRow
+                key={date}
+                date={date}
+                slots={slots}
+                highlighted={focused === date}
+                onOpen={setOpen}
+                onAdd={setPickerDate}
+                onRemove={(slot) => void remove(slot)}
+                busySlotId={removing}
+              />
+            ))}
           </div>
-          {days.map(({ date, slots }) => (
-            <DayRow
-              key={date}
-              date={date}
-              slots={slots}
-              highlighted={focused === date}
-              onOpen={setOpen}
-              onAdd={setPickerDate}
-              onRemove={(slot) => void remove(slot)}
-              busySlotId={removing}
-            />
-          ))}
-        </div>
+        )}
       </CalendarDnd>
 
       {variant === 'full' ? (
