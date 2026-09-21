@@ -45,6 +45,8 @@ type SubmitBody = {
   refVideoKey?: string;
   /** Explicit duration from the dropdown — used for video-update mode */
   durationSec?: number;
+  /** Whether to ask Seedance to generate audio — maps to generate_audio. Default true. */
+  generateAudio?: boolean;
 };
 
 export const POST = adminRoute(async (req: NextRequest) => {
@@ -58,6 +60,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
     characterKey,
     refVideoKey,
     durationSec = 5,
+    generateAudio = true,
   } = (await req.json()) as SubmitBody;
 
   if (!imageVendorUrl?.trim()) {
@@ -80,7 +83,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
     content_filter: false,
     prompt:         prompt.trim(),
     resolution:     '480p',
-    generate_audio: true,
+    generate_audio: generateAudio,
   };
 
   if (mode === 'face-swap') {

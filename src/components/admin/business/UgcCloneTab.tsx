@@ -173,9 +173,10 @@ type ApiPreviewProps = {
   voice: VoiceState | null;
   prompt: string;
   durationSec: number;
+  generateAudio: boolean;
 };
 
-const ApiPreview = ({ mode, character, refVideo, voice, prompt, durationSec }: ApiPreviewProps) => {
+const ApiPreview = ({ mode, character, refVideo, voice, prompt, durationSec, generateAudio }: ApiPreviewProps) => {
   const hasAudio = Boolean(voice);
   const cfg = MODE_CONFIG[mode];
 
@@ -184,7 +185,7 @@ const ApiPreview = ({ mode, character, refVideo, voice, prompt, durationSec }: A
     content_filter: false,
     prompt,
     resolution:     '480p',
-    generate_audio: true,
+    generate_audio: generateAudio,
   };
 
   if (mode === 'face-swap') {
@@ -286,6 +287,9 @@ type UgcCloneTabProps = { token: string };
 export function UgcCloneTab({ token }: UgcCloneTabProps) {
   // Mode
   const [mode, setMode] = useState<Mode>('face-swap');
+
+  // Audio — "Keep the original video sound" toggle
+  const [generateAudio, setGenerateAudio] = useState(true);
 
   // Upload states
   const [characterBusy, setCharacterBusy] = useState(false);
@@ -457,6 +461,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
           characterKey:    character.key,
           refVideoKey:     refVideo.key,
           durationSec:     maxDurationSec,
+          generateAudio,
         },
       },
     ).catch(() => null);
@@ -785,6 +790,37 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         </div>
       </Section>
 
+      {/* ── Step 6: Keep original sound ───────────────────────────────────── */}
+      <Section
+        title="6 · Original sound"
+        description="Controls generate_audio in the API call"
+      >
+        <button
+          type="button"
+          role="switch"
+          aria-checked={generateAudio}
+          onClick={() => setGenerateAudio((v) => !v)}
+          className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors ${
+            generateAudio
+              ? 'border-ink bg-ink text-white'
+              : 'border-line bg-white text-ink hover:bg-surface-alt'
+          }`}
+        >
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[13px] font-medium">Keep the original video sound</span>
+            <span className={`text-[11px] ${generateAudio ? 'text-white/70' : 'text-muted'}`}>
+              {generateAudio
+                ? 'generate_audio: true — Seedance will include audio in the output'
+                : 'generate_audio: false — video only, no audio generated'}
+            </span>
+          </div>
+          {/* Toggle pill */}
+          <div className={`relative ml-4 h-6 w-11 shrink-0 rounded-full transition-colors ${generateAudio ? 'bg-white/30' : 'bg-zinc-200'}`}>
+            <div className={`absolute top-0.5 h-5 w-5 rounded-full shadow transition-transform ${generateAudio ? 'translate-x-5 bg-white' : 'translate-x-0.5 bg-zinc-400'}`} />
+          </div>
+        </button>
+      </Section>
+
       {/* ── Generate (with API preview) ────────────────────────────────────── */}
       <Section
         title="Generate"
@@ -809,6 +845,7 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
                 voice={voice}
                 prompt={promptText}
                 durationSec={maxDurationSec}
+                generateAudio={generateAudio}
               />
             )}
 
