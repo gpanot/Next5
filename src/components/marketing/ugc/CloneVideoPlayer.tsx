@@ -1,6 +1,6 @@
 'use client';
 
-import { Play } from 'lucide-react';
+import { Pause, Play } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { TIKTOK_MARK } from '../shared/BrandLogos';
 
@@ -11,58 +11,70 @@ const TikTokNote = ({ className = '' }: { className?: string }) => (
 );
 
 /**
- * Click-to-play video card for the clone video.
- * Shows a paused poster state first; plays with sound when tapped.
- * Overlays the realtor headshot as a small 9:16 inset (bottom-right).
+ * Click-to-play/pause video card for the clone video.
+ * - No loop, no autoplay, no muted → sound works when played.
+ * - Clicking anywhere on the video toggles play / pause.
+ * - Realtor headshot overlaid as a small 9:16 inset (bottom-right).
  */
 export const CloneVideoPlayer = () => {
   const [playing, setPlaying] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const handlePlay = () => {
-    setPlaying(true);
-    videoRef.current?.play();
+  const toggle = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    if (vid.paused) {
+      void vid.play();
+      setPlaying(true);
+    } else {
+      vid.pause();
+      setPlaying(false);
+    }
   };
 
   return (
     <figure className="flex w-[62vw] max-w-[260px] shrink-0 flex-col gap-2">
       {/* 9:16 container */}
       <div className="relative aspect-[9/16] overflow-hidden rounded-2xl bg-zinc-900 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-        {/* The clone video — unmuted so sound works when played */}
+        {/* The clone video — unmuted, no loop, no autoplay */}
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
           ref={videoRef}
           src="/realtor-ugc-clone.mp4"
-          loop
           playsInline
           className="absolute inset-0 h-full w-full object-cover"
+          onEnded={() => setPlaying(false)}
         />
 
         {/* Gradient overlays */}
-        <span className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70 pointer-events-none" aria-hidden />
+        <span className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/70" aria-hidden />
 
-        {/* Play button overlay — shown until user taps */}
-        {!playing && (
-          <button
-            type="button"
-            onClick={handlePlay}
-            className="group absolute inset-0 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-app-accent"
-            aria-label="Play generated clone video"
+        {/* Click overlay — whole card is the toggle target */}
+        <button
+          type="button"
+          onClick={toggle}
+          className="absolute inset-0 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-app-accent"
+          aria-label={playing ? 'Pause video' : 'Play video with sound'}
+        >
+          {/* Icon fades out while playing, shows briefly on tap */}
+          <span
+            className={`flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg transition-all duration-200 ${playing ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}
+            aria-hidden
           >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 shadow-lg transition-transform duration-200 group-hover:scale-110" aria-hidden>
-              <Play className="ml-1 h-6 w-6 fill-ink text-ink" />
-            </span>
-          </button>
-        )}
+            {playing
+              ? <Pause className="h-6 w-6 fill-ink text-ink" />
+              : <Play className="ml-1 h-6 w-6 fill-ink text-ink" />}
+          </span>
+        </button>
 
         {/* TikTok badge top-left */}
-        <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm pointer-events-none">
+        <span className="pointer-events-none absolute left-3 top-3 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
           <TikTokNote className="h-3 w-3" /> TikTok
         </span>
 
         {/* ── Realtor headshot inset — 9:16 ratio, bottom-right ── */}
         <div
-          className="absolute bottom-10 right-2 overflow-hidden rounded-lg ring-2 ring-white shadow-md pointer-events-none"
+          className="pointer-events-none absolute bottom-10 right-2 overflow-hidden rounded-lg ring-2 ring-white shadow-md"
           style={{ width: '26%', aspectRatio: '9/16' }}
           aria-hidden
         >
@@ -75,11 +87,11 @@ export const CloneVideoPlayer = () => {
         </div>
 
         {/* Bottom label */}
-        <span className="absolute inset-x-3 bottom-3 pointer-events-none text-[12px] font-semibold leading-tight text-white">
+        <span className="pointer-events-none absolute inset-x-3 bottom-3 text-[12px] font-semibold leading-tight text-white">
           Your version · 20 sec
         </span>
       </div>
-      <figcaption className="text-[12px] text-app-muted">Cloned &amp; ready to post</figcaption>
+      <figcaption className="text-[12px] text-app-muted">Tap to play · with sound</figcaption>
     </figure>
   );
 };
