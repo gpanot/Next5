@@ -2,6 +2,7 @@ import { TIKTOK_UGC, UGC_WALL, type UgcAudience } from '../../../content/busines
 import { UGC } from '../../../content/business/ugc';
 import { resolveTikToks, tiktokPlayerUrl } from '../../../lib/tiktok';
 import { UgcVideoMock } from '../offer/UgcVideoMock';
+import { RealtorUgcDemo } from './RealtorUgcDemo';
 import { TikTokCard } from './TikTokCard';
 import { UgcWallTabs } from './UgcWallTabs';
 
@@ -25,9 +26,13 @@ const UgcStrip = async ({ audience }: { audience: UgcAudience }) => {
   );
 };
 
-/** Both audiences with a switch (home page). */
+/**
+ * Both audiences with a switch (home page).
+ * Realtors get the full transformation demo (viral TikTok → cloned video).
+ * TikTok Shop keeps the standard scrollable strip.
+ */
 export const UgcWall = () => (
-  <UgcWallTabs tabs={UGC_WALL.tabs} panels={{ realtor: <UgcStrip audience="realtor" />, shop: <UgcStrip audience="shop" /> }} />
+  <UgcWallTabs tabs={UGC_WALL.tabs} panels={{ realtor: <RealtorUgcDemo />, shop: <UgcStrip audience="shop" /> }} />
 );
 
 /** One audience only (/brand, /shop). */
