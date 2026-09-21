@@ -11,6 +11,8 @@ type SheetProps = {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** Extra buttons in the header, left of the close button. */
+  actions?: React.ReactNode;
   side?: SheetSide;
   className?: string;
   children: React.ReactNode;
@@ -30,6 +32,7 @@ export const Sheet = ({
   open,
   onClose,
   title,
+  actions,
   side = 'bottom',
   className = '',
   children,
@@ -74,16 +77,19 @@ export const Sheet = ({
 
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-app-line">
-            <h2 className="text-[16px] font-semibold text-app-ink">{title}</h2>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close sheet"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-app-muted transition-colors hover:bg-app-sunken hover:text-app-ink focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:outline-none"
-            >
-              <X className="h-4 w-4" />
-            </button>
+          <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-app-line">
+            <h2 className="min-w-0 truncate text-[16px] font-semibold text-app-ink">{title}</h2>
+            <div className="flex shrink-0 items-center gap-2">
+              {actions}
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close sheet"
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-app-muted transition-colors hover:bg-app-sunken hover:text-app-ink focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:outline-none"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
 

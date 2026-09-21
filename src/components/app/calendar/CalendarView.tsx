@@ -17,6 +17,7 @@ import { PhotoPickerSheet } from './PhotoPickerSheet';
 import { PostSheet } from './PostSheet';
 import { ProgressHeader } from './ProgressHeader';
 import { PropertiesCard } from './PropertiesCard';
+import { AppLink as Link } from '../shell/AppLink';
 
 /** Empty posting days show this far ahead, so there is always somewhere to add a photo. */
 const EMPTY_DAYS_AHEAD = 14;
@@ -34,10 +35,10 @@ const daysToShow = (calendar: CalendarDto, focused: string | null): { date: stri
 };
 
 /**
- * Her month on one page: the month at a glance, then each day as a row of photos she can add to
+ * Her month on one page (also the top of the brand home, as `variant="home"`, without the settings cards): the month at a glance, then each day as a row of photos she can add to
  * or take from. Opening a post and adding photos are sheets — nothing here navigates away.
  */
-export const CalendarView = () => {
+export const CalendarView = ({ variant = 'full' }: { variant?: 'full' | 'home' }) => {
   const { data, error, loading, refresh } = useApi<CalendarDto>('/api/app/calendar');
   const [local, setLocal] = useState<CalendarDto | null>(null);
   const [open, setOpen] = useState<SlotDto | null>(null);
@@ -131,9 +132,16 @@ export const CalendarView = () => {
         </div>
       </CalendarDnd>
 
-      <PropertiesCard />
-
-      <CadenceCard calendar={calendar} onSaved={setLocal} />
+      {variant === 'full' ? (
+        <>
+          <PropertiesCard />
+          <CadenceCard calendar={calendar} onSaved={setLocal} />
+        </>
+      ) : (
+        <Link href="/app/calendar" className="self-start text-[14px] font-medium text-app-accent transition-colors duration-200 hover:text-app-ink">
+          Posting days and properties →
+        </Link>
+      )}
 
       <PostSheet
         slot={open}

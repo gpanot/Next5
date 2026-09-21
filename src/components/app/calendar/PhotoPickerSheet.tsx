@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ImagePlus } from 'lucide-react';
+import { Check, ImagePlus, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
 import { dayLabel } from '../../../lib/calendarDates';
@@ -68,7 +68,18 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
   const current = page && page.date === date ? page : null;
 
   return (
-    <Sheet open={date !== null} onClose={onClose} title={date ? `Add to ${dayLabel(date)}` : 'Add photos'} side="bottom" className="sm:mx-auto sm:max-w-lg">
+    <Sheet
+      open={date !== null}
+      onClose={onClose}
+      title={date ? `Add to ${dayLabel(date)}` : 'Add photos'}
+      actions={
+        <Link href="/app/create" className="inline-flex h-9 items-center gap-1.5 rounded-full bg-app-cta px-3.5 text-[13px] font-medium text-app-cta-ink transition-opacity duration-200 hover:opacity-90">
+          <Plus aria-hidden className="h-4 w-4" /> Create
+        </Link>
+      }
+      side="bottom"
+      className="sm:mx-auto sm:max-w-lg"
+    >
       <div className="flex flex-col">
         <div className="pb-4">
           {!current || (current.loading && current.photos.length === 0) ? (
@@ -105,7 +116,7 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={photo.url} alt="" loading="lazy" className={`h-full w-full object-cover transition-opacity duration-200 ${on ? 'opacity-80' : ''}`} />
                         )}
-                        <span className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors duration-200 ${on ? 'border-app-accent bg-app-cta text-app-cta-ink' : 'border-white/90 bg-black/25'}`}>
+                        <span className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors duration-200 ${on ? 'border-white bg-app-cta text-app-cta-ink' : 'border-white/90 bg-black/25'}`}>
                           {on && <Check aria-hidden className="h-3.5 w-3.5" />}
                         </span>
                       </button>

@@ -21,7 +21,7 @@ import { useWorkspace } from '../shell/WorkspaceProvider';
 import { CreateSection } from './CreateSection';
 import { CreditSummaryBar } from './CreditSummaryBar';
 import { FormatPicker } from './FormatPicker';
-import { ListingPicker } from './ListingPicker';
+import { ListingPicker, type WhoMode } from './ListingPicker';
 import { OccasionPicker } from './OccasionPicker';
 import { SetPicker } from './SetPicker';
 import { StyleLine, type Style } from './StyleLine';
@@ -34,7 +34,8 @@ const countLabel = (c: number): string => (c === 1 ? '1 photo · just to try' : 
 const VARIATIONS = [1, 2, 3] as const;
 
 /**
- * Two forms behind one first question. "Just me" chooses a style and a theme, because we choose the place.
+ * Two forms behind one first question: "+ Property" (the default, for realtors) or "Just me".
+ * "Just me" chooses a style and a theme, because we choose the place.
  * A property has a place already — its photos — so it asks what is happening and how she looks instead
  * (docs/business-studios/14-property-create-plan.md).
  */
@@ -53,6 +54,8 @@ export const BrandCreateFlow = () => {
   const [count, setCount] = useState<number>(16);
   const listingParam = params.get('listing');
   const [listingId, setListingId] = useState<string | null>(listingParam && listingParam !== 'new' ? listingParam : null);
+  // Realtors first: a property unless she came from a theme ("Use this theme") to make photos of just her.
+  const [mode, setMode] = useState<WhoMode>(params.get('theme') && !listingParam ? 'me' : 'property');
   const [variations, setVariations] = useState<number>(1);
   // Her pick per property. Without one, only Zillow's own status fills it in — an uploaded home stays empty.
   const [occasionByListing, setOccasionByListing] = useState<Record<string, Occasion>>({});
@@ -126,11 +129,12 @@ export const BrandCreateFlow = () => {
   return (
     <div className="flex flex-col gap-5">
       {/* First, because it decides what every step below means. */}
-      <CreateSection step={1} title="Who is it for?" sub="A property, or photos of just you.">
-        <ListingPicker listings={listings.data?.listings ?? []} value={listingId} onChange={setListingId} onRefresh={listings.refresh} onAdded={onAdded} startAdding={listingParam === 'new'} />
+      <CreateSection step={1} title="Who is it for?" sub="Paste a listing link to show up inside the home, or make photos of just you.">
+        <ListingPicker mode={mode} onMode={setMode} listings={listings.data?.listings ?? []} value={listingId} onChange={setListingId} onRefresh={listings.refresh} onAdded={onAdded} />
       </CreateSection>
 
-      {listing ? (
+      {/* In property mode, nothing below makes sense until there is a property. */}
+      {mode === 'property' && !listing ? null : listing ? (
         <>
           <CreateSection step={2} title="What’s happening?" sub="With this home, right now.">
             <OccasionPicker value={occasion} onChange={pickOccasion} fromZillow={occasionFromZillow} />
@@ -156,19 +160,23 @@ export const BrandCreateFlow = () => {
         </>
       )}
 
-      <CreateSection step={5} title="Formats" sub="Each format is created at its own shape and counts as a photo.">
-        <FormatPicker value={formats} onChange={setFormats} highRes={highRes} onHighRes={setHighRes} highResAllowed={Boolean(me.plan?.highRes)} />
-      </CreateSection>
-      <CreditSummaryBar
-        breakdown={`${photoCount} photo${photoCount === 1 ? '' : 's'} × ${formats.length} format${formats.length > 1 ? 's' : ''}${highRes ? ' × 2 (high-res)' : ''}`}
-        estimate={estimate}
-        error={submitError ?? error}
-        hint={listing && rooms > 0 && !occasion ? 'Pick what’s happening with this home.' : undefined}
-        loading={loading}
-        submitting={submitting}
-        disabled={!draft}
-        onSubmit={submit}
-      />
+      {(mode === 'me' || listing) && (
+        <>
+          <CreateSection step={5} title="Formats" sub="Each format is created at its own shape and counts as a photo.">
+            <FormatPicker value={formats} onChange={setFormats} highRes={highRes} onHighRes={setHighRes} highResAllowed={Boolean(me.plan?.highRes)} />
+          </CreateSection>
+          <CreditSummaryBar
+            breakdown={`${photoCount} photo${photoCount === 1 ? '' : 's'} × ${formats.length} format${formats.length > 1 ? 's' : ''}${highRes ? ' × 2 (high-res)' : ''}`}
+            estimate={estimate}
+            error={submitError ?? error}
+            hint={listing && rooms > 0 && !occasion ? 'Pick what’s happening with this home.' : undefined}
+            loading={loading}
+            submitting={submitting}
+            disabled={!draft}
+            onSubmit={submit}
+          />
+        </>
+      )}
     </div>
   );
 };
