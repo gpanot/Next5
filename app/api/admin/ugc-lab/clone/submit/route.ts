@@ -6,18 +6,35 @@ import { createCloneJob } from '../../../../../../src/server/admin/cloneVideos';
 export const maxDuration = 30;
 
 // --------------------------------------------------------------------------
-// Seedance 2.5 face model via reapi
-// Explicit duration from the dropdown — NEVER -1.
-// video_urls is passed so the model sees the reference footage as context.
-// The prompt must NOT contain @video1 to avoid reapi forcing duration: -1.
+// Two Seedance modes via reapi.video-gen.seedance-2-5.unrestricted
+//
+// face-swap    — doubao-seedance-2.5-face
+//   • video_urls  → triggers video editing mode (required by the face model)
+//   • duration: -1 (forced by reapi in video editing mode)
+//   • output length = trimmed input video length
+//
+// video-update — doubao-seedance-2.5 (unrestricted)
+//   • image_with_roles (character reference_image + first_frame)
+//   • explicit duration from the dropdown (table-based billing)
 // --------------------------------------------------------------------------
+
 const SEEDANCE_ENDPOINT = 'reapi.video-gen.seedance-2-5.unrestricted';
-const SEEDANCE_MODEL    = 'doubao-seedance-2.5-face';
+
+const MODELS = {
+  'face-swap':    'doubao-seedance-2.5-face',
+  'video-update': 'doubao-seedance-2.5',
+} as const;
+
+type Mode = 'face-swap' | 'video-update';
 
 type SubmitBody = {
+  /** face-swap | video-update */
+  mode?: Mode;
   /** Vendor URL for the character face image */
   imageVendorUrl?: string;
-  /** Vendor URL for the first frame JPEG of the reference video (first_frame role) */
+  /** Vendor URL for the full trimmed reference video (face-swap: passed as video_urls) */
+  videoVendorUrl?: string;
+  /** Vendor URL for the first frame JPEG (video-update: first_frame role) */
   frameVendorUrl?: string;
   /** Vendor URL for an optional voice/audio reference */
   voiceVendorUrl?: string;
@@ -26,19 +43,15 @@ type SubmitBody = {
   /** R2 keys — stored in the DB so the library can re-sign them */
   characterKey?: string;
   refVideoKey?: string;
-  /** Explicit duration from the dropdown — always used as-is, never -1 */
+  /** Explicit duration from the dropdown — used for video-update mode */
   durationSec?: number;
 };
 
-/**
- * POST { imageVendorUrl, videoVendorUrl?, voiceVendorUrl?, prompt,
- *         characterKey, refVideoKey, durationSec }
- * → submits to reapi Seedance 2.5 face with explicit duration
- * → returns { taskId }
- */
 export const POST = adminRoute(async (req: NextRequest) => {
   const {
+    mode = 'face-swap',
     imageVendorUrl,
+    videoVendorUrl,
     frameVendorUrl,
     voiceVendorUrl,
     prompt,
@@ -54,49 +67,60 @@ export const POST = adminRoute(async (req: NextRequest) => {
     );
   }
   if (!prompt?.trim()) {
-    return NextResponse.json(
-      { error: 'prompt is required' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'prompt is required' }, { status: 400 });
   }
 
+  const model = MODELS[mode] ?? MODELS['face-swap'];
   const hasAudio = Boolean(voiceVendorUrl?.trim());
 
-  // KEY FINDING: passing video_urls ALWAYS forces reapi into video editing mode (duration: -1),
-  // regardless of prompt content. To use explicit duration we must use first_frame instead.
-  // character image → reference_image role (face reference)
-  // first frame of video → first_frame role (scene/background anchor)
-  const hasFrame = Boolean(frameVendorUrl?.trim());
+  // ── Build the Seedance request body based on mode ───────────────────────
 
   const seedanceBody: Record<string, unknown> = {
-    model:          SEEDANCE_MODEL,
+    model,
     content_filter: false,
     prompt:         prompt.trim(),
-    duration:       durationSec,   // explicit — NEVER -1
     resolution:     '480p',
     generate_audio: true,
   };
 
-  if (hasFrame) {
-    // image_with_roles: character face + first frame as scene anchor
-    seedanceBody.size = 'adaptive';
+  if (mode === 'face-swap') {
+    // Video editing mode — video_urls forces duration: -1
+    // The face model requires the reference video this way.
+    if (!videoVendorUrl?.trim()) {
+      return NextResponse.json(
+        { error: 'videoVendorUrl is required for face-swap mode' },
+        { status: 400 },
+      );
+    }
+    seedanceBody.duration = -1;  // required by reapi when video_urls is present
     seedanceBody.image_with_roles = [
-      { url: imageVendorUrl,     role: 'reference_image' },
-      { url: frameVendorUrl,     role: 'first_frame' },
+      { url: imageVendorUrl, role: 'reference_image' },
     ];
+    seedanceBody.video_urls = [videoVendorUrl];
+
   } else {
-    // No frame extracted — fallback to character only
-    seedanceBody.size = '9:16';
-    seedanceBody.image_urls = [imageVendorUrl];
+    // video-update: generation mode — image_with_roles + first_frame + explicit duration
+    seedanceBody.duration = durationSec;
+    seedanceBody.size = 'adaptive';
+    if (frameVendorUrl?.trim()) {
+      seedanceBody.image_with_roles = [
+        { url: imageVendorUrl, role: 'reference_image' },
+        { url: frameVendorUrl, role: 'first_frame' },
+      ];
+    } else {
+      seedanceBody.size = '9:16';
+      seedanceBody.image_with_roles = [
+        { url: imageVendorUrl, role: 'reference_image' },
+      ];
+    }
   }
 
   if (hasAudio) {
     seedanceBody.audio_urls = [voiceVendorUrl];
   }
 
-  // ------------------------------------------------------------------
-  // Submit to reapi via Treg
-  // ------------------------------------------------------------------
+  // ── Submit to reapi via Treg ────────────────────────────────────────────
+
   let taskId: string;
   try {
     const result = await tregCall<{ id?: string; task_id?: string }>(
@@ -113,17 +137,18 @@ export const POST = adminRoute(async (req: NextRequest) => {
     );
   }
 
-  // Persist to the library DB so the video is mirrored to R2 when it finishes
+  // ── Persist to DB ───────────────────────────────────────────────────────
+
   if (characterKey && refVideoKey) {
     try {
       await createCloneJob({
-        poyoTaskId: taskId,
+        poyoTaskId:  taskId,
         characterKey,
         refVideoKey,
-        durationSec,
-        model:      SEEDANCE_MODEL,
-        resolution: '480p',
-        prompt:     prompt.trim(),
+        durationSec: mode === 'face-swap' ? durationSec : durationSec,
+        model,
+        resolution:  '480p',
+        prompt:      prompt.trim(),
       });
     } catch (err) {
       console.error('[clone/submit] failed to persist job to DB:', err);
