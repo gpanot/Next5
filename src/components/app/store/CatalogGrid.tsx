@@ -22,7 +22,7 @@ export const CatalogGrid = ({ products, selected, onToggle, onOpen }: Props) => 
             {image && <img src={image} alt={p.name} className="h-full w-full object-cover" loading="lazy" referrerPolicy="no-referrer" />}
             {p.photoPending && <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-black/55 px-2 py-0.5 text-[11px] text-white"><Loader2 aria-hidden className="h-3 w-3 animate-spin" /> Getting photo</span>}
           </button>
-          <button type="button" aria-label={isSelected ? `Unselect ${p.name}` : `Select ${p.name}`} aria-pressed={isSelected} disabled={p.photoPending} onClick={() => onToggle(p.id)} className={`absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-2 disabled:opacity-40 ${isSelected ? 'border-app-accent bg-app-accent text-app-accent-ink' : 'border-white bg-black/30'}`}>
+          <button type="button" aria-label={isSelected ? `Unselect ${p.name}` : `Select ${p.name}`} aria-pressed={isSelected} disabled={p.photoPending} onClick={() => onToggle(p.id)} className={`absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-2 disabled:opacity-40 ${isSelected ? 'border-app-accent bg-app-cta text-app-cta-ink' : 'border-white bg-black/30'}`}>
             {isSelected && <Check aria-hidden className="h-4 w-4" />}
           </button>
           <div className="flex flex-col gap-1.5 p-3">

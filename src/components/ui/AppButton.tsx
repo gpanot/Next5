@@ -16,7 +16,7 @@ export type AppButtonProps = {
 } & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 const VARIANT_CLASSES: Record<AppButtonVariant, string> = {
-  primary:   'bg-app-accent text-app-accent-ink hover:opacity-90',
+  primary:   'bg-app-cta text-app-cta-ink hover:opacity-90',
   secondary: 'bg-app-panel text-app-ink border border-app-line hover:bg-app-sunken',
   ghost:     'text-app-ink hover:bg-app-sunken',
   danger:    'bg-app-danger text-white hover:opacity-90',
@@ -48,7 +48,7 @@ export const AppButton = ({
       disabled={isDisabled}
       className={[
         'inline-flex items-center justify-center font-medium transition-colors duration-200',
-        'focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-2 focus-visible:outline-none',
+        'focus-visible:ring-2 focus-visible:ring-app-cta focus-visible:ring-offset-2 focus-visible:outline-none',
         'disabled:opacity-50 disabled:cursor-not-allowed',
         VARIANT_CLASSES[variant],
         SIZE_CLASSES[size],

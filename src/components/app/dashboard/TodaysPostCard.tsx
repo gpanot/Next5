@@ -25,7 +25,7 @@ export const TodaysPostCard = () => {
         <p className="label-caps text-[10px] font-medium text-app-accent">Your calendar</p>
         <p className="text-[18px] font-semibold text-app-ink">{postedToday ? 'Posted today. Nice work.' : 'No posts planned yet'}</p>
         <p className="text-[14px] text-app-muted">{postedToday ? 'Your next one is waiting in the calendar.' : 'Create photos and we plan your month for you.'}</p>
-        <Link href="/app/calendar" className="mt-auto inline-flex h-9 w-fit items-center rounded-xl bg-app-accent px-4 text-[13px] font-medium text-app-accent-ink hover:opacity-90">
+        <Link href="/app/calendar" className="mt-auto inline-flex h-9 w-fit items-center rounded-xl bg-app-cta px-4 text-[13px] font-medium text-app-cta-ink hover:opacity-90">
           Open my calendar
         </Link>
       </Card>
@@ -54,7 +54,7 @@ export const TodaysPostCard = () => {
             {postedToday && <Check aria-hidden className="mr-1 inline h-4 w-4 text-emerald-600" />}
             {data.progress.posted} of {data.progress.required} posts this month.
           </p>
-          <Link href="/app/calendar" className="mt-auto inline-flex h-9 w-fit items-center rounded-xl bg-app-accent px-4 text-[13px] font-medium text-app-accent-ink hover:opacity-90">
+          <Link href="/app/calendar" className="mt-auto inline-flex h-9 w-fit items-center rounded-xl bg-app-cta px-4 text-[13px] font-medium text-app-cta-ink hover:opacity-90">
             {isToday ? 'Post this' : 'Open my calendar'}
           </Link>
         </div>

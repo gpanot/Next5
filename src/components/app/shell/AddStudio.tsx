@@ -23,7 +23,7 @@ export const AddStudio = ({ studio }: { studio: ProductLineDto }) => {
         <p className="mt-2 text-[15px] text-app-muted">{PITCH[studio]} Same account, separate plan. Your first 3 photos are free.</p>
       </div>
       <div className="flex flex-col items-center gap-3 sm:flex-row">
-        <Link href={`/start/${studio}`} className="inline-flex h-11 items-center rounded-xl bg-app-accent px-5 text-[15px] font-medium text-app-accent-ink transition-opacity duration-200 hover:opacity-90">Set up {STUDIO_LABEL[studio]}</Link>
+        <Link href={`/start/${studio}`} className="inline-flex h-11 items-center rounded-xl bg-app-cta px-5 text-[15px] font-medium text-app-cta-ink transition-opacity duration-200 hover:opacity-90">Set up {STUDIO_LABEL[studio]}</Link>
         {other && <Link href={studioHref(other.product)} className="text-[14px] text-app-muted hover:text-app-ink">Back to {STUDIO_LABEL[other.product]}</Link>}
       </div>
     </div>

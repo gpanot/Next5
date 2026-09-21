@@ -20,7 +20,7 @@ export const BottomTabBar = () => {
             <li key={href}>
               <Link href={href} aria-current={active ? 'page' : undefined} className="flex h-16 flex-col items-center justify-center gap-1 text-[11px] transition-colors duration-200">
                 {primary ? (
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-app-accent text-app-accent-ink shadow-sm"><Icon aria-hidden className="h-5 w-5" /></span>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-app-cta text-app-cta-ink shadow-sm"><Icon aria-hidden className="h-5 w-5" /></span>
                 ) : (
                   <>
                     <Icon aria-hidden className={`h-5 w-5 ${active ? 'text-app-accent' : 'text-app-muted'}`} />

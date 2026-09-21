@@ -10,11 +10,11 @@ export const FinalCtaBand = ({ title, body, href, cta, secondary }: FinalCtaBand
         <p className="mt-3 text-[16px] text-white/70 dark:text-app-muted">{body}</p>
       </div>
       <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-        <CtaLink href={href} variant="inverse" className="shrink-0 dark:bg-app-accent dark:text-app-accent-ink">
+        <CtaLink href={href} variant="inverse" className="shrink-0 dark:bg-app-cta dark:text-app-cta-ink">
           {cta}
         </CtaLink>
         {secondary && (
-          <CtaLink href={secondary.href} variant="inverse" className="shrink-0 dark:bg-app-accent dark:text-app-accent-ink">
+          <CtaLink href={secondary.href} variant="inverse" className="shrink-0 dark:bg-app-cta dark:text-app-cta-ink">
             {secondary.cta}
           </CtaLink>
         )}

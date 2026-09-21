@@ -25,7 +25,7 @@ const PhotoTile = ({ photo, picked, onToggle }: { photo: CandidateDto; picked: b
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={photo.thumbUrl} alt="" loading="lazy" className={`h-full w-full object-cover transition-opacity duration-200 ${photo.weak && !picked ? 'opacity-50' : ''}`} />
-      <span className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border transition-colors duration-200 ${picked ? 'border-app-accent bg-app-accent text-app-accent-ink' : 'border-white/80 bg-black/30 text-transparent'}`}>
+      <span className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border transition-colors duration-200 ${picked ? 'border-app-accent bg-app-cta text-app-cta-ink' : 'border-white/80 bg-black/30 text-transparent'}`}>
         <Check aria-hidden className="h-3.5 w-3.5" />
       </span>
     </button>

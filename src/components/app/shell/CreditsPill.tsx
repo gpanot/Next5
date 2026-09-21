@@ -48,7 +48,7 @@ export const CreditsPill = () => {
             {balance.trial > 0 && <div className="flex justify-between"><dt className="text-app-muted">Free trial</dt><dd className="tabular-nums">{balance.trial}</dd></div>}
           </dl>
           {balance.nextExpiry && <p className="mt-3 text-[12px] text-app-muted">{balance.nextExpiry.credits} expire on {formatShortDate(balance.nextExpiry.at)}</p>}
-          <Link href="/app/billing" onClick={() => setOpen(false)} className="mt-3 flex h-9 items-center justify-center rounded-xl bg-app-accent text-[13px] font-medium text-app-accent-ink hover:opacity-90">Top up photos</Link>
+          <Link href="/app/billing" onClick={() => setOpen(false)} className="mt-3 flex h-9 items-center justify-center rounded-xl bg-app-cta text-[13px] font-medium text-app-cta-ink hover:opacity-90">Top up photos</Link>
         </div>
       )}
     </div>

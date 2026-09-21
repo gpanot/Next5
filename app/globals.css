@@ -8,7 +8,7 @@
   --font-serif: var(--font-display);
   --font-sans: var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
 
-  /* Mulberry Atelier (D11). Keep in sync with src/config/theme.ts. */
+  /* Consumer /photos palette (Mulberry Atelier, D11). The business palette is the app-* block below. */
   --color-page: #faf7f8;
   --color-surface: #ffffff;
   --color-surface-alt: #f3ecef;
@@ -29,45 +29,9 @@
 
   --shadow-card: 0 1px 2px rgb(29 21 32 / 0.05), 0 8px 24px -12px rgb(29 21 32 / 0.18);
 
-  /* ── Business surface tokens (light defaults) ── */
-  --color-app-bg: #faf7f8;
-  --color-app-panel: #ffffff;
-  --color-app-sunken: #f3ecef;
-  --color-app-ink: #1d1520;
-  --color-app-muted: #6e6270;
-  --color-app-line: #eadfe5;
-  --color-app-accent: #8e2a5c;
-  --color-app-accent-ink: #ffffff;
-  --color-app-accent-soft: #f5e6ee;
-  --color-app-success: #1f7a57;
-  --color-app-warning: #a36a12;
-  --color-app-danger: #b3263e;
-  --color-app-info: #3f5e8c;
-}
-
-/* ── Business surface dark overrides ── */
-@media (prefers-color-scheme: dark) {
-  [data-surface='business'] {
-    --color-app-bg: #141015;
-    --color-app-panel: #1c171d;
-    --color-app-sunken: #251e26;
-    --color-app-ink: #f4ecf1;
-    --color-app-muted: #ad9fae;
-    --color-app-line: #3a2f3b;
-    --color-app-accent: #e08ab6;
-    --color-app-accent-ink: #1a1117;
-    --color-app-accent-soft: #3a2130;
-    --color-app-success: #7cc4a2;
-    --color-app-warning: #e0b25c;
-    --color-app-danger: #f08a9a;
-    --color-app-info: #9db7e0;
-  }
-}
-
-/* ── Marketing "fresh" look (2026-09): neutral ink + signal coral, replaces the mulberry base on /, /brand, /shop, /pricing.
-      Scoped to the marketing shell, so the studio after login keeps its palette. ── */
-[data-surface='business'][data-look='fresh'] {
-  --color-ink: #0b0b0c;
+  /* ── Business surface tokens (light defaults) ──
+     Neutral ink + signal coral (2026-09), for marketing and the studio alike. Keep in sync with src/config/theme.ts.
+     Coral is for accents only (labels, rings, progress). Buttons and CTAs use app-cta: black in light, blue in dark. ── */
   --color-app-bg: #ffffff;
   --color-app-panel: #ffffff;
   --color-app-sunken: #f4f4f5;
@@ -77,11 +41,22 @@
   --color-app-accent: #d9381e;
   --color-app-accent-ink: #ffffff;
   --color-app-accent-soft: #fdece8;
+  --color-app-cta: #0b0b0c;
+  --color-app-cta-ink: #ffffff;
+  --color-app-success: #1f7a57;
+  --color-app-warning: #a36a12;
+  --color-app-danger: #b3263e;
+  --color-app-info: #3f5e8c;
 }
 
+/* The business surface also re-points the plain ink token (PhoneFrame, dark bands) to the new ink. */
+[data-surface='business'] {
+  --color-ink: #0b0b0c;
+}
+
+/* ── Business surface dark overrides ── */
 @media (prefers-color-scheme: dark) {
-  [data-surface='business'][data-look='fresh'] {
-    --color-ink: #0b0b0c;
+  [data-surface='business'] {
     --color-app-bg: #09090b;
     --color-app-panel: #131316;
     --color-app-sunken: #18181b;
@@ -91,6 +66,12 @@
     --color-app-accent: #ff6a4d;
     --color-app-accent-ink: #0b0b0c;
     --color-app-accent-soft: #3a1a13;
+    --color-app-cta: #2563eb;
+    --color-app-cta-ink: #ffffff;
+    --color-app-success: #7cc4a2;
+    --color-app-warning: #e0b25c;
+    --color-app-danger: #f08a9a;
+    --color-app-info: #9db7e0;
   }
 }
 

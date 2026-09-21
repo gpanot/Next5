@@ -81,7 +81,7 @@ export const CadenceCard = ({ calendar, onSaved }: Props) => {
                     onClick={() => toggleDay(day)}
                     aria-pressed={on}
                     className={`h-10 w-11 rounded-xl text-[13px] font-medium transition-colors duration-200 ${
-                      on ? 'bg-app-accent text-app-accent-ink' : 'border border-app-line text-app-muted hover:bg-app-sunken'
+                      on ? 'bg-app-cta text-app-cta-ink' : 'border border-app-line text-app-muted hover:bg-app-sunken'
                     }`}
                   >
                     {label}
@@ -101,7 +101,7 @@ export const CadenceCard = ({ calendar, onSaved }: Props) => {
                   onClick={() => setPlatform(p.id)}
                   aria-pressed={platform === p.id}
                   className={`h-10 rounded-xl px-3 text-[13px] font-medium transition-colors duration-200 ${
-                    platform === p.id ? 'bg-app-accent text-app-accent-ink' : 'border border-app-line text-app-muted hover:bg-app-sunken'
+                    platform === p.id ? 'bg-app-cta text-app-cta-ink' : 'border border-app-line text-app-muted hover:bg-app-sunken'
                   }`}
                 >
                   {p.label}

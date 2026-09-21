@@ -24,7 +24,7 @@ export const AppPage = ({ title, actions, children, studioSwitcher = false }: Pa
       <div className="flex items-center gap-2">
         {actions}
         <CreditsPill />
-        <Link href="/app/create" className="hidden h-9 items-center gap-1.5 rounded-xl bg-app-accent px-3 text-[13px] font-medium text-app-accent-ink transition-opacity duration-200 hover:opacity-90 sm:flex">
+        <Link href="/app/create" className="hidden h-9 items-center gap-1.5 rounded-xl bg-app-cta px-3 text-[13px] font-medium text-app-cta-ink transition-opacity duration-200 hover:opacity-90 sm:flex">
           <Plus aria-hidden className="h-4 w-4" /> Create
         </Link>
       </div>

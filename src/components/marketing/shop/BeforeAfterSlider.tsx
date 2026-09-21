@@ -51,7 +51,7 @@ export const BeforeAfterSlider = ({ samples: input = SHOP.slider, beforeLabel = 
           <MarketingImage key={`b-${sample.id}`} src={sample.before} sizes="(min-width: 1024px) 45vw, 100vw" priority />
         </div>
         <span className="label-caps absolute left-3 top-3 rounded-full bg-black/50 px-2.5 py-1 text-[9px] font-medium text-white">{beforeLabel}</span>
-        <span className="label-caps absolute right-3 top-3 rounded-full bg-app-accent px-2.5 py-1 text-[9px] font-medium text-app-accent-ink">Next5</span>
+        <span className="label-caps absolute right-3 top-3 rounded-full bg-app-cta px-2.5 py-1 text-[9px] font-medium text-app-cta-ink">Next5</span>
         <div className="pointer-events-none absolute inset-y-0 w-0.5 bg-white shadow" style={{ left: `${position}%` }}>
           <span className={`absolute left-1/2 top-1/2 flex h-9 w-9 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[13px] text-ink shadow-md transition-transform duration-200 ${holding ? 'scale-125' : ''}`}>↔</span>
         </div>

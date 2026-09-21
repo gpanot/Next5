@@ -26,7 +26,7 @@ export const Stepper = ({ steps, current, className = '' }: StepperProps) => (
             <div className="flex flex-col items-center gap-1">
               <span className={[
                 'flex h-8 w-8 items-center justify-center rounded-full text-[12px] font-medium transition-colors duration-200',
-                done    ? 'bg-app-accent text-app-accent-ink'
+                done    ? 'bg-app-cta text-app-cta-ink'
                 : active ? 'border-2 border-app-accent text-app-accent'
                          : 'border border-app-line text-app-muted',
               ].join(' ')}>

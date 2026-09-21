@@ -32,7 +32,7 @@ export const ProductPicker = ({ products, selected, onToggle, onlyNew, onOnlyNew
                 <span className={`relative block aspect-square overflow-hidden rounded-lg bg-app-sunken ring-2 ${on ? 'ring-app-accent' : 'ring-transparent'}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URL */}
                   {p.frontUrl && <img src={p.frontUrl} alt={p.name} className="h-full w-full object-cover" loading="lazy" />}
-                  {on && <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-app-accent text-app-accent-ink"><Check aria-hidden className="h-3.5 w-3.5" /></span>}
+                  {on && <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-app-cta text-app-cta-ink"><Check aria-hidden className="h-3.5 w-3.5" /></span>}
                 </span>
                 <span className="truncate px-0.5 text-[12px] text-app-ink">{p.name}</span>
               </button>

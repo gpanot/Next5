@@ -74,7 +74,7 @@ export const ProductsView = () => {
                 {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URL */}
                 {p.frontUrl && <img src={p.frontUrl} alt={p.name} className="h-full w-full object-cover" loading="lazy" />}
               </button>
-              <button type="button" aria-label={selected.has(p.id) ? `Unselect ${p.name}` : `Select ${p.name}`} aria-pressed={selected.has(p.id)} onClick={() => toggle(p.id)} className={`absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-2 ${selected.has(p.id) ? 'border-app-accent bg-app-accent text-app-accent-ink' : 'border-white bg-black/30'}`}>
+              <button type="button" aria-label={selected.has(p.id) ? `Unselect ${p.name}` : `Select ${p.name}`} aria-pressed={selected.has(p.id)} onClick={() => toggle(p.id)} className={`absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full border-2 ${selected.has(p.id) ? 'border-app-accent bg-app-cta text-app-cta-ink' : 'border-white bg-black/30'}`}>
                 {selected.has(p.id) && <Check aria-hidden className="h-4 w-4" />}
               </button>
               <div className="flex flex-col gap-1 p-3">

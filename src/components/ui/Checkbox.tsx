@@ -31,7 +31,7 @@ export const Checkbox = ({
         'flex h-5 w-5 items-center justify-center rounded border transition-colors duration-200',
         'peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent peer-focus-visible:ring-offset-1',
         checked
-          ? 'border-app-accent bg-app-accent'
+          ? 'border-app-cta bg-app-cta'
           : error
             ? 'border-app-danger bg-app-panel'
             : 'border-app-line bg-app-panel',

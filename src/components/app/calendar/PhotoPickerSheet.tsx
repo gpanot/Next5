@@ -85,7 +85,7 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
               <ImagePlus aria-hidden className="h-9 w-9 text-app-muted" />
               <p className="text-[15px] font-medium text-app-ink">Every photo is already on your calendar</p>
               <p className="text-[13px] text-app-muted">Make new photos to plan more posts.</p>
-              <Link href="/app/create" className="inline-flex h-10 items-center rounded-xl bg-app-accent px-4 text-[13px] font-medium text-app-accent-ink hover:opacity-90">Create photos</Link>
+              <Link href="/app/create" className="inline-flex h-10 items-center rounded-xl bg-app-cta px-4 text-[13px] font-medium text-app-cta-ink hover:opacity-90">Create photos</Link>
             </div>
           ) : (
             <>
@@ -105,7 +105,7 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={photo.url} alt="" loading="lazy" className={`h-full w-full object-cover transition-opacity duration-200 ${on ? 'opacity-80' : ''}`} />
                         )}
-                        <span className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors duration-200 ${on ? 'border-app-accent bg-app-accent text-app-accent-ink' : 'border-white/90 bg-black/25'}`}>
+                        <span className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors duration-200 ${on ? 'border-app-accent bg-app-cta text-app-cta-ink' : 'border-white/90 bg-black/25'}`}>
                           {on && <Check aria-hidden className="h-3.5 w-3.5" />}
                         </span>
                       </button>

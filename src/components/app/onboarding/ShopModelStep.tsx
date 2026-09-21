@@ -45,7 +45,7 @@ export const ModelGrid = ({ value, onChange }: { value: string; onChange: (slug:
         <button key={m.slug} type="button" role="radio" aria-checked={value === m.slug} onClick={() => onChange(m.slug)} className="flex flex-col gap-1.5 text-left focus-visible:outline-none">
           <div className={`relative aspect-square overflow-hidden rounded-xl ring-2 transition-colors duration-200 ${value === m.slug ? 'ring-app-accent' : 'ring-transparent'}`}>
             {hasManifestImage(m.faceImage) && <Image src={m.faceImage} alt={`Studio model ${m.name}`} fill sizes="160px" className="object-cover" />}
-            {value === m.slug && <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-app-accent text-app-accent-ink"><Check aria-hidden className="h-4 w-4" /></span>}
+            {value === m.slug && <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-app-cta text-app-cta-ink"><Check aria-hidden className="h-4 w-4" /></span>}
           </div>
           <span className="text-[13px] font-semibold text-app-ink">{m.name}, {m.age}</span>
           <span className="text-[12px] text-app-muted">{m.description}</span>

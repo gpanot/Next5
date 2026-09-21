@@ -41,7 +41,7 @@ const CalendarButton = ({ item, busy, onClick }: { item: BatchItemDto; busy: boo
       aria-pressed={Boolean(on)}
       aria-label={posted ? 'Posted' : on && item.calendar ? `On calendar, ${dayLabel(item.calendar.date)}. Tap to take it off.` : 'Add to calendar'}
       title={on && !posted ? 'Tap to take it off the calendar' : undefined}
-      className={`mx-1 flex h-9 items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:cursor-default ${on ? 'bg-app-accent-soft text-app-accent' : 'bg-app-accent text-app-accent-ink hover:opacity-90'}`}
+      className={`mx-1 flex h-9 items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:cursor-default ${on ? 'bg-app-accent-soft text-app-accent' : 'bg-app-cta text-app-cta-ink hover:opacity-90'}`}
     >
       {busy ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : on ? <CalendarCheck aria-hidden className="h-4 w-4" /> : <CalendarPlus aria-hidden className="h-4 w-4" />}
       <span className="truncate">{posted ? 'Posted' : on && item.calendar ? dayLabel(item.calendar.date) : 'Add to calendar'}</span>
@@ -77,7 +77,7 @@ export const ResultTile = ({ item, alt, selecting, selected, onToggleSelect, onO
           </span>
         )}
         {selecting && (
-          <span className={`absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 ${selected ? 'border-app-accent bg-app-accent text-app-accent-ink' : 'border-white bg-black/30'}`}>
+          <span className={`absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full border-2 ${selected ? 'border-app-accent bg-app-cta text-app-cta-ink' : 'border-white bg-black/30'}`}>
             {selected && <Check aria-hidden className="h-4 w-4" />}
           </span>
         )}

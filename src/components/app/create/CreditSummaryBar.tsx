@@ -35,7 +35,7 @@ export const CreditSummaryBar = ({ breakdown, estimate, error, hint, loading, su
         {short ? (
           <div className="flex gap-2">
             <Link href="/app/billing" className="inline-flex h-10 items-center rounded-xl border border-app-line px-4 text-[14px] font-medium text-app-ink hover:bg-app-sunken">Top up</Link>
-            <Link href="/app/billing" className="inline-flex h-10 items-center rounded-xl bg-app-accent px-4 text-[14px] font-medium text-app-accent-ink hover:opacity-90">Upgrade</Link>
+            <Link href="/app/billing" className="inline-flex h-10 items-center rounded-xl bg-app-cta px-4 text-[14px] font-medium text-app-cta-ink hover:opacity-90">Upgrade</Link>
           </div>
         ) : (
           <AppButton size="lg" loading={submitting} disabled={disabled || loading || Boolean(error) || !estimate} onClick={onSubmit}>

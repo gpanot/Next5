@@ -65,12 +65,12 @@ export const ListingPicker = ({ listings, value, onChange, onRefresh, onAdded, s
           type="button"
           onClick={() => onChange(null)}
           aria-pressed={value === null}
-          className={`h-10 rounded-xl px-3 text-[13px] font-medium transition-colors duration-200 ${value === null ? 'bg-app-accent text-app-accent-ink' : 'border border-app-line text-app-muted hover:bg-app-sunken'}`}
+          className={`h-10 rounded-xl px-3 text-[13px] font-medium transition-colors duration-200 ${value === null ? 'bg-app-cta text-app-cta-ink' : 'border border-app-line text-app-muted hover:bg-app-sunken'}`}
         >
           Just me
         </button>
         {selected && (
-          <span className="flex h-10 max-w-full items-center truncate rounded-xl bg-app-accent px-3 text-[13px] font-medium text-app-accent-ink">
+          <span className="flex h-10 max-w-full items-center truncate rounded-xl bg-app-cta px-3 text-[13px] font-medium text-app-cta-ink">
             {selected.importStatus === 'fetching' && <Loader2 aria-hidden className="mr-1.5 inline h-3.5 w-3.5 animate-spin" />}
             {selected.label}
           </span>

@@ -50,7 +50,7 @@ export const ReferencePickerSheet = ({ product, onClose, onChanged }: Props) => 
                   <button type="button" disabled={busy !== null} onClick={() => void run(url, () => apiFetch(`/api/app/shop/products/${product.id}/reference`, { method: 'POST', json: { imageUrl: url } }))} className={`relative block aspect-[3/4] w-full overflow-hidden rounded-xl bg-app-sunken ring-2 transition-shadow duration-200 ${current ? 'ring-app-accent' : 'ring-transparent hover:ring-app-line'}`} aria-label={`Use image ${i + 1} as reference`} aria-pressed={current}>
                     {/* eslint-disable-next-line @next/next/no-img-element -- TikTok CDN image */}
                     <img src={url} alt="" className={`h-full w-full object-cover ${busy === url ? 'opacity-50' : ''}`} referrerPolicy="no-referrer" />
-                    {current && <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-app-accent text-app-accent-ink"><Check aria-hidden className="h-3.5 w-3.5" /></span>}
+                    {current && <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-app-cta text-app-cta-ink"><Check aria-hidden className="h-3.5 w-3.5" /></span>}
                   </button>
                 </li>
               );

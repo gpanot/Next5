@@ -35,6 +35,6 @@ export const PostPhoneMock = ({ post, handle, priority = false }: { post: Exampl
         <figcaption className="label-caps pt-1 text-center text-[8px] font-medium text-muted">Your photo</figcaption>
       </figure>
     )}
-    <p className="label-caps absolute -right-6 top-[58%] rotate-[4deg] rounded-full bg-app-accent px-2.5 py-1 text-[9px] font-semibold text-app-accent-ink shadow-md sm:-right-8">Written for you</p>
+    <p className="label-caps absolute -right-6 top-[58%] rotate-[4deg] rounded-full bg-app-cta px-2.5 py-1 text-[9px] font-semibold text-app-cta-ink shadow-md sm:-right-8">Written for you</p>
   </div>
 );

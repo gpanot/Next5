@@ -124,7 +124,7 @@ export const DevGallery = () => {
         {/* SegmentedControl */}
         <Section title="SegmentedControl">
           <SegmentedControl
-            options={[{ value: '1mo', label: '1 mo' }, { value: '3mo', label: '3 mo −10%' }, { value: '6mo', label: '6 mo −20%' }]}
+            options={[{ value: '1mo', label: 'Monthly' }, { value: '12mo', label: 'Yearly · −20%' }]}
             value={seg}
             onChange={setSeg}
           />

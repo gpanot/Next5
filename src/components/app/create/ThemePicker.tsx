@@ -17,7 +17,7 @@ const ThemeCard = ({ theme, selected, onClick, large = false }: { theme: ThemeDt
   >
     <div className={`relative shrink-0 bg-app-sunken ${large ? 'w-32 sm:w-44' : 'aspect-[4/3] w-full'}`}>
       {hasManifestImage(theme.coverImage) && <Image src={theme.coverImage} alt={theme.title} fill sizes={large ? '176px' : '200px'} className="object-cover" />}
-      {selected && <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-app-accent text-app-accent-ink"><Check aria-hidden className="h-4 w-4" /></span>}
+      {selected && <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-app-cta text-app-cta-ink"><Check aria-hidden className="h-4 w-4" /></span>}
     </div>
     <div className="flex flex-col gap-1 p-3 sm:p-4">
       {large && <span className="label-caps text-[10px] font-medium text-app-accent">Featured this month</span>}

@@ -50,7 +50,7 @@ export const DashboardView = () => {
             <p className="text-[16px] font-semibold text-app-ink">Finish setting up your studio</p>
             <p className="text-[14px] text-app-muted">Add your photos and pick a {product === 'shop' ? 'shop look' : 'style'} to create your first batch.</p>
           </div>
-          <Link href={`/start/${product}`} className="inline-flex h-10 items-center rounded-xl bg-app-accent px-4 text-[14px] font-medium text-app-accent-ink hover:opacity-90">Continue setup</Link>
+          <Link href={`/start/${product}`} className="inline-flex h-10 items-center rounded-xl bg-app-cta px-4 text-[14px] font-medium text-app-cta-ink hover:opacity-90">Continue setup</Link>
         </div>
       )}
       <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">

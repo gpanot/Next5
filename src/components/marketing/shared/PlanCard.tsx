@@ -26,7 +26,7 @@ export const PlanCard = ({ plan, term }: PlanCardProps) => {
       className={`relative flex flex-col gap-6 rounded-2xl border bg-app-panel p-6 shadow-sm sm:p-8 ${plan.mostPopular ? 'border-app-accent ring-1 ring-app-accent' : 'border-app-line'}`}
     >
       {plan.mostPopular && (
-        <span className="label-caps absolute -top-3 left-6 rounded-full bg-app-accent px-3 py-1 text-[10px] font-semibold text-app-accent-ink">Most popular</span>
+        <span className="label-caps absolute -top-3 left-6 rounded-full bg-app-cta px-3 py-1 text-[10px] font-semibold text-app-cta-ink">Most popular</span>
       )}
       <header>
         <p className="text-[14px] font-medium text-app-muted">{productLabel} {plan.name} · <span className="text-app-accent">{plan.audience}</span></p>

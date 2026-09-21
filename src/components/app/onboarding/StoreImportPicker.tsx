@@ -81,7 +81,7 @@ export const StoreImportPicker = ({ value, onChange }: Props) => {
                 <span className={`relative block aspect-[3/4] overflow-hidden rounded-xl bg-app-panel ring-2 transition-colors duration-200 ${selected ? 'ring-app-accent' : 'ring-transparent'}`}>
                   {/* eslint-disable-next-line @next/next/no-img-element -- storage or TikTok CDN image */}
                   {image && <img src={image} alt={p.name} className="h-full w-full object-cover" referrerPolicy="no-referrer" />}
-                  {selected && <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-app-accent text-app-accent-ink"><Check aria-hidden className="h-4 w-4" /></span>}
+                  {selected && <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-app-cta text-app-cta-ink"><Check aria-hidden className="h-4 w-4" /></span>}
                   {p.photoPending && <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[10px] text-white">Getting photo…</span>}
                 </span>
                 <span className="line-clamp-2 text-[12px] font-medium leading-snug text-app-ink">{p.name}</span>

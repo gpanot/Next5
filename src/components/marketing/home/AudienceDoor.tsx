@@ -17,7 +17,7 @@ export const AudienceDoor = ({ door, priority = false }: { door: HomeDoor; prior
     <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-1 p-3 text-left text-white sm:gap-2 sm:p-6">
       <span className="font-display text-[18px] font-semibold leading-tight text-balance sm:text-[28px]">{door.label}</span>
       <span className="hidden text-[16px] leading-snug text-white/85 sm:block">{door.line}</span>
-      <span className="mt-1.5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-app-accent px-3 py-2.5 text-[14px] sm:w-fit font-medium text-app-accent-ink shadow-sm transition-opacity duration-200 group-hover:opacity-90 sm:mt-3 sm:px-4 sm:py-2.5 sm:text-[15px]">
+      <span className="mt-1.5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-app-cta px-3 py-2.5 text-[14px] sm:w-fit font-medium text-app-cta-ink shadow-sm transition-opacity duration-200 group-hover:opacity-90 sm:mt-3 sm:px-4 sm:py-2.5 sm:text-[15px]">
         Start here <ArrowRight aria-hidden className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
       </span>
     </div>

@@ -29,7 +29,7 @@ export const Switch = ({
       <span className={[
         'block h-6 w-11 rounded-full transition-colors duration-200',
         'peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent peer-focus-visible:ring-offset-2',
-        checked ? 'bg-app-accent' : 'bg-app-line',
+        checked ? 'bg-app-cta' : 'bg-app-line',
       ].join(' ')} />
       <span className={[
         'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm',

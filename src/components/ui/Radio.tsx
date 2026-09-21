@@ -43,10 +43,10 @@ export const RadioGroup = <T extends string>({
           <span className={[
             'flex h-5 w-5 items-center justify-center rounded-full border transition-colors duration-200',
             'peer-focus-visible:ring-2 peer-focus-visible:ring-app-accent peer-focus-visible:ring-offset-1',
-            value === opt.value ? 'border-app-accent' : error ? 'border-app-danger' : 'border-app-line',
+            value === opt.value ? 'border-app-cta' : error ? 'border-app-danger' : 'border-app-line',
           ].join(' ')}>
             {value === opt.value && (
-              <span className="h-2.5 w-2.5 rounded-full bg-app-accent" />
+              <span className="h-2.5 w-2.5 rounded-full bg-app-cta" />
             )}
           </span>
         </span>

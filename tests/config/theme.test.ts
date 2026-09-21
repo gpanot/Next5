@@ -15,9 +15,8 @@ describe('theme', () => {
     expect(token('app-line')).toBe(THEME.line);
     expect(token('app-accent')).toBe(THEME.accent);
     expect(token('app-accent-soft')).toBe(THEME.blush);
-    expect(token('ink')).toBe(THEME.ink);
-    expect(token('accent-strong')).toBe(THEME.accent);
-    expect(token('accent')).toBe(THEME.accentBright);
+    expect(token('app-cta')).toBe(THEME.cta);
+    expect(token('app-cta-ink')).toBe(THEME.ctaInk);
   });
 
   it('has no leftovers from the old cream/terracotta palette in components', async () => {

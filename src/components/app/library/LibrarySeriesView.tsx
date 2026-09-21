@@ -61,7 +61,7 @@ export const LibrarySeriesView = () => {
             type="button"
             onClick={() => setFilter(f.value)}
             aria-pressed={filter === f.value}
-            className={`h-9 rounded-xl px-3 text-[13px] font-medium transition-colors duration-200 ${filter === f.value ? 'bg-app-accent text-app-accent-ink' : 'border border-app-line text-app-muted hover:bg-app-sunken'}`}
+            className={`h-9 rounded-xl px-3 text-[13px] font-medium transition-colors duration-200 ${filter === f.value ? 'bg-app-cta text-app-cta-ink' : 'border border-app-line text-app-muted hover:bg-app-sunken'}`}
           >
             {f.label}
           </button>

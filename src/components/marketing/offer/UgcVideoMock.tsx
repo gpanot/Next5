@@ -27,6 +27,6 @@ export const UgcVideoMock = ({ video, className = '', badge = true }: { video: U
         </div>
       </div>
     </PhoneFrame>
-    {badge && <p className="label-caps absolute -left-5 top-[18%] -rotate-[5deg] rounded-full bg-app-accent px-2.5 py-1 text-[9px] font-semibold text-app-accent-ink shadow-md sm:-left-8">Made by our team</p>}
+    {badge && <p className="label-caps absolute -left-5 top-[18%] -rotate-[5deg] rounded-full bg-app-cta px-2.5 py-1 text-[9px] font-semibold text-app-cta-ink shadow-md sm:-left-8">Made by our team</p>}
   </div>
 );

@@ -26,7 +26,7 @@ export const FeaturedThemeCard = () => {
           <p className="label-caps text-[10px] font-medium text-app-accent">{monthName(theme.featuredMonth)} theme</p>
           <p className="text-[20px] font-semibold text-app-ink">{theme.title}</p>
           <p className="text-[14px] text-app-muted">{theme.description} · {theme.scenes.length} scenes</p>
-          <Link href={`/app/create?theme=${theme.id}`} className="mt-auto inline-flex h-9 w-fit items-center rounded-xl bg-app-accent px-4 text-[13px] font-medium text-app-accent-ink hover:opacity-90">Create with this theme</Link>
+          <Link href={`/app/create?theme=${theme.id}`} className="mt-auto inline-flex h-9 w-fit items-center rounded-xl bg-app-cta px-4 text-[13px] font-medium text-app-cta-ink hover:opacity-90">Create with this theme</Link>
         </div>
       </div>
     </Card>
