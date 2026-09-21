@@ -22,7 +22,7 @@ const SEEDANCE_ENDPOINT = 'reapi.video-gen.seedance-2-5.unrestricted';
 
 const MODELS = {
   'face-swap':    'doubao-seedance-2.5-face',
-  'video-update': 'doubao-seedance-2.5',
+  'video-update': 'doubao-seedance-2.5-face',  // reapi endpoint only accepts the -face variant
 } as const;
 
 type Mode = 'face-swap' | 'video-update';

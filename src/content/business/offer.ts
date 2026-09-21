@@ -31,7 +31,7 @@ type ProductOffer = {
   hero: { eyebrow: string; title: string; sub: string; cta: string; note: string };
   example: ExamplePost;
   chatgpt: { title: string; sub: string; rows: readonly ChatGptRow[] };
-  stack: { title: string; items: readonly StackItem[]; totalValue: string; priceLine: string; footnote: string };
+  stack: { title: string; items: readonly StackItem[]; totalValue: string; priceLine: string; oldPriceLine?: string; footnote: string };
   testimonials: readonly Testimonial[];
   promiseMatch: string;
 };
@@ -48,7 +48,7 @@ export const OFFER_SHARED = {
 
 export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
   brand: {
-    platforms: ['instagram', 'facebook', 'linkedin', 'tiktok'],
+    platforms: ['instagram', 'facebook', 'tiktok'],
     sources: ['zillow'],
     hero: {
       eyebrow: 'For real estate agents',
@@ -82,15 +82,16 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
     stack: {
       title: 'Everything you get with Growth',
       items: [
-        { title: '120 new photos of you, every month', body: 'Trend themes, your style, every size.', value: '$690', basis: 'Half-day branding photo shoot with hair and makeup, US 2026 estimate' },
-        { title: '4 UGC videos, every month', body: 'Short videos for Reels and TikTok, made by our team.', value: '$600', basis: '4 short videos at about $150 each, a typical US UGC creator rate in 2026 (estimate)' },
+        { title: '180 new photos of you, every month', body: 'Trend themes, your style, every size.', value: '$1,035', basis: 'Half-day branding photo shoot with hair and makeup, US 2026 estimate' },
+        { title: '30 UGC videos, every month', body: 'Short videos for Reels and TikTok, made by our team.', value: '$4,500', basis: '30 short videos at about $150 each, a typical US UGC creator rate in 2026 (estimate)' },
         { title: 'Post Kit for every photo', body: 'The hook, caption and hashtags, ready to paste.', value: '$200', basis: 'Freelance social media writer, about 20 posts a month' },
         { title: 'Scroll-Stop Score and tips', body: 'Know which photo to post first, and how.', value: '$50', basis: 'One hour with a social media coach' },
         { title: 'New trend themes every month', body: 'Fresh ideas for your job, ready on the 1st.', value: '$50', basis: 'Monthly content idea packs' },
         { title: 'Your month, planned for you', body: 'Every photo lands on a day. We even make the next ones for you.', value: '$150', basis: 'About 5 hours a month of an assistant planning and laying out a content calendar' },
       ],
-      totalValue: '$1,740',
-      priceLine: 'Your price: $99 a month',
+      totalValue: '$5,985',
+      priceLine: 'Your price: $199 a month',
+      oldPriceLine: '$297 a month',
       footnote: 'Values are typical US prices for the same work in 2026. Your prices may differ.',
     },
     testimonials: [
@@ -158,7 +159,7 @@ export const OFFER: { brand: ProductOffer; shop: ProductOffer } = {
 };
 
 export const OFFER_HOME = {
-  platforms: ['tiktok', 'instagram', 'facebook', 'linkedin'] as readonly PlatformId[],
+  platforms: ['tiktok', 'instagram', 'facebook'] as readonly PlatformId[],
   chatgpt: {
     title: 'Why not just use ChatGPT?',
     sub: 'You can make one photo. Posting every week is a different job.',

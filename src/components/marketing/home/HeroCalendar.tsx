@@ -39,7 +39,7 @@ const DayCell = ({ cell }: { cell: Cell }) => {
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/90 shadow sm:h-8 sm:w-8"><Play className="ml-px h-3 w-3 fill-ink text-ink sm:h-3.5 sm:w-3.5" /></span>
         </span>
       )}
-      <span className={`absolute left-1 top-0.5 text-[9px] font-semibold tabular-nums sm:left-1.5 sm:top-1 sm:text-[11px] ${post ? 'text-white drop-shadow' : 'text-app-muted'}`}>{cell.day}</span>
+      {!post && <span className="absolute left-1 top-0.5 text-[9px] font-semibold tabular-nums text-app-muted sm:left-1.5 sm:top-1 sm:text-[11px]">{cell.day}</span>}
       {post && (
         <span className="absolute bottom-1 right-1 hidden h-4 w-4 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm sm:flex sm:h-5 sm:w-5">
           <PlatformIcon id={post.platform} className="h-2.5 w-2.5 sm:h-3 sm:w-3" />

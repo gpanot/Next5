@@ -2,10 +2,10 @@ import { Check } from 'lucide-react';
 import type { StackItem } from '../../../content/business/offer';
 import { CtaLink } from '../shared/CtaLink';
 
-type ValueStackProps = { items: readonly StackItem[]; totalValue: string; priceLine: string; footnote: string; cta: { href: string; label: string } };
+type ValueStackProps = { items: readonly StackItem[]; totalValue: string; priceLine: string; oldPriceLine?: string; footnote: string; cta: { href: string; label: string } };
 
 /** Hormozi-style value stack: what each part would cost elsewhere, the total, then the price. */
-export const ValueStack = ({ items, totalValue, priceLine, footnote, cta }: ValueStackProps) => (
+export const ValueStack = ({ items, totalValue, priceLine, oldPriceLine, footnote, cta }: ValueStackProps) => (
   <div className="mx-auto max-w-3xl overflow-hidden rounded-3xl border border-app-line bg-app-panel shadow-sm">
     <ul className="divide-y divide-app-line">
       {items.map((item) => (
@@ -25,6 +25,9 @@ export const ValueStack = ({ items, totalValue, priceLine, footnote, cta }: Valu
     <div className="flex flex-col items-start gap-4 bg-app-sunken p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
       <div>
         <p className="text-[14px] text-app-muted">Total value <span className="font-semibold tabular-nums text-app-ink line-through decoration-app-muted/60">{totalValue}</span> a month</p>
+        {oldPriceLine && (
+          <p className="font-display text-[52px] font-bold leading-none tabular-nums text-app-muted/50 line-through decoration-red-500 decoration-[3px] sm:text-[72px]">{oldPriceLine}</p>
+        )}
         <p className="font-display text-[32px] font-medium leading-tight text-app-ink">{priceLine}</p>
       </div>
       <CtaLink href={cta.href} className="w-full sm:w-auto">{cta.label}</CtaLink>
