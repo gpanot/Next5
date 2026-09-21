@@ -33,7 +33,7 @@ export const CloneVideoPlayer = () => {
   };
 
   return (
-    <figure className="flex w-[62vw] max-w-[260px] shrink-0 flex-col gap-2">
+    <figure className="flex w-[62vw] max-w-[260px] shrink-0 flex-col gap-2 sm:w-[240px]">
       {/* 9:16 container */}
       <div className="relative aspect-[9/16] overflow-hidden rounded-2xl bg-zinc-900 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
         {/* The clone video — unmuted, no loop, no autoplay */}
