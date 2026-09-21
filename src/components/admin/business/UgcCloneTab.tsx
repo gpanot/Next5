@@ -35,12 +35,12 @@ type Mode = 'face-swap' | 'video-update';
 const PROMPTS: Record<Mode, { base: string; audio: string }> = {
   'face-swap': {
     base:
-      'Keep the entire original video from @Video1, including all animations, background, motion and audio. ' +
-      'Only replace the face in the video with the face of the character from @Image1. ' +
+      'Keep the entire original video from @Video1, including all animations, background, motion and exact same audio. ' +
+      'Swap the face in the video with the face of the AI character from @Image1. ' +
       'Preserve all movements, expressions, timing, and background exactly.',
     audio:
-      'Keep the entire original video from @Video1, including all animations, background, motion and audio. ' +
-      'Only replace the face in the video with the face of the character from @Image1. ' +
+      'Keep the entire original video from @Video1, including all animations, background, motion and exact same audio. ' +
+      'Swap the face in the video with the face of the AI character from @Image1. ' +
       'Use @Audio1 as the voice of the character. ' +
       'Preserve all movements, expressions, timing, and background exactly.',
   },
