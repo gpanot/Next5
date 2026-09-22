@@ -23,11 +23,29 @@ type Props = {
 export function RemotionPlayerInner({ inputProps, playFromStartSignal }: Props) {
   const playerRef = useRef<PlayerRef>(null);
 
+  // Suppress the "play() interrupted by pause()" AbortError that Chrome fires
+  // when the Remotion Player re-renders (prop changes) while a video is
+  // mid-play. The error is completely benign — the video simply paused —
+  // but Next.js dev mode surfaces it as an unhandled rejection in the console.
+  useEffect(() => {
+    const suppress = (e: PromiseRejectionEvent) => {
+      if (e.reason?.name === 'AbortError') e.preventDefault();
+    };
+    window.addEventListener('unhandledrejection', suppress);
+    return () => window.removeEventListener('unhandledrejection', suppress);
+  }, []);
+
   // When playFromStartSignal changes, seek to 0 and play.
   useEffect(() => {
     if (playFromStartSignal <= 0) return;
     playerRef.current?.seekTo(0);
-    playerRef.current?.play();
+    // play() internally calls videoEl.play() which returns a Promise.
+    // Catch AbortError in case a re-render pauses it before it starts.
+    try {
+      playerRef.current?.play();
+    } catch {
+      // AbortError — safe to ignore
+    }
   }, [playFromStartSignal]);
 
   return (
