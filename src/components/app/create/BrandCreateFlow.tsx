@@ -194,13 +194,10 @@ export const BrandCreateFlow = () => {
         </>
       ) : (
         <>
-          <CreateSection step={2} title="Who and which style" sub="Pick who is in the photos, then a style.">
-            <div className="flex flex-col gap-4">
-              {facePicker}
-              <SetPicker sets={allSets} value={setId} onChange={setSetChoice} noun="Style" hideNew />
-            </div>
+          <CreateSection step={2} title="Who is in the photos?" sub="Pick an influencer and their look.">
+            {facePicker}
           </CreateSection>
-          <CreateSection step={3} title="Theme">
+          <CreateSection step={3} title="Theme" sub="The scene and occasion for the photos.">
             <ThemePicker featured={themes.data?.featured ?? null} library={themes.data?.library ?? []} value={themeId} onChange={setThemeChoice} />
           </CreateSection>
           <CreateSection step={4} title="How many photos?" sub="Each is a different scene or pose from the theme.">
