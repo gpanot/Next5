@@ -3,7 +3,7 @@
  *
  * Fixed layer order (bottom → top):
  *   1. Background  — full-bleed image or video
- *   2. Overlay     — VP9-alpha WebM meme/broll clip, transformed by zoom + offset
+ *   2. Overlay     — green-screen video (MP4/WebM), chroma-keyed via colorKey()
  *   3. Caption     — text positioned via textConfig.positionY
  *   4. Business    — optional pill with the agent / business line
  *
@@ -14,6 +14,8 @@
  * so nothing freezes or goes black. Longer layers and audio are trimmed.
  */
 
+import { colorKey } from '@remotion/effects/color-key';
+import { Video } from '@remotion/media';
 import { useEffect, useMemo, useRef } from 'react';
 import {
   AbsoluteFill,
@@ -126,8 +128,8 @@ export function GreenScreenComposition({
         )}
       </AbsoluteFill>
 
-      {/* ── Layer 2: Overlay (VP9-alpha WebM) ───────────────────────────── */}
-      {/* VP9 alpha channel is preserved by OffthreadVideo.                  */}
+      {/* ── Layer 2: Overlay (green-screen video, chroma-keyed) ─────────── */}
+      {/* colorKey() removes the green background via WebGL2.               */}
       {overlayUrl ? (
         <AbsoluteFill
           data-blitz-layer="OVERLAY"
@@ -139,11 +141,12 @@ export function GreenScreenComposition({
             transformOrigin: 'center center',
           }}
         >
-          <OffthreadVideo
+          <Video
             src={overlayUrl}
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             muted={muteVideoAudio}
             onError={() => undefined}
+            effects={[colorKey({ keyColor: '#00ff00', similarity: 0.35, smoothness: 0.08, spillSuppression: 0.25 })]}
           />
         </AbsoluteFill>
       ) : null}

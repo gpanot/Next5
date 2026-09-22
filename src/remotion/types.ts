@@ -39,7 +39,7 @@ export type GreenScreenProps = {
   backgroundUrl: string;
   /** Force image vs video for the background. Needed for blob: URLs, which have no extension. */
   backgroundIsImage?: boolean;
-  /** Fully-resolved URL — must be pre-keyed VP9-alpha WebM */
+  /** Fully-resolved URL — green-screen video (MP4/WebM); chroma key is applied at render time */
   overlayUrl: string;
   /** Optional audio track URL */
   audioUrl?: string;
