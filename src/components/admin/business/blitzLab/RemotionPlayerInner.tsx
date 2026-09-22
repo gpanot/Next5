@@ -44,6 +44,28 @@ export function RemotionPlayerInner({ inputProps, playFromStartSignal }: Props) 
       loop
       playbackRate={1}
       autoPlay
+      // Acknowledge the Remotion license requirement (internal tool / dev use).
+      // See https://remotion.dev/license — add a paid license if shipping commercially.
+      acknowledgeRemotionLicense
+      // Suppress unhandled rejections from media that hasn't been uploaded to R2 yet.
+      errorFallback={() => (
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            background: '#111',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#666',
+            fontSize: 13,
+            textAlign: 'center',
+            padding: 16,
+          }}
+        >
+          Assets not found — upload files to R2 first.
+        </div>
+      )}
     />
   );
 }

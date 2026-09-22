@@ -266,7 +266,7 @@ export function BlitzLabTab({ token }: Props) {
       </div>
 
       {/* ── 3-panel editor ─────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr_240px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr_220px] items-start">
         {/* Left: Assets panel */}
         <div className="flex flex-col gap-4">
           <AssetsPanel
@@ -285,8 +285,8 @@ export function BlitzLabTab({ token }: Props) {
           {regenError && <p className="text-[12px] text-red-700">{regenError}</p>}
         </div>
 
-        {/* Center: Preview player */}
-        <div className="flex flex-col items-center gap-4">
+        {/* Center: Preview player — fills the 1fr column, player self-constrains to maxWidth */}
+        <div className="flex flex-col items-center gap-4 min-w-0">
           {inputProps ? (
             <PreviewPlayer inputProps={inputProps} onOffsetChange={handleOffsetChange} />
           ) : (
@@ -296,7 +296,7 @@ export function BlitzLabTab({ token }: Props) {
           )}
 
           {/* ── Done Editing ────────────────────────────────────── */}
-          <div className="flex w-full max-w-xs flex-col items-center gap-2">
+          <div className="flex w-full flex-col items-center gap-2" style={{ maxWidth: 400 }}>
             <button
               type="button"
               onClick={handleDoneEditing}

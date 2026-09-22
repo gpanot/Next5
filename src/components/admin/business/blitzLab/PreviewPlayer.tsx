@@ -69,12 +69,13 @@ export function PreviewPlayer({ inputProps, onOffsetChange }: PreviewPlayerProps
   }, []);
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      {/* 9:16 aspect ratio container */}
+    <div className="flex flex-col items-center gap-3 w-full">
+      {/* 9:16 aspect ratio container — fills available center column width   */}
+      {/* up to 400px so the preview is large enough to evaluate the layout.  */}
       <div
         ref={containerRef}
-        className="relative w-full overflow-hidden rounded-2xl shadow-lg"
-        style={{ aspectRatio: '9/16', maxWidth: 320 }}
+        className="relative overflow-hidden rounded-2xl shadow-lg mx-auto"
+        style={{ aspectRatio: '9/16', width: '100%', maxWidth: 400 }}
       >
         {/* Remotion player (SSR-safe) */}
         <RemotionPlayerWrapper

@@ -15,11 +15,16 @@
 import {
   AbsoluteFill,
   Audio,
+  Img,
   interpolate,
   OffthreadVideo,
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+
+/** Returns true if the URL looks like a static image (not a video). */
+const isImageUrl = (url: string) =>
+  /\.(jpe?g|png|webp|gif|avif|svg)(\?|$)/i.test(url);
 import type { GreenScreenProps } from './types';
 
 const AUDIO_FADE_FRAMES = 15;
@@ -52,31 +57,43 @@ export function GreenScreenComposition({
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
       {/* ── Layer 1: Background ─────────────────────────────────────────── */}
-      {/* Assets should match template.durationSeconds. If shorter, the last   */}
-      {/* frame freezes — acceptable for v0.                                  */}
+      {/* Supports both static images (jpg/png/webp) and video files.          */}
+      {/* Assets should match template.durationSeconds.                        */}
       <AbsoluteFill>
-        <OffthreadVideo
-          src={backgroundUrl}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
+        {isImageUrl(backgroundUrl) ? (
+          <Img
+            src={backgroundUrl}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : (
+          <OffthreadVideo
+            src={backgroundUrl}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            // Suppress unhandled rejection when the R2 file hasn't been uploaded yet
+            onError={() => undefined}
+          />
+        )}
       </AbsoluteFill>
 
       {/* ── Layer 2: Overlay (VP9-alpha WebM) ───────────────────────────── */}
       {/* VP9 alpha channel is preserved by OffthreadVideo.                  */}
-      <AbsoluteFill
-        style={{
-          transform: [
-            `translate(${overlayOffsetX}px, ${overlayOffsetY}px)`,
-            `scale(${overlayZoom})`,
-          ].join(' '),
-          transformOrigin: 'center center',
-        }}
-      >
-        <OffthreadVideo
-          src={overlayUrl}
-          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-        />
-      </AbsoluteFill>
+      {overlayUrl ? (
+        <AbsoluteFill
+          style={{
+            transform: [
+              `translate(${overlayOffsetX}px, ${overlayOffsetY}px)`,
+              `scale(${overlayZoom})`,
+            ].join(' '),
+            transformOrigin: 'center center',
+          }}
+        >
+          <OffthreadVideo
+            src={overlayUrl}
+            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            onError={() => undefined}
+          />
+        </AbsoluteFill>
+      ) : null}
 
       {/* ── Layer 3: Caption ────────────────────────────────────────────── */}
       {captionText ? (
@@ -107,7 +124,9 @@ export function GreenScreenComposition({
       ) : null}
 
       {/* ── Audio (optional) ────────────────────────────────────────────── */}
-      {audioUrl ? <Audio src={audioUrl} volume={audioVolume} /> : null}
+      {audioUrl ? (
+        <Audio src={audioUrl} volume={audioVolume} onError={() => undefined} />
+      ) : null}
     </AbsoluteFill>
   );
 }
