@@ -35,6 +35,11 @@ export async function renderProject(
       audioKey?: string;
       /** Optional per-project text style overrides from the editor */
       textConfigOverride?: Partial<TextConfig>;
+      /** Clip length from the editor (shortest video layer); falls back to the template. */
+      durationSeconds?: number;
+      /** Business line, present only when the user turned it on. */
+      businessText?: string;
+      muteVideoAudio?: boolean;
     };
 
     // Merge template's textConfig with any per-project editor overrides
@@ -55,11 +60,14 @@ export async function renderProject(
     ]);
 
     // ── 3. Build inputProps ───────────────────────────────────────────────
-    const durationInFrames = Math.round(template.durationSeconds * template.fps);
+    const seconds = currentAssets.durationSeconds ?? template.durationSeconds;
+    const durationInFrames = Math.max(1, Math.round(seconds * template.fps));
     const inputProps: GreenScreenProps = {
       backgroundUrl,
       overlayUrl,
       audioUrl,
+      muteVideoAudio: currentAssets.muteVideoAudio ?? false,
+      businessText: currentAssets.businessText,
       captionText: project.captionText,
       overlayZoom: project.overlayZoom,
       overlayOffsetX: project.overlayOffsetX,

@@ -41,6 +41,8 @@ export const RemotionRoot = () => {
         width={1080}
         height={1920}
         defaultProps={STUDIO_DEFAULT_PROPS}
+        // Length and fps come from each render's props (clip length = shortest video).
+        calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps })}
       />
     </>
   );

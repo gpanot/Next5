@@ -3,6 +3,7 @@ import { adminRoute } from '../../../../../src/server/admin/route';
 import { toProjectDto } from '../../../../../src/server/admin/blitzStore';
 import { prisma } from '../../../../../src/lib/db';
 import type { TextConfig } from '../../../../../src/remotion/types';
+import { BLITZ_BUSINESS_TEXT_MAX, clampBlitzDuration } from '../../../../../src/config/blitzLab';
 
 type RenderBody = {
   templateId: string;
@@ -20,6 +21,28 @@ type RenderBody = {
   isIdentifiablePerson?: boolean;
   /** Partial TextConfig overrides from the editor (font, color, strokeWidth, etc.) */
   textConfigOverride?: Partial<TextConfig>;
+  /** Clip length measured in the browser (shortest video layer). */
+  durationSeconds?: number;
+  /** Business line drawn on the video when mentionBusiness is on. */
+  businessText?: string;
+  /** Silence the sound of the video layers. */
+  muteVideoAudio?: boolean;
+};
+
+/**
+ * Render settings stored in the current_assets JSON next to the asset keys.
+ * The worker reads them from there, so no column (and no web/worker deploy-order
+ * risk) is needed. Keys: textConfigOverride, durationSeconds, businessText, muteVideoAudio.
+ */
+const renderSettings = (body: RenderBody) => {
+  const businessText = body.mentionBusiness ? body.businessText?.trim().slice(0, BLITZ_BUSINESS_TEXT_MAX) : undefined;
+  const duration = Number(body.durationSeconds);
+  return {
+    ...(body.textConfigOverride ? { textConfigOverride: body.textConfigOverride } : {}),
+    ...(Number.isFinite(duration) && duration > 0 ? { durationSeconds: clampBlitzDuration(duration) } : {}),
+    ...(businessText ? { businessText } : {}),
+    ...(body.muteVideoAudio ? { muteVideoAudio: true } : {}),
+  };
 };
 
 /**
@@ -43,6 +66,10 @@ export const POST = adminRoute(async (req: NextRequest) => {
   if (!body.currentAssets?.backgroundKey || !body.currentAssets?.overlayKey) {
     return NextResponse.json({ error: 'backgroundKey and overlayKey are required' }, { status: 400 });
   }
+  const keys = [body.currentAssets.backgroundKey, body.currentAssets.overlayKey, body.currentAssets.audioKey];
+  if (keys.some((k) => k?.startsWith('local:'))) {
+    return NextResponse.json({ error: 'Wait for uploads to finish' }, { status: 400 });
+  }
 
   const template = await prisma.blitzTemplate.findUnique({ where: { id: body.templateId } });
   if (!template) {
@@ -58,11 +85,12 @@ export const POST = adminRoute(async (req: NextRequest) => {
   const project = await prisma.blitzProject.create({
     data: {
       templateId: body.templateId,
-      // Embed textConfigOverride in the JSONB blob so the worker can apply it
-      // without a schema change. Worker reads currentAssets.textConfigOverride.
-      currentAssets: body.textConfigOverride
-        ? { ...body.currentAssets, textConfigOverride: body.textConfigOverride }
-        : body.currentAssets,
+      currentAssets: {
+        backgroundKey: body.currentAssets.backgroundKey,
+        overlayKey: body.currentAssets.overlayKey,
+        ...(body.currentAssets.audioKey ? { audioKey: body.currentAssets.audioKey } : {}),
+        ...renderSettings(body),
+      },
       overlayZoom: body.overlayZoom ?? 1.0,
       overlayOffsetX: body.overlayOffsetX ?? 0,
       overlayOffsetY: body.overlayOffsetY ?? 0,

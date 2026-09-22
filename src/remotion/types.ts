@@ -26,6 +26,12 @@ export type TextConfig = {
   strokeColor?: string;
   /** Horizontal offset in canvas px; positive = right. Default 0. */
   offsetX?: number;
+  /** Business line: bottom edge as a fraction of canvas height. Default 0.9. */
+  businessPositionY?: number;
+  /** Business line: horizontal offset in canvas px. Default 0. */
+  businessOffsetX?: number;
+  /** Business line font size in canvas px. Default 40. */
+  businessFontSize?: number;
 };
 
 export type GreenScreenProps = {
@@ -37,6 +43,10 @@ export type GreenScreenProps = {
   overlayUrl: string;
   /** Optional audio track URL */
   audioUrl?: string;
+  /** Silence the sound of the background and meme videos (e.g. when a music track is used). */
+  muteVideoAudio?: boolean;
+  /** Business line shown as a pill (e.g. "Sarah Lee · Keller Williams · 555-0100"). Empty = hidden. */
+  businessText?: string;
   /** Caption shown on top layer */
   captionText: string;
   /** Zoom multiplier for the overlay; 1.0 = 100 % */
@@ -46,7 +56,7 @@ export type GreenScreenProps = {
   /** Vertical offset in canvas px (1920-tall); positive = down */
   overlayOffsetY: number;
   textConfig: TextConfig;
-  /** template.durationSeconds × template.fps */
+  /** Clip length in frames: the shortest video layer (see blitzDuration), else the template length. */
   durationInFrames: number;
   fps: number;
 };

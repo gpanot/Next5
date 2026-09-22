@@ -20,9 +20,9 @@ export const blitzKeys = {
 
 // ── Uploads ───────────────────────────────────────────────────────────────────
 
-export type BlitzUploadType = 'BACKGROUND' | 'OVERLAY';
+export type BlitzUploadType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO';
 
-export const BLITZ_UPLOAD_TYPES = new Set<string>(['BACKGROUND', 'OVERLAY']);
+export const BLITZ_UPLOAD_TYPES = new Set<string>(['BACKGROUND', 'OVERLAY', 'AUDIO']);
 
 /** Uploaded files live under this prefix; asset registration only accepts keys inside it. */
 export const BLITZ_UPLOAD_PREFIX = 'blitz/uploads/';
@@ -36,7 +36,28 @@ const CONTENT_TYPE_BY_EXT: Record<string, string> = {
   png: 'image/png',
   webp: 'image/webp',
   gif: 'image/gif',
+  mp3: 'audio/mpeg',
+  m4a: 'audio/mp4',
+  aac: 'audio/aac',
+  wav: 'audio/wav',
+  ogg: 'audio/ogg',
 };
+
+/** Which layer types accept which media. */
+const KINDS_BY_TYPE: Record<BlitzUploadType, Array<'image' | 'video' | 'audio'>> = {
+  OVERLAY: ['video'],
+  BACKGROUND: ['video', 'image'],
+  AUDIO: ['audio'],
+};
+
+export const blitzMediaKind = (fileName: string): 'image' | 'video' | 'audio' => {
+  const contentType = blitzUploadFormat(fileName)?.contentType ?? 'video/';
+  return contentType.startsWith('image/') ? 'image' : contentType.startsWith('audio/') ? 'audio' : 'video';
+};
+
+/** True when a file of this name may be used on this layer. */
+export const blitzAcceptsFile = (type: BlitzUploadType, fileName: string): boolean =>
+  blitzUploadFormat(fileName) !== null && KINDS_BY_TYPE[type].includes(blitzMediaKind(fileName));
 
 /** Extension + content type for an uploaded file; null when the format is not supported. */
 export const blitzUploadFormat = (fileName: string): { ext: string; contentType: string } | null => {
@@ -67,7 +88,9 @@ export type BlitzAssetDto = {
   url: string;
   thumbnailUrl: string | null;
   /** Derived from the file extension; lets the preview pick <img> vs <video> for blob: URLs. */
-  mediaKind: 'image' | 'video';
+  mediaKind: 'image' | 'video' | 'audio';
+  /** "library" = curated/seeded (read-only); "upload" = added by the user (rename/delete allowed). */
+  source: 'library' | 'upload';
   createdAt: string;
 };
 
@@ -107,7 +130,8 @@ export const toAssetDto = async (asset: BlitzAsset): Promise<BlitzAssetDto> => (
   r2Key: asset.r2Key,
   url: await blitzBrowserUrl(asset.r2Key),
   thumbnailUrl: asset.thumbnailKey ? await blitzBrowserUrl(asset.thumbnailKey) : null,
-  mediaKind: blitzUploadFormat(asset.r2Key)?.contentType.startsWith('image/') ? 'image' : 'video',
+  mediaKind: blitzMediaKind(asset.r2Key),
+  source: asset.r2Key.startsWith(BLITZ_UPLOAD_PREFIX) ? 'upload' : 'library',
   createdAt: asset.createdAt.toISOString(),
 });
 

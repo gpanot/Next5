@@ -6,6 +6,7 @@
  * - Dynamically imports RemotionPlayerInner with ssr:false (Remotion uses browser APIs).
  * - A transparent layer on top of the player captures pointer events:
  *     • pointer down on the caption  → select TEXT and drag it
+ *     • pointer down on the business line → select BUSINESS and drag it
  *     • pointer down on the meme clip → select OVERLAY and drag it
  *     • pointer down on empty space   → nothing
  *   Hit testing reads the real DOM boxes of the composition layers (canvasHitTest).
@@ -33,22 +34,21 @@ const RemotionPlayerWrapper = dynamic(
   },
 );
 
-const LAYER_LABEL: Record<BlitzLayer, string> = { TEXT: 'Caption', OVERLAY: 'Meme video' };
+const LAYER_LABEL: Record<BlitzLayer, string> = { TEXT: 'Caption', OVERLAY: 'Meme video', BUSINESS: 'Business line' };
 
 type PreviewPlayerProps = {
   inputProps: GreenScreenProps;
   activeLayer: BlitzLayer;
   onSelectLayer: (layer: BlitzLayer) => void;
-  onOverlayOffsetChange: (dx: number, dy: number) => void;
-  onTextOffsetChange: (dx: number, dy: number) => void;
+  /** Drag delta in 1080p canvas px for the layer being moved. */
+  onLayerDrag: (layer: BlitzLayer, dx: number, dy: number) => void;
 };
 
 export function PreviewPlayer({
   inputProps,
   activeLayer,
   onSelectLayer,
-  onOverlayOffsetChange,
-  onTextOffsetChange,
+  onLayerDrag,
 }: PreviewPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ layer: BlitzLayer; x: number; y: number } | null>(null);
@@ -80,9 +80,8 @@ export function PreviewPlayer({
     const dx = (e.clientX - current.x) * scale;
     const dy = (e.clientY - current.y) * scale;
     drag.current = { ...current, x: e.clientX, y: e.clientY };
-    if (current.layer === 'TEXT') onTextOffsetChange(dx, dy);
-    else onOverlayOffsetChange(dx, dy);
-  }, [onOverlayOffsetChange, onTextOffsetChange]);
+    onLayerDrag(current.layer, dx, dy);
+  }, [onLayerDrag]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
@@ -140,7 +139,7 @@ export function PreviewPlayer({
 
         <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2">
           <span className="whitespace-nowrap rounded-full bg-black/60 px-2.5 py-1 text-[10px] text-white/80 backdrop-blur-sm">
-            {isDragging ? `Moving ${LAYER_LABEL[activeLayer].toLowerCase()}` : 'Click the text or the video to select it'}
+            {isDragging ? `Moving ${LAYER_LABEL[activeLayer].toLowerCase()}` : 'Tap text or video to select, then drag'}
           </span>
         </div>
       </div>

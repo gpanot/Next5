@@ -5,6 +5,7 @@ import { chatJson, type ChatMessage } from '../../../../../src/server/ai/openai'
 type GenerateCaptionBody = {
   captionText?: string;
   mentionBusiness?: boolean;
+  businessText?: string;
   regenPrompt?: string;
 };
 
@@ -20,7 +21,10 @@ const buildPrompt = (body: GenerateCaptionBody): string => {
     parts.push(`Current caption: "${body.captionText.trim()}"`);
   }
   if (body.mentionBusiness) {
-    parts.push('The caption should naturally mention or invite viewers to contact the business / agent.');
+    const business = body.businessText?.trim().slice(0, 120);
+    parts.push(business
+      ? `The caption should naturally invite viewers to contact this business: "${business}".`
+      : 'The caption should naturally mention or invite viewers to contact the business / agent.');
   }
   if (body.regenPrompt?.trim()) {
     parts.push(`Additional instruction: ${body.regenPrompt.trim()}`);
@@ -31,7 +35,7 @@ const buildPrompt = (body: GenerateCaptionBody): string => {
 
 /**
  * POST /api/admin/blitz/generate-caption
- * Body: { captionText?, mentionBusiness?, regenPrompt? }
+ * Body: { captionText?, mentionBusiness?, businessText?, regenPrompt? }
  * Returns: { caption: string }
  *
  * Updates only the live preview caption — does NOT trigger a render.

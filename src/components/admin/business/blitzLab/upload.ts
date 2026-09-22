@@ -12,7 +12,7 @@
 
 import { blitzApi, type BlitzAssetDto } from './api';
 
-export type BlitzUploadType = 'BACKGROUND' | 'OVERLAY';
+export type BlitzUploadType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO';
 
 type Progress = (fraction: number) => void;
 
@@ -91,4 +91,9 @@ export const uploadBlitzAsset = async (
 export const BLITZ_ACCEPT: Record<BlitzUploadType, string> = {
   OVERLAY: 'video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov',
   BACKGROUND: 'video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,image/gif,.mp4,.webm,.mov,.jpg,.jpeg,.png,.webp,.gif',
+  AUDIO: 'audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/ogg,.mp3,.m4a,.aac,.wav,.ogg',
 };
+
+/** Media kind of a picked file, from its MIME type. */
+export const fileMediaKind = (file: File): 'image' | 'video' | 'audio' =>
+  file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : 'video';

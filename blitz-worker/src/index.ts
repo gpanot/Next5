@@ -29,7 +29,18 @@ async function buildBundle(): Promise<string> {
   //   so ../../src/remotion/ resolves to next5-landing/src/remotion/. ✓
   const entryPoint = path.resolve(__dirname, '../../src/remotion/Root.tsx');
   console.log(`[blitz-worker] Bundling composition from: ${entryPoint}`);
-  const serveUrl = await bundle({ entryPoint });
+  const serveUrl = await bundle({
+    entryPoint,
+    // In Docker the composition lives in /app/src with no node_modules above it.
+    // Let webpack find packages it imports (e.g. @remotion/google-fonts) in the worker's node_modules.
+    webpackOverride: (config) => ({
+      ...config,
+      resolve: {
+        ...config.resolve,
+        modules: [path.resolve(__dirname, '../node_modules'), 'node_modules'],
+      },
+    }),
+  });
   console.log('[blitz-worker] Bundle ready:', serveUrl);
   return serveUrl;
 }

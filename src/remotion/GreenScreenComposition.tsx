@@ -5,14 +5,15 @@
  *   1. Background  — full-bleed image or video
  *   2. Overlay     — VP9-alpha WebM meme/broll clip, transformed by zoom + offset
  *   3. Caption     — text positioned via textConfig.positionY
+ *   4. Business    — optional pill with the agent / business line
  *
  * Audio (optional):
  *   - Plays from frame 0, volume fades to 0 over the last AUDIO_FADE_FRAMES frames
  *
- * All clip durations are trimmed / looped to match durationInFrames.
+ * Clip length = durationInFrames, set by the editor to the shortest video layer,
+ * so nothing freezes or goes black. Longer layers and audio are trimmed.
  */
 
-import type React from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import {
   AbsoluteFill,
@@ -24,6 +25,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+import { BusinessLayer, CaptionLayer } from './TextLayers';
 import type { GreenScreenProps } from './types';
 
 /** Returns true if the URL looks like a static image (not a video). */
@@ -81,6 +83,8 @@ export function GreenScreenComposition({
   backgroundIsImage,
   overlayUrl,
   audioUrl,
+  muteVideoAudio,
+  businessText,
   captionText,
   overlayZoom,
   overlayOffsetX,
@@ -99,16 +103,6 @@ export function GreenScreenComposition({
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
 
-  // Caption position: positionY is the fraction of canvas height from the top where the
-  // caption bottom-edge sits. e.g. positionY=0.15 → caption bottom at 15% from top.
-  const captionTopFraction = textConfig.positionY; // 0 = very top, 1 = very bottom
-  // Convert to a paddingBottom so flex-end pushes the text to the right place.
-  // paddingBottom = height - (positionY * height) = height * (1 - positionY)
-  const captionBottom = height * (1 - captionTopFraction);
-
-  const strokeW = textConfig.strokeWidth ?? 3;
-  const strokeC = textConfig.strokeColor ?? '#000000';
-
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
       {/* ── Layer 1: Background ─────────────────────────────────────────── */}
@@ -121,6 +115,7 @@ export function GreenScreenComposition({
           <OffthreadVideo
             src={backgroundUrl}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            muted={muteVideoAudio}
             // Suppress unhandled rejection when the R2 file hasn't been uploaded yet
             onError={() => undefined}
           />
@@ -143,45 +138,17 @@ export function GreenScreenComposition({
           <OffthreadVideo
             src={overlayUrl}
             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            muted={muteVideoAudio}
             onError={() => undefined}
           />
         </AbsoluteFill>
       ) : null}
 
       {/* ── Layer 3: Caption ────────────────────────────────────────────── */}
-      {captionText ? (
-        <AbsoluteFill
-          style={{
-            justifyContent: 'flex-end',
-            alignItems: 'center',
-            paddingBottom: captionBottom,
-            paddingLeft: textConfig.safeZonePadding,
-            paddingRight: textConfig.safeZonePadding,
-            // Horizontal offset for text repositioning
-            transform: textConfig.offsetX ? `translateX(${textConfig.offsetX}px)` : undefined,
-          }}
-        >
-          <p
-            data-blitz-layer="TEXT"
-            style={{
-              fontFamily: textConfig.font,
-              fontSize: textConfig.fontSize,
-              fontWeight: textConfig.fontWeight ?? 700,
-              color: textConfig.color ?? '#ffffff',
-              textAlign: 'center',
-              // Stroke via webkit (works in headless Chrome / Remotion)
-              ...(strokeW > 0
-                ? ({ WebkitTextStroke: `${strokeW}px ${strokeC}` } as React.CSSProperties)
-                : { textShadow: '0 2px 8px rgba(0,0,0,0.8)' }),
-              margin: 0,
-              lineHeight: 1.3,
-              maxWidth: width - textConfig.safeZonePadding * 2,
-            }}
-          >
-            {captionText}
-          </p>
-        </AbsoluteFill>
-      ) : null}
+      {captionText ? <CaptionLayer text={captionText} config={textConfig} width={width} height={height} /> : null}
+
+      {/* ── Layer 4: Business line (optional) ───────────────────────────── */}
+      {businessText?.trim() ? <BusinessLayer text={businessText.trim()} config={textConfig} height={height} /> : null}
 
       {/* ── Audio (optional) ────────────────────────────────────────────── */}
       {audioUrl ? (

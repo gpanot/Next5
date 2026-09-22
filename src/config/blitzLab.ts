@@ -3,8 +3,18 @@
  * No secrets here.
  */
 
-/** Default video duration in seconds (5 s @ 30 fps = 150 frames). */
+/** Default video duration in seconds (5 s @ 30 fps = 150 frames). Used until clip lengths are known. */
 export const BLITZ_DEFAULT_DURATION_S = 5.0;
+
+/**
+ * Clip length = shortest video layer (meme or background video), clamped to this range.
+ * Audio and images never set the length.
+ */
+export const BLITZ_MIN_DURATION_S = 1;
+export const BLITZ_MAX_DURATION_S = 60;
+
+/** Longest business line, in characters. */
+export const BLITZ_BUSINESS_TEXT_MAX = 80;
 
 /** Default frames-per-second. */
 export const BLITZ_DEFAULT_FPS = 30;
@@ -24,7 +34,7 @@ export const BLITZ_CANVAS_HEIGHT = 1920;
 
 /** Default textConfig baked into new templates. */
 export const BLITZ_DEFAULT_TEXT_CONFIG = {
-  font: 'Arial, sans-serif',
+  font: 'Montserrat', // resolved to the bundled font by resolveBlitzFont()
   positionY: 0.15,       // caption bottom edge at 15 % of canvas height from the top
   fontSize: 52,
   safeZonePadding: 48,
@@ -37,6 +47,10 @@ export const BLITZ_DEFAULT_TEXT_CONFIG = {
 
 export type BlitzAssetType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO';
 export const BLITZ_ASSET_TYPES: BlitzAssetType[] = ['BACKGROUND', 'OVERLAY', 'AUDIO'];
+
+/** Clamp a clip length (seconds) to the allowed range. */
+export const clampBlitzDuration = (seconds: number): number =>
+  Math.min(BLITZ_MAX_DURATION_S, Math.max(BLITZ_MIN_DURATION_S, seconds));
 
 /** Human-readable label for each layer in the Assets panel. */
 export const BLITZ_LAYER_LABELS: Record<string, string> = {

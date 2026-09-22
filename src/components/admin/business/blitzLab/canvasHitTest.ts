@@ -3,12 +3,12 @@
 /**
  * Canvas hit testing for the Blitz Lab preview.
  *
- * The composition tags its layers with data-blitz-layer="TEXT" | "OVERLAY".
+ * The composition tags its layers with data-blitz-layer="TEXT" | "BUSINESS" | "OVERLAY".
  * We read their on-screen boxes from the DOM, so zoom, offsets, font size and
  * line wraps are all accounted for with no duplicated layout math.
  */
 
-export type BlitzLayer = 'OVERLAY' | 'TEXT';
+export type BlitzLayer = 'OVERLAY' | 'TEXT' | 'BUSINESS';
 
 export type Box = { left: number; top: number; width: number; height: number };
 
@@ -29,7 +29,7 @@ const containedBox = (video: HTMLVideoElement): Box => {
 export const layerBox = (root: HTMLElement, layer: BlitzLayer): Box | null => {
   const el = root.querySelector<HTMLElement>(`[data-blitz-layer="${layer}"]`);
   if (!el) return null;
-  if (layer === 'TEXT') return el.getBoundingClientRect();
+  if (layer !== 'OVERLAY') return el.getBoundingClientRect();
   const video = el.querySelector('video');
   return video ? containedBox(video) : el.getBoundingClientRect();
 };
@@ -37,10 +37,12 @@ export const layerBox = (root: HTMLElement, layer: BlitzLayer): Box | null => {
 const contains = (box: Box, x: number, y: number, pad = 0) =>
   x >= box.left - pad && x <= box.left + box.width + pad && y >= box.top - pad && y <= box.top + box.height + pad;
 
-/** Top-most layer under the point (caption sits above the video). */
+/** Top-most layer under the point (text layers sit above the video). */
 export const hitTest = (root: HTMLElement, x: number, y: number): BlitzLayer | null => {
-  const text = layerBox(root, 'TEXT');
-  if (text && contains(text, x, y, TEXT_HIT_PADDING)) return 'TEXT';
+  for (const layer of ['BUSINESS', 'TEXT'] as const) {
+    const box = layerBox(root, layer);
+    if (box && contains(box, x, y, TEXT_HIT_PADDING)) return layer;
+  }
   const overlay = layerBox(root, 'OVERLAY');
   if (overlay && contains(overlay, x, y)) return 'OVERLAY';
   return null;

@@ -3,6 +3,7 @@ import { adminRoute } from '../../../../../src/server/admin/route';
 import { getPresignedPutUrl } from '../../../../../src/lib/r2';
 import {
   BLITZ_UPLOAD_TYPES,
+  blitzAcceptsFile,
   blitzKeys,
   blitzUploadFormat,
   type BlitzUploadType,
@@ -12,7 +13,7 @@ type UploadUrlBody = { type?: string; fileName?: string };
 
 /**
  * POST /api/admin/blitz/upload-url
- * Body: { type: "BACKGROUND" | "OVERLAY", fileName }
+ * Body: { type: "BACKGROUND" | "OVERLAY" | "AUDIO", fileName }
  * Returns: { r2Key, uploadUrl, contentType }
  *
  * The browser PUTs the file straight to R2 with `uploadUrl` (same Content-Type),
@@ -23,11 +24,11 @@ export const POST = adminRoute(async (req: NextRequest) => {
   const body = (await req.json().catch(() => ({}))) as UploadUrlBody;
   const type = body.type?.toUpperCase();
   if (!type || !BLITZ_UPLOAD_TYPES.has(type)) {
-    return NextResponse.json({ error: 'type must be BACKGROUND or OVERLAY' }, { status: 400 });
+    return NextResponse.json({ error: 'type must be BACKGROUND, OVERLAY or AUDIO' }, { status: 400 });
   }
   const format = blitzUploadFormat(body.fileName ?? '');
-  if (!format) {
-    return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+  if (!format || !blitzAcceptsFile(type as BlitzUploadType, body.fileName ?? '')) {
+    return NextResponse.json({ error: 'Unsupported file type for this layer' }, { status: 400 });
   }
 
   const r2Key = blitzKeys.upload(type as BlitzUploadType, format.ext);

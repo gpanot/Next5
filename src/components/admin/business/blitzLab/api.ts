@@ -9,6 +9,8 @@ export type { BlitzAssetDto, BlitzProjectDto, BlitzTemplateDto };
 
 const BASE = '/api/admin/blitz';
 
+type BlitzLayerType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO';
+
 export const blitzApi = {
   listTemplates: (token: string) =>
     ugcRequest<{ templates: BlitzTemplateDto[] }>(token, `${BASE}/templates`),
@@ -27,7 +29,7 @@ export const blitzApi = {
 
   generateCaption: (
     token: string,
-    body: { captionText?: string; mentionBusiness?: boolean; regenPrompt?: string },
+    body: { captionText?: string; mentionBusiness?: boolean; businessText?: string; regenPrompt?: string },
   ) => ugcRequest<{ caption: string }>(token, `${BASE}/generate-caption`, { json: body }),
 
   triggerRender: (
@@ -43,6 +45,9 @@ export const blitzApi = {
       captionText: string;
       isIdentifiablePerson?: boolean;
       textConfigOverride?: Record<string, unknown>;
+      durationSeconds?: number;
+      businessText?: string;
+      muteVideoAudio?: boolean;
     },
   ) =>
     ugcRequest<{ projectId: string; status: string; project: BlitzProjectDto }>(
@@ -52,7 +57,7 @@ export const blitzApi = {
     ),
 
   /** Presigned PUT URL for a direct browser → R2 upload. */
-  getUploadUrl: (token: string, type: 'BACKGROUND' | 'OVERLAY', fileName: string) =>
+  getUploadUrl: (token: string, type: BlitzLayerType, fileName: string) =>
     ugcRequest<{ r2Key: string; uploadUrl: string; contentType: string }>(
       token,
       `${BASE}/upload-url`,
@@ -60,6 +65,14 @@ export const blitzApi = {
     ),
 
   /** Save an uploaded R2 file as a library asset. */
-  registerAsset: (token: string, body: { type: 'BACKGROUND' | 'OVERLAY'; r2Key: string; name: string }) =>
+  registerAsset: (token: string, body: { type: BlitzLayerType; r2Key: string; name: string }) =>
     ugcRequest<{ asset: BlitzAssetDto }>(token, `${BASE}/assets`, { json: body }),
+
+  /** Rename one of the user's uploads. */
+  renameAsset: (token: string, id: string, name: string) =>
+    ugcRequest<{ asset: BlitzAssetDto }>(token, `${BASE}/assets/${id}`, { method: 'PATCH', json: { name } }),
+
+  /** Delete one of the user's uploads (DB row + R2 file). */
+  deleteAsset: (token: string, id: string) =>
+    ugcRequest<{ ok: boolean }>(token, `${BASE}/assets/${id}`, { method: 'DELETE' }),
 };

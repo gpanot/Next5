@@ -11,7 +11,7 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import type { BlitzAssetDto } from './api';
-import { uploadBlitzAsset, type BlitzUploadType } from './upload';
+import { fileMediaKind, uploadBlitzAsset, type BlitzUploadType } from './upload';
 
 export type UploadStatus = { type: BlitzUploadType; progress: number; error: string | null };
 
@@ -62,7 +62,8 @@ export function useBlitzUploads({ token, setAssets, onKeyReplaced }: Options) {
       r2Key: localKey,
       url: blobUrl,
       thumbnailUrl: null,
-      mediaKind: file.type.startsWith('image/') ? 'image' : 'video',
+      mediaKind: fileMediaKind(file),
+      source: 'upload',
       createdAt: new Date().toISOString(),
     }]);
     setUploads((prev) => ({ ...prev, [localKey]: { type, progress: 0, error: null } }));

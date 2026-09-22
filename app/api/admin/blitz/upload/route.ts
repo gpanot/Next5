@@ -3,6 +3,7 @@ import { adminRoute } from '../../../../../src/server/admin/route';
 import { uploadToR2 } from '../../../../../src/lib/r2';
 import {
   BLITZ_UPLOAD_TYPES,
+  blitzAcceptsFile,
   blitzKeys,
   blitzUploadFormat,
   type BlitzUploadType,
@@ -16,7 +17,7 @@ import {
  * This path is slow (file goes browser → server → R2) and on Vercel it fails
  * above ~4.5 MB.
  *
- * Multipart form: file, type ("BACKGROUND" | "OVERLAY"). Returns { r2Key }.
+ * Multipart form: file, type ("BACKGROUND" | "OVERLAY" | "AUDIO"). Returns { r2Key }.
  * The caller registers the asset with POST /api/admin/blitz/assets.
  */
 export const POST = adminRoute(async (req: NextRequest) => {
@@ -32,11 +33,11 @@ export const POST = adminRoute(async (req: NextRequest) => {
     return NextResponse.json({ error: 'file is required' }, { status: 400 });
   }
   if (!type || !BLITZ_UPLOAD_TYPES.has(type)) {
-    return NextResponse.json({ error: 'type must be BACKGROUND or OVERLAY' }, { status: 400 });
+    return NextResponse.json({ error: 'type must be BACKGROUND, OVERLAY or AUDIO' }, { status: 400 });
   }
   const format = blitzUploadFormat(file.name);
-  if (!format) {
-    return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+  if (!format || !blitzAcceptsFile(type as BlitzUploadType, file.name)) {
+    return NextResponse.json({ error: 'Unsupported file type for this layer' }, { status: 400 });
   }
 
   const r2Key = blitzKeys.upload(type as BlitzUploadType, format.ext);
