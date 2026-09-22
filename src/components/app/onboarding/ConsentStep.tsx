@@ -33,7 +33,11 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
   const isBrand = product === 'brand';
   const industryOptions = isBrand ? INDUSTRIES : SHOP_CATEGORIES;
 
-  const [businessName, setBusinessName] = useState(me.workspace?.name ?? '');
+  // Pre-fill from the saved websiteUrl (available after WorkspaceDto includes it).
+  // Falls back to filtering workspace.name so old sessions don't show a plain first name.
+  const rawSaved = (me.workspace as { websiteUrl?: string | null } & typeof me.workspace)?.websiteUrl ?? me.workspace?.name ?? '';
+  const savedUrl = rawSaved.startsWith('http') || rawSaved.includes('.') ? rawSaved : '';
+  const [businessName, setBusinessName] = useState(savedUrl);
   const [industry, setIndustry] = useState(me.workspace?.industry ?? '');
   const [terms, setTerms] = useState(false);
   const [labels, setLabels] = useState(false);
@@ -52,7 +56,7 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
       }
       await advance(2, {
         data: {
-          workspaceName: businessName.trim() || undefined,
+          websiteUrl: businessName.trim() || undefined,
           industry: industry || undefined,
         },
       });
@@ -73,10 +77,11 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
       <div className="flex flex-col gap-6">
         {/* Business profile fields */}
         <div className="flex flex-col gap-4">
-          <Field label="Your Website URL" htmlFor="ob-biz-name" helper="Optional">
+          <Field label="Your Website URL" htmlFor="ob-website-url" helper="Optional">
             <TextInput
-              id="ob-biz-name"
+              id="ob-website-url"
               type="url"
+              autoComplete="url"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               placeholder="https://yourbusiness.com"

@@ -301,7 +301,8 @@ CREATE TABLE public.batches (
     completed_at timestamp(3) without time zone,
     listing_id text,
     occasion text,
-    preview boolean DEFAULT false NOT NULL
+    preview boolean DEFAULT false NOT NULL,
+    variation boolean DEFAULT false NOT NULL
 );
 
 
@@ -315,7 +316,9 @@ CREATE TABLE public.blitz_assets (
     type text NOT NULL,
     r2_key text NOT NULL,
     thumbnail_key text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    tags text[] DEFAULT '{}'::text[] NOT NULL,
+    source text DEFAULT 'library'::text NOT NULL
 );
 
 
@@ -510,6 +513,41 @@ CREATE TABLE public.identity_references (
     wavespeed_url_at timestamp(3) without time zone,
     deleted_at timestamp(3) without time zone,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: influencer_gallery_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.influencer_gallery_items (
+    id character varying(30) NOT NULL,
+    image_key text NOT NULL,
+    gender character varying(20),
+    age integer,
+    ethnicity character varying(60),
+    archived boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: influencers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.influencers (
+    id character varying(30) NOT NULL,
+    workspace_id character varying(30) NOT NULL,
+    name character varying(80) NOT NULL,
+    gender character varying(20),
+    age integer,
+    ethnicity character varying(60),
+    source character varying(20) NOT NULL,
+    base_image_key text,
+    gallery_item_id character varying(30),
+    status character varying(20) DEFAULT 'active'::character varying NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    identity_lock jsonb
 );
 
 
@@ -971,7 +1009,8 @@ CREATE TABLE public.studio_sets (
     status public."SetStatus" DEFAULT 'active'::public."SetStatus" NOT NULL,
     cover_r2_key text,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone NOT NULL
+    updated_at timestamp(3) without time zone NOT NULL,
+    influencer_id character varying(30)
 );
 
 
@@ -1149,6 +1188,14 @@ ALTER TABLE ONLY public.blitz_assets
 
 
 --
+-- Name: blitz_assets blitz_assets_r2_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_assets
+    ADD CONSTRAINT blitz_assets_r2_key_key UNIQUE (r2_key);
+
+
+--
 -- Name: blitz_projects blitz_projects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1226,6 +1273,22 @@ ALTER TABLE ONLY public.email_logs
 
 ALTER TABLE ONLY public.identity_references
     ADD CONSTRAINT identity_references_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: influencer_gallery_items influencer_gallery_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.influencer_gallery_items
+    ADD CONSTRAINT influencer_gallery_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: influencers influencers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.influencers
+    ADD CONSTRAINT influencers_pkey PRIMARY KEY (id);
 
 
 --
@@ -1525,6 +1588,13 @@ CREATE INDEX batches_workspace_id_created_at_idx ON public.batches USING btree (
 
 
 --
+-- Name: blitz_assets_tags_gin; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blitz_assets_tags_gin ON public.blitz_assets USING gin (tags);
+
+
+--
 -- Name: blitz_projects_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1669,6 +1739,13 @@ CREATE INDEX idx_photos_user_id ON public.photos USING btree (user_id);
 --
 
 CREATE INDEX idx_prompts_route_id ON public.prompts USING btree (route_id);
+
+
+--
+-- Name: influencers_workspace_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX influencers_workspace_id_idx ON public.influencers USING btree (workspace_id);
 
 
 --
@@ -1858,6 +1935,13 @@ CREATE UNIQUE INDEX social_connections_workspace_id_provider_key ON public.socia
 --
 
 CREATE INDEX social_posts_workspace_id_created_at_idx ON public.social_posts USING btree (workspace_id, created_at);
+
+
+--
+-- Name: studio_sets_influencer_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX studio_sets_influencer_id_idx ON public.studio_sets USING btree (influencer_id);
 
 
 --
@@ -2057,6 +2141,22 @@ ALTER TABLE ONLY public.identity_references
 
 
 --
+-- Name: influencers influencers_gallery_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.influencers
+    ADD CONSTRAINT influencers_gallery_item_id_fkey FOREIGN KEY (gallery_item_id) REFERENCES public.influencer_gallery_items(id);
+
+
+--
+-- Name: influencers influencers_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.influencers
+    ADD CONSTRAINT influencers_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id);
+
+
+--
 -- Name: listing_packs listing_packs_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2241,6 +2341,14 @@ ALTER TABLE ONLY public.social_posts
 
 
 --
+-- Name: studio_sets studio_sets_influencer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_sets
+    ADD CONSTRAINT studio_sets_influencer_id_fkey FOREIGN KEY (influencer_id) REFERENCES public.influencers(id);
+
+
+--
 -- Name: studio_sets studio_sets_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2326,4 +2434,8 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260929090000'),
     ('20260930090000'),
     ('20261001090000'),
-    ('20261002090000');
+    ('20261002090000'),
+    ('20261003090000'),
+    ('20261004090000'),
+    ('20261005090000'),
+    ('20261006090000');

@@ -21,6 +21,16 @@ export type SubscriptionDto = {
   monthlyCredits: number;
 };
 
+export type WorkspaceAngleDto = {
+  id: string;
+  label: string;
+  /** 0-100; all angles in the workspace should sum to ~100 */
+  weight: number;
+  position: number;
+  /** "ai" = extracted from website | "user" = manually added */
+  source: string;
+};
+
 export type WorkspaceDto = {
   id: string;
   product: ProductLineDto;
@@ -37,6 +47,15 @@ export type WorkspaceDto = {
   /** True when the workspace has at least one active influencer with a base portrait. */
   hasInfluencers: boolean;
   setCount: number;
+  // Brand intelligence
+  websiteUrl: string | null;
+  /** "never" | "rarely" | "sometimes" | "often" | "always" */
+  mentionFrequency: string;
+  /** null = all | "men" | "women" */
+  genderFilter: string | null;
+  /** "idle" | "pending" | "done" | "failed" */
+  anglesGenState: string;
+  angles: WorkspaceAngleDto[];
 };
 
 export type MeDto = {

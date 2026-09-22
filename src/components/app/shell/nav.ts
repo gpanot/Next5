@@ -1,4 +1,4 @@
-import { CalendarDays, CreditCard, Grid3x3, Home, Images, Layers, Package, Plus, Settings, Store, type LucideIcon } from 'lucide-react';
+import { BookMarked, CalendarDays, CreditCard, Grid3x3, Home, Images, Layers, Package, Plus, Settings, Store, type LucideIcon } from 'lucide-react';
 import { studioHref } from '../../../lib/studioPaths';
 import type { ProductLineDto } from '../../../types/business/me';
 
@@ -24,6 +24,7 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
         { href: s('/create'), label: 'Create', icon: Plus, primary: true },
         { href: s('/library'), label: 'Library', icon: Images },
         { href: s('/sets'), label: 'Influencers', icon: Layers },
+        { href: s('/brand'), label: 'Brand', icon: BookMarked },
         { href: s('/billing'), label: 'Billing', icon: CreditCard },
         { href: '/app/settings', label: 'Settings', icon: Settings },
       ];

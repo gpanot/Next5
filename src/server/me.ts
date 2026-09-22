@@ -27,10 +27,15 @@ const toSubscriptionDto = (sub: Subscription | null): SubscriptionDto | null => 
 };
 
 const toWorkspaceDto = async (ws: Workspace): Promise<WorkspaceDto> => {
-  const [identities, influencers, setCount] = await Promise.all([
+  const [identities, influencers, setCount, angles] = await Promise.all([
     prisma.identityReference.count({ where: { workspaceId: ws.id, deletedAt: null } }),
     prisma.influencer.count({ where: { workspaceId: ws.id, status: 'active', baseImageKey: { not: null } } }),
     prisma.studioSet.count({ where: { workspaceId: ws.id, status: { not: 'archived' } } }),
+    prisma.workspaceAngle.findMany({
+      where: { workspaceId: ws.id },
+      orderBy: { position: 'asc' },
+      select: { id: true, label: true, weight: true, position: true, source: true },
+    }),
   ]);
   return {
     id: ws.id, product: ws.product, name: ws.name, industry: ws.industry, handle: ws.handle,
@@ -39,6 +44,12 @@ const toWorkspaceDto = async (ws: Workspace): Promise<WorkspaceDto> => {
     // hasIdentity is true when selfies or influencer portraits are available.
     trialUsed: Boolean(ws.trialUsedAt), hasIdentity: identities > 0 || influencers > 0, setCount,
     hasInfluencers: influencers > 0,
+    // Brand intelligence
+    websiteUrl: ws.websiteUrl ?? null,
+    mentionFrequency: ws.mentionFrequency,
+    genderFilter: ws.genderFilter ?? null,
+    anglesGenState: ws.anglesGenState,
+    angles,
   };
 };
 

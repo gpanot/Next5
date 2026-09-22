@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../../../src/lib/db';
 import { authedRoute } from '../../../../../src/server/api';
 import { HttpError, readJsonObject } from '../../../../../src/server/http';
+import { generateAnglesForWorkspace } from '../../../../../src/server/ai/anglesExtractor';
 import { isProductLine, requireWorkspace } from '../../../../../src/server/workspaces/workspaces';
 
 const ONBOARDING_STEPS = 9;
@@ -17,7 +18,9 @@ export const PATCH = authedRoute(async (req, session) => {
   // Extract and validate workspace + B2B qualification fields if provided
   const qualData: Record<string, unknown> = {};
   // Step 2 — business profile
-  if (typeof body.workspaceName === 'string' && body.workspaceName) qualData.name = body.workspaceName;
+  if (typeof body.websiteUrl === 'string' && body.websiteUrl) qualData.websiteUrl = body.websiteUrl;
+  // Legacy: some older clients still send workspaceName — accept but ignore (name stays as display name)
+  if (typeof body.workspaceName === 'string' && body.workspaceName && !qualData.websiteUrl) qualData.websiteUrl = body.workspaceName;
   if (typeof body.industry === 'string' && body.industry) qualData.industry = body.industry;
   // Step 3 — team + revenue
   if (typeof body.teamSize === 'string' && body.teamSize) qualData.teamSize = body.teamSize;
@@ -38,5 +41,12 @@ export const PATCH = authedRoute(async (req, session) => {
       ...qualData,
     },
   });
+
+  // Step 2 saved a websiteUrl for the first time → kick off background angle extraction.
+  // Fire-and-forget: don't await so we don't block the wizard advancing.
+  if (step === 2 && qualData.websiteUrl && ws.anglesGenState === 'idle') {
+    void generateAnglesForWorkspace(ws.id);
+  }
+
   return NextResponse.json({ onboardingStep: updated.onboardingStep, completed: Boolean(updated.onboardingCompletedAt) });
 });

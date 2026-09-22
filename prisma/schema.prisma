@@ -231,6 +231,15 @@ model Workspace {
   signupIntent          String?     @map("signup_intent")
   goals                 String[]    @default([])
   attribution           String[]    @default([])
+  // Brand intelligence — extracted from the business website
+  websiteUrl            String?     @map("website_url")
+  /// "never" | "rarely" | "sometimes" | "often" | "always"
+  mentionFrequency      String      @default("sometimes") @map("mention_frequency")
+  /// null = all, "men" | "women"
+  genderFilter          String?     @map("gender_filter")
+  /// "idle" | "pending" | "done" | "failed"
+  anglesGenState        String      @default("idle") @map("angles_gen_state")
+  anglesGenAt           DateTime?   @map("angles_gen_at")
   createdAt             DateTime    @default(now()) @map("created_at")
   updatedAt             DateTime    @updatedAt @map("updated_at")
 
@@ -253,9 +262,29 @@ model Workspace {
   listings          Listing[]
   socialConnections SocialConnection[]
   socialPosts       SocialPost[]
+  angles            WorkspaceAngle[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
+}
+
+/// A content angle (customer pain point) used to generate blitz card text overlays.
+model WorkspaceAngle {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /// Short label, 3-7 words, e.g. "Missed Calls, Lost Jobs"
+  label       String    @db.VarChar(100)
+  /// 0-100; all angles in a workspace should sum to ~100
+  weight      Int       @default(33)
+  /// Display order (0-based)
+  position    Int       @default(0)
+  /// "ai" = extracted from website | "user" = manually added
+  source      String    @default("ai")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([workspaceId])
+  @@map("workspace_angles")
 }
 
 model IdentityReference {
@@ -1087,6 +1116,10 @@ model BlitzAsset {
   type         String
   r2Key        String   @map("r2_key")
   thumbnailKey String?  @map("thumbnail_key")
+  /// Flat tag list e.g. ["Activity", "Talking", "Emotion", "Happy"]
+  tags         String[] @default([])
+  /// "library" | "upload"
+  source       String   @default("library")
   createdAt    DateTime @default(now()) @map("created_at")
 
   @@index([type])
