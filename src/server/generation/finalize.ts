@@ -8,7 +8,6 @@ import { refundItem } from '../credits/ledger';
 import { withSerializable } from '../db/transaction';
 import { batchItemKey } from '../storage/keys';
 import { deleteObject, putObject } from '../storage/objectStore';
-import { enableAfterFirstBatch } from '../calendar/autopilot';
 import { autoFillWorkspace } from '../calendar/calendar';
 import { recomputeBatchStatus } from './batchStatus';
 import { creditsPerItem } from './draft';
@@ -41,10 +40,6 @@ export const finalizeItem = async (item: BatchItem, image: Buffer): Promise<void
   // The batch is done: put the photos straight into her calendar so the month is planned before she opens it.
   if (status === 'ready' || status === 'failed') {
     await autoFillWorkspace(batch.workspaceId).catch((err: unknown) => console.error('[calendar] auto-fill failed:', err));
-    // She has now seen a batch she asked for, so we may start making the next ones for her.
-    if (batch.kind !== 'trial' && !batch.preview) {
-      await enableAfterFirstBatch(batch.workspaceId).catch((err: unknown) => console.error('[calendar] autopilot enable failed:', err));
-    }
   }
 };
 

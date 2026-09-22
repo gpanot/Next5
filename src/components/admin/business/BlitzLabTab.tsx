@@ -3,92 +3,50 @@
 /**
  * Blitz Lab — Admin Tab
  *
- * Three-panel editor (assets left, player center, context right) + library grid below.
+ * Three-panel editor (assets + copy left, player center, context right) + library grid below.
+ * Zero-LLM video: layers are composed in Remotion; only "Regenerate Text" calls a model.
  *
  * All editing state is local (no draft DB saves). The single project write happens
  * when "Done Editing" is clicked: POST /api/admin/blitz/render creates the
  * BlitzProject with renderStatus=PENDING. The Railway worker picks it up.
- * Uploaded files are saved as BlitzAsset rows so they are reusable.
  *
- * Layer model: click the caption or the meme clip on the canvas to select it
- * (or use the tabs on the right). Dragging moves the layer under the pointer.
+ * Clip length = the shortest video layer (meme / background video).
+ * Layers: click the caption, business line or meme on the canvas to select and drag it.
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_CANVAS_HEIGHT } from '../../../config/blitzLab';
-import type { GreenScreenProps, TextConfig } from '../../../remotion/types';
-import { AssetsPanel } from './blitzLab/AssetsPanel';
-import { PreviewPlayer } from './blitzLab/PreviewPlayer';
+import { BLITZ_DEFAULT_DURATION_S } from '../../../config/blitzLab';
+import type { GreenScreenProps } from '../../../remotion/types';
+import { AssetLibraryModal } from './blitzLab/AssetLibraryModal';
+import { AssetsPanel, keyForLayer, type CurrentAssets } from './blitzLab/AssetsPanel';
 import { ContextPanel } from './blitzLab/ContextPanel';
+import { CopyPanel } from './blitzLab/CopyPanel';
 import { LibraryGrid } from './blitzLab/LibraryGrid';
+import { PreviewPlayer } from './blitzLab/PreviewPlayer';
 import { RenderControls } from './blitzLab/RenderControls';
 import { blitzApi, type BlitzAssetDto, type BlitzProjectDto, type BlitzTemplateDto } from './blitzLab/api';
 import type { BlitzLayer } from './blitzLab/canvasHitTest';
 import type { BlitzUploadType } from './blitzLab/upload';
 import { isLocalKey, useBlitzUploads } from './blitzLab/useBlitzUploads';
 import { useBlitzRender } from './blitzLab/useBlitzRender';
+import { useClipDuration } from './blitzLab/useClipDuration';
+import { useTextLayout } from './blitzLab/useTextLayout';
 
 type Props = { token: string };
 
-type CurrentAssets = {
-  backgroundKey: string;
-  overlayKey: string;
-  audioKey?: string;
-};
+type Overlay = { zoom: number; offsetX: number; offsetY: number };
 
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Build the full GreenScreenProps from the current editor state.
- * For preview: r2Key → signed URL (or blob: URL for a fresh upload).
- * For rendering: the worker signs its own URLs from the R2 keys.
- */
-const buildInputProps = (
-  template: BlitzTemplateDto,
-  assets: BlitzAssetDto[],
-  current: CurrentAssets,
-  overlay: { zoom: number; offsetX: number; offsetY: number },
-  caption: string,
-  textConfig: TextConfig,
-): GreenScreenProps => {
-  const find = (key: string) => assets.find((a) => a.r2Key === key);
-  const background = find(current.backgroundKey);
-  return {
-    backgroundUrl: background?.url ?? current.backgroundKey,
-    backgroundIsImage: background ? background.mediaKind === 'image' : undefined,
-    overlayUrl: find(current.overlayKey)?.url ?? current.overlayKey,
-    audioUrl: current.audioKey ? find(current.audioKey)?.url ?? current.audioKey : undefined,
-    captionText: caption,
-    overlayZoom: overlay.zoom,
-    overlayOffsetX: overlay.offsetX,
-    overlayOffsetY: overlay.offsetY,
-    textConfig,
-    durationInFrames: Math.round(template.durationSeconds * template.fps),
-    fps: template.fps,
-  };
-};
-
-/** Template textConfig + defaults + user overrides. */
-const mergeTextConfig = (templateTextConfig: unknown, overrides: Partial<TextConfig>): TextConfig => {
-  const base = (templateTextConfig ?? {}) as Partial<TextConfig>;
-  const defined = <T extends object>(o: T) =>
-    Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as Partial<T>;
-  return { ...BLITZ_DEFAULT_TEXT_CONFIG, ...defined(base), ...defined(overrides) };
-};
-
-const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+const NO_OVERLAY_MOVE: Overlay = { zoom: 1, offsetX: 0, offsetY: 0 };
 
 function EditorSkeleton() {
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr_220px]" aria-busy="true">
+    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[280px_1fr_220px]" aria-busy="true">
       <div className="h-72 animate-pulse rounded-2xl bg-surface-alt" />
       <div className="mx-auto w-full max-w-[400px] animate-pulse rounded-2xl bg-surface-alt" style={{ aspectRatio: '9/16' }} />
       <div className="h-48 animate-pulse rounded-2xl bg-surface-alt" />
     </div>
   );
 }
-
-// ── component ─────────────────────────────────────────────────────────────────
 
 export function BlitzLabTab({ token }: Props) {
   // ── data ──────────────────────────────────────────────────────────────
@@ -102,25 +60,24 @@ export function BlitzLabTab({ token }: Props) {
   // ── editor state ──────────────────────────────────────────────────────
   const [selectedTemplate, setSelectedTemplate] = useState<BlitzTemplateDto | null>(null);
   const [currentAssets, setCurrentAssets] = useState<CurrentAssets>({ backgroundKey: '', overlayKey: '' });
-  const [overlayZoom, setOverlayZoom] = useState(1.0);
-  const [overlayOffsetX, setOverlayOffsetX] = useState(0);
-  const [overlayOffsetY, setOverlayOffsetY] = useState(0);
+  const [overlay, setOverlay] = useState<Overlay>(NO_OVERLAY_MOVE);
   const [captionText, setCaptionText] = useState('');
   const [mentionBusiness, setMentionBusiness] = useState(false);
+  const [businessText, setBusinessText] = useState('');
+  const [muteVideoAudio, setMuteVideoAudio] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenError, setRegenError] = useState<string | null>(null);
   const [activeLayer, setActiveLayer] = useState<BlitzLayer>('OVERLAY');
   const [picker, setPicker] = useState<BlitzUploadType | null>(null);
-  /** Per-session overrides on top of the template's textConfig */
-  const [textOverride, setTextOverride] = useState<Partial<TextConfig>>({});
+  const text = useTextLayout(selectedTemplate?.textConfig);
 
   // ── uploads + render ──────────────────────────────────────────────────
   const handleKeyReplaced = useCallback((localKey: string, r2Key: string) => {
     setCurrentAssets((prev) => ({
-      ...prev,
       backgroundKey: prev.backgroundKey === localKey ? r2Key : prev.backgroundKey,
       overlayKey: prev.overlayKey === localKey ? r2Key : prev.overlayKey,
+      audioKey: prev.audioKey === localKey ? r2Key : prev.audioKey,
     }));
   }, []);
   const { uploads, startUpload, retry } = useBlitzUploads({ token, setAssets, onKeyReplaced: handleKeyReplaced });
@@ -140,10 +97,7 @@ export function BlitzLabTab({ token }: Props) {
       audioKey: defaults.audioKey,
     });
     setCaptionText(template.defaultHookText ?? '');
-    setOverlayZoom(1.0);
-    setOverlayOffsetX(0);
-    setOverlayOffsetY(0);
-    setTextOverride({});
+    setOverlay(NO_OVERLAY_MOVE);
     setMentionBusiness(false);
     setRegenPrompt('');
   }, []);
@@ -163,69 +117,64 @@ export function BlitzLabTab({ token }: Props) {
       .finally(() => { setIsLoading(false); setLibraryLoading(false); });
   }, [token, initTemplate]);
 
-  // ── actions ────────────────────────────────────────────────────────────
+  // ── asset actions ──────────────────────────────────────────────────────
   const handleSwapAsset = useCallback((type: BlitzUploadType, key: string) => {
-    setCurrentAssets((prev) => (type === 'BACKGROUND' ? { ...prev, backgroundKey: key } : { ...prev, overlayKey: key }));
+    setCurrentAssets((prev) =>
+      type === 'BACKGROUND' ? { ...prev, backgroundKey: key }
+      : type === 'OVERLAY' ? { ...prev, overlayKey: key }
+      : { ...prev, audioKey: key || undefined });
   }, []);
 
   const handlePickFile = useCallback((type: BlitzUploadType, file: File) => {
     handleSwapAsset(type, startUpload(type, file));
   }, [handleSwapAsset, startUpload]);
 
-  const handleOverlayOffsetChange = useCallback((dx: number, dy: number) => {
-    setOverlayOffsetX((prev) => prev + dx);
-    setOverlayOffsetY((prev) => prev + dy);
-  }, []);
+  const handleRenameAsset = useCallback(async (id: string, name: string) => {
+    const res = await blitzApi.renameAsset(token, id, name).catch(() => null);
+    if (!res?.ok || !res.data.asset) return res?.data.error ?? 'Rename failed';
+    const saved = res.data.asset;
+    setAssets((prev) => prev.map((a) => (a.id === id ? { ...a, name: saved.name } : a)));
+    return null;
+  }, [token]);
 
-  /** Template values, so text drags and resets start from where the caption really is. */
-  const templateText = mergeTextConfig(selectedTemplate?.textConfig, {});
+  const handleDeleteAsset = useCallback(async (id: string) => {
+    const target = assets.find((a) => a.id === id);
+    const res = await blitzApi.deleteAsset(token, id).catch(() => null);
+    if (!res?.ok) return res?.data.error ?? 'Delete failed';
+    setAssets((prev) => prev.filter((a) => a.id !== id));
+    // If the deleted file was in use, fall back to the template default (or no audio).
+    if (target && selectedTemplate) {
+      const defaults = selectedTemplate.defaultAssets as { backgroundKey?: string; overlayKey?: string };
+      setCurrentAssets((prev) => ({
+        backgroundKey: prev.backgroundKey === target.r2Key ? defaults.backgroundKey ?? '' : prev.backgroundKey,
+        overlayKey: prev.overlayKey === target.r2Key ? defaults.overlayKey ?? '' : prev.overlayKey,
+        audioKey: prev.audioKey === target.r2Key ? undefined : prev.audioKey,
+      }));
+    }
+    return null;
+  }, [token, assets, selectedTemplate]);
 
-  /** dx → offsetX (canvas px); dy → positionY (fraction of canvas height, caption bottom edge). */
-  const handleTextOffsetChange = useCallback((dx: number, dy: number) => {
-    setTextOverride((prev) => ({
-      ...prev,
-      offsetX: (prev.offsetX ?? templateText.offsetX ?? 0) + dx,
-      positionY: clamp((prev.positionY ?? templateText.positionY) + dy / BLITZ_CANVAS_HEIGHT, 0.02, 0.97),
-    }));
-  }, [templateText.offsetX, templateText.positionY]);
+  // ── canvas actions ─────────────────────────────────────────────────────
+  const { dragCaption, dragBusiness } = text;
+  const handleLayerDrag = useCallback((layer: BlitzLayer, dx: number, dy: number) => {
+    if (layer === 'TEXT') dragCaption(dx, dy);
+    else if (layer === 'BUSINESS') dragBusiness(dx, dy);
+    else setOverlay((prev) => ({ ...prev, offsetX: prev.offsetX + dx, offsetY: prev.offsetY + dy }));
+  }, [dragCaption, dragBusiness]);
 
-  const handleResetPosition = useCallback(() => {
-    setOverlayOffsetX(0);
-    setOverlayOffsetY(0);
-    setOverlayZoom(1.0);
-  }, []);
-
-  const handleResetTextPosition = useCallback(() => {
-    setTextOverride((prev) => ({ ...prev, offsetX: templateText.offsetX ?? 0, positionY: templateText.positionY }));
-  }, [templateText.offsetX, templateText.positionY]);
-
-  const handleTextConfigChange = useCallback((patch: Partial<TextConfig>) => {
-    setTextOverride((prev) => ({ ...prev, ...patch }));
+  const handleMentionBusinessChange = useCallback((on: boolean) => {
+    setMentionBusiness(on);
+    setActiveLayer((prev) => (on ? 'BUSINESS' : prev === 'BUSINESS' ? 'TEXT' : prev));
   }, []);
 
   const handleRegenerateText = useCallback(async () => {
     setIsRegenerating(true);
     setRegenError(null);
-    const res = await blitzApi.generateCaption(token, { captionText, mentionBusiness, regenPrompt }).catch(() => null);
+    const res = await blitzApi.generateCaption(token, { captionText, mentionBusiness, businessText, regenPrompt }).catch(() => null);
     setIsRegenerating(false);
     if (res?.ok && res.data.caption) setCaptionText(res.data.caption);
     else setRegenError(res?.data.error ?? 'Caption generation failed');
-  }, [token, captionText, mentionBusiness, regenPrompt]);
-
-  const handleDoneEditing = useCallback(() => {
-    if (!selectedTemplate) return;
-    void render.submit({
-      templateId: selectedTemplate.id,
-      currentAssets,
-      overlayZoom,
-      overlayOffsetX,
-      overlayOffsetY,
-      mentionBusiness,
-      regenPrompt: regenPrompt || undefined,
-      captionText,
-      textConfigOverride: Object.keys(textOverride).length > 0 ? (textOverride as Record<string, unknown>) : undefined,
-    });
-  }, [render, selectedTemplate, currentAssets, overlayZoom, overlayOffsetX, overlayOffsetY, mentionBusiness, regenPrompt, captionText, textOverride]);
+  }, [token, captionText, mentionBusiness, businessText, regenPrompt]);
 
   const handleRefreshLibrary = useCallback(async () => {
     setLibraryLoading(true);
@@ -235,20 +184,57 @@ export function BlitzLabTab({ token }: Props) {
   }, [token]);
 
   // ── derived ────────────────────────────────────────────────────────────
-  const resolvedTextConfig = selectedTemplate ? mergeTextConfig(selectedTemplate.textConfig, textOverride) : null;
-  const inputProps = selectedTemplate && resolvedTextConfig
-    ? buildInputProps(selectedTemplate, assets, currentAssets,
-        { zoom: overlayZoom, offsetX: overlayOffsetX, offsetY: overlayOffsetY }, captionText, resolvedTextConfig)
-    : null;
+  const find = (key: string | undefined) => (key ? assets.find((a) => a.r2Key === key) : undefined);
+  const background = find(currentAssets.backgroundKey);
+  const overlayAsset = find(currentAssets.overlayKey);
+  const audio = find(currentAssets.audioKey);
+  const videoUrls = [overlayAsset?.url ?? '', background?.mediaKind === 'video' ? background.url : ''];
+  const clip = useClipDuration(videoUrls, selectedTemplate?.durationSeconds ?? BLITZ_DEFAULT_DURATION_S);
+  const showBusiness = mentionBusiness && businessText.trim().length > 0;
 
-  const uploadFailed = [currentAssets.backgroundKey, currentAssets.overlayKey].some((k) => uploads[k]?.error);
-  const uploading = isLocalKey(currentAssets.backgroundKey) || isLocalKey(currentAssets.overlayKey);
+  const inputProps: GreenScreenProps | null = selectedTemplate ? {
+    backgroundUrl: background?.url ?? currentAssets.backgroundKey,
+    backgroundIsImage: background ? background.mediaKind === 'image' : undefined,
+    overlayUrl: overlayAsset?.url ?? currentAssets.overlayKey,
+    audioUrl: audio?.url,
+    muteVideoAudio,
+    businessText: showBusiness ? businessText : undefined,
+    captionText,
+    overlayZoom: overlay.zoom,
+    overlayOffsetX: overlay.offsetX,
+    overlayOffsetY: overlay.offsetY,
+    textConfig: text.resolved,
+    durationInFrames: Math.max(1, Math.round(clip.seconds * selectedTemplate.fps)),
+    fps: selectedTemplate.fps,
+  } : null;
+
+  const keys = [currentAssets.backgroundKey, currentAssets.overlayKey, currentAssets.audioKey ?? ''];
   const blockedReason =
     !selectedTemplate || !currentAssets.backgroundKey || !currentAssets.overlayKey ? 'Pick a background and a meme video'
-    : uploadFailed ? 'Upload failed — retry on the left'
-    : uploading ? 'Uploading…'
+    : keys.some((k) => uploads[k]?.error) ? 'Upload failed — retry on the left'
+    : keys.some(isLocalKey) ? 'Uploading…'
+    : !clip.ready ? 'Reading clip length…'
     : !captionText.trim() ? 'Add a caption'
+    : mentionBusiness && !businessText.trim() ? 'Add your business line (or pick No)'
     : null;
+
+  const handleDoneEditing = () => {
+    if (!selectedTemplate) return;
+    void render.submit({
+      templateId: selectedTemplate.id,
+      currentAssets,
+      overlayZoom: overlay.zoom,
+      overlayOffsetX: overlay.offsetX,
+      overlayOffsetY: overlay.offsetY,
+      mentionBusiness,
+      businessText: showBusiness ? businessText.trim() : undefined,
+      muteVideoAudio,
+      durationSeconds: clip.seconds,
+      regenPrompt: regenPrompt || undefined,
+      captionText,
+      textConfigOverride: Object.keys(text.override).length > 0 ? (text.override as Record<string, unknown>) : undefined,
+    });
+  };
 
   // ── render ─────────────────────────────────────────────────────────────
   if (loadError) {
@@ -258,9 +244,7 @@ export function BlitzLabTab({ token }: Props) {
       </div>
     );
   }
-
   if (isLoading) return <EditorSkeleton />;
-
   if (templates.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
@@ -283,10 +267,7 @@ export function BlitzLabTab({ token }: Props) {
         {templates.length > 1 && (
           <select
             value={selectedTemplate?.id ?? ''}
-            onChange={(e) => {
-              const t = templates.find((x) => x.id === e.target.value);
-              if (t) initTemplate(t, assets);
-            }}
+            onChange={(e) => { const t = templates.find((x) => x.id === e.target.value); if (t) { initTemplate(t, assets); text.reset(); } }}
             className="rounded-lg border border-line bg-white px-3 py-2 text-[13px] text-ink focus:outline-none focus:ring-2 focus:ring-ink/10"
           >
             {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
@@ -294,75 +275,81 @@ export function BlitzLabTab({ token }: Props) {
         )}
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[260px_1fr_220px]">
-        {/* Left: Assets panel. Below the canvas on phones so the preview comes first. */}
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[280px_1fr_220px]">
+        {/* Left: assets + copy. Below the canvas on phones so the preview comes first. */}
         <div className="order-2 flex flex-col gap-4 lg:order-none">
           <AssetsPanel
             assets={assets}
             currentAssets={currentAssets}
-            picker={picker}
-            onPickerChange={setPicker}
             uploads={uploads}
-            onPickFile={handlePickFile}
+            onOpenPicker={setPicker}
             onRetryUpload={retry}
-            captionText={captionText}
+            onRemoveAudio={() => handleSwapAsset('AUDIO', '')}
+            muteVideoAudio={muteVideoAudio}
+            onMuteVideoAudioChange={setMuteVideoAudio}
+            durationSeconds={clip.seconds}
+          />
+          <CopyPanel
             mentionBusiness={mentionBusiness}
-            regenPrompt={regenPrompt}
-            onSwapAsset={handleSwapAsset}
+            onMentionBusinessChange={handleMentionBusinessChange}
+            businessText={businessText}
+            onBusinessTextChange={setBusinessText}
+            captionText={captionText}
             onCaptionChange={setCaptionText}
-            onMentionBusinessChange={setMentionBusiness}
+            regenPrompt={regenPrompt}
             onRegenPromptChange={setRegenPrompt}
             onRegenerateText={handleRegenerateText}
             isRegenerating={isRegenerating}
+            regenError={regenError}
           />
-          {regenError && <p className="text-[12px] text-red-700">{regenError}</p>}
         </div>
 
-        {/* Center: Preview player */}
+        {/* Center: preview */}
         <div className="order-1 flex min-w-0 flex-col items-center gap-4 lg:order-none">
-          {inputProps ? (
-            <PreviewPlayer
-              inputProps={inputProps}
-              activeLayer={activeLayer}
-              onSelectLayer={setActiveLayer}
-              onOverlayOffsetChange={handleOverlayOffsetChange}
-              onTextOffsetChange={handleTextOffsetChange}
-            />
-          ) : (
-            <div className="flex h-64 w-full items-center justify-center rounded-2xl border border-dashed border-line">
-              <p className="text-[12px] text-muted">Select a template to preview</p>
-            </div>
+          {inputProps && (
+            <PreviewPlayer inputProps={inputProps} activeLayer={activeLayer} onSelectLayer={setActiveLayer} onLayerDrag={handleLayerDrag} />
           )}
           <RenderControls state={render.state} isBusy={render.isBusy} blockedReason={blockedReason} onSubmit={handleDoneEditing} />
         </div>
 
-        {/* Right: Context panel */}
-        {resolvedTextConfig && (
-          <div className="order-3 lg:order-none">
-            <ContextPanel
-              activeLayer={activeLayer}
-              onActiveLayerChange={setActiveLayer}
-              overlayZoom={overlayZoom}
-              onZoomChange={setOverlayZoom}
-              onResetPosition={handleResetPosition}
-              onSwapOverlay={() => setPicker('OVERLAY')}
-              textConfig={resolvedTextConfig}
-              onTextConfigChange={handleTextConfigChange}
-              onResetTextPosition={handleResetTextPosition}
-            />
-          </div>
-        )}
+        {/* Right: context panel for the selected layer */}
+        <div className="order-3 lg:order-none">
+          <ContextPanel
+            activeLayer={activeLayer === 'BUSINESS' && !showBusiness ? 'TEXT' : activeLayer}
+            onActiveLayerChange={setActiveLayer}
+            showBusiness={showBusiness}
+            onResetBusinessPosition={text.resetBusinessPosition}
+            overlayZoom={overlay.zoom}
+            onZoomChange={(zoom) => setOverlay((prev) => ({ ...prev, zoom }))}
+            onResetPosition={() => setOverlay(NO_OVERLAY_MOVE)}
+            onSwapOverlay={() => setPicker('OVERLAY')}
+            textConfig={text.resolved}
+            onTextConfigChange={text.patch}
+            onResetTextPosition={text.resetCaptionPosition}
+          />
+        </div>
       </div>
 
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-[16px] font-semibold text-ink">Library</h2>
-          <button type="button" onClick={handleRefreshLibrary} className="text-[12px] text-muted underline hover:text-ink">
-            Refresh
-          </button>
+          <button type="button" onClick={handleRefreshLibrary} className="min-h-9 text-[12px] text-muted underline hover:text-ink">Refresh</button>
         </div>
         <LibraryGrid projects={library} isLoading={libraryLoading && library.length === 0} />
       </section>
+
+      {picker && (
+        <AssetLibraryModal
+          type={picker}
+          assets={assets}
+          currentKey={keyForLayer(currentAssets, picker)}
+          onSelect={(key) => handleSwapAsset(picker, key)}
+          onPickFile={(file) => handlePickFile(picker, file)}
+          onRename={handleRenameAsset}
+          onDelete={handleDeleteAsset}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </div>
   );
 }

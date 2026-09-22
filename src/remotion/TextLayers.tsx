@@ -6,10 +6,10 @@
 
 import type React from 'react';
 import { AbsoluteFill } from 'remotion';
+import { BUSINESS_DEFAULTS } from './businessDefaults';
 import { resolveBlitzFont } from './fonts';
 import type { TextConfig } from './types';
 
-export const BUSINESS_DEFAULTS = { positionY: 0.9, offsetX: 0, fontSize: 40 };
 
 type CaptionProps = { text: string; config: TextConfig; width: number; height: number };
 

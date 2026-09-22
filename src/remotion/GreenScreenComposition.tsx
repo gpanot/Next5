@@ -25,6 +25,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+import { loadBlitzFonts } from './fontLoader';
 import { BusinessLayer, CaptionLayer } from './TextLayers';
 import type { GreenScreenProps } from './types';
 
@@ -77,6 +78,9 @@ function BackgroundImg({ src }: { src: string }) {
 }
 
 const AUDIO_FADE_FRAMES = 15;
+
+// Fetch caption fonts as soon as the composition module loads (preview and worker).
+loadBlitzFonts();
 
 export function GreenScreenComposition({
   backgroundUrl,

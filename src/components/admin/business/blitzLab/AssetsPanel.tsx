@@ -86,12 +86,12 @@ export function AssetsPanel({
                 <p className="text-[13px] font-medium text-ink">{BLITZ_LAYER_LABELS[type]}</p>
                 <p className="truncate text-[11px] text-muted">{empty ? (type === 'AUDIO' ? 'None — video sound only' : 'None') : asset?.name ?? 'Default'}</p>
                 <UploadLine status={uploads[key]} onRetry={() => onRetryUpload(key)} />
+                {type === 'AUDIO' && !empty && (
+                  <button type="button" onClick={onRemoveAudio} className="text-[11px] text-muted underline transition-colors hover:text-red-600">
+                    Remove
+                  </button>
+                )}
               </div>
-              {type === 'AUDIO' && !empty && (
-                <button type="button" onClick={onRemoveAudio} aria-label="Remove audio" className="min-h-9 shrink-0 rounded-lg px-2 text-[12px] text-muted transition-colors hover:text-red-600">
-                  Remove
-                </button>
-              )}
               <button
                 type="button"
                 onClick={() => onOpenPicker(type)}

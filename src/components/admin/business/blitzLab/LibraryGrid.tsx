@@ -39,7 +39,6 @@ export function LibraryGrid({ projects, isLoading }: LibraryGridProps) {
           {/* Video card — no separate thumbnail in v0, the <video> IS the thumbnail */}
           <div className="relative bg-black" style={{ aspectRatio: '9/16' }}>
             {project.renderedVideoUrl ? (
-              // eslint-disable-next-line jsx-a11y/media-has-caption
               <video
                 src={project.renderedVideoUrl}
                 className="h-full w-full object-cover"

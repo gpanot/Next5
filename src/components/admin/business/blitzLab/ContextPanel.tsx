@@ -3,24 +3,20 @@
 /**
  * Blitz Lab — Right-side Context Panel
  *
- * Two tabs — "Overlay" and "Text" — let the user switch the editable layer.
+ * Tabs — Video, Text and (when on) Business — switch the editable layer.
+ * Clicking a layer on the canvas selects the same tab.
  * • Overlay tab: Zoom slider, Reset Position, drag hint, Swap button.
- * • Text tab:    Font selector, Weight, Size, Color, Stroke width, Stroke Color.
+ * • Text tab:    Font selector (bundled Google Fonts), Weight, Size, Color, Stroke.
+ * • Business tab: Size, Reset Position.
  *
  * The drag direction hint matches whichever tab is active so the user knows
  * that dragging the canvas preview repositions the selected layer.
  */
 
+import { BLITZ_FONTS, resolveBlitzFont } from '../../../../remotion/fonts';
+import { BUSINESS_DEFAULTS } from '../../../../remotion/businessDefaults';
 import type { TextConfig } from '../../../../remotion/types';
-
-const FONT_OPTIONS: { label: string; value: string }[] = [
-  { label: 'Arial', value: 'Arial, sans-serif' },
-  { label: 'Impact', value: 'Impact, Charcoal, sans-serif' },
-  { label: 'Georgia', value: 'Georgia, serif' },
-  { label: 'Helvetica', value: 'Helvetica Neue, Helvetica, Arial, sans-serif' },
-  { label: 'Courier', value: 'Courier New, monospace' },
-  { label: 'Times', value: 'Times New Roman, serif' },
-];
+import type { BlitzLayer } from './canvasHitTest';
 
 const FONT_WEIGHTS: { label: string; value: number }[] = [
   { label: 'Thin', value: 100 },
@@ -34,8 +30,11 @@ const FONT_WEIGHTS: { label: string; value: number }[] = [
 ];
 
 type ContextPanelProps = {
-  activeLayer: 'OVERLAY' | 'TEXT';
-  onActiveLayerChange: (layer: 'OVERLAY' | 'TEXT') => void;
+  activeLayer: BlitzLayer;
+  onActiveLayerChange: (layer: BlitzLayer) => void;
+  /** Show the Business tab (only when the business line is on). */
+  showBusiness: boolean;
+  onResetBusinessPosition: () => void;
   // Overlay controls
   overlayZoom: number;
   onZoomChange: (zoom: number) => void;
@@ -115,6 +114,8 @@ function ColorRow({
 export function ContextPanel({
   activeLayer,
   onActiveLayerChange,
+  showBusiness,
+  onResetBusinessPosition,
   overlayZoom,
   onZoomChange,
   onResetPosition,
@@ -123,9 +124,10 @@ export function ContextPanel({
   onTextConfigChange,
   onResetTextPosition,
 }: ContextPanelProps) {
-  const tabs: { id: 'OVERLAY' | 'TEXT'; label: string }[] = [
-    { id: 'OVERLAY', label: '🎬 Video' },
-    { id: 'TEXT', label: 'T Text' },
+  const tabs: { id: BlitzLayer; label: string }[] = [
+    { id: 'OVERLAY', label: 'Video' },
+    { id: 'TEXT', label: 'Text' },
+    ...(showBusiness ? [{ id: 'BUSINESS' as const, label: 'Business' }] : []),
   ];
 
   const currentWeight =
@@ -200,12 +202,13 @@ export function ContextPanel({
             <div className="flex flex-col gap-1">
               <span className="text-[11px] font-medium text-muted">Font</span>
               <select
-                value={textConfig.font}
+                value={resolveBlitzFont(textConfig.font)}
                 onChange={(e) => onTextConfigChange({ font: e.target.value })}
+                style={{ fontFamily: resolveBlitzFont(textConfig.font) }}
                 className="w-full rounded-lg border border-line bg-white px-2 py-1.5 text-[12px] text-ink focus:outline-none focus:ring-2 focus:ring-orange-400/30"
               >
-                {FONT_OPTIONS.map((f) => (
-                  <option key={f.value} value={f.value}>
+                {BLITZ_FONTS.map((f) => (
+                  <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
                     {f.label}
                   </option>
                 ))}
@@ -274,6 +277,31 @@ export function ContextPanel({
             <button
               type="button"
               onClick={onResetTextPosition}
+              className="inline-flex min-h-8 w-full items-center justify-center gap-2 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-ink hover:bg-surface-alt"
+            >
+              ↺ Reset Position
+            </button>
+          </>
+        )}
+
+        {/* ──────────────────────────── BUSINESS TAB ─────────────────── */}
+        {activeLayer === 'BUSINESS' && showBusiness && (
+          <>
+            <SliderRow
+              label="Size"
+              value={textConfig.businessFontSize ?? BUSINESS_DEFAULTS.fontSize}
+              min={24}
+              max={72}
+              step={2}
+              display={`${textConfig.businessFontSize ?? BUSINESS_DEFAULTS.fontSize} px`}
+              onChange={(v) => onTextConfigChange({ businessFontSize: v })}
+            />
+            <p className="rounded-lg bg-surface-alt px-2.5 py-2 text-[11px] leading-snug text-muted">
+              Drag the business line on the preview to move it. Edit the text on the left.
+            </p>
+            <button
+              type="button"
+              onClick={onResetBusinessPosition}
               className="inline-flex min-h-8 w-full items-center justify-center gap-2 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-ink hover:bg-surface-alt"
             >
               ↺ Reset Position

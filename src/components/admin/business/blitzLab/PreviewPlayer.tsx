@@ -136,21 +136,20 @@ export function PreviewPlayer({
           onPointerCancel={handlePointerUp}
           onPointerLeave={() => !drag.current && setHovered(null)}
         />
-
-        <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2">
-          <span className="whitespace-nowrap rounded-full bg-black/60 px-2.5 py-1 text-[10px] text-white/80 backdrop-blur-sm">
-            {isDragging ? `Moving ${LAYER_LABEL[activeLayer].toLowerCase()}` : 'Tap text or video to select, then drag'}
-          </span>
-        </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setPlayFromStartSignal((n) => n + 1)}
-        className="min-h-9 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-ink transition-colors hover:bg-surface-alt"
-      >
-        ▶ Play from Start
-      </button>
+      <div className="flex w-full max-w-[400px] items-center justify-between gap-2">
+        <p className="text-[11px] text-muted">
+          {isDragging ? `Moving ${LAYER_LABEL[activeLayer].toLowerCase()}…` : 'Tap text or video to select, then drag'}
+        </p>
+        <button
+          type="button"
+          onClick={() => setPlayFromStartSignal((n) => n + 1)}
+          className="min-h-9 shrink-0 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-ink transition-colors hover:bg-surface-alt"
+        >
+          ▶ Play from Start
+        </button>
+      </div>
     </div>
   );
 }
