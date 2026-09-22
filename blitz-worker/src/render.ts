@@ -12,7 +12,7 @@ import { renderMedia, selectComposition } from '@remotion/renderer';
 import fs from 'fs';
 import path from 'path';
 import type { BlitzProject, BlitzTemplate } from '@prisma/client';
-import { downloadFromR2, uploadToR2 } from './r2';
+import { getPresignedUrl, uploadToR2 } from './r2';
 import type { GreenScreenProps, TextConfig } from '../../src/remotion/types';
 
 const RENDER_OUTPUT_KEY = (projectId: string) => `blitz/renders/${projectId}/output.mp4`;
@@ -23,6 +23,7 @@ export async function renderProject(
   serveUrl: string,
 ): Promise<string> {
   const jobId = project.id;
+  // Only the rendered output.mp4 goes to disk — assets are streamed via HTTPS.
   const tmpDir = path.join('/tmp', `blitz_${jobId}`);
   fs.mkdirSync(tmpDir, { recursive: true });
 
@@ -35,31 +36,23 @@ export async function renderProject(
     };
     const textConfig = template.textConfig as TextConfig;
 
-    // ── 2. Download assets to local disk ────────────────────────────────
-    const bgExt = path.extname(currentAssets.backgroundKey) || '.mp4';
-    const ovExt = path.extname(currentAssets.overlayKey) || '.webm';
-    const bgPath = path.join(tmpDir, `background${bgExt}`);
-    const ovPath = path.join(tmpDir, `overlay${ovExt}`);
-
-    console.log(`[render:${jobId}] Downloading assets from R2…`);
-    await Promise.all([
-      downloadFromR2(currentAssets.backgroundKey, bgPath),
-      downloadFromR2(currentAssets.overlayKey, ovPath),
+    // ── 2. Generate 1-hour presigned HTTPS URLs for each asset ───────────
+    // Remotion 4.x does NOT support file:// URIs in headless Chrome or in the
+    // compositor's asset downloader. Signed HTTPS URLs work correctly, and on
+    // Railway (same Cloudflare region as R2) latency is <10 ms.
+    console.log(`[render:${jobId}] Generating presigned R2 URLs…`);
+    const [backgroundUrl, overlayUrl, audioUrl] = await Promise.all([
+      getPresignedUrl(currentAssets.backgroundKey),
+      getPresignedUrl(currentAssets.overlayKey),
+      currentAssets.audioKey ? getPresignedUrl(currentAssets.audioKey) : Promise.resolve(undefined),
     ]);
 
-    let audioPath: string | undefined;
-    if (currentAssets.audioKey) {
-      const audioExt = path.extname(currentAssets.audioKey) || '.mp3';
-      audioPath = path.join(tmpDir, `audio${audioExt}`);
-      await downloadFromR2(currentAssets.audioKey, audioPath);
-    }
-
-    // ── 3. Build inputProps (URLs = local file:// paths) ─────────────────
+    // ── 3. Build inputProps ───────────────────────────────────────────────
     const durationInFrames = Math.round(template.durationSeconds * template.fps);
     const inputProps: GreenScreenProps = {
-      backgroundUrl: `file://${bgPath}`,
-      overlayUrl: `file://${ovPath}`,
-      audioUrl: audioPath ? `file://${audioPath}` : undefined,
+      backgroundUrl,
+      overlayUrl,
+      audioUrl,
       captionText: project.captionText,
       overlayZoom: project.overlayZoom,
       overlayOffsetX: project.overlayOffsetX,

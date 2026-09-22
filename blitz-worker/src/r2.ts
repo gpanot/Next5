@@ -8,6 +8,7 @@ import {
   GetObjectCommand,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import fs from 'fs';
 import path from 'path';
 
@@ -27,6 +28,19 @@ function getClient(): S3Client {
     });
   }
   return _client;
+}
+
+/**
+ * Returns a short-lived (1 hour) presigned HTTPS URL for an R2 object.
+ * Remotion's renderer and compositor accept http/https URLs and handle
+ * caching internally, so we don't need to download assets to disk.
+ */
+export async function getPresignedUrl(key: string, expiresIn = 3600): Promise<string> {
+  return getSignedUrl(
+    getClient(),
+    new GetObjectCommand({ Bucket: BUCKET, Key: key }),
+    { expiresIn },
+  );
 }
 
 /** Downloads an R2 object and writes it to a local file path. */

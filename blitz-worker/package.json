@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1120.0",
+    "@aws-sdk/s3-request-presigner": "^3.1137.0",
     "@prisma/client": "^6.19.3",
     "@remotion/bundler": "4.0.526",
     "@remotion/renderer": "4.0.526",
