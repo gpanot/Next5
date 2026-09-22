@@ -114,8 +114,8 @@ const ShopSetsList = () => {
  * Brand → AI influencer portrait grid.
  * Shop → selfie-based card + swipeable look cards.
  */
-export const SetsList = () => {
+export const SetsList = ({ showArchived = false }: { showArchived?: boolean }) => {
   const { product } = useWorkspace();
-  if (product === 'brand') return <InfluencersList />;
+  if (product === 'brand') return <InfluencersList showArchived={showArchived} />;
   return <ShopSetsList />;
 };

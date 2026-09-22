@@ -1,8 +1,9 @@
 'use client';
 
-import { Archive, Loader2, Sparkles, User } from 'lucide-react';
+import { Archive, Loader2, Sparkles, Trash2, User } from 'lucide-react';
 import { useState } from 'react';
 import type { InfluencerDto } from '../../../../types/business/influencers';
+import { apiFetch } from '../../../../lib/apiClient';
 import { AppLink } from '../../shell/AppLink';
 import { AddStyleSheet } from './AddStyleSheet';
 import { VariationStrip } from './VariationStrip';
@@ -32,14 +33,33 @@ type Props = { influencer: InfluencerDto; onArchive: () => void; onStylesAdded: 
 export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) => {
   const [photoId, setPhotoId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [restyleTemplateId, setRestyleTemplateId] = useState<string | undefined>(undefined);
-  const chosen = influencer.variations.find((v) => v.id === photoId)?.url ?? influencer.portraitUrl;
+  const selectedVariation = influencer.variations.find((v) => v.id === photoId) ?? null;
+  const chosen = selectedVariation?.url ?? influencer.portraitUrl;
   const traits = traitsOf(influencer);
   const createHref = `/app/create?influencerId=${influencer.id}${photoId ? `&photo=${photoId}` : ''}`;
 
   const handleRestyle = (_variationId: string, templateId: string | undefined) => {
     setRestyleTemplateId(templateId);
     setAdding(true);
+  };
+
+  const handleDeleteVariation = async () => {
+    if (!selectedVariation) return;
+    setDeletingId(selectedVariation.id);
+    try {
+      await apiFetch(`/api/app/batches/${selectedVariation.batchId}/items/${selectedVariation.id}`, {
+        method: 'PATCH',
+        json: { archived: true },
+      });
+      setPhotoId(null);
+      onStylesAdded(); // re-fetch influencers list
+    } catch {
+      // silently ignore — user can retry by clicking again
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -52,6 +72,7 @@ export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) 
           <div className="flex h-full items-center justify-center"><User aria-hidden className="h-12 w-12 text-app-muted/50" /></div>
         )}
         <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">{SOURCE_LABEL[influencer.source]}</span>
+        {/* Archive influencer button */}
         <button
           type="button"
           onClick={onArchive}
@@ -60,6 +81,20 @@ export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) 
         >
           <Archive aria-hidden className="h-4 w-4" />
         </button>
+        {/* Delete selected variation button — only shown when a generated variation (not base) is selected */}
+        {selectedVariation && (
+          <button
+            type="button"
+            onClick={() => void handleDeleteVariation()}
+            disabled={deletingId === selectedVariation.id}
+            aria-label="Delete this photo"
+            className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-red-600/80 disabled:opacity-50"
+          >
+            {deletingId === selectedVariation.id
+              ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" />
+              : <Trash2 aria-hidden className="h-4 w-4" />}
+          </button>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">

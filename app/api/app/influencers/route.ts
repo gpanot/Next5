@@ -12,12 +12,14 @@ import { addInfluencerStyles, loadStyles, parseTemplateIds, pumpBatches } from '
 
 export const maxDuration = 60;
 
-/** GET /api/app/influencers?product= — active influencers with their portrait and ready variations. */
+/** GET /api/app/influencers?product=&status= — active (default) or archived influencers. */
 export const GET = authedRoute(async (req, session) => {
-  const product = new URL(req.url).searchParams.get('product');
+  const url = new URL(req.url);
+  const product = url.searchParams.get('product');
+  const status = url.searchParams.get('status') === 'archived' ? 'archived' : 'active';
   const ws = await requireWorkspace(session.userId, isProductLine(product) ? product : undefined);
-  await advanceInfluencerBatches(ws);
-  return NextResponse.json({ influencers: await listInfluencers(ws) });
+  if (status === 'active') await advanceInfluencerBatches(ws);
+  return NextResponse.json({ influencers: await listInfluencers(ws, status) });
 });
 
 /**

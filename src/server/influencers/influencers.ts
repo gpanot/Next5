@@ -20,7 +20,7 @@ const variationsOf = async (influencerId: string) =>
     where: { batch: { set: { influencerId }, variation: true }, r2Key: { not: null }, status: 'ready', archivedAt: null },
     orderBy: { completedAt: 'desc' },
     take: VARIATION_LIMIT,
-    select: { id: true, r2Key: true, batch: { select: { set: { select: { templateId: true } } } } },
+    select: { id: true, batchId: true, r2Key: true, batch: { select: { set: { select: { templateId: true } } } } },
   });
 
 const PENDING = new Set(['queued', 'submitting', 'generating']);
@@ -60,10 +60,10 @@ export const advanceInfluencerBatches = async (ws: Workspace): Promise<void> => 
   await Promise.all(batches.map((b) => runGenerationTick({ batchId: b.id, budgetMs: 6_000 })));
 };
 
-/** Active influencers with their portrait and the variations ready so far. */
-export const listInfluencers = async (ws: Workspace): Promise<InfluencerDto[]> => {
+/** Active or archived influencers with their portrait and the variations ready so far. */
+export const listInfluencers = async (ws: Workspace, status: 'active' | 'archived' = 'active'): Promise<InfluencerDto[]> => {
   const influencers = await prisma.influencer.findMany({
-    where: { workspaceId: ws.id, status: 'active' },
+    where: { workspaceId: ws.id, status },
     orderBy: { createdAt: 'desc' },
     include: { _count: { select: { sets: true } } },
   });
@@ -74,7 +74,7 @@ export const listInfluencers = async (ws: Workspace): Promise<InfluencerDto[]> =
         styleStatusOf(inf.id),
         inf.baseImageKey ? presignObject(inf.baseImageKey) : Promise.resolve(null),
       ]);
-      const variations = await Promise.all(items.map(async (i) => ({ id: i.id, url: (await presignObject(i.r2Key as string)) ?? '', templateId: i.batch.set?.templateId ?? undefined })));
+      const variations = await Promise.all(items.map(async (i) => ({ id: i.id, batchId: i.batchId, url: (await presignObject(i.r2Key as string)) ?? '', templateId: i.batch.set?.templateId ?? undefined })));
       return {
         id: inf.id,
         name: inf.name,

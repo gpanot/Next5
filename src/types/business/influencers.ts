@@ -1,7 +1,7 @@
 export type InfluencerSourceDto = 'generated' | 'uploaded' | 'gallery';
 
 /** One photo made from an influencer's styles; any of them can be the face for a new batch. */
-export type InfluencerVariationDto = { id: string; url: string; templateId?: string };
+export type InfluencerVariationDto = { id: string; url: string; templateId?: string; batchId: string };
 
 export type InfluencerDto = {
   id: string;

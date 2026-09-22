@@ -7,10 +7,10 @@ import type { InfluencerDto } from '../../../../types/business/influencers';
 const POLL_MS = 5_000;
 
 /** Brand influencers; re-fetches every few seconds while any variation is still being made. */
-export const useInfluencers = () => {
-  const api = useApi<{ influencers: InfluencerDto[] }>('/api/app/influencers?product=brand');
+export const useInfluencers = (status: 'active' | 'archived' = 'active') => {
+  const api = useApi<{ influencers: InfluencerDto[] }>(`/api/app/influencers?product=brand&status=${status}`);
   const { refresh } = api;
-  const pending = (api.data?.influencers ?? []).some((i) => i.pendingCount > 0);
+  const pending = status === 'active' && (api.data?.influencers ?? []).some((i) => i.pendingCount > 0);
 
   useEffect(() => {
     if (!pending) return;
