@@ -16,6 +16,7 @@
     "db:studio": "prisma studio",
     "generate": "prisma generate",
     "db:seed:business": "tsx scripts/seed-business.ts",
+    "db:seed:blitz": "tsx -r dotenv/config scripts/seed-blitz.ts dotenv_config_path=.env.local",
     "test:watch": "vitest",
     "test:e2e": "node tests/e2e/brand.mjs && node tests/e2e/shop.mjs && node tests/e2e/brand-create.mjs && node tests/e2e/shop-app.mjs",
     "test:e2e:early": "node tests/e2e/early-access.mjs"
@@ -25,6 +26,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1120.0",
     "@dnd-kit/core": "^6.3.1",
     "@prisma/client": "^6.19.3",
+    "@remotion/player": "^4.0.526",
     "@vercel/analytics": "^2.0.1",
     "ffmpeg-static": "^5.3.0",
     "jsonwebtoken": "^9.0.3",
@@ -35,6 +37,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "read-excel-file": "^9.3.10",
+    "remotion": "^4.0.526",
     "resend": "^6.25.0",
     "sharp": "^0.35.4",
     "tinify": "^1.8.3"
