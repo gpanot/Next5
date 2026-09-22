@@ -10,7 +10,10 @@ const CONNECT_ATTEMPTS = 4;
  */
 const isConnectFailure = (err: unknown): boolean =>
   err instanceof Prisma.PrismaClientInitializationError ||
-  (err instanceof Prisma.PrismaClientKnownRequestError && (err.code === 'P1001' || err.code === 'P1002'));
+  (err instanceof Prisma.PrismaClientKnownRequestError &&
+    // P1001: can't reach server  P1002: server timed out  P1017: server closed the connection
+    // P1017 happens when the Railway proxy drops an idle pooled connection; retrying opens a fresh one.
+    ['P1001', 'P1002', 'P1017'].includes(err.code));
 
 /** Staggered backoff: 800 ms + up to 400 ms jitter per attempt. */
 const backoff = (attempt: number) =>
