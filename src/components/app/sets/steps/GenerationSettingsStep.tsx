@@ -1,228 +1,113 @@
 'use client';
 
-import { Check, ChevronDown, Minus, Plus } from 'lucide-react';
+import { Check, Minus, Plus } from 'lucide-react';
 import Image from 'next/image';
-import { useMemo } from 'react';
 import { influencerSamples } from '../../../../content/business/influencer';
 import { hasManifestImage } from '../../../../lib/manifest';
-import { useApi } from '../../../../hooks/useApi';
-import type { ThemeDto, SetTemplateDto } from '../../../../types/business/catalog';
-import { useWorkspace } from '../../shell/WorkspaceProvider';
+import type { SetTemplateDto, ThemeDto } from '../../../../types/business/catalog';
+import { Field } from '../../../ui/Field';
+import { Select } from '../../../ui/Select';
+import {
+  AUTO_PHOTOS, AUTO_STYLE_COUNT, MAX_PHOTOS_PER_STYLE, totalPhotos,
+  type GenerationMode, type GenerationSettings,
+} from './wizardSettings';
 
-export type GenerationMode = 'automatic' | 'custom';
-
-export type GenerationSettings = {
-  themeId: string;
-  mode: GenerationMode;
-  /** Template IDs chosen in custom mode. */
-  templateIds: string[];
-  /** Photos per style (1–6). */
-  photosPerStyle: number;
-};
-
-/** The 5 templates used for the "Automatic" preset (first 5 of the active ones). */
-const AUTO_STYLE_COUNT = 5;
-const AUTO_PHOTOS = 6;
+export type { GenerationMode, GenerationSettings } from './wizardSettings';
 
 type Props = {
+  themes: readonly ThemeDto[];
+  templates: readonly SetTemplateDto[];
   value: GenerationSettings;
   onChange: (v: GenerationSettings) => void;
 };
 
-const CARD =
-  'flex cursor-pointer flex-col gap-1 rounded-2xl border-2 p-4 transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent';
-const CARD_ACTIVE = 'border-app-accent bg-app-accent-soft';
-const CARD_IDLE = 'border-app-line hover:border-app-muted';
+const MODES: readonly { mode: GenerationMode; title: string; body: string }[] = [
+  { mode: 'custom', title: 'Pick styles', body: 'Choose styles and how many of each. Start small.' },
+  { mode: 'automatic', title: 'Full set', body: `${AUTO_STYLE_COUNT} styles × ${AUTO_PHOTOS} = ${AUTO_STYLE_COUNT * AUTO_PHOTOS} variations.` },
+];
 
-export const GenerationSettingsStep = ({ value, onChange }: Props) => {
-  const { product } = useWorkspace();
-  const themes = useApi<{ featured: ThemeDto | null; library: ThemeDto[] }>('/api/app/themes');
-  const templates = useApi<{ templates: SetTemplateDto[] }>(
-    product ? `/api/app/templates?product=${product}` : null,
-  );
+const ModeCard = ({ title, body, active, onClick }: { title: string; body: string; active: boolean; onClick: () => void }) => (
+  <button
+    type="button"
+    role="radio"
+    aria-checked={active}
+    onClick={onClick}
+    className={`flex flex-col gap-1 rounded-xl border p-3.5 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent ${active ? 'border-app-accent bg-app-accent-soft' : 'border-app-line bg-app-panel hover:border-app-muted'}`}
+  >
+    <span className="flex items-center justify-between text-[14px] font-semibold text-app-ink">
+      {title}
+      {active && <span className="flex h-5 w-5 items-center justify-center rounded-full bg-app-accent text-white"><Check aria-hidden className="h-3 w-3" /></span>}
+    </span>
+    <span className="text-[12px] leading-snug text-app-muted">{body}</span>
+  </button>
+);
 
-  const allTemplates = templates.data?.templates ?? [];
-  const allThemes = useMemo(
-    () => [...(themes.data?.library ?? [])],
-    [themes.data],
-  );
+type StyleGridProps = { templates: readonly SetTemplateDto[]; selected: string[]; onToggle: (id: string) => void };
 
-  const setTheme = (id: string) => onChange({ ...value, themeId: id });
-  const setMode = (mode: GenerationMode) => {
-    if (mode === 'automatic') {
-      onChange({
-        ...value,
-        mode: 'automatic',
-        templateIds: allTemplates.slice(0, AUTO_STYLE_COUNT).map((t) => t.id),
-        photosPerStyle: AUTO_PHOTOS,
-      });
-    } else {
-      onChange({ ...value, mode: 'custom' });
-    }
-  };
+const StyleGrid = ({ templates, selected, onToggle }: StyleGridProps) => (
+  <div className="grid grid-cols-3 gap-2">
+    {templates.map((t) => {
+      const on = selected.includes(t.id);
+      const cover = influencerSamples(t.product, t.id).find(hasManifestImage) ?? t.coverImage;
+      return (
+        <button key={t.id} type="button" aria-pressed={on} onClick={() => onToggle(t.id)} className="group flex flex-col gap-1.5 text-left focus-visible:outline-none">
+          <span className={`relative block aspect-[4/5] overflow-hidden rounded-xl bg-app-sunken ring-2 ring-offset-2 ring-offset-app-panel transition-all duration-200 group-focus-visible:ring-app-accent ${on ? 'ring-app-accent' : 'ring-transparent group-hover:ring-app-line'}`}>
+            {hasManifestImage(cover) && <Image src={cover} alt="" fill sizes="(min-width: 640px) 160px, 30vw" className="object-cover" />}
+            {on && <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-app-accent text-white"><Check aria-hidden className="h-3 w-3" /></span>}
+          </span>
+          <span className="text-[12px] font-medium leading-tight text-app-ink">{t.name}</span>
+        </button>
+      );
+    })}
+  </div>
+);
 
-  const toggleTemplate = (id: string) => {
-    const next = value.templateIds.includes(id)
-      ? value.templateIds.filter((x) => x !== id)
-      : [...value.templateIds, id];
-    onChange({ ...value, templateIds: next });
-  };
+const Counter = ({ value, onChange }: { value: number; onChange: (n: number) => void }) => (
+  <div className="flex items-center gap-3">
+    <button type="button" aria-label="Fewer" disabled={value <= 1} onClick={() => onChange(value - 1)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-app-line text-app-ink transition-colors duration-200 hover:bg-app-sunken disabled:opacity-40"><Minus aria-hidden className="h-4 w-4" /></button>
+    <span className="w-5 text-center text-[15px] font-semibold tabular-nums text-app-ink" aria-live="polite">{value}</span>
+    <button type="button" aria-label="More" disabled={value >= MAX_PHOTOS_PER_STYLE} onClick={() => onChange(value + 1)} className="flex h-9 w-9 items-center justify-center rounded-xl border border-app-line text-app-ink transition-colors duration-200 hover:bg-app-sunken disabled:opacity-40"><Plus aria-hidden className="h-4 w-4" /></button>
+  </div>
+);
 
-  const setPhotos = (n: number) =>
-    onChange({ ...value, photosPerStyle: Math.min(6, Math.max(1, n)) });
-
-  const totalPhotos =
-    value.mode === 'automatic'
-      ? AUTO_STYLE_COUNT * AUTO_PHOTOS
-      : value.templateIds.length * value.photosPerStyle;
+/** Step 2: which variations to make — a theme, then styles and how many of each. */
+export const GenerationSettingsStep = ({ themes, templates, value, onChange }: Props) => {
+  const theme = themes.find((t) => t.id === value.themeId);
+  const total = totalPhotos(value, templates);
+  const toggle = (id: string) =>
+    onChange({ ...value, templateIds: value.templateIds.includes(id) ? value.templateIds.filter((x) => x !== id) : [...value.templateIds, id] });
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Theme picker */}
-      <div className="flex flex-col gap-2">
-        <label className="text-[13px] font-medium text-app-muted" htmlFor="inf-theme">
-          Theme <span className="text-app-ink">(content context)</span>
-        </label>
-        <div className="relative">
-          <select
-            id="inf-theme"
-            value={value.themeId}
-            onChange={(e) => setTheme(e.target.value)}
-            className="h-11 w-full appearance-none rounded-xl border border-app-line bg-app-base pl-3 pr-9 text-[14px] text-app-ink focus:outline-none focus:ring-2 focus:ring-app-accent"
-          >
-            <option value="">Select a theme…</option>
-            {allThemes.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.title}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-app-muted" />
-        </div>
-        {value.themeId && allThemes.find((t) => t.id === value.themeId) && (
-          <p className="text-[12px] text-app-muted">
-            {allThemes.find((t) => t.id === value.themeId)?.description}
-          </p>
-        )}
+    <div className="flex flex-col gap-5">
+      <Field label="Theme" htmlFor="inf-theme" helper={theme?.description}>
+        <Select id="inf-theme" value={value.themeId} onChange={(e) => onChange({ ...value, themeId: e.target.value })}>
+          {themes.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
+        </Select>
+      </Field>
+
+      <div role="radiogroup" aria-label="How many variations" className="grid grid-cols-2 gap-2">
+        {MODES.map((m) => <ModeCard key={m.mode} title={m.title} body={m.body} active={value.mode === m.mode} onClick={() => onChange({ ...value, mode: m.mode })} />)}
       </div>
 
-      {/* Mode selection */}
-      <div className="flex flex-col gap-3">
-        <p className="text-[13px] font-medium text-app-muted">Generation mode</p>
-        <button
-          type="button"
-          onClick={() => setMode('automatic')}
-          className={`${CARD} ${value.mode === 'automatic' ? CARD_ACTIVE : CARD_IDLE}`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[14px] font-semibold text-app-ink">Automatic</span>
-            {value.mode === 'automatic' && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-app-accent text-white">
-                <Check className="h-3.5 w-3.5" />
-              </span>
-            )}
-          </div>
-          <span className="text-[13px] text-app-muted">
-            Generate across all 5 styles, 6 photos each — 30 photos total.
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setMode('custom')}
-          className={`${CARD} ${value.mode === 'custom' ? CARD_ACTIVE : CARD_IDLE}`}
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[14px] font-semibold text-app-ink">Custom</span>
-            {value.mode === 'custom' && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-app-accent text-white">
-                <Check className="h-3.5 w-3.5" />
-              </span>
-            )}
-          </div>
-          <span className="text-[13px] text-app-muted">
-            Pick which styles and how many photos.
-          </span>
-        </button>
-      </div>
-
-      {/* Custom panel */}
       {value.mode === 'custom' && (
-        <div className="flex flex-col gap-5 rounded-2xl bg-app-sunken p-4">
-          {/* Style grid */}
-          <div className="flex flex-col gap-2">
-            <p className="text-[13px] font-medium text-app-muted">Styles</p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {allTemplates.map((t) => {
-                const selected = value.templateIds.includes(t.id);
-                const cover = influencerSamples(t.product, t.id).find(hasManifestImage) ?? t.coverImage;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => toggleTemplate(t.id)}
-                    aria-pressed={selected}
-                    className={`group relative flex flex-col gap-1.5 rounded-xl p-1 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent ${selected ? 'bg-app-accent-soft' : 'hover:bg-app-base'}`}
-                  >
-                    <div
-                      className={`relative aspect-[4/5] overflow-hidden rounded-lg bg-app-base ring-2 ${selected ? 'ring-app-accent' : 'ring-transparent'}`}
-                    >
-                      {hasManifestImage(cover) && (
-                        <Image src={cover} alt={t.name} fill sizes="120px" className="object-cover" />
-                      )}
-                      {selected && (
-                        <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-app-cta text-app-cta-ink">
-                          <Check className="h-3 w-3" aria-hidden />
-                        </span>
-                      )}
-                    </div>
-                    <span className="px-0.5 text-[12px] font-medium text-app-ink">{t.name}</span>
-                  </button>
-                );
-              })}
+        <>
+          <Field label="Styles">
+            <StyleGrid templates={templates} selected={value.templateIds} onToggle={toggle} />
+          </Field>
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[13px] font-medium text-app-ink">Variations per style</p>
+              <p className="text-[12px] text-app-muted">Each one is a new photo of the same face.</p>
             </div>
+            <Counter value={value.photosPerStyle} onChange={(n) => onChange({ ...value, photosPerStyle: Math.min(MAX_PHOTOS_PER_STYLE, Math.max(1, n)) })} />
           </div>
-
-          {/* Photos per style stepper */}
-          <div className="flex items-center justify-between">
-            <p className="text-[13px] font-medium text-app-muted">Photos per style</p>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setPhotos(value.photosPerStyle - 1)}
-                disabled={value.photosPerStyle <= 1}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-app-line text-app-ink transition-colors hover:bg-app-base disabled:opacity-30"
-                aria-label="Fewer photos"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="w-4 text-center text-[15px] font-semibold text-app-ink">{value.photosPerStyle}</span>
-              <button
-                type="button"
-                onClick={() => setPhotos(value.photosPerStyle + 1)}
-                disabled={value.photosPerStyle >= 6}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-app-line text-app-ink transition-colors hover:bg-app-base disabled:opacity-30"
-                aria-label="More photos"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Live summary */}
-          <div className="rounded-xl bg-app-base px-4 py-3 text-[13px] font-medium text-app-ink">
-            {value.templateIds.length} {value.templateIds.length === 1 ? 'style' : 'styles'} × {value.photosPerStyle}{' '}
-            {value.photosPerStyle === 1 ? 'photo' : 'photos'} ={' '}
-            <span className="font-semibold">{totalPhotos} photos · {totalPhotos} credits</span>
-          </div>
-        </div>
+        </>
       )}
 
-      {value.mode === 'automatic' && (
-        <div className="rounded-xl bg-app-sunken px-4 py-3 text-[13px] text-app-muted">
-          5 styles × 6 photos = <span className="font-semibold text-app-ink">30 photos · 30 credits</span>
-        </div>
-      )}
+      <div className="flex items-center justify-between rounded-xl bg-app-sunken px-4 py-3 text-[13px]">
+        <span className="text-app-muted">You get</span>
+        <span className="font-semibold text-app-ink">{total} variation{total === 1 ? '' : 's'} · {total} credit{total === 1 ? '' : 's'}</span>
+      </div>
     </div>
   );
 };

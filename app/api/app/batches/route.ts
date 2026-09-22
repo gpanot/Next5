@@ -9,6 +9,7 @@ import { sweepStale } from '../../../../src/server/generation/poll';
 import { pump } from '../../../../src/server/generation/pump';
 import { readJsonObject } from '../../../../src/server/http';
 import { prisma } from '../../../../src/lib/db';
+import { resolveInfluencerKey } from '../../../../src/server/influencers/influencers';
 
 /** POST /api/app/batches — create a batch (reserves credits) and start generating. */
 export const POST = authedRoute(async (req, session) => {
@@ -16,15 +17,10 @@ export const POST = authedRoute(async (req, session) => {
   const body = await readJsonObject(req);
   const workspace = await workspaceFromRequest(session.userId, body.product);
 
-  // Resolve an influencer portrait key when the client selected one.
-  let influencerKey: string | undefined;
-  if (typeof body.influencerId === 'string') {
-    const influencer = await prisma.influencer.findFirst({
-      where: { id: body.influencerId, workspaceId: workspace.id, status: 'active' },
-      select: { baseImageKey: true },
-    });
-    if (influencer?.baseImageKey) influencerKey = influencer.baseImageKey;
-  }
+  // The influencer's face: a chosen variation, else the base portrait.
+  const influencerKey = typeof body.influencerId === 'string'
+    ? await resolveInfluencerKey(workspace, body.influencerId, typeof body.influencerPhotoId === 'string' ? body.influencerPhotoId : null)
+    : undefined;
 
   const batch = await createBatch(workspace, parseDraft(body, influencerKey));
   after(async () => {
@@ -41,7 +37,7 @@ export const GET = authedRoute(async (req, session) => {
   const limit = Math.min(50, Math.max(1, Number(params.get('limit') ?? 20)));
   const cursor = params.get('cursor');
   const batches = await prisma.batch.findMany({
-    where: { workspaceId: workspace.id, preview: false },
+    where: { workspaceId: workspace.id, preview: false, variation: false },
     orderBy: { createdAt: 'desc' },
     take: limit + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),

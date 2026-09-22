@@ -1,9 +1,8 @@
 'use client';
 
-import { Check, ImageOff, X } from 'lucide-react';
-import Image from 'next/image';
+import { Check, ImageOff, Loader2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useLockBodyScroll } from '../../../../hooks/useLockBodyScroll';
 import { apiFetch } from '../../../../lib/apiClient';
 
 export type GalleryItem = {
@@ -26,6 +25,14 @@ export const GalleryModal = ({ onSelect, onClose }: GalleryModalProps) => {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
 
+  useLockBodyScroll(true);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
   useEffect(() => {
     apiFetch<{ items: GalleryItem[] }>('/api/app/influencers/gallery')
       .then((data) => setItems(data.items))
@@ -40,14 +47,14 @@ export const GalleryModal = ({ onSelect, onClose }: GalleryModalProps) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-app-base"
+      className="fixed inset-0 z-50 flex flex-col bg-app-bg animate-fade-in"
       role="dialog"
       aria-modal
       aria-label="Pick from gallery"
     >
       {/* Header */}
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-app-line px-4">
-        <h2 className="text-[16px] font-semibold text-app-ink">Choose a face</h2>
+        <h2 className="text-[17px] font-semibold text-app-ink">Pick a face</h2>
         <button
           type="button"
           onClick={onClose}
@@ -59,7 +66,7 @@ export const GalleryModal = ({ onSelect, onClose }: GalleryModalProps) => {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="mx-auto w-full max-w-3xl flex-1 overflow-y-auto p-4 sm:p-6">
         {loading && (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-8 w-8 animate-spin text-app-muted" />
@@ -83,14 +90,15 @@ export const GalleryModal = ({ onSelect, onClose }: GalleryModalProps) => {
                   key={item.id}
                   type="button"
                   onClick={() => pick(item)}
-                  className={`group relative flex flex-col gap-2 rounded-2xl p-1.5 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent ${isSelected ? 'bg-app-accent-soft' : 'hover:bg-app-sunken'}`}
+                  className={`group relative flex flex-col gap-2 rounded-2xl p-1.5 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent ${isSelected ? 'bg-app-accent-soft' : ''}`}
                 >
                   <div
-                    className={`relative aspect-[3/4] overflow-hidden rounded-xl bg-app-sunken ring-2 ${isSelected ? 'ring-app-accent' : 'ring-transparent'}`}
+                    className={`relative aspect-[3/4] overflow-hidden rounded-xl bg-app-sunken ring-2 ${isSelected ? 'ring-app-accent' : 'ring-transparent group-hover:ring-app-line'}`}
                   >
-                    <Image src={item.url} alt={[item.gender, item.ethnicity].filter(Boolean).join(', ') || 'Gallery face'} fill sizes="(min-width: 640px) 200px, 45vw" className="object-cover object-top" />
+                    {/* eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL */}
+                    <img src={item.url} alt={[item.gender, item.ethnicity].filter(Boolean).join(', ') || 'Gallery face'} className="h-full w-full object-cover object-top" />
                     {isSelected && (
-                      <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-app-cta text-app-cta-ink">
+                      <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-app-accent text-white">
                         <Check className="h-4 w-4" aria-hidden />
                       </span>
                     )}

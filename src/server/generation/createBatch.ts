@@ -56,6 +56,7 @@ export const createBatch = async (workspace: Workspace, draft: AnyDraft, now = n
         listingId: expanded.listingId ?? null,
         occasion: expanded.occasion ?? null,
         preview: Boolean(expanded.preview),
+        variation: Boolean(expanded.variation),
         formats: expanded.formats,
         highRes: expanded.highRes,
         priority: priorityFor(expanded, plan),

@@ -19,7 +19,7 @@ export const libraryWhere = (f: LibraryFilters): Prisma.BatchItemWhereInput => (
   status: 'ready',
   r2Key: { not: null },
   archivedAt: null,
-  batch: { workspaceId: f.workspaceId, preview: false, ...(f.setId ? { setId: f.setId } : {}), ...(f.themeId ? { themeId: f.themeId } : {}) },
+  batch: { workspaceId: f.workspaceId, preview: false, variation: false, ...(f.setId ? { setId: f.setId } : {}), ...(f.themeId ? { themeId: f.themeId } : {}) },
   ...(f.productId ? { productId: f.productId } : {}),
   ...(f.format ? { format: f.format } : {}),
   ...(f.favorite ? { favorite: true } : {}),
@@ -47,7 +47,7 @@ const seriesCategoryWhere = (filter: SeriesFilter): Prisma.BatchWhereInput =>
 /** Her series (one per batch with photos she kept), newest first, with what each was made for. */
 export const listSeries = async (workspaceId: string, filter: SeriesFilter, cursor: string | null, take = 24) => {
   const batches = await prisma.batch.findMany({
-    where: { workspaceId, preview: false, ...seriesCategoryWhere(filter), items: { some: { status: 'ready', r2Key: { not: null }, archivedAt: null } } },
+    where: { workspaceId, preview: false, variation: false, ...seriesCategoryWhere(filter), items: { some: { status: 'ready', r2Key: { not: null }, archivedAt: null } } },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: take + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),

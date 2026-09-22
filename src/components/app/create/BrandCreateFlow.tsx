@@ -22,7 +22,8 @@ import type { Identity } from '../sets/IdentityPhotoGrid';
 import { CreateSection } from './CreateSection';
 import { CreditSummaryBar } from './CreditSummaryBar';
 import { FormatPicker } from './FormatPicker';
-import { InfluencerPicker } from './InfluencerPicker';
+import { useInfluencers } from '../sets/influencers/useInfluencers';
+import { InfluencerPicker, type FaceChoice } from './InfluencerPicker';
 import { ListingPicker, type WhoMode } from './ListingPicker';
 import { OccasionPicker } from './OccasionPicker';
 import { SetPicker } from './SetPicker';
@@ -59,19 +60,34 @@ export const BrandCreateFlow = () => {
   const listingParam = params.get('listing');
   const [listingId, setListingId] = useState<string | null>(listingParam && listingParam !== 'new' ? listingParam : null);
   // Realtors first: a property unless she came from a theme or a style to make photos of just her.
-  const [mode, setMode] = useState<WhoMode>((params.get('theme') || params.get('set')) && !listingParam ? 'me' : 'property');
+  const [mode, setMode] = useState<WhoMode>((params.get('theme') || params.get('set') || params.get('influencerId')) && !listingParam ? 'me' : 'property');
   const [variations, setVariations] = useState<number>(1);
   // Her pick per property. Without one, only Zillow's own status fills it in — an uploaded home stays empty.
   const [occasionByListing, setOccasionByListing] = useState<Record<string, Occasion>>({});
   const [style, setStyle] = useState<Style>({ wardrobe: null, poseEnergy: null });
-  // Mirrors the setChoice/setId pattern: explicit pick wins, else fall back to last-used.
-  const [influencerChoice, setInfluencerChoice] = useState<string | null>(null);
-  const influencerId = influencerChoice ?? lastInfluencerValue ?? null;
+  const influencersApi = useInfluencers();
+  // Explicit pick (or the ?influencerId= deep link) wins, else last used; "You" is an explicit null.
+  const [faceChoice, setFaceChoice] = useState<FaceChoice | null>(
+    params.get('influencerId') ? { influencerId: params.get('influencerId'), photoId: params.get('photo') } : null,
+  );
   const [imported, setImported] = useState<ListingDto | null>(null);
   const [formats, setFormats] = useState<FormatId[]>(defaults.length ? defaults : ['portrait_4_5']);
   const [highRes, setHighRes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const influencerList = influencersApi.data?.influencers ?? [];
+  const selfies = identitiesApi.data?.identities ?? [];
+  const selfieUrl = selfies.find((p) => p.kind === 'face')?.url ?? selfies[0]?.url ?? null;
+  const known = (id: string | null | undefined): string | null => (id && influencerList.some((i) => i.id === id) ? id : null);
+  // Without selfies, someone has to be in the photo: default to her first influencer.
+  const influencerId = faceChoice
+    ? known(faceChoice.influencerId)
+    : known(lastInfluencerValue) ?? (identitiesApi.data && !selfieUrl ? influencerList[0]?.id ?? null : null);
+  const influencerPhotoId = faceChoice && influencerId && influencerList.find((i) => i.id === influencerId)?.variations.some((v) => v.id === faceChoice.photoId)
+    ? faceChoice.photoId
+    : null;
+  const face: FaceChoice = { influencerId, photoId: influencerPhotoId };
 
   const allSets = sets.data?.sets ?? [];
   const usualSet = allSets.find((s) => s.id === lastSet) ?? allSets[0] ?? null;
@@ -93,11 +109,11 @@ export const BrandCreateFlow = () => {
       return {
         product: 'brand', kind: 'brand_property', listingId: listing.id, occasion, variations,
         wardrobe: style.wardrobe ?? fallbackWardrobe, poseEnergy: style.poseEnergy ?? fallbackPose,
-        formats, highRes, influencerId: influencerId ?? undefined,
+        formats, highRes, influencerId: influencerId ?? undefined, influencerPhotoId: influencerPhotoId ?? undefined,
       };
     }
-    return setId && themeId ? { product: 'brand', kind: 'brand_theme', setId, themeId, count, formats, highRes, influencerId: influencerId ?? undefined } : null;
-  }, [listing, rooms, occasion, variations, style, fallbackWardrobe, fallbackPose, setId, themeId, count, formats, highRes, influencerId]);
+    return setId && themeId ? { product: 'brand', kind: 'brand_theme', setId, themeId, count, formats, highRes, influencerId: influencerId ?? undefined, influencerPhotoId: influencerPhotoId ?? undefined } : null;
+  }, [listing, rooms, occasion, variations, style, fallbackWardrobe, fallbackPose, setId, themeId, count, formats, highRes, influencerId, influencerPhotoId]);
   const { estimate, error, loading } = useEstimate(draft);
 
   const pickOccasion = (next: Occasion) => {
@@ -130,7 +146,7 @@ export const BrandCreateFlow = () => {
       const res = await apiFetch<{ batch: BatchSummaryDto }>('/api/app/batches', { method: 'POST', json: draft });
       track('batch_created', { product: 'brand', items: res.batch.progress.total });
       if (!listing && setId) lastSetStore.set(setId);
-      if (influencerId) lastInfluencerStore.set(influencerId);
+      lastInfluencerStore.set(influencerId ?? '');
       refresh();
       router.push(`/app/batches/${res.batch.id}`);
     } catch (err) {
@@ -140,7 +156,9 @@ export const BrandCreateFlow = () => {
   };
 
   const styleFallback = { wardrobe: fallbackWardrobe, poseEnergy: fallbackPose };
-  const selfies = identitiesApi.data?.identities ?? [];
+  const facePicker = influencerList.length > 0
+    ? <InfluencerPicker influencers={influencerList} selfieUrl={selfieUrl} value={face} onChange={setFaceChoice} />
+    : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -158,45 +176,27 @@ export const BrandCreateFlow = () => {
           <CreateSection step={3} title="How many looks per photo?" sub={rooms > 0 ? `${rooms} photo${rooms === 1 ? '' : 's'} × ${variations} = ${rooms * variations} photo${rooms * variations === 1 ? '' : 's'}.` : 'Add a photo of the property first.'}>
             <ChipGroup options={VARIATIONS.map((v) => ({ value: String(v), label: `${v} look${v === 1 ? '' : 's'} per photo` }))} value={String(variations)} onChange={(v) => setVariations(Number(v))} />
           </CreateSection>
-          <CreateSection step={4} title="How you look" sub="Pick an influencer portrait as your reference, then choose style details.">
+          <CreateSection step={4} title="Who and how" sub="Pick who is in the photos, then the style details.">
             <div className="flex flex-col gap-3">
-              {me?.workspace?.hasInfluencers ? (
-                <div className="flex flex-col gap-1.5">
-                  <p className="text-[12px] font-medium uppercase tracking-wide text-app-muted">Influencer · reference portrait</p>
-                  <InfluencerPicker value={influencerId} onChange={(id) => setInfluencerChoice(id)} />
+              {facePicker ?? (selfies.length > 0 ? (
+                <div className="flex gap-2">
+                  {selfies.map((p) =>
+                    p.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
+                      <img key={p.id} src={p.url} alt={p.kind === 'full_body' ? 'Your full-body photo' : 'Your selfie'} className="h-20 w-[60px] rounded-xl object-cover ring-1 ring-app-line" />
+                    ) : null,
+                  )}
                 </div>
-              ) : selfies.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  <p className="text-[12px] font-medium uppercase tracking-wide text-app-muted">Selfies · used for generation</p>
-                  <div className="flex gap-2">
-                    {selfies.map((p) =>
-                      p.url ? (
-                        // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
-                        <img
-                          key={p.id}
-                          src={p.url}
-                          alt={p.kind === 'full_body' ? 'Your full-body photo' : 'Your selfie'}
-                          className="h-20 w-[60px] rounded-xl object-cover ring-1 ring-app-line"
-                        />
-                      ) : null
-                    )}
-                  </div>
-                </div>
-              ) : null}
+              ) : null)}
               <StyleLine value={style} onChange={setStyle} fallback={styleFallback} />
             </div>
           </CreateSection>
         </>
       ) : (
         <>
-          <CreateSection step={2} title="Your style" sub="Pick an influencer as your reference, then choose a style and theme.">
+          <CreateSection step={2} title="Who and which style" sub="Pick who is in the photos, then a style.">
             <div className="flex flex-col gap-4">
-              {me?.workspace?.hasInfluencers && (
-                <div className="flex flex-col gap-1.5">
-                  <p className="text-[12px] font-medium uppercase tracking-wide text-app-muted">Influencer · reference portrait</p>
-                  <InfluencerPicker value={influencerId} onChange={(id) => setInfluencerChoice(id)} />
-                </div>
-              )}
+              {facePicker}
               <SetPicker sets={allSets} value={setId} onChange={setSetChoice} noun="Style" />
             </div>
           </CreateSection>

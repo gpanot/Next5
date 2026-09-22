@@ -57,6 +57,8 @@ export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & {
   trial?: boolean;
   /** Free style preview. */
   preview?: boolean;
+  /** Influencer variation: a face image for later batches, not a post. */
+  variation?: boolean;
   sceneIds?: string[];
   /**
    * R2 key of an influencer base portrait to use as the identity reference instead of the user's

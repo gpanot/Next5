@@ -7,62 +7,17 @@ import { createSet } from '../../../../src/server/sets/sets';
 import { createBatch } from '../../../../src/server/generation/createBatch';
 import { pump } from '../../../../src/server/generation/pump';
 import { presignObject } from '../../../../src/server/storage/objectStore';
+import { advanceInfluencerBatches, assertCanAfford, listInfluencers, resolveBaseImageKey } from '../../../../src/server/influencers/influencers';
 import { HttpError } from '../../../../src/server/http';
 
 export const maxDuration = 60;
 
-/** GET /api/app/influencers?product= — list active influencers with their set/batch counts and preview photos. */
+/** GET /api/app/influencers?product= — active influencers with their portrait and ready variations. */
 export const GET = authedRoute(async (req, session) => {
   const product = new URL(req.url).searchParams.get('product');
   const ws = await requireWorkspace(session.userId, isProductLine(product) ? product : undefined);
-
-  const influencers = await prisma.influencer.findMany({
-    where: { workspaceId: ws.id, status: 'active' },
-    orderBy: { createdAt: 'desc' },
-    include: { _count: { select: { sets: true } } },
-  });
-
-  // For each influencer, grab up to 4 completed photo R2 keys from their sets' batches.
-  const previewsByInfluencer = await Promise.all(
-    influencers.map(async (inf) => {
-      const items = await prisma.batchItem.findMany({
-        where: {
-          batch: {
-            set: { influencerId: inf.id },
-            preview: false,
-          },
-          r2Key: { not: null },
-          status: 'ready',
-          archivedAt: null,
-        },
-        orderBy: { completedAt: 'desc' },
-        take: 4,
-        select: { r2Key: true },
-      });
-      return { influencerId: inf.id, keys: items.map((i) => i.r2Key as string) };
-    }),
-  );
-
-  const dtos = await Promise.all(
-    influencers.map(async (inf) => {
-      const previews = previewsByInfluencer.find((p) => p.influencerId === inf.id)?.keys ?? [];
-      const previewUrls = await Promise.all(previews.map((k) => presignObject(k).then((u) => u ?? '')));
-      return {
-        id: inf.id,
-        name: inf.name,
-        gender: inf.gender,
-        age: inf.age,
-        ethnicity: inf.ethnicity,
-        source: inf.source,
-        setCount: inf._count.sets,
-        portraitUrl: inf.baseImageKey ? (await presignObject(inf.baseImageKey)) : null,
-        previewUrls: previewUrls.filter(Boolean),
-        createdAt: inf.createdAt.toISOString(),
-      };
-    }),
-  );
-
-  return NextResponse.json({ influencers: dtos });
+  await advanceInfluencerBatches(ws);
+  return NextResponse.json({ influencers: await listInfluencers(ws) });
 });
 
 /**
@@ -86,9 +41,8 @@ export const POST = authedRoute(async (req, session) => {
   const source = typeof body.source === 'string' ? body.source : '';
   if (!['generated', 'uploaded', 'gallery'].includes(source))
     throw new HttpError(400, 'invalid_source', 'Source must be generated, uploaded, or gallery.');
-  const baseImageKey = typeof body.baseImageKey === 'string' ? body.baseImageKey : null;
-  if (!baseImageKey) throw new HttpError(400, 'base_image_required', 'A base portrait is required.');
-  const galleryItemId = typeof body.galleryItemId === 'string' ? body.galleryItemId : null;
+  const galleryItemId = source === 'gallery' && typeof body.galleryItemId === 'string' ? body.galleryItemId : null;
+  const baseImageKey = await resolveBaseImageKey(source, body.baseImageKey, galleryItemId);
 
   const templateIds = Array.isArray(body.templateIds) ? body.templateIds.map(String) : [];
   if (templateIds.length === 0) throw new HttpError(400, 'templates_required', 'Choose at least one style.');
@@ -110,6 +64,8 @@ export const POST = authedRoute(async (req, session) => {
     where: { id: { in: templateIds }, isActive: true, product: ws.product },
   });
   if (templates.length === 0) throw new HttpError(400, 'invalid_templates', 'No valid templates found.');
+  const perStyle = sceneIds.length > 0 ? sceneIds.length : photosPerStyle;
+  await assertCanAfford(ws, templates.length * perStyle);
 
   // Create the Influencer record.
   const influencer = await prisma.influencer.create({
@@ -145,12 +101,13 @@ export const POST = authedRoute(async (req, session) => {
       kind: 'brand_theme',
       setId: set.id,
       themeId: theme.id,
-      count: sceneIds.length > 0 ? sceneIds.length : photosPerStyle,
+      count: perStyle,
       formats: ['portrait_4_5'],
       highRes: false,
       sceneIds: sceneIds.length > 0 ? sceneIds : undefined,
       // Use the influencer's own portrait as the generation reference — no selfies needed.
       influencerKey: baseImageKey,
+      variation: true,
     });
     batchIds.push(batch.id);
   }

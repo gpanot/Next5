@@ -2,11 +2,20 @@
 // Generates a portrait image for a new influencer via Nano Banana 2 text-to-image,
 // polls until done, stores the result in R2, and returns a presigned URL.
 
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { isMockGeneration } from '../../lib/mock';
 import { putObject, presignObject } from '../storage/objectStore';
 import { submitGenerate, pollTask, isTerminal } from '../../lib/wavespeed';
+import { mockSampleImage } from '../generation/labeling';
 
 const POLL_INTERVAL_MS = 2_000;
 const MAX_POLLS = 90; // 3 minutes maximum
+
+/** Mock mode: a stock face from public/, so the rest of the flow shows a real-looking person at zero cost. */
+const mockPortrait = async (): Promise<Buffer> =>
+  readFile(/*turbopackIgnore: true*/ path.join(process.cwd(), 'public', 'images', 'business', 'us', 'ai-avatars', 'avatar-1-ashley.jpg'))
+    .catch(() => mockSampleImage('Portrait', '3:4'));
 
 /** R2 key for a generated influencer portrait. */
 export const portraitKey = (influencerId: string): string =>
@@ -61,6 +70,10 @@ export const generateAndStorePortrait = async (
   r2Key: string,
   prompt: string,
 ): Promise<GeneratePortraitResult> => {
+  if (isMockGeneration()) {
+    await putObject(r2Key, await mockPortrait());
+    return { r2Key, url: (await presignObject(r2Key)) ?? '' };
+  }
   const taskId = await submitGenerate({ prompt, aspectRatio: '3:4', resolution: '1k' });
 
   let polls = 0;

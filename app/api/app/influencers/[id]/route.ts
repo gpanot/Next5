@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server';
 import { prisma } from '../../../../../src/lib/db';
 import { authedRoute } from '../../../../../src/server/api';
 import { HttpError } from '../../../../../src/server/http';
-import { requireWorkspace } from '../../../../../src/server/workspaces/workspaces';
+import { isProductLine, requireWorkspace } from '../../../../../src/server/workspaces/workspaces';
 
 type Ctx = RouteContext<'/api/app/influencers/[id]'>;
 
 /** DELETE /api/app/influencers/:id — archive influencer and its sets. */
-export const DELETE = authedRoute<Ctx>(async (_req, session, ctx) => {
+export const DELETE = authedRoute<Ctx>(async (req, session, ctx) => {
   const { id } = await ctx.params;
-  const ws = await requireWorkspace(session.userId);
+  const product = new URL(req.url).searchParams.get('product');
+  const ws = await requireWorkspace(session.userId, isProductLine(product) ? product : 'brand');
 
   const influencer = await prisma.influencer.findFirst({
     where: { id, workspaceId: ws.id },

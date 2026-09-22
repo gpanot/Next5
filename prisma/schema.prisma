@@ -459,6 +459,8 @@ model Batch {
   occasion        String?
   /// Free "preview on me" photos for one style; kept out of the library, batch list and calendar.
   preview         Boolean     @default(false)
+  /// Influencer variations (Influencers page): face images reused in Create; kept out of the library, batch list and calendar.
+  variation       Boolean     @default(false)
   createdAt       DateTime    @default(now()) @map("created_at")
   completedAt     DateTime?   @map("completed_at")
 

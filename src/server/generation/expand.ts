@@ -31,6 +31,8 @@ export type ExpandedBatch = {
   kind: 'trial' | 'brand_theme' | 'shop_products';
   /** Free style / look preview: paid from free credits, kept out of the library and calendar. */
   preview?: boolean;
+  /** Influencer variation: paid, but kept out of the library and calendar like a preview. */
+  variation?: boolean;
   /** Set when the batch was built from one property's photos. */
   listingId?: string | null;
   occasion?: Occasion | null;
@@ -79,6 +81,7 @@ const expandBrand = async (workspace: Workspace, draft: InternalBrandDraft, now:
     kind: draft.trial ? 'trial' : 'brand_theme',
     name: draft.trial ? 'Free trial' : draft.preview ? `Preview · ${set.name}` : `${theme.title} · ${shortDate(now, false)}`,
     preview: Boolean(draft.preview),
+    variation: 'variation' in draft && Boolean(draft.variation),
     setId: set.id, themeId: theme.id, packId: null, formats: draft.formats, highRes: draft.highRes, items,
   };
 };
@@ -119,6 +122,7 @@ const expandShop = async (workspace: Workspace, draft: InternalShopDraft, now: D
     kind: draft.trial ? 'trial' : 'shop_products',
     name: draft.trial ? 'Free trial' : draft.preview ? `Preview · ${set.name}` : `${label} · ${shortDate(now, true)}`,
     preview: Boolean(draft.preview),
+    variation: 'variation' in draft && Boolean(draft.variation),
     setId: set.id, themeId: null, packId: draft.packId, formats: draft.coverOnly ? ['story_9_16'] : draft.formats, highRes: draft.highRes, items,
   };
 };

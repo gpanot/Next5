@@ -78,7 +78,7 @@ export const updateSet = async (workspace: Workspace, setId: string, input: Part
 
 /** The cover is always the template's own picture: a style must look the same every time she picks it. */
 export const toSetDto = async (set: StudioSet & { template: { name: string; coverImage: string } }): Promise<StudioSetDto> => {
-  const [batchCount, preview] = await Promise.all([prisma.batch.count({ where: { setId: set.id, kind: { not: 'trial' }, preview: false } }), previewFor(set.id)]);
+  const [batchCount, preview] = await Promise.all([prisma.batch.count({ where: { setId: set.id, kind: { not: 'trial' }, preview: false, variation: false } }), previewFor(set.id)]);
   return {
     id: set.id, name: set.name, templateId: set.templateId, templateName: set.template.name, coverImage: set.template.coverImage,
     locations: set.locations, wardrobe: set.wardrobe,

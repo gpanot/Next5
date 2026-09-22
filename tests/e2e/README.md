@@ -8,6 +8,7 @@ Mock-mode browser runs of the business product. They use the locally installed G
    NEXT5_BUSINESS_ENABLED=true NEXT5_MOCK_GENERATION=true \
    DATABASE_URL=postgres://$USER@localhost:5432/next5_dev npx next dev -p 3100
    ```
+   A dev server already running in this folder holds the `.next` lock; run the e2e one beside it with `NEXT_DIST_DIR=.next-e2e`.
 3. Run a scenario (screenshots go to `.data/e2e/`):
    ```bash
    node tests/e2e/brand.mjs          # Brand onboarding → trial → Pro checkout (simulated) → dashboard
@@ -15,6 +16,9 @@ Mock-mode browser runs of the business product. They use the locally installed G
    node tests/e2e/brand-create.mjs   # top-up → create 8 × 2 formats → batch → lightbox → redo → library
    node tests/e2e/brand-calendar.mjs # calendar: month grid → post sheet → counts itself → cadence → properties link
    node tests/e2e/brand-listing.mjs  # listing mode: attest → 1 room = 2 photos → looks per room → visible AI label toggle
+   node tests/e2e/brand-influencers.mjs # 390 px: describe → 1 variation → create 1 photo with it; gallery + upload faces; key checks; archive
+   node tests/e2e/brand-quickstart.mjs  # needs NEXT5_ZILLOW_IMPORT_MOCK=true: home Quickstart → influencer → calendar → Zillow import → hide/show
+   E2E_REAL=1 node tests/e2e/brand-influencers.mjs  # with NEXT5_MOCK_GENERATION=false: 1 real portrait + 1 variation + 1 photo (about $0.20)
    node tests/e2e/shop-app.mjs       # bulk add products → create → compare view → redo → zip
    node tests/e2e/studios.mjs        # two studios: legacy redirects, Add Shop Studio, switcher, batch deep link
    node tests/e2e/shop-store.mjs     # needs NEXT5_SHOP_IMPORT_MOCK=true: store import onboarding → trial → TikTok library pack → zip
