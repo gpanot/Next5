@@ -52,8 +52,9 @@ async function seed() {
       name: 'Green Screen — Real Estate v0',
       type: 'GREEN_SCREEN',
       defaultAssets: {
-        backgroundKey: BG_ASSET_ID,
-        overlayKey: OVERLAY_ASSET_ID,
+        // Store R2 keys (not DB IDs) — BlitzLabTab.buildInputProps looks up by r2Key
+        backgroundKey: BG_R2_KEY,
+        overlayKey: OVERLAY_R2_KEY,
       },
       textConfig: BLITZ_DEFAULT_TEXT_CONFIG,
       defaultHookText: "You're gonna FALL in love with this one 🏡",

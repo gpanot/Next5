@@ -171,6 +171,29 @@ CREATE TYPE public."SubscriptionStatus" AS ENUM (
 
 
 --
+-- Name: blitz_render_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.blitz_render_status AS ENUM (
+    'PENDING',
+    'PROCESSING',
+    'COMPLETED',
+    'FAILED'
+);
+
+
+--
+-- Name: blitz_template_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.blitz_template_type AS ENUM (
+    'GREEN_SCREEN',
+    'BROLL_VIDEO',
+    'CAROUSEL'
+);
+
+
+--
 -- Name: set_updated_at(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -277,7 +300,62 @@ CREATE TABLE public.batches (
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     completed_at timestamp(3) without time zone,
     listing_id text,
-    occasion text
+    occasion text,
+    preview boolean DEFAULT false NOT NULL
+);
+
+
+--
+-- Name: blitz_assets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.blitz_assets (
+    id text NOT NULL,
+    name text NOT NULL,
+    type text NOT NULL,
+    r2_key text NOT NULL,
+    thumbnail_key text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: blitz_projects; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.blitz_projects (
+    id text NOT NULL,
+    template_id text NOT NULL,
+    current_assets jsonb DEFAULT '{}'::jsonb NOT NULL,
+    overlay_zoom double precision DEFAULT 1.0 NOT NULL,
+    overlay_offset_x double precision DEFAULT 0 NOT NULL,
+    overlay_offset_y double precision DEFAULT 0 NOT NULL,
+    mention_business boolean DEFAULT false NOT NULL,
+    regen_prompt text,
+    caption_text text DEFAULT ''::text NOT NULL,
+    render_status public.blitz_render_status DEFAULT 'PENDING'::public.blitz_render_status NOT NULL,
+    rendered_video_key text,
+    is_identifiable_person boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: blitz_templates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.blitz_templates (
+    id text NOT NULL,
+    name text NOT NULL,
+    type public.blitz_template_type DEFAULT 'GREEN_SCREEN'::public.blitz_template_type NOT NULL,
+    default_assets jsonb DEFAULT '{}'::jsonb NOT NULL,
+    text_config jsonb DEFAULT '{}'::jsonb NOT NULL,
+    default_hook_text text DEFAULT ''::text NOT NULL,
+    remix_prompt text DEFAULT ''::text NOT NULL,
+    duration_seconds double precision DEFAULT 5.0 NOT NULL,
+    fps integer DEFAULT 30 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -839,6 +917,44 @@ CREATE TABLE public.shop_connections (
 
 
 --
+-- Name: social_connections; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.social_connections (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    provider text NOT NULL,
+    external_id text NOT NULL,
+    username text,
+    avatar_url text,
+    access_token text NOT NULL,
+    refresh_token text,
+    expires_at timestamp(3) without time zone,
+    refresh_expires_at timestamp(3) without time zone,
+    scopes text[] DEFAULT ARRAY[]::text[] NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: social_posts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.social_posts (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    slot_id text,
+    provider text NOT NULL,
+    status text NOT NULL,
+    external_id text,
+    post_url text,
+    error text,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
 -- Name: studio_sets; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1016,6 +1132,30 @@ ALTER TABLE ONLY public.batch_items
 
 ALTER TABLE ONLY public.batches
     ADD CONSTRAINT batches_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: blitz_assets blitz_assets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_assets
+    ADD CONSTRAINT blitz_assets_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: blitz_projects blitz_projects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_projects
+    ADD CONSTRAINT blitz_projects_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: blitz_templates blitz_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_templates
+    ADD CONSTRAINT blitz_templates_pkey PRIMARY KEY (id);
 
 
 --
@@ -1243,6 +1383,22 @@ ALTER TABLE ONLY public.shop_connections
 
 
 --
+-- Name: social_connections social_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.social_connections
+    ADD CONSTRAINT social_connections_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: social_posts social_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.social_posts
+    ADD CONSTRAINT social_posts_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: studio_sets studio_sets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1349,10 +1505,31 @@ CREATE INDEX batch_items_wavespeed_task_id_idx ON public.batch_items USING btree
 
 
 --
+-- Name: batches_set_id_preview_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX batches_set_id_preview_idx ON public.batches USING btree (set_id, preview);
+
+
+--
 -- Name: batches_workspace_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX batches_workspace_id_created_at_idx ON public.batches USING btree (workspace_id, created_at);
+
+
+--
+-- Name: blitz_projects_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blitz_projects_created_at_idx ON public.blitz_projects USING btree (created_at DESC);
+
+
+--
+-- Name: blitz_projects_render_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blitz_projects_render_status_idx ON public.blitz_projects USING btree (render_status);
 
 
 --
@@ -1664,6 +1841,20 @@ CREATE UNIQUE INDEX shop_connections_workspace_id_platform_key ON public.shop_co
 
 
 --
+-- Name: social_connections_workspace_id_provider_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX social_connections_workspace_id_provider_key ON public.social_connections USING btree (workspace_id, provider);
+
+
+--
+-- Name: social_posts_workspace_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX social_posts_workspace_id_created_at_idx ON public.social_posts USING btree (workspace_id, created_at);
+
+
+--
 -- Name: studio_sets_workspace_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1801,6 +1992,14 @@ ALTER TABLE ONLY public.batches
 
 ALTER TABLE ONLY public.batches
     ADD CONSTRAINT batches_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: blitz_projects blitz_projects_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_projects
+    ADD CONSTRAINT blitz_projects_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.blitz_templates(id);
 
 
 --
@@ -2012,6 +2211,30 @@ ALTER TABLE ONLY public.shop_connections
 
 
 --
+-- Name: social_connections social_connections_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.social_connections
+    ADD CONSTRAINT social_connections_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: social_posts social_posts_slot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.social_posts
+    ADD CONSTRAINT social_posts_slot_id_fkey FOREIGN KEY (slot_id) REFERENCES public.post_slots(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: social_posts social_posts_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.social_posts
+    ADD CONSTRAINT social_posts_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: studio_sets studio_sets_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2093,4 +2316,7 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260925090000'),
     ('20260926090000'),
     ('20260927090000'),
-    ('20260928000000');
+    ('20260928000000'),
+    ('20260929090000'),
+    ('20260930090000'),
+    ('20261001090000');

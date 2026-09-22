@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BLITZ_DEFAULT_FPS, BLITZ_DEFAULT_DURATION_S, BLITZ_POLL_INTERVAL_MS, BLITZ_DEFAULT_TEXT_CONFIG } from '../../../config/blitzLab';
+import { BLITZ_POLL_INTERVAL_MS, BLITZ_DEFAULT_TEXT_CONFIG } from '../../../config/blitzLab';
 import type { GreenScreenProps } from '../../../remotion/types';
 import { AssetsPanel } from './blitzLab/AssetsPanel';
 import { PreviewPlayer } from './blitzLab/PreviewPlayer';
@@ -117,10 +117,11 @@ export function BlitzLabTab({ token }: Props) {
 
   const initTemplate = useCallback((template: BlitzTemplateDto, allAssets: BlitzAssetDto[]) => {
     setSelectedTemplate(template);
+    // defaultAssets stores R2 keys; fallback to first asset's r2Key
     const defaults = template.defaultAssets as { backgroundKey?: string; overlayKey?: string; audioKey?: string };
     setCurrentAssets({
-      backgroundKey: defaults.backgroundKey ?? allAssets.find((a) => a.type === 'BACKGROUND')?.id ?? '',
-      overlayKey: defaults.overlayKey ?? allAssets.find((a) => a.type === 'OVERLAY')?.id ?? '',
+      backgroundKey: defaults.backgroundKey ?? allAssets.find((a) => a.type === 'BACKGROUND')?.r2Key ?? '',
+      overlayKey: defaults.overlayKey ?? allAssets.find((a) => a.type === 'OVERLAY')?.r2Key ?? '',
       audioKey: defaults.audioKey,
     });
     setCaptionText(template.defaultHookText ?? '');

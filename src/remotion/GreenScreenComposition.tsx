@@ -16,12 +16,10 @@ import {
   AbsoluteFill,
   Audio,
   interpolate,
-  Loop,
   OffthreadVideo,
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-// Note: useCurrentFrame is used for audio fade interpolation
 import type { GreenScreenProps } from './types';
 
 const AUDIO_FADE_FRAMES = 15;
@@ -54,19 +52,17 @@ export function GreenScreenComposition({
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
       {/* ── Layer 1: Background ─────────────────────────────────────────── */}
-      {/* Loop wraps the video so it repeats if shorter than durationInFrames. */}
+      {/* Assets should match template.durationSeconds. If shorter, the last   */}
+      {/* frame freezes — acceptable for v0.                                  */}
       <AbsoluteFill>
-        <Loop durationInFrames={durationInFrames}>
-          <OffthreadVideo
-            src={backgroundUrl}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        </Loop>
+        <OffthreadVideo
+          src={backgroundUrl}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
       </AbsoluteFill>
 
       {/* ── Layer 2: Overlay (VP9-alpha WebM) ───────────────────────────── */}
-      {/* VP9 alpha is preserved by OffthreadVideo; the AbsoluteFill has no  */}
-      {/* background so the transparent areas show the layer below.          */}
+      {/* VP9 alpha channel is preserved by OffthreadVideo.                  */}
       <AbsoluteFill
         style={{
           transform: [
@@ -76,12 +72,10 @@ export function GreenScreenComposition({
           transformOrigin: 'center center',
         }}
       >
-        <Loop durationInFrames={durationInFrames}>
-          <OffthreadVideo
-            src={overlayUrl}
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-          />
-        </Loop>
+        <OffthreadVideo
+          src={overlayUrl}
+          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+        />
       </AbsoluteFill>
 
       {/* ── Layer 3: Caption ────────────────────────────────────────────── */}
