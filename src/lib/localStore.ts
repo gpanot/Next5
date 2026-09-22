@@ -52,3 +52,5 @@ export const lastSetStore = createLocalStore('next5-last-set');
 export const postingTipsStore = createLocalStore('next5-posting-tips-dismissed');
 /** Step-1 details typed before an email check, so the magic link can finish setup without asking again. */
 export const onboardingDraftStore = createLocalStore('next5-onboarding-draft');
+/** Quickstart onboarding card state (JSON). Keyed by workspace so it resets on workspace switch. */
+export const quickstartStore = createLocalStore('next5-quickstart');

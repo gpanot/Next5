@@ -62,6 +62,21 @@ export async function getPresignedUrl(key: string, expiresIn = 3600, downloadNam
   );
 }
 
+/**
+ * Returns a presigned PUT URL so the browser can upload straight to R2
+ * (skips the app server and its request-body limits).
+ * Returns null if R2 is not configured.
+ * Needs a CORS rule on the bucket that allows PUT from the app origin.
+ */
+export async function getPresignedPutUrl(key: string, contentType: string, expiresIn = 900): Promise<string | null> {
+  if (!isConfigured()) return null;
+  return getSignedUrl(
+    getClient(),
+    new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }),
+    { expiresIn },
+  );
+}
+
 // ── Mirror (download → R2) ────────────────────────────────────────────────────
 
 /**

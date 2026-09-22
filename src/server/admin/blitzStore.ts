@@ -12,8 +12,37 @@ const BROWSER_LINK_SECONDS = 24 * 60 * 60;
 
 export const blitzKeys = {
   asset: (assetId: string, ext: string) => `blitz/assets/${assetId}.${ext}`,
+  upload: (type: BlitzUploadType, ext: string) =>
+    `blitz/uploads/${type.toLowerCase()}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`,
   thumbnail: (assetId: string) => `blitz/assets/${assetId}/thumb.jpg`,
   render: (projectId: string) => `blitz/renders/${projectId}/output.mp4`,
+};
+
+// ── Uploads ───────────────────────────────────────────────────────────────────
+
+export type BlitzUploadType = 'BACKGROUND' | 'OVERLAY';
+
+export const BLITZ_UPLOAD_TYPES = new Set<string>(['BACKGROUND', 'OVERLAY']);
+
+/** Uploaded files live under this prefix; asset registration only accepts keys inside it. */
+export const BLITZ_UPLOAD_PREFIX = 'blitz/uploads/';
+
+const CONTENT_TYPE_BY_EXT: Record<string, string> = {
+  mp4: 'video/mp4',
+  mov: 'video/quicktime',
+  webm: 'video/webm',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+};
+
+/** Extension + content type for an uploaded file; null when the format is not supported. */
+export const blitzUploadFormat = (fileName: string): { ext: string; contentType: string } | null => {
+  const ext = fileName.split('.').pop()?.toLowerCase() ?? '';
+  const contentType = CONTENT_TYPE_BY_EXT[ext];
+  return contentType ? { ext, contentType } : null;
 };
 
 // ── URL helpers ───────────────────────────────────────────────────────────────
@@ -37,6 +66,8 @@ export type BlitzAssetDto = {
   /** Signed browser URL (24-hour validity) */
   url: string;
   thumbnailUrl: string | null;
+  /** Derived from the file extension; lets the preview pick <img> vs <video> for blob: URLs. */
+  mediaKind: 'image' | 'video';
   createdAt: string;
 };
 
@@ -76,6 +107,7 @@ export const toAssetDto = async (asset: BlitzAsset): Promise<BlitzAssetDto> => (
   r2Key: asset.r2Key,
   url: await blitzBrowserUrl(asset.r2Key),
   thumbnailUrl: asset.thumbnailKey ? await blitzBrowserUrl(asset.thumbnailKey) : null,
+  mediaKind: blitzUploadFormat(asset.r2Key)?.contentType.startsWith('image/') ? 'image' : 'video',
   createdAt: asset.createdAt.toISOString(),
 });
 

@@ -5,6 +5,7 @@ FROM node:20-slim
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-noto \
+    fonts-noto-color-emoji \
     fonts-liberation \
     libgbm1 \
     --no-install-recommends \

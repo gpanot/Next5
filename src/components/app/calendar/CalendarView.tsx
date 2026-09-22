@@ -5,6 +5,7 @@ import { useApi } from '../../../hooks/useApi';
 import { useToast } from '../../../hooks/useToast';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
 import { dayLabel, groupByDay, isPast, upcomingPostingDays } from '../../../lib/calendarDates';
+import { quickstartStore } from '../../../lib/localStore';
 import type { CalendarDto, SlotDto } from '../../../types/business/calendar';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeleton';
@@ -115,6 +116,22 @@ export const CalendarView = ({ variant = 'full' }: { variant?: 'full' | 'home' }
 
       <CalendarDnd onMove={(slot, date) => void move(slot, date)}>
         <MonthGrid slots={calendar.slots} onDay={variant === 'full' ? setFocused : (day) => router.push(`/app/calendar?day=${day}`)} onAdd={setPickerDate} />
+
+        {/* Quickstart nudge: only on the home variant when calendar is empty and autopilot not yet enabled. */}
+        {variant === 'home' && (() => {
+          const qs = quickstartStore.get();
+          let step3Done = false;
+          try { step3Done = Boolean(qs && (JSON.parse(qs) as { step3Done?: boolean }).step3Done); } catch { /* ignore */ }
+          const noSlots = calendar.slots.filter((s) => s.status !== 'skipped' && s.status !== 'removed').length === 0;
+          if (noSlots && !step3Done && !calendar.schedule.autopilot) {
+            return (
+              <p className="mt-1 text-center text-[12px] text-app-muted/70">
+                Import a Zillow link above to autofill your calendar
+              </p>
+            );
+          }
+          return null;
+        })()}
 
         {variant === 'full' && (
           <div className="flex flex-col gap-5">

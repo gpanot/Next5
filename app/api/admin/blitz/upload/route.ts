@@ -1,33 +1,23 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../src/server/admin/route';
-import { uploadToR2, getPresignedUrl } from '../../../../../src/lib/r2';
-
-const ALLOWED_TYPES = new Set(['BACKGROUND', 'OVERLAY']);
-
-const CONTENT_TYPE_MAP: Record<string, string> = {
-  mp4: 'video/mp4',
-  mov: 'video/quicktime',
-  webm: 'video/webm',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  png: 'image/png',
-  webp: 'image/webp',
-  gif: 'image/gif',
-};
+import { uploadToR2 } from '../../../../../src/lib/r2';
+import {
+  BLITZ_UPLOAD_TYPES,
+  blitzKeys,
+  blitzUploadFormat,
+  type BlitzUploadType,
+} from '../../../../../src/server/admin/blitzStore';
 
 /**
- * POST /api/admin/blitz/upload
+ * POST /api/admin/blitz/upload — FALLBACK path only.
  *
- * Accepts a multipart form with:
- *   file — the media file (video or image)
- *   type — "BACKGROUND" or "OVERLAY"
+ * The browser normally uploads straight to R2 via /upload-url. It falls back to
+ * this route when the direct PUT fails (for example, no CORS rule on the bucket).
+ * This path is slow (file goes browser → server → R2) and on Vercel it fails
+ * above ~4.5 MB.
  *
- * Uploads straight to R2 under blitz/uploads/{type}/{timestamp}-{random}.{ext}
- * and returns { r2Key, url } where url is a 24-hour presigned GET URL.
- *
- * No BlitzAsset DB record is created — the upload is session-scoped.
- * The caller should add the returned DTO to its local asset list so the
- * preview player can resolve the URL via its findUrl() helper.
+ * Multipart form: file, type ("BACKGROUND" | "OVERLAY"). Returns { r2Key }.
+ * The caller registers the asset with POST /api/admin/blitz/assets.
  */
 export const POST = adminRoute(async (req: NextRequest) => {
   const form = await req.formData().catch(() => null);
@@ -41,24 +31,18 @@ export const POST = adminRoute(async (req: NextRequest) => {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: 'file is required' }, { status: 400 });
   }
-  if (!type || !ALLOWED_TYPES.has(type)) {
+  if (!type || !BLITZ_UPLOAD_TYPES.has(type)) {
     return NextResponse.json({ error: 'type must be BACKGROUND or OVERLAY' }, { status: 400 });
   }
+  const format = blitzUploadFormat(file.name);
+  if (!format) {
+    return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+  }
 
-  const originalName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-  const ext = originalName.split('.').pop()?.toLowerCase() ?? 'bin';
-  const contentType = CONTENT_TYPE_MAP[ext] ?? file.type ?? 'application/octet-stream';
-  const r2Key = `blitz/uploads/${type.toLowerCase()}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const uploadedKey = await uploadToR2(r2Key, buffer, contentType);
-
+  const r2Key = blitzKeys.upload(type as BlitzUploadType, format.ext);
+  const uploadedKey = await uploadToR2(r2Key, Buffer.from(await file.arrayBuffer()), format.contentType);
   if (!uploadedKey) {
     return NextResponse.json({ error: 'R2 not configured — uploads unavailable' }, { status: 503 });
   }
-
-  // 24-hour presigned URL for preview in the browser
-  const url = await getPresignedUrl(uploadedKey, 3600 * 24);
-
-  return NextResponse.json({ r2Key: uploadedKey, url, name: file.name });
+  return NextResponse.json({ r2Key: uploadedKey });
 });

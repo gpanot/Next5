@@ -31,6 +31,8 @@ export type TextConfig = {
 export type GreenScreenProps = {
   /** Fully-resolved URL: signed R2 URL in browser, file:// URI in worker */
   backgroundUrl: string;
+  /** Force image vs video for the background. Needed for blob: URLs, which have no extension. */
+  backgroundIsImage?: boolean;
   /** Fully-resolved URL — must be pre-keyed VP9-alpha WebM */
   overlayUrl: string;
   /** Optional audio track URL */

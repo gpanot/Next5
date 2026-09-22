@@ -51,15 +51,15 @@ export const blitzApi = {
       { json: body },
     ),
 
-  /** Upload a local file to R2. Returns { r2Key, url, name } on success. */
-  uploadAsset: (token: string, type: 'BACKGROUND' | 'OVERLAY', file: File) => {
-    const form = new FormData();
-    form.append('file', file);
-    form.append('type', type);
-    return ugcRequest<{ r2Key: string; url: string | null; name: string }>(
+  /** Presigned PUT URL for a direct browser → R2 upload. */
+  getUploadUrl: (token: string, type: 'BACKGROUND' | 'OVERLAY', fileName: string) =>
+    ugcRequest<{ r2Key: string; uploadUrl: string; contentType: string }>(
       token,
-      `${BASE}/upload`,
-      { form },
-    );
-  },
+      `${BASE}/upload-url`,
+      { json: { type, fileName } },
+    ),
+
+  /** Save an uploaded R2 file as a library asset. */
+  registerAsset: (token: string, body: { type: 'BACKGROUND' | 'OVERLAY'; r2Key: string; name: string }) =>
+    ugcRequest<{ asset: BlitzAssetDto }>(token, `${BASE}/assets`, { json: body }),
 };

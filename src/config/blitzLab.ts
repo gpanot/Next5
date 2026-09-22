@@ -15,6 +15,9 @@ export const BLITZ_AUDIO_FADE_FRAMES = 15;
 /** How often the browser polls for render completion (ms). */
 export const BLITZ_POLL_INTERVAL_MS = 4_000;
 
+/** Give up polling after this long (worker down, job stuck). */
+export const BLITZ_RENDER_TIMEOUT_MS = 5 * 60_000;
+
 /** Remotion canvas resolution. */
 export const BLITZ_CANVAS_WIDTH = 1080;
 export const BLITZ_CANVAS_HEIGHT = 1920;

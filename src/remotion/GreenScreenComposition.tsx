@@ -78,6 +78,7 @@ const AUDIO_FADE_FRAMES = 15;
 
 export function GreenScreenComposition({
   backgroundUrl,
+  backgroundIsImage,
   overlayUrl,
   audioUrl,
   captionText,
@@ -114,7 +115,7 @@ export function GreenScreenComposition({
       {/* Supports both static images (jpg/png/webp) and video files.          */}
       {/* Assets should match template.durationSeconds.                        */}
       <AbsoluteFill>
-        {isImageUrl(backgroundUrl) ? (
+        {(backgroundIsImage ?? isImageUrl(backgroundUrl)) ? (
           <BackgroundImg src={backgroundUrl} />
         ) : (
           <OffthreadVideo
@@ -130,6 +131,7 @@ export function GreenScreenComposition({
       {/* VP9 alpha channel is preserved by OffthreadVideo.                  */}
       {overlayUrl ? (
         <AbsoluteFill
+          data-blitz-layer="OVERLAY"
           style={{
             transform: [
               `translate(${overlayOffsetX}px, ${overlayOffsetY}px)`,
@@ -160,6 +162,7 @@ export function GreenScreenComposition({
           }}
         >
           <p
+            data-blitz-layer="TEXT"
             style={{
               fontFamily: textConfig.font,
               fontSize: textConfig.fontSize,

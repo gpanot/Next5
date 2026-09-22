@@ -12,7 +12,7 @@ import { BatchCard } from '../batches/BatchCard';
 import { CalendarView } from '../calendar/CalendarView';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { CreditsCard } from './CreditsCard';
-import { FeaturedThemeCard } from './FeaturedThemeCard';
+import { QuickstartCard } from './QuickstartCard';
 
 const greeting = (): string => {
   const hour = new Date().getHours();
@@ -55,11 +55,8 @@ export const DashboardView = () => {
       )}
       {product === 'brand' ? (
         <>
-          {/* Photos left this month and this month's theme, then the month itself. */}
-          <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
-            <CreditsCard me={me} />
-            <FeaturedThemeCard />
-          </div>
+          {/* Quickstart onboarding widget, then the month calendar. */}
+          <QuickstartCard me={me} />
           <CalendarView variant="home" />
         </>
       ) : (
