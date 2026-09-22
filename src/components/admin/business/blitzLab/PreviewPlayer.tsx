@@ -5,12 +5,14 @@
  *
  * - Dynamically imports RemotionPlayerInner with ssr:false to avoid
  *   Next.js 16 SSR hydration errors (Remotion uses browser Canvas APIs).
- * - An absolute-positioned div on top of the player captures pointer events
- *   for overlay drag. Deltas are multiplied by the canvas-to-DOM scale ratio
- *   so the 1080px canvas maps 1:1 to what the user drags on screen.
+ * - An absolute-positioned div on top of the player captures pointer events.
+ *   Deltas are multiplied by the canvas-to-DOM scale ratio so the 1080px
+ *   canvas maps 1:1 to what the user drags on screen.
+ * - Dragging routes to the active layer:
+ *     activeLayer === 'OVERLAY' → onOverlayOffsetChange(dx, dy)
+ *     activeLayer === 'TEXT'    → onTextOffsetChange(dx, dy)
  * - "Play from Start" increments playFromStartSignal, which RemotionPlayerInner
- *   watches via useEffect to seekTo(0) + play(). We avoid ref forwarding through
- *   dynamic() (not supported by Next.js) by using a signal prop instead.
+ *   watches via useEffect to seekTo(0) + play().
  */
 
 import dynamic from 'next/dynamic';
@@ -35,13 +37,19 @@ const RemotionPlayerWrapper = dynamic(
 
 type PreviewPlayerProps = {
   inputProps: GreenScreenProps;
-  onOffsetChange: (dx: number, dy: number) => void;
+  activeLayer: 'OVERLAY' | 'TEXT';
+  onOverlayOffsetChange: (dx: number, dy: number) => void;
+  onTextOffsetChange: (dx: number, dy: number) => void;
 };
 
-export function PreviewPlayer({ inputProps, onOffsetChange }: PreviewPlayerProps) {
+export function PreviewPlayer({
+  inputProps,
+  activeLayer,
+  onOverlayOffsetChange,
+  onTextOffsetChange,
+}: PreviewPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  // Signal-based "Play from Start": increment triggers seekTo(0)+play inside RemotionPlayerInner
   const [playFromStartSignal, setPlayFromStartSignal] = useState(0);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -52,11 +60,18 @@ export function PreviewPlayer({ inputProps, onOffsetChange }: PreviewPlayerProps
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!isDragging) return;
+      // Scale mouse delta from DOM pixels → 1080p canvas pixels
       const domWidth = containerRef.current?.getBoundingClientRect().width ?? 360;
       const scale = BLITZ_CANVAS_WIDTH / domWidth;
-      onOffsetChange(e.movementX * scale, e.movementY * scale);
+      const dx = e.movementX * scale;
+      const dy = e.movementY * scale;
+      if (activeLayer === 'TEXT') {
+        onTextOffsetChange(dx, dy);
+      } else {
+        onOverlayOffsetChange(dx, dy);
+      }
     },
-    [isDragging, onOffsetChange],
+    [isDragging, activeLayer, onOverlayOffsetChange, onTextOffsetChange],
   );
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
@@ -68,10 +83,16 @@ export function PreviewPlayer({ inputProps, onOffsetChange }: PreviewPlayerProps
     setPlayFromStartSignal((n) => n + 1);
   }, []);
 
+  // Cursor hint: crosshair to indicate which layer is being dragged
+  const cursor = isDragging
+    ? 'cursor-grabbing'
+    : activeLayer === 'TEXT'
+    ? 'cursor-text'
+    : 'cursor-grab';
+
   return (
     <div className="flex flex-col items-center gap-3 w-full">
-      {/* 9:16 aspect ratio container — fills available center column width   */}
-      {/* up to 400px so the preview is large enough to evaluate the layout.  */}
+      {/* 9:16 aspect ratio container */}
       <div
         ref={containerRef}
         className="relative overflow-hidden rounded-2xl shadow-lg mx-auto"
@@ -83,20 +104,24 @@ export function PreviewPlayer({ inputProps, onOffsetChange }: PreviewPlayerProps
           playFromStartSignal={playFromStartSignal}
         />
 
-        {/* Drag-capture overlay — sits above the canvas, captures all pointer events */}
+        {/* Drag-capture overlay — covers entire canvas, routes to active layer */}
         <div
-          className={[
-            'absolute inset-0',
-            isDragging ? 'cursor-grabbing' : 'cursor-grab',
-          ].join(' ')}
+          className={['absolute inset-0', cursor].join(' ')}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
           onPointerCancel={handlePointerUp}
         />
+
+        {/* Active-layer badge */}
+        <div className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2">
+          <span className="rounded-full bg-black/60 px-2.5 py-1 text-[10px] text-white/80 backdrop-blur-sm">
+            {activeLayer === 'TEXT' ? 'T dragging caption' : '🎬 dragging video'}
+          </span>
+        </div>
       </div>
 
-      {/* Play from Start convenience button */}
+      {/* Play from Start */}
       <button
         type="button"
         onClick={handlePlayFromStart}

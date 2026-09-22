@@ -42,6 +42,7 @@ export const blitzApi = {
       regenPrompt?: string;
       captionText: string;
       isIdentifiablePerson?: boolean;
+      textConfigOverride?: Record<string, unknown>;
     },
   ) =>
     ugcRequest<{ projectId: string; status: string; project: BlitzProjectDto }>(
@@ -49,4 +50,16 @@ export const blitzApi = {
       `${BASE}/render`,
       { json: body },
     ),
+
+  /** Upload a local file to R2. Returns { r2Key, url, name } on success. */
+  uploadAsset: (token: string, type: 'BACKGROUND' | 'OVERLAY', file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('type', type);
+    return ugcRequest<{ r2Key: string; url: string | null; name: string }>(
+      token,
+      `${BASE}/upload`,
+      { form },
+    );
+  },
 };

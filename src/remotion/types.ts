@@ -10,12 +10,22 @@
 export type TextConfig = {
   /** CSS font-family, e.g. "sans-serif" */
   font: string;
-  /** 0–1 fraction of canvas height where the caption baseline sits */
+  /** 0–1 fraction: the caption bottom edge is at (positionY × canvasHeight) from the top */
   positionY: number;
   /** px at full 1080-wide canvas */
   fontSize: number;
   /** horizontal padding inside the safe zone, px at 1080-wide canvas */
   safeZonePadding: number;
+  /** CSS font-weight (100–900). Default 600. */
+  fontWeight?: number;
+  /** CSS color string, e.g. "#ffffff". Default white. */
+  color?: string;
+  /** Text stroke width in canvas px. Default 3. */
+  strokeWidth?: number;
+  /** Text stroke color string, e.g. "#000000". Default black. */
+  strokeColor?: string;
+  /** Horizontal offset in canvas px; positive = right. Default 0. */
+  offsetX?: number;
 };
 
 export type GreenScreenProps = {

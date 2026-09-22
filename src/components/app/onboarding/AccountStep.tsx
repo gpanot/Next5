@@ -2,19 +2,17 @@
 
 import { MailCheck } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { INDUSTRIES, SHOP_CATEGORIES } from '../../../content/business/catalog/types';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
 import { onboardingDraftStore, sessionTokenStore } from '../../../lib/localStore';
 import type { ProductLineDto } from '../../../types/business/me';
 import { AppButton } from '../../ui/AppButton';
-import { ChipGroup } from '../../ui/Chip';
 import { Field } from '../../ui/Field';
 import { SkeletonText } from '../../ui/Skeleton';
 import { TextInput } from '../../ui/TextInput';
 import { StepCard } from './StepCard';
 
 type AccountResponse = { status: 'session'; token: string } | { status: 'check_email' };
-type Profile = { firstName: string; businessName: string; industry: string; handle: string };
+type Profile = { firstName: string; handle: string };
 type Draft = Profile & { product: ProductLineDto };
 
 export type SignedInUser = { email: string; displayName: string | null };
@@ -39,13 +37,13 @@ const readDraft = (raw: string | null | undefined, product: ProductLineDto): Dra
   }
 };
 
-const profileBody = (product: ProductLineDto, p: Profile) => ({ product, firstName: p.firstName, businessName: p.businessName, handle: p.handle, industryOrCategory: p.industry });
+const profileBody = (product: ProductLineDto, p: Profile) => ({ product, firstName: p.firstName, handle: p.handle });
 
 const FIELD_ERRORS = ['invalid_email', 'first_name_required'];
 
 export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onSession }: AccountStepProps) => {
   const draft = readDraft(onboardingDraftStore.useValue(), product);
-  const [form, setForm] = useState({ email: '', firstName: draft?.firstName ?? signedIn?.displayName ?? '', businessName: draft?.businessName ?? '', industry: draft?.industry ?? '', handle: draft?.handle ?? '' });
+  const [form, setForm] = useState({ email: '', firstName: draft?.firstName ?? signedIn?.displayName ?? '', handle: draft?.handle ?? '' });
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
@@ -73,7 +71,7 @@ export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onS
         onSession();
         return;
       }
-      onboardingDraftStore.set(JSON.stringify({ product, firstName: form.firstName, businessName: form.businessName, industry: form.industry, handle: form.handle } satisfies Draft));
+      onboardingDraftStore.set(JSON.stringify({ product, firstName: form.firstName, handle: form.handle } satisfies Draft));
       const res = await apiFetch<AccountResponse>('/api/app/onboarding/account', { method: 'POST', json: { ...profileBody(product, form), email: form.email } });
       if (res.status === 'session') {
         sessionTokenStore.set(res.token);
@@ -88,7 +86,7 @@ export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onS
 
   if (autoCreate) {
     return (
-      <StepCard title={hasOtherStudio ? `Adding ${product === 'brand' ? 'Brand' : 'Shop'} Studio…` : 'Setting up your studio…'} sub="Welcome back. This takes a second.">
+      <StepCard title={hasOtherStudio ? `Adding ${product === 'brand' ? 'Brand' : 'Shop'} Studio\u2026` : 'Setting up your studio\u2026'} sub="Welcome back. This takes a second.">
         <SkeletonText lines={3} />
       </StepCard>
     );
@@ -96,22 +94,21 @@ export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onS
 
   if (checkEmail) {
     return (
-      <StepCard title="Check your inbox" sub={`This email already has a Next5 account. We sent a secure link to ${form.email}. Open it on this device to finish setup — you won’t need to fill this in again.`}>
+      <StepCard title="Check your inbox" sub={`This email already has a Next5 account. We sent a secure link to ${form.email}. Open it on this device to finish setup \u2014 you won't need to fill this in again.`}>
         <MailCheck aria-hidden className="h-10 w-10 text-app-accent" />
       </StepCard>
     );
   }
 
   const isBrand = product === 'brand';
-  const options = isBrand ? INDUSTRIES : SHOP_CATEGORIES;
   return (
     <form onSubmit={submit}>
       <StepCard
-        title={isBrand ? 'Let’s set up your Brand Studio' : 'Let’s set up your Shop Studio'}
-        sub="Takes about 3 minutes. Your first photos are free. No card needed."
+        title={isBrand ? "Let\u2019s set up your Brand Studio" : "Let\u2019s set up your Shop Studio"}
+        sub="Takes about 3 minutes. No card needed."
         footer={<AppButton type="submit" size="lg" loading={busy}>Continue</AppButton>}
       >
-        {linkFailed && !signedIn && <p role="alert" className="rounded-xl bg-app-sunken px-4 py-3 text-[14px] text-app-ink">That link has expired or was already used. Enter your email again and we’ll send a new one.</p>}
+        {linkFailed && !signedIn && <p role="alert" className="rounded-xl bg-app-sunken px-4 py-3 text-[14px] text-app-ink">That link has expired or was already used. Enter your email again and we'll send a new one.</p>}
         {signedIn && (
           <p className="text-[14px] text-app-muted">
             Signed in as <span className="font-medium text-app-ink">{signedIn.email}</span>.{' '}
@@ -127,14 +124,8 @@ export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onS
           <Field label="First name" htmlFor="ob-first" required error={error?.field === 'first_name_required' ? error.message : undefined}>
             <TextInput id="ob-first" autoComplete="given-name" required value={form.firstName} onChange={(e) => set('firstName')(e.target.value)} />
           </Field>
-          <Field label={isBrand ? 'Business name' : 'Shop name'} htmlFor="ob-biz" helper="Optional">
-            <TextInput id="ob-biz" value={form.businessName} onChange={(e) => set('businessName')(e.target.value)} placeholder={isBrand ? 'Linh Realty' : 'Linh Closet'} />
-          </Field>
           <Field label="Instagram, TikTok or Facebook" htmlFor="ob-handle" helper="Optional">
             <TextInput id="ob-handle" value={form.handle} onChange={(e) => set('handle')(e.target.value)} placeholder="@yourbusiness" />
-          </Field>
-          <Field label={isBrand ? 'What do you do?' : 'What do you sell?'} className="sm:col-span-2">
-            <ChipGroup options={options.map((o) => ({ value: o.id, label: o.label }))} value={form.industry} onChange={(v) => set('industry')(String(v))} />
           </Field>
         </div>
         {error && !FIELD_ERRORS.includes(error.field ?? '') && <p role="alert" className="text-[14px] text-app-danger">{error.message}</p>}

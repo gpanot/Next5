@@ -14,13 +14,20 @@ export const PATCH = authedRoute(async (req, session) => {
   if (!Number.isInteger(step) || step < 0 || step > ONBOARDING_STEPS) throw new HttpError(400, 'invalid_step', 'Unknown step.');
   const ws = await requireWorkspace(session.userId, body.product);
 
-  // Extract and validate B2B qualification fields if provided
+  // Extract and validate workspace + B2B qualification fields if provided
   const qualData: Record<string, unknown> = {};
+  // Step 2 — business profile
+  if (typeof body.workspaceName === 'string' && body.workspaceName) qualData.name = body.workspaceName;
+  if (typeof body.industry === 'string' && body.industry) qualData.industry = body.industry;
+  // Step 3 — team + revenue
   if (typeof body.teamSize === 'string' && body.teamSize) qualData.teamSize = body.teamSize;
   if (typeof body.monthlyRevenue === 'string' && body.monthlyRevenue) qualData.monthlyRevenue = body.monthlyRevenue;
+  // Step 4 — role
   if (typeof body.role === 'string' && body.role) qualData.obRole = body.role;
+  // Step 5 — intent + goals
   if (typeof body.signupIntent === 'string' && body.signupIntent) qualData.signupIntent = body.signupIntent;
   if (Array.isArray(body.goals)) qualData.goals = body.goals.map(String);
+  // Step 6 — attribution
   if (Array.isArray(body.attribution)) qualData.attribution = body.attribution.map(String);
 
   const updated = await prisma.workspace.update({

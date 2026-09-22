@@ -12,6 +12,7 @@
  * All clip durations are trimmed / looped to match durationInFrames.
  */
 
+import type React from 'react';
 import { useEffect, useMemo, useRef } from 'react';
 import {
   AbsoluteFill,
@@ -97,8 +98,15 @@ export function GreenScreenComposition({
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' },
   );
 
-  // Caption Y position in px (bottom-anchored using positionY fraction)
-  const captionBottom = height * (1 - textConfig.positionY);
+  // Caption position: positionY is the fraction of canvas height from the top where the
+  // caption bottom-edge sits. e.g. positionY=0.15 → caption bottom at 15% from top.
+  const captionTopFraction = textConfig.positionY; // 0 = very top, 1 = very bottom
+  // Convert to a paddingBottom so flex-end pushes the text to the right place.
+  // paddingBottom = height - (positionY * height) = height * (1 - positionY)
+  const captionBottom = height * (1 - captionTopFraction);
+
+  const strokeW = textConfig.strokeWidth ?? 3;
+  const strokeC = textConfig.strokeColor ?? '#000000';
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
@@ -147,15 +155,21 @@ export function GreenScreenComposition({
             paddingBottom: captionBottom,
             paddingLeft: textConfig.safeZonePadding,
             paddingRight: textConfig.safeZonePadding,
+            // Horizontal offset for text repositioning
+            transform: textConfig.offsetX ? `translateX(${textConfig.offsetX}px)` : undefined,
           }}
         >
           <p
             style={{
               fontFamily: textConfig.font,
               fontSize: textConfig.fontSize,
-              color: '#fff',
+              fontWeight: textConfig.fontWeight ?? 700,
+              color: textConfig.color ?? '#ffffff',
               textAlign: 'center',
-              textShadow: '0 2px 8px rgba(0,0,0,0.8)',
+              // Stroke via webkit (works in headless Chrome / Remotion)
+              ...(strokeW > 0
+                ? ({ WebkitTextStroke: `${strokeW}px ${strokeC}` } as React.CSSProperties)
+                : { textShadow: '0 2px 8px rgba(0,0,0,0.8)' }),
               margin: 0,
               lineHeight: 1.3,
               maxWidth: width - textConfig.safeZonePadding * 2,

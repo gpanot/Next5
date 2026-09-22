@@ -21,11 +21,16 @@ export const BLITZ_CANVAS_HEIGHT = 1920;
 
 /** Default textConfig baked into new templates. */
 export const BLITZ_DEFAULT_TEXT_CONFIG = {
-  font: 'sans-serif',
-  positionY: 0.15,    // 15 % from bottom
+  font: 'Arial, sans-serif',
+  positionY: 0.15,       // caption bottom edge at 15 % of canvas height from the top
   fontSize: 52,
   safeZonePadding: 48,
-} as const;
+  fontWeight: 700,
+  color: '#ffffff',
+  strokeWidth: 3,
+  strokeColor: '#000000',
+  offsetX: 0,
+};
 
 export type BlitzAssetType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO';
 export const BLITZ_ASSET_TYPES: BlitzAssetType[] = ['BACKGROUND', 'OVERLAY', 'AUDIO'];

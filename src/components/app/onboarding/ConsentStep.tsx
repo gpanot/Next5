@@ -2,70 +2,119 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
+import { INDUSTRIES, SHOP_CATEGORIES } from '../../../content/business/catalog/types';
 import { hasRequiredConsents } from '../../../config/consents';
 import { apiFetch } from '../../../lib/apiClient';
 import { AppButton } from '../../ui/AppButton';
 import { Checkbox } from '../../ui/Checkbox';
+import { ChipGroup } from '../../ui/Chip';
+import { Field } from '../../ui/Field';
 import { SkeletonText } from '../../ui/Skeleton';
+import { TextInput } from '../../ui/TextInput';
 import { StepCard } from './StepCard';
 import { stepError, type StepProps } from './types';
 
 export const ConsentStep = ({ product, me, advance }: StepProps) => {
   const alreadyGiven = hasRequiredConsents(product, me.user.consents);
   const skipped = useRef(false);
-  // Accepted before (sign-up or the other studio): don't ask twice.
+
+  // Accepted before (sign-up or the other studio): skip consents but still collect business profile.
+  // We intentionally do NOT auto-skip the whole step — we still want businessName + industry.
+  // Only skip when the workspace already has a name that isn't just the user's first name,
+  // meaning they already went through this step on a previous session.
+  const alreadyProfiled = Boolean(me.workspace?.industry);
+
   useEffect(() => {
-    if (!alreadyGiven || skipped.current) return;
+    if (!alreadyGiven || !alreadyProfiled || skipped.current) return;
     skipped.current = true;
     void advance(2).catch(() => { skipped.current = false; });
-  }, [alreadyGiven, advance]);
+  }, [alreadyGiven, alreadyProfiled, advance]);
 
+  const isBrand = product === 'brand';
+  const industryOptions = isBrand ? INDUSTRIES : SHOP_CATEGORIES;
+
+  const [businessName, setBusinessName] = useState(me.workspace?.name ?? '');
+  const [industry, setIndustry] = useState(me.workspace?.industry ?? '');
   const [terms, setTerms] = useState(false);
   const [face, setFace] = useState(false);
   const [labels, setLabels] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const faceRequired = product === 'brand';
-  const canContinue = terms && labels && (!faceRequired || face);
+  const consentOk = terms && labels && (!faceRequired || face);
+  const canContinue = consentOk || alreadyGiven;
 
   const submit = async () => {
     setBusy(true);
     setError(null);
     try {
-      const types = ['terms', 'ai_labeling', ...(face ? ['face_processing'] : [])];
-      await apiFetch('/api/app/consents', { method: 'POST', json: { types } });
-      await advance(2);
+      if (!alreadyGiven) {
+        const types = ['terms', 'ai_labeling', ...(face ? ['face_processing'] : [])];
+        await apiFetch('/api/app/consents', { method: 'POST', json: { types } });
+      }
+      await advance(2, {
+        data: {
+          workspaceName: businessName.trim() || undefined,
+          industry: industry || undefined,
+        },
+      });
     } catch (err) {
       setError(stepError(err, 'Could not save your choices.'));
       setBusy(false);
     }
   };
 
-  if (alreadyGiven) return <SkeletonText lines={4} />;
+  if (alreadyGiven && alreadyProfiled) return <SkeletonText lines={4} />;
 
   return (
     <StepCard
-      title="A few things before we start"
-      sub="We take your photos and your face seriously. Here is exactly what we do."
+      title="Your business"
+      sub="Tell us about your business and confirm a few things before we start."
       footer={<AppButton size="lg" disabled={!canContinue} loading={busy} onClick={submit}>Agree and continue</AppButton>}
     >
-      <div className="flex flex-col gap-5">
-        <Checkbox checked={face} onChange={setFace} label={
-          <span className="text-[14px] text-app-ink">
-            <strong className="font-semibold">These are photos of me.</strong> I agree that Next5 processes my face to create my photos. {faceRequired ? '' : '(Only needed if you’ll wear the products yourself.)'}
-            <span className="block text-app-muted">Used only to create your photos, never to train AI models. Delete them anytime.</span>
-          </span>
-        } />
-        <Checkbox checked={labels} onChange={setLabels} label={
-          <span className="text-[14px] text-app-ink">
-            <strong className="font-semibold">I understand my photos are AI-generated.</strong> Every file carries an AI label, and I’ll follow platform rules when posting.
-          </span>
-        } />
-        <Checkbox checked={terms} onChange={setTerms} label={
-          <span className="text-[14px] text-app-ink">I agree to the Next5 <Link href="/legal/terms" target="_blank" className="text-app-accent underline">Terms</Link>, <Link href="/legal/privacy" target="_blank" className="text-app-accent underline">Privacy Policy</Link> and <Link href="/legal/ai-and-face-data" target="_blank" className="text-app-accent underline">AI & face data</Link> notice.</span>
-        } />
-        {error && <p role="alert" className="text-[14px] text-app-danger">{error}</p>}
+      <div className="flex flex-col gap-6">
+        {/* Business profile fields */}
+        <div className="flex flex-col gap-4">
+          <Field label={isBrand ? 'Business name' : 'Shop name'} htmlFor="ob-biz-name" helper="Optional">
+            <TextInput
+              id="ob-biz-name"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              placeholder={isBrand ? 'Linh Realty' : 'Linh Closet'}
+            />
+          </Field>
+          <div className="flex flex-col gap-2">
+            <p className="text-[14px] font-medium text-app-ink">{isBrand ? 'What do you do?' : 'What do you sell?'}</p>
+            <ChipGroup
+              options={industryOptions.map((o) => ({ value: o.id, label: o.label }))}
+              value={industry}
+              onChange={(v) => setIndustry(String(v))}
+            />
+          </div>
+        </div>
+
+        {/* Consent checkboxes — hidden if already accepted */}
+        {!alreadyGiven && (
+          <div className="flex flex-col gap-4 border-t border-app-line pt-5">
+            <p className="text-[13px] text-app-muted">We take your photos and your face seriously. Here is exactly what we do.</p>
+            <Checkbox checked={face} onChange={setFace} label={
+              <span className="text-[14px] text-app-ink">
+                <strong className="font-semibold">These are photos of me.</strong> I agree that Next5 processes my face to create my photos. {faceRequired ? '' : '(Only needed if you\'ll wear the products yourself.)'}
+                <span className="block text-app-muted">Used only to create your photos, never to train AI models. Delete them anytime.</span>
+              </span>
+            } />
+            <Checkbox checked={labels} onChange={setLabels} label={
+              <span className="text-[14px] text-app-ink">
+                <strong className="font-semibold">I understand my photos are AI-generated.</strong> Every file carries an AI label, and I'll follow platform rules when posting.
+              </span>
+            } />
+            <Checkbox checked={terms} onChange={setTerms} label={
+              <span className="text-[14px] text-app-ink">I agree to the Next5 <Link href="/legal/terms" target="_blank" className="text-app-accent underline">Terms</Link>, <Link href="/legal/privacy" target="_blank" className="text-app-accent underline">Privacy Policy</Link> and <Link href="/legal/ai-and-face-data" target="_blank" className="text-app-accent underline">AI & face data</Link> notice.</span>
+            } />
+          </div>
+        )}
       </div>
+      {error && <p role="alert" className="text-[14px] text-app-danger">{error}</p>}
     </StepCard>
   );
 };
