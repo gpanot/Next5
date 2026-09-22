@@ -70,7 +70,8 @@ export const HeroCalendar = ({ content, now }: { content: HeroCalendarContent; n
   const videos = cells.filter((c) => c?.post?.video).length;
   return (
     <div className="relative">
-      <figure className="rounded-3xl bg-app-panel p-3 shadow-xl ring-1 ring-black/5 sm:p-5 sm:pb-20 dark:ring-white/10">
+      <figure className="rounded-3xl bg-app-panel p-3 shadow-xl ring-1 ring-black/5 sm:p-5 sm:pb-20 dark:ring-white/10 animate-float"
+        style={{ animationDuration: '5s' }}>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2 sm:mb-4">
           <span className="flex items-center gap-2 text-[15px] font-semibold text-app-ink sm:text-[17px]"><CalendarDays aria-hidden className="h-4 w-4 text-app-accent sm:h-5 sm:w-5" />{name}</span>
           <span className="flex items-center gap-3 text-[12px] text-app-muted sm:text-[13px]">

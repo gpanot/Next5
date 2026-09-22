@@ -1,12 +1,13 @@
 import { Camera, Play } from 'lucide-react';
 import { HOME_MONTH, type MonthTile } from '../../../content/business/home';
+import { AnimateIn } from '../../ui/AnimateIn';
 import { MarketingImage } from '../shared/MarketingImage';
 
-const Tile = ({ tile }: { tile: MonthTile }) => (
-  <li className="relative aspect-[4/5] w-[44%] shrink-0 snap-start overflow-hidden rounded-2xl sm:w-auto bg-app-sunken ring-1 ring-black/5 dark:ring-white/10">
-    <MarketingImage src={tile.image} sizes="(min-width: 1024px) 30vw, 50vw" className="object-[center_20%]" />
+const Tile = ({ tile, index }: { tile: MonthTile; index: number }) => (
+  <AnimateIn as="li" delay={index * 90} className="relative aspect-[4/5] w-[44%] shrink-0 snap-start overflow-hidden rounded-2xl sm:w-auto bg-app-sunken ring-1 ring-black/5 dark:ring-white/10 group">
+    <MarketingImage src={tile.image} sizes="(min-width: 1024px) 30vw, 50vw" className="object-[center_20%] transition-transform duration-500 group-hover:scale-[1.04]" />
     {tile.kind === 'video' && (
-      <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 shadow-md" aria-hidden>
+      <span className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 shadow-md transition-transform duration-300 group-hover:scale-110" aria-hidden>
         <Play className="ml-0.5 h-5 w-5 fill-ink text-ink" />
       </span>
     )}
@@ -14,12 +15,12 @@ const Tile = ({ tile }: { tile: MonthTile }) => (
       {tile.kind === 'video' ? <Play aria-hidden className="h-3 w-3 fill-white" /> : <Camera aria-hidden className="h-3 w-3" />}
       {tile.kind === 'video' ? 'Video' : 'Photo'} · {tile.who}
     </span>
-  </li>
+  </AnimateIn>
 );
 
 /** Six sample outputs, photos and videos, for both buyers. Pictures first, almost no words. */
 export const MonthGrid = () => (
   <ul className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-3" aria-label="Sample posts. Swipe to see more.">
-    {HOME_MONTH.tiles.map((tile) => <Tile key={tile.image} tile={tile} />)}
+    {HOME_MONTH.tiles.map((tile, index) => <Tile key={tile.image} tile={tile} index={index} />)}
   </ul>
 );

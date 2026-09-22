@@ -119,8 +119,19 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-sheet-in,
-  .animate-caret-blink {
-    animation: none;
+  .animate-caret-blink,
+  .animate-hero-1,
+  .animate-hero-2,
+  .animate-hero-3,
+  .animate-hero-4,
+  .animate-hero-5,
+  .animate-hero-6,
+  .animate-hero-right,
+  .animate-hero-bg,
+  .animate-float {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
 
@@ -192,4 +203,61 @@ body {
 
 @utility animate-unflip {
   animation: unflip-card 0.7s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Hero entrance & ambient animations                                  */
+/* ------------------------------------------------------------------ */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+/* Staggered hero entrance — assign to each element in order */
+@utility animate-hero-1 {
+  animation: fade-up 0.65s 0.05s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility animate-hero-2 {
+  animation: fade-up 0.75s 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility animate-hero-3 {
+  animation: fade-up 0.65s 0.30s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility animate-hero-4 {
+  animation: fade-up 0.65s 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility animate-hero-5 {
+  animation: fade-up 0.65s 0.54s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@utility animate-hero-6 {
+  animation: fade-up 0.65s 0.64s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Hero right column: slides in from the right */
+@utility animate-hero-right {
+  animation: slide-in-right 0.90s 0.30s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Hero gradient: slow ambient fade-in */
+@utility animate-hero-bg {
+  animation: fade-in 2s ease-out both;
+}
+
+/* Gentle perpetual float — hero calendar */
+@utility animate-float {
+  animation: float 5s ease-in-out infinite;
 }
