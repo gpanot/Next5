@@ -1113,6 +1113,21 @@ CREATE TABLE public.users (
 
 
 --
+-- Name: workspace_angles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.workspace_angles (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    label character varying(100) NOT NULL,
+    weight integer DEFAULT 33 NOT NULL,
+    "position" integer DEFAULT 0 NOT NULL,
+    source text DEFAULT 'ai'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: workspaces; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1136,7 +1151,12 @@ CREATE TABLE public.workspaces (
     ob_role character varying(50),
     signup_intent character varying(50),
     goals text[] DEFAULT '{}'::text[] NOT NULL,
-    attribution text[] DEFAULT '{}'::text[] NOT NULL
+    attribution text[] DEFAULT '{}'::text[] NOT NULL,
+    website_url text,
+    mention_frequency text DEFAULT 'sometimes'::text NOT NULL,
+    gender_filter text,
+    angles_gen_state text DEFAULT 'idle'::text NOT NULL,
+    angles_gen_at timestamp with time zone
 );
 
 
@@ -1521,6 +1541,14 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.users
     ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: workspace_angles workspace_angles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.workspace_angles
+    ADD CONSTRAINT workspace_angles_pkey PRIMARY KEY (id);
 
 
 --
@@ -2001,6 +2029,13 @@ CREATE INDEX ugc_videos_status_idx ON public.ugc_videos USING btree (status);
 
 
 --
+-- Name: workspace_angles_workspace_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX workspace_angles_workspace_id_idx ON public.workspace_angles USING btree (workspace_id);
+
+
+--
 -- Name: workspaces_owner_user_id_product_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2381,6 +2416,14 @@ ALTER TABLE ONLY public.ugc_videos
 
 
 --
+-- Name: workspace_angles workspace_angles_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.workspace_angles
+    ADD CONSTRAINT workspace_angles_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
 -- Name: workspaces workspaces_owner_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2438,4 +2481,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261003090000'),
     ('20261004090000'),
     ('20261005090000'),
-    ('20261006090000');
+    ('20261006090000'),
+    ('20261007090000');

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiFetch } from '../../../lib/apiClient';
 import type { ProductLineDto, WorkspaceAngleDto } from '../../../types/business/me';
 
@@ -66,15 +66,14 @@ export const VoiceSettingsSection = ({ angles, mentionFrequency, genderFilter, p
   const [gender, setGender] = useState<string | null>(genderFilter);
   const [saving, setSaving] = useState(false);
 
-  const totalWeight = angles.reduce((s, a) => s + a.weight, 0);
-
-  // ── Weight updates (live, no server call until blur/equalize) ────────────
+  // ── Weight updates (live, no server call until save) ────────────────────
   const [localAngles, setLocalAngles] = useState<WorkspaceAngleDto[]>(angles);
   // Sync when parent sends fresh angles (e.g. after regeneration)
-  const prevAnglesRef = { current: angles };
-  if (prevAnglesRef.current !== angles && JSON.stringify(angles) !== JSON.stringify(localAngles)) {
+  useEffect(() => {
     setLocalAngles(angles);
-  }
+  }, [angles]);
+
+  const totalWeight = localAngles.reduce((s, a) => s + a.weight, 0);
 
   const handleWeightChange = (id: string, weight: number) => {
     setLocalAngles((prev) => prev.map((a) => (a.id === id ? { ...a, weight } : a)));
@@ -122,7 +121,10 @@ export const VoiceSettingsSection = ({ angles, mentionFrequency, genderFilter, p
     }).catch(() => undefined);
   };
 
-  const hasChanges = JSON.stringify(localAngles.map((a) => a.weight)) !== JSON.stringify(angles.map((a) => a.weight));
+  // Detect unsaved weight changes — compare localAngles vs. what arrived from parent last sync
+  // We derive a stable "committed" snapshot from localAngles when a save completes,
+  // but for simplicity we compare against the prop each render (saves are the only way to update props).
+  const hasChanges = localAngles.some((a, i) => a.weight !== (angles[i]?.weight ?? a.weight));
 
   return (
     <section className="flex flex-col gap-5 rounded-2xl border border-app-line bg-app-surface p-5">
