@@ -1,0 +1,1107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  confirmed
+}
+
+enum ShootStatus {
+  preview_generating
+  preview_ready
+  creating
+  delivered
+  error
+}
+
+enum PhotoType {
+  upload
+  preview
+  generated
+}
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  displayName String?  @map("display_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  /**
+   * Claimed from the studio-reveal upsell. Null percent = no active offer.
+   */
+  activeOfferPercent  Int?     @map("active_offer_percent")
+  activeOfferLabel    String?  @map("active_offer_label")
+  activeOfferRouteIds String[] @default([]) @map("active_offer_route_ids")
+
+  bookings Booking[]
+  photos   Photo[]
+
+  // Business studios (Brand / Shop)
+  workspaces Workspace[]
+  consents   ConsentRecord[]
+  payments   Payment[]
+
+  @@map("users")
+}
+
+model Prompt {
+  id         String   @id @default(cuid())
+  routeId    String   @map("route_id")
+  sceneIndex Int      @map("scene_index")
+  prompt     String
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@unique([routeId, sceneIndex])
+  @@index([routeId])
+  @@map("prompts")
+}
+
+model Booking {
+  id              String        @id
+  userId          String?       @map("user_id")
+  routeId         String        @map("route_id")
+  routeTitle      String        @map("route_title")
+  directorId      String        @default("") @map("director_id")
+  directorName    String        @default("") @map("director_name")
+  feelings        String[]
+  goals           String[]
+  amountVnd       Int?          @map("amount_vnd")
+  discountPercent Int?          @map("discount_percent")
+  paymentStatus   PaymentStatus @default(pending) @map("payment_status")
+  shootStatus     ShootStatus   @default(preview_generating) @map("shoot_status")
+  wavespeedTaskId String?       @map("wavespeed_task_id")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  /**
+   * Regeneration tracking — players can request up to 2 regenerations per booking within 24 h.
+   */
+  regenerateCount  Int       @default(0) @map("regenerate_count")
+  regenerateLastAt DateTime? @map("regenerate_last_at")
+
+  /**
+   * Preview feedback — captured on the first-shot preview screen.
+   */
+  previewFeedback       String? @map("preview_feedback")
+  previewFeedbackDetail String? @map("preview_feedback_detail")
+
+  user          User?                 @relation(fields: [userId], references: [id])
+  photos        Photo[]
+  regenerations BookingRegeneration[]
+
+  @@index([userId])
+  @@index([wavespeedTaskId])
+  @@map("bookings")
+}
+
+model Photo {
+  id           String    @id @default(cuid())
+  bookingId    String    @map("booking_id")
+  userId       String?   @map("user_id")
+  type         PhotoType
+  sceneIndex   Int?      @map("scene_index")
+  r2Key        String?   @map("r2_key")
+  wavespeedUrl String?   @map("wavespeed_url")
+  isStored     Boolean   @default(false) @map("is_stored")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+  user    User?   @relation(fields: [userId], references: [id])
+
+  @@index([bookingId])
+  @@index([userId])
+  @@map("photos")
+}
+
+model BookingRegeneration {
+  id         String   @id @default(cuid())
+  bookingId  String   @map("booking_id")
+  sceneIndex Int?     @map("scene_index")
+  reason     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
+  @@map("booking_regenerations")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Business studios — Next5 Brand + Next5 Shop
+// Spec: docs/business-studios/02-architecture.md §4
+// ════════════════════════════════════════════════════════════════════════════
+
+enum ProductLine {
+  brand
+  shop
+}
+
+enum IdentityKind {
+  face
+  full_body
+}
+
+enum SetStatus {
+  draft
+  active
+  archived
+}
+
+enum BatchKind {
+  trial
+  brand_theme
+  shop_products
+}
+
+enum BatchStatus {
+  queued
+  generating
+  ready
+  failed
+  cancelled
+}
+
+enum ItemStatus {
+  queued
+  submitting
+  generating
+  ready
+  failed
+}
+
+enum SubscriptionStatus {
+  pending
+  active
+  expired
+  cancelled
+}
+
+enum PaymentPurpose {
+  subscription
+  topup
+  consumer_booking
+}
+
+enum PaymentState {
+  pending
+  paid
+  underpaid
+  expired
+  refunded
+}
+
+enum LedgerReason {
+  trial_grant
+  plan_grant
+  topup_grant
+  batch_reserve
+  item_refund
+  redo_charge
+  expiry
+  admin_adjust
+}
+
+model Workspace {
+  id                    String      @id @default(cuid())
+  ownerUserId           String      @map("owner_user_id")
+  product               ProductLine
+  name                  String
+  industry              String?
+  handle                String?
+  brandColors           String[]    @default([]) @map("brand_colors")
+  visibleAiTag          Boolean     @default(false) @map("visible_ai_tag")
+  defaultFormats        String[]    @default([]) @map("default_formats")
+  trialUsedAt           DateTime?   @map("trial_used_at")
+  onboardingStep        Int         @default(0) @map("onboarding_step")
+  onboardingCompletedAt DateTime?   @map("onboarding_completed_at")
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
+
+  owner             User                @relation(fields: [ownerUserId], references: [id])
+  identities        IdentityReference[]
+  sets              StudioSet[]
+  products          Product[]
+  batches           Batch[]
+  subscriptions     Subscription[]
+  ledger            CreditLedger[]
+  payments          Payment[]
+  promiseClaims     PromiseClaim[]
+  shopConnections   ShopConnection[]
+  listingPacks      ListingPack[]
+  dropSchedule      DropSchedule?
+  postSchedule      PostSchedule?
+  postMaterials     PostMaterial[]
+  postSlots         PostSlot[]
+  listings          Listing[]
+  socialConnections SocialConnection[]
+  socialPosts       SocialPost[]
+
+  @@unique([ownerUserId, product])
+  @@map("workspaces")
+}
+
+model IdentityReference {
+  id              String       @id @default(cuid())
+  workspaceId     String?      @map("workspace_id")
+  kind            IdentityKind
+  r2Key           String       @map("r2_key")
+  isStudioModel   Boolean      @default(false) @map("is_studio_model")
+  studioModelSlug String?      @map("studio_model_slug")
+  wavespeedUrl    String?      @map("wavespeed_url")
+  wavespeedUrlAt  DateTime?    @map("wavespeed_url_at")
+  deletedAt       DateTime?    @map("deleted_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId])
+  @@index([studioModelSlug])
+  @@map("identity_references")
+}
+
+model ConsentRecord {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  type       String
+  version    String
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  acceptedAt DateTime @default(now()) @map("accepted_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("consent_records")
+}
+
+model SetTemplate {
+  id          String      @id
+  product     ProductLine
+  name        String
+  description String
+  coverImage  String      @map("cover_image")
+  config      Json
+  sortOrder   Int         @default(0) @map("sort_order")
+  isActive    Boolean     @default(true) @map("is_active")
+
+  sets StudioSet[]
+
+  @@map("set_templates")
+}
+
+model StudioSet {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  templateId  String    @map("template_id")
+  name        String
+  locations   String[]
+  wardrobe    String?
+  poseEnergy  String?   @map("pose_energy")
+  brandColors String[]  @default([]) @map("brand_colors")
+  modelRef    String?   @map("model_ref")
+  status      SetStatus @default(active)
+  coverR2Key  String?   @map("cover_r2_key")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id])
+  template  SetTemplate @relation(fields: [templateId], references: [id])
+  batches   Batch[]
+
+  @@index([workspaceId])
+  @@map("studio_sets")
+}
+
+model Theme {
+  id            String  @id
+  title         String
+  description   String
+  coverImage    String  @map("cover_image")
+  scenes        Json
+  featuredMonth String? @map("featured_month")
+  isActive      Boolean @default(true) @map("is_active")
+  sortOrder     Int     @default(0) @map("sort_order")
+
+  batches Batch[]
+
+  @@map("themes")
+}
+
+model Product {
+  id               String    @id @default(cuid())
+  workspaceId      String    @map("workspace_id")
+  name             String
+  category         String
+  colorName        String?   @map("color_name")
+  sku              String?
+  fit              String?
+  notes            String?
+  frontR2Key       String    @map("front_r2_key")
+  backR2Key        String?   @map("back_r2_key")
+  detailR2Key      String?   @map("detail_r2_key")
+  /// upload | tiktok_scrape | tiktok_export | tiktok_api
+  source           String    @default("upload")
+  externalId       String?   @map("external_id")
+  externalUrl      String?   @map("external_url")
+  categoryPath     String?   @map("category_path")
+  description      String?
+  /// Shop Post Kit for the whole listing (all photos of this product); generated on demand, cached.
+  postKit          Json?     @map("post_kit")
+  priceCents       Int?      @map("price_cents")
+  currency         String?
+  soldCount        Int?      @map("sold_count")
+  imageUrls        String[]  @default([]) @map("image_urls")
+  /// The listing image used as the product reference (downloaded to frontR2Key).
+  frontImageUrl    String?   @map("front_image_url")
+  /// [{ id, name, color, size, priceCents, stock, imageUrl }]
+  variants         Json?
+  specifications   Json?
+  detailsFetchedAt DateTime? @map("details_fetched_at")
+  importedAt       DateTime? @map("imported_at")
+  lastSyncedAt     DateTime? @map("last_synced_at")
+  lastUsedAt       DateTime? @map("last_used_at")
+  archivedAt       DateTime? @map("archived_at")
+  /// The seller archived it by hand: a store sync must not bring it back.
+  archivedBySeller Boolean   @default(false) @map("archived_by_seller")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id])
+  items       BatchItem[]
+  snapshots   ProductSnapshot[]
+  postSlots   PostSlot[]
+  listingPack ListingPack?
+
+  @@unique([workspaceId, source, externalId])
+  @@index([workspaceId])
+  @@map("products")
+}
+
+model Batch {
+  id              String      @id @default(cuid())
+  workspaceId     String      @map("workspace_id")
+  kind            BatchKind
+  status          BatchStatus @default(queued)
+  name            String
+  setId           String?     @map("set_id")
+  themeId         String?     @map("theme_id")
+  packId          String?     @map("pack_id")
+  formats         String[]
+  highRes         Boolean     @default(false) @map("high_res")
+  priority        Int         @default(2)
+  creditsReserved Int         @default(0) @map("credits_reserved")
+  costUsdMicros   Int         @default(0) @map("cost_usd_micros")
+  /// Set when the batch was built from one property's photos.
+  listingId       String?     @map("listing_id")
+  /// Property batches: coming_soon | just_listed | for_sale | open_house | under_contract | just_sold.
+  occasion        String?
+  /// Free "preview on me" photos for one style; kept out of the library, batch list and calendar.
+  preview         Boolean     @default(false)
+  createdAt       DateTime    @default(now()) @map("created_at")
+  completedAt     DateTime?   @map("completed_at")
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id])
+  set       StudioSet?  @relation(fields: [setId], references: [id])
+  theme     Theme?      @relation(fields: [themeId], references: [id])
+  listing   Listing?    @relation(fields: [listingId], references: [id])
+  items     BatchItem[]
+
+  @@index([workspaceId, createdAt])
+  @@index([setId, preview])
+  @@map("batches")
+}
+
+model BatchItem {
+  id               String     @id @default(cuid())
+  batchId          String     @map("batch_id")
+  productId        String?    @map("product_id")
+  sceneId          String?    @map("scene_id")
+  shot             String?
+  format           String
+  prompt           String
+  inputR2Keys      String[]   @map("input_r2_keys")
+  status           ItemStatus @default(queued)
+  attempts         Int        @default(0)
+  wavespeedTaskId  String?    @map("wavespeed_task_id")
+  r2Key            String?    @map("r2_key")
+  errorMessage     String?    @map("error_message")
+  /// Image model for the current run: null = nano-banana-2, "gpt-image-2" after the fallback retry.
+  model            String?
+  freeRedosUsed    Int        @default(0) @map("free_redos_used")
+  redoReason       String?    @map("redo_reason")
+  /// Refund key for the current run when it was paid; null for free redos.
+  pendingRefundKey String?    @map("pending_refund_key")
+  favorite         Boolean    @default(false)
+  rating           Int?
+  caption          String?
+  /// Post Kit: { hook, caption, hashtags[], description? } — generated on demand, cached.
+  postKit          Json?      @map("post_kit")
+  /// Scroll-Stop Score 0–100 from the vision rubric (src/server/score).
+  score            Int?
+  scoreDetails     Json?      @map("score_details")
+  /// The drop-box material this photo was built from, so a slot can show "24 Oak St".
+  materialId       String?    @map("material_id")
+  /// She archived it (trash icon): hidden from the batch, library, zips and calendar.
+  archivedAt       DateTime?  @map("archived_at")
+  submittedAt      DateTime?  @map("submitted_at")
+  completedAt      DateTime?  @map("completed_at")
+  createdAt        DateTime   @default(now()) @map("created_at")
+
+  batch    Batch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  product  Product?      @relation(fields: [productId], references: [id])
+  material PostMaterial? @relation(fields: [materialId], references: [id])
+  slots    PostSlot[]
+
+  @@index([batchId])
+  @@index([status, createdAt])
+  @@index([wavespeedTaskId])
+  @@map("batch_items")
+}
+
+model Subscription {
+  id           String             @id @default(cuid())
+  workspaceId  String             @map("workspace_id")
+  planId       String             @map("plan_id")
+  termMonths   Int                @map("term_months")
+  status       SubscriptionStatus @default(pending)
+  startsAt     DateTime?          @map("starts_at")
+  endsAt       DateTime?          @map("ends_at")
+  nextGrantAt  DateTime?          @map("next_grant_at")
+  grantsIssued Int                @default(0) @map("grants_issued")
+  paymentId    String?            @unique @map("payment_id")
+  createdAt    DateTime           @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@index([workspaceId, status])
+  @@index([nextGrantAt])
+  @@map("subscriptions")
+}
+
+model CreditLedger {
+  id          String       @id @default(cuid())
+  workspaceId String       @map("workspace_id")
+  delta       Int
+  reason      LedgerReason
+  bucket      String
+  grantId     String?      @map("grant_id")
+  refType     String?      @map("ref_type")
+  refId       String?      @map("ref_id")
+  expiresAt   DateTime?    @map("expires_at")
+  note        String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([reason, bucket, refType, refId, grantId])
+  @@index([workspaceId, createdAt])
+  @@index([grantId])
+  @@map("credit_ledger")
+}
+
+model Payment {
+  id             String         @id @default(cuid())
+  userId         String         @map("user_id")
+  workspaceId    String?        @map("workspace_id")
+  bookingId      String?        @map("booking_id")
+  purpose        PaymentPurpose
+  itemId         String         @map("item_id")
+  amountUsdCents Int?           @map("amount_usd_cents")
+  amountVnd      Int            @map("amount_vnd")
+  fxVndPerUsd    Int?           @map("fx_vnd_per_usd")
+  reference      String         @unique
+  provider       String         @default("mock")
+  state          PaymentState   @default(pending)
+  paidVnd        Int?           @map("paid_vnd")
+  expiresAt      DateTime       @map("expires_at")
+  paidAt         DateTime?      @map("paid_at")
+  fulfilledAt    DateTime?      @map("fulfilled_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  user      User       @relation(fields: [userId], references: [id])
+  workspace Workspace? @relation(fields: [workspaceId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([workspaceId, createdAt])
+  @@map("payments")
+}
+
+model BankTransaction {
+  id            String   @id @default(cuid())
+  provider      String   @default("sepay")
+  providerTxnId String   @map("provider_txn_id")
+  amountVnd     Int      @map("amount_vnd")
+  content       String
+  reference     String?
+  paymentId     String?  @map("payment_id")
+  matchStatus   String   @map("match_status")
+  raw           Json
+  receivedAt    DateTime @default(now()) @map("received_at")
+
+  @@unique([provider, providerTxnId])
+  @@index([matchStatus])
+  @@map("bank_transactions")
+}
+
+model EmailLog {
+  id          String    @id @default(cuid())
+  userId      String    @map("user_id")
+  workspaceId String?   @map("workspace_id")
+  template    String
+  dedupeKey   String    @unique @map("dedupe_key")
+  sentAt      DateTime? @map("sent_at")
+  error       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("email_logs")
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  action     String
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  details    Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([targetType, targetId], map: "admin_audit_logs_target_idx")
+  @@map("admin_audit_logs")
+}
+
+model RateLimit {
+  key         String
+  windowStart DateTime @map("window_start")
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@map("rate_limits")
+}
+
+/// "Beat your feed" promise claim: the customer compares her Next5 posts with her earlier posts (self-reported).
+model PromiseClaim {
+  id              String    @id @default(cuid())
+  workspaceId     String    @map("workspace_id")
+  userId          String    @map("user_id")
+  platform        String
+  /// likes | views | saves | clicks
+  metric          String
+  beforeAverage   Int       @map("before_average")
+  afterAverage    Int       @map("after_average")
+  postsCounted    Int       @map("posts_counted")
+  links           String[]  @default([])
+  note            String?
+  sharePermission Boolean   @default(false) @map("share_permission")
+  /// pending | granted | declined
+  status          String    @default("pending")
+  /// won (Next5 posts did better) | missed (free month owed)
+  outcome         String
+  adminNote       String?   @map("admin_note")
+  decidedAt       DateTime? @map("decided_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([status, createdAt])
+  @@map("promise_claims")
+}
+
+/// A seller's store connected to Shop Studio (V1: public scrape or Seller Center export; later the TikTok Shop API).
+model ShopConnection {
+  id              String    @id @default(cuid())
+  workspaceId     String    @map("workspace_id")
+  platform        String    @default("tiktok_shop")
+  /// scrape | export | api
+  source          String
+  shopUrl         String?   @map("shop_url")
+  externalShopId  String?   @map("external_shop_id")
+  shopName        String?   @map("shop_name")
+  shopLogoUrl     String?   @map("shop_logo_url")
+  /// pending | syncing | ready | failed
+  status          String    @default("pending")
+  runId           String?   @map("run_id")
+  productCount    Int       @default(0) @map("product_count")
+  totalSold       Int?      @map("total_sold")
+  lastSyncedAt    DateTime? @map("last_synced_at")
+  nextSyncAt      DateTime? @map("next_sync_at")
+  error           String?
+  ownerAttestedAt DateTime? @map("owner_attested_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, platform])
+  @@index([status, nextSyncAt])
+  @@map("shop_connections")
+}
+
+/// Sold count / price over time — the before/after baseline for imported products.
+model ProductSnapshot {
+  id         String   @id @default(cuid())
+  productId  String   @map("product_id")
+  soldCount  Int?     @map("sold_count")
+  priceCents Int?     @map("price_cents")
+  capturedAt DateTime @default(now()) @map("captured_at")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, capturedAt])
+  @@map("product_snapshots")
+}
+
+/// A product's TikTok Shop listing pack: up to 9 photos in upload order plus a 9:16 cover. Only saved once the seller edits it.
+model ListingPack {
+  id            String    @id @default(cuid())
+  workspaceId   String    @map("workspace_id")
+  productId     String    @unique @map("product_id")
+  /// draft | ready | uploaded
+  status        String    @default("draft")
+  slotItemIds   String[]  @default([]) @map("slot_item_ids")
+  hiddenItemIds String[]  @default([]) @map("hidden_item_ids")
+  coverItemId   String?   @map("cover_item_id")
+  uploadedAt    DateTime? @map("uploaded_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  product   Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, status])
+  @@map("listing_packs")
+}
+
+/// Shop Growth/Scale: every week (or two) we pick products that need photos and email a drop to review. Never spends credits by itself.
+model DropSchedule {
+  id              String    @id @default(cuid())
+  workspaceId     String    @unique @map("workspace_id")
+  active          Boolean   @default(true)
+  /// weekly | biweekly
+  cadence         String    @default("weekly")
+  /// 0 = Sunday … 6 = Saturday (UTC)
+  weekday         Int       @default(1)
+  productsPerDrop Int       @default(10) @map("products_per_drop")
+  setId           String?   @map("set_id")
+  packId          String    @default("listing") @map("pack_id")
+  formats         String[]  @default(["square_1_1", "story_9_16"])
+  nextRunAt       DateTime? @map("next_run_at")
+  lastRunAt       DateTime? @map("last_run_at")
+  lastProductIds  String[]  @default([]) @map("last_product_ids")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([active, nextRunAt])
+  @@map("drop_schedules")
+}
+
+/// Admin model bench: one product prompt run through several image models.
+model ModelTestRun {
+  id          String   @id @default(cuid())
+  label       String?
+  prompt      String
+  shot        String
+  format      String
+  resolution  String   @default("1k")
+  templateId  String?  @map("template_id")
+  modelRef    String?  @map("model_ref")
+  productName String?  @map("product_name")
+  inputR2Keys String[] @map("input_r2_keys")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  items ModelTestItem[]
+
+  @@map("model_test_runs")
+}
+
+model ModelTestItem {
+  id              String    @id @default(cuid())
+  runId           String    @map("run_id")
+  /// Image model id from src/config/imageModels.ts.
+  model           String
+  /// generating | ready | failed
+  status          String    @default("generating")
+  wavespeedTaskId String?   @map("wavespeed_task_id")
+  r2Key           String?   @map("r2_key")
+  error           String?
+  costUsdMicros   Int       @default(0) @map("cost_usd_micros")
+  submittedAt     DateTime? @map("submitted_at")
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  run ModelTestRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@map("model_test_items")
+}
+
+/// Brand Studio calendar: her posting cadence, and the autopilot that keeps it stocked.
+model PostSchedule {
+  id              String    @id @default(cuid())
+  workspaceId     String    @unique @map("workspace_id")
+  active          Boolean   @default(true)
+  /// 0-6, Sunday = 0. Default Tue/Thu/Sat — 12 posts a month, the promise threshold.
+  weekdays        Int[]     @default([2, 4, 6])
+  /// IANA zone, read from the browser on first save.
+  timezone        String    @default("UTC")
+  /// Place finished photos into open slots.
+  autoFill        Boolean   @default(true) @map("auto_fill")
+  /// Generate on her behalf. Off until her first manual batch (docs 11-calendar-plan §5.8).
+  autopilot       Boolean   @default(false)
+  /// How far ahead autopilot keeps her stocked.
+  bufferDays      Int       @default(14) @map("buffer_days")
+  weeklyDigest    Boolean   @default(true) @map("weekly_digest")
+  icsToken        String    @unique @map("ics_token")
+  lastFilledAt    DateTime? @map("last_filled_at")
+  lastGeneratedAt DateTime? @map("last_generated_at")
+  /// Autopilot stopped because nothing has been posted in a fortnight — the churn alarm.
+  pausedAt        DateTime? @map("paused_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  slots     PostSlot[]
+
+  @@map("post_schedules")
+}
+
+/// The drop box: her own photos (a listing, a treatment room) that we put her into.
+model PostMaterial {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  r2Key       String    @map("r2_key")
+  /// listing | room | other
+  kind        String    @default("listing")
+  label       String?
+  note        String?
+  /// The property this photo belongs to. Null for loose brand material.
+  listingId   String?   @map("listing_id")
+  /// The Zillow photo this was imported from. Null for her own uploads.
+  sourceUrl   String?   @map("source_url")
+  width       Int?
+  height      Int?
+  /// Room type from the import tagger (kitchen, exterior…). Used for preselecting and the prompt label.
+  tag         String?
+  usedAt      DateTime? @map("used_at")
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listing   Listing?    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  slots     PostSlot[]
+  items     BatchItem[]
+
+  @@index([workspaceId, createdAt])
+  @@map("post_materials")
+}
+
+/// One dated post. The photo is optional until autopilot or auto-fill lands one in it.
+model PostSlot {
+  id              String    @id @default(cuid())
+  workspaceId     String    @map("workspace_id")
+  scheduleId      String?   @map("schedule_id")
+  scheduledFor    DateTime  @map("scheduled_for") @db.Date
+  /// morning | midday | evening
+  slotOfDay       String    @default("evening") @map("slot_of_day")
+  itemId          String?   @map("item_id")
+  materialId      String?   @map("material_id")
+  /// Reserved for a Shop calendar; unused in P19.
+  productId       String?   @map("product_id")
+  platform        String    @default("instagram")
+  /// planned | posted | skipped
+  status          String    @default("planned")
+  postUrl         String?   @map("post_url")
+  postedAt        DateTime? @map("posted_at")
+  captionOverride String?   @map("caption_override")
+  /// auto | manual | drop
+  source          String    @default("auto")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  schedule    PostSchedule? @relation(fields: [scheduleId], references: [id])
+  item        BatchItem?    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  material    PostMaterial? @relation(fields: [materialId], references: [id])
+  product     Product?      @relation(fields: [productId], references: [id])
+  socialPosts SocialPost[]
+
+  @@unique([workspaceId, itemId])
+  @@index([workspaceId, scheduledFor])
+  @@index([workspaceId, status, postedAt])
+  @@index([itemId])
+  @@map("post_slots")
+}
+
+/// A property she represents. Photos of it are grouped so a batch is built only
+/// from rooms she gave us — we never invent a room (docs/business-studios/12-listing-mode-plan.md).
+model Listing {
+  id           String    @id @default(cuid())
+  workspaceId  String    @map("workspace_id")
+  label        String
+  /// She confirmed she represents this property (a self-declaration).
+  attestedAt   DateTime? @map("attested_at")
+  /// Off by default; visible-label rules differ by state and MLS, so it is her call.
+  visibleAiTag Boolean   @default(false) @map("visible_ai_tag")
+  /// upload | zillow (docs/business-studios/13-zillow-import-plan.md)
+  source       String    @default("upload")
+  zpid         String?
+  sourceUrl    String?   @map("source_url")
+  /// { street, city, state, zip, full }
+  address      Json?
+  priceCents   Int?      @map("price_cents")
+  beds         Int?
+  baths        Float?
+  sqft         Int?
+  /// coming_soon | just_listed | for_sale | open_house | pending | sold | off_market
+  status       String?
+  daysOnMarket Int?      @map("days_on_market")
+  /// Every photo of the Zillow gallery: { id, url, thumbUrl, tag }[]
+  candidates   Json?
+  /// fetching | failed while importing; ready once the photos are in
+  importStatus String    @default("ready") @map("import_status")
+  importError  String?   @map("import_error")
+  runId        String?   @map("run_id")
+  importedAt   DateTime? @map("imported_at")
+  syncedAt     DateTime? @map("synced_at")
+  archivedAt   DateTime? @map("archived_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  materials PostMaterial[]
+  batches   Batch[]
+
+  @@unique([workspaceId, zpid])
+  @@index([workspaceId, createdAt])
+  @@index([runId])
+  @@map("listings")
+}
+
+/// UGC Lab: a saved on-screen character — an AI portrait or an uploaded photo (cropped to 9:16).
+model UgcCharacter {
+  id           String   @id @default(cuid())
+  /// ai | photo | avatar
+  kind         String
+  imageKey     String   @map("image_key")
+  /// Image model for AI portraits, e.g. gemini-3-pro.
+  model        String?
+  /// Photo kind: what the photo shows — { person, setting, action, shot }.
+  scene        Json?
+  /// Avatar kind: portrait-clone JSON locking every visual attribute for consistent Seedance prompts.
+  portraitJson Json?    @map("portrait_json")
+  archived     Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  videos UgcVideo[]
+
+  @@index([kind, archived])
+  @@map("ugc_characters")
+}
+
+/// UGC Lab: one Seedance talking-head video. Files live in R2; provider URLs are never stored.
+model UgcVideo {
+  id                     String    @id @default(cuid())
+  characterId            String?   @map("character_id")
+  /// ai-character (image as look reference) | real-person (photo as first frame) | imported
+  mode                   String
+  script                 String
+  prompt                 String    @default("")
+  durationSec            Int       @map("duration_sec")
+  resolution             String
+  /// Which Treg route made it: openrouter | reapi. Older videos are all reapi.
+  provider               String    @default("reapi")
+  providerTaskId         String?   @unique @map("provider_task_id")
+  /// generating | ready | failed
+  status                 String    @default("generating")
+  rawKey                 String?   @map("raw_key")
+  captionedKey           String?   @map("captioned_key")
+  transcript             String?
+  error                  String?
+  lastPollError          String?   @map("last_poll_error")
+  estimatedCostUsdMicros Int       @default(0) @map("estimated_cost_usd_micros")
+  /// Real cost from the provider (reapi usage.credits × 1000). 0 until the video finishes.
+  costUsdMicros          Int       @default(0) @map("cost_usd_micros")
+  /// Last status check that found the video still generating.
+  lastCheckedAt          DateTime? @map("last_checked_at")
+  /// Submit → finish. The provider gives no finish time, so this is the midpoint between the last
+  /// "still generating" check and the first "done" check.
+  generationSeconds      Int?      @map("generation_seconds")
+  /// True when those two checks were at most 30 s apart — only precise timings feed wait estimates.
+  timingPrecise          Boolean   @default(false) @map("timing_precise")
+  submittedAt            DateTime? @map("submitted_at")
+  completedAt            DateTime? @map("completed_at")
+  createdAt              DateTime  @default(now()) @map("created_at")
+
+  character UgcCharacter? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([status])
+  @@map("ugc_videos")
+}
+
+/// UGC Clone: one Seedance 2.5 face-swap video. Files live in R2; reapi CDN URLs are never stored.
+model CloneVideo {
+  id            String    @id @default(cuid())
+  poyoTaskId    String    @unique @map("poyo_task_id")
+  characterKey  String    @map("character_key")
+  refVideoKey   String    @map("ref_video_key")
+  durationSec   Int       @map("duration_sec")
+  /// generating | ready | failed
+  status        String    @default("generating")
+  /// R2 key for the mirrored output video (set when status = ready)
+  rawKey        String?   @map("raw_key")
+  error         String?
+  costUsdMicros Int       @default(0) @map("cost_usd_micros")
+  /// Seedance model used (e.g. doubao-seedance-2.5-face)
+  model         String?
+  /// Resolution (e.g. 480p)
+  resolution    String?
+  /// Prompt sent to Seedance
+  prompt        String?
+  submittedAt   DateTime? @map("submitted_at")
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("clone_videos")
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Blitz Lab — low-cost UGC layer assembly (v0 feasibility)
+// Spec: .cursor/plans/blitz_lab_feature_6763b082.plan.md
+// ════════════════════════════════════════════════════════════════════════════
+
+enum BlitzTemplateType {
+  GREEN_SCREEN
+  BROLL_VIDEO
+  CAROUSEL
+
+  @@map("blitz_template_type")
+}
+
+enum BlitzRenderStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@map("blitz_render_status")
+}
+
+/// Blitz Lab: a reusable composition template (GREEN_SCREEN only in v0).
+model BlitzTemplate {
+  id              String            @id @default(cuid())
+  name            String
+  type            BlitzTemplateType @default(GREEN_SCREEN)
+  /// { backgroundKey, overlayKey, audioKey? } — R2 keys for default assets
+  defaultAssets   Json              @map("default_assets")
+  /// { font, positionY, fontSize, safeZonePadding }
+  textConfig      Json              @map("text_config")
+  defaultHookText String            @default("") @map("default_hook_text")
+  remixPrompt     String            @default("") @map("remix_prompt")
+  durationSeconds Float             @default(5.0) @map("duration_seconds")
+  fps             Int               @default(30)
+  createdAt       DateTime          @default(now()) @map("created_at")
+
+  projects BlitzProject[]
+
+  @@map("blitz_templates")
+}
+
+/// Blitz Lab: a single swappable asset in the asset library (manually seeded).
+/// OVERLAY assets MUST be pre-keyed WebM (VP9 alpha) — no chroma-keying at render time.
+model BlitzAsset {
+  id           String   @id @default(cuid())
+  name         String
+  /// "BACKGROUND" | "OVERLAY" | "AUDIO"
+  type         String
+  r2Key        String   @map("r2_key")
+  thumbnailKey String?  @map("thumbnail_key")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([type])
+  @@map("blitz_assets")
+}
+
+/// Blitz Lab: one editing session + its render result.
+/// The "library" is the set of rows where renderStatus = COMPLETED.
+model BlitzProject {
+  id                  String            @id @default(cuid())
+  templateId          String            @map("template_id")
+  template            BlitzTemplate     @relation(fields: [templateId], references: [id])
+  /// { backgroundKey, overlayKey, audioKey? }
+  currentAssets       Json              @map("current_assets")
+  overlayZoom         Float             @default(1.0) @map("overlay_zoom")
+  overlayOffsetX      Float             @default(0) @map("overlay_offset_x")
+  overlayOffsetY      Float             @default(0) @map("overlay_offset_y")
+  mentionBusiness     Boolean           @default(false) @map("mention_business")
+  regenPrompt         String?           @map("regen_prompt")
+  captionText         String            @default("") @map("caption_text")
+  renderStatus        BlitzRenderStatus @default(PENDING) @map("render_status")
+  renderedVideoKey    String?           @map("rendered_video_key")
+  /// Hard-blocks any future export path; set manually for real-person test footage.
+  isIdentifiablePerson Boolean          @default(false) @map("is_identifiable_person")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+
+  @@index([renderStatus])
+  @@index([createdAt(sort: Desc)])
+  @@map("blitz_projects")
+}
+
+/// An Instagram or TikTok account a workspace connected in Settings > Integrations.
+/// Tokens are encrypted by the app (src/server/social/crypto.ts).
+model SocialConnection {
+  id               String    @id @default(cuid())
+  workspaceId      String    @map("workspace_id")
+  /// instagram | tiktok
+  provider         String
+  externalId       String    @map("external_id")
+  username         String?
+  avatarUrl        String?   @map("avatar_url")
+  accessToken      String    @map("access_token")
+  refreshToken     String?   @map("refresh_token")
+  expiresAt        DateTime? @map("expires_at")
+  refreshExpiresAt DateTime? @map("refresh_expires_at")
+  scopes           String[]  @default([])
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, provider])
+  @@map("social_connections")
+}
+
+/// One "Post now" from the calendar: where it went and what the platform answered.
+model SocialPost {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  slotId      String?  @map("slot_id")
+  provider    String
+  /// sent | failed
+  status      String
+  externalId  String?  @map("external_id")
+  postUrl     String?  @map("post_url")
+  error       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  slot      PostSlot? @relation(fields: [slotId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@map("social_posts")
+}

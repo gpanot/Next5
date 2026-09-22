@@ -1,0 +1,30 @@
+{
+  "name": "blitz-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Railway worker: polls for PENDING BlitzProject rows and renders them with Remotion.",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "generate": "prisma generate"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1120.0",
+    "@prisma/client": "^6.19.3",
+    "@remotion/bundler": "4.0.526",
+    "@remotion/renderer": "4.0.526",
+    "dotenv": "^16.0.0",
+    "prisma": "^6.19.3",
+    "remotion": "4.0.526",
+    "tsx": "^4.23.13",
+    "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "@remotion/compositor-darwin-arm64": "4.0.526",
+    "@remotion/compositor-darwin-x64": "4.0.526",
+    "@remotion/compositor-linux-x64-gnu": "4.0.526",
+    "@remotion/compositor-linux-x64-musl": "4.0.526"
+  },
+  "devDependencies": {
+    "@types/node": "^20"
+  }
+}

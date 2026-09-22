@@ -7,7 +7,7 @@
  *   - `blitz-worker/src/index.ts` via `bundle({ entryPoint })`
  */
 
-import { Composition } from 'remotion';
+import { Composition, registerRoot } from 'remotion';
 import { GreenScreenComposition } from './GreenScreenComposition';
 import type { GreenScreenProps } from './types';
 
@@ -45,3 +45,6 @@ export const RemotionRoot = () => {
     </>
   );
 };
+
+// Required by Remotion bundler — must be the last line of the entry point.
+registerRoot(RemotionRoot);
