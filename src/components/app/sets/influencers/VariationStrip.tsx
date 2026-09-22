@@ -18,7 +18,7 @@ type Props = {
 
 const SIZES = { sm: 'h-16 w-12', md: 'h-20 w-[60px]', lg: 'h-72 w-[200px]' } as const;
 
-type ThumbProps = { src: string; alt: string; selected: boolean; label?: string; size: 'sm' | 'md'; onClick: () => void };
+type ThumbProps = { src: string; alt: string; selected: boolean; label?: string; size: 'sm' | 'md' | 'lg'; onClick: () => void };
 
 const Thumb = ({ src, alt, selected, label, size, onClick }: ThumbProps) => (
   <button
@@ -40,7 +40,7 @@ const Thumb = ({ src, alt, selected, label, size, onClick }: ThumbProps) => (
   </button>
 );
 
-const AddStyleCard = ({ size, onClick }: { size: 'sm' | 'md'; onClick: () => void }) => (
+const AddStyleCard = ({ size, onClick }: { size: 'sm' | 'md' | 'lg'; onClick: () => void }) => (
   <button
     type="button"
     onClick={onClick}
