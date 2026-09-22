@@ -13,13 +13,13 @@ import { SkeletonCard } from '../../../ui/Skeleton';
 import { useWorkspace } from '../../shell/WorkspaceProvider';
 import { StylePager } from '../steps/StylePager';
 
-type Props = { influencer: InfluencerDto; onClose: () => void; onAdded: () => void };
+type Props = { influencer: InfluencerDto; preselectedTemplateId?: string; onClose: () => void; onAdded: () => void };
 
 /** Pick more styles for an influencer: one new photo of the same face per style, one credit each. */
-export const AddStyleSheet = ({ influencer, onClose, onAdded }: Props) => {
+export const AddStyleSheet = ({ influencer, preselectedTemplateId, onClose, onAdded }: Props) => {
   const { me, refresh } = useWorkspace();
   const templatesApi = useApi<{ templates: SetTemplateDto[] }>('/api/app/templates?product=brand');
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string[]>(preselectedTemplateId ? [preselectedTemplateId] : []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,10 +41,11 @@ export const AddStyleSheet = ({ influencer, onClose, onAdded }: Props) => {
     }
   };
 
+  const isRestyle = Boolean(preselectedTemplateId);
   return (
-    <Sheet open onClose={onClose} title={`Add styles for ${influencer.name}`} side="bottom" className="sm:left-1/2 sm:right-auto sm:w-full sm:max-w-xl sm:-translate-x-1/2">
+    <Sheet open onClose={onClose} title={isRestyle ? `Restyle for ${influencer.name}` : `Add styles for ${influencer.name}`} side="bottom" className="sm:left-1/2 sm:right-auto sm:w-full sm:max-w-xl sm:-translate-x-1/2">
       <div className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
-        <p className="text-[13px] text-app-muted">One new photo of the same face in each style. Swipe to see more.</p>
+        <p className="text-[13px] text-app-muted">{isRestyle ? 'Make a new version of this style. Toggle others to add more at the same time.' : 'One new photo of the same face in each style. Swipe to see more.'}</p>
         {templatesApi.error && <ErrorState message={templatesApi.error} onRetry={templatesApi.refresh} />}
         {!templatesApi.data && !templatesApi.error && <SkeletonCard />}
         {templatesApi.data && (

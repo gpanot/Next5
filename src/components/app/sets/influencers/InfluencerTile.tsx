@@ -32,9 +32,15 @@ type Props = { influencer: InfluencerDto; onArchive: () => void; onStylesAdded: 
 export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) => {
   const [photoId, setPhotoId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
+  const [restyleTemplateId, setRestyleTemplateId] = useState<string | undefined>(undefined);
   const chosen = influencer.variations.find((v) => v.id === photoId)?.url ?? influencer.portraitUrl;
   const traits = traitsOf(influencer);
   const createHref = `/app/create?influencerId=${influencer.id}${photoId ? `&photo=${photoId}` : ''}`;
+
+  const handleRestyle = (_variationId: string, templateId: string | undefined) => {
+    setRestyleTemplateId(templateId);
+    setAdding(true);
+  };
 
   return (
     <article className="flex flex-col overflow-hidden rounded-2xl border border-app-line bg-app-panel shadow-sm transition-shadow duration-200 hover:shadow-md">
@@ -74,7 +80,8 @@ export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) 
             pendingCount={influencer.pendingCount}
             value={photoId}
             onChange={setPhotoId}
-            onAddStyle={() => setAdding(true)}
+            onAddStyle={() => { setRestyleTemplateId(undefined); setAdding(true); }}
+            onRestyle={handleRestyle}
           />
           {influencer.failedCount > 0 && influencer.pendingCount === 0 && (
             <p role="status" className="text-[12px] text-app-danger">{failedText(influencer.failedCount)}</p>
@@ -89,7 +96,7 @@ export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) 
           Use this influencer
         </AppLink>
       </div>
-      {adding && <AddStyleSheet influencer={influencer} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); onStylesAdded(); }} />}
+      {adding && <AddStyleSheet influencer={influencer} preselectedTemplateId={restyleTemplateId} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); onStylesAdded(); }} />}
     </article>
   );
 };

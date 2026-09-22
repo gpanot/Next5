@@ -20,7 +20,7 @@ const variationsOf = async (influencerId: string) =>
     where: { batch: { set: { influencerId }, variation: true }, r2Key: { not: null }, status: 'ready', archivedAt: null },
     orderBy: { completedAt: 'desc' },
     take: VARIATION_LIMIT,
-    select: { id: true, r2Key: true },
+    select: { id: true, r2Key: true, batch: { select: { set: { select: { templateId: true } } } } },
   });
 
 const PENDING = new Set(['queued', 'submitting', 'generating']);
@@ -74,7 +74,7 @@ export const listInfluencers = async (ws: Workspace): Promise<InfluencerDto[]> =
         styleStatusOf(inf.id),
         inf.baseImageKey ? presignObject(inf.baseImageKey) : Promise.resolve(null),
       ]);
-      const variations = await Promise.all(items.map(async (i) => ({ id: i.id, url: (await presignObject(i.r2Key as string)) ?? '' })));
+      const variations = await Promise.all(items.map(async (i) => ({ id: i.id, url: (await presignObject(i.r2Key as string)) ?? '', templateId: i.batch.set?.templateId ?? undefined })));
       return {
         id: inf.id,
         name: inf.name,

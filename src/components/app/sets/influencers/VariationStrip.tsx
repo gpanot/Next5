@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Plus } from 'lucide-react';
+import { Check, Plus, RefreshCw } from 'lucide-react';
 import type { InfluencerVariationDto } from '../../../../types/business/influencers';
 
 type Props = {
@@ -14,6 +14,8 @@ type Props = {
   size?: 'sm' | 'md' | 'lg';
   /** Shows a "+ Style" card at the end of the row. */
   onAddStyle?: () => void;
+  /** Called when user wants to regenerate the selected variation. Passes the templateId if known. */
+  onRestyle?: (variationId: string, templateId: string | undefined) => void;
 };
 
 const SIZES = { sm: 'h-16 w-12', md: 'h-20 w-[60px]', lg: 'h-72 w-[200px]' } as const;
@@ -53,15 +55,30 @@ const AddStyleCard = ({ size, onClick }: { size: 'sm' | 'md' | 'lg'; onClick: ()
 );
 
 /** Row of faces to create with: the base portrait first, then its variations, then spaces for ones on the way. */
-export const VariationStrip = ({ name, portraitUrl, variations, pendingCount, value, onChange, size = 'md', onAddStyle }: Props) => (
-  <div role="radiogroup" aria-label={`Face to use for ${name}`} className="-mx-1 flex gap-2.5 overflow-x-auto px-1 py-1.5 [scrollbar-width:none]">
-    {portraitUrl && <Thumb src={portraitUrl} alt={`${name}, base portrait`} label="Base" selected={value === null} size={size} onClick={() => onChange(null)} />}
-    {variations.map((v, i) => (
-      <Thumb key={v.id} src={v.url} alt={`${name}, variation ${i + 1}`} selected={value === v.id} size={size} onClick={() => onChange(v.id)} />
-    ))}
-    {Array.from({ length: Math.min(pendingCount, 4) }, (_, i) => (
-      <span key={`pending-${i}`} aria-hidden className={`shrink-0 animate-pulse rounded-xl bg-app-sunken ${SIZES[size]}`} />
-    ))}
-    {onAddStyle && <AddStyleCard size={size} onClick={onAddStyle} />}
-  </div>
-);
+export const VariationStrip = ({ name, portraitUrl, variations, pendingCount, value, onChange, size = 'md', onAddStyle, onRestyle }: Props) => {
+  const selectedVariation = value ? variations.find((v) => v.id === value) : null;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div role="radiogroup" aria-label={`Face to use for ${name}`} className="-mx-1 flex gap-2.5 overflow-x-auto px-1 py-1.5 [scrollbar-width:none]">
+        {portraitUrl && <Thumb src={portraitUrl} alt={`${name}, base portrait`} label="Base" selected={value === null} size={size} onClick={() => onChange(null)} />}
+        {variations.map((v, i) => (
+          <Thumb key={v.id} src={v.url} alt={`${name}, variation ${i + 1}`} selected={value === v.id} size={size} onClick={() => onChange(v.id)} />
+        ))}
+        {Array.from({ length: Math.min(pendingCount, 4) }, (_, i) => (
+          <span key={`pending-${i}`} aria-hidden className={`shrink-0 animate-pulse rounded-xl bg-app-sunken ${SIZES[size]}`} />
+        ))}
+        {onAddStyle && <AddStyleCard size={size} onClick={onAddStyle} />}
+      </div>
+      {onRestyle && selectedVariation && (
+        <button
+          type="button"
+          onClick={() => onRestyle(selectedVariation.id, selectedVariation.templateId)}
+          className="inline-flex w-fit items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium text-app-muted transition-colors duration-200 hover:bg-app-sunken hover:text-app-ink"
+        >
+          <RefreshCw aria-hidden className="h-3 w-3" />
+          Restyle this photo
+        </button>
+      )}
+    </div>
+  );
+};
