@@ -36,12 +36,10 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
   const [businessName, setBusinessName] = useState(me.workspace?.name ?? '');
   const [industry, setIndustry] = useState(me.workspace?.industry ?? '');
   const [terms, setTerms] = useState(false);
-  const [face, setFace] = useState(false);
   const [labels, setLabels] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const faceRequired = product === 'brand';
-  const consentOk = terms && labels && (!faceRequired || face);
+  const consentOk = terms && labels;
   const canContinue = consentOk || alreadyGiven;
 
   const submit = async () => {
@@ -49,7 +47,7 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
     setError(null);
     try {
       if (!alreadyGiven) {
-        const types = ['terms', 'ai_labeling', ...(face ? ['face_processing'] : [])];
+        const types = ['terms', 'ai_labeling'];
         await apiFetch('/api/app/consents', { method: 'POST', json: { types } });
       }
       await advance(2, {
@@ -75,12 +73,13 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
       <div className="flex flex-col gap-6">
         {/* Business profile fields */}
         <div className="flex flex-col gap-4">
-          <Field label={isBrand ? 'Business name' : 'Shop name'} htmlFor="ob-biz-name" helper="Optional">
+          <Field label="Your Website URL" htmlFor="ob-biz-name" helper="Optional">
             <TextInput
               id="ob-biz-name"
+              type="url"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
-              placeholder={isBrand ? 'Linh Realty' : 'Linh Closet'}
+              placeholder="https://yourbusiness.com"
             />
           </Field>
           <div className="flex flex-col gap-2">
@@ -96,13 +95,7 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
         {/* Consent checkboxes — hidden if already accepted */}
         {!alreadyGiven && (
           <div className="flex flex-col gap-4 border-t border-app-line pt-5">
-            <p className="text-[13px] text-app-muted">We take your photos and your face seriously. Here is exactly what we do.</p>
-            <Checkbox checked={face} onChange={setFace} label={
-              <span className="text-[14px] text-app-ink">
-                <strong className="font-semibold">These are photos of me.</strong> I agree that Next5 processes my face to create my photos. {faceRequired ? '' : '(Only needed if you\'ll wear the products yourself.)'}
-                <span className="block text-app-muted">Used only to create your photos, never to train AI models. Delete them anytime.</span>
-              </span>
-            } />
+            <p className="text-[13px] text-app-muted">A couple of things to confirm before we start.</p>
             <Checkbox checked={labels} onChange={setLabels} label={
               <span className="text-[14px] text-app-ink">
                 <strong className="font-semibold">I understand my photos are AI-generated.</strong> Every file carries an AI label, and I'll follow platform rules when posting.
