@@ -6,7 +6,17 @@ import type { UgcCharacterDto } from '../../../../types/admin/ugc';
 import { errorOf, ugcRequest } from './api';
 import type { ScriptOption } from './ScriptPicker';
 
-export type ScriptReady = { character: UgcCharacterDto; script: string; duration: UgcDuration };
+export type ScriptReady = {
+  character: UgcCharacterDto;
+  script: string;
+  duration: UgcDuration;
+  /** AI-generated scene context (sentences 1-3) for the Seedance / Wan3 video prompt. */
+  suggestedVideoContext?: string;
+  /** Niche / industry entered in the Hook step, forwarded to the Video step for prompt regeneration. */
+  industry?: string;
+  /** The original hook phrase (shorter than the full 24 s script). */
+  hookText?: string;
+};
 
 export type ScriptFlowBusy = '' | 'describe' | 'scripts';
 
@@ -22,6 +32,7 @@ export const useScriptFlow = (token: string, initialHook: string, onDescribed: (
   const [scripts, setScripts] = useState<ScriptOption[]>([]);
   const [duration, setDuration] = useState<UgcDuration | null>(null);
   const [edited, setEdited] = useState('');
+  const [suggestedVideoContext, setSuggestedVideoContext] = useState<string>('');
 
   async function describe(character: UgcCharacterDto): Promise<UgcCharacterDto> {
     if (character.scene) return character;
@@ -37,7 +48,7 @@ export const useScriptFlow = (token: string, initialHook: string, onDescribed: (
     return described;
   }
 
-  async function writeScripts(character: UgcCharacterDto, hookOverride?: string) {
+  async function writeScripts(character: UgcCharacterDto, hookOverride?: string, industry?: string) {
     const hook = hookOverride ?? hookDraft;
     if (!hook.trim()) {
       setBusy('');
@@ -46,12 +57,18 @@ export const useScriptFlow = (token: string, initialHook: string, onDescribed: (
     }
     setBusy('scripts');
     setError('');
-    const res = await ugcRequest<{ scripts?: ScriptOption[] }>(token, '/api/admin/ugc-lab/scripts', {
-      json: { hook, scene: character.scene },
-    }).catch(() => null);
+    const res = await ugcRequest<{ scripts?: ScriptOption[]; suggestedVideoContext?: string }>(
+      token,
+      '/api/admin/ugc-lab/scripts',
+      { json: { hook, scene: character.scene, ...(industry ? { industry } : {}) } },
+    ).catch(() => null);
     setBusy('');
-    if (res?.ok && res.data.scripts) setScripts(res.data.scripts.filter((s) => s.text));
-    else setError(res ? errorOf(res) : 'Script generation failed');
+    if (res?.ok && res.data.scripts) {
+      setScripts(res.data.scripts.filter((s) => s.text));
+      setSuggestedVideoContext(res.data.suggestedVideoContext ?? '');
+    } else {
+      setError(res ? errorOf(res) : 'Script generation failed');
+    }
   }
 
   async function choose(character: UgcCharacterDto) {
@@ -65,19 +82,21 @@ export const useScriptFlow = (token: string, initialHook: string, onDescribed: (
   }
 
   /** For the Hook step: hook is already known; character was selected in the previous step. */
-  async function chooseWithHook(character: UgcCharacterDto, hook: string) {
+  async function chooseWithHook(character: UgcCharacterDto, hook: string, industry?: string) {
     setHookDraft(hook);
     setSelected(character);
     setError('');
     setScripts([]);
     setDuration(null);
+    setSuggestedVideoContext('');
     const described = await describe(character);
     setSelected(described);
-    await writeScripts(described, hook);
+    await writeScripts(described, hook, industry);
   }
 
   return {
     hookDraft, setHookDraft, selected, busy, error, scripts, duration, edited, setEdited,
+    suggestedVideoContext,
     choose,
     chooseWithHook,
     rewrite: () => (selected ? writeScripts(selected) : Promise.resolve()),
@@ -86,7 +105,14 @@ export const useScriptFlow = (token: string, initialHook: string, onDescribed: (
       setEdited(script.text);
     },
     ready: (): ScriptReady | null =>
-      selected && duration && edited.trim() ? { character: selected, script: edited.trim(), duration } : null,
+      selected && duration && edited.trim()
+        ? {
+            character: selected,
+            script: edited.trim(),
+            duration,
+            suggestedVideoContext: suggestedVideoContext || undefined,
+          }
+        : null,
     setError,
     /** Forget the character and its scripts, e.g. when switching between photos and AI characters. */
     reset: () => {
@@ -95,6 +121,7 @@ export const useScriptFlow = (token: string, initialHook: string, onDescribed: (
       setDuration(null);
       setEdited('');
       setError('');
+      setSuggestedVideoContext('');
     },
   };
 };

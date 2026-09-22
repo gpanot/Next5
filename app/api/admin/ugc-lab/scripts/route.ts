@@ -5,6 +5,7 @@ import {
 } from '../../../../../src/config/ugcLab';
 import { adminRoute } from '../../../../../src/server/admin/route';
 import { chatJson, type ChatMessage } from '../../../../../src/server/ai/openai';
+import { buildContextBrief } from '../../../../../src/server/admin/ugcContextBrief';
 
 export type GeneratedScript = { duration: UgcDuration; text: string; words: number };
 
@@ -51,9 +52,44 @@ const tooLong = (scripts: Map<UgcDuration, string>): UgcDuration[] =>
 const ask = async (messages: ChatMessage[]) =>
   parseScripts(await chatJson<unknown>(messages, { maxTokens: 700, temperature: 0.7, timeoutMs: 30_000 }));
 
-/** POST { hook, scene? } → 8 s, 16 s and 24 s scripts that fit their duration. */
+// ── Suggested video context (niche-aware scene description for Seedance / Wan3 prompt) ──
+
+const generateSuggestedContext = async (
+  hook: string,
+  scene: UgcScene | null,
+  industry: string,
+): Promise<string | null> => {
+  // Skip when there is nothing niche-specific to improve on.
+  if (!industry.trim() && !scene) return null;
+  try {
+    const brief = buildContextBrief({ hook, industry, scene });
+    const result = await chatJson<{ context?: string }>(
+      [
+        {
+          role: 'system',
+          content:
+            'You write concise 3-sentence scene descriptions for Seedance and Wan 3.0 AI video generation prompts. ' +
+            'You adapt the scene to the creator\'s niche while preserving their identity from the reference photo. ' +
+            'Never include spoken dialogue, delivery notes, subtitles, or post-production rules.',
+        },
+        { role: 'user', content: brief },
+      ],
+      { maxTokens: 250, temperature: 0.65, timeoutMs: 15_000 },
+    );
+    const ctx = typeof result?.context === 'string' ? result.context.trim() : null;
+    return ctx || null;
+  } catch {
+    return null;
+  }
+};
+
+/** POST { hook, scene?, industry? } → 8 s, 16 s and 24 s scripts + optional suggestedVideoContext. */
 export const POST = adminRoute(async (req: NextRequest) => {
-  const { hook, scene = null } = (await req.json()) as { hook?: string; scene?: UgcScene | null };
+  const { hook, scene = null, industry = '' } = (await req.json()) as {
+    hook?: string;
+    scene?: UgcScene | null;
+    industry?: string;
+  };
   if (!hook?.trim()) {
     return NextResponse.json({ error: 'hook is required' }, { status: 400 });
   }
@@ -62,7 +98,13 @@ export const POST = adminRoute(async (req: NextRequest) => {
     { role: 'system', content: SYSTEM_PROMPT },
     { role: 'user', content: brief(hook.trim(), scene) },
   ];
-  let scripts = await ask(messages);
+
+  // Run script generation and video context suggestion in parallel.
+  const [scriptsResult, suggestedVideoContext] = await Promise.all([
+    ask(messages),
+    generateSuggestedContext(hook.trim(), scene, industry),
+  ]);
+  let scripts = scriptsResult;
 
   // One retry when a script is over its limit, naming the counts so the model can fix them.
   const over = tooLong(scripts);
@@ -80,5 +122,8 @@ export const POST = adminRoute(async (req: NextRequest) => {
     const text = trimToWords(scripts.get(duration) ?? '', UGC_MAX_WORDS[duration]);
     return { duration, text, words: countWords(text) };
   });
-  return NextResponse.json({ scripts: result });
+  return NextResponse.json({
+    scripts: result,
+    ...(suggestedVideoContext ? { suggestedVideoContext } : {}),
+  });
 });

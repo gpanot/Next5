@@ -1,7 +1,7 @@
 // server-only — never import from a 'use client' file.
 // The two Treg routes to Seedance 2.5, behind one shape: submit a job, read its state, take its video.
 
-import { UGC_PROVIDERS, type UgcDuration, type UgcProvider } from '../../config/ugcLab';
+import { UGC_PROVIDERS, isUgcProvider, type UgcDuration, type UgcProvider } from '../../config/ugcLab';
 import { tregBinary, tregCall } from './ugcLab';
 
 type SubmitInput = {
@@ -28,6 +28,8 @@ const ENDPOINTS: Record<UgcProvider, { submit: string; status: string; content?:
     content: 'openrouter.video-gen.result.retrieve',
   },
   reapi: { submit: 'reapi.video-gen.seedance-2-5.unrestricted', status: 'reapi.tasks.get' },
+  // wan3 uses wan3Provider.ts directly (REAPI_API_KEY, no Treg). These fields are never accessed.
+  wan3: { submit: '', status: '' },
 };
 
 /**
@@ -53,6 +55,10 @@ const buildBody = (provider: UgcProvider, input: SubmitInput): Record<string, un
     : { ...shared, size: '9:16', image_urls: [imageUrl] };
 };
 
+/**
+ * Estimate cost for Seedance providers only (openrouter / reapi).
+ * For wan3, use estimateMicrosWan3 in ugcVideos.ts because pricing is resolution-dependent.
+ */
 export const estimateMicros = (provider: UgcProvider, duration: number): number =>
   Math.round(UGC_PROVIDERS[provider].usdPerSecond * duration * 1_000_000);
 
@@ -102,7 +108,7 @@ type RawTask = {
 
 const FAILED = new Set(['failed', 'cancelled', 'expired', 'error']);
 
-/** reapi bills in credits (1 credit = $0.001); OpenRouter settles usage.cost in dollars. */
+/** reapi bills in credits (1 credit = $0.001); OpenRouter (and wan3) settle usage.cost in dollars. */
 const costMicrosOf = (provider: UgcProvider, task: RawTask): number | undefined => {
   const value = provider === 'reapi' ? task.usage?.credits : task.usage?.cost;
   if (typeof value !== 'number') return undefined;

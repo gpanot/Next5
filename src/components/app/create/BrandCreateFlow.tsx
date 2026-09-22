@@ -18,6 +18,7 @@ import { ChipGroup } from '../../ui/Chip';
 import { EmptyState } from '../../ui/EmptyState';
 import { SkeletonCard } from '../../ui/Skeleton';
 import { useWorkspace } from '../shell/WorkspaceProvider';
+import type { Identity } from '../sets/IdentityPhotoGrid';
 import { CreateSection } from './CreateSection';
 import { CreditSummaryBar } from './CreditSummaryBar';
 import { FormatPicker } from './FormatPicker';
@@ -46,6 +47,7 @@ export const BrandCreateFlow = () => {
   const sets = useApi<{ sets: StudioSetDto[] }>('/api/app/sets?product=brand');
   const themes = useApi<{ featured: ThemeDto | null; library: ThemeDto[] }>('/api/app/themes');
   const listings = useApi<{ listings: ListingDto[] }>('/api/app/listings');
+  const identitiesApi = useApi<{ identities: Identity[] }>('/api/app/identity?product=brand');
   const lastSet = lastSetStore.useValue();
   const defaults = (me?.workspace?.defaultFormats ?? []).filter((f): f is FormatId => f in FORMATS);
 
@@ -125,6 +127,7 @@ export const BrandCreateFlow = () => {
   };
 
   const styleFallback = { wardrobe: fallbackWardrobe, poseEnergy: fallbackPose };
+  const selfies = identitiesApi.data?.identities ?? [];
 
   return (
     <div className="flex flex-col gap-5">
@@ -143,6 +146,24 @@ export const BrandCreateFlow = () => {
             <ChipGroup options={VARIATIONS.map((v) => ({ value: String(v), label: `${v} look${v === 1 ? '' : 's'} per photo` }))} value={String(variations)} onChange={(v) => setVariations(Number(v))} />
           </CreateSection>
           <CreateSection step={4} title="How you look" sub="Your clothes and energy. The home stays exactly as photographed.">
+            {selfies.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="text-[12px] font-medium uppercase tracking-wide text-app-muted">Base photos · used for generation</p>
+                <div className="flex gap-2">
+                  {selfies.map((p) =>
+                    p.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
+                      <img
+                        key={p.id}
+                        src={p.url}
+                        alt={p.kind === 'full_body' ? 'Your full-body photo' : 'Your selfie'}
+                        className="h-20 w-[60px] rounded-xl object-cover ring-1 ring-app-line"
+                      />
+                    ) : null
+                  )}
+                </div>
+              </div>
+            )}
             <StyleLine value={style} onChange={setStyle} fallback={styleFallback} />
           </CreateSection>
         </>

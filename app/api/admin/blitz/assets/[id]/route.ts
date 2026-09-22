@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { after, NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../../src/server/admin/route';
 import { BLITZ_UPLOAD_PREFIX, toAssetDto } from '../../../../../../src/server/admin/blitzStore';
 import { deleteFromR2 } from '../../../../../../src/lib/r2';
@@ -48,6 +48,8 @@ export const DELETE = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
   }
 
   await prisma.blitzAsset.delete({ where: { id } });
-  await deleteFromR2(found.asset.r2Key).catch((err) => console.warn('[blitz] R2 delete failed:', err));
+  // The row is gone, so the file is unreachable; remove it after responding.
+  const key = found.asset.r2Key;
+  after(() => deleteFromR2(key).catch((err) => console.warn('[blitz] R2 delete failed:', err)));
   return NextResponse.json({ ok: true });
 });

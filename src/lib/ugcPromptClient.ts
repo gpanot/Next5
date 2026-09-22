@@ -4,11 +4,19 @@
 import type { UgcScene, UgcShot } from '../config/ugcLab';
 
 /** Rules shared by every clip: clean talking-head output with nothing added in post. */
-const DELIVERY_RULES =
+export const DELIVERY_RULES =
   'Natural expressions and small hand gestures; hands stay below the chin and never touch the face or lips. ' +
   'No cuts, no captions, no on-screen text, no music. Only their voice and quiet ambient sound that fits the place.';
 
-const quoteScript = (script: string): string => script.trim().replace(/"/g, "'");
+export const quoteScript = (script: string): string => script.trim().replace(/"/g, "'");
+
+/**
+ * Assembles a full Seedance video prompt from an AI-suggested scene context (sentences 1-3)
+ * plus the selected script text (sentence 4) and delivery rules (sentence 5).
+ * The context comes from the scripts API's suggestedVideoContext field.
+ */
+export const assemblePromptFromContext = (context: string, script: string): string =>
+  `${context.trimEnd()} They speak to the camera, lips synced to every word: "${quoteScript(script)}". ${DELIVERY_RULES}`;
 
 /** How the camera and person move so the face is big enough for clean lip sync. */
 const MOVEMENT: Record<UgcShot, string> = {

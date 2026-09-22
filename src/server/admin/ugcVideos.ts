@@ -4,13 +4,15 @@
 import type { UgcCharacter, UgcVideo } from '@prisma/client';
 import {
   UGC_PROVIDERS, UGC_PROVIDER_ORDER, UGC_RESOLUTION, UGC_VIDEO_TIMEOUT_SEC,
-  isUgcProvider, type UgcDuration, type UgcProvider, type UgcScene,
+  WAN3_USD_PER_SECOND,
+  isUgcProvider, type UgcDuration, type UgcProvider, type UgcResolution, type UgcScene, type UgcVideoModel,
 } from '../../config/ugcLab';
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
 import { checkTask, estimateMicros, fetchVideo, submitTask, type TaskState } from './ugcProviders';
 import { buildAvatarPrompt, buildFirstFramePrompt, buildReferencePrompt } from './ugcPrompt';
 import { mirrorFile, putFile, ugcKeys, vendorUrl } from './ugcStore';
+import { checkWan3Task, submitWan3Task } from './wan3Provider';
 
 type VideoWithCharacter = UgcVideo & { character: UgcCharacter | null };
 
@@ -73,18 +75,47 @@ type Started = { provider: UgcProvider; providerTaskId: string; mode: string; pr
 const messageOf = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 /**
- * Sends the job to the first route that takes it. A route that refuses costs nothing — it refuses
- * before making anything — so the next one is tried. Every refusal is logged and kept in the error details.
- * A server setup problem (503, e.g. no Treg key) fails every route the same way, so it is raised at once.
+ * Sends the job to the first route that takes it.
+ *
+ * When videoModel is 'wan3', submits directly to reAPI using REAPI_API_KEY — no Treg.
+ * When videoModel is 'seedance' (default), tries OpenRouter then reapi via Treg; a refusal costs nothing
+ * so the next route is tried. A setup error (503) is raised at once.
+ *
+ * customPrompt (from the Video step) overrides the server-built prompt while keeping mode/kind.
+ * resolution is passed through to the provider and stored in the DB row.
  */
-const startJob = async (character: UgcCharacter, script: string, duration: UgcDuration): Promise<Started> => {
+const startJob = async (
+  character: UgcCharacter,
+  script: string,
+  duration: UgcDuration,
+  customPrompt?: string,
+  videoModel: UgcVideoModel = 'seedance',
+  resolution: UgcResolution = UGC_RESOLUTION,
+  voiceKey?: string,
+): Promise<Started> => {
   const imageUrl = await vendorUrl(character.imageKey);
-  const refusals: Record<string, string> = {};
 
-  for (const provider of UGC_PROVIDER_ORDER) {
-    const { mode, kind, prompt } = buildRequest(provider, character, script);
+  // ── Wan 3.0: direct reAPI, no Treg ─────────────────────────────────────────
+  if (videoModel === 'wan3') {
+    const { mode, prompt: builtPrompt } = buildRequest('openrouter', character, script);
+    const prompt = customPrompt ?? builtPrompt;
+    // Include voice reference audio if the caller supplied an R2 key
+    const audioUrl = voiceKey ? await vendorUrl(voiceKey).catch(() => undefined) : undefined;
     try {
-      const providerTaskId = await submitTask(provider, { prompt, duration, resolution: UGC_RESOLUTION, imageUrl, kind });
+      const providerTaskId = await submitWan3Task({ prompt, imageUrl, duration, resolution, audioUrl });
+      return { provider: 'wan3', providerTaskId, mode, prompt };
+    } catch (err) {
+      throw new HttpError(502, 'wan3_submission_failed', messageOf(err), { characterId: character.id, duration });
+    }
+  }
+
+  // ── Seedance: try OpenRouter then reapi via Treg ────────────────────────────
+  const refusals: Record<string, string> = {};
+  for (const provider of UGC_PROVIDER_ORDER) {
+    const { mode, kind, prompt: builtPrompt } = buildRequest(provider, character, script);
+    const prompt = customPrompt ?? builtPrompt;
+    try {
+      const providerTaskId = await submitTask(provider, { prompt, duration, resolution, imageUrl, kind });
       if (providerTaskId) return { provider, providerTaskId, mode, prompt };
       refusals[provider] = 'returned no task ID';
     } catch (err) {
@@ -97,17 +128,30 @@ const startJob = async (character: UgcCharacter, script: string, duration: UgcDu
   throw new HttpError(502, 'no_task_id', last, { characterId: character.id, duration, refusals });
 };
 
-export const submitVideo = async (characterId: string, script: string, duration: UgcDuration): Promise<VideoWithCharacter> => {
+export const submitVideo = async (
+  characterId: string,
+  script: string,
+  duration: UgcDuration,
+  customPrompt?: string,
+  videoModel: UgcVideoModel = 'seedance',
+  resolution: UgcResolution = UGC_RESOLUTION,
+  voiceKey?: string,
+): Promise<VideoWithCharacter> => {
   const character = await prisma.ugcCharacter.findUnique({ where: { id: characterId } });
   if (!character) throw new HttpError(404, 'character_not_found', 'That character is gone.');
 
-  console.info(`[ugc] generate start: character ${characterId} (${character.kind}), ${duration}s`);
-  const { provider, providerTaskId, mode, prompt } = await startJob(character, script, duration);
+  console.info(`[ugc] generate start: character ${characterId} (${character.kind}), ${duration}s, model=${videoModel} res=${resolution}${customPrompt ? ' [custom prompt]' : ''}`);
+  const { provider, providerTaskId, mode, prompt } = await startJob(character, script, duration, customPrompt, videoModel, resolution, voiceKey);
+
+  const estimatedCostUsdMicros =
+    provider === 'wan3'
+      ? Math.round((WAN3_USD_PER_SECOND[resolution] ?? 0.05) * duration * 1_000_000)
+      : estimateMicros(provider, duration);
 
   const video = await prisma.ugcVideo.create({
     data: {
-      characterId, mode, script, prompt, durationSec: duration, resolution: UGC_RESOLUTION, provider, providerTaskId,
-      estimatedCostUsdMicros: estimateMicros(provider, duration),
+      characterId, mode, script, prompt, durationSec: duration, resolution, provider, providerTaskId,
+      estimatedCostUsdMicros,
       submittedAt: new Date(),
     },
     include: { character: true },
@@ -162,9 +206,14 @@ export const refreshVideo = async (video: VideoWithCharacter): Promise<VideoWith
 const checkVideo = async (video: VideoWithCharacter): Promise<VideoWithCharacter> => {
   if (video.status !== 'generating' || !video.providerTaskId) return video;
 
+  const provider = providerOf(video);
   let state: TaskState;
   try {
-    state = await checkTask(providerOf(video), video.providerTaskId);
+    // Wan 3.0 is polled directly via reAPI; everything else goes through Treg
+    state =
+      provider === 'wan3'
+        ? await checkWan3Task(video.providerTaskId)
+        : await checkTask(provider, video.providerTaskId);
   } catch (err) {
     console.warn(`[ugc] status check failed for video ${video.id}: ${messageOf(err)}`);
     return update(video.id, { lastPollError: err instanceof Error ? err.message : 'Status check failed' });
@@ -172,8 +221,9 @@ const checkVideo = async (video: VideoWithCharacter): Promise<VideoWithCharacter
 
   if (state.state === 'done') return saveFinished(video, state);
   if (state.state === 'failed') {
-    console.warn(`[ugc] video ${video.id} failed on ${providerOf(video)}: ${state.error ?? 'no reason given'}`);
-    return update(video.id, { status: 'failed', error: state.error ?? 'Seedance could not make this video.', lastPollError: null });
+    const defaultMsg = provider === 'wan3' ? 'Wan 3.0 could not make this video.' : 'Seedance could not make this video.';
+    console.warn(`[ugc] video ${video.id} failed on ${provider}: ${state.error ?? 'no reason given'}`);
+    return update(video.id, { status: 'failed', error: state.error ?? defaultMsg, lastPollError: null });
   }
   const startedAt = (video.submittedAt ?? video.createdAt).getTime();
   if (Date.now() - startedAt > VIDEO_TIMEOUT_MS) {

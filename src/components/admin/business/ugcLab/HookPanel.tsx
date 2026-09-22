@@ -119,7 +119,7 @@ export function HookPanel({ token, character, onReady }: HookPanelProps) {
       flow.setError('Go back to the Character step and pick a character first.');
       return;
     }
-    await flow.chooseWithHook(character, hookText);
+    await flow.chooseWithHook(character, hookText, industry);
   }
 
   const hasScripts = flow.scripts.length > 0;
@@ -280,28 +280,41 @@ export function HookPanel({ token, character, onReady }: HookPanelProps) {
               className={`${fieldClass} resize-none`}
             />
           </label>
+
+          {/* ── "Use this Hook" — skip script generation entirely ── */}
+          {hookText.trim() && character && (
+            <div>
+              <PrimaryButton
+                onClick={() => onReady({ character, script: hookText, duration: 8, industry: industry || undefined, hookText }, hookText)}
+              >
+                Use this Hook →
+              </PrimaryButton>
+            </div>
+          )}
+          {hookText.trim() && !character && (
+            <Notice>
+              <p>Go back to the Character step and pick a character first.</p>
+            </Notice>
+          )}
         </div>
 
-        {/* ── Sub-step 3: Generate scripts ─────────────────────────────── */}
+        {/* ── Sub-step 3: Generate scripts (optional) ──────────────────── */}
         {hookText.trim() && (
           <div className="flex flex-col gap-3 border-t border-line pt-4">
-            <p className="text-[11px] uppercase tracking-widest text-muted">3 · Generate scripts by length</p>
-
-            {!character && (
-              <Notice>
-                <p>Go back to the Character step and pick a character first — the scripts are tailored to the scene.</p>
-              </Notice>
-            )}
+            <p className="text-[11px] uppercase tracking-widest text-muted">
+              3 · Generate scripts by length
+              <span className="ml-2 normal-case text-[10px] text-muted/60">(optional — adds more variety + AI video prompt)</span>
+            </p>
 
             {showGenerateButton && character && (
               <div>
-                <PrimaryButton onClick={() => void generateScripts()}>
+                <SecondaryButton onClick={() => void generateScripts()}>
                   Generate 3 scripts for this hook
-                </PrimaryButton>
+                </SecondaryButton>
               </div>
             )}
 
-            <ScriptFlowView flow={flow} onReady={(ready) => onReady(ready, hookText)} />
+            <ScriptFlowView flow={flow} onReady={(ready) => onReady({ ...ready, industry: industry || undefined, hookText }, hookText)} />
           </div>
         )}
       </div>
