@@ -10,7 +10,8 @@ export type ImageModelId =
   | 'gpt-image-2'
   | 'seedream-v5-pro'
   | 'flux-2-klein-9b'
-  | 'qwen-image';
+  | 'qwen-image'
+  | 'nano-banana-2-t2i';
 
 export type ModelResolution = '1k' | '2k';
 
@@ -114,6 +115,18 @@ export const IMAGE_MODELS: Record<ImageModelId, ImageModel> = {
     supportsSize: true,
     priceUsdMicros: { '1k': 20_000, '2k': 20_000 },
     note: 'Takes one reference photo only.',
+  },
+  'nano-banana-2-t2i': {
+    id: 'nano-banana-2-t2i',
+    label: 'Nano Banana 2 (text-to-image)',
+    path: 'google/nano-banana-2/text-to-image',
+    // Text-to-image: no reference images — imagesField and maxImages are unused but required by the type.
+    imagesField: 'images',
+    maxImages: 0,
+    supportsAspectRatio: true,
+    supportsResolution: true,
+    priceUsdMicros: { '1k': 50_000, '2k': 75_000 },
+    note: 'Portrait generation for new influencers — text-to-image, no reference images.',
   },
 };
 

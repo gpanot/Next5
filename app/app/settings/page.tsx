@@ -2,6 +2,7 @@
 
 import { AppPage } from '../../../src/components/app/shell/AppShell';
 import { useWorkspace } from '../../../src/components/app/shell/WorkspaceProvider';
+import { DangerZoneCard } from '../../../src/components/app/settings/DangerZoneCard';
 import { IntegrationsCard } from '../../../src/components/app/settings/IntegrationsCard';
 import { SettingsForm } from '../../../src/components/app/settings/SettingsForm';
 import { AppButton } from '../../../src/components/ui/AppButton';
@@ -14,6 +15,7 @@ export default function SettingsPage() {
     <AppPage title="Settings" studioSwitcher>
       {me && workspace && <SettingsForm key={workspace.id} me={{ ...me, workspace }} onSaved={refresh} />}
       {workspace && <IntegrationsCard key={`integrations-${workspace.id}`} product={workspace.product} />}
+      <DangerZoneCard />
       <div className="flex justify-center border-t border-app-line pt-6">
         <AppButton variant="ghost" onClick={() => sessionTokenStore.set(null)}>Sign out</AppButton>
       </div>

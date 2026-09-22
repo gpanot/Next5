@@ -237,6 +237,7 @@ model Workspace {
   owner             User                @relation(fields: [ownerUserId], references: [id])
   identities        IdentityReference[]
   sets              StudioSet[]
+  influencers       Influencer[]
   products          Product[]
   batches           Batch[]
   subscriptions     Subscription[]
@@ -307,26 +308,71 @@ model SetTemplate {
 }
 
 model StudioSet {
-  id          String    @id @default(cuid())
-  workspaceId String    @map("workspace_id")
-  templateId  String    @map("template_id")
-  name        String
-  locations   String[]
-  wardrobe    String?
-  poseEnergy  String?   @map("pose_energy")
-  brandColors String[]  @default([]) @map("brand_colors")
-  modelRef    String?   @map("model_ref")
-  status      SetStatus @default(active)
-  coverR2Key  String?   @map("cover_r2_key")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id           String    @id @default(cuid())
+  workspaceId  String    @map("workspace_id")
+  templateId   String    @map("template_id")
+  name         String
+  locations    String[]
+  wardrobe     String?
+  poseEnergy   String?   @map("pose_energy")
+  brandColors  String[]  @default([]) @map("brand_colors")
+  modelRef     String?   @map("model_ref")
+  status       SetStatus @default(active)
+  coverR2Key   String?   @map("cover_r2_key")
+  /// FK to the Influencer that auto-created this set (null for user-created sets).
+  influencerId String?   @map("influencer_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  workspace Workspace   @relation(fields: [workspaceId], references: [id])
-  template  SetTemplate @relation(fields: [templateId], references: [id])
-  batches   Batch[]
+  workspace  Workspace   @relation(fields: [workspaceId], references: [id])
+  template   SetTemplate @relation(fields: [templateId], references: [id])
+  batches    Batch[]
+  influencer Influencer? @relation(fields: [influencerId], references: [id])
 
   @@index([workspaceId])
+  @@index([influencerId])
   @@map("studio_sets")
+}
+
+/// Admin-curated pre-made AI faces for the influencer gallery picker.
+model InfluencerGalleryItem {
+  id        String   @id @default(cuid())
+  imageKey  String   @map("image_key")
+  gender    String?
+  age       Int?
+  ethnicity String?
+  archived  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  influencers Influencer[]
+
+  @@map("influencer_gallery_items")
+}
+
+/// A named AI influencer: 1 base portrait + the sets auto-generated from it.
+model Influencer {
+  id            String    @id @default(cuid())
+  workspaceId   String    @map("workspace_id")
+  name          String    @db.VarChar(80)
+  gender        String?
+  age           Int?
+  ethnicity     String?
+  /// "generated" | "uploaded" | "gallery"
+  source        String
+  /// R2 key for the one base portrait (null while still generating).
+  baseImageKey  String?   @map("base_image_key")
+  /// FK when source = "gallery".
+  galleryItemId String?   @map("gallery_item_id")
+  /// "active" | "archived"
+  status        String    @default("active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  workspace   Workspace              @relation(fields: [workspaceId], references: [id])
+  galleryItem InfluencerGalleryItem? @relation(fields: [galleryItemId], references: [id])
+  sets        StudioSet[]
+
+  @@index([workspaceId])
+  @@map("influencers")
 }
 
 model Theme {

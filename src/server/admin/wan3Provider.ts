@@ -78,18 +78,29 @@ type Wan3SubmitResponse = {
  * Returns the task ID to poll.
  */
 export async function submitWan3Task(input: Wan3SubmitInput): Promise<string> {
-  const res = await reapiRequest<Wan3SubmitResponse>('POST', '/videos/generations', {
+  // reAPI Wan 3.0 enforces two mutually-exclusive media families:
+  //   Frame family   : first_frame, last_frame
+  //   Reference family: reference_image, audio_urls, video_urls, …
+  // Mixing the two families in a single request returns 400 Bad Request.
+  //
+  // When a voice sample is provided we must stay entirely in the reference family:
+  //   • image role → 'reference_image'  (appearance anchor)
+  //   • audio_urls → voice reference
+  // When no audio is provided, use first_frame mode to keep the exact character face.
+  const hasAudio = !!input.audioUrl;
+
+  const body: Record<string, unknown> = {
     model: 'wan3.0-video',
     prompt: input.prompt,
-    // First-frame mode: animate from the character photo
-    image_with_roles: [{ url: input.imageUrl, role: 'first_frame' }],
+    image_with_roles: [{ url: input.imageUrl, role: hasAudio ? 'reference_image' : 'first_frame' }],
     size: '9:16',
     resolution: input.resolution.toUpperCase(), // reAPI expects "480P" / "720P"
     duration: input.duration,
     audio: true, // generate ambient audio track
-    // If a voice sample is provided, include it as an audio reference
-    ...(input.audioUrl ? { audio_urls: [input.audioUrl] } : {}),
-  });
+    ...(hasAudio ? { audio_urls: [input.audioUrl] } : {}),
+  };
+
+  const res = await reapiRequest<Wan3SubmitResponse>('POST', '/videos/generations', body);
 
   const taskId = res?.id ?? res?.task_id ?? null;
   if (!taskId) throw new Error('reapi Wan3: no task ID in submission response');

@@ -108,6 +108,44 @@ export async function submitEdit(params: SubmitEditParams & { model?: ImageModel
 export const costUsdMicros = (model: ImageModel, resolution: NonNullable<SubmitEditParams['resolution']>, inputImages: number): number =>
   modelCostUsdMicros(model, resolution === '2k' || resolution === '4k' ? '2k' : '1k', inputImages);
 
+export type SubmitGenerateParams = {
+  /** Full text description of the portrait to generate. */
+  prompt: string;
+  /** Default: '3:4' (portrait). */
+  aspectRatio?: string;
+  /** '1k' = $0.05, '2k' = $0.075 */
+  resolution?: '1k' | '2k';
+  /** Public HTTPS callback; WaveSpeed POSTs the result when the task finishes. */
+  webhookUrl?: string | null;
+};
+
+/**
+ * Submits a text-to-image task using Nano Banana 2 (no reference images).
+ * Returns the WaveSpeed task ID — poll it or pass `webhookUrl` to be called back.
+ */
+export async function submitGenerate(params: SubmitGenerateParams): Promise<string> {
+  const key = apiKey();
+  if (!key) throw new Error('WAVESPEED_API_KEY is not set');
+  const path = IMAGE_MODELS['nano-banana-2-t2i'].path;
+  const body: Record<string, unknown> = {
+    prompt: params.prompt,
+    aspect_ratio: params.aspectRatio ?? '3:4',
+    resolution: params.resolution ?? '1k',
+    output_format: 'jpeg',
+  };
+  const url = `${BASE_URL}/${path}${params.webhookUrl ? `?webhook=${encodeURIComponent(params.webhookUrl)}` : ''}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.code !== 200) {
+    throw new Error(`WaveSpeed generate failed (${res.status}): ${data.message ?? 'unknown'}`);
+  }
+  return data.data.id as string;
+}
+
 // ── Poll ──────────────────────────────────────────────────────────────────────
 
 export type TaskStatus =

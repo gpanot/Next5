@@ -15,7 +15,18 @@ export const POST = authedRoute(async (req, session) => {
   await enforceRateLimit(`batch:${session.userId}`, 30, 3600);
   const body = await readJsonObject(req);
   const workspace = await workspaceFromRequest(session.userId, body.product);
-  const batch = await createBatch(workspace, parseDraft(body));
+
+  // Resolve an influencer portrait key when the client selected one.
+  let influencerKey: string | undefined;
+  if (typeof body.influencerId === 'string') {
+    const influencer = await prisma.influencer.findFirst({
+      where: { id: body.influencerId, workspaceId: workspace.id, status: 'active' },
+      select: { baseImageKey: true },
+    });
+    if (influencer?.baseImageKey) influencerKey = influencer.baseImageKey;
+  }
+
+  const batch = await createBatch(workspace, parseDraft(body, influencerKey));
   after(async () => {
     await pump({ batchId: batch.id }).catch((err: unknown) => console.error('[batches] pump failed:', err));
     await sweepStale().catch((err: unknown) => console.error('[batches] sweep failed:', err));

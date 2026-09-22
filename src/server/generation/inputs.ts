@@ -17,8 +17,11 @@ const liveRefs = (where: { workspaceId?: string | null; studioModelSlug?: string
     select: { kind: true, r2Key: true },
   });
 
-/** Brand: her own faces, up to 2. Needs no set, so property batches can use it. */
-export const resolveBrandIdentity = async (workspace: Workspace): Promise<IdentityInputs> => {
+/** Brand: her own faces, up to 2. Needs no set, so property batches can use it.
+ *  When `influencerKey` is provided the selfie table is skipped and the influencer portrait is used instead.
+ */
+export const resolveBrandIdentity = async (workspace: Workspace, influencerKey?: string | null): Promise<IdentityInputs> => {
+  if (influencerKey) return { keys: [influencerKey], isStudioModel: false };
   const faces = (await liveRefs({ workspaceId: workspace.id })).filter((r) => r.kind === 'face').slice(0, 2);
   if (faces.length === 0) throw missing('Add your selfies before creating photos.');
   return { keys: faces.map((r) => r.r2Key), isStudioModel: false };

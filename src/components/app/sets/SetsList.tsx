@@ -44,7 +44,7 @@ export const SetsList = () => {
   if ((sets.loading && !sets.data) || (templates.loading && !templates.data)) return <SkeletonGrid count={4} cols={2} />;
   if (sets.error && !sets.data) return <ErrorState message={sets.error} onRetry={sets.refresh} />;
 
-  const noun = product === 'shop' ? 'look' : 'style';
+  const noun = product === 'shop' ? 'look' : 'influencer';
   const mine = sets.data?.sets ?? [];
   const used = new Set(mine.map((s) => s.templateId));
   const more = (templates.data?.templates ?? []).filter((t) => !used.has(t.id));
@@ -61,7 +61,7 @@ export const SetsList = () => {
 
       {mine.length > 0 && (
         <section className="flex flex-col gap-4">
-          <SectionTitle title={`Your ${noun}s`} sub={`Pick one when you create. Every photo in a ${noun} has the same light and place.`} />
+          <SectionTitle title={product === 'brand' ? 'Your influencers' : 'Your looks'} sub={`Pick one when you create. Every photo in a ${noun} has the same light and place.`} />
           <div className="grid gap-4 lg:grid-cols-2">
             {mine.map((set) => (
               <LookCard
@@ -89,7 +89,7 @@ export const SetsList = () => {
 
       {more.length > 0 && (
         <section className="flex flex-col gap-4">
-          <SectionTitle title={mine.length ? `Add a ${noun}` : `Pick your first ${noun}`} sub={`Swipe to see real photos. Add as many ${noun}s as you like.`} />
+          <SectionTitle title={mine.length ? `Add a ${noun}` : `Create your first ${noun}`} sub={`Swipe to see real photos. Add as many ${noun}s as you like.`} />
           <div className="grid gap-4 lg:grid-cols-2">
             {more.map((t) => (
               <LookCard

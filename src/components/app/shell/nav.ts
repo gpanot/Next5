@@ -23,7 +23,7 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
         { href: s('/calendar'), label: 'Calendar', icon: CalendarDays },
         { href: s('/create'), label: 'Create', icon: Plus, primary: true },
         { href: s('/library'), label: 'Library', icon: Images },
-        { href: s('/sets'), label: 'Styles', icon: Layers },
+        { href: s('/sets'), label: 'Influencers', icon: Layers },
         { href: s('/billing'), label: 'Billing', icon: CreditCard },
         { href: '/app/settings', label: 'Settings', icon: Settings },
       ];

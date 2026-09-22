@@ -70,6 +70,7 @@ const useVideoPolling = (token: string, video: UgcVideoDto, onChange: (video: Ug
 
 export function VideoCard({ token, video, eta, onChange, onDelete }: VideoCardProps) {
   const [showCaptioned, setShowCaptioned] = useState(true);
+  const [showPrompt, setShowPrompt] = useState(false);
   const [burning, setBurning] = useState(false);
   const [actionError, setActionError] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -118,6 +119,25 @@ export function VideoCard({ token, video, eta, onChange, onDelete }: VideoCardPr
           </span>
         </div>
         <p className="line-clamp-3 text-[13px] text-ink">{video.script}</p>
+
+        {/* ── Prompt reveal ─────────────────────────────────── */}
+        {video.prompt && (
+          <div className="flex flex-col gap-1">
+            <button
+              type="button"
+              onClick={() => setShowPrompt((v) => !v)}
+              className="self-start text-[11px] text-muted underline hover:text-ink"
+            >
+              {showPrompt ? 'Hide prompt' : 'Show prompt'}
+            </button>
+            {showPrompt && (
+              <p className="whitespace-pre-wrap rounded-lg bg-surface-alt px-3 py-2 text-[11px] leading-relaxed text-subtle">
+                {video.prompt}
+              </p>
+            )}
+          </div>
+        )}
+
         <p className="text-[11px] text-subtle">{new Date(video.createdAt).toLocaleString()}</p>
         {video.lastPollError && video.status === 'generating' && (
           <p className="text-[11px] text-muted">Last check failed, retrying…</p>

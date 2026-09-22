@@ -20,9 +20,11 @@ export type UgcVideoDto = {
   id: string;
   mode: string;
   script: string;
+  /** Full video-generation prompt sent to Seedance / Wan 3.0. */
+  prompt: string | null;
   durationSec: number;
   resolution: string;
-  /** Which Treg route made it: openrouter | reapi. */
+  /** Which Treg route made it: openrouter | reapi | wan3. */
   provider: string;
   status: UgcVideoStatus;
   characterUrl: string | null;

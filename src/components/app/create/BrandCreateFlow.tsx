@@ -10,7 +10,7 @@ import { useApi } from '../../../hooks/useApi';
 import { useEstimate } from '../../../hooks/useEstimate';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
 import type { Occasion } from '../../../lib/listingOccasions';
-import { lastSetStore } from '../../../lib/localStore';
+import { lastInfluencerStore, lastSetStore } from '../../../lib/localStore';
 import type { BatchSummaryDto } from '../../../types/business/batches';
 import type { StudioSetDto, ThemeDto } from '../../../types/business/catalog';
 import type { ListingDto } from '../../../types/business/listings';
@@ -22,6 +22,7 @@ import type { Identity } from '../sets/IdentityPhotoGrid';
 import { CreateSection } from './CreateSection';
 import { CreditSummaryBar } from './CreditSummaryBar';
 import { FormatPicker } from './FormatPicker';
+import { InfluencerPicker } from './InfluencerPicker';
 import { ListingPicker, type WhoMode } from './ListingPicker';
 import { OccasionPicker } from './OccasionPicker';
 import { SetPicker } from './SetPicker';
@@ -49,6 +50,7 @@ export const BrandCreateFlow = () => {
   const listings = useApi<{ listings: ListingDto[] }>('/api/app/listings');
   const identitiesApi = useApi<{ identities: Identity[] }>('/api/app/identity?product=brand');
   const lastSet = lastSetStore.useValue();
+  const lastInfluencerValue = lastInfluencerStore.useValue();
   const defaults = (me?.workspace?.defaultFormats ?? []).filter((f): f is FormatId => f in FORMATS);
 
   const [setChoice, setSetChoice] = useState<string | null>(params.get('set'));
@@ -62,6 +64,9 @@ export const BrandCreateFlow = () => {
   // Her pick per property. Without one, only Zillow's own status fills it in — an uploaded home stays empty.
   const [occasionByListing, setOccasionByListing] = useState<Record<string, Occasion>>({});
   const [style, setStyle] = useState<Style>({ wardrobe: null, poseEnergy: null });
+  // Mirrors the setChoice/setId pattern: explicit pick wins, else fall back to last-used.
+  const [influencerChoice, setInfluencerChoice] = useState<string | null>(null);
+  const influencerId = influencerChoice ?? lastInfluencerValue ?? null;
   const [imported, setImported] = useState<ListingDto | null>(null);
   const [formats, setFormats] = useState<FormatId[]>(defaults.length ? defaults : ['portrait_4_5']);
   const [highRes, setHighRes] = useState(false);
@@ -88,11 +93,11 @@ export const BrandCreateFlow = () => {
       return {
         product: 'brand', kind: 'brand_property', listingId: listing.id, occasion, variations,
         wardrobe: style.wardrobe ?? fallbackWardrobe, poseEnergy: style.poseEnergy ?? fallbackPose,
-        formats, highRes,
+        formats, highRes, influencerId: influencerId ?? undefined,
       };
     }
-    return setId && themeId ? { product: 'brand', kind: 'brand_theme', setId, themeId, count, formats, highRes } : null;
-  }, [listing, rooms, occasion, variations, style, fallbackWardrobe, fallbackPose, setId, themeId, count, formats, highRes]);
+    return setId && themeId ? { product: 'brand', kind: 'brand_theme', setId, themeId, count, formats, highRes, influencerId: influencerId ?? undefined } : null;
+  }, [listing, rooms, occasion, variations, style, fallbackWardrobe, fallbackPose, setId, themeId, count, formats, highRes, influencerId]);
   const { estimate, error, loading } = useEstimate(draft);
 
   const pickOccasion = (next: Occasion) => {
@@ -107,7 +112,14 @@ export const BrandCreateFlow = () => {
 
   if (sets.loading || themes.loading) return <div className="flex flex-col gap-4"><SkeletonCard /><SkeletonCard /></div>;
   if (!me?.workspace?.hasIdentity) {
-    return <EmptyState illustration={<ImagePlus className="h-10 w-10" />} title="Add your selfies first" body="We need three photos of you to create your photos." action={{ label: 'Add selfies', onClick: () => router.push('/start/brand') }} />;
+    return (
+      <EmptyState
+        illustration={<ImagePlus className="h-10 w-10" />}
+        title="Create an influencer first"
+        body="Create an AI influencer or upload selfies to start making photos."
+        action={{ label: 'New influencer', onClick: () => router.push('/app/sets/new') }}
+      />
+    );
   }
 
   const submit = async () => {
@@ -118,6 +130,7 @@ export const BrandCreateFlow = () => {
       const res = await apiFetch<{ batch: BatchSummaryDto }>('/api/app/batches', { method: 'POST', json: draft });
       track('batch_created', { product: 'brand', items: res.batch.progress.total });
       if (!listing && setId) lastSetStore.set(setId);
+      if (influencerId) lastInfluencerStore.set(influencerId);
       refresh();
       router.push(`/app/batches/${res.batch.id}`);
     } catch (err) {
@@ -145,32 +158,47 @@ export const BrandCreateFlow = () => {
           <CreateSection step={3} title="How many looks per photo?" sub={rooms > 0 ? `${rooms} photo${rooms === 1 ? '' : 's'} × ${variations} = ${rooms * variations} photo${rooms * variations === 1 ? '' : 's'}.` : 'Add a photo of the property first.'}>
             <ChipGroup options={VARIATIONS.map((v) => ({ value: String(v), label: `${v} look${v === 1 ? '' : 's'} per photo` }))} value={String(variations)} onChange={(v) => setVariations(Number(v))} />
           </CreateSection>
-          <CreateSection step={4} title="How you look" sub="Your clothes and energy. The home stays exactly as photographed.">
-            {selfies.length > 0 && (
-              <div className="flex flex-col gap-2">
-                <p className="text-[12px] font-medium uppercase tracking-wide text-app-muted">Base photos · used for generation</p>
-                <div className="flex gap-2">
-                  {selfies.map((p) =>
-                    p.url ? (
-                      // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
-                      <img
-                        key={p.id}
-                        src={p.url}
-                        alt={p.kind === 'full_body' ? 'Your full-body photo' : 'Your selfie'}
-                        className="h-20 w-[60px] rounded-xl object-cover ring-1 ring-app-line"
-                      />
-                    ) : null
-                  )}
+          <CreateSection step={4} title="How you look" sub="Pick an influencer portrait as your reference, then choose style details.">
+            <div className="flex flex-col gap-3">
+              {me?.workspace?.hasInfluencers ? (
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-[12px] font-medium uppercase tracking-wide text-app-muted">Influencer · reference portrait</p>
+                  <InfluencerPicker value={influencerId} onChange={(id) => setInfluencerChoice(id)} />
                 </div>
-              </div>
-            )}
-            <StyleLine value={style} onChange={setStyle} fallback={styleFallback} />
+              ) : selfies.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <p className="text-[12px] font-medium uppercase tracking-wide text-app-muted">Selfies · used for generation</p>
+                  <div className="flex gap-2">
+                    {selfies.map((p) =>
+                      p.url ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
+                        <img
+                          key={p.id}
+                          src={p.url}
+                          alt={p.kind === 'full_body' ? 'Your full-body photo' : 'Your selfie'}
+                          className="h-20 w-[60px] rounded-xl object-cover ring-1 ring-app-line"
+                        />
+                      ) : null
+                    )}
+                  </div>
+                </div>
+              ) : null}
+              <StyleLine value={style} onChange={setStyle} fallback={styleFallback} />
+            </div>
           </CreateSection>
         </>
       ) : (
         <>
-          <CreateSection step={2} title="Your style" sub="Pick a saved style, then put a theme on it.">
-            <SetPicker sets={allSets} value={setId} onChange={setSetChoice} noun="Style" />
+          <CreateSection step={2} title="Your style" sub="Pick an influencer as your reference, then choose a style and theme.">
+            <div className="flex flex-col gap-4">
+              {me?.workspace?.hasInfluencers && (
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-[12px] font-medium uppercase tracking-wide text-app-muted">Influencer · reference portrait</p>
+                  <InfluencerPicker value={influencerId} onChange={(id) => setInfluencerChoice(id)} />
+                </div>
+              )}
+              <SetPicker sets={allSets} value={setId} onChange={setSetChoice} noun="Style" />
+            </div>
           </CreateSection>
           <CreateSection step={3} title="Theme">
             <ThemePicker featured={themes.data?.featured ?? null} library={themes.data?.library ?? []} value={themeId} onChange={setThemeChoice} />

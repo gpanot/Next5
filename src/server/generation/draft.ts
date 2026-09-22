@@ -34,6 +34,8 @@ export type BrandPropertyDraft = {
   poseEnergy: PoseEnergyId | null;
   formats: FormatId[];
   highRes: boolean;
+  /** R2 key of an influencer portrait — overrides selfie lookup when present. */
+  influencerKey?: string;
 };
 
 export type ShopDraft = {
@@ -50,7 +52,18 @@ export type ShopDraft = {
 };
 
 /** Built server-side only (onboarding trial, set preview) — never parsed from a request body. */
-export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & { kind: 'brand_theme'; trial?: boolean; /** Free style preview. */ preview?: boolean; sceneIds?: string[] };
+export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & {
+  kind: 'brand_theme';
+  trial?: boolean;
+  /** Free style preview. */
+  preview?: boolean;
+  sceneIds?: string[];
+  /**
+   * R2 key of an influencer base portrait to use as the identity reference instead of the user's
+   * selfies. When set, `resolveBrandIdentity` skips the IdentityReference table entirely.
+   */
+  influencerKey?: string;
+};
 export type InternalShopDraft = Omit<ShopDraft, 'kind'> & { kind: 'shop_products'; trial?: boolean; /** Free look preview. */ preview?: boolean; /** Only the 9:16 cover per product (TikTok library). */ coverOnly?: boolean };
 
 export type BatchDraft = BrandDraft | BrandPropertyDraft | ShopDraft;
@@ -77,7 +90,7 @@ const optionalId = <T extends string>(value: unknown, allowed: readonly { id: T 
   allowed.some((a) => a.id === value) ? (value as T) : null;
 
 /** The count comes from her photos, not a picker, and the occasion is never assumed. */
-const parsePropertyDraft = (body: Record<string, unknown>, formats: FormatId[], highRes: boolean): BrandPropertyDraft => {
+const parsePropertyDraft = (body: Record<string, unknown>, formats: FormatId[], highRes: boolean, influencerKey?: string): BrandPropertyDraft => {
   if (!isOccasion(body.occasion)) throw bad('Pick what is happening with this home.');
   return {
     kind: 'brand_property',
@@ -88,22 +101,23 @@ const parsePropertyDraft = (body: Record<string, unknown>, formats: FormatId[], 
     poseEnergy: optionalId(body.poseEnergy, POSE_ENERGIES),
     formats,
     highRes,
+    influencerKey,
   };
 };
 
-export const parseDraft = (body: Record<string, unknown>): BatchDraft => {
+export const parseDraft = (body: Record<string, unknown>, influencerKey?: string): BatchDraft => {
   const formats = parseFormats(body.formats);
   const highRes = body.highRes === true;
 
   // A property batch. `brand_theme` with a listing is what an older open tab still sends.
   if (body.kind === 'brand_property' || (body.kind === 'brand_theme' && body.listingId)) {
-    return parsePropertyDraft(body, formats, highRes);
+    return parsePropertyDraft(body, formats, highRes, influencerKey);
   }
 
   if (body.kind === 'brand_theme') {
     const count = Number(body.count);
     if (!(BRAND_COUNTS as readonly number[]).includes(count)) throw bad('Choose 1, 8, 16, 24 or 32 photos.');
-    return { kind: 'brand_theme', setId: parseId(body.setId, 'set'), themeId: parseId(body.themeId, 'theme'), count, formats, highRes };
+    return { kind: 'brand_theme', setId: parseId(body.setId, 'set'), themeId: parseId(body.themeId, 'theme'), count, formats, highRes, ...(influencerKey ? { influencerKey } : {}) };
   }
 
   if (body.kind === 'shop_products') {

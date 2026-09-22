@@ -34,6 +34,8 @@ export type WorkspaceDto = {
   onboardingCompleted: boolean;
   trialUsed: boolean;
   hasIdentity: boolean;
+  /** True when the workspace has at least one active influencer with a base portrait. */
+  hasInfluencers: boolean;
   setCount: number;
 };
 

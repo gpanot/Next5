@@ -57,7 +57,9 @@ const expandBrand = async (workspace: Workspace, draft: InternalBrandDraft, now:
   const set = await loadSet(workspace.id, draft.setId);
   const theme = await prisma.theme.findFirst({ where: { id: draft.themeId, isActive: true } });
   if (!theme) throw new HttpError(404, 'theme_not_found', 'That theme is not available.');
-  const identity = await resolveIdentity(workspace, set);
+  const identity = draft.influencerKey
+    ? await resolveBrandIdentity(workspace, draft.influencerKey)
+    : await resolveIdentity(workspace, set);
   const allScenes = theme.scenes as unknown as ThemeScene[];
   const scenes = draft.sceneIds ? allScenes.filter((s) => draft.sceneIds?.includes(s.id)) : allScenes;
   const template = set.template.config as unknown as SetTemplateConfig;
@@ -146,7 +148,7 @@ const expandProperty = async (workspace: Workspace, draft: BrandPropertyDraft, n
   const listing = await getListing(workspace.id, draft.listingId);
   const rooms = roomsFor(listing);
   if (rooms.length === 0) throw new HttpError(400, 'no_rooms', 'Add at least one photo of this property first.');
-  const [identity, style] = await Promise.all([resolveBrandIdentity(workspace), resolveStyle(workspace, draft)]);
+  const [identity, style] = await Promise.all([resolveBrandIdentity(workspace, draft.influencerKey), resolveStyle(workspace, draft)]);
   const looks = clampVariations(draft.variations);
 
   const items: ItemSpec[] = [];

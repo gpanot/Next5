@@ -78,6 +78,7 @@ export const toVideoDto = async (v: UgcVideo & { character: UgcCharacter | null 
     id: v.id,
     mode: v.mode,
     script: v.script,
+    prompt: v.prompt ?? null,
     durationSec: v.durationSec,
     resolution: v.resolution,
     provider: v.provider,

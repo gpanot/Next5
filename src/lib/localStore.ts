@@ -49,6 +49,7 @@ export const onboardingModelStore = createLocalStore('next5-onboarding-model');
 /** Shop onboarding: the product picked for the free trial. */
 export const trialProductStore = createLocalStore('next5-trial-product');
 export const lastSetStore = createLocalStore('next5-last-set');
+export const lastInfluencerStore = createLocalStore('next5-last-influencer');
 export const postingTipsStore = createLocalStore('next5-posting-tips-dismissed');
 /** Step-1 details typed before an email check, so the magic link can finish setup without asking again. */
 export const onboardingDraftStore = createLocalStore('next5-onboarding-draft');
