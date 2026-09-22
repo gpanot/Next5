@@ -116,7 +116,7 @@ export const BatchView = ({ batchId }: { batchId: string }) => {
               onRedo={() => openRedo(item)}
               onPostKit={() => setPostKitId(item.id)}
               onArchive={() => void actions.archive(item, (gone) => setArchived((prev) => { const next = new Set(prev); if (gone) next.add(item.id); else next.delete(item.id); return next; }))}
-              onCalendar={batch.listingId ? () => void actions.toggleCalendar(item) : undefined}
+              onCalendar={batch.listingId || batch.kind === 'brand_theme' ? () => void actions.toggleCalendar(item) : undefined}
               calendarBusy={actions.calendarBusy === item.id}
             />
           ))}

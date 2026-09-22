@@ -11,12 +11,12 @@ type Props = {
   /** Chosen variation id; null means the base portrait. */
   value: string | null;
   onChange: (photoId: string | null) => void;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
   /** Shows a "+ Style" card at the end of the row. */
   onAddStyle?: () => void;
 };
 
-const SIZES = { sm: 'h-16 w-12', md: 'h-20 w-[60px]' } as const;
+const SIZES = { sm: 'h-16 w-12', md: 'h-20 w-[60px]', lg: 'h-72 w-[200px]' } as const;
 
 type ThumbProps = { src: string; alt: string; selected: boolean; label?: string; size: 'sm' | 'md'; onClick: () => void };
 

@@ -45,54 +45,34 @@ const Option = ({ label, src, selected, onClick }: OptionProps) => (
 export const InfluencerPicker = ({ influencers, selfieUrl, value, onChange }: Props) => {
   const selected = influencers.find((i) => i.id === value.influencerId) ?? null;
 
-  // Resolve the currently previewed photo URL
-  const previewUrl = selected
-    ? (value.photoId ? selected.variations.find((v) => v.id === value.photoId)?.url ?? selected.portraitUrl : selected.portraitUrl)
-    : selfieUrl;
-
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex gap-4">
-        {/* Large selected photo preview */}
-        {previewUrl && (
-          // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
-          <img
-            src={previewUrl}
-            alt={selected ? selected.name : 'You'}
-            className="h-36 w-[100px] shrink-0 rounded-2xl object-cover object-top ring-1 ring-app-line"
-          />
-        )}
-
-        {/* Picker column */}
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
-          <div role="radiogroup" aria-label="Who is in the photos" className="-mx-1 flex gap-2 overflow-x-auto px-1 py-1.5 [scrollbar-width:none]">
-            {selfieUrl && <Option label="You" src={selfieUrl} selected={!selected} onClick={() => onChange({ influencerId: null, photoId: null })} />}
-            {influencers.map((inf) => (
-              <Option key={inf.id} label={inf.name} src={inf.portraitUrl} selected={selected?.id === inf.id} onClick={() => onChange({ influencerId: inf.id, photoId: null })} />
-            ))}
-            <AppLink href="/app/sets/new" aria-label="New influencer" className="group flex w-16 shrink-0 flex-col items-center gap-1.5">
-              <span className="flex h-20 w-[60px] items-center justify-center rounded-xl border border-dashed border-app-line bg-app-sunken transition-colors duration-200 group-hover:border-app-muted">
-                <Plus aria-hidden className="h-5 w-5 text-app-muted" />
-              </span>
-              <span className="text-[12px] text-app-muted">New</span>
-            </AppLink>
-          </div>
-          {selected && (selected.variations.length > 0 || selected.pendingCount > 0) && (
-            <div className="flex flex-col gap-1 rounded-xl bg-app-sunken px-3 pb-2 pt-3">
-              <p className="text-[12px] font-medium text-app-muted">Which photo of {selected.name}?</p>
-              <VariationStrip
-                name={selected.name}
-                portraitUrl={selected.portraitUrl}
-                variations={selected.variations}
-                pendingCount={selected.pendingCount}
-                value={value.photoId}
-                onChange={(photoId) => onChange({ influencerId: selected.id, photoId })}
-                size="sm"
-              />
-            </div>
-          )}
-        </div>
+      <div role="radiogroup" aria-label="Who is in the photos" className="-mx-1 flex gap-2 overflow-x-auto px-1 py-1.5 [scrollbar-width:none]">
+        {selfieUrl && <Option label="You" src={selfieUrl} selected={!selected} onClick={() => onChange({ influencerId: null, photoId: null })} />}
+        {influencers.map((inf) => (
+          <Option key={inf.id} label={inf.name} src={inf.portraitUrl} selected={selected?.id === inf.id} onClick={() => onChange({ influencerId: inf.id, photoId: null })} />
+        ))}
+        <AppLink href="/app/sets/new" aria-label="New influencer" className="group flex w-16 shrink-0 flex-col items-center gap-1.5">
+          <span className="flex h-20 w-[60px] items-center justify-center rounded-xl border border-dashed border-app-line bg-app-sunken transition-colors duration-200 group-hover:border-app-muted">
+            <Plus aria-hidden className="h-5 w-5 text-app-muted" />
+          </span>
+          <span className="text-[12px] text-app-muted">New</span>
+        </AppLink>
       </div>
+      {selected && (selected.variations.length > 0 || selected.pendingCount > 0) && (
+        <div className="flex flex-col gap-1 rounded-xl bg-app-sunken px-3 pb-3 pt-3">
+          <p className="text-[12px] font-medium text-app-muted">Which photo of {selected.name}?</p>
+          <VariationStrip
+            name={selected.name}
+            portraitUrl={selected.portraitUrl}
+            variations={selected.variations}
+            pendingCount={selected.pendingCount}
+            value={value.photoId}
+            onChange={(photoId) => onChange({ influencerId: selected.id, photoId })}
+            size="lg"
+          />
+        </div>
+      )}
     </div>
   );
 };

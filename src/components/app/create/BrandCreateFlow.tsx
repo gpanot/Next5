@@ -56,7 +56,7 @@ export const BrandCreateFlow = () => {
 
   const [setChoice, setSetChoice] = useState<string | null>(params.get('set'));
   const [themeChoice, setThemeChoice] = useState<string | null>(params.get('theme'));
-  const [count, setCount] = useState<number>(16);
+  const [count, setCount] = useState<number>(1);
   const listingParam = params.get('listing');
   const [listingId, setListingId] = useState<string | null>(listingParam && listingParam !== 'new' ? listingParam : null);
   // Realtors first: a property unless she came from a theme or a style to make photos of just her.
@@ -71,7 +71,7 @@ export const BrandCreateFlow = () => {
     params.get('influencerId') ? { influencerId: params.get('influencerId'), photoId: params.get('photo') } : null,
   );
   const [imported, setImported] = useState<ListingDto | null>(null);
-  const [formats, setFormats] = useState<FormatId[]>(defaults.length ? defaults : ['portrait_4_5']);
+  const [formats, setFormats] = useState<FormatId[]>(defaults.length ? defaults : ['story_9_16']);
   const [highRes, setHighRes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
