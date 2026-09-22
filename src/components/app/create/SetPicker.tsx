@@ -6,9 +6,9 @@ import { STUDIO_MODELS } from '../../../content/business/catalog/studioModels';
 import { hasManifestImage } from '../../../lib/manifest';
 import type { StudioSetDto } from '../../../types/business/catalog';
 
-type SetPickerProps = { sets: readonly StudioSetDto[]; value: string | null; onChange: (id: string) => void; noun: string };
+type SetPickerProps = { sets: readonly StudioSetDto[]; value: string | null; onChange: (id: string) => void; noun: string; hideNew?: boolean };
 
-export const SetPicker = ({ sets, value, onChange, noun }: SetPickerProps) => (
+export const SetPicker = ({ sets, value, onChange, noun, hideNew }: SetPickerProps) => (
   <div role="radiogroup" aria-label={noun} className="flex gap-3 overflow-x-auto pb-1">
     {sets.map((set) => {
       const selected = set.id === value;
@@ -23,8 +23,10 @@ export const SetPicker = ({ sets, value, onChange, noun }: SetPickerProps) => (
         </button>
       );
     })}
-    <Link href="/app/sets/new" className="flex w-36 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-app-line p-2 text-center text-[13px] text-app-muted transition-colors duration-200 hover:border-app-accent hover:text-app-ink">
-      <span className="text-[22px]" aria-hidden>+</span>New {noun.toLowerCase()}
-    </Link>
+    {!hideNew && (
+      <Link href="/app/sets/new" className="flex w-36 shrink-0 flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-app-line p-2 text-center text-[13px] text-app-muted transition-colors duration-200 hover:border-app-accent hover:text-app-ink">
+        <span className="text-[22px]" aria-hidden>+</span>New {noun.toLowerCase()}
+      </Link>
+    )}
   </div>
 );

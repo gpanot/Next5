@@ -13,7 +13,7 @@ export const SeriesCard = ({ series }: { series: LibrarySeriesDto }) => {
       href={`/app/batches/${series.id}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-app-line bg-app-panel shadow-sm transition-shadow duration-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-app-sunken">
+      <div className="relative aspect-[9/16] overflow-hidden bg-app-sunken">
         {series.coverUrl && (
           // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
           <img src={series.coverUrl} alt={`Cover of ${series.name}`} loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />

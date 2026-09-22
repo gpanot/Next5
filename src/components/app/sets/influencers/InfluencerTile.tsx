@@ -86,7 +86,7 @@ export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) 
           className="mt-auto inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-app-cta px-4 text-[13px] font-medium text-app-cta-ink transition-opacity duration-200 hover:opacity-90"
         >
           <Sparkles aria-hidden className="h-4 w-4" />
-          Create with this face
+          Use this influencer
         </AppLink>
       </div>
       {adding && <AddStyleSheet influencer={influencer} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); onStylesAdded(); }} />}

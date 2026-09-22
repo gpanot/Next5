@@ -141,7 +141,7 @@ const SeriesList = ({ series }: { series: LibrarySeriesDto[] }) => (
             className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-app-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-app-accent"
           >
             {/* Tiny cover */}
-            <div className="relative h-12 w-10 shrink-0 overflow-hidden rounded-lg bg-app-sunken">
+            <div className="relative h-24 w-20 shrink-0 overflow-hidden rounded-lg bg-app-sunken">
               {s.coverUrl && (
                 // eslint-disable-next-line @next/next/no-img-element -- signed storage URL
                 <img src={s.coverUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
