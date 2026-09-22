@@ -6,9 +6,7 @@ import type { BaseImageData, InfluencerTraits } from './BaseImageStep';
 type Props = {
   traits: InfluencerTraits;
   image: BaseImageData;
-  themeTitle: string;
   templateNames: string[];
-  photosPerStyle: number;
   total: number;
   balance: number;
   error: string | null;
@@ -24,7 +22,7 @@ const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
 );
 
 /** Step 3: what will be made and what it costs. */
-export const ConfirmStep = ({ traits, image, themeTitle, templateNames, photosPerStyle, total, balance, error }: Props) => {
+export const ConfirmStep = ({ traits, image, templateNames, total, balance, error }: Props) => {
   const canAfford = balance >= total;
   const traitLine = [traits.gender, traits.ethnicity, traits.age ? `${traits.age}` : null].filter(Boolean).join(' · ');
 
@@ -43,11 +41,9 @@ export const ConfirmStep = ({ traits, image, themeTitle, templateNames, photosPe
       </div>
 
       <div className="flex flex-col gap-2.5 rounded-xl border border-app-line p-4">
-        <Row label="Theme" value={themeTitle || '—'} />
         <Row label="Styles" value={templateNames.join(', ') || '—'} />
-        <Row label="Per style" value={photosPerStyle} />
         <div className="h-px bg-app-line" />
-        <Row label="Variations" value={total} />
+        <Row label="Photos" value={total} />
         <Row label="Cost" value={`${total} credit${total === 1 ? '' : 's'}`} />
         <Row label="Your balance" value={<span className={canAfford ? '' : 'text-app-danger'}>{balance} credits</span>} />
       </div>

@@ -2,6 +2,7 @@
 
 import type { BatchItem } from '@prisma/client';
 import { prisma } from '../../lib/db';
+import { isReapiTaskId, pollGeminiImage, REAPI_TASK_PREFIX } from '../../lib/reapiImage';
 import { isTerminal, pollTask } from '../../lib/wavespeed';
 import { getObject } from '../storage/objectStore';
 import { failItem, finalizeItem } from './finalize';
@@ -31,14 +32,14 @@ const pollOne = async (item: BatchItem): Promise<void> => {
   if (!item.wavespeedTaskId) return failItem(item, 'Missing task id');
   if (item.wavespeedTaskId.startsWith('mock:')) return pollMock(item);
 
-  const result = await pollTask(item.wavespeedTaskId);
+  const result = isReapiTaskId(item.wavespeedTaskId) ? await pollGeminiImage(item.wavespeedTaskId) : await pollTask(item.wavespeedTaskId);
   if (result.status === 'completed' && result.url) return finalizeItem(item, await download(result.url));
   if (isTerminal(result.status)) return failItem(item, result.error ?? `Generation ${result.status}`);
   if (Date.now() - (item.submittedAt?.getTime() ?? 0) > RUN_TIMEOUT_MS) return failItem(item, 'Generation timed out');
 };
 
 /** Polls in-flight items and finalizes or fails them. Returns how many items were checked. */
-export const poll = async (options: { batchId?: string; limit?: number; submittedBefore?: Date } = {}): Promise<number> => {
+export const poll = async (options: { batchId?: string; limit?: number; submittedBefore?: Date; reapiOnly?: boolean } = {}): Promise<number> => {
   const where = options.batchId ? { batchId: options.batchId } : {};
   // Recover items stuck in 'submitting' (e.g. the function was killed mid-submit).
   await prisma.batchItem.updateMany({
@@ -47,7 +48,12 @@ export const poll = async (options: { batchId?: string; limit?: number; submitte
   });
 
   const items = await prisma.batchItem.findMany({
-    where: { ...where, status: 'generating', ...(options.submittedBefore ? { submittedAt: { lt: options.submittedBefore } } : {}) },
+    where: {
+      ...where,
+      status: 'generating',
+      ...(options.submittedBefore ? { submittedAt: { lt: options.submittedBefore } } : {}),
+      ...(options.reapiOnly ? { wavespeedTaskId: { startsWith: REAPI_TASK_PREFIX } } : {}),
+    },
     orderBy: { submittedAt: 'asc' },
     take: options.limit ?? 50,
   });
@@ -63,8 +69,17 @@ export const poll = async (options: { batchId?: string; limit?: number; submitte
 export const WEBHOOK_SILENCE_MS = 3 * 60 * 1000;
 
 /** Safety net for lost webhooks: polls long-silent tasks (any batch). Cheap when there are none. */
-export const sweepStale = async (now = Date.now()): Promise<number> =>
-  poll({ submittedBefore: new Date(now - WEBHOOK_SILENCE_MS), limit: 10 });
+/** reAPI (Gemini) sends no webhook; a 1K image takes 30–60 s, so its tasks are polled once past this. */
+export const REAPI_FIRST_POLL_MS = 30 * 1000;
+
+/** Safety net for lost webhooks: polls long-silent tasks (any batch), plus reAPI tasks, which never call back. */
+export const sweepStale = async (now = Date.now()): Promise<number> => {
+  const [stale, reapi] = await Promise.all([
+    poll({ submittedBefore: new Date(now - WEBHOOK_SILENCE_MS), limit: 10 }),
+    poll({ submittedBefore: new Date(now - REAPI_FIRST_POLL_MS), limit: 10, reapiOnly: true }),
+  ]);
+  return stale + reapi;
+};
 
 /** Pump + poll with a time budget — used by the batch GET route and the cron. */
 export const runGenerationTick = async (options: { batchId?: string; budgetMs: number }): Promise<void> => {

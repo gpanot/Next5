@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { after, NextResponse } from 'next/server';
 import { prisma } from '../../../../src/lib/db';
 import { authedRoute } from '../../../../src/server/api';
@@ -9,6 +10,7 @@ import { pump } from '../../../../src/server/generation/pump';
 import { presignObject } from '../../../../src/server/storage/objectStore';
 import { advanceInfluencerBatches, assertCanAfford, listInfluencers, resolveBaseImageKey } from '../../../../src/server/influencers/influencers';
 import { HttpError } from '../../../../src/server/http';
+import { extractIdentityLock } from '../../../../src/server/influencers/identityLock';
 
 export const maxDuration = 60;
 
@@ -20,12 +22,15 @@ export const GET = authedRoute(async (req, session) => {
   return NextResponse.json({ influencers: await listInfluencers(ws) });
 });
 
+/** One photo per style; the wizard offers every active Brand style. */
+const MAX_STYLES = 30;
+
 /**
- * POST /api/app/influencers — create influencer, auto-create sets, fire batches.
+ * POST /api/app/influencers — create influencer, one set per style, one Gemini photo per style.
  * Body: {
  *   product, name, gender?, age?, ethnicity?, source,
  *   baseImageKey, galleryItemId?,
- *   templateIds[], photosPerStyle (1–6), themeId
+ *   templateIds[]
  * }
  */
 export const POST = authedRoute(async (req, session) => {
@@ -44,28 +49,19 @@ export const POST = authedRoute(async (req, session) => {
   const galleryItemId = source === 'gallery' && typeof body.galleryItemId === 'string' ? body.galleryItemId : null;
   const baseImageKey = await resolveBaseImageKey(source, body.baseImageKey, galleryItemId);
 
-  const templateIds = Array.isArray(body.templateIds) ? body.templateIds.map(String) : [];
+  const templateIds = Array.isArray(body.templateIds) ? [...new Set(body.templateIds.map(String))].slice(0, MAX_STYLES) : [];
   if (templateIds.length === 0) throw new HttpError(400, 'templates_required', 'Choose at least one style.');
-  const photosPerStyle = Math.min(6, Math.max(1, Number(body.photosPerStyle ?? 6)));
-  const themeId = typeof body.themeId === 'string' ? body.themeId : '';
-  if (!themeId) throw new HttpError(400, 'theme_required', 'Choose a theme.');
-
-  // Validate theme exists.
-  const theme = await prisma.theme.findFirst({ where: { id: themeId, isActive: true } });
-  if (!theme) throw new HttpError(404, 'theme_not_found', 'Theme not found.');
-
-  // Pick the first `photosPerStyle` scene IDs from the theme.
-  type ThemeScene = { id: string; label: string; direction: string };
-  const allScenes = (theme.scenes as unknown as ThemeScene[]) ?? [];
-  const sceneIds = allScenes.slice(0, photosPerStyle).map((s) => s.id);
 
   // Validate templates.
   const templates = await prisma.setTemplate.findMany({
     where: { id: { in: templateIds }, isActive: true, product: ws.product },
+    orderBy: { sortOrder: 'asc' },
   });
   if (templates.length === 0) throw new HttpError(400, 'invalid_templates', 'No valid templates found.');
-  const perStyle = sceneIds.length > 0 ? sceneIds.length : photosPerStyle;
-  await assertCanAfford(ws, templates.length * perStyle);
+  await assertCanAfford(ws, templates.length);
+
+  // Lock the face once (portrait-clone), so every style describes the same person.
+  const identity = await extractIdentityLock(baseImageKey);
 
   // Create the Influencer record.
   const influencer = await prisma.influencer.create({
@@ -79,10 +75,11 @@ export const POST = authedRoute(async (req, session) => {
       baseImageKey,
       galleryItemId,
       status: 'active',
+      ...(identity ? { identityLock: identity as unknown as Prisma.InputJsonValue } : {}),
     },
   });
 
-  // For each template: create a StudioSet linked to the influencer, then create a batch.
+  // For each style: a StudioSet linked to the influencer, then a one-photo batch.
   const batchIds: string[] = [];
   for (const template of templates) {
     const set = await createSet(ws, {
@@ -94,21 +91,9 @@ export const POST = authedRoute(async (req, session) => {
       brandColors: [],
       modelRef: null,
     });
-    // Link set to the influencer.
     await prisma.studioSet.update({ where: { id: set.id }, data: { influencerId: influencer.id } });
 
-    const batch = await createBatch(ws, {
-      kind: 'brand_theme',
-      setId: set.id,
-      themeId: theme.id,
-      count: perStyle,
-      formats: ['portrait_4_5'],
-      highRes: false,
-      sceneIds: sceneIds.length > 0 ? sceneIds : undefined,
-      // Use the influencer's own portrait as the generation reference — no selfies needed.
-      influencerKey: baseImageKey,
-      variation: true,
-    });
+    const batch = await createBatch(ws, { kind: 'influencer_variation', setId: set.id, influencerKey: baseImageKey, identity });
     batchIds.push(batch.id);
   }
 

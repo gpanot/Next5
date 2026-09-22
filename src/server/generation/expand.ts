@@ -12,7 +12,10 @@ import { composeBrandPrompt } from './composer/brand';
 import { composeListingPrompt } from './composer/listing';
 import { roomSceneId } from './composer/listingScenes';
 import { composeShopPrompt } from './composer/shop';
-import type { AnyDraft, BrandPropertyDraft, InternalBrandDraft, InternalShopDraft } from './draft';
+import type { AnyDraft, BrandPropertyDraft, InfluencerVariationDraft, InternalBrandDraft, InternalShopDraft } from './draft';
+import { GEMINI_PRO_IMAGE } from '../../lib/reapiImage';
+import { influencerShotFor } from '../../content/business/catalog/influencerShots';
+import { composeLockedPrompt, DESLOP_NEGATIVES } from './composer/portraitClone';
 import { clampVariations, getListing, roomsFor } from '../listings/listings';
 import { productInputKeys, resolveBrandIdentity, resolveIdentity } from './inputs';
 
@@ -25,6 +28,8 @@ export type ItemSpec = {
   inputR2Keys: string[];
   /** Drop-box photo this was built from, so the calendar can label the post "24 Oak St". */
   materialId?: string | null;
+  /** Image model for the run; omitted means nano-banana-2 on WaveSpeed. */
+  model?: string | null;
 };
 
 export type ExpandedBatch = {
@@ -48,6 +53,15 @@ export type ExpandedBatch = {
 
 const shortDate = (now: Date, withYear: boolean): string =>
   now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}), timeZone: 'Asia/Ho_Chi_Minh' });
+
+/** Photos of an AI influencer run on Gemini 3 Pro Image (reAPI); everything else stays on WaveSpeed. */
+const influencerModel = (influencerKey?: string): string | null => (influencerKey ? GEMINI_PRO_IMAGE : null);
+
+/** Gemini gets the portrait-clone de-slop list on top of the scene prompt, so the influencer reads as a real photo. */
+const influencerPrompt = (prompt: string, influencerKey?: string): string =>
+  influencerKey
+    ? `${prompt}\n\nThe person is the exact same individual as in reference image 1: same face, skin, moles, hairline and hair color. Real unretouched full-frame camera photo, natural skin texture with visible pores, low contrast natural grade, faint sensor grain.\nAvoid: ${DESLOP_NEGATIVES.join('; ')}.`
+    : prompt;
 
 const loadSet = async (workspaceId: string, setId: string): Promise<StudioSet & { template: SetTemplate }> => {
   const set = await prisma.studioSet.findFirst({ where: { id: setId, workspaceId, status: { not: 'archived' } }, include: { template: true } });
@@ -74,7 +88,7 @@ const expandBrand = async (workspace: Workspace, draft: InternalBrandDraft, now:
         template, set, scene, index, sceneCount: scenes.length, format,
         industry: workspace.industry, identityImageCount: identity.keys.length,
       });
-      items.push({ sceneId: scene.id, shot: null, productId: null, format, prompt, inputR2Keys: identity.keys, materialId: null });
+      items.push({ sceneId: scene.id, shot: null, productId: null, format, prompt: influencerPrompt(prompt, draft.influencerKey), inputR2Keys: identity.keys, materialId: null, model: influencerModel(draft.influencerKey) });
     }
   }
   return {
@@ -167,9 +181,11 @@ const expandProperty = async (workspace: Workspace, draft: BrandPropertyDraft, n
           industry: workspace.industry, format,
         });
         items.push({
-          sceneId: roomSceneId(room.tag, look), shot: null, productId: null, format, prompt,
+          sceneId: roomSceneId(room.tag, look), shot: null, productId: null, format,
+          prompt: influencerPrompt(prompt, draft.influencerKey),
           inputR2Keys: [...identity.keys, room.r2Key],
           materialId: room.id,
+          model: influencerModel(draft.influencerKey),
         });
       }
     }
@@ -182,9 +198,28 @@ const expandProperty = async (workspace: Workspace, draft: BrandPropertyDraft, n
   };
 };
 
+/** One Gemini photo of the influencer in the set's style, from the style's locked shot. */
+const expandInfluencerVariation = async (workspace: Workspace, draft: InfluencerVariationDraft): Promise<ExpandedBatch> => {
+  const set = await loadSet(workspace.id, draft.setId);
+  const prompt = composeLockedPrompt({
+    id: set.templateId.replace(/-/g, '_'),
+    identity: draft.identity,
+    shot: influencerShotFor(set.templateId),
+    withReference: true,
+  });
+  return {
+    kind: 'brand_theme',
+    name: `Variation · ${set.name}`,
+    variation: true,
+    setId: set.id, themeId: null, packId: null, formats: ['story_9_16'], highRes: false,
+    items: [{ sceneId: set.templateId, shot: null, productId: null, format: 'story_9_16', prompt, inputR2Keys: [draft.influencerKey], materialId: null, model: GEMINI_PRO_IMAGE }],
+  };
+};
+
 export const expandDraft = (workspace: Workspace, draft: AnyDraft, now = new Date()): Promise<ExpandedBatch> => {
   if (draft.kind !== 'shop_products' && workspace.product !== 'brand') throw new HttpError(400, 'wrong_product', 'Themes and properties are for Brand Studio.');
   if (draft.kind === 'shop_products' && workspace.product !== 'shop') throw new HttpError(400, 'wrong_product', 'Products are for Shop Studio.');
   if (draft.kind === 'brand_property') return expandProperty(workspace, draft, now);
+  if (draft.kind === 'influencer_variation') return expandInfluencerVariation(workspace, draft);
   return draft.kind === 'brand_theme' ? expandBrand(workspace, draft, now) : expandShop(workspace, draft, now);
 };

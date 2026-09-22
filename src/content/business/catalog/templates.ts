@@ -3,6 +3,7 @@
  * Covers are the demo influencer's first sample photo (src/content/business/influencer.ts).
  */
 
+import { B2B_TEMPLATES } from './templatesB2b';
 import type { SetTemplateSeed } from './types';
 
 const IMG = '/images/business';
@@ -194,4 +195,7 @@ export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
   },
 ];
 
-export const ALL_TEMPLATES: readonly SetTemplateSeed[] = [...BRAND_TEMPLATES, ...SHOP_TEMPLATES];
+/** Every Brand style: the original six, then the B2B styles. */
+export const ALL_BRAND_TEMPLATES: readonly SetTemplateSeed[] = [...BRAND_TEMPLATES, ...B2B_TEMPLATES];
+
+export const ALL_TEMPLATES: readonly SetTemplateSeed[] = [...ALL_BRAND_TEMPLATES, ...SHOP_TEMPLATES];

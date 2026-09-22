@@ -44,9 +44,9 @@ await page.getByLabel(/^Name/).fill('Maya');
 await shot(page, '02-face-generated');
 await page.getByRole('button', { name: 'Continue' }).click();
 
-// 3. Variations: default is 1 style × 1.
-await page.getByText('Make variations').waitFor();
-await page.getByText('1 variation · 1 credit').waitFor();
+// 3. Styles: default is the first style, 1 photo.
+await page.getByText('Pick styles', { exact: true }).first().waitFor();
+await page.getByText('1 photo · 1 credit').waitFor();
 await shot(page, '03-variations');
 await page.getByRole('button', { name: 'Continue' }).click();
 await page.getByText('Review').first().waitFor();
@@ -136,8 +136,8 @@ const api = (path, body) => page.evaluate(async ([p, b]) => {
 }, [path, body]);
 const themeId = sql(`select id from themes where is_active limit 1`);
 const templateId = sql(`select id from set_templates where is_active and product='brand' limit 1`);
-assert(await api('/api/app/influencers', { product: 'brand', name: 'Bad', source: 'uploaded', baseImageKey: 'identity/someone-else/face.jpg', templateIds: [templateId], photosPerStyle: 1, themeId }) === 400, 'arbitrary storage key is refused');
-assert(await api('/api/app/influencers', { product: 'brand', name: 'Ghost', source: 'gallery', galleryItemId: 'missing', templateIds: [templateId], photosPerStyle: 1, themeId }) === 404, 'unknown gallery face is refused');
+assert(await api('/api/app/influencers', { product: 'brand', name: 'Bad', source: 'uploaded', baseImageKey: 'identity/someone-else/face.jpg', templateIds: [templateId] }) === 400, 'arbitrary storage key is refused');
+assert(await api('/api/app/influencers', { product: 'brand', name: 'Ghost', source: 'gallery', galleryItemId: 'missing', templateIds: [templateId] }) === 404, 'unknown gallery face is refused');
 assert(await api('/api/app/batches/estimate', { product: 'brand', kind: 'brand_theme', setId: sql(`select id from studio_sets where influencer_id='${maya}' limit 1`), themeId, count: 1, formats: ['portrait_4_5'], influencerId: maya, influencerPhotoId: 'not-a-photo' }) === 404, 'unknown variation id is refused');
 
 // 9. Archive.

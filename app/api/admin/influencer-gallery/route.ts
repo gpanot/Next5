@@ -3,7 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { adminRoute } from '../../../../src/server/admin/route';
 import { prisma } from '../../../../src/lib/db';
 import { putObject, presignObject } from '../../../../src/server/storage/objectStore';
+import sharp from 'sharp';
 import { normalizeUpload, readForm } from '../../../../src/server/storage/images';
+
+/** Gallery faces are stored 9:16 (1080 × 1920), cropped around the face when the upload is another shape. */
+const toStory = (buffer: Buffer): Promise<Buffer> =>
+  sharp(buffer).resize({ width: 1080, height: 1920, fit: 'cover', position: sharp.strategy.attention }).jpeg({ quality: 90 }).toBuffer();
 
 /** GET /api/admin/influencer-gallery — list all gallery items including archived. */
 export const GET = adminRoute(async () => {
@@ -26,7 +31,7 @@ export const GET = adminRoute(async () => {
 
 /**
  * POST /api/admin/influencer-gallery — upload a curated gallery face.
- * Multipart: file (image), gender?, age?, ethnicity?
+ * Multipart: file (image), gender?, age?, ethnicity?. Stored as a 9:16 JPEG.
  */
 export const POST = adminRoute(async (req: NextRequest) => {
   const form = await readForm(req);
@@ -35,14 +40,16 @@ export const POST = adminRoute(async (req: NextRequest) => {
     return NextResponse.json({ error: 'file_required' }, { status: 400 });
   }
 
-  const buffer = await normalizeUpload(file, 'gallery face');
+  const buffer = await toStory(await normalizeUpload(file, 'gallery face'));
   const id = randomUUID().replace(/-/g, '').slice(0, 25);
   const imageKey = `influencer-gallery/${id}.jpg`;
   await putObject(imageKey, buffer, 'image/jpeg');
 
-  const gender = form.get('gender')?.toString() ?? null;
-  const age = form.get('age') ? Number(form.get('age')) : null;
-  const ethnicity = form.get('ethnicity')?.toString() ?? null;
+  const text = (name: string, max: number): string | null => form.get(name)?.toString().trim().slice(0, max) || null;
+  const gender = text('gender', 20);
+  const ageValue = Number(form.get('age'));
+  const age = Number.isInteger(ageValue) && ageValue >= 18 && ageValue <= 90 ? ageValue : null;
+  const ethnicity = text('ethnicity', 60);
 
   const item = await prisma.influencerGalleryItem.create({
     data: { imageKey, gender, age, ethnicity },

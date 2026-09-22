@@ -93,7 +93,7 @@ export const GalleryModal = ({ onSelect, onClose }: GalleryModalProps) => {
                   className={`group relative flex flex-col gap-2 rounded-2xl p-1.5 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent ${isSelected ? 'bg-app-accent-soft' : ''}`}
                 >
                   <div
-                    className={`relative aspect-[3/4] overflow-hidden rounded-xl bg-app-sunken ring-2 ${isSelected ? 'ring-app-accent' : 'ring-transparent group-hover:ring-app-line'}`}
+                    className={`relative aspect-[9/16] overflow-hidden rounded-xl bg-app-sunken ring-2 ${isSelected ? 'ring-app-accent' : 'ring-transparent group-hover:ring-app-line'}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element -- presigned R2 URL */}
                     <img src={item.url} alt={[item.gender, item.ethnicity].filter(Boolean).join(', ') || 'Gallery face'} className="h-full w-full object-cover object-top" />

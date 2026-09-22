@@ -365,6 +365,8 @@ model Influencer {
   galleryItemId String?   @map("gallery_item_id")
   /// "active" | "archived"
   status        String    @default("active")
+  /// Locked identity JSON (portrait-clone) read once from the base portrait; reused by every Gemini prompt.
+  identityLock  Json?     @map("identity_lock")
   createdAt     DateTime  @default(now()) @map("created_at")
 
   workspace   Workspace              @relation(fields: [workspaceId], references: [id])

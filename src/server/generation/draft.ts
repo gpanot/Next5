@@ -5,6 +5,7 @@ import { isPackId, type PackId } from '../../config/shots';
 import { POSE_ENERGIES, WARDROBES, type PoseEnergyId, type WardrobeId } from '../../content/business/catalog/types';
 import { isOccasion, type Occasion } from '../../lib/listingOccasions';
 import { HttpError } from '../http';
+import type { IdentityLock } from './composer/portraitClone';
 
 /** 1 is the try-it size: one photo, one credit, to see the look before spending a batch. */
 export const BRAND_COUNTS = [1, 8, 16, 24, 32] as const;
@@ -66,10 +67,22 @@ export type InternalBrandDraft = Omit<BrandDraft, 'kind'> & {
    */
   influencerKey?: string;
 };
+/**
+ * One influencer variation: one Gemini photo of the influencer in one style (the set's template).
+ * No theme — the style's locked shot is the whole scene. Built server-side only.
+ */
+export type InfluencerVariationDraft = {
+  kind: 'influencer_variation';
+  setId: string;
+  /** R2 key of the influencer's base portrait (identity reference). */
+  influencerKey: string;
+  /** The influencer's locked identity; null means the reference image carries it alone. */
+  identity: IdentityLock | null;
+};
 export type InternalShopDraft = Omit<ShopDraft, 'kind'> & { kind: 'shop_products'; trial?: boolean; /** Free look preview. */ preview?: boolean; /** Only the 9:16 cover per product (TikTok library). */ coverOnly?: boolean };
 
 export type BatchDraft = BrandDraft | BrandPropertyDraft | ShopDraft;
-export type AnyDraft = InternalBrandDraft | BrandPropertyDraft | InternalShopDraft;
+export type AnyDraft = InternalBrandDraft | BrandPropertyDraft | InternalShopDraft | InfluencerVariationDraft;
 
 export const MAX_PRODUCTS_PER_BATCH = 40;
 
