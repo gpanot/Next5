@@ -66,16 +66,16 @@ export async function renderProject(
     const outputPath = path.join(tmpDir, 'output.mp4');
     // CHROMIUM_PATH is required in Docker (set to /usr/bin/chromium).
     // Locally on macOS, leave it unset and let Remotion find Chrome automatically.
-    const chromiumOptions = process.env.CHROMIUM_PATH
-      ? { executablePath: process.env.CHROMIUM_PATH }
-      : {};
+    // NOTE: In Remotion v4.x, the executable path is a top-level `browserExecutable`
+    // parameter — NOT inside `chromiumOptions` (which only contains browser flags).
+    const browserExecutable = process.env.CHROMIUM_PATH || undefined;
 
     console.log(`[render:${jobId}] Selecting composition "GreenScreen"…`);
     const composition = await selectComposition({
       serveUrl,
       id: 'GreenScreen',
       inputProps,
-      chromiumOptions,
+      browserExecutable,
     });
 
     console.log(`[render:${jobId}] Rendering ${durationInFrames} frames @ ${template.fps} fps…`);
@@ -85,7 +85,7 @@ export async function renderProject(
       codec: 'h264',
       outputLocation: outputPath,
       inputProps,
-      chromiumOptions,
+      browserExecutable,
       onProgress: ({ progress }) => {
         process.stdout.write(`\r[render:${jobId}] ${Math.round(progress * 100)} %`);
       },
