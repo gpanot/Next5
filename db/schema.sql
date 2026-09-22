@@ -1091,7 +1091,13 @@ CREATE TABLE public.workspaces (
     onboarding_step integer DEFAULT 0 NOT NULL,
     onboarding_completed_at timestamp(3) without time zone,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone NOT NULL
+    updated_at timestamp(3) without time zone NOT NULL,
+    team_size character varying(20),
+    monthly_revenue character varying(20),
+    ob_role character varying(50),
+    signup_intent character varying(50),
+    goals text[] DEFAULT '{}'::text[] NOT NULL,
+    attribution text[] DEFAULT '{}'::text[] NOT NULL
 );
 
 
@@ -2319,4 +2325,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260928000000'),
     ('20260929090000'),
     ('20260930090000'),
-    ('20261001090000');
+    ('20261001090000'),
+    ('20261002090000');

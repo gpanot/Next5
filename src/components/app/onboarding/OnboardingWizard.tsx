@@ -17,19 +17,29 @@ import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonText } from '../../ui/Skeleton';
 import { Stepper } from '../../ui/Stepper';
 import { AccountStep } from './AccountStep';
-import { BrandIdentityStep } from './BrandIdentityStep';
-import { BrandSetStep } from './BrandSetStep';
+import { AttributionStep } from './AttributionStep';
+import { BrandSelfieStep } from './BrandSelfieStep';
 import { ConsentStep } from './ConsentStep';
-import { PlanStep } from './PlanStep';
-import { ShopLookStep } from './ShopLookStep';
-import { ShopModelStep } from './ShopModelStep';
-import { TrialStep } from './TrialStep';
+import { IntentGoalsStep } from './IntentGoalsStep';
+import { ProductIntroStep } from './ProductIntroStep';
+import { RoleStep } from './RoleStep';
+import { SocialProofStep } from './SocialProofStep';
+import { TeamRevenueStep } from './TeamRevenueStep';
 import { STEP_LABELS, type StepProps } from './types';
 
-const STEPS: Record<ProductLineDto, readonly ((props: StepProps) => React.ReactNode)[]> = {
-  brand: [ConsentStep, BrandIdentityStep, BrandSetStep, TrialStep, PlanStep],
-  shop: [ConsentStep, ShopModelStep, ShopLookStep, TrialStep, PlanStep],
-};
+// Steps 2–9 (step 1 = AccountStep, rendered separately)
+const STEPS: readonly ((props: StepProps) => React.ReactNode)[] = [
+  ConsentStep,
+  TeamRevenueStep,
+  RoleStep,
+  IntentGoalsStep,
+  AttributionStep,
+  BrandSelfieStep,
+  SocialProofStep,
+  ProductIntroStep,
+];
+
+const TOTAL_STEPS = STEP_LABELS.length; // 9
 
 export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const token = sessionTokenStore.useValue();
@@ -39,7 +49,7 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const router = useRouter();
 
   const workspace = me.data?.workspace?.product === product ? me.data.workspace : null;
-  const serverStep = workspace ? Math.min(6, workspace.onboardingStep + 1) : 1;
+  const serverStep = workspace ? Math.min(TOTAL_STEPS, workspace.onboardingStep + 1) : 1;
   const current = viewStep !== null && viewStep < serverStep ? viewStep : serverStep;
 
   useEffect(() => {
@@ -51,8 +61,14 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
     if (workspace) onboardingDraftStore.set(null);
   }, [workspace]);
 
-  const advance = useCallback(async (step: number, options?: { completed?: boolean }) => {
-    await apiFetch('/api/app/onboarding/step', { method: 'PATCH', json: { product, step, completed: options?.completed } });
+  const advance = useCallback(async (
+    step: number,
+    options?: { completed?: boolean; data?: Record<string, unknown> },
+  ) => {
+    await apiFetch('/api/app/onboarding/step', {
+      method: 'PATCH',
+      json: { product, step, completed: options?.completed, ...options?.data },
+    });
     track('onboarding_step_completed', { product, step, completed: Boolean(options?.completed) });
     setViewStep(null);
     me.refresh();
@@ -62,7 +78,7 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const consentDone = me.data ? hasRequiredConsents(product, me.data.user.consents) : false;
   const hasOtherStudio = Boolean(me.data && me.data.workspaces.length > 0);
   const loading = token === undefined || verifying || (Boolean(token) && me.loading && !me.data);
-  const StepComponent = current > 1 && me.data ? STEPS[product][current - 2] : null;
+  const StepComponent = current > 1 && me.data ? STEPS[current - 2] : null;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-5 pb-16 pt-6 sm:px-8">
@@ -71,7 +87,7 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
         <Link href="/app" className="text-[14px] text-app-muted hover:text-app-ink">{hasOtherStudio ? 'Back to my studio' : 'Log in'}</Link>
       </header>
       <div className="flex items-center gap-3">
-        {current > (consentDone ? 3 : 2) && current < 6 && (
+        {current > (consentDone ? 3 : 2) && current < TOTAL_STEPS && (
           <button type="button" onClick={() => setViewStep(current - 1)} aria-label="Back" className="flex h-9 w-9 items-center justify-center rounded-full border border-app-line text-app-ink transition-colors duration-200 hover:bg-app-sunken">
             <ArrowLeft aria-hidden className="h-4 w-4" />
           </button>

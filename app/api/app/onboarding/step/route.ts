@@ -4,20 +4,31 @@ import { authedRoute } from '../../../../../src/server/api';
 import { HttpError, readJsonObject } from '../../../../../src/server/http';
 import { isProductLine, requireWorkspace } from '../../../../../src/server/workspaces/workspaces';
 
-const ONBOARDING_STEPS = 6;
+const ONBOARDING_STEPS = 9;
 
-/** PATCH /api/app/onboarding/step — { product, step, completed? }. Steps only move forward. */
+/** PATCH /api/app/onboarding/step — { product, step, completed?, ...qualData }. Steps only move forward. */
 export const PATCH = authedRoute(async (req, session) => {
   const body = await readJsonObject(req);
   if (!isProductLine(body.product)) throw new HttpError(400, 'invalid_product', 'Unknown product.');
   const step = Number(body.step);
   if (!Number.isInteger(step) || step < 0 || step > ONBOARDING_STEPS) throw new HttpError(400, 'invalid_step', 'Unknown step.');
   const ws = await requireWorkspace(session.userId, body.product);
+
+  // Extract and validate B2B qualification fields if provided
+  const qualData: Record<string, unknown> = {};
+  if (typeof body.teamSize === 'string' && body.teamSize) qualData.teamSize = body.teamSize;
+  if (typeof body.monthlyRevenue === 'string' && body.monthlyRevenue) qualData.monthlyRevenue = body.monthlyRevenue;
+  if (typeof body.role === 'string' && body.role) qualData.obRole = body.role;
+  if (typeof body.signupIntent === 'string' && body.signupIntent) qualData.signupIntent = body.signupIntent;
+  if (Array.isArray(body.goals)) qualData.goals = body.goals.map(String);
+  if (Array.isArray(body.attribution)) qualData.attribution = body.attribution.map(String);
+
   const updated = await prisma.workspace.update({
     where: { id: ws.id },
     data: {
       onboardingStep: Math.max(ws.onboardingStep, step),
       onboardingCompletedAt: body.completed === true ? ws.onboardingCompletedAt ?? new Date() : undefined,
+      ...qualData,
     },
   });
   return NextResponse.json({ onboardingStep: updated.onboardingStep, completed: Boolean(updated.onboardingCompletedAt) });

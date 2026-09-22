@@ -224,6 +224,13 @@ model Workspace {
   trialUsedAt           DateTime?   @map("trial_used_at")
   onboardingStep        Int         @default(0) @map("onboarding_step")
   onboardingCompletedAt DateTime?   @map("onboarding_completed_at")
+  // B2B onboarding qualification fields
+  teamSize              String?     @map("team_size")
+  monthlyRevenue        String?     @map("monthly_revenue")
+  obRole                String?     @map("ob_role")
+  signupIntent          String?     @map("signup_intent")
+  goals                 String[]    @default([])
+  attribution           String[]    @default([])
   createdAt             DateTime    @default(now()) @map("created_at")
   updatedAt             DateTime    @updatedAt @map("updated_at")
 
