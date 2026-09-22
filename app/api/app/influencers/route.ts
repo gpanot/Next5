@@ -11,7 +11,7 @@ import { HttpError } from '../../../../src/server/http';
 
 export const maxDuration = 60;
 
-/** GET /api/app/influencers?product= — list active influencers with their set/batch counts. */
+/** GET /api/app/influencers?product= — list active influencers with their set/batch counts and preview photos. */
 export const GET = authedRoute(async (req, session) => {
   const product = new URL(req.url).searchParams.get('product');
   const ws = await requireWorkspace(session.userId, isProductLine(product) ? product : undefined);
@@ -22,18 +22,44 @@ export const GET = authedRoute(async (req, session) => {
     include: { _count: { select: { sets: true } } },
   });
 
+  // For each influencer, grab up to 4 completed photo R2 keys from their sets' batches.
+  const previewsByInfluencer = await Promise.all(
+    influencers.map(async (inf) => {
+      const items = await prisma.batchItem.findMany({
+        where: {
+          batch: {
+            set: { influencerId: inf.id },
+            preview: false,
+          },
+          r2Key: { not: null },
+          status: 'ready',
+          archivedAt: null,
+        },
+        orderBy: { completedAt: 'desc' },
+        take: 4,
+        select: { r2Key: true },
+      });
+      return { influencerId: inf.id, keys: items.map((i) => i.r2Key as string) };
+    }),
+  );
+
   const dtos = await Promise.all(
-    influencers.map(async (inf) => ({
-      id: inf.id,
-      name: inf.name,
-      gender: inf.gender,
-      age: inf.age,
-      ethnicity: inf.ethnicity,
-      source: inf.source,
-      setCount: inf._count.sets,
-      portraitUrl: inf.baseImageKey ? await presignObject(inf.baseImageKey) : null,
-      createdAt: inf.createdAt.toISOString(),
-    })),
+    influencers.map(async (inf) => {
+      const previews = previewsByInfluencer.find((p) => p.influencerId === inf.id)?.keys ?? [];
+      const previewUrls = await Promise.all(previews.map((k) => presignObject(k).then((u) => u ?? '')));
+      return {
+        id: inf.id,
+        name: inf.name,
+        gender: inf.gender,
+        age: inf.age,
+        ethnicity: inf.ethnicity,
+        source: inf.source,
+        setCount: inf._count.sets,
+        portraitUrl: inf.baseImageKey ? (await presignObject(inf.baseImageKey)) : null,
+        previewUrls: previewUrls.filter(Boolean),
+        createdAt: inf.createdAt.toISOString(),
+      };
+    }),
   );
 
   return NextResponse.json({ influencers: dtos });

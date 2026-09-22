@@ -12,6 +12,7 @@ import { AppLink as Link } from '../shell/AppLink';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { ArchiveSetDialog } from './ArchiveSetDialog';
 import { InfluencerCard } from './InfluencerCard';
+import { InfluencersList } from './InfluencersList';
 import { LookCard, type LookPhoto } from './LookCard';
 import { useStylePreviews } from './useStylePreviews';
 
@@ -29,22 +30,22 @@ const SectionTitle = ({ title, sub }: { title: string; sub: string }) => (
 );
 
 /**
- * Your AI influencer (you) and her looks. Each style shows real sample photos, so she sees what a style
- * means before she uses it. Styles she has not added yet sit below, one tap from "Add".
+ * Shop look cards: selfie-based "You" card + swipeable style cards.
+ * Only rendered for the shop product.
  */
-export const SetsList = () => {
+const ShopSetsList = () => {
   const { product, me } = useWorkspace();
   const sets = useApi<{ sets: StudioSetDto[] }>(product ? `/api/app/sets?product=${product}` : null);
   const templates = useApi<{ templates: SetTemplateDto[] }>(product ? `/api/app/templates?product=${product}` : null);
   const [archiving, setArchiving] = useState<StudioSetDto | null>(null);
-  // Brand previews need her selfies; a Shop look may use a Studio model, so the server decides.
-  const canPreview = product === 'shop' || Boolean(me?.workspace?.hasIdentity);
+  const canPreview = Boolean(me?.workspace?.hasIdentity);
   const previews = useStylePreviews(sets.data?.sets, canPreview, sets.refresh);
+
   if (!product) return null;
   if ((sets.loading && !sets.data) || (templates.loading && !templates.data)) return <SkeletonGrid count={4} cols={2} />;
   if (sets.error && !sets.data) return <ErrorState message={sets.error} onRetry={sets.refresh} />;
 
-  const noun = product === 'shop' ? 'look' : 'influencer';
+  const noun = 'look';
   const mine = sets.data?.sets ?? [];
   const used = new Set(mine.map((s) => s.templateId));
   const more = (templates.data?.templates ?? []).filter((t) => !used.has(t.id));
@@ -61,7 +62,7 @@ export const SetsList = () => {
 
       {mine.length > 0 && (
         <section className="flex flex-col gap-4">
-          <SectionTitle title={product === 'brand' ? 'Your influencers' : 'Your looks'} sub={`Pick one when you create. Every photo in a ${noun} has the same light and place.`} />
+          <SectionTitle title="Your looks" sub={`Pick one when you create. Every photo in a ${noun} has the same light and place.`} />
           <div className="grid gap-4 lg:grid-cols-2">
             {mine.map((set) => (
               <LookCard
@@ -72,7 +73,7 @@ export const SetsList = () => {
                   ...previews.previewOf(set).photos.map((src, i) => ({ src, alt: `You in ${set.name}, preview ${i + 1}`, remote: true })),
                   ...samplePhotos(product, set.templateId, set.templateName),
                 ]}
-                pending={previews.previewOf(set).status === 'generating' ? (product === 'shop' ? 3 : 2) : 0}
+                pending={previews.previewOf(set).status === 'generating' ? 3 : 0}
                 caption={captionFor(set)}
                 onArchive={() => setArchiving(set)}
                 actions={
@@ -104,7 +105,17 @@ export const SetsList = () => {
         </section>
       )}
 
-      {archiving && <ArchiveSetDialog setId={archiving.id} name={archiving.name} noun={product === 'shop' ? 'shop look' : 'style'} onClose={() => setArchiving(null)} onArchived={() => { setArchiving(null); sets.refresh(); }} />}
+      {archiving && <ArchiveSetDialog setId={archiving.id} name={archiving.name} noun="shop look" onClose={() => setArchiving(null)} onArchived={() => { setArchiving(null); sets.refresh(); }} />}
     </div>
   );
+};
+
+/**
+ * Brand → AI influencer portrait grid.
+ * Shop → selfie-based card + swipeable look cards.
+ */
+export const SetsList = () => {
+  const { product } = useWorkspace();
+  if (product === 'brand') return <InfluencersList />;
+  return <ShopSetsList />;
 };
