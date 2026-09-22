@@ -44,7 +44,7 @@ export type MonthTile = { image: string; kind: 'photo' | 'video'; who: 'Realtor'
 /** "A month of posts": real sample outputs, photo and video, both buyers. */
 export const HOME_MONTH = {
   eyebrow: 'What you get',
-  title: 'A month of posts. Made for you.',
+  title: 'A month of posts. Made for your Business.',
   sub: 'Photos and short videos, sized for TikTok, Instagram and Facebook.',
   tiles: [
     { image: `${US}/realtor-front-yard.png`, kind: 'photo', who: 'Realtor' },
@@ -81,6 +81,7 @@ export const HOME_CHOOSER = {
       image: `${US}/realtor-listing.png`,
       cta: 'See the realtor plan',
       planProduct: 'brand' as const,
+      includesLabel: '5 posts/day (4 images + 1 video)',
     },
     {
       href: '/shop',
@@ -90,6 +91,7 @@ export const HOME_CHOOSER = {
       image: `${US}/shop-set-after.png`,
       cta: 'See the TikTok Shop plan',
       planProduct: 'shop' as const,
+      includesLabel: '20 posts/day (19 images + 1 video)',
     },
   ],
 };

@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { HOME_CHOOSER, STARTER, includesLine } from '../../../content/business/home';
+import { HOME_CHOOSER } from '../../../content/business/home';
 import { MarketingImage } from '../shared/MarketingImage';
 
 /**
@@ -23,7 +23,7 @@ export const ProductChooser = () => (
           <h3 className="font-display text-[19px] font-medium leading-tight text-app-ink sm:text-[30px]">{product.title}</h3>
           <p className="hidden text-[16px] leading-relaxed text-app-muted sm:block">{product.body}</p>
           <p className="text-[13px] text-app-ink sm:rounded-xl sm:bg-app-sunken sm:px-3 sm:py-2 sm:text-[15px]">
-            From <span className="font-semibold tabular-nums">{STARTER[product.planProduct].price}</span>/mo · {includesLine(product.planProduct)}
+            {product.includesLabel}
           </p>
           <span className="mt-auto flex items-center gap-1.5 pt-1 text-[14px] font-medium text-app-accent transition-colors duration-200 group-hover:text-app-ink sm:pt-2 sm:text-[15px]">
             {product.cta} <ArrowRight aria-hidden className="h-4 w-4" />
