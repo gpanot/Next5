@@ -21,11 +21,11 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+import type { GreenScreenProps } from './types';
 
 /** Returns true if the URL looks like a static image (not a video). */
 const isImageUrl = (url: string) =>
   /\.(jpe?g|png|webp|gif|avif|svg)(\?|$)/i.test(url);
-import type { GreenScreenProps } from './types';
 
 const AUDIO_FADE_FRAMES = 15;
 
