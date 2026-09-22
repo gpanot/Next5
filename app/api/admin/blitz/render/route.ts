@@ -18,6 +18,8 @@ type RenderBody = {
   regenPrompt?: string;
   captionText: string;
   isIdentifiablePerson?: boolean;
+  /** Partial TextConfig overrides from the editor (font, color, strokeWidth, etc.) */
+  textConfigOverride?: Partial<TextConfig>;
 };
 
 /**
@@ -56,7 +58,11 @@ export const POST = adminRoute(async (req: NextRequest) => {
   const project = await prisma.blitzProject.create({
     data: {
       templateId: body.templateId,
-      currentAssets: body.currentAssets,
+      // Embed textConfigOverride in the JSONB blob so the worker can apply it
+      // without a schema change. Worker reads currentAssets.textConfigOverride.
+      currentAssets: body.textConfigOverride
+        ? { ...body.currentAssets, textConfigOverride: body.textConfigOverride }
+        : body.currentAssets,
       overlayZoom: body.overlayZoom ?? 1.0,
       overlayOffsetX: body.overlayOffsetX ?? 0,
       overlayOffsetY: body.overlayOffsetY ?? 0,

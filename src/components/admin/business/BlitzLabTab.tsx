@@ -7,12 +7,20 @@
  *
  * All editing state is local (no draft DB saves). The single DB write happens when
  * "Done Editing" is clicked: POST /api/admin/blitz/render creates the BlitzProject
- * and sets renderStatus=PENDING atomically. The Railway worker picks it up and renders.
+ * and sets renderStatus=PENDING atomically. The Railway worker picks it up.
+ *
+ * Layer model:
+ *   activeLayer === 'OVERLAY' → canvas drag moves the meme/broll clip
+ *   activeLayer === 'TEXT'    → canvas drag repositions the caption
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BLITZ_POLL_INTERVAL_MS, BLITZ_DEFAULT_TEXT_CONFIG } from '../../../config/blitzLab';
-import type { GreenScreenProps } from '../../../remotion/types';
+import {
+  BLITZ_POLL_INTERVAL_MS,
+  BLITZ_DEFAULT_TEXT_CONFIG,
+  BLITZ_CANVAS_HEIGHT,
+} from '../../../config/blitzLab';
+import type { GreenScreenProps, TextConfig } from '../../../remotion/types';
 import { AssetsPanel } from './blitzLab/AssetsPanel';
 import { PreviewPlayer } from './blitzLab/PreviewPlayer';
 import { ContextPanel } from './blitzLab/ContextPanel';
@@ -36,6 +44,11 @@ type RenderState =
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Build the full GreenScreenProps from the current editor state.
+ * For preview: r2Key → presigned URL (from `assets`).
+ * For rendering: the render route re-generates URLs server-side.
+ */
 const buildInputProps = (
   template: BlitzTemplateDto,
   assets: BlitzAssetDto[],
@@ -44,10 +57,10 @@ const buildInputProps = (
   offsetX: number,
   offsetY: number,
   caption: string,
+  textConfig: TextConfig,
 ): GreenScreenProps => {
   // key is the R2 key; find the signed browser URL for the preview player
   const findUrl = (key: string) => assets.find((a) => a.r2Key === key)?.url ?? key;
-  const tc = template.textConfig as typeof BLITZ_DEFAULT_TEXT_CONFIG;
   return {
     backgroundUrl: findUrl(current.backgroundKey),
     overlayUrl: findUrl(current.overlayKey),
@@ -56,14 +69,28 @@ const buildInputProps = (
     overlayZoom: zoom,
     overlayOffsetX: offsetX,
     overlayOffsetY: offsetY,
-    textConfig: {
-      font: tc?.font ?? BLITZ_DEFAULT_TEXT_CONFIG.font,
-      positionY: tc?.positionY ?? BLITZ_DEFAULT_TEXT_CONFIG.positionY,
-      fontSize: tc?.fontSize ?? BLITZ_DEFAULT_TEXT_CONFIG.fontSize,
-      safeZonePadding: tc?.safeZonePadding ?? BLITZ_DEFAULT_TEXT_CONFIG.safeZonePadding,
-    },
+    textConfig,
     durationInFrames: Math.round(template.durationSeconds * template.fps),
     fps: template.fps,
+  };
+};
+
+/** Merge template's textConfig with user overrides. */
+const mergeTextConfig = (
+  templateTextConfig: unknown,
+  overrides: Partial<TextConfig>,
+): TextConfig => {
+  const base = templateTextConfig as Partial<TextConfig>;
+  return {
+    font: overrides.font ?? base.font ?? BLITZ_DEFAULT_TEXT_CONFIG.font,
+    positionY: overrides.positionY ?? base.positionY ?? BLITZ_DEFAULT_TEXT_CONFIG.positionY,
+    fontSize: overrides.fontSize ?? base.fontSize ?? BLITZ_DEFAULT_TEXT_CONFIG.fontSize,
+    safeZonePadding: overrides.safeZonePadding ?? base.safeZonePadding ?? BLITZ_DEFAULT_TEXT_CONFIG.safeZonePadding,
+    fontWeight: overrides.fontWeight ?? base.fontWeight ?? BLITZ_DEFAULT_TEXT_CONFIG.fontWeight,
+    color: overrides.color ?? base.color ?? BLITZ_DEFAULT_TEXT_CONFIG.color,
+    strokeWidth: overrides.strokeWidth ?? base.strokeWidth ?? BLITZ_DEFAULT_TEXT_CONFIG.strokeWidth,
+    strokeColor: overrides.strokeColor ?? base.strokeColor ?? BLITZ_DEFAULT_TEXT_CONFIG.strokeColor,
+    offsetX: overrides.offsetX ?? base.offsetX ?? BLITZ_DEFAULT_TEXT_CONFIG.offsetX,
   };
 };
 
@@ -77,7 +104,7 @@ export function BlitzLabTab({ token }: Props) {
   const [libraryLoading, setLibraryLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // ── editor state (all in-memory, no draft saves) ──────────────────────
+  // ── editor state ──────────────────────────────────────────────────────
   const [selectedTemplate, setSelectedTemplate] = useState<BlitzTemplateDto | null>(null);
   const [currentAssets, setCurrentAssets] = useState<CurrentAssets>({ backgroundKey: '', overlayKey: '' });
   const [overlayZoom, setOverlayZoom] = useState(1.0);
@@ -86,9 +113,13 @@ export function BlitzLabTab({ token }: Props) {
   const [captionText, setCaptionText] = useState('');
   const [mentionBusiness, setMentionBusiness] = useState(false);
   const [regenPrompt, setRegenPrompt] = useState('');
-  const [selectedLayer, setSelectedLayer] = useState<'OVERLAY' | 'BACKGROUND' | null>('OVERLAY');
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regenError, setRegenError] = useState<string | null>(null);
+
+  // ── layer / text config state ─────────────────────────────────────────
+  const [activeLayer, setActiveLayer] = useState<'OVERLAY' | 'TEXT'>('OVERLAY');
+  /** Per-session overrides on top of the template's textConfig */
+  const [textOverride, setTextOverride] = useState<Partial<TextConfig>>({});
 
   // ── render state ───────────────────────────────────────────────────────
   const [renderState, setRenderState] = useState<RenderState>({ phase: 'idle' });
@@ -108,7 +139,6 @@ export function BlitzLabTab({ token }: Props) {
       setLibrary({ projects: lRes.data.projects ?? [] });
       setLibraryLoading(false);
 
-      // Auto-select the first template
       const first = tRes.data.templates?.[0];
       if (first) initTemplate(first, aRes.data.assets ?? []);
     }).catch(() => setLoadError('Failed to load Blitz Lab data'));
@@ -117,7 +147,6 @@ export function BlitzLabTab({ token }: Props) {
 
   const initTemplate = useCallback((template: BlitzTemplateDto, allAssets: BlitzAssetDto[]) => {
     setSelectedTemplate(template);
-    // defaultAssets stores R2 keys; fallback to first asset's r2Key
     const defaults = template.defaultAssets as { backgroundKey?: string; overlayKey?: string; audioKey?: string };
     setCurrentAssets({
       backgroundKey: defaults.backgroundKey ?? allAssets.find((a) => a.type === 'BACKGROUND')?.r2Key ?? '',
@@ -128,6 +157,7 @@ export function BlitzLabTab({ token }: Props) {
     setOverlayZoom(1.0);
     setOverlayOffsetX(0);
     setOverlayOffsetY(0);
+    setTextOverride({});
     setMentionBusiness(false);
     setRegenPrompt('');
   }, []);
@@ -159,21 +189,61 @@ export function BlitzLabTab({ token }: Props) {
   useEffect(() => () => stopPolling(), [stopPolling]);
 
   // ── actions ────────────────────────────────────────────────────────────
+
   const handleSwapAsset = useCallback((type: 'BACKGROUND' | 'OVERLAY', key: string) => {
     setCurrentAssets((prev) =>
       type === 'BACKGROUND' ? { ...prev, backgroundKey: key } : { ...prev, overlayKey: key },
     );
   }, []);
 
-  const handleOffsetChange = useCallback((dx: number, dy: number) => {
+  /** Called when the upload API returns a new asset; add it to local list so preview resolves the URL. */
+  const handleAssetUploaded = useCallback((dto: BlitzAssetDto) => {
+    setAssets((prev) => [...prev, dto]);
+  }, []);
+
+  /** Drag on canvas when OVERLAY layer is active → moves the meme clip. */
+  const handleOverlayOffsetChange = useCallback((dx: number, dy: number) => {
     setOverlayOffsetX((prev) => prev + dx);
     setOverlayOffsetY((prev) => prev + dy);
+  }, []);
+
+  /**
+   * Drag on canvas when TEXT layer is active → repositions the caption.
+   * dx (canvas px) → textConfig.offsetX
+   * dy (canvas px) → textConfig.positionY (fraction of canvas height from top)
+   *   Moving DOWN (dy > 0) → positionY increases → caption bottom moves down
+   *   Moving UP   (dy < 0) → positionY decreases → caption bottom moves up
+   */
+  const handleTextOffsetChange = useCallback((dx: number, dy: number) => {
+    setTextOverride((prev) => ({
+      ...prev,
+      offsetX: (prev.offsetX ?? BLITZ_DEFAULT_TEXT_CONFIG.offsetX) + dx,
+      positionY: Math.max(
+        0.02,
+        Math.min(
+          0.97,
+          (prev.positionY ?? BLITZ_DEFAULT_TEXT_CONFIG.positionY) + dy / BLITZ_CANVAS_HEIGHT,
+        ),
+      ),
+    }));
   }, []);
 
   const handleResetPosition = useCallback(() => {
     setOverlayOffsetX(0);
     setOverlayOffsetY(0);
     setOverlayZoom(1.0);
+  }, []);
+
+  const handleResetTextPosition = useCallback(() => {
+    setTextOverride((prev) => ({
+      ...prev,
+      offsetX: 0,
+      positionY: BLITZ_DEFAULT_TEXT_CONFIG.positionY,
+    }));
+  }, []);
+
+  const handleTextConfigChange = useCallback((patch: Partial<TextConfig>) => {
+    setTextOverride((prev) => ({ ...prev, ...patch }));
   }, []);
 
   const handleRegenerateText = useCallback(async () => {
@@ -201,6 +271,10 @@ export function BlitzLabTab({ token }: Props) {
       mentionBusiness,
       regenPrompt: regenPrompt || undefined,
       captionText,
+      // Pass text style overrides so the worker uses the user's choices
+      textConfigOverride: Object.keys(textOverride).length > 0
+        ? (textOverride as Record<string, unknown>)
+        : undefined,
     });
 
     if (!res.ok) {
@@ -213,13 +287,28 @@ export function BlitzLabTab({ token }: Props) {
     startPolling(projectId);
   }, [
     token, selectedTemplate, currentAssets, overlayZoom, overlayOffsetX,
-    overlayOffsetY, mentionBusiness, regenPrompt, captionText, startPolling,
+    overlayOffsetY, mentionBusiness, regenPrompt, captionText, textOverride, startPolling,
   ]);
 
   // ── derived ────────────────────────────────────────────────────────────
-  const inputProps: GreenScreenProps | null = selectedTemplate
-    ? buildInputProps(selectedTemplate, assets, currentAssets, overlayZoom, overlayOffsetX, overlayOffsetY, captionText)
+
+  const resolvedTextConfig: TextConfig | null = selectedTemplate
+    ? mergeTextConfig(selectedTemplate.textConfig, textOverride)
     : null;
+
+  const inputProps: GreenScreenProps | null =
+    selectedTemplate && resolvedTextConfig
+      ? buildInputProps(
+          selectedTemplate,
+          assets,
+          currentAssets,
+          overlayZoom,
+          overlayOffsetX,
+          overlayOffsetY,
+          captionText,
+          resolvedTextConfig,
+        )
+      : null;
 
   const isRendering = renderState.phase === 'submitting' || renderState.phase === 'polling';
 
@@ -233,7 +322,11 @@ export function BlitzLabTab({ token }: Props) {
       <div className="flex flex-col items-center gap-3 py-16 text-center">
         <p className="text-[15px] font-semibold text-ink">No templates yet</p>
         <p className="text-[13px] text-muted max-w-sm">
-          Run <code className="rounded bg-surface-alt px-1 py-0.5 text-[12px]">npm run db:seed:blitz</code> to seed the first Green Screen template and test assets.
+          Run{' '}
+          <code className="rounded bg-surface-alt px-1 py-0.5 text-[12px]">
+            npm run db:seed:blitz
+          </code>{' '}
+          to seed the first Green Screen template and test assets.
         </p>
       </div>
     );
@@ -241,14 +334,13 @@ export function BlitzLabTab({ token }: Props) {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* ── Header ─────────────────────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-[20px] font-semibold text-ink">Blitz Lab</h1>
           <p className="text-[13px] text-muted">Layer assets → render a 9:16 video in seconds</p>
         </div>
 
-        {/* Template selector */}
         {templates.length > 1 && (
           <select
             value={selectedTemplate?.id ?? ''}
@@ -265,17 +357,19 @@ export function BlitzLabTab({ token }: Props) {
         )}
       </div>
 
-      {/* ── 3-panel editor ─────────────────────────────────────────── */}
+      {/* ── 3-panel editor ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr_220px] items-start">
         {/* Left: Assets panel */}
         <div className="flex flex-col gap-4">
           <AssetsPanel
+            token={token}
             assets={assets}
             currentAssets={currentAssets}
             captionText={captionText}
             mentionBusiness={mentionBusiness}
             regenPrompt={regenPrompt}
             onSwapAsset={handleSwapAsset}
+            onAssetUploaded={handleAssetUploaded}
             onCaptionChange={setCaptionText}
             onMentionBusinessChange={setMentionBusiness}
             onRegenPromptChange={setRegenPrompt}
@@ -285,17 +379,22 @@ export function BlitzLabTab({ token }: Props) {
           {regenError && <p className="text-[12px] text-red-700">{regenError}</p>}
         </div>
 
-        {/* Center: Preview player — fills the 1fr column, player self-constrains to maxWidth */}
+        {/* Center: Preview player */}
         <div className="flex flex-col items-center gap-4 min-w-0">
-          {inputProps ? (
-            <PreviewPlayer inputProps={inputProps} onOffsetChange={handleOffsetChange} />
+          {inputProps && resolvedTextConfig ? (
+            <PreviewPlayer
+              inputProps={inputProps}
+              activeLayer={activeLayer}
+              onOverlayOffsetChange={handleOverlayOffsetChange}
+              onTextOffsetChange={handleTextOffsetChange}
+            />
           ) : (
             <div className="flex h-64 w-full items-center justify-center rounded-2xl border border-dashed border-line">
               <p className="text-[12px] text-muted">Select a template to preview</p>
             </div>
           )}
 
-          {/* ── Done Editing ────────────────────────────────────── */}
+          {/* ── Done Editing ── */}
           <div className="flex w-full flex-col items-center gap-2" style={{ maxWidth: 400 }}>
             <button
               type="button"
@@ -303,14 +402,11 @@ export function BlitzLabTab({ token }: Props) {
               disabled={isRendering || !selectedTemplate || !currentAssets.backgroundKey || !currentAssets.overlayKey}
               className="w-full inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2 text-[14px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
             >
-              {renderState.phase === 'submitting' && (
-                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-              )}
-              {renderState.phase === 'polling' && (
+              {(renderState.phase === 'submitting' || renderState.phase === 'polling') && (
                 <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
               )}
               {renderState.phase === 'idle' || renderState.phase === 'done' || renderState.phase === 'error'
-                ? 'Done Editing'
+                ? '✓ Done Editing'
                 : renderState.phase === 'submitting'
                 ? 'Queuing render…'
                 : 'Rendering… (polling)'}
@@ -318,7 +414,7 @@ export function BlitzLabTab({ token }: Props) {
 
             {renderState.phase === 'polling' && (
               <p className="text-[12px] text-muted text-center">
-                Render queued — the Railway worker will process it. Checking every 4 s…
+                Render queued — Railway worker is processing. Checking every 4 s…
               </p>
             )}
             {renderState.phase === 'done' && (
@@ -333,20 +429,26 @@ export function BlitzLabTab({ token }: Props) {
         </div>
 
         {/* Right: Context panel */}
-        <ContextPanel
-          selectedLayer={selectedLayer}
-          overlayZoom={overlayZoom}
-          onZoomChange={setOverlayZoom}
-          onResetPosition={handleResetPosition}
-          onSwapRequest={() => {
-            // The AssetsPanel handles the swap modal internally; just toggle the layer selection
-            // to make sure the right type is selected. The user can also click swap in AssetsPanel.
-            setSelectedLayer((prev) => (prev === 'OVERLAY' ? 'BACKGROUND' : 'OVERLAY'));
-          }}
-        />
+        {resolvedTextConfig && (
+          <ContextPanel
+            activeLayer={activeLayer}
+            onActiveLayerChange={setActiveLayer}
+            overlayZoom={overlayZoom}
+            onZoomChange={setOverlayZoom}
+            onResetPosition={handleResetPosition}
+            onSwapOverlay={() => {
+              // Programmatically open the overlay swap picker in AssetsPanel.
+              // Simplest: toggle activeLayer so user can click Swap in the assets list.
+              // The picker in AssetsPanel is triggered by the Swap button there.
+            }}
+            textConfig={resolvedTextConfig}
+            onTextConfigChange={handleTextConfigChange}
+            onResetTextPosition={handleResetTextPosition}
+          />
+        )}
       </div>
 
-      {/* ── Library ─────────────────────────────────────────────────── */}
+      {/* ── Library ─────────────────────────────────────────────── */}
       <section className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <h2 className="text-[16px] font-semibold text-ink">Library</h2>
@@ -363,7 +465,10 @@ export function BlitzLabTab({ token }: Props) {
             Refresh
           </button>
         </div>
-        <LibraryGrid projects={library.projects} isLoading={libraryLoading && library.projects.length === 0} />
+        <LibraryGrid
+          projects={library.projects}
+          isLoading={libraryLoading && library.projects.length === 0}
+        />
       </section>
     </div>
   );

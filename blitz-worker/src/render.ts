@@ -33,8 +33,15 @@ export async function renderProject(
       backgroundKey: string;
       overlayKey: string;
       audioKey?: string;
+      /** Optional per-project text style overrides from the editor */
+      textConfigOverride?: Partial<TextConfig>;
     };
-    const textConfig = template.textConfig as TextConfig;
+
+    // Merge template's textConfig with any per-project editor overrides
+    const baseTextConfig = template.textConfig as TextConfig;
+    const textConfig: TextConfig = currentAssets.textConfigOverride
+      ? { ...baseTextConfig, ...currentAssets.textConfigOverride }
+      : baseTextConfig;
 
     // ── 2. Generate 1-hour presigned HTTPS URLs for each asset ───────────
     // Remotion 4.x does NOT support file:// URIs in headless Chrome or in the
