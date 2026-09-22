@@ -4,6 +4,7 @@ import { Archive, Loader2, Sparkles, User } from 'lucide-react';
 import { useState } from 'react';
 import type { InfluencerDto } from '../../../../types/business/influencers';
 import { AppLink } from '../../shell/AppLink';
+import { AddStyleSheet } from './AddStyleSheet';
 import { VariationStrip } from './VariationStrip';
 
 const SOURCE_LABEL: Record<InfluencerDto['source'], string> = {
@@ -16,16 +17,21 @@ const traitsOf = (inf: InfluencerDto): string =>
   [inf.gender, inf.ethnicity, inf.age ? `${inf.age}` : null].filter(Boolean).join(' · ');
 
 const statusOf = (inf: InfluencerDto): string => {
-  if (inf.pendingCount > 0) return `Making ${inf.pendingCount} variation${inf.pendingCount === 1 ? '' : 's'}…`;
+  if (inf.pendingCount > 0) return `Making ${inf.pendingCount} photo${inf.pendingCount === 1 ? '' : 's'}…`;
   const n = inf.variations.length;
-  return n === 0 ? 'No variations yet' : `${n} variation${n === 1 ? '' : 's'} · tap one to use it`;
+  if (n === 0) return 'No style photos yet · tap + Style';
+  return `${n} photo${n === 1 ? '' : 's'} · tap one to use it`;
 };
 
-type Props = { influencer: InfluencerDto; onArchive: () => void };
+const failedText = (count: number): string =>
+  `${count} style${count === 1 ? '' : 's'} could not be made. Credits are back. Tap + Style to try again.`;
+
+type Props = { influencer: InfluencerDto; onArchive: () => void; onStylesAdded: () => void };
 
 /** One influencer: the face in use, the variations to pick from, and a way to create with it. */
-export const InfluencerTile = ({ influencer, onArchive }: Props) => {
+export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) => {
   const [photoId, setPhotoId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
   const chosen = influencer.variations.find((v) => v.id === photoId)?.url ?? influencer.portraitUrl;
   const traits = traitsOf(influencer);
   const createHref = `/app/create?influencerId=${influencer.id}${photoId ? `&photo=${photoId}` : ''}`;
@@ -68,7 +74,11 @@ export const InfluencerTile = ({ influencer, onArchive }: Props) => {
             pendingCount={influencer.pendingCount}
             value={photoId}
             onChange={setPhotoId}
+            onAddStyle={() => setAdding(true)}
           />
+          {influencer.failedCount > 0 && influencer.pendingCount === 0 && (
+            <p role="status" className="text-[12px] text-app-danger">{failedText(influencer.failedCount)}</p>
+          )}
         </div>
 
         <AppLink
@@ -79,6 +89,7 @@ export const InfluencerTile = ({ influencer, onArchive }: Props) => {
           Create with this face
         </AppLink>
       </div>
+      {adding && <AddStyleSheet influencer={influencer} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); onStylesAdded(); }} />}
     </article>
   );
 };

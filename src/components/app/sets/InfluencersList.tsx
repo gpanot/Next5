@@ -51,7 +51,7 @@ export const InfluencersList = () => {
   return (
     <>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {influencers.map((inf) => <InfluencerTile key={inf.id} influencer={inf} onArchive={() => setArchiving(inf)} />)}
+        {influencers.map((inf) => <InfluencerTile key={inf.id} influencer={inf} onArchive={() => setArchiving(inf)} onStylesAdded={refresh} />)}
         <NewInfluencerTile />
       </div>
       {archiving && (

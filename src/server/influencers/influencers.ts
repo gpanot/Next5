@@ -23,11 +23,29 @@ const variationsOf = async (influencerId: string) =>
     select: { id: true, r2Key: true },
   });
 
-/** Photos still queued or generating for this influencer. */
-const pendingOf = (influencerId: string) =>
-  prisma.batchItem.count({
-    where: { batch: { set: { influencerId }, variation: true }, status: { in: ['queued', 'submitting', 'generating'] } },
+const PENDING = new Set(['queued', 'submitting', 'generating']);
+
+/**
+ * Per style: photos still on the way, styles whose every photo failed (to try again),
+ * and the styles already made or on the way (so "+ Style" can mark them).
+ */
+const styleStatusOf = async (influencerId: string) => {
+  const items = await prisma.batchItem.findMany({
+    where: { batch: { set: { influencerId }, variation: true }, archivedAt: null },
+    select: { status: true, batch: { select: { set: { select: { templateId: true } } } } },
   });
+  const byStyle = new Map<string, string[]>();
+  for (const item of items) {
+    const styleId = item.batch.set?.templateId;
+    if (styleId) byStyle.set(styleId, [...(byStyle.get(styleId) ?? []), item.status]);
+  }
+  const styles = [...byStyle.entries()];
+  return {
+    pendingCount: items.filter((i) => PENDING.has(i.status)).length,
+    failedCount: styles.filter(([, statuses]) => statuses.every((st) => st === 'failed')).length,
+    styleIds: styles.filter(([, statuses]) => statuses.some((st) => st === 'ready' || PENDING.has(st))).map(([id]) => id),
+  };
+};
 
 /**
  * Moves variation batches along while someone watches the page, the same way the batch page does,
@@ -51,9 +69,9 @@ export const listInfluencers = async (ws: Workspace): Promise<InfluencerDto[]> =
   });
   return Promise.all(
     influencers.map(async (inf) => {
-      const [items, pendingCount, portraitUrl] = await Promise.all([
+      const [items, status, portraitUrl] = await Promise.all([
         variationsOf(inf.id),
-        pendingOf(inf.id),
+        styleStatusOf(inf.id),
         inf.baseImageKey ? presignObject(inf.baseImageKey) : Promise.resolve(null),
       ]);
       const variations = await Promise.all(items.map(async (i) => ({ id: i.id, url: (await presignObject(i.r2Key as string)) ?? '' })));
@@ -67,7 +85,7 @@ export const listInfluencers = async (ws: Workspace): Promise<InfluencerDto[]> =
         setCount: inf._count.sets,
         portraitUrl: portraitUrl ?? null,
         variations: variations.filter((v) => v.url),
-        pendingCount,
+        ...status,
         createdAt: inf.createdAt.toISOString(),
       };
     }),

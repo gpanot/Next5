@@ -16,5 +16,9 @@ export type InfluencerDto = {
   variations: InfluencerVariationDto[];
   /** Variations still being made. */
   pendingCount: number;
+  /** Styles whose photo failed and was not made since (pick them again to retry). */
+  failedCount: number;
+  /** Template ids already made or on the way. */
+  styleIds: string[];
   createdAt: string;
 };
