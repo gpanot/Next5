@@ -44,6 +44,10 @@ type PreviewPlayerProps = {
   onLayerDrag: (layer: BlitzLayer, dx: number, dy: number) => void;
   /** Increment to pause the player (e.g. when a modal opens). */
   pauseSignal?: number;
+  /** Increment to seek to frame 0 and play (lifted to parent so external actions can trigger it). */
+  playFromStartSignal: number;
+  /** Called when the user clicks "Play from Start" inside the player. */
+  onPlayFromStart: () => void;
 };
 
 export function PreviewPlayer({
@@ -52,12 +56,13 @@ export function PreviewPlayer({
   onSelectLayer,
   onLayerDrag,
   pauseSignal = 0,
+  playFromStartSignal,
+  onPlayFromStart,
 }: PreviewPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ layer: BlitzLayer; x: number; y: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [hovered, setHovered] = useState<BlitzLayer | null>(null);
-  const [playFromStartSignal, setPlayFromStartSignal] = useState(0);
   const outline = useLayerOutline(containerRef, activeLayer);
   const hoverOutline = useLayerOutline(containerRef, hovered && hovered !== activeLayer && !isDragging ? hovered : null);
 
@@ -147,7 +152,7 @@ export function PreviewPlayer({
         </p>
         <button
           type="button"
-          onClick={() => setPlayFromStartSignal((n) => n + 1)}
+          onClick={onPlayFromStart}
           className="min-h-9 shrink-0 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-ink transition-colors hover:bg-surface-alt"
         >
           ▶ Play from Start

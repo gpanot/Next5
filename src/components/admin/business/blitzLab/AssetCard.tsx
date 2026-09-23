@@ -46,11 +46,12 @@ function AssetPreview({ asset, hovering }: { asset: BlitzAssetDto; hovering: boo
   }
   return (
     <video
-      src={`${asset.url}#t=0.5`}
+      src={asset.url}
+      poster={asset.thumbnailUrl ?? undefined}
       muted
       loop
       playsInline
-      preload="metadata"
+      preload="none"
       className="h-full w-full bg-neutral-900 object-contain"
     />
   );

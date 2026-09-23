@@ -395,7 +395,11 @@ model Influencer {
   /// "active" | "archived"
   status        String    @default("active")
   /// Locked identity JSON (portrait-clone) read once from the base portrait; reused by every Gemini prompt.
-  identityLock  Json?     @map("identity_lock")
+  identityLock       Json?     @map("identity_lock")
+  /// Full portrait-clone prompt JSON used to generate the base portrait (null for uploaded/gallery sources).
+  /// Preserved so future video-generation pipelines can re-use the original specification instead of
+  /// working from the image.
+  portraitPromptJson Json?     @map("portrait_prompt_json")
   createdAt     DateTime  @default(now()) @map("created_at")
 
   workspace   Workspace              @relation(fields: [workspaceId], references: [id])

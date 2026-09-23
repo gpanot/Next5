@@ -61,7 +61,7 @@ function Thumb({ asset, type }: { asset: BlitzAssetDto | undefined; type: BlitzU
     // eslint-disable-next-line @next/next/no-img-element
     return <span className={base}><img src={asset.thumbnailUrl ?? asset.url} alt="" className="h-full w-full object-cover" /></span>;
   }
-  return <span className={base}><video src={`${asset.url}#t=0.5`} muted playsInline preload="metadata" className="h-full w-full object-cover" /></span>;
+  return <span className={base}><video src={asset.url} poster={asset.thumbnailUrl ?? undefined} muted playsInline preload="none" className="h-full w-full object-cover" /></span>;
 }
 
 export function AssetsPanel({

@@ -143,7 +143,8 @@ export function GreenScreenComposition({
         >
           <Video
             src={overlayUrl}
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            objectFit="contain"
+            style={{ width: '100%', height: '100%' }}
             muted={muteVideoAudio}
             onError={() => undefined}
             effects={[colorKey({ keyColor: '#00ff00', similarity: 0.35, smoothness: 0.08, spillSuppression: 0.25 })]}

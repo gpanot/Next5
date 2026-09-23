@@ -30,11 +30,11 @@ export const GeneratePanel = ({ traits, setTrait, image, onImageChange }: Props)
     setBusy(true);
     setError(null);
     try {
-      const res = await apiFetch<{ r2Key: string; url: string }>('/api/app/influencers/generate-portrait', {
+      const res = await apiFetch<{ r2Key: string; url: string; promptJson?: Record<string, unknown> }>('/api/app/influencers/generate-portrait', {
         method: 'POST',
         json: { gender: traits.gender || null, age: traits.age ? Number(traits.age) : null, ethnicity: traits.ethnicity || null, additionalDetails: traits.details.trim() || null },
       });
-      onImageChange({ source: 'generated', baseImageKey: res.r2Key, previewUrl: res.url });
+      onImageChange({ source: 'generated', baseImageKey: res.r2Key, previewUrl: res.url, promptJson: res.promptJson });
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not make the portrait. Try again.');
     } finally {

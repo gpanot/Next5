@@ -2,11 +2,6 @@
 // Blitz Lab persistence: templates, assets, and projects in the database; files in R2 by key.
 
 import type { BlitzAsset, BlitzProject, BlitzTemplate } from '@prisma/client';
-import { getPresignedUrl } from '../../lib/r2';
-import { HttpError } from '../http';
-
-/** How long browser-facing signed links are valid. */
-const BROWSER_LINK_SECONDS = 24 * 60 * 60;
 
 // ── R2 key conventions ────────────────────────────────────────────────────────
 
@@ -68,13 +63,14 @@ export const blitzUploadFormat = (fileName: string): { ext: string; contentType:
 
 // ── URL helpers ───────────────────────────────────────────────────────────────
 
-const sign = async (key: string, seconds = BROWSER_LINK_SECONDS): Promise<string> => {
-  const url = await getPresignedUrl(key, seconds);
-  if (!url) throw new HttpError(503, 'r2_required', 'Blitz Lab needs R2 configured to serve files.');
-  return url;
-};
-
-export const blitzBrowserUrl = (key: string) => sign(key, BROWSER_LINK_SECONDS);
+/**
+ * Returns a same-origin proxy URL for a blitz asset key.
+ * The /api/admin/blitz/proxy route streams the R2 object through Next.js,
+ * which eliminates browser CORS restrictions (needed for @remotion/media's
+ * colorKey WebGL effect) and adds 1-hour browser caching for faster reloads.
+ */
+export const blitzBrowserUrl = (key: string): Promise<string> =>
+  Promise.resolve(`/api/admin/blitz/proxy?key=${encodeURIComponent(key)}`);
 
 // ── DTOs ──────────────────────────────────────────────────────────────────────
 

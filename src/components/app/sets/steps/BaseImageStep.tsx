@@ -19,6 +19,12 @@ export type BaseImageData = {
   /** Signed URL to show. */
   previewUrl: string;
   galleryItemId?: string;
+  /**
+   * Parsed portrait-clone prompt JSON returned by POST /api/app/influencers/generate-portrait.
+   * Only present for source === 'generated'. Passed back on confirm so the influencer record
+   * stores the original specification for future video-generation pipelines.
+   */
+  promptJson?: Record<string, unknown>;
 };
 
 export type InfluencerTraits = {

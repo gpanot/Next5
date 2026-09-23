@@ -44,6 +44,9 @@ const bodyOf = (traits: InfluencerTraits, image: BaseImageData, settings: Genera
   baseImageKey: image.baseImageKey || null,
   galleryItemId: image.galleryItemId ?? null,
   templateIds: chosenTemplateIds(settings, templates),
+  // Portrait-clone JSON produced when the face was AI-generated. Stored on the Influencer
+  // so future video pipelines reuse the specification instead of re-reading from the image.
+  ...(image.promptJson ? { portraitPromptJson: image.promptJson } : {}),
 });
 
 /** New influencer: a face, then variations of it. Brand only. */

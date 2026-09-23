@@ -1,3 +1,4 @@
+import { Readable } from 'stream';
 import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
@@ -134,4 +135,33 @@ export async function deleteFromR2(key: string): Promise<void> {
   if (!isConfigured()) return;
   const { DeleteObjectCommand } = await import('@aws-sdk/client-s3');
   await getClient().send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+// ── Streaming ─────────────────────────────────────────────────────────────────
+
+/**
+ * Streams an R2 object to a Web ReadableStream with optional Range support.
+ * Returns null body when the key does not exist or R2 is not configured.
+ */
+export async function streamFromR2(
+  key: string,
+  range?: string,
+): Promise<{ body: ReadableStream | null; status: number; headers: Record<string, string> }> {
+  if (!isConfigured()) return { body: null, status: 503, headers: {} };
+  try {
+    const res = await getClient().send(
+      new GetObjectCommand({ Bucket: BUCKET, Key: key, ...(range ? { Range: range } : {}) }),
+    );
+    const headers: Record<string, string> = {
+      'Content-Type': res.ContentType ?? 'application/octet-stream',
+      'Accept-Ranges': 'bytes',
+    };
+    if (res.ContentLength != null) headers['Content-Length'] = res.ContentLength.toString();
+    if (res.ContentRange) headers['Content-Range'] = res.ContentRange;
+    const body = Readable.toWeb(res.Body as Readable) as ReadableStream;
+    return { body, status: range ? 206 : 200, headers };
+  } catch (err: unknown) {
+    if ((err as { name?: string })?.name === 'NoSuchKey') return { body: null, status: 404, headers: {} };
+    throw err;
+  }
 }

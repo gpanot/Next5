@@ -71,6 +71,7 @@ export function BlitzLabTab({ token }: Props) {
   const [activeLayer, setActiveLayer] = useState<BlitzLayer>('OVERLAY');
   const [picker, setPicker] = useState<BlitzUploadType | null>(null);
   const [pauseSignal, setPauseSignal] = useState(0);
+  const [playFromStartSignal, setPlayFromStartSignal] = useState(0);
   const text = useTextLayout(selectedTemplate?.textConfig);
 
   // ── uploads + render ──────────────────────────────────────────────────
@@ -308,7 +309,7 @@ export function BlitzLabTab({ token }: Props) {
         {/* Center: preview */}
         <div className="order-1 flex min-w-0 flex-col items-center gap-4 lg:order-none">
           {inputProps && (
-            <PreviewPlayer inputProps={inputProps} activeLayer={activeLayer} onSelectLayer={setActiveLayer} onLayerDrag={handleLayerDrag} pauseSignal={pauseSignal} />
+            <PreviewPlayer inputProps={inputProps} activeLayer={activeLayer} onSelectLayer={setActiveLayer} onLayerDrag={handleLayerDrag} pauseSignal={pauseSignal} playFromStartSignal={playFromStartSignal} onPlayFromStart={() => setPlayFromStartSignal((n) => n + 1)} />
           )}
           <RenderControls state={render.state} isBusy={render.isBusy} blockedReason={blockedReason} onSubmit={handleDoneEditing} />
         </div>
@@ -344,7 +345,7 @@ export function BlitzLabTab({ token }: Props) {
           type={picker}
           assets={assets}
           currentKey={keyForLayer(currentAssets, picker)}
-          onSelect={(key) => handleSwapAsset(picker, key)}
+          onSelect={(key) => { handleSwapAsset(picker, key); setPlayFromStartSignal((n) => n + 1); }}
           onPickFile={(file) => handlePickFile(picker, file)}
           onRename={handleRenameAsset}
           onDelete={handleDeleteAsset}

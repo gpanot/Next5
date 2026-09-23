@@ -50,6 +50,14 @@ export const POST = authedRoute(async (req, session) => {
   // Lock the face once (portrait-clone), so every style describes the same person.
   const identity = await extractIdentityLock(baseImageKey);
 
+  // The original portrait-clone prompt JSON — present when the face was AI-generated via the wizard.
+  // Store as-is for future video-generation pipelines; they reuse this specification instead of
+  // re-deriving it from the image.
+  const portraitPromptJson =
+    typeof body.portraitPromptJson === 'object' && body.portraitPromptJson !== null
+      ? (body.portraitPromptJson as Prisma.InputJsonValue)
+      : undefined;
+
   const influencer = await prisma.influencer.create({
     data: {
       workspaceId: ws.id,
@@ -62,6 +70,7 @@ export const POST = authedRoute(async (req, session) => {
       galleryItemId,
       status: 'active',
       ...(identity ? { identityLock: identity as unknown as Prisma.InputJsonValue } : {}),
+      ...(portraitPromptJson !== undefined ? { portraitPromptJson } : {}),
     },
   });
 

@@ -37,5 +37,9 @@ export const POST = authedRoute(async (req, session) => {
   const r2Key = portraitPreviewKey(tempId);
 
   const result = await generateAndStorePortrait(r2Key, prompt);
-  return NextResponse.json(result, { status: 201 });
+
+  // Return the parsed prompt JSON alongside the image key so the wizard can persist it
+  // with the Influencer record. This preserves the original portrait-clone specification
+  // for future video-generation pipelines (reuse JSON, not the image).
+  return NextResponse.json({ ...result, promptJson: JSON.parse(prompt) }, { status: 201 });
 });
