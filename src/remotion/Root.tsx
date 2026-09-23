@@ -9,7 +9,8 @@
 
 import { Composition, registerRoot } from 'remotion';
 import { GreenScreenComposition } from './GreenScreenComposition';
-import type { GreenScreenProps } from './types';
+import { SlideshowComposition } from './SlideshowComposition';
+import type { GreenScreenProps, SlideshowProps } from './types';
 
 // Default props used by Remotion Studio for previewing without live data
 const STUDIO_DEFAULT_PROPS: GreenScreenProps = {
@@ -30,6 +31,24 @@ const STUDIO_DEFAULT_PROPS: GreenScreenProps = {
   fps: 30,
 };
 
+// Default props for the Slideshow composition in Remotion Studio
+const SLIDESHOW_DEFAULT_PROPS: SlideshowProps = {
+  backgroundUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1080',
+  slides: [
+    { text: 'Slide 1 — First compelling point' },
+    { text: 'Slide 2 — Second point' },
+    { text: 'Slide 3 — CTA' },
+  ],
+  textConfig: {
+    font: 'sans-serif',
+    positionY: 0.15,
+    fontSize: 52,
+    safeZonePadding: 48,
+  },
+  durationInFrames: 450, // 15 s @ 30 fps
+  fps: 30,
+};
+
 export const RemotionRoot = () => {
   return (
     <>
@@ -42,6 +61,16 @@ export const RemotionRoot = () => {
         height={1920}
         defaultProps={STUDIO_DEFAULT_PROPS}
         // Length and fps come from each render's props (clip length = shortest video).
+        calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps })}
+      />
+      <Composition
+        id="Slideshow"
+        component={SlideshowComposition}
+        durationInFrames={SLIDESHOW_DEFAULT_PROPS.durationInFrames}
+        fps={SLIDESHOW_DEFAULT_PROPS.fps}
+        width={1080}
+        height={1920}
+        defaultProps={SLIDESHOW_DEFAULT_PROPS}
         calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps })}
       />
     </>

@@ -21,9 +21,13 @@ export const mergeTextConfig = (templateTextConfig: unknown, overrides: Partial<
  * Caption + business line styling and placement for one editing session.
  * `override` holds only what the user changed; it is sent to the worker as
  * textConfigOverride. Drags start from the template's real position.
+ *
+ * @param templateTextConfig   The template's stored textConfig (merged over BLITZ_DEFAULT_TEXT_CONFIG).
+ * @param initialOverride      Tab-level defaults applied on top of the template on first render
+ *                             (e.g. slideshow wants fontSize:88 centered regardless of template).
  */
-export function useTextLayout(templateTextConfig: unknown) {
-  const [override, setOverride] = useState<Partial<TextConfig>>({});
+export function useTextLayout(templateTextConfig: unknown, initialOverride?: Partial<TextConfig>) {
+  const [override, setOverride] = useState<Partial<TextConfig>>(initialOverride ?? {});
   const base = useMemo(() => mergeTextConfig(templateTextConfig, {}), [templateTextConfig]);
   const resolved = useMemo(() => mergeTextConfig(templateTextConfig, override), [templateTextConfig, override]);
 

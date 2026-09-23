@@ -34,6 +34,35 @@ export type TextConfig = {
   businessFontSize?: number;
 };
 
+/** One slide in a Slideshow: text + optional per-slide background. */
+export type SlideshowSlide = {
+  text: string;
+  /** Fully-resolved background URL for this slide. Falls back to SlideshowProps.backgroundUrl if absent. */
+  backgroundUrl?: string;
+  /** Force image treatment for this slide's background. */
+  backgroundIsImage?: boolean;
+};
+
+/** Props for the Slideshow (CAROUSEL) Remotion composition. */
+export type SlideshowProps = {
+  /** Fully-resolved global background URL — used for slides without their own backgroundUrl. */
+  backgroundUrl: string;
+  /** Force image treatment for the global background. */
+  backgroundIsImage?: boolean;
+  /** Optional audio track URL */
+  audioUrl?: string;
+  /** Silence background video audio */
+  muteVideoAudio?: boolean;
+  /** Optional business pill shown on every slide */
+  businessText?: string;
+  /** Slides with per-slide text and optional per-slide background. */
+  slides: SlideshowSlide[];
+  textConfig: TextConfig;
+  /** Clip length in frames (= background video length, or template default) */
+  durationInFrames: number;
+  fps: number;
+};
+
 export type GreenScreenProps = {
   /** Fully-resolved URL: signed R2 URL in browser, file:// URI in worker */
   backgroundUrl: string;

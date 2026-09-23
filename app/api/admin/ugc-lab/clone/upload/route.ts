@@ -1,101 +1,10 @@
-import { execFile } from 'child_process';
-import { existsSync } from 'fs';
-import { writeFile, readFile, unlink } from 'fs/promises';
-import { tmpdir } from 'os';
-import path from 'path';
-import { promisify } from 'util';
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../../src/server/admin/route';
 import { browserUrl, putFile, uniqueStamp, vendorUrl } from '../../../../../../src/server/admin/ugcStore';
-
-// Resolve ffmpeg at runtime via process.cwd() — avoids Next.js webpack bundling
-// replacing ffmpeg-static's internal __dirname with /ROOT/ (ENOENT in route handlers).
-const FFMPEG_PATH = (() => {
-  // ffmpeg-static ships the binary at node_modules/ffmpeg-static/ffmpeg (macOS/Linux)
-  const p = path.join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg');
-  if (existsSync(p)) return p;
-  // Fallback: system ffmpeg (e.g. Railway with ffmpeg layer)
-  for (const fallback of ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg']) {
-    if (existsSync(fallback)) return fallback;
-  }
-  return null;
-})();
+import { cloneKeys, trimVideo, extractFirstFrame } from '../../../../../../src/server/admin/cloneUtils';
 
 // Videos can be up to 200 MB — give the upload route 5 minutes to receive, trim, and store
 export const maxDuration = 300;
-
-const execFileAsync = promisify(execFile);
-
-/**
- * Trim a video buffer to the first `durationSec` seconds.
- *
- * Strategy:
- *   1. Try stream copy (-c copy) — instant, no quality loss, works for H.264/AAC MP4.
- *   2. If copy fails (MOV/HEVC or incompatible codec), re-encode to H.264/AAC.
- *
- * Returns the trimmed Buffer on success, or null if both attempts fail.
- * Never silently falls back to the original — callers must handle null explicitly.
- */
-async function trimVideo(input: Buffer, durationSec: number): Promise<Buffer | null> {
-  if (!FFMPEG_PATH) {
-    console.error('[trimVideo] ffmpeg binary not found — cannot trim');
-    return null;
-  }
-
-  // Subtract a small safety margin so Kling's duration check always passes
-  const trimSec = Math.max(1, durationSec - 0.1);
-
-  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  // No extension on input — ffmpeg reads the container header, not the filename
-  const inPath  = path.join(tmpdir(), `clone-in-${stamp}`);
-  const outPath = path.join(tmpdir(), `clone-out-${stamp}.mp4`);
-
-  try {
-    await writeFile(inPath, input);
-
-    // ── Pass 1: stream copy (fast, no re-encode) ──────────────────────────
-    let copied = false;
-    try {
-      await execFileAsync(FFMPEG_PATH, [
-        '-y', '-i', inPath,
-        '-t', String(trimSec),
-        '-c', 'copy',
-        '-f', 'mp4', '-movflags', '+faststart',
-        outPath,
-      ]);
-      copied = true;
-    } catch (copyErr) {
-      console.warn('[trimVideo] stream copy failed, falling back to re-encode:', (copyErr as Error).message?.split('\n')[0]);
-    }
-
-    // ── Pass 2: H.264 + AAC re-encode (handles MOV/HEVC and any input) ───
-    if (!copied) {
-      try {
-        await execFileAsync(FFMPEG_PATH, [
-          '-y', '-i', inPath,
-          '-t', String(trimSec),
-          '-c:v', 'libx264', '-crf', '23', '-preset', 'fast',
-          '-c:a', 'aac', '-b:a', '128k',
-          '-f', 'mp4', '-movflags', '+faststart',
-          outPath,
-        ]);
-      } catch (encodeErr) {
-        console.error('[trimVideo] re-encode also failed:', (encodeErr as Error).message?.split('\n')[0]);
-        return null;
-      }
-    }
-
-    return await readFile(outPath);
-  } catch (err) {
-    console.error('[trimVideo] unexpected error:', err);
-    return null;
-  } finally {
-    await Promise.all([
-      unlink(inPath).catch(() => {}),
-      unlink(outPath).catch(() => {}),
-    ]);
-  }
-}
 
 const IMAGE_TYPES = new Map([
   ['image/jpeg', 'jpg'],
@@ -124,44 +33,6 @@ const VIDEO_TYPES = new Map([
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;  // 12 MB
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 MB
 const MAX_AUDIO_BYTES = 10 * 1024 * 1024;  // 10 MB
-
-const cloneKeys = {
-  character: (stamp: string, ext: string) => `ugc-lab/clone/characters/${stamp}.${ext}`,
-  video:     (stamp: string, ext: string) => `ugc-lab/clone/videos/${stamp}.${ext}`,
-  frame:     (stamp: string)              => `ugc-lab/clone/frames/${stamp}.jpg`,
-  voice:     (stamp: string, ext: string) => `ugc-lab/clone/voices/${stamp}.${ext}`,
-};
-
-/**
- * Extract the first video frame as a JPEG for use as a first_frame scene reference.
- * Returns null if ffmpeg is unavailable or extraction fails.
- */
-async function extractFirstFrame(input: Buffer): Promise<Buffer | null> {
-  if (!FFMPEG_PATH) return null;
-
-  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-  const inPath  = path.join(tmpdir(), `frame-in-${stamp}`);
-  const outPath = path.join(tmpdir(), `frame-out-${stamp}.jpg`);
-
-  try {
-    await writeFile(inPath, input);
-    await execFileAsync(FFMPEG_PATH, [
-      '-y', '-i', inPath,
-      '-vframes', '1',
-      '-q:v', '2',    // JPEG quality 2 (1=best, 31=worst)
-      outPath,
-    ]);
-    return await readFile(outPath);
-  } catch (err) {
-    console.warn('[extractFirstFrame] failed:', (err as Error).message?.split('\n')[0]);
-    return null;
-  } finally {
-    await Promise.all([
-      unlink(inPath).catch(() => {}),
-      unlink(outPath).catch(() => {}),
-    ]);
-  }
-}
 
 /**
  * POST multipart: file + purpose ("character" | "video" | "voice")
@@ -212,14 +83,12 @@ export const POST = adminRoute(async (req: NextRequest) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let videoBuffer: Buffer = Buffer.from(await file.arrayBuffer() as any);
 
-    // Trim to the requested max duration if provided (always output as mp4 after trim)
     const maxDurationRaw = formData.get('maxDuration');
     const maxDurationSec = maxDurationRaw ? Number(maxDurationRaw) : null;
     let trimmed = false;
     if (maxDurationSec && maxDurationSec > 0) {
       const trimmedBuffer = await trimVideo(videoBuffer, maxDurationSec);
       if (trimmedBuffer === null) {
-        // Both stream-copy and re-encode failed — refuse upload rather than sending an untrimmed video
         return NextResponse.json({
           error: `Could not trim the video to ${maxDurationSec} s. Please upload a clip that is already shorter.`,
         }, { status: 422 });
@@ -228,14 +97,12 @@ export const POST = adminRoute(async (req: NextRequest) => {
       trimmed = true;
     }
 
-    // Always store as mp4 (trimVideo outputs mp4; original may be mov)
     const storeExt = trimmed ? 'mp4' : ext;
     const storeType = trimmed ? 'video/mp4' : file.type;
     const key = cloneKeys.video(stamp, storeExt);
     await putFile(key, videoBuffer, storeType);
     const url = await vendorUrl(key);
 
-    // Extract first frame → stored as scene reference for Seedance (first_frame role)
     let frameKey: string | undefined;
     let frameVendorUrl: string | undefined;
     const frameBuffer = await extractFirstFrame(videoBuffer);

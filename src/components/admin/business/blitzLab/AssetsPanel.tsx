@@ -24,6 +24,8 @@ type AssetsPanelProps = {
   onMuteVideoAudioChange: (muted: boolean) => void;
   /** Clip length in seconds, shown so the user knows what sets it. */
   durationSeconds: number;
+  /** Layer types to hide (e.g. ['OVERLAY'] for Slideshow tab). */
+  hideLayers?: BlitzUploadType[];
 };
 
 const LAYERS: BlitzUploadType[] = ['OVERLAY', 'BACKGROUND', 'AUDIO'];
@@ -32,8 +34,7 @@ export const keyForLayer = (current: CurrentAssets, type: BlitzUploadType): stri
   type === 'BACKGROUND' ? current.backgroundKey : type === 'OVERLAY' ? current.overlayKey : current.audioKey ?? '';
 
 /** Upload progress bar, or the error with a retry button. */
-function UploadLine({ status, onRetry }: { status: UploadStatus | undefined; onRetry: () => void }) {
-  if (!status) return null;
+function UploadLine({ status, onRetry }: { status: UploadStatus | undefined; onRetry: () => void }) {  if (!status) return null;
   if (status.error) {
     return (
       <p className="mt-1 text-[11px] text-red-600">
@@ -66,8 +67,9 @@ function Thumb({ asset, type }: { asset: BlitzAssetDto | undefined; type: BlitzU
 
 export function AssetsPanel({
   assets, currentAssets, uploads, onOpenPicker, onRetryUpload, onRemoveAudio,
-  muteVideoAudio, onMuteVideoAudioChange, durationSeconds,
+  muteVideoAudio, onMuteVideoAudioChange, durationSeconds, hideLayers = [],
 }: AssetsPanelProps) {
+  const visibleLayers = LAYERS.filter((l) => !hideLayers.includes(l));
   return (
     <div className="rounded-2xl border border-line bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
       <div className="mb-3 flex items-baseline justify-between">
@@ -75,7 +77,7 @@ export function AssetsPanel({
         <p className="text-[11px] tabular-nums text-muted" title="Clip length = shortest video">{durationSeconds.toFixed(1)} s</p>
       </div>
       <div className="flex flex-col gap-2">
-        {LAYERS.map((type) => {
+        {visibleLayers.map((type) => {
           const key = keyForLayer(currentAssets, type);
           const asset = assets.find((a) => a.r2Key === key);
           const empty = !key;

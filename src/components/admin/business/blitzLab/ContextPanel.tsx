@@ -35,6 +35,8 @@ type ContextPanelProps = {
   /** Show the Business tab (only when the business line is on). */
   showBusiness: boolean;
   onResetBusinessPosition: () => void;
+  /** Hide the Video (overlay) tab — for Slideshow which has no overlay. */
+  hideOverlay?: boolean;
   // Overlay controls
   overlayZoom: number;
   onZoomChange: (zoom: number) => void;
@@ -116,6 +118,7 @@ export function ContextPanel({
   onActiveLayerChange,
   showBusiness,
   onResetBusinessPosition,
+  hideOverlay = false,
   overlayZoom,
   onZoomChange,
   onResetPosition,
@@ -125,7 +128,7 @@ export function ContextPanel({
   onResetTextPosition,
 }: ContextPanelProps) {
   const tabs: { id: BlitzLayer; label: string }[] = [
-    { id: 'OVERLAY', label: 'Video' },
+    ...(!hideOverlay ? [{ id: 'OVERLAY' as const, label: 'Video' }] : []),
     { id: 'TEXT', label: 'Text' },
     ...(showBusiness ? [{ id: 'BUSINESS' as const, label: 'Business' }] : []),
   ];

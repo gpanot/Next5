@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import { adminRoute } from '../../../../src/server/admin/route';
 import { prisma } from '../../../../src/lib/db';
-import { putObject, presignObject } from '../../../../src/server/storage/objectStore';
+import { putObject, presignObject, deleteObject } from '../../../../src/server/storage/objectStore';
 import sharp from 'sharp';
 import { normalizeUpload, readForm } from '../../../../src/server/storage/images';
 
@@ -71,4 +71,15 @@ export const PATCH = adminRoute(async (req: NextRequest) => {
     data: { archived: archived ?? true },
   });
   return NextResponse.json({ item: { id: item.id, archived: item.archived } });
+});
+
+/** DELETE /api/admin/influencer-gallery — permanently delete a face. Body: { id } */
+export const DELETE = adminRoute(async (req: NextRequest) => {
+  const { id } = (await req.json()) as { id?: string };
+  if (!id) return NextResponse.json({ error: 'id_required' }, { status: 400 });
+  const item = await prisma.influencerGalleryItem.findUnique({ where: { id } });
+  if (!item) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+  await prisma.influencerGalleryItem.delete({ where: { id } });
+  await deleteObject(item.imageKey).catch(() => undefined); // best-effort R2 cleanup
+  return NextResponse.json({ ok: true });
 });

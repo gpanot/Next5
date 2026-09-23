@@ -107,18 +107,56 @@ const UploadForm = ({ token, onUploaded }: { token: string; onUploaded: () => vo
   );
 };
 
-const FaceCard = ({ face, onToggle }: { face: Face; onToggle: () => void }) => (
-  <div className={`flex flex-col gap-2 rounded-xl border border-line bg-white p-2 ${face.archived ? 'opacity-50' : ''}`}>
-    <div className="relative aspect-[9/16] overflow-hidden rounded-lg bg-surface">
-      {face.url && <img src={face.url} alt={[face.gender, face.ethnicity].filter(Boolean).join(', ') || 'Gallery face'} className="h-full w-full object-cover" />}
-      {face.archived && <span className="absolute left-2 top-2 rounded-full bg-ink px-2 py-0.5 text-[10px] font-medium text-white">Hidden</span>}
+const FaceCard = ({ face, onToggle, onDelete }: { face: Face; onToggle: () => void; onDelete: () => void }) => {
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  return (
+    <div className={`flex flex-col gap-2 rounded-xl border border-line bg-white p-2 ${face.archived ? 'opacity-50' : ''}`}>
+      <div className="relative aspect-[9/16] overflow-hidden rounded-lg bg-surface">
+        {face.url && <img src={face.url} alt={[face.gender, face.ethnicity].filter(Boolean).join(', ') || 'Gallery face'} className="h-full w-full object-cover" />}
+        {face.archived && <span className="absolute left-2 top-2 rounded-full bg-ink px-2 py-0.5 text-[10px] font-medium text-white">Hidden</span>}
+      </div>
+      <p className="truncate text-[12px] text-muted">{[face.gender, face.age, face.ethnicity].filter(Boolean).join(' · ') || 'No details'}</p>
+      <div className="flex gap-1.5">
+        <button onClick={onToggle} className="flex-1 rounded-lg border border-line px-2 py-1 text-[12px] text-ink hover:bg-surface">
+          {face.archived ? 'Show again' : 'Hide'}
+        </button>
+        {confirmDelete ? (
+          <div className="flex gap-1">
+            <button
+              onClick={async () => {
+                setDeleting(true);
+                await onDelete();
+                setDeleting(false);
+                setConfirmDelete(false);
+              }}
+              disabled={deleting}
+              className="flex items-center justify-center rounded-lg bg-red-600 px-2 py-1 text-[11px] font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            >
+              {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Yes'}
+            </button>
+            <button
+              onClick={() => setConfirmDelete(false)}
+              disabled={deleting}
+              className="rounded-lg border border-line px-2 py-1 text-[11px] text-muted hover:bg-surface"
+            >
+              No
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmDelete(true)}
+            aria-label="Delete face"
+            className="flex items-center justify-center rounded-lg border border-line px-2 py-1 text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="h-3 w-3" />
+          </button>
+        )}
+      </div>
     </div>
-    <p className="truncate text-[12px] text-muted">{[face.gender, face.age, face.ethnicity].filter(Boolean).join(' · ') || 'No details'}</p>
-    <button onClick={onToggle} className="rounded-lg border border-line px-2 py-1 text-[12px] text-ink hover:bg-surface">
-      {face.archived ? 'Show again' : 'Hide'}
-    </button>
-  </div>
-);
+  );
+};
 
 const LibraryFaceTab = ({ token }: { token: string }) => {
   const { data, error, loading, refresh } = useAdminApi<{ items: Face[] }>(token, '/api/admin/influencer-gallery');
@@ -135,6 +173,16 @@ const LibraryFaceTab = ({ token }: { token: string }) => {
     }
   };
 
+  const deleteFace = async (face: Face) => {
+    setActionError(null);
+    try {
+      await adminFetch(token, '/api/admin/influencer-gallery', { method: 'DELETE', body: JSON.stringify({ id: face.id }) });
+      refresh();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Delete failed');
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <UploadForm token={token} onUploaded={refresh} />
@@ -143,7 +191,14 @@ const LibraryFaceTab = ({ token }: { token: string }) => {
       {data && faces.length === 0 && <p className="text-[13px] text-muted">No faces yet. Upload the first one above.</p>}
       <p className="text-[12px] text-muted">{faces.filter((f) => !f.archived).length} live · {faces.filter((f) => f.archived).length} hidden</p>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
-        {faces.map((face) => <FaceCard key={face.id} face={face} onToggle={() => void toggle(face)} />)}
+        {faces.map((face) => (
+          <FaceCard
+            key={face.id}
+            face={face}
+            onToggle={() => void toggle(face)}
+            onDelete={() => deleteFace(face)}
+          />
+        ))}
       </div>
     </div>
   );

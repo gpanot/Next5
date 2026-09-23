@@ -2,8 +2,11 @@ FROM node:20-slim
 # @remotion/compositor-linux-x64-gnu is installed via optionalDependencies in package.json
 
 # ── Chromium for headless Remotion rendering ──────────────────────────────────
+# ffmpeg is used to transcode overlay assets that WebCodecs cannot decode
+# (e.g. iPhone HEVC) — see blitz-worker/src/transcode.ts.
 RUN apt-get update && apt-get install -y \
     chromium \
+    ffmpeg \
     fonts-noto \
     fonts-noto-color-emoji \
     fonts-liberation \

@@ -1,6 +1,7 @@
 'use client';
 
 import type { ResearchVideo } from './ResearchCard';
+export type { ResearchVideo };
 
 // ── Current-session cache ──────────────────────────────────────────────────────
 // Keeps the last active search across page reloads / tab switches so you don't
@@ -49,6 +50,30 @@ export const clearResearch = (): void => {
   } catch {
     // Nothing to do: the next search overwrites it anyway.
   }
+};
+
+// ── Parameterised helpers (used by Researcher with a per-tab cacheKey) ────────
+
+export const readResearchFor = (key: string): ResearchCache | null => {
+  try {
+    const raw = window.localStorage.getItem(key);
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    return isCache(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+export const writeResearchFor = (key: string, cache: ResearchCache): void => {
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ ...cache, videos: slimVideos(cache.videos, 8_000) }));
+  } catch {}
+};
+
+export const clearResearchFor = (key: string): void => {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {}
 };
 
 // ── Permanent search history ───────────────────────────────────────────────────

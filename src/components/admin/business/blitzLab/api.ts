@@ -36,7 +36,7 @@ export const blitzApi = {
     token: string,
     body: {
       templateId: string;
-      currentAssets: { backgroundKey: string; overlayKey: string; audioKey?: string };
+      currentAssets: { backgroundKey: string; overlayKey?: string; audioKey?: string };
       overlayZoom: number;
       overlayOffsetX: number;
       overlayOffsetY: number;
@@ -48,6 +48,8 @@ export const blitzApi = {
       durationSeconds?: number;
       businessText?: string;
       muteVideoAudio?: boolean;
+      /** Slide data for CAROUSEL templates — SlideData[] with per-slide backgroundKey support */
+      slides?: Array<{ text: string; backgroundKey?: string }>;
     },
   ) =>
     ugcRequest<{ projectId: string; status: string; project: BlitzProjectDto }>(
@@ -79,4 +81,8 @@ export const blitzApi = {
   /** Delete a rendered project (DB row + R2 video). */
   deleteProject: (token: string, id: string) =>
     ugcRequest<{ ok: boolean }>(token, `${BASE}/projects/${id}`, { method: 'DELETE' }),
+
+  /** Generate an AI background image via GPT-image-2 (9:16, 1k ≈ $0.03/image). */
+  generateBackground: (token: string, prompt: string) =>
+    ugcRequest<{ asset: BlitzAssetDto }>(token, `${BASE}/generate-background`, { json: { prompt } }),
 };

@@ -6,6 +6,7 @@
 import {
   S3Client,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -66,4 +67,14 @@ export async function uploadToR2(localPath: string, key: string, contentType = '
   await getClient().send(
     new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body, ContentType: contentType }),
   );
+}
+
+/** True when the key already exists in the bucket. */
+export async function objectExists(key: string): Promise<boolean> {
+  try {
+    await getClient().send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
+    return true;
+  } catch {
+    return false;
+  }
 }

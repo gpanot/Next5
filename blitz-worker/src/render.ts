@@ -13,7 +13,8 @@ import fs from 'fs';
 import path from 'path';
 import type { BlitzProject, BlitzTemplate } from '@prisma/client';
 import { getPresignedUrl, uploadToR2 } from './r2';
-import type { GreenScreenProps, TextConfig } from '../../src/remotion/types';
+import { ensureBrowserDecodableKey } from './transcode';
+import type { GreenScreenProps, SlideshowProps, TextConfig } from '../../src/remotion/types';
 
 const RENDER_OUTPUT_KEY = (projectId: string) => `blitz/renders/${projectId}/output.mp4`;
 
@@ -23,12 +24,14 @@ export async function renderProject(
   serveUrl: string,
 ): Promise<string> {
   const jobId = project.id;
-  // Only the rendered output.mp4 goes to disk — assets are streamed via HTTPS.
+  // Only the rendered output.mp4 and any overlay transcode go to disk —
+  // the rest of the assets are streamed via HTTPS.
   const tmpDir = path.join('/tmp', `blitz_${jobId}`);
   fs.mkdirSync(tmpDir, { recursive: true });
 
   try {
     // ── 1. Parse stored JSON ────────────────────────────────────────────
+    type SlideInput = string | { text: string; backgroundKey?: string };
     const currentAssets = project.currentAssets as {
       backgroundKey: string;
       overlayKey: string;
@@ -40,7 +43,12 @@ export async function renderProject(
       /** Business line, present only when the user turned it on. */
       businessText?: string;
       muteVideoAudio?: boolean;
+      /** Slide data (CAROUSEL type only): string[] for legacy, SlideInput[] for new format */
+      slides?: SlideInput[];
     };
+
+    // Is this a Slideshow render?
+    const isCarousel = template.type === 'CAROUSEL';
 
     // Merge template's textConfig with any per-project editor overrides
     const baseTextConfig = template.textConfig as TextConfig;
@@ -52,96 +60,143 @@ export async function renderProject(
     // Remotion 4.x does NOT support file:// URIs in headless Chrome or in the
     // compositor's asset downloader. Signed HTTPS URLs work correctly, and on
     // Railway (same Cloudflare region as R2) latency is <10 ms.
+    // The overlay goes through WebCodecs in the browser (see transcode.ts), so it
+    // may need an H.264 copy first. Background and audio are decoded by ffmpeg,
+    // which handles every codec we accept.
+
     console.log(`[render:${jobId}] Generating presigned R2 URLs…`);
-    const [backgroundUrl, overlayUrl, audioUrl] = await Promise.all([
-      getPresignedUrl(currentAssets.backgroundKey),
-      getPresignedUrl(currentAssets.overlayKey),
-      currentAssets.audioKey ? getPresignedUrl(currentAssets.audioKey) : Promise.resolve(undefined),
-    ]);
+
+    const backgroundUrl = await getPresignedUrl(currentAssets.backgroundKey);
+    const audioUrl = currentAssets.audioKey ? await getPresignedUrl(currentAssets.audioKey) : undefined;
 
     // ── 3. Build inputProps ───────────────────────────────────────────────
     const seconds = currentAssets.durationSeconds ?? template.durationSeconds;
     const durationInFrames = Math.max(1, Math.round(seconds * template.fps));
-    const inputProps: GreenScreenProps = {
-      backgroundUrl,
-      overlayUrl,
-      audioUrl,
-      muteVideoAudio: currentAssets.muteVideoAudio ?? false,
-      businessText: currentAssets.businessText,
-      captionText: project.captionText,
-      overlayZoom: project.overlayZoom,
-      overlayOffsetX: project.overlayOffsetX,
-      overlayOffsetY: project.overlayOffsetY,
-      textConfig,
-      durationInFrames,
-      fps: template.fps,
-    };
 
-    // ── 4. Select composition and render ─────────────────────────────────
-    const outputPath = path.join(tmpDir, 'output.mp4');
-    // CHROMIUM_PATH is required in Docker (set to /usr/bin/chromium).
-    // Locally on macOS, leave it unset and let Remotion find Chrome automatically.
-    // NOTE: In Remotion v4.x, the executable path is a top-level `browserExecutable`
-    // parameter — NOT inside `chromiumOptions` (which only contains browser flags).
-    const browserExecutable = process.env.CHROMIUM_PATH || undefined;
-
-    // Disable CORS in the headless browser so that presigned R2 URLs can be fetched
-    // by the @remotion/media Video component (which uses the Fetch API internally).
-    // This is required for the colorKey() WebGL effect to load the overlay video.
-    // Without this, Chrome blocks cross-origin fetches from localhost:3001 → R2,
-    // causing Remotion to fall back to <OffthreadVideo> which doesn't support
-    // WebGL effects — leaving the green screen visible in the output.
-    //
-    // `gl` is mandatory for colorKey(): the effect needs a WebGL2 context, and
-    // headless Chrome has none with the default renderer. Symptoms without it:
-    //   - h264 overlay  → render throws "Failed to acquire WebGL2 context"
-    //   - hevc overlay  → WebCodecs decode fails first, <Video> falls back to
-    //                     <OffthreadVideo> (no effects) → green stays in output.
-    // "angle" uses the GPU (macOS dev); Linux containers have no GPU, so they
-    // need the SwiftShader-backed "swangle".
     const chromiumOptions = {
       disableWebSecurity: true,
       gl: (process.platform === 'darwin' ? 'angle' : 'swangle') as 'angle' | 'swangle',
     };
+    const browserExecutable = process.env.CHROMIUM_PATH || undefined;
+    const outputPath = path.join(tmpDir, 'output.mp4');
 
-    console.log(`[render:${jobId}] Selecting composition "GreenScreen"…`);
-    const composition = await selectComposition({
-      serveUrl,
-      id: 'GreenScreen',
-      inputProps,
-      browserExecutable,
-      chromiumOptions,
-    });
-
-    console.log(`[render:${jobId}] Rendering ${durationInFrames} frames @ ${template.fps} fps…`);
-    let overlayFallbackDetected = false;
-    await renderMedia({
-      composition,
-      serveUrl,
-      codec: 'h264',
-      outputLocation: outputPath,
-      inputProps,
-      browserExecutable,
-      chromiumOptions,
-      onProgress: ({ progress }) => {
-        process.stdout.write(`\r[render:${jobId}] ${Math.round(progress * 100)} %`);
-      },
-      onBrowserLog: (log) => {
-        // <Video> silently degrades to <OffthreadVideo> when the browser cannot
-        // decode the file (e.g. HEVC). That path drops colorKey(), so the output
-        // would ship with the green background still visible. Fail loudly instead.
-        if (log.text.includes('falling back to <OffthreadVideo>')) {
-          overlayFallbackDetected = true;
-        }
-      },
-    });
-    process.stdout.write('\n');
-
-    if (overlayFallbackDetected) {
-      throw new Error(
-        'Overlay video could not be decoded by the browser, so the chroma key was skipped. ' +
-          'Re-encode the overlay as H.264 (yuv420p) and upload it again.',
+    // ── 4. Select composition and render ─────────────────────────────────
+    if (isCarousel) {
+      // ── CAROUSEL / Slideshow path ───────────────────────────────────────
+      // Support both legacy string[] and new SlideData[] formats.
+      const rawSlides = (currentAssets.slides ?? [project.captionText]).map(
+        (s: SlideInput) => (typeof s === 'string' ? { text: s } : s),
       );
+      const filteredSlides = rawSlides.filter((s) => s.text.trim());
+
+      // Generate presigned URLs for per-slide backgrounds (if any).
+      const slides: SlideshowProps['slides'] = await Promise.all(
+        filteredSlides.map(async (s) => {
+          if (!s.backgroundKey) return { text: s.text };
+          const bgUrl = await getPresignedUrl(s.backgroundKey);
+          return {
+            text: s.text,
+            backgroundUrl: bgUrl,
+            backgroundIsImage: /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(bgUrl),
+          };
+        }),
+      );
+
+      const inputProps: SlideshowProps = {
+        backgroundUrl,
+        audioUrl,
+        muteVideoAudio: currentAssets.muteVideoAudio ?? false,
+        businessText: currentAssets.businessText,
+        slides,
+        textConfig,
+        durationInFrames,
+        fps: template.fps,
+      };
+
+      console.log(`[render:${jobId}] Selecting composition "Slideshow" (${slides.length} slides)…`);
+      const composition = await selectComposition({
+        serveUrl,
+        id: 'Slideshow',
+        inputProps,
+        browserExecutable,
+        chromiumOptions,
+      });
+
+      console.log(`[render:${jobId}] Rendering ${durationInFrames} frames @ ${template.fps} fps…`);
+      await renderMedia({
+        composition,
+        serveUrl,
+        codec: 'h264',
+        outputLocation: outputPath,
+        inputProps,
+        browserExecutable,
+        chromiumOptions,
+        onProgress: ({ progress }) => {
+          process.stdout.write(`\r[render:${jobId}] ${Math.round(progress * 100)} %`);
+        },
+      });
+      process.stdout.write('\n');
+    } else {
+      // ── GreenScreen path ────────────────────────────────────────────────
+      const overlayKey = await ensureBrowserDecodableKey(
+        currentAssets.overlayKey,
+        tmpDir,
+        (message) => console.log(`[render:${jobId}] ${message}`),
+      );
+
+      const [overlayUrl] = await Promise.all([getPresignedUrl(overlayKey)]);
+
+      const inputProps: GreenScreenProps = {
+        backgroundUrl,
+        overlayUrl,
+        audioUrl,
+        muteVideoAudio: currentAssets.muteVideoAudio ?? false,
+        businessText: currentAssets.businessText,
+        captionText: project.captionText,
+        overlayZoom: project.overlayZoom,
+        overlayOffsetX: project.overlayOffsetX,
+        overlayOffsetY: project.overlayOffsetY,
+        textConfig,
+        durationInFrames,
+        fps: template.fps,
+      };
+
+      console.log(`[render:${jobId}] Selecting composition "GreenScreen"…`);
+      const composition = await selectComposition({
+        serveUrl,
+        id: 'GreenScreen',
+        inputProps,
+        browserExecutable,
+        chromiumOptions,
+      });
+
+      console.log(`[render:${jobId}] Rendering ${durationInFrames} frames @ ${template.fps} fps…`);
+      let overlayFallbackDetected = false;
+      await renderMedia({
+        composition,
+        serveUrl,
+        codec: 'h264',
+        outputLocation: outputPath,
+        inputProps,
+        browserExecutable,
+        chromiumOptions,
+        onProgress: ({ progress }) => {
+          process.stdout.write(`\r[render:${jobId}] ${Math.round(progress * 100)} %`);
+        },
+        onBrowserLog: (log) => {
+          if (log.text.includes('falling back to <OffthreadVideo>')) {
+            overlayFallbackDetected = true;
+          }
+        },
+      });
+      process.stdout.write('\n');
+
+      if (overlayFallbackDetected) {
+        throw new Error(
+          'Overlay video could not be decoded by the browser, so the chroma key was skipped. ' +
+            `Overlay key: ${overlayKey}`,
+        );
+      }
     }
 
     // ── 5. Upload rendered .mp4 to R2 ────────────────────────────────────

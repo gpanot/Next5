@@ -9,7 +9,7 @@ type RenderBody = {
   templateId: string;
   currentAssets: {
     backgroundKey: string;
-    overlayKey: string;
+    overlayKey?: string;   // optional for CAROUSEL (no overlay)
     audioKey?: string;
   };
   overlayZoom?: number;
@@ -27,6 +27,9 @@ type RenderBody = {
   businessText?: string;
   /** Silence the sound of the video layers. */
   muteVideoAudio?: boolean;
+  /** Slide texts for CAROUSEL type.
+   * Accepts string[] (legacy) or SlideData[] (new format with per-slide backgroundKey). */
+  slides?: Array<string | { text: string; backgroundKey?: string }>;
 };
 
 /**
@@ -63,6 +66,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
     backgroundKey: body.currentAssets?.backgroundKey,
     overlayKey: body.currentAssets?.overlayKey,
     audioKey: body.currentAssets?.audioKey,
+    slidesCount: body.slides?.length,
     durationSeconds: body.durationSeconds,
     mentionBusiness: body.mentionBusiness,
     muteVideoAudio: body.muteVideoAudio,
@@ -76,20 +80,39 @@ export const POST = adminRoute(async (req: NextRequest) => {
     console.warn('[blitz/render] Rejected: missing captionText');
     return NextResponse.json({ error: 'captionText is required' }, { status: 400 });
   }
-  if (!body.currentAssets?.backgroundKey || !body.currentAssets?.overlayKey) {
-    console.warn('[blitz/render] Rejected: missing backgroundKey or overlayKey');
-    return NextResponse.json({ error: 'backgroundKey and overlayKey are required' }, { status: 400 });
-  }
-  const keys = [body.currentAssets.backgroundKey, body.currentAssets.overlayKey, body.currentAssets.audioKey];
-  if (keys.some((k) => k?.startsWith('local:'))) {
-    console.warn('[blitz/render] Rejected: local: key still present — upload not finished');
-    return NextResponse.json({ error: 'Wait for uploads to finish' }, { status: 400 });
+  if (!body.currentAssets?.backgroundKey) {
+    console.warn('[blitz/render] Rejected: missing backgroundKey');
+    return NextResponse.json({ error: 'backgroundKey is required' }, { status: 400 });
   }
 
+  // Fetch template first so we can check whether overlayKey is required
   const template = await prisma.blitzTemplate.findUnique({ where: { id: body.templateId } });
   if (!template) {
     console.error(`[blitz/render] Template ${body.templateId} not found`);
     return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+  }
+
+  // overlayKey is required only for non-CAROUSEL templates
+  if (template.type !== 'CAROUSEL' && !body.currentAssets?.overlayKey) {
+    console.warn('[blitz/render] Rejected: missing overlayKey for non-CAROUSEL template');
+    return NextResponse.json({ error: 'overlayKey is required' }, { status: 400 });
+  }
+
+  // Normalize slides early so we can validate per-slide backgroundKeys below
+  const normalizedSlides = (body.slides ?? []).map((s) =>
+    typeof s === 'string' ? { text: s } : s,
+  );
+
+  const keys = [
+    body.currentAssets.backgroundKey,
+    body.currentAssets.overlayKey,
+    body.currentAssets.audioKey,
+    // Also check per-slide backgroundKeys
+    ...normalizedSlides.map((s) => s.backgroundKey),
+  ];
+  if (keys.some((k) => k?.startsWith('local:'))) {
+    console.warn('[blitz/render] Rejected: local: key still present — upload not finished');
+    return NextResponse.json({ error: 'Wait for uploads to finish' }, { status: 400 });
   }
 
   // Validate textConfig shape from template
@@ -99,13 +122,19 @@ export const POST = adminRoute(async (req: NextRequest) => {
     return NextResponse.json({ error: 'Template has invalid textConfig' }, { status: 422 });
   }
 
+  // For CAROUSEL: derive captionText from slides[0] if not already set
+  const nonEmptySlides = normalizedSlides.filter((s) => s.text.trim());
+  const captionText = body.captionText.trim() || (nonEmptySlides[0]?.text ?? '');
+
   const project = await prisma.blitzProject.create({
     data: {
       templateId: body.templateId,
       currentAssets: {
         backgroundKey: body.currentAssets.backgroundKey,
-        overlayKey: body.currentAssets.overlayKey,
+        ...(body.currentAssets.overlayKey ? { overlayKey: body.currentAssets.overlayKey } : {}),
         ...(body.currentAssets.audioKey ? { audioKey: body.currentAssets.audioKey } : {}),
+        // Store slides array for CAROUSEL — worker reads currentAssets.slides
+        ...(nonEmptySlides.length > 0 ? { slides: nonEmptySlides } : {}),
         ...renderSettings(body),
       },
       overlayZoom: body.overlayZoom ?? 1.0,
@@ -113,13 +142,13 @@ export const POST = adminRoute(async (req: NextRequest) => {
       overlayOffsetY: body.overlayOffsetY ?? 0,
       mentionBusiness: body.mentionBusiness ?? false,
       regenPrompt: body.regenPrompt ?? null,
-      captionText: body.captionText.trim(),
+      captionText,
       renderStatus: 'PENDING',
       isIdentifiablePerson: body.isIdentifiablePerson ?? false,
     },
   });
 
-  console.log(`[blitz/render] BlitzProject created: id=${project.id} status=PENDING`);
+  console.log(`[blitz/render] BlitzProject created: id=${project.id} status=PENDING template.type=${template.type}`);
 
   return NextResponse.json(
     { projectId: project.id, status: 'PROCESSING', project: await toProjectDto(project) },

@@ -15,6 +15,8 @@ type AwemeInfo = {
   video?: {
     cover?: { url_list?: string[] };
     ai_dynamic_cover?: { url_list?: string[] };
+    /** Duration in seconds (may be float). */
+    duration?: number;
   };
 };
 
@@ -61,6 +63,12 @@ function extractThumbnail(aweme: AwemeInfo): string {
     aweme.video?.ai_dynamic_cover?.url_list?.[0] ??
     ''
   );
+}
+
+/** Duration in seconds (integer), or null when not available. */
+function extractDuration(aweme: AwemeInfo): number | null {
+  const d = aweme.video?.duration;
+  return typeof d === 'number' && d > 0 ? Math.round(d) : null;
 }
 
 // ── Hook extraction via gpt-4o-mini ───────────────────────────────────────────
@@ -136,6 +144,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
         views: a.statistics?.play_count ?? 0,
         likes: a.statistics?.digg_count ?? 0,
         posted_at: extractPostedAt(a),
+        duration: extractDuration(a),
         raw_transcript,
         hook,
       };

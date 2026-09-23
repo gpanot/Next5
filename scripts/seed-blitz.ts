@@ -33,6 +33,7 @@ import { BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_DEFAULT_DURATION_S, BLITZ_DEFAULT_FPS 
 const prisma = new PrismaClient();
 
 const TEMPLATE_ID = 'blitz-tmpl-green-screen-v0';
+const CAROUSEL_TEMPLATE_ID = 'blitz-tmpl-carousel-v0';
 const OVERLAY_ASSET_ID  = 'blitz-asset-overlay-001';
 const BG_ASSET_ID       = 'blitz-asset-bg-001';
 
@@ -64,6 +65,27 @@ async function seed() {
     },
   });
   console.log('[seed-blitz] Template upserted:', template.id);
+
+  // ── CAROUSEL / Slideshow template ─────────────────────────────────────────
+  const carouselTemplate = await prisma.blitzTemplate.upsert({
+    where: { id: CAROUSEL_TEMPLATE_ID },
+    update: {},
+    create: {
+      id: CAROUSEL_TEMPLATE_ID,
+      name: 'Slideshow',
+      type: 'CAROUSEL',
+      defaultAssets: {
+        // No overlayKey — Slideshow has no meme/green-screen layer
+        backgroundKey: BG_R2_KEY,
+      },
+      textConfig: BLITZ_DEFAULT_TEXT_CONFIG,
+      defaultHookText: 'You are gonna FALL in love with this one 🏡',
+      remixPrompt: 'Write a punchy real-estate hook that creates urgency and invites the viewer to DM for details.',
+      durationSeconds: 15.0,
+      fps: BLITZ_DEFAULT_FPS,
+    },
+  });
+  console.log('[seed-blitz] Carousel template upserted:', carouselTemplate.id);
 
   // ── Overlay asset ─────────────────────────────────────────────────────────
   const overlay = await prisma.blitzAsset.upsert({

@@ -13,6 +13,8 @@ import {
   usd,
 } from './ugcLab/ui';
 import { CloneLibrary } from './ugcClone/CloneLibrary';
+import { Researcher } from '../shared/Researcher';
+import type { ResearchVideo } from './ugcLab/researchCache';
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -288,8 +290,14 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
   // Mode
   const [mode, setMode] = useState<Mode>('face-swap');
 
+  // Step navigation: 1=Research, 2=Clone
+  const [step, setStep] = useState<1 | 2>(1);
+
   // Audio — "Keep the original video sound" toggle
   const [generateAudio, setGenerateAudio] = useState(true);
+
+  // Research panel (legacy state — no longer collapsible, controlled by step)
+  const [sourceLoadingId, setSourceLoadingId] = useState<string | null>(null);
 
   // Upload states
   const [characterBusy, setCharacterBusy] = useState(false);
@@ -439,6 +447,43 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
     if (!promptEditedRef.current) setPromptText(getDefaultPrompt(mode, false));
   }
 
+  // ── Source from TikTok URL (via Researcher) ────────────────────────────────
+
+  async function sourceFromUrl(video: ResearchVideo) {
+    setSourceLoadingId(video.id);
+    setVideoError('');
+    const res = await ugcRequest<{
+      key?: string;
+      vendorUrl?: string;
+      browserUrl?: string;
+      trimmed?: boolean;
+      durationSeconds?: number;
+      frameKey?: string;
+      frameVendorUrl?: string;
+      error?: string;
+    }>(token, '/api/admin/ugc-lab/clone/source-from-url', {
+      json: { videoUrl: video.video_url, maxDuration: maxDurationSec },
+    }).catch(() => null);
+    setSourceLoadingId(null);
+    if (res?.ok && res.data.key && res.data.vendorUrl) {
+      const prev = refVideo?.previewUrl;
+      if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+      setRefVideo({
+        key: res.data.key,
+        vendorUrl: res.data.vendorUrl,
+        // Leave previewUrl empty for TikTok-sourced videos — the video element in the
+        // refVideo block detects this and shows a "Sourced from TikTok" message instead.
+        previewUrl: '',
+        durationSec: res.data.durationSeconds,
+        frameVendorUrl: res.data.frameVendorUrl,
+      });
+      // Collapse the panel now that a video has been picked
+      setStep(2);
+    } else {
+      setVideoError(res ? errorOf(res) : 'Failed to download the TikTok video. Please try again.');
+    }
+  }
+
   // ── Generate ───────────────────────────────────────────────────────────────
 
   async function generate() {
@@ -552,7 +597,56 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
   return (
     <div className="flex flex-col gap-6">
 
-      {/* ── Step 0: Mode toggle ────────────────────────────────────────────── */}
+      {/* ── Step pills ────────────────────────────────────────────────── */}
+      <div className="flex gap-2">
+        {([1, 2] as const).map((s) => {
+          const labels = { 1: '1 · Research', 2: '2 · UGC Clone' };
+          const active = step === s;
+          return (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStep(s)}
+              className={[
+                'rounded-full px-5 py-2 text-[13px] font-semibold transition-colors',
+                active ? 'bg-ink text-white' : 'bg-surface-alt text-muted hover:text-ink',
+              ].join(' ')}
+            >
+              {labels[s]}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Step 1: Research ──────────────────────────────────────────── */}
+      {step === 1 && (
+        <div className="flex flex-col gap-4">
+          <div>
+            <p className="text-[14px] font-semibold text-ink">Find a TikTok to clone</p>
+            <p className="text-[12px] text-muted mt-0.5">Search for trending videos → use one as your reference. Click "See Template" to see which format it matches.</p>
+          </div>
+          <Researcher
+            token={token}
+            cacheKey="ugc-clone-research"
+            actionLabel="Use as source"
+            onAction={(v) => void sourceFromUrl(v)}
+            actionLoadingId={sourceLoadingId}
+          />
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => setStep(2)}
+              className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              Skip to Clone →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 2: Clone editor ──────────────────────────────────────── */}
+      {step === 2 && (
+      <div className="flex flex-col gap-6">
       <Section
         title="UGC Clone"
         description="Pick a mode, then follow the steps below"
@@ -669,13 +763,25 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
         >
           {refVideo ? (
             <div className="flex flex-col items-center gap-3">
-              {/* eslint-disable-next-line jsx-a11y/media-has-caption -- reference video */}
-              <video
-                src={refVideo.previewUrl}
-                controls
-                playsInline
-                className="mx-auto max-h-64 max-w-xs rounded-xl ring-1 ring-line"
-              />
+              {refVideo.previewUrl ? (
+                // Locally-uploaded video — show the video element
+                // eslint-disable-next-line jsx-a11y/media-has-caption -- reference video
+                <video
+                  src={refVideo.previewUrl}
+                  controls
+                  playsInline
+                  className="mx-auto max-h-64 max-w-xs rounded-xl ring-1 ring-line"
+                />
+              ) : (
+                // TikTok-sourced — no local blob, show a status badge instead
+                <div className="flex w-full flex-col items-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 px-4 py-5 text-center">
+                  <p className="text-[14px] font-medium text-teal-800">Sourced from TikTok — ready to clone</p>
+                  <p className="text-[12px] text-teal-600">
+                    Trimmed to {maxDurationSec}s · Est. {estimateCost(maxDurationSec)}
+                    {refVideo.frameVendorUrl && <> · <span className="font-medium">first frame ✓</span></>}
+                  </p>
+                </div>
+              )}
               <p className="text-[12px] text-muted">
                 {refVideo.durationSec && refVideo.durationSec > 0
                   ? `Original: ${Math.round(refVideo.durationSec)} s · Cloning: ${maxDurationSec} s · Est. ${estimateCost(maxDurationSec)}`
@@ -896,6 +1002,9 @@ export function UgcCloneTab({ token }: UgcCloneTabProps) {
 
       {/* ── Library ──────────────────────────────────────────────────────── */}
       <CloneLibrary token={token} />
+      </div>
+      )} {/* end step === 2 */}
+
     </div>
   );
 }

@@ -367,6 +367,8 @@ export function BlitzLabTab({ token }: Props) {
           onRename={handleRenameAsset}
           onDelete={handleDeleteAsset}
           onClose={() => setPicker(null)}
+          token={token}
+          onAssetCreated={(asset) => setAssets((prev) => [...prev, asset])}
         />
       )}
     </div>

@@ -13,6 +13,8 @@ export type TrendingVideo = {
   likes: number;
   /** When the video was posted (ISO), or null when TikTok did not say. */
   posted_at: string | null;
+  /** Video duration in seconds, or null when TikTok did not return it. */
+  duration: number | null;
   /** The full spoken script. Empty when no transcript could be found. */
   raw_transcript: string;
   hook: string; // extracted by gpt-4o-mini
