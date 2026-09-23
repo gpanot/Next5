@@ -353,3 +353,17 @@ export function matchPhase0ATemplate(hook: string): Phase0ATemplate {
   }
   return bestTemplate;
 }
+
+/**
+ * The template for a research result.
+ *
+ * Prefers `templateId`, which the research API's classifier chose from the full
+ * transcript. Falls back to keyword-matching the hook for results cached before
+ * classification existed, or when the classifier was unavailable.
+ */
+export function resolvePhase0ATemplate(templateId: number | null | undefined, hook: string): Phase0ATemplate {
+  const classified = typeof templateId === 'number'
+    ? PHASE0A_TEMPLATES.find((t) => t.id === templateId)
+    : undefined;
+  return classified ?? matchPhase0ATemplate(hook);
+}

@@ -99,7 +99,8 @@ export function SlidePreview({
   // ── Drag-to-reposition (mirrors PreviewPlayer) ───────────────────────
   const canvasRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ layer: BlitzLayer; x: number; y: number } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+  /** The layer being dragged — mirrored in state because render reads it for the label. */
+  const [draggingLayer, setDraggingLayer] = useState<BlitzLayer | null>(null);
   const [hovered, setHovered] = useState<BlitzLayer | null>(null);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
@@ -108,7 +109,7 @@ export function SlidePreview({
     if (!layer || layer === 'OVERLAY') return; // no overlay in slideshow
     drag.current = { layer, x: e.clientX, y: e.clientY };
     e.currentTarget.setPointerCapture(e.pointerId);
-    setIsDragging(true);
+    setDraggingLayer(layer);
   }, []);
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
@@ -131,10 +132,10 @@ export function SlidePreview({
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
     drag.current = null;
-    setIsDragging(false);
+    setDraggingLayer(null);
   }, []);
 
-  const cursorClass = isDragging ? 'cursor-grabbing' : hovered ? 'cursor-grab' : 'cursor-default';
+  const cursorClass = draggingLayer ? 'cursor-grabbing' : hovered ? 'cursor-grab' : 'cursor-default';
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
@@ -147,7 +148,6 @@ export function SlidePreview({
         {/* Background */}
         {bgUrl ? (
           backgroundAsset?.mediaKind === 'video' ? (
-            // eslint-disable-next-line jsx-a11y/media-has-caption
             <video
               key={bgKey} // re-mount when background changes slide
               src={backgroundAsset.url}
@@ -242,16 +242,16 @@ export function SlidePreview({
         )}
 
         {/* Drag hint tooltip */}
-        {hovered && !isDragging && (
+        {hovered && !draggingLayer && (
           <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-black/70 px-3 py-1 text-[10px] text-white/90 shadow">
             Drag to reposition {LAYER_LABEL[hovered].toLowerCase()}
           </div>
         )}
 
         {/* Active drag label */}
-        {isDragging && drag.current && (
+        {draggingLayer && (
           <div className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-orange-500 px-3 py-1 text-[10px] font-semibold text-white shadow">
-            Moving {LAYER_LABEL[drag.current.layer].toLowerCase()}…
+            Moving {LAYER_LABEL[draggingLayer].toLowerCase()}…
           </div>
         )}
       </div>

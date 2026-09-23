@@ -112,8 +112,8 @@ await page.evaluate((t) => window.localStorage.setItem('admin_token', t), token)
 await page.reload();
 step('Admin page loaded');
 
-// Navigate to Blitz tab
-await page.getByRole('button', { name: /blitz/i }).click();
+// Navigate to Blitz Lab. Exact match: a "Blitz Slideshow" tab also exists.
+await page.getByRole('button', { name: 'Blitz Lab', exact: true }).click();
 // Wait for template to load (editor skeleton → content)
 await page.locator('button', { hasText: /Done Editing/i }).waitFor({ timeout: 20000 });
 step('Blitz Lab tab loaded with editor');
@@ -153,7 +153,6 @@ await page.screenshot({ path: `${OUT}/blitz-02-just-submitted.png` });
 // The card appears immediately (no reload needed) because we pass `onQueued` to useBlitzRender
 await page.waitForFunction(
   ({ caption }) => {
-    const cards = [...document.querySelectorAll('[data-library-card]')];
     // Look for any card element that shows the queued text OR the caption
     const allText = document.body.innerText;
     return allText.includes('Queued') || allText.includes('In queue') || allText.includes(caption);

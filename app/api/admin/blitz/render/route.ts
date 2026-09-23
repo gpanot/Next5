@@ -3,7 +3,12 @@ import { adminRoute } from '../../../../../src/server/admin/route';
 import { toProjectDto } from '../../../../../src/server/admin/blitzStore';
 import { prisma } from '../../../../../src/lib/db';
 import type { TextConfig } from '../../../../../src/remotion/types';
-import { BLITZ_BUSINESS_TEXT_MAX, clampBlitzDuration } from '../../../../../src/config/blitzLab';
+import {
+  BLITZ_BUSINESS_TEXT_MAX,
+  BLITZ_MAX_DURATION_S,
+  BLITZ_SLIDESHOW_MAX_DURATION_S,
+  clampBlitzDuration,
+} from '../../../../../src/config/blitzLab';
 
 type RenderBody = {
   templateId: string;
@@ -36,13 +41,17 @@ type RenderBody = {
  * Render settings stored in the current_assets JSON next to the asset keys.
  * The worker reads them from there, so no column (and no web/worker deploy-order
  * risk) is needed. Keys: textConfigOverride, durationSeconds, businessText, muteVideoAudio.
+ *
+ * @param maxDurationSeconds - the clip-length ceiling for this template type.
  */
-const renderSettings = (body: RenderBody) => {
+const renderSettings = (body: RenderBody, maxDurationSeconds: number) => {
   const businessText = body.mentionBusiness ? body.businessText?.trim().slice(0, BLITZ_BUSINESS_TEXT_MAX) : undefined;
   const duration = Number(body.durationSeconds);
   return {
     ...(body.textConfigOverride ? { textConfigOverride: body.textConfigOverride } : {}),
-    ...(Number.isFinite(duration) && duration > 0 ? { durationSeconds: clampBlitzDuration(duration) } : {}),
+    ...(Number.isFinite(duration) && duration > 0
+      ? { durationSeconds: clampBlitzDuration(duration, maxDurationSeconds) }
+      : {}),
     ...(businessText ? { businessText } : {}),
     ...(body.muteVideoAudio ? { muteVideoAudio: true } : {}),
   };
@@ -135,7 +144,12 @@ export const POST = adminRoute(async (req: NextRequest) => {
         ...(body.currentAssets.audioKey ? { audioKey: body.currentAssets.audioKey } : {}),
         // Store slides array for CAROUSEL — worker reads currentAssets.slides
         ...(nonEmptySlides.length > 0 ? { slides: nonEmptySlides } : {}),
-        ...renderSettings(body),
+        // A still-image slideshow has no footage to follow, so it may run longer
+        // than the footage cap. Anything else stays on BLITZ_MAX_DURATION_S.
+        ...renderSettings(
+          body,
+          template.type === 'CAROUSEL' ? BLITZ_SLIDESHOW_MAX_DURATION_S : BLITZ_MAX_DURATION_S,
+        ),
       },
       overlayZoom: body.overlayZoom ?? 1.0,
       overlayOffsetX: body.overlayOffsetX ?? 0,

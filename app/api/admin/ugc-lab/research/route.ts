@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../src/server/admin/route';
 import { tregCall, fetchTikTokTranscript, type TrendingVideo } from '../../../../../src/server/admin/ugcLab';
 import { chatJson, type ChatMessage } from '../../../../../src/server/ai/openai';
+import { PHASE0A_TEMPLATES } from '../../../../../src/lib/phase0aTemplates';
 
 // ── TikTok API types — shape returned after tregCall strips the outer "data" ────
 
@@ -15,7 +16,7 @@ type AwemeInfo = {
   video?: {
     cover?: { url_list?: string[] };
     ai_dynamic_cover?: { url_list?: string[] };
-    /** Duration in seconds (may be float). */
+    /** Duration. TikHub reports milliseconds here despite the field name. */
     duration?: number;
   };
 };
@@ -65,39 +66,69 @@ function extractThumbnail(aweme: AwemeInfo): string {
   );
 }
 
-/** Duration in seconds (integer), or null when not available. */
+/**
+ * Duration in seconds (integer), or null when not available.
+ *
+ * TikHub returns milliseconds (a 62 s clip comes back as 62000), but older
+ * cached rows and other providers use seconds. No TikTok is longer than
+ * 10 minutes, so anything above 1000 is milliseconds.
+ */
 function extractDuration(aweme: AwemeInfo): number | null {
   const d = aweme.video?.duration;
-  return typeof d === 'number' && d > 0 ? Math.round(d) : null;
+  if (typeof d !== 'number' || d <= 0) return null;
+  return Math.round(d > 1000 ? d / 1000 : d);
 }
 
-// ── Hook extraction via gpt-4o-mini ───────────────────────────────────────────
+// ── Hook + template classification via gpt-4o-mini ───────────────────────────
 
-async function extractHook(transcript: string): Promise<string> {
-  if (!transcript.trim()) return '';
+/** The template menu the classifier picks from, built once at module load. */
+const TEMPLATE_MENU = PHASE0A_TEMPLATES
+  .map((t) => `${t.id}. ${t.name} — ${t.pillar}. Format: ${t.structure.join(' → ')}`)
+  .join('\n');
+
+const CLASSIFY_SYSTEM_PROMPT = [
+  'You read TikTok transcripts for small-business marketing research.',
+  'You do two things at once: pull out the opening hook, and say which content template the video follows.',
+  '',
+  'The hook is the first sentence that grabs attention — the first 5-10 seconds of speech.',
+  'Return it as the exact spoken words. No paraphrasing, no additions.',
+  '',
+  'Templates:',
+  TEMPLATE_MENU,
+  '',
+  'Judge the template from the whole transcript — what the video DOES, not the words it opens with.',
+  'A video that walks through a repair is a Before/After or Day in the Life, not a tips list,',
+  'even when nobody says "before" or "tips" out loud. Pick the closest fit; every video gets one.',
+  '',
+  'Return JSON: { "hook": "...", "template_id": <number 1-18> }',
+].join('\n');
+
+type Classification = { hook: string; template_id: number | null };
+
+/**
+ * The opening hook plus the Phase 0A template the video follows.
+ *
+ * Both come from one call: the classifier needs the transcript either way, and
+ * keyword-matching the hook alone put 9 of 10 results on the fallback template.
+ */
+async function classifyVideo(transcript: string): Promise<Classification> {
+  if (!transcript.trim()) return { hook: '', template_id: null };
 
   const messages: ChatMessage[] = [
-    {
-      role: 'system',
-      content:
-        'You extract the opening hook from TikTok video transcripts. ' +
-        'The hook is the very first sentence that grabs attention — usually the first 5-10 seconds of speech. ' +
-        'Return JSON: { "hook": "<exact spoken words, no paraphrasing, no additions>" }. ' +
-        'If no clear hook, return the first sentence verbatim.',
-    },
-    {
-      role: 'user',
-      content: `Transcript:\n${transcript.slice(0, 1500)}`,
-    },
+    { role: 'system', content: CLASSIFY_SYSTEM_PROMPT },
+    { role: 'user', content: `Transcript:\n${transcript.slice(0, 2500)}` },
   ];
 
-  const result = await chatJson<{ hook: string }>(messages, {
-    maxTokens: 120,
+  const result = await chatJson<{ hook?: string; template_id?: number }>(messages, {
+    maxTokens: 200,
     temperature: 0.1,
-    timeoutMs: 15_000,
+    timeoutMs: 20_000,
   });
 
-  return result?.hook ?? transcript.split(/[.!?]/)[0]?.trim() ?? '';
+  const hook = result?.hook?.trim() || transcript.split(/[.!?]/)[0]?.trim() || '';
+  const id = result?.template_id;
+  const templateId = typeof id === 'number' && PHASE0A_TEMPLATES.some((t) => t.id === id) ? id : null;
+  return { hook, template_id: templateId };
 }
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -134,7 +165,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
       const id = a.aweme_id ?? '';
       const videoUrl = buildTikTokUrl(a);
       const raw_transcript = videoUrl ? await fetchTikTokTranscript(videoUrl) : '';
-      const hook = await extractHook(raw_transcript);
+      const { hook, template_id } = await classifyVideo(raw_transcript);
 
       return {
         id,
@@ -147,6 +178,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
         duration: extractDuration(a),
         raw_transcript,
         hook,
+        template_id,
       };
     }),
   );

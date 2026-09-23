@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import type React from 'react';
 import { ChevronDown, AlertTriangle } from 'lucide-react';
-import { matchPhase0ATemplate } from '../../../../lib/phase0aTemplates';
+import { resolvePhase0ATemplate } from '../../../../lib/phase0aTemplates';
 import { ScriptSheet } from './ScriptSheet';
+import { SuggestedSlides } from './SuggestedSlides';
 
 export type ResearchVideo = {
   id: string;
@@ -19,12 +20,27 @@ export type ResearchVideo = {
   duration?: number | null;
   hook: string;
   raw_transcript: string;
+  /**
+   * Phase 0A template the research API classified this video as. Missing on
+   * searches cached before classification existed — the hook is matched instead.
+   */
+  template_id?: number | null;
 };
 
 const formatCount = (n: number): string => {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
   return String(n);
+};
+
+/**
+ * Seconds, from a value that may be milliseconds. Searches cached before the
+ * API normalised TikHub's millisecond durations still hold raw values, and no
+ * TikTok is longer than 10 minutes, so anything above 1000 is milliseconds.
+ */
+const toSeconds = (value: number | null | undefined): number | null => {
+  if (typeof value !== 'number' || value <= 0) return null;
+  return Math.round(value > 1000 ? value / 1000 : value);
 };
 
 /** "1:05" or "0:28". Returns null when duration is missing. */
@@ -42,16 +58,26 @@ const formatPostedAt = (iso: string | null | undefined): string => {
   return new Date(time).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
-type ResearchCardProps = { video: ResearchVideo; selected: boolean; onSelect: () => void; renderAction?: React.ReactNode };
+type ResearchCardProps = {
+  video: ResearchVideo;
+  selected: boolean;
+  onSelect: () => void;
+  renderAction?: React.ReactNode;
+  /** Niche the user searched. With `token`, the suggested slides are rewritten for it. */
+  niche?: string;
+  /** Admin token — required for niche-specific slide generation. */
+  token?: string;
+};
 
-export function ResearchCard({ video, selected, onSelect, renderAction }: ResearchCardProps) {
+export function ResearchCard({ video, selected, onSelect, renderAction, niche, token }: ResearchCardProps) {
   const [scriptOpen, setScriptOpen] = useState(false);
   const [templateOpen, setTemplateOpen] = useState(false);
   const postedAt = formatPostedAt(video.posted_at);
 
-  const template = matchPhase0ATemplate(video.hook);
-  const durationLabel = formatDuration(video.duration);
-  const durationTooLong = typeof video.duration === 'number' && video.duration > 30;
+  const template = resolvePhase0ATemplate(video.template_id, video.hook);
+  const durationSeconds = toSeconds(video.duration);
+  const durationLabel = formatDuration(durationSeconds);
+  const durationTooLong = durationSeconds !== null && durationSeconds > 30;
 
   return (
     <article
@@ -66,7 +92,8 @@ export function ResearchCard({ video, selected, onSelect, renderAction }: Resear
           )}
         </button>
         <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <div className="flex items-center justify-between gap-2">
+          {/* Wraps on narrow screens so the handle is never truncated to fit the stats. */}
+          <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5">
             <span className="truncate text-[12px] text-muted">@{video.author}</span>
             <div className="flex shrink-0 items-center gap-2">
               {durationLabel && (
@@ -153,31 +180,16 @@ export function ResearchCard({ video, selected, onSelect, renderAction }: Resear
             </div>
           </div>
 
-          {/* Suggested slides */}
-          <div className="mb-2">
-            <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted">Suggested slides</p>
-            <ol className="flex flex-col gap-1">
-              {template.suggestedSlides.map((slide, i) => (
-                <li key={i} className="flex flex-col gap-1 rounded-lg border border-orange-200 bg-white px-2.5 py-1.5">
-                  <div className="flex gap-1.5">
-                    <span className="mt-px shrink-0 text-[10px] font-bold text-orange-400">{i + 1}</span>
-                    <span className="text-[11px] leading-snug text-ink">{slide.text}</span>
-                  </div>
-                  <div className="flex items-start gap-1.5 pl-4">
-                    <span className="mt-px shrink-0 text-[9px] text-muted/70">🎨</span>
-                    <span className="flex-1 text-[10px] italic leading-snug text-muted">{slide.bgPrompt}</span>
-                    <button
-                      type="button"
-                      onClick={() => { void navigator.clipboard.writeText(slide.bgPrompt); }}
-                      className="shrink-0 rounded bg-orange-50 px-1.5 py-0.5 text-[9px] font-medium text-orange-600 hover:bg-orange-100"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
+          {/* Suggested slides — niche-specific when a niche + token are given */}
+          <SuggestedSlides
+            fallbackSlides={template.suggestedSlides}
+            templateId={template.id}
+            niche={niche}
+            token={token}
+            videoId={video.id || video.video_url}
+            hook={video.hook}
+            transcript={video.raw_transcript}
+          />
         </div>
       )}
 

@@ -1,8 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { ImagePlus, Loader2, Sparkles, X } from 'lucide-react';
-import { BLITZ_BUSINESS_TEXT_MAX } from '../../../../config/blitzLab';
+import { Film, Images, ImagePlus, Loader2, Minus, Plus, Sparkles, X } from 'lucide-react';
+import {
+  BLITZ_BUSINESS_TEXT_MAX,
+  BLITZ_SLIDESHOW_SECONDS_MAX,
+  BLITZ_SLIDESHOW_SECONDS_MIN,
+} from '../../../../config/blitzLab';
+import type { SlideshowMode } from './useSlideshowMode';
 import { blitzApi, type BlitzAssetDto } from './api';
 import type { SlideData } from './SlidePreview';
 
@@ -30,6 +35,15 @@ type SlideshowCopyPanelProps = {
   token?: string;
   /** Called after a background is AI-generated so the parent can add it to its assets state. */
   onAssetCreated?: (asset: BlitzAssetDto) => void;
+  /** 'slideshow' while every background is a still image, 'video' once one is footage. */
+  mode: SlideshowMode;
+  /** 1-based slide numbers carrying footage — empty in slideshow mode. */
+  videoSlideNumbers: number[];
+  /** How long each card holds, in seconds. Only used in slideshow mode. */
+  secondsPerSlide: number;
+  onSecondsPerSlideChange: (seconds: number) => void;
+  /** Resulting clip length, in seconds. */
+  durationSeconds: number;
 };
 
 /** Slide text inputs + per-slide backgrounds + business line for the Blitz Slideshow editor. */
@@ -46,6 +60,11 @@ export function SlideshowCopyPanel({
   onBusinessTextChange,
   token,
   onAssetCreated,
+  mode,
+  videoSlideNumbers,
+  secondsPerSlide,
+  onSecondsPerSlideChange,
+  durationSeconds,
 }: SlideshowCopyPanelProps) {
   const nonEmptyCount = slides.filter((s) => s.text.trim()).length;
 
@@ -164,6 +183,58 @@ export function SlideshowCopyPanel({
             {nonEmptyCount} / {slides.length}
           </span>
         </div>
+
+        {/* ── Output mode ─────────────────────────────────────────────── */}
+        {mode === 'slideshow' ? (
+          <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface-alt px-3 py-2.5">
+            <div className="flex items-center gap-1.5">
+              <Images className="h-3.5 w-3.5 shrink-0 text-muted" />
+              <p className="text-[12px] font-medium text-ink">Slideshow</p>
+              <span className="ml-auto text-[11px] tabular-nums text-muted">
+                {durationSeconds.toFixed(0)} s total
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="seconds-per-slide" className="text-[11px] text-muted">
+                Seconds per slide
+              </label>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => onSecondsPerSlideChange(secondsPerSlide - 1)}
+                  disabled={secondsPerSlide <= BLITZ_SLIDESHOW_SECONDS_MIN}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-white text-muted transition-colors hover:border-orange-400 hover:text-orange-600 disabled:opacity-40 dark:bg-neutral-800"
+                  aria-label="Shorter slides"
+                >
+                  <Minus className="h-3 w-3" />
+                </button>
+                <span id="seconds-per-slide" className="w-9 text-center text-[12px] font-semibold tabular-nums text-ink">
+                  {secondsPerSlide}s
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onSecondsPerSlideChange(secondsPerSlide + 1)}
+                  disabled={secondsPerSlide >= BLITZ_SLIDESHOW_SECONDS_MAX}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-white text-muted transition-colors hover:border-orange-400 hover:text-orange-600 disabled:opacity-40 dark:bg-neutral-800"
+                  aria-label="Longer slides"
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-start gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+            <Film className="mt-px h-3.5 w-3.5 shrink-0 text-amber-700" />
+            <p className="text-[11px] leading-snug text-amber-800">
+              <span className="font-semibold">Renders as a video.</span>{' '}
+              Slide{videoSlideNumbers.length > 1 ? 's' : ''} {videoSlideNumbers.join(', ')}{' '}
+              {videoSlideNumbers.length > 1 ? 'use' : 'uses'} footage, so the clip runs{' '}
+              {durationSeconds.toFixed(1)} s. Swap {videoSlideNumbers.length > 1 ? 'them' : 'it'} for a
+              still image to get a real slideshow.
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           {slides.map((slide, i) => {

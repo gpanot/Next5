@@ -16,6 +16,7 @@ import {
   AbsoluteFill,
   Audio,
   OffthreadVideo,
+  Sequence,
   continueRender,
   delayRender,
   interpolate,
@@ -81,8 +82,9 @@ export function SlideshowComposition({
   const slideBgUrl = currentSlide?.backgroundUrl ?? backgroundUrl;
   const slideBgIsImage = currentSlide?.backgroundIsImage ?? (backgroundIsImage ?? isImageUrl(slideBgUrl));
 
-  // Frame within the current slide (0-based)
-  const frameInSlide = frame - slideIndex * framesPerSlide;
+  // First frame of the current slide, and the offset within it (0-based).
+  const slideStartFrame = Math.floor(slideIndex * framesPerSlide);
+  const frameInSlide = frame - slideStartFrame;
 
   // Opacity for text fade-in: fade in over SLIDE_FADE_FRAMES at the start of each slide
   const textOpacity = interpolate(
@@ -104,18 +106,27 @@ export function SlideshowComposition({
   return (
     <AbsoluteFill style={{ backgroundColor: '#000' }}>
       {/* ── Layer 1: Background (per-slide or global fallback) ──────────── */}
-      <AbsoluteFill>
-        {slideBgIsImage ? (
-          <BackgroundImg src={slideBgUrl} />
-        ) : (
-          <OffthreadVideo
-            src={slideBgUrl}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            muted={muteVideoAudio}
-            onError={() => undefined}
-          />
-        )}
-      </AbsoluteFill>
+      {/*
+        The Sequence resets the timeline to 0 at the start of each slide, so a
+        per-slide background video plays from its own first frame instead of
+        being scrubbed to wherever the slideshow happens to be. A background
+        shorter than its slide holds on its last frame — OffthreadVideo has no
+        loop prop in Remotion 4.0.x.
+      */}
+      <Sequence from={slideStartFrame} layout="none">
+        <AbsoluteFill>
+          {slideBgIsImage ? (
+            <BackgroundImg src={slideBgUrl} />
+          ) : (
+            <OffthreadVideo
+              src={slideBgUrl}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              muted={muteVideoAudio}
+              onError={() => undefined}
+            />
+          )}
+        </AbsoluteFill>
+      </Sequence>
 
       {/* ── Layer 2: Slide text (fades in on each slide transition) ────── */}
       {currentText ? (

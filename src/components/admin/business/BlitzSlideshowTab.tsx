@@ -16,9 +16,14 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { BLITZ_DEFAULT_DURATION_S, BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS } from '../../../config/blitzLab';
-import { matchPhase0ATemplate } from '../../../lib/phase0aTemplates';
-import { Researcher } from '../shared/Researcher';
+import {
+  BLITZ_DEFAULT_DURATION_S,
+  BLITZ_DEFAULT_TEXT_CONFIG,
+  BLITZ_SLIDESHOW_SECONDS_PER_SLIDE,
+  BLITZ_SLIDESHOW_TEXT_DEFAULTS,
+} from '../../../config/blitzLab';
+import { resolvePhase0ATemplate } from '../../../lib/phase0aTemplates';
+import { Researcher, type NicheSlide } from '../shared/Researcher';
 import type { ResearchVideo } from './ugcLab/researchCache';
 import { AssetLibraryModal } from './blitzLab/AssetLibraryModal';
 import { AssetsPanel, keyForLayer, type CurrentAssets } from './blitzLab/AssetsPanel';
@@ -28,6 +33,8 @@ import { RenderControls } from './blitzLab/RenderControls';
 import { SlidePreview } from './blitzLab/SlidePreview';
 import type { SlideData } from './blitzLab/SlidePreview';
 import { SlideshowCopyPanel } from './blitzLab/SlideshowCopyPanel';
+import { FootageConfirmDialog } from './blitzLab/FootageConfirmDialog';
+import { resolveSlideshowMode } from './blitzLab/useSlideshowMode';
 import { blitzApi, type BlitzAssetDto, type BlitzProjectDto, type BlitzTemplateDto } from './blitzLab/api';
 import type { BlitzUploadType } from './blitzLab/upload';
 import { isLocalKey, useBlitzUploads } from './blitzLab/useBlitzUploads';
@@ -75,6 +82,10 @@ export function BlitzSlideshowTab({ token }: Props) {
   const [muteVideoAudio, setMuteVideoAudio] = useState(false);
   const [activeLayer, setActiveLayer] = useState<BlitzLayer>('TEXT');
   const [picker, setPicker] = useState<{ type: BlitzUploadType; slideIndex?: number } | null>(null);
+  /** How long each card holds in slideshow mode. Ignored once a slide carries footage. */
+  const [secondsPerSlide, setSecondsPerSlide] = useState(BLITZ_SLIDESHOW_SECONDS_PER_SLIDE);
+  /** Set when a render is waiting on the "this becomes a video" confirmation. */
+  const [footageConfirm, setFootageConfirm] = useState(false);
 
   const text = useTextLayout(carouselTemplate?.textConfig ?? BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS);
 
@@ -97,9 +108,19 @@ export function BlitzSlideshowTab({ token }: Props) {
       .filter(Boolean),
   ].filter(Boolean);
 
-  const { seconds: durationSeconds } = useClipDuration(
+  const { seconds: clipSeconds } = useClipDuration(
     allBgVideoUrls,
     carouselTemplate?.durationSeconds ?? BLITZ_DEFAULT_DURATION_S,
+  );
+
+  // Still images only → a real slideshow timed by secondsPerSlide.
+  // Any footage → an ordinary video timed by the footage.
+  const { mode, videoSlideNumbers, durationSeconds } = resolveSlideshowMode(
+    slides,
+    assets,
+    currentAssets.backgroundKey,
+    secondsPerSlide,
+    clipSeconds,
   );
 
   // ── uploads + render ──────────────────────────────────────────────────
@@ -178,7 +199,7 @@ export function BlitzSlideshowTab({ token }: Props) {
     : null;
 
   // ── submit render ─────────────────────────────────────────────────────
-  const handleDoneEditing = useCallback(async () => {
+  const submitRender = useCallback(async () => {
     if (!carouselTemplate || blockedReason) return;
     const nonEmptySlides = slides.filter((s) => s.text.trim());
     await render.submit({
@@ -199,6 +220,16 @@ export function BlitzSlideshowTab({ token }: Props) {
       muteVideoAudio,
     });
   }, [carouselTemplate, blockedReason, slides, currentAssets, mentionBusiness, businessText, muteVideoAudio, durationSeconds, text.override, render]);
+
+  /** Footage turns the slideshow into a video — confirm that before queuing. */
+  const handleDoneEditing = useCallback(() => {
+    if (!carouselTemplate || blockedReason) return;
+    if (mode === 'video') {
+      setFootageConfirm(true);
+      return;
+    }
+    void submitRender();
+  }, [carouselTemplate, blockedReason, mode, submitRender]);
 
   // ── picker handlers ───────────────────────────────────────────────────
   const handleSwapAsset = useCallback((type: BlitzUploadType, key: string, slideIndex?: number) => {
@@ -280,20 +311,20 @@ export function BlitzSlideshowTab({ token }: Props) {
         <div className="flex flex-col gap-4">
           <div>
             <p className="text-[14px] font-semibold text-ink">Research viral slideshows</p>
-            <p className="text-[12px] text-muted mt-0.5">Search TikTok for niche content — click "See Template" to see which format it uses, then use a result to pre-fill Slide 1.</p>
+            <p className="text-[12px] text-muted mt-0.5">Search TikTok for niche content — click &ldquo;See Template&rdquo; to see which format it uses, then use a result to fill every slide.</p>
           </div>
           <Researcher
             token={token}
             cacheKey="blitz-slideshow-research"
             actionLabel="Use as inspiration"
-            onAction={(video: ResearchVideo) => {
-              // Match template and pre-fill ALL slides with suggested content + per-slide bg prompts
-              const template = matchPhase0ATemplate(video.hook);
-              const newSlides = template.suggestedSlides.map((s, i) => ({
-                text: i === 0 ? video.hook : s.text,  // keep actual viral hook for slide 1
-                bgPromptSuggestion: s.bgPrompt,
-              }));
-              setSlides(newSlides);
+            withSlides
+            onAction={(video: ResearchVideo, generated?: NicheSlide[]) => {
+              // Prefer the copy written for this niche; fall back to the template's
+              // generic examples when generation was unavailable.
+              const source = generated?.length
+                ? generated
+                : resolvePhase0ATemplate(video.template_id, video.hook).suggestedSlides;
+              setSlides(source.map((s) => ({ text: s.text, bgPromptSuggestion: s.bgPrompt })));
               setCurrentSlideIndex(0);
               setStep(2);
             }}
@@ -345,6 +376,11 @@ export function BlitzSlideshowTab({ token }: Props) {
                   onBusinessTextChange={setBusinessText}
                   token={token}
                   onAssetCreated={(asset) => setAssets((prev) => [...prev, asset])}
+                  mode={mode}
+                  videoSlideNumbers={videoSlideNumbers}
+                  secondsPerSlide={secondsPerSlide}
+                  onSecondsPerSlideChange={setSecondsPerSlide}
+                  durationSeconds={durationSeconds}
                 />
                 {/* Audio — below Slides; Background layer hidden (per-slide handles it) */}
                 <AssetsPanel
@@ -383,7 +419,6 @@ export function BlitzSlideshowTab({ token }: Props) {
                   return (
                     <div className="w-full max-w-[340px] rounded-xl border border-line bg-white p-3 shadow-sm">
                       <p className="mb-2 text-[11px] font-medium text-muted">🎵 {audioAsset.name}</p>
-                      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                       <audio
                         key={audioAsset.r2Key}
                         controls
@@ -437,6 +472,16 @@ export function BlitzSlideshowTab({ token }: Props) {
             </section>
           )}
         </>
+      )}
+
+      {/* ── "This becomes a video" confirmation ────────────────────────── */}
+      {footageConfirm && (
+        <FootageConfirmDialog
+          videoSlideNumbers={videoSlideNumbers}
+          durationSeconds={durationSeconds}
+          onCancel={() => setFootageConfirm(false)}
+          onContinue={() => { setFootageConfirm(false); void submitRender(); }}
+        />
       )}
 
       {/* ── Asset picker modal ─────────────────────────────────────────── */}

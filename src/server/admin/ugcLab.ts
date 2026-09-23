@@ -18,6 +18,12 @@ export type TrendingVideo = {
   /** The full spoken script. Empty when no transcript could be found. */
   raw_transcript: string;
   hook: string; // extracted by gpt-4o-mini
+  /**
+   * Phase 0A template (1–18) this video's format matches, chosen by gpt-4o-mini
+   * from the whole transcript. Null when classification was unavailable — the
+   * client then falls back to keyword matching on the hook.
+   */
+  template_id?: number | null;
 };
 
 export type CharacterCandidate = {

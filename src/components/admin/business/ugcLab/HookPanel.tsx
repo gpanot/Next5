@@ -4,9 +4,10 @@ import { useState } from 'react';
 import type { UgcCharacterDto } from '../../../../types/admin/ugc';
 import { ResearchCard, type ResearchVideo } from './ResearchCard';
 import {
-  addToHistory, ago, clearResearch, groupByDay, readHistory, readResearch, writeResearch,
-  type DayGroup, type ResearchCache, type SearchEntry,
+  addToHistory, ago, clearHistory, clearResearch, readHistory, readResearch, writeResearch,
+  type ResearchCache, type SearchEntry,
 } from './researchCache';
+import { SearchHistory } from './SearchHistory';
 import { ScriptFlowView } from './ScriptFlowView';
 import {
   EmptyState, Notice, PrimaryButton, SecondaryButton, Section, Skeleton, Spinner,
@@ -47,8 +48,6 @@ export function HookPanel({ token, character, onReady }: HookPanelProps) {
 
   // ── History state ───────────────────────────────────────────────────────────
   const [history, setHistory] = useState<SearchEntry[]>(() => readHistory());
-  const [historyOpen, setHistoryOpen] = useState(false);
-  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
 
   // ── Hook editing state ──────────────────────────────────────────────────────
   const [hookText, setHookText] = useState(cached?.editedHook ?? '');
@@ -124,7 +123,6 @@ export function HookPanel({ token, character, onReady }: HookPanelProps) {
 
   const hasScripts = flow.scripts.length > 0;
   const showGenerateButton = hookText.trim() && !flow.busy && !hasScripts;
-  const dayGroups: DayGroup[] = groupByDay(history);
 
   return (
     <Section
@@ -176,95 +174,28 @@ export function HookPanel({ token, character, onReady }: HookPanelProps) {
                   video={v}
                   selected={selectedVideoId === v.id}
                   onSelect={() => pickVideo(v)}
+                  niche={industry}
+                  token={token}
                 />
               ))}
             </div>
           )}
 
           {/* ── Permanent search history ────────────────────────────────── */}
-          {history.length > 0 && (
-            <div className="mt-2 rounded-xl border border-line">
-              {/* Header row — toggle open/close */}
-              <button
-                type="button"
-                className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
-                onClick={() => setHistoryOpen((o) => !o)}
-              >
-                <span className="text-[11px] font-semibold uppercase tracking-widest text-muted">
-                  Past searches ({history.length})
-                </span>
-                <svg
-                  className={`h-4 w-4 shrink-0 text-muted transition-transform ${historyOpen ? 'rotate-180' : ''}`}
-                  viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"
-                >
-                  <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
-
-              {historyOpen && (
-                <div className="border-t border-line px-4 pb-4 pt-3">
-                  <div className="flex flex-col gap-5">
-                    {dayGroups.map(({ day, searches }) => (
-                      <div key={day} className="flex flex-col gap-2">
-                        {/* Day label */}
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-muted/70">{day}</p>
-
-                        {/* Searches within this day */}
-                        {searches.map((entry: SearchEntry) => {
-                          const isExpanded = expandedEntryId === entry.id;
-                          return (
-                            <div key={entry.id} className="rounded-lg border border-line overflow-hidden">
-                              {/* Entry header — click to expand / collapse */}
-                              <button
-                                type="button"
-                                className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-surface-alt transition-colors"
-                                onClick={() => setExpandedEntryId(isExpanded ? null : entry.id)}
-                              >
-                                <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                                  <span className="text-[13px] font-medium text-ink">"{entry.industry}"</span>
-                                  <span className="text-[12px] text-muted">
-                                    · {entry.videos.length} video{entry.videos.length !== 1 ? 's' : ''} · {ago(entry.at)}
-                                  </span>
-                                </span>
-                                <svg
-                                  className={`h-3.5 w-3.5 shrink-0 text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`}
-                                  viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"
-                                >
-                                  <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              </button>
-
-                              {/* Expanded: show video grid — click a card to select its hook */}
-                              {isExpanded && (
-                                <div className="border-t border-line px-3 pb-3 pt-3">
-                                  <p className="mb-2 text-[11px] text-muted">
-                                    Click any video to use its hook ↓
-                                  </p>
-                                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                                    {entry.videos.map((v) => (
-                                      <ResearchCard
-                                        key={v.id || v.video_url}
-                                        video={v}
-                                        selected={selectedVideoId === v.id}
-                                        onSelect={() => {
-                                          pickVideo(v);
-                                          setExpandedEntryId(null); // collapse after picking
-                                        }}
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          <SearchHistory
+            entries={history}
+            hint="Click any video to use its hook ↓"
+            onClear={() => { clearHistory(); setHistory([]); }}
+            renderCard={(v, entry) => (
+              <ResearchCard
+                video={v}
+                selected={selectedVideoId === v.id}
+                onSelect={() => pickVideo(v)}
+                niche={entry.industry}
+                token={token}
+              />
+            )}
+          />
         </div>
 
         {/* ── Sub-step 2: Edit / type hook ─────────────────────────────── */}
