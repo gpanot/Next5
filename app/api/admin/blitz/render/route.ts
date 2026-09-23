@@ -57,28 +57,45 @@ const renderSettings = (body: RenderBody) => {
 export const POST = adminRoute(async (req: NextRequest) => {
   const body = (await req.json()) as RenderBody;
 
+  console.log('[blitz/render] POST received', {
+    templateId: body.templateId,
+    captionText: body.captionText?.slice(0, 60),
+    backgroundKey: body.currentAssets?.backgroundKey,
+    overlayKey: body.currentAssets?.overlayKey,
+    audioKey: body.currentAssets?.audioKey,
+    durationSeconds: body.durationSeconds,
+    mentionBusiness: body.mentionBusiness,
+    muteVideoAudio: body.muteVideoAudio,
+  });
+
   if (!body.templateId) {
+    console.warn('[blitz/render] Rejected: missing templateId');
     return NextResponse.json({ error: 'templateId is required' }, { status: 400 });
   }
   if (!body.captionText?.trim()) {
+    console.warn('[blitz/render] Rejected: missing captionText');
     return NextResponse.json({ error: 'captionText is required' }, { status: 400 });
   }
   if (!body.currentAssets?.backgroundKey || !body.currentAssets?.overlayKey) {
+    console.warn('[blitz/render] Rejected: missing backgroundKey or overlayKey');
     return NextResponse.json({ error: 'backgroundKey and overlayKey are required' }, { status: 400 });
   }
   const keys = [body.currentAssets.backgroundKey, body.currentAssets.overlayKey, body.currentAssets.audioKey];
   if (keys.some((k) => k?.startsWith('local:'))) {
+    console.warn('[blitz/render] Rejected: local: key still present — upload not finished');
     return NextResponse.json({ error: 'Wait for uploads to finish' }, { status: 400 });
   }
 
   const template = await prisma.blitzTemplate.findUnique({ where: { id: body.templateId } });
   if (!template) {
+    console.error(`[blitz/render] Template ${body.templateId} not found`);
     return NextResponse.json({ error: 'Template not found' }, { status: 404 });
   }
 
   // Validate textConfig shape from template
   const textConfig = template.textConfig as TextConfig;
   if (!textConfig?.font) {
+    console.error(`[blitz/render] Template ${body.templateId} has invalid textConfig (missing font)`);
     return NextResponse.json({ error: 'Template has invalid textConfig' }, { status: 422 });
   }
 
@@ -101,6 +118,8 @@ export const POST = adminRoute(async (req: NextRequest) => {
       isIdentifiablePerson: body.isIdentifiablePerson ?? false,
     },
   });
+
+  console.log(`[blitz/render] BlitzProject created: id=${project.id} status=PENDING`);
 
   return NextResponse.json(
     { projectId: project.id, status: 'PROCESSING', project: await toProjectDto(project) },

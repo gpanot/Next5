@@ -84,10 +84,21 @@ export function BlitzLabTab({ token }: Props) {
   }, []);
   const { uploads, startUpload, retry } = useBlitzUploads({ token, setAssets, onKeyReplaced: handleKeyReplaced });
 
-  const handleRenderCompleted = useCallback((project: BlitzProjectDto) => {
-    setLibrary((prev) => [project, ...prev.filter((p) => p.id !== project.id)]);
+  /** Upsert a project into the library (add at top if new, update in-place if existing). */
+  const upsertLibraryProject = useCallback((project: BlitzProjectDto) => {
+    setLibrary((prev) => {
+      const exists = prev.some((p) => p.id === project.id);
+      if (exists) return prev.map((p) => (p.id === project.id ? project : p));
+      return [project, ...prev];
+    });
   }, []);
-  const render = useBlitzRender(token, handleRenderCompleted);
+
+  const render = useBlitzRender(
+    token,
+    upsertLibraryProject,     // onCompleted
+    upsertLibraryProject,     // onProjectUpdate
+    upsertLibraryProject,     // onQueued — adds placeholder card immediately
+  );
 
   // ── load initial data ──────────────────────────────────────────────────
   const initTemplate = useCallback((template: BlitzTemplateDto, allAssets: BlitzAssetDto[]) => {
