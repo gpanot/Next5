@@ -85,12 +85,21 @@ export async function renderProject(
     // parameter — NOT inside `chromiumOptions` (which only contains browser flags).
     const browserExecutable = process.env.CHROMIUM_PATH || undefined;
 
+    // Disable CORS in the headless browser so that presigned R2 URLs can be fetched
+    // by the @remotion/media Video component (which uses the Fetch API internally).
+    // This is required for the colorKey() WebGL effect to load the overlay video.
+    // Without this, Chrome blocks cross-origin fetches from localhost:3001 → R2,
+    // causing Remotion to fall back to <OffthreadVideo> which doesn't support
+    // WebGL effects — leaving the green screen visible in the output.
+    const chromiumOptions = { disableWebSecurity: true };
+
     console.log(`[render:${jobId}] Selecting composition "GreenScreen"…`);
     const composition = await selectComposition({
       serveUrl,
       id: 'GreenScreen',
       inputProps,
       browserExecutable,
+      chromiumOptions,
     });
 
     console.log(`[render:${jobId}] Rendering ${durationInFrames} frames @ ${template.fps} fps…`);
@@ -101,6 +110,7 @@ export async function renderProject(
       outputLocation: outputPath,
       inputProps,
       browserExecutable,
+      chromiumOptions,
       onProgress: ({ progress }) => {
         process.stdout.write(`\r[render:${jobId}] ${Math.round(progress * 100)} %`);
       },

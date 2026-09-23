@@ -19,7 +19,9 @@
     "db:seed:blitz": "tsx -r dotenv/config scripts/seed-blitz.ts dotenv_config_path=.env.local",
     "test:watch": "vitest",
     "test:e2e": "node tests/e2e/brand.mjs && node tests/e2e/shop.mjs && node tests/e2e/brand-create.mjs && node tests/e2e/shop-app.mjs",
-    "test:e2e:early": "node tests/e2e/early-access.mjs"
+    "test:e2e:early": "node tests/e2e/early-access.mjs",
+    "worker:blitz": "cd blitz-worker && node_modules/.bin/tsx src/index.ts",
+    "test:e2e:blitz": "E2E_ADMIN_SECRET=$ADMIN_SECRET node tests/e2e/blitz-render.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1120.0",

@@ -75,4 +75,8 @@ export const blitzApi = {
   /** Delete one of the user's uploads (DB row + R2 file). */
   deleteAsset: (token: string, id: string) =>
     ugcRequest<{ ok: boolean }>(token, `${BASE}/assets/${id}`, { method: 'DELETE' }),
+
+  /** Delete a rendered project (DB row + R2 video). */
+  deleteProject: (token: string, id: string) =>
+    ugcRequest<{ ok: boolean }>(token, `${BASE}/projects/${id}`, { method: 'DELETE' }),
 };

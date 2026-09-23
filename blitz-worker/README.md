@@ -12,14 +12,27 @@ Railway service that polls for `PENDING` `BlitzProject` rows and renders them wi
 
 ## Local development
 
-```bash
-cp .env.example .env
-# Fill in DATABASE_URL, R2 credentials, CHROMIUM_PATH
+The worker `.env` already contains all required values (same R2 credentials and
+`DATABASE_URL` as the main app). To render jobs locally while the Next.js dev
+server is running, open a **second terminal** and run:
 
-npm install
-npx prisma generate
+```bash
+# From the repo root (next5-landing/)
+npm run worker:blitz
+```
+
+Or directly from `blitz-worker/`:
+```bash
 npm start
 ```
+
+The worker bundles the Remotion composition once (~15 s), then starts polling.
+Your browser will show renders completing in the Library as the poller updates each card.
+
+**CORS warnings in the worker log are harmless** — Remotion automatically falls
+back to `<OffthreadVideo>` when a presigned R2 URL is blocked by CORS inside
+the headless browser (which uses `localhost:3001` as its origin). The render
+still succeeds.
 
 ## Railway deployment
 

@@ -1,14 +1,30 @@
 'use client';
 
+import { useState } from 'react';
+import { Trash2 } from 'lucide-react';
 import type { BlitzProjectDto } from './api';
 
 type LibraryGridProps = {
   projects: BlitzProjectDto[];
   isLoading: boolean;
+  token: string;
+  onDelete: (id: string) => void;
+  /** Called when a library video starts playing — so the editor preview pauses. */
+  onVideoPlay: () => void;
 };
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+/** e.g. "1m 23s" or "45s" */
+function formatDuration(createdAt: string, updatedAt: string): string | null {
+  const ms = new Date(updatedAt).getTime() - new Date(createdAt).getTime();
+  if (ms <= 0) return null;
+  const totalSec = Math.round(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
 
 /** Status badge for in-progress cards. */
 function RenderBadge({ status }: { status: string }) {
@@ -32,7 +48,127 @@ function RenderBadge({ status }: { status: string }) {
   return null;
 }
 
-export function LibraryGrid({ projects, isLoading }: LibraryGridProps) {
+function LibraryCard({
+  project,
+  token,
+  onDelete,
+  onVideoPlay,
+}: {
+  project: BlitzProjectDto;
+  token: string;
+  onDelete: (id: string) => void;
+  onVideoPlay: () => void;
+}) {
+  const [deleting, setDeleting] = useState(false);
+  const isPending = project.renderStatus === 'PENDING' || project.renderStatus === 'PROCESSING';
+  const renderDuration = project.renderStatus === 'COMPLETED'
+    ? formatDuration(project.createdAt, project.updatedAt)
+    : null;
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this render permanently?')) return;
+    setDeleting(true);
+    const res = await fetch(`/api/admin/blitz/projects/${project.id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      onDelete(project.id);
+    } else {
+      alert('Delete failed');
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div
+      className="flex flex-col gap-1.5 overflow-hidden rounded-2xl border border-line bg-white"
+      data-library-card
+      data-project-id={project.id}
+      data-status={project.renderStatus}
+    >
+      {/* Video / placeholder area */}
+      <div className="relative bg-black" style={{ aspectRatio: '9/16' }}>
+        {project.renderedVideoUrl ? (
+          <video
+            src={project.renderedVideoUrl}
+            className="h-full w-full object-cover"
+            controls={false}
+            loop
+            muted
+            playsInline
+            onMouseEnter={(e) => {
+              onVideoPlay();
+              (e.currentTarget as HTMLVideoElement).play();
+            }}
+            onMouseLeave={(e) => {
+              const v = e.currentTarget as HTMLVideoElement;
+              v.pause();
+              v.currentTime = 0;
+            }}
+          />
+        ) : (
+          <div className="h-full w-full bg-surface-alt" />
+        )}
+
+        {/* Overlay badge for queued / rendering / failed */}
+        <RenderBadge status={project.renderStatus} />
+
+        {/* Download button */}
+        {project.renderedVideoUrl && (
+          <a
+            href={project.renderedVideoUrl}
+            download={`blitz-${project.id}.mp4`}
+            className="absolute bottom-2 right-2 rounded-lg bg-white/90 px-2 py-1 text-[11px] font-medium text-ink hover:bg-white"
+            onClick={(e) => {
+              if (project.isIdentifiablePerson) {
+                e.preventDefault();
+                alert('Export blocked: this project is marked as containing an identifiable person.');
+              }
+            }}
+          >
+            ↓ Download
+          </a>
+        )}
+      </div>
+
+      {/* Meta row */}
+      <div className="flex items-start justify-between gap-1 px-2 pb-2">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <p className="truncate text-[11px] text-muted">
+              {isPending ? 'In queue…' : formatDate(project.createdAt)}
+            </p>
+            {renderDuration && (
+              <span className="shrink-0 rounded bg-surface-alt px-1 py-0.5 text-[10px] tabular-nums text-muted">
+                {renderDuration}
+              </span>
+            )}
+          </div>
+          {project.captionText && (
+            <p className="line-clamp-2 text-[12px] text-ink">{project.captionText}</p>
+          )}
+        </div>
+
+        {/* Delete button */}
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          title="Delete render"
+          className="shrink-0 rounded-md p-1 text-muted transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-40"
+        >
+          {deleting
+            ? <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            : <Trash2 className="h-3.5 w-3.5" />
+          }
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export function LibraryGrid({ projects, isLoading, token, onDelete, onVideoPlay }: LibraryGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -56,59 +192,15 @@ export function LibraryGrid({ projects, isLoading }: LibraryGridProps) {
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {projects.map((project) => {
-        const isPending = project.renderStatus === 'PENDING' || project.renderStatus === 'PROCESSING';
-        return (
-          <div key={project.id} className="flex flex-col gap-1.5 overflow-hidden rounded-2xl border border-line bg-white" data-library-card data-project-id={project.id} data-status={project.renderStatus}>
-            {/* Video card — no separate thumbnail in v0, the <video> IS the thumbnail */}
-            <div className="relative bg-black" style={{ aspectRatio: '9/16' }}>
-              {project.renderedVideoUrl ? (
-                <video
-                  src={project.renderedVideoUrl}
-                  className="h-full w-full object-cover"
-                  controls={false}
-                  loop
-                  muted
-                  playsInline
-                  onMouseEnter={(e) => (e.currentTarget as HTMLVideoElement).play()}
-                  onMouseLeave={(e) => { const v = e.currentTarget as HTMLVideoElement; v.pause(); v.currentTime = 0; }}
-                />
-              ) : (
-                /* Placeholder background while queued / rendering */
-                <div className="h-full w-full bg-surface-alt" />
-              )}
-
-              {/* Overlay badge for queued / rendering / failed states */}
-              <RenderBadge status={project.renderStatus} />
-
-              {project.renderedVideoUrl && (
-                <a
-                  href={project.renderedVideoUrl}
-                  download={`blitz-${project.id}.mp4`}
-                  className="absolute bottom-2 right-2 rounded-lg bg-white/90 px-2 py-1 text-[11px] font-medium text-ink hover:bg-white"
-                  onClick={(e) => {
-                    if (project.isIdentifiablePerson) {
-                      e.preventDefault();
-                      alert('Export blocked: this project is marked as containing an identifiable person.');
-                    }
-                  }}
-                >
-                  ↓ Download
-                </a>
-              )}
-            </div>
-
-            <div className="px-2 pb-2">
-              <p className="truncate text-[11px] text-muted">
-                {isPending ? 'In queue…' : formatDate(project.createdAt)}
-              </p>
-              {project.captionText && (
-                <p className="line-clamp-2 text-[12px] text-ink">{project.captionText}</p>
-              )}
-            </div>
-          </div>
-        );
-      })}
+      {projects.map((project) => (
+        <LibraryCard
+          key={project.id}
+          project={project}
+          token={token}
+          onDelete={onDelete}
+          onVideoPlay={onVideoPlay}
+        />
+      ))}
     </div>
   );
 }

@@ -117,6 +117,8 @@ export type BlitzProjectDto = {
   renderedVideoUrl: string | null;
   isIdentifiablePerson: boolean;
   createdAt: string;
+  /** Set when status transitions to COMPLETED — used to compute render duration. */
+  updatedAt: string;
 };
 
 export const toAssetDto = async (asset: BlitzAsset): Promise<BlitzAssetDto> => ({
@@ -160,4 +162,5 @@ export const toProjectDto = async (project: BlitzProject): Promise<BlitzProjectD
     : null,
   isIdentifiablePerson: project.isIdentifiablePerson,
   createdAt: project.createdAt.toISOString(),
+  updatedAt: project.updatedAt.toISOString(),
 });

@@ -348,7 +348,13 @@ export function BlitzLabTab({ token }: Props) {
           <h2 className="text-[16px] font-semibold text-ink">Library</h2>
           <button type="button" onClick={handleRefreshLibrary} className="min-h-9 text-[12px] text-muted underline hover:text-ink">Refresh</button>
         </div>
-        <LibraryGrid projects={library} isLoading={libraryLoading && library.length === 0} />
+        <LibraryGrid
+            projects={library}
+            isLoading={libraryLoading && library.length === 0}
+            token={token}
+            onDelete={(id) => setLibrary((prev) => prev.filter((p) => p.id !== id))}
+            onVideoPlay={() => setPauseSignal((n) => n + 1)}
+          />
       </section>
 
       {picker && (

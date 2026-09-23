@@ -4,7 +4,7 @@
   "private": true,
   "description": "Railway worker: polls for PENDING BlitzProject rows and renders them with Remotion.",
   "scripts": {
-    "start": "tsx src/index.ts",
+    "start": "node_modules/.bin/tsx src/index.ts",
     "generate": "prisma generate"
   },
   "dependencies": {
@@ -17,7 +17,7 @@
     "dotenv": "^16.0.0",
     "prisma": "^6.19.3",
     "remotion": "4.0.526",
-    "tsx": "^4.23.13",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   },
   "optionalDependencies": {

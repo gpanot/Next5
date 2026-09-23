@@ -172,7 +172,7 @@ export function ContextPanel({
             <SliderRow
               label="Zoom"
               value={overlayZoom}
-              min={0.5}
+              min={0.2}
               max={3.0}
               step={0.05}
               display={`${Math.round(overlayZoom * 100)} %`}
