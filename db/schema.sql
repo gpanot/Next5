@@ -547,7 +547,8 @@ CREATE TABLE public.influencers (
     gallery_item_id character varying(30),
     status character varying(20) DEFAULT 'active'::character varying NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    identity_lock jsonb
+    identity_lock jsonb,
+    portrait_prompt_json jsonb
 );
 
 
@@ -2482,4 +2483,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261004090000'),
     ('20261005090000'),
     ('20261006090000'),
-    ('20261007090000');
+    ('20261007090000'),
+    ('20261008090000');
