@@ -91,7 +91,18 @@ export async function renderProject(
     // Without this, Chrome blocks cross-origin fetches from localhost:3001 → R2,
     // causing Remotion to fall back to <OffthreadVideo> which doesn't support
     // WebGL effects — leaving the green screen visible in the output.
-    const chromiumOptions = { disableWebSecurity: true };
+    //
+    // `gl` is mandatory for colorKey(): the effect needs a WebGL2 context, and
+    // headless Chrome has none with the default renderer. Symptoms without it:
+    //   - h264 overlay  → render throws "Failed to acquire WebGL2 context"
+    //   - hevc overlay  → WebCodecs decode fails first, <Video> falls back to
+    //                     <OffthreadVideo> (no effects) → green stays in output.
+    // "angle" uses the GPU (macOS dev); Linux containers have no GPU, so they
+    // need the SwiftShader-backed "swangle".
+    const chromiumOptions = {
+      disableWebSecurity: true,
+      gl: (process.platform === 'darwin' ? 'angle' : 'swangle') as 'angle' | 'swangle',
+    };
 
     console.log(`[render:${jobId}] Selecting composition "GreenScreen"…`);
     const composition = await selectComposition({
@@ -103,6 +114,7 @@ export async function renderProject(
     });
 
     console.log(`[render:${jobId}] Rendering ${durationInFrames} frames @ ${template.fps} fps…`);
+    let overlayFallbackDetected = false;
     await renderMedia({
       composition,
       serveUrl,
@@ -114,8 +126,23 @@ export async function renderProject(
       onProgress: ({ progress }) => {
         process.stdout.write(`\r[render:${jobId}] ${Math.round(progress * 100)} %`);
       },
+      onBrowserLog: (log) => {
+        // <Video> silently degrades to <OffthreadVideo> when the browser cannot
+        // decode the file (e.g. HEVC). That path drops colorKey(), so the output
+        // would ship with the green background still visible. Fail loudly instead.
+        if (log.text.includes('falling back to <OffthreadVideo>')) {
+          overlayFallbackDetected = true;
+        }
+      },
     });
     process.stdout.write('\n');
+
+    if (overlayFallbackDetected) {
+      throw new Error(
+        'Overlay video could not be decoded by the browser, so the chroma key was skipped. ' +
+          'Re-encode the overlay as H.264 (yuv420p) and upload it again.',
+      );
+    }
 
     // ── 5. Upload rendered .mp4 to R2 ────────────────────────────────────
     const r2Key = RENDER_OUTPUT_KEY(jobId);

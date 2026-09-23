@@ -95,16 +95,24 @@ function LibraryCard({
             className="h-full w-full object-cover"
             controls={false}
             loop
-            muted
             playsInline
             onMouseEnter={(e) => {
               onVideoPlay();
-              (e.currentTarget as HTMLVideoElement).play();
+              const v = e.currentTarget as HTMLVideoElement;
+              // Hover is not a user gesture, so an unmuted play() can be rejected
+              // by the autoplay policy. Try with sound, fall back to silent.
+              v.muted = false;
+              v.volume = 1;
+              v.play().catch(() => {
+                v.muted = true;
+                void v.play();
+              });
             }}
             onMouseLeave={(e) => {
               const v = e.currentTarget as HTMLVideoElement;
               v.pause();
               v.currentTime = 0;
+              v.muted = true;
             }}
           />
         ) : (
