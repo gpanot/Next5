@@ -212,36 +212,45 @@ enum LedgerReason {
 }
 
 model Workspace {
-  id                    String      @id @default(cuid())
-  ownerUserId           String      @map("owner_user_id")
+  id                    String        @id @default(cuid())
+  ownerUserId           String        @map("owner_user_id")
   product               ProductLine
   name                  String
   industry              String?
   handle                String?
-  brandColors           String[]    @default([]) @map("brand_colors")
-  visibleAiTag          Boolean     @default(false) @map("visible_ai_tag")
-  defaultFormats        String[]    @default([]) @map("default_formats")
-  trialUsedAt           DateTime?   @map("trial_used_at")
-  onboardingStep        Int         @default(0) @map("onboarding_step")
-  onboardingCompletedAt DateTime?   @map("onboarding_completed_at")
+  brandColors           String[]      @default([]) @map("brand_colors")
+  visibleAiTag          Boolean       @default(false) @map("visible_ai_tag")
+  defaultFormats        String[]      @default([]) @map("default_formats")
+  trialUsedAt           DateTime?     @map("trial_used_at")
+  onboardingStep        Int           @default(0) @map("onboarding_step")
+  onboardingCompletedAt DateTime?     @map("onboarding_completed_at")
   // B2B onboarding qualification fields
-  teamSize              String?     @map("team_size")
-  monthlyRevenue        String?     @map("monthly_revenue")
-  obRole                String?     @map("ob_role")
-  signupIntent          String?     @map("signup_intent")
-  goals                 String[]    @default([])
-  attribution           String[]    @default([])
+  teamSize              String?       @map("team_size")
+  monthlyRevenue        String?       @map("monthly_revenue")
+  obRole                String?       @map("ob_role")
+  signupIntent          String?       @map("signup_intent")
+  goals                 String[]      @default([])
+  attribution           String[]      @default([])
   // Brand intelligence — extracted from the business website
-  websiteUrl            String?     @map("website_url")
+  websiteUrl            String?       @map("website_url")
   /// "never" | "rarely" | "sometimes" | "often" | "always"
-  mentionFrequency      String      @default("sometimes") @map("mention_frequency")
+  mentionFrequency      String        @default("sometimes") @map("mention_frequency")
   /// null = all, "men" | "women"
-  genderFilter          String?     @map("gender_filter")
+  genderFilter          String?       @map("gender_filter")
   /// "idle" | "pending" | "done" | "failed"
-  anglesGenState        String      @default("idle") @map("angles_gen_state")
-  anglesGenAt           DateTime?   @map("angles_gen_at")
-  createdAt             DateTime    @default(now()) @map("created_at")
-  updatedAt             DateTime    @updatedAt @map("updated_at")
+  anglesGenState        String        @default("idle") @map("angles_gen_state")
+  anglesGenAt           DateTime?     @map("angles_gen_at")
+  // Phase 0B — what the Template Engine needs to know about the business
+  /// Who she sells to. Asked at signup step 2, editable on the Brand page.
+  audienceType          AudienceType? @map("audience_type")
+  /// One line: what the business or product is.
+  promoting             String?
+  /// One line: the core value proposition.
+  offer                 String?
+  positioning           String?
+  geography             String?
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
 
   owner             User                @relation(fields: [ownerUserId], references: [id])
   identities        IdentityReference[]
@@ -263,6 +272,9 @@ model Workspace {
   socialConnections SocialConnection[]
   socialPosts       SocialPost[]
   angles            WorkspaceAngle[]
+  contentTemplates  ContentTemplate[]
+  templateUsages    TemplateUsage[]
+  campaigns         Campaign[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
@@ -380,27 +392,27 @@ model InfluencerGalleryItem {
 
 /// A named AI influencer: 1 base portrait + the sets auto-generated from it.
 model Influencer {
-  id            String    @id @default(cuid())
-  workspaceId   String    @map("workspace_id")
-  name          String    @db.VarChar(80)
-  gender        String?
-  age           Int?
-  ethnicity     String?
+  id                 String   @id @default(cuid())
+  workspaceId        String   @map("workspace_id")
+  name               String   @db.VarChar(80)
+  gender             String?
+  age                Int?
+  ethnicity          String?
   /// "generated" | "uploaded" | "gallery"
-  source        String
+  source             String
   /// R2 key for the one base portrait (null while still generating).
-  baseImageKey  String?   @map("base_image_key")
+  baseImageKey       String?  @map("base_image_key")
   /// FK when source = "gallery".
-  galleryItemId String?   @map("gallery_item_id")
+  galleryItemId      String?  @map("gallery_item_id")
   /// "active" | "archived"
-  status        String    @default("active")
+  status             String   @default("active")
   /// Locked identity JSON (portrait-clone) read once from the base portrait; reused by every Gemini prompt.
-  identityLock       Json?     @map("identity_lock")
+  identityLock       Json?    @map("identity_lock")
   /// Full portrait-clone prompt JSON used to generate the base portrait (null for uploaded/gallery sources).
   /// Preserved so future video-generation pipelines can re-use the original specification instead of
   /// working from the image.
-  portraitPromptJson Json?     @map("portrait_prompt_json")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  portraitPromptJson Json?    @map("portrait_prompt_json")
+  createdAt          DateTime @default(now()) @map("created_at")
 
   workspace   Workspace              @relation(fields: [workspaceId], references: [id])
   galleryItem InfluencerGalleryItem? @relation(fields: [galleryItemId], references: [id])
@@ -468,6 +480,7 @@ model Product {
   snapshots   ProductSnapshot[]
   postSlots   PostSlot[]
   listingPack ListingPack?
+  campaigns   Campaign[]
 
   @@unique([workspaceId, source, externalId])
   @@index([workspaceId])
@@ -914,22 +927,26 @@ model PostSlot {
   postUrl         String?   @map("post_url")
   postedAt        DateTime? @map("posted_at")
   captionOverride String?   @map("caption_override")
-  /// auto | manual | drop
+  /// auto | manual | drop | campaign
   source          String    @default("auto")
+  /// Set when this slot belongs to a campaign. One campaign post owns one slot per channel.
+  campaignPostId  String?   @map("campaign_post_id")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 
-  workspace   Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  schedule    PostSchedule? @relation(fields: [scheduleId], references: [id])
-  item        BatchItem?    @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  material    PostMaterial? @relation(fields: [materialId], references: [id])
-  product     Product?      @relation(fields: [productId], references: [id])
-  socialPosts SocialPost[]
+  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  schedule     PostSchedule? @relation(fields: [scheduleId], references: [id])
+  item         BatchItem?    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  material     PostMaterial? @relation(fields: [materialId], references: [id])
+  campaignPost CampaignPost? @relation(fields: [campaignPostId], references: [id], onDelete: Cascade)
+  product      Product?      @relation(fields: [productId], references: [id])
+  socialPosts  SocialPost[]
 
   @@unique([workspaceId, itemId])
   @@index([workspaceId, scheduledFor])
   @@index([workspaceId, status, postedAt])
   @@index([itemId])
+  @@index([campaignPostId])
   @@map("post_slots")
 }
 
@@ -971,6 +988,7 @@ model Listing {
   workspace Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   materials PostMaterial[]
   batches   Batch[]
+  campaigns Campaign[]
 
   @@unique([workspaceId, zpid])
   @@index([workspaceId, createdAt])
@@ -1133,23 +1151,23 @@ model BlitzAsset {
 /// Blitz Lab: one editing session + its render result.
 /// The "library" is the set of rows where renderStatus = COMPLETED.
 model BlitzProject {
-  id                  String            @id @default(cuid())
-  templateId          String            @map("template_id")
-  template            BlitzTemplate     @relation(fields: [templateId], references: [id])
+  id                   String            @id @default(cuid())
+  templateId           String            @map("template_id")
+  template             BlitzTemplate     @relation(fields: [templateId], references: [id])
   /// { backgroundKey, overlayKey, audioKey? }
-  currentAssets       Json              @map("current_assets")
-  overlayZoom         Float             @default(1.0) @map("overlay_zoom")
-  overlayOffsetX      Float             @default(0) @map("overlay_offset_x")
-  overlayOffsetY      Float             @default(0) @map("overlay_offset_y")
-  mentionBusiness     Boolean           @default(false) @map("mention_business")
-  regenPrompt         String?           @map("regen_prompt")
-  captionText         String            @default("") @map("caption_text")
-  renderStatus        BlitzRenderStatus @default(PENDING) @map("render_status")
-  renderedVideoKey    String?           @map("rendered_video_key")
+  currentAssets        Json              @map("current_assets")
+  overlayZoom          Float             @default(1.0) @map("overlay_zoom")
+  overlayOffsetX       Float             @default(0) @map("overlay_offset_x")
+  overlayOffsetY       Float             @default(0) @map("overlay_offset_y")
+  mentionBusiness      Boolean           @default(false) @map("mention_business")
+  regenPrompt          String?           @map("regen_prompt")
+  captionText          String            @default("") @map("caption_text")
+  renderStatus         BlitzRenderStatus @default(PENDING) @map("render_status")
+  renderedVideoKey     String?           @map("rendered_video_key")
   /// Hard-blocks any future export path; set manually for real-person test footage.
-  isIdentifiablePerson Boolean          @default(false) @map("is_identifiable_person")
-  createdAt           DateTime          @default(now()) @map("created_at")
-  updatedAt           DateTime          @updatedAt @map("updated_at")
+  isIdentifiablePerson Boolean           @default(false) @map("is_identifiable_person")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
 
   @@index([renderStatus])
   @@index([createdAt(sort: Desc)])
@@ -1198,4 +1216,340 @@ model SocialPost {
 
   @@index([workspaceId, createdAt])
   @@map("social_posts")
+}
+
+// ─── Phase 0B — Template Engine ──────────────────────────────────────────────
+// The library the Campaign Wizard proposes from.
+// Plan: docs/business-studios/phases/phase-0b-template-engine.md
+
+/// Who the business sells to. Captured at signup step 2, editable on the Brand page.
+enum AudienceType {
+  b2c
+  b2b
+  both
+
+  @@map("audience_type")
+}
+
+/// What a post is for. `interest` was dropped — no Phase 0A template carried it.
+enum ContentPurpose {
+  awareness
+  trust
+  enquiry
+  conversion
+  engagement
+  retention
+
+  @@map("content_purpose")
+}
+
+enum ContentTemplateStatus {
+  draft
+  active
+  archived
+
+  @@map("content_template_status")
+}
+
+enum AssetKind {
+  person_on_camera
+  product_footage
+  product_image
+  location_footage
+  customer_photo
+  customer_footage
+  logo
+  on_screen_text
+  before_after_photo
+  before_footage
+  after_footage
+  demonstration
+  spec_sheet_broll
+  trending_audio
+  screen_recording
+  generic_selfie
+
+  @@map("asset_kind")
+}
+
+/// How an asset can be satisfied. `generate` = the UGC Lab can make it, so it never blocks
+/// a campaign; `upload` is the only kind the business must supply itself.
+enum AssetFulfilment {
+  upload
+  library
+  generate
+
+  @@map("asset_fulfilment")
+}
+
+enum TemplateVariableType {
+  text
+  image
+  number
+  url
+
+  @@map("template_variable_type")
+}
+
+enum TemplateVariableSource {
+  brand
+  campaign
+  manual
+
+  @@map("template_variable_source")
+}
+
+model ContentPillar {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String   @default("")
+  position    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  templates ContentTemplate[]
+
+  @@map("content_pillars")
+}
+
+model ContentTemplate {
+  id         String @id @default(cuid())
+  slug       String @unique
+  /// 1..18 from Phase 0A. Kept so routes that pass a number keep resolving.
+  legacyId   Int?   @map("legacy_id")
+  name       String
+  pillarId   String @map("pillar_id")
+  /// Flat string, not a table: Phase 0A produced one format per template (decision B3).
+  formatSlug String @map("format_slug")
+
+  audience       AudienceType     @default(both)
+  platforms      String[]         @default(["tiktok", "instagram"])
+  purposes       ContentPurpose[]
+  primaryPurpose ContentPurpose   @map("primary_purpose")
+
+  /// null = global, owned by Next5. Set = an override cloned for one workspace.
+  workspaceId      String? @map("workspace_id")
+  parentTemplateId String? @map("parent_template_id")
+  activeVersionId  String? @map("active_version_id")
+
+  status ContentTemplateStatus @default(draft)
+
+  /// Which engine should make this template's posts. Read by Phase 1B; tagged by hand before then.
+  recommendedEngine ContentEngine @default(blitz_slideshow) @map("recommended_engine")
+
+  /// Performance stubs — populated once publishing + analytics exist. Matching never reads them.
+  timesUsed          Int    @default(0) @map("times_used")
+  avgEngagementScore Float? @map("avg_engagement_score")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  pillar        ContentPillar            @relation(fields: [pillarId], references: [id])
+  workspace     Workspace?               @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  parent        ContentTemplate?         @relation("TemplateOverride", fields: [parentTemplateId], references: [id], onDelete: SetNull)
+  overrides     ContentTemplate[]        @relation("TemplateOverride")
+  activeVersion ContentTemplateVersion?  @relation("ActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  versions      ContentTemplateVersion[] @relation("TemplateVersions")
+  usages        TemplateUsage[]
+  campaignPosts CampaignPost[]
+
+  @@index([workspaceId, status])
+  @@index([legacyId])
+  @@map("content_templates")
+}
+
+/// Editing an active template writes a new version rather than mutating this one, so a plan
+/// generated last week still reports exactly what it was generated from.
+model ContentTemplateVersion {
+  id              String   @id @default(cuid())
+  templateId      String   @map("template_id")
+  version         Int
+  hookPattern     String   @default("") @map("hook_pattern")
+  /// [{ label, guidance, bgPrompt? }] — the ordered structure beats.
+  beats           Json     @default("[]")
+  /// [{ text, bgPrompt }] — what the Blitz slideshow renders. Separate from beats because the
+  /// 4–6 structure beats and the 3–4 rendered slides are not one-to-one.
+  suggestedSlides Json     @default("[]") @map("suggested_slides")
+  /// Hook keywords, used to match a researched TikTok to its template.
+  keywords        String[] @default([])
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  template          ContentTemplate            @relation("TemplateVersions", fields: [templateId], references: [id], onDelete: Cascade)
+  activeForTemplate ContentTemplate[]          @relation("ActiveVersion")
+  variables         TemplateVariable[]
+  assetRequirements TemplateAssetRequirement[]
+  usages            TemplateUsage[]
+  campaignPosts     CampaignPost[]
+
+  @@unique([templateId, version])
+  @@map("content_template_versions")
+}
+
+model TemplateVariable {
+  id           String                 @id @default(cuid())
+  versionId    String                 @map("version_id")
+  key          String
+  label        String
+  type         TemplateVariableType   @default(text)
+  source       TemplateVariableSource @default(campaign)
+  required     Boolean                @default(true)
+  defaultValue String?                @map("default_value")
+  /// The worked example from Phase 0A. Not a default — a hint for whoever fills the variable.
+  hint         String?
+  position     Int                    @default(0)
+
+  version ContentTemplateVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@unique([versionId, key])
+  @@map("template_variables")
+}
+
+model TemplateAssetRequirement {
+  id         String          @id @default(cuid())
+  versionId  String          @map("version_id")
+  kind       AssetKind
+  required   Boolean         @default(true)
+  minCount   Int             @default(1) @map("min_count")
+  fulfilment AssetFulfilment @default(upload)
+  notes      String?
+
+  version ContentTemplateVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@unique([versionId, kind])
+  @@map("template_asset_requirements")
+}
+
+/// What was proposed to whom and when — the input to the "don't repeat a template two weeks
+/// running" rule. Lives in Phase 0B so that rule is testable before Phase 1 exists.
+model TemplateUsage {
+  id          String         @id @default(cuid())
+  workspaceId String         @map("workspace_id")
+  templateId  String         @map("template_id")
+  versionId   String         @map("version_id")
+  purpose     ContentPurpose
+  plannedFor  DateTime       @map("planned_for")
+  campaignId  String?        @map("campaign_id")
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  workspace Workspace              @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  template  ContentTemplate        @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  version   ContentTemplateVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  campaign  Campaign?              @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, templateId, plannedFor])
+  @@index([workspaceId, plannedFor])
+  @@map("template_usages")
+}
+
+// ─── Phase 1A — Campaign Wizard ──────────────────────────────────────────────
+// Plan: docs/business-studios/phases/phase-01-campaign-wizard.md
+
+enum CampaignGoal {
+  leads
+  enquiries
+  sell
+
+  @@map("campaign_goal")
+}
+
+enum CampaignStatus {
+  draft
+  generated
+  scheduled
+  archived
+
+  @@map("campaign_status")
+}
+
+/// Where a post's material comes from: her own, a mix, or generated for her.
+enum ContentSource {
+  real
+  mix
+  generated
+
+  @@map("content_source")
+}
+
+/// Which engine should make this template's posts. Read by Phase 1B; tagged by hand before then.
+enum ContentEngine {
+  blitz_slideshow
+  ugc_video
+
+  @@map("content_engine")
+}
+
+/// A week (or four) of planned content. Phase 1A books the days and says what each one needs;
+/// it generates nothing, so it costs nothing.
+model Campaign {
+  id          String       @id @default(cuid())
+  workspaceId String       @map("workspace_id")
+  goal        CampaignGoal
+  /// What is being sold when the goal is `sell`. Shop has products, Brand may have a listing,
+  /// a service business has neither and types `campaignSubject` instead.
+  productId   String?      @map("product_id")
+  listingId   String?      @map("listing_id")
+  channels    String[]     @default(["tiktok"])
+
+  /// Campaign-only overrides of Workspace.promoting / Workspace.offer. Never written back.
+  campaignSubject String? @map("campaign_subject")
+  campaignMessage String? @map("campaign_message")
+  useBrandSubject Boolean @default(true) @map("use_brand_subject")
+  useBrandMessage Boolean @default(true) @map("use_brand_message")
+
+  promo String?
+  notes String?
+
+  postsPerDay Int      @default(1) @map("posts_per_day")
+  weeks       Int      @default(1)
+  startDate   DateTime @map("start_date") @db.Date
+
+  assetMethod String? @map("asset_method")
+  assetUrl    String? @map("asset_url")
+
+  status CampaignStatus @default(draft)
+  /// How far through the wizard she got, so a draft reopens where she left it.
+  step   Int            @default(1)
+
+  scheduledAt DateTime? @map("scheduled_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  product   Product?        @relation(fields: [productId], references: [id], onDelete: SetNull)
+  listing   Listing?        @relation(fields: [listingId], references: [id], onDelete: SetNull)
+  posts     CampaignPost[]
+  usages    TemplateUsage[]
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, status])
+  @@map("campaigns")
+}
+
+/// One piece of content. The same content goes to every campaign channel, so one row here owns
+/// one PostSlot per channel — posting can succeed on Instagram and fail on TikTok.
+model CampaignPost {
+  id           String         @id @default(cuid())
+  campaignId   String         @map("campaign_id")
+  dayIndex     Int            @map("day_index")
+  slotOfDay    String         @default("evening") @map("slot_of_day")
+  scheduledFor DateTime       @map("scheduled_for") @db.Date
+  templateId   String         @map("template_id")
+  /// Locked when the plan was proposed. Editing the template afterwards never changes this post.
+  versionId    String         @map("version_id")
+  purpose      ContentPurpose
+  source       ContentSource  @default(real)
+  /// True when the matcher had to relax the slot's purpose to fill it.
+  widened      Boolean        @default(false)
+  skipped      Boolean        @default(false)
+  caption      String?
+  position     Int            @default(0)
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  campaign Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  template ContentTemplate        @relation(fields: [templateId], references: [id])
+  version  ContentTemplateVersion @relation(fields: [versionId], references: [id])
+  slots    PostSlot[]
+
+  @@index([campaignId, position])
+  @@map("campaign_posts")
 }

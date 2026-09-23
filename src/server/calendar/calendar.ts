@@ -227,10 +227,15 @@ export const autoFillWorkspace = async (workspaceId: string, now = new Date()): 
   if (ws) await autoFill(ws, now);
 };
 
-/** Moves everything still planned onto the current cadence, keeping the order she already has. */
+/**
+ * Moves everything still planned onto the current cadence, keeping the order she already has.
+ *
+ * Campaign slots are excluded on purpose. A campaign is a dated plan she approved — changing her
+ * recurring posting weekdays must not silently drag a scheduled campaign to different days.
+ */
 export const replanUpcoming = async (ws: Workspace, schedule: PostSchedule, now = new Date()): Promise<void> => {
   const upcoming = await prisma.postSlot.findMany({
-    where: { workspaceId: ws.id, status: 'planned', scheduledFor: { gte: startOfDay(now) } },
+    where: { workspaceId: ws.id, status: 'planned', campaignPostId: null, scheduledFor: { gte: startOfDay(now) } },
     orderBy: [{ scheduledFor: 'asc' }, { createdAt: 'asc' }],
   });
   if (upcoming.length === 0) return;

@@ -1,0 +1,157 @@
+{
+  "slug": "do-not-do-this",
+  "legacyId": 8,
+  "name": "DO NOT Do This",
+  "pillarSlug": "protection-warning",
+  "formatSlug": "prohibition-warning",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "awareness",
+    "trust"
+  ],
+  "primaryPurpose": "trust",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "DO NOT [DIY_ACTION] — here's why ⚠️",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"DO NOT [DIY_ACTION] — here's why ⚠️\""
+      },
+      {
+        "label": "Show/describe",
+        "guidance": "what happens when someone does it wrong ([WRONG_WAY])"
+      },
+      {
+        "label": "Consequence",
+        "guidance": "\"[CONSEQUENCE]\" (safety, cost, quality)"
+      },
+      {
+        "label": "Right way",
+        "guidance": "brief — [RIGHT_WAY]"
+      },
+      {
+        "label": "CTA",
+        "guidance": "\"Call a [PROFESSION] / We fix these\""
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "STOP doing this when hiring a [SERVICE_PROVIDER] ✋",
+        "bgPrompt": "Hand making stop gesture on bold dark background, dramatic studio lighting, high-impact warning visual, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "Most people make this mistake — it costs them time & money",
+        "bgPrompt": "Frustrated person clutching head realising a costly mistake, relatable emotional expression, natural light, 9:16 vertical, no text"
+      },
+      {
+        "text": "Here's what to do instead (it takes less than 2 minutes)",
+        "bgPrompt": "Person smiling and doing a quick action on phone, relieved and empowered, bright modern setting, 9:16 vertical, no text"
+      },
+      {
+        "text": "We help [AUDIENCE] avoid this every day — book now, link in bio",
+        "bgPrompt": "Professional in uniform against branded vehicle, confident and welcoming, sunny outdoor setting, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "stop",
+      "never",
+      "do not",
+      "don't do",
+      "avoid",
+      "mistake",
+      "wrong",
+      "bad idea"
+    ],
+    "variables": [
+      {
+        "key": "DIY_ACTION",
+        "label": "Diy action",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "wire an outlet yourself, ignore a flickering breaker",
+        "position": 0
+      },
+      {
+        "key": "WRONG_WAY",
+        "label": "Wrong way",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "description of the common mistake",
+        "position": 1
+      },
+      {
+        "key": "CONSEQUENCE",
+        "label": "Consequence",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "it can start a fire, costs 3× more to fix later",
+        "position": 2
+      },
+      {
+        "key": "RIGHT_WAY",
+        "label": "Right way",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "the correct approach, brief",
+        "position": 3
+      },
+      {
+        "key": "PROFESSION",
+        "label": "Profession",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 5
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "person_on_camera",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "The expert delivering the warning — essential for credibility"
+      },
+      {
+        "kind": "demonstration",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Must show the wrong way vs right way visually"
+      },
+      {
+        "kind": "before_after_photo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

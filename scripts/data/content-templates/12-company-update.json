@@ -1,0 +1,133 @@
+{
+  "slug": "company-update",
+  "legacyId": 12,
+  "name": "Company Update",
+  "pillarSlug": "behind-the-business",
+  "formatSlug": "news-hook",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "engagement",
+    "retention"
+  ],
+  "primaryPurpose": "engagement",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "Even with [INDUSTRY_CHALLENGE], we're [POSITIVE_STATUS] 💪",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"Big update: even with [INDUSTRY_CHALLENGE], we're [POSITIVE_STATUS]\" OR \"We're back 👋 Here's what's changed and what hasn't\""
+      },
+      {
+        "label": "Context",
+        "guidance": "what's happening in the industry and why buyers care"
+      },
+      {
+        "label": "Our position",
+        "guidance": "[PROTECTIVE_ACTION] — what we're doing to protect our customers"
+      },
+      {
+        "label": "CTA",
+        "guidance": "\"Keep working with us / Book now while supply and timing hold\""
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "Important update for all [CITY/REGION] clients 📢",
+        "bgPrompt": "Business owner speaking directly to camera in professional office or branded location, authoritative and transparent, natural light, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "[INDUSTRY NEWS] — here's how this affects your [PROJECT/BUDGET]",
+        "bgPrompt": "Newspaper or digital news headline on a desk with coffee, moody editorial lighting, 9:16 vertical, no text"
+      },
+      {
+        "text": "Here's exactly what we're doing to protect you from the impact",
+        "bgPrompt": "Professional at whiteboard or desk planning with a determined focused expression, bright office, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "Questions? Drop them below or DM us directly",
+        "bgPrompt": "Phone with chat bubbles or comment notifications, modern and approachable, clean background, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "update",
+      "news",
+      "announcement",
+      "prices rising",
+      "supply chain",
+      "still",
+      "we're back",
+      "reopening"
+    ],
+    "variables": [
+      {
+        "key": "INDUSTRY_CHALLENGE",
+        "label": "Industry challenge",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "rising steel prices, supply chain issues",
+        "position": 0
+      },
+      {
+        "key": "POSITIVE_STATUS",
+        "label": "Positive status",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "still supplying on time, prices held steady",
+        "position": 1
+      },
+      {
+        "key": "PROTECTIVE_ACTION",
+        "label": "Protective action",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "we locked in pricing last quarter",
+        "position": 2
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 3
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "person_on_camera",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "This is a news update — must come from a real person, not a graphic"
+      },
+      {
+        "kind": "location_footage",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Normal operations in background adds an 'everything's fine' visual cue"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

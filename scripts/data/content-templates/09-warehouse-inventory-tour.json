@@ -1,0 +1,179 @@
+{
+  "slug": "warehouse-inventory-tour",
+  "legacyId": 9,
+  "name": "Warehouse / Facility Tour",
+  "pillarSlug": "business-showcase",
+  "formatSlug": "facility-tour",
+  "audience": "b2b",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "awareness",
+    "trust"
+  ],
+  "primaryPurpose": "awareness",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "Come inside our [SCALE] [PRODUCT_TYPE] warehouse — [CAPABILITY_CLAIM]",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"Come inside our [SCALE] [PRODUCT_TYPE] warehouse\" OR \"Take a tour of our inventory — [CAPABILITY_CLAIM]\""
+      },
+      {
+        "label": "Beat 1",
+        "guidance": "wide-shot reveal (the scale of the facility)"
+      },
+      {
+        "label": "Beat 2",
+        "guidance": "walk through 2–3 product sections (different grades/types)"
+      },
+      {
+        "label": "Beat 3",
+        "guidance": "key specs callout (grades, thicknesses, lead time)"
+      },
+      {
+        "label": "Beat 4",
+        "guidance": "\"[ALL_READY_CLAIM]\""
+      },
+      {
+        "label": "CTA",
+        "guidance": "\"DM for pricing / Link in bio\""
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "Come inside our [FACILITY TYPE] in [CITY] 👀",
+        "bgPrompt": "Wide-angle warehouse interior filled with neatly organised inventory, industrial overhead lighting, cinematic depth of field, impressive scale, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "We stock [PRODUCT/MATERIAL] ready for same-day pickup",
+        "bgPrompt": "Forklift moving pallets in a large industrial warehouse, action and scale, dramatic overhead lighting, 9:16 vertical, no text"
+      },
+      {
+        "text": "[SCALE CLAIM] — built to serve [REGION] businesses fast",
+        "bgPrompt": "Overhead shot of stacked pallets or bulk inventory, impressive organised scale, industrial aesthetic, 9:16 vertical, no text"
+      },
+      {
+        "text": "Order today, collect tomorrow — tap the link to browse",
+        "bgPrompt": "Truck being loaded at a loading dock, logistics in action, golden hour outdoor light, 9:16 vertical editorial photo, no text"
+      }
+    ],
+    "keywords": [
+      "tour",
+      "take you",
+      "visit",
+      "walkthrough",
+      "warehouse",
+      "factory",
+      "facility",
+      "inventory",
+      "behind the scenes"
+    ],
+    "variables": [
+      {
+        "key": "SCALE",
+        "label": "Scale",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "50,000 sqft, fully stocked, 2.75M ton capacity",
+        "position": 0
+      },
+      {
+        "key": "PRODUCT_TYPE",
+        "label": "Product type",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "carbon steel plate, electrical materials",
+        "position": 1
+      },
+      {
+        "key": "CAPABILITY_CLAIM",
+        "label": "Capability claim",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "Why contractors from 5 states rely on us",
+        "position": 2
+      },
+      {
+        "key": "PRODUCT_SPECS",
+        "label": "Product specs",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "list of grades/types/thicknesses available",
+        "position": 3
+      },
+      {
+        "key": "ALL_READY_CLAIM",
+        "label": "All ready claim",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "Ready to ship within [X] days",
+        "position": 4
+      },
+      {
+        "key": "LEAD_TIME",
+        "label": "Lead time",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 5
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 6
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "location_footage",
+        "required": true,
+        "minCount": 3,
+        "fulfilment": "upload",
+        "notes": "Wide entry shot, walk-through, product close-up — all required"
+      },
+      {
+        "kind": "product_footage",
+        "required": true,
+        "minCount": 2,
+        "fulfilment": "upload",
+        "notes": "Close-ups of inventory showing spec variety"
+      },
+      {
+        "kind": "on_screen_text",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Specs must appear as text — B2B buyers pause and read"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

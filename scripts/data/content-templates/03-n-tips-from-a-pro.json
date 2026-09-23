@@ -1,0 +1,185 @@
+{
+  "slug": "n-tips-from-a-pro",
+  "legacyId": 3,
+  "name": "N Tips from a Pro",
+  "pillarSlug": "education-authority",
+  "formatSlug": "pro-tips-list",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "awareness",
+    "trust"
+  ],
+  "primaryPurpose": "awareness",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "[N] tips from a [PROFESSION] (stick around for the bonus)",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"[N] tips from a [PROFESSION] 🫡\""
+      },
+      {
+        "label": "Tip 1",
+        "guidance": "[TIP_1] (quick, one sentence)"
+      },
+      {
+        "label": "Tip 2",
+        "guidance": "[TIP_2]"
+      },
+      {
+        "label": "Tip 3",
+        "guidance": "[TIP_3]"
+      },
+      {
+        "label": "Bonus hook",
+        "guidance": "\"Stick around for the bonus tip…\""
+      },
+      {
+        "label": "Bonus Tip",
+        "guidance": "[TIP_BONUS] (saved best for last)"
+      },
+      {
+        "label": "CTA",
+        "guidance": "\"Follow for more / Book a [SERVICE]\""
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "[N] tips from a licensed [PROFESSION] 🫡",
+        "bgPrompt": "Professional trade worker in uniform at a clean worksite, natural daylight, confident pose, trustworthy and expert vibe, 9:16 vertical editorial photo, no text"
+      },
+      {
+        "text": "Tip #1: [TIP_1]",
+        "bgPrompt": "Close-up hands of a professional performing skilled work, tools visible, sharp focus, warm natural light, 9:16 vertical, no text"
+      },
+      {
+        "text": "Tip #3: [TIP_3] — most people skip this",
+        "bgPrompt": "Professional pointing at something important with knowing expression, clean workshop or office background, 9:16 vertical editorial photo, no text"
+      },
+      {
+        "text": "Follow for more free advice → book [BUSINESS_NAME] today",
+        "bgPrompt": "Professional in uniform smiling at camera, bright outdoor natural light, welcoming CTA feel, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "tips",
+      "tricks",
+      "advice",
+      "hacks",
+      "things to know",
+      "learnt",
+      "learned",
+      "pro tip"
+    ],
+    "variables": [
+      {
+        "key": "N",
+        "label": "N",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": "5",
+        "hint": "5",
+        "position": 0
+      },
+      {
+        "key": "PROFESSION",
+        "label": "Profession",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "mobile mechanic, licensed electrician",
+        "position": 1
+      },
+      {
+        "key": "TIP_1",
+        "label": "Tip 1",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 2
+      },
+      {
+        "key": "TIP_2",
+        "label": "Tip 2",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 3
+      },
+      {
+        "key": "TIP_3",
+        "label": "Tip 3",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      },
+      {
+        "key": "TIP_BONUS",
+        "label": "Tip bonus",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "the best tip goes last — retention hook",
+        "position": 5
+      },
+      {
+        "key": "SERVICE",
+        "label": "Service",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 6
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 7
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "person_on_camera",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "This is a talking-head format — must have a person"
+      },
+      {
+        "kind": "product_footage",
+        "required": false,
+        "minCount": 2,
+        "fulfilment": "upload",
+        "notes": "B-roll of the tips in action increases credibility"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

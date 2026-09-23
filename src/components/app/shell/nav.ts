@@ -1,4 +1,4 @@
-import { BookMarked, CalendarDays, CreditCard, Grid3x3, Home, Images, Layers, Package, Plus, Settings, Store, type LucideIcon } from 'lucide-react';
+import { BookMarked, CalendarDays, CreditCard, Grid3x3, Home, Images, Layers, Package, Plus, Settings, Sparkles, Store, type LucideIcon } from 'lucide-react';
 import { studioHref } from '../../../lib/studioPaths';
 import type { ProductLineDto } from '../../../types/business/me';
 
@@ -12,6 +12,7 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
         { href: s(''), label: 'Home', icon: Home },
         { href: s('/store'), label: 'Store', icon: Store },
         { href: s('/products'), label: 'Products', icon: Package },
+        { href: s('/automations'), label: 'Campaigns', icon: Sparkles },
         { href: s('/create'), label: 'Create drop', icon: Plus, primary: true },
         { href: s('/library'), label: 'TikTok library', icon: Images },
         { href: s('/sets'), label: 'Shop looks', icon: Layers },
@@ -21,6 +22,7 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
     : [
         { href: s(''), label: 'Home', icon: Home },
         { href: s('/calendar'), label: 'Calendar', icon: CalendarDays },
+        { href: s('/automations'), label: 'Campaigns', icon: Sparkles },
         { href: s('/create'), label: 'Create', icon: Plus, primary: true },
         { href: s('/library'), label: 'Library', icon: Images },
         { href: s('/sets'), label: 'Influencers', icon: Layers },

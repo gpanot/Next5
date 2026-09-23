@@ -1,0 +1,160 @@
+{
+  "slug": "insider-reveal",
+  "legacyId": 2,
+  "name": "The Insider Reveal",
+  "pillarSlug": "education-authority",
+  "formatSlug": "curiosity-gap-reveal",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "awareness"
+  ],
+  "primaryPurpose": "awareness",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "[WHAT_X_PERCENT_DONT_KNOW] about [PRODUCT_OR_SERVICE]",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"X% of [AUDIENCE] don't know this about [PRODUCT_SERVICE]\" OR \"How long did it take you to discover [THE_FACT]?\""
+      },
+      {
+        "label": "Reveal",
+        "guidance": "the thing they don't know (build tension)"
+      },
+      {
+        "label": "Why it matters",
+        "guidance": "brief practical impact"
+      },
+      {
+        "label": "Optional",
+        "guidance": "\"At [BUSINESS_NAME] we [APPLICATION]\""
+      },
+      {
+        "label": "CTA",
+        "guidance": "Follow / Comment / Book"
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "Most [CUSTOMERS] have no idea about this with [SERVICE]…",
+        "bgPrompt": "Close-up of a confident professional in smart attire looking directly at camera with slight smirk, dark bokeh background, cinematic portrait lighting, 9:16 vertical, no text"
+      },
+      {
+        "text": "The secret the big companies don't want you to know",
+        "bgPrompt": "Shadowy vault door slightly ajar with golden light spilling out, mystery and intrigue, cinematic 9:16 vertical, no text"
+      },
+      {
+        "text": "Here's how to use this to your advantage right now",
+        "bgPrompt": "Person pointing at camera with excited knowing expression, bright studio light, energetic, 9:16 vertical editorial photo, no text"
+      },
+      {
+        "text": "Follow for more insider tips → book with [BUSINESS_NAME] via link in bio",
+        "bgPrompt": "Bold gradient background from deep navy to orange, clean branded CTA feel, professional, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "don't know",
+      "discover",
+      "secret",
+      "insider",
+      "most people",
+      "nobody tells you",
+      "hidden",
+      "unknown",
+      "feature"
+    ],
+    "variables": [
+      {
+        "key": "HOOK_STYLE",
+        "label": "Hook style",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "\"X% don't know\" OR \"how long did it take you\"",
+        "position": 0
+      },
+      {
+        "key": "AUDIENCE",
+        "label": "Audience",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "drivers, homeowners, contractors",
+        "position": 1
+      },
+      {
+        "key": "PRODUCT_SERVICE",
+        "label": "Product service",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 2
+      },
+      {
+        "key": "THE_FACT",
+        "label": "The fact",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "the reveal — must be genuinely surprising",
+        "position": 3
+      },
+      {
+        "key": "WHY_IT_MATTERS",
+        "label": "Why it matters",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      },
+      {
+        "key": "BUSINESS_NAME",
+        "label": "Business name",
+        "type": "text",
+        "source": "brand",
+        "required": false,
+        "defaultValue": null,
+        "hint": null,
+        "position": 5
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": false,
+        "defaultValue": null,
+        "hint": null,
+        "position": 6
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "product_footage",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "The thing being revealed must be shown, not just described"
+      },
+      {
+        "kind": "person_on_camera",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Adds credibility but format works without it"
+      }
+    ]
+  }
+}

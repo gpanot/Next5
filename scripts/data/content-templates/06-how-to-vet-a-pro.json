@@ -1,0 +1,180 @@
+{
+  "slug": "how-to-vet-a-pro",
+  "legacyId": 6,
+  "name": "How to Vet a Pro",
+  "pillarSlug": "social-proof-trust",
+  "formatSlug": "vetting-guide",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "trust",
+    "enquiry"
+  ],
+  "primaryPurpose": "trust",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "[N] ways to know a [SERVICE_PROVIDER] [IS_TRUSTWORTHY]",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"[N] ways to know a [SERVICE_PROVIDER] [IS_TRUSTWORTHY]\""
+      },
+      {
+        "label": "Sign 1",
+        "guidance": "[QUALITY_SIGN_1] — brief explanation of WHY this matters"
+      },
+      {
+        "label": "Sign 2",
+        "guidance": "[QUALITY_SIGN_2]"
+      },
+      {
+        "label": "Sign 3",
+        "guidance": "[QUALITY_SIGN_3]"
+      },
+      {
+        "label": "Contrast",
+        "guidance": "\"We check every one of these. Here's how to verify:\""
+      },
+      {
+        "label": "CTA",
+        "guidance": "[CTA] (review link, booking, contact)"
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "[N] signs you're working with a truly great [PROFESSIONAL] ✅",
+        "bgPrompt": "Professional holding a clipboard checklist in smart work attire, bright natural light, clean trustworthy aesthetic, 9:16 vertical editorial photo, no text"
+      },
+      {
+        "text": "✅ Sign #1: They explain every step before starting",
+        "bgPrompt": "Professional talking through a plan with a client, both looking engaged, natural office lighting, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "✅ Sign #3: They show you before & after evidence",
+        "bgPrompt": "Before and after comparison photos side by side on a tablet screen, professional setting, 9:16 vertical editorial, no text"
+      },
+      {
+        "text": "At [BUSINESS_NAME] we tick all these boxes — see our work, link in bio",
+        "bgPrompt": "Professional in uniform smiling and giving thumbs up, bright outdoor light, clean branded feel, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "how to know",
+      "how to tell",
+      "ways to know",
+      "good mechanic",
+      "good electrician",
+      "checklist",
+      "signs of a good"
+    ],
+    "variables": [
+      {
+        "key": "N",
+        "label": "N",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": "5",
+        "hint": "5",
+        "position": 0
+      },
+      {
+        "key": "SERVICE_PROVIDER",
+        "label": "Service provider",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 1
+      },
+      {
+        "key": "IS_TRUSTWORTHY",
+        "label": "Is trustworthy",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "does good work, is worth your money",
+        "position": 2
+      },
+      {
+        "key": "QUALITY_SIGN_1",
+        "label": "Quality sign 1",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 3
+      },
+      {
+        "key": "QUALITY_SIGN_2",
+        "label": "Quality sign 2",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      },
+      {
+        "key": "QUALITY_SIGN_3",
+        "label": "Quality sign 3",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 5
+      },
+      {
+        "key": "REVIEW_LINK",
+        "label": "Review link",
+        "type": "url",
+        "source": "brand",
+        "required": false,
+        "defaultValue": null,
+        "hint": null,
+        "position": 6
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 7
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "person_on_camera",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Authenticity is load-bearing here — not suitable as a text-only post"
+      },
+      {
+        "kind": "location_footage",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Shop/workspace as supporting B-roll"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

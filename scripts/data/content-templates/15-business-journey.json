@@ -1,0 +1,175 @@
+{
+  "slug": "business-journey",
+  "legacyId": 15,
+  "name": "Business Journey",
+  "pillarSlug": "social-proof-trust",
+  "formatSlug": "origin-story",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "trust",
+    "awareness"
+  ],
+  "primaryPurpose": "trust",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "How I got [MILESTONE] as a [PROFESSION] — and what I wish I knew",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"How I got my first [N] [SERVICE] bookings as a [PROFESSION] 🔑\" OR \"[N] years in the trade — here's what I wish I knew at the start\""
+      },
+      {
+        "label": "Struggle",
+        "guidance": "the hard starting point ([STRUGGLE]) — specific, honest"
+      },
+      {
+        "label": "The turn",
+        "guidance": "[KEY_INSIGHT] — the key insight or action that changed things"
+      },
+      {
+        "label": "Now",
+        "guidance": "[CURRENT_STATE] — where we are today (the transformation)"
+      },
+      {
+        "label": "CTA",
+        "guidance": "\"DM me if you want someone who's done it the hard way / Book with us\""
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "I started [BUSINESS] because [ORIGIN_STORY]…",
+        "bgPrompt": "Business owner in authentic candid behind-the-scenes moment at work, natural documentary lighting, genuine and emotional atmosphere, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "It wasn't easy — [EARLY_STRUGGLE] nearly made me quit",
+        "bgPrompt": "Person sitting alone in quiet workshop looking reflective, early morning light, honest and raw atmosphere, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "Now [CURRENT_STATE] — and it's because of clients like you",
+        "bgPrompt": "Business owner standing proudly in front of thriving operation, warm golden light, genuine pride, 9:16 vertical portrait, no text"
+      },
+      {
+        "text": "This is why I show up every day — DM me to hear the full story",
+        "bgPrompt": "Candid close-up portrait of business owner with genuine warm smile, natural light, authentic and approachable, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "started",
+      "journey",
+      "story",
+      "how i",
+      "began",
+      "years ago",
+      "founded",
+      "origin",
+      "built"
+    ],
+    "variables": [
+      {
+        "key": "N",
+        "label": "N",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "first 10, 12 years",
+        "position": 0
+      },
+      {
+        "key": "SERVICE",
+        "label": "Service",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 1
+      },
+      {
+        "key": "PROFESSION",
+        "label": "Profession",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 2
+      },
+      {
+        "key": "STRUGGLE",
+        "label": "Struggle",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "specific, not generic",
+        "position": 3
+      },
+      {
+        "key": "KEY_INSIGHT",
+        "label": "Key insight",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "the turn — must feel earned",
+        "position": 4
+      },
+      {
+        "key": "CURRENT_STATE",
+        "label": "Current state",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 5
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 6
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "person_on_camera",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "This is a personal story — no person, no story"
+      },
+      {
+        "kind": "before_footage",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Early days — old van, small workspace"
+      },
+      {
+        "kind": "after_footage",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Current state — the transformation made visible"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

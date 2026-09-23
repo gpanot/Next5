@@ -1,0 +1,38 @@
+[
+  {
+    "slug": "protection-warning",
+    "name": "Protection / Warning",
+    "description": "Fear → relief. Warns the viewer about what a bad provider does, then shows the business as the safe choice. Fills Trust slots.",
+    "position": 0
+  },
+  {
+    "slug": "education-authority",
+    "name": "Education / Authority",
+    "description": "Curiosity → capability. Teaches something the viewer did not know, which earns the right to sell later. Fills Awareness slots.",
+    "position": 1
+  },
+  {
+    "slug": "social-proof-trust",
+    "name": "Social Proof / Trust",
+    "description": "Credibility. Evidence that the business does what it claims — people, history, finished work. Fills Trust slots.",
+    "position": 2
+  },
+  {
+    "slug": "business-showcase",
+    "name": "Business Showcase",
+    "description": "Surprise / value. Shows the scale, range or price of what the business actually offers. Fills Awareness and Enquiry slots.",
+    "position": 3
+  },
+  {
+    "slug": "pain-point-cta",
+    "name": "Pain Point → CTA",
+    "description": "Relief → action. Names the buyer's frustration and answers it with a direct ask. Fills Enquiry and Conversion slots.",
+    "position": 4
+  },
+  {
+    "slug": "behind-the-business",
+    "name": "Behind the Business",
+    "description": "Familiarity. Ordinary days, updates and the people behind the work — keeps an existing audience warm. Fills Engagement slots.",
+    "position": 5
+  }
+]

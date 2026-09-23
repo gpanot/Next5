@@ -1,0 +1,154 @@
+{
+  "slug": "24-hour-pledge",
+  "legacyId": 11,
+  "name": "24-Hour Pledge",
+  "pillarSlug": "pain-point-cta",
+  "formatSlug": "availability-pledge",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "conversion",
+    "enquiry"
+  ],
+  "primaryPurpose": "conversion",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "[TIMEFRAME] [SERVICE] — we've got [AUDIENCE] covered 🤝",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"[TIMEFRAME] [SERVICE] 🤝 We've got you\""
+      },
+      {
+        "label": "What that means",
+        "guidance": "\"No waiting [WAIT_PAIN]\""
+      },
+      {
+        "label": "How to start",
+        "guidance": "[SIMPLE_PROCESS] (1–2 steps)"
+      },
+      {
+        "label": "CTA",
+        "guidance": "Call / DM / link"
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "We respond within 24 hours. Every time. No exceptions. ⏱",
+        "bgPrompt": "Close-up of a clock or timer with professional service context in background, bold clean composition, high contrast, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "No more waiting 3 days just to get a callback",
+        "bgPrompt": "Person staring at phone waiting anxiously, time passing effect, moody relatable lighting, 9:16 vertical, no text"
+      },
+      {
+        "text": "[SERVICE] done right, done fast — that's [BUSINESS_NAME]",
+        "bgPrompt": "Professional finishing a job confidently, action shot with motion blur suggesting speed, 9:16 vertical, no text"
+      },
+      {
+        "text": "Book now — we'll reply by tomorrow morning, guaranteed",
+        "bgPrompt": "Professional smiling at camera with phone or tablet, warm inviting atmosphere, modern office, 9:16 vertical photo, no text"
+      }
+    ],
+    "keywords": [
+      "24 hours",
+      "same day",
+      "fast",
+      "quick",
+      "next day",
+      "48 hours",
+      "on time",
+      "emergency",
+      "urgent"
+    ],
+    "variables": [
+      {
+        "key": "TIMEFRAME",
+        "label": "Timeframe",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "24hr, same day, next business day",
+        "position": 0
+      },
+      {
+        "key": "SERVICE",
+        "label": "Service",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "pick up, quote, booking available",
+        "position": 1
+      },
+      {
+        "key": "AUDIENCE",
+        "label": "Audience",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "contractors, homeowners",
+        "position": 2
+      },
+      {
+        "key": "WAIT_PAIN",
+        "label": "Wait pain",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "3 weeks for a quote, phone tag",
+        "position": 3
+      },
+      {
+        "key": "SIMPLE_PROCESS",
+        "label": "Simple process",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "just DM your address + what you need",
+        "position": 4
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 5
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "person_on_camera",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Personal commitment — a promise is only credible from a person"
+      },
+      {
+        "kind": "location_footage",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Operation shown ready to go"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

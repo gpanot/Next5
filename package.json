@@ -16,6 +16,8 @@
     "db:studio": "prisma studio",
     "generate": "prisma generate",
     "db:seed:business": "tsx scripts/seed-business.ts",
+    "db:seed:templates": "tsx -r dotenv/config scripts/seed-content-templates.ts dotenv_config_path=.env.local",
+    "acceptance:templates": "tsx -r dotenv/config scripts/acceptance-content-plan.ts dotenv_config_path=.env.local",
     "db:seed:blitz": "tsx -r dotenv/config scripts/seed-blitz.ts dotenv_config_path=.env.local",
     "test:watch": "vitest",
     "test:e2e": "node tests/e2e/brand.mjs && node tests/e2e/shop.mjs && node tests/e2e/brand-create.mjs && node tests/e2e/shop-app.mjs",

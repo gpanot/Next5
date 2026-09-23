@@ -92,11 +92,28 @@ export const dropReadyEmail = (count: number, names: string[], createQuery: stri
  * Weekly calendar delivery — never a reminder. It says "here is what we made you",
  * and it never mentions posts she missed (docs/business-studios/11-calendar-plan.md §2.2).
  */
-export const postsReadyEmail = (count: number, firstHook: string | null, postedLastWeek: number): EmailContent => ({
-  subject: `${count} post${count === 1 ? '' : 's'} ready for this week`,
-  heading: `Your week is ready`,
+/**
+ * `awaiting` counts campaign days that are booked but still need footage from her. Without it a
+ * scheduled campaign is invisible in the week's email, which is the week she most needs telling.
+ */
+export const postsReadyEmail = (
+  count: number,
+  firstHook: string | null,
+  postedLastWeek: number,
+  awaiting = 0,
+): EmailContent => ({
+  subject:
+    count > 0
+      ? `${count} post${count === 1 ? '' : 's'} ready for this week`
+      : `${awaiting} day${awaiting === 1 ? '' : 's'} this week need${awaiting === 1 ? 's' : ''} your footage`,
+  heading: count > 0 ? 'Your week is ready' : 'Your week is planned',
   body: [
-    `${count} post${count === 1 ? ' is' : 's are'} waiting in your calendar, photo and words done.${firstHook ? ` First up: “${firstHook}”.` : ''}`,
+    count > 0
+      ? `${count} post${count === 1 ? ' is' : 's are'} waiting in your calendar, photo and words done.${firstHook ? ` First up: “${firstHook}”.` : ''}`
+      : `Your campaign days are booked. ${awaiting} of them still need a photo or a clip from you.`,
+    ...(count > 0 && awaiting > 0
+      ? [`${awaiting} more campaign day${awaiting === 1 ? '' : 's'} still need your footage.`]
+      : []),
     postedLastWeek > 0
       ? `You posted ${postedLastWeek} time${postedLastWeek === 1 ? '' : 's'} last week. Nice work.`
       : 'Open a post, save the photo, copy the caption. About twenty seconds each.',

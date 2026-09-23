@@ -56,6 +56,13 @@ export type WorkspaceDto = {
   /** "idle" | "pending" | "done" | "failed" */
   anglesGenState: string;
   angles: WorkspaceAngleDto[];
+  // Business profile — what the Template Engine matches on (Phase 0B)
+  /** "b2c" | "b2b" | "both" — null until answered at signup. */
+  audienceType: string | null;
+  /** One line: what the business or product is. */
+  promoting: string | null;
+  /** One line: the core value proposition. */
+  offer: string | null;
 };
 
 export type MeDto = {

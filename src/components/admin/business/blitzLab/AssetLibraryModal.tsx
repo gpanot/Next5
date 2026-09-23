@@ -8,7 +8,8 @@
  *   OVERLAY    → Library | My uploads
  *   AUDIO      → Library | My uploads
  *
- * The "Photos (AI)" tab shows existing image assets and a GPT-image-2 generator.
+ * The "Photos (AI)" tab shows AI-generated image assets (source === 'library') and
+ * a Nano Banana 2 Lite generator. User-uploaded files appear only in "My uploads".
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -86,9 +87,9 @@ export function AssetLibraryModal({
 
   const q = query.trim().toLowerCase();
 
-  // Photos tab: image assets only (mediaKind === 'image' or name contains [AI])
+  // Photos (AI) tab: only library-sourced image assets (AI-generated, not user uploads)
   const photoAssets = useMemo(
-    () => ofType.filter((a) => a.mediaKind === 'image'),
+    () => ofType.filter((a) => a.mediaKind === 'image' && a.source === 'library'),
     [ofType],
   );
 
@@ -205,7 +206,7 @@ export function AssetLibraryModal({
             {/* Generate section */}
             <div className="border-b border-line bg-surface-alt/50 px-4 py-3 sm:px-6 dark:border-neutral-800">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
-                Generate AI Background — 9:16 vertical
+                Generate AI Background — 9:16 Vertical · Nano Banana 2 Lite
               </p>
               <div className="flex gap-2">
                 <input
@@ -267,7 +268,7 @@ export function AssetLibraryModal({
               </div>
               {photoAssets.length === 0 && !generating && (
                 <p className="py-12 text-center text-[13px] text-muted">
-                  No photo backgrounds yet. Generate one above or upload a JPG/PNG in My uploads.
+                  No AI-generated backgrounds yet. Generate one above using the prompt field.
                 </p>
               )}
             </div>

@@ -1,0 +1,152 @@
+{
+  "slug": "what-we-actually-do",
+  "legacyId": 4,
+  "name": "What We Actually Do",
+  "pillarSlug": "business-showcase",
+  "formatSlug": "misdirection-reveal",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "awareness",
+    "enquiry"
+  ],
+  "primaryPurpose": "awareness",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "[KNOWN_THING] may be in our name, but that's far from all we do",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"[KNOWN_THING] may be in our name, but that's far from all we do!\" OR \"Most people only know us for [KNOWN_SERVICE]. Here's everything else:\""
+      },
+      {
+        "label": "Reveal",
+        "guidance": "full service list (voice + on-screen text, 2–5 services)"
+      },
+      {
+        "label": "Closer",
+        "guidance": "\"We've got [AUDIENCE] covered for [CATEGORY]\""
+      },
+      {
+        "label": "CTA",
+        "guidance": "[CTA]"
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "People think [BUSINESS_NAME] just does [MISCONCEPTION]…",
+        "bgPrompt": "Business owner standing confidently in front of branded vehicle or company equipment, natural outdoor lighting, professional and approachable, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "We also handle [SERVICE_2], [SERVICE_3], and [SERVICE_4]",
+        "bgPrompt": "Split collage of four different service scenarios in one image, colorful and energetic, 9:16 vertical editorial, no text"
+      },
+      {
+        "text": "One call — everything sorted, no need for multiple vendors",
+        "bgPrompt": "Person on the phone looking relieved and confident, bright modern office background, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "DM us or tap the link to get a free quote today",
+        "bgPrompt": "Smartphone with business contact page displayed, clean white marble surface, natural side lighting, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "actually do",
+      "not just",
+      "more than",
+      "what we do",
+      "services",
+      "we also",
+      "did you know we"
+    ],
+    "variables": [
+      {
+        "key": "KNOWN_THING",
+        "label": "Known thing",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "Tyres, Oil Changes, Steel",
+        "position": 0
+      },
+      {
+        "key": "KNOWN_SERVICE",
+        "label": "Known service",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "same as above, longer form",
+        "position": 1
+      },
+      {
+        "key": "SERVICE_LIST",
+        "label": "Service list",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "full list — 3–6 services",
+        "position": 2
+      },
+      {
+        "key": "AUDIENCE",
+        "label": "Audience",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "your vehicle, your home, your project",
+        "position": 3
+      },
+      {
+        "key": "CATEGORY",
+        "label": "Category",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "auto maintenance, electrical work",
+        "position": 4
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 5
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "location_footage",
+        "required": true,
+        "minCount": 2,
+        "fulfilment": "upload",
+        "notes": "Must show the breadth of work — different bays, different jobs"
+      },
+      {
+        "kind": "on_screen_text",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Service list must appear as text overlay, not just spoken"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

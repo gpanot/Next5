@@ -1,0 +1,144 @@
+{
+  "slug": "price-spec-reveal",
+  "legacyId": 13,
+  "name": "Price Reveal",
+  "pillarSlug": "business-showcase",
+  "formatSlug": "price-spec-reveal",
+  "audience": "b2b",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "enquiry",
+    "conversion"
+  ],
+  "primaryPurpose": "enquiry",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "Just [PRICE] for [PRODUCT_DESCRIPTION] — here's what's included",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"Just [PRICE] for [PRODUCT_DESCRIPTION] 😳\" OR \"Full range of [PRODUCT] starting from [PRICE]\""
+      },
+      {
+        "label": "What you get",
+        "guidance": "spec list (grades, sizes, thicknesses, lead time)"
+      },
+      {
+        "label": "Why possible",
+        "guidance": "\"[REASON_FOR_VALUE]\" (factory direct, volume)"
+      },
+      {
+        "label": "CTA",
+        "guidance": "\"Order now / Get a custom quote\""
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "Here's what [SERVICE/PRODUCT] actually costs in [CITY] 💰",
+        "bgPrompt": "Clean invoice or price breakdown on a wooden desk with coffee cup, minimalist business aesthetic, warm natural lighting, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "For [PROJECT SIZE], most clients pay between $[X] and $[Y]",
+        "bgPrompt": "Stack of money or price tags on a clean white surface, bold and clear, professional photo, 9:16 vertical, no text"
+      },
+      {
+        "text": "What's included: [ITEM 1], [ITEM 2], and [ITEM 3]",
+        "bgPrompt": "Checklist document on clipboard with pen, clear and professional, natural desk lighting, 9:16 vertical editorial photo, no text"
+      },
+      {
+        "text": "Get your exact price — tap the link for a free no-obligation quote",
+        "bgPrompt": "Person happily looking at phone after receiving a quote, relieved and satisfied expression, bright modern setting, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "price",
+      "cost",
+      "how much",
+      "rate",
+      "per ton",
+      "per meter",
+      "per job",
+      "quote",
+      "affordable"
+    ],
+    "variables": [
+      {
+        "key": "PRICE",
+        "label": "Price",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "$45/sqm, $69,999",
+        "position": 0
+      },
+      {
+        "key": "PRODUCT_DESCRIPTION",
+        "label": "Product description",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "1,000 sqm steel structure warehouse kit",
+        "position": 1
+      },
+      {
+        "key": "SPEC_LIST",
+        "label": "Spec list",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "bullet-point spec list",
+        "position": 2
+      },
+      {
+        "key": "REASON_FOR_VALUE",
+        "label": "Reason for value",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "factory direct, no middleman",
+        "position": 3
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "product_footage",
+        "required": true,
+        "minCount": 2,
+        "fulfilment": "upload",
+        "notes": "Show the product — numbers without product look like ads"
+      },
+      {
+        "kind": "on_screen_text",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Price must appear on screen — buyers pause on price"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

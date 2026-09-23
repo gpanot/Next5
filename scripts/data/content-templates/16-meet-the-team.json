@@ -1,0 +1,147 @@
+{
+  "slug": "meet-the-team",
+  "legacyId": 16,
+  "name": "Meet the Team",
+  "pillarSlug": "social-proof-trust",
+  "formatSlug": "people-showcase",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "trust",
+    "awareness"
+  ],
+  "primaryPurpose": "trust",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "Meet [PERSON_NAME] — [EXPERIENCE_HOOK] 👋",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"Meet [PERSON_NAME] — [EXPERIENCE_HOOK]\" OR \"Here's who's working on your [JOB] 👋\""
+      },
+      {
+        "label": "Per person",
+        "guidance": "name → role → fun fact or experience highlight"
+      },
+      {
+        "label": "Multiple staff = quick cut montage",
+        "guidance": ""
+      },
+      {
+        "label": "Closer",
+        "guidance": "\"This is who's taking care of you at [BUSINESS_NAME]\""
+      },
+      {
+        "label": "CTA",
+        "guidance": "[CTA]"
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "Meet the team behind [BUSINESS_NAME] 👋",
+        "bgPrompt": "Group of smiling professionals in matching work uniforms in front of branded vehicle, sunny outdoor setting, genuine team energy, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "[NAME] — [YEARS] years experience in [SPECIALTY]",
+        "bgPrompt": "Individual professional portrait — person in uniform with tools of their trade, clean bright background, 9:16 vertical editorial portrait, no text"
+      },
+      {
+        "text": "[NAME_2] & [NAME_3] — the crew who gets it done right",
+        "bgPrompt": "Two professionals working together on a job, teamwork and camaraderie, natural work environment, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "We're not just a business, we're a family. Book with us today.",
+        "bgPrompt": "Full team gathered together, laughing and candid, genuine workplace community feel, outdoor natural light, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "meet",
+      "team",
+      "staff",
+      "crew",
+      "family",
+      "our people",
+      "behind the business",
+      "who we are"
+    ],
+    "variables": [
+      {
+        "key": "PERSON_NAME",
+        "label": "Person name",
+        "type": "text",
+        "source": "manual",
+        "required": true,
+        "defaultValue": null,
+        "hint": "Ivan",
+        "position": 0
+      },
+      {
+        "key": "EXPERIENCE_HOOK",
+        "label": "Experience hook",
+        "type": "text",
+        "source": "manual",
+        "required": true,
+        "defaultValue": null,
+        "hint": "30+ years experience, owner",
+        "position": 1
+      },
+      {
+        "key": "JOB",
+        "label": "Job",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "car, wiring, order",
+        "position": 2
+      },
+      {
+        "key": "BUSINESS_NAME",
+        "label": "Business name",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 3
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "customer_photo",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Actual team member photos — not stock. Each person shown"
+      },
+      {
+        "kind": "location_footage",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Workspace / shop context for each person"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

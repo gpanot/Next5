@@ -50,6 +50,10 @@ const toWorkspaceDto = async (ws: Workspace): Promise<WorkspaceDto> => {
     genderFilter: ws.genderFilter ?? null,
     anglesGenState: ws.anglesGenState,
     angles,
+    // Business profile (Phase 0B)
+    audienceType: ws.audienceType ?? null,
+    promoting: ws.promoting ?? null,
+    offer: ws.offer ?? null,
   };
 };
 

@@ -37,15 +37,33 @@ export const sendWeeklyDigests = async (now = new Date(), limit = 200): Promise<
     if (!isDigestDay(schedule.weekdays, now)) continue;
 
     const weekEnd = new Date(now.getTime() + 7 * DAY);
-    const [ready, postedLastWeek] = await Promise.all([
+    const week = { gte: startOfDay(now), lte: startOfDay(weekEnd) };
+    const [ready, awaiting, postedLastWeek] = await Promise.all([
+      // "Ready" means the slot holds something she can post: a generated photo or her own material.
       prisma.postSlot.findMany({
-        where: { workspaceId: schedule.workspaceId, status: 'planned', itemId: { not: null }, scheduledFor: { gte: startOfDay(now), lte: startOfDay(weekEnd) } },
+        where: {
+          workspaceId: schedule.workspaceId,
+          status: 'planned',
+          OR: [{ itemId: { not: null } }, { materialId: { not: null } }],
+          scheduledFor: week,
+        },
         include: { item: { select: { postKit: true } } },
         orderBy: { scheduledFor: 'asc' },
       }),
+      // Campaign days she approved that still have nothing in them — booked, not ready.
+      prisma.postSlot.count({
+        where: {
+          workspaceId: schedule.workspaceId,
+          status: 'planned',
+          campaignPostId: { not: null },
+          itemId: null,
+          materialId: null,
+          scheduledFor: week,
+        },
+      }),
       prisma.postSlot.count({ where: { workspaceId: schedule.workspaceId, status: 'posted', postedAt: { gte: new Date(now.getTime() - 7 * DAY) } } }),
     ]);
-    if (ready.length === 0) continue;
+    if (ready.length === 0 && awaiting === 0) continue;
 
     const hook = (ready[0]?.item?.postKit as PostKitDto | null)?.hook ?? null;
     const ok = await sendOnce({
@@ -53,7 +71,7 @@ export const sendWeeklyDigests = async (now = new Date(), limit = 200): Promise<
       workspaceId: schedule.workspaceId,
       template: 'posts_ready',
       dedupeKey: `posts-ready:${schedule.workspaceId}:${isoDate(now)}`,
-      content: postsReadyEmail(ready.length, hook, postedLastWeek),
+      content: postsReadyEmail(ready.length, hook, postedLastWeek, awaiting),
     });
     if (ok) sent += 1;
   }
@@ -73,7 +91,11 @@ export const buildIcs = async (icsToken: string, now = new Date()): Promise<stri
 
   const slots = await prisma.postSlot.findMany({
     where: { workspaceId: schedule.workspaceId, status: { notIn: OFF_CALENDAR }, scheduledFor: { gte: startOfDay(new Date(now.getTime() - 30 * DAY)) } },
-    include: { item: { select: { postKit: true } }, material: { select: { label: true } } },
+    include: {
+      item: { select: { postKit: true } },
+      material: { select: { label: true } },
+      campaignPost: { select: { template: { select: { name: true } } } },
+    },
     orderBy: { scheduledFor: 'asc' },
   });
 
@@ -86,7 +108,13 @@ export const buildIcs = async (icsToken: string, now = new Date()): Promise<stri
     'X-WR-CALNAME:Next5 posts',
   ];
   for (const slot of slots) {
-    const hook = (slot.item?.postKit as PostKitDto | null)?.hook ?? slot.material?.label ?? 'Your Next5 post';
+    // A campaign day with no content yet still has a name — its template. Without it a whole
+    // scheduled week reads "Your Next5 post" seven times and she cannot tell the days apart.
+    const hook =
+      (slot.item?.postKit as PostKitDto | null)?.hook ??
+      slot.campaignPost?.template.name ??
+      slot.material?.label ??
+      'Your Next5 post';
     const day = isoDate(slot.scheduledFor);
     lines.push(
       'BEGIN:VEVENT',

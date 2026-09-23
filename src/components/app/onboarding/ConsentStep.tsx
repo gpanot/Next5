@@ -14,6 +14,13 @@ import { TextInput } from '../../ui/TextInput';
 import { StepCard } from './StepCard';
 import { stepError, type StepProps } from './types';
 
+/** Kept in the same words a business owner would use, not b2c/b2b jargon. */
+const AUDIENCE_OPTIONS = [
+  { value: 'b2c', label: 'People (consumers)' },
+  { value: 'b2b', label: 'Other businesses' },
+  { value: 'both', label: 'Both' },
+] as const;
+
 export const ConsentStep = ({ product, me, advance }: StepProps) => {
   const alreadyGiven = hasRequiredConsents(product, me.user.consents);
   const skipped = useRef(false);
@@ -39,6 +46,9 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
   const savedUrl = rawSaved.startsWith('http') || rawSaved.includes('.') ? rawSaved : '';
   const [businessName, setBusinessName] = useState(savedUrl);
   const [industry, setIndustry] = useState(me.workspace?.industry ?? '');
+  // Who she sells to. The Template Engine's first filter, so a steel trader is never
+  // offered a template written for walk-in consumers (and the reverse).
+  const [audienceType, setAudienceType] = useState(me.workspace?.audienceType ?? '');
   const [terms, setTerms] = useState(false);
   const [labels, setLabels] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -58,6 +68,7 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
         data: {
           websiteUrl: businessName.trim() || undefined,
           industry: industry || undefined,
+          audienceType: audienceType || undefined,
         },
       });
     } catch (err) {
@@ -94,6 +105,15 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
               value={industry}
               onChange={(v) => setIndustry(String(v))}
             />
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-[14px] font-medium text-app-ink">Who do you sell to?</p>
+            <ChipGroup
+              options={AUDIENCE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              value={audienceType}
+              onChange={(v) => setAudienceType(String(v))}
+            />
+            <p className="text-[13px] text-app-muted">This decides which content ideas we suggest. You can change it later.</p>
           </div>
         </div>
 

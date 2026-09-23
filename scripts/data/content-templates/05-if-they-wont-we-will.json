@@ -1,0 +1,151 @@
+{
+  "slug": "if-they-wont-we-will",
+  "legacyId": 5,
+  "name": "If They Won't, We Will",
+  "pillarSlug": "pain-point-cta",
+  "formatSlug": "competitor-contrast",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "enquiry",
+    "conversion"
+  ],
+  "primaryPurpose": "enquiry",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "If [THEY] won't [DO_SERVICE], we will. [CTA]",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"If they won't [DO_SERVICE], we will!!!\""
+      },
+      {
+        "label": "Beat 2",
+        "guidance": "what \"they\" won't do (the frustrating scenario)"
+      },
+      {
+        "label": "Beat 3",
+        "guidance": "what WE do instead (concrete, specific)"
+      },
+      {
+        "label": "CTA",
+        "guidance": "\"Schedule your [SERVICE] today\" (immediate)"
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "If they won't show you itemised pricing — we will ✅",
+        "bgPrompt": "Bold clean composition with professional tools or equipment on stark white background, high contrast, action-oriented, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "If they won't give you a same-day response — we will",
+        "bgPrompt": "Checkmark graphic overlaid on a professional work environment, confident and decisive mood, 9:16 vertical, no text"
+      },
+      {
+        "text": "If they won't stand behind their work — we will",
+        "bgPrompt": "Professional making a firm handshake pledge gesture, trustworthy expression, natural light, 9:16 vertical portrait, no text"
+      },
+      {
+        "text": "Tired of the runaround? Book [BUSINESS_NAME] — link in bio",
+        "bgPrompt": "Person smiling with phone in hand ready to book, energetic and accessible, bright modern setting, 9:16 vertical photo, no text"
+      }
+    ],
+    "keywords": [
+      "if they won't",
+      "we will",
+      "they refuse",
+      "tired of",
+      "unlike other",
+      "unlike most"
+    ],
+    "variables": [
+      {
+        "key": "THEY",
+        "label": "They",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "he, they, your dealer",
+        "position": 0
+      },
+      {
+        "key": "DO_SERVICE",
+        "label": "Do service",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "fix it same week, give you a quote, stock your grade",
+        "position": 1
+      },
+      {
+        "key": "OUR_DIFFERENTIATOR",
+        "label": "Our differentiator",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "the specific thing that makes the contrast real",
+        "position": 2
+      },
+      {
+        "key": "SERVICE",
+        "label": "Service",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "maintenance, inspection, order",
+        "position": 3
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      },
+      {
+        "key": "LOCATION",
+        "label": "Location",
+        "type": "text",
+        "source": "brand",
+        "required": false,
+        "defaultValue": null,
+        "hint": "in Tucson, across Melbourne",
+        "position": 5
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "location_footage",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Shows the work actually happening — proof that you do it"
+      },
+      {
+        "kind": "person_on_camera",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Much stronger with a real person delivering the line"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

@@ -6,6 +6,7 @@ import type { WorkspaceAngleDto } from '../../../types/business/me';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { ContentAnglesSection } from './ContentAnglesSection';
 import { VoiceSettingsSection } from './VoiceSettingsSection';
+import { BusinessProfileSection } from './BusinessProfileSection';
 import { WebsiteSourceBar } from './WebsiteSourceBar';
 
 export type AngleState = {
@@ -75,6 +76,12 @@ export const BrandView = () => {
         product={product}
         genState={state.genState}
         onRefresh={handleRefresh}
+      />
+      <BusinessProfileSection
+        product={product}
+        audienceType={ws?.audienceType ?? null}
+        promoting={ws?.promoting ?? null}
+        offer={ws?.offer ?? null}
       />
       <ContentAnglesSection
         angles={state.angles}

@@ -1,0 +1,144 @@
+{
+  "slug": "pov-red-flag-moment",
+  "legacyId": 7,
+  "name": "POV: Red Flag Moment",
+  "pillarSlug": "protection-warning",
+  "formatSlug": "pov-scenario",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "trust"
+  ],
+  "primaryPurpose": "trust",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "POV: When your [SERVICE_PROVIDER] does [RED_FLAG_ACTION] 🚩🚩🚩",
+    "beats": [
+      {
+        "label": "Title card",
+        "guidance": "\"POV: When your [SERVICE_PROVIDER] does [RED_FLAG_ACTION] 🚩\""
+      },
+      {
+        "label": "The moment",
+        "guidance": "visual or acted demonstration of the red flag"
+      },
+      {
+        "label": "Explanation",
+        "guidance": "\"[RED_FLAG_EXPLANATION]\" (text overlay, brief)"
+      },
+      {
+        "label": "Contrast",
+        "guidance": "\"At [BUSINESS_NAME], we [OPPOSITE]\""
+      },
+      {
+        "label": "Optional CTA — this format often ends on the contrast beat",
+        "guidance": ""
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "POV: Your [SERVICE_PROVIDER] just did this… 🚩",
+        "bgPrompt": "First-person POV shot at a service encounter, dramatic perspective showing a concerning moment, moody cinematic lighting, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "They won't let you see the damaged part they're replacing",
+        "bgPrompt": "Close-up of a hidden mechanical component in a dark workshop, shadowy and suspicious, 9:16 vertical, no text"
+      },
+      {
+        "text": "This is how you know they're not being straight with you",
+        "bgPrompt": "Person looking uncomfortable and suspicious in a service interaction, documentary realism, 9:16 vertical candid photo, no text"
+      },
+      {
+        "text": "Don't let this happen — DM us for a free second opinion",
+        "bgPrompt": "Friendly professional looking directly at camera with reassuring expression, clean bright background, 9:16 vertical portrait, no text"
+      }
+    ],
+    "keywords": [
+      "pov",
+      "when they",
+      "point of view",
+      "this is when",
+      "red flag moment",
+      "claw hammer"
+    ],
+    "variables": [
+      {
+        "key": "SERVICE_PROVIDER",
+        "label": "Service provider",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 0
+      },
+      {
+        "key": "RED_FLAG_ACTION",
+        "label": "Red flag action",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "pulls out a random part, gives verbal-only quote",
+        "position": 1
+      },
+      {
+        "key": "RED_FLAG_EXPLANATION",
+        "label": "Red flag explanation",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "why this is bad",
+        "position": 2
+      },
+      {
+        "key": "BUSINESS_NAME",
+        "label": "Business name",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 3
+      },
+      {
+        "key": "OPPOSITE",
+        "label": "Opposite",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "person_on_camera",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Must be a real person — the POV format requires an actor playing the situation"
+      },
+      {
+        "kind": "product_footage",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "The prop / actual item involved in the red flag scenario"
+      },
+      {
+        "kind": "trending_audio",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "library",
+        "notes": "POV format works best with trending TikTok audio — sourced manually"
+      }
+    ]
+  }
+}

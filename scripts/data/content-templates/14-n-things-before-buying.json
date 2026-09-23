@@ -1,0 +1,169 @@
+{
+  "slug": "n-things-before-buying",
+  "legacyId": 14,
+  "name": "N Things to Know Before Buying",
+  "pillarSlug": "education-authority",
+  "formatSlug": "buyers-guide",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "trust",
+    "enquiry"
+  ],
+  "primaryPurpose": "trust",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "[N] things [BUYER_TYPE] need to know before buying [PRODUCT] 🏗️",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"[N] things [BUYER_TYPE] need to know before buying [PRODUCT]\""
+      },
+      {
+        "label": "Thing 1",
+        "guidance": "[THING_1] — most commonly missed / most expensive mistake"
+      },
+      {
+        "label": "Thing 2",
+        "guidance": "[THING_2]"
+      },
+      {
+        "label": "Thing 3",
+        "guidance": "[THING_3]"
+      },
+      {
+        "label": "Closer",
+        "guidance": "\"We walk every customer through all of these — it's why our buyers come back\""
+      },
+      {
+        "label": "CTA",
+        "guidance": "[CTA]"
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "[N] things to know BEFORE you hire a [SERVICE_PROVIDER]",
+        "bgPrompt": "Open notepad with handwritten checklist on a clean wooden desk, pen nearby, bright airy natural light, 9:16 vertical editorial photo, no text"
+      },
+      {
+        "text": "#1: Always get a written quote — verbal ones are worthless",
+        "bgPrompt": "Contract or quote document being signed on a professional desk, clear and important, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "#3: Verify their licence & insurance (not just Google reviews)",
+        "bgPrompt": "Official looking certificate or credential document on a clean surface, authoritative, 9:16 vertical editorial, no text"
+      },
+      {
+        "text": "At [BUSINESS_NAME] we walk you through every point — book a free consult",
+        "bgPrompt": "Professional and client sitting together reviewing documents, collaborative and trustworthy, warm office light, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "before you buy",
+      "before you hire",
+      "what to know",
+      "buyer guide",
+      "before choosing",
+      "before calling"
+    ],
+    "variables": [
+      {
+        "key": "N",
+        "label": "N",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": "3",
+        "hint": "3",
+        "position": 0
+      },
+      {
+        "key": "BUYER_TYPE",
+        "label": "Buyer type",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "contractors, construction managers, homeowners",
+        "position": 1
+      },
+      {
+        "key": "PRODUCT",
+        "label": "Product",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 2
+      },
+      {
+        "key": "THING_1",
+        "label": "Thing 1",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "grade selection — most buyers buy the wrong grade",
+        "position": 3
+      },
+      {
+        "key": "THING_2",
+        "label": "Thing 2",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      },
+      {
+        "key": "THING_3",
+        "label": "Thing 3",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 5
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 6
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "product_footage",
+        "required": true,
+        "minCount": 2,
+        "fulfilment": "upload",
+        "notes": "Show the product being discussed — abstract advice is less sticky"
+      },
+      {
+        "kind": "person_on_camera",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Optional but increases trust significantly"
+      },
+      {
+        "kind": "spec_sheet_broll",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "On-screen text of the specs being discussed"
+      }
+    ]
+  }
+}

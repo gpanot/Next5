@@ -1,13 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Film, Images, ImagePlus, Loader2, Minus, Plus, Sparkles, X } from 'lucide-react';
+import { Images, ImagePlus, Loader2, Minus, Plus, Sparkles, Wand2, X } from 'lucide-react';
 import {
   BLITZ_BUSINESS_TEXT_MAX,
   BLITZ_SLIDESHOW_SECONDS_MAX,
   BLITZ_SLIDESHOW_SECONDS_MIN,
 } from '../../../../config/blitzLab';
-import type { SlideshowMode } from './useSlideshowMode';
 import { blitzApi, type BlitzAssetDto } from './api';
 import type { SlideData } from './SlidePreview';
 
@@ -35,15 +34,15 @@ type SlideshowCopyPanelProps = {
   token?: string;
   /** Called after a background is AI-generated so the parent can add it to its assets state. */
   onAssetCreated?: (asset: BlitzAssetDto) => void;
-  /** 'slideshow' while every background is a still image, 'video' once one is footage. */
-  mode: SlideshowMode;
-  /** 1-based slide numbers carrying footage — empty in slideshow mode. */
-  videoSlideNumbers: number[];
-  /** How long each card holds, in seconds. Only used in slideshow mode. */
+  /** How long each card holds, in seconds. */
   secondsPerSlide: number;
   onSecondsPerSlideChange: (seconds: number) => void;
   /** Resulting clip length, in seconds. */
   durationSeconds: number;
+  /** Audio library assets — used by Auto to pick a random track. */
+  audioAssets?: BlitzAssetDto[];
+  /** Called when Auto picks an audio track so the parent can set audioKey. */
+  onAutoAudioPick?: (audioKey: string) => void;
 };
 
 /** Slide text inputs + per-slide backgrounds + business line for the Blitz Slideshow editor. */
@@ -60,11 +59,11 @@ export function SlideshowCopyPanel({
   onBusinessTextChange,
   token,
   onAssetCreated,
-  mode,
-  videoSlideNumbers,
   secondsPerSlide,
   onSecondsPerSlideChange,
   durationSeconds,
+  audioAssets = [],
+  onAutoAudioPick,
 }: SlideshowCopyPanelProps) {
   const nonEmptyCount = slides.filter((s) => s.text.trim()).length;
 
@@ -72,6 +71,10 @@ export function SlideshowCopyPanel({
   const [genState, setGenState] = useState<Record<number, 'idle' | 'open' | 'generating' | 'error'>>({});
   // Per-slide prompt override (user can edit before generating)
   const [genPrompt, setGenPrompt] = useState<Record<number, string>>({});
+
+  // Auto-generate state: null = idle, number = index currently generating
+  const [autoGenerating, setAutoGenerating] = useState<boolean>(false);
+  const [autoProgress, setAutoProgress] = useState<number>(0);
 
   const getSlideGenState = (i: number) => genState[i] ?? 'idle';
   const getSlidePrompt = (i: number) => genPrompt[i] ?? (slides[i]?.bgPromptSuggestion ?? '');
@@ -131,6 +134,58 @@ export function SlideshowCopyPanel({
     onIndexChange(Math.min(currentIndex, next.length - 1));
   };
 
+  /**
+   * Auto: generate backgrounds for every slide that has a prompt suggestion
+   * (or uses the slide text as a fallback prompt), then pick a random audio.
+   * Runs slides sequentially so the user can see progress.
+   */
+  const handleAutoGenerate = async () => {
+    if (!token || autoGenerating) return;
+    setAutoGenerating(true);
+    setAutoProgress(0);
+
+    // Work on a mutable copy we'll accumulate into
+    let current = [...slides];
+
+    for (let i = 0; i < current.length; i++) {
+      const slide = current[i];
+      const prompt = (slide.bgPromptSuggestion ?? slide.text).trim();
+      if (!prompt) {
+        setAutoProgress(i + 1);
+        continue;
+      }
+      // Mark this slide as generating
+      setGenState((prev) => ({ ...prev, [i]: 'generating' }));
+      onIndexChange(i);
+      try {
+        const res = await blitzApi.generateBackground(token, prompt);
+        if (res.ok && res.data.asset) {
+          const asset = res.data.asset;
+          onAssetCreated?.(asset);
+          current = current.map((s, idx) =>
+            idx === i ? { ...s, backgroundKey: asset.r2Key } : s,
+          );
+          onChange(current);
+          setGenState((prev) => ({ ...prev, [i]: 'idle' }));
+        } else {
+          setGenState((prev) => ({ ...prev, [i]: 'error' }));
+        }
+      } catch {
+        setGenState((prev) => ({ ...prev, [i]: 'error' }));
+      }
+      setAutoProgress(i + 1);
+    }
+
+    // Pick a random audio from the library (if any exist and none is set yet)
+    const libraryAudio = audioAssets.filter((a) => a.source === 'library');
+    if (libraryAudio.length > 0 && onAutoAudioPick) {
+      const pick = libraryAudio[Math.floor(Math.random() * libraryAudio.length)];
+      onAutoAudioPick(pick.r2Key);
+    }
+
+    setAutoGenerating(false);
+  };
+
   return (
     <>
       {/* ── Business line ─────────────────────────────────────────────── */}
@@ -177,64 +232,80 @@ export function SlideshowCopyPanel({
 
       {/* ── Slide inputs ──────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <p className="text-[13px] font-semibold text-ink">Slides</p>
-          <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-700">
-            {nonEmptyCount} / {slides.length}
-          </span>
+          <div className="flex items-center gap-2">
+            {/* Auto-generate all backgrounds + pick a track */}
+            {token && (
+              <button
+                type="button"
+                onClick={() => void handleAutoGenerate()}
+                disabled={autoGenerating || !slides.some((s) => (s.bgPromptSuggestion ?? s.text).trim())}
+                title="Generate all backgrounds and pick a music track automatically"
+                className={[
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors',
+                  autoGenerating
+                    ? 'bg-orange-100 text-orange-500 cursor-default'
+                    : 'bg-orange-500 text-white hover:opacity-90 disabled:opacity-40',
+                ].join(' ')}
+              >
+                {autoGenerating ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {autoProgress}/{slides.length}
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="h-3 w-3" />
+                    Auto
+                  </>
+                )}
+              </button>
+            )}
+            <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-700">
+              {nonEmptyCount} / {slides.length}
+            </span>
+          </div>
         </div>
 
-        {/* ── Output mode ─────────────────────────────────────────────── */}
-        {mode === 'slideshow' ? (
-          <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface-alt px-3 py-2.5">
-            <div className="flex items-center gap-1.5">
-              <Images className="h-3.5 w-3.5 shrink-0 text-muted" />
-              <p className="text-[12px] font-medium text-ink">Slideshow</p>
-              <span className="ml-auto text-[11px] tabular-nums text-muted">
-                {durationSeconds.toFixed(0)} s total
+        {/* ── Timing control ───────────────────────────────────────────── */}
+        <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface-alt px-3 py-2.5">
+          <div className="flex items-center gap-1.5">
+            <Images className="h-3.5 w-3.5 shrink-0 text-muted" />
+            <p className="text-[12px] font-medium text-ink">Slideshow</p>
+            <span className="ml-auto text-[11px] tabular-nums text-muted">
+              {durationSeconds.toFixed(0)} s total
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="seconds-per-slide" className="text-[11px] text-muted">
+              Seconds per slide
+            </label>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => onSecondsPerSlideChange(secondsPerSlide - 1)}
+                disabled={secondsPerSlide <= BLITZ_SLIDESHOW_SECONDS_MIN}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-white text-muted transition-colors hover:border-orange-400 hover:text-orange-600 disabled:opacity-40 dark:bg-neutral-800"
+                aria-label="Shorter slides"
+              >
+                <Minus className="h-3 w-3" />
+              </button>
+              <span id="seconds-per-slide" className="w-9 text-center text-[12px] font-semibold tabular-nums text-ink">
+                {secondsPerSlide}s
               </span>
-            </div>
-            <div className="flex items-center justify-between gap-2">
-              <label htmlFor="seconds-per-slide" className="text-[11px] text-muted">
-                Seconds per slide
-              </label>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => onSecondsPerSlideChange(secondsPerSlide - 1)}
-                  disabled={secondsPerSlide <= BLITZ_SLIDESHOW_SECONDS_MIN}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-white text-muted transition-colors hover:border-orange-400 hover:text-orange-600 disabled:opacity-40 dark:bg-neutral-800"
-                  aria-label="Shorter slides"
-                >
-                  <Minus className="h-3 w-3" />
-                </button>
-                <span id="seconds-per-slide" className="w-9 text-center text-[12px] font-semibold tabular-nums text-ink">
-                  {secondsPerSlide}s
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onSecondsPerSlideChange(secondsPerSlide + 1)}
-                  disabled={secondsPerSlide >= BLITZ_SLIDESHOW_SECONDS_MAX}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-white text-muted transition-colors hover:border-orange-400 hover:text-orange-600 disabled:opacity-40 dark:bg-neutral-800"
-                  aria-label="Longer slides"
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => onSecondsPerSlideChange(secondsPerSlide + 1)}
+                disabled={secondsPerSlide >= BLITZ_SLIDESHOW_SECONDS_MAX}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-line bg-white text-muted transition-colors hover:border-orange-400 hover:text-orange-600 disabled:opacity-40 dark:bg-neutral-800"
+                aria-label="Longer slides"
+              >
+                <Plus className="h-3 w-3" />
+              </button>
             </div>
           </div>
-        ) : (
-          <div className="flex items-start gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-            <Film className="mt-px h-3.5 w-3.5 shrink-0 text-amber-700" />
-            <p className="text-[11px] leading-snug text-amber-800">
-              <span className="font-semibold">Renders as a video.</span>{' '}
-              Slide{videoSlideNumbers.length > 1 ? 's' : ''} {videoSlideNumbers.join(', ')}{' '}
-              {videoSlideNumbers.length > 1 ? 'use' : 'uses'} footage, so the clip runs{' '}
-              {durationSeconds.toFixed(1)} s. Swap {videoSlideNumbers.length > 1 ? 'them' : 'it'} for a
-              still image to get a real slideshow.
-            </p>
-          </div>
-        )}
+        </div>
 
         <div className="flex flex-col gap-2">
           {slides.map((slide, i) => {
@@ -327,13 +398,13 @@ export function SlideshowCopyPanel({
                         onKeyDown={(e) => { if (e.key === 'Enter' && !isGenerating) void handleGenerate(i); }}
                         placeholder="Background image prompt…"
                         disabled={isGenerating}
-                        className="flex-1 rounded-md border border-orange-200 bg-white px-2 py-1 text-[11px] text-ink placeholder:text-subtle focus:outline-none focus:ring-1 focus:ring-orange-400/40 disabled:opacity-60"
+                        className="min-w-0 flex-1 rounded-md border border-orange-200 bg-white px-2 py-1 text-[11px] text-ink placeholder:text-subtle focus:outline-none focus:ring-1 focus:ring-orange-400/40 disabled:opacity-60"
                       />
                       <button
                         type="button"
                         onClick={() => void handleGenerate(i)}
                         disabled={isGenerating || !getSlidePrompt(i).trim()}
-                        className="shrink-0 inline-flex items-center gap-1 rounded-md bg-orange-500 px-2.5 py-1 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                        className="shrink-0 inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-orange-500 px-3 py-1 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
                       >
                         {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                         {isGenerating ? 'Generating…' : 'Generate'}

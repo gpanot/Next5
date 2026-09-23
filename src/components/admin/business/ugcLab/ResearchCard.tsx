@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import type React from 'react';
 import { ChevronDown, AlertTriangle } from 'lucide-react';
-import { resolvePhase0ATemplate } from '../../../../lib/phase0aTemplates';
+import { useContentTemplates } from '../../shared/useContentTemplates';
+import { TemplateRequirements } from '../../shared/TemplateRequirements';
 import { ScriptSheet } from './ScriptSheet';
 import { SuggestedSlides } from './SuggestedSlides';
 
@@ -74,7 +75,8 @@ export function ResearchCard({ video, selected, onSelect, renderAction, niche, t
   const [templateOpen, setTemplateOpen] = useState(false);
   const postedAt = formatPostedAt(video.posted_at);
 
-  const template = resolvePhase0ATemplate(video.template_id, video.hook);
+  const { resolve, loading: templatesLoading } = useContentTemplates(token);
+  const template = resolve(video.template_id, video.hook);
   const durationSeconds = toSeconds(video.duration);
   const durationLabel = formatDuration(durationSeconds);
   const durationTooLong = durationSeconds !== null && durationSeconds > 30;
@@ -136,18 +138,26 @@ export function ResearchCard({ video, selected, onSelect, renderAction, niche, t
       </div>
 
       {/* ── Template expansion ─────────────────────────────────────────── */}
-      {templateOpen && (
+      {templateOpen && !template && (
+        <div className="border-t border-orange-100 bg-orange-50/60 px-3 py-3 text-[12px] text-muted">
+          {templatesLoading ? 'Loading the template library…' : 'Template library unavailable.'}
+        </div>
+      )}
+      {templateOpen && template && (
         <div className="border-t border-orange-100 bg-orange-50/60 px-3 pb-3 pt-2.5">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div>
               <p className="text-[13px] font-semibold text-ink">
-                T{String(template.id).padStart(2, '0')} — {template.name}
+                {template.legacyId ? `T${String(template.legacyId).padStart(2, '0')} — ` : ''}{template.name}
               </p>
-              <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${template.pillarColor}`}>
-                {template.pillar}
+              <span className="mt-0.5 inline-block rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-medium text-orange-800">
+                {template.pillarName}
               </span>
             </div>
           </div>
+
+          {/* What this template needs before it can be made at all. */}
+          <TemplateRequirements assetRequirements={template.assetRequirements} className="mb-2" />
 
           {/* Hook pattern */}
           <div className="mb-2 rounded-lg border border-orange-200 bg-white px-3 py-2">
@@ -159,10 +169,13 @@ export function ResearchCard({ video, selected, onSelect, renderAction, niche, t
           <div className="mb-2">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted">Structure</p>
             <ol className="flex flex-col gap-0.5">
-              {template.structure.map((step: string, i: number) => (
-                <li key={i} className="flex gap-1.5 text-[11px] text-ink">
+              {template.beats.map((beat, i) => (
+                <li key={`${beat.label}-${i}`} className="flex gap-1.5 text-[11px] text-ink">
                   <span className="shrink-0 text-muted">{i + 1}.</span>
-                  <span>{step}</span>
+                  <span>
+                    <span className="font-medium">{beat.label}</span>
+                    {beat.guidance ? `: ${beat.guidance}` : ''}
+                  </span>
                 </li>
               ))}
             </ol>
@@ -172,9 +185,13 @@ export function ResearchCard({ video, selected, onSelect, renderAction, niche, t
           <div className="mb-2">
             <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted">Variables</p>
             <div className="flex flex-wrap gap-1">
-              {template.keyVars.map((v: string) => (
-                <span key={v} className="rounded bg-orange-100 px-1.5 py-0.5 font-mono text-[10px] text-orange-800">
-                  {v}
+              {template.variables.map((v) => (
+                <span
+                  key={v.key}
+                  title={[v.hint, v.required ? 'required' : 'optional', `from ${v.source}`].filter(Boolean).join(' · ')}
+                  className={`rounded px-1.5 py-0.5 font-mono text-[10px] ${v.required ? 'bg-orange-100 text-orange-800' : 'border border-dashed border-orange-200 text-orange-700'}`}
+                >
+                  {v.key}
                 </span>
               ))}
             </div>
@@ -183,7 +200,7 @@ export function ResearchCard({ video, selected, onSelect, renderAction, niche, t
           {/* Suggested slides — niche-specific when a niche + token are given */}
           <SuggestedSlides
             fallbackSlides={template.suggestedSlides}
-            templateId={template.id}
+            templateId={template.legacyId ?? 0}
             niche={niche}
             token={token}
             videoId={video.id || video.video_url}

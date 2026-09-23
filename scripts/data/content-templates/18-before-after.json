@@ -1,0 +1,152 @@
+{
+  "slug": "before-after",
+  "legacyId": 18,
+  "name": "Before / After",
+  "pillarSlug": "social-proof-trust",
+  "formatSlug": "transformation-reveal",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "trust",
+    "enquiry"
+  ],
+  "primaryPurpose": "trust",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "From [BEFORE_STATE] to [AFTER_STATE] — wait for the reveal 🔥",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"From [BEFORE_STATE] to [AFTER_STATE] 🔥 / Wait for it…\""
+      },
+      {
+        "label": "Before",
+        "guidance": "show the problem / raw state"
+      },
+      {
+        "label": "Process",
+        "guidance": "2–3 quick cuts of the work in progress"
+      },
+      {
+        "label": "After reveal",
+        "guidance": "dramatic cut or slow zoom on the finished result"
+      },
+      {
+        "label": "Time overlay",
+        "guidance": "\"[TIME_TO_COMPLETE]\" on the reveal"
+      },
+      {
+        "label": "CTA",
+        "guidance": "\"DM for a quote / Book your [SERVICE]\""
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "Before → After: [TRANSFORMATION TYPE] in [LOCATION] ✨",
+        "bgPrompt": "Dramatic before-and-after split image, left half worn or damaged, right half pristine, high contrast professional photography, 9:16 vertical, no text"
+      },
+      {
+        "text": "BEFORE: [BEFORE_CONDITION] — this is what the client gave us",
+        "bgPrompt": "Close-up of worn, damaged, or problem state of a surface or object, honest documentary photography, 9:16 vertical, no text"
+      },
+      {
+        "text": "The process: [BRIEF_PROCESS_STEP] in [TIME]",
+        "bgPrompt": "Professional mid-transformation action shot — tools in use, work in progress, cinematic and impressive, 9:16 vertical, no text"
+      },
+      {
+        "text": "AFTER: [RESULT] — client was speechless. See more → link in bio",
+        "bgPrompt": "Pristine finished result shown in beautiful light, polished and impressive, clean professional photography, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "before",
+      "after",
+      "transformation",
+      "makeover",
+      "fix",
+      "repaired",
+      "restored",
+      "rebuilt",
+      "brand new"
+    ],
+    "variables": [
+      {
+        "key": "BEFORE_STATE",
+        "label": "Before state",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "seized engine, scorched wiring, bare steel frame",
+        "position": 0
+      },
+      {
+        "key": "AFTER_STATE",
+        "label": "After state",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "running like new, fully rewired, completed structure",
+        "position": 1
+      },
+      {
+        "key": "TIME_TO_COMPLETE",
+        "label": "Time to complete",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "2-day turnaround",
+        "position": 2
+      },
+      {
+        "key": "SERVICE",
+        "label": "Service",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 3
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "product_footage",
+        "required": true,
+        "minCount": 3,
+        "fulfilment": "upload",
+        "notes": "Before state, work in progress, after reveal — all three required"
+      },
+      {
+        "kind": "before_after_photo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Still image comparison as thumbnail / intercut"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../src/server/admin/route';
 import { chatJson, type ChatMessage } from '../../../../../src/server/ai/openai';
-import { PHASE0A_TEMPLATES, type Phase0ATemplate } from '../../../../../src/lib/phase0aTemplates';
+import { getTemplateByLegacyId } from '../../../../../src/server/templates/repository';
+import type { TemplateDto } from '../../../../../src/server/templates/dto';
 
 type GenerateSlidesBody = {
   /** Niche the user searched for, e.g. "auto mechanic". */
@@ -37,14 +38,14 @@ const SYSTEM_PROMPT = [
   'Return JSON only: { "slides": [ { "text": "...", "bgPrompt": "..." } ] }',
 ].join('\n');
 
-const buildPrompt = (niche: string, template: Phase0ATemplate, hook: string, transcript: string): string => {
+const buildPrompt = (niche: string, template: TemplateDto, hook: string, transcript: string): string => {
   const parts = [
     `Niche: ${niche}`,
     '',
-    `Template: ${template.name} (${template.pillar})`,
+    `Template: ${template.name} (${template.pillarName})`,
     `Hook pattern: ${template.hookPattern}`,
     `Structure (one slide per step, in order):`,
-    ...template.structure.map((step, i) => `  ${i + 1}. ${step}`),
+    ...template.beats.map((beat, i) => `  ${i + 1}. ${beat.label}${beat.guidance ? `: ${beat.guidance}` : ''}`),
   ];
 
   if (hook.trim()) {
@@ -60,7 +61,7 @@ const buildPrompt = (niche: string, template: Phase0ATemplate, hook: string, tra
 
   parts.push(
     '',
-    `Write exactly ${template.structure.length} slides for a ${niche} business, one per structure step.`,
+    `Write exactly ${template.beats.length} slides for a ${niche} business, one per structure step.`,
     'Slide 1 is the hook and follows the hook pattern above, rewritten for this niche.',
     'The last slide is the call to action.',
   );
@@ -71,7 +72,7 @@ const buildPrompt = (niche: string, template: Phase0ATemplate, hook: string, tra
  * Fallback when the LLM is unavailable: swap the generic placeholders in the
  * static template for the niche so the user still sees something usable.
  */
-const localiseFallback = (template: Phase0ATemplate, niche: string): GeneratedSlide[] => {
+const localiseFallback = (template: TemplateDto, niche: string): GeneratedSlide[] => {
   const swap = (s: string) =>
     s
       .replace(/\[(SERVICE_PROVIDER|PROFESSION|PRO|SERVICE|TRADE)\]/gi, niche)
@@ -106,7 +107,8 @@ export const POST = adminRoute(async (req: NextRequest) => {
     return NextResponse.json({ error: 'niche is required' }, { status: 400 });
   }
 
-  const template = PHASE0A_TEMPLATES.find((t) => t.id === body.templateId);
+  // templateId is the Phase 0A number (1–18); the library now lives in the database.
+  const template = typeof body.templateId === 'number' ? await getTemplateByLegacyId(body.templateId) : null;
   if (!template) {
     return NextResponse.json({ error: 'Unknown templateId' }, { status: 400 });
   }

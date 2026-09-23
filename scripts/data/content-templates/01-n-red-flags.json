@@ -1,0 +1,215 @@
+{
+  "slug": "n-red-flags",
+  "legacyId": 1,
+  "name": "N Red Flags",
+  "pillarSlug": "protection-warning",
+  "formatSlug": "n-item-list",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "trust"
+  ],
+  "primaryPurpose": "trust",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "[N] red flags your [SERVICE_PROVIDER] is [NEGATIVE_BEHAVIOR]",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"[N] red flags your [SERVICE_PROVIDER] is [NEGATIVE_BEHAVIOR] 🚩\""
+      },
+      {
+        "label": "Red Flag 1",
+        "guidance": "[RED_FLAG_1] — one-line explanation"
+      },
+      {
+        "label": "Red Flag 2",
+        "guidance": "[RED_FLAG_2] — one-line explanation"
+      },
+      {
+        "label": "Red Flag 3",
+        "guidance": "[RED_FLAG_3] — one-line explanation"
+      },
+      {
+        "label": "Optional",
+        "guidance": "Red Flag 4 / 5"
+      },
+      {
+        "label": "Contrast pivot",
+        "guidance": "\"At [BUSINESS_NAME], we [COUNTER_BEHAVIOR]\""
+      },
+      {
+        "label": "CTA",
+        "guidance": "[CTA]"
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "5 red flags your [SERVICE_PROVIDER] is overcharging you 🚩",
+        "bgPrompt": "Dramatic close-up of a red warning flag on dark background, cinematic studio lighting, bold and striking, 9:16 vertical professional photo, no text"
+      },
+      {
+        "text": "Red flag #1: Vague quotes with no itemised breakdown",
+        "bgPrompt": "Blurred invoice document on a dark desk, selective focus, moody office lighting, 9:16 vertical editorial photo, no text"
+      },
+      {
+        "text": "Red flag #3: They pressure you to decide on the spot",
+        "bgPrompt": "Tense business handshake with warning connotation, dark dramatic lighting, cinematic 9:16 vertical, no text"
+      },
+      {
+        "text": "At [BUSINESS_NAME] we always explain every cost upfront — book your free consult",
+        "bgPrompt": "Friendly professional at desk handing over a clear printed quote, warm natural office light, trustworthy atmosphere, 9:16 vertical, no text"
+      }
+    ],
+    "keywords": [
+      "red flag",
+      "warning",
+      "scam",
+      "ripping you off",
+      "rip you off",
+      "scamming",
+      "overcharging",
+      "dishonest",
+      "shady"
+    ],
+    "variables": [
+      {
+        "key": "N",
+        "label": "N",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": "5",
+        "hint": "5",
+        "position": 0
+      },
+      {
+        "key": "SERVICE_PROVIDER",
+        "label": "Service provider",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "mechanic, electrician, steel supplier",
+        "position": 1
+      },
+      {
+        "key": "NEGATIVE_BEHAVIOR",
+        "label": "Negative behavior",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "scamming you, overcharging you",
+        "position": 2
+      },
+      {
+        "key": "RED_FLAG_1",
+        "label": "Red flag 1",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 3
+      },
+      {
+        "key": "RED_FLAG_2",
+        "label": "Red flag 2",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      },
+      {
+        "key": "RED_FLAG_3",
+        "label": "Red flag 3",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 5
+      },
+      {
+        "key": "RED_FLAG_4",
+        "label": "Red flag 4",
+        "type": "text",
+        "source": "campaign",
+        "required": false,
+        "defaultValue": null,
+        "hint": null,
+        "position": 6
+      },
+      {
+        "key": "RED_FLAG_5",
+        "label": "Red flag 5",
+        "type": "text",
+        "source": "campaign",
+        "required": false,
+        "defaultValue": null,
+        "hint": null,
+        "position": 7
+      },
+      {
+        "key": "COUNTER_BEHAVIOR",
+        "label": "Counter behavior",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "always show you the old part",
+        "position": 8
+      },
+      {
+        "key": "BUSINESS_NAME",
+        "label": "Business name",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 9
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "Book a free inspection → link in bio",
+        "position": 10
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "person_on_camera",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Talking-head delivery of the list. Must feel like a real tradesperson warning you."
+      },
+      {
+        "kind": "product_footage",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "B-roll of the red flag scenario being demonstrated"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

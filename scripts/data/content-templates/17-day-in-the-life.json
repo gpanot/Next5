@@ -1,0 +1,127 @@
+{
+  "slug": "day-in-the-life",
+  "legacyId": 17,
+  "name": "Day in the Life",
+  "pillarSlug": "behind-the-business",
+  "formatSlug": "lifestyle-reel",
+  "audience": "both",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "engagement",
+    "awareness"
+  ],
+  "primaryPurpose": "engagement",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "Another day at [BUSINESS_NAME] 🔧 [no script, raw footage]",
+    "beats": [
+      {
+        "label": "Optional hook",
+        "guidance": "\"Another day at [BUSINESS_NAME] 🔧\" OR no hook — music-driven montage"
+      },
+      {
+        "label": "Beat 1",
+        "guidance": "the actual work happening ([WORK_TYPE])"
+      },
+      {
+        "label": "Beat 2",
+        "guidance": "a BTS moment (funny, impressive, or relatable)"
+      },
+      {
+        "label": "Beat 3",
+        "guidance": "the result (car done, delivery made, project complete)"
+      },
+      {
+        "label": "Optional closer",
+        "guidance": "[PERSONALITY_LINE]"
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "Day in the life of a [PROFESSION] at [BUSINESS_NAME] 📍",
+        "bgPrompt": "Documentary-style candid shot of a professional arriving at work at sunrise, early morning golden light, authentic real-life feel, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "6am: First job in — here's what we're dealing with today",
+        "bgPrompt": "Early morning light streaming into a workshop or worksite, tools laid out ready for the day, cinematic golden hour, 9:16 vertical, no text"
+      },
+      {
+        "text": "By midday: [JOB_COUNT] jobs done, [HIGHLIGHT_MOMENT]",
+        "bgPrompt": "Professional mid-task at peak concentration, authentic action shot, midday natural light, 9:16 vertical documentary photo, no text"
+      },
+      {
+        "text": "This is what it takes. Follow for more behind-the-scenes.",
+        "bgPrompt": "Professional at end of productive day, proud and satisfied expression, warm late afternoon light, 9:16 vertical portrait, no text"
+      }
+    ],
+    "keywords": [
+      "day in the life",
+      "ditl",
+      "a day",
+      "mechanic life",
+      "life of a",
+      "typical day",
+      "morning routine",
+      "shop life"
+    ],
+    "variables": [
+      {
+        "key": "BUSINESS_NAME",
+        "label": "Business name",
+        "type": "text",
+        "source": "brand",
+        "required": false,
+        "defaultValue": null,
+        "hint": null,
+        "position": 0
+      },
+      {
+        "key": "WORK_TYPE",
+        "label": "Work type",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "oil change, wiring job, steel delivery",
+        "position": 1
+      },
+      {
+        "key": "PERSONALITY_LINE",
+        "label": "Personality line",
+        "type": "text",
+        "source": "manual",
+        "required": false,
+        "defaultValue": null,
+        "hint": "just another Tuesday at the shop 💪",
+        "position": 2
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "location_footage",
+        "required": true,
+        "minCount": 3,
+        "fulfilment": "upload",
+        "notes": "The actual shop/warehouse/job site — authentic, not staged"
+      },
+      {
+        "kind": "product_footage",
+        "required": true,
+        "minCount": 2,
+        "fulfilment": "upload",
+        "notes": "Work in progress — hands on the job"
+      },
+      {
+        "kind": "generic_selfie",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Optional reaction/personality moment"
+      }
+    ]
+  }
+}

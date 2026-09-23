@@ -1,13 +1,12 @@
 'use client';
 
 /**
- * Slideshow vs video mode.
+ * Slideshow timing — always fixed-duration per slide.
  *
- * A Slideshow whose backgrounds are all still images is a real slideshow: every
- * card holds for the same chosen number of seconds, and the clip length is just
- * slides × secondsPerSlide. The moment one slide carries footage the output
- * stops being a slideshow and becomes an ordinary video, so the clip length has
- * to follow the footage instead — and the user is told before rendering.
+ * Every slide holds for `secondsPerSlide` seconds regardless of whether its
+ * background is a still image or a video clip. Video backgrounds are trimmed
+ * (or held on the last frame) by the Remotion Sequence window — the user sets
+ * the pace via the ± stepper, not the footage length.
  */
 
 import {
@@ -16,17 +15,15 @@ import {
   BLITZ_SLIDESHOW_SECONDS_MIN,
   clampBlitzDuration,
 } from '../../../../config/blitzLab';
-import type { BlitzAssetDto } from './api';
 import type { SlideData } from './SlidePreview';
-import { isLocalKey } from './useBlitzUploads';
 
-export type SlideshowMode = 'slideshow' | 'video';
+export type SlideshowMode = 'slideshow';
 
 export type SlideshowModeResult = {
   mode: SlideshowMode;
-  /** 1-based slide numbers whose background is footage. Empty in slideshow mode. */
+  /** Always empty — kept for API compatibility. */
   videoSlideNumbers: number[];
-  /** Clip length to submit, in seconds. */
+  /** Clip length to submit, in seconds (slideCount × secondsPerSlide). */
   durationSeconds: number;
 };
 
@@ -35,32 +32,23 @@ export const clampSecondsPerSlide = (seconds: number): number =>
   Math.min(BLITZ_SLIDESHOW_SECONDS_MAX, Math.max(BLITZ_SLIDESHOW_SECONDS_MIN, Math.round(seconds)));
 
 /**
- * Which slides carry footage, and how long the clip should be.
- *
- * @param clipSeconds - length measured from the background videos, used in video mode.
+ * Compute slideshow duration.
+ * The `assets` and `clipSeconds` parameters are no longer used but kept so
+ * call-sites don't need updating.
  */
 export function resolveSlideshowMode(
   slides: SlideData[],
-  assets: BlitzAssetDto[],
-  fallbackBackgroundKey: string,
+  _assets: unknown,
+  _fallbackBackgroundKey: unknown,
   secondsPerSlide: number,
-  clipSeconds: number,
+  _clipSeconds?: unknown,
 ): SlideshowModeResult {
   const filled = slides.filter((s) => s.text.trim());
-
-  const videoSlideNumbers = filled.reduce<number[]>((found, slide, index) => {
-    const key = slide.backgroundKey || fallbackBackgroundKey;
-    if (!key || isLocalKey(key)) return found;
-    const asset = assets.find((a) => a.r2Key === key);
-    if (asset?.mediaKind === 'video') found.push(index + 1);
-    return found;
-  }, []);
-
-  const mode: SlideshowMode = videoSlideNumbers.length > 0 ? 'video' : 'slideshow';
   const slideCount = Math.max(1, filled.length);
-  const durationSeconds = mode === 'slideshow'
-    ? clampBlitzDuration(slideCount * clampSecondsPerSlide(secondsPerSlide), BLITZ_SLIDESHOW_MAX_DURATION_S)
-    : clipSeconds;
+  const durationSeconds = clampBlitzDuration(
+    slideCount * clampSecondsPerSlide(secondsPerSlide),
+    BLITZ_SLIDESHOW_MAX_DURATION_S,
+  );
 
-  return { mode, videoSlideNumbers, durationSeconds };
+  return { mode: 'slideshow', videoSlideNumbers: [], durationSeconds };
 }

@@ -1,0 +1,165 @@
+{
+  "slug": "tired-of-pain",
+  "legacyId": 10,
+  "name": "Tired of [Pain]?",
+  "pillarSlug": "pain-point-cta",
+  "formatSlug": "pain-hook",
+  "audience": "b2b",
+  "platforms": [
+    "tiktok",
+    "instagram"
+  ],
+  "purposes": [
+    "enquiry",
+    "conversion"
+  ],
+  "primaryPurpose": "enquiry",
+  "status": "active",
+  "version": {
+    "version": 1,
+    "hookPattern": "Tired of [PROCUREMENT_PAIN]? 👉 [BENEFIT_1] · [BENEFIT_2] · [BENEFIT_3]",
+    "beats": [
+      {
+        "label": "Hook",
+        "guidance": "\"Tired of [PROCUREMENT_PAIN]? 👉\" OR \"Stop [PAINFUL_ACTION] — there's a better way\""
+      },
+      {
+        "label": "Benefit 1",
+        "guidance": "\"[BENEFIT_1]\" (specific, measurable)"
+      },
+      {
+        "label": "Benefit 2",
+        "guidance": "\"[BENEFIT_2]\""
+      },
+      {
+        "label": "Benefit 3",
+        "guidance": "\"[BENEFIT_3]\""
+      },
+      {
+        "label": "CTA",
+        "guidance": "\"DM your spec / Get a quote / Link in bio\""
+      }
+    ],
+    "suggestedSlides": [
+      {
+        "text": "Tired of [PAIN POINT] every time you need [SERVICE]?",
+        "bgPrompt": "Person with frustrated expression looking at phone or problem, relatable emotional moment, natural candid lighting, 9:16 vertical photo, no text"
+      },
+      {
+        "text": "Here's how we solved this for [CLIENT TYPE] last week",
+        "bgPrompt": "Before-and-after side by side showing a resolved problem, clear transformation, clean photography, 9:16 vertical, no text"
+      },
+      {
+        "text": "No more [PROBLEM] — we guarantee it or we fix it free",
+        "bgPrompt": "Professional handshake or guarantee gesture, confident and trustworthy, bright clean professional setting, 9:16 vertical editorial photo, no text"
+      },
+      {
+        "text": "Ready for a better experience? Book [BUSINESS_NAME] today",
+        "bgPrompt": "Person with relieved expression after a problem is solved, warm natural light, emotional and relatable, 9:16 vertical photo, no text"
+      }
+    ],
+    "keywords": [
+      "tired of",
+      "frustrated",
+      "sick of",
+      "fed up",
+      "problem",
+      "struggle",
+      "pain",
+      "issue",
+      "annoyed"
+    ],
+    "variables": [
+      {
+        "key": "PROCUREMENT_PAIN",
+        "label": "Procurement pain",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": "last-minute sourcing delays, waiting 3 weeks for a booking",
+        "position": 0
+      },
+      {
+        "key": "BENEFIT_1",
+        "label": "Benefit 1",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": "6 grades in stock, ready to cut today",
+        "position": 1
+      },
+      {
+        "key": "BENEFIT_2",
+        "label": "Benefit 2",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 2
+      },
+      {
+        "key": "BENEFIT_3",
+        "label": "Benefit 3",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 3
+      },
+      {
+        "key": "PRODUCT",
+        "label": "Product",
+        "type": "text",
+        "source": "brand",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 4
+      },
+      {
+        "key": "CTA",
+        "label": "Cta",
+        "type": "text",
+        "source": "campaign",
+        "required": true,
+        "defaultValue": null,
+        "hint": null,
+        "position": 5
+      }
+    ],
+    "assetRequirements": [
+      {
+        "kind": "product_footage",
+        "required": true,
+        "minCount": 2,
+        "fulfilment": "upload",
+        "notes": "Shows what's actually in stock — the proof behind the benefit claims"
+      },
+      {
+        "kind": "location_footage",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": "Warehouse/shop showing normal operations"
+      },
+      {
+        "kind": "on_screen_text",
+        "required": true,
+        "minCount": 1,
+        "fulfilment": "generate",
+        "notes": "Benefits must also appear as text overlays"
+      },
+      {
+        "kind": "logo",
+        "required": false,
+        "minCount": 1,
+        "fulfilment": "upload",
+        "notes": null
+      }
+    ]
+  }
+}

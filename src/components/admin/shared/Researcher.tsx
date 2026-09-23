@@ -29,7 +29,7 @@ import {
 } from '../business/ugcLab/researchCache';
 import { SearchHistory } from '../business/ugcLab/SearchHistory';
 import { ugcRequest, errorOf } from '../business/ugcLab/api';
-import { resolvePhase0ATemplate } from '../../../lib/phase0aTemplates';
+import { useContentTemplates } from './useContentTemplates';
 import { getNicheSlides, type NicheSlide } from '../../../lib/nicheSlides';
 import {
   EmptyState,
@@ -88,6 +88,7 @@ export function Researcher({
   const [slidesLoadingId, setSlidesLoadingId] = useState<string | null>(null);
   /** Permanent search history — shared across every tab that researches. */
   const [history, setHistory] = useState<SearchEntry[]>(() => readHistory());
+  const { resolve: resolveTemplateFor } = useContentTemplates(token);
 
   async function handleAction(video: ResearchVideo, cardNiche: string) {
     if (!withSlides || !cardNiche.trim()) {
@@ -98,7 +99,7 @@ export function Researcher({
     setSlidesLoadingId(id);
     const result = await getNicheSlides(token, {
       niche: cardNiche,
-      templateId: resolvePhase0ATemplate(video.template_id, video.hook).id,
+      templateId: resolveTemplateFor(video.template_id, video.hook)?.legacyId ?? 0,
       videoId: id,
       hook: video.hook,
       transcript: video.raw_transcript,

@@ -22,6 +22,10 @@ export const PATCH = authedRoute(async (req, session) => {
   // Legacy: some older clients still send workspaceName — accept but ignore (name stays as display name)
   if (typeof body.workspaceName === 'string' && body.workspaceName && !qualData.websiteUrl) qualData.websiteUrl = body.workspaceName;
   if (typeof body.industry === 'string' && body.industry) qualData.industry = body.industry;
+  // Who she sells to. The Template Engine's primary filter — B2B templates never reach a B2C business.
+  if (body.audienceType === 'b2c' || body.audienceType === 'b2b' || body.audienceType === 'both') {
+    qualData.audienceType = body.audienceType;
+  }
   // Step 3 — team + revenue
   if (typeof body.teamSize === 'string' && body.teamSize) qualData.teamSize = body.teamSize;
   if (typeof body.monthlyRevenue === 'string' && body.monthlyRevenue) qualData.monthlyRevenue = body.monthlyRevenue;
