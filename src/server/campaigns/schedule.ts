@@ -9,7 +9,7 @@ import { prisma } from '../../lib/db';
 import { recordUsage } from '../automation/matching';
 import { HttpError } from '../http';
 import { getOrCreateSchedule } from '../calendar/calendar';
-import { toCampaignDto, WITH_POSTS, type CampaignPatch } from './campaigns';
+import { toCampaignDto, WITH_POSTS, WIZARD_STEPS, type CampaignPatch } from './campaigns';
 import type { CampaignDto, CampaignRow } from './dto';
 
 type Db = PrismaClient | Prisma.TransactionClient;
@@ -94,7 +94,7 @@ export const scheduleCampaign = async (
   );
   await db.campaign.update({
     where: { id: campaignId },
-    data: { status: 'scheduled', scheduledAt: new Date(), step: 6 },
+    data: { status: 'scheduled', scheduledAt: new Date(), step: WIZARD_STEPS },
   });
 
   return toCampaignDto(

@@ -191,7 +191,21 @@ to the user — and the quota in Step 6 — counts posts, never slots.
       each `PlanSlot` already isolates exactly this set.
 - [x] Missing requirements flag the specific day, not a generic warning.
 
-### 1A.7 — Step 6 · Review and schedule
+### 1A.7 — Steps 6–8 · Prepare, review, book
+
+The wizard is eight steps, not six. Footage is followed by a preparation screen and a review of
+the week as posts, because a list of template names is not something she can judge — a row of
+9:16 cards in the shape they post in is.
+
+- [x] **Step 6 · Generate.** Where render progress lives once Phase 1B exists. Until then it
+      reports what is true — each post's template, version and shot list are confirmed — and does
+      **not** animate a fake timer over work that is not happening.
+- [x] **Step 7 · Review.** One 9:16 card per post: hook, pillar, channels, engine, what the post
+      needs, and an editable caption. The media frame is a placeholder that states what will fill
+      it, rather than an empty box.
+- [x] **Step 8 · Book.**
+
+### 1A.7b — Step 8 · Review and schedule
 
 - [x] Summary: posts, days, channels, and the Yours/Mix/Generated split.
 - [x] Schedule writes `CampaignPost` rows and their `PostSlot` rows, then calls `recordUsage()` —

@@ -18,13 +18,16 @@ import { Stepper } from '../../ui/Stepper';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import * as api from './api';
 import { AssetsStep } from './steps/AssetsStep';
+import { CampaignReviewStep } from './steps/CampaignReviewStep';
+import { GenerateStep } from './steps/GenerateStep';
 import { CadenceStep } from './steps/CadenceStep';
 import { CampaignStep } from './steps/CampaignStep';
 import { GoalStep, type SellTarget } from './steps/GoalStep';
 import { PlanStep } from './steps/PlanStep';
 import { ReviewStep } from './steps/ReviewStep';
 
-const STEPS = ['Goal', 'Message', 'Plan', 'Cadence', 'Footage', 'Book'] as const;
+const STEPS = ['Goal', 'Message', 'Plan', 'Cadence', 'Footage', 'Generate', 'Review', 'Book'] as const;
+const LAST_STEP = STEPS.length;
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -50,7 +53,7 @@ export function AutomationWizard({ campaignId }: { campaignId?: string }) {
       .then((c) => {
         if (cancelled) return;
         setCampaign(c);
-        setStep(c.status === 'scheduled' ? 6 : c.step);
+        setStep(c.status === 'scheduled' ? LAST_STEP : c.step);
       })
       .catch((err: unknown) => !cancelled && setError(err instanceof Error ? err.message : 'Could not open that campaign.'));
     return () => {
@@ -137,7 +140,7 @@ export function AutomationWizard({ campaignId }: { campaignId?: string }) {
   }, [product]);
 
   useEffect(() => {
-    if (step !== 6 || !product || !campaign) return;
+    if (step !== LAST_STEP || !product || !campaign) return;
     api.readGaps(product, campaign.id).then((r) => setGaps(r.gaps)).catch(() => setGaps([]));
   }, [step, product, campaign]);
 
@@ -232,7 +235,18 @@ export function AutomationWizard({ campaignId }: { campaignId?: string }) {
         <AssetsStep posts={campaign.posts} assetMethod={campaign.assetMethod} onChange={(patch) => void save(patch)} />
       )}
 
-      {step === 6 && campaign && (
+      {step === 6 && campaign && <GenerateStep posts={campaign.posts} onDone={() => goTo(7)} />}
+
+      {step === 7 && campaign && (
+        <CampaignReviewStep
+          posts={campaign.posts}
+          channels={campaign.channels}
+          savingPostId={busyPostId}
+          onCaption={(postId, caption) => void postAction(postId, { caption })}
+        />
+      )}
+
+      {step === 8 && campaign && (
         <ReviewStep
           campaign={campaign}
           gaps={gaps}
@@ -251,14 +265,14 @@ export function AutomationWizard({ campaignId }: { campaignId?: string }) {
         >
           <ArrowLeft aria-hidden className="h-4 w-4" /> Back
         </button>
-        {step < 6 && (
+        {step < LAST_STEP && (
           <AppButton
             size="md"
             loading={busy}
             disabled={!canAdvance}
             onClick={() => void advance()}
           >
-            {step === 2 ? 'Build my week' : 'Next'}
+            {step === 2 ? 'Build my week' : step === 5 ? 'Prepare my posts' : 'Next'}
             <ArrowRight aria-hidden className="h-4 w-4" />
           </AppButton>
         )}

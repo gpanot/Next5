@@ -28,6 +28,9 @@ export const WITH_POSTS = { posts: { include: POST_INCLUDE, orderBy: { position:
 
 const isoDate = (date: Date): string => date.toISOString().slice(0, 10);
 
+/** Goal, Message, Plan, Cadence, Footage, Generate, Review, Book. */
+export const WIZARD_STEPS = 8;
+
 export const toPostDto = (row: PostRow): CampaignPostDto => {
   const assetRequirements = row.version.assetRequirements.map((a) =>
     toAssetRequirementDto(a as Parameters<typeof toAssetRequirementDto>[0]),
@@ -182,7 +185,7 @@ export const updateDraft = async (
   if (patch.postsPerDay) data.postsPerDay = Math.min(3, Math.max(1, patch.postsPerDay));
   if (patch.weeks) data.weeks = Math.min(4, Math.max(1, patch.weeks));
   if (patch.startDate) data.startDate = new Date(`${patch.startDate}T00:00:00.000Z`);
-  if (patch.step) data.step = Math.min(6, Math.max(1, patch.step));
+  if (patch.step) data.step = Math.min(WIZARD_STEPS, Math.max(1, patch.step));
   for (const key of ['campaignSubject', 'campaignMessage', 'promo', 'notes', 'assetMethod', 'assetUrl'] as const) {
     if (patch[key] !== undefined) data[key] = patch[key];
   }
