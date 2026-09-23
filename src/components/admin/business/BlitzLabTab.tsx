@@ -70,6 +70,7 @@ export function BlitzLabTab({ token }: Props) {
   const [regenError, setRegenError] = useState<string | null>(null);
   const [activeLayer, setActiveLayer] = useState<BlitzLayer>('OVERLAY');
   const [picker, setPicker] = useState<BlitzUploadType | null>(null);
+  const [pauseSignal, setPauseSignal] = useState(0);
   const text = useTextLayout(selectedTemplate?.textConfig);
 
   // ── uploads + render ──────────────────────────────────────────────────
@@ -282,7 +283,7 @@ export function BlitzLabTab({ token }: Props) {
             assets={assets}
             currentAssets={currentAssets}
             uploads={uploads}
-            onOpenPicker={setPicker}
+            onOpenPicker={(type) => { setPicker(type); setPauseSignal((n) => n + 1); }}
             onRetryUpload={retry}
             onRemoveAudio={() => handleSwapAsset('AUDIO', '')}
             muteVideoAudio={muteVideoAudio}
@@ -307,7 +308,7 @@ export function BlitzLabTab({ token }: Props) {
         {/* Center: preview */}
         <div className="order-1 flex min-w-0 flex-col items-center gap-4 lg:order-none">
           {inputProps && (
-            <PreviewPlayer inputProps={inputProps} activeLayer={activeLayer} onSelectLayer={setActiveLayer} onLayerDrag={handleLayerDrag} />
+            <PreviewPlayer inputProps={inputProps} activeLayer={activeLayer} onSelectLayer={setActiveLayer} onLayerDrag={handleLayerDrag} pauseSignal={pauseSignal} />
           )}
           <RenderControls state={render.state} isBusy={render.isBusy} blockedReason={blockedReason} onSubmit={handleDoneEditing} />
         </div>
@@ -322,7 +323,7 @@ export function BlitzLabTab({ token }: Props) {
             overlayZoom={overlay.zoom}
             onZoomChange={(zoom) => setOverlay((prev) => ({ ...prev, zoom }))}
             onResetPosition={() => setOverlay(NO_OVERLAY_MOVE)}
-            onSwapOverlay={() => setPicker('OVERLAY')}
+            onSwapOverlay={() => { setPicker('OVERLAY'); setPauseSignal((n) => n + 1); }}
             textConfig={text.resolved}
             onTextConfigChange={text.patch}
             onResetTextPosition={text.resetCaptionPosition}

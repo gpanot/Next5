@@ -42,6 +42,8 @@ type PreviewPlayerProps = {
   onSelectLayer: (layer: BlitzLayer) => void;
   /** Drag delta in 1080p canvas px for the layer being moved. */
   onLayerDrag: (layer: BlitzLayer, dx: number, dy: number) => void;
+  /** Increment to pause the player (e.g. when a modal opens). */
+  pauseSignal?: number;
 };
 
 export function PreviewPlayer({
@@ -49,6 +51,7 @@ export function PreviewPlayer({
   activeLayer,
   onSelectLayer,
   onLayerDrag,
+  pauseSignal = 0,
 }: PreviewPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const drag = useRef<{ layer: BlitzLayer; x: number; y: number } | null>(null);
@@ -99,7 +102,7 @@ export function PreviewPlayer({
         className="relative mx-auto overflow-hidden rounded-2xl shadow-lg"
         style={{ aspectRatio: '9/16', width: '100%', maxWidth: 400 }}
       >
-        <RemotionPlayerWrapper inputProps={inputProps} playFromStartSignal={playFromStartSignal} />
+        <RemotionPlayerWrapper inputProps={inputProps} playFromStartSignal={playFromStartSignal} pauseSignal={pauseSignal} />
 
         {/* Hover outline for a layer that is not selected yet */}
         {hoverOutline && (

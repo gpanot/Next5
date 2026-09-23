@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { BlitzAssetDto } from './api';
 import { AssetCard } from './AssetCard';
-import { CloseIcon, LibraryIcon, UploadIcon } from './icons';
+import { CloseIcon, LibraryIcon, MusicIcon, UploadIcon } from './icons';
 import { BLITZ_ACCEPT, type BlitzUploadType } from './upload';
 import { isLocalKey } from './useBlitzUploads';
 
@@ -105,12 +105,40 @@ export function AssetLibraryModal({ type, assets, currentKey, onSelect, onPickFi
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 sm:gap-4">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5 sm:gap-3">
+            {/* "No Sound" tile — shown first in the audio library tab */}
+            {type === 'AUDIO' && tab === 'library' && (
+              <button
+                type="button"
+                onClick={() => pick('')}
+                className={[
+                  'flex aspect-[3/4] flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border bg-white shadow-sm transition-all dark:bg-neutral-900',
+                  !currentKey
+                    ? 'border-orange-500 ring-2 ring-orange-500/40'
+                    : 'border-line hover:border-orange-300 dark:border-neutral-800',
+                ].join(' ')}
+                aria-label="No sound"
+              >
+                <div className="flex flex-1 w-full items-center justify-center bg-neutral-100 dark:bg-neutral-800 text-muted relative">
+                  <MusicIcon className="h-5 w-5 opacity-30" />
+                  {/* strikethrough line */}
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <span className="block h-px w-8 rotate-45 bg-muted/60" />
+                  </span>
+                  {!currentKey && (
+                    <span className="pointer-events-none absolute bottom-1.5 left-1.5 flex items-center gap-0.5 rounded-full bg-orange-500 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+                      ✓ In use
+                    </span>
+                  )}
+                </div>
+                <span className="pb-1.5 text-[11px] text-ink font-medium">No Sound</span>
+              </button>
+            )}
             {tab === 'upload' && (
-              <label className="flex aspect-[3/4] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line p-4 text-center text-muted transition-colors hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600 dark:border-neutral-700 dark:hover:bg-orange-950/30">
-                <UploadIcon className="h-6 w-6" />
-                <span className="text-[13px] font-semibold">Upload</span>
-                <span className="text-[11px] leading-snug">{UPLOAD_HINT[type]}</span>
+              <label className="flex aspect-[3/4] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line p-3 text-center text-muted transition-colors hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600 dark:border-neutral-700 dark:hover:bg-orange-950/30">
+                <UploadIcon className="h-5 w-5" />
+                <span className="text-[12px] font-semibold">Upload</span>
+                <span className="text-[10px] leading-snug">{UPLOAD_HINT[type]}</span>
                 <input type="file" accept={BLITZ_ACCEPT[type]} onChange={handleFile} className="sr-only" />
               </label>
             )}

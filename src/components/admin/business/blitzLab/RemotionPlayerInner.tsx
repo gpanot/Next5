@@ -18,9 +18,11 @@ type Props = {
   inputProps: GreenScreenProps;
   /** Increment to seek to frame 0 and play from start. */
   playFromStartSignal: number;
+  /** Increment to pause the player (e.g. when a modal opens). */
+  pauseSignal: number;
 };
 
-export function RemotionPlayerInner({ inputProps, playFromStartSignal }: Props) {
+export function RemotionPlayerInner({ inputProps, playFromStartSignal, pauseSignal }: Props) {
   const playerRef = useRef<PlayerRef>(null);
 
   // Suppress the "play() interrupted by pause()" AbortError that Chrome fires
@@ -47,6 +49,12 @@ export function RemotionPlayerInner({ inputProps, playFromStartSignal }: Props) 
       // AbortError — safe to ignore
     }
   }, [playFromStartSignal]);
+
+  // When pauseSignal changes, pause the player.
+  useEffect(() => {
+    if (pauseSignal <= 0) return;
+    playerRef.current?.pause();
+  }, [pauseSignal]);
 
   return (
     <Player
