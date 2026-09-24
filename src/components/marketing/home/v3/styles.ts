@@ -155,22 +155,22 @@ export const BASE_CSS = String.raw`
 .v3timer .big-n{font-size:38px;font-weight:800;color:var(--ready);letter-spacing:-.04em;line-height:1.1;margin:2px 0;
   transition:font-size .3s ease,margin .3s ease}
 .v3timer > span{transition:opacity .3s ease,height .3s ease}
-/* Shrink card when video plays */
-.v3side-card.mini{padding:7px 11px;width:auto;min-width:0;border-radius:999px}
-.v3side-card.mini b{font-size:11px;margin-bottom:0}
-.v3side-card.mini .big-n{font-size:20px;margin:0}
-.v3side-card.mini > span{opacity:0;height:0;overflow:hidden;display:block}
+/* Shrink card when video plays — display:inline-block lets it hug its content */
+.v3side-card.mini{display:inline-block;width:auto!important;max-width:none;padding:8px 12px;border-radius:10px}
+.v3side-card.mini b{font-size:11px;margin-bottom:0;white-space:nowrap;display:block}
+.v3side-card.mini .big-n{font-size:20px;margin:0;white-space:nowrap;line-height:1.2}
+.v3side-card.mini > span{display:none}
 /* Hide phone notch when video plays */
 .v3phone.playing .v3phone-notch{opacity:0;transition:opacity .4s ease}
 .v3phone-notch{transition:opacity .4s ease}
 @media (max-width:900px){
   .v3stage{flex-direction:column;align-items:center;padding-bottom:0}
   .v3side-card{position:relative;left:auto;top:auto;margin:16px auto 0;width:calc(100% - 40px);max-width:260px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .v3side-card.mini{width:auto;max-width:none;border-radius:999px;margin:10px auto 0;flex-direction:row;padding:6px 14px}
+  .v3side-card.mini{width:auto;max-width:fit-content;border-radius:10px;margin:10px auto 0;flex-direction:row;padding:8px 12px}
   .v3side-card b{width:100%}
-  .v3side-card.mini b{width:auto}
+  .v3side-card.mini b{width:auto;white-space:nowrap}
   .v3timer .big-n{font-size:30px}
-  .v3side-card.mini .big-n{font-size:20px}
+  .v3side-card.mini .big-n{font-size:20px;white-space:nowrap}
 }
 @media (max-width:520px){.v3stage .v3phone{max-width:236px;border-radius:36px;padding:8px}.v3phone-screen{border-radius:29px}}
 
