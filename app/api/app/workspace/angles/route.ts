@@ -24,6 +24,10 @@ export const GET = authedRoute(async (req, session) => {
     genAt: ws.anglesGenAt,
     // Also return the latest brand extract so the brand page can refresh after generation
     brandExtract: ws.brandExtract ?? null,
+    // Also return profile fields so BusinessProfileSection refreshes after extraction
+    audienceType: ws.audienceType ?? null,
+    promoting: ws.promoting ?? null,
+    offer: ws.offer ?? null,
   });
 });
 

@@ -17,6 +17,10 @@ export type AngleState = {
   angles: WorkspaceAngleDto[];
   genState: string;
   genAt: string | null;
+  brandExtract?: BrandExtractData | null;
+  audienceType?: string | null;
+  promoting?: string | null;
+  offer?: string | null;
 };
 
 const EMPTY_EXTRACT: BrandExtractData = {
@@ -50,15 +54,31 @@ export const BrandView = () => {
     (ws?.brandExtract as BrandExtractData | null) ?? EMPTY_EXTRACT,
   );
 
-  // If workspace is mid-generation, poll until done — also refreshes brandExtract
+  // ── "Your business" profile fields (audienceType / promoting / offer) ─────────
+  // These are extracted alongside brandExtract — refresh them from the polling loop.
+  const [wsProfile, setWsProfile] = useState({
+    audienceType: ws?.audienceType ?? null as string | null,
+    promoting: ws?.promoting ?? null as string | null,
+    offer: ws?.offer ?? null as string | null,
+  });
+
+  // If workspace is mid-generation, poll until done — also refreshes brandExtract + wsProfile
   const pollAngles = useCallback(async () => {
     if (!product) return;
     try {
-      const data = await apiFetch<AngleState & { brandExtract?: BrandExtractData | null }>(
+      const data = await apiFetch<AngleState>(
         `/api/app/workspace/angles?product=${product}`,
       );
       setState(data);
       if (data.brandExtract) setBrandExtract(data.brandExtract);
+      // Refresh "Your business" fields if extraction populated them
+      if (data.audienceType || data.promoting || data.offer) {
+        setWsProfile({
+          audienceType: data.audienceType ?? null,
+          promoting: data.promoting ?? null,
+          offer: data.offer ?? null,
+        });
+      }
       if (data.genState === 'pending') {
         pollingRef.current = setTimeout(() => void pollAngles(), 2500);
       }
@@ -131,9 +151,9 @@ export const BrandView = () => {
 
       <BusinessProfileSection
         product={product}
-        audienceType={ws?.audienceType ?? null}
-        promoting={ws?.promoting ?? null}
-        offer={ws?.offer ?? null}
+        audienceType={wsProfile.audienceType}
+        promoting={wsProfile.promoting}
+        offer={wsProfile.offer}
       />
       <ContentAnglesSection
         angles={state.angles}

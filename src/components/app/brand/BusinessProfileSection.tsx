@@ -7,7 +7,7 @@
  * what a campaign defaults to when she does not write her own — so they are worth getting right
  * once, rather than retyping every week.
  */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { apiFetch } from '../../../lib/apiClient';
 import type { ProductLineDto } from '../../../types/business/me';
 import { AppButton } from '../../ui/AppButton';
@@ -35,6 +35,18 @@ export const BusinessProfileSection = ({ product, audienceType, promoting, offer
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync local state when extraction fills in empty fields from the website
+  // (only overwrites if the field was blank — never clobbers user edits)
+  useEffect(() => {
+    if (!audience && audienceType) setAudience(audienceType);
+  }, [audienceType]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!promotingText && promoting) setPromotingText(promoting);
+  }, [promoting]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!offerText && offer) setOfferText(offer);
+  }, [offer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const dirty =
     audience !== (audienceType ?? '') ||
