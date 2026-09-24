@@ -262,7 +262,7 @@ function VideoCard({ asset, token }: { asset: BlitzAssetDto; token: string }) {
   };
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-xl border border-line bg-white shadow-sm">
+    <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-white shadow-sm">
       <div
         className="relative aspect-[9/16] w-full overflow-hidden bg-neutral-900"
         onMouseEnter={() => ref.current?.play().catch(() => undefined)}
@@ -285,11 +285,11 @@ function VideoCard({ asset, token }: { asset: BlitzAssetDto; token: string }) {
           preload="none"
           className="h-full w-full object-contain"
         />
-        {/* Mute/unmute button — appears on hover */}
+        {/* Mute/unmute button — always visible */}
         <button
           type="button"
           onClick={toggleMute}
-          className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/80"
+          className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
           title={muted ? 'Unmute' : 'Mute'}
         >
           {muted
