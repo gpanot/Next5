@@ -83,6 +83,10 @@ function HeroDemo({ audience }: { audience: Audience }) {
             <div className="v3thumbs js-thumbs">
               <div /><div /><div /><div /><div /><div /><div /><div />
             </div>
+            {/* Progress bar — animated by JS via CSS custom property */}
+            <div className="v3progress" aria-hidden="true">
+              <div className="v3progress-bar js-progress-bar" />
+            </div>
           </div>
 
         </div>

@@ -32,8 +32,18 @@ const CORE_JS = String.raw`
     q(".js-input").value="";runDemo(false);
   }
   function clearT(){timers.forEach(clearTimeout);timers=[];clearInterval(hookTimer)}
-  function playRealtorVideo(){var v=q(".js-realtor-video");if(v)v.play().catch(function(){});}
-  function stopRealtorVideo(){var v=q(".js-realtor-video");if(v){v.pause();v.currentTime=0;}}
+  function playRealtorVideo(){
+    var v=q(".js-realtor-video");if(v)v.play().catch(function(){});
+    var phone=q(".v3phone"),card=q(".v3side-card");
+    if(phone)phone.classList.add("playing");
+    if(card)card.classList.add("mini");
+  }
+  function stopRealtorVideo(){
+    var v=q(".js-realtor-video");if(v){v.pause();v.currentTime=0;}
+    var phone=q(".v3phone"),card=q(".v3side-card");
+    if(phone)phone.classList.remove("playing");
+    if(card)card.classList.remove("mini");
+  }
   function at(ms,fn){timers.push(setTimeout(fn,ms))}
   function cycleHooks(){
     var hook=q(".js-hook"),dots=qa(".v3hookdots i"),n=0;
@@ -45,22 +55,26 @@ const CORE_JS = String.raw`
       },350);
     },2800);
   }
+  function setProgress(pct){var bar=q(".js-progress-bar");if(bar)bar.style.width=pct+"%"}
   function runDemo(typeLink){
     clearT();var build=q(".js-build"),items=build.querySelectorAll("li"),th=q(".js-thumbs").children,card=q(".v3side-card");
-    build.classList.remove("done");card.classList.remove("done");items.forEach(function(li){li.className=""});
+    build.classList.remove("done");card.classList.remove("done");card.classList.remove("mini");
+    var phone=q(".v3phone");if(phone)phone.classList.remove("playing");
+    items.forEach(function(li){li.className=""});
     Array.prototype.forEach.call(th,function(t){t.classList.remove("in")});
     qa(".v3hookdots i").forEach(function(d,i){d.classList.toggle("on",i===0)});
     setText(".js-hook",copy[current].hooks[0]);
+    setProgress(0);
     if(reduce){items.forEach(function(li){li.className="ok"});build.classList.add("done");return}
     var t=0;
     if(typeLink){var inp=q(".js-input"),s=copy[current].demo,i=0;inp.value="";
       (function type(){if(i<=s.length){inp.value=s.slice(0,i++);at(18,type)}})();t=s.length*18+300}
-    at(t,function(){items[0].className="on"});
+    at(t,function(){items[0].className="on";setProgress(5)});
     for(var k=0;k<th.length;k++){(function(k){at(t+150+k*140,function(){th[k].classList.add("in")})})(k)}
-    at(t+1500,function(){items[0].className="ok";items[1].className="on"});
-    at(t+2500,function(){items[1].className="ok";items[2].className="on"});
-    at(t+3600,function(){items[2].className="ok";items[3].className="ok"});
-    at(t+4300,function(){build.classList.add("done");card.classList.add("done");
+    at(t+1500,function(){items[0].className="ok";items[1].className="on";setProgress(40)});
+    at(t+2500,function(){items[1].className="ok";items[2].className="on";setProgress(72)});
+    at(t+3600,function(){items[2].className="ok";items[3].className="ok";setProgress(95)});
+    at(t+4300,function(){setProgress(100);build.classList.add("done");card.classList.add("done");
       if(typeLink){q(".js-input").value=""}
       if(current==="realtor"){playRealtorVideo();}else{cycleHooks();}});
   }
