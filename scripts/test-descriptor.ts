@@ -233,8 +233,8 @@ async function main() {
   for (const asset of TEST_ASSETS) results.push(await runTest(asset));
 
   // ── Fetch effective_rights_risk from DB for summary ──
-  const ids = TEST_ASSETS.filter(a => a.sourceField === 'blitzAssetId').map(a => a.blitzAssetId ?? a.id);
-  const ugcIds = TEST_ASSETS.filter(a => a.sourceField === 'ugcVideoId').map(a => a.ugcVideoId ?? a.id);
+  const ids = TEST_ASSETS.filter(a => a.sourceField === 'blitzAssetId').map(a => a.id);
+  const ugcIds = TEST_ASSETS.filter(a => a.sourceField === 'ugcVideoId').map(a => a.id);
   const dbRows = await prisma.assetDescriptor.findMany({
     where: {
       OR: [
