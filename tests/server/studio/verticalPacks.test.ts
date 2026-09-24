@@ -27,13 +27,16 @@ describe('verticalPacks', () => {
     expect(pack.researchKeywords.length).toBeGreaterThan(0);
   });
 
-  it('KNOWN_VERTICALS lists all 5 archetypes', () => {
+  it('KNOWN_VERTICALS lists all archetypes', () => {
     expect(KNOWN_VERTICALS).toContain('real_estate');
     expect(KNOWN_VERTICALS).toContain('ecommerce');
     expect(KNOWN_VERTICALS).toContain('saas');
     expect(KNOWN_VERTICALS).toContain('restaurant');
     expect(KNOWN_VERTICALS).toContain('home_services');
-    expect(KNOWN_VERTICALS).toHaveLength(5);
+    expect(KNOWN_VERTICALS).toContain('automotive');
+    expect(KNOWN_VERTICALS).toContain('health_wellness');
+    expect(KNOWN_VERTICALS).toContain('beauty_spa');
+    expect(KNOWN_VERTICALS).toHaveLength(8);
   });
 
   it('researchKeywords are non-empty strings without trailing spaces', () => {

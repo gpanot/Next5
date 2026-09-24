@@ -103,6 +103,63 @@ const PACKS: Record<string, VerticalPack> = {
       'how-to-vet-a-pro': 'audience',
     },
   },
+
+  automotive: {
+    vertical: 'automotive',
+    researchKeywords: [
+      'mechanic tips',
+      'auto repair shop day in the life',
+      'car maintenance tips',
+      'mechanic red flags',
+      'auto shop behind the scenes',
+      'car repair explained',
+      'oil change tips',
+    ],
+    defaultPerspectiveHints: {
+      'day-in-the-life': 'business',
+      'what-we-actually-do': 'business',
+      'n-red-flags': 'audience',
+      'how-to-vet-a-pro': 'audience',
+    },
+  },
+
+  health_wellness: {
+    vertical: 'health_wellness',
+    researchKeywords: [
+      'chiropractor tips',
+      'back pain relief',
+      'posture tips',
+      'physical therapy exercises',
+      'wellness clinic day in the life',
+      'patient results',
+      'health myths debunked',
+    ],
+    defaultPerspectiveHints: {
+      'day-in-the-life': 'business',
+      'what-we-actually-do': 'business',
+      'before-after': 'audience',
+      'n-tips-from-a-pro': 'business',
+    },
+  },
+
+  beauty_spa: {
+    vertical: 'beauty_spa',
+    researchKeywords: [
+      'spa day vlog',
+      'self care routine',
+      'esthetician tips',
+      'facial before and after',
+      'massage therapist day in the life',
+      'skincare tips from a pro',
+      'spa behind the scenes',
+    ],
+    defaultPerspectiveHints: {
+      'day-in-the-life': 'business',
+      'before-after': 'audience',
+      'what-we-actually-do': 'business',
+      'n-tips-from-a-pro': 'business',
+    },
+  },
 };
 
 /** Generic fallback for verticals not in the list above. */

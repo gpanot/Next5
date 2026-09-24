@@ -8,6 +8,7 @@ import { adminRoute } from '../../../../../../../src/server/admin/route';
 import { studioJson } from '../../../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../../../src/lib/db';
 import { runResearch } from '../../../../../../../src/server/studio/researcher';
+import { getVerticalPack } from '../../../../../../../src/server/studio/verticalPacks';
 
 export const maxDuration = 120;
 
@@ -40,9 +41,16 @@ export const POST = adminRoute(async (req: NextRequest, ctx: Ctx) => {
   }
 
   const body = (await req.json().catch(() => ({}))) as { keywords?: string[] };
-  const profileData = run.brandProfile.data as { market?: { keywords?: { value?: string[] } } };
+  const profileData = run.brandProfile.data as {
+    market?: { keywords?: { value?: string[] } };
+    classification?: { vertical?: { value?: string } };
+  };
   const profileKeywords = profileData.market?.keywords?.value ?? [];
-  const keywords = body.keywords ?? profileKeywords;
+  const vertical = profileData.classification?.vertical?.value ?? 'generic';
+  // Safety net: an empty keyword list (e.g. an older run predating a keyword-discovery
+  // fix, or an extraction that produced nothing usable) must not run research with
+  // zero keywords. Fall back to the curated per-vertical list rather than searching nothing.
+  const keywords = body.keywords ?? (profileKeywords.length > 0 ? profileKeywords : getVerticalPack(vertical).researchKeywords.slice(0, 4));
 
   await prisma.studioRun.update({
     where: { id: runId },
@@ -52,8 +60,6 @@ export const POST = adminRoute(async (req: NextRequest, ctx: Ctx) => {
   waitUntil(
     (async () => {
       const startedAt = Date.now();
-      const profileData2 = run.brandProfile.data as { classification?: { vertical?: { value?: string } } };
-      const vertical = profileData2.classification?.vertical?.value ?? 'generic';
       try {
         const result = await runResearch({ runId, keywords, vertical });
         await prisma.studioRun.update({
