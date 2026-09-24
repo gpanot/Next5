@@ -69,8 +69,9 @@ interface TestAsset {
 }
 
 const TEST_ASSETS: TestAsset[] = [
+  // ── 2 Videos ──────────────────────────────────────────────────────────────
   {
-    label: 'Scraped video (BACKGROUND, no audio, 4s)',
+    label: 'Video 1 (BACKGROUND, scraped)',
     name: 'Video 1',
     kind: 'background', source: 'scraped', sourceField: 'blitzAssetId',
     id: '3835da79-2c64-4f5a-bd0b-c76d83f89117',
@@ -78,29 +79,46 @@ const TEST_ASSETS: TestAsset[] = [
     ext: 'mp4', mime: 'video/mp4',
   },
   {
-    label: 'Meme (OVERLAY, has audio, 7s)',
-    name: 'Meme 32',
+    label: 'Video 2 (BACKGROUND, scraped)',
+    name: 'Video 2',
+    kind: 'background', source: 'scraped', sourceField: 'blitzAssetId',
+    id: 'f426a6f9-0aa3-4b59-8db2-ef7514b5746c',
+    r2Key: 'blitz/videos/611d7d45081848698e797458bceb4be2.mp4',
+    ext: 'mp4', mime: 'video/mp4',
+  },
+  // ── 2 Memes ───────────────────────────────────────────────────────────────
+  {
+    label: 'Meme 10 (OVERLAY)',
+    name: 'Meme 10',
     kind: 'meme', source: 'scraped', sourceField: 'blitzAssetId',
-    id: '0600ef58-b089-4fd5-8d10-acd8e3a64c97',
-    r2Key: 'blitz/assets/0a8f0c8be5044de3883b212e81843c2e.mp4',
+    id: 'd666f4b9-d6a4-425e-b82e-6767ff2f4f2a',
+    r2Key: 'blitz/assets/5ca3dfb85389472e898c9b690c61ba2c.mp4',
     ext: 'mp4', mime: 'video/mp4',
   },
   {
-    label: 'Music (cinderella.mp3, 43s)',
-    name: 'cinderella',
+    label: 'Meme 11 (OVERLAY)',
+    name: 'Meme 11',
+    kind: 'meme', source: 'scraped', sourceField: 'blitzAssetId',
+    id: '24cfa439-ae2e-42b9-98be-3bea4ce0445b',
+    r2Key: 'blitz/assets/b12212e5e62a48c4912b54d32140f083.mp4',
+    ext: 'mp4', mime: 'video/mp4',
+  },
+  // ── 2 Sounds ──────────────────────────────────────────────────────────────
+  {
+    label: 'Sound: "about this" (AUDIO)',
+    name: 'about this',
     kind: 'music', source: 'uploaded', sourceField: 'blitzAssetId',
-    id: '02e7399b-7d12-4470-acf3-5b85f33b6edc',
-    r2Key: 'blitz/audio/cinderella.mp3',
+    id: 'ff2cd075-f1a9-460f-afc6-33649de18878',
+    r2Key: 'blitz/audio/about_this.mp3',
     ext: 'mp3', mime: 'audio/mpeg',
   },
   {
-    label: 'UGC talking-head — "Lazy people…"',
-    name: 'UGC-cmu9791da',
-    kind: 'ugc_video', source: 'ai_generated', sourceField: 'ugcVideoId',
-    id: 'cmu9791da0002vus4ym5piwny',
-    r2Key: 'ugc-lab/videos/cmu9791da0002vus4ym5piwny/raw.mp4',
-    ext: 'mp4', mime: 'video/mp4',
-    script: 'Lazy people do a little work and think they should be winning, but winners push harder and still worry.',
+    label: 'Sound: "all about" (AUDIO)',
+    name: 'all about',
+    kind: 'music', source: 'uploaded', sourceField: 'blitzAssetId',
+    id: '8905c736-6e4e-41fa-8cb7-d3e45f974f35',
+    r2Key: 'blitz/audio/all_about.mp3',
+    ext: 'mp3', mime: 'audio/mpeg',
   },
 ];
 
