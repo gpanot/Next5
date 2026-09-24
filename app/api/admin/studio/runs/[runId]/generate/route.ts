@@ -47,27 +47,11 @@ export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
     (async () => {
       const startedAt = Date.now();
       try {
+        // runGeneration stores candidates internally and returns telemetry
         const result = await runGeneration({
           runId,
           profileVersion: run.brandProfile.version,
         });
-
-        // Store generated candidates
-        if (result.candidates.length > 0) {
-          await prisma.studioCandidate.createMany({
-            data: result.candidates.map((c) => ({
-              runId,
-              templateId: c.templateId,
-              angle: c.angle,
-              payload: c.payload as object,
-              costBreakdown: {},
-              costUsdMicros: BigInt(c.costUsdMicros),
-              generateDurationMs: c.generateDurationMs,
-              profileVersion: run.brandProfile.version,
-              guardrailWarnings: c.guardrailWarnings as object[],
-            })),
-          });
-        }
 
         await prisma.studioRun.update({
           where: { id: runId },
@@ -77,6 +61,8 @@ export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
             generateDurationMs: Date.now() - startedAt,
           },
         });
+
+        console.log(`[studio/generate] run=${runId} candidates=${result.candidates} durationMs=${result.telemetry.totalDurationMs} costMicros=${result.telemetry.totalCostUsdMicros}`);
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         await prisma.studioRun.update({

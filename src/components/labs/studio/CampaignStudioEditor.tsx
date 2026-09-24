@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 import { CheckCircle2, ChevronRight, Loader2, RefreshCw, X, AlertCircle, Clock, DollarSign } from 'lucide-react';
 import {
+  acceptCandidate,
   createRun,
   listRuns,
   patchCandidate,
@@ -402,14 +403,23 @@ function GenerationStep({ token, runId }: { token: string; runId: string }) {
     try { await triggerGenerateJob(); } finally { setTriggering(false); }
   };
 
-  const handleDecision = async (
+  const handleAccept = async (candidateId: string) => {
+    setPatching(candidateId);
+    try {
+      await acceptCandidate(token, runId, candidateId);
+      await refresh();
+    } finally {
+      setPatching(null);
+    }
+  };
+
+  const handleReject = async (
     candidateId: string,
-    status: 'accepted' | 'rejected',
-    rejectReason?: string,
+    rejectReason: string,
   ) => {
     setPatching(candidateId);
     try {
-      await patchCandidate(token, runId, candidateId, { status, rejectReason });
+      await patchCandidate(token, runId, candidateId, { status: 'rejected', rejectReason });
       await refresh();
     } finally {
       setPatching(null);
@@ -464,53 +474,85 @@ function GenerationStep({ token, runId }: { token: string; runId: string }) {
         </div>
       )}
 
-      {candidates.map((c) => (
-        <div key={c.id} className="rounded-lg border border-line bg-white p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[12px] font-medium text-ink">{c.angle ?? c.templateId ?? 'Candidate'}</p>
-              <p className="text-[11px] text-muted">
-                {c.engine} · v{c.profileVersion}
-                {c.costUsdMicros && ` · ${microsToCents(c.costUsdMicros)}`}
-                {c.generateDurationMs && ` · ${msToSec(c.generateDurationMs)}`}
-              </p>
-            </div>
-            <StatusBadge status={c.status} />
-          </div>
+      {candidates.map((c) => {
+        const payload = c.payload as { slides?: Array<{ text: string; bgPrompt: string }> };
+        const slides = payload.slides ?? [];
 
-          {c.guardrailWarnings.length > 0 && (
-            <div className="rounded bg-yellow-50 border border-yellow-200 p-3 space-y-1">
-              {c.guardrailWarnings.map((w, i) => (
-                <p key={i} className="text-[11px] text-yellow-800">⚠ [{w.type}] {w.text}</p>
-              ))}
+        return (
+          <div key={c.id} className="rounded-lg border border-line bg-white overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-line">
+              <div>
+                <p className="text-[12px] font-medium text-ink">{c.angle?.slice(0, 60) ?? c.templateId ?? 'Candidate'}</p>
+                <p className="text-[11px] text-muted mt-0.5">
+                  {c.engine} · v{c.profileVersion} · {slides.length} slides
+                  {c.costUsdMicros && ` · ${microsToCents(c.costUsdMicros)}`}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {c.blitzProjectId && (
+                  <span className="text-[11px] text-green-600 font-medium">Render queued</span>
+                )}
+                <StatusBadge status={c.status} />
+              </div>
             </div>
-          )}
 
-          {c.status === 'pending' && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => void handleDecision(c.id, 'accepted')}
-                disabled={patching === c.id}
-                className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                <CheckCircle2 className="w-3 h-3" /> Accept
-              </button>
-              <select
-                onChange={(e) => {
-                  if (e.target.value) void handleDecision(c.id, 'rejected', e.target.value);
-                }}
-                defaultValue=""
-                className="rounded-lg border border-line px-2 py-1.5 text-[12px] text-muted focus:outline-none"
-              >
-                <option value="" disabled>Reject…</option>
-                {REJECT_REASONS.map((r) => (
-                  <option key={r.value} value={r.value ?? ''}>{r.label}</option>
+            {/* Slide previews */}
+            {slides.length > 0 && (
+              <div className="flex gap-2 p-4 overflow-x-auto">
+                {slides.map((slide, i) => (
+                  <div
+                    key={i}
+                    className="shrink-0 w-28 h-48 rounded border border-line bg-gray-900 flex flex-col items-center justify-center p-2 relative"
+                  >
+                    <p className="text-center text-white text-[10px] font-medium leading-tight z-10">{slide.text}</p>
+                    <p className="text-center text-gray-400 text-[8px] mt-1 z-10 italic">{slide.bgPrompt.slice(0, 40)}…</p>
+                  </div>
                 ))}
-              </select>
-            </div>
-          )}
-        </div>
-      ))}
+              </div>
+            )}
+
+            {/* Guardrail warnings */}
+            {c.guardrailWarnings.length > 0 && (
+              <div className="mx-4 mb-3 rounded bg-yellow-50 border border-yellow-200 p-3 space-y-1">
+                {c.guardrailWarnings.map((w, i) => (
+                  <p key={i} className="text-[11px] text-yellow-800">⚠ [{w.type}] {w.text}</p>
+                ))}
+              </div>
+            )}
+
+            {/* Actions */}
+            {c.status === 'pending' && (
+              <div className="flex items-center gap-2 px-4 pb-4">
+                <button
+                  onClick={() => void handleAccept(c.id)}
+                  disabled={patching === c.id}
+                  className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-[12px] font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  {patching === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
+                  Accept &amp; Render
+                </button>
+                <select
+                  onChange={(e) => {
+                    if (e.target.value) void handleReject(c.id, e.target.value);
+                  }}
+                  defaultValue=""
+                  disabled={patching === c.id}
+                  className="rounded-lg border border-line px-2 py-1.5 text-[12px] text-muted focus:outline-none disabled:opacity-50"
+                >
+                  <option value="" disabled>Reject…</option>
+                  {REJECT_REASONS.map((r) => (
+                    <option key={r.value} value={r.value ?? ''}>{r.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {c.status === 'accepted' && !c.blitzProjectId && (
+              <p className="px-4 pb-4 text-[12px] text-muted">Generating backgrounds and queueing render…</p>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

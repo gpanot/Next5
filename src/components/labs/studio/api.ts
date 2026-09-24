@@ -149,3 +149,10 @@ export const patchCandidate = (
     method: 'PATCH',
     body: JSON.stringify(patch),
   }, token);
+
+/** Accept a candidate: triggers background image gen + BlitzProject creation. */
+export const acceptCandidate = (token: string, runId: string, candidateId: string) =>
+  req<{ ok: boolean; candidateId: string }>(`${BASE}/${runId}/candidates/${candidateId}/accept`, {
+    method: 'POST',
+    body: '{}',
+  }, token);
