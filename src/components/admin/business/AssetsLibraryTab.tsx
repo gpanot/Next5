@@ -400,8 +400,8 @@ function UgcCard({ video }: { video: UgcVideoDto }) {
   );
 }
 
-/** Hook video card — plays on hover, shows tags as pills. */
-function HookCard({ asset }: { asset: BlitzAssetDto }) {
+/** Hook video card — plays on hover, shows tags as pills + "See Description" expand. */
+function HookCard({ asset, token }: { asset: BlitzAssetDto; token: string }) {
   const ref = useRef<HTMLVideoElement>(null);
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-white shadow-sm">
@@ -448,6 +448,7 @@ function HookCard({ asset }: { asset: BlitzAssetDto }) {
           ))}
         </div>
       )}
+      <DescriptionPanel token={token} assetId={asset.id} />
     </div>
   );
 }
@@ -538,7 +539,7 @@ function SectionContent({ section, data, token }: { section: Section; data: Libr
           </div>
         ) : section === 'hookVideos' ? (
           <div className={GRID_VIDEO}>
-            {filtered.map((a) => <HookCard key={a.id} asset={a} />)}
+            {filtered.map((a) => <HookCard key={a.id} asset={a} token={token} />)}
           </div>
         ) : (
           /* Memes and Videos — VideoCard with description */
