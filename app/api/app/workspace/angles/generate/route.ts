@@ -3,6 +3,7 @@ import { authedRoute } from '../../../../../../src/server/api';
 import { HttpError, readJsonObject } from '../../../../../../src/server/http';
 import { generateAnglesForWorkspace } from '../../../../../../src/server/ai/anglesExtractor';
 import { requireWorkspace } from '../../../../../../src/server/workspaces/workspaces';
+import { prisma } from '../../../../../../src/lib/db';
 import type { ProductLineDto } from '../../../../../../src/types/business/me';
 
 const isProduct = (v: unknown): v is ProductLineDto => v === 'brand' || v === 'shop';
@@ -20,8 +21,14 @@ export const POST = authedRoute(async (req, session) => {
   const ws = await requireWorkspace(session.userId, body.product);
   if (!ws.websiteUrl) throw new HttpError(422, 'no_website_url', 'Set your website URL first.');
 
-  // Use after() so Vercel keeps the Lambda alive until extraction completes.
-  // Plain `void fn()` is killed the moment the HTTP response is sent.
+  // Mark 'pending' SYNCHRONOUSLY before responding so the polling loop sees it
+  // on its very first call and continues until extraction finishes.
+  // (after() runs after the response; without this the first poll sees the old genState
+  //  and stops immediately — a race that empties the brand page.)
+  await prisma.workspace.update({ where: { id: ws.id }, data: { anglesGenState: 'pending' } });
+
+  // after() keeps the Vercel Lambda alive until extraction completes.
+  // generateAnglesForWorkspace skips re-setting 'pending' since we already did it.
   after(() => generateAnglesForWorkspace(ws.id));
 
   return NextResponse.json({ started: true });

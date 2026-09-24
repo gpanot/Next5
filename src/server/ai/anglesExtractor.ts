@@ -16,8 +16,12 @@ interface ExaContentsResponse {
  */
 async function fetchHomepageText(url: string): Promise<string | null> {
   const key = process.env.EXA_API_KEY;
-  if (!key) return null;
+  if (!key) {
+    console.log('[brand-extract] ⚠️  EXA_API_KEY not set — skipping crawl');
+    return null;
+  }
 
+  console.log('[brand-extract] 🌐 Crawling', url);
   try {
     const res = await fetch('https://api.exa.ai/contents', {
       method: 'POST',
@@ -29,10 +33,16 @@ async function fetchHomepageText(url: string): Promise<string | null> {
         livecrawlTimeout: 15_000,
       }),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.log('[brand-extract] ❌ Exa HTTP error', res.status, res.statusText);
+      return null;
+    }
     const data = (await res.json()) as ExaContentsResponse;
-    return data.results?.[0]?.text ?? null;
-  } catch {
+    const text = data.results?.[0]?.text ?? null;
+    console.log('[brand-extract] ✅ Exa returned', text?.length ?? 0, 'chars');
+    return text;
+  } catch (err) {
+    console.log('[brand-extract] ❌ Exa fetch threw:', err);
     return null;
   }
 }
@@ -130,7 +140,10 @@ const str = (value: unknown, fallback = ''): string => {
  */
 export async function readHomepage(url: string): Promise<HomepageReading> {
   const text = await fetchHomepageText(url);
-  if (!text) return EMPTY;
+  if (!text) {
+    console.log('[brand-extract] ⚠️  No homepage text — returning EMPTY');
+    return EMPTY;
+  }
 
   type LLMResult = {
     angles?: unknown;
@@ -157,6 +170,12 @@ export async function readHomepage(url: string): Promise<HomepageReading> {
     ],
     { maxTokens: 900, temperature: 0.2 },
   );
+
+  if (!result) {
+    console.log('[brand-extract] ❌ OpenAI returned null (API error, timeout, or JSON parse fail)');
+  } else {
+    console.log('[brand-extract] ✅ OpenAI ok — angles:', result.angles, 'coreIdentity:', String(result.coreIdentity).slice(0, 60));
+  }
 
   const rawAngles = Array.isArray(result?.angles) ? result.angles : [];
   const audience = result?.audienceType;
@@ -213,20 +232,27 @@ export async function extractAnglesFromUrl(url: string): Promise<string[]> {
  * Safe to call without awaiting (fire-and-forget from a route handler).
  */
 export async function generateAnglesForWorkspace(workspaceId: string): Promise<void> {
+  console.log('[brand-extract] 🚀 generateAnglesForWorkspace START', workspaceId);
   try {
     const ws = await prisma.workspace.findUnique({
       where: { id: workspaceId },
       select: { websiteUrl: true, audienceType: true, promoting: true, offer: true },
     });
     const url = ws?.websiteUrl?.trim();
-    if (!url) return;
+    if (!url) {
+      console.log('[brand-extract] ⚠️  No websiteUrl — aborting');
+      return;
+    }
 
+    // Note: anglesGenState was already set to 'pending' by the route handler.
+    // We update it again here in case generateAnglesForWorkspace is ever called directly.
     await prisma.workspace.update({
       where: { id: workspaceId },
       data: { anglesGenState: 'pending' },
     });
 
     const { angles: labels, profile, brandExtract } = await readHomepage(url);
+    console.log('[brand-extract] readHomepage done — angles:', labels.length, 'brandExtract:', brandExtract ? 'populated' : 'null');
 
     // Only fill what she has not answered herself — a guess never overwrites her own words.
     const profileFill: Record<string, unknown> = {};
@@ -238,13 +264,18 @@ export async function generateAnglesForWorkspace(workspaceId: string): Promise<v
     if (brandExtract) {
       profileFill.brandExtract = brandExtract;
       profileFill.brandExtractAt = new Date();
+      console.log('[brand-extract] 💾 Saving brandExtract to DB');
+    } else {
+      console.log('[brand-extract] ⚠️  brandExtract is null — not saving');
     }
 
     if (Object.keys(profileFill).length > 0) {
       await prisma.workspace.update({ where: { id: workspaceId }, data: profileFill });
+      console.log('[brand-extract] ✅ profileFill saved, keys:', Object.keys(profileFill));
     }
 
     if (labels.length === 0) {
+      console.log('[brand-extract] ⚠️  No angles extracted — genState → failed');
       await prisma.workspace.update({
         where: { id: workspaceId },
         data: { anglesGenState: 'failed', anglesGenAt: new Date() },
@@ -273,7 +304,9 @@ export async function generateAnglesForWorkspace(workspaceId: string): Promise<v
         data: { anglesGenState: 'done', anglesGenAt: new Date() },
       }),
     ]);
-  } catch {
+    console.log('[brand-extract] 🎉 Done — saved', labels.length, 'angles, genState → done');
+  } catch (err) {
+    console.log('[brand-extract] 💥 Caught error:', err);
     await prisma.workspace.update({
       where: { id: workspaceId },
       data: { anglesGenState: 'failed' },
