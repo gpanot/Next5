@@ -64,9 +64,10 @@ export const GET = adminRoute(async (req) => {
     const hookRows = await prisma.blitzAsset.findMany({
       where: { type: 'HOOK' },
       orderBy: { createdAt: 'desc' },
-      take: 300,
+      take: 600,
     });
     const hookVideos = await Promise.all(hookRows.map(toAssetDto));
+    const hookTotal = await prisma.blitzAsset.count({ where: { type: 'HOOK' } });
 
     return NextResponse.json({
       memes: assets,
@@ -81,7 +82,7 @@ export const GET = adminRoute(async (req) => {
         sounds: sounds.length,
         aiPictures: aiPictures.length,
         ugcVideos: ugcVideos.length,
-        hookVideos: hookVideos.length,
+        hookVideos: hookTotal,
       },
     });
   }
