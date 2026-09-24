@@ -368,9 +368,21 @@ const JS = `(function(){
   document.querySelectorAll("button[data-aud]").forEach(function(b){
     b.addEventListener("click",function(){setAud(b.dataset.aud)})
   });
-  q(".js-form").addEventListener("submit",function(e){e.preventDefault();runDemo(!q(".js-input").value)});
+  function submitLink(val){
+    try{localStorage.setItem("next5-landing-link",val)}catch(x){}
+    location.href=(current==="seller"?"/start/shop":"/start/brand")+"?link="+encodeURIComponent(val);
+  }
+  q(".js-form").addEventListener("submit",function(e){
+    e.preventDefault();
+    var val=q(".js-input").value.trim();
+    if(!val){runDemo(true);return;}
+    submitLink(val);
+  });
   q(".js-form2").addEventListener("submit",function(e){
-    e.preventDefault();scrollTo({top:0,behavior:reduce?"auto":"smooth"});at(500,function(){runDemo(true)})
+    e.preventDefault();
+    var val=q(".js-input2").value.trim();
+    if(!val){scrollTo({top:0,behavior:reduce?"auto":"smooth"});at(500,function(){runDemo(true)});return;}
+    submitLink(val);
   });
   // Swipe deck loop
   if(!reduce){
