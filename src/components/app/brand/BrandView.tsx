@@ -95,13 +95,6 @@ export const BrandView = () => {
   const genderFilter = ws?.genderFilter ?? null;
   const websiteUrl = ws?.websiteUrl ?? null;
 
-  // Whether any brand extract fields have been populated
-  const hasBrandExtract =
-    brandExtract.coreIdentity ||
-    brandExtract.productOffering ||
-    brandExtract.mission ||
-    brandExtract.customerSegments.length > 0;
-
   return (
     <div className="flex flex-col gap-6">
       <WebsiteSourceBar
@@ -119,26 +112,22 @@ export const BrandView = () => {
         onUpdate={(dos, donts) => setBrandExtract((s) => ({ ...s, toneDos: dos, toneDonts: donts }))}
       />
 
-      {/* Rich brand sections — shown once extraction has run at least once */}
-      {hasBrandExtract && (
-        <>
-          <BrandIdentitySection
-            product={product}
-            data={brandExtract}
-            onUpdate={setBrandExtract}
-          />
-          <BrandPurposeSection
-            product={product}
-            data={brandExtract}
-            onUpdate={setBrandExtract}
-          />
-          <BrandMarketSection
-            product={product}
-            data={brandExtract}
-            onUpdate={setBrandExtract}
-          />
-        </>
-      )}
+      {/* Rich brand sections — always visible; show placeholder when extraction hasn't run yet */}
+      <BrandIdentitySection
+        product={product}
+        data={brandExtract}
+        onUpdate={setBrandExtract}
+      />
+      <BrandPurposeSection
+        product={product}
+        data={brandExtract}
+        onUpdate={setBrandExtract}
+      />
+      <BrandMarketSection
+        product={product}
+        data={brandExtract}
+        onUpdate={setBrandExtract}
+      />
 
       <BusinessProfileSection
         product={product}
