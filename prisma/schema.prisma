@@ -285,6 +285,7 @@ model Workspace {
   blitzProjects     BlitzProject[]
   studioBrandProfiles StudioBrandProfile[]
   studioRuns          StudioRun[]
+  assetDescriptors    AssetDescriptor[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
@@ -1068,8 +1069,9 @@ model UgcVideo {
   completedAt            DateTime? @map("completed_at")
   createdAt              DateTime  @default(now()) @map("created_at")
 
-  character UgcCharacter? @relation(fields: [characterId], references: [id], onDelete: SetNull)
-  workspace Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  character  UgcCharacter?    @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  workspace  Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  descriptor AssetDescriptor?
 
   @@index([createdAt])
   @@index([status])
@@ -1170,7 +1172,8 @@ model BlitzAsset {
   source       String   @default("library")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace  Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  descriptor AssetDescriptor?
 
   @@index([type])
   @@index([workspaceId, type])
@@ -1205,6 +1208,72 @@ model BlitzProject {
   @@index([createdAt(sort: Desc)])
   @@index([workspaceId, createdAt(sort: Desc)])
   @@map("blitz_projects")
+}
+
+/// AI-generated descriptor for a BlitzAsset or UgcVideo.
+/// Produced by the blitz-worker descriptor loop: ffprobe/ffmpeg measurement → Gemini call → validated JSON.
+/// Exactly one of blitzAssetId or ugcVideoId is set (enforced by DB CHECK constraint).
+model AssetDescriptor {
+  id                 String    @id @default(cuid())
+  blitzAssetId       String?   @unique @map("blitz_asset_id")
+  ugcVideoId         String?   @unique @map("ugc_video_id")
+  workspaceId        String?   @map("workspace_id")
+  /// 'meme' | 'ugc_video' | 'music' | 'background'
+  kind               String
+  /// 'scraped' | 'ai_generated' | 'uploaded' — propagated from the parent asset at enqueue time
+  source             String?
+  /// 'pending' | 'claimed' | 'done' | 'failed'
+  status             String    @default("pending")
+  attempts           Int       @default(0)
+  claimedAt          DateTime? @map("claimed_at")
+  error              String?
+  /// Bumped each time the asset is re-described after a prompt improvement
+  descriptorVersion  Int       @default(1) @map("descriptor_version")
+  /// Model slug used to produce this descriptor, e.g. google/gemini-3.1-flash-lite
+  model              String?
+  /// Measured by ffprobe before the model call
+  durationSec        Float?    @map("duration_sec")
+  /// [{t: number}] — ffmpeg scene cut timestamps
+  sceneCuts          Json?     @map("scene_cuts")
+  /// [{t: number, lufs: number}] — ffmpeg loudness samples
+  loudnessCurve      Json?     @map("loudness_curve")
+  /// Full model output (raw)
+  descriptor         Json?
+  /// 1-2 sentence description for BM25 / semantic search
+  retrievalText      String?   @map("retrieval_text")
+  // ── Filter columns (NULL = unknown / not yet described) ─────────────────
+  mood               String[]  @default([])
+  pacing             String?
+  hasSpeech          Boolean?  @map("has_speech")
+  /// 'none' | 'low' | 'high' — NULL until status=done
+  rightsRisk         String?   @map("rights_risk")
+  /// NULL until status=done
+  identifiablePerson Boolean?  @map("identifiable_person")
+  avoidFor           String[]  @default([]) @map("avoid_for")
+  energyLevel        Float?    @map("energy_level")
+  /// 'none' | 'top_third' | 'bottom_third' | 'center'
+  textSafeZone       String?   @map("text_safe_zone")
+  /// NULL until aubio is added to worker image
+  bpm                Float?
+  // ── Per-role slot scores (0–1, NULL = not yet described) ────────────────
+  slotHook           Float?    @map("slot_hook")
+  slotProblem        Float?    @map("slot_problem")
+  slotProof          Float?    @map("slot_proof")
+  slotPayoff         Float?    @map("slot_payoff")
+  slotCta            Float?    @map("slot_cta")
+  // ── Niche fit scores ────────────────────────────────────────────────────
+  nicheRealtor       Float?    @map("niche_realtor")
+  nicheTiktokShop    Float?    @map("niche_tiktok_shop")
+
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  blitzAsset BlitzAsset? @relation(fields: [blitzAssetId], references: [id], onDelete: Cascade)
+  ugcVideo   UgcVideo?   @relation(fields: [ugcVideoId],   references: [id], onDelete: Cascade)
+  workspace  Workspace?  @relation(fields: [workspaceId],  references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("asset_descriptors")
 }
 
 /// An Instagram or TikTok account a workspace connected in Settings > Integrations.

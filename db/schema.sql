@@ -447,6 +447,53 @@ CREATE TABLE public.admin_audit_logs (
 
 
 --
+-- Name: asset_descriptors; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.asset_descriptors (
+    id text NOT NULL,
+    blitz_asset_id text,
+    ugc_video_id text,
+    workspace_id text,
+    kind text NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL,
+    claimed_at timestamp with time zone,
+    error text,
+    descriptor_version integer DEFAULT 1 NOT NULL,
+    model text,
+    duration_sec double precision,
+    scene_cuts jsonb,
+    loudness_curve jsonb,
+    descriptor jsonb,
+    retrieval_text text,
+    mood text[] DEFAULT '{}'::text[] NOT NULL,
+    pacing text,
+    has_speech boolean,
+    rights_risk text,
+    identifiable_person boolean,
+    avoid_for text[] DEFAULT '{}'::text[] NOT NULL,
+    energy_level real,
+    text_safe_zone text,
+    bpm real,
+    slot_hook real,
+    slot_problem real,
+    slot_proof real,
+    slot_payoff real,
+    slot_cta real,
+    niche_realtor real,
+    niche_tiktok_shop real,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    source text,
+    CONSTRAINT asset_descriptors_rights_risk_check CHECK ((rights_risk = ANY (ARRAY['none'::text, 'low'::text, 'high'::text]))),
+    CONSTRAINT asset_descriptors_source_check CHECK (((((blitz_asset_id IS NOT NULL))::integer + ((ugc_video_id IS NOT NULL))::integer) = 1)),
+    CONSTRAINT asset_descriptors_source_check1 CHECK ((source = ANY (ARRAY['scraped'::text, 'ai_generated'::text, 'uploaded'::text]))),
+    CONSTRAINT asset_descriptors_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'claimed'::text, 'done'::text, 'failed'::text])))
+);
+
+
+--
 -- Name: bank_transactions; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1679,6 +1726,30 @@ ALTER TABLE ONLY public.admin_audit_logs
 
 
 --
+-- Name: asset_descriptors asset_descriptors_blitz_asset_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.asset_descriptors
+    ADD CONSTRAINT asset_descriptors_blitz_asset_id_key UNIQUE (blitz_asset_id);
+
+
+--
+-- Name: asset_descriptors asset_descriptors_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.asset_descriptors
+    ADD CONSTRAINT asset_descriptors_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: asset_descriptors asset_descriptors_ugc_video_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.asset_descriptors
+    ADD CONSTRAINT asset_descriptors_ugc_video_id_key UNIQUE (ugc_video_id);
+
+
+--
 -- Name: bank_transactions bank_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2171,6 +2242,20 @@ ALTER TABLE ONLY public.workspaces
 --
 
 CREATE INDEX admin_audit_logs_target_idx ON public.admin_audit_logs USING btree (target_type, target_id);
+
+
+--
+-- Name: asset_descriptors_pending_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX asset_descriptors_pending_idx ON public.asset_descriptors USING btree (created_at) WHERE (status = 'pending'::text);
+
+
+--
+-- Name: asset_descriptors_workspace_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX asset_descriptors_workspace_idx ON public.asset_descriptors USING btree (workspace_id);
 
 
 --
@@ -2860,6 +2945,30 @@ CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW E
 
 
 --
+-- Name: asset_descriptors asset_descriptors_blitz_asset_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.asset_descriptors
+    ADD CONSTRAINT asset_descriptors_blitz_asset_id_fkey FOREIGN KEY (blitz_asset_id) REFERENCES public.blitz_assets(id) ON DELETE CASCADE;
+
+
+--
+-- Name: asset_descriptors asset_descriptors_ugc_video_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.asset_descriptors
+    ADD CONSTRAINT asset_descriptors_ugc_video_id_fkey FOREIGN KEY (ugc_video_id) REFERENCES public.ugc_videos(id) ON DELETE CASCADE;
+
+
+--
+-- Name: asset_descriptors asset_descriptors_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.asset_descriptors
+    ADD CONSTRAINT asset_descriptors_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
 -- Name: batch_items batch_items_batch_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3509,4 +3618,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261010090000'),
     ('20261011090000'),
     ('20261012090000'),
-    ('20261012100000');
+    ('20261012100000'),
+    ('20261013090000'),
+    ('20261013110000');
