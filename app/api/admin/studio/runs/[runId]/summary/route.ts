@@ -10,7 +10,8 @@
  * This is the "run report card" used to evaluate pipeline quality over time.
  */
 import type { NextRequest } from 'next/server';
-import { adminRoute, json } from '../../../../../../../src/server/admin/route';
+import { adminRoute } from '../../../../../../../src/server/admin/route';
+import { studioJson } from '../../../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../../../src/lib/db';
 
 export const maxDuration = 30;
@@ -104,7 +105,7 @@ export const GET = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
     metrics.totalCost.onTarget &&
     quality.acceptanceOnTarget;
 
-  return json({
+  return studioJson({
     runId,
     sourceUrl: run.brandProfile.sourceUrl,
     profileVersion: run.brandProfile.version,

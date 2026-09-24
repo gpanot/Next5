@@ -1,12 +1,16 @@
 /**
  * GET  /api/admin/studio/runs        — list all runs (newest first, limit 50)
- * POST /api/admin/studio/runs        — create a new run for a given URL
+ * POST /api/admin/studio/runs        — create a new run from a URL and auto-queue extraction
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute, json } from '../../../../../src/server/admin/route';
+import { waitUntil } from '@vercel/functions';
+import { adminRoute } from '../../../../../src/server/admin/route';
+import { studioJson } from '../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../src/lib/db';
+import { extractProfile } from '../../../../../src/server/studio/profileExtractor';
 
-export const maxDuration = 30;
+// Auto-extraction runs inside waitUntil — allow up to 120s
+export const maxDuration = 120;
 
 // GET — list runs
 export const GET = adminRoute(async (_req: NextRequest) => {
@@ -18,10 +22,10 @@ export const GET = adminRoute(async (_req: NextRequest) => {
       _count: { select: { candidates: true } },
     },
   });
-  return json(runs);
+  return studioJson(runs);
 });
 
-// POST — create a new run
+// POST — create a new run and auto-trigger extraction
 export const POST = adminRoute(async (req: NextRequest) => {
   const body = (await req.json()) as { sourceUrl?: string; workspaceId?: string };
   if (!body.sourceUrl) {
@@ -32,7 +36,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
   const raw = body.sourceUrl.trim();
   const sourceUrl = raw.startsWith('http') ? raw : `https://${raw}`;
 
-  // Create brand profile (version 1)
+  // Create brand profile (version 1, empty data)
   const profile = await prisma.studioBrandProfile.create({
     data: {
       sourceUrl,
@@ -42,14 +46,56 @@ export const POST = adminRoute(async (req: NextRequest) => {
     },
   });
 
-  // Create run linked to profile
+  // Create run with extractStatus = 'running' (extraction starts immediately below)
   const run = await prisma.studioRun.create({
     data: {
       brandProfileId: profile.id,
       workspaceId: body.workspaceId ?? null,
-      extractStatus: 'pending',
+      extractStatus: 'running',
     },
   });
 
-  return json({ runId: run.id, profileId: profile.id });
+  // Auto-trigger extraction via waitUntil so the Lambda stays alive
+  waitUntil(
+    (async () => {
+      const startedAt = Date.now();
+      try {
+        const result = await extractProfile({ sourceUrl });
+
+        // Insert a new profile version with the extracted data
+        const newProfile = await prisma.studioBrandProfile.create({
+          data: {
+            sourceUrl,
+            workspaceId: body.workspaceId ?? null,
+            version: 2,
+            data: result.data as object,
+            crawl: result.telemetry as object,
+          },
+        });
+
+        await prisma.studioRun.update({
+          where: { id: run.id },
+          data: {
+            brandProfileId: newProfile.id,
+            extractStatus: 'done',
+            extractError: null,
+            extractDurationMs: Date.now() - startedAt,
+            extractCostUsdMicros: BigInt(result.telemetry.totalCostUsdMicros),
+          },
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        await prisma.studioRun.update({
+          where: { id: run.id },
+          data: {
+            extractStatus: 'failed',
+            extractError: msg,
+            extractDurationMs: Date.now() - startedAt,
+          },
+        });
+      }
+    })(),
+  );
+
+  return studioJson({ runId: run.id, profileId: profile.id });
 });

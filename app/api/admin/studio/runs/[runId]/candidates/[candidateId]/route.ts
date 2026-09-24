@@ -3,7 +3,8 @@
  *   — swipe decision: accept | reject | edit
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute, json } from '../../../../../../../../src/server/admin/route';
+import { adminRoute } from '../../../../../../../../src/server/admin/route';
+import { studioJson } from '../../../../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../../../../src/lib/db';
 
 export const maxDuration = 30;
@@ -36,5 +37,5 @@ export const PATCH = adminRoute(async (req: NextRequest, ctx: Ctx) => {
     },
   });
 
-  return json(updated);
+  return studioJson(updated);
 });

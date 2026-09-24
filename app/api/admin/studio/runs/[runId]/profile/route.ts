@@ -5,7 +5,8 @@
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { waitUntil } from '@vercel/functions';
-import { adminRoute, json } from '../../../../../../../src/server/admin/route';
+import { adminRoute } from '../../../../../../../src/server/admin/route';
+import { studioJson } from '../../../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../../../src/lib/db';
 import { extractProfile } from '../../../../../../../src/server/studio/profileExtractor';
 
@@ -21,7 +22,7 @@ export const GET = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
     include: { brandProfile: true },
   });
   if (!run) return NextResponse.json({ error: 'not found' }, { status: 404 });
-  return json(run);
+  return studioJson(run);
 });
 
 // POST — trigger profile extraction
@@ -88,7 +89,7 @@ export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
     })(),
   );
 
-  return json({ ok: true, runId });
+  return studioJson({ ok: true, runId });
 });
 
 // PATCH — save manual field edits to the current profile
@@ -124,5 +125,5 @@ export const PATCH = adminRoute(async (req: NextRequest, ctx: Ctx) => {
     data: { brandProfileId: newProfile.id },
   });
 
-  return json({ ok: true, profileId: newProfile.id, version: nextVersion });
+  return studioJson({ ok: true, profileId: newProfile.id, version: nextVersion });
 });

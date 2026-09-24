@@ -4,7 +4,8 @@
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { waitUntil } from '@vercel/functions';
-import { adminRoute, json } from '../../../../../../../src/server/admin/route';
+import { adminRoute } from '../../../../../../../src/server/admin/route';
+import { studioJson } from '../../../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../../../src/lib/db';
 import { runResearch } from '../../../../../../../src/server/studio/researcher';
 
@@ -19,7 +20,7 @@ export const GET = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
     where: { runId },
     orderBy: { createdAt: 'asc' },
   });
-  return json(items);
+  return studioJson(items);
 });
 
 // POST — trigger research
@@ -78,5 +79,5 @@ export const POST = adminRoute(async (req: NextRequest, ctx: Ctx) => {
     })(),
   );
 
-  return json({ ok: true, runId });
+  return studioJson({ ok: true, runId });
 });

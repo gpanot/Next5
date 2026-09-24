@@ -11,7 +11,8 @@
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { waitUntil } from '@vercel/functions';
-import { adminRoute, json } from '../../../../../../../../../src/server/admin/route';
+import { adminRoute } from '../../../../../../../../../src/server/admin/route';
+import { studioJson } from '../../../../../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../../../../../src/lib/db';
 import { blitzKeys } from '../../../../../../../../../src/server/admin/blitzStore';
 import { uploadToR2 } from '../../../../../../../../../src/lib/r2';
@@ -91,7 +92,7 @@ export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
     return NextResponse.json({ error: 'not found' }, { status: 404 });
   }
   if (candidate.status === 'accepted') {
-    return json({ ok: true, alreadyAccepted: true });
+    return studioJson({ ok: true, alreadyAccepted: true });
   }
 
   // Mark accepted immediately
@@ -176,5 +177,5 @@ export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
     })(),
   );
 
-  return json({ ok: true, candidateId });
+  return studioJson({ ok: true, candidateId });
 });

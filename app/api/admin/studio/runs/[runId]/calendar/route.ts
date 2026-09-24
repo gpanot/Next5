@@ -6,46 +6,14 @@
  * the run's cadence config ({ postsPerWeek, weekdays }).
  */
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute, json } from '../../../../../../../src/server/admin/route';
+import { adminRoute } from '../../../../../../../src/server/admin/route';
+import { studioJson } from '../../../../../../../src/server/studio/studioJson';
+import { slotDates, type Cadence } from '../../../../../../../src/server/studio/assignSlots';
 import { prisma } from '../../../../../../../src/lib/db';
 
 export const maxDuration = 30;
 
 type Ctx = { params: Promise<{ runId: string }> };
-
-type Cadence = {
-  postsPerWeek?: number;
-  weekdays?: string[];
-};
-
-const DAY_ORDER = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-
-/** Generate the next N slot dates starting from today, respecting weekday constraints. */
-function slotDates(cadence: Cadence, count: number): Date[] {
-  const weekdays = (cadence.weekdays ?? ['mon', 'wed', 'fri'])
-    .map((d) => DAY_ORDER.indexOf(d.toLowerCase()))
-    .filter((d) => d >= 0)
-    .sort();
-
-  if (weekdays.length === 0) weekdays.push(1, 3, 5); // mon/wed/fri fallback
-
-  const dates: Date[] = [];
-  const start = new Date();
-  start.setHours(9, 0, 0, 0); // 9am local
-
-  let cursor = new Date(start);
-  let safety = 0;
-
-  while (dates.length < count && safety < 365) {
-    if (weekdays.includes(cursor.getDay())) {
-      dates.push(new Date(cursor));
-    }
-    cursor.setDate(cursor.getDate() + 1);
-    safety++;
-  }
-
-  return dates;
-}
 
 // GET — return current assignments
 export const GET = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
@@ -55,7 +23,7 @@ export const GET = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
     orderBy: { slotDate: 'asc' },
     select: { id: true, status: true, slotDate: true, blitzProjectId: true, angle: true, templateId: true },
   });
-  return json({ slots: candidates });
+  return studioJson({ slots: candidates });
 });
 
 // POST — assign slots
@@ -74,7 +42,7 @@ export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
   });
 
   if (unscheduled.length === 0) {
-    return json({ assigned: 0, message: 'All accepted candidates already have slots' });
+    return studioJson({ assigned: 0, message: 'All accepted candidates already have slots' });
   }
 
   const dates = slotDates(cadence, unscheduled.length);
@@ -97,5 +65,5 @@ export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
     });
   }
 
-  return json({ assigned: unscheduled.length, slots: dates.map((d) => d.toISOString()) });
+  return studioJson({ assigned: unscheduled.length, slots: dates.map((d) => d.toISOString()) });
 });
