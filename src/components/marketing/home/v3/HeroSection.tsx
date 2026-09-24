@@ -1,5 +1,5 @@
 import { AUDIENCE_COPY, type Audience } from './copy';
-import { CheckIcon, PlayIcon, TikTokIcon } from './icons';
+import { CheckIcon, PlayIcon, TikTokIcon, VolumeOffIcon, VolumeOnIcon } from './icons';
 
 const AUDIENCE_LABELS: { id: Audience; label: string }[] = [
   { id: 'realtor', label: 'Realtor' },
@@ -52,6 +52,16 @@ function HeroDemo({ audience }: { audience: Audience }) {
           <div className="v3tktk-badge" data-only="realtor" aria-hidden="true">
             <TikTokIcon /> TikTok
           </div>
+          {/* Mute/unmute toggle — top-right, realtor only, shown when video plays */}
+          <button
+            className="v3mute-btn js-mute-btn"
+            data-only="realtor"
+            aria-label="Toggle sound"
+            type="button"
+          >
+            <span className="v3mute-off"><VolumeOffIcon /></span>
+            <span className="v3mute-on"><VolumeOnIcon /></span>
+          </button>
           {/* Realtor headshot inset — bottom-right corner */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="v3headshot" data-only="realtor" aria-hidden="true">

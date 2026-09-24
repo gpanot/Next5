@@ -33,17 +33,26 @@ const CORE_JS = String.raw`
   }
   function clearT(){timers.forEach(clearTimeout);timers=[];clearInterval(hookTimer)}
   function playRealtorVideo(){
-    var v=q(".js-realtor-video");if(v)v.play().catch(function(){});
+    var v=q(".js-realtor-video");if(v){v.muted=true;v.play().catch(function(){});}
     var phone=q(".v3phone"),card=q(".v3side-card");
     if(phone)phone.classList.add("playing");
     if(card)card.classList.add("mini");
   }
   function stopRealtorVideo(){
-    var v=q(".js-realtor-video");if(v){v.pause();v.currentTime=0;}
+    var v=q(".js-realtor-video");
+    if(v){v.pause();v.currentTime=0;v.muted=true;}
     var phone=q(".v3phone"),card=q(".v3side-card");
     if(phone)phone.classList.remove("playing");
     if(card)card.classList.remove("mini");
+    var btn=q(".js-mute-btn");if(btn)btn.classList.remove("sounding");
   }
+  // Wire mute toggle after DOM ready
+  var muteBtn=q(".js-mute-btn");
+  if(muteBtn){muteBtn.addEventListener("click",function(){
+    var v=q(".js-realtor-video");if(!v)return;
+    v.muted=!v.muted;
+    muteBtn.classList.toggle("sounding",!v.muted);
+  });}
   function at(ms,fn){timers.push(setTimeout(fn,ms))}
   function cycleHooks(){
     var hook=q(".js-hook"),dots=qa(".v3hookdots i"),n=0;

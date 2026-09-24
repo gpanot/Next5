@@ -143,6 +143,15 @@ export const BASE_CSS = String.raw`
 .v3hookdots i.on{background:var(--signal);width:18px;border-radius:4px}
 /* ── Realtor hero video ── */
 .v3ugc-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+/* Mute/unmute toggle button */
+.v3mute-btn{position:absolute;top:12px;right:12px;z-index:3;display:none;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.52);color:#fff;border:none;cursor:pointer;backdrop-filter:blur(4px);padding:0;transition:background .2s ease}
+.v3mute-btn:hover{background:rgba(0,0,0,.75)}
+.v3mute-btn .v3mute-on{display:none}
+.v3mute-btn .v3mute-off{display:flex}
+.v3mute-btn.sounding .v3mute-on{display:flex}
+.v3mute-btn.sounding .v3mute-off{display:none}
+/* Show the button only once the video is playing */
+.v3phone.playing .v3mute-btn{display:flex}
 /* TikTok badge — top-left of phone screen */
 .v3tktk-badge{position:absolute;top:12px;left:12px;z-index:1;display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.58);color:#fff;font-size:11px;font-weight:600;padding:5px 9px;border-radius:999px;backdrop-filter:blur(4px);pointer-events:none}
 /* Realtor headshot inset — bottom-right corner, above facts */
