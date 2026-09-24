@@ -13,9 +13,15 @@
 
 import 'dotenv/config';
 import path from 'path';
+import os from 'os';
+import fs from 'fs';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import { bundle } from '@remotion/bundler';
 import { prisma } from './db';
 import { renderProject } from './render';
+
+const execFileAsync = promisify(execFile);
 
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS ?? '5000', 10);
 
@@ -155,10 +161,74 @@ async function resetStuckJobs(): Promise<void> {
   }
 }
 
+// ── ffmpeg self-check ─────────────────────────────────────────────────────────
+//
+// Generates a 2 s 440 Hz sine tone in-process (no external file needed),
+// runs the ebur128 loudness filter with -v verbose, and counts M: lines.
+//
+// Logs:
+//   [ffmpeg-check] OK   ffmpeg <version>  ebur128 M: lines=20  digits="…"
+//   [ffmpeg-check] ERROR ffmpeg <version>  0 M: lines — -v verbose may not be working
+//
+// Zero M: lines means the worker's loudness measurement is broken.
+// This does NOT abort startup — the worker can still render videos.
+
+async function checkFfmpeg(): Promise<void> {
+  const tmpFile = path.join(os.tmpdir(), `ffmpeg_selfcheck_${Date.now()}.wav`);
+  try {
+    // 1. Generate a 2 s sine tone
+    await execFileAsync('ffmpeg', [
+      '-y', '-hide_banner', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2',
+      tmpFile,
+    ]);
+
+    // 2. Get ffmpeg version string
+    const { stderr: verStderr } = await execFileAsync('ffmpeg', ['-version']).catch(() => ({ stderr: '' }));
+    const versionLine = verStderr.split('\n')[0]?.replace('ffmpeg version ', '').split(' ')[0] ?? '?';
+
+    // 3. Run ebur128 with -v verbose and count M: lines
+    const { stderr } = await execFileAsync('ffmpeg', [
+      '-v', 'verbose', '-hide_banner',
+      '-i', tmpFile,
+      '-af', 'ebur128=framelog=verbose',
+      '-f', 'null', '-',
+    ], { maxBuffer: 4 * 1024 * 1024 });
+
+    const mLines = (stderr.match(/\] t:\s*[\d.]+\s+TARGET[^\n]+M:\s*[-\d.]+/g) ?? []).length;
+
+    // 4. Map first few M: values to digit string for sanity display
+    const re = /\] t:\s*([\d.]+)\s+TARGET[^\n]+M:\s*([-\d.]+)/g;
+    const digits: string[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(stderr)) !== null && digits.length < 5) {
+      const lufs = parseFloat(m[2]);
+      const level = Math.min(1, Math.max(0, (lufs + 40) / 35));
+      digits.push(String(Math.round(level * 9)));
+    }
+
+    if (mLines === 0) {
+      console.error(
+        `[ffmpeg-check] ERROR  ffmpeg ${versionLine}  0 M: lines — ` +
+        `-v verbose may not be emitting per-frame ebur128 output in this build`,
+      );
+    } else {
+      console.log(
+        `[ffmpeg-check] OK     ffmpeg ${versionLine}  ebur128 M: lines=${mLines}` +
+        `  sample digits="${digits.join(' ')}"`,
+      );
+    }
+  } catch (err) {
+    console.error('[ffmpeg-check] ERROR  ffmpeg not found or failed:', err instanceof Error ? err.message : err);
+  } finally {
+    fs.rmSync(tmpFile, { force: true });
+  }
+}
+
 // ── Entry ─────────────────────────────────────────────────────────────────────
 
 async function main() {
   await resetStuckJobs();
+  await checkFfmpeg();
   const serveUrl = await buildBundle();
   await startPollingLoop(serveUrl);
 }
