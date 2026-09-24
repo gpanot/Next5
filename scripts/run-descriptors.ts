@@ -45,11 +45,17 @@ const prisma = new PrismaClient();
 const args = process.argv.slice(2);
 const capFlag   = args.find(a => a.startsWith('--cap='));
 const concFlag  = args.find(a => a.startsWith('--concurrency='));
-const DRY_RUN       = args.includes('--dry-run');
-const VIDEOS_ONLY   = args.includes('--videos-only');
-const MEMES_ONLY    = args.includes('--memes-only');
-const CAP_USD       = capFlag  ? parseFloat(capFlag.split('=')[1]!)  : parseFloat(process.env.DESCRIPTOR_CAP ?? '4.00');
-const CONCURRENCY   = concFlag ? parseInt(concFlag.split('=')[1]!, 10) : 3;
+const limitFlag = args.find(a => a.startsWith('--limit='));
+const DRY_RUN         = args.includes('--dry-run');
+const VIDEOS_ONLY     = args.includes('--videos-only');
+const MEMES_ONLY      = args.includes('--memes-only');
+const USE_OPENROUTER  = args.includes('--openrouter') || process.env.FORCE_OPENROUTER === '1';
+const CAP_USD         = capFlag   ? parseFloat(capFlag.split('=')[1]!)   : parseFloat(process.env.DESCRIPTOR_CAP ?? '4.00');
+const CONCURRENCY     = concFlag  ? parseInt(concFlag.split('=')[1]!, 10) : 3;
+const LIMIT           = limitFlag ? parseInt(limitFlag.split('=')[1]!, 10) : Infinity;
+
+// Tell gemini.ts to use OpenRouter
+if (USE_OPENROUTER) process.env.FORCE_OPENROUTER = '1';
 
 // Cost model (Gemini 3.1 Flash Lite)
 const COST_PER_M_IN  = 0.15;
@@ -228,19 +234,21 @@ async function main() {
   console.log(`   Model       : ${getModelName()}`);
   console.log(`   Hard cap    : $${CAP_USD.toFixed(2)}`);
   console.log(`   Concurrency : ${CONCURRENCY}`);
+  console.log(`   Provider    : ${USE_OPENROUTER ? 'OpenRouter (google/gemini-3.1-flash-lite)' : 'Google Gemini API'}`);
   console.log(`   Mode        : ${DRY_RUN ? 'DRY RUN' : 'LIVE'}`);
   if (VIDEOS_ONLY) console.log('   Filter      : videos only');
   if (MEMES_ONLY)  console.log('   Filter      : memes only');
 
   console.log('\n📋  Building queue…');
-  const queue = await buildQueue();
+  const fullQueue = await buildQueue();
+  const queue = Number.isFinite(LIMIT) ? fullQueue.slice(0, LIMIT) : fullQueue;
   const totalEst = queue.reduce((s, a) => s + a.estimatedCost, 0);
   const videos = queue.filter(a => a.kind === 'background').length;
   const memes  = queue.filter(a => a.kind === 'meme').length;
 
   console.log(`   Videos to describe : ${videos}`);
   console.log(`   Memes  to describe : ${memes}`);
-  console.log(`   Total              : ${queue.length}`);
+  console.log(`   Total              : ${queue.length}${Number.isFinite(LIMIT) ? ` (limit: ${LIMIT} of ${fullQueue.length})` : ''}`);
   console.log(`   Estimated cost     : ~$${totalEst.toFixed(4)}`);
   console.log(`   Hard cap           : $${CAP_USD.toFixed(2)}`);
 
