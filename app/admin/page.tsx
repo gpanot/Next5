@@ -19,15 +19,64 @@ import { BlitzSlideshowTab } from '../../src/components/admin/business/BlitzSlid
 import { GalleryFacesTab } from '../../src/components/admin/business/GalleryFacesTab';
 import { ContentTemplatesTab } from '../../src/components/admin/business/templates/ContentTemplatesTab';
 import { CampaignStudioTab } from '../../src/components/admin/business/CampaignStudioTab';
+import { HooksTab } from '../../src/components/admin/business/HooksTab';
+import { AssetsLibraryTab } from '../../src/components/admin/business/AssetsLibraryTab';
 
-type Tab = 'overview' | 'workspaces' | 'payments' | 'promise' | 'qa' | 'models' | 'users' | 'bookings' | 'prompts' | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces' | 'templates' | 'studio';
+type Tab =
+  | 'overview' | 'workspaces' | 'payments' | 'promise' | 'qa' | 'models'
+  | 'users' | 'bookings' | 'prompts'
+  | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces'
+  | 'templates' | 'studio' | 'hooks'
+  | 'assets-library';
 
-const TAB_LABELS: Record<Tab, string> = {
-  overview: 'Overview', workspaces: 'Workspaces', payments: 'Payments', promise: 'Promise', qa: 'QA',
-  models: 'Models', users: 'Users', bookings: 'Bookings', prompts: 'Prompts', 'ugc-lab': 'UGC Lab', 'ugc-clone': 'UGC Clone',
-  'blitz-lab': 'Blitz Lab', 'blitz-slideshow': 'Blitz Slideshow', 'gallery-faces': 'Gallery Faces',
-  templates: 'Templates', studio: '🎬 Studio',
-};
+type NavItem = { id: Tab; label: string; icon: string };
+
+const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
+  {
+    title: 'Business',
+    items: [
+      { id: 'overview',    label: 'Overview',     icon: '◉' },
+      { id: 'workspaces',  label: 'Workspaces',   icon: '⊞' },
+      { id: 'payments',    label: 'Payments',     icon: '₿' },
+      { id: 'promise',     label: 'Promise',      icon: '◈' },
+      { id: 'qa',          label: 'QA',           icon: '✓' },
+      { id: 'models',      label: 'Models',       icon: '⚙' },
+    ],
+  },
+  {
+    title: 'Users',
+    items: [
+      { id: 'users',    label: 'Users',    icon: '◎' },
+      { id: 'bookings', label: 'Bookings', icon: '◷' },
+      { id: 'prompts',  label: 'Prompts',  icon: '✦' },
+    ],
+  },
+  {
+    title: 'Labs',
+    items: [
+      { id: 'ugc-lab',        label: 'UGC Lab',        icon: '▶' },
+      { id: 'ugc-clone',      label: 'UGC Clone',      icon: '⊕' },
+      { id: 'blitz-lab',      label: 'Blitz Lab',      icon: '⚡' },
+      { id: 'blitz-slideshow',label: 'Blitz Slideshow',icon: '◫' },
+      { id: 'gallery-faces',  label: 'Gallery Faces',  icon: '⊙' },
+    ],
+  },
+  {
+    title: 'Content',
+    items: [
+      { id: 'templates', label: 'Templates', icon: '☰' },
+      { id: 'studio',    label: '🎬 Studio', icon: '' },
+      { id: 'hooks',     label: 'Hooks',     icon: '🪝' },
+    ],
+  },
+  {
+    title: 'Assets',
+    items: [
+      { id: 'assets-library', label: 'Assets Library', icon: '◈' },
+    ],
+  },
+];
+
 const adminTokenStore = createLocalStore('admin_token');
 
 const isAdminToken = (token: string): boolean => {
@@ -50,58 +99,95 @@ export default function AdminPage() {
   if (!token) return <AdminLogin onToken={handleToken} />;
 
   return (
-    <div className="min-h-screen bg-surface">
-      <header className="border-b border-line bg-white px-6 py-3.5">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="font-display text-[20px] tracking-[0.12em] text-ink uppercase">Next5</span>
-            <span className="rounded-full bg-ink px-2 py-0.5 text-[9px] font-medium tracking-widest text-white uppercase">
-              Admin
-            </span>
-          </div>
-          <button onClick={logout} className="text-[12px] text-muted hover:text-ink">
+    // h-screen + overflow-hidden on the root locks the viewport — nothing can grow past it.
+    <div className="flex h-screen overflow-hidden bg-surface">
+
+      {/* ── Left Sidebar — fixed height, scrolls its own nav ── */}
+      <aside className="flex h-full w-56 shrink-0 flex-col border-r border-line bg-white">
+        {/* Logo — never scrolls */}
+        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-line px-5">
+          <span className="font-display text-[17px] tracking-[0.12em] text-ink uppercase">Next5</span>
+          <span className="rounded-full bg-ink px-2 py-0.5 text-[9px] font-medium tracking-widest text-white uppercase">
+            Admin
+          </span>
+        </div>
+
+        {/* Nav — scrolls independently */}
+        <nav className="flex-1 overflow-y-auto py-4">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.title} className="mb-5">
+              <p className="mb-1 px-5 text-[10px] font-semibold tracking-widest text-muted/70 uppercase">
+                {section.title}
+              </p>
+              {section.items.map(({ id, label, icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setTab(id)}
+                  className={[
+                    'flex w-full items-center gap-2.5 px-5 py-2 text-left text-[13px] font-medium transition-colors',
+                    tab === id
+                      ? 'bg-ink/5 text-ink'
+                      : 'text-muted hover:bg-zinc-50 hover:text-ink',
+                  ].join(' ')}
+                >
+                  {icon && (
+                    <span className="w-4 shrink-0 text-center text-[13px] leading-none opacity-70">
+                      {icon}
+                    </span>
+                  )}
+                  <span>{label}</span>
+                  {tab === id && (
+                    <span className="ml-auto h-1.5 w-1.5 rounded-full bg-ink" />
+                  )}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        {/* Sign out — never scrolls */}
+        <div className="shrink-0 border-t border-line px-5 py-4">
+          <button
+            onClick={logout}
+            className="text-[12px] text-muted hover:text-ink transition-colors"
+          >
             Sign out
           </button>
         </div>
-      </header>
+      </aside>
 
-      <div className="border-b border-line bg-white px-6">
-        <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto">
-          {(['overview', 'workspaces', 'payments', 'promise', 'qa', 'models', 'bookings', 'users', 'prompts', 'ugc-lab', 'ugc-clone', 'blitz-lab', 'blitz-slideshow', 'gallery-faces', 'templates', 'studio'] as Tab[]).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={[
-                'shrink-0 whitespace-nowrap border-b-2 -mb-px px-4 py-3 text-[13px] font-medium transition-colors',
-                tab === t
-                  ? 'border-ink text-ink'
-                  : 'border-transparent text-muted hover:text-ink',
-              ].join(' ')}
-            >
-              {TAB_LABELS[t]}
-            </button>
-          ))}
-        </div>
+      {/* ── Right column — fixed height, header pinned, content scrolls ── */}
+      <div className="flex h-full flex-1 flex-col overflow-hidden">
+
+        {/* Top bar — never scrolls */}
+        <header className="flex h-14 shrink-0 items-center border-b border-line bg-white px-8">
+          <h1 className="text-[15px] font-semibold text-ink">
+            {NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.id === tab)?.label ?? tab}
+          </h1>
+        </header>
+
+        {/* Main content — scrolls independently */}
+        <main className="flex-1 overflow-y-auto px-8 py-8">
+          {tab === 'overview'         && <OverviewTab          token={token} />}
+          {tab === 'workspaces'       && <WorkspacesTab        token={token} />}
+          {tab === 'payments'         && <PaymentsTab          token={token} />}
+          {tab === 'promise'          && <PromiseTab           token={token} />}
+          {tab === 'qa'               && <QaTab                token={token} />}
+          {tab === 'models'           && <ModelTestTab         token={token} />}
+          {tab === 'users'            && <UsersTab             token={token} />}
+          {tab === 'bookings'         && <BookingsTab          token={token} />}
+          {tab === 'prompts'          && <PromptsTab           token={token} />}
+          {tab === 'ugc-lab'          && <UgcLabTab            token={token} />}
+          {tab === 'ugc-clone'        && <UgcCloneTab          token={token} />}
+          {tab === 'blitz-lab'        && <BlitzLabTab          token={token} />}
+          {tab === 'blitz-slideshow'  && <BlitzSlideshowTab    token={token} />}
+          {tab === 'gallery-faces'    && <GalleryFacesTab      token={token} />}
+          {tab === 'templates'        && <ContentTemplatesTab  token={token} />}
+          {tab === 'studio'           && <CampaignStudioTab    token={token} />}
+          {tab === 'hooks'            && <HooksTab             token={token} />}
+          {tab === 'assets-library'   && <AssetsLibraryTab     token={token} />}
+        </main>
       </div>
-
-      <main className="mx-auto max-w-7xl px-6 py-8">
-        {tab === 'overview'   && <OverviewTab   token={token} />}
-        {tab === 'workspaces' && <WorkspacesTab token={token} />}
-        {tab === 'payments'   && <PaymentsTab   token={token} />}
-        {tab === 'promise'    && <PromiseTab    token={token} />}
-        {tab === 'qa'         && <QaTab         token={token} />}
-        {tab === 'models'     && <ModelTestTab  token={token} />}
-        {tab === 'users'    && <UsersTab    token={token} />}
-        {tab === 'bookings'  && <BookingsTab  token={token} />}
-        {tab === 'prompts'   && <PromptsTab   token={token} />}
-        {tab === 'ugc-lab'   && <UgcLabTab    token={token} />}
-        {tab === 'ugc-clone' && <UgcCloneTab  token={token} />}
-        {tab === 'blitz-lab'       && <BlitzLabTab       token={token} />}
-        {tab === 'blitz-slideshow' && <BlitzSlideshowTab token={token} />}
-        {tab === 'gallery-faces'   && <GalleryFacesTab   token={token} />}
-        {tab === 'templates'       && <ContentTemplatesTab token={token} />}
-        {tab === 'studio'          && <CampaignStudioTab   token={token} />}
-      </main>
     </div>
   );
 }
