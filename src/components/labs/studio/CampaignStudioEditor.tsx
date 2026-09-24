@@ -6,11 +6,11 @@ import {
   createRun,
   listRuns,
   patchCandidate,
-  patchProfile,
   type StudioCandidateDto,
   type StudioRunSummary,
 } from './api';
 import { useStudioRun } from './useStudioRun';
+import { ProfileReviewPanel } from './ProfileReviewPanel';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -217,7 +217,15 @@ function StepNav({ current, onChange }: { current: StepId; onChange: (s: StepId)
 
 // ─── Profile step ──────────────────────────────────────────────────────────────
 
-function ProfileStep({ token, runId }: { token: string; runId: string }) {
+function ProfileStep({
+  token,
+  runId,
+  onProfileConfirmed,
+}: {
+  token: string;
+  runId: string;
+  onProfileConfirmed: () => void;
+}) {
   const { run, error, triggerExtractionJob } = useStudioRun(token, runId);
   const [triggering, setTriggering] = useState(false);
 
@@ -230,7 +238,6 @@ function ProfileStep({ token, runId }: { token: string; runId: string }) {
 
   const profile = run.brandProfile;
   const status = run.extractStatus as string;
-  const data = profile.data as Record<string, unknown>;
 
   return (
     <div className="space-y-6">
@@ -256,7 +263,7 @@ function ProfileStep({ token, runId }: { token: string; runId: string }) {
       {run.extractDurationMs != null && (
         <div className="rounded-lg border border-line bg-surface p-4 space-y-2">
           <p className="text-[11px] font-semibold text-muted uppercase tracking-wide">Extraction telemetry</p>
-          <TelemetryRow label="Total" durationMs={run.extractDurationMs} costMicros={run.extractCostUsdMicros?.toString()} />
+          <TelemetryRow label="Crawl + Infer + Competitors + Keywords" durationMs={run.extractDurationMs} costMicros={run.extractCostUsdMicros?.toString()} />
         </div>
       )}
 
@@ -272,17 +279,18 @@ function ProfileStep({ token, runId }: { token: string; runId: string }) {
         </div>
       )}
 
-      {/* Profile data preview */}
-      {status === 'done' && (
-        <div className="rounded-lg border border-line bg-white p-4">
-          <p className="text-[11px] font-semibold text-muted uppercase tracking-wide mb-3">Profile data (read-only preview — M2 adds full editing)</p>
-          <pre className="text-[11px] text-ink overflow-x-auto whitespace-pre-wrap">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+      {status === 'running' && (
+        <div className="flex items-center gap-2 text-[13px] text-muted py-4">
+          <Loader2 className="w-4 h-4 animate-spin" /> Crawling website and inferring brand profile…
         </div>
       )}
 
-      {status === 'idle' && (
+      {/* Profile review UI (M2) */}
+      {status === 'done' && (
+        <ProfileReviewPanel token={token} run={run} onConfirm={onProfileConfirmed} />
+      )}
+
+      {(status === 'idle' || status === 'failed') && !triggering && (
         <div className="rounded-lg border border-dashed border-line p-8 text-center">
           <p className="text-[13px] text-muted">Click Extract to crawl the client&apos;s website and build their brand profile.</p>
         </div>
@@ -580,7 +588,7 @@ export function CampaignStudioEditor() {
 
       <StepNav current={step} onChange={setStep} />
 
-      {step === 'profile'    && <ProfileStep    token={token} runId={runId} />}
+      {step === 'profile'    && <ProfileStep    token={token} runId={runId} onProfileConfirmed={() => setStep('research')} />}
       {step === 'research'   && <ResearchStep   token={token} runId={runId} />}
       {step === 'generation' && <GenerationStep token={token} runId={runId} />}
       {step === 'calendar'   && <CalendarStep   token={token} runId={runId} />}
