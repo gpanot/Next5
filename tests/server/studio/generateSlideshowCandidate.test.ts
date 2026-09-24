@@ -281,3 +281,17 @@ describe('runGeneration — duration proportionality', () => {
     expect(payload.durationSeconds).toBe(6 * payload.perSlideSeconds);
   });
 });
+
+describe('fillPlaceholders', async () => {
+  const { fillPlaceholders } = await import('../../../src/server/studio/generator');
+
+  it('puts the real business name on the card', () => {
+    expect(fillPlaceholders('Another day at [BUSINESS_NAME] 🔧', 'Avenue', 'mechanics')).toBe('Another day at Avenue 🔧');
+    expect(fillPlaceholders('Why {{brand_name}} works', 'Avenue', 'mechanics')).toBe('Why Avenue works');
+  });
+
+  it('fills trade placeholders with the niche and leaves normal text alone', () => {
+    expect(fillPlaceholders('Ask your [TRADE] this', 'Avenue', 'mechanic')).toBe('Ask your mechanic this');
+    expect(fillPlaceholders('No brackets here', 'Avenue', 'mechanic')).toBe('No brackets here');
+  });
+});

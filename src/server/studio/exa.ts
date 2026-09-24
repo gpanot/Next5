@@ -33,20 +33,41 @@ export async function exaFetch<T>(endpoint: string, body: object): Promise<T | n
 }
 
 export interface ExaContentsResponse {
-  results: Array<{ text?: string; title?: string; url?: string }>;
+  results: Array<{ id?: string; text?: string; title?: string; url?: string; extras?: { links?: string[] } }>;
+}
+
+/** Exa /contents: ~$0.001 per page. Rough, for run-cost telemetry only. */
+export const EXA_CONTENTS_COST_MICROS = 1_000;
+
+/**
+ * Crawl several URLs in one Exa call. Returns text (and, with `links`, the page's hrefs) per
+ * requested URL, in request order. Pages Exa could not fetch come back with text null
+ * (Exa can return HTTP 200 with per-URL errors).
+ */
+export async function crawlPages(
+  urls: string[],
+  opts: { maxCharacters?: number; links?: number } = {},
+): Promise<Array<{ url: string; text: string | null; links: string[] }>> {
+  if (urls.length === 0) return [];
+  const data = await exaFetch<ExaContentsResponse>('/contents', {
+    urls,
+    text: { maxCharacters: opts.maxCharacters ?? 3_500 },
+    livecrawlTimeout: 15_000,
+    ...(opts.links ? { extras: { links: opts.links } } : {}),
+  });
+  const byUrl = new Map<string, { text: string; links: string[] }>();
+  for (const r of data?.results ?? []) {
+    if (!r.text) continue;
+    const entry = { text: r.text, links: r.extras?.links ?? [] };
+    if (r.id) byUrl.set(r.id, entry);
+    if (r.url) byUrl.set(r.url, entry);
+  }
+  return urls.map((url) => {
+    const hit = byUrl.get(url);
+    return { url, text: hit?.text ?? null, links: hit?.links ?? [] };
+  });
 }
 
 export interface ExaSearchResponse {
   results: Array<{ title?: string; url?: string }>;
-}
-
-/** Crawl a URL and return up to `maxCharacters` chars of cleaned text. */
-export async function crawlPage(url: string, maxCharacters = 3_500): Promise<{ text: string | null; durationMs: number }> {
-  const t0 = Date.now();
-  const data = await exaFetch<ExaContentsResponse>('/contents', {
-    urls: [url],
-    text: { maxCharacters },
-    livecrawlTimeout: 15_000,
-  });
-  return { text: data?.results?.[0]?.text ?? null, durationMs: Date.now() - t0 };
 }

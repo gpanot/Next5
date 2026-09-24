@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  clearResearch,
   getRun,
   listCandidates,
   listResearchItems,
@@ -138,6 +139,14 @@ export function useStudioRun(token: string, runId: string | null) {
     void refresh();
   }, [token, runId, refresh]);
 
+  const clearResearchItems = useCallback(async () => {
+    if (!runId) return;
+    setError(null);
+    await clearResearch(token, runId);
+    setItems([]);
+    setRun((prev) => prev ? { ...prev, researchStatus: 'idle', researchError: null, researchDurationMs: null, researchCostUsdMicros: null } : prev);
+  }, [token, runId]);
+
   return {
     run,
     items,
@@ -148,5 +157,6 @@ export function useStudioRun(token: string, runId: string | null) {
     triggerResearchJob,
     triggerGenerateJob,
     resetJob,
+    clearResearchItems,
   };
 }

@@ -1,6 +1,7 @@
 /**
- * GET  /api/admin/studio/runs/[runId]/research   — list research items for this run
- * POST /api/admin/studio/runs/[runId]/research   — trigger research job
+ * GET    /api/admin/studio/runs/[runId]/research   — list research items for this run
+ * POST   /api/admin/studio/runs/[runId]/research   — trigger research job
+ * DELETE /api/admin/studio/runs/[runId]/research   — clear all research items and reset status
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { waitUntil } from '@vercel/functions';
@@ -8,7 +9,8 @@ import { adminRoute } from '../../../../../../../src/server/admin/route';
 import { studioJson } from '../../../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../../../src/lib/db';
 import { runResearch } from '../../../../../../../src/server/studio/researcher';
-import { getVerticalPack } from '../../../../../../../src/server/studio/verticalPacks';
+import { resolveResearchKeywords } from '../../../../../../../src/server/studio/researchKeywords';
+import type { StudioProfileData } from '../../../../../../../src/server/studio/types';
 
 export const maxDuration = 120;
 
@@ -41,16 +43,8 @@ export const POST = adminRoute(async (req: NextRequest, ctx: Ctx) => {
   }
 
   const body = (await req.json().catch(() => ({}))) as { keywords?: string[] };
-  const profileData = run.brandProfile.data as {
-    market?: { keywords?: { value?: string[] } };
-    classification?: { vertical?: { value?: string } };
-  };
-  const profileKeywords = profileData.market?.keywords?.value ?? [];
+  const profileData = run.brandProfile.data as StudioProfileData;
   const vertical = profileData.classification?.vertical?.value ?? 'generic';
-  // Safety net: an empty keyword list (e.g. an older run predating a keyword-discovery
-  // fix, or an extraction that produced nothing usable) must not run research with
-  // zero keywords. Fall back to the curated per-vertical list rather than searching nothing.
-  const keywords = body.keywords ?? (profileKeywords.length > 0 ? profileKeywords : getVerticalPack(vertical).researchKeywords.slice(0, 4));
 
   await prisma.studioRun.update({
     where: { id: runId },
@@ -61,6 +55,7 @@ export const POST = adminRoute(async (req: NextRequest, ctx: Ctx) => {
     (async () => {
       const startedAt = Date.now();
       try {
+        const keywords = body.keywords ?? (await resolveResearchKeywords(runId, run.brandProfile));
         const result = await runResearch({ runId, keywords, vertical });
         await prisma.studioRun.update({
           where: { id: runId },
@@ -86,4 +81,23 @@ export const POST = adminRoute(async (req: NextRequest, ctx: Ctx) => {
   );
 
   return studioJson({ ok: true, runId });
+});
+
+// DELETE — clear all research items and reset status to 'idle'
+export const DELETE = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
+  const { runId } = await ctx.params;
+
+  const run = await prisma.studioRun.findUnique({ where: { id: runId }, select: { id: true, researchStatus: true } });
+  if (!run) return NextResponse.json({ error: 'not found' }, { status: 404 });
+  if (run.researchStatus === 'running') {
+    return NextResponse.json({ error: 'cannot clear while research is running' }, { status: 409 });
+  }
+
+  await prisma.studioResearchItem.deleteMany({ where: { runId } });
+  await prisma.studioRun.update({
+    where: { id: runId },
+    data: { researchStatus: 'idle', researchError: null, researchDurationMs: null, researchCostUsdMicros: null },
+  });
+
+  return studioJson({ ok: true, runId, deleted: true });
 });

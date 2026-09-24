@@ -1,15 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2, RefreshCw, Trash2, X } from 'lucide-react';
 import { useStudioRun } from '../useStudioRun';
 import { StatusBadge } from '../shared/StatusBadge';
 import { TelemetryRow } from '../shared/TelemetryRow';
 
 export function ResearchStep({ token, runId }: { token: string; runId: string }) {
-  const { run, items, error, triggerResearchJob, resetJob } = useStudioRun(token, runId);
+  const { run, items, error, triggerResearchJob, resetJob, clearResearchItems } = useStudioRun(token, runId);
   const [triggering, setTriggering] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const handleResearch = async () => {
     setTriggering(true);
@@ -19,6 +20,12 @@ export function ResearchStep({ token, runId }: { token: string; runId: string })
   const handleReset = async () => {
     setResetting(true);
     try { await resetJob(); } finally { setResetting(false); }
+  };
+
+  const handleClear = async () => {
+    if (!confirm('Clear all research items? This cannot be undone.')) return;
+    setClearing(true);
+    try { await clearResearchItems(); } finally { setClearing(false); }
   };
 
   if (!run) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted" /></div>;
@@ -31,6 +38,17 @@ export function ResearchStep({ token, runId }: { token: string; runId: string })
         <h3 className="text-[15px] font-semibold text-ink">TikTok Research</h3>
         <div className="flex items-center gap-3">
           <StatusBadge status={status} />
+          {items.length > 0 && status !== 'running' && (
+            <button
+              onClick={() => void handleClear()}
+              disabled={clearing}
+              className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-[12px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+              title="Delete all research items"
+            >
+              {clearing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+              Clear
+            </button>
+          )}
           <button
             onClick={() => void handleResearch()}
             disabled={triggering || status === 'running' || run.extractStatus !== 'done'}

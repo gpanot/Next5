@@ -31,7 +31,7 @@ const SLIDE_GEN_SYSTEM = [
   '- Each slide text is at most 14 words. Readable in under 2 seconds.',
   '- Never invent prices, percentages, years in business, or any number.',
   '- Leave no [BRACKETS] or placeholders. Every slide ready to post as-is.',
-  '- Use [BUSINESS_NAME] only where the business name belongs.',
+  '- When a slide names the business, write the business name exactly as given. Never write a placeholder for it.',
   '- No hashtags. At most one emoji across the whole slideshow.',
   '',
   'Background image prompt (bgPrompt):',
@@ -55,11 +55,13 @@ const SLIDE_GEN_COST_MICROS = 540;
 
 async function generateSlideText(
   niche: string,
+  businessName: string,
   template: TemplateDto,
   hook: string,
   transcript: string,
 ): Promise<{ slides: Array<{ text: string; bgPrompt: string }>; costMicros: number }> {
   const parts = [
+    `Business name: ${businessName}`,
     `Niche: ${niche}`,
     '',
     `Template: ${template.name} (${template.pillarName})`,
@@ -83,14 +85,14 @@ async function generateSlideText(
   const raw = Array.isArray(result?.slides) ? result.slides : [];
   const slides = raw
     .filter(isValidSlide)
-    .map((s) => ({ text: s.text.trim(), bgPrompt: s.bgPrompt.trim() }))
+    .map((s) => ({ text: fillPlaceholders(s.text.trim(), businessName, niche), bgPrompt: s.bgPrompt.trim() }))
     .filter((s) => s.text && s.bgPrompt)
     .slice(0, 8);
 
   // Fallback: use static suggested slides from template if LLM fails
   if (slides.length === 0) {
     const fallback = template.suggestedSlides.map((s) => ({
-      text: s.text.replace(/\[(SERVICE_PROVIDER|PROFESSION|PRO|SERVICE|TRADE)\]/gi, niche),
+      text: fillPlaceholders(s.text, businessName, niche),
       bgPrompt: `${niche} — ${s.bgPrompt}`,
     }));
     return { slides: fallback, costMicros: 0 };
@@ -137,6 +139,18 @@ async function runGuardrailCheck(
     .slice(0, 10);
 }
 
+// ─── Placeholders ─────────────────────────────────────────────────────────────
+
+/**
+ * Template text and model output can still carry placeholders ("Another day at
+ * [BUSINESS_NAME]"). Fill the ones we know from the profile so no card ships with brackets.
+ */
+export function fillPlaceholders(text: string, businessName: string, niche: string): string {
+  return text
+    .replace(/[[{]{1,2}\s*(BUSINESS_NAME|BUSINESS|BRAND_NAME|BRAND|COMPANY_NAME|COMPANY|SHOP_NAME)\s*[\]}]{1,2}/gi, businessName)
+    .replace(/[[{]{1,2}\s*(SERVICE_PROVIDER|PROFESSION|PRO|SERVICE|TRADE)\s*[\]}]{1,2}/gi, niche);
+}
+
 // ─── Profile niche extraction ─────────────────────────────────────────────────
 
 function extractNiche(profileData: Record<string, unknown>): string {
@@ -147,6 +161,11 @@ function extractNiche(profileData: Record<string, unknown>): string {
     classification?.vertical?.value?.replace(/_/g, ' ').trim() ||
     'small business';
   return niche.slice(0, 80);
+}
+
+function extractBusinessName(profileData: Record<string, unknown>): string {
+  const identity = profileData.identity as { businessName?: { value?: string } } | undefined;
+  return identity?.businessName?.value?.trim() || 'our team';
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
@@ -177,6 +196,7 @@ export async function runGeneration(input: GenerateInput): Promise<GenerateResul
 
   const profileData = run.brandProfile.data as Record<string, unknown>;
   const niche = extractNiche(profileData);
+  const businessName = extractBusinessName(profileData);
 
   // Load research items that have a matched template
   const items = await prisma.studioResearchItem.findMany({
@@ -201,6 +221,7 @@ export async function runGeneration(input: GenerateInput): Promise<GenerateResul
 
     const { slides, costMicros } = await generateSlideText(
       niche,
+      businessName,
       template,
       item.hook ?? '',
       item.transcript ?? '',
@@ -254,7 +275,7 @@ export async function runGeneration(input: GenerateInput): Promise<GenerateResul
     for (const template of unusedTemplates) {
       if (candidatesCreated >= 8) break;
 
-      const { slides, costMicros } = await generateSlideText(niche, template, '', '');
+      const { slides, costMicros } = await generateSlideText(niche, businessName, template, '', '');
       totalSlideTextCost += costMicros;
       if (slides.length === 0) continue;
 

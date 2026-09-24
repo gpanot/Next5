@@ -114,6 +114,9 @@ export const triggerResearch = (token: string, runId: string, keywords?: string[
     body: JSON.stringify({ keywords }),
   }, token);
 
+export const clearResearch = (token: string, runId: string) =>
+  req<{ ok: boolean; runId: string; deleted: boolean }>(`${BASE}/${runId}/research`, { method: 'DELETE' }, token);
+
 // ── Generation ──────────────────────────────────────────────────────────────
 
 export type StudioCandidateDto = {

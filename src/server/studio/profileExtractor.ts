@@ -9,20 +9,28 @@
 import { chatJson } from '../ai/openai';
 import type { ExtractTelemetry, FieldEnvelope, StudioProfileData, StageMetrics } from './types';
 import { KNOWN_VERTICALS } from './verticalPacks';
-import { crawlPage } from './exa';
+import { crawlSite } from './siteCrawl';
 import { findCompetitors } from './competitors';
-import { discoverKeywords } from './keywordDiscovery';
+import { discoverKeywords, keywordInputSignature } from './keywordDiscovery';
+import { groundIndustries } from './grounding';
+import { classifyVertical } from './verticalClassifier';
+
+/** Dedicated vertical call (verticalClassifier.ts): ~$0.0001. */
+const VERTICAL_COST_MICROS = 100;
 
 // ─── LLM profile inference ────────────────────────────────────────────────────
 
 const KNOWN_VERTICALS_LIST = KNOWN_VERTICALS.join(', ');
 
-const INFER_SYSTEM_PROMPT = `You read a business homepage and extract a structured brand profile for a social-media content tool. This must work correctly for ANY small business — a local auto repair shop, a chiropractor, a day spa, a B2B SaaS vendor, a restaurant, an ecommerce brand — not just the examples given.
+/** Menu labels + homepage + up to 3 pages (see siteCrawl.ts), ~3k tokens. */
+const MAX_INFER_CHARS = 12_000;
+
+const INFER_SYSTEM_PROMPT = `You read a business website (its menu links, homepage, and a few key pages) and extract a structured brand profile for a social-media content tool. This must work correctly for ANY small business — a local auto repair shop, a chiropractor, a day spa, a B2B SaaS vendor, a restaurant, an ecommerce brand — not just the examples given.
 
 Rules:
 - Invent NOTHING. If you cannot determine a field, use "" or null.
 - audienceType: "b2c" (sells to consumers), "b2b" (sells to businesses), or "both".
-- vertical: one of [${KNOWN_VERTICALS_LIST}] or "generic". Pick the closest real match — e.g. an auto repair shop or mechanic is "automotive", a chiropractor/dentist/physical therapist is "health_wellness", a day spa/salon/massage studio is "beauty_spa". Only use "generic" when nothing plausibly fits.
+- vertical: one of [${KNOWN_VERTICALS_LIST}] or "generic". Pick the closest real match — e.g. an auto repair shop or mechanic is "automotive", a chiropractor/dentist/physical therapist is "health_wellness", a day spa/salon/massage studio is "beauty_spa". It describes what THIS business itself is, never its customers: software sold to mechanics is "saas", not "automotive"; a brand selling physical products online (skincare, supplements, apparel) is "ecommerce", not "beauty_spa". Only use "generic" when nothing plausibly fits.
 - subVertical: a short label (e.g. "luxury residential", "SaaS HR tools", "auto body & collision"). Max 3 words.
 - businessModel: "b2c", "b2b", or "d2c".
 - promoting: max 15 words. What the business is, including WHO it serves (e.g. "Booking software for electricians and mechanics").
@@ -31,10 +39,13 @@ Rules:
 - geography: city/region/country served, or "global". Max 10 words. "" if unclear.
 - tagline: the actual tagline from the homepage, or "".
 - audienceDescription: who the typical customer is, max 20 words.
-- targetCustomerIndustries: CRITICAL for B2B — list the specific industry niches this business explicitly sells TO (e.g. ["auto mechanics", "electricians", "plumbers"]). These are the END CUSTOMER industries, not the vendor's own.
-  Write plain-English industry names as a real person would say them. NEVER reuse a value from the "vertical" list above (that field describes the vendor itself, one single category) — targetCustomerIndustries describes the vendor's different customers, in ordinary words, not category slugs.
-  IMPORTANT SOURCE: testimonials, case studies, client logos, and "trusted by" sections are the most reliable signal — a quote attributed to "Owner at [Company Name]" or a client name like "Nash Street Mechanical" reveals the real customer industry even when the page never states it directly. Always check these before giving up.
-  Empty array [] only if truly B2C, or if B2B with genuinely no signal anywhere in the text (do not guess). Max 5 items, each max 3 words, plain industry names only (e.g. "auto mechanics", never "automotive").
+- targetCustomerIndustries: CRITICAL for B2B — the specific industry niches this business sells TO, as shown ON THIS PAGE. These are the END CUSTOMER industries, not the vendor's own.
+  Each item is an object: { "industry": "auto mechanics", "evidence": "<exact words copied from the page that name this industry>" }.
+  The evidence must be copied verbatim from the text and must itself mention the industry (e.g. "Owner at Nash Street Mechanical" for "auto mechanics"). A generic phrase like "service-based businesses" is NOT evidence for any specific industry.
+  Only list industries the page actually evidences. Do NOT add industries that a business like this "usually" serves — if the page only evidences one industry, return one item.
+  Best sources: the "Site menu and links" section (e.g. an "Industries" menu listing "Mechanics", "Electricians" — quote the menu label as evidence), industry pages, testimonials, case studies, client logos, "trusted by" sections, "built for X" statements.
+  Write plain-English industry names (e.g. "auto mechanics", never "automotive"). NEVER reuse a value from the "vertical" list above.
+  Empty array [] if B2C, or if no industry is evidenced. Max 5 items.
 - tone: one of [casual, casual_professional, professional, witty, authoritative, friendly].
 - suggestedHooks: 2–3 hook patterns for TikTok written for the END CUSTOMER (the IDC), each 5–10 words.
 
@@ -52,7 +63,7 @@ Return valid JSON only (no markdown):
   "positioning": "...",
   "geography": "...",
   "audienceDescription": "...",
-  "targetCustomerIndustries": ["...", "..."],
+  "targetCustomerIndustries": [{ "industry": "...", "evidence": "..." }],
   "tone": "...",
   "suggestedHooks": ["...", "..."]
 }`;
@@ -95,7 +106,7 @@ async function inferProfile(text: string, url: string): Promise<{ result: InferR
   const result = await chatJson<InferResult>(
     [
       { role: 'system', content: INFER_SYSTEM_PROMPT },
-      { role: 'user', content: text.slice(0, 3500) },
+      { role: 'user', content: text.slice(0, MAX_INFER_CHARS) },
     ],
     { maxTokens: 600, temperature: 0.2, model: 'gpt-4o-mini' },
   );
@@ -138,25 +149,30 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
   const zeroStage: StageMetrics = { durationMs: 0, costUsdMicros: 0 };
 
   // ── Stage 1: crawl ─────────────────────────────────────────────────────────
-  const crawlResult = await crawlPage(input.sourceUrl);
-  const crawlStage: StageMetrics = { durationMs: crawlResult.durationMs, costUsdMicros: 0 };
+  const crawlResult = await crawlSite(input.sourceUrl);
+  const crawlStage: StageMetrics = { durationMs: crawlResult.durationMs, costUsdMicros: crawlResult.costUsdMicros };
 
   if (!crawlResult.text) {
     // Fallback: return placeholder profile — admin will fill manually
     const hostname = (() => { try { return new URL(input.sourceUrl).hostname.replace(/^www\./, ''); } catch { return input.sourceUrl; } })();
     return {
       data: buildPlaceholder(hostname),
-      telemetry: { stages: { crawl: crawlStage, infer: zeroStage, competitors: zeroStage, keywords: zeroStage }, totalDurationMs: crawlResult.durationMs, totalCostUsdMicros: 0 },
+      telemetry: { stages: { crawl: crawlStage, infer: zeroStage, competitors: zeroStage, keywords: zeroStage }, totalDurationMs: crawlResult.durationMs, totalCostUsdMicros: crawlResult.costUsdMicros },
     };
   }
 
   // ── Stage 2: LLM inference ─────────────────────────────────────────────────
   const { result: inferred, durationMs: inferMs, costMicros: inferCost } = await inferProfile(crawlResult.text, input.sourceUrl);
-  const inferStage: StageMetrics = { durationMs: inferMs, costUsdMicros: inferCost };
 
-  const vertical = input.verticalHint ?? (KNOWN_VERTICALS.includes(str(inferred.vertical, 'generic')) ? str(inferred.vertical, 'generic') : 'generic');
   const businessName = str(inferred.businessName, new URL(input.sourceUrl).hostname.replace(/^www\./, ''));
   const promoting = str(inferred.promoting);
+  const businessModel = (['b2c', 'b2b', 'd2c'].includes(str(inferred.businessModel)) ? str(inferred.businessModel) : 'b2c') as 'b2c' | 'b2b' | 'd2c';
+  const inferredVertical = KNOWN_VERTICALS.includes(str(inferred.vertical, 'generic')) ? str(inferred.vertical, 'generic') : 'generic';
+  const vertical =
+    input.verticalHint ??
+    (await classifyVertical({ businessName, promoting, description: str(inferred.description), businessModel })) ??
+    inferredVertical;
+  const inferStage: StageMetrics = { durationMs: inferMs, costUsdMicros: inferCost + VERTICAL_COST_MICROS };
   const geography = str(inferred.geography);
 
   // ── Stage 3: competitor discovery (Exa search, validated — not LLM memory) ──
@@ -168,39 +184,33 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
   });
   const competitorStage: StageMetrics = { durationMs: competitorMs, costUsdMicros: competitorCost };
 
-  // Extract IDC niches from LLM output (target customer industries for B2B vendors).
-  // Defensive filter: the model occasionally echoes a `vertical` enum slug here instead of a
-  // plain-English industry name (e.g. "automotive" instead of "auto mechanics") — drop those,
-  // since a vertical-pack slug is not a real TikTok search topic and would defeat the whole
-  // point of this field (it exists to escape the vendor's own vertical, not restate it).
-  const targetCustomerIndustries = Array.isArray(inferred.targetCustomerIndustries)
-    ? inferred.targetCustomerIndustries
-        .filter((n): n is string => typeof n === 'string' && n.trim().length > 0)
-        .filter((n) => !KNOWN_VERTICALS.includes(n.trim().toLowerCase()) && n.trim().toLowerCase() !== 'generic')
-        .slice(0, 5)
-    : [];
-
-  const audienceType = (['b2c', 'b2b', 'both'].includes(str(inferred.audienceType)) ? str(inferred.audienceType) : 'b2c') as 'b2c' | 'b2b' | 'both';
+  // Target customer industries: kept only when a verbatim quote from the crawl backs them up.
+  // Also drop vertical-enum slugs the model sometimes echoes ("automotive" instead of "auto mechanics").
+  const grounded = groundIndustries(inferred.targetCustomerIndustries, crawlResult.text);
+  const keep = grounded.industries.map((n) => !KNOWN_VERTICALS.includes(n.toLowerCase()) && n.toLowerCase() !== 'generic');
+  const targetCustomerIndustries = grounded.industries.filter((_, i) => keep[i]);
+  const industryEvidence = grounded.evidence.filter((_, i) => keep[i]);
+  console.log(`[studio/profile] targetCustomerIndustries raw=${JSON.stringify(inferred.targetCustomerIndustries ?? [])} grounded=${JSON.stringify(targetCustomerIndustries)}`);
 
   // ── Stage 4: keyword discovery — seeded from IDC niches, relevance-verified ─
-  const { keywords, durationMs: keywordMs, verified: keywordsVerified } = await discoverKeywords({
+  // Same derivation as keywordInputFromProfile() so the research step sees a matching signature.
+  const keywordInput = {
     businessName,
     vertical,
-    audienceType,
+    audienceType: businessModel === 'b2b' ? 'b2b' : 'b2c',
     promoting,
     targetCustomerIndustries,
-  });
+  };
+  const { keywords, durationMs: keywordMs, verified: keywordsVerified } = await discoverKeywords(keywordInput);
   const keywordStage: StageMetrics = { durationMs: keywordMs, costUsdMicros: 0 };
 
   const totalDurationMs = crawlResult.durationMs + inferMs + competitorMs + keywordMs;
-  const totalCostUsdMicros = inferCost + competitorCost;
+  const totalCostUsdMicros = crawlResult.costUsdMicros + inferStage.costUsdMicros + competitorCost;
 
   // ── Assemble profile ───────────────────────────────────────────────────────
   const rawHooks = Array.isArray(inferred.suggestedHooks)
     ? inferred.suggestedHooks.filter((h): h is string => typeof h === 'string')
     : [];
-
-  const businessModel = (['b2c', 'b2b', 'd2c'].includes(str(inferred.businessModel)) ? str(inferred.businessModel) : 'b2c') as 'b2c' | 'b2b' | 'd2c';
 
   const confidence = crawlResult.text.length > 500 ? 0.8 : 0.5;
 
@@ -225,9 +235,15 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
     },
     market: {
       audienceDescription: envelope(str(inferred.audienceDescription), 'inferred', confidence),
-      targetCustomerIndustries: envelope(targetCustomerIndustries, 'inferred', targetCustomerIndustries.length > 0 ? confidence : 0),
+      targetCustomerIndustries: {
+        ...envelope(targetCustomerIndustries, 'inferred', targetCustomerIndustries.length > 0 ? confidence : 0),
+        evidence: industryEvidence,
+      },
       competitors: envelope(competitors, 'inferred', competitors.length > 0 ? 0.8 : 0),
-      keywords: envelope(keywords, 'inferred', keywordsVerified ? 0.8 : 0.4),
+      keywords: {
+        ...envelope(keywords, 'inferred', keywordsVerified ? 0.8 : 0.4),
+        derivedFrom: keywordInputSignature(keywordInput),
+      },
     },
     tone: {
       tone: envelope(str(inferred.tone, 'casual_professional'), 'inferred', confidence),

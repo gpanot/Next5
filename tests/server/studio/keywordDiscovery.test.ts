@@ -1,11 +1,11 @@
 /**
- * Unit tests for TikTok keyword discovery + the relevance guardrail.
- * This is the fix for a real production bug: a B2B SaaS site (booking software for
- * mechanics/electricians) produced totally unrelated TikTok keywords ("fitness studio
- * management", "healthcare tips") because the vendor's own vertical ("saas") was handed to
- * the LLM as if it were a real-world audience, directly contradicting the "don't write about
- * software" rule in the same prompt. These tests pin down the fix and the backstop guardrail
- * so this class of mistake cannot ship again for any vertical — not just SaaS.
+ * Unit tests for TikTok search-term discovery + the relevance guardrail.
+ *
+ * Real bug this pins down: a booking-software site for auto mechanics got research keywords
+ * like "fitness studio management" and "beauty salon strategies". Two causes: the niches were
+ * padded from LLM world knowledge, and the keywords were "business tips" phrases that match
+ * generic business-coach videos. Search terms are now plain niche names, the way the Blitz
+ * researcher is used ("auto mechanic").
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,14 +14,53 @@ vi.mock('../../../src/server/ai/openai', () => ({
   chatJson: (...args: unknown[]) => chatJsonMock(...args),
 }));
 
-import { discoverKeywords } from '../../../src/server/studio/keywordDiscovery';
+import { discoverKeywords, toSearchTerm } from '../../../src/server/studio/keywordDiscovery';
 
 afterEach(() => {
   chatJsonMock.mockReset();
 });
 
-describe('discoverKeywords — no-signal cases never reach the LLM', () => {
-  it('B2B vendor with no target customer industries uses the vertical pack, never the LLM', async () => {
+
+describe('toSearchTerm', () => {
+  it('strips generic add-on words that pull in business-coach content', () => {
+    expect(toSearchTerm('Mechanic Business Advice')).toBe('mechanic');
+    expect(toSearchTerm('auto repair tips')).toBe('auto repair');
+    expect(toSearchTerm('small electrical business growth')).toBe('electrical');
+    expect(toSearchTerm('diner owner')).toBe('diner owner');
+  });
+
+  it('keeps plain niche names untouched', () => {
+    expect(toSearchTerm('auto mechanics')).toBe('auto mechanics');
+    expect(toSearchTerm('day spa')).toBe('day spa');
+  });
+});
+
+describe('discoverKeywords — B2B uses the grounded niches directly', () => {
+  it('turns target customer industries into search terms without calling the LLM', async () => {
+    const result = await discoverKeywords({
+      businessName: 'Avenue',
+      vertical: 'saas',
+      audienceType: 'b2b',
+      promoting: 'Booking software for service businesses',
+      targetCustomerIndustries: ['auto mechanics', 'electricians'],
+    });
+
+    expect(chatJsonMock).not.toHaveBeenCalled();
+    expect(result.keywords).toEqual(['auto mechanics', 'electricians']);
+    expect(result.verified).toBe(true);
+  });
+
+  it('caps at 3 terms and dedupes after stripping', () => {
+    return discoverKeywords({
+      businessName: 'Avenue',
+      vertical: 'saas',
+      audienceType: 'b2b',
+      promoting: '',
+      targetCustomerIndustries: ['auto mechanics', 'auto mechanics business', 'electricians', 'plumbers', 'roofers'],
+    }).then((r) => expect(r.keywords).toEqual(['auto mechanics', 'electricians', 'plumbers']));
+  });
+
+  it('B2B with no niches returns no search terms (never the vendor\'s own vertical)', async () => {
     const result = await discoverKeywords({
       businessName: 'Avenue',
       vertical: 'saas',
@@ -31,13 +70,10 @@ describe('discoverKeywords — no-signal cases never reach the LLM', () => {
     });
 
     expect(chatJsonMock).not.toHaveBeenCalled();
-    expect(result.verified).toBe(true);
-    expect(result.keywords.length).toBeGreaterThan(0);
-    // The real-world failure mode: unrelated hallucinated niches must never appear.
-    expect(result.keywords.some((k) => /fitness|healthcare/i.test(k))).toBe(false);
+    expect(result.keywords).toEqual([]);
   });
 
-  it('generic vertical (crawl too thin to classify) uses the generic pack, not a guess', async () => {
+  it('generic vertical with no signal uses the generic pack', async () => {
     const result = await discoverKeywords({
       businessName: 'Unknown Co',
       vertical: 'generic',
@@ -47,142 +83,79 @@ describe('discoverKeywords — no-signal cases never reach the LLM', () => {
     });
 
     expect(chatJsonMock).not.toHaveBeenCalled();
-    expect(result.keywords).toEqual(expect.arrayContaining(['business tips']));
+    expect(result.keywords).toContain('business tips');
   });
 });
 
-describe('discoverKeywords — grounded LLM generation', () => {
-  it('B2C business with a real vertical (auto repair) generates on-topic queries', async () => {
-    chatJsonMock
-      .mockResolvedValueOnce({ queries: ['mechanic tips', 'auto shop day in the life', 'car repair advice', 'oil change tips'] })
-      .mockResolvedValueOnce({
-        checks: [
-          { query: 'mechanic tips', relevant: true },
-          { query: 'auto shop day in the life', relevant: true },
-          { query: 'car repair advice', relevant: true },
-          { query: 'oil change tips', relevant: true },
-        ],
-      });
+describe('discoverKeywords — B2C names its own trade', () => {
+  const autoShop = {
+    businessName: 'KC Auto Solutions',
+    vertical: 'automotive',
+    audienceType: 'b2c',
+    promoting: 'Dependable auto repair services for all makes and models',
+    targetCustomerIndustries: [],
+  };
 
-    const result = await discoverKeywords({
-      businessName: "Joe's Auto Repair",
-      vertical: 'automotive',
-      audienceType: 'b2c',
-      promoting: 'Full-service auto repair shop',
-      targetCustomerIndustries: [],
-    });
+  it('asks the LLM for the trade name, strips filler, then verifies', async () => {
+    chatJsonMock
+      .mockResolvedValueOnce({ terms: ['auto repair tips', 'mechanic'] })
+      .mockResolvedValueOnce({ checks: [{ query: 'auto repair', relevant: true }, { query: 'mechanic', relevant: true }] });
+
+    const result = await discoverKeywords(autoShop);
 
     expect(chatJsonMock).toHaveBeenCalledTimes(2);
-    expect(result.keywords).toContain('mechanic tips');
+    expect(result.keywords).toEqual(['auto repair', 'mechanic']);
     expect(result.verified).toBe(true);
   });
 
-  it('B2B vendor with real target customer industries generates niche-grounded queries, never vendor-vertical ones', async () => {
+  it('drops an off-topic term and does NOT refill from the vertical pack', async () => {
     chatJsonMock
-      .mockResolvedValueOnce({
-        queries: ['mechanic scheduling tips', 'electrician business advice', 'auto shop tips', 'electrical contractor advice'],
-      })
+      .mockResolvedValueOnce({ terms: ['auto repair', 'fitness studio'] })
+      .mockResolvedValueOnce({ checks: [{ query: 'auto repair', relevant: true }, { query: 'fitness studio', relevant: false }] });
+
+    const result = await discoverKeywords(autoShop);
+
+    expect(result.keywords).toEqual(['auto repair']);
+  });
+
+  it('a dentist never gets chiropractor terms from the shared health_wellness pack', async () => {
+    chatJsonMock
+      .mockResolvedValueOnce({ terms: ['dental implants', 'teeth whitening', 'gym'] })
       .mockResolvedValueOnce({
         checks: [
-          { query: 'mechanic scheduling tips', relevant: true },
-          { query: 'electrician business advice', relevant: true },
-          { query: 'auto shop tips', relevant: true },
-          { query: 'electrical contractor advice', relevant: true },
+          { query: 'dental implants', relevant: true },
+          { query: 'teeth whitening', relevant: true },
+          { query: 'gym', relevant: false },
         ],
       });
 
     const result = await discoverKeywords({
-      businessName: 'Avenue',
-      vertical: 'saas',
-      audienceType: 'b2b',
-      promoting: 'Booking software for mechanics and electricians',
-      targetCustomerIndustries: ['auto mechanics', 'electricians'],
-    });
-
-    expect(result.keywords.every((k) => !/\bsaas\b|\bsoftware\b|\bapp\b/i.test(k))).toBe(true);
-    expect(result.keywords).toContain('mechanic scheduling tips');
-  });
-});
-
-describe('discoverKeywords — relevance guardrail rejects hallucinated queries', () => {
-  it('drops an off-topic query the LLM invented and backfills from the vertical pack', async () => {
-    chatJsonMock
-      .mockResolvedValueOnce({
-        queries: ['mechanic tips', 'fitness studio management', 'car repair advice', 'healthcare tips'],
-      })
-      .mockResolvedValueOnce({
-        checks: [
-          { query: 'mechanic tips', relevant: true },
-          { query: 'fitness studio management', relevant: false },
-          { query: 'car repair advice', relevant: true },
-          { query: 'healthcare tips', relevant: false },
-        ],
-      });
-
-    const result = await discoverKeywords({
-      businessName: "Joe's Auto Repair",
-      vertical: 'automotive',
+      businessName: 'Independence Family Dentistry',
+      vertical: 'health_wellness',
       audienceType: 'b2c',
-      promoting: 'Full-service auto repair shop',
+      promoting: 'Expert dental care for families in Independence, KY.',
       targetCustomerIndustries: [],
     });
 
-    expect(result.keywords).not.toContain('fitness studio management');
-    expect(result.keywords).not.toContain('healthcare tips');
-    expect(result.keywords).toContain('mechanic tips');
-    expect(result.keywords).toContain('car repair advice');
-    expect(result.keywords.length).toBeLessThanOrEqual(4);
-    expect(result.verified).toBe(true);
+    expect(result.keywords).toEqual(['dental implants', 'teeth whitening']);
+    expect(result.keywords.some((k) => /chiropract|back pain/i.test(k))).toBe(false);
   });
 
-  it('passes queries through unverified (not silently dropped) when the validation call itself fails', async () => {
-    chatJsonMock
-      .mockResolvedValueOnce({ queries: ['mechanic tips', 'auto shop advice', 'car repair tips', 'oil change tips'] })
-      .mockRejectedValueOnce(new Error('timeout'));
+  it('never reports verified=true when the validation call returns null', async () => {
+    chatJsonMock.mockResolvedValueOnce({ terms: ['auto repair', 'mechanic'] }).mockResolvedValueOnce(null);
 
-    const result = await discoverKeywords({
-      businessName: "Joe's Auto Repair",
-      vertical: 'automotive',
-      audienceType: 'b2c',
-      promoting: 'Full-service auto repair shop',
-      targetCustomerIndustries: [],
-    });
+    const result = await discoverKeywords(autoShop);
 
-    expect(result.keywords).toHaveLength(4);
+    expect(result.keywords).toEqual(['auto repair', 'mechanic']);
     expect(result.verified).toBe(false);
   });
 
-  it('never reports verified=true when the validation call returns null (chatJson\'s real failure mode never throws)', async () => {
-    chatJsonMock
-      .mockResolvedValueOnce({ queries: ['mechanic tips', 'auto shop advice', 'car repair tips', 'oil change tips'] })
-      .mockResolvedValueOnce(null);
-
-    const result = await discoverKeywords({
-      businessName: "Joe's Auto Repair",
-      vertical: 'automotive',
-      audienceType: 'b2c',
-      promoting: 'Full-service auto repair shop',
-      targetCustomerIndustries: [],
-    });
-
-    expect(result.keywords).toHaveLength(4);
-    expect(result.verified).toBe(false);
-  });
-});
-
-describe('discoverKeywords — LLM discovery failure falls back to niche-derived keywords', () => {
-  it('falls back to "<niche> tips" when the discovery LLM call fails entirely', async () => {
+  it('returns no terms (not a pack guess) when the LLM call fails', async () => {
     chatJsonMock.mockRejectedValueOnce(new Error('network error'));
 
-    const result = await discoverKeywords({
-      businessName: 'Avenue',
-      vertical: 'saas',
-      audienceType: 'b2b',
-      promoting: 'Booking software for mechanics and electricians',
-      targetCustomerIndustries: ['auto mechanics', 'electricians'],
-    });
+    const result = await discoverKeywords(autoShop);
 
-    expect(result.keywords).toEqual(['auto mechanics tips', 'electricians tips']);
+    expect(result.keywords).toEqual([]);
     expect(result.verified).toBe(false);
   });
 });

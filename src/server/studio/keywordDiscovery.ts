@@ -2,7 +2,7 @@
  * Campaign Studio — TikTok search keyword discovery + relevance guardrail.
  *
  * Split out of profileExtractor.ts. Two responsibilities:
- *  1. discoverKeywords — generate 4 TikTok search queries for the client's real-world niche.
+ *  1. discoverKeywords — up to 3 plain TikTok search terms for the client's real-world niche.
  *  2. validateKeywordRelevance — a second, independent LLM pass that checks each generated
  *     query against the business's own description before it is trusted. This is the backstop
  *     against exactly the failure mode that shipped wrong content for a B2B SaaS site: an LLM
@@ -13,6 +13,7 @@
 // server-only
 import { chatJson } from '../ai/openai';
 import { getVerticalPack } from './verticalPacks';
+import type { StudioProfileData } from './types';
 
 // ─── Discovery ──────────────────────────────────────────────────────────────
 
@@ -25,77 +26,131 @@ export type DiscoverKeywordsInput = {
   targetCustomerIndustries: string[];
 };
 
-/** Generate TikTok search keywords with GPT-4o-mini.
- * For B2B vendors, generates queries from the IDC (target customer) industries so TikTok
- * research finds content relevant to the END CUSTOMER (e.g. "mechanic scheduling tips"),
- * not generic content about the vendor's own vertical (e.g. "saas tips").
+/**
+ * Keyword inputs derived from a saved profile. Extraction and research both build inputs
+ * through this, so their signatures match and edits to any input field are detected.
+ */
+export function keywordInputFromProfile(p: StudioProfileData): DiscoverKeywordsInput {
+  const idc = p.market.targetCustomerIndustries;
+  // Profiles saved before evidence grounding carry LLM-padded industries with no evidence
+  // (e.g. "beauty salons" for a mechanics-only booking tool). Ignore those; manual edits stay.
+  const idcTrusted = idc && (idc.source === 'manual' || Array.isArray(idc.evidence));
+  return {
+    businessName: p.identity.businessName.value,
+    vertical: p.classification.vertical.value,
+    audienceType: p.classification.businessModel.value === 'b2b' ? 'b2b' : 'b2c',
+    promoting: p.positioning.promoting.value,
+    targetCustomerIndustries: idcTrusted ? idc.value : [],
+  };
+}
+
+/** Stored on the keywords envelope; a mismatch means the keywords are stale. */
+export function keywordInputSignature(input: DiscoverKeywordsInput): string {
+  return [
+    'kw:v2', // v2 = plain niche search terms (Blitz-style), replacing v1 "business tips" phrases
+    input.vertical,
+    input.audienceType,
+    input.promoting.trim().toLowerCase(),
+    input.targetCustomerIndustries.map((i) => i.trim().toLowerCase()).join(','),
+  ].join('|');
+}
+
+/** Max search terms per run — matches the research step's keyword budget. */
+const MAX_TERMS = 3;
+
+/**
+ * Words that turn a niche search into generic business-coach content. "auto mechanic" returns
+ * mechanics filming their work; "mechanic business advice" returns coaches who also post for
+ * salons and gyms — which is how off-topic videos got into research.
+ */
+const FILLER = /\b(tips?|advice|business(es)?|marketing|growth|strateg(y|ies)|management|challenges?|ideas?|success|small|hacks?|insights?)\b/g;
+
+export function toSearchTerm(raw: string): string {
+  return raw.toLowerCase().replace(FILLER, ' ').replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function uniqueTerms(raw: string[]): string[] {
+  const out: string[] = [];
+  for (const r of raw) {
+    const t = toSearchTerm(r);
+    if (t.length >= 3 && !out.includes(t)) out.push(t);
+  }
+  return out.slice(0, MAX_TERMS);
+}
+
+/**
+ * TikTok search terms for the research step — plain niche names, the way the Blitz researcher
+ * is used ("auto mechanic" → 10 videos made by mechanics).
+ *
+ * - B2B with target customer industries: the industries ARE the search terms. They are either
+ *   evidence-grounded or typed by the admin, so no LLM step — nothing can be invented here.
+ * - B2B without them: no terms — research asks the admin for the niches instead of guessing.
+ * - No usable vertical: the curated vertical-pack list.
+ * - B2C: the LLM names the business's own trade from "what they sell", then a second pass
+ *   checks each term against the business before it is trusted. If nothing passes, no terms.
  */
 export async function discoverKeywords(input: DiscoverKeywordsInput): Promise<{ keywords: string[]; durationMs: number; verified: boolean }> {
   const t0 = Date.now();
   const { businessName, vertical, audienceType, promoting, targetCustomerIndustries } = input;
   const pack = getVerticalPack(vertical);
 
-  // A B2B vendor with no extracted end-customer industries has no real TikTok
-  // niche to search — its own vertical (e.g. "saas") is not a real-world
-  // audience, and handing it to the LLM as one directly contradicts the "don't
-  // generate queries about software/apps" rule below, which reliably produced
-  // hallucinated, unrelated niches (e.g. "fitness studio", "healthcare tips")
-  // instead of an error. Same problem when the crawl was too thin to classify
-  // a real vertical at all ("generic"). In both cases, use the curated,
-  // on-topic fallback list instead of asking the LLM to invent an audience.
-  if (targetCustomerIndustries.length === 0 && (audienceType === 'b2b' || vertical === 'generic')) {
-    const fallbackKeywords = pack.researchKeywords.slice(0, 4);
-    console.log(`[studio/profile] discoverKeywords → no target customer industries (audienceType=${audienceType}, vertical=${vertical}); using vertical pack: ${JSON.stringify(fallbackKeywords)}`);
-    return { keywords: fallbackKeywords, durationMs: Date.now() - t0, verified: true };
+  if (targetCustomerIndustries.length > 0) {
+    const keywords = uniqueTerms(targetCustomerIndustries);
+    if (keywords.length > 0) {
+      console.log(`[studio/profile] discoverKeywords → target customer industries as search terms: ${JSON.stringify(keywords)}`);
+      return { keywords, durationMs: Date.now() - t0, verified: true };
+    }
   }
 
-  const niches = targetCustomerIndustries.length > 0 ? targetCustomerIndustries : [vertical];
+  // A B2B vendor's own vertical ("saas" → "software review") is not its customers' niche.
+  // Without evidenced customer industries there is nothing correct to search, so return none
+  // and let the research step ask the admin for them.
+  if (audienceType === 'b2b') {
+    console.log('[studio/profile] discoverKeywords → B2B with no target customer industries; no search terms');
+    return { keywords: [], durationMs: Date.now() - t0, verified: true };
+  }
 
-  console.log(`[studio/profile] discoverKeywords LLM call for niches=${JSON.stringify(niches)}`);
+  if (vertical === 'generic' || !promoting) {
+    const keywords = pack.researchKeywords.slice(0, MAX_TERMS);
+    console.log(`[studio/profile] discoverKeywords → no niche signal (audienceType=${audienceType}, vertical=${vertical}); vertical pack: ${JSON.stringify(keywords)}`);
+    return { keywords, durationMs: Date.now() - t0, verified: true };
+  }
 
+  console.log(`[studio/profile] discoverKeywords LLM call for "${promoting}"`);
   try {
-    const result = await chatJson<{ queries?: unknown[] }>(
+    const result = await chatJson<{ terms?: unknown[] }>(
       [
         {
           role: 'system',
-          content: `Generate 4 TikTok search queries to find viral content made BY or FOR small business owners in these industries.
+          content: `Name the trade this business is in, as TikTok search terms that find videos made by people who do this work.
 Rules:
-- Each query should be 2-4 words that real TikTok creators would use.
-- Focus on the TARGET CUSTOMER's daily challenges, business tips, and how they run their business.
-- Do NOT generate queries about software, apps, or technology — focus on the industry itself.
-- The industries given below are the ONLY topics you may write about. Never substitute a different industry, even if you are unsure — if nothing fits, reuse the given industry name as-is in the query.
-- Examples for "electricians": ["electrician business tips", "electrical contractor advice", "tradie productivity", "small electrical business"]
-Return JSON only: { "queries": ["query 1", "query 2", "query 3", "query 4"] }`,
+- 1 to 3 terms, each 1-3 words: the plain name of the trade, the business type, or the person who does the work, as someone would type it into TikTok search.
+- Pick terms whose videos are made BY businesses like this one. Avoid bare product or food words ("breakfast", "lunch", "pizza") — those return home cooks and shoppers, not businesses.
+- For a brand selling products online, name the product category the brand is known for.
+- Use only what "What they sell" says. Never name a different trade.
+- No add-on words: no "tips", "advice", "business", "marketing", "growth", "ideas".
+- Examples: an auto repair shop → ["auto repair", "mechanic"]; a chiropractic clinic → ["chiropractor"]; a day spa → ["day spa", "massage therapist"]; a family diner → ["diner owner", "family restaurant"]; an acne skincare brand → ["acne skincare"].
+Return JSON only: { "terms": ["...", "..."] }`,
         },
-        {
-          role: 'user',
-          content: `Business: ${businessName}
-What they sell: ${promoting || 'unknown'}
-Target customer industries (the only allowed topics): ${niches.join(', ')}`,
-        },
+        { role: 'user', content: `Business: ${businessName}\nWhat they sell: ${promoting}` },
       ],
-      { maxTokens: 100, temperature: 0.2, model: 'gpt-4o-mini' },
+      { maxTokens: 60, temperature: 0.1, model: 'gpt-4o-mini' },
     );
 
-    const raw = Array.isArray(result?.queries) ? result.queries : [];
-    const generated = raw
-      .filter((q): q is string => typeof q === 'string' && q.trim().length > 2)
-      .map((q) => q.trim().toLowerCase())
-      .slice(0, 4);
-
+    const raw = Array.isArray(result?.terms) ? result.terms.filter((q): q is string => typeof q === 'string') : [];
+    const generated = uniqueTerms(raw);
     if (generated.length > 0) {
-      const { keywords, verified } = await validateKeywordRelevance(generated, { businessName, promoting, niches, pack });
+      const { keywords, verified } = await validateKeywordRelevance(generated, { businessName, promoting, niches: [promoting], pack });
       console.log(`[studio/profile] discoverKeywords → ${JSON.stringify(keywords)} (verified=${verified}) in ${Date.now() - t0}ms`);
       return { keywords, durationMs: Date.now() - t0, verified };
     }
   } catch (err) {
-    console.error('[studio/profile] discoverKeywords LLM failed, using fallback:', err);
+    console.error('[studio/profile] discoverKeywords LLM failed, using vertical pack:', err);
   }
 
-  // Fallback: construct directly from niche names
-  const fallback = niches.slice(0, 4).map((n) => `${n} tips`);
-  console.log(`[studio/profile] discoverKeywords fallback → ${JSON.stringify(fallback)} in ${Date.now() - t0}ms`);
-  return { keywords: fallback, durationMs: Date.now() - t0, verified: false };
+  // Same reason as the guardrail: a pack guess can be the wrong trade. Research asks instead.
+  console.log(`[studio/profile] discoverKeywords → no verified terms in ${Date.now() - t0}ms`);
+  return { keywords: [], durationMs: Date.now() - t0, verified: false };
 }
 
 // ─── Relevance guardrail ────────────────────────────────────────────────────
@@ -110,9 +165,8 @@ type ValidationContext = {
 /**
  * Second, independent LLM pass: checks each generated query is plausibly a real TikTok
  * search topic for THIS business's actual customers, not an invented unrelated niche.
- * Any query that fails is dropped and backfilled from the vertical pack so the caller
- * always gets back up to 4 keywords. Runs one call for all queries (not one per query)
- * to keep cost and latency down.
+ * Any query that fails is dropped (never refilled). Runs one call for all queries (not one
+ * per query) to keep cost and latency down.
  */
 async function validateKeywordRelevance(
   queries: string[],
@@ -166,9 +220,10 @@ ${queries.map((q, i) => `${i + 1}. ${q}`).join('\n')}`,
 
     console.warn(`[studio/profile] discoverKeywords → rejected ${queries.length - relevant.length}/${queries.length} off-topic queries: ${JSON.stringify(queries.filter((q) => !relevant.includes(q)))}`);
 
-    const backfill = ctx.pack.researchKeywords.filter((k) => !relevant.includes(k));
-    const keywords = [...relevant, ...backfill].slice(0, 4);
-    return { keywords: keywords.length > 0 ? keywords : ctx.pack.researchKeywords.slice(0, 4), verified: true };
+    // No backfill: a vertical pack is broader than one business (health_wellness covers both
+    // dentists and chiropractors), so refilling put "chiropractor tips" on a dental practice.
+    // Fewer, correct terms beat a full list; zero terms makes research ask the admin.
+    return { keywords: relevant, verified: true };
   } catch (err) {
     // Validation call itself failed (network/timeout) — do not block the pipeline on it,
     // but do not silently trust unverified output either; the caller records `verified: false`.
