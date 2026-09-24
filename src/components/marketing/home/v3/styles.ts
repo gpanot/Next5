@@ -130,12 +130,21 @@ export const BASE_CSS = String.raw`
 .v3thumbs div{aspect-ratio:1;border-radius:6px;background:var(--soft);opacity:0;transform:scale(.9);transition:all .3s ease}
 .v3thumbs div.in{opacity:1;transform:none}
 .v3video-ov{position:absolute;inset:0;z-index:1;display:flex;flex-direction:column;justify-content:space-between;padding:58px 16px 30px;pointer-events:none}
+/* When realtor, hook is hidden — push facts to bottom */
+[data-aud="realtor"] .v3video-ov{justify-content:flex-end}
 .v3hook{align-self:center;text-align:center;background:var(--paper);color:var(--ink);font-weight:800;font-size:19px;line-height:1.15;padding:8px 12px;border-radius:10px;max-width:92%;letter-spacing:-.02em}
 .v3facts{display:flex;gap:6px;flex-wrap:wrap}
 .v3facts span{background:rgba(0,0,0,.72);color:#fff;font-size:12px;font-weight:600;padding:5px 9px;border-radius:8px}
 .v3hookdots{display:flex;justify-content:center;gap:6px;margin-top:10px}
 .v3hookdots i{width:6px;height:6px;border-radius:50%;background:rgba(0,0,0,.25)}
 .v3hookdots i.on{background:var(--signal);width:18px;border-radius:4px}
+/* ── Realtor hero video ── */
+.v3ugc-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+/* TikTok badge — top-left of phone screen */
+.v3tktk-badge{position:absolute;top:12px;left:12px;z-index:1;display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.58);color:#fff;font-size:11px;font-weight:600;padding:5px 9px;border-radius:999px;backdrop-filter:blur(4px);pointer-events:none}
+/* Realtor headshot inset — bottom-right corner, above facts */
+.v3headshot{position:absolute;bottom:46px;right:8px;z-index:1;width:26%;aspect-ratio:9/16;overflow:hidden;border-radius:8px;box-shadow:0 0 0 2px #fff,0 2px 10px rgba(0,0,0,.3);pointer-events:none}
+.v3headshot img{width:100%;height:100%;object-fit:cover;object-position:top}
 .v3side-card{position:absolute;left:0;top:56%;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:12px 14px;
   width:200px;box-shadow:0 14px 30px -18px rgba(0,0,0,.35);font-size:13px;z-index:4}
 .v3side-card b{color:var(--ink);display:block;font-size:13.5px;margin-bottom:2px}

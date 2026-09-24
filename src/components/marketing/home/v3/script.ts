@@ -16,6 +16,7 @@ const CORE_JS = String.raw`
 
   function setText(sel,v){var el=q(sel);if(el)el.textContent=v}
   function setAud(a){
+    if(current==="realtor"&&a!=="realtor")stopRealtorVideo();
     current=a;var c=copy[a];
     root.setAttribute("data-aud",a);
     history.replaceState(null,"",a==="realtor"?location.pathname:"?for="+a);
@@ -31,6 +32,8 @@ const CORE_JS = String.raw`
     q(".js-input").value="";runDemo(false);
   }
   function clearT(){timers.forEach(clearTimeout);timers=[];clearInterval(hookTimer)}
+  function playRealtorVideo(){var v=q(".js-realtor-video");if(v)v.play().catch(function(){});}
+  function stopRealtorVideo(){var v=q(".js-realtor-video");if(v){v.pause();v.currentTime=0;}}
   function at(ms,fn){timers.push(setTimeout(fn,ms))}
   function cycleHooks(){
     var hook=q(".js-hook"),dots=qa(".v3hookdots i"),n=0;
@@ -58,7 +61,8 @@ const CORE_JS = String.raw`
     at(t+2500,function(){items[1].className="ok";items[2].className="on"});
     at(t+3600,function(){items[2].className="ok";items[3].className="ok"});
     at(t+4300,function(){build.classList.add("done");card.classList.add("done");
-      if(typeLink){q(".js-input").value=""}cycleHooks()});
+      if(typeLink){q(".js-input").value=""}
+      if(current==="realtor"){playRealtorVideo();}else{cycleHooks();}});
   }
   qa("button[data-aud]").forEach(function(b){b.addEventListener("click",function(){setAud(b.dataset.aud)})});
   function submitLink(val){
