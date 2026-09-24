@@ -14,11 +14,13 @@ import { promisify } from 'util';
 
 // Resolve ffmpeg at runtime — avoids Next.js webpack bundling replacing
 // ffmpeg-static's internal __dirname with /ROOT/ (ENOENT in route handlers).
+// turbopackIgnore comments prevent Next.js static analysis from tracing the
+// entire project just because we call existsSync on a runtime-resolved path.
 export const FFMPEG_PATH = (() => {
   const p = path.join(process.cwd(), 'node_modules', 'ffmpeg-static', 'ffmpeg');
-  if (existsSync(p)) return p;
+  if (existsSync(/*turbopackIgnore: true*/ p)) return p;
   for (const fallback of ['/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg']) {
-    if (existsSync(fallback)) return fallback;
+    if (existsSync(/*turbopackIgnore: true*/ fallback)) return fallback;
   }
   return null;
 })();
