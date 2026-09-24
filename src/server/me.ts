@@ -3,7 +3,7 @@
 import type { Subscription, Workspace } from '@prisma/client';
 import { PLANS, isPlanId, type Plan } from '../config/plans';
 import { prisma } from '../lib/db';
-import type { BannerDto, MeDto, SubscriptionDto, WorkspaceDto } from '../types/business/me';
+import type { BannerDto, BrandExtractData, MeDto, SubscriptionDto, WorkspaceDto } from '../types/business/me';
 import { getBalance, type Balance } from './credits/ledger';
 import { givenConsents } from './onboarding/account';
 import { getActiveSubscription, getQueuedRenewal } from './subscriptions/subscriptions';
@@ -54,6 +54,9 @@ const toWorkspaceDto = async (ws: Workspace): Promise<WorkspaceDto> => {
     audienceType: ws.audienceType ?? null,
     promoting: ws.promoting ?? null,
     offer: ws.offer ?? null,
+    // Rich brand extract (from website crawl)
+    brandExtract: (ws.brandExtract as BrandExtractData | null) ?? null,
+    brandExtractAt: ws.brandExtractAt?.toISOString() ?? null,
   };
 };
 

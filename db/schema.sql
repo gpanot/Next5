@@ -1657,7 +1657,9 @@ CREATE TABLE public.workspaces (
     promoting text,
     offer text,
     positioning text,
-    geography text
+    geography text,
+    brand_extract jsonb,
+    brand_extract_at timestamp with time zone
 );
 
 
@@ -3488,6 +3490,7 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260922090000'),
     ('20260923090000'),
     ('20260924090000'),
+    ('20260924120000'),
     ('20260925090000'),
     ('20260926090000'),
     ('20260927090000'),

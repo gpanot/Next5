@@ -2,12 +2,16 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '../../../lib/apiClient';
-import type { WorkspaceAngleDto } from '../../../types/business/me';
+import type { BrandExtractData, WorkspaceAngleDto } from '../../../types/business/me';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { ContentAnglesSection } from './ContentAnglesSection';
 import { VoiceSettingsSection } from './VoiceSettingsSection';
 import { BusinessProfileSection } from './BusinessProfileSection';
 import { WebsiteSourceBar } from './WebsiteSourceBar';
+import { BrandToneSection } from './BrandToneSection';
+import { BrandIdentitySection } from './BrandIdentitySection';
+import { BrandPurposeSection } from './BrandPurposeSection';
+import { BrandMarketSection } from './BrandMarketSection';
 
 export type AngleState = {
   angles: WorkspaceAngleDto[];
@@ -15,11 +19,25 @@ export type AngleState = {
   genAt: string | null;
 };
 
+const EMPTY_EXTRACT: BrandExtractData = {
+  coreIdentity: '',
+  productOffering: '',
+  uniqueBenefits: '',
+  problemSolution: '',
+  mission: '',
+  differentiation: '',
+  ownedSpace: '',
+  customerSegments: [],
+  toneDos: [],
+  toneDonts: [],
+  competitors: [],
+};
+
 export const BrandView = () => {
   const { me, product } = useWorkspace();
   const ws = me?.workspace;
 
-  // Bootstrap from me DTO (fast first paint), then allow local updates
+  // ── Angle polling state ──────────────────────────────────────────────────────
   const [state, setState] = useState<AngleState>({
     angles: ws?.angles ?? [],
     genState: ws?.anglesGenState ?? 'idle',
@@ -27,12 +45,20 @@ export const BrandView = () => {
   });
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // If workspace is mid-generation, poll until done
+  // ── Brand extract state (rich brand profile from website) ────────────────────
+  const [brandExtract, setBrandExtract] = useState<BrandExtractData>(
+    (ws?.brandExtract as BrandExtractData | null) ?? EMPTY_EXTRACT,
+  );
+
+  // If workspace is mid-generation, poll until done — also refreshes brandExtract
   const pollAngles = useCallback(async () => {
     if (!product) return;
     try {
-      const data = await apiFetch<AngleState>(`/api/app/workspace/angles?product=${product}`);
+      const data = await apiFetch<AngleState & { brandExtract?: BrandExtractData | null }>(
+        `/api/app/workspace/angles?product=${product}`,
+      );
       setState(data);
+      if (data.brandExtract) setBrandExtract(data.brandExtract);
       if (data.genState === 'pending') {
         pollingRef.current = setTimeout(() => void pollAngles(), 2500);
       }
@@ -56,7 +82,7 @@ export const BrandView = () => {
         method: 'POST',
         json: { product },
       });
-      // Start polling for result
+      // Start polling for result — will also update brandExtract when done
       void pollAngles();
     } catch {
       setState((s) => ({ ...s, genState: 'failed' }));
@@ -69,6 +95,13 @@ export const BrandView = () => {
   const genderFilter = ws?.genderFilter ?? null;
   const websiteUrl = ws?.websiteUrl ?? null;
 
+  // Whether any brand extract fields have been populated
+  const hasBrandExtract =
+    brandExtract.coreIdentity ||
+    brandExtract.productOffering ||
+    brandExtract.mission ||
+    brandExtract.customerSegments.length > 0;
+
   return (
     <div className="flex flex-col gap-6">
       <WebsiteSourceBar
@@ -77,6 +110,36 @@ export const BrandView = () => {
         genState={state.genState}
         onRefresh={handleRefresh}
       />
+
+      {/* Tone & Voice — always visible (user can fill manually; auto-filled after extraction) */}
+      <BrandToneSection
+        product={product}
+        toneDos={brandExtract.toneDos}
+        toneDonts={brandExtract.toneDonts}
+        onUpdate={(dos, donts) => setBrandExtract((s) => ({ ...s, toneDos: dos, toneDonts: donts }))}
+      />
+
+      {/* Rich brand sections — shown once extraction has run at least once */}
+      {hasBrandExtract && (
+        <>
+          <BrandIdentitySection
+            product={product}
+            data={brandExtract}
+            onUpdate={setBrandExtract}
+          />
+          <BrandPurposeSection
+            product={product}
+            data={brandExtract}
+            onUpdate={setBrandExtract}
+          />
+          <BrandMarketSection
+            product={product}
+            data={brandExtract}
+            onUpdate={setBrandExtract}
+          />
+        </>
+      )}
+
       <BusinessProfileSection
         product={product}
         audienceType={ws?.audienceType ?? null}

@@ -249,6 +249,9 @@ model Workspace {
   offer                 String?
   positioning           String?
   geography             String?
+  /// Rich brand profile extracted from the website (JSON blob). Shape: BrandExtractData in me.ts.
+  brandExtract          Json?         @map("brand_extract")
+  brandExtractAt        DateTime?     @map("brand_extract_at")
   createdAt             DateTime      @default(now()) @map("created_at")
   updatedAt             DateTime      @updatedAt @map("updated_at")
 

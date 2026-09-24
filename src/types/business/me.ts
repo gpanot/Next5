@@ -2,6 +2,38 @@
 
 export type ProductLineDto = 'brand' | 'shop';
 
+/** Shape of workspace.brandExtract — the rich brand profile extracted from the client's website. */
+export type BrandSegmentDto = {
+  name: string;
+  description: string;
+  percentage: number;
+};
+
+export type BrandExtractData = {
+  /** 1–2 sentences: what the company IS. */
+  coreIdentity: string;
+  /** 2–3 sentences: all products/services/features they offer. */
+  productOffering: string;
+  /** 2–3 sentences: key benefits that make this business stand out. */
+  uniqueBenefits: string;
+  /** 2–3 sentences: the problem they solve and how. */
+  problemSolution: string;
+  /** 1–2 sentences: company mission/purpose. */
+  mission: string;
+  /** 2–3 sentences: how they differentiate from competitors. */
+  differentiation: string;
+  /** 1 sentence: the brand territory they uniquely own. */
+  ownedSpace: string;
+  /** 2–5 customer segments with estimated percentage breakdown. */
+  customerSegments: BrandSegmentDto[];
+  /** 3–5 tone guidelines: what the brand SHOULD sound like. */
+  toneDos: string[];
+  /** 3–5 tone guidelines: what the brand should NEVER sound like. */
+  toneDonts: string[];
+  /** Validated competitor names discovered from Exa or LLM extraction. */
+  competitors: string[];
+};
+
 export type BannerDto =
   | { type: 'payment_underpaid'; paymentId: string }
   | { type: 'plan_ended'; endedAt: string }
@@ -63,6 +95,10 @@ export type WorkspaceDto = {
   promoting: string | null;
   /** One line: the core value proposition. */
   offer: string | null;
+  /** Rich brand profile extracted from the website. Null until first extraction runs. */
+  brandExtract: BrandExtractData | null;
+  /** ISO timestamp of last brand extraction. */
+  brandExtractAt: string | null;
 };
 
 export type MeDto = {

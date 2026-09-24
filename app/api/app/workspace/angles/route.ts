@@ -18,7 +18,13 @@ export const GET = authedRoute(async (req, session) => {
     orderBy: { position: 'asc' },
     select: { id: true, label: true, weight: true, position: true, source: true },
   });
-  return NextResponse.json({ angles, genState: ws.anglesGenState, genAt: ws.anglesGenAt });
+  return NextResponse.json({
+    angles,
+    genState: ws.anglesGenState,
+    genAt: ws.anglesGenAt,
+    // Also return the latest brand extract so the brand page can refresh after generation
+    brandExtract: ws.brandExtract ?? null,
+  });
 });
 
 // ── POST /api/app/workspace/angles — add a custom angle ───────────────────────
