@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { authedRoute } from '../../../../../../src/server/api';
 import { HttpError, readJsonObject } from '../../../../../../src/server/http';
 import { generateAnglesForWorkspace } from '../../../../../../src/server/ai/anglesExtractor';
@@ -20,8 +20,9 @@ export const POST = authedRoute(async (req, session) => {
   const ws = await requireWorkspace(session.userId, body.product);
   if (!ws.websiteUrl) throw new HttpError(422, 'no_website_url', 'Set your website URL first.');
 
-  // Fire-and-forget — don't await so the client gets an instant response.
-  void generateAnglesForWorkspace(ws.id);
+  // Use after() so Vercel keeps the Lambda alive until extraction completes.
+  // Plain `void fn()` is killed the moment the HTTP response is sent.
+  after(() => generateAnglesForWorkspace(ws.id));
 
   return NextResponse.json({ started: true });
 });

@@ -4,6 +4,9 @@
   "buildCommand": "bash scripts/vercel-build.sh",
   "installCommand": "npm ci",
   "functions": {
+    "app/api/app/workspace/angles/generate/route.ts": {
+      "maxDuration": 60
+    },
     "app/api/generate/scene/route.ts": {
       "maxDuration": 120
     },
