@@ -40,6 +40,7 @@ type ProfileData = {
   };
   market?: {
     audienceDescription?: FieldEnvelope;
+    targetCustomerIndustries?: FieldEnvelope<string[]>;
     competitors?: FieldEnvelope<string[]>;
     keywords?: FieldEnvelope<string[]>;
   };
@@ -278,6 +279,7 @@ export function ProfileReviewPanel({
 
       <Section title="Market">
         {field('Audience', 'market.audienceDescription', { multiline: true })}
+        {field('IDC Niches', 'market.targetCustomerIndustries', { isArray: true })}
         {field('Competitors', 'market.competitors', { isArray: true })}
         {field('Keywords', 'market.keywords', { isArray: true })}
       </Section>

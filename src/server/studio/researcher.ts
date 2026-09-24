@@ -99,7 +99,7 @@ const CLASSIFY_COST_MICROS = 300;
 
 // ─── Cache helpers ─────────────────────────────────────────────────────────────
 
-const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1_000; // 7 days
+const CACHE_TTL_MS = 10 * 24 * 60 * 60 * 1_000; // 10 days — shared cross-workspace, same niche reuses results
 
 async function getCachedSearch(keyword: string): Promise<AwemeInfo[] | null> {
   const cached = await prisma.studioResearchCache.findUnique({
@@ -157,6 +157,34 @@ async function setCachedTranscript(videoUrl: string, transcript: string): Promis
   });
 }
 
+async function getCachedClassification(videoUrl: string): Promise<Classification | null> {
+  const cacheKey = videoUrl.split('?')[0]!;
+  const cached = await prisma.studioResearchCache.findUnique({
+    where: { cacheType_cacheKey: { cacheType: 'classification', cacheKey } },
+  });
+  if (!cached || cached.expiresAt < new Date()) return null;
+  const d = cached.data as { hook?: string; template_id?: number | null };
+  if (typeof d.hook !== 'string') return null;
+  return { hook: d.hook, template_id: d.template_id ?? null };
+}
+
+async function setCachedClassification(videoUrl: string, result: Classification): Promise<void> {
+  const cacheKey = videoUrl.split('?')[0]!;
+  await prisma.studioResearchCache.upsert({
+    where: { cacheType_cacheKey: { cacheType: 'classification', cacheKey } },
+    create: {
+      cacheType: 'classification',
+      cacheKey,
+      data: result,
+      expiresAt: new Date(Date.now() + CACHE_TTL_MS),
+    },
+    update: {
+      data: result,
+      expiresAt: new Date(Date.now() + CACHE_TTL_MS),
+    },
+  });
+}
+
 // ─── Search ────────────────────────────────────────────────────────────────────
 
 const MAX_PER_KEYWORD = 5;   // videos kept per keyword
@@ -166,17 +194,23 @@ const MAX_TRANSCRIPT_DURATION = 120; // skip transcripts for videos > 2 min
 async function searchKeyword(keyword: string): Promise<AwemeInfo[]> {
   // Check cache first
   const cached = await getCachedSearch(keyword);
-  if (cached) return cached;
+  if (cached) {
+    console.log(`[studio/research] keyword="${keyword}" → cache HIT (${cached.length} videos)`);
+    return cached;
+  }
 
+  console.log(`[studio/research] keyword="${keyword}" → Treg tikhub.tiktok.search.videos`);
   try {
     const data = await tregCall<TikTokSearchData>('tikhub.tiktok.search.videos', {
       query: { keyword, count: 10, sort_type: 1 },
       timeoutMs: 30_000,
     });
     const awemes = collectAwemes(data).slice(0, MAX_PER_KEYWORD);
+    console.log(`[studio/research] keyword="${keyword}" → ${awemes.length} videos (cached for 10 days)`);
     await setCachedSearch(keyword, awemes);
     return awemes;
-  } catch {
+  } catch (err) {
+    console.error(`[studio/research] keyword="${keyword}" → tregCall FAILED:`, err);
     return [];
   }
 }
@@ -207,7 +241,9 @@ export async function runResearch(input: ResearchInput): Promise<ResearchResult>
 
   // Limit keywords to budget
   const keywords = input.keywords.filter(Boolean).slice(0, MAX_KEYWORDS);
+  console.log(`[studio/research] run=${input.runId} keywords=[${keywords.join(', ')}]`);
   if (keywords.length === 0) {
+    console.warn(`[studio/research] run=${input.runId} → no keywords, aborting`);
     const zero: StageMetrics = { durationMs: 0, costUsdMicros: 0 };
     return { count: 0, telemetry: { search: zero, transcripts: zero, totalDurationMs: 0, totalCostUsdMicros: 0 } };
   }
@@ -255,22 +291,48 @@ export async function runResearch(input: ResearchInput): Promise<ResearchResult>
 
     const fetchStart = Date.now();
 
-    // Transcript (cached)
-    let transcript = await getCachedTranscript(videoUrl);
-    if (transcript === null) {
-      if (!durationSeconds || durationSeconds <= MAX_TRANSCRIPT_DURATION) {
-        transcript = await fetchTikTokTranscript(videoUrl);
+    // ── Classification cache (hook + template_id) — most expensive part ──────
+    // Keyed by video URL, shared cross-workspace. If already classified, skip
+    // both the transcript fetch AND the GPT call entirely.
+    const cachedClassification = await getCachedClassification(videoUrl);
+    let hook: string;
+    let legacyId: number | null;
+    let transcript = '';
+
+    if (cachedClassification) {
+      console.log(`[studio/research] ${videoUrl.slice(-20)} → classify cache HIT`);
+      hook = cachedClassification.hook;
+      legacyId = cachedClassification.template_id;
+    } else {
+      // Transcript (cached separately)
+      const cachedTranscript = await getCachedTranscript(videoUrl);
+      if (cachedTranscript !== null) {
+        console.log(`[studio/research] ${videoUrl.slice(-20)} → transcript cache HIT (${cachedTranscript.length} chars)`);
+        transcript = cachedTranscript;
+      } else if (!durationSeconds || durationSeconds <= MAX_TRANSCRIPT_DURATION) {
+        console.log(`[studio/research] ${videoUrl.slice(-20)} → fetching transcript (ScrapeCreators via Treg)`);
+        const fetched = await fetchTikTokTranscript(videoUrl);
+        transcript = fetched ?? '';
         if (transcript) await setCachedTranscript(videoUrl, transcript);
       }
-      transcript ??= '';
+
+      // Classify with GPT — only reached on cache miss
+      if (transcript) {
+        console.log(`[studio/research] ${videoUrl.slice(-20)} → classifying with GPT (gpt-4o-mini)`);
+        transcriptCostMicros += CLASSIFY_COST_MICROS;
+      }
+      const classification = await classifyVideo(transcript, templates);
+      hook = classification.hook;
+      legacyId = classification.template_id;
+      // Cache for future runs across workspaces
+      await setCachedClassification(videoUrl, { hook, template_id: legacyId });
     }
 
-    // Classify against templates
-    const { hook, template_id: legacyId } = await classifyVideo(transcript, templates);
     const matchedTemplate = legacyId != null ? templates.find((t) => t.legacyId === legacyId) : null;
     const fetchDurationMs = Date.now() - fetchStart;
 
-    if (transcript) transcriptCostMicros += CLASSIFY_COST_MICROS;
+    // Only charge for GPT when we actually called it (not on cache hits)
+    const chargeCostMicros = !cachedClassification && transcript ? CLASSIFY_COST_MICROS : 0;
 
     items.push({
       keyword,
@@ -286,7 +348,7 @@ export async function runResearch(input: ResearchInput): Promise<ResearchResult>
       transcript,
       templateId: matchedTemplate?.id ?? null,
       fetchDurationMs,
-      transcriptCostUsdMicros: BigInt(transcript ? CLASSIFY_COST_MICROS : 0),
+      transcriptCostUsdMicros: BigInt(chargeCostMicros),
     });
   }
 
@@ -314,6 +376,8 @@ export async function runResearch(input: ResearchInput): Promise<ResearchResult>
 
   const totalDurationMs = searchDurationMs + transcriptDurationMs;
   const totalCostUsdMicros = transcriptCostMicros;
+
+  console.log(`[studio/research] run=${input.runId} DONE items=${items.length} durationMs=${totalDurationMs} costMicros=${totalCostUsdMicros}`);
 
   return {
     count: items.length,

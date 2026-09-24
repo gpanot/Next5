@@ -16,6 +16,8 @@ import {
 type PollStatus = 'idle' | 'pending' | 'running' | 'done' | 'failed';
 
 const POLLING_INTERVAL_MS = 3_000;
+/** Stop polling after this long regardless of status (handles stuck/orphaned jobs). */
+const POLL_TIMEOUT_MS = 5 * 60_000; // 5 minutes
 
 /**
  * Hook to manage a single studio run's state with background polling.
@@ -27,6 +29,7 @@ export function useStudioRun(token: string, runId: string | null) {
   const [candidates, setCandidates] = useState<StudioCandidateDto[]>([]);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollStartRef = useRef<number | null>(null);
 
   const isActive = (status: PollStatus) => status === 'pending' || status === 'running';
 
@@ -55,6 +58,7 @@ export function useStudioRun(token: string, runId: string | null) {
   useEffect(() => {
     if (!runId) return;
     void refresh();
+    pollStartRef.current = null;
     // eslint-disable-next-line consistent-return
     intervalRef.current = setInterval(() => {
       const current = runRef.current;
@@ -63,7 +67,25 @@ export function useStudioRun(token: string, runId: string | null) {
         isActive(current.extractStatus as PollStatus) ||
         isActive(current.researchStatus as PollStatus) ||
         isActive(current.generateStatus as PollStatus);
-      if (needsPoll) void refresh();
+
+      if (!needsPoll) {
+        pollStartRef.current = null;
+        return;
+      }
+
+      // Start the timeout clock when we first see an active status
+      if (pollStartRef.current === null) {
+        pollStartRef.current = Date.now();
+      }
+
+      // Stop polling and surface an error if stuck longer than the timeout
+      if (Date.now() - pollStartRef.current > POLL_TIMEOUT_MS) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        setError('Job timed out — it may have crashed. Refresh or re-trigger.');
+        return;
+      }
+
+      void refresh();
     }, POLLING_INTERVAL_MS);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);

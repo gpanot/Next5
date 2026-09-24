@@ -45,6 +45,12 @@ export type StudioPositioning = {
 
 export type StudioMarket = {
   audienceDescription: FieldEnvelope;
+  /**
+   * IDC niches — the specific industries this business sells TO (B2B only).
+   * e.g. ["auto mechanics", "electricians"] for a booking-software vendor.
+   * Used to seed TikTok research with customer-relevant content instead of vendor-vertical content.
+   */
+  targetCustomerIndustries: FieldEnvelope<string[]>;
   /** Validated competitors (from Exa search only). */
   competitors: FieldEnvelope<string[]>;
   /** Extracted search keywords for TikTok research. */

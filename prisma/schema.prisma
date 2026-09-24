@@ -1658,6 +1658,7 @@ enum StudioRejectReason {
 enum StudioCacheType {
   keyword
   transcript
+  classification
 
   @@map("studio_cache_type")
 }
@@ -1772,7 +1773,7 @@ model StudioCandidate {
   payload Json @default("{}")
 
   /// Cost breakdown: { slideTextLlm, imageGeneration, totalUsdMicros }
-  costBreakdown    Json    @default("{}")
+  costBreakdown    Json    @default("{}") @map("cost_breakdown")
   costUsdMicros    BigInt? @map("cost_usd_micros")
   generateDurationMs Int?  @map("generate_duration_ms")
 

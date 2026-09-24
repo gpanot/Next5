@@ -309,6 +309,89 @@ CREATE TYPE public.content_template_status AS ENUM (
 
 
 --
+-- Name: studio_cache_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.studio_cache_type AS ENUM (
+    'keyword',
+    'transcript',
+    'classification'
+);
+
+
+--
+-- Name: studio_candidate_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.studio_candidate_status AS ENUM (
+    'pending',
+    'accepted',
+    'rejected',
+    'edited'
+);
+
+
+--
+-- Name: studio_exclude_reason; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.studio_exclude_reason AS ENUM (
+    'too_long',
+    'no_hook',
+    'unsupported_format'
+);
+
+
+--
+-- Name: studio_job_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.studio_job_status AS ENUM (
+    'idle',
+    'pending',
+    'running',
+    'done',
+    'failed'
+);
+
+
+--
+-- Name: studio_reject_reason; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.studio_reject_reason AS ENUM (
+    'off_brand',
+    'wrong_audience',
+    'weak_hook',
+    'bad_image',
+    'factually_wrong',
+    'other'
+);
+
+
+--
+-- Name: studio_step; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.studio_step AS ENUM (
+    'profile',
+    'research',
+    'generation',
+    'calendar'
+);
+
+
+--
+-- Name: template_perspective; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.template_perspective AS ENUM (
+    'business',
+    'audience'
+);
+
+
+--
 -- Name: template_variable_source; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -687,7 +770,8 @@ CREATE TABLE public.content_templates (
     avg_engagement_score double precision,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
     updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    recommended_engine public.content_engine DEFAULT 'blitz_slideshow'::public.content_engine NOT NULL
+    recommended_engine public.content_engine DEFAULT 'blitz_slideshow'::public.content_engine NOT NULL,
+    perspective public.template_perspective DEFAULT 'business'::public.template_perspective NOT NULL
 );
 
 
@@ -1241,6 +1325,115 @@ CREATE TABLE public.social_posts (
     post_url text,
     error text,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: studio_brand_profiles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.studio_brand_profiles (
+    id text NOT NULL,
+    workspace_id text,
+    source_url text NOT NULL,
+    version integer DEFAULT 1 NOT NULL,
+    data jsonb DEFAULT '{}'::jsonb NOT NULL,
+    crawl jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: studio_candidates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.studio_candidates (
+    id text NOT NULL,
+    run_id text NOT NULL,
+    research_item_id text,
+    engine text DEFAULT 'blitz_slideshow'::text NOT NULL,
+    template_id text,
+    angle text,
+    payload jsonb DEFAULT '{}'::jsonb NOT NULL,
+    cost_breakdown jsonb DEFAULT '{}'::jsonb NOT NULL,
+    cost_usd_micros bigint,
+    generate_duration_ms integer,
+    profile_version integer DEFAULT 1 NOT NULL,
+    status public.studio_candidate_status DEFAULT 'pending'::public.studio_candidate_status NOT NULL,
+    reject_reason public.studio_reject_reason,
+    reject_note text,
+    blitz_project_id text,
+    slot_date timestamp(3) without time zone,
+    guardrail_warnings jsonb DEFAULT '[]'::jsonb NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: studio_research_cache; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.studio_research_cache (
+    id text NOT NULL,
+    cache_type public.studio_cache_type DEFAULT 'keyword'::public.studio_cache_type NOT NULL,
+    cache_key text NOT NULL,
+    data jsonb DEFAULT '{}'::jsonb NOT NULL,
+    expires_at timestamp(3) without time zone NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: studio_research_items; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.studio_research_items (
+    id text NOT NULL,
+    run_id text NOT NULL,
+    keyword text NOT NULL,
+    source_url text NOT NULL,
+    author text,
+    duration_seconds integer,
+    stats jsonb DEFAULT '{}'::jsonb NOT NULL,
+    hook text,
+    transcript text,
+    template_id text,
+    variables jsonb DEFAULT '{}'::jsonb NOT NULL,
+    selected boolean DEFAULT false NOT NULL,
+    excluded boolean DEFAULT false NOT NULL,
+    excluded_reason public.studio_exclude_reason,
+    fetch_duration_ms integer,
+    transcript_cost_usd_micros bigint,
+    is_competitor boolean DEFAULT false NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: studio_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.studio_runs (
+    id text NOT NULL,
+    workspace_id text,
+    brand_profile_id text NOT NULL,
+    step public.studio_step DEFAULT 'profile'::public.studio_step NOT NULL,
+    cadence jsonb DEFAULT '{"weekdays": ["mon", "wed", "fri"], "postsPerWeek": 3}'::jsonb NOT NULL,
+    extract_status public.studio_job_status DEFAULT 'idle'::public.studio_job_status NOT NULL,
+    extract_error text,
+    research_status public.studio_job_status DEFAULT 'idle'::public.studio_job_status NOT NULL,
+    research_error text,
+    generate_status public.studio_job_status DEFAULT 'idle'::public.studio_job_status NOT NULL,
+    generate_error text,
+    extract_duration_ms integer,
+    research_duration_ms integer,
+    generate_duration_ms integer,
+    extract_cost_usd_micros bigint,
+    research_cost_usd_micros bigint,
+    created_by text DEFAULT 'admin'::text NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 
@@ -1836,6 +2029,46 @@ ALTER TABLE ONLY public.social_posts
 
 
 --
+-- Name: studio_brand_profiles studio_brand_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_brand_profiles
+    ADD CONSTRAINT studio_brand_profiles_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: studio_candidates studio_candidates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_candidates
+    ADD CONSTRAINT studio_candidates_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: studio_research_cache studio_research_cache_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_research_cache
+    ADD CONSTRAINT studio_research_cache_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: studio_research_items studio_research_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_research_items
+    ADD CONSTRAINT studio_research_items_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: studio_runs studio_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_runs
+    ADD CONSTRAINT studio_runs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: studio_sets studio_sets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2422,6 +2655,69 @@ CREATE INDEX social_posts_workspace_id_created_at_idx ON public.social_posts USI
 
 
 --
+-- Name: studio_brand_profiles_workspace_id_source_url_version_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX studio_brand_profiles_workspace_id_source_url_version_idx ON public.studio_brand_profiles USING btree (workspace_id, source_url, version DESC);
+
+
+--
+-- Name: studio_candidates_run_id_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX studio_candidates_run_id_status_idx ON public.studio_candidates USING btree (run_id, status);
+
+
+--
+-- Name: studio_research_cache_expires_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX studio_research_cache_expires_at_idx ON public.studio_research_cache USING btree (expires_at);
+
+
+--
+-- Name: studio_research_cache_type_key_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX studio_research_cache_type_key_idx ON public.studio_research_cache USING btree (cache_type, cache_key);
+
+
+--
+-- Name: studio_research_items_run_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX studio_research_items_run_id_idx ON public.studio_research_items USING btree (run_id);
+
+
+--
+-- Name: studio_runs_extract_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX studio_runs_extract_status_idx ON public.studio_runs USING btree (extract_status) WHERE (extract_status = ANY (ARRAY['pending'::public.studio_job_status, 'running'::public.studio_job_status]));
+
+
+--
+-- Name: studio_runs_generate_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX studio_runs_generate_status_idx ON public.studio_runs USING btree (generate_status) WHERE (generate_status = ANY (ARRAY['pending'::public.studio_job_status, 'running'::public.studio_job_status]));
+
+
+--
+-- Name: studio_runs_research_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX studio_runs_research_status_idx ON public.studio_runs USING btree (research_status) WHERE (research_status = ANY (ARRAY['pending'::public.studio_job_status, 'running'::public.studio_job_status]));
+
+
+--
+-- Name: studio_runs_workspace_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX studio_runs_workspace_id_created_at_idx ON public.studio_runs USING btree (workspace_id, created_at DESC);
+
+
+--
 -- Name: studio_sets_influencer_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2994,6 +3290,46 @@ ALTER TABLE ONLY public.social_posts
 
 
 --
+-- Name: studio_brand_profiles studio_brand_profiles_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_brand_profiles
+    ADD CONSTRAINT studio_brand_profiles_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: studio_candidates studio_candidates_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_candidates
+    ADD CONSTRAINT studio_candidates_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.studio_runs(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: studio_research_items studio_research_items_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_research_items
+    ADD CONSTRAINT studio_research_items_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.studio_runs(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: studio_runs studio_runs_brand_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_runs
+    ADD CONSTRAINT studio_runs_brand_profile_id_fkey FOREIGN KEY (brand_profile_id) REFERENCES public.studio_brand_profiles(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: studio_runs studio_runs_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.studio_runs
+    ADD CONSTRAINT studio_runs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: studio_sets studio_sets_influencer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3168,4 +3504,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261008090000'),
     ('20261009090000'),
     ('20261010090000'),
-    ('20261011090000');
+    ('20261011090000'),
+    ('20261012090000'),
+    ('20261012100000');

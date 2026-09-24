@@ -7,20 +7,43 @@ import { waitUntil } from '@vercel/functions';
 import { adminRoute } from '../../../../../../../src/server/admin/route';
 import { studioJson } from '../../../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../../../src/lib/db';
+import { getPresignedUrl } from '../../../../../../../src/lib/r2';
 import { runGeneration } from '../../../../../../../src/server/studio/generator';
 
 export const maxDuration = 120;
 
 type Ctx = { params: Promise<{ runId: string }> };
 
-// GET — list candidates
+// GET — list candidates with render status
 export const GET = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
   const { runId } = await ctx.params;
   const candidates = await prisma.studioCandidate.findMany({
     where: { runId },
     orderBy: { createdAt: 'asc' },
   });
-  return studioJson(candidates);
+
+  // Fetch blitz project render status for accepted candidates (no Prisma relation — manual join)
+  const blitzIds = candidates.map((c) => c.blitzProjectId).filter(Boolean) as string[];
+  const blitzMap = new Map<string, { renderStatus: string; renderedVideoKey: string | null }>();
+  if (blitzIds.length > 0) {
+    const projects = await prisma.blitzProject.findMany({
+      where: { id: { in: blitzIds } },
+      select: { id: true, renderStatus: true, renderedVideoKey: true },
+    });
+    for (const p of projects) blitzMap.set(p.id, p);
+  }
+
+  // Attach presigned video URLs for completed renders
+  const withUrls = await Promise.all(
+    candidates.map(async (c) => {
+      const bp = c.blitzProjectId ? blitzMap.get(c.blitzProjectId) : null;
+      const videoKey = bp?.renderedVideoKey ?? null;
+      const videoUrl = videoKey ? await getPresignedUrl(videoKey, 3600) : null;
+      return { ...c, renderStatus: bp?.renderStatus ?? null, videoUrl };
+    }),
+  );
+
+  return studioJson(withUrls);
 });
 
 // POST — trigger generation

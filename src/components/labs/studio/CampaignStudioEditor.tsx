@@ -6,6 +6,7 @@ import {
   acceptCandidate,
   assignCalendar,
   createRun,
+  deleteRun,
   getCalendar,
   getRunSummary,
   listRuns,
@@ -19,17 +20,6 @@ import { useStudioRun } from './useStudioRun';
 import { ProfileReviewPanel } from './ProfileReviewPanel';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function useAdminToken() {
-  // Reads the admin token from localStorage (set by AdminPage)
-  if (typeof window === 'undefined') return '';
-  try {
-    const raw = localStorage.getItem('admin_token');
-    return raw ? (JSON.parse(raw) as string) : '';
-  } catch {
-    return '';
-  }
-}
 
 const REJECT_REASONS: { value: StudioCandidateDto['rejectReason']; label: string }[] = [
   { value: 'off_brand', label: 'Off brand' },
@@ -93,21 +83,23 @@ function RunListPanel({
   onSelectRun: (runId: string) => void;
 }) {
   const [runs, setRuns] = useState<StudioRunSummary[]>([]);
-  const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [url, setUrl] = useState('');
   const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const loadRuns = useCallback(async () => {
     setLoading(true);
     try {
       const list = await listRuns(token);
       setRuns(list);
-      setLoaded(true);
     } finally {
       setLoading(false);
     }
   }, [token]);
+
+  // Auto-load on mount
+  useEffect(() => { void loadRuns(); }, [loadRuns]);
 
   const handleCreate = useCallback(async () => {
     if (!url.trim()) return;
@@ -121,18 +113,17 @@ function RunListPanel({
     }
   }, [token, url, loadRuns, onSelectRun]);
 
-  if (!loaded) {
-    return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <button
-          onClick={loadRuns}
-          className="flex items-center gap-2 rounded-lg bg-ink px-5 py-2.5 text-[13px] font-medium text-white hover:bg-ink/90"
-        >
-          Load Campaign Studio
-        </button>
-      </div>
-    );
-  }
+  const handleDelete = useCallback(async (e: React.MouseEvent, runId: string) => {
+    e.stopPropagation(); // don't navigate into the run
+    if (!window.confirm('Delete this run and all its data?')) return;
+    setDeleting(runId);
+    try {
+      await deleteRun(token, runId);
+      setRuns((prev) => prev.filter((r) => r.id !== runId));
+    } finally {
+      setDeleting(null);
+    }
+  }, [token]);
 
   return (
     <div className="space-y-6">
@@ -165,22 +156,34 @@ function RunListPanel({
       ) : (
         <div className="space-y-2">
           {runs.map((run) => (
-            <button
+            <div
               key={run.id}
-              onClick={() => onSelectRun(run.id)}
-              className="w-full flex items-center justify-between rounded-lg border border-line bg-white px-4 py-3 hover:border-ink/30 hover:bg-surface text-left"
+              className="flex items-center gap-2"
             >
-              <div>
-                <p className="text-[13px] font-medium text-ink">{run.brandProfile.sourceUrl}</p>
-                <p className="text-[11px] text-muted mt-0.5">
-                  v{run.brandProfile.version} · {run._count.candidates} candidates · {new Date(run.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <StatusBadge status={run.extractStatus} />
-                <ChevronRight className="w-4 h-4 text-muted" />
-              </div>
-            </button>
+              <button
+                onClick={() => onSelectRun(run.id)}
+                className="flex-1 flex items-center justify-between rounded-lg border border-line bg-white px-4 py-3 hover:border-ink/30 hover:bg-surface text-left"
+              >
+                <div>
+                  <p className="text-[13px] font-medium text-ink">{run.brandProfile.sourceUrl}</p>
+                  <p className="text-[11px] text-muted mt-0.5">
+                    v{run.brandProfile.version} · {run._count.candidates} candidates · {new Date(run.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={run.extractStatus} />
+                  <ChevronRight className="w-4 h-4 text-muted" />
+                </div>
+              </button>
+              <button
+                onClick={(e) => void handleDelete(e, run.id)}
+                disabled={deleting === run.id}
+                title="Delete run"
+                className="shrink-0 rounded-lg border border-line p-2.5 text-muted hover:border-red-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-40"
+              >
+                {deleting === run.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -495,8 +498,16 @@ function GenerationStep({ token, runId }: { token: string; runId: string }) {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {c.blitzProjectId && (
-                  <span className="text-[11px] text-green-600 font-medium">Render queued</span>
+                {c.blitzProjectId && c.renderStatus === 'COMPLETED' && (
+                  <span className="text-[11px] text-green-600 font-medium">✓ Rendered</span>
+                )}
+                {c.blitzProjectId && c.renderStatus && c.renderStatus !== 'COMPLETED' && (
+                  <span className="text-[11px] text-blue-600 font-medium flex items-center gap-1">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Rendering
+                  </span>
+                )}
+                {c.blitzProjectId && !c.renderStatus && (
+                  <span className="text-[11px] text-muted font-medium">Render queued</span>
                 )}
                 <StatusBadge status={c.status} />
               </div>
@@ -553,7 +564,24 @@ function GenerationStep({ token, runId }: { token: string; runId: string }) {
               </div>
             )}
             {c.status === 'accepted' && !c.blitzProjectId && (
-              <p className="px-4 pb-4 text-[12px] text-muted">Generating backgrounds and queueing render…</p>
+              <p className="px-4 pb-4 text-[12px] text-muted flex items-center gap-1.5">
+                <Loader2 className="w-3 h-3 animate-spin" /> Generating backgrounds and queueing render…
+              </p>
+            )}
+            {c.status === 'accepted' && c.blitzProjectId && c.renderStatus !== 'COMPLETED' && (
+              <p className="px-4 pb-4 text-[12px] text-muted flex items-center gap-1.5">
+                <Loader2 className="w-3 h-3 animate-spin" /> Rendering video… ({c.renderStatus ?? 'queued'})
+              </p>
+            )}
+            {c.status === 'accepted' && c.renderStatus === 'COMPLETED' && c.videoUrl && (
+              <div className="px-4 pb-4">
+                <video
+                  src={c.videoUrl}
+                  controls
+                  className="w-full max-w-xs rounded-lg border border-line"
+                  style={{ aspectRatio: '9/16', maxHeight: 360 }}
+                />
+              </div>
             )}
           </div>
         );
@@ -715,8 +743,7 @@ function CalendarStep({ token, runId }: { token: string; runId: string }) {
 
 // ─── Main editor ───────────────────────────────────────────────────────────────
 
-export function CampaignStudioEditor() {
-  const token = useAdminToken();
+export function CampaignStudioEditor({ token }: { token: string }) {
   const [runId, setRunId] = useState<string | null>(null);
   const [step, setStep] = useState<StepId>('profile');
 

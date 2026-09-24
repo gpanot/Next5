@@ -1,6 +1,7 @@
 /**
- * GET  /api/admin/studio/runs        — list all runs (newest first, limit 50)
- * POST /api/admin/studio/runs        — create a new run from a URL and auto-queue extraction
+ * GET    /api/admin/studio/runs        — list all runs (newest first, limit 50)
+ * POST   /api/admin/studio/runs        — create a new run from a URL and auto-queue extraction
+ * DELETE /api/admin/studio/runs?runId= — delete a run and all its candidates/research items
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { waitUntil } from '@vercel/functions';
@@ -98,4 +99,17 @@ export const POST = adminRoute(async (req: NextRequest) => {
   );
 
   return studioJson({ runId: run.id, profileId: profile.id });
+});
+
+// DELETE — remove a run (cascades to candidates, research items via DB FK)
+export const DELETE = adminRoute(async (req: NextRequest) => {
+  const { searchParams } = new URL(req.url);
+  const runId = searchParams.get('runId');
+  if (!runId) return NextResponse.json({ error: 'runId is required' }, { status: 400 });
+
+  const run = await prisma.studioRun.findUnique({ where: { id: runId } });
+  if (!run) return NextResponse.json({ error: 'not found' }, { status: 404 });
+
+  await prisma.studioRun.delete({ where: { id: runId } });
+  return studioJson({ ok: true, runId });
 });

@@ -46,6 +46,9 @@ export const createRun = (token: string, sourceUrl: string, workspaceId?: string
     body: JSON.stringify({ sourceUrl, workspaceId }),
   }, token);
 
+export const deleteRun = (token: string, runId: string) =>
+  req<{ ok: boolean; runId: string }>(`${BASE}?runId=${encodeURIComponent(runId)}`, { method: 'DELETE' }, token);
+
 // ── Profile ─────────────────────────────────────────────────────────────────
 
 export type StudioRunFull = StudioRunSummary & {
@@ -120,6 +123,8 @@ export type StudioCandidateDto = {
   rejectReason: string | null;
   rejectNote: string | null;
   blitzProjectId: string | null;
+  renderStatus: string | null;
+  videoUrl: string | null;
   slotDate: string | null;
   guardrailWarnings: Array<{ type: string; text: string; rule: string }>;
   createdAt: string;
