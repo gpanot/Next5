@@ -18,7 +18,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Film, ImageIcon, Layers, Loader2, Music, Pause, Play, Search, Video, Zap } from 'lucide-react';
+import { ChevronDown, ChevronUp, Film, ImageIcon, Layers, Loader2, Music, Pause, Play, Search, Video, Volume2, VolumeX, Zap } from 'lucide-react';
 import type { BlitzAssetDto } from '../../labs/blitzLab/api';
 import type { UgcVideoDto } from '../../../types/admin/ugc';
 
@@ -248,15 +248,32 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
 
 // ── Asset preview cards (reusing BlitzLab's visual style) ────────────────────
 
-/** Video asset card (Memes + Videos) — plays on hover + "See Description" expand. */
+/** Video asset card (Memes + Videos) — plays on hover, click to toggle mute + "See Description" expand. */
 function VideoCard({ asset, token }: { asset: BlitzAssetDto; token: string }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!ref.current) return;
+    const next = !ref.current.muted;
+    ref.current.muted = next;
+    setMuted(next);
+  };
+
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-white shadow-sm">
+    <div className="group flex flex-col overflow-hidden rounded-xl border border-line bg-white shadow-sm">
       <div
         className="relative aspect-[9/16] w-full overflow-hidden bg-neutral-900"
         onMouseEnter={() => ref.current?.play().catch(() => undefined)}
-        onMouseLeave={() => { if (ref.current) { ref.current.pause(); ref.current.currentTime = 0; } }}
+        onMouseLeave={() => {
+          if (ref.current) {
+            ref.current.pause();
+            ref.current.currentTime = 0;
+            ref.current.muted = true;
+            setMuted(true);
+          }
+        }}
       >
         <video
           ref={ref}
@@ -268,6 +285,18 @@ function VideoCard({ asset, token }: { asset: BlitzAssetDto; token: string }) {
           preload="none"
           className="h-full w-full object-contain"
         />
+        {/* Mute/unmute button — appears on hover */}
+        <button
+          type="button"
+          onClick={toggleMute}
+          className="absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 hover:bg-black/80"
+          title={muted ? 'Unmute' : 'Mute'}
+        >
+          {muted
+            ? <VolumeX className="h-3 w-3" />
+            : <Volume2 className="h-3 w-3" />
+          }
+        </button>
       </div>
       <div className="min-h-8 px-2 py-1.5">
         <p className="truncate text-[11px] text-ink" title={asset.name}>{asset.name}</p>
