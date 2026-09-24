@@ -46,6 +46,7 @@ function makeProfile(overrides: Partial<{
       audienceDescription: e(overrides.audienceDescription ?? 'homeowners with urgent plumbing needs'),
       competitors: ea(overrides.competitors ?? ['competitor.com']),
       keywords: ea(overrides.keywords ?? ['plumbing tips']),
+      targetCustomerIndustries: ea<string[]>([]),
     },
     tone: {
       tone: e('casual_professional'),
