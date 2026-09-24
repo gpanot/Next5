@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { runGenerationTick } from '../../../../src/server/generation/poll';
+import { recoverStuckStudioJobs } from '../../../../src/server/studio/studioTick';
 
 export const maxDuration = 60;
 
@@ -10,6 +11,9 @@ export async function GET(req: Request): Promise<Response> {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
   const started = Date.now();
-  await runGenerationTick({ budgetMs: 50_000 });
+  await Promise.all([
+    runGenerationTick({ budgetMs: 50_000 }),
+    recoverStuckStudioJobs(),
+  ]);
   return NextResponse.json({ ok: true, ms: Date.now() - started });
 }

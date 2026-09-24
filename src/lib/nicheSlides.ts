@@ -8,11 +8,12 @@
  * the LLM using the niche and the source video's own transcript, so the
  * suggested slides — and their background image prompts — are ready to post.
  *
- * Results are memoised per (niche, video, template) for the page session:
- * expanding a card twice, then clicking "Use as inspiration", costs one call.
+ * Results are memoised per (client, niche, video, template) for the page session: expanding a
+ * card twice, then clicking "Use as inspiration", costs one call. The client is part of the key
+ * so two workspaces never read each other's generated copy out of the cache.
  */
 
-import { ugcRequest, errorOf } from '../components/admin/business/ugcLab/api';
+import { errorOf, type LabClient } from '../components/labs/labClient';
 
 export type NicheSlide = { text: string; bgPrompt: string };
 
@@ -32,13 +33,12 @@ type Request = {
 
 const cache = new Map<string, Promise<NicheSlidesResult>>();
 
-const cacheKeyOf = (req: Request): string =>
-  `${req.niche.trim().toLowerCase()}|${req.videoId}|${req.templateId}`;
+const cacheKeyOf = (client: LabClient, req: Request): string =>
+  `${client.id}|${req.niche.trim().toLowerCase()}|${req.videoId}|${req.templateId}`;
 
-async function fetchSlides(token: string, req: Request): Promise<NicheSlidesResult> {
-  const res = await ugcRequest<Partial<NicheSlidesResult>>(
-    token,
-    '/api/admin/blitz/generate-slides',
+async function fetchSlides(client: LabClient, req: Request): Promise<NicheSlidesResult> {
+  const res = await client.request<Partial<NicheSlidesResult>>(
+    '/blitz/generate-slides',
     {
       json: {
         niche: req.niche.trim(),
@@ -58,12 +58,12 @@ async function fetchSlides(token: string, req: Request): Promise<NicheSlidesResu
  * Generated slides for this niche + video + template, from cache when possible.
  * A failed call is not cached, so the next call retries.
  */
-export function getNicheSlides(token: string, req: Request): Promise<NicheSlidesResult> {
-  const key = cacheKeyOf(req);
+export function getNicheSlides(client: LabClient, req: Request): Promise<NicheSlidesResult> {
+  const key = cacheKeyOf(client, req);
   const hit = cache.get(key);
   if (hit) return hit;
 
-  const pending = fetchSlides(token, req).catch((err: unknown) => {
+  const pending = fetchSlides(client, req).catch((err: unknown) => {
     cache.delete(key);
     throw err;
   });
@@ -72,6 +72,6 @@ export function getNicheSlides(token: string, req: Request): Promise<NicheSlides
 }
 
 /** Drops the memoised result so the next call regenerates. */
-export function forgetNicheSlides(req: Request): void {
-  cache.delete(cacheKeyOf(req));
+export function forgetNicheSlides(client: LabClient, req: Request): void {
+  cache.delete(cacheKeyOf(client, req));
 }

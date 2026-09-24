@@ -275,6 +275,13 @@ model Workspace {
   contentTemplates  ContentTemplate[]
   templateUsages    TemplateUsage[]
   campaigns         Campaign[]
+  ugcCharacters     UgcCharacter[]
+  ugcVideos         UgcVideo[]
+  cloneVideos       CloneVideo[]
+  blitzAssets       BlitzAsset[]
+  blitzProjects     BlitzProject[]
+  studioBrandProfiles StudioBrandProfile[]
+  studioRuns          StudioRun[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
@@ -999,6 +1006,9 @@ model Listing {
 /// UGC Lab: a saved on-screen character — an AI portrait or an uploaded photo (cropped to 9:16).
 model UgcCharacter {
   id           String   @id @default(cuid())
+  /// Which workspace owns this row. Null = owned by Next5 and visible to every workspace
+  /// (the admin labs and the seeded library). Set = private to one workspace.
+  workspaceId  String?  @map("workspace_id")
   /// ai | photo | avatar
   kind         String
   imageKey     String   @map("image_key")
@@ -1011,15 +1021,19 @@ model UgcCharacter {
   archived     Boolean  @default(false)
   createdAt    DateTime @default(now()) @map("created_at")
 
-  videos UgcVideo[]
+  videos    UgcVideo[]
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([kind, archived])
+  @@index([workspaceId, createdAt(sort: Desc)])
   @@map("ugc_characters")
 }
 
 /// UGC Lab: one Seedance talking-head video. Files live in R2; provider URLs are never stored.
 model UgcVideo {
   id                     String    @id @default(cuid())
+  /// Which workspace owns this row. Null = owned by Next5 (the admin lab's own videos).
+  workspaceId            String?   @map("workspace_id")
   characterId            String?   @map("character_id")
   /// ai-character (image as look reference) | real-person (photo as first frame) | imported
   mode                   String
@@ -1052,15 +1066,19 @@ model UgcVideo {
   createdAt              DateTime  @default(now()) @map("created_at")
 
   character UgcCharacter? @relation(fields: [characterId], references: [id], onDelete: SetNull)
+  workspace Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([createdAt])
   @@index([status])
+  @@index([workspaceId, createdAt(sort: Desc)])
   @@map("ugc_videos")
 }
 
 /// UGC Clone: one Seedance 2.5 face-swap video. Files live in R2; reapi CDN URLs are never stored.
 model CloneVideo {
   id            String    @id @default(cuid())
+  /// Which workspace owns this row. Null = owned by Next5 (the admin lab's own clones).
+  workspaceId   String?   @map("workspace_id")
   poyoTaskId    String    @unique @map("poyo_task_id")
   characterKey  String    @map("character_key")
   refVideoKey   String    @map("ref_video_key")
@@ -1082,8 +1100,11 @@ model CloneVideo {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
   @@index([status])
   @@index([createdAt(sort: Desc)])
+  @@index([workspaceId, createdAt(sort: Desc)])
   @@map("clone_videos")
 }
 
@@ -1133,6 +1154,8 @@ model BlitzTemplate {
 /// OVERLAY assets MUST be pre-keyed WebM (VP9 alpha) — no chroma-keying at render time.
 model BlitzAsset {
   id           String   @id @default(cuid())
+  /// Which workspace owns this asset. Null = the shared Next5 library every workspace sees.
+  workspaceId  String?  @map("workspace_id")
   name         String
   /// "BACKGROUND" | "OVERLAY" | "AUDIO"
   type         String
@@ -1144,7 +1167,10 @@ model BlitzAsset {
   source       String   @default("library")
   createdAt    DateTime @default(now()) @map("created_at")
 
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
   @@index([type])
+  @@index([workspaceId, type])
   @@map("blitz_assets")
 }
 
@@ -1152,8 +1178,11 @@ model BlitzAsset {
 /// The "library" is the set of rows where renderStatus = COMPLETED.
 model BlitzProject {
   id                   String            @id @default(cuid())
+  /// Which workspace owns this render. Null = made in the admin lab by Next5.
+  workspaceId          String?           @map("workspace_id")
   templateId           String            @map("template_id")
   template             BlitzTemplate     @relation(fields: [templateId], references: [id])
+  workspace            Workspace?        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   /// { backgroundKey, overlayKey, audioKey? }
   currentAssets        Json              @map("current_assets")
   overlayZoom          Float             @default(1.0) @map("overlay_zoom")
@@ -1171,6 +1200,7 @@ model BlitzProject {
 
   @@index([renderStatus])
   @@index([createdAt(sort: Desc)])
+  @@index([workspaceId, createdAt(sort: Desc)])
   @@map("blitz_projects")
 }
 
@@ -1337,6 +1367,11 @@ model ContentTemplate {
   /// Which engine should make this template's posts. Read by Phase 1B; tagged by hand before then.
   recommendedEngine ContentEngine @default(blitz_slideshow) @map("recommended_engine")
 
+  /// Whether slides resolve variables from the business's own identity (business) or from audience
+  /// personas and pain points (audience). Drives resolveVariables() in Campaign Studio.
+  /// A new version never changes this; a format change in perspective becomes a new template.
+  perspective TemplatePerspective @default(business) @map("perspective")
+
   /// Performance stubs — populated once publishing + analytics exist. Matching never reads them.
   timesUsed          Int    @default(0) @map("times_used")
   avgEngagementScore Float? @map("avg_engagement_score")
@@ -1478,6 +1513,16 @@ enum ContentEngine {
   @@map("content_engine")
 }
 
+/// Which angle a template is written from (Campaign Studio v1).
+/// business = slides speak as/about the business.
+/// audience = slides speak to/for the audience.
+enum TemplatePerspective {
+  business
+  audience
+
+  @@map("template_perspective")
+}
+
 /// A week (or four) of planned content. Phase 1A books the days and says what each one needs;
 /// it generates nothing, so it costs nothing.
 model Campaign {
@@ -1552,4 +1597,220 @@ model CampaignPost {
 
   @@index([campaignId, position])
   @@map("campaign_posts")
+}
+
+// ─── Campaign Studio v1 ───────────────────────────────────────────────────────
+// Plan: docs/business-studios/campaign-studio-v1.md
+
+/// Job execution state for long-running studio pipeline stages.
+enum StudioJobStatus {
+  idle
+  pending
+  running
+  done
+  failed
+
+  @@map("studio_job_status")
+}
+
+/// Which pipeline step the run is currently on.
+enum StudioStep {
+  profile
+  research
+  generation
+  calendar
+
+  @@map("studio_step")
+}
+
+/// Why a research item was excluded from the run.
+enum StudioExcludeReason {
+  too_long
+  no_hook
+  unsupported_format
+
+  @@map("studio_exclude_reason")
+}
+
+/// Admin's decision on a generated post candidate.
+enum StudioCandidateStatus {
+  pending
+  accepted
+  rejected
+  edited
+
+  @@map("studio_candidate_status")
+}
+
+/// Why a candidate was rejected.
+enum StudioRejectReason {
+  off_brand
+  wrong_audience
+  weak_hook
+  bad_image
+  factually_wrong
+  other
+
+  @@map("studio_reject_reason")
+}
+
+/// Type of entry in the shared research cache.
+enum StudioCacheType {
+  keyword
+  transcript
+
+  @@map("studio_cache_type")
+}
+
+/// One immutable snapshot of a client's brand profile.
+/// Each edit inserts a new row (incremented version); candidates reference profileVersion so we
+/// never lose the state that produced them.
+model StudioBrandProfile {
+  id          String  @id @default(cuid())
+  workspaceId String? @map("workspace_id")
+  sourceUrl   String  @map("source_url")
+  version     Int     @default(1)
+
+  /// Field-envelope JSON: { classification, identity, positioning, market, tone, visual }
+  /// Each leaf: { value, source, confidence, evidence?, locked }
+  data Json @default("{}")
+
+  /// Per-stage telemetry: { stages: { crawl, infer, competitors, keywords }, totalDurationMs, totalCostUsdMicros }
+  crawl Json @default("{}")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  workspace Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runs      StudioRun[]
+
+  @@index([workspaceId, sourceUrl, version(sort: Desc)])
+  @@map("studio_brand_profiles")
+}
+
+/// One end-to-end campaign studio pipeline run (profile → research → generation → calendar).
+model StudioRun {
+  id             String  @id @default(cuid())
+  workspaceId    String? @map("workspace_id")
+  brandProfileId String  @map("brand_profile_id")
+
+  step    StudioStep @default(profile)
+  cadence Json       @default("{\"postsPerWeek\":3,\"weekdays\":[\"mon\",\"wed\",\"fri\"]}")
+
+  extractStatus  StudioJobStatus @default(idle) @map("extract_status")
+  extractError   String?         @map("extract_error")
+  researchStatus StudioJobStatus @default(idle) @map("research_status")
+  researchError  String?         @map("research_error")
+  generateStatus StudioJobStatus @default(idle) @map("generate_status")
+  generateError  String?         @map("generate_error")
+
+  /// Wall-clock durations for each stage (ms).
+  extractDurationMs  Int? @map("extract_duration_ms")
+  researchDurationMs Int? @map("research_duration_ms")
+  generateDurationMs Int? @map("generate_duration_ms")
+
+  /// Cost accumulators per stage (micros of USD — same denomination as UgcVideo.costUsdMicros).
+  extractCostUsdMicros  BigInt? @map("extract_cost_usd_micros")
+  researchCostUsdMicros BigInt? @map("research_cost_usd_micros")
+
+  createdBy String   @default("admin") @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  workspace    Workspace?          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brandProfile StudioBrandProfile  @relation(fields: [brandProfileId], references: [id])
+  items        StudioResearchItem[]
+  candidates   StudioCandidate[]
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@map("studio_runs")
+}
+
+/// One TikTok video result stored for (or excluded from) a studio run.
+model StudioResearchItem {
+  id              String  @id @default(cuid())
+  runId           String  @map("run_id")
+  keyword         String
+  sourceUrl       String  @map("source_url")
+  author          String?
+  durationSeconds Int?    @map("duration_seconds")
+
+  stats   Json @default("{}")
+  hook    String?
+  transcript String?
+
+  templateId String? @map("template_id")
+  /// Resolved variables: { KEY: { value, source } }
+  variables  Json    @default("{}")
+
+  selected Boolean @default(false)
+  excluded Boolean @default(false)
+  excludedReason StudioExcludeReason? @map("excluded_reason")
+
+  /// Telemetry
+  fetchDurationMs         Int?    @map("fetch_duration_ms")
+  transcriptCostUsdMicros BigInt? @map("transcript_cost_usd_micros")
+
+  isCompetitor Boolean @default(false) @map("is_competitor")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  run StudioRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@map("studio_research_items")
+}
+
+/// One generated slideshow candidate awaiting swipe review.
+model StudioCandidate {
+  id             String  @id @default(cuid())
+  runId          String  @map("run_id")
+  researchItemId String? @map("research_item_id")
+  engine         String  @default("blitz_slideshow")
+  templateId     String? @map("template_id")
+  angle          String?
+
+  /// Full Blitz Slideshow payload — what gets sent to the worker on accept.
+  payload Json @default("{}")
+
+  /// Cost breakdown: { slideTextLlm, imageGeneration, totalUsdMicros }
+  costBreakdown    Json    @default("{}")
+  costUsdMicros    BigInt? @map("cost_usd_micros")
+  generateDurationMs Int?  @map("generate_duration_ms")
+
+  /// Profile version this candidate was generated from.
+  profileVersion Int @default(1) @map("profile_version")
+
+  status       StudioCandidateStatus @default(pending)
+  rejectReason StudioRejectReason?   @map("reject_reason")
+  rejectNote   String?               @map("reject_note")
+
+  /// Set on accept: the Blitz render job id.
+  blitzProjectId String?   @map("blitz_project_id")
+  /// Set after calendar slot assignment.
+  slotDate       DateTime? @map("slot_date")
+
+  /// Guardrail warnings: [{ type, text, rule }]
+  guardrailWarnings Json @default("[]") @map("guardrail_warnings")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  run StudioRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, status])
+  @@map("studio_candidates")
+}
+
+/// Shared keyword/transcript cache. Keyword entries expire after 7 days.
+model StudioResearchCache {
+  id        String           @id @default(cuid())
+  cacheType StudioCacheType  @default(keyword) @map("cache_type")
+  /// Normalized keyword (lower+trim) or video URL.
+  cacheKey  String           @map("cache_key")
+  data      Json             @default("{}")
+  expiresAt DateTime         @map("expires_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@unique([cacheType, cacheKey])
+  @@index([expiresAt])
+  @@map("studio_research_cache")
 }

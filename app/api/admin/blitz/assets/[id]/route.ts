@@ -1,6 +1,6 @@
 import { after, NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../../src/server/admin/route';
-import { BLITZ_UPLOAD_PREFIX, toAssetDto } from '../../../../../../src/server/admin/blitzStore';
+import { isBlitzUploadKey, toAssetDto } from '../../../../../../src/server/admin/blitzStore';
 import { deleteFromR2 } from '../../../../../../src/lib/r2';
 import { prisma } from '../../../../../../src/lib/db';
 
@@ -10,7 +10,7 @@ type Ctx = { params: Promise<{ id: string }> };
 const findUpload = async (id: string) => {
   const asset = await prisma.blitzAsset.findUnique({ where: { id } });
   if (!asset) return { error: NextResponse.json({ error: 'Asset not found' }, { status: 404 }) };
-  if (!asset.r2Key.startsWith(BLITZ_UPLOAD_PREFIX)) {
+  if (!isBlitzUploadKey(asset.r2Key)) {
     return { error: NextResponse.json({ error: 'Library assets cannot be changed' }, { status: 403 }) };
   }
   return { asset };

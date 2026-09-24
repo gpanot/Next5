@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   clampSecondsPerSlide,
   resolveSlideshowMode,
-} from '../../src/components/admin/business/blitzLab/useSlideshowMode';
-import type { BlitzAssetDto } from '../../src/components/admin/business/blitzLab/api';
+} from '../../src/components/labs/blitzLab/useSlideshowMode';
+import type { BlitzAssetDto } from '../../src/components/labs/blitzLab/api';
 import { BLITZ_MAX_DURATION_S, BLITZ_SLIDESHOW_MAX_DURATION_S } from '../../src/config/blitzLab';
 
 const asset = (r2Key: string, mediaKind: 'image' | 'video'): BlitzAssetDto =>

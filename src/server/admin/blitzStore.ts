@@ -2,16 +2,27 @@
 // Blitz Lab persistence: templates, assets, and projects in the database; files in R2 by key.
 
 import type { BlitzAsset, BlitzProject, BlitzTemplate } from '@prisma/client';
+import { scopedKey, unscopedKey, type LabScope } from '../labs/scope';
 
 // ── R2 key conventions ────────────────────────────────────────────────────────
 
-export const blitzKeys = {
-  asset: (assetId: string, ext: string) => `blitz/assets/${assetId}.${ext}`,
+/**
+ * Key builders for one owner. `scope` is a workspace id, or null for Next5's own files —
+ * see src/server/labs/scope.ts for why the two layouts differ.
+ */
+export const blitzKeysFor = (scope: LabScope) => ({
+  asset: (assetId: string, ext: string) => scopedKey(scope, `blitz/assets/${assetId}.${ext}`),
   upload: (type: BlitzUploadType, ext: string) =>
-    `blitz/uploads/${type.toLowerCase()}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`,
-  thumbnail: (assetId: string) => `blitz/assets/${assetId}/thumb.jpg`,
-  render: (projectId: string) => `blitz/renders/${projectId}/output.mp4`,
-};
+    scopedKey(
+      scope,
+      `blitz/uploads/${type.toLowerCase()}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`,
+    ),
+  thumbnail: (assetId: string) => scopedKey(scope, `blitz/assets/${assetId}/thumb.jpg`),
+  render: (projectId: string) => scopedKey(scope, `blitz/renders/${projectId}/output.mp4`),
+});
+
+/** Next5-owned keys — what the admin lab writes. */
+export const blitzKeys = blitzKeysFor(null);
 
 // ── Uploads ───────────────────────────────────────────────────────────────────
 
@@ -21,6 +32,10 @@ export const BLITZ_UPLOAD_TYPES = new Set<string>(['BACKGROUND', 'OVERLAY', 'AUD
 
 /** Uploaded files live under this prefix; asset registration only accepts keys inside it. */
 export const BLITZ_UPLOAD_PREFIX = 'blitz/uploads/';
+
+/** True when the key is an upload rather than a seeded library asset, in either owner layout. */
+export const isBlitzUploadKey = (key: string): boolean =>
+  unscopedKey(key).startsWith(BLITZ_UPLOAD_PREFIX);
 
 const CONTENT_TYPE_BY_EXT: Record<string, string> = {
   mp4: 'video/mp4',
@@ -129,7 +144,7 @@ export const toAssetDto = async (asset: BlitzAsset): Promise<BlitzAssetDto> => (
   url: await blitzBrowserUrl(asset.r2Key),
   thumbnailUrl: asset.thumbnailKey ? await blitzBrowserUrl(asset.thumbnailKey) : null,
   mediaKind: blitzMediaKind(asset.r2Key),
-  source: asset.r2Key.startsWith(BLITZ_UPLOAD_PREFIX) ? 'upload' : 'library',
+  source: isBlitzUploadKey(asset.r2Key) ? 'upload' : 'library',
   createdAt: asset.createdAt.toISOString(),
 });
 

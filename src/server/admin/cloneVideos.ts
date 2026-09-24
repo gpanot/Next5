@@ -6,6 +6,7 @@ import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
 import { browserUrl, deleteFiles, mirrorFile, vendorUrl } from './ugcStore';
 import { tregCall } from './ugcLab';
+import { scopedKey, type LabScope } from '../labs/scope';
 
 // ── Cost ────────────────────────────────────────────────────────────────────
 
@@ -17,7 +18,11 @@ const estimateMicros = (durationSec: number): number =>
 
 // ── R2 keys ─────────────────────────────────────────────────────────────────
 
-export const cloneKey = (id: string) => `ugc-lab/clone/library/${id}/raw.mp4`;
+export const cloneKeyFor = (scope: LabScope, id: string) =>
+  scopedKey(scope, `ugc-lab/clone/library/${id}/raw.mp4`);
+
+/** Next5-owned key — what the admin lab writes. */
+export const cloneKey = (id: string) => cloneKeyFor(null, id);
 
 // ── reapi task status proxy ───────────────────────────────────────────────────
 

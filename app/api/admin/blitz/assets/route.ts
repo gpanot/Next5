@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../src/server/admin/route';
-import { BLITZ_UPLOAD_PREFIX, BLITZ_UPLOAD_TYPES, toAssetDto } from '../../../../../src/server/admin/blitzStore';
+import { BLITZ_UPLOAD_TYPES, isBlitzUploadKey, toAssetDto } from '../../../../../src/server/admin/blitzStore';
 import { prisma } from '../../../../../src/lib/db';
 
 /**
@@ -33,7 +33,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
   if (!type || !BLITZ_UPLOAD_TYPES.has(type)) {
     return NextResponse.json({ error: 'type must be BACKGROUND, OVERLAY or AUDIO' }, { status: 400 });
   }
-  if (!body.r2Key?.startsWith(BLITZ_UPLOAD_PREFIX) || body.r2Key.includes('..')) {
+  if (!body.r2Key || !isBlitzUploadKey(body.r2Key) || body.r2Key.includes('..')) {
     return NextResponse.json({ error: 'Invalid r2Key' }, { status: 400 });
   }
   const name = (body.name?.trim() || 'Upload').slice(0, 120);

@@ -8,21 +8,29 @@ import type { UgcScene } from '../../config/ugcLab';
 import { prisma } from '../../lib/db';
 import { deleteFromR2, getPresignedUrl, uploadToR2 } from '../../lib/r2';
 import { HttpError } from '../http';
+import { scopedKey, type LabScope } from '../labs/scope';
 
 /** Links the browser loads. Re-signed on every API read. */
 const BROWSER_LINK_SECONDS = 24 * 60 * 60;
 /** Links Treg vendors fetch while a task runs. 7 days is the S3 signing maximum. */
 const VENDOR_LINK_SECONDS = 7 * 24 * 60 * 60;
 
-export const ugcKeys = {
-  photo: (stamp: string, ext: string) => `ugc-lab/photos/${stamp}.${ext}`,
-  avatar: (stamp: string, ext: string) => `ugc-lab/avatars/${stamp}.${ext}`,
-  reference: (stamp: string, ext: string) => `ugc-lab/references/${stamp}.${ext}`,
-  character: (stamp: string) => `ugc-lab/characters/${stamp}.jpg`,
-  raw: (videoId: string) => `ugc-lab/videos/${videoId}/raw.mp4`,
-  captioned: (videoId: string) => `ugc-lab/videos/${videoId}/captioned.mp4`,
-  voice: (stamp: string, ext: string) => `ugc-lab/voices/${stamp}.${ext}`,
-};
+/**
+ * Key builders for one owner. `scope` is a workspace id, or null for Next5's own files —
+ * see src/server/labs/scope.ts for why the two layouts differ.
+ */
+export const ugcKeysFor = (scope: LabScope) => ({
+  photo: (stamp: string, ext: string) => scopedKey(scope, `ugc-lab/photos/${stamp}.${ext}`),
+  avatar: (stamp: string, ext: string) => scopedKey(scope, `ugc-lab/avatars/${stamp}.${ext}`),
+  reference: (stamp: string, ext: string) => scopedKey(scope, `ugc-lab/references/${stamp}.${ext}`),
+  character: (stamp: string) => scopedKey(scope, `ugc-lab/characters/${stamp}.jpg`),
+  raw: (videoId: string) => scopedKey(scope, `ugc-lab/videos/${videoId}/raw.mp4`),
+  captioned: (videoId: string) => scopedKey(scope, `ugc-lab/videos/${videoId}/captioned.mp4`),
+  voice: (stamp: string, ext: string) => scopedKey(scope, `ugc-lab/voices/${stamp}.${ext}`),
+});
+
+/** Next5-owned keys — what the admin lab writes. */
+export const ugcKeys = ugcKeysFor(null);
 
 export const uniqueStamp = (): string => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 

@@ -171,6 +171,52 @@ CREATE TYPE public."SubscriptionStatus" AS ENUM (
 
 
 --
+-- Name: asset_fulfilment; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.asset_fulfilment AS ENUM (
+    'upload',
+    'library',
+    'generate'
+);
+
+
+--
+-- Name: asset_kind; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.asset_kind AS ENUM (
+    'person_on_camera',
+    'product_footage',
+    'product_image',
+    'location_footage',
+    'customer_photo',
+    'customer_footage',
+    'logo',
+    'on_screen_text',
+    'before_after_photo',
+    'before_footage',
+    'after_footage',
+    'demonstration',
+    'spec_sheet_broll',
+    'trending_audio',
+    'screen_recording',
+    'generic_selfie'
+);
+
+
+--
+-- Name: audience_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.audience_type AS ENUM (
+    'b2c',
+    'b2b',
+    'both'
+);
+
+
+--
 -- Name: blitz_render_status; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -190,6 +236,98 @@ CREATE TYPE public.blitz_template_type AS ENUM (
     'GREEN_SCREEN',
     'BROLL_VIDEO',
     'CAROUSEL'
+);
+
+
+--
+-- Name: campaign_goal; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.campaign_goal AS ENUM (
+    'leads',
+    'enquiries',
+    'sell'
+);
+
+
+--
+-- Name: campaign_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.campaign_status AS ENUM (
+    'draft',
+    'generated',
+    'scheduled',
+    'archived'
+);
+
+
+--
+-- Name: content_engine; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.content_engine AS ENUM (
+    'blitz_slideshow',
+    'ugc_video'
+);
+
+
+--
+-- Name: content_purpose; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.content_purpose AS ENUM (
+    'awareness',
+    'trust',
+    'enquiry',
+    'conversion',
+    'engagement',
+    'retention'
+);
+
+
+--
+-- Name: content_source; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.content_source AS ENUM (
+    'real',
+    'mix',
+    'generated'
+);
+
+
+--
+-- Name: content_template_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.content_template_status AS ENUM (
+    'draft',
+    'active',
+    'archived'
+);
+
+
+--
+-- Name: template_variable_source; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.template_variable_source AS ENUM (
+    'brand',
+    'campaign',
+    'manual'
+);
+
+
+--
+-- Name: template_variable_type; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.template_variable_type AS ENUM (
+    'text',
+    'image',
+    'number',
+    'url'
 );
 
 
@@ -318,7 +456,8 @@ CREATE TABLE public.blitz_assets (
     thumbnail_key text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     tags text[] DEFAULT '{}'::text[] NOT NULL,
-    source text DEFAULT 'library'::text NOT NULL
+    source text DEFAULT 'library'::text NOT NULL,
+    workspace_id text
 );
 
 
@@ -340,7 +479,8 @@ CREATE TABLE public.blitz_projects (
     rendered_video_key text,
     is_identifiable_person boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    workspace_id text
 );
 
 
@@ -403,6 +543,58 @@ CREATE TABLE public.bookings (
 
 
 --
+-- Name: campaign_posts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.campaign_posts (
+    id text NOT NULL,
+    campaign_id text NOT NULL,
+    day_index integer NOT NULL,
+    slot_of_day text DEFAULT 'evening'::text NOT NULL,
+    scheduled_for date NOT NULL,
+    template_id text NOT NULL,
+    version_id text NOT NULL,
+    purpose public.content_purpose NOT NULL,
+    source public.content_source DEFAULT 'real'::public.content_source NOT NULL,
+    widened boolean DEFAULT false NOT NULL,
+    skipped boolean DEFAULT false NOT NULL,
+    caption text,
+    "position" integer DEFAULT 0 NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: campaigns; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.campaigns (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    goal public.campaign_goal NOT NULL,
+    product_id text,
+    listing_id text,
+    channels text[] DEFAULT ARRAY['tiktok'::text] NOT NULL,
+    campaign_subject text,
+    campaign_message text,
+    use_brand_subject boolean DEFAULT true NOT NULL,
+    use_brand_message boolean DEFAULT true NOT NULL,
+    promo text,
+    notes text,
+    posts_per_day integer DEFAULT 1 NOT NULL,
+    weeks integer DEFAULT 1 NOT NULL,
+    start_date date NOT NULL,
+    asset_method text,
+    asset_url text,
+    status public.campaign_status DEFAULT 'draft'::public.campaign_status NOT NULL,
+    step integer DEFAULT 1 NOT NULL,
+    scheduled_at timestamp(3) without time zone,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
 -- Name: clone_videos; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -422,7 +614,8 @@ CREATE TABLE public.clone_videos (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     model text,
     resolution text,
-    prompt text
+    prompt text,
+    workspace_id text
 );
 
 
@@ -438,6 +631,63 @@ CREATE TABLE public.consent_records (
     ip text,
     user_agent text,
     accepted_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: content_pillars; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.content_pillars (
+    id text NOT NULL,
+    slug text NOT NULL,
+    name text NOT NULL,
+    description text DEFAULT ''::text NOT NULL,
+    "position" integer DEFAULT 0 NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: content_template_versions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.content_template_versions (
+    id text NOT NULL,
+    template_id text NOT NULL,
+    version integer NOT NULL,
+    hook_pattern text DEFAULT ''::text NOT NULL,
+    beats jsonb DEFAULT '[]'::jsonb NOT NULL,
+    suggested_slides jsonb DEFAULT '[]'::jsonb NOT NULL,
+    keywords text[] DEFAULT ARRAY[]::text[] NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: content_templates; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.content_templates (
+    id text NOT NULL,
+    slug text NOT NULL,
+    legacy_id integer,
+    name text NOT NULL,
+    pillar_id text NOT NULL,
+    format_slug text NOT NULL,
+    audience public.audience_type DEFAULT 'both'::public.audience_type NOT NULL,
+    platforms text[] DEFAULT ARRAY['tiktok'::text, 'instagram'::text] NOT NULL,
+    purposes public.content_purpose[] DEFAULT ARRAY[]::public.content_purpose[] NOT NULL,
+    primary_purpose public.content_purpose NOT NULL,
+    workspace_id text,
+    parent_template_id text,
+    active_version_id text,
+    status public.content_template_status DEFAULT 'draft'::public.content_template_status NOT NULL,
+    times_used integer DEFAULT 0 NOT NULL,
+    avg_engagement_score double precision,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    recommended_engine public.content_engine DEFAULT 'blitz_slideshow'::public.content_engine NOT NULL
 );
 
 
@@ -747,7 +997,8 @@ CREATE TABLE public.post_slots (
     caption_override text,
     source text DEFAULT 'auto'::text NOT NULL,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    campaign_post_id text
 );
 
 
@@ -1035,6 +1286,55 @@ CREATE TABLE public.subscriptions (
 
 
 --
+-- Name: template_asset_requirements; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.template_asset_requirements (
+    id text NOT NULL,
+    version_id text NOT NULL,
+    kind public.asset_kind NOT NULL,
+    required boolean DEFAULT true NOT NULL,
+    min_count integer DEFAULT 1 NOT NULL,
+    fulfilment public.asset_fulfilment DEFAULT 'upload'::public.asset_fulfilment NOT NULL,
+    notes text
+);
+
+
+--
+-- Name: template_usages; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.template_usages (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    template_id text NOT NULL,
+    version_id text NOT NULL,
+    purpose public.content_purpose NOT NULL,
+    planned_for timestamp(3) without time zone NOT NULL,
+    campaign_id text,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: template_variables; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.template_variables (
+    id text NOT NULL,
+    version_id text NOT NULL,
+    key text NOT NULL,
+    label text NOT NULL,
+    type public.template_variable_type DEFAULT 'text'::public.template_variable_type NOT NULL,
+    source public.template_variable_source DEFAULT 'campaign'::public.template_variable_source NOT NULL,
+    required boolean DEFAULT true NOT NULL,
+    default_value text,
+    hint text,
+    "position" integer DEFAULT 0 NOT NULL
+);
+
+
+--
 -- Name: themes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1062,7 +1362,8 @@ CREATE TABLE public.ugc_characters (
     scene jsonb,
     archived boolean DEFAULT false NOT NULL,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    portrait_json jsonb
+    portrait_json jsonb,
+    workspace_id text
 );
 
 
@@ -1093,7 +1394,8 @@ CREATE TABLE public.ugc_videos (
     last_checked_at timestamp(3) without time zone,
     generation_seconds integer,
     timing_precise boolean DEFAULT false NOT NULL,
-    provider text DEFAULT 'reapi'::text NOT NULL
+    provider text DEFAULT 'reapi'::text NOT NULL,
+    workspace_id text
 );
 
 
@@ -1157,7 +1459,12 @@ CREATE TABLE public.workspaces (
     mention_frequency text DEFAULT 'sometimes'::text NOT NULL,
     gender_filter text,
     angles_gen_state text DEFAULT 'idle'::text NOT NULL,
-    angles_gen_at timestamp with time zone
+    angles_gen_at timestamp with time zone,
+    audience_type public.audience_type,
+    promoting text,
+    offer text,
+    positioning text,
+    geography text
 );
 
 
@@ -1249,6 +1556,22 @@ ALTER TABLE ONLY public.bookings
 
 
 --
+-- Name: campaign_posts campaign_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_posts
+    ADD CONSTRAINT campaign_posts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: campaigns campaigns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaigns
+    ADD CONSTRAINT campaigns_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: clone_videos clone_videos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1262,6 +1585,30 @@ ALTER TABLE ONLY public.clone_videos
 
 ALTER TABLE ONLY public.consent_records
     ADD CONSTRAINT consent_records_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: content_pillars content_pillars_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_pillars
+    ADD CONSTRAINT content_pillars_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: content_template_versions content_template_versions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_template_versions
+    ADD CONSTRAINT content_template_versions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: content_templates content_templates_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_templates
+    ADD CONSTRAINT content_templates_pkey PRIMARY KEY (id);
 
 
 --
@@ -1505,6 +1852,30 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
+-- Name: template_asset_requirements template_asset_requirements_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.template_asset_requirements
+    ADD CONSTRAINT template_asset_requirements_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: template_usages template_usages_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.template_usages
+    ADD CONSTRAINT template_usages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: template_variables template_variables_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.template_variables
+    ADD CONSTRAINT template_variables_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: themes themes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1624,6 +1995,13 @@ CREATE INDEX blitz_assets_tags_gin ON public.blitz_assets USING gin (tags);
 
 
 --
+-- Name: blitz_assets_workspace_id_type_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blitz_assets_workspace_id_type_idx ON public.blitz_assets USING btree (workspace_id, type);
+
+
+--
 -- Name: blitz_projects_created_at_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1638,10 +2016,38 @@ CREATE INDEX blitz_projects_render_status_idx ON public.blitz_projects USING btr
 
 
 --
+-- Name: blitz_projects_workspace_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blitz_projects_workspace_id_created_at_idx ON public.blitz_projects USING btree (workspace_id, created_at DESC);
+
+
+--
 -- Name: booking_regenerations_booking_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX booking_regenerations_booking_id_idx ON public.booking_regenerations USING btree (booking_id);
+
+
+--
+-- Name: campaign_posts_campaign_id_position_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX campaign_posts_campaign_id_position_idx ON public.campaign_posts USING btree (campaign_id, "position");
+
+
+--
+-- Name: campaigns_workspace_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX campaigns_workspace_id_created_at_idx ON public.campaigns USING btree (workspace_id, created_at DESC);
+
+
+--
+-- Name: campaigns_workspace_id_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX campaigns_workspace_id_status_idx ON public.campaigns USING btree (workspace_id, status);
 
 
 --
@@ -1666,10 +2072,52 @@ CREATE INDEX clone_videos_status_idx ON public.clone_videos USING btree (status)
 
 
 --
+-- Name: clone_videos_workspace_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX clone_videos_workspace_id_created_at_idx ON public.clone_videos USING btree (workspace_id, created_at DESC);
+
+
+--
 -- Name: consent_records_user_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX consent_records_user_id_idx ON public.consent_records USING btree (user_id);
+
+
+--
+-- Name: content_pillars_slug_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX content_pillars_slug_key ON public.content_pillars USING btree (slug);
+
+
+--
+-- Name: content_template_versions_template_id_version_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX content_template_versions_template_id_version_key ON public.content_template_versions USING btree (template_id, version);
+
+
+--
+-- Name: content_templates_legacy_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_templates_legacy_id_idx ON public.content_templates USING btree (legacy_id);
+
+
+--
+-- Name: content_templates_slug_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX content_templates_slug_key ON public.content_templates USING btree (slug);
+
+
+--
+-- Name: content_templates_workspace_id_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX content_templates_workspace_id_status_idx ON public.content_templates USING btree (workspace_id, status);
 
 
 --
@@ -1869,6 +2317,13 @@ CREATE UNIQUE INDEX post_schedules_workspace_id_key ON public.post_schedules USI
 
 
 --
+-- Name: post_slots_campaign_post_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX post_slots_campaign_post_id_idx ON public.post_slots USING btree (campaign_post_id);
+
+
+--
 -- Name: post_slots_item_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2002,10 +2457,45 @@ CREATE INDEX subscriptions_workspace_id_status_idx ON public.subscriptions USING
 
 
 --
+-- Name: template_asset_requirements_version_id_kind_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX template_asset_requirements_version_id_kind_key ON public.template_asset_requirements USING btree (version_id, kind);
+
+
+--
+-- Name: template_usages_workspace_id_planned_for_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX template_usages_workspace_id_planned_for_idx ON public.template_usages USING btree (workspace_id, planned_for);
+
+
+--
+-- Name: template_usages_workspace_id_template_id_planned_for_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX template_usages_workspace_id_template_id_planned_for_idx ON public.template_usages USING btree (workspace_id, template_id, planned_for);
+
+
+--
+-- Name: template_variables_version_id_key_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX template_variables_version_id_key_key ON public.template_variables USING btree (version_id, key);
+
+
+--
 -- Name: ugc_characters_kind_archived_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX ugc_characters_kind_archived_idx ON public.ugc_characters USING btree (kind, archived);
+
+
+--
+-- Name: ugc_characters_workspace_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ugc_characters_workspace_id_created_at_idx ON public.ugc_characters USING btree (workspace_id, created_at DESC);
 
 
 --
@@ -2027,6 +2517,13 @@ CREATE UNIQUE INDEX ugc_videos_provider_task_id_key ON public.ugc_videos USING b
 --
 
 CREATE INDEX ugc_videos_status_idx ON public.ugc_videos USING btree (status);
+
+
+--
+-- Name: ugc_videos_workspace_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ugc_videos_workspace_id_created_at_idx ON public.ugc_videos USING btree (workspace_id, created_at DESC);
 
 
 --
@@ -2121,11 +2618,27 @@ ALTER TABLE ONLY public.batches
 
 
 --
+-- Name: blitz_assets blitz_assets_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_assets
+    ADD CONSTRAINT blitz_assets_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: blitz_projects blitz_projects_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.blitz_projects
     ADD CONSTRAINT blitz_projects_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.blitz_templates(id);
+
+
+--
+-- Name: blitz_projects blitz_projects_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_projects
+    ADD CONSTRAINT blitz_projects_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -2145,11 +2658,107 @@ ALTER TABLE ONLY public.bookings
 
 
 --
+-- Name: campaign_posts campaign_posts_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_posts
+    ADD CONSTRAINT campaign_posts_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: campaign_posts campaign_posts_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_posts
+    ADD CONSTRAINT campaign_posts_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.content_templates(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: campaign_posts campaign_posts_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaign_posts
+    ADD CONSTRAINT campaign_posts_version_id_fkey FOREIGN KEY (version_id) REFERENCES public.content_template_versions(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: campaigns campaigns_listing_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaigns
+    ADD CONSTRAINT campaigns_listing_id_fkey FOREIGN KEY (listing_id) REFERENCES public.listings(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: campaigns campaigns_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaigns
+    ADD CONSTRAINT campaigns_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: campaigns campaigns_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.campaigns
+    ADD CONSTRAINT campaigns_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: clone_videos clone_videos_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.clone_videos
+    ADD CONSTRAINT clone_videos_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: consent_records consent_records_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.consent_records
     ADD CONSTRAINT consent_records_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: content_template_versions content_template_versions_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_template_versions
+    ADD CONSTRAINT content_template_versions_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.content_templates(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: content_templates content_templates_active_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_templates
+    ADD CONSTRAINT content_templates_active_version_id_fkey FOREIGN KEY (active_version_id) REFERENCES public.content_template_versions(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: content_templates content_templates_parent_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_templates
+    ADD CONSTRAINT content_templates_parent_template_id_fkey FOREIGN KEY (parent_template_id) REFERENCES public.content_templates(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: content_templates content_templates_pillar_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_templates
+    ADD CONSTRAINT content_templates_pillar_id_fkey FOREIGN KEY (pillar_id) REFERENCES public.content_pillars(id) ON UPDATE CASCADE ON DELETE RESTRICT;
+
+
+--
+-- Name: content_templates content_templates_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.content_templates
+    ADD CONSTRAINT content_templates_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -2281,6 +2890,14 @@ ALTER TABLE ONLY public.post_schedules
 
 
 --
+-- Name: post_slots post_slots_campaign_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.post_slots
+    ADD CONSTRAINT post_slots_campaign_post_id_fkey FOREIGN KEY (campaign_post_id) REFERENCES public.campaign_posts(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: post_slots post_slots_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2409,11 +3026,75 @@ ALTER TABLE ONLY public.subscriptions
 
 
 --
+-- Name: template_asset_requirements template_asset_requirements_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.template_asset_requirements
+    ADD CONSTRAINT template_asset_requirements_version_id_fkey FOREIGN KEY (version_id) REFERENCES public.content_template_versions(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: template_usages template_usages_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.template_usages
+    ADD CONSTRAINT template_usages_campaign_id_fkey FOREIGN KEY (campaign_id) REFERENCES public.campaigns(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: template_usages template_usages_template_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.template_usages
+    ADD CONSTRAINT template_usages_template_id_fkey FOREIGN KEY (template_id) REFERENCES public.content_templates(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: template_usages template_usages_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.template_usages
+    ADD CONSTRAINT template_usages_version_id_fkey FOREIGN KEY (version_id) REFERENCES public.content_template_versions(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: template_usages template_usages_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.template_usages
+    ADD CONSTRAINT template_usages_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: template_variables template_variables_version_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.template_variables
+    ADD CONSTRAINT template_variables_version_id_fkey FOREIGN KEY (version_id) REFERENCES public.content_template_versions(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: ugc_characters ugc_characters_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ugc_characters
+    ADD CONSTRAINT ugc_characters_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: ugc_videos ugc_videos_character_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.ugc_videos
     ADD CONSTRAINT ugc_videos_character_id_fkey FOREIGN KEY (character_id) REFERENCES public.ugc_characters(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: ugc_videos ugc_videos_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ugc_videos
+    ADD CONSTRAINT ugc_videos_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -2484,4 +3165,7 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261005090000'),
     ('20261006090000'),
     ('20261007090000'),
-    ('20261008090000');
+    ('20261008090000'),
+    ('20261009090000'),
+    ('20261010090000'),
+    ('20261011090000');
