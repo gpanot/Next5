@@ -1,16 +1,21 @@
 /**
- * Asset descriptor smoke test v4
+ * Asset descriptor smoke test v5
  *
- * Changes vs v3:
+ * Changes vs v4:
+ *   - Loudness root-cause fix: add -v verbose to ffmpeg ebur128 call.
+ *     Without it, ffmpeg 8 does not emit per-frame M: lines — only the summary.
+ *     Also removed the silent -80 LUFS floor (was discarding valid silence).
+ *   - UGC opening-word test: 3× runs of the original clip + 1× clip with a
+ *     different opening word to determine if first-word drop is systematic.
+ *
+ * Changes vs v3 (inherited from v4):
  *   - MEDIA_RESOLUTION_HIGH in generationConfig → ~264 tok/frame (4× vs default 66)
- *   - Loudness digit bug fixed: (lufs+40)/35 × 9, max-per-second, flat-curve guard
  *   - All scores (slot, niche, energyLevel) validated 0–1; out-of-range → repair call, no clamp
  *   - bpmEstimate rename (bpm column still the same DB column)
  *   - dropAt nullable in music schema + updated prompt rule
  *   - publicFigureLikely field + if true → rightsRisk='high'
  *   - effectiveRightsRisk() helper respects admin rightsRiskOverride
  *   - Exponential backoff with jitter for 429/503 (4 tries, 2 s base)
- *   - UGC talking-head added to test suite; transcript vs script comparison
  *
  * Run: npx tsx -r dotenv/config scripts/test-descriptor.ts dotenv_config_path=.env.local
  */
@@ -45,7 +50,7 @@ const s3 = new S3Client({
 });
 
 // Startup log
-console.log(`\n🎬  Descriptor pipeline v4`);
+console.log(`\n🎬  Descriptor pipeline v5`);
 console.log(`   Model: ${MODEL}  |  Resolution: HIGH (${MediaResolution.MEDIA_RESOLUTION_HIGH})`);
 console.log(`   Key: ${GEMINI_API_KEY?.slice(0, 12)}…`);
 
@@ -99,8 +104,9 @@ const TEST_ASSETS: TestAsset[] = [
     r2Key: 'blitz/audio/cinderella.mp3',
     ext: 'mp3', mime: 'audio/mpeg',
   },
+  // UGC run 1 (of 3) — checking if first word is consistently dropped
   {
-    label: 'UGC talking-head (real-person, 8s)',
+    label: 'UGC-A run 1/3 — "Lazy people…"',
     name: 'UGC-cmu9791da',
     kind: 'ugc_video',
     source: 'ai_generated',
@@ -109,6 +115,42 @@ const TEST_ASSETS: TestAsset[] = [
     r2Key: 'ugc-lab/videos/cmu9791da0002vus4ym5piwny/raw.mp4',
     ext: 'mp4', mime: 'video/mp4',
     script: 'Lazy people do a little work and think they should be winning, but winners push harder and still worry.',
+  },
+  // UGC run 2 (same video, second call)
+  {
+    label: 'UGC-A run 2/3 — "Lazy people…"',
+    name: 'UGC-cmu9791da',
+    kind: 'ugc_video',
+    source: 'ai_generated',
+    sourceField: 'ugcVideoId',
+    id: 'cmu9791da0002vus4ym5piwny',
+    r2Key: 'ugc-lab/videos/cmu9791da0002vus4ym5piwny/raw.mp4',
+    ext: 'mp4', mime: 'video/mp4',
+    script: 'Lazy people do a little work and think they should be winning, but winners push harder and still worry.',
+  },
+  // UGC run 3 (same video, third call)
+  {
+    label: 'UGC-A run 3/3 — "Lazy people…"',
+    name: 'UGC-cmu9791da',
+    kind: 'ugc_video',
+    source: 'ai_generated',
+    sourceField: 'ugcVideoId',
+    id: 'cmu9791da0002vus4ym5piwny',
+    r2Key: 'ugc-lab/videos/cmu9791da0002vus4ym5piwny/raw.mp4',
+    ext: 'mp4', mime: 'video/mp4',
+    script: 'Lazy people do a little work and think they should be winning, but winners push harder and still worry.',
+  },
+  // UGC-B — different opening word ("What makes somebody…")
+  {
+    label: 'UGC-B — "What makes somebody…" (different opening)',
+    name: 'UGC-cmudjkyey',
+    kind: 'ugc_video',
+    source: 'ai_generated',
+    sourceField: 'ugcVideoId',
+    id: 'cmudjkyey0003vudkmdcj581d',
+    r2Key: 'ugc-lab/videos/cmudjkyey0003vudkmdcj581d/raw.mp4',
+    ext: 'mp4', mime: 'video/mp4',
+    script: 'What makes somebody wanna choose steel plates versus Olympic lifting plates?',
   },
 ];
 
@@ -168,22 +210,34 @@ async function measureLoudnessDigits(
   filePath: string, durationSec: number,
 ): Promise<{ digits: string; flat: boolean }> {
   try {
+    // NOTE: ebur128 per-frame M: lines require -v verbose in ffmpeg 8.
+    // Without it (or with -nostats / default log level), only the summary block
+    // is emitted and no M: lines appear — causing the flat-curve false positive.
     const { stderr } = await execFileAsync(FFMPEG, [
-      '-hide_banner', '-nostats',
+      '-v', 'verbose',      // enables per-frame ebur128 output (required in ffmpeg 8)
+      '-hide_banner',       // hides build info, keeps M: lines
       '-i', filePath,
       '-af', 'ebur128=framelog=verbose',
       '-f', 'null', '-',
-    ], { maxBuffer: 8 * 1024 * 1024 });
+    ], { maxBuffer: 16 * 1024 * 1024 });
 
     const re = /\] t:\s*([\d.]+)\s+TARGET[^\n]+M:\s*([-\d.]+)/g;
     const bySecond = new Map<number, number>(); // second → max LUFS
     let m: RegExpExecArray | null;
+    let samplesRead = 0;
     while ((m = re.exec(stderr)) !== null) {
       const t = parseFloat(m[1]), lufs = parseFloat(m[2]);
-      if (isNaN(t) || isNaN(lufs) || lufs < -80) continue;
+      // Only drop genuine NaN / Infinity — never a hard LUFS floor.
+      // Silence is legitimately -120 LUFS and maps to digit 0 via clamp; that is fine.
+      if (!isFinite(t) || !isFinite(lufs)) continue;
+      samplesRead++;
       const sec = Math.floor(t);
       const prev = bySecond.get(sec);
       if (prev === undefined || lufs > prev) bySecond.set(sec, lufs);
+    }
+    if (samplesRead === 0) {
+      // No M: lines at all — log the raw stderr tail for diagnosis
+      console.log(`   ⚠  ebur128: 0 M: lines in ${stderr.length} bytes of stderr (ffmpeg may need -v verbose)`);
     }
 
     const nSec = Math.ceil(durationSec);
@@ -817,7 +871,7 @@ async function main() {
 
   // ── Summary ──
   console.log(`\n${'='.repeat(68)}`);
-  console.log('📊  SUMMARY  (v4 — HIGH resolution, fixed loudness)');
+  console.log('📊  SUMMARY  (v5 — HIGH resolution, loudness -v verbose fix, UGC word-drop investigation)');
   console.log('='.repeat(68));
 
   let totalCost = 0, totalSec = 0;
