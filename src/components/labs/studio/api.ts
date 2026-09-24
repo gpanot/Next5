@@ -156,3 +156,53 @@ export const acceptCandidate = (token: string, runId: string, candidateId: strin
     method: 'POST',
     body: '{}',
   }, token);
+
+// ── Calendar ────────────────────────────────────────────────────────────────
+
+export type CalendarSlot = {
+  id: string;
+  status: string;
+  slotDate: string | null;
+  blitzProjectId: string | null;
+  angle: string | null;
+  templateId: string | null;
+};
+
+export const getCalendar = (token: string, runId: string) =>
+  req<{ slots: CalendarSlot[] }>(`${BASE}/${runId}/calendar`, { method: 'GET' }, token);
+
+export const assignCalendar = (token: string, runId: string) =>
+  req<{ assigned: number; slots: string[] }>(`${BASE}/${runId}/calendar`, {
+    method: 'POST',
+    body: '{}',
+  }, token);
+
+// ── Summary ─────────────────────────────────────────────────────────────────
+
+export type RunSummary = {
+  runId: string;
+  sourceUrl: string;
+  profileVersion: number;
+  step: string;
+  createdAt: string;
+  metrics: {
+    extract: { durationMs: number | null; costUsdMicros: string | null; targetMs: number; onTarget: boolean | null };
+    research: { durationMs: number | null; costUsdMicros: string | null; targetMs: number; onTarget: boolean | null };
+    generate: { durationMs: number | null; targetMs: number; onTarget: boolean | null };
+    totalCost: { usdMicros: number; targetUsdMicros: number; onTarget: boolean };
+  };
+  quality: {
+    researchItems: number;
+    candidatesTotal: number;
+    candidatesAccepted: number;
+    candidatesRejected: number;
+    candidatesPending: number;
+    acceptanceRate: number;
+    acceptanceRateTarget: number;
+    acceptanceOnTarget: boolean;
+  };
+  overallPass: boolean;
+};
+
+export const getRunSummary = (token: string, runId: string) =>
+  req<RunSummary>(`${BASE}/${runId}/summary`, { method: 'GET' }, token);

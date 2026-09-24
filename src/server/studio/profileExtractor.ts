@@ -211,7 +211,7 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
 
   if (!crawlResult.text) {
     // Fallback: return placeholder profile — admin will fill manually
-    const hostname = (() => { try { return new URL(input.sourceUrl).hostname; } catch { return input.sourceUrl; } })();
+    const hostname = (() => { try { return new URL(input.sourceUrl).hostname.replace(/^www\./, ''); } catch { return input.sourceUrl; } })();
     return {
       data: buildPlaceholder(hostname),
       telemetry: { stages: { crawl: crawlStage, infer: zeroStage, competitors: zeroStage, keywords: zeroStage }, totalDurationMs: crawlResult.durationMs, totalCostUsdMicros: 0 },
