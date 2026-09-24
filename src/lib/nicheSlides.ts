@@ -17,10 +17,18 @@ import { errorOf, type LabClient } from '../components/labs/labClient';
 
 export type NicheSlide = { text: string; bgPrompt: string };
 
+export type NicheSlideMeta = {
+  elapsedMs: number;
+  promptTokens: number;
+  completionTokens: number;
+};
+
 export type NicheSlidesResult = {
   slides: NicheSlide[];
   /** false when the LLM was unavailable and these are localised static slides. */
   generated: boolean;
+  /** Token usage and timing from the API call. */
+  meta?: NicheSlideMeta;
 };
 
 type Request = {
@@ -51,7 +59,7 @@ async function fetchSlides(client: LabClient, req: Request): Promise<NicheSlides
   if (!res.ok || !Array.isArray(res.data.slides) || res.data.slides.length === 0) {
     throw new Error(res.ok ? 'No slides returned' : errorOf(res));
   }
-  return { slides: res.data.slides, generated: res.data.generated ?? true };
+  return { slides: res.data.slides, generated: res.data.generated ?? true, meta: res.data.meta };
 }
 
 /**

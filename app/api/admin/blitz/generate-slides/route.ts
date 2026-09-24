@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../src/server/admin/route';
-import { chatJson, type ChatMessage } from '../../../../../src/server/ai/openai';
+import { chatJsonWithMeta, type ChatMessage } from '../../../../../src/server/ai/openai';
 import { getTemplateByLegacyId } from '../../../../../src/server/templates/repository';
 import type { TemplateDto } from '../../../../../src/server/templates/dto';
 
@@ -118,7 +118,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
     { role: 'user', content: buildPrompt(niche, template, body.hook ?? '', body.transcript ?? '') },
   ];
 
-  const result = await chatJson<{ slides?: unknown }>(messages, {
+  const { result, meta } = await chatJsonWithMeta<{ slides?: unknown }>(messages, {
     maxTokens: 900,
     temperature: 0.75,
     timeoutMs: 30_000,
@@ -133,8 +133,16 @@ export const POST = adminRoute(async (req: NextRequest) => {
 
   if (slides.length === 0) {
     console.warn(`[blitz/generate-slides] LLM returned nothing for "${niche}" — serving localised fallback`);
-    return NextResponse.json({ slides: localiseFallback(template, niche), generated: false });
+    return NextResponse.json({ slides: localiseFallback(template, niche), generated: false, meta: { elapsedMs: meta.elapsedMs, promptTokens: 0, completionTokens: 0 } });
   }
 
-  return NextResponse.json({ slides, generated: true });
+  return NextResponse.json({
+    slides,
+    generated: true,
+    meta: {
+      elapsedMs: meta.elapsedMs,
+      promptTokens: meta.usage?.promptTokens ?? 0,
+      completionTokens: meta.usage?.completionTokens ?? 0,
+    },
+  });
 });

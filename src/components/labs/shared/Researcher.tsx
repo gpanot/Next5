@@ -44,6 +44,20 @@ import {
 export type { ResearchVideo };
 export type { NicheSlide };
 
+type ResearchMeta = {
+  elapsedMs: number;
+  tregElapsedMs?: number;
+  aiElapsedMs?: number;
+  aiPromptTokens?: number;
+  aiCompletionTokens?: number;
+};
+
+type SlidesMeta = {
+  elapsedMs: number;
+  promptTokens: number;
+  completionTokens: number;
+};
+
 export type ResearcherProps = {
   /** localStorage key — unique per host tab so caches are independent. */
   cacheKey: string;
@@ -86,6 +100,10 @@ export function Researcher({
   const [slidesLoadingId, setSlidesLoadingId] = useState<string | null>(null);
   /** Permanent search history — shared across every tab that researches. */
   const [history, setHistory] = useState<SearchEntry[]>(() => readHistory());
+  /** Metadata from the last successful search (cost + timing). */
+  const [searchMeta, setSearchMeta] = useState<ResearchMeta | null>(null);
+  /** Metadata from the last "Use as inspiration" slide generation. */
+  const [slidesMeta, setSlidesMeta] = useState<SlidesMeta | null>(null);
   const client = useLabClient();
   const { resolve: resolveTemplateFor } = useContentTemplates();
 

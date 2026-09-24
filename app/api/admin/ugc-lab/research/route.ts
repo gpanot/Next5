@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../src/server/admin/route';
 import { tregCall, fetchTikTokTranscript, type TrendingVideo } from '../../../../../src/server/admin/ugcLab';
-import { chatJson, type ChatMessage } from '../../../../../src/server/ai/openai';
+import { chatJsonWithMeta, type ChatMessage } from '../../../../../src/server/ai/openai';
 import { listTemplates } from '../../../../../src/server/templates/repository';
 import type { TemplateDto } from '../../../../../src/server/templates/dto';
 
@@ -111,7 +111,7 @@ const classifySystemPrompt = (templates: readonly TemplateDto[]): string =>
     'Return JSON: { "hook": "...", "template_id": <number> }',
   ].join('\n');
 
-type Classification = { hook: string; template_id: number | null };
+type Classification = { hook: string; template_id: number | null; promptTokens: number; completionTokens: number; elapsedMs: number };
 
 /** The global library, read once per request rather than once per video. */
 let libraryPromise: Promise<TemplateDto[]> | null = null;
@@ -127,14 +127,14 @@ const templateLibrary = (): Promise<TemplateDto[]> => {
  * keyword-matching the hook alone put 9 of 10 results on the fallback template.
  */
 async function classifyVideo(transcript: string, templates: readonly TemplateDto[]): Promise<Classification> {
-  if (!transcript.trim()) return { hook: '', template_id: null };
+  if (!transcript.trim()) return { hook: '', template_id: null, promptTokens: 0, completionTokens: 0, elapsedMs: 0 };
 
   const messages: ChatMessage[] = [
     { role: 'system', content: classifySystemPrompt(templates) },
     { role: 'user', content: `Transcript:\n${transcript.slice(0, 2500)}` },
   ];
 
-  const result = await chatJson<{ hook?: string; template_id?: number }>(messages, {
+  const { result, meta } = await chatJsonWithMeta<{ hook?: string; template_id?: number }>(messages, {
     maxTokens: 200,
     temperature: 0.1,
     timeoutMs: 20_000,
@@ -143,7 +143,13 @@ async function classifyVideo(transcript: string, templates: readonly TemplateDto
   const hook = result?.hook?.trim() || transcript.split(/[.!?]/)[0]?.trim() || '';
   const id = result?.template_id;
   const templateId = typeof id === 'number' && templates.some((t) => t.legacyId === id) ? id : null;
-  return { hook, template_id: templateId };
+  return {
+    hook,
+    template_id: templateId,
+    promptTokens: meta.usage?.promptTokens ?? 0,
+    completionTokens: meta.usage?.completionTokens ?? 0,
+    elapsedMs: meta.elapsedMs,
+  };
 }
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -159,7 +165,10 @@ export const POST = adminRoute(async (req: NextRequest) => {
     return NextResponse.json({ error: 'industry is required' }, { status: 400 });
   }
 
+  const routeStart = Date.now();
+
   // 1. Search TikTok for trending videos in this industry
+  const tregStart = Date.now();
   const searchData = await tregCall<TikTokSearchData>(
     'tikhub.tiktok.search.videos',
     {
@@ -167,20 +176,28 @@ export const POST = adminRoute(async (req: NextRequest) => {
       timeoutMs: 30_000,
     },
   );
+  const tregElapsedMs = Date.now() - tregStart;
 
   const awemes = collectAwemes(searchData).slice(0, 10);
 
   if (awemes.length === 0) {
-    return NextResponse.json({ videos: [] });
+    return NextResponse.json({ videos: [], meta: { elapsedMs: Date.now() - routeStart, tregElapsedMs, aiElapsedMs: 0, aiPromptTokens: 0, aiCompletionTokens: 0 } });
   }
 
   // 2. Fetch full transcripts, then extract each hook, all videos in parallel
+  let totalPromptTokens = 0;
+  let totalCompletionTokens = 0;
+  let totalAiElapsedMs = 0;
+
   const videos: TrendingVideo[] = await Promise.all(
     awemes.map(async (a): Promise<TrendingVideo> => {
       const id = a.aweme_id ?? '';
       const videoUrl = buildTikTokUrl(a);
       const raw_transcript = videoUrl ? await fetchTikTokTranscript(videoUrl) : '';
-      const { hook, template_id } = await classifyVideo(raw_transcript, await templateLibrary());
+      const classification = await classifyVideo(raw_transcript, await templateLibrary());
+      totalPromptTokens += classification.promptTokens;
+      totalCompletionTokens += classification.completionTokens;
+      totalAiElapsedMs = Math.max(totalAiElapsedMs, classification.elapsedMs);
 
       return {
         id,
@@ -192,11 +209,20 @@ export const POST = adminRoute(async (req: NextRequest) => {
         posted_at: extractPostedAt(a),
         duration: extractDuration(a),
         raw_transcript,
-        hook,
-        template_id,
+        hook: classification.hook,
+        template_id: classification.template_id,
       };
     }),
   );
 
-  return NextResponse.json({ videos });
+  return NextResponse.json({
+    videos,
+    meta: {
+      elapsedMs: Date.now() - routeStart,
+      tregElapsedMs,
+      aiElapsedMs: totalAiElapsedMs,
+      aiPromptTokens: totalPromptTokens,
+      aiCompletionTokens: totalCompletionTokens,
+    },
+  });
 });

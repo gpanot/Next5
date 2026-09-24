@@ -35,10 +35,10 @@ function msToSec(ms: number | null | undefined): string {
   return `${(ms / 1000).toFixed(1)}s`;
 }
 
-function microsToCents(micros: string | null | undefined): string {
+function microsToUsd(micros: string | null | undefined): string {
   if (micros == null) return '—';
-  const cents = Number(micros) / 10_000;
-  return `$${cents.toFixed(3)}`;
+  const dollars = Number(micros) / 1_000_000;
+  return `$${dollars.toFixed(4)}`;
 }
 
 // ─── Sub-panels ───────────────────────────────────────────────────────────────
@@ -68,7 +68,7 @@ function TelemetryRow({ label, durationMs, costMicros }: {
     <div className="flex items-center gap-4 text-[12px] text-muted">
       <span className="font-medium text-ink w-24">{label}</span>
       <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {msToSec(durationMs)}</span>
-      <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> {microsToCents(costMicros)}</span>
+      <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> {microsToUsd(costMicros)}</span>
     </div>
   );
 }
@@ -379,12 +379,24 @@ function ResearchStep({ token, runId }: { token: string; runId: string }) {
             <div key={item.id} className="rounded-lg border border-line bg-white p-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[12px] font-medium text-ink truncate">{item.sourceUrl}</p>
+                  <a
+                    href={item.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[12px] font-medium text-blue-600 hover:underline truncate block"
+                  >
+                    {item.sourceUrl}
+                  </a>
                   <p className="text-[11px] text-muted mt-0.5">
                     @{item.author ?? '?'} · {item.durationSeconds ?? '?'}s · {item.keyword}
                     {item.isCompetitor && <span className="ml-2 text-blue-600">[competitor]</span>}
                   </p>
-                  {item.hook && <p className="text-[12px] text-ink mt-2 italic">&ldquo;{item.hook}&rdquo;</p>}
+                  {item.hook && (
+                    <p className="text-[12px] text-ink mt-2 italic">&ldquo;{item.hook}&rdquo;</p>
+                  )}
+                  {item.transcript && (
+                    <p className="text-[11px] text-muted mt-1 line-clamp-3">{item.transcript}</p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {item.selected && <CheckCircle2 className="w-4 h-4 text-green-600" />}
@@ -494,7 +506,7 @@ function GenerationStep({ token, runId }: { token: string; runId: string }) {
                 <p className="text-[12px] font-medium text-ink">{c.angle?.slice(0, 60) ?? c.templateId ?? 'Candidate'}</p>
                 <p className="text-[11px] text-muted mt-0.5">
                   {c.engine} · v{c.profileVersion} · {slides.length} slides
-                  {c.costUsdMicros && ` · ${microsToCents(c.costUsdMicros)}`}
+                  {c.costUsdMicros && ` · ${microsToUsd(c.costUsdMicros)}`}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -600,7 +612,7 @@ function SummaryPanel({ summary }: { summary: RunSummary }) {
         {onTarget === true ? '✓' : onTarget === false ? '✗' : '—'}
       </span>
       <span className="flex items-center gap-1 text-[11px] text-muted"><Clock className="w-3 h-3" />{msToSec(durationMs)} / {msToSec(targetMs)}</span>
-      {costMicros && <span className="flex items-center gap-1 text-[11px] text-muted"><DollarSign className="w-3 h-3" />{microsToCents(costMicros)}</span>}
+      {costMicros && <span className="flex items-center gap-1 text-[11px] text-muted"><DollarSign className="w-3 h-3" />{microsToUsd(costMicros)}</span>}
     </div>
   );
 
@@ -623,7 +635,7 @@ function SummaryPanel({ summary }: { summary: RunSummary }) {
           <span className={`text-[11px] font-medium ${summary.metrics.totalCost.onTarget ? 'text-green-600' : 'text-red-600'}`}>
             {summary.metrics.totalCost.onTarget ? '✓' : '✗'}
           </span>
-          <span className="text-[11px] text-muted">{microsToCents(String(summary.metrics.totalCost.usdMicros))} / {microsToCents(String(summary.metrics.totalCost.targetUsdMicros))}</span>
+          <span className="text-[11px] text-muted">{microsToUsd(String(summary.metrics.totalCost.usdMicros))} / {microsToUsd(String(summary.metrics.totalCost.targetUsdMicros))}</span>
         </div>
       </div>
 

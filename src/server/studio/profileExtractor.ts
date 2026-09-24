@@ -16,9 +16,6 @@ interface ExaContentsResponse {
   results: Array<{ text?: string; title?: string; url?: string }>;
 }
 
-interface ExaSearchResponse {
-  results: Array<{ url?: string; title?: string }>;
-}
 
 async function exaFetch<T>(endpoint: string, body: object): Promise<T | null> {
   const key = process.env.EXA_API_KEY;
@@ -95,9 +92,10 @@ Return JSON only: { "competitors": ["Brand A", "Brand B", "Brand C"] }`,
   return { competitors, durationMs: Date.now() - t0 };
 }
 
-/** Search for industry keywords using Exa.
- * For B2B vendors, seeds from the IDC (target customer) industries rather than the vendor's own vertical,
- * so TikTok research finds content relevant to the END CUSTOMER, not generic SaaS/software content.
+/** Generate TikTok search keywords with GPT-4o-mini.
+ * For B2B vendors, generates queries from the IDC (target customer) industries so TikTok
+ * research finds content relevant to the END CUSTOMER (e.g. "mechanic scheduling tips"),
+ * not generic content about the vendor's own vertical (e.g. "saas tips").
  */
 async function discoverKeywords(
   businessName: string,
@@ -105,31 +103,50 @@ async function discoverKeywords(
   targetCustomerIndustries: string[],
 ): Promise<{ keywords: string[]; durationMs: number }> {
   const t0 = Date.now();
+  const niches = targetCustomerIndustries.length > 0 ? targetCustomerIndustries : [vertical];
 
-  // Prefer IDC niches for B2B vendors — they generate content FOR their customers, not about themselves
-  const seedNiches = targetCustomerIndustries.length > 0 ? targetCustomerIndustries : [vertical];
-  const seedQuery = seedNiches.slice(0, 2).join(' ');
-  const query = `${seedQuery} tips bookings small business advice`;
+  console.log(`[studio/profile] discoverKeywords LLM call for niches=${JSON.stringify(niches)}`);
 
-  const data = await exaFetch<ExaSearchResponse>('/search', {
-    query,
-    numResults: 10,
-    type: 'keyword',
-    category: 'tweet',
-  });
-  // Extract meaningful keywords from titles
-  const raw = (data?.results ?? []).flatMap((r) => {
-    const title = r.title ?? '';
-    return title.split(/[|·—\-–,]/g).map((s) => s.trim().toLowerCase()).filter((s) => s.length > 4 && s.length < 50);
-  });
-  const unique = [...new Set(raw)].slice(0, 6);
+  try {
+    const result = await chatJson<{ queries?: unknown[] }>(
+      [
+        {
+          role: 'system',
+          content: `Generate 4 TikTok search queries to find viral content made BY or FOR small business owners in these industries.
+Rules:
+- Each query should be 2-4 words that real TikTok creators would use.
+- Focus on the TARGET CUSTOMER's daily challenges, business tips, and how they run their business.
+- Do NOT generate queries about software, apps, or technology — focus on the industry itself.
+- Examples for "electricians": ["electrician business tips", "electrical contractor advice", "tradie productivity", "small electrical business"]
+Return JSON only: { "queries": ["query 1", "query 2", "query 3", "query 4"] }`,
+        },
+        {
+          role: 'user',
+          content: `Business: ${businessName}
+Target customer industries: ${niches.join(', ')}`,
+        },
+      ],
+      { maxTokens: 100, temperature: 0.2, model: 'gpt-4o-mini' },
+    );
 
-  // Fallback: use IDC niche names directly as keywords
-  const fallback = targetCustomerIndustries.length > 0
-    ? targetCustomerIndustries.map((n) => `${n} tips`)
-    : [`${vertical} tips`, `${businessName.toLowerCase()} advice`];
+    const raw = Array.isArray(result?.queries) ? result.queries : [];
+    const keywords = raw
+      .filter((q): q is string => typeof q === 'string' && q.trim().length > 2)
+      .map((q) => q.trim().toLowerCase())
+      .slice(0, 4);
 
-  return { keywords: unique.length > 0 ? unique : fallback, durationMs: Date.now() - t0 };
+    if (keywords.length > 0) {
+      console.log(`[studio/profile] discoverKeywords → ${JSON.stringify(keywords)} in ${Date.now() - t0}ms`);
+      return { keywords, durationMs: Date.now() - t0 };
+    }
+  } catch (err) {
+    console.error('[studio/profile] discoverKeywords LLM failed, using fallback:', err);
+  }
+
+  // Fallback: construct directly from IDC niche names
+  const fallback = niches.slice(0, 4).map((n) => `${n} tips`);
+  console.log(`[studio/profile] discoverKeywords fallback → ${JSON.stringify(fallback)} in ${Date.now() - t0}ms`);
+  return { keywords: fallback, durationMs: Date.now() - t0 };
 }
 
 // ─── LLM profile inference ────────────────────────────────────────────────────
