@@ -182,9 +182,9 @@ async function checkFfmpeg(): Promise<void> {
       tmpFile,
     ]);
 
-    // 2. Get ffmpeg version string
-    const { stderr: verStderr } = await execFileAsync('ffmpeg', ['-version']).catch(() => ({ stderr: '' }));
-    const versionLine = verStderr.split('\n')[0]?.replace('ffmpeg version ', '').split(' ')[0] ?? '?';
+    // 2. Get ffmpeg version string (ffmpeg -version writes to stdout)
+    const { stdout: verStdout } = await execFileAsync('ffmpeg', ['-version']).catch(() => ({ stdout: '' }));
+    const versionLine = verStdout.split('\n')[0]?.replace('ffmpeg version ', '').split(' ')[0] ?? '?';
 
     // 3. Run ebur128 with -v verbose and count M: lines
     const { stderr } = await execFileAsync('ffmpeg', [
