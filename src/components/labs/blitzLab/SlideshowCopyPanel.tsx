@@ -212,7 +212,7 @@ export function SlideshowCopyPanel({
         {mentionBusiness && (
           <div className="flex flex-col gap-1">
             <label htmlFor="slideshow-business" className="text-[12px] font-medium text-muted">
-              Business line (shown on every slide)
+              Business line (replace [BUSINESS_NAME] on every slide)
             </label>
             <input
               id="slideshow-business"

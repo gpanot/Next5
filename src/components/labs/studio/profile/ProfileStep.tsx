@@ -31,6 +31,14 @@ export function ProfileStep({
     try { await triggerExtractionJob(); } finally { setTriggering(false); }
   };
 
+  if (!run && error) {
+    // e.g. a remembered run that was deleted from another tab
+    return (
+      <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 p-4 text-[13px] text-red-700">
+        <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {error}
+      </div>
+    );
+  }
   if (!run) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted" /></div>;
 
   const profile = run.brandProfile;

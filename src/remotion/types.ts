@@ -32,6 +32,12 @@ export type TextConfig = {
   businessOffsetX?: number;
   /** Business line font size in canvas px. Default 40. */
   businessFontSize?: number;
+  /**
+   * Optional background color for a "box caption" style (e.g. Snapchat, White Box, Yellow Pop).
+   * Accepts any CSS color string — e.g. "rgba(0,0,0,0.75)" or "#ffffff".
+   * When absent the caption renders as plain text with stroke.
+   */
+  textBackground?: string;
 };
 
 /** One slide in a Slideshow: text + optional per-slide background. */

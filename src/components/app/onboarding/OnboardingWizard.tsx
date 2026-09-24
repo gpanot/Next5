@@ -17,7 +17,6 @@ import { SkeletonText } from '../../ui/Skeleton';
 import { Stepper } from '../../ui/Stepper';
 import { AccountStep } from './AccountStep';
 import { AttributionStep } from './AttributionStep';
-import { BrandSelfieStep } from './BrandSelfieStep';
 import { ConsentStep } from './ConsentStep';
 import { IntentGoalsStep } from './IntentGoalsStep';
 import { ProductIntroStep } from './ProductIntroStep';
@@ -26,19 +25,18 @@ import { SocialProofStep } from './SocialProofStep';
 import { TeamRevenueStep } from './TeamRevenueStep';
 import { STEP_LABELS, type StepProps } from './types';
 
-// Steps 2–9 (step 1 = AccountStep, rendered separately)
+// Steps 2–8 (step 1 = AccountStep, rendered separately; Photos step removed)
 const STEPS: readonly ((props: StepProps) => React.ReactNode)[] = [
   ConsentStep,
   TeamRevenueStep,
   RoleStep,
   IntentGoalsStep,
   AttributionStep,
-  BrandSelfieStep,
   SocialProofStep,
   ProductIntroStep,
 ];
 
-const TOTAL_STEPS = STEP_LABELS.length; // 9
+const TOTAL_STEPS = STEP_LABELS.length; // 8
 
 export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const token = sessionTokenStore.useValue();

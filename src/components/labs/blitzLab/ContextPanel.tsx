@@ -6,17 +6,84 @@
  * Tabs — Video, Text and (when on) Business — switch the editable layer.
  * Clicking a layer on the canvas selects the same tab.
  * • Overlay tab: Zoom slider, Reset Position, drag hint, Swap button.
- * • Text tab:    Font selector (bundled Google Fonts), Weight, Size, Color, Stroke.
+ * • Text tab:    Caption Style presets + Font selector, Weight, Size, Color, Stroke.
  * • Business tab: Size, Reset Position.
  *
  * The drag direction hint matches whichever tab is active so the user knows
  * that dragging the canvas preview repositions the selected layer.
  */
 
-import { BLITZ_FONTS, resolveBlitzFont } from '../../../remotion/fonts';
+import type React from 'react';
+import { BLITZ_FONTS, BLITZ_DEFAULT_FONT, resolveBlitzFont } from '../../../remotion/fonts';
 import { BUSINESS_DEFAULTS } from '../../../remotion/businessDefaults';
 import type { TextConfig } from '../../../remotion/types';
 import type { BlitzLayer } from './canvasHitTest';
+
+// ── Caption style presets ─────────────────────────────────────────────────────
+
+type CaptionStyleDef = {
+  id: string;
+  label: string;
+  /** Fields to merge into TextConfig when this style is applied. */
+  patch: Partial<TextConfig>;
+  /** Visual thumbnail properties used to render the "Aa" preview. */
+  preview: {
+    font: string;             // CSS font-family
+    color: string;
+    fontWeight: number;
+    strokeWidth: number;
+    strokeColor: string;
+    textBg?: string;          // box background (Snapchat / White Box / Yellow Pop styles)
+    thumbnailBg: string;      // thumbnail square background
+  };
+};
+
+const _f = (label: string) => BLITZ_FONTS.find((f) => f.label === label)?.value ?? BLITZ_DEFAULT_FONT;
+
+const CAPTION_STYLES: CaptionStyleDef[] = [
+  {
+    id: 'tiktok-classic',
+    label: 'TikTok classic',
+    patch: { font: _f('Anton'), color: '#ffffff', fontWeight: 400, strokeWidth: 4, strokeColor: '#000000', textBackground: undefined },
+    preview: { font: 'Anton, sans-serif', color: '#ffffff', fontWeight: 400, strokeWidth: 2, strokeColor: '#000000', thumbnailBg: '#111111' },
+  },
+  {
+    id: 'bold-impact',
+    label: 'Bold impact',
+    patch: { font: _f('Bebas Neue'), color: '#ffffff', fontWeight: 400, strokeWidth: 6, strokeColor: '#111111', textBackground: undefined },
+    preview: { font: "'Bebas Neue', sans-serif", color: '#ffffff', fontWeight: 400, strokeWidth: 3, strokeColor: '#111111', thumbnailBg: '#1c1c1c' },
+  },
+  {
+    id: 'snapchat',
+    label: 'Snapchat',
+    patch: { font: _f('Poppins'), color: '#ffffff', fontWeight: 700, strokeWidth: 0, strokeColor: '#000000', textBackground: 'rgba(0,0,0,0.72)' },
+    preview: { font: 'Poppins, sans-serif', color: '#ffffff', fontWeight: 700, strokeWidth: 0, strokeColor: '#000000', textBg: 'rgba(0,0,0,0.72)', thumbnailBg: '#444' },
+  },
+  {
+    id: 'white-box',
+    label: 'White box',
+    patch: { font: _f('Inter'), color: '#111111', fontWeight: 700, strokeWidth: 0, strokeColor: '#000000', textBackground: 'rgba(255,255,255,0.95)' },
+    preview: { font: 'Inter, sans-serif', color: '#111111', fontWeight: 700, strokeWidth: 0, strokeColor: '#000000', textBg: 'rgba(255,255,255,0.95)', thumbnailBg: '#555' },
+  },
+  {
+    id: 'yellow-pop',
+    label: 'Yellow pop',
+    patch: { font: _f('Poppins'), color: '#FFE600', fontWeight: 800, strokeWidth: 0, strokeColor: '#000000', textBackground: '#000000' },
+    preview: { font: 'Poppins, sans-serif', color: '#FFE600', fontWeight: 800, strokeWidth: 0, strokeColor: '#000000', textBg: '#000000', thumbnailBg: '#222' },
+  },
+  {
+    id: 'clean-karaoke',
+    label: 'Clean karaoke',
+    patch: { font: _f('Montserrat'), color: '#ffffff', fontWeight: 600, strokeWidth: 0, strokeColor: '#000000', textBackground: undefined },
+    preview: { font: 'Montserrat, sans-serif', color: '#ffffff', fontWeight: 600, strokeWidth: 0, strokeColor: '#000000', thumbnailBg: '#1a1a1a' },
+  },
+  {
+    id: 'script-playful',
+    label: 'Script playful',
+    patch: { font: _f('Pacifico'), color: '#ffffff', fontWeight: 400, strokeWidth: 2, strokeColor: '#000000', textBackground: undefined },
+    preview: { font: 'Pacifico, cursive', color: '#ffffff', fontWeight: 400, strokeWidth: 1, strokeColor: '#000000', thumbnailBg: '#1a1a1a' },
+  },
+];
 
 const FONT_WEIGHTS: { label: string; value: number }[] = [
   { label: 'Thin', value: 100 },
@@ -111,6 +178,62 @@ function ColorRow({
   );
 }
 
+// ── Caption style thumbnail ───────────────────────────────────────────────────
+
+function StyleThumb({ style }: { style: CaptionStyleDef }) {
+  const p = style.preview;
+  const textEl = (
+    <span
+      style={{
+        fontFamily: p.font,
+        fontWeight: p.fontWeight,
+        fontSize: 15,
+        color: p.color,
+        lineHeight: 1,
+        letterSpacing: '0.01em',
+        ...(p.strokeWidth > 0
+          ? ({ WebkitTextStroke: `${p.strokeWidth}px ${p.strokeColor}`, paintOrder: 'stroke fill' } as React.CSSProperties)
+          : {}),
+      }}
+    >
+      Aa
+    </span>
+  );
+
+  return (
+    <div
+      style={{
+        width: 38,
+        height: 38,
+        borderRadius: 9,
+        background: p.thumbnailBg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+        overflow: 'hidden',
+      }}
+    >
+      {p.textBg ? (
+        <div
+          style={{
+            background: p.textBg,
+            borderRadius: 5,
+            padding: '2px 5px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          {textEl}
+        </div>
+      ) : (
+        textEl
+      )}
+    </div>
+  );
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export function ContextPanel({
@@ -136,6 +259,30 @@ export function ContextPanel({
   const currentWeight =
     FONT_WEIGHTS.find((w) => w.value === (textConfig.fontWeight ?? 700)) ??
     FONT_WEIGHTS.find((w) => w.value === 700)!;
+
+  /**
+   * Match the active style by comparing the style-defining fields (font, color,
+   * fontWeight, strokeWidth, strokeColor, textBackground). Positional fields
+   * (fontSize, positionY, …) are intentionally excluded so the active chip
+   * stays highlighted even after the user adjusts the size.
+   */
+  const activeStyleId = CAPTION_STYLES.find((s) => {
+    const p = s.patch;
+    return (
+      resolveBlitzFont(textConfig.font) === resolveBlitzFont(p.font) &&
+      (textConfig.color ?? '#ffffff') === (p.color ?? '#ffffff') &&
+      (textConfig.fontWeight ?? 700) === (p.fontWeight ?? 700) &&
+      (textConfig.strokeWidth ?? 3) === (p.strokeWidth ?? 3) &&
+      (textConfig.strokeColor ?? '#000000') === (p.strokeColor ?? '#000000') &&
+      (textConfig.textBackground ?? undefined) === (p.textBackground ?? undefined)
+    );
+  })?.id ?? null;
+
+  const applyStyle = (style: CaptionStyleDef) => {
+    // Spread the full patch so undefined values for textBackground are included,
+    // letting mergeTextConfig's `defined()` filter clear any prior box background.
+    onTextConfigChange(style.patch);
+  };
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white overflow-hidden">
@@ -201,6 +348,36 @@ export function ContextPanel({
         {/* ──────────────────────────── TEXT TAB ─────────────────────── */}
         {activeLayer === 'TEXT' && (
           <>
+            {/* ── Caption style presets ──────────────────────────────── */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-semibold tracking-widest text-muted/70 uppercase">
+                Caption Style Mix
+              </span>
+              <div className="flex flex-col gap-0.5">
+                {CAPTION_STYLES.map((style) => (
+                  <button
+                    key={style.id}
+                    type="button"
+                    onClick={() => applyStyle(style)}
+                    className={[
+                      'flex items-center gap-2.5 rounded-xl border px-2.5 py-2 text-left transition-all',
+                      activeStyleId === style.id
+                        ? 'border-orange-400 bg-orange-50 shadow-sm'
+                        : 'border-transparent hover:border-line hover:bg-surface-alt',
+                    ].join(' ')}
+                  >
+                    <StyleThumb style={style} />
+                    <span className="text-[12px] font-medium text-ink">{style.label}</span>
+                    {activeStyleId === style.id && (
+                      <span className="ml-auto h-1.5 w-1.5 rounded-full bg-orange-500 shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="-mx-4 border-t border-line" />
+
             {/* Font */}
             <div className="flex flex-col gap-1">
               <span className="text-[11px] font-medium text-muted">Font</span>

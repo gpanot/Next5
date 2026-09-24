@@ -1,7 +1,8 @@
 'use client';
 
 /**
- * UGC Lab — character → hook → voice → video, plus the library.
+ * UGC Lab — (profile →) character → hook → voice → video, plus the library.
+ * The Profile step shows only when a <StudioRunProvider> links the lab to Campaign Studio runs.
  *
  * Presentational and transport-agnostic: every request goes through the surrounding
  * <LabClientProvider>, so the same editor runs in the admin tab and on the user side.
@@ -9,6 +10,8 @@
 
 import { useState } from 'react';
 import type { UgcCharacterDto } from '../../../types/admin/ugc';
+import { RunProfileStep } from '../studio/runs/RunProfileStep';
+import { useStudioRunContext } from '../studio/runs/StudioRunContext';
 import { CharacterPanel } from './CharacterPanel';
 import { HookPanel } from './HookPanel';
 import { LibraryPanel } from './LibraryPanel';
@@ -17,15 +20,23 @@ import type { ScriptReady } from './useScriptFlow';
 import { VideoPanel, type VideoSelection } from './VideoPanel';
 import { VoicePanel } from './VoicePanel';
 
-type Step = 'character' | 'hook' | 'voice' | 'video' | 'library';
+type Step = 'profile' | 'character' | 'hook' | 'voice' | 'video' | 'library';
 
-const STEPS: { id: Step; label: string }[] = [
-  { id: 'character', label: '1 · Character' },
-  { id: 'hook',      label: '2 · Hook' },
-  { id: 'voice',     label: '3 · Voice' },
-  { id: 'video',     label: '4 · Video' },
-  { id: 'library',   label: 'Library' },
+const FLOW_STEPS: { id: Step; label: string }[] = [
+  { id: 'character', label: 'Character' },
+  { id: 'hook',      label: 'Hook' },
+  { id: 'voice',     label: 'Voice' },
+  { id: 'video',     label: 'Video' },
 ];
+
+/** Numbered flow steps, with Profile first when the lab is linked to Campaign Studio. */
+const buildSteps = (withProfile: boolean): { id: Step; label: string }[] => {
+  const flow = withProfile ? [{ id: 'profile' as const, label: 'Profile' }, ...FLOW_STEPS] : FLOW_STEPS;
+  return [
+    ...flow.map((s, i) => ({ id: s.id, label: `${i + 1} · ${s.label}` })),
+    { id: 'library', label: 'Library' },
+  ];
+};
 
 const SelectionBar = ({
   character,
@@ -84,7 +95,9 @@ const SelectionBar = ({
 };
 
 export function UgcLabEditor() {
-  const [step, setStep] = useState<Step>('character');
+  const withProfile = useStudioRunContext() !== null;
+  const steps = buildSteps(withProfile);
+  const [step, setStep] = useState<Step>(withProfile ? 'profile' : 'character');
 
   // Shared state threaded through steps
   const [selectedCharacter, setSelectedCharacter] = useState<UgcCharacterDto | null>(null);
@@ -130,12 +143,12 @@ export function UgcLabEditor() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-2 overflow-x-auto pb-1">
-        {STEPS.map((s) => (
+        {steps.map((s) => (
           <Pill key={s.id} active={step === s.id} onClick={() => setStep(s.id)}>{s.label}</Pill>
         ))}
       </div>
 
-      {step !== 'library' && (
+      {step !== 'library' && step !== 'profile' && (
         <SelectionBar
           character={selectedCharacter}
           hook={scriptReady?.script ?? ''}
@@ -148,6 +161,7 @@ export function UgcLabEditor() {
         />
       )}
 
+      {step === 'profile' && <RunProfileStep onConfirmed={() => setStep('character')} />}
       {step === 'character' && (
         <CharacterPanel onCharacterSelected={handleCharacterSelected} />
       )}

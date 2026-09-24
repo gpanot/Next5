@@ -84,7 +84,11 @@ export function SlidePreview({
   const count = Math.max(1, slides.length);
   const safeIndex = Math.min(currentIndex, count - 1);
   const currentSlide = slides[safeIndex];
-  const currentText = currentSlide?.text ?? '';
+  const rawText = currentSlide?.text ?? '';
+  // Replace [BUSINESS_NAME] placeholder with the actual business text for preview display.
+  const currentText = businessText?.trim()
+    ? rawText.replace(/\[BUSINESS_NAME\]/g, businessText.trim())
+    : rawText;
 
   // Resolve background for the current slide
   const bgKey = currentSlide?.backgroundKey || fallbackBackgroundKey;
@@ -139,10 +143,27 @@ export function SlidePreview({
 
   return (
     <div className="flex w-full flex-col items-center gap-3">
+      {/* Arrows + Canvas row */}
+      <div className="flex w-full items-center justify-center gap-2">
+        {/* Prev arrow — outside the canvas on the left */}
+        {count > 1 ? (
+          <button
+            type="button"
+            onClick={prev}
+            disabled={safeIndex === 0}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-neutral-700 shadow transition hover:bg-neutral-300 disabled:opacity-30 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600"
+            aria-label="Previous slide"
+          >
+            ‹
+          </button>
+        ) : (
+          <div className="w-9 shrink-0" />
+        )}
+
       {/* Canvas — containerType enables cqw units in cssTextStyle */}
       <div
         ref={canvasRef}
-        className="relative mx-auto w-full max-w-[340px] overflow-hidden rounded-2xl bg-neutral-900"
+        className="relative w-full max-w-[300px] overflow-hidden rounded-2xl bg-neutral-900"
         style={{ aspectRatio: '9/16', containerType: 'inline-size' } as React.CSSProperties}
       >
         {/* Background */}
@@ -192,21 +213,7 @@ export function SlidePreview({
           )}
         </div>
 
-        {/* Business pill — data-blitz-layer for drag hit testing */}
-        {businessText?.trim() ? (
-          <div
-            data-blitz-layer="BUSINESS"
-            className="absolute inset-x-0 flex justify-center"
-            style={{ bottom: `${(1 - (textConfig.businessPositionY ?? 0.1)) * 100}%` }}
-          >
-            <div
-              className="rounded-full bg-white/95 px-4 py-1 text-center text-[12px] font-bold text-neutral-900 shadow-lg"
-              style={{ fontFamily: resolveBlitzFont(textConfig.font) }}
-            >
-              {businessText.trim()}
-            </div>
-          </div>
-        ) : null}
+        {/* Business pill removed — [BUSINESS_NAME] is replaced inline in the slide text instead */}
 
         {/* Pointer-capture layer: handles drag + hover — rendered BEFORE buttons so buttons sit on top */}
         <div
@@ -217,29 +224,7 @@ export function SlidePreview({
           onPointerCancel={handlePointerUp}
         />
 
-        {/* Prev / Next arrows — rendered AFTER the pointer-capture div → higher z → receive clicks */}
-        {count > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={prev}
-              disabled={safeIndex === 0}
-              className="absolute left-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white shadow transition hover:bg-black/70 disabled:opacity-30"
-              aria-label="Previous slide"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              onClick={next}
-              disabled={safeIndex === count - 1}
-              className="absolute right-2 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-black/50 text-white shadow transition hover:bg-black/70 disabled:opacity-30"
-              aria-label="Next slide"
-            >
-              ›
-            </button>
-          </>
-        )}
+        {/* (arrows moved outside canvas) */}
 
         {/* Drag hint tooltip */}
         {hovered && !draggingLayer && (
@@ -254,7 +239,23 @@ export function SlidePreview({
             Moving {LAYER_LABEL[draggingLayer].toLowerCase()}…
           </div>
         )}
-      </div>
+      </div>{/* end canvas */}
+
+        {/* Next arrow — outside the canvas on the right */}
+        {count > 1 ? (
+          <button
+            type="button"
+            onClick={next}
+            disabled={safeIndex === count - 1}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-neutral-200 text-neutral-700 shadow transition hover:bg-neutral-300 disabled:opacity-30 dark:bg-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-600"
+            aria-label="Next slide"
+          >
+            ›
+          </button>
+        ) : (
+          <div className="w-9 shrink-0" />
+        )}
+      </div>{/* end arrows + canvas row */}
 
       {/* Dots + counter — always shown when count > 1 */}
       {count > 1 && (

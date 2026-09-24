@@ -53,5 +53,7 @@ export const lastInfluencerStore = createLocalStore('next5-last-influencer');
 export const postingTipsStore = createLocalStore('next5-posting-tips-dismissed');
 /** Step-1 details typed before an email check, so the magic link can finish setup without asking again. */
 export const onboardingDraftStore = createLocalStore('next5-onboarding-draft');
+/** Website URL entered in step 1 — persisted so ConsentStep can submit it as part of step 2. */
+export const onboardingWebsiteStore = createLocalStore('next5-ob-website');
 /** Quickstart onboarding card state (JSON). Keyed by workspace so it resets on workspace switch. */
 export const quickstartStore = createLocalStore('next5-quickstart');

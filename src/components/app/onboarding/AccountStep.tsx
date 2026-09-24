@@ -3,7 +3,7 @@
 import { MailCheck } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
-import { onboardingDraftStore, sessionTokenStore } from '../../../lib/localStore';
+import { onboardingDraftStore, onboardingWebsiteStore, sessionTokenStore } from '../../../lib/localStore';
 import type { ProductLineDto } from '../../../types/business/me';
 import { AppButton } from '../../ui/AppButton';
 import { Field } from '../../ui/Field';
@@ -12,8 +12,7 @@ import { TextInput } from '../../ui/TextInput';
 import { StepCard } from './StepCard';
 
 type AccountResponse = { status: 'session'; token: string } | { status: 'check_email' };
-type Profile = { firstName: string; handle: string };
-type Draft = Profile & { product: ProductLineDto };
+type Draft = { product: ProductLineDto; firstName: string; websiteUrl: string };
 
 export type SignedInUser = { email: string; displayName: string | null };
 
@@ -37,13 +36,19 @@ const readDraft = (raw: string | null | undefined, product: ProductLineDto): Dra
   }
 };
 
-const profileBody = (product: ProductLineDto, p: Profile) => ({ product, firstName: p.firstName, handle: p.handle });
+/** Derives a display name from an email address (e.g. "john.doe@example.com" → "John"). */
+const deriveFirstName = (email: string): string => {
+  const local = (email.split('@')[0] ?? '').split(/[._\-+]/)[0] ?? '';
+  return ((local.charAt(0).toUpperCase() + local.slice(1)).slice(0, 60)) || 'User';
+};
 
-const FIELD_ERRORS = ['invalid_email', 'first_name_required'];
+const profileBody = (product: ProductLineDto, p: Draft) => ({ product, firstName: p.firstName });
+
+const FIELD_ERRORS = ['invalid_email'];
 
 export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onSession }: AccountStepProps) => {
   const draft = readDraft(onboardingDraftStore.useValue(), product);
-  const [form, setForm] = useState({ email: '', firstName: draft?.firstName ?? signedIn?.displayName ?? '', handle: draft?.handle ?? '' });
+  const [form, setForm] = useState({ email: '', websiteUrl: draft?.websiteUrl ?? '' });
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
@@ -66,13 +71,17 @@ export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onS
     setBusy(true);
     setError(null);
     try {
+      const firstName = signedIn?.displayName ?? deriveFirstName(signedIn?.email ?? form.email);
       if (signedIn) {
-        await apiFetch('/api/app/onboarding/workspace', { method: 'POST', json: profileBody(product, form) });
+        await apiFetch('/api/app/onboarding/workspace', { method: 'POST', json: { product, firstName } });
+        if (form.websiteUrl) onboardingWebsiteStore.set(form.websiteUrl);
         onSession();
         return;
       }
-      onboardingDraftStore.set(JSON.stringify({ product, firstName: form.firstName, handle: form.handle } satisfies Draft));
-      const res = await apiFetch<AccountResponse>('/api/app/onboarding/account', { method: 'POST', json: { ...profileBody(product, form), email: form.email } });
+      const newDraft: Draft = { product, firstName, websiteUrl: form.websiteUrl };
+      onboardingDraftStore.set(JSON.stringify(newDraft satisfies Draft));
+      if (form.websiteUrl) onboardingWebsiteStore.set(form.websiteUrl);
+      const res = await apiFetch<AccountResponse>('/api/app/onboarding/account', { method: 'POST', json: { product, firstName, email: form.email } });
       if (res.status === 'session') {
         sessionTokenStore.set(res.token);
         onSession();
@@ -115,17 +124,14 @@ export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onS
             <button type="button" className="font-medium text-app-accent underline" onClick={() => sessionTokenStore.set(null)}>Not you?</button>
           </p>
         )}
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="flex flex-col gap-5">
           {!signedIn && (
             <Field label="Email" htmlFor="ob-email" required error={error?.field === 'invalid_email' ? error.message : undefined}>
               <TextInput id="ob-email" type="email" autoComplete="email" required value={form.email} onChange={(e) => set('email')(e.target.value)} />
             </Field>
           )}
-          <Field label="First name" htmlFor="ob-first" required error={error?.field === 'first_name_required' ? error.message : undefined}>
-            <TextInput id="ob-first" autoComplete="given-name" required value={form.firstName} onChange={(e) => set('firstName')(e.target.value)} />
-          </Field>
-          <Field label="Instagram, TikTok or Facebook" htmlFor="ob-handle" helper="Optional">
-            <TextInput id="ob-handle" value={form.handle} onChange={(e) => set('handle')(e.target.value)} placeholder="@yourbusiness" />
+          <Field label="Your Website URL" htmlFor="ob-website" helper="Optional">
+            <TextInput id="ob-website" type="url" autoComplete="url" value={form.websiteUrl} onChange={(e) => set('websiteUrl')(e.target.value)} placeholder="https://yourbusiness.com" />
           </Field>
         </div>
         {error && !FIELD_ERRORS.includes(error.field ?? '') && <p role="alert" className="text-[14px] text-app-danger">{error.message}</p>}

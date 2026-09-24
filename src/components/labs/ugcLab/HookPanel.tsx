@@ -15,6 +15,7 @@ import {
 } from './ui';
 import { useScriptFlow, type ScriptReady } from './useScriptFlow';
 import { errorOf, useLabClient } from './api';
+import { IdcNichePicker } from '../studio/runs/IdcNichePicker';
 
 type HookPanelProps = {
   /** The character already selected in the Character step. */
@@ -31,7 +32,7 @@ type HookPanelProps = {
  * Step 2 of the UGC Lab flow: Research → select a hook → generate 3 scripts.
  *
  * Sub-steps:
- *   1. Research  — enter a niche, pull 10 TikTok hooks. Recalls permanent history.
+ *   1. Research  — enter a niche (or tap a run's IDC niche), pull 10 TikTok hooks. Recalls permanent history.
  *   2. Select    — pick a hook from the results (or type one directly).
  *   3. Generate  — produce 3 script lengths; pick one to move to Video.
  */
@@ -86,14 +87,17 @@ export function HookPanel({ character, onReady }: HookPanelProps) {
     clearResearch();
   };
 
-  async function search() {
-    if (!industry.trim()) return;
+  /** Searches one niche: the typed one, or an IDC niche passed from the picker. */
+  async function search(term: string = industry) {
+    const niche = term.trim();
+    if (!niche) return;
+    setIndustry(niche);
     setSearching(true);
     setSearchError('');
     setVideos(null);
     setSelectedVideoId('');
     const res = await client.request<{ videos?: ResearchVideo[] }>('/ugc-lab/research', {
-      json: { industry },
+      json: { industry: niche },
     }).catch(() => null);
     setSearching(false);
     if (!res?.ok) {
@@ -104,10 +108,10 @@ export function HookPanel({ character, onReady }: HookPanelProps) {
     const at = new Date().toISOString();
     setVideos(found);
     setSearchedAt(at);
-    writeResearch({ industry, videos: found, selectedId: '', editedHook: '', at });
+    writeResearch({ industry: niche, videos: found, selectedId: '', editedHook: '', at });
     // Persist to history so it can be recalled later without re-running the search.
     if (found.length > 0) {
-      addToHistory({ at, industry, videos: found });
+      addToHistory({ at, industry: niche, videos: found });
       setHistory(readHistory());
     }
   }
@@ -133,6 +137,7 @@ export function HookPanel({ character, onReady }: HookPanelProps) {
         {/* ── Sub-step 1: Research ──────────────────────────────────────── */}
         <div className="flex flex-col gap-3">
           <p className="text-[11px] uppercase tracking-widest text-muted">1 · Research</p>
+          <IdcNichePicker active={industry} busy={searching} onPick={(niche) => void search(niche)} />
           <form
             className="flex flex-col gap-2 sm:flex-row sm:items-end"
             onSubmit={(e) => { e.preventDefault(); void search(); }}

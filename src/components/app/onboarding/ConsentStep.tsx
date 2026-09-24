@@ -5,12 +5,11 @@ import { useEffect, useRef, useState } from 'react';
 import { INDUSTRIES, SHOP_CATEGORIES } from '../../../content/business/catalog/types';
 import { hasRequiredConsents } from '../../../config/consents';
 import { apiFetch } from '../../../lib/apiClient';
+import { onboardingWebsiteStore } from '../../../lib/localStore';
 import { AppButton } from '../../ui/AppButton';
 import { Checkbox } from '../../ui/Checkbox';
 import { ChipGroup } from '../../ui/Chip';
-import { Field } from '../../ui/Field';
 import { SkeletonText } from '../../ui/Skeleton';
-import { TextInput } from '../../ui/TextInput';
 import { StepCard } from './StepCard';
 import { stepError, type StepProps } from './types';
 
@@ -41,10 +40,11 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
   const industryOptions = isBrand ? INDUSTRIES : SHOP_CATEGORIES;
 
   // Pre-fill from the saved websiteUrl (available after WorkspaceDto includes it).
-  // Falls back to filtering workspace.name so old sessions don't show a plain first name.
+  // Falls back to the URL the user typed in step 1 (persisted in onboardingWebsiteStore).
   const rawSaved = (me.workspace as { websiteUrl?: string | null } & typeof me.workspace)?.websiteUrl ?? me.workspace?.name ?? '';
   const savedUrl = rawSaved.startsWith('http') || rawSaved.includes('.') ? rawSaved : '';
-  const [businessName, setBusinessName] = useState(savedUrl);
+  const storedUrl = onboardingWebsiteStore.get() ?? '';
+  const [businessName, setBusinessName] = useState(savedUrl || storedUrl);
   const [industry, setIndustry] = useState(me.workspace?.industry ?? '');
   // Who she sells to. The Template Engine's first filter, so a steel trader is never
   // offered a template written for walk-in consumers (and the reverse).
@@ -88,16 +88,6 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
       <div className="flex flex-col gap-6">
         {/* Business profile fields */}
         <div className="flex flex-col gap-4">
-          <Field label="Your Website URL" htmlFor="ob-website-url" helper="Optional">
-            <TextInput
-              id="ob-website-url"
-              type="url"
-              autoComplete="url"
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="https://yourbusiness.com"
-            />
-          </Field>
           <div className="flex flex-col gap-2">
             <p className="text-[14px] font-medium text-app-ink">{isBrand ? 'What do you do?' : 'What do you sell?'}</p>
             <ChipGroup

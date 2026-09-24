@@ -70,10 +70,14 @@ const submitWaveSpeed = async (item: BatchItem, highRes: boolean): Promise<{ tas
 
 const submitItem = async (item: BatchItem): Promise<void> => {
   const batch = await prisma.batch.findUniqueOrThrow({ where: { id: item.batchId }, select: { highRes: true } });
+  const isMock = isMockGeneration();
+  const provider = isMock ? 'mock' : item.model === GEMINI_PRO_IMAGE ? 'gemini-reapi' : 'wavespeed';
+  console.log(`[pump] submitting item ${item.id} via ${provider} (model=${item.model ?? 'nano-banana-2'}, inputs=${item.inputR2Keys.length}, format=${item.format})`);
   try {
-    const { taskId, cost } = isMockGeneration()
+    const { taskId, cost } = isMock
       ? { taskId: `mock:${item.id}:${Date.now()}`, cost: 0 }
       : item.model === GEMINI_PRO_IMAGE ? await submitGemini(item, batch.highRes) : await submitWaveSpeed(item, batch.highRes);
+    console.log(`[pump] item ${item.id} submitted → taskId=${taskId}`);
     await prisma.batchItem.update({ where: { id: item.id }, data: { status: 'generating', wavespeedTaskId: taskId } });
     await prisma.batch.update({
       where: { id: item.batchId },
@@ -81,6 +85,7 @@ const submitItem = async (item: BatchItem): Promise<void> => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Submit failed';
+    console.error(`[pump] item ${item.id} submit failed via ${provider}: ${message}`);
     // Provider busy (reAPI's in-flight cap): back in the queue without spending an attempt.
     if (message.includes('(429)')) return requeue(item.id);
     await failItem(item, message);

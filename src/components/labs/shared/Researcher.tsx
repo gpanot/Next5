@@ -14,7 +14,7 @@
  * lose the last search.
  */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { ResearchCard, type ResearchVideo } from '../ugcLab/ResearchCard';
 import {
   addToHistory,
@@ -76,6 +76,11 @@ export type ResearcherProps = {
   withSlides?: boolean;
   /** Set to the video.id currently being actioned to show a per-card loading spinner. */
   actionLoadingId?: string | null;
+  /**
+   * Optional slot above the search form for preset niches (e.g. a run's IDC niches).
+   * `runSearch` searches one niche; `busy` is true while a search is in flight.
+   */
+  renderNichePicker?: (picker: { runSearch: (niche: string) => void; busy: boolean; active: string }) => ReactNode;
 };
 
 export function Researcher({
@@ -84,6 +89,7 @@ export function Researcher({
   onAction,
   actionLoadingId,
   withSlides = false,
+  renderNichePicker,
 }: ResearcherProps) {
   const [cached] = useState(() => readResearchFor(cacheKey));
   const [keyword, setKeyword] = useState(cached?.industry ?? '');
@@ -147,15 +153,18 @@ export function Researcher({
     clearResearchFor(cacheKey);
   };
 
-  async function search() {
-    if (!keyword.trim()) return;
+  /** Searches one niche: the typed keyword, or a preset niche from the picker. */
+  async function search(term: string = keyword) {
+    const niche = term.trim();
+    if (!niche) return;
+    setKeyword(niche);
     setLoading(true);
     setError('');
     setVideos(null);
     setSearchMeta(null);
     setSlidesMeta(null);
     const res = await client.request<{ videos?: ResearchVideo[]; meta?: ResearchMeta }>('/ugc-lab/research',
-      { json: { industry: keyword } },
+      { json: { industry: niche } },
     ).catch(() => null);
     setLoading(false);
     if (!res?.ok) {
@@ -166,12 +175,12 @@ export function Researcher({
     const at = new Date().toISOString();
     setVideos(found);
     setSearchedAt(at);
-    setSearchedNiche(keyword.trim());
+    setSearchedNiche(niche);
     if (res.data.meta) setSearchMeta(res.data.meta);
-    remember({ industry: keyword, videos: found, at });
+    remember({ industry: niche, videos: found, at });
     // Keep it permanently: a search costs ~20 s and a TikTok API call.
     if (found.length > 0) {
-      addToHistory({ at, industry: keyword.trim(), videos: found });
+      addToHistory({ at, industry: niche, videos: found });
       setHistory(readHistory());
     }
   }
@@ -207,6 +216,7 @@ export function Researcher({
 
   return (
     <div className="flex flex-col gap-3">
+      {renderNichePicker?.({ runSearch: (niche) => void search(niche), busy: loading, active: loading ? keyword : searchedNiche })}
       <form
         className="flex flex-col gap-2 sm:flex-row sm:items-end"
         onSubmit={(e) => { e.preventDefault(); void search(); }}

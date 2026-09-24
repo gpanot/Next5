@@ -8,7 +8,7 @@ export type StepProps = {
   advance: (step: number, options?: { completed?: boolean; data?: Record<string, unknown> }) => Promise<void>;
 };
 
-export const STEP_LABELS = ['Account', 'Your Business', 'Team', 'Role', 'Goals', 'Source', 'Photos', 'Reviews', 'Start'] as const;
+export const STEP_LABELS = ['Account', 'Your Business', 'Team', 'Role', 'Goals', 'Source', 'Reviews', 'Start'] as const;
 
 export const stepError = (err: unknown, fallback: string): string =>
   err instanceof Error && err.message ? err.message : fallback;

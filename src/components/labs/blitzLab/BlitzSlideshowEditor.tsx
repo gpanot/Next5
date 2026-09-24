@@ -11,7 +11,9 @@
  * Each slide has its own background, picked per slide. The global background in AssetsPanel is
  * the fallback for slides without one.
  *
- * A Research step above the editor finds a TikTok to model and pre-fills every slide.
+ * A Research step above the editor finds a TikTok to model and pre-fills every slide. When a
+ * <StudioRunProvider> links the lab to Campaign Studio, a Profile step comes first and research
+ * can search the run's IDC niches, one per search.
  *
  * Presentational and transport-agnostic: every request goes through the surrounding
  * <LabClientProvider>, so the same editor runs in the admin tab and on the user side.
@@ -27,6 +29,9 @@ import { useLabClient } from '../LabClientProvider';
 import { useContentTemplates } from '../shared/useContentTemplates';
 import { Researcher, type NicheSlide } from '../shared/Researcher';
 import { StepPills } from '../shared/StepPills';
+import { IdcNichePicker } from '../studio/runs/IdcNichePicker';
+import { RunProfileStep } from '../studio/runs/RunProfileStep';
+import { useStudioRunContext } from '../studio/runs/StudioRunContext';
 import type { ResearchVideo } from '../ugcLab/researchCache';
 import { AssetLibraryModal } from './AssetLibraryModal';
 import { AssetsPanel, keyForLayer, type CurrentAssets } from './AssetsPanel';
@@ -49,10 +54,17 @@ const DEFAULT_SLIDES: SlideData[] = [
   { text: 'Save this if you found it helpful!' },
 ];
 
-const STEPS = [
-  { id: 1 as const, label: '1 · Research' },
-  { id: 2 as const, label: '2 · Slideshows' },
-];
+type Step = 'profile' | 'research' | 'editor';
+
+/** Numbered steps, with Profile first when the lab is linked to Campaign Studio. */
+const buildSteps = (withProfile: boolean): { id: Step; label: string }[] => {
+  const steps: { id: Step; label: string }[] = [
+    ...(withProfile ? [{ id: 'profile' as const, label: 'Profile' }] : []),
+    { id: 'research', label: 'Research' },
+    { id: 'editor', label: 'Slideshows' },
+  ];
+  return steps.map((s, i) => ({ id: s.id, label: `${i + 1} · ${s.label}` }));
+};
 
 /** A render belongs to this editor when its assets carry slides. */
 const isSlideshowProject = (project: BlitzProjectDto): boolean => {
@@ -79,11 +91,15 @@ export function BlitzSlideshowEditor() {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   // ── step navigation ───────────────────────────────────────────────────
-  const [step, setStep] = useState<1 | 2>(1);
+  const withProfile = useStudioRunContext() !== null;
+  const steps = buildSteps(withProfile);
+  const [step, setStep] = useState<Step>(withProfile ? 'profile' : 'research');
 
   // ── editor state ──────────────────────────────────────────────────────
   const [currentAssets, setCurrentAssets] = useState<CurrentAssets>({ backgroundKey: '', overlayKey: '' });
   const [slides, setSlides] = useState<SlideData[]>(DEFAULT_SLIDES);
+  /** True once the user has edited slides or a research action has pre-filled them. */
+  const [slidesEdited, setSlidesEdited] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [mentionBusiness, setMentionBusiness] = useState(false);
   const [businessText, setBusinessText] = useState('');
@@ -210,11 +226,26 @@ export function BlitzSlideshowEditor() {
     const source = generated?.length
       ? generated
       : (resolveTemplateFor(video.template_id, video.hook)?.suggestedSlides ?? []);
-    if (source.length === 0) return;
+    if (source.length === 0) {
+      // Nothing to fill — just navigate to the editor without touching slides.
+      setStep('editor');
+      return;
+    }
+    // If the user has already edited their slides, ask before overwriting.
+    if (slidesEdited) {
+      const ok = window.confirm(
+        'You have already edited your slides. Replace them with this inspiration? Your current edits will be lost.',
+      );
+      if (!ok) {
+        setStep('editor');
+        return;
+      }
+    }
     setSlides(source.map((s) => ({ text: s.text, bgPromptSuggestion: s.bgPrompt })));
+    setSlidesEdited(true);
     setCurrentSlideIndex(0);
-    setStep(2);
-  }, [resolveTemplateFor]);
+    setStep('editor');
+  }, [resolveTemplateFor, slidesEdited]);
 
   const audioAsset = currentAssets.audioKey && !isLocalKey(currentAssets.audioKey)
     ? assets.find((a) => a.r2Key === currentAssets.audioKey)
@@ -222,10 +253,13 @@ export function BlitzSlideshowEditor() {
 
   return (
     <div className="flex flex-col gap-6">
-      <StepPills steps={STEPS} current={step} onChange={setStep} label="Blitz Slideshow steps" />
+      <StepPills steps={steps} current={step} onChange={setStep} label="Blitz Slideshow steps" />
 
-      {/* ── Step 1: Research ──────────────────────────────────────────── */}
-      {step === 1 && (
+      {/* ── Profile (linked to Campaign Studio only) ──────────────────── */}
+      {step === 'profile' && <RunProfileStep onConfirmed={() => setStep('research')} />}
+
+      {/* ── Research ──────────────────────────────────────────────────── */}
+      {step === 'research' && (
         <div className="flex flex-col gap-4">
           <div>
             <p className="text-[14px] font-semibold text-ink">Research viral slideshows</p>
@@ -239,11 +273,14 @@ export function BlitzSlideshowEditor() {
             actionLabel="Use as inspiration"
             withSlides
             onAction={handleResearchAction}
+            renderNichePicker={({ runSearch, busy, active }) => (
+              <IdcNichePicker active={active} busy={busy} onPick={runSearch} />
+            )}
           />
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={() => setStep(2)}
+              onClick={() => setStep('editor')}
               className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-6 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
             >
               Skip to Slideshow →
@@ -252,8 +289,8 @@ export function BlitzSlideshowEditor() {
         </div>
       )}
 
-      {/* ── Step 2: Slideshow editor ──────────────────────────────────── */}
-      {step === 2 && (
+      {/* ── Slideshow editor ──────────────────────────────────────────── */}
+      {step === 'editor' && (
         <>
           {loadError && (
             <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-[13px] text-red-700">
@@ -277,7 +314,7 @@ export function BlitzSlideshowEditor() {
                   slides={slides}
                   currentIndex={currentSlideIndex}
                   onIndexChange={setCurrentSlideIndex}
-                  onChange={setSlides}
+                  onChange={(next) => { setSlides(next); setSlidesEdited(true); }}
                   assets={assets}
                   onPickBackground={(i) => setPicker({ type: 'BACKGROUND', slideIndex: i })}
                   mentionBusiness={mentionBusiness}

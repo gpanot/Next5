@@ -8,7 +8,7 @@
 const EMOJI_FALLBACK = "'Apple Color Emoji', 'Noto Color Emoji', 'Segoe UI Emoji', sans-serif";
 
 /** Google Font family names. Keep in sync with fontLoader.ts. */
-export const BLITZ_FONT_FAMILIES = ['Montserrat', 'Anton', 'Bebas Neue', 'Poppins', 'Oswald', 'Inter'] as const;
+export const BLITZ_FONT_FAMILIES = ['Montserrat', 'Anton', 'Bebas Neue', 'Poppins', 'Oswald', 'Inter', 'Pacifico'] as const;
 
 export type BlitzFont = { label: string; value: string };
 

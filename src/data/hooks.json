@@ -1,0 +1,4705 @@
+{
+  "total": 420,
+  "hooks": [
+    {
+      "id": "hook_176",
+      "text": "Unpopular opinion: [controversial take]",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 97,
+      "platforms": [
+        "twitter",
+        "linkedin",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_36",
+      "text": "Stop [doing X]. Here's why:",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 96,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_111",
+      "text": "[X] ways to [achieve goal] (without [common method]):",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 96,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_156",
+      "text": "The #1 mistake most [audience] make with [X]:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 96,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_216",
+      "text": "The answer surprised everyone...",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 96,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_276",
+      "text": "From [starting point] to [end point] in [time]:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 96,
+      "platforms": [
+        "linkedin",
+        "instagram",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_324",
+      "text": "Comment '[word]' and I'll send you [resource]:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 96,
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_362",
+      "text": "POV: you're [relatable situation]",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 96,
+      "platforms": [
+        "tiktok",
+        "instagram",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_1",
+      "text": "What if I told you [X] was a lie?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_48",
+      "text": "Hot take: [controversial opinion]",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_86",
+      "text": "3 years ago, I was [situation]. Today, I [achievement].",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_136",
+      "text": "How to [achieve goal] without [common obstacle]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_190",
+      "text": "This might be my most controversial post yet:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_196",
+      "text": "From [starting point] to [achievement]. Here's what changed:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_236",
+      "text": "This is why [big company] [action]:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_278",
+      "text": "[Time] ago: [situation]. Today: [achievement].",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_296",
+      "text": "After [X] years in [industry], here's what I know:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_316",
+      "text": "Agree or disagree?",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "twitter",
+        "linkedin",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_382",
+      "text": "What [beginners] do vs what [experts] do:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 95,
+      "platforms": [
+        "linkedin",
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_9",
+      "text": "Did you know that [surprising fact]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_37",
+      "text": "[X] is dead. Here's what's replacing it:",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_66",
+      "text": "97% of people fail at [X]. Here's why:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_76",
+      "text": "I tested [X] for [timeframe]. Results:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_90",
+      "text": "The worst day of my career taught me [X].",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_112",
+      "text": "[X] [things] I wish I knew before [milestone]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_145",
+      "text": "The fastest way to [achieve outcome]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_158",
+      "text": "I lost [X] by making this one mistake:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_178",
+      "text": "I'm going to get hate for this, but [opinion]:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "twitter",
+        "linkedin",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_200",
+      "text": "Last year: [situation]. This year: [achievement].",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_217",
+      "text": "What happened next changed everything:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_256",
+      "text": "Before it's too late, you need to know this:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_282",
+      "text": "Day 1 vs Day [X] of [activity]:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_318",
+      "text": "Save this for later:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "instagram",
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_341",
+      "text": "My [X] predictions for [year]:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_361",
+      "text": "Nobody talks about how [relatable experience]:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_401",
+      "text": "Confession: [honest admission]",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 94,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_16",
+      "text": "What if you could [dream outcome] in [timeframe]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_42",
+      "text": "[X] doesn't work anymore. Here's what does:",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_69",
+      "text": "We increased [metric] by [X]% in [time]. Here's how:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_87",
+      "text": "I almost gave up on [X]. Then this happened:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_99",
+      "text": "Storytime: [brief teaser]",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "tiktok",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_114",
+      "text": "[X] signs you're [situation]. Number [Y] is crucial:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_137",
+      "text": "How I [achievement] in [timeframe] (step-by-step):",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_157",
+      "text": "[X] mistakes I made so you don't have to:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_177",
+      "text": "[X] is overrated. Here's what actually works:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_189",
+      "text": "The secret [successful people] don't share publicly:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_197",
+      "text": "How I went from [X] to [Y] in [timeframe]:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_220",
+      "text": "The results were NOT what I expected:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_237",
+      "text": "[Famous person] swears by this [X]:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_277",
+      "text": "Here's how I transformed my [X]:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_301",
+      "text": "I've spent [time] mastering [X]. Here's my take:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_317",
+      "text": "Drop a [emoji] if you agree:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_344",
+      "text": "Mark my words: [prediction]",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_363",
+      "text": "Me trying to [relatable struggle]:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "twitter",
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_381",
+      "text": "[X] vs [Y]: which is better?",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_403",
+      "text": "Something I've never shared publicly:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 93,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_3",
+      "text": "Why do most people fail at [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_23",
+      "text": "What's the biggest lie about [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_35",
+      "text": "What if [common approach] is wrong?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_38",
+      "text": "Everything you know about [X] is wrong.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_49",
+      "text": "Nobody talks about this but [truth].",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_61",
+      "text": "[Popular advice] is terrible advice.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_73",
+      "text": "After analyzing [X] [things], here's what I found:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_85",
+      "text": "[X]% of your results come from [Y]% of your efforts.",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_91",
+      "text": "I spent [time] learning [X] so you don't have to.",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_118",
+      "text": "Save this: [X] [templates/tips/resources] for [goal]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "instagram",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_128",
+      "text": "[X] free [resources] everyone should know:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_144",
+      "text": "How to [goal] even if you [obstacle]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_155",
+      "text": "How to [verb] without [negative outcome]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_162",
+      "text": "What nobody tells you about [X]:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_180",
+      "text": "[Popular advice] is actually terrible advice. Here's why:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_188",
+      "text": "The algorithm doesn't want you to see this:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "tiktok",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_205",
+      "text": "From struggling with [X] to [achievement]:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_218",
+      "text": "And then I discovered something that shocked me:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_225",
+      "text": "Wait until you see this:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "tiktok",
+        "instagram",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_239",
+      "text": "The strategy used by [successful company/person]:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_253",
+      "text": "I interviewed [X] [successful people]. They all said this:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_269",
+      "text": "Your competitors are already doing [X]:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_280",
+      "text": "Before and after implementing [X]:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "instagram",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_297",
+      "text": "With [X] [credentials], I can tell you this:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_323",
+      "text": "Type '[word]' if this resonates:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_342",
+      "text": "By [year], [prediction]. Here's why:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_350",
+      "text": "Screenshot this: [prediction]",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_365",
+      "text": "Tell me you're a [profession] without telling me:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "tiktok",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_380",
+      "text": "When [relatable situation] happens:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "tiktok",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_383",
+      "text": "Expectation vs reality of [X]:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_399",
+      "text": "What they show you vs what actually happens:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "tiktok",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_402",
+      "text": "I have to be honest with you about [X]:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_415",
+      "text": "I've been lying about [X]. Here's the truth:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 92,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_5",
+      "text": "What's the one thing [successful people] do differently?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_18",
+      "text": "Is [common belief] actually true?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_27",
+      "text": "What's the #1 thing holding you back from [goal]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_39",
+      "text": "I was wrong about [X]. Here's the truth:",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_47",
+      "text": "This simple shift made me [achievement].",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_59",
+      "text": "The uncomfortable truth about [X]:",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_67",
+      "text": "[Number]% of [audience] don't know this about [X].",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_77",
+      "text": "I interviewed [X] [people]. Here's what I learned:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_83",
+      "text": "This one change = [X]% improvement.",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_89",
+      "text": "Nobody believed me when I said [X]. Until:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_96",
+      "text": "I failed at [X] for [time]. Then I discovered:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_98",
+      "text": "Plot twist: [unexpected insight]",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_113",
+      "text": "The [X] habits of highly [successful people]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_120",
+      "text": "The [X]-step framework for [achieving goal]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_132",
+      "text": "[X] uncomfortable truths about [topic]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_138",
+      "text": "The exact process I use to [outcome]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_148",
+      "text": "The secret to [outcome] that nobody shares:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_160",
+      "text": "Why your [X] isn't working (and how to fix it):",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_174",
+      "text": "This [X] mistake is costing you [Y]:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_179",
+      "text": "The uncomfortable truth about [X]:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_192",
+      "text": "The real reason [something happens]:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_198",
+      "text": "[Achievement] in [timeframe]. Here's the playbook:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_206",
+      "text": "I built [X] from nothing. Here's how:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_214",
+      "text": "How I turned [failure] into [success]:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_219",
+      "text": "But here's where it gets interesting:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_226",
+      "text": "The ending will surprise you:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "tiktok",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_233",
+      "text": "But that's not even the craziest part:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "tiktok",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_238",
+      "text": "[Number] [audience] already [action]. Here's why:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_243",
+      "text": "Top [X]% of [profession] all share this trait:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_257",
+      "text": "This won't be available forever:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_263",
+      "text": "Everyone is switching to [X]. Here's why:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_279",
+      "text": "The [X] that changed my life:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_287",
+      "text": "The glow-up nobody expected:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_298",
+      "text": "I've [experience]. Here's the truth:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_302",
+      "text": "After coaching [X] [people], I've noticed this pattern:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_310",
+      "text": "My [X] years in [field] taught me this:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_319",
+      "text": "Tag someone who needs to see this:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "instagram",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_331",
+      "text": "This or that?",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "instagram",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_340",
+      "text": "Hot take or cold truth?",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_346",
+      "text": "[X] won't exist in [years]. Here's what will:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_353",
+      "text": "Calling it now: [prediction]",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_360",
+      "text": "The death of [X] is coming. Here's what's next:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_364",
+      "text": "Normalize [relatable behavior]:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "twitter",
+        "threads",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_371",
+      "text": "When you finally [relatable achievement]:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_376",
+      "text": "[Time period] in [profession] be like:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "twitter",
+        "tiktok",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_387",
+      "text": "Cheap [X] vs expensive [X]:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "youtube",
+        "tiktok",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_393",
+      "text": "Why [X] beats [Y] every time:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_404",
+      "text": "Here's my dirty little secret about [X]:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_409",
+      "text": "My biggest [area] failure:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_419",
+      "text": "I hid this for years. Now I'm sharing it:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 91,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_10",
+      "text": "Why do 99% of [audience] ignore [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_22",
+      "text": "Why does everyone ignore this about [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_32",
+      "text": "Why do some [audience] succeed while others fail?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_44",
+      "text": "The [industry] is lying to you about [X].",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_56",
+      "text": "You don't need [X]. You need [Y].",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_72",
+      "text": "[X]% increase in [metric] with one simple change.",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_82",
+      "text": "[X]+ [things] later, here's what works:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_94",
+      "text": "From [starting point] to [achievement]. Here's my journey:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_101",
+      "text": "The one thing I'd tell my younger self about [X]:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_117",
+      "text": "[X] lessons from [experience/person]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_125",
+      "text": "[X] daily habits for [outcome]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_127",
+      "text": "Bookmark this for later: [valuable info]",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_141",
+      "text": "How to master [skill] in [timeframe]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_154",
+      "text": "The playbook for [achieving goal]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_164",
+      "text": "If you're doing [X], stop immediately:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_171",
+      "text": "You're probably doing [X] wrong. Here's why:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_182",
+      "text": "Controversial but true: [statement]",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_187",
+      "text": "Okay but why isn't anyone talking about [X]?",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_195",
+      "text": "Nobody wants to admit this about [X]:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_203",
+      "text": "I [achievement] and here's the honest truth:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_211",
+      "text": "From broke to [achievement] in [time]:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "youtube",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_223",
+      "text": "The part nobody talks about:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_228",
+      "text": "What I discovered will shock you:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_235",
+      "text": "This changes everything we thought about [X]:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_241",
+      "text": "Why [successful people] all do [X]:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_247",
+      "text": "[Number] people have already [action]. Don't miss out:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_254",
+      "text": "[Company] grew to [achievement] using this framework:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_259",
+      "text": "If you're not doing [X] by [date], you're behind:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_266",
+      "text": "Early adopters are already seeing [results]:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_284",
+      "text": "The before and after nobody shows you:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_293",
+      "text": "My life before vs after [X]:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_299",
+      "text": "As someone who [credential], let me share:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_304",
+      "text": "I've been studying [X] for [time]. This is what works:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_312",
+      "text": "After [X] [projects/clients/deals], I've learned:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_320",
+      "text": "Which one are you? Comment below:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "instagram",
+        "linkedin",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_330",
+      "text": "Am I wrong? Tell me in the comments:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_337",
+      "text": "Would you try this?",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_343",
+      "text": "The future of [X] looks like this:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_349",
+      "text": "The [X] trends that will dominate [year]:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_359",
+      "text": "You heard it here first: [prediction]",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_368",
+      "text": "It's the [relatable thing] for me:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "twitter",
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_374",
+      "text": "If you know, you know:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "twitter",
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_384",
+      "text": "[Old way] vs [new way] of [doing X]:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_389",
+      "text": "What I expected vs what I got:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_396",
+      "text": "Side by side: [X] vs [Y]",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "youtube",
+        "tiktok",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_406",
+      "text": "The truth is, I [honest admission]:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_412",
+      "text": "The mistake I'll never make again:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_420",
+      "text": "The lesson I learned the hard way:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 90,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_6",
+      "text": "Why isn't anyone talking about [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_15",
+      "text": "How many of these [X] mistakes are you making?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_25",
+      "text": "What separates winners from losers in [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_33",
+      "text": "What's the hidden truth about [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_40",
+      "text": "[Controversial opinion] and I'll prove it.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_60",
+      "text": "I'm done pretending [common behavior] is okay.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_62",
+      "text": "This might upset some people, but...",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_79",
+      "text": "[X]% of [audience] make this mistake:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_88",
+      "text": "True story: [brief hook]",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_100",
+      "text": "I used to believe [X]. Now I know [Y]:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_109",
+      "text": "I was today years old when I learned [X]:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_115",
+      "text": "[X] tools that [changed/simplified] my [area]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_126",
+      "text": "Quick thread on [topic]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_139",
+      "text": "How to go from [starting point] to [goal]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_150",
+      "text": "The blueprint for [success]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_161",
+      "text": "Common [X] mistakes that cost you [outcome]:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_167",
+      "text": "Your [X] isn't the problem. [Y] is:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_175",
+      "text": "Why [common advice] is actually wrong:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_181",
+      "text": "This might upset some people, but [truth]:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_193",
+      "text": "I'm calling BS on [popular belief]:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_199",
+      "text": "The turning point that changed everything:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_213",
+      "text": "The comeback story nobody expected:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_221",
+      "text": "I wasn't prepared for what I found:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_230",
+      "text": "The twist? [unexpected element]",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_240",
+      "text": "[Industry leader] just revealed their [X] secret:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_245",
+      "text": "The morning routine of [successful person]:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_258",
+      "text": "The window is closing on [opportunity]:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_262",
+      "text": "Don't wait until [negative outcome] to [action]:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_275",
+      "text": "While everyone else sleeps on [X]:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_281",
+      "text": "What [time] of [habit] did to my [area]:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_288",
+      "text": "How I went from [negative] to [positive]:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_295",
+      "text": "How [small change] led to [big transformation]:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_300",
+      "text": "Having worked with [X]+[impressive clients]:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_306",
+      "text": "I've built [X] [things]. Here's the common thread:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_314",
+      "text": "[X] [achievements] and counting. Here's my framework:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_321",
+      "text": "Share if you agree:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_327",
+      "text": "Is this controversial? Let me know:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_335",
+      "text": "Comment the first word that comes to mind:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_345",
+      "text": "In [time], [prediction]. Here's my analysis:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_354",
+      "text": "This will be the year of [X]. Here's why:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_366",
+      "text": "The [profession] struggle is real:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_372",
+      "text": "Real talk about [honest topic]:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_386",
+      "text": "The difference between [X] and [Y]:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_392",
+      "text": "[Platform A] vs [Platform B] for [use case]:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_400",
+      "text": "[Outdated approach] vs [modern approach]:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_405",
+      "text": "I'm going to let you in on something:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_410",
+      "text": "I used to think [X]. I was wrong:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_417",
+      "text": "Real talk: I messed up [X]:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 89,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_2",
+      "text": "Want to know the secret to [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_12",
+      "text": "Ever feel like [common pain point]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_20",
+      "text": "How are top [industry] leaders doing [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_29",
+      "text": "What would change if you mastered [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_45",
+      "text": "If you're still doing [X], you're falling behind.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_53",
+      "text": "Here's your sign to [action]:",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_64",
+      "text": "[X] is overrated. [Y] is underrated.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_68",
+      "text": "Only [X]% of businesses survive [milestone]. Here's how:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_81",
+      "text": "Only [X]% of [audience] know about [Y].",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_92",
+      "text": "My [role] said something that changed everything:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_102",
+      "text": "I've [done X] for [time]. Here's my honest take:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_106",
+      "text": "When I started [X], I had no idea [Y].",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_119",
+      "text": "[X] things successful [people] never do:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_129",
+      "text": "The ultimate [X] checklist:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_140",
+      "text": "A simple guide to [complex topic]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_147",
+      "text": "If I could only give one piece of advice about [X]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_153",
+      "text": "How to [skill] like a pro:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "youtube",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_159",
+      "text": "The biggest [X] myth debunked:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_168",
+      "text": "Why [popular approach] doesn't work:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_173",
+      "text": "[X] things you should stop doing right now:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_184",
+      "text": "The [X] industry doesn't want you to know this:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "twitter",
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_191",
+      "text": "Here's something that might upset you:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_201",
+      "text": "What I learned from [big achievement/failure]:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_209",
+      "text": "How I overcame [obstacle]:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_222",
+      "text": "This is what most people miss:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_227",
+      "text": "This is the part they don't teach you:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_232",
+      "text": "And the best part?",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_242",
+      "text": "[Big company] spends [$X] on this. Here's why:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_248",
+      "text": "Every [successful person] I know does this:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_260",
+      "text": "Last chance to [action] before [deadline]:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_265",
+      "text": "By [date], [prediction]. Are you ready?",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_273",
+      "text": "The [X] advantage that's disappearing fast:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_283",
+      "text": "I completely rebuilt my [X]. Here's how:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_289",
+      "text": "This habit completely transformed my [X]:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_303",
+      "text": "[X] [achievements] later, here's what matters:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_309",
+      "text": "Having [achievement], I can say this with confidence:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_322",
+      "text": "What's your take on this?",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_329",
+      "text": "Rate this [X] from 1-10:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_336",
+      "text": "Describe [topic] in one word:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "twitter",
+        "linkedin",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_347",
+      "text": "My bold prediction for [X]:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_356",
+      "text": "Everyone will be talking about [X] by [date]:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_367",
+      "text": "Every [profession] knows this feeling:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_373",
+      "text": "The unspoken truth about [X]:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_379",
+      "text": "The [audience] life nobody shows you:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_385",
+      "text": "[Year] vs [Year]: how [X] has changed:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_391",
+      "text": "The [free] version vs the [paid] version:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "youtube",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_397",
+      "text": "The myth vs the reality of [X]:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_407",
+      "text": "I pretended to know [X]. Here's what happened:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_413",
+      "text": "I have a confession to make about [X]:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 88,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_8",
+      "text": "What would you do if [scenario]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_17",
+      "text": "Why do experts say [X] is dead?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_28",
+      "text": "Why do [audience] struggle with [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_43",
+      "text": "Forget everything you've learned about [X].",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_54",
+      "text": "Real talk: [honest statement]",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_63",
+      "text": "Your [X] isn't broken. Your approach is.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_70",
+      "text": "[X] out of [Y] people get this wrong.",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_80",
+      "text": "In [timeframe], [X]% of [things] will [prediction].",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_93",
+      "text": "Here's what happened when I tried [X]:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_104",
+      "text": "Last [time period], I [action]. Here's what I learned:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_108",
+      "text": "A mentor once told me: [advice]",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_116",
+      "text": "[X] books that made me [achievement]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_124",
+      "text": "[X] underrated [things] that [benefit]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_131",
+      "text": "[X] mindset shifts for [transformation]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_143",
+      "text": "How [successful person/company] does [X]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_146",
+      "text": "Before you [action], read this:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_151",
+      "text": "How to build [X] from scratch:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_165",
+      "text": "[X] red flags that indicate [problem]:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_170",
+      "text": "Don't make this [X] mistake:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_183",
+      "text": "I disagree with [common belief]. Here's why:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_194",
+      "text": "[X] is a scam. Here's proof:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "twitter",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_204",
+      "text": "Behind the scenes of [achievement]:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "instagram",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_210",
+      "text": "[X] changed my life. Here's my story:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_224",
+      "text": "Here's where most people go wrong:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_234",
+      "text": "Little did I know what was coming next:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_244",
+      "text": "What [successful person] taught me about [X]:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_250",
+      "text": "[Big brand]'s secret to [success]:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_261",
+      "text": "You're missing out on [X] if you're not [action]:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_268",
+      "text": "The [X] opportunity that won't last:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_274",
+      "text": "Act now before [negative consequence]:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_285",
+      "text": "My [X] journey: where I started vs where I am:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_290",
+      "text": "The pivot that changed everything:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_305",
+      "text": "From [X] years on the front lines:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_311",
+      "text": "I've trained [X] [professionals]. They all struggle with this:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_325",
+      "text": "Double tap if you've experienced this:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_332",
+      "text": "Poll: [option A] or [option B]?",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_348",
+      "text": "Where [industry] is headed:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_357",
+      "text": "My [timeframe] forecast for [X]:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_369",
+      "text": "Anyone else feel this way about [X]?",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "twitter",
+        "linkedin",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_375",
+      "text": "Things they don't warn you about [X]:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_388",
+      "text": "[Amateur] vs [professional] approach to [X]:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "youtube",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_395",
+      "text": "Morning [routine/person] vs night [routine/person]:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_408",
+      "text": "I'm finally ready to admit this:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_416",
+      "text": "The thing I was afraid to share:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 87,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_11",
+      "text": "What's stopping you from [desired outcome]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_21",
+      "text": "What happens when you [action]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "tiktok",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_46",
+      "text": "[X] will change everything. Here's how:",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_57",
+      "text": "[X] is the new [Y]. Period.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_65",
+      "text": "Hear me out: [unconventional idea]",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_74",
+      "text": "The [X]% rule that changed my [area]:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_84",
+      "text": "The average [person] [metric]. Here's how to beat it:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_95",
+      "text": "The moment I realized [insight] was when:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_103",
+      "text": "What [successful person] taught me about [X]:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_105",
+      "text": "The decision that [positive outcome]:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_121",
+      "text": "[X] red flags in [context]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_130",
+      "text": "[X] principles that [outcome]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_135",
+      "text": "[X] non-negotiables for [goal]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_142",
+      "text": "The beginner's guide to [topic]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_149",
+      "text": "How to turn [X] into [Y]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_169",
+      "text": "The [X] trap most [audience] fall into:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_185",
+      "text": "This will divide opinion but [statement]:",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_186",
+      "text": "Normalize [behavior/mindset]",
+      "category": "controversial",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "twitter",
+        "threads",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_202",
+      "text": "The decision that [positive outcome]:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_212",
+      "text": "I finally figured out [X]:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_231",
+      "text": "Here's the kicker:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_246",
+      "text": "How [successful company] built their [X]:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_252",
+      "text": "Here's what [industry experts] agree on:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_264",
+      "text": "The [X] trend you can't afford to ignore:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_272",
+      "text": "[X] people have already grabbed this:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_286",
+      "text": "[Time] in, here's what changed:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_292",
+      "text": "What [X] weeks of [habit] taught me:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_307",
+      "text": "After [X] hours of research, I found this:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_313",
+      "text": "As a [credential], I see this mistake constantly:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_326",
+      "text": "Who else needs to hear this?",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_333",
+      "text": "What would you add to this list?",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_351",
+      "text": "The next big thing in [X]:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_358",
+      "text": "The shift that's coming to [industry]:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_370",
+      "text": "The [audience] experience in a nutshell:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_378",
+      "text": "We need to talk about [relatable issue]:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_390",
+      "text": "[Type A] vs [Type B]: which are you?",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "instagram",
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_398",
+      "text": "Good [X] vs great [X]:",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_411",
+      "text": "Here's something I'm not proud of:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_418",
+      "text": "My embarrassing [X] story:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 86,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_4",
+      "text": "Have you ever wondered why [X] happens?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_14",
+      "text": "What's your biggest struggle with [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_26",
+      "text": "Is [X] really worth it?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "youtube",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_41",
+      "text": "This is the only [X] advice you'll ever need.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_51",
+      "text": "PSA: [important information]",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_55",
+      "text": "This is your reminder that [encouraging message]:",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "instagram",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_71",
+      "text": "The data shows: [surprising statistic]",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_78",
+      "text": "New research shows [finding]. Here's what it means:",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_97",
+      "text": "A conversation with [person] changed my perspective on [X]:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_107",
+      "text": "I remember when [experience]. Here's what changed:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_123",
+      "text": "My top [X] [resources] for [audience]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_133",
+      "text": "Here are [X] [things] to master [skill]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_152",
+      "text": "A complete guide to [topic]:",
+      "category": "how_to",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_163",
+      "text": "The hidden cost of [common behavior]:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_172",
+      "text": "The fatal flaw in most [X] strategies:",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_207",
+      "text": "The moment everything clicked:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_215",
+      "text": "My biggest [achievement] and how I got there:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_229",
+      "text": "But wait, there's more:",
+      "category": "curiosity_gap",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "twitter",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_249",
+      "text": "I learned this from [successful person] at [event]:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_267",
+      "text": "[X] is happening with or without you:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_291",
+      "text": "I rebuilt [X] from scratch. Here's why:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_308",
+      "text": "I've read [X] books on [topic]. This one stood out:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_328",
+      "text": "Repost if you needed this reminder:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_339",
+      "text": "Fill in the blank: [sentence with blank]",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "twitter",
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_352",
+      "text": "What [year] will bring for [industry]:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_377",
+      "text": "The silent struggle of [audience]:",
+      "category": "relatable",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_394",
+      "text": "[Tool A] vs [Tool B]: honest comparison",
+      "category": "comparison",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_414",
+      "text": "What I wish I could go back and change:",
+      "category": "confession",
+      "tier": "gold",
+      "engagementRate": 85,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_19",
+      "text": "What's the real cost of [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_24",
+      "text": "Why aren't you [action] yet?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_50",
+      "text": "Delete [X] from your strategy immediately.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_75",
+      "text": "[Big number] [audience] can't be wrong about [X].",
+      "category": "statistic",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "twitter",
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_110",
+      "text": "Behind the scenes of [achievement/event]:",
+      "category": "story_opener",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin",
+        "instagram",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_122",
+      "text": "[X] questions to ask before [decision]:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin"
+      ]
+    },
+    {
+      "id": "hook_134",
+      "text": "[X] short-term sacrifices for long-term success:",
+      "category": "list_promise",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_166",
+      "text": "Warning: [important alert]",
+      "category": "mistake",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_208",
+      "text": "My journey to [achievement]:",
+      "category": "success_story",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_251",
+      "text": "The book that [successful person] recommends:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_270",
+      "text": "Don't let [year] end without [achievement]:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_294",
+      "text": "The makeover that [outcome]:",
+      "category": "transformation",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "instagram",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_315",
+      "text": "I've been in [industry] since [year]. This has changed:",
+      "category": "authority",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_334",
+      "text": "Hit follow for more [topic] content:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_355",
+      "text": "The [X] landscape in [years]:",
+      "category": "prediction",
+      "tier": "gold",
+      "engagementRate": 84,
+      "platforms": [
+        "linkedin",
+        "youtube"
+      ]
+    },
+    {
+      "id": "hook_31",
+      "text": "What's your [X] strategy?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 83,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_52",
+      "text": "Friendly reminder: [important point]",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 83,
+      "platforms": [
+        "twitter",
+        "linkedin",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_255",
+      "text": "The tool that [successful person] can't live without:",
+      "category": "social_proof",
+      "tier": "gold",
+      "engagementRate": 83,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_271",
+      "text": "This [X] hack expires [timeframe]:",
+      "category": "fomo",
+      "tier": "gold",
+      "engagementRate": 83,
+      "platforms": [
+        "twitter",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_338",
+      "text": "Let me know your thoughts:",
+      "category": "engagement",
+      "tier": "gold",
+      "engagementRate": 83,
+      "platforms": [
+        "linkedin",
+        "twitter"
+      ]
+    },
+    {
+      "id": "hook_7",
+      "text": "Can you guess what [X] have in common?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 82,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_30",
+      "text": "Can you answer this about [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 82,
+      "platforms": [
+        "twitter",
+        "threads"
+      ]
+    },
+    {
+      "id": "hook_58",
+      "text": "Attention [audience]: This changes everything.",
+      "category": "bold_statement",
+      "tier": "gold",
+      "engagementRate": 82,
+      "platforms": [
+        "linkedin",
+        "instagram"
+      ]
+    },
+    {
+      "id": "hook_13",
+      "text": "Ready to transform your [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 81,
+      "platforms": [
+        "instagram",
+        "tiktok"
+      ]
+    },
+    {
+      "id": "hook_34",
+      "text": "How much time do you spend on [X]?",
+      "category": "question",
+      "tier": "gold",
+      "engagementRate": 81,
+      "platforms": [
+        "twitter",
+        "instagram"
+      ]
+    }
+  ]
+}

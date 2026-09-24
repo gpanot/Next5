@@ -19,13 +19,29 @@ const download = async (url: string): Promise<Buffer> => {
   return Buffer.from(await res.arrayBuffer());
 };
 
-/** Mock mode: after a short delay, "generates" by reusing the first product/identity input (or a sample). */
+/** Mock mode: after a short delay, "generates" by reusing the product input (shop) or a placeholder (brand/property). */
 const pollMock = async (item: BatchItem): Promise<void> => {
-  if (Date.now() - (item.submittedAt?.getTime() ?? 0) < mockDelayMs()) return;
-  const productKey = item.productId ? item.inputR2Keys[item.inputR2Keys.length - 1] : item.inputR2Keys[0];
-  const source = productKey ? await getObject(productKey) : null;
+  const elapsed = Date.now() - (item.submittedAt?.getTime() ?? 0);
+  const delay = mockDelayMs();
+  if (elapsed < delay) {
+    console.log(`[mock] item ${item.id} not ready yet (${elapsed}ms / ${delay}ms delay)`);
+    return;
+  }
   const ratio = item.format === 'story_9_16' ? '9:16' : item.format === 'square_1_1' ? '1:1' : '4:5';
-  await finalizeItem(item, source ?? (await mockSampleImage('Sample photo', ratio)));
+  // Shop: reuse the last input key (the product photo) so compare-grid is meaningful.
+  // Brand/property: never use inputR2Keys[0] — that's the influencer portrait and would look
+  // like no generation happened. Always render a labelled mock placeholder instead.
+  if (item.productId) {
+    const productKey = item.inputR2Keys[item.inputR2Keys.length - 1];
+    const source = productKey ? await getObject(productKey) : null;
+    console.log(`[mock] item ${item.id} (shop) → product input as placeholder`);
+    await finalizeItem(item, source ?? (await mockSampleImage('Sample photo', ratio)));
+  } else {
+    // Brand / property: generate a visually distinct mock image so it is clear the generation ran.
+    const label = item.model ? 'Gemini · mock' : 'AI · mock';
+    console.log(`[mock] item ${item.id} (brand/property, model=${item.model ?? 'nano-banana-2'}) → mock placeholder "${label}"`);
+    await finalizeItem(item, await mockSampleImage(label, ratio));
+  }
 };
 
 const pollOne = async (item: BatchItem): Promise<void> => {

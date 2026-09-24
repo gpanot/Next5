@@ -102,7 +102,6 @@ export const BASE_CSS = String.raw`
 .v3linkbox label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .v3linkbox input{flex:1;min-width:0;border:0;background:transparent;font:500 16px var(--font);color:var(--ink);padding:0 14px}
 .v3linkbox input:focus{outline:none}
-.v3linkbox:focus-within{box-shadow:0 0 0 4px color-mix(in srgb,var(--signal) 22%,transparent)}
 @media (max-width:520px){
   .v3linkbox{flex-direction:column;border-radius:22px;padding:10px}
   .v3linkbox input{height:48px}
