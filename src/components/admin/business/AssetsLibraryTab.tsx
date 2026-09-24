@@ -275,7 +275,35 @@ function VideoCard({ asset, token }: { asset: BlitzAssetDto; token: string }) {
   );
 }
 
-/** Image asset card — no description panel (no audio/video analysis). */
+/** Expandable prompt panel for AI-generated images (no AssetDescriptor — name IS the prompt). */
+function ImagePromptPanel({ asset }: { asset: BlitzAssetDto }) {
+  const [open, setOpen] = useState(false);
+  const isAi = asset.name.includes('[AI]') || asset.source === 'library';
+  const prompt = asset.name;
+
+  return (
+    <div className="border-t border-line/60">
+      <button
+        type="button"
+        onClick={() => setOpen(p => !p)}
+        className="flex w-full items-center justify-between gap-1 px-2 py-1.5 text-[11px] font-medium text-muted transition-colors hover:bg-surface-alt hover:text-ink"
+      >
+        <span>See Description</span>
+        {open ? <ChevronUp className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />}
+      </button>
+      {open && (
+        <div className="bg-surface-alt/60 px-2 pb-2.5 pt-1">
+          {isAi && (
+            <p className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-subtle">Generation prompt</p>
+          )}
+          <p className="text-[10.5px] text-ink leading-relaxed">{prompt}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Image asset card — with prompt description panel. */
 function ImageCard({ asset }: { asset: BlitzAssetDto }) {
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-white shadow-sm">
@@ -291,6 +319,7 @@ function ImageCard({ asset }: { asset: BlitzAssetDto }) {
       <div className="min-h-8 px-2 py-1.5">
         <p className="truncate text-[11px] text-ink" title={asset.name}>{asset.name}</p>
       </div>
+      <ImagePromptPanel asset={asset} />
     </div>
   );
 }
