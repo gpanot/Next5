@@ -488,6 +488,7 @@ CREATE TABLE public.asset_descriptors (
     source text,
     public_figure_likely boolean,
     rights_risk_override text,
+    effective_rights_risk text GENERATED ALWAYS AS (COALESCE(rights_risk_override, rights_risk)) STORED,
     CONSTRAINT asset_descriptors_rights_risk_check CHECK ((rights_risk = ANY (ARRAY['none'::text, 'low'::text, 'high'::text]))),
     CONSTRAINT asset_descriptors_rights_risk_override_check CHECK ((rights_risk_override = ANY (ARRAY['none'::text, 'low'::text, 'high'::text]))),
     CONSTRAINT asset_descriptors_source_check CHECK (((((blitz_asset_id IS NOT NULL))::integer + ((ugc_video_id IS NOT NULL))::integer) = 1)),
@@ -2248,6 +2249,13 @@ CREATE INDEX admin_audit_logs_target_idx ON public.admin_audit_logs USING btree 
 
 
 --
+-- Name: asset_descriptors_effective_rights_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX asset_descriptors_effective_rights_idx ON public.asset_descriptors USING btree (effective_rights_risk);
+
+
+--
 -- Name: asset_descriptors_pending_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3624,4 +3632,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261012100000'),
     ('20261013090000'),
     ('20261013110000'),
-    ('20261013120000');
+    ('20261013120000'),
+    ('20261013130000');

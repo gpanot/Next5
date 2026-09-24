@@ -1257,6 +1257,9 @@ model AssetDescriptor {
   textSafeZone        String?   @map("text_safe_zone")
   /// Admin override for rights risk; wins over model value when not null
   rightsRiskOverride  String?   @map("rights_risk_override")
+  /// DB-generated: COALESCE(rights_risk_override, rights_risk). Filter on this, never on rights_risk.
+  /// Prisma maps this as read-only — never include it in create/update inputs.
+  effectiveRightsRisk String?   @map("effective_rights_risk")
   /// LLM estimate of BPM (music only). Null = not described. Never used for timing.
   bpmEstimate         Float?    @map("bpm")
   // ── Per-role slot scores (0–1, NULL = not yet described) ────────────────
