@@ -486,7 +486,10 @@ CREATE TABLE public.asset_descriptors (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     source text,
+    public_figure_likely boolean,
+    rights_risk_override text,
     CONSTRAINT asset_descriptors_rights_risk_check CHECK ((rights_risk = ANY (ARRAY['none'::text, 'low'::text, 'high'::text]))),
+    CONSTRAINT asset_descriptors_rights_risk_override_check CHECK ((rights_risk_override = ANY (ARRAY['none'::text, 'low'::text, 'high'::text]))),
     CONSTRAINT asset_descriptors_source_check CHECK (((((blitz_asset_id IS NOT NULL))::integer + ((ugc_video_id IS NOT NULL))::integer) = 1)),
     CONSTRAINT asset_descriptors_source_check1 CHECK ((source = ANY (ARRAY['scraped'::text, 'ai_generated'::text, 'uploaded'::text]))),
     CONSTRAINT asset_descriptors_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'claimed'::text, 'done'::text, 'failed'::text])))
@@ -3620,4 +3623,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261012090000'),
     ('20261012100000'),
     ('20261013090000'),
-    ('20261013110000');
+    ('20261013110000'),
+    ('20261013120000');

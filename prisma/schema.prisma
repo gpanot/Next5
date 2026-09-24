@@ -1248,13 +1248,17 @@ model AssetDescriptor {
   /// 'none' | 'low' | 'high' — NULL until status=done
   rightsRisk         String?   @map("rights_risk")
   /// NULL until status=done
-  identifiablePerson Boolean?  @map("identifiable_person")
-  avoidFor           String[]  @default([]) @map("avoid_for")
-  energyLevel        Float?    @map("energy_level")
+  identifiablePerson  Boolean?  @map("identifiable_person")
+  /// True if the person appears to be a well-known public figure (sets rightsRisk=high)
+  publicFigureLikely  Boolean?  @map("public_figure_likely")
+  avoidFor            String[]  @default([]) @map("avoid_for")
+  energyLevel         Float?    @map("energy_level")
   /// 'none' | 'top_third' | 'bottom_third' | 'center'
-  textSafeZone       String?   @map("text_safe_zone")
-  /// NULL until aubio is added to worker image
-  bpm                Float?
+  textSafeZone        String?   @map("text_safe_zone")
+  /// Admin override for rights risk; wins over model value when not null
+  rightsRiskOverride  String?   @map("rights_risk_override")
+  /// LLM estimate of BPM (music only). Null = not described. Never used for timing.
+  bpmEstimate         Float?    @map("bpm")
   // ── Per-role slot scores (0–1, NULL = not yet described) ────────────────
   slotHook           Float?    @map("slot_hook")
   slotProblem        Float?    @map("slot_problem")
