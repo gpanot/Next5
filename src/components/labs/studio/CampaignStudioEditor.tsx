@@ -311,12 +311,18 @@ function ProfileStep({
 // ─── Research step ─────────────────────────────────────────────────────────────
 
 function ResearchStep({ token, runId }: { token: string; runId: string }) {
-  const { run, items, error, triggerResearchJob } = useStudioRun(token, runId);
+  const { run, items, error, triggerResearchJob, resetJob } = useStudioRun(token, runId);
   const [triggering, setTriggering] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const handleResearch = async () => {
     setTriggering(true);
     try { await triggerResearchJob(); } finally { setTriggering(false); }
+  };
+
+  const handleReset = async () => {
+    setResetting(true);
+    try { await resetJob(); } finally { setResetting(false); }
   };
 
   if (!run) return <div className="flex justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted" /></div>;
@@ -368,8 +374,19 @@ function ResearchStep({ token, runId }: { token: string; runId: string }) {
       )}
 
       {status === 'running' && (
-        <div className="flex items-center gap-2 text-[13px] text-muted py-4">
-          <Loader2 className="w-4 h-4 animate-spin" /> Searching TikTok…
+        <div className="flex items-center justify-between rounded-lg bg-surface border border-line px-4 py-3">
+          <div className="flex items-center gap-2 text-[13px] text-muted">
+            <Loader2 className="w-4 h-4 animate-spin" /> Searching TikTok…
+          </div>
+          <button
+            onClick={() => void handleReset()}
+            disabled={resetting}
+            className="flex items-center gap-1.5 text-[11px] text-red-600 hover:text-red-700 font-medium disabled:opacity-50"
+            title="Reset stuck job (server may have restarted)"
+          >
+            {resetting ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+            Reset stuck job
+          </button>
         </div>
       )}
 

@@ -122,6 +122,7 @@ export function Researcher({
       transcript: video.raw_transcript,
     }).catch(() => null);
     setSlidesLoadingId(null);
+    if (result?.meta) setSlidesMeta(result.meta);
     await onAction(video, result?.slides);
   }
 
@@ -141,6 +142,8 @@ export function Researcher({
     setSearchedAt('');
     setSearchedNiche('');
     setError('');
+    setSearchMeta(null);
+    setSlidesMeta(null);
     clearResearchFor(cacheKey);
   };
 
@@ -149,7 +152,9 @@ export function Researcher({
     setLoading(true);
     setError('');
     setVideos(null);
-    const res = await client.request<{ videos?: ResearchVideo[] }>('/ugc-lab/research',
+    setSearchMeta(null);
+    setSlidesMeta(null);
+    const res = await client.request<{ videos?: ResearchVideo[]; meta?: ResearchMeta }>('/ugc-lab/research',
       { json: { industry: keyword } },
     ).catch(() => null);
     setLoading(false);
@@ -162,6 +167,7 @@ export function Researcher({
     setVideos(found);
     setSearchedAt(at);
     setSearchedNiche(keyword.trim());
+    if (res.data.meta) setSearchMeta(res.data.meta);
     remember({ industry: keyword, videos: found, at });
     // Keep it permanently: a search costs ~20 s and a TikTok API call.
     if (found.length > 0) {
@@ -224,6 +230,32 @@ export function Researcher({
           <span>
             {videos.length} result{videos.length !== 1 ? 's' : ''} for &ldquo;{searchedNiche}&rdquo; · {ago(searchedAt)}
           </span>
+          {searchMeta && (
+            <span className="flex items-center gap-2 rounded-md bg-surface-alt px-2 py-0.5 font-mono text-[11px] text-ink/70">
+              <span title="Total wall-clock time">⏱ {(searchMeta.elapsedMs / 1000).toFixed(1)}s</span>
+              {searchMeta.tregElapsedMs !== undefined && (
+                <span title="TikTok API call">TikTok {(searchMeta.tregElapsedMs / 1000).toFixed(1)}s</span>
+              )}
+              {searchMeta.aiElapsedMs !== undefined && searchMeta.aiElapsedMs > 0 && (
+                <span title="OpenAI classification time">AI {(searchMeta.aiElapsedMs / 1000).toFixed(1)}s</span>
+              )}
+              {(searchMeta.aiPromptTokens ?? 0) + (searchMeta.aiCompletionTokens ?? 0) > 0 && (
+                <span title={`gpt-4o-mini: ${searchMeta.aiPromptTokens ?? 0} prompt + ${searchMeta.aiCompletionTokens ?? 0} completion tokens`}>
+                  {((searchMeta.aiPromptTokens ?? 0) + (searchMeta.aiCompletionTokens ?? 0)).toLocaleString()} tok
+                </span>
+              )}
+            </span>
+          )}
+          {slidesMeta && (
+            <span className="flex items-center gap-2 rounded-md bg-orange-50 border border-orange-100 px-2 py-0.5 font-mono text-[11px] text-orange-700" title="Slide generation (OpenAI)">
+              <span>✨ slides {(slidesMeta.elapsedMs / 1000).toFixed(1)}s</span>
+              {slidesMeta.promptTokens + slidesMeta.completionTokens > 0 && (
+                <span title={`${slidesMeta.promptTokens} prompt + ${slidesMeta.completionTokens} completion tokens`}>
+                  {(slidesMeta.promptTokens + slidesMeta.completionTokens).toLocaleString()} tok
+                </span>
+              )}
+            </span>
+          )}
           <SecondaryButton onClick={startOver}>Clear</SecondaryButton>
         </div>
       )}

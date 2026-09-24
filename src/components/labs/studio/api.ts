@@ -46,6 +46,13 @@ export const createRun = (token: string, sourceUrl: string, workspaceId?: string
     body: JSON.stringify({ sourceUrl, workspaceId }),
   }, token);
 
+export const resetRun = (token: string, runId: string) =>
+  req<{ ok: boolean; runId: string; reset: Record<string, string> }>(
+    `${BASE}/${runId}/reset`,
+    { method: 'POST' },
+    token,
+  );
+
 export const deleteRun = (token: string, runId: string) =>
   req<{ ok: boolean; runId: string }>(`${BASE}?runId=${encodeURIComponent(runId)}`, { method: 'DELETE' }, token);
 

@@ -5,6 +5,7 @@ import {
   getRun,
   listCandidates,
   listResearchItems,
+  resetRun,
   triggerExtract,
   triggerGenerate,
   triggerResearch,
@@ -16,8 +17,8 @@ import {
 type PollStatus = 'idle' | 'pending' | 'running' | 'done' | 'failed';
 
 const POLLING_INTERVAL_MS = 3_000;
-/** Stop polling after this long regardless of status (handles stuck/orphaned jobs). */
-const POLL_TIMEOUT_MS = 5 * 60_000; // 5 minutes
+/** Stop polling after this long regardless of status (handles stuck/orphaned jobs in local dev). */
+const POLL_TIMEOUT_MS = 2 * 60_000; // 2 minutes — waitUntil is a no-op in local dev
 
 /**
  * Hook to manage a single studio run's state with background polling.
@@ -78,10 +79,17 @@ export function useStudioRun(token: string, runId: string | null) {
         pollStartRef.current = Date.now();
       }
 
-      // Stop polling and surface an error if stuck longer than the timeout
+      // Stop polling and auto-reset if stuck longer than the timeout.
+      // waitUntil() is a no-op in local dev — background jobs die on server restart.
       if (Date.now() - pollStartRef.current > POLL_TIMEOUT_MS) {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        setError('Job timed out — it may have crashed. Refresh or re-trigger.');
+        pollStartRef.current = null;
+        // Auto-reset stuck run in DB so the user can retry without psql
+        if (runId) {
+          void resetRun(token, runId).then(() => refresh()).catch(() => {
+            setError('Job timed out and could not be auto-reset. Please refresh.');
+          });
+        }
         return;
       }
 
@@ -111,6 +119,17 @@ export function useStudioRun(token: string, runId: string | null) {
     void refresh();
   }, [token, runId, refresh]);
 
+  const resetJob = useCallback(async () => {
+    if (!runId) return;
+    setError(null);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    pollStartRef.current = null;
+    await resetRun(token, runId);
+    void refresh();
+    // Restart polling
+    intervalRef.current = setInterval(() => void refresh(), POLLING_INTERVAL_MS);
+  }, [token, runId, refresh]);
+
   const triggerGenerateJob = useCallback(async () => {
     if (!runId) return;
     setError(null);
@@ -128,5 +147,6 @@ export function useStudioRun(token: string, runId: string | null) {
     triggerExtractionJob,
     triggerResearchJob,
     triggerGenerateJob,
+    resetJob,
   };
 }
