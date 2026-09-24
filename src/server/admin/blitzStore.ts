@@ -101,7 +101,9 @@ export type BlitzAssetDto = {
   /** Derived from the file extension; lets the preview pick <img> vs <video> for blob: URLs. */
   mediaKind: 'image' | 'video' | 'audio';
   /** "library" = curated/seeded (read-only); "upload" = added by the user (rename/delete allowed). */
-  source: 'library' | 'upload';
+  source: 'library' | 'upload' | 'hook_library';
+  /** Flat tag list — populated for HOOK assets. */
+  tags: string[];
   createdAt: string;
 };
 
@@ -144,7 +146,8 @@ export const toAssetDto = async (asset: BlitzAsset): Promise<BlitzAssetDto> => (
   url: await blitzBrowserUrl(asset.r2Key),
   thumbnailUrl: asset.thumbnailKey ? await blitzBrowserUrl(asset.thumbnailKey) : null,
   mediaKind: blitzMediaKind(asset.r2Key),
-  source: isBlitzUploadKey(asset.r2Key) ? 'upload' : 'library',
+  source: isBlitzUploadKey(asset.r2Key) ? 'upload' : asset.source === 'hook_library' ? 'hook_library' : 'library',
+  tags: asset.tags ?? [],
   createdAt: asset.createdAt.toISOString(),
 });
 

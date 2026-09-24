@@ -18,13 +18,13 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Film, ImageIcon, Layers, Loader2, Music, Pause, Play, Search, Video } from 'lucide-react';
+import { ChevronDown, ChevronUp, Film, ImageIcon, Layers, Loader2, Music, Pause, Play, Search, Video, Zap } from 'lucide-react';
 import type { BlitzAssetDto } from '../../labs/blitzLab/api';
 import type { UgcVideoDto } from '../../../types/admin/ugc';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Section = 'memes' | 'videos' | 'sounds' | 'aiPictures' | 'ugcVideos';
+type Section = 'memes' | 'videos' | 'sounds' | 'aiPictures' | 'ugcVideos' | 'hookVideos';
 
 type LibraryData = {
   memes: BlitzAssetDto[];
@@ -32,6 +32,7 @@ type LibraryData = {
   sounds: BlitzAssetDto[];
   aiPictures: BlitzAssetDto[];
   ugcVideos: UgcVideoDto[];
+  hookVideos: BlitzAssetDto[];
   counts: Record<Section, number>;
 };
 
@@ -70,11 +71,12 @@ function CountBadge({ n }: { n: number }) {
 // ── Section nav item ──────────────────────────────────────────────────────────
 
 const SECTIONS: { id: Section; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'memes',      label: 'Memes',       Icon: Layers   },
-  { id: 'videos',     label: 'Videos',      Icon: Video    },
-  { id: 'sounds',     label: 'Sounds',      Icon: Music    },
-  { id: 'aiPictures', label: 'AI Pictures', Icon: ImageIcon },
-  { id: 'ugcVideos',  label: 'UGC Videos',  Icon: Film     },
+  { id: 'memes',      label: 'Memes',        Icon: Layers   },
+  { id: 'videos',     label: 'Videos',       Icon: Video    },
+  { id: 'sounds',     label: 'Sounds',       Icon: Music    },
+  { id: 'aiPictures', label: 'AI Pictures',  Icon: ImageIcon },
+  { id: 'ugcVideos',  label: 'UGC Videos',   Icon: Film     },
+  { id: 'hookVideos', label: 'Hook Videos',  Icon: Zap      },
 ];
 
 // ── Description panel ─────────────────────────────────────────────────────────
@@ -398,6 +400,58 @@ function UgcCard({ video }: { video: UgcVideoDto }) {
   );
 }
 
+/** Hook video card — plays on hover, shows tags as pills. */
+function HookCard({ asset }: { asset: BlitzAssetDto }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  return (
+    <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-white shadow-sm">
+      <div
+        className="relative aspect-[9/16] w-full overflow-hidden bg-neutral-900"
+        onMouseEnter={() => ref.current?.play().catch(() => undefined)}
+        onMouseLeave={() => { if (ref.current) { ref.current.pause(); ref.current.currentTime = 0; } }}
+      >
+        {asset.thumbnailUrl && (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={asset.thumbnailUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
+          />
+        )}
+        <video
+          ref={ref}
+          src={asset.url}
+          muted
+          loop
+          playsInline
+          preload="none"
+          className="relative h-full w-full object-cover"
+        />
+        {/* source badge */}
+        {asset.source === 'hook_library' && (
+          <span className="pointer-events-none absolute right-1.5 top-1.5 rounded-full bg-orange-500/90 px-1.5 py-0.5 text-[9px] font-semibold text-white">
+            lib
+          </span>
+        )}
+      </div>
+      <div className="px-2 pt-1.5 pb-1">
+        <p className="truncate text-[11px] font-medium text-ink" title={asset.name}>{asset.name}</p>
+      </div>
+      {/* Tag pills */}
+      {asset.tags && asset.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1 px-2 pb-2">
+          {asset.tags.slice(0, 4).map((tag) => (
+            <span key={tag} className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[9px] text-muted">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Search bar ────────────────────────────────────────────────────────────────
 
 function SearchBar({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
@@ -429,6 +483,9 @@ function SectionContent({ section, data, token }: { section: Section; data: Libr
     if (section === 'videos')     return qLow ? data.videos.filter(a => a.name.toLowerCase().includes(qLow)) : data.videos;
     if (section === 'sounds')     return qLow ? data.sounds.filter(a => a.name.toLowerCase().includes(qLow)) : data.sounds;
     if (section === 'aiPictures') return qLow ? data.aiPictures.filter(a => a.name.toLowerCase().includes(qLow)) : data.aiPictures;
+    if (section === 'hookVideos') return qLow
+      ? data.hookVideos.filter(a => a.name.toLowerCase().includes(qLow) || a.tags.some(t => t.toLowerCase().includes(qLow)))
+      : data.hookVideos;
     return [];
   }, [section, data, qLow]);
 
@@ -445,8 +502,9 @@ function SectionContent({ section, data, token }: { section: Section; data: Libr
           value={q}
           onChange={setQ}
           placeholder={
-            section === 'ugcVideos' ? 'Search by script or mode…'
-            : section === 'videos' ? 'Search by name…'
+            section === 'ugcVideos'  ? 'Search by script or mode…'
+            : section === 'videos'   ? 'Search by name…'
+            : section === 'hookVideos' ? 'Search by name or tag…'
             : 'Search…'
           }
         />
@@ -455,6 +513,13 @@ function SectionContent({ section, data, token }: { section: Section; data: Libr
             ? `${filteredUgc.length} video${filteredUgc.length !== 1 ? 's' : ''}`
             : `${filtered.length} asset${filtered.length !== 1 ? 's' : ''}`}
         </span>
+        {/* Scraping badge for hookVideos */}
+        {section === 'hookVideos' && (
+          <span className="flex items-center gap-1 rounded-full bg-orange-50 border border-orange-200 px-2 py-0.5 text-[11px] font-medium text-orange-600">
+            <span className="h-1.5 w-1.5 rounded-full bg-orange-500 animate-pulse" />
+            Scraping in progress
+          </span>
+        )}
       </div>
 
       {/* Grid */}
@@ -470,6 +535,10 @@ function SectionContent({ section, data, token }: { section: Section; data: Libr
         ) : section === 'ugcVideos' ? (
           <div className={GRID_VIDEO}>
             {filteredUgc.map((v) => <UgcCard key={v.id} video={v} />)}
+          </div>
+        ) : section === 'hookVideos' ? (
+          <div className={GRID_VIDEO}>
+            {filtered.map((a) => <HookCard key={a.id} asset={a} />)}
           </div>
         ) : (
           /* Memes and Videos — VideoCard with description */

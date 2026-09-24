@@ -65,6 +65,7 @@ export function useBlitzUploads({ setAssets, onKeyReplaced }: Options) {
       thumbnailUrl: null,
       mediaKind: fileMediaKind(file),
       source: 'upload',
+      tags: [],
       createdAt: new Date().toISOString(),
     }]);
     setUploads((prev) => ({ ...prev, [localKey]: { type, progress: 0, error: null } }));

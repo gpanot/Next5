@@ -7,15 +7,16 @@ import { prisma } from '../../../../src/lib/db';
 /**
  * GET /api/admin/assets-library
  *
- * Returns all four asset buckets for the Assets Library admin tab:
+ * Returns all asset buckets for the Assets Library admin tab:
  *   memes       — BlitzAsset type=OVERLAY (video clips used as meme overlays)
  *   videos      — BlitzAsset type=BACKGROUND where the file is a video (scraped, not AI)
  *   sounds      — BlitzAsset type=AUDIO
  *   aiPictures  — BlitzAsset type=BACKGROUND where the file is an image (jpg/png/webp)
  *   ugcVideos   — UgcVideo rows (status=ready, workspaceId=null = Next5-owned)
+ *   hookVideos  — BlitzAsset type=HOOK (scraped hook library + manually added hooks)
  *
  * Pagination: each section returns up to `limit` rows (default 60).
- * Pass ?section=memes|videos|sounds|aiPictures|ugcVideos&cursor=<createdAt ISO>&limit=N for pagination.
+ * Pass ?section=memes|videos|sounds|aiPictures|ugcVideos|hookVideos&cursor=<createdAt ISO>&limit=N for pagination.
  */
 export const GET = adminRoute(async (req) => {
   const { searchParams } = req.nextUrl;
@@ -60,18 +61,27 @@ export const GET = adminRoute(async (req) => {
     });
     const ugcVideos = await Promise.all(ugcRows.map(toVideoDto));
 
+    const hookRows = await prisma.blitzAsset.findMany({
+      where: { type: 'HOOK' },
+      orderBy: { createdAt: 'desc' },
+      take: 300,
+    });
+    const hookVideos = await Promise.all(hookRows.map(toAssetDto));
+
     return NextResponse.json({
       memes: assets,
       videos,
       sounds,
       aiPictures,
       ugcVideos,
+      hookVideos,
       counts: {
         memes: assets.length,
         videos: videos.length,
         sounds: sounds.length,
         aiPictures: aiPictures.length,
         ugcVideos: ugcVideos.length,
+        hookVideos: hookVideos.length,
       },
     });
   }
@@ -117,6 +127,16 @@ export const GET = adminRoute(async (req) => {
     });
     const ugcVideos = await Promise.all(rows.map(toVideoDto));
     return NextResponse.json({ ugcVideos });
+  }
+
+  if (section === 'hookVideos') {
+    const rows = await prisma.blitzAsset.findMany({
+      where: { type: 'HOOK', ...nameFilter, ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}) },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    const hookVideos = await Promise.all(rows.map(toAssetDto));
+    return NextResponse.json({ hookVideos, total: await prisma.blitzAsset.count({ where: { type: 'HOOK' } }) });
   }
 
   return NextResponse.json({ error: 'Unknown section' }, { status: 400 });
