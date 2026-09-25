@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Images, ImagePlus, Loader2, Minus, Plus, Sparkles, Wand2, X } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { GripVertical, Images, ImagePlus, Loader2, Minus, Plus, Sparkles, Wand2, X } from 'lucide-react';
 import {
   BLITZ_BUSINESS_TEXT_MAX,
   BLITZ_SLIDESHOW_SECONDS_MAX,
@@ -74,6 +74,50 @@ export function SlideshowCopyPanel({
   // Auto-generate state: null = idle, number = index currently generating
   const [autoGenerating, setAutoGenerating] = useState<boolean>(false);
   const [autoProgress, setAutoProgress] = useState<number>(0);
+
+  // ── drag-to-reorder ────────────────────────────────────────────────────
+  const dragIndexRef = useRef<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, i: number) => {
+    dragIndexRef.current = i;
+    e.dataTransfer.effectAllowed = 'move';
+    // Transparent ghost — we rely on CSS opacity instead
+    const el = e.currentTarget as HTMLElement;
+    el.style.opacity = '0.4';
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    (e.currentTarget as HTMLElement).style.opacity = '';
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  };
+
+  const handleDragOver = (e: React.DragEvent, i: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(i);
+  };
+
+  const handleDrop = (e: React.DragEvent, i: number) => {
+    e.preventDefault();
+    const from = dragIndexRef.current;
+    if (from === null || from === i) { setDragOverIndex(null); return; }
+    const next = [...slides];
+    const [removed] = next.splice(from, 1);
+    next.splice(i, 0, removed);
+    onChange(next);
+    // Keep the active slide tracking correct after reorder
+    if (currentIndex === from) {
+      onIndexChange(i);
+    } else if (from < i && currentIndex > from && currentIndex <= i) {
+      onIndexChange(currentIndex - 1);
+    } else if (from > i && currentIndex >= i && currentIndex < from) {
+      onIndexChange(currentIndex + 1);
+    }
+    dragIndexRef.current = null;
+    setDragOverIndex(null);
+  };
 
   const getSlideGenState = (i: number) => genState[i] ?? 'idle';
   const getSlidePrompt = (i: number) => genPrompt[i] ?? (slides[i]?.bgPromptSuggestion ?? '');
@@ -316,12 +360,27 @@ export function SlideshowCopyPanel({
             return (
               <div
                 key={i}
-                className={`flex flex-col gap-1.5 rounded-xl border p-2 transition-colors ${
-                  i === currentIndex ? 'border-orange-400 ring-1 ring-orange-400/40' : 'border-line'
-                }`}
+                draggable
+                onDragStart={(e) => handleDragStart(e, i)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, i)}
+                onDrop={(e) => handleDrop(e, i)}
+                className={[
+                  'flex flex-col gap-1.5 rounded-xl border p-2 transition-colors',
+                  i === currentIndex ? 'border-orange-400 ring-1 ring-orange-400/40' : 'border-line',
+                  dragOverIndex === i && dragIndexRef.current !== i ? 'border-orange-400 bg-orange-50/60' : '',
+                ].join(' ')}
               >
-                {/* Slide number + background picker + generate + remove */}
+                {/* Drag handle + slide number + background picker + generate + remove */}
                 <div className="flex items-center gap-1.5">
+                  {/* Drag handle */}
+                  <span
+                    className="flex h-7 w-4 shrink-0 cursor-grab items-center justify-center text-muted active:cursor-grabbing"
+                    title="Drag to reorder"
+                    aria-label={`Drag slide ${i + 1} to reorder`}
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </span>
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-alt text-[11px] font-semibold text-muted">
                     {i + 1}
                   </span>
