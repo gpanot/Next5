@@ -34,8 +34,6 @@ const COUNTS = [1, 8, 16, 24, 32] as const;
 
 /** One photo is the try-it size; the rest are read as weeks of posting. */
 const countLabel = (c: number): string => (c === 1 ? '1 photo · just to try' : `${c} photos · ≈ ${Math.round(c / 4)} weeks of posts`);
-const VARIATIONS = [1, 2, 3] as const;
-
 /**
  * Two forms behind one first question: "+ Property" (the default, for realtors) or "Just me".
  * "Just me" chooses a style and a theme, because we choose the place.
@@ -52,8 +50,6 @@ export const BrandCreateFlow = () => {
   const identitiesApi = useApi<{ identities: Identity[] }>('/api/app/identity?product=brand');
   const lastSet = lastSetStore.useValue();
   const lastInfluencerValue = lastInfluencerStore.useValue();
-  const defaults = (me?.workspace?.defaultFormats ?? []).filter((f): f is FormatId => f in FORMATS);
-
   const [setChoice, setSetChoice] = useState<string | null>(params.get('set'));
   const [themeChoice, setThemeChoice] = useState<string | null>(params.get('theme'));
   const [count, setCount] = useState<number>(1);
@@ -61,7 +57,7 @@ export const BrandCreateFlow = () => {
   const [listingId, setListingId] = useState<string | null>(listingParam && listingParam !== 'new' ? listingParam : null);
   // Realtors first: a property unless she came from a theme or a style to make photos of just her.
   const [mode, setMode] = useState<WhoMode>((params.get('theme') || params.get('set') || params.get('influencerId')) && !listingParam ? 'me' : 'property');
-  const [variations, setVariations] = useState<number>(1);
+  const variations = 1;
   // Her pick per property. Without one, only Zillow's own status fills it in — an uploaded home stays empty.
   const [occasionByListing, setOccasionByListing] = useState<Record<string, Occasion>>({});
   const [style, setStyle] = useState<Style>({ wardrobe: null, poseEnergy: null });
@@ -71,7 +67,7 @@ export const BrandCreateFlow = () => {
     params.get('influencerId') ? { influencerId: params.get('influencerId'), photoId: params.get('photo') } : null,
   );
   const [imported, setImported] = useState<ListingDto | null>(null);
-  const [formats, setFormats] = useState<FormatId[]>(defaults.length ? defaults : ['story_9_16']);
+  const [formats, setFormats] = useState<FormatId[]>(['story_9_16']);
   const [highRes, setHighRes] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -113,7 +109,7 @@ export const BrandCreateFlow = () => {
       };
     }
     return setId && themeId ? { product: 'brand', kind: 'brand_theme', setId, themeId, count, formats, highRes, influencerId: influencerId ?? undefined, influencerPhotoId: influencerPhotoId ?? undefined } : null;
-  }, [listing, rooms, occasion, variations, style, fallbackWardrobe, fallbackPose, setId, themeId, count, formats, highRes, influencerId, influencerPhotoId]);
+  }, [listing, rooms, occasion, style, fallbackWardrobe, fallbackPose, setId, themeId, count, formats, highRes, influencerId, influencerPhotoId]);
   const { estimate, error, loading } = useEstimate(draft);
 
   const pickOccasion = (next: Occasion) => {
@@ -173,10 +169,7 @@ export const BrandCreateFlow = () => {
           <CreateSection step={2} title="What’s happening?" sub="With this home, right now.">
             <OccasionPicker value={occasion} onChange={pickOccasion} fromZillow={occasionFromZillow} />
           </CreateSection>
-          <CreateSection step={3} title="How many looks per photo?" sub={rooms > 0 ? `${rooms} photo${rooms === 1 ? '' : 's'} × ${variations} = ${rooms * variations} photo${rooms * variations === 1 ? '' : 's'}.` : 'Add a photo of the property first.'}>
-            <ChipGroup options={VARIATIONS.map((v) => ({ value: String(v), label: `${v} look${v === 1 ? '' : 's'} per photo` }))} value={String(variations)} onChange={(v) => setVariations(Number(v))} />
-          </CreateSection>
-          <CreateSection step={4} title="Who and how" sub="Pick who is in the photos, then the style details.">
+          <CreateSection step={3} title="Who and how" sub="Pick who is in the photos, then the style details.">
             <div className="flex flex-col gap-3">
               {facePicker ?? (selfies.length > 0 ? (
                 <div className="flex gap-2">
@@ -208,7 +201,7 @@ export const BrandCreateFlow = () => {
 
       {(mode === 'me' || listing) && (
         <>
-          <CreateSection step={5} title="Formats" sub="Each format is created at its own shape and counts as a photo.">
+          <CreateSection step={4} title="Formats" sub="Each format is created at its own shape and counts as a photo.">
             <FormatPicker value={formats} onChange={setFormats} highRes={highRes} onHighRes={setHighRes} highResAllowed={Boolean(me.plan?.highRes)} />
           </CreateSection>
           <CreditSummaryBar

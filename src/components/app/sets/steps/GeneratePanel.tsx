@@ -53,7 +53,7 @@ export const GeneratePanel = ({ traits, setTrait, image, onImageChange }: Props)
         />
       )}
       <Field label="Describe them" htmlFor="inf-details" helper="Hair, style, vibe. The more you say, the closer it gets.">
-        <Textarea id="inf-details" rows={2} maxLength={200} value={traits.details} onChange={(e) => setTrait('details', e.target.value)} placeholder="e.g. warm smile, shoulder-length brown hair, blazer" />
+        <Textarea id="inf-details" rows={2} maxLength={800} value={traits.details} onChange={(e) => setTrait('details', e.target.value)} placeholder="e.g. warm smile, shoulder-length brown hair, blazer" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Gender" htmlFor="inf-gender">
