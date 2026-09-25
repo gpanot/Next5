@@ -18,13 +18,50 @@ import { ResultTile } from '../batches/ResultTile';
 import { PhotoFeedViewer } from '../photos/PhotoFeedViewer';
 import { PostKitPanel } from '../postKit/PostKitPanel';
 import { useWorkspace } from '../shell/WorkspaceProvider';
+import { LibraryUploadedView } from './LibraryUploadedView';
+
+type PhotosTab = 'generated' | 'uploaded';
 
 type LibraryItem = BatchItemDto & { batchId: string; batchName: string };
 type Page = { items: LibraryItem[]; nextCursor: string | null };
 type State = { key: string; items: LibraryItem[]; nextCursor: string | null; error: string | null; loading: boolean };
 
-/** Every photo in one grid, with format and favourite filters. */
+/** Every photo in one grid — with Generated / Uploaded sub-tabs. */
 export const LibraryPhotosView = () => {
+  const [tab, setTab] = useState<PhotosTab>('generated');
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Sub-tab bar */}
+      <div
+        role="group"
+        aria-label="Photo source"
+        className="inline-flex self-start rounded-xl border border-app-line bg-app-sunken p-0.5"
+      >
+        {(['generated', 'uploaded'] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            aria-pressed={tab === t}
+            onClick={() => setTab(t)}
+            className={[
+              'rounded-lg px-4 py-1.5 text-[13px] font-medium capitalize transition-colors duration-200',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-1',
+              tab === t ? 'bg-app-panel text-app-ink shadow-sm' : 'text-app-muted hover:text-app-ink',
+            ].join(' ')}
+          >
+            {t === 'generated' ? 'Generated' : 'Uploaded'}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'uploaded' ? <LibraryUploadedView /> : <GeneratedPhotosGrid />}
+    </div>
+  );
+};
+
+/** The original generated-photos grid (formerly the whole LibraryPhotosView). */
+const GeneratedPhotosGrid = () => {
   const { product, me } = useWorkspace();
   const router = useAppRouter();
   const postKitAllowed = Boolean(me?.plan?.postKit);

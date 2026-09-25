@@ -286,9 +286,30 @@ model Workspace {
   studioBrandProfiles StudioBrandProfile[]
   studioRuns          StudioRun[]
   assetDescriptors    AssetDescriptor[]
+  userUploads         UserUpload[]
 
   @@unique([ownerUserId, product])
   @@map("workspaces")
+}
+
+/// A photo or video the user uploaded to their own brand media bank.
+model UserUpload {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  r2Key       String    @map("r2_key")
+  filename    String
+  mimeType    String    @default("image/jpeg") @map("mime_type")
+  sizeBytes   Int       @default(0) @map("size_bytes")
+  /// "photo" | "video"
+  kind        String    @default("photo")
+  archivedAt  DateTime? @map("archived_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@map("user_uploads")
 }
 
 /// A content angle (customer pain point) used to generate blitz card text overlays.
@@ -1210,6 +1231,51 @@ model BlitzProject {
   @@map("blitz_projects")
 }
 
+/// Slideshow engine: one generated deck card (one hook archetype on a brief's shared meat + CTA).
+/// Foreign keys (workspace, listing run, blitz project) live in the SQL migration only.
+model SlideshowVariant {
+  id             String   @id @default(cuid())
+  workspaceId    String?  @map("workspace_id")
+  /// 'website' | 'zillow'
+  engine         String
+  listingRunId   String?  @map("listing_run_id")
+  /// IDC name (website) or listing angle (zillow)
+  lens           String
+  archetype      String
+  /// Card shots as generated (text, media, asset ids, alternatives)
+  plan           Json
+  /// 'proposed' | 'kept' | 'discarded' | 'edited' | 'rendered' | 'failed'
+  status         String   @default("proposed")
+  blitzProjectId String?  @map("blitz_project_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  swipes SlideshowSwipe[]
+
+  @@index([listingRunId])
+  @@index([engine, lens, archetype])
+  @@map("slideshow_variants")
+}
+
+/// Every deck action — the only learning signal until post analytics exist.
+model SlideshowSwipe {
+  id          String   @id @default(cuid())
+  variantId   String   @map("variant_id")
+  userId      String?  @map("user_id")
+  /// 'keep' | 'discard' | 'undo' | 'open' | 'edit' | 'render'
+  action      String
+  reason      String?
+  /// Shot roles changed on 'edit'
+  editedShots String[] @default([]) @map("edited_shots")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  variant SlideshowVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([variantId, createdAt])
+  @@index([action, createdAt(sort: Desc)])
+  @@map("slideshow_swipes")
+}
+
 /// AI-generated descriptor for a BlitzAsset or UgcVideo.
 /// Produced by the blitz-worker descriptor loop: ffprobe/ffmpeg measurement → Gemini call → validated JSON.
 /// Cached result of one Zillow listing scrape for the Real Estate slideshow flow.
@@ -1306,6 +1372,11 @@ model AssetDescriptor {
   // ── Niche fit scores ────────────────────────────────────────────────────
   nicheRealtor       Float?    @map("niche_realtor")
   nicheTiktokShop    Float?    @map("niche_tiktok_shop")
+  /// Industry categories (slugs from src/server/slideshow/core/categories.ts), 1–3 per asset.
+  categories         String[]  @default([])
+  /// pgvector embedding of the descriptor text (OpenAI text-embedding-3-small, 1536 dims).
+  /// Read and written with raw SQL only (src/server/labs/assetDescriptor/embedding.ts).
+  embedding          Unsupported("vector(1536)")?
 
   createdAt          DateTime  @default(now()) @map("created_at")
   updatedAt          DateTime  @updatedAt @map("updated_at")
