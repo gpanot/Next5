@@ -215,8 +215,8 @@ const UploadTile = ({ item, onDelete }: { item: UploadItem; onDelete: () => void
   const isVideo = item.kind === 'video';
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-app-sunken">
-      {/* Media preview */}
-      <div className="aspect-square w-full overflow-hidden bg-app-sunken">
+      {/* Media preview — 9:16 portrait card */}
+      <div className="aspect-[9/16] w-full overflow-hidden bg-app-sunken">
         {item.url ? (
           isVideo ? (
             // eslint-disable-next-line jsx-a11y/media-has-caption
