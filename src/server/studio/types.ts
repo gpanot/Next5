@@ -57,6 +57,11 @@ export type StudioMarket = {
   competitors: FieldEnvelope<string[]>;
   /** Extracted search keywords for TikTok research. */
   keywords: FieldEnvelope<string[]>;
+  /**
+   * Proof printed on the site (testimonials, metrics, client counts), each with its verbatim quote.
+   * Used by the slideshow engine's Proof shot. Absent on profiles extracted before it existed.
+   */
+  proofPoints?: FieldEnvelope<Array<{ claim: string; evidence: string }>>;
 };
 
 export type StudioTone = {

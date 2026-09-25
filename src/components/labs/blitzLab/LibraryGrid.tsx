@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Repeat2, Trash2 } from 'lucide-react';
 import { useLabClient } from '../LabClientProvider';
 import { blitzApi, type BlitzProjectDto } from './api';
 
@@ -11,6 +11,8 @@ type LibraryGridProps = {
   onDelete: (id: string) => void;
   /** Called when a library video starts playing — so the editor preview pauses. */
   onVideoPlay: () => void;
+  /** Re-open the render's Set in the editor. Hidden when absent. */
+  onRemix?: (project: BlitzProjectDto) => void;
 };
 
 const formatDate = (iso: string) =>
@@ -52,10 +54,12 @@ function LibraryCard({
   project,
   onDelete,
   onVideoPlay,
+  onRemix,
 }: {
   project: BlitzProjectDto;
   onDelete: (id: string) => void;
   onVideoPlay: () => void;
+  onRemix?: (project: BlitzProjectDto) => void;
 }) {
   const client = useLabClient();
   const [deleting, setDeleting] = useState(false);
@@ -154,6 +158,19 @@ function LibraryCard({
           )}
         </div>
 
+        {/* Remix: re-open this Set in the editor */}
+        {onRemix && (
+          <button
+            type="button"
+            onClick={() => onRemix(project)}
+            title="Edit this video again"
+            className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-full border border-line px-2.5 text-[11px] font-semibold text-ink transition-colors hover:border-orange-400 hover:text-orange-600 dark:border-neutral-700"
+          >
+            <Repeat2 aria-hidden className="h-3.5 w-3.5" />
+            Remix
+          </button>
+        )}
+
         {/* Delete button */}
         <button
           type="button"
@@ -172,7 +189,7 @@ function LibraryCard({
   );
 }
 
-export function LibraryGrid({ projects, isLoading, onDelete, onVideoPlay }: LibraryGridProps) {
+export function LibraryGrid({ projects, isLoading, onDelete, onVideoPlay, onRemix }: LibraryGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -202,6 +219,7 @@ export function LibraryGrid({ projects, isLoading, onDelete, onVideoPlay }: Libr
           project={project}
           onDelete={onDelete}
           onVideoPlay={onVideoPlay}
+          onRemix={onRemix}
         />
       ))}
     </div>

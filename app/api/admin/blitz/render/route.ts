@@ -34,7 +34,34 @@ type RenderBody = {
   muteVideoAudio?: boolean;
   /** Slide texts for CAROUSEL type.
    * Accepts string[] (legacy) or SlideData[] (new format with per-slide backgroundKey). */
-  slides?: Array<string | { text: string; backgroundKey?: string }>;
+  slides?: Array<string | SlideBody>;
+  /** Everything needed to re-open this render in the editor (Remix). Stored as-is, size-capped. */
+  set?: unknown;
+};
+
+/** Max stored Set size: a 7-shot deck Set with swaps is ~15 KB. */
+const MAX_SET_BYTES = 200_000;
+
+const cleanSet = (set: unknown): object | null => {
+  if (!set || typeof set !== 'object' || Array.isArray(set)) return null;
+  return JSON.stringify(set).length <= MAX_SET_BYTES ? set : null;
+};
+
+type SlideBody = { text: string; backgroundKey?: string; durationSec?: number; trimStart?: number; positionY?: number };
+
+/** Keeps only well-formed per-slide timing: 1–10 s slides, non-negative trims, positions inside the frame. */
+const cleanSlide = (s: SlideBody): SlideBody => {
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+  const durationSec = num(s.durationSec);
+  const trimStart = num(s.trimStart);
+  const positionY = num(s.positionY);
+  return {
+    text: s.text,
+    ...(s.backgroundKey ? { backgroundKey: s.backgroundKey } : {}),
+    ...(durationSec !== undefined ? { durationSec: Math.min(10, Math.max(1, durationSec)) } : {}),
+    ...(trimStart !== undefined && trimStart > 0 ? { trimStart } : {}),
+    ...(positionY !== undefined ? { positionY: Math.min(0.95, Math.max(0.05, positionY)) } : {}),
+  };
 };
 
 /**
@@ -109,7 +136,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
 
   // Normalize slides early so we can validate per-slide backgroundKeys below
   const normalizedSlides = (body.slides ?? []).map((s) =>
-    typeof s === 'string' ? { text: s } : s,
+    typeof s === 'string' ? { text: s } : cleanSlide(s),
   );
 
   const keys = [
@@ -144,6 +171,8 @@ export const POST = adminRoute(async (req: NextRequest) => {
         ...(body.currentAssets.audioKey ? { audioKey: body.currentAssets.audioKey } : {}),
         // Store slides array for CAROUSEL — worker reads currentAssets.slides
         ...(nonEmptySlides.length > 0 ? { slides: nonEmptySlides } : {}),
+        // Set: provenance + swaps so the render can be remixed later (the worker ignores it).
+        ...(cleanSet(body.set) ? { set: cleanSet(body.set)! } : {}),
         // A still-image slideshow has no footage to follow, so it may run longer
         // than the footage cap. Anything else stays on BLITZ_MAX_DURATION_S.
         ...renderSettings(

@@ -59,3 +59,30 @@ export function groundIndustries(raw: unknown, crawlText: string): { industries:
 
   return { industries: industries.slice(0, 5), evidence: evidence.slice(0, 5) };
 }
+
+export type ProofClaim = { claim: string; evidence: string };
+
+/**
+ * Proof points (testimonials, metrics, client counts) for the slideshow engine's Proof shot.
+ * Kept only when:
+ *  1. the evidence quote appears verbatim (after normalization) in the crawled text, and
+ *  2. every number in the short claim also appears in the quote (no rounded-up "10,000+").
+ */
+export function groundProofPoints(raw: unknown, crawlText: string): ProofClaim[] {
+  if (!Array.isArray(raw)) return [];
+  const haystack = normalize(crawlText);
+  const out: ProofClaim[] = [];
+  for (const item of raw) {
+    if (typeof item !== 'object' || item === null) continue;
+    const { claim, evidence } = item as Partial<ProofClaim>;
+    if (typeof claim !== 'string' || typeof evidence !== 'string') continue;
+    const q = normalize(evidence);
+    if (q.length < 8 || !haystack.includes(q)) continue;
+    const quoteDigits = evidence.replace(/[,\s]/g, '');
+    const claimNumbers = claim.match(/\d[\d,.]*/g) ?? [];
+    if (!claimNumbers.every((n) => quoteDigits.includes(n.replace(/,/g, '')))) continue;
+    if (out.some((p) => p.claim.toLowerCase() === claim.trim().toLowerCase())) continue;
+    out.push({ claim: claim.trim(), evidence: evidence.trim() });
+  }
+  return out.slice(0, 5);
+}

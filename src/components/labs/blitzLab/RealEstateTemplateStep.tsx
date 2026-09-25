@@ -48,15 +48,29 @@ type Props = {
   angles: ReAngle[];
   facts: ListingFacts;
   photoTags: string[];
-  onCopyReady: (copy: SlideshowCopy) => void;
+  /** Legacy single-slideshow path, used only when onAngleSelected is absent. */
+  onCopyReady?: (copy: SlideshowCopy) => void;
+  /**
+   * Optional: when provided, tapping an angle calls this immediately (no LLM call).
+   * The parent is responsible for navigating to the deck/editor step.
+   * When absent, the original behavior (generate copy → onCopyReady) is preserved.
+   */
+  onAngleSelected?: (angle: ReAngle) => void;
 };
 
-export function RealEstateTemplateStep({ angles, facts, photoTags, onCopyReady }: Props) {
+export function RealEstateTemplateStep({ angles, facts, photoTags, onCopyReady, onAngleSelected }: Props) {
   const client = useLabClient();
   const [loadingAngle, setLoadingAngle] = useState<ReAngle | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const handleAngle = async (angle: ReAngle) => {
+    // Fast path: parent wants to own the generation (new deck flow).
+    if (onAngleSelected) {
+      onAngleSelected(angle);
+      return;
+    }
+
+    // Legacy path: generate copy in this step, then call onCopyReady.
     setLoadingAngle(angle);
     setError(null);
     try {
@@ -70,7 +84,7 @@ export function RealEstateTemplateStep({ angles, facts, photoTags, onCopyReady }
         throw new Error(err.error ?? `Error ${res.status}`);
       }
       const data = (await res.json()) as { copy: SlideshowCopy };
-      onCopyReady(data.copy);
+      onCopyReady?.(data.copy);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not generate copy. Try again.');
     } finally {
@@ -92,7 +106,9 @@ export function RealEstateTemplateStep({ angles, facts, photoTags, onCopyReady }
         <h2 className="text-[16px] font-semibold text-ink">Pick a slideshow angle</h2>
         {factsLine && <p className="mt-0.5 text-[12px] text-muted">{factsLine}</p>}
         <p className="mt-1 text-[13px] text-muted">
-          Each angle generates a 5-slide Hook → Meat → CTA slideshow. Tap one to generate copy.
+          {onAngleSelected
+            ? 'Each angle generates 6 swipeable hook variations. Tap one to build the deck.'
+            : 'Each angle generates a 5-slide Hook → Meat → CTA slideshow. Tap one to generate copy.'}
         </p>
       </div>
 

@@ -93,6 +93,27 @@ function SlideTextLayer({
   );
 }
 
+/** Start frame and length of each slide: fixed per-slide durations when all slides carry one, else an even split. */
+function slideTimeline(slides: SlideshowProps['slides'], durationInFrames: number, fps: number) {
+  const count = Math.max(1, slides.length);
+  if (slides.length > 0 && slides.every((s) => (s.durationSec ?? 0) > 0)) {
+    let from = 0;
+    return slides.map((s, i) => {
+      const frames = i === count - 1
+        ? Math.max(1, durationInFrames - from)
+        : Math.round((s.durationSec ?? 0) * fps);
+      const entry = { from, duration: frames };
+      from += frames;
+      return entry;
+    });
+  }
+  const framesPerSlide = durationInFrames / count;
+  return slides.map((_, i) => {
+    const from = Math.floor(i * framesPerSlide);
+    return { from, duration: i === count - 1 ? durationInFrames - from : Math.floor(framesPerSlide) };
+  });
+}
+
 export function SlideshowComposition({
   backgroundUrl,
   backgroundIsImage,
@@ -102,11 +123,10 @@ export function SlideshowComposition({
   slides,
   textConfig,
 }: SlideshowProps) {
-  const { durationInFrames, width, height } = useVideoConfig();
+  const { durationInFrames, width, height, fps } = useVideoConfig();
 
   const nonEmptySlides = slides.filter((s) => s.text.trim());
-  const count = Math.max(1, nonEmptySlides.length);
-  const framesPerSlide = durationInFrames / count;
+  const timeline = slideTimeline(nonEmptySlides, durationInFrames, fps);
 
   // Audio volume: fade to 0 in the last AUDIO_FADE_FRAMES
   const frame = useCurrentFrame();
@@ -137,11 +157,7 @@ export function SlideshowComposition({
        * ~0.3–0.5 s before the background image finished loading.
        */}
       {nonEmptySlides.map((slide, i) => {
-        const from = Math.floor(i * framesPerSlide);
-        const duration =
-          i === count - 1
-            ? durationInFrames - from
-            : Math.floor(framesPerSlide);
+        const { from, duration } = timeline[i]!;
 
         const bgUrl = slide.backgroundUrl ?? backgroundUrl;
         const bgIsImage =
@@ -156,6 +172,7 @@ export function SlideshowComposition({
               ) : (
                 <OffthreadVideo
                   src={bgUrl}
+                  startFrom={Math.round((slide.trimStart ?? 0) * fps)}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   muted={muteVideoAudio}
                   onError={() => undefined}
@@ -167,7 +184,7 @@ export function SlideshowComposition({
             {slide.text.trim() ? (
               <SlideTextLayer
                 text={slide.text}
-                config={textConfig}
+                config={slide.positionY != null ? { ...textConfig, positionY: slide.positionY } : textConfig}
                 width={width}
                 height={height}
               />

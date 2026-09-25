@@ -13,6 +13,8 @@ import { prisma } from '../../../lib/db';
 import type { Prisma } from '@prisma/client';
 import type { VideoDescriptor, MusicDescriptor, AssetKind, AssetSource } from './types';
 import { getModelName } from './gemini';
+import { refreshDescriptorCategories } from './categorize';
+import { refreshDescriptorEmbedding } from './embedding';
 
 const DESCRIPTOR_VERSION = 5;
 
@@ -86,6 +88,9 @@ export async function writeVideo(
     nicheRealtor:  d.nicheScores.realtor,
     nicheTiktokShop: d.nicheScores.tiktokShop,
   });
+  // Categories first: they are part of the embedded text.
+  await refreshDescriptorCategories(source);
+  await refreshDescriptorEmbedding(source);
 }
 
 // ── Write music descriptor ────────────────────────────────────────────────────
@@ -117,6 +122,9 @@ export async function writeMusic(
     nicheRealtor:  d.nicheScores.realtor,
     nicheTiktokShop: d.nicheScores.tiktokShop,
   });
+  // Categories first: they are part of the embedded text.
+  await refreshDescriptorCategories(source);
+  await refreshDescriptorEmbedding(source);
 }
 
 // ── Mark failed ───────────────────────────────────────────────────────────────

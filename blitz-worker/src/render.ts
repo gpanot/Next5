@@ -31,7 +31,16 @@ export async function renderProject(
 
   try {
     // ── 1. Parse stored JSON ────────────────────────────────────────────
-    type SlideInput = string | { text: string; backgroundKey?: string };
+    type SlideInput = string | {
+      text: string;
+      backgroundKey?: string;
+      /** Fixed slide length (7-shot deck videos). */
+      durationSec?: number;
+      /** Start offset into a video background, seconds. */
+      trimStart?: number;
+      /** Per-slide caption position (TextConfig.positionY scale). */
+      positionY?: number;
+    };
     const currentAssets = project.currentAssets as {
       backgroundKey: string;
       overlayKey: string;
@@ -92,10 +101,16 @@ export async function renderProject(
       // Generate presigned URLs for per-slide backgrounds (if any).
       const slides: SlideshowProps['slides'] = await Promise.all(
         filteredSlides.map(async (s) => {
-          if (!s.backgroundKey) return { text: s.text };
+          const timing = {
+            ...(s.durationSec ? { durationSec: s.durationSec } : {}),
+            ...(s.trimStart ? { trimStart: s.trimStart } : {}),
+            ...(s.positionY != null ? { positionY: s.positionY } : {}),
+          };
+          if (!s.backgroundKey) return { text: s.text, ...timing };
           const bgUrl = await getPresignedUrl(s.backgroundKey);
           return {
             text: s.text,
+            ...timing,
             backgroundUrl: bgUrl,
             backgroundIsImage: /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(bgUrl),
           };

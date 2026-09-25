@@ -12,7 +12,7 @@ import { KNOWN_VERTICALS } from './verticalPacks';
 import { crawlSite } from './siteCrawl';
 import { findCompetitors } from './competitors';
 import { discoverKeywords, keywordInputSignature } from './keywordDiscovery';
-import { groundIndustries } from './grounding';
+import { groundIndustries, groundProofPoints } from './grounding';
 import { classifyVertical } from './verticalClassifier';
 
 /** Dedicated vertical call (verticalClassifier.ts): ~$0.0001. */
@@ -48,6 +48,10 @@ Rules:
   Empty array [] if B2C, or if no industry is evidenced. Max 5 items.
 - tone: one of [casual, casual_professional, professional, witty, authoritative, friendly].
 - suggestedHooks: 2–3 hook patterns for TikTok written for the END CUSTOMER (the IDC), each 5–10 words.
+- proofPoints: real proof printed on the site — testimonials, metrics, client counts, ratings, years in business.
+  Each item: { "claim": "<max 10 words, the proof in plain words>", "evidence": "<exact words copied from the page>" }.
+  The evidence must be copied verbatim. Every number in the claim must appear in the evidence. Never round or add "+".
+  Empty array [] when the site shows no proof. Max 5 items.
 
 Return valid JSON only (no markdown):
 {
@@ -65,7 +69,8 @@ Return valid JSON only (no markdown):
   "audienceDescription": "...",
   "targetCustomerIndustries": [{ "industry": "...", "evidence": "..." }],
   "tone": "...",
-  "suggestedHooks": ["...", "..."]
+  "suggestedHooks": ["...", "..."],
+  "proofPoints": [{ "claim": "...", "evidence": "..." }]
 }`;
 
 /** Token cost in micros for gpt-4o-mini (approximate).
@@ -93,6 +98,7 @@ type InferResult = {
   targetCustomerIndustries?: unknown[];
   tone?: string;
   suggestedHooks?: unknown[];
+  proofPoints?: unknown[];
 };
 
 async function inferProfile(text: string, url: string): Promise<{ result: InferResult; durationMs: number; costMicros: number }> {
@@ -108,7 +114,7 @@ async function inferProfile(text: string, url: string): Promise<{ result: InferR
       { role: 'system', content: INFER_SYSTEM_PROMPT },
       { role: 'user', content: text.slice(0, MAX_INFER_CHARS) },
     ],
-    { maxTokens: 600, temperature: 0.2, model: 'gpt-4o-mini' },
+    { maxTokens: 900, temperature: 0.2, model: 'gpt-4o-mini' },
   );
 
   const durationMs = Date.now() - t0;
@@ -213,6 +219,8 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
     : [];
 
   const confidence = crawlResult.text.length > 500 ? 0.8 : 0.5;
+  // Proof points: kept only when the quote is on the page and backs every number in the claim.
+  const proofPoints = groundProofPoints(inferred.proofPoints, crawlResult.text);
 
   const data: StudioProfileData = {
     classification: {
@@ -243,6 +251,10 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
       keywords: {
         ...envelope(keywords, 'inferred', keywordsVerified ? 0.8 : 0.4),
         derivedFrom: keywordInputSignature(keywordInput),
+      },
+      proofPoints: {
+        ...envelope(proofPoints, 'crawl', proofPoints.length > 0 ? 0.9 : 0),
+        evidence: proofPoints.map((p) => p.evidence),
       },
     },
     tone: {

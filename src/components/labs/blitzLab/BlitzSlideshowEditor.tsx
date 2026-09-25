@@ -11,9 +11,14 @@
  * Each slide has its own background, picked per slide. The global background in AssetsPanel is
  * the fallback for slides without one.
  *
- * A Research step above the editor finds a TikTok to model and pre-fills every slide. When a
- * <StudioRunProvider> links the lab to Campaign Studio, a Profile step comes first and research
- * can search the run's IDC niches, one per search.
+ * Real estate flow: Zillow → Angle → Videos. The Videos step is the swipe deck and the editor in
+ * one place: tapping Edit on a card opens this editor over the deck, "All videos" goes back to the
+ * same spot in the deck, and text edits flow back onto the card.
+ *
+ * Website flow (linked to a Campaign Studio run): Profile → Videos. The website engine builds the
+ * deck from the confirmed profile (6 cards per audience); there is no TikTok research step — viral
+ * videos proved too hard to copy as slideshows, and the engine already knows the business.
+ * Without a linked run the editor is a free-form slideshow.
  *
  * Presentational and transport-agnostic: every request goes through the surrounding
  * <LabClientProvider>, so the same editor runs in the admin tab and on the user side.
@@ -26,29 +31,33 @@ import {
   BLITZ_SLIDESHOW_TEXT_DEFAULTS,
 } from '../../../config/blitzLab';
 import { useLabClient } from '../LabClientProvider';
-import { useContentTemplates } from '../shared/useContentTemplates';
-import { Researcher, type NicheSlide } from '../shared/Researcher';
 import { StepPills } from '../shared/StepPills';
-import { IdcNichePicker } from '../studio/runs/IdcNichePicker';
 import { RunProfileStep } from '../studio/runs/RunProfileStep';
 import { useStudioRunContext } from '../studio/runs/StudioRunContext';
-import type { ResearchVideo } from '../ugcLab/researchCache';
 import { AssetLibraryModal } from './AssetLibraryModal';
 import { AssetsPanel, keyForLayer, type CurrentAssets } from './AssetsPanel';
 import { ContextPanel } from './ContextPanel';
 import { FlowTypePicker, type FlowType } from './FlowTypePicker';
 import { LibraryGrid } from './LibraryGrid';
 import { RealEstateTemplateStep } from './RealEstateTemplateStep';
+import { DeckEditBar } from './DeckEditBar';
+import { SHOT_FORMAT, shotFormatError } from './shotFormat';
+import { ANGLE_LABELS, SlideshowDeckStep, type DeckSource } from './SlideshowDeckStep';
+import type { CopyCheckContext } from './deckApi';
+import type { DeckCardData } from './SwipeDeck';
+import type { ReAngle } from '../../../server/labs/slideshowCopy';
 import { RenderControls } from './RenderControls';
 import { SlidePreview, type SlideData } from './SlidePreview';
 import { SlideshowCopyPanel } from './SlideshowCopyPanel';
 import { ZillowScrapeStep, type ZillowData } from './ZillowScrapeStep';
 import { resolveSlideshowMode } from './useSlideshowMode';
 import { blitzApi, type BlitzProjectDto, type BlitzTemplateDto } from './api';
-import type { SlideshowCopy } from '../../../server/labs/slideshowCopy';
 import type { BlitzUploadType } from './upload';
 import { isLocalKey } from './useBlitzUploads';
 import { useBlitzWorkspace } from './useBlitzWorkspace';
+import { useDeckCardEditor } from './useDeckCardEditor';
+import { useSetRemix } from './useSetRemix';
+import { buildSet } from './slideshowSet';
 import { useTextLayout } from './useTextLayout';
 import type { BlitzLayer } from './canvasHitTest';
 
@@ -58,26 +67,27 @@ const DEFAULT_SLIDES: SlideData[] = [
   { text: 'Save this if you found it helpful!' },
 ];
 
-type Step = 'profile' | 'research' | 'editor';
+type Step = 'profile' | 'research' | 'deck' | 'editor';
+/** 'research' is the Angle step of the Zillow flow. */
 
 /** Numbered steps — varies by flow type and whether linked to Campaign Studio. */
 const buildSteps = (withProfile: boolean, flowType: 'b2b' | 'real_estate' | 'tiktok_shop' | null): { id: Step; label: string }[] => {
   if (flowType === 'real_estate') {
     return [
-      { id: 'profile', label: '1 · Zillow' },
+      { id: 'profile',  label: '1 · Zillow' },
       { id: 'research', label: '2 · Angle' },
-      { id: 'editor', label: '3 · Slideshow' },
+      { id: 'deck',     label: '3 · Videos' },
     ];
   }
-  const steps: { id: Step; label: string }[] = [
-    ...(withProfile ? [{ id: 'profile' as const, label: 'Profile' }] : []),
-    { id: 'research', label: 'Research' },
-    { id: 'editor', label: 'Slideshows' },
-  ];
-  return steps.map((s, i) => ({ id: s.id, label: `${i + 1} · ${s.label}` }));
+  // Linked to a Campaign Studio run: the website engine builds the deck from the profile.
+  if (withProfile) {
+    return [
+      { id: 'profile', label: '1 · Profile' },
+      { id: 'deck',    label: '2 · Videos' },
+    ];
+  }
+  return [{ id: 'editor', label: '1 · Slideshow' }];
 };
-
-/** Pick the first unused selected photo whose tag matches the target; returns undefined when none left. */
 
 /** A render belongs to this editor when its assets carry slides. */
 const isSlideshowProject = (project: BlitzProjectDto): boolean => {
@@ -105,29 +115,30 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
 
   // ── flow type ─────────────────────────────────────────────────────────
   // null = picker not yet shown (only when !withProfile && no B2B is forced)
-  const withProfile = useStudioRunContext() !== null;
+  const studioRun = useStudioRunContext();
+  const withProfile = studioRun !== null;
   // When linked to Campaign Studio, always B2B. initialFlowType overrides (for RE from the tab).
   const [flowType, setFlowType] = useState<FlowType | null>(
     initialFlowType ?? (withProfile ? 'b2b' : null),
   );
   const [zillowData, setZillowData] = useState<ZillowData | null>(null);
-  /** Badge shown in editor when RE copy fell back to static templates. */
-  const [isFallbackCopy, setIsFallbackCopy] = useState(false);
-  /** Photo import speed stats from the last import-photos call. */
-  const [photoImportStats, setPhotoImportStats] = useState<{ count: number; avgMs: number; totalMs: number } | null>(null);
+  /** The angle the user selected in step 2 (Zillow flow only). */
+  const [selectedAngle, setSelectedAngle] = useState<ReAngle | null>(null);
+  /** Deck cards for the selected angle. Owned here so editor changes show up on the deck. */
+  const [deckCards, setDeckCards] = useState<DeckCardData[]>([]);
+  /** The deck card open in the editor. Null = the deck is showing. */
+  const [editingCardId, setEditingCardId] = useState<string | null>(null);
 
   // ── step navigation ───────────────────────────────────────────────────
   const steps = buildSteps(withProfile, flowType);
   const [step, setStep] = useState<Step>(() => {
     if (initialFlowType === 'real_estate') return 'profile'; // start at Zillow step
-    return withProfile ? 'profile' : 'research';
+    return withProfile ? 'profile' : 'editor';
   });
 
   // ── editor state ──────────────────────────────────────────────────────
   const [currentAssets, setCurrentAssets] = useState<CurrentAssets>({ backgroundKey: '', overlayKey: '' });
   const [slides, setSlides] = useState<SlideData[]>(DEFAULT_SLIDES);
-  /** True once the user has edited slides or a research action has pre-filled them. */
-  const [slidesEdited, setSlidesEdited] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [mentionBusiness, setMentionBusiness] = useState(false);
   const [businessText, setBusinessText] = useState('');
@@ -139,9 +150,9 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
 
   const text = useTextLayout(carouselTemplate?.textConfig ?? BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS);
 
-  // Duration is always secondsPerSlide × slideCount — video backgrounds are
-  // trimmed/held by the Remotion Sequence window, not the clip length.
-  const { durationSeconds } = resolveSlideshowMode(slides, null, null, secondsPerSlide);
+  // Free-form: secondsPerSlide × slideCount. Deck videos: the fixed 3/4/4/4/4/4/3 s shots (below).
+  // Video backgrounds are trimmed/held by the Remotion Sequence window, not the clip length.
+  const { durationSeconds: freeFormSeconds } = resolveSlideshowMode(slides, null, null, secondsPerSlide);
 
   // ── assets, uploads, library, render ───────────────────────────────────
   const handleKeyReplaced = useCallback((localKey: string, r2Key: string) => {
@@ -158,7 +169,25 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
     library, libraryLoading, removeLibraryProject, renameAsset, deleteAsset, render,
   } = useBlitzWorkspace({ onKeyReplaced: handleKeyReplaced, filterLibrary: isSlideshowProject });
 
-  const { resolve: resolveTemplateFor } = useContentTemplates();
+  // Where the deck comes from, and what edited copy is checked against before render.
+  const deckSource: DeckSource | null =
+    flowType === 'real_estate'
+      ? (zillowData && selectedAngle
+        ? { kind: 'zillow', zillowData, angle: selectedAngle, angleLabel: ANGLE_LABELS[selectedAngle] }
+        : null)
+      : (studioRun?.runId ? { kind: 'website', runId: studioRun.runId } : null);
+  const checkContext: CopyCheckContext | null =
+    deckSource?.kind === 'zillow' ? { engine: 'zillow', facts: deckSource.zillowData.facts }
+    : deckSource?.kind === 'website' ? { engine: 'website', runId: deckSource.runId }
+    : null;
+
+  const deck = useDeckCardEditor({
+    zillowData, checkContext, deckCards, setDeckCards, editingCardId, setEditingCardId,
+    slides, setSlides, currentSlideIndex, setCurrentSlideIndex,
+    assets, addAsset, setCurrentAssets,
+  });
+  const { editingCard } = deck;
+  const durationSeconds = deck.fixedDurationSeconds ?? freeFormSeconds;
 
   // ── load the carousel template + assets ────────────────────────────────
   useEffect(() => {
@@ -190,17 +219,22 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
   const hasLocalKey =
     [currentAssets.backgroundKey, currentAssets.audioKey ?? ''].some(isLocalKey)
     || slides.some((s) => s.backgroundKey && isLocalKey(s.backgroundKey));
+  // Deck videos are re-validated against the 7-shot format before render (spec 11.3).
+  const formatError = editingCard ? shotFormatError(slides.map((s) => s.text)) : null;
   const blockedReason =
-    !hasAnyBackground ? 'Pick a background'
+    formatError ? formatError
+    : !hasAnyBackground ? 'Pick a background'
     : !hasSlideContent ? 'Enter at least one slide text'
     : hasLocalKey ? 'Upload in progress…'
     : null;
 
   // ── submit render ─────────────────────────────────────────────────────
-  const handleDoneEditing = useCallback(() => {
+  const handleDoneEditing = async () => {
     if (!carouselTemplate || blockedReason) return;
+    // Deck videos: same guardrails as generation, on the server, before anything renders.
+    if (!(await deck.checkBeforeRender())) return;
     const nonEmptySlides = slides.filter((s) => s.text.trim());
-    void render.submit({
+    const projectId = await render.submit({
       templateId: carouselTemplate.id,
       currentAssets: {
         backgroundKey: currentAssets.backgroundKey || (nonEmptySlides.find((s) => s.backgroundKey)?.backgroundKey ?? ''),
@@ -216,8 +250,11 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
       textConfigOverride: text.override,
       businessText: mentionBusiness ? businessText : undefined,
       muteVideoAudio,
+      // Saved with the render so the Slideshow Library can Remix it later.
+      set: buildSet(editingCard, slides),
     });
-  }, [carouselTemplate, blockedReason, slides, currentAssets, mentionBusiness, businessText, muteVideoAudio, durationSeconds, text.override, render]);
+    deck.markRendered(projectId);
+  };
 
   // ── picker handlers ───────────────────────────────────────────────────
   const handleSwapAsset = useCallback((type: BlitzUploadType, key: string, slideIndex?: number) => {
@@ -230,17 +267,18 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
     }
   }, []);
 
-  const handlePickerSelect = useCallback((key: string) => {
+  // Plain functions: the React Compiler memoizes them.
+  const handlePickerSelect = (key: string) => {
     if (!picker) return;
     handleSwapAsset(picker.type, key, picker.slideIndex);
     setPicker(null);
-  }, [picker, handleSwapAsset]);
+  };
 
-  const handlePickerFile = useCallback((file: File) => {
+  const handlePickerFile = (file: File) => {
     if (!picker) return;
     handleSwapAsset(picker.type, pickFile(picker.type, file), picker.slideIndex);
     setPicker(null);
-  }, [picker, handleSwapAsset, pickFile]);
+  };
 
   /** Which key the modal should show as current. */
   const pickerCurrentKey =
@@ -248,112 +286,155 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
       ? (slides[picker.slideIndex]?.backgroundKey ?? '')
       : picker?.type ? keyForLayer(currentAssets, picker.type) : '';
 
-  /** Called when the user picks a RE angle and copy was generated. Populates the editor. */
-  const handleRealEstateTemplateAction = useCallback((copy: SlideshowCopy) => {
-    if (!zillowData) return;
-    setIsFallbackCopy(copy.source === 'fallback');
+  /** Zillow flow: angle picked in step 2 → a fresh deck for that angle. */
+  const handleAngleSelected = useCallback((angle: ReAngle) => {
+    setSelectedAngle(angle);
+    setDeckCards([]);
+    setEditingCardId(null);
+    setStep('deck');
+  }, []);
 
-    // 1. Set slides with text immediately so the editor is usable right away.
-    //    Backgrounds will be filled in once photos are imported (async below).
-    const pool = zillowData.selectedCandidates.map((c, i) => ({
-      id: c.id,
-      url: c.url,
-      tag: zillowData.photoTags[i] ?? (i === 0 ? 'exterior' : 'other'),
-    }));
-    // Record which slide maps to which photo pool entry (by index into pool)
-    const slidePhotoMap: number[] = copy.slides.map((s) => {
-      const mutablePool = [...pool];
-      const idx = mutablePool.findIndex((p) => p.tag === s.photo);
-      return idx !== -1 ? idx : 0;
-    });
-
-    const textSlides: SlideData[] = copy.slides.map((s) => ({ text: s.text }));
-    setSlides(textSlides);
-    setSlidesEdited(true);
-    setCurrentSlideIndex(0);
-
-    // Leave the business line blank for RE — the agent fills in their name/brand manually.
-    // (copy.caption + hashtags belong in the social post, not the per-slide overlay.)
-
-    // Auto-pick first audio asset
-    const firstAudio = assets.find((a) => a.type === 'AUDIO');
-    if (firstAudio) setCurrentAssets((prev) => ({ ...prev, audioKey: firstAudio.r2Key }));
-
-    setStep('editor');
-
-    // 2. Import selected photos in the background; fill in backgroundKeys when done.
-    const photoUrls = zillowData.selectedCandidates.map((c) => c.url);
-    fetch(client.url('/blitz/import-photos'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...client.authHeaders() },
-      body: JSON.stringify({ photoUrls, listingRunId: zillowData.listingRunId }),
-    })
-      .then((res) => res.json() as Promise<{ assets?: typeof assets; avgPhotoFetchMs?: number; totalFetchMs?: number }>)
-      .then((data) => {
-        const imported = data.assets ?? [];
-        if (imported.length === 0) return;
-        // Capture speed stats so we can show them in the editor header
-        if (data.avgPhotoFetchMs != null && data.totalFetchMs != null) {
-          setPhotoImportStats({ count: imported.length, avgMs: data.avgPhotoFetchMs, totalMs: data.totalFetchMs });
-        }
-        // Add imported assets to the asset library
-        imported.forEach(addAsset);
-        // Build an ordered pool of r2Keys matched to the photo pool order
-        const keyPool = pool.map((_, i) => imported[i]?.r2Key ?? null);
-        setSlides((prev) => {
-          // usedIndices is created fresh inside the updater so the function is pure.
-          // React StrictMode invokes state updaters twice in dev; if usedIndices were
-          // defined in the outer closure the first call would fill it and the second
-          // (authoritative) call would see all slots taken → every slide gets null.
-          const usedIndices = new Set<number>();
-          return prev.map((slide, slideIdx) => {
-            const targetPoolIdx = slidePhotoMap[slideIdx] ?? 0;
-            let chosen: string | null = null;
-            for (let offset = 0; offset < keyPool.length; offset++) {
-              const idx = (targetPoolIdx + offset) % keyPool.length;
-              if (!usedIndices.has(idx) && keyPool[idx]) {
-                chosen = keyPool[idx];
-                usedIndices.add(idx);
-                break;
-              }
-            }
-            return chosen ? { ...slide, backgroundKey: chosen } : slide;
-          });
-        });
-      })
-      .catch((e) => console.error('[RE import-photos] error:', e)); // silently ignore import errors — user can pick backgrounds manually
-  }, [zillowData, assets, client, addAsset]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleResearchAction = useCallback((video: ResearchVideo, generated?: NicheSlide[]) => {
-    // Prefer the copy written for this niche; fall back to the template's generic examples
-    // when generation was unavailable.
-    const source = generated?.length
-      ? generated
-      : (resolveTemplateFor(video.template_id, video.hook)?.suggestedSlides ?? []);
-    if (source.length === 0) {
-      // Nothing to fill — just navigate to the editor without touching slides.
-      setStep('editor');
-      return;
-    }
-    // If the user has already edited their slides, ask before overwriting.
-    if (slidesEdited) {
-      const ok = window.confirm(
-        'You have already edited your slides. Replace them with this inspiration? Your current edits will be lost.',
-      );
-      if (!ok) {
-        setStep('editor');
-        return;
-      }
-    }
-    setSlides(source.map((s) => ({ text: s.text, bgPromptSuggestion: s.bgPrompt })));
-    setSlidesEdited(true);
-    setCurrentSlideIndex(0);
-    setStep('editor');
-  }, [resolveTemplateFor, slidesEdited]);
+  const remix = useSetRemix({
+    setSlides, setCurrentSlideIndex, setCurrentAssets, setMentionBusiness, setBusinessText, setMuteVideoAudio,
+    setEditingCardId, text, openRemix: deck.openRemix,
+    // A free-form Set opens in the plain editor, whatever step the deck flow is on.
+    showFreeEditor: () => { if (step === 'deck') setStep('editor'); },
+  });
 
   const audioAsset = currentAssets.audioKey && !isLocalKey(currentAssets.audioKey)
     ? assets.find((a) => a.r2Key === currentAssets.audioKey)
     : undefined;
+
+  /** The 3-panel editor + library. Shared by the free-form Slideshow step and the deck's edit view. */
+  const editorView = (
+    <>
+      {loadError && (
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-[13px] text-red-700">
+          Failed to load Blitz Slideshow: {loadError}
+        </div>
+      )}
+
+      {!carouselTemplate && !isLoading && !loadError && (
+        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-6 text-[13px] text-amber-800">
+          No CAROUSEL template found. Seed one in the database: type=CAROUSEL, name=Slideshow.
+        </div>
+      )}
+
+      {isLoading ? (
+        <EditorSkeleton />
+      ) : carouselTemplate ? (
+        <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[320px_1fr_220px]">
+          {/* Left: slide copy + audio. Below the canvas on phones so the preview comes first. */}
+          <div className="order-2 flex flex-col gap-4 lg:order-none">
+            <SlideshowCopyPanel
+              slides={slides}
+              currentIndex={currentSlideIndex}
+              onIndexChange={setCurrentSlideIndex}
+              onChange={setSlides}
+              assets={assets}
+              onPickBackground={(i) => setPicker({ type: 'BACKGROUND', slideIndex: i })}
+              mentionBusiness={mentionBusiness}
+              onMentionBusinessChange={setMentionBusiness}
+              businessText={businessText}
+              onBusinessTextChange={setBusinessText}
+              onAssetCreated={addAsset}
+              secondsPerSlide={secondsPerSlide}
+              onSecondsPerSlideChange={setSecondsPerSlide}
+              durationSeconds={durationSeconds}
+              audioAssets={assets.filter((a) => a.type === 'AUDIO')}
+              onAutoAudioPick={(key) => setCurrentAssets((prev) => ({ ...prev, audioKey: key }))}
+              shotFormat={editingCard ? SHOT_FORMAT : undefined}
+              alternatives={deck.alternatives}
+            />
+            {/* Audio only — the Background layer is hidden because slides own their own. */}
+            <AssetsPanel
+              assets={assets}
+              currentAssets={currentAssets}
+              uploads={uploads}
+              onOpenPicker={(type) => setPicker({ type })}
+              onRetryUpload={retryUpload}
+              onRemoveAudio={() => setCurrentAssets((prev) => ({ ...prev, audioKey: undefined }))}
+              muteVideoAudio={muteVideoAudio}
+              onMuteVideoAudioChange={setMuteVideoAudio}
+              durationSeconds={durationSeconds}
+              hideLayers={['OVERLAY', 'BACKGROUND']}
+            />
+          </div>
+
+          {/* Center: slide preview + render */}
+          <div className="order-1 flex min-w-0 flex-col items-center gap-4 lg:order-none">
+            <SlidePreview
+              slides={slides}
+              currentIndex={currentSlideIndex}
+              onIndexChange={setCurrentSlideIndex}
+              assets={assets}
+              fallbackBackgroundKey={currentAssets.backgroundKey}
+              businessText={mentionBusiness ? businessText : undefined}
+              textConfig={text.resolved}
+              onDragCaption={editingCard ? deck.dragSlideCaption : text.dragCaption}
+              onDragBusiness={text.dragBusiness}
+            />
+            {/* Hidden auto-playing audio — loops as long as a track is selected. */}
+            {audioAsset && !muteVideoAudio && (
+              <audio
+                key={audioAsset.r2Key}
+                autoPlay
+                loop
+                src={audioAsset.url}
+                preload="auto"
+                style={{ display: 'none' }}
+              />
+            )}
+            {deck.copyProblems.length > 0 && (
+              <div role="alert" className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                <p className="font-semibold">Fix before rendering:</p>
+                <ul className="mt-1 list-disc pl-4">
+                  {deck.copyProblems.map((p) => <li key={p}>{p}</li>)}
+                </ul>
+              </div>
+            )}
+            <RenderControls
+              state={render.state}
+              isBusy={render.isBusy}
+              blockedReason={blockedReason}
+              onSubmit={() => void handleDoneEditing()}
+            />
+          </div>
+
+          {/* Right: text style */}
+          <div className="order-3 flex flex-col gap-4 lg:order-none">
+            <ContextPanel
+              activeLayer={activeLayer}
+              onActiveLayerChange={setActiveLayer}
+              showBusiness={mentionBusiness}
+              onResetBusinessPosition={text.resetBusinessPosition}
+              hideOverlay
+              overlayZoom={1}
+              onZoomChange={() => undefined}
+              onResetPosition={() => undefined}
+              onSwapOverlay={() => undefined}
+              textConfig={text.resolved}
+              onTextConfigChange={text.patch}
+              onResetTextPosition={text.resetCaptionPosition}
+            />
+          </div>
+        </div>
+      ) : null}
+
+      {!isLoading && (
+        <section className="flex flex-col gap-3">
+          <p className="text-[15px] font-semibold text-ink">Slideshow Library</p>
+          <LibraryGrid
+            projects={library}
+            isLoading={libraryLoading}
+            onDelete={removeLibraryProject}
+            onVideoPlay={() => undefined}
+            onRemix={remix}
+          />
+        </section>
+      )}
+    </>
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -364,8 +445,16 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
       {/* ── Profile step ──────────────────────────────────────────────── */}
       {step === 'profile' && (
         <>
-          {/* B2B linked to Campaign Studio → RunProfileStep (unchanged) */}
-          {flowType === 'b2b' && <RunProfileStep onConfirmed={() => setStep('research')} />}
+          {/* B2B linked to Campaign Studio → confirm the profile, then the engine builds the deck */}
+          {flowType === 'b2b' && (
+            <RunProfileStep
+              onConfirmed={() => {
+                setDeckCards([]);
+                setEditingCardId(null);
+                setStep('deck');
+              }}
+            />
+          )}
 
           {/* Real Estate → Zillow scrape + photo selection */}
           {flowType === 'real_estate' && (
@@ -382,189 +471,57 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
       {/* ── Research step ─────────────────────────────────────────────── */}
       {step === 'research' && (
         <>
-          {/* B2B → TikTok researcher (unchanged) */}
-          {(flowType === 'b2b' || flowType === null) && (
-            <div className="flex flex-col gap-4">
-              <div>
-                <p className="text-[14px] font-semibold text-ink">Research viral slideshows</p>
-                <p className="mt-0.5 text-[12px] text-muted">
-                  Search TikTok for niche content — click &ldquo;See Template&rdquo; to see which format it uses, then
-                  use a result to fill every slide.
-                </p>
-              </div>
-              <Researcher
-                cacheKey="blitz-slideshow-research"
-                actionLabel="Use as inspiration"
-                withSlides
-                onAction={handleResearchAction}
-                renderNichePicker={({ runSearch, busy, active }) => (
-                  <IdcNichePicker active={active} busy={busy} onPick={runSearch} />
-                )}
-              />
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => setStep('editor')}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-6 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
-                >
-                  Skip to Slideshow →
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Real Estate → eligible angle cards */}
+          {/* Real Estate → eligible angle cards (new deck flow: passes angle, no copy gen here) */}
           {flowType === 'real_estate' && zillowData && (
             <RealEstateTemplateStep
               angles={zillowData.angles}
               facts={zillowData.facts}
               photoTags={zillowData.photoTags}
-              onCopyReady={handleRealEstateTemplateAction}
+              onAngleSelected={handleAngleSelected}
             />
           )}
         </>
       )}
 
-      {/* ── Slideshow editor ──────────────────────────────────────────── */}
-      {step === 'editor' && (
+      {/* ── Videos step (both engines) ────────────────────────────────── */}
+      {/* Deck and editor share this step. The deck stays mounted (hidden) while a card is */}
+      {/* open, so swipe history and filters survive the round trip.                       */}
+      {step === 'deck' && !deckSource && (
+        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-6 text-[13px] text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+          {flowType === 'real_estate' ? 'Pick an angle first.' : 'Pick a Campaign Studio run and confirm its profile first.'}
+        </div>
+      )}
+      {step === 'deck' && deckSource && (
         <>
-          {loadError && (
-            <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-[13px] text-red-700">
-              Failed to load Blitz Slideshow: {loadError}
-            </div>
-          )}
-
-          {!carouselTemplate && !isLoading && !loadError && (
-            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-6 text-[13px] text-amber-800">
-              No CAROUSEL template found. Seed one in the database: type=CAROUSEL, name=Slideshow.
-            </div>
-          )}
-
-          {isLoading ? (
-            <EditorSkeleton />
-          ) : carouselTemplate ? (
-            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[320px_1fr_220px]">
-              {/* Left: slide copy + audio. Below the canvas on phones so the preview comes first. */}
-              <div className="order-2 flex flex-col gap-4 lg:order-none">
-                <SlideshowCopyPanel
-                  slides={slides}
-                  currentIndex={currentSlideIndex}
-                  onIndexChange={setCurrentSlideIndex}
-                  onChange={(next) => { setSlides(next); setSlidesEdited(true); }}
-                  assets={assets}
-                  onPickBackground={(i) => setPicker({ type: 'BACKGROUND', slideIndex: i })}
-                  mentionBusiness={mentionBusiness}
-                  onMentionBusinessChange={setMentionBusiness}
-                  businessText={businessText}
-                  onBusinessTextChange={setBusinessText}
-                  onAssetCreated={addAsset}
-                  secondsPerSlide={secondsPerSlide}
-                  onSecondsPerSlideChange={setSecondsPerSlide}
-                  durationSeconds={durationSeconds}
-                  audioAssets={assets.filter((a) => a.type === 'AUDIO')}
-                  onAutoAudioPick={(key) => setCurrentAssets((prev) => ({ ...prev, audioKey: key }))}
-                />
-                {/* Audio only — the Background layer is hidden because slides own their own. */}
-                <AssetsPanel
-                  assets={assets}
-                  currentAssets={currentAssets}
-                  uploads={uploads}
-                  onOpenPicker={(type) => setPicker({ type })}
-                  onRetryUpload={retryUpload}
-                  onRemoveAudio={() => setCurrentAssets((prev) => ({ ...prev, audioKey: undefined }))}
-                  muteVideoAudio={muteVideoAudio}
-                  onMuteVideoAudioChange={setMuteVideoAudio}
-                  durationSeconds={durationSeconds}
-                  hideLayers={['OVERLAY', 'BACKGROUND']}
-                />
-              </div>
-
-              {/* Center: slide preview + render */}
-              <div className="order-1 flex min-w-0 flex-col items-center gap-4 lg:order-none">
-                <SlidePreview
-                  slides={slides}
-                  currentIndex={currentSlideIndex}
-                  onIndexChange={setCurrentSlideIndex}
-                  assets={assets}
-                  fallbackBackgroundKey={currentAssets.backgroundKey}
-                  businessText={mentionBusiness ? businessText : undefined}
-                  textConfig={text.resolved}
-                  onDragCaption={text.dragCaption}
-                  onDragBusiness={text.dragBusiness}
-                />
-                {/* Hidden auto-playing audio — loops as long as a track is selected. */}
-                {audioAsset && !muteVideoAudio && (
-                  <audio
-                    key={audioAsset.r2Key}
-                    autoPlay
-                    loop
-                    src={audioAsset.url}
-                    preload="auto"
-                    style={{ display: 'none' }}
-                  />
-                )}
-                {isFallbackCopy && (
-                  <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-700">
-                    <span>Fallback copy — AI unavailable. Edit manually or retry.</span>
-                    <button
-                      type="button"
-                      onClick={() => { setIsFallbackCopy(false); setStep('research'); }}
-                      className="shrink-0 rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
-                    >
-                      ← Retry AI
-                    </button>
-                  </div>
-                )}
-                {photoImportStats && (
-                  <div className="flex w-full items-center gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-[12px] text-sky-700">
-                    <span className="font-semibold tabular-nums">{photoImportStats.count} photo{photoImportStats.count === 1 ? '' : 's'} imported</span>
-                    <span className="text-sky-400">·</span>
-                    <span className="tabular-nums">{photoImportStats.totalMs.toLocaleString()} ms total</span>
-                    <span className="text-sky-400">·</span>
-                    <span className="tabular-nums font-semibold">{photoImportStats.avgMs.toLocaleString()} ms/photo</span>
-                  </div>
-                )}
-                <RenderControls
-                  state={render.state}
-                  isBusy={render.isBusy}
-                  blockedReason={blockedReason}
-                  onSubmit={handleDoneEditing}
-                />
-              </div>
-
-              {/* Right: text style */}
-              <div className="order-3 flex flex-col gap-4 lg:order-none">
-                <ContextPanel
-                  activeLayer={activeLayer}
-                  onActiveLayerChange={setActiveLayer}
-                  showBusiness={mentionBusiness}
-                  onResetBusinessPosition={text.resetBusinessPosition}
-                  hideOverlay
-                  overlayZoom={1}
-                  onZoomChange={() => undefined}
-                  onResetPosition={() => undefined}
-                  onSwapOverlay={() => undefined}
-                  textConfig={text.resolved}
-                  onTextConfigChange={text.patch}
-                  onResetTextPosition={text.resetCaptionPosition}
-                />
-              </div>
-            </div>
-          ) : null}
-
-          {!isLoading && (
-            <section className="flex flex-col gap-3">
-              <p className="text-[15px] font-semibold text-ink">Slideshow Library</p>
-              <LibraryGrid
-                projects={library}
-                isLoading={libraryLoading}
-                onDelete={removeLibraryProject}
-                onVideoPlay={() => undefined}
+          <div className={editingCard ? 'hidden' : undefined}>
+            <SlideshowDeckStep
+              key={deckSource.kind === 'zillow' ? `zillow-${deckSource.angle}` : `website-${deckSource.runId}`}
+              source={deckSource}
+              cards={deckCards}
+              onCardsChange={setDeckCards}
+              onEditCard={deck.openCard}
+              paused={Boolean(editingCard)}
+              onBack={() => setStep(flowType === 'real_estate' ? 'research' : 'profile')}
+              fallbackAudioUrl={assets.find((a) => a.type === 'AUDIO')?.url}
+            />
+          </div>
+          {editingCard && (
+            <>
+              <DeckEditBar
+                lensLabel={editingCard.lensValue}
+                hookStyle={editingCard.hookStyle}
+                position={deckCards.indexOf(editingCard) + 1}
+                total={deckCards.length}
+                onBack={deck.backToDeck}
               />
-            </section>
+              {editorView}
+            </>
           )}
         </>
       )}
+
+      {/* ── Slideshow editor (free-form flows) ────────────────────────── */}
+      {step === 'editor' && editorView}
 
       {picker && (
         <AssetLibraryModal

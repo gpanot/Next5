@@ -23,6 +23,12 @@ export type SlideData = {
   backgroundKey?: string;
   /** Recommended GPT-image-2 background prompt (pre-filled from Phase0A template when "Use as inspiration" is clicked). */
   bgPromptSuggestion?: string;
+  /** Fixed slide length in seconds (7-shot deck videos). Absent = the editor's seconds-per-slide. */
+  durationSec?: number;
+  /** Start offset into a video background, seconds (the asset's best moment). */
+  trimStart?: number;
+  /** Caption position for this slide (TextConfig.positionY scale), chosen from the asset's text-safe zone. */
+  positionY?: number;
 };
 
 type SlidePreviewProps = {
@@ -177,6 +183,9 @@ export function SlidePreview({
               playsInline
               loop
               autoPlay
+              onLoadedMetadata={(e) => {
+                if (currentSlide?.trimStart) e.currentTarget.currentTime = currentSlide.trimStart;
+              }}
               className="absolute inset-0 h-full w-full object-cover"
             />
           ) : (
@@ -200,7 +209,7 @@ export function SlidePreview({
         <div
           data-blitz-layer="TEXT"
           className="absolute inset-x-0 flex justify-center"
-          style={{ bottom: `${(1 - (textConfig.positionY ?? 0.15)) * 100}%` }}
+          style={{ bottom: `${(1 - (currentSlide?.positionY ?? textConfig.positionY ?? 0.15)) * 100}%` }}
         >
           {currentText ? (
             <p style={cssTextStyle(textConfig)}>{currentText}</p>

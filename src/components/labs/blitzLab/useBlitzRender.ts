@@ -106,7 +106,8 @@ export function useBlitzRender(
     pollersRef.current.set(projectId, intervalId);
   }, [client, stopPoller, onCompleted, onProjectUpdate]);
 
-  const submit = useCallback(async (body: RenderBody) => {
+  /** Queues a render. Resolves to the new project id, or null when the request failed. */
+  const submit = useCallback(async (body: RenderBody): Promise<string | null> => {
     setState({ phase: 'submitting' });
     console.log('[blitz-render] Submitting render job…', body);
 
@@ -118,7 +119,7 @@ export function useBlitzRender(
     if (!res?.ok) {
       console.error('[blitz-render] Render request failed:', res?.data);
       setState({ phase: 'error', message: res?.data?.error ?? 'Render request failed' });
-      return;
+      return null;
     }
 
     const projectId = res.data.projectId;
@@ -133,6 +134,7 @@ export function useBlitzRender(
 
     // Background polling — updates the library card until COMPLETED / FAILED
     startPoller(projectId);
+    return projectId;
   }, [client, startPoller, onQueued]);
 
   // Cleanup all pollers on unmount

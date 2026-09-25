@@ -46,7 +46,9 @@ export const blitzApi = {
       businessText?: string;
       muteVideoAudio?: boolean;
       /** Slide data for CAROUSEL templates — SlideData[] with per-slide backgroundKey support */
-      slides?: Array<{ text: string; backgroundKey?: string }>;
+      slides?: Array<{ text: string; backgroundKey?: string; durationSec?: number; trimStart?: number; positionY?: number }>;
+      /** Remix data saved with the render (see slideshowSet.ts). */
+      set?: object;
     },
   ) =>
     client.request<{ projectId: string; status: string; project: BlitzProjectDto }>(`${BASE}/render`,

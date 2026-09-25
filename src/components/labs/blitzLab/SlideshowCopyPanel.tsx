@@ -10,6 +10,8 @@ import {
 import { useLabClient } from '../LabClientProvider';
 import { blitzApi, type BlitzAssetDto } from './api';
 import type { SlideData } from './SlidePreview';
+import { ShotAlternatives } from './ShotAlternatives';
+import { countWords, type MediaChoice, type ShotFormat } from './shotFormat';
 
 export type { SlideData };
 
@@ -42,6 +44,13 @@ type SlideshowCopyPanelProps = {
   audioAssets?: BlitzAssetDto[];
   /** Called when Auto picks an audio track so the parent can set audioKey. */
   onAutoAudioPick?: (audioKey: string) => void;
+  /**
+   * Fixed shot format (deck videos): labels each slide with its role and a live word limit,
+   * and locks the slide count and order. Absent = free-form slideshow.
+   */
+  shotFormat?: readonly ShotFormat[];
+  /** Deck videos: the engine's runner-up clips per slide, for one-tap swap. */
+  alternatives?: MediaChoice[][];
 };
 
 /** Slide text inputs + per-slide backgrounds + business line for the Blitz Slideshow editor. */
@@ -62,7 +71,10 @@ export function SlideshowCopyPanel({
   durationSeconds,
   audioAssets = [],
   onAutoAudioPick,
+  shotFormat,
+  alternatives,
 }: SlideshowCopyPanelProps) {
+  const isFixed = Boolean(shotFormat);
   const client = useLabClient();
   const nonEmptyCount = slides.filter((s) => s.text.trim()).length;
 
@@ -155,6 +167,14 @@ export function SlideshowCopyPanel({
     } catch {
       setGenState((prev) => ({ ...prev, [i]: 'error' }));
     }
+  };
+
+  const pickAlternative = (i: number, choice: MediaChoice) => {
+    if (!choice.assetKey) return;
+    const next = [...slides];
+    next[i] = { ...next[i], backgroundKey: choice.assetKey, trimStart: choice.trimStart, positionY: choice.positionY };
+    onChange(next);
+    onIndexChange(i);
   };
 
   const updateSlide = (i: number, value: string) => {
@@ -318,6 +338,11 @@ export function SlideshowCopyPanel({
               {durationSeconds.toFixed(0)} s total
             </span>
           </div>
+          {isFixed ? (
+            <p className="text-[11px] text-muted">
+              Fixed timing: hook {shotFormat?.[0]?.durationSec}s, story {shotFormat?.[1]?.durationSec}s each, CTA {shotFormat?.[shotFormat.length - 1]?.durationSec}s.
+            </p>
+          ) : (
           <div className="flex items-center justify-between gap-2">
             <label htmlFor="seconds-per-slide" className="text-[11px] text-muted">
               Seconds per slide
@@ -346,6 +371,7 @@ export function SlideshowCopyPanel({
               </button>
             </div>
           </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -356,15 +382,18 @@ export function SlideshowCopyPanel({
             const isGenerating = gs === 'generating';
             const isOpen = gs === 'open';
             const hasError = gs === 'error';
+            const fmt = shotFormat?.[i];
+            const words = countWords(slide.text);
+            const overLimit = Boolean(fmt && (words === 0 || words > fmt.maxWords));
 
             return (
               <div
                 key={i}
-                draggable
-                onDragStart={(e) => handleDragStart(e, i)}
-                onDragEnd={handleDragEnd}
-                onDragOver={(e) => handleDragOver(e, i)}
-                onDrop={(e) => handleDrop(e, i)}
+                draggable={!isFixed}
+                onDragStart={isFixed ? undefined : (e) => handleDragStart(e, i)}
+                onDragEnd={isFixed ? undefined : handleDragEnd}
+                onDragOver={isFixed ? undefined : (e) => handleDragOver(e, i)}
+                onDrop={isFixed ? undefined : (e) => handleDrop(e, i)}
                 className={[
                   'flex flex-col gap-1.5 rounded-xl border p-2 transition-colors',
                   i === currentIndex ? 'border-orange-400 ring-1 ring-orange-400/40' : 'border-line',
@@ -373,14 +402,16 @@ export function SlideshowCopyPanel({
               >
                 {/* Drag handle + slide number + background picker + generate + remove */}
                 <div className="flex items-center gap-1.5">
-                  {/* Drag handle */}
-                  <span
-                    className="flex h-7 w-4 shrink-0 cursor-grab items-center justify-center text-muted active:cursor-grabbing"
-                    title="Drag to reorder"
-                    aria-label={`Drag slide ${i + 1} to reorder`}
-                  >
-                    <GripVertical className="h-4 w-4" />
-                  </span>
+                  {/* Drag handle (free-form only: the shot order is fixed for deck videos) */}
+                  {!isFixed && (
+                    <span
+                      className="flex h-7 w-4 shrink-0 cursor-grab items-center justify-center text-muted active:cursor-grabbing"
+                      title="Drag to reorder"
+                      aria-label={`Drag slide ${i + 1} to reorder`}
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </span>
+                  )}
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-surface-alt text-[11px] font-semibold text-muted">
                     {i + 1}
                   </span>
@@ -429,7 +460,7 @@ export function SlideshowCopyPanel({
                       )}
                     </button>
 
-                  {slides.length > 1 && (
+                  {slides.length > 1 && !isFixed && (
                     <button
                       type="button"
                       onClick={() => removeSlide(i)}
@@ -473,20 +504,43 @@ export function SlideshowCopyPanel({
                   </div>
                 )}
 
+                {/* Shot role + live word limit (deck videos) */}
+                {fmt && (
+                  <div className="flex items-baseline justify-between px-0.5 text-[11px]">
+                    <span className="font-semibold text-ink">
+                      {fmt.label} <span className="font-normal text-muted">· {fmt.durationSec}s</span>
+                    </span>
+                    <span className={overLimit ? 'font-semibold text-red-600 dark:text-red-400' : 'tabular-nums text-muted'}>
+                      {words}/{fmt.maxWords} words
+                    </span>
+                  </div>
+                )}
+
+                {/* Engine runner-ups for this shot (deck videos) */}
+                {alternatives?.[i] && (
+                  <ShotAlternatives
+                    choices={alternatives[i]!}
+                    currentKey={slide.backgroundKey}
+                    onPick={(c) => pickAlternative(i, c)}
+                  />
+                )}
+
                 {/* Text input */}
                 <textarea
                   value={slide.text}
                   rows={2}
-                  placeholder={`Slide ${i + 1} text…`}
+                  placeholder={fmt ? `${fmt.label} line…` : `Slide ${i + 1} text…`}
+                  aria-label={fmt ? `${fmt.label} text` : `Slide ${i + 1} text`}
                   onFocus={() => onIndexChange(i)}
                   onChange={(e) => updateSlide(i, e.target.value)}
-                  className={`${inputClass} resize-none`}
+                  className={`${inputClass} resize-none ${overLimit ? 'border-red-400 dark:border-red-500' : ''}`}
                 />
               </div>
             );
           })}
         </div>
 
+        {!isFixed && (
         <button
           type="button"
           onClick={addSlide}
@@ -496,6 +550,7 @@ export function SlideshowCopyPanel({
           + Add slide
           {slides.length >= MAX_SLIDES && <span className="text-[10px]">(max {MAX_SLIDES})</span>}
         </button>
+        )}
       </div>
     </>
   );

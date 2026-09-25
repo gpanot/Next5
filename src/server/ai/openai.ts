@@ -66,7 +66,13 @@ export const chatJsonWithMeta = async <T>(
       model?: string;
     };
     const text = data.choices?.[0]?.message?.content;
-    const result = text ? (JSON.parse(text) as T) : null;
+    if (!text) {
+      // Log finish_reason so we know if it was a length cutoff or refusal
+      const finishReason = (data.choices?.[0] as { finish_reason?: string } | undefined)?.finish_reason ?? 'unknown';
+      console.error(`[chatJsonWithMeta] Empty content from model="${model}" finish_reason="${finishReason}"`);
+      return { result: null, meta: { usage: null, elapsedMs, model } };
+    }
+    const result = JSON.parse(text) as T;
     const u = data.usage;
     const usage: ChatUsage | null = u
       ? { promptTokens: u.prompt_tokens ?? 0, completionTokens: u.completion_tokens ?? 0, totalTokens: u.total_tokens ?? 0 }

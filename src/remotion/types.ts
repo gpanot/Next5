@@ -47,6 +47,15 @@ export type SlideshowSlide = {
   backgroundUrl?: string;
   /** Force image treatment for this slide's background. */
   backgroundIsImage?: boolean;
+  /**
+   * Fixed length of this slide in seconds (7-shot deck videos: 3/4/4/4/4/4/3).
+   * When every slide has one, the timeline follows them; otherwise slides split the clip evenly.
+   */
+  durationSec?: number;
+  /** Start offset into a video background, in seconds (the asset's bestTrim start). */
+  trimStart?: number;
+  /** Caption position for this slide (same scale as TextConfig.positionY), from the asset's text-safe zone. */
+  positionY?: number;
 };
 
 /** Props for the Slideshow (CAROUSEL) Remotion composition. */
