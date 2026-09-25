@@ -1,7 +1,8 @@
 'use client';
 
-import { Loader2, Trash2, UploadCloud, Images, Film } from 'lucide-react';
+import { Download, Loader2, Trash2, UploadCloud, Images, Film, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
 import { useToast } from '../../../hooks/useToast';
 import { AppButton } from '../../ui/AppButton';
@@ -39,6 +40,7 @@ export const LibraryUploadedView = () => {
   const [state, setState] = useState<State | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [open, setOpen] = useState<UploadItem | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const { toasts, toast, dismiss } = useToast();
 
@@ -152,7 +154,7 @@ export const LibraryUploadedView = () => {
             onDrop={(e) => { e.preventDefault(); e.dataTransfer.files && void onFiles(e.dataTransfer.files); }}
           >
             {state.items.map((item) => (
-              <UploadTile key={item.id} item={item} onDelete={() => void deleteUpload(item)} />
+              <UploadTile key={item.id} item={item} onOpen={() => setOpen(item)} onDelete={() => void deleteUpload(item)} />
             ))}
           </div>
 
@@ -167,6 +169,8 @@ export const LibraryUploadedView = () => {
       )}
 
       <ToastContainer toasts={toasts} onDismiss={dismiss} />
+
+      {open && <UploadLightbox item={open} onClose={() => setOpen(null)} />}
     </>
   );
 };
@@ -211,18 +215,23 @@ const DropZone = ({
 
 /* ── Single tile ────────────────────────────────────────────────────── */
 
-const UploadTile = ({ item, onDelete }: { item: UploadItem; onDelete: () => void }) => {
+const UploadTile = ({ item, onOpen, onDelete }: { item: UploadItem; onOpen: () => void; onDelete: () => void }) => {
   const isVideo = item.kind === 'video';
   return (
     <div className="group relative overflow-hidden rounded-2xl bg-app-sunken">
-      {/* Media preview — 9:16 portrait card */}
-      <div className="aspect-[9/16] w-full overflow-hidden bg-app-sunken">
+      {/* Clickable media area — 9:16 portrait card */}
+      <button
+        type="button"
+        aria-label={`View ${item.filename}`}
+        onClick={onOpen}
+        className="block aspect-[9/16] w-full overflow-hidden bg-app-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-app-accent"
+      >
         {item.url ? (
           isVideo ? (
             // eslint-disable-next-line jsx-a11y/media-has-caption
             <video
               src={item.url}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
               muted
               playsInline
               preload="metadata"
@@ -245,11 +254,11 @@ const UploadTile = ({ item, onDelete }: { item: UploadItem; onDelete: () => void
             )}
           </div>
         )}
-      </div>
+      </button>
 
       {/* Video badge */}
       {isVideo && (
-        <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+        <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
           <Film className="h-2.5 w-2.5" />
           Video
         </div>
@@ -271,5 +280,99 @@ const UploadTile = ({ item, onDelete }: { item: UploadItem; onDelete: () => void
         <p className="text-[10px] text-app-muted">{formatBytes(item.sizeBytes)}</p>
       </div>
     </div>
+  );
+};
+
+/* ── Full-screen lightbox ───────────────────────────────────────────── */
+
+const UploadLightbox = ({ item, onClose }: { item: UploadItem; onClose: () => void }) => {
+  const isVideo = item.kind === 'video';
+
+  // Lock body scroll + Escape to close
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [onClose]);
+
+  const download = () => {
+    if (!item.url) return;
+    const a = document.createElement('a');
+    a.href = item.url;
+    a.download = item.filename;
+    a.click();
+  };
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={item.filename}
+      className="fixed inset-0 z-[90] flex items-center justify-center bg-black"
+    >
+      {/* Backdrop tap to close */}
+      <button
+        type="button"
+        aria-label="Close"
+        onClick={onClose}
+        className="absolute inset-0 cursor-default"
+      />
+
+      {/* Media — centred, constrained to 9:16 max height */}
+      <div className="relative z-10 flex max-h-[100dvh] max-w-full items-center justify-center">
+        {item.url ? (
+          isVideo ? (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <video
+              src={item.url}
+              controls
+              autoPlay
+              playsInline
+              className="max-h-[100dvh] max-w-full object-contain"
+              style={{ aspectRatio: '9/16' }}
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.url}
+              alt={item.filename}
+              draggable={false}
+              className="max-h-[100dvh] max-w-full select-none object-contain"
+            />
+          )
+        ) : null}
+      </div>
+
+      {/* Top controls */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 bg-gradient-to-b from-black/60 to-transparent px-3 pb-8 pt-[max(env(safe-area-inset-top),12px)]">
+        {/* Download */}
+        <button
+          type="button"
+          onClick={download}
+          className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-black/45 px-3.5 py-2 text-[13px] font-medium text-white ring-1 ring-white/15 backdrop-blur-md transition-colors duration-200 hover:bg-black/65"
+        >
+          <Download className="h-4 w-4" />
+          Download
+        </button>
+
+        {/* Close */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-black/45 text-white ring-1 ring-white/15 backdrop-blur-md transition-colors duration-200 hover:bg-black/65"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      </div>
+    </div>,
+    document.body,
   );
 };
