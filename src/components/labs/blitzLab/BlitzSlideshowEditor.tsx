@@ -36,12 +36,16 @@ import type { ResearchVideo } from '../ugcLab/researchCache';
 import { AssetLibraryModal } from './AssetLibraryModal';
 import { AssetsPanel, keyForLayer, type CurrentAssets } from './AssetsPanel';
 import { ContextPanel } from './ContextPanel';
+import { FlowTypePicker, type FlowType } from './FlowTypePicker';
 import { LibraryGrid } from './LibraryGrid';
+import { RealEstateTemplateStep } from './RealEstateTemplateStep';
 import { RenderControls } from './RenderControls';
 import { SlidePreview, type SlideData } from './SlidePreview';
 import { SlideshowCopyPanel } from './SlideshowCopyPanel';
+import { ZillowScrapeStep, type ZillowData } from './ZillowScrapeStep';
 import { resolveSlideshowMode } from './useSlideshowMode';
 import { blitzApi, type BlitzProjectDto, type BlitzTemplateDto } from './api';
+import type { SlideshowCopy } from '../../../server/labs/slideshowCopy';
 import type { BlitzUploadType } from './upload';
 import { isLocalKey } from './useBlitzUploads';
 import { useBlitzWorkspace } from './useBlitzWorkspace';
@@ -56,8 +60,15 @@ const DEFAULT_SLIDES: SlideData[] = [
 
 type Step = 'profile' | 'research' | 'editor';
 
-/** Numbered steps, with Profile first when the lab is linked to Campaign Studio. */
-const buildSteps = (withProfile: boolean): { id: Step; label: string }[] => {
+/** Numbered steps — varies by flow type and whether linked to Campaign Studio. */
+const buildSteps = (withProfile: boolean, flowType: 'b2b' | 'real_estate' | 'tiktok_shop' | null): { id: Step; label: string }[] => {
+  if (flowType === 'real_estate') {
+    return [
+      { id: 'profile', label: '1 · Zillow' },
+      { id: 'research', label: '2 · Angle' },
+      { id: 'editor', label: '3 · Slideshow' },
+    ];
+  }
   const steps: { id: Step; label: string }[] = [
     ...(withProfile ? [{ id: 'profile' as const, label: 'Profile' }] : []),
     { id: 'research', label: 'Research' },
@@ -65,6 +76,8 @@ const buildSteps = (withProfile: boolean): { id: Step; label: string }[] => {
   ];
   return steps.map((s, i) => ({ id: s.id, label: `${i + 1} · ${s.label}` }));
 };
+
+/** Pick the first unused selected photo whose tag matches the target; returns undefined when none left. */
 
 /** A render belongs to this editor when its assets carry slides. */
 const isSlideshowProject = (project: BlitzProjectDto): boolean => {
@@ -82,7 +95,7 @@ function EditorSkeleton() {
   );
 }
 
-export function BlitzSlideshowEditor() {
+export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: FlowType } = {}) {
   const client = useLabClient();
 
   // ── data ──────────────────────────────────────────────────────────────
@@ -90,10 +103,23 @@ export function BlitzSlideshowEditor() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // ── step navigation ───────────────────────────────────────────────────
+  // ── flow type ─────────────────────────────────────────────────────────
+  // null = picker not yet shown (only when !withProfile && no B2B is forced)
   const withProfile = useStudioRunContext() !== null;
-  const steps = buildSteps(withProfile);
-  const [step, setStep] = useState<Step>(withProfile ? 'profile' : 'research');
+  // When linked to Campaign Studio, always B2B. initialFlowType overrides (for RE from the tab).
+  const [flowType, setFlowType] = useState<FlowType | null>(
+    initialFlowType ?? (withProfile ? 'b2b' : null),
+  );
+  const [zillowData, setZillowData] = useState<ZillowData | null>(null);
+  /** Badge shown in editor when RE copy fell back to static templates. */
+  const [isFallbackCopy, setIsFallbackCopy] = useState(false);
+
+  // ── step navigation ───────────────────────────────────────────────────
+  const steps = buildSteps(withProfile, flowType);
+  const [step, setStep] = useState<Step>(() => {
+    if (initialFlowType === 'real_estate') return 'profile'; // start at Zillow step
+    return withProfile ? 'profile' : 'research';
+  });
 
   // ── editor state ──────────────────────────────────────────────────────
   const [currentAssets, setCurrentAssets] = useState<CurrentAssets>({ backgroundKey: '', overlayKey: '' });
@@ -220,6 +246,78 @@ export function BlitzSlideshowEditor() {
       ? (slides[picker.slideIndex]?.backgroundKey ?? '')
       : picker?.type ? keyForLayer(currentAssets, picker.type) : '';
 
+  /** Called when the user picks a RE angle and copy was generated. Populates the editor. */
+  const handleRealEstateTemplateAction = useCallback((copy: SlideshowCopy) => {
+    if (!zillowData) return;
+    setIsFallbackCopy(copy.source === 'fallback');
+
+    // 1. Set slides with text immediately so the editor is usable right away.
+    //    Backgrounds will be filled in once photos are imported (async below).
+    const pool = zillowData.selectedCandidates.map((c, i) => ({
+      id: c.id,
+      url: c.url,
+      tag: zillowData.photoTags[i] ?? (i === 0 ? 'exterior' : 'other'),
+    }));
+    // Record which slide maps to which photo pool entry (by index into pool)
+    const slidePhotoMap: number[] = copy.slides.map((s) => {
+      const mutablePool = [...pool];
+      const idx = mutablePool.findIndex((p) => p.tag === s.photo);
+      return idx !== -1 ? idx : 0;
+    });
+
+    const textSlides: SlideData[] = copy.slides.map((s) => ({ text: s.text }));
+    setSlides(textSlides);
+    setSlidesEdited(true);
+    setCurrentSlideIndex(0);
+
+    // Leave the business line blank for RE — the agent fills in their name/brand manually.
+    // (copy.caption + hashtags belong in the social post, not the per-slide overlay.)
+
+    // Auto-pick first audio asset
+    const firstAudio = assets.find((a) => a.type === 'AUDIO');
+    if (firstAudio) setCurrentAssets((prev) => ({ ...prev, audioKey: firstAudio.r2Key }));
+
+    setStep('editor');
+
+    // 2. Import selected photos in the background; fill in backgroundKeys when done.
+    const photoUrls = zillowData.selectedCandidates.map((c) => c.url);
+    fetch(client.url('/blitz/import-photos'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...client.authHeaders() },
+      body: JSON.stringify({ photoUrls }),
+    })
+      .then((res) => res.json() as Promise<{ assets?: typeof assets }>)
+      .then((data) => {
+        const imported = data.assets ?? [];
+        if (imported.length === 0) return;
+        // Add imported assets to the asset library
+        imported.forEach(addAsset);
+        // Build an ordered pool of r2Keys matched to the photo pool order
+        const keyPool = pool.map((_, i) => imported[i]?.r2Key ?? null);
+        setSlides((prev) => {
+          // usedIndices is created fresh inside the updater so the function is pure.
+          // React StrictMode invokes state updaters twice in dev; if usedIndices were
+          // defined in the outer closure the first call would fill it and the second
+          // (authoritative) call would see all slots taken → every slide gets null.
+          const usedIndices = new Set<number>();
+          return prev.map((slide, slideIdx) => {
+            const targetPoolIdx = slidePhotoMap[slideIdx] ?? 0;
+            let chosen: string | null = null;
+            for (let offset = 0; offset < keyPool.length; offset++) {
+              const idx = (targetPoolIdx + offset) % keyPool.length;
+              if (!usedIndices.has(idx) && keyPool[idx]) {
+                chosen = keyPool[idx];
+                usedIndices.add(idx);
+                break;
+              }
+            }
+            return chosen ? { ...slide, backgroundKey: chosen } : slide;
+          });
+        });
+      })
+      .catch((e) => console.error('[RE import-photos] error:', e)); // silently ignore import errors — user can pick backgrounds manually
+  }, [zillowData, assets, client, addAsset]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleResearchAction = useCallback((video: ResearchVideo, generated?: NicheSlide[]) => {
     // Prefer the copy written for this niche; fall back to the template's generic examples
     // when generation was unavailable.
@@ -253,40 +351,72 @@ export function BlitzSlideshowEditor() {
 
   return (
     <div className="flex flex-col gap-6">
+
+      {/* Step pills — always shown since flow is always set before editor renders */}
       <StepPills steps={steps} current={step} onChange={setStep} label="Blitz Slideshow steps" />
 
-      {/* ── Profile (linked to Campaign Studio only) ──────────────────── */}
-      {step === 'profile' && <RunProfileStep onConfirmed={() => setStep('research')} />}
+      {/* ── Profile step ──────────────────────────────────────────────── */}
+      {step === 'profile' && (
+        <>
+          {/* B2B linked to Campaign Studio → RunProfileStep (unchanged) */}
+          {flowType === 'b2b' && <RunProfileStep onConfirmed={() => setStep('research')} />}
 
-      {/* ── Research ──────────────────────────────────────────────────── */}
+          {/* Real Estate → Zillow scrape + photo selection */}
+          {flowType === 'real_estate' && (
+            <ZillowScrapeStep
+              onDone={(data) => {
+                setZillowData(data);
+                setStep('research');
+              }}
+            />
+          )}
+        </>
+      )}
+
+      {/* ── Research step ─────────────────────────────────────────────── */}
       {step === 'research' && (
-        <div className="flex flex-col gap-4">
-          <div>
-            <p className="text-[14px] font-semibold text-ink">Research viral slideshows</p>
-            <p className="mt-0.5 text-[12px] text-muted">
-              Search TikTok for niche content — click &ldquo;See Template&rdquo; to see which format it uses, then use
-              a result to fill every slide.
-            </p>
-          </div>
-          <Researcher
-            cacheKey="blitz-slideshow-research"
-            actionLabel="Use as inspiration"
-            withSlides
-            onAction={handleResearchAction}
-            renderNichePicker={({ runSearch, busy, active }) => (
-              <IdcNichePicker active={active} busy={busy} onPick={runSearch} />
-            )}
-          />
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={() => setStep('editor')}
-              className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-6 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
-            >
-              Skip to Slideshow →
-            </button>
-          </div>
-        </div>
+        <>
+          {/* B2B → TikTok researcher (unchanged) */}
+          {(flowType === 'b2b' || flowType === null) && (
+            <div className="flex flex-col gap-4">
+              <div>
+                <p className="text-[14px] font-semibold text-ink">Research viral slideshows</p>
+                <p className="mt-0.5 text-[12px] text-muted">
+                  Search TikTok for niche content — click &ldquo;See Template&rdquo; to see which format it uses, then
+                  use a result to fill every slide.
+                </p>
+              </div>
+              <Researcher
+                cacheKey="blitz-slideshow-research"
+                actionLabel="Use as inspiration"
+                withSlides
+                onAction={handleResearchAction}
+                renderNichePicker={({ runSearch, busy, active }) => (
+                  <IdcNichePicker active={active} busy={busy} onPick={runSearch} />
+                )}
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setStep('editor')}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-full bg-ink px-6 py-2 text-[13px] font-semibold text-white transition-opacity hover:opacity-90"
+                >
+                  Skip to Slideshow →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Real Estate → eligible angle cards */}
+          {flowType === 'real_estate' && zillowData && (
+            <RealEstateTemplateStep
+              angles={zillowData.angles}
+              facts={zillowData.facts}
+              photoTags={zillowData.photoTags}
+              onCopyReady={handleRealEstateTemplateAction}
+            />
+          )}
+        </>
       )}
 
       {/* ── Slideshow editor ──────────────────────────────────────────── */}
@@ -366,6 +496,11 @@ export function BlitzSlideshowEditor() {
                     preload="auto"
                     style={{ display: 'none' }}
                   />
+                )}
+                {isFallbackCopy && (
+                  <div className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-[12px] text-amber-700">
+                    Fallback copy — LLM unavailable. Edit the text before rendering.
+                  </div>
                 )}
                 <RenderControls
                   state={render.state}
