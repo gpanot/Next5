@@ -58,15 +58,16 @@ export const POST = adminRoute(async (req: NextRequest) => {
       .map((r) => r.value),
   );
 
-  // Record average photo-fetch time on the listing run (fire-and-forget)
+  // Record average photo-fetch time on the listing run (fire-and-forget) + return it to the caller
   const successCount = assets.length;
-  if (listingRunId && successCount > 0) {
-    const totalMs = Date.now() - fetchStart;
-    const avgPhotoFetchMs = Math.round(totalMs / successCount);
+  const totalFetchMs = Date.now() - fetchStart;
+  const avgPhotoFetchMs = successCount > 0 ? Math.round(totalFetchMs / successCount) : null;
+
+  if (listingRunId && avgPhotoFetchMs !== null) {
     void prisma.blitzListingRun
       .update({ where: { id: listingRunId }, data: { avgPhotoFetchMs } })
       .catch(() => { /* non-critical — ignore */ });
   }
 
-  return NextResponse.json({ assets });
+  return NextResponse.json({ assets, avgPhotoFetchMs, totalFetchMs });
 });

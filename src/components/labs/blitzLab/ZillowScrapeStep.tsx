@@ -7,7 +7,7 @@ import type { ListingFacts, ReAngle } from '../../../server/labs/slideshowCopy';
 import type { ZillowCandidate } from '../../../server/listings/zillowNormalize';
 import { useLabClient } from '../LabClientProvider';
 
-const PHOTO_LIMITS = [10, 20, 30, 0] as const; // 0 = all
+const PHOTO_LIMITS = [2, 10, 20, 30, 0] as const; // 0 = all
 const labelFor = (n: number) => (n === 0 ? 'All photos' : `${n} photos`);
 
 export type ZillowData = {
@@ -141,11 +141,14 @@ export function ZillowScrapeStep({ onDone }: Props) {
     }
   };
 
-  /** Restore a past run without re-scraping */
+  /** Restore a past run without re-scraping.
+   *  Respects the current maxPhotos selection so "2 photos" gives you 2 tiles, not all. */
   const loadRun = (run: RecentRun) => {
+    const limit = maxPhotos > 0 ? maxPhotos : undefined;
+    const limitedCandidates = limit ? run.candidates.slice(0, limit) : run.candidates;
     const fakeResult: ScrapeResult = {
       runId: run.id,
-      candidates: run.candidates,
+      candidates: limitedCandidates,
       facts: run.facts,
       angles: run.angles,
       cached: true,
@@ -155,8 +158,8 @@ export function ZillowScrapeStep({ onDone }: Props) {
     setResult(fakeResult);
     setPicked(
       run.selectedIds.length > 0
-        ? run.selectedIds.filter((id) => run.candidates.some((c) => c.id === id))
-        : run.candidates.map((c) => c.id),
+        ? run.selectedIds.filter((id) => limitedCandidates.some((c) => c.id === id))
+        : limitedCandidates.map((c) => c.id),
     );
     setError(null);
   };

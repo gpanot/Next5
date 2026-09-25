@@ -113,6 +113,8 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
   const [zillowData, setZillowData] = useState<ZillowData | null>(null);
   /** Badge shown in editor when RE copy fell back to static templates. */
   const [isFallbackCopy, setIsFallbackCopy] = useState(false);
+  /** Photo import speed stats from the last import-photos call. */
+  const [photoImportStats, setPhotoImportStats] = useState<{ count: number; avgMs: number; totalMs: number } | null>(null);
 
   // ── step navigation ───────────────────────────────────────────────────
   const steps = buildSteps(withProfile, flowType);
@@ -286,10 +288,14 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
       headers: { 'Content-Type': 'application/json', ...client.authHeaders() },
       body: JSON.stringify({ photoUrls, listingRunId: zillowData.listingRunId }),
     })
-      .then((res) => res.json() as Promise<{ assets?: typeof assets }>)
+      .then((res) => res.json() as Promise<{ assets?: typeof assets; avgPhotoFetchMs?: number; totalFetchMs?: number }>)
       .then((data) => {
         const imported = data.assets ?? [];
         if (imported.length === 0) return;
+        // Capture speed stats so we can show them in the editor header
+        if (data.avgPhotoFetchMs != null && data.totalFetchMs != null) {
+          setPhotoImportStats({ count: imported.length, avgMs: data.avgPhotoFetchMs, totalMs: data.totalFetchMs });
+        }
         // Add imported assets to the asset library
         imported.forEach(addAsset);
         // Build an ordered pool of r2Keys matched to the photo pool order
@@ -507,6 +513,15 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
                     >
                       ← Retry AI
                     </button>
+                  </div>
+                )}
+                {photoImportStats && (
+                  <div className="flex w-full items-center gap-2 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-[12px] text-sky-700">
+                    <span className="font-semibold tabular-nums">{photoImportStats.count} photo{photoImportStats.count === 1 ? '' : 's'} imported</span>
+                    <span className="text-sky-400">·</span>
+                    <span className="tabular-nums">{photoImportStats.totalMs.toLocaleString()} ms total</span>
+                    <span className="text-sky-400">·</span>
+                    <span className="tabular-nums font-semibold">{photoImportStats.avgMs.toLocaleString()} ms/photo</span>
                   </div>
                 )}
                 <RenderControls
