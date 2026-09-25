@@ -49,6 +49,7 @@ const limitFlag = args.find(a => a.startsWith('--limit='));
 const DRY_RUN         = args.includes('--dry-run');
 const VIDEOS_ONLY     = args.includes('--videos-only');
 const MEMES_ONLY      = args.includes('--memes-only');
+const HOOKS_ONLY      = args.includes('--hooks-only');
 const USE_OPENROUTER  = args.includes('--openrouter') || process.env.FORCE_OPENROUTER === '1';
 const CAP_USD         = capFlag   ? parseFloat(capFlag.split('=')[1]!)   : parseFloat(process.env.DESCRIPTOR_CAP ?? '4.00');
 const CONCURRENCY     = concFlag  ? parseInt(concFlag.split('=')[1]!, 10) : 3;
@@ -100,14 +101,23 @@ interface QueueItem {
 async function buildQueue(): Promise<QueueItem[]> {
   const videoExts = ['.mp4', '.mov', '.webm'];
 
-  const [bgAssets, overlayAssets] = await Promise.all([
-    MEMES_ONLY ? Promise.resolve([]) : prisma.blitzAsset.findMany({
+  const skipBg      = MEMES_ONLY || HOOKS_ONLY;
+  const skipOverlay = VIDEOS_ONLY || HOOKS_ONLY;
+  const skipHooks   = VIDEOS_ONLY || MEMES_ONLY;
+
+  const [bgAssets, overlayAssets, hookAssets] = await Promise.all([
+    skipBg ? Promise.resolve([]) : prisma.blitzAsset.findMany({
       where: { type: 'BACKGROUND' },
       select: { id: true, name: true, r2Key: true },
       orderBy: { createdAt: 'asc' },
     }),
-    VIDEOS_ONLY ? Promise.resolve([]) : prisma.blitzAsset.findMany({
+    skipOverlay ? Promise.resolve([]) : prisma.blitzAsset.findMany({
       where: { type: 'OVERLAY' },
+      select: { id: true, name: true, r2Key: true },
+      orderBy: { createdAt: 'asc' },
+    }),
+    skipHooks ? Promise.resolve([]) : prisma.blitzAsset.findMany({
+      where: { type: 'HOOK' },
       select: { id: true, name: true, r2Key: true },
       orderBy: { createdAt: 'asc' },
     }),
@@ -116,9 +126,10 @@ async function buildQueue(): Promise<QueueItem[]> {
   // Filter BG to videos only (not images)
   const videos = bgAssets.filter(a => videoExts.some(e => a.r2Key.toLowerCase().endsWith(e)));
   const memes  = overlayAssets;
+  const hooks  = hookAssets;
 
   // Find existing done descriptors
-  const allIds = [...videos, ...memes].map(a => a.id);
+  const allIds = [...videos, ...memes, ...hooks].map(a => a.id);
   const existingDone = await prisma.assetDescriptor.findMany({
     where: { blitzAssetId: { in: allIds }, status: 'done' },
     select: { blitzAssetId: true },
@@ -135,6 +146,11 @@ async function buildQueue(): Promise<QueueItem[]> {
       id: a.id, name: a.name, r2Key: a.r2Key,
       kind: 'meme' as AssetKind, source: 'scraped' as AssetSource,
       estimatedCost: AVG_COST_MEME,
+    })),
+    ...hooks.filter(a => !doneSet.has(a.id)).map(a => ({
+      id: a.id, name: a.name, r2Key: a.r2Key,
+      kind: 'hook' as AssetKind, source: 'scraped' as AssetSource,
+      estimatedCost: AVG_COST_VIDEO,
     })),
   ];
 
@@ -153,48 +169,59 @@ interface RunResult {
   error?: string;
 }
 
+const ASSET_TIMEOUT_MS = 3 * 60 * 1000; // 3 min hard timeout per asset
+
 async function processOne(item: QueueItem): Promise<RunResult> {
   const tmpDir = path.join(os.tmpdir(), `desc_batch_${item.id.slice(0, 12)}`);
   const tmpFile = path.join(tmpDir, `source.${item.r2Key.split('.').pop()}`);
   const start = Date.now();
 
-  try {
-    fs.mkdirSync(tmpDir, { recursive: true });
-    await downloadFromR2(item.r2Key, tmpFile);
+  const work = async (): Promise<RunResult> => {
+    try {
+      fs.mkdirSync(tmpDir, { recursive: true });
+      await downloadFromR2(item.r2Key, tmpFile);
 
-    const ext = item.r2Key.split('.').pop()?.toLowerCase() ?? 'mp4';
-    const mimeType = ext === 'webm' ? 'video/webm' : ext === 'mov' ? 'video/quicktime' : 'video/mp4';
+      const ext = item.r2Key.split('.').pop()?.toLowerCase() ?? 'mp4';
+      const mimeType = ext === 'webm' ? 'video/webm' : ext === 'mov' ? 'video/quicktime' : 'video/mp4';
 
-    const result: DescribeResult = await describeAsset({
-      filePath: tmpFile,
-      kind: item.kind,
-      source: item.source,
-      name: item.name,
-      mimeType,
-      ext,
-    });
+      const result: DescribeResult = await describeAsset({
+        filePath: tmpFile,
+        kind: item.kind,
+        source: item.source,
+        name: item.name,
+        mimeType,
+        ext,
+      });
 
-    const desc = result.descriptor;
-    // All BACKGROUND + OVERLAY assets are video descriptors
-    await writeVideo(
-      { blitzAssetId: item.id },
-      item.kind,
-      item.source,
-      desc as Parameters<typeof writeVideo>[3],
-      result.durationSec,
-      result.cuts,
-      result.loudDigits,
-    );
+      const desc = result.descriptor;
+      await writeVideo(
+        { blitzAssetId: item.id },
+        item.kind,
+        item.source,
+        desc as Parameters<typeof writeVideo>[3],
+        result.durationSec,
+        result.cuts,
+        result.loudDigits,
+      );
 
-    const costUsd = (result.usageTotal * COST_PER_M_IN + result.usageOut * COST_PER_M_OUT) / 1_000_000;
-    return { id: item.id, name: item.name, kind: item.kind, success: true, costUsd, wallMs: Date.now() - start };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    await markFailed({ blitzAssetId: item.id }, item.kind, item.source, msg.slice(0, 500)).catch(() => {});
-    return { id: item.id, name: item.name, kind: item.kind, success: false, costUsd: 0, wallMs: Date.now() - start, error: msg.slice(0, 120) };
-  } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  }
+      const costUsd = (result.usageTotal * COST_PER_M_IN + result.usageOut * COST_PER_M_OUT) / 1_000_000;
+      return { id: item.id, name: item.name, kind: item.kind, success: true, costUsd, wallMs: Date.now() - start };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      await markFailed({ blitzAssetId: item.id }, item.kind, item.source, msg.slice(0, 500)).catch(() => {});
+      return { id: item.id, name: item.name, kind: item.kind, success: false, costUsd: 0, wallMs: Date.now() - start, error: msg.slice(0, 120) };
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  };
+
+  const timeout = new Promise<RunResult>(resolve =>
+    setTimeout(() => {
+      resolve({ id: item.id, name: item.name, kind: item.kind, success: false, costUsd: 0, wallMs: Date.now() - start, error: `TIMEOUT after ${ASSET_TIMEOUT_MS / 1000}s` });
+    }, ASSET_TIMEOUT_MS)
+  );
+
+  return Promise.race([work(), timeout]);
 }
 
 // ── Concurrency pool ──────────────────────────────────────────────────────────
@@ -225,10 +252,13 @@ async function runWithPool<T>(
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
-  if (!process.env.GEMINI_API_KEY) {
+  if (!process.env.GEMINI_API_KEY && !USE_OPENROUTER) {
     console.error('❌  GEMINI_API_KEY not set');
     process.exit(1);
   }
+
+  // Keepalive: prevent Node from exiting while workers are hanging in native I/O
+  const keepalive = setInterval(() => {}, 10_000);
 
   console.log(`\n🚀  Descriptor batch runner`);
   console.log(`   Model       : ${getModelName()}`);
@@ -245,9 +275,11 @@ async function main() {
   const totalEst = queue.reduce((s, a) => s + a.estimatedCost, 0);
   const videos = queue.filter(a => a.kind === 'background').length;
   const memes  = queue.filter(a => a.kind === 'meme').length;
+  const hooks  = queue.filter(a => a.kind === 'hook').length;
 
   console.log(`   Videos to describe : ${videos}`);
   console.log(`   Memes  to describe : ${memes}`);
+  console.log(`   Hooks  to describe : ${hooks}`);
   console.log(`   Total              : ${queue.length}${Number.isFinite(LIMIT) ? ` (limit: ${LIMIT} of ${fullQueue.length})` : ''}`);
   console.log(`   Estimated cost     : ~$${totalEst.toFixed(4)}`);
   console.log(`   Hard cap           : $${CAP_USD.toFixed(2)}`);
@@ -314,11 +346,13 @@ async function main() {
     console.log(`   Remaining   : ${queue.length - done} assets (~$${((queue.length - done) * (totalEst / queue.length)).toFixed(4)} est)`);
   }
 
+  clearInterval(keepalive);
   await prisma.$disconnect();
+  process.exit(0);
 }
 
 main().catch(async e => {
   console.error(e);
-  await prisma.$disconnect();
+  await prisma.$disconnect().catch(() => {});
   process.exit(1);
 });

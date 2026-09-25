@@ -35,7 +35,10 @@ export const chatJsonWithMeta = async <T>(
   const key = process.env.OPENAI_API_KEY;
   const model = options.model ?? 'gpt-4o-mini';
   const t0 = Date.now();
-  if (!key) return { result: null, meta: { usage: null, elapsedMs: 0, model } };
+  if (!key) {
+    console.error('[chatJsonWithMeta] OPENAI_API_KEY is not set — returning null');
+    return { result: null, meta: { usage: null, elapsedMs: 0, model } };
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 20_000);
   try {
@@ -52,7 +55,11 @@ export const chatJsonWithMeta = async <T>(
       }),
     });
     const elapsedMs = Date.now() - t0;
-    if (!res.ok) return { result: null, meta: { usage: null, elapsedMs, model } };
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      console.error(`[chatJsonWithMeta] OpenAI returned ${res.status}: ${errBody.slice(0, 200)}`);
+      return { result: null, meta: { usage: null, elapsedMs, model } };
+    }
     const data = (await res.json()) as {
       choices?: { message?: { content?: string } }[];
       usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
@@ -65,7 +72,8 @@ export const chatJsonWithMeta = async <T>(
       ? { promptTokens: u.prompt_tokens ?? 0, completionTokens: u.completion_tokens ?? 0, totalTokens: u.total_tokens ?? 0 }
       : null;
     return { result, meta: { usage, elapsedMs, model: data.model ?? model } };
-  } catch {
+  } catch (err) {
+    console.error('[chatJsonWithMeta] Exception:', err);
     return { result: null, meta: { usage: null, elapsedMs: Date.now() - t0, model } };
   } finally {
     clearTimeout(timer);

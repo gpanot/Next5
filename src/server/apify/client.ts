@@ -4,7 +4,7 @@
 export const APIFY_API = 'https://api.apify.com/v2';
 
 export type ApifyRow = Record<string, unknown>;
-export type RunState = { status: 'running' | 'succeeded' | 'failed'; datasetId: string | null; message: string | null };
+export type RunState = { status: 'running' | 'succeeded' | 'failed'; datasetId: string | null; message: string | null; costUsd?: number };
 
 /** Raised for a non-2xx Apify response, so callers can react to a status (402 = account memory cap). */
 export class ApifyError extends Error {
@@ -39,9 +39,9 @@ export const apifyWebhookUrl = (): string | null => {
 };
 
 export const getApifyRun = async (runId: string): Promise<RunState> => {
-  const { data } = await apifyCall<{ data: { status: string; defaultDatasetId: string; statusMessage?: string } }>(`${APIFY_API}/actor-runs/${runId}`);
+  const { data } = await apifyCall<{ data: { status: string; defaultDatasetId: string; statusMessage?: string; usageTotalUsd?: number } }>(`${APIFY_API}/actor-runs/${runId}`);
   const status = data.status === 'SUCCEEDED' ? 'succeeded' : ['FAILED', 'ABORTED', 'TIMED-OUT'].includes(data.status) ? 'failed' : 'running';
-  return { status, datasetId: data.defaultDatasetId ?? null, message: data.statusMessage ?? null };
+  return { status, datasetId: data.defaultDatasetId ?? null, message: data.statusMessage ?? null, costUsd: data.usageTotalUsd ?? undefined };
 };
 
 export const getApifyDataset = (datasetId: string): Promise<ApifyRow[]> =>

@@ -23,20 +23,22 @@ import { ProductIntroStep } from './ProductIntroStep';
 import { RoleStep } from './RoleStep';
 import { SocialProofStep } from './SocialProofStep';
 import { TeamRevenueStep } from './TeamRevenueStep';
-import { STEP_LABELS, type StepProps } from './types';
+import { SERVER_TO_DISPLAY_STEP, STEP_LABELS, type StepProps } from './types';
 
-// Steps 2–8 (step 1 = AccountStep, rendered separately; Photos step removed)
+// Server steps 2–8 (step 1 = AccountStep, rendered separately).
+// Index 0 here = server step 2, index 6 = server step 8.
 const STEPS: readonly ((props: StepProps) => React.ReactNode)[] = [
-  ConsentStep,
-  TeamRevenueStep,
-  RoleStep,
-  IntentGoalsStep,
-  AttributionStep,
-  SocialProofStep,
-  ProductIntroStep,
+  ConsentStep,      // server step 2
+  TeamRevenueStep,  // server step 3
+  RoleStep,         // server step 4
+  IntentGoalsStep,  // server step 5
+  AttributionStep,  // server step 6
+  SocialProofStep,  // server step 7 — displayed but not counted in stepper
+  ProductIntroStep, // server step 8
 ];
 
-const TOTAL_STEPS = STEP_LABELS.length; // 8
+// Total server steps (unchanged — the back-end flow is identical).
+const TOTAL_SERVER_STEPS = 8;
 
 export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const token = sessionTokenStore.useValue();
@@ -46,8 +48,11 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const router = useRouter();
 
   const workspace = me.data?.workspace?.product === product ? me.data.workspace : null;
-  const serverStep = workspace ? Math.min(TOTAL_STEPS, workspace.onboardingStep + 1) : 1;
+  const serverStep = workspace ? Math.min(TOTAL_SERVER_STEPS, workspace.onboardingStep + 1) : 1;
   const current = viewStep !== null && viewStep < serverStep ? viewStep : serverStep;
+
+  // Display step for the stepper (null = Reviews screen, no stepper highlight)
+  const displayStep = SERVER_TO_DISPLAY_STEP[current] ?? null;
 
   useEffect(() => {
     if (workspace?.onboardingCompleted) router.replace(studioHref(product));
@@ -75,6 +80,10 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const loading = token === undefined || verifying || (Boolean(token) && me.loading && !me.data);
   const StepComponent = current > 1 && me.data ? STEPS[current - 2] : null;
 
+  // Back button: hide on first step, last step, and the Reviews screen (step 7)
+  // which has no dedicated stepper slot and flows directly forward.
+  const showBack = current > 1 && current < TOTAL_SERVER_STEPS && current !== 7;
+
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-5 pb-16 pt-6 sm:px-8">
       <header className="flex items-center justify-between gap-4">
@@ -82,12 +91,13 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
         <Link href="/app" className="text-[14px] text-app-muted hover:text-app-ink">{hasOtherStudio ? 'Back to my studio' : 'Log in'}</Link>
       </header>
       <div className="flex items-center gap-3">
-        {current > 1 && current < TOTAL_STEPS && (
+        {showBack && (
           <button type="button" onClick={() => setViewStep(current - 1)} aria-label="Back" className="flex h-9 w-9 items-center justify-center rounded-full border border-app-line text-app-ink transition-colors duration-200 hover:bg-app-sunken">
             <ArrowLeft aria-hidden className="h-4 w-4" />
           </button>
         )}
-        <Stepper steps={STEP_LABELS} current={current} />
+        {/* When displayStep is null (Reviews screen), show step 4 "Start" as next-up */}
+        <Stepper steps={STEP_LABELS} current={displayStep ?? STEP_LABELS.length} />
       </div>
       {loading && <SkeletonText lines={6} />}
       {!loading && me.error && <ErrorState message={me.error} onRetry={me.refresh} />}

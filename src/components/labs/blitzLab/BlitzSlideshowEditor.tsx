@@ -284,7 +284,7 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
     fetch(client.url('/blitz/import-photos'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...client.authHeaders() },
-      body: JSON.stringify({ photoUrls }),
+      body: JSON.stringify({ photoUrls, listingRunId: zillowData.listingRunId }),
     })
       .then((res) => res.json() as Promise<{ assets?: typeof assets }>)
       .then((data) => {
@@ -498,8 +498,15 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
                   />
                 )}
                 {isFallbackCopy && (
-                  <div className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-[12px] text-amber-700">
-                    Fallback copy — LLM unavailable. Edit the text before rendering.
+                  <div className="flex w-full items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-amber-700">
+                    <span>Fallback copy — AI unavailable. Edit manually or retry.</span>
+                    <button
+                      type="button"
+                      onClick={() => { setIsFallbackCopy(false); setStep('research'); }}
+                      className="shrink-0 rounded-lg border border-amber-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
+                    >
+                      ← Retry AI
+                    </button>
                   </div>
                 )}
                 <RenderControls

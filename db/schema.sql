@@ -596,6 +596,28 @@ CREATE TABLE public.blitz_assets (
 
 
 --
+-- Name: blitz_listing_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.blitz_listing_runs (
+    id text NOT NULL,
+    zillow_url text NOT NULL,
+    zpid text NOT NULL,
+    address text,
+    facts jsonb DEFAULT '{}'::jsonb NOT NULL,
+    candidates jsonb DEFAULT '[]'::jsonb NOT NULL,
+    angles jsonb DEFAULT '[]'::jsonb NOT NULL,
+    selected_ids jsonb DEFAULT '[]'::jsonb NOT NULL,
+    photo_tags jsonb DEFAULT '[]'::jsonb NOT NULL,
+    scrape_duration_ms integer,
+    avg_photo_fetch_ms integer,
+    apify_cost_usd_micros bigint,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: blitz_projects; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1794,6 +1816,14 @@ ALTER TABLE ONLY public.blitz_assets
 
 
 --
+-- Name: blitz_listing_runs blitz_listing_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_listing_runs
+    ADD CONSTRAINT blitz_listing_runs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: blitz_projects blitz_projects_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2330,6 +2360,20 @@ CREATE INDEX blitz_assets_tags_gin ON public.blitz_assets USING gin (tags);
 --
 
 CREATE INDEX blitz_assets_workspace_id_type_idx ON public.blitz_assets USING btree (workspace_id, type);
+
+
+--
+-- Name: blitz_listing_runs_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blitz_listing_runs_created_at_idx ON public.blitz_listing_runs USING btree (created_at DESC);
+
+
+--
+-- Name: blitz_listing_runs_zpid_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blitz_listing_runs_zpid_idx ON public.blitz_listing_runs USING btree (zpid);
 
 
 --
@@ -3633,4 +3677,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261013090000'),
     ('20261013110000'),
     ('20261013120000'),
-    ('20261013130000');
+    ('20261013130000'),
+    ('20261013200000');

@@ -26,10 +26,12 @@ import type { UsageSummary } from './types';
 export const INLINE_LIMIT = 18 * 1024 * 1024; // 18 MB
 
 const GEMINI_API_KEY      = process.env.GEMINI_API_KEY!;
-const OPENROUTER_API_KEY  = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_MODEL    = 'google/gemini-3.1-flash-lite';
-const FORCE_OPENROUTER    = process.env.FORCE_OPENROUTER === '1';
 const MODEL               = process.env.GEMINI_DESCRIBE_MODEL ?? 'gemini-2.5-flash';
+
+// Read lazily so callers can set process.env.FORCE_OPENROUTER before first call
+const getOpenRouterKey  = () => process.env.OPENROUTER_API_KEY;
+const isForceOpenRouter = () => process.env.FORCE_OPENROUTER === '1';
 
 let _ai: GoogleGenAI | null = null;
 function ai(): GoogleGenAI {
@@ -103,29 +105,42 @@ function partsToOpenAIContent(parts: Array<Record<string, unknown>>) {
 }
 
 async function callOpenRouter(parts: Array<Record<string, unknown>>): Promise<GeminiResult> {
+  const OPENROUTER_API_KEY = getOpenRouterKey();
   if (!OPENROUTER_API_KEY) throw new Error('OPENROUTER_API_KEY not set');
   const t0 = Date.now();
 
   const body = {
     model: OPENROUTER_MODEL,
     messages: [{ role: 'user', content: partsToOpenAIContent(parts) }],
-    max_tokens: 4000,
+    max_tokens: 8000,
     temperature: 0.15,
     response_format: { type: 'json_object' },
   };
 
-  const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 120_000); // 2 min hard timeout
+
+  let res: Response;
+  try {
+    res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const err = await res.text().catch(() => res.statusText);
-    throw new Error(`OpenRouter ${res.status}: ${err}`);
+    const msg = `OpenRouter ${res.status}: ${err}`;
+    // 429/529 = rate limit → retryable upstream
+    if (res.status === 429 || res.status === 529 || res.status === 503) throw new Error(msg);
+    throw new Error(msg);
   }
 
   const d = await res.json() as {
@@ -176,7 +191,7 @@ export async function callGemini(
   let retries = 0;
 
   // ── OpenRouter fast path (forced or no Google key) ────────────────────────
-  if (FORCE_OPENROUTER || !GEMINI_API_KEY) {
+  if (isForceOpenRouter() || !GEMINI_API_KEY) {
     process.stdout.write(`[or] `);
     return callOpenRouter(parts);
   }
@@ -189,7 +204,7 @@ export async function callGemini(
       const wait   = Math.round(base + jitter);
 
       // On attempt 2+ with a network error → try OpenRouter instead of waiting
-      if (attempt >= 2 && OPENROUTER_API_KEY) {
+      if (attempt >= 2 && getOpenRouterKey()) {
         process.stdout.write(`   (→ openrouter fallback) `);
         try {
           const r = await callOpenRouter(parts);

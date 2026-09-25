@@ -8,6 +8,8 @@ export type ListingAddress = { street: string; city: string | null; state: strin
 
 export type ZillowCandidate = { id: string; url: string; thumbUrl: string; tag: string | null };
 
+export type PriceHistoryEntry = { date: string; event: string; price: number; priceChangeRate: number };
+
 export type NormalizedZillowListing = {
   zpid: string;
   address: ListingAddress | null;
@@ -17,6 +19,14 @@ export type NormalizedZillowListing = {
   sqft: number | null;
   status: ListingStatus;
   daysOnMarket: number | null;
+  /** ISO date string when the listing went on market (Apify field: onMarketDate). */
+  onMarketDate: string | null;
+  /** Listing description text (Apify field: description). */
+  description: string | null;
+  /** Full price history (Apify field: listingPriceHistory). */
+  priceHistory: PriceHistoryEntry[] | null;
+  /** True when listingType.isOpenHouse is true (Apify field). */
+  isOpenHouse: boolean;
   candidates: ZillowCandidate[];
 };
 
@@ -69,9 +79,24 @@ const candidatesOf = (row: ApifyRow): ZillowCandidate[] => {
   return out;
 };
 
+const priceHistoryOf = (row: ApifyRow): PriceHistoryEntry[] | null => {
+  if (!Array.isArray(row.listingPriceHistory)) return null;
+  const entries: PriceHistoryEntry[] = [];
+  for (const item of row.listingPriceHistory) {
+    const entry = obj(item);
+    const date = str(entry.date);
+    const event = str(entry.event);
+    const price = num(entry.price);
+    const rate = typeof entry.priceChangeRate === 'number' ? entry.priceChangeRate : 0;
+    if (date && event && price !== null) entries.push({ date, event, price, priceChangeRate: rate });
+  }
+  return entries.length > 0 ? entries : null;
+};
+
 export const normalizeZillowRow = (row: ApifyRow | undefined): NormalizedZillowListing | null => {
   if (!row || row.zpid === undefined || row.zpid === null) return null;
   const price = num(obj(row.listingPrice).amount);
+  const type = obj(row.listingType);
   return {
     zpid: String(row.zpid),
     address: addressOf(row),
@@ -81,6 +106,10 @@ export const normalizeZillowRow = (row: ApifyRow | undefined): NormalizedZillowL
     sqft: num(row.livingArea),
     status: statusOf(row),
     daysOnMarket: num(row.daysOnZillow),
+    onMarketDate: str(row.onMarketDate),
+    description: str(row.description),
+    priceHistory: priceHistoryOf(row),
+    isOpenHouse: type.isOpenHouse === true,
     candidates: candidatesOf(row),
   };
 };

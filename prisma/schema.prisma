@@ -1212,6 +1212,41 @@ model BlitzProject {
 
 /// AI-generated descriptor for a BlitzAsset or UgcVideo.
 /// Produced by the blitz-worker descriptor loop: ffprobe/ffmpeg measurement → Gemini call → validated JSON.
+/// Cached result of one Zillow listing scrape for the Real Estate slideshow flow.
+/// Re-using an existing run avoids re-scraping the same listing.
+model BlitzListingRun {
+  id        String @id @default(cuid())
+  zillowUrl String @map("zillow_url")
+  zpid      String
+  address   String?
+
+  /// Normalised listing facts (ListingFacts shape)
+  facts      Json @default("{}")
+  /// All scraped photo candidates (ZillowCandidate[])
+  candidates Json @default("[]")
+  /// Eligible slideshow angles (ReAngle[])
+  angles     Json @default("[]")
+
+  /// User's selected photo IDs (set after photo-selection + tagging step)
+  selectedIds Json @default("[]") @map("selected_ids")
+  /// GPT-4o photo tags for the selected candidates
+  photoTags   Json @default("[]") @map("photo_tags")
+
+  /// Wall-clock time for the Apify scrape (ms)
+  scrapeDurationMs  Int?    @map("scrape_duration_ms")
+  /// Average download time per photo during import-photos (ms)
+  avgPhotoFetchMs   Int?    @map("avg_photo_fetch_ms")
+  /// Apify usage cost in micros of USD (1 USD = 1_000_000)
+  apifyCostUsdMicros BigInt? @map("apify_cost_usd_micros")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([zpid])
+  @@index([createdAt(sort: Desc)])
+  @@map("blitz_listing_runs")
+}
+
 /// Exactly one of blitzAssetId or ugcVideoId is set (enforced by DB CHECK constraint).
 model AssetDescriptor {
   id                 String    @id @default(cuid())

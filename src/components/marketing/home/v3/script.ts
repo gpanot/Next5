@@ -79,11 +79,11 @@ const CORE_JS = String.raw`
     if(typeLink){var inp=q(".js-input"),s=copy[current].demo,i=0;inp.value="";
       (function type(){if(i<=s.length){inp.value=s.slice(0,i++);at(18,type)}})();t=s.length*18+300}
     at(t,function(){items[0].className="on";setProgress(5)});
-    for(var k=0;k<th.length;k++){(function(k){at(t+150+k*140,function(){th[k].classList.add("in")})})(k)}
-    at(t+1500,function(){items[0].className="ok";items[1].className="on";setProgress(40)});
-    at(t+2500,function(){items[1].className="ok";items[2].className="on";setProgress(72)});
-    at(t+3600,function(){items[2].className="ok";items[3].className="ok";setProgress(95)});
-    at(t+4300,function(){setProgress(100);build.classList.add("done");card.classList.add("done");
+    for(var k=0;k<th.length;k++){(function(k){at(t+50+k*47,function(){th[k].classList.add("in")})})(k)}
+    at(t+500,function(){items[0].className="ok";items[1].className="on";setProgress(40)});
+    at(t+833,function(){items[1].className="ok";items[2].className="on";setProgress(72)});
+    at(t+1200,function(){items[2].className="ok";items[3].className="ok";setProgress(95)});
+    at(t+1433,function(){setProgress(100);build.classList.add("done");card.classList.add("done");
       if(typeLink){q(".js-input").value=""}
       if(current==="realtor"){playRealtorVideo();}else{cycleHooks();}});
   }

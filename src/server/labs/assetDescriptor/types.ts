@@ -8,7 +8,7 @@
 // ── Asset source / kind ───────────────────────────────────────────────────────
 
 export type AssetSource = 'scraped' | 'ai_generated' | 'uploaded';
-export type AssetKind   = 'background' | 'meme' | 'ugc_video' | 'music';
+export type AssetKind   = 'background' | 'meme' | 'ugc_video' | 'music' | 'hook';
 
 // ── Descriptor schemas returned by the model ──────────────────────────────────
 

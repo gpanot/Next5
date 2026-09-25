@@ -170,14 +170,27 @@ export function BlitzLabEditor() {
   const background = find(currentAssets.backgroundKey);
   const overlayAsset = find(currentAssets.overlayKey);
   const audio = find(currentAssets.audioKey);
-  const videoUrls = [overlayAsset?.url ?? '', background?.mediaKind === 'video' ? background.url : ''];
+  // Convert a raw R2 key to the server-side proxy URL (same logic as blitzBrowserUrl on the server).
+  // This covers the edge case where an asset key is set but the asset DTO hasn't been fetched yet
+  // (e.g. a seeded default asset like blitz/assets/overlay-001.webm), preventing the browser from
+  // requesting the raw key as a public static file and hitting a 404.
+  const toProxyUrl = (rawKeyOrUrl: string | undefined) => {
+    if (!rawKeyOrUrl) return '';
+    if (rawKeyOrUrl.startsWith('/') || rawKeyOrUrl.startsWith('blob:') || rawKeyOrUrl.startsWith('http')) return rawKeyOrUrl;
+    return `/api/admin/blitz/proxy?key=${encodeURIComponent(rawKeyOrUrl)}`;
+  };
+
+  const videoUrls = [
+    overlayAsset?.url ?? toProxyUrl(currentAssets.overlayKey),
+    background?.mediaKind === 'video' ? background.url : (background ? '' : toProxyUrl(currentAssets.backgroundKey)),
+  ];
   const clip = useClipDuration(videoUrls, selectedTemplate?.durationSeconds ?? BLITZ_DEFAULT_DURATION_S);
   const showBusiness = mentionBusiness && businessText.trim().length > 0;
 
   const inputProps: GreenScreenProps | null = selectedTemplate ? {
-    backgroundUrl: background?.url ?? currentAssets.backgroundKey,
+    backgroundUrl: background?.url ?? toProxyUrl(currentAssets.backgroundKey),
     backgroundIsImage: background ? background.mediaKind === 'image' : undefined,
-    overlayUrl: overlayAsset?.url ?? currentAssets.overlayKey,
+    overlayUrl: overlayAsset?.url ?? toProxyUrl(currentAssets.overlayKey),
     audioUrl: audio?.url,
     muteVideoAudio,
     businessText: showBusiness ? businessText : undefined,
