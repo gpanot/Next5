@@ -27,6 +27,14 @@ export const UGC_VIDEO_MODELS: Record<UgcVideoModel, { label: string; descriptio
 
 export const isUgcVideoModel = (v: unknown): v is UgcVideoModel => v === 'seedance' || v === 'wan3';
 
+/**
+ * What drives the character look in the video.
+ * image: the character photo is sent to the model. json: no image, the Portrait Clone JSON goes in the prompt.
+ */
+export type UgcCharacterSource = 'image' | 'json';
+
+export const isUgcCharacterSource = (v: unknown): v is UgcCharacterSource => v === 'image' || v === 'json';
+
 // ── Providers (internal routing layer) ──────────────────────────────────────
 
 /**

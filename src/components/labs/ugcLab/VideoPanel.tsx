@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   UGC_CONFIRM_ABOVE_USD, UGC_RESOLUTIONS, UGC_VIDEO_MODELS,
   estimateVideoUsd,
-  type UgcDuration, type UgcResolution, type UgcVideoModel,
+  type UgcCharacterSource, type UgcDuration, type UgcResolution, type UgcVideoModel,
 } from '../../../config/ugcLab';
 import type { UgcCharacterDto, UgcVideoDto } from '../../../types/admin/ugc';
-import { assemblePromptFromContext, buildPromptForCharacter } from '../../../lib/ugcPromptClient';
+import { assemblePromptFromContext, buildJsonPrompt, buildPromptForCharacter } from '../../../lib/ugcPromptClient';
+import { CharacterSourcePicker } from './CharacterSourcePicker';
 import { errorOf, useLabClient } from './api';
 import { EmptyState, ErrorLine, MediaGridSkeleton, Notice, PrimaryButton, SecondaryButton, Section, Spinner, fieldClass, labelClass, usd } from './ui';
 import { VideoCard } from './VideoCard';
@@ -35,8 +36,14 @@ const RECENT_COUNT = 6;
 
 type GenerateResponse = { video?: UgcVideoDto; estimated_cost_usd?: number };
 
-/** Builds the default Seedance prompt from the current selection, using the AI-suggested context when available. */
-const getDefaultPrompt = (sel: VideoSelection): string => {
+/**
+ * Builds the default Seedance prompt from the current selection. JSON input embeds the Portrait Clone JSON;
+ * image input uses the AI-suggested context when available.
+ */
+const getDefaultPrompt = (sel: VideoSelection, source: UgcCharacterSource): string => {
+  if (source === 'json' && sel.character.portraitJson) {
+    return buildJsonPrompt(sel.script, sel.character.portraitJson);
+  }
   if (sel.suggestedVideoContext) {
     return assemblePromptFromContext(sel.suggestedVideoContext, sel.script);
   }
@@ -53,6 +60,9 @@ export function VideoPanel({ selection, voiceKey, onOpenLibrary }: VideoPanelPro
   const { videos, etas, error, loading, reload, add, update, remove } = useUgcVideos();
   const isPhoto = selection?.character.kind === 'photo';
   const isAvatar = selection?.character.kind === 'avatar';
+  const hasJson = Boolean(selection?.character.portraitJson);
+  const [pickedSource, setPickedSource] = useState<UgcCharacterSource>('image');
+  const source: UgcCharacterSource = hasJson ? pickedSource : 'image';
   const duration: UgcDuration = selection?.duration ?? 8;
 
   // Model + resolution state
@@ -65,12 +75,14 @@ export function VideoPanel({ selection, voiceKey, onOpenLibrary }: VideoPanelPro
   const [confirmCost, setConfirmCost] = useState<number | null>(null);
 
   // Editable video generation prompt — pre-filled from AI-suggested context or the hard-coded builder.
-  const [customPrompt, setCustomPrompt] = useState(() => (selection ? getDefaultPrompt(selection) : ''));
-  useEffect(() => {
-    setCustomPrompt(selection ? getDefaultPrompt(selection) : '');
-  }, [selection]);
-
-  const defaultPrompt = selection ? getDefaultPrompt(selection) : '';
+  // Resets to the new default whenever the selection or the Photo/JSON input changes it.
+  const defaultPrompt = selection ? getDefaultPrompt(selection, source) : '';
+  const [customPrompt, setCustomPrompt] = useState(defaultPrompt);
+  const [promptBase, setPromptBase] = useState(defaultPrompt);
+  if (promptBase !== defaultPrompt) {
+    setPromptBase(defaultPrompt);
+    setCustomPrompt(defaultPrompt);
+  }
   const isEdited = customPrompt !== defaultPrompt;
 
   // "Update Prompt" — regenerate scene context via GPT-4o-mini then reassemble
@@ -110,6 +122,7 @@ export function VideoPanel({ selection, voiceKey, onOpenLibrary }: VideoPanelPro
         confirmOverBudget,
         videoModel,
         resolution,
+        source,
         ...(voiceKey ? { voiceKey } : {}),
         ...(customPrompt.trim() ? { customPrompt: customPrompt.trim() } : {}),
       },
@@ -127,7 +140,8 @@ export function VideoPanel({ selection, voiceKey, onOpenLibrary }: VideoPanelPro
   }
 
   const characterLabel =
-    isAvatar ? 'Your Avatar · first frame, portrait-locked'
+    source === 'json' ? 'Character JSON · no image sent'
+    : isAvatar ? 'Your Avatar · first frame, portrait-locked'
     : isPhoto ? 'Photo · first frame, keeps the place'
     : 'AI character · look reference';
 
@@ -142,7 +156,11 @@ export function VideoPanel({ selection, voiceKey, onOpenLibrary }: VideoPanelPro
         ) : (
           <div className="flex flex-col gap-4 sm:flex-row">
             {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URL */}
-            <img src={selection.character.url} alt="Selected character" className="aspect-[9/16] w-24 shrink-0 rounded-xl object-cover ring-1 ring-line" />
+            <img
+              src={selection.character.url}
+              alt="Selected character"
+              className={`aspect-[9/16] w-24 shrink-0 rounded-xl object-cover ring-1 ring-line transition-opacity ${source === 'json' ? 'opacity-40' : ''}`}
+            />
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               <p className="text-[11px] uppercase tracking-widest text-muted">
                 {characterLabel}
@@ -163,6 +181,8 @@ export function VideoPanel({ selection, voiceKey, onOpenLibrary }: VideoPanelPro
                   </span>
                 )}
               </div>
+
+              <CharacterSourcePicker source={source} hasJson={hasJson} onChange={setPickedSource} />
 
               {/* Model + Resolution selectors */}
               <div className="flex flex-wrap gap-3">
@@ -202,7 +222,7 @@ export function VideoPanel({ selection, voiceKey, onOpenLibrary }: VideoPanelPro
                 <div className="flex items-center justify-between gap-2">
                   <label className={labelClass}>
                     Video generation prompt
-                    {selection.suggestedVideoContext && (
+                    {selection.suggestedVideoContext && source === 'image' && (
                       <span className="ml-1 text-[10px] text-emerald-700 normal-case font-normal">✦ AI-suggested</span>
                     )}
                   </label>
@@ -216,12 +236,14 @@ export function VideoPanel({ selection, voiceKey, onOpenLibrary }: VideoPanelPro
                         Reset
                       </button>
                     )}
-                    <SecondaryButton
-                      onClick={() => void updatePrompt()}
-                      disabled={updatingPrompt}
-                    >
-                      {updatingPrompt ? <><Spinner /> Updating…</> : '✦ Update Prompt'}
-                    </SecondaryButton>
+                    {source === 'image' && (
+                      <SecondaryButton
+                        onClick={() => void updatePrompt()}
+                        disabled={updatingPrompt}
+                      >
+                        {updatingPrompt ? <><Spinner /> Updating…</> : '✦ Update Prompt'}
+                      </SecondaryButton>
+                    )}
                   </div>
                 </div>
                 <textarea

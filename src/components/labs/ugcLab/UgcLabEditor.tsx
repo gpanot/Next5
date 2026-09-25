@@ -110,6 +110,12 @@ export function UgcLabEditor() {
     setStep('hook');
   }
 
+  /** Keeps the picked character fresh, e.g. when its JSON is generated after it was picked. */
+  function handleCharacterUpdated(character: UgcCharacterDto) {
+    setSelectedCharacter((prev) => (prev?.id === character.id ? character : prev));
+    setScriptReady((prev) => (prev?.character.id === character.id ? { ...prev, character } : prev));
+  }
+
   function handleScriptReady(ready: ScriptReady, hookText: string) {
     setHook(hookText); // the original hook phrase shown in the SelectionBar
     setScriptReady(ready);
@@ -163,7 +169,7 @@ export function UgcLabEditor() {
 
       {step === 'profile' && <RunProfileStep onConfirmed={() => setStep('character')} />}
       {step === 'character' && (
-        <CharacterPanel onCharacterSelected={handleCharacterSelected} />
+        <CharacterPanel onCharacterSelected={handleCharacterSelected} onCharacterUpdated={handleCharacterUpdated} />
       )}
       {step === 'hook' && (
         <HookPanel character={selectedCharacter} onReady={handleScriptReady} />

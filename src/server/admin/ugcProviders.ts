@@ -8,7 +8,8 @@ type SubmitInput = {
   prompt: string;
   duration: UgcDuration;
   resolution: string;
-  imageUrl: string;
+  /** Absent in JSON mode: text-to-video, the look comes from the Portrait Clone JSON in the prompt. */
+  imageUrl?: string;
   /** photo: the image is the first frame. ai: reapi treats it as a look reference only. */
   kind: 'photo' | 'ai';
 };
@@ -32,12 +33,19 @@ const ENDPOINTS: Record<UgcProvider, { submit: string; status: string; content?:
   wan3: { submit: '', status: '' },
 };
 
+/** JSON mode: no image, so both routes run plain text-to-video in 9:16. */
+const textOnlyBody = (provider: UgcProvider, { prompt, duration, resolution }: SubmitInput): Record<string, unknown> =>
+  provider === 'openrouter'
+    ? { model: 'bytedance/seedance-2.5', prompt, duration, resolution, aspect_ratio: '9:16', generate_audio: true }
+    : { model: 'doubao-seedance-2.5-face', content_filter: false, prompt, duration, resolution, generate_audio: true, size: '9:16' };
+
 /**
  * OpenRouter takes first/last frames only — it has no look-reference mode — so an AI portrait
  * also starts the video. reapi keeps both modes.
  */
 const buildBody = (provider: UgcProvider, input: SubmitInput): Record<string, unknown> => {
   const { prompt, duration, resolution, imageUrl, kind } = input;
+  if (!imageUrl) return textOnlyBody(provider, input);
   if (provider === 'openrouter') {
     return {
       model: 'bytedance/seedance-2.5',

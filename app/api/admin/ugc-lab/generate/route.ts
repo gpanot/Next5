@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import {
   UGC_CONFIRM_ABOVE_USD, UGC_RESOLUTION,
-  estimateVideoUsd, isUgcDuration, isUgcResolution, isUgcVideoModel,
+  estimateVideoUsd, isUgcCharacterSource, isUgcDuration, isUgcResolution, isUgcVideoModel,
   type UgcResolution, type UgcVideoModel,
 } from '../../../../../src/config/ugcLab';
 import { adminRoute } from '../../../../../src/server/admin/route';
@@ -21,18 +21,20 @@ type GenerateBody = {
   videoModel?: string;
   /** '480p' | '720p' — defaults to '480p'. */
   resolution?: string;
+  /** 'image' (default) sends the character photo; 'json' sends only the Portrait Clone JSON in the prompt. */
+  source?: string;
 };
 
 /**
- * POST { characterId, script, duration, confirmOverBudget?, voiceKey?, customPrompt?, videoModel?, resolution? } → { video }.
- * Photo and avatar characters are sent as the first frame.
+ * POST { characterId, script, duration, confirmOverBudget?, voiceKey?, customPrompt?, videoModel?, resolution?, source? } → { video }.
+ * Photo and avatar characters are sent as the first frame. source='json' sends no image (text-to-video from the JSON).
  * videoModel='wan3' uses direct reAPI (REAPI_API_KEY); videoModel='seedance' (default) uses Treg.
  * resolution applies to both models; aspect ratio is always 9:16.
  */
 export const POST = adminRoute(async (req: NextRequest) => {
   const {
     characterId, script, duration = 8, confirmOverBudget = false,
-    voiceKey, customPrompt, videoModel: rawModel, resolution: rawRes,
+    voiceKey, customPrompt, videoModel: rawModel, resolution: rawRes, source: rawSource,
   } = (await req.json()) as GenerateBody;
 
   if (!characterId) {
@@ -53,11 +55,12 @@ export const POST = adminRoute(async (req: NextRequest) => {
     return NextResponse.json({ error: 'budget_exceeded', estimated_cost_usd, cap_usd: UGC_CONFIRM_ABOVE_USD }, { status: 402 });
   }
 
-  const video = await submitVideo(
-    characterId, script.trim(), duration,
-    customPrompt?.trim() || undefined,
-    videoModel, resolution,
-    voiceKey || undefined,
-  );
+  const video = await submitVideo(characterId, script.trim(), duration, {
+    customPrompt: customPrompt?.trim() || undefined,
+    videoModel,
+    resolution,
+    voiceKey: voiceKey || undefined,
+    source: isUgcCharacterSource(rawSource) ? rawSource : 'image',
+  });
   return NextResponse.json({ video: await toVideoDto(video) }, { status: 201 });
 });

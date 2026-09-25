@@ -58,8 +58,8 @@ async function reapiRequest<T>(
 
 export type Wan3SubmitInput = {
   prompt: string;
-  /** Public or signed HTTPS URL of the character photo (first frame). */
-  imageUrl: string;
+  /** Public or signed HTTPS URL of the character photo (first frame). Absent in JSON mode (text-to-video). */
+  imageUrl?: string;
   duration: number;
   /** '480p' | '720p' — sent to reAPI as '480P' / '720P'. */
   resolution: string;
@@ -92,7 +92,9 @@ export async function submitWan3Task(input: Wan3SubmitInput): Promise<string> {
   const body: Record<string, unknown> = {
     model: 'wan3.0-video',
     prompt: input.prompt,
-    image_with_roles: [{ url: input.imageUrl, role: hasAudio ? 'reference_image' : 'first_frame' }],
+    ...(input.imageUrl
+      ? { image_with_roles: [{ url: input.imageUrl, role: hasAudio ? 'reference_image' : 'first_frame' }] }
+      : {}),
     size: '9:16',
     resolution: input.resolution.toUpperCase(), // reAPI expects "480P" / "720P"
     duration: input.duration,

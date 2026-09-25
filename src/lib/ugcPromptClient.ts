@@ -18,6 +18,60 @@ export const quoteScript = (script: string): string => script.trim().replace(/"/
 export const assemblePromptFromContext = (context: string, script: string): string =>
   `${context.trimEnd()} They speak to the camera, lips synced to every word: "${quoteScript(script)}". ${DELIVERY_RULES}`;
 
+type JsonRecord = Record<string, unknown>;
+
+const recordAt = (value: unknown, key: string): JsonRecord | undefined => {
+  const next = typeof value === 'object' && value !== null ? (value as JsonRecord)[key] : undefined;
+  return typeof next === 'object' && next !== null ? (next as JsonRecord) : undefined;
+};
+
+const textOf = (...values: unknown[]): string | undefined => {
+  const hit = values.find((v) => typeof v === 'string' || typeof v === 'number');
+  return hit === undefined ? undefined : String(hit);
+};
+
+/**
+ * Short look summary from a Portrait Clone JSON. Reads the full skill schema
+ * (face.skin.tone, face.eyes.shape, hair.color, hair.cut) and the older flat keys.
+ */
+export const portraitDetails = (portraitJson: JsonRecord): string[] => {
+  const subject = recordAt(portraitJson, 'subject');
+  const face = recordAt(portraitJson, 'face');
+  const hair = recordAt(portraitJson, 'hair');
+  const age = textOf(subject?.apparent_age);
+  const skin = textOf(recordAt(face, 'skin')?.tone, face?.skin_tone_hex);
+  const eyes = textOf(recordAt(face, 'eyes')?.shape, face?.eye_shape);
+  const hairColor = textOf(hair?.color, hair?.color_hex);
+  const hairStyle = textOf(hair?.cut, hair?.style);
+  return [
+    age ? `approximately ${age} years old` : null,
+    skin ? `skin tone ${skin}` : null,
+    eyes ? `${eyes} eyes` : null,
+    hairColor ? `${hairColor} hair` : null,
+    hairStyle ? `${hairStyle} hair style` : null,
+  ].filter((d): d is string => d !== null);
+};
+
+/** Image-only keys of the Portrait Clone JSON that mean nothing to a video model. */
+const IMAGE_ONLY_KEYS = new Set(['generation_params', 'post_processing', 'output']);
+
+/**
+ * JSON flow: no image is sent. The locked Portrait Clone JSON is the only description of the
+ * person, their outfit, the place and the light, so the model builds the whole scene from text.
+ */
+export const buildJsonPrompt = (script: string, portraitJson: JsonRecord): string => {
+  const locked = Object.fromEntries(Object.entries(portraitJson).filter(([k]) => !IMAGE_ONLY_KEYS.has(k)));
+  return [
+    'Vertical 9:16 smartphone talking-head video of exactly one person, phone on a fixed tripod.',
+    'The person, outfit, scene, lighting and camera are defined by the locked character JSON below. Follow every field literally.',
+    'critical_constraints override any default beauty or quality bias. Nothing listed in negative_prompt may appear.',
+    `Character JSON: ${JSON.stringify(locked)}`,
+    'They stay where they are and talk to the lens with natural head movement. The camera stays steady.',
+    `They speak to the camera, lips synced to every word: "${quoteScript(script)}"`,
+    DELIVERY_RULES,
+  ].join(' ');
+};
+
 /** How the camera and person move so the face is big enough for clean lip sync. */
 const MOVEMENT: Record<UgcShot, string> = {
   wide:
@@ -64,17 +118,8 @@ export const buildAvatarPrompt = (
 ): string => {
   if (!portraitJson) return buildFirstFramePrompt(script, scene);
 
-  const face = portraitJson.face as Record<string, unknown> | undefined;
-  const hair = portraitJson.hair as Record<string, unknown> | undefined;
-  const subject = portraitJson.subject as Record<string, unknown> | undefined;
   const constraints = (portraitJson.critical_constraints as string[] | undefined) ?? [];
-
-  const details: string[] = [];
-  if (subject?.apparent_age) details.push(`approximately ${String(subject.apparent_age)} years old`);
-  if (face?.skin_tone_hex)   details.push(`skin tone ${String(face.skin_tone_hex)}`);
-  if (face?.eye_shape)       details.push(`${String(face.eye_shape)} eyes`);
-  if (hair?.color_hex)       details.push(`${String(hair.color_hex)} hair`);
-  if (hair?.style)           details.push(`${String(hair.style)} hair style`);
+  const details = portraitDetails(portraitJson);
 
   const where = scene?.setting ? ` in ${scene.setting}` : '';
   const who = scene?.person ? ` ${scene.person}.` : '';

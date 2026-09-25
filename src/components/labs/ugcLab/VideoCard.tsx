@@ -15,7 +15,7 @@ type VideoCardProps = {
   onDelete: (id: string) => void;
 };
 
-const MODE_LABEL: Record<string, string> = { 'real-person': 'Photo', 'ai-character': 'AI character', imported: 'Imported' };
+const MODE_LABEL: Record<string, string> = { 'real-person': 'Photo', 'ai-character': 'AI character', imported: 'Imported', json: 'JSON' };
 const ROUTE_LABEL: Record<string, string> = { openrouter: 'OpenRouter', reapi: 'reAPI' };
 
 /** 95 → "1:35". */

@@ -14,6 +14,8 @@ import { errorOf, useLabClient } from './api';
 type CharacterPanelProps = {
   /** Called when the user picks a character (photo, AI, or avatar). The Hook step opens next. */
   onCharacterSelected: (character: UgcCharacterDto) => void;
+  /** Called when a saved character changes, e.g. its JSON was generated after it was picked. */
+  onCharacterUpdated: (character: UgcCharacterDto) => void;
 };
 
 type Reference = { key: string; url: string };
@@ -86,18 +88,18 @@ const AiCharacters = ({
         <EmptyState title="No AI characters yet." hint="Generate one above. It is saved for next time." />
       )}
       {characters.characters.length > 0 && (
-        <CharacterGrid characters={characters.characters} selectedId={selectedId} onSelect={onSelect} onArchive={characters.archive} />
+        <CharacterGrid characters={characters.characters} selectedId={selectedId} onSelect={onSelect} onArchive={characters.archive} onUpdate={characters.update} />
       )}
     </div>
   );
 };
 
 /** Pick a photo, AI character, or your own avatar. Scripts are generated later in the Hook step. */
-export function CharacterPanel({ onCharacterSelected }: CharacterPanelProps) {
+export function CharacterPanel({ onCharacterSelected, onCharacterUpdated }: CharacterPanelProps) {
   const [mode, setMode] = useState<'photo' | 'ai' | 'avatar'>('photo');
-  const photos = useUgcCharacters('photo');
-  const aiCharacters = useUgcCharacters('ai');
-  const avatars = useUgcCharacters('avatar');
+  const photos = useUgcCharacters('photo', onCharacterUpdated);
+  const aiCharacters = useUgcCharacters('ai', onCharacterUpdated);
+  const avatars = useUgcCharacters('avatar', onCharacterUpdated);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   function switchMode(next: 'photo' | 'ai' | 'avatar') {
@@ -116,7 +118,7 @@ export function CharacterPanel({ onCharacterSelected }: CharacterPanelProps) {
       ? 'Use a photo. The video starts on this exact photo and keeps its place and light.'
       : mode === 'ai'
         ? 'Use an AI portrait. Seedance keeps the look.'
-        : 'Your own avatar. Upload a photo, generate a portrait JSON to lock every visual detail.';
+        : 'Your own avatar. Upload a photo, generate a JSON to lock every visual detail.';
 
   return (
     <Section

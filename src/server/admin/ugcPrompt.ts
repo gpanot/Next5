@@ -1,6 +1,9 @@
 // server-only — Seedance 2.5 prompts for the UGC Lab.
 
 import type { UgcScene, UgcShot } from '../../config/ugcLab';
+import { portraitDetails } from '../../lib/ugcPromptClient';
+
+export { buildJsonPrompt } from '../../lib/ugcPromptClient';
 
 /** Rules shared by every clip: clean talking-head output with nothing added in post. */
 const DELIVERY_RULES =
@@ -55,17 +58,8 @@ export const buildAvatarPrompt = (
 ): string => {
   if (!portraitJson) return buildFirstFramePrompt(script, scene);
 
-  const face = portraitJson.face as Record<string, unknown> | undefined;
-  const hair = portraitJson.hair as Record<string, unknown> | undefined;
-  const subject = portraitJson.subject as Record<string, unknown> | undefined;
   const constraints = (portraitJson.critical_constraints as string[] | undefined) ?? [];
-
-  const details: string[] = [];
-  if (subject?.apparent_age) details.push(`approximately ${String(subject.apparent_age)} years old`);
-  if (face?.skin_tone_hex)   details.push(`skin tone ${String(face.skin_tone_hex)}`);
-  if (face?.eye_shape)       details.push(`${String(face.eye_shape)} eyes`);
-  if (hair?.color_hex)       details.push(`${String(hair.color_hex)} hair`);
-  if (hair?.style)           details.push(`${String(hair.style)} hair style`);
+  const details = portraitDetails(portraitJson);
 
   const where = scene?.setting ? ` in ${scene.setting}` : '';
   const who = scene?.person ? ` ${scene.person}.` : '';

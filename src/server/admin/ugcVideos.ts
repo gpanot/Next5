@@ -5,12 +5,12 @@ import type { UgcCharacter, UgcVideo } from '@prisma/client';
 import {
   UGC_PROVIDERS, UGC_PROVIDER_ORDER, UGC_RESOLUTION, UGC_VIDEO_TIMEOUT_SEC,
   WAN3_USD_PER_SECOND,
-  isUgcProvider, type UgcDuration, type UgcProvider, type UgcResolution, type UgcScene, type UgcVideoModel,
+  isUgcProvider, type UgcCharacterSource, type UgcDuration, type UgcProvider, type UgcResolution, type UgcScene, type UgcVideoModel,
 } from '../../config/ugcLab';
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
 import { checkTask, estimateMicros, fetchVideo, submitTask, type TaskState } from './ugcProviders';
-import { buildAvatarPrompt, buildFirstFramePrompt, buildReferencePrompt } from './ugcPrompt';
+import { buildAvatarPrompt, buildFirstFramePrompt, buildJsonPrompt, buildReferencePrompt } from './ugcPrompt';
 import { mirrorFile, putFile, ugcKeys, vendorUrl } from './ugcStore';
 import { checkWan3Task, submitWan3Task } from './wan3Provider';
 
@@ -52,7 +52,11 @@ const portraitJsonOf = (character: UgcCharacter): Record<string, unknown> | null
  * On reapi an AI portrait is a look reference and Seedance invents the room;
  * OpenRouter has no such mode, so the portrait starts the video there too.
  */
-const buildRequest = (provider: UgcProvider, character: UgcCharacter, script: string) => {
+const buildRequest = (provider: UgcProvider, character: UgcCharacter, script: string, source: UgcCharacterSource) => {
+  const portraitJson = portraitJsonOf(character);
+  if (source === 'json' && portraitJson) {
+    return { mode: 'json', kind: 'photo' as const, prompt: buildJsonPrompt(script, portraitJson) };
+  }
   const isAvatarOrPhoto = character.kind === 'photo' || character.kind === 'avatar';
   const asFirstFrame = isAvatarOrPhoto || provider === 'openrouter';
   const mode = isAvatarOrPhoto ? 'real-person' : 'ai-character';
@@ -72,6 +76,18 @@ const buildRequest = (provider: UgcProvider, character: UgcCharacter, script: st
 
 type Started = { provider: UgcProvider; providerTaskId: string; mode: string; prompt: string };
 
+/** Optional choices from the Video step. */
+export type JobOptions = {
+  /** User-edited prompt. Overrides the server-built prompt while keeping mode/kind. */
+  customPrompt?: string;
+  videoModel?: UgcVideoModel;
+  resolution?: UgcResolution;
+  /** R2 key of a custom voice sample (Wan 3.0 only). */
+  voiceKey?: string;
+  /** image (default) sends the character photo; json sends no image and puts the Portrait Clone JSON in the prompt. */
+  source?: UgcCharacterSource;
+};
+
 const messageOf = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 /**
@@ -84,20 +100,17 @@ const messageOf = (err: unknown): string => (err instanceof Error ? err.message 
  * customPrompt (from the Video step) overrides the server-built prompt while keeping mode/kind.
  * resolution is passed through to the provider and stored in the DB row.
  */
-const startJob = async (
-  character: UgcCharacter,
-  script: string,
-  duration: UgcDuration,
-  customPrompt?: string,
-  videoModel: UgcVideoModel = 'seedance',
-  resolution: UgcResolution = UGC_RESOLUTION,
-  voiceKey?: string,
-): Promise<Started> => {
-  const imageUrl = await vendorUrl(character.imageKey);
+const startJob = async (character: UgcCharacter, script: string, duration: UgcDuration, options: JobOptions): Promise<Started> => {
+  const { customPrompt, videoModel = 'seedance', resolution = UGC_RESOLUTION, voiceKey, source = 'image' } = options;
+  if (source === 'json' && !portraitJsonOf(character)) {
+    throw new HttpError(400, 'no_portrait_json', 'This character has no JSON yet. Generate it in the Character step.');
+  }
+  // JSON mode sends no image: the look comes only from the JSON in the prompt.
+  const imageUrl = source === 'json' ? undefined : await vendorUrl(character.imageKey);
 
   // ── Wan 3.0: direct reAPI, no Treg ─────────────────────────────────────────
   if (videoModel === 'wan3') {
-    const { mode, prompt: builtPrompt } = buildRequest('openrouter', character, script);
+    const { mode, prompt: builtPrompt } = buildRequest('openrouter', character, script, source);
     const prompt = customPrompt ?? builtPrompt;
     // Include voice reference audio if the caller supplied an R2 key
     const audioUrl = voiceKey ? await vendorUrl(voiceKey).catch(() => undefined) : undefined;
@@ -112,7 +125,7 @@ const startJob = async (
   // ── Seedance: try OpenRouter then reapi via Treg ────────────────────────────
   const refusals: Record<string, string> = {};
   for (const provider of UGC_PROVIDER_ORDER) {
-    const { mode, kind, prompt: builtPrompt } = buildRequest(provider, character, script);
+    const { mode, kind, prompt: builtPrompt } = buildRequest(provider, character, script, source);
     const prompt = customPrompt ?? builtPrompt;
     try {
       const providerTaskId = await submitTask(provider, { prompt, duration, resolution, imageUrl, kind });
@@ -132,16 +145,14 @@ export const submitVideo = async (
   characterId: string,
   script: string,
   duration: UgcDuration,
-  customPrompt?: string,
-  videoModel: UgcVideoModel = 'seedance',
-  resolution: UgcResolution = UGC_RESOLUTION,
-  voiceKey?: string,
+  options: JobOptions = {},
 ): Promise<VideoWithCharacter> => {
+  const { customPrompt, videoModel = 'seedance', resolution = UGC_RESOLUTION, source = 'image' } = options;
   const character = await prisma.ugcCharacter.findUnique({ where: { id: characterId } });
   if (!character) throw new HttpError(404, 'character_not_found', 'That character is gone.');
 
-  console.info(`[ugc] generate start: character ${characterId} (${character.kind}), ${duration}s, model=${videoModel} res=${resolution}${customPrompt ? ' [custom prompt]' : ''}`);
-  const { provider, providerTaskId, mode, prompt } = await startJob(character, script, duration, customPrompt, videoModel, resolution, voiceKey);
+  console.info(`[ugc] generate start: character ${characterId} (${character.kind}), ${duration}s, model=${videoModel} res=${resolution} source=${source}${customPrompt ? ' [custom prompt]' : ''}`);
+  const { provider, providerTaskId, mode, prompt } = await startJob(character, script, duration, options);
 
   const estimatedCostUsdMicros =
     provider === 'wan3'

@@ -49,7 +49,7 @@ export function RealPersonPanel({ photos, selectedId, onSelect }: RealPersonPane
         <EmptyState title="No photos yet." hint="Upload a photo of the person in the place the video should happen." />
       )}
       {photos.characters.length > 0 && (
-        <CharacterGrid characters={photos.characters} selectedId={selectedId} onSelect={onSelect} onArchive={photos.archive} />
+        <CharacterGrid characters={photos.characters} selectedId={selectedId} onSelect={onSelect} onArchive={photos.archive} onUpdate={photos.update} />
       )}
     </div>
   );

@@ -4,7 +4,9 @@ import { useState } from 'react';
 import type { UgcCharacterDto } from '../../../types/admin/ugc';
 import { errorOf, useLabClient } from './api';
 import { CharacterGrid } from './CharacterGrid';
-import { EmptyState, ErrorLine, FileButton, MediaGridSkeleton, PrimaryButton, SecondaryButton, Spinner } from './ui';
+import { PortraitJsonPanel } from './PortraitJsonPanel';
+import { EmptyState, ErrorLine, FileButton, MediaGridSkeleton, PrimaryButton } from './ui';
+import { usePortraitJson } from './usePortraitJson';
 import type { useUgcCharacters } from './useUgcCharacters';
 
 type AvatarPanelProps = {
@@ -13,108 +15,14 @@ type AvatarPanelProps = {
   onSelect: (avatar: UgcCharacterDto) => void;
 };
 
-type PortraitPreviewProps = { json: Record<string, unknown>; characterId: string };
-
-/** Downloads the portrait JSON as a .json file. */
-function downloadPortraitJson(json: Record<string, unknown>, characterId: string) {
-  const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `portrait-clone-${characterId.slice(-8)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-/** Shows the key fields from the portrait JSON so the user can verify accuracy, and lets them download the full file. */
-const PortraitPreview = ({ json, characterId }: PortraitPreviewProps) => {
-  const [expanded, setExpanded] = useState(false);
-  const face = json.face as Record<string, unknown> | undefined;
-  const hair = json.hair as Record<string, unknown> | undefined;
-  const subject = json.subject as Record<string, unknown> | undefined;
-  const constraints = json.critical_constraints as string[] | undefined;
-
-  return (
-    <div className="rounded-xl border border-line bg-surface-alt p-3 text-[12px]">
-      <div className="flex items-center justify-between gap-2">
-        <p className="font-medium text-ink">Portrait JSON locked</p>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="text-muted underline hover:text-ink"
-          >
-            {expanded ? 'Collapse' : 'Preview'}
-          </button>
-          <button
-            type="button"
-            onClick={() => downloadPortraitJson(json, characterId)}
-            className="text-muted underline hover:text-ink"
-          >
-            Download .json
-          </button>
-        </div>
-      </div>
-
-      {expanded && (
-        <div className="mt-3 flex flex-col gap-2">
-          {subject && (
-            <div>
-              <p className="text-muted">Subject</p>
-              <p className="text-ink">
-                {[subject.gender, subject.apparent_age, subject.build].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-          )}
-          {face && (
-            <div>
-              <p className="text-muted">Face</p>
-              <p className="text-ink">
-                {[face.shape, face.eye_shape, face.skin_tone_hex].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-          )}
-          {hair && (
-            <div>
-              <p className="text-muted">Hair</p>
-              <p className="text-ink">
-                {[hair.color_hex, hair.length, hair.style].filter(Boolean).join(' · ')}
-              </p>
-            </div>
-          )}
-          {constraints && constraints.length > 0 && (
-            <div>
-              <p className="text-muted">Critical constraints ({constraints.length})</p>
-              <ul className="list-disc list-inside text-ink">
-                {constraints.slice(0, 4).map((c, i) => <li key={i}>{c}</li>)}
-                {constraints.length > 4 && <li className="text-muted">+{constraints.length - 4} more</li>}
-              </ul>
-            </div>
-          )}
-          {/* Full raw JSON in a scrollable box */}
-          <div>
-            <p className="text-muted">Full JSON</p>
-            <pre className="mt-1 max-h-48 overflow-auto rounded-lg border border-line bg-white p-2 text-[10px] leading-relaxed text-ink">
-              {JSON.stringify(json, null, 2)}
-            </pre>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-/** Upload your own photo as an avatar + optionally analyse it with the Portrait Clone skill. */
+/** Upload your own photo as an avatar + optionally lock it into a Portrait Clone JSON. */
 export function AvatarPanel({ avatars, selectedId, onSelect }: AvatarPanelProps) {
   const client = useLabClient();
   const [uploading, setUploading] = useState(false);
-  const [analysing, setAnalysing] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const [analyseError, setAnalyseError] = useState('');
-  /** The character just uploaded — shown with an "Analyse photo" CTA before it goes into the grid. */
+  /** The avatar in focus (just uploaded or tapped) — shown with the JSON panel before it is used. */
   const [justUploaded, setJustUploaded] = useState<UgcCharacterDto | null>(null);
+  const portrait = usePortraitJson(avatars.update);
 
   async function upload(file: File) {
     setUploading(true);
@@ -133,22 +41,9 @@ export function AvatarPanel({ avatars, selectedId, onSelect }: AvatarPanelProps)
     setJustUploaded(res.data.character);
   }
 
-  async function analysePortrait(character: UgcCharacterDto) {
-    setAnalysing(true);
-    setAnalyseError('');
-    const res = await client.request<{ character?: UgcCharacterDto; portraitJson?: Record<string, unknown> }>('/ugc-lab/portrait-clone',
-      { json: { characterId: character.id } },
-    ).catch(() => null);
-    setAnalysing(false);
-    if (!res?.ok || !res.data.character) {
-      setAnalyseError(res ? errorOf(res) : 'Portrait analysis failed');
-      return;
-    }
-    avatars.update(res.data.character);
-    setJustUploaded(res.data.character);
-  }
-
-  const targetForAnalysis = justUploaded ?? (selectedId ? avatars.characters.find((c) => c.id === selectedId) ?? null : null);
+  // Read from the list so a JSON generated from the grid shows here too.
+  const focusId = justUploaded?.id ?? selectedId;
+  const targetForAnalysis = avatars.characters.find((c) => c.id === focusId) ?? justUploaded;
 
   return (
     <div className="flex flex-col gap-4">
@@ -172,7 +67,7 @@ export function AvatarPanel({ avatars, selectedId, onSelect }: AvatarPanelProps)
         </div>
       </div>
 
-      {/* Portrait analysis CTA — shown right after upload */}
+      {/* Character JSON panel — shown right after upload or when a tile is tapped */}
       {targetForAnalysis && (
         <div className="flex flex-col gap-3 rounded-xl border border-line bg-white p-4">
           <div className="flex items-center gap-3">
@@ -185,26 +80,18 @@ export function AvatarPanel({ avatars, selectedId, onSelect }: AvatarPanelProps)
             <div className="flex-1">
               <p className="text-[13px] font-medium text-ink">Lock your look</p>
               <p className="text-[12px] text-muted">
-                Analyse the photo to pin every visual detail (face, skin, hair, outfit) into a JSON.
-                Seedance uses it to stay consistent across generations.
+                Generate a JSON that pins every visual detail (face, skin, hair, outfit).
+                In the Video step, pick the photo or the JSON to compare results.
               </p>
             </div>
           </div>
 
-          {targetForAnalysis.portraitJson ? (
-            <PortraitPreview json={targetForAnalysis.portraitJson} characterId={targetForAnalysis.id} />
-          ) : (
-            <div className="flex flex-wrap items-center gap-3">
-              <PrimaryButton
-                onClick={() => void analysePortrait(targetForAnalysis)}
-                disabled={analysing}
-              >
-                {analysing ? <><Spinner /> Analysing… about 20 s</> : 'Analyse photo (Portrait Clone)'}
-              </PrimaryButton>
-              <span className="text-[11px] text-muted">Optional — but strongly recommended for consistency</span>
-            </div>
-          )}
-          {analyseError && <p className="text-[12px] text-red-700">{analyseError}</p>}
+          <PortraitJsonPanel
+            character={targetForAnalysis}
+            busy={portrait.isBusy(targetForAnalysis.id)}
+            error={portrait.errorFor(targetForAnalysis.id)}
+            onGenerate={() => void portrait.generate(targetForAnalysis)}
+          />
 
           <div className="border-t border-line pt-3">
             <PrimaryButton onClick={() => onSelect(targetForAnalysis)}>
@@ -220,7 +107,7 @@ export function AvatarPanel({ avatars, selectedId, onSelect }: AvatarPanelProps)
       {!avatars.loading && !avatars.error && avatars.characters.length === 0 && !justUploaded && (
         <EmptyState
           title="No avatars yet."
-          hint="Upload a photo of yourself. The AI will analyse it to lock your look across all videos."
+          hint="Upload a photo of yourself. Then generate a JSON to lock your look."
         />
       )}
       {avatars.characters.length > 0 && (
@@ -233,6 +120,7 @@ export function AvatarPanel({ avatars, selectedId, onSelect }: AvatarPanelProps)
             setJustUploaded(c);
           }}
           onArchive={avatars.archive}
+          onUpdate={avatars.update}
         />
       )}
     </div>
