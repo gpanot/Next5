@@ -10,6 +10,7 @@ export const maxDuration = 120;
 /**
  * POST { characterId } → { character, portraitJson }.
  * Runs the Portrait Clone analysis on any character (photo, AI or avatar) and stores the locked JSON on it.
+ * Up to two Gemini calls (draft + one repair), so allow ~100 s.
  * Calling it again replaces the stored JSON with a fresh one.
  */
 export const POST = adminRoute(async (req: NextRequest) => {
@@ -22,14 +23,16 @@ export const POST = adminRoute(async (req: NextRequest) => {
   }
 
   const imageUrl = await browserUrl(character.imageKey);
-  const portraitJson = await generatePortraitJson(imageUrl, `${character.kind}_${character.id.slice(-6)}`);
-  if (!portraitJson) {
+  const result = await generatePortraitJson(imageUrl, `${character.kind}_${character.id.slice(-6)}`);
+  if (!result) {
     return NextResponse.json({ error: 'JSON generation failed. Try again.' }, { status: 502 });
   }
 
+  const { json: portraitJson, issuesFound, issuesLeft } = result;
+  console.info(`[ugc] portrait JSON for ${character.id}: ${issuesFound.length} issues found, ${issuesLeft.length} left after repair`);
   const updated = await prisma.ugcCharacter.update({
     where: { id: character.id },
     data: { portraitJson: portraitJson as Prisma.InputJsonObject },
   });
-  return NextResponse.json({ character: await toCharacterDto(updated), portraitJson });
+  return NextResponse.json({ character: await toCharacterDto(updated), portraitJson, issuesLeft });
 });
