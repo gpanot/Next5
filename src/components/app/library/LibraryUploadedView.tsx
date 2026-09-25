@@ -217,8 +217,22 @@ const DropZone = ({
 
 const UploadTile = ({ item, onOpen, onDelete }: { item: UploadItem; onOpen: () => void; onDelete: () => void }) => {
   const isVideo = item.kind === 'video';
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handleMouseEnter = () => {
+    if (videoRef.current) void videoRef.current.play();
+  };
+  const handleMouseLeave = () => {
+    const v = videoRef.current;
+    if (v) { v.pause(); v.currentTime = 0; }
+  };
+
   return (
-    <div className="group relative overflow-hidden rounded-2xl bg-app-sunken">
+    <div
+      className="group relative overflow-hidden rounded-2xl bg-app-sunken"
+      onMouseEnter={isVideo ? handleMouseEnter : undefined}
+      onMouseLeave={isVideo ? handleMouseLeave : undefined}
+    >
       {/* Clickable media area — 9:16 portrait card */}
       <button
         type="button"
@@ -230,11 +244,13 @@ const UploadTile = ({ item, onOpen, onDelete }: { item: UploadItem; onOpen: () =
           isVideo ? (
             // eslint-disable-next-line jsx-a11y/media-has-caption
             <video
+              ref={videoRef}
               src={item.url}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="h-full w-full object-cover"
               muted
               playsInline
               preload="metadata"
+              loop
             />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
