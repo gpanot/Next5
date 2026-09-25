@@ -113,6 +113,8 @@ type ContextPanelProps = {
   textConfig: TextConfig;
   onTextConfigChange: (patch: Partial<TextConfig>) => void;
   onResetTextPosition: () => void;
+  /** Optional "Auto Fit" CTA, shown under Reset Position in the Video and Text tabs. */
+  autoFit?: React.ReactNode;
 };
 
 // ── Helper components ──────────────────────────────────────────────────────────
@@ -249,6 +251,7 @@ export function ContextPanel({
   textConfig,
   onTextConfigChange,
   onResetTextPosition,
+  autoFit,
 }: ContextPanelProps) {
   const tabs: { id: BlitzLayer; label: string }[] = [
     ...(!hideOverlay ? [{ id: 'OVERLAY' as const, label: 'Video' }] : []),
@@ -342,6 +345,7 @@ export function ContextPanel({
             >
               ↺ Reset Position
             </button>
+            {autoFit}
           </>
         )}
 
@@ -461,6 +465,7 @@ export function ContextPanel({
             >
               ↺ Reset Position
             </button>
+            {autoFit}
           </>
         )}
 

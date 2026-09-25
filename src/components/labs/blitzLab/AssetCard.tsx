@@ -11,6 +11,8 @@ type AssetCardProps = {
   /** Present only for the user's own uploads. Resolve with an error message, or null on success. */
   onRename?: (name: string) => Promise<string | null>;
   onDelete?: () => Promise<string | null>;
+  /** Tailwind aspect-ratio class for the preview area. Defaults to 'aspect-[3/4]'. */
+  aspectClass?: string;
 };
 
 /** Preview: video plays on hover (handled by the card), image shows as-is, audio has a play/pause indicator. */
@@ -58,7 +60,7 @@ function AssetPreview({ asset, hovering }: { asset: BlitzAssetDto; hovering: boo
 }
 
 /** One tile in the asset library grid. */
-export function AssetCard({ asset, selected, onSelect, onRename, onDelete }: AssetCardProps) {
+export function AssetCard({ asset, selected, onSelect, onRename, onDelete, aspectClass = 'aspect-[3/4]' }: AssetCardProps) {
   const [mode, setMode] = useState<'view' | 'rename' | 'confirmDelete'>('view');
   const [draft, setDraft] = useState(asset.name);
   const [busy, setBusy] = useState(false);
@@ -90,7 +92,7 @@ export function AssetCard({ asset, selected, onSelect, onRename, onDelete }: Ass
       onMouseLeave={() => setHovering(false)}
     >
       <div
-        className="relative aspect-[3/4] w-full overflow-hidden"
+        className={`relative ${aspectClass} w-full overflow-hidden`}
         onMouseEnter={(e) => void e.currentTarget.querySelector('video')?.play().catch(() => undefined)}
         onMouseLeave={(e) => e.currentTarget.querySelector('video')?.pause()}
       >

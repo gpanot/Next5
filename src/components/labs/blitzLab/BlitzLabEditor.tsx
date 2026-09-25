@@ -23,15 +23,20 @@ import type { GreenScreenProps } from '../../../remotion/types';
 import { useLabClient } from '../LabClientProvider';
 import { AssetLibraryModal } from './AssetLibraryModal';
 import { AssetsPanel, keyForLayer, type CurrentAssets } from './AssetsPanel';
+import { AutoFitButton } from './autoFit/AutoFitButton';
+import { useAutoFit, type AutoFitApply } from './autoFit/useAutoFit';
 import { ContextPanel } from './ContextPanel';
 import { CopyPanel } from './CopyPanel';
 import { LibraryGrid } from './LibraryGrid';
 import { PreviewPlayer } from './PreviewPlayer';
 import { RenderControls } from './RenderControls';
-import { blitzApi, type BlitzAssetDto, type BlitzTemplateDto } from './api';
+import { blitzApi, type BlitzAssetDto, type BlitzProjectDto, type BlitzTemplateDto } from './api';
 import type { BlitzLayer } from './canvasHitTest';
 import type { BlitzUploadType } from './upload';
 import { isLocalKey } from './useBlitzUploads';
+import { buildGreenScreenSet, isGreenScreenProject, readGreenScreenRemix } from './greenScreenSet';
+import { RemixItPanel } from './RemixItPanel';
+import { useAiRemix } from './useAiRemix';
 import { useBlitzWorkspace } from './useBlitzWorkspace';
 import { useClipDuration } from './useClipDuration';
 import { useTextLayout } from './useTextLayout';
@@ -129,6 +134,42 @@ export function BlitzLabEditor() {
       .finally(() => setIsLoading(false));
   }, [client, initTemplate, setAssets]);
 
+  // ── remix ──────────────────────────────────────────────────────────────
+  const { reset: resetText, patch: patchText } = text;
+
+  /** Library "Remix": re-open a rendered video with everything it was made of. */
+  const handleRemixProject = useCallback((project: BlitzProjectDto) => {
+    const data = readGreenScreenRemix(project);
+    if (!data) return;
+    const template = templates.find((t) => t.id === data.templateId);
+    if (template) setSelectedTemplate(template);
+    setCurrentAssets(data.currentAssets);
+    setOverlay(data.overlay);
+    setCaptionText(data.captionText);
+    setRegenPrompt(data.regenPrompt);
+    setMentionBusiness(data.mentionBusiness);
+    setBusinessText(data.businessText);
+    setMuteVideoAudio(data.muteVideoAudio);
+    resetText();
+    patchText(data.textConfigOverride);
+    setPlayFromStartSignal((n) => n + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [templates, resetText, patchText]);
+
+  /** "Remix it!": the AI keeps one layer and swaps the others. */
+  const aiRemix = useAiRemix({
+    captionText,
+    currentAssets,
+    businessText: mentionBusiness ? businessText : undefined,
+    hint: regenPrompt,
+    onApply: useCallback((next: { captionText: string; currentAssets: CurrentAssets; overlayChanged: boolean }) => {
+      setCaptionText(next.captionText);
+      setCurrentAssets(next.currentAssets);
+      if (next.overlayChanged) setOverlay(NO_OVERLAY_MOVE);
+      setPlayFromStartSignal((n) => n + 1);
+    }, []),
+  });
+
   // ── asset actions ──────────────────────────────────────────────────────
   const handleSwapAsset = useCallback((type: BlitzUploadType, key: string) => {
     setCurrentAssets((prev) =>
@@ -213,6 +254,39 @@ export function BlitzLabEditor() {
     : mentionBusiness && !businessText.trim() ? 'Add your business line (or pick No)'
     : null;
 
+  const remixBlockedReason =
+    !currentAssets.backgroundKey || !currentAssets.overlayKey ? 'Pick a background and a meme video'
+    : keys.some(isLocalKey) ? 'Wait for uploads to finish'
+    : aiRemix.locks.length === 4 ? 'Unlock at least one layer'
+    : aiRemix.locks.includes('caption') && !captionText.trim() ? 'Add a caption to keep'
+    : aiRemix.locks.includes('audio') && !currentAssets.audioKey ? 'Pick audio to keep'
+    : null;
+
+  // ── auto fit ───────────────────────────────────────────────────────────
+  const autoFitInput = inputProps && currentAssets.backgroundKey && currentAssets.overlayKey ? {
+    backgroundUrl: inputProps.backgroundUrl,
+    backgroundIsImage: inputProps.backgroundIsImage ?? /\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(inputProps.backgroundUrl),
+    overlayUrl: inputProps.overlayUrl,
+    overlay,
+    captionText,
+    textConfig: text.resolved,
+    businessText: showBusiness ? businessText : undefined,
+  } : null;
+  const autoFit = useAutoFit(
+    () => autoFitInput,
+    (fit: AutoFitApply) => {
+      setOverlay(fit.overlay);
+      patchText({ positionY: fit.caption.positionY, offsetX: fit.caption.offsetX });
+      // The meme is the front layer: select it so its new box is outlined.
+      setActiveLayer('OVERLAY');
+      setPlayFromStartSignal((n) => n + 1);
+    },
+  );
+  const autoFitBlockedReason =
+    !currentAssets.backgroundKey || !currentAssets.overlayKey ? 'Pick a background and a meme video'
+    : keys.some(isLocalKey) ? 'Wait for uploads to finish'
+    : null;
+
   const handleDoneEditing = () => {
     if (!selectedTemplate) return;
     void render.submit({
@@ -228,6 +302,8 @@ export function BlitzLabEditor() {
       regenPrompt: regenPrompt || undefined,
       captionText,
       textConfigOverride: Object.keys(text.override).length > 0 ? (text.override as Record<string, unknown>) : undefined,
+      // Saved with the render so the Library can Remix it later.
+      set: buildGreenScreenSet(aiRemix.result?.reason),
     });
   };
 
@@ -297,6 +373,15 @@ export function BlitzLabEditor() {
             isRegenerating={isRegenerating}
             regenError={regenError}
           />
+          <RemixItPanel
+            locks={aiRemix.locks}
+            onToggleLock={aiRemix.toggleLock}
+            onRemix={() => void aiRemix.run()}
+            busy={aiRemix.busy}
+            disabledReason={remixBlockedReason}
+            error={aiRemix.error}
+            result={aiRemix.result}
+          />
         </div>
 
         {/* Center: preview */}
@@ -321,6 +406,15 @@ export function BlitzLabEditor() {
             textConfig={text.resolved}
             onTextConfigChange={text.patch}
             onResetTextPosition={text.resetCaptionPosition}
+            autoFit={
+              <AutoFitButton
+                onClick={() => void autoFit.run()}
+                busy={autoFit.busy}
+                disabledReason={autoFitBlockedReason}
+                error={autoFit.error}
+                reason={autoFit.reason}
+              />
+            }
           />
         </div>
       </div>
@@ -335,6 +429,8 @@ export function BlitzLabEditor() {
           isLoading={libraryLoading && library.length === 0}
           onDelete={removeLibraryProject}
           onVideoPlay={() => setPauseSignal((n) => n + 1)}
+          onRemix={handleRemixProject}
+          canRemix={isGreenScreenProject}
         />
       </section>
 

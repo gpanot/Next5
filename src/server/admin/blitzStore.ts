@@ -26,9 +26,9 @@ export const blitzKeys = blitzKeysFor(null);
 
 // ── Uploads ───────────────────────────────────────────────────────────────────
 
-export type BlitzUploadType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO';
+export type BlitzUploadType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO' | 'HOOK';
 
-export const BLITZ_UPLOAD_TYPES = new Set<string>(['BACKGROUND', 'OVERLAY', 'AUDIO']);
+export const BLITZ_UPLOAD_TYPES = new Set<string>(['BACKGROUND', 'OVERLAY', 'AUDIO', 'HOOK']);
 
 /** Uploaded files live under this prefix; asset registration only accepts keys inside it. */
 export const BLITZ_UPLOAD_PREFIX = 'blitz/uploads/';
@@ -58,6 +58,7 @@ const KINDS_BY_TYPE: Record<BlitzUploadType, Array<'image' | 'video' | 'audio'>>
   OVERLAY: ['video'],
   BACKGROUND: ['video', 'image'],
   AUDIO: ['audio'],
+  HOOK: ['video'],
 };
 
 export const blitzMediaKind = (fileName: string): 'image' | 'video' | 'audio' => {

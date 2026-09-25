@@ -12,7 +12,7 @@
 
 import { blitzApi, type BlitzAssetDto, type LabClient } from './api';
 
-export type BlitzUploadType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO';
+export type BlitzUploadType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO' | 'HOOK';
 
 type Progress = (fraction: number) => void;
 
@@ -92,6 +92,7 @@ export const BLITZ_ACCEPT: Record<BlitzUploadType, string> = {
   OVERLAY: 'video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov',
   BACKGROUND: 'video/mp4,video/webm,video/quicktime,image/jpeg,image/png,image/webp,image/gif,.mp4,.webm,.mov,.jpg,.jpeg,.png,.webp,.gif',
   AUDIO: 'audio/mpeg,audio/mp4,audio/aac,audio/wav,audio/ogg,.mp3,.m4a,.aac,.wav,.ogg',
+  HOOK: 'video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov',
 };
 
 /** Media kind of a picked file, from its MIME type. */

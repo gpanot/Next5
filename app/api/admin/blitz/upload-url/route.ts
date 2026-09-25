@@ -24,7 +24,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
   const body = (await req.json().catch(() => ({}))) as UploadUrlBody;
   const type = body.type?.toUpperCase();
   if (!type || !BLITZ_UPLOAD_TYPES.has(type)) {
-    return NextResponse.json({ error: 'type must be BACKGROUND, OVERLAY or AUDIO' }, { status: 400 });
+    return NextResponse.json({ error: 'type must be BACKGROUND, OVERLAY, AUDIO or HOOK' }, { status: 400 });
   }
   const format = blitzUploadFormat(body.fileName ?? '');
   if (!format || !blitzAcceptsFile(type as BlitzUploadType, body.fileName ?? '')) {

@@ -25,12 +25,14 @@ const TITLES: Record<BlitzUploadType, string> = {
   OVERLAY: 'Select Meme',
   BACKGROUND: 'Select Background',
   AUDIO: 'Select Audio',
+  HOOK: 'Select Hook Video',
 };
 
 const UPLOAD_HINT: Record<BlitzUploadType, string> = {
   OVERLAY: 'MP4, MOV or WebM. Transparent WebM works best.',
   BACKGROUND: 'Video or image (MP4, MOV, WebM, JPG, PNG, WebP).',
   AUDIO: 'MP3, M4A, WAV, AAC or OGG.',
+  HOOK: 'MP4, MOV or WebM.',
 };
 
 type Tab = 'library' | 'upload' | 'photos';
@@ -138,7 +140,11 @@ export function AssetLibraryModal({
     { id: 'upload', label: 'My uploads', Icon: UploadIcon },
   ];
 
-  const gridCols = 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-5';
+  // Audio cards are shown at roughly half size — more columns + square aspect ratio
+  const isAudio = type === 'AUDIO';
+  const gridCols = isAudio
+    ? 'grid-cols-4 sm:grid-cols-5 lg:grid-cols-6'
+    : 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-5';
 
   return (
     <div
@@ -279,7 +285,7 @@ export function AssetLibraryModal({
                   type="button"
                   onClick={() => pick('')}
                   className={[
-                    'flex aspect-[3/4] flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border bg-white shadow-sm transition-all dark:bg-neutral-900',
+                    'flex aspect-square flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border bg-white shadow-sm transition-all dark:bg-neutral-900',
                     !currentKey
                       ? 'border-orange-500 ring-2 ring-orange-500/40'
                       : 'border-line hover:border-orange-300 dark:border-neutral-800',
@@ -302,7 +308,7 @@ export function AssetLibraryModal({
               )}
               {/* Upload tile */}
               {tab === 'upload' && (
-                <label className="flex aspect-[3/4] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line p-3 text-center text-muted transition-colors hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600 dark:border-neutral-700 dark:hover:bg-orange-950/30">
+                <label className={`flex ${isAudio ? 'aspect-square' : 'aspect-[3/4]'} cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line p-3 text-center text-muted transition-colors hover:border-orange-400 hover:bg-orange-50 hover:text-orange-600 dark:border-neutral-700 dark:hover:bg-orange-950/30`}>
                   <UploadIcon className="h-5 w-5" />
                   <span className="text-[12px] font-semibold">Upload</span>
                   <span className="text-[10px] leading-snug">{UPLOAD_HINT[type]}</span>
@@ -317,6 +323,7 @@ export function AssetLibraryModal({
                   onSelect={() => pick(asset.r2Key)}
                   onRename={asset.source === 'upload' ? (name) => onRename(asset.id, name) : undefined}
                   onDelete={asset.source === 'upload' ? () => onDelete(asset.id) : undefined}
+                  aspectClass={isAudio ? 'aspect-square' : 'aspect-[3/4]'}
                 />
               ))}
             </div>

@@ -13,6 +13,8 @@ type LibraryGridProps = {
   onVideoPlay: () => void;
   /** Re-open the render's Set in the editor. Hidden when absent. */
   onRemix?: (project: BlitzProjectDto) => void;
+  /** Which renders can be remixed here. Default: all of them. */
+  canRemix?: (project: BlitzProjectDto) => boolean;
 };
 
 const formatDate = (iso: string) =>
@@ -189,7 +191,7 @@ function LibraryCard({
   );
 }
 
-export function LibraryGrid({ projects, isLoading, onDelete, onVideoPlay, onRemix }: LibraryGridProps) {
+export function LibraryGrid({ projects, isLoading, onDelete, onVideoPlay, onRemix, canRemix }: LibraryGridProps) {
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -219,7 +221,7 @@ export function LibraryGrid({ projects, isLoading, onDelete, onVideoPlay, onRemi
           project={project}
           onDelete={onDelete}
           onVideoPlay={onVideoPlay}
-          onRemix={onRemix}
+          onRemix={onRemix && (!canRemix || canRemix(project)) ? onRemix : undefined}
         />
       ))}
     </div>

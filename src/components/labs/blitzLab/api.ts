@@ -9,7 +9,12 @@ export type { BlitzAssetDto, BlitzProjectDto, BlitzTemplateDto };
 
 const BASE = '/blitz';
 
-type BlitzLayerType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO';
+type BlitzLayerType = 'BACKGROUND' | 'OVERLAY' | 'AUDIO' | 'HOOK';
+
+type AutoFitRect = { x: number; y: number; w: number; h: number };
+
+/** The layer "Remix it!" keeps as-is. */
+export type RemixLayer = 'caption' | 'overlay' | 'background' | 'audio';
 
 export const blitzApi = {
   listTemplates: (client: LabClient) =>
@@ -28,6 +33,53 @@ export const blitzApi = {
     client: LabClient,
     body: { captionText?: string; mentionBusiness?: boolean; businessText?: string; regenPrompt?: string },
   ) => client.request<{ caption: string }>(`${BASE}/generate-caption`, { json: body }),
+
+  /** "Remix it!": keep one layer, let the model pick a new combination of the others. */
+  remix: (
+    client: LabClient,
+    body: {
+      locked: RemixLayer[];
+      captionText: string;
+      overlayKey: string;
+      backgroundKey: string;
+      audioKey?: string;
+      businessText?: string;
+      hint?: string;
+    },
+  ) =>
+    client.request<{
+      locked: RemixLayer[];
+      captionText: string;
+      overlayKey: string;
+      backgroundKey: string;
+      audioKey: string | null;
+      reason: string;
+      usedVectors: boolean;
+    }>(`${BASE}/remix`, { json: body }),
+
+  /** "Auto Fit": the model places the meme and caption from a first-frame snapshot. */
+  autoFit: (
+    client: LabClient,
+    body: {
+      backgroundJpeg: string;
+      compositeJpeg: string;
+      captionText: string;
+      layout: {
+        subjectBase: AutoFitRect;
+        subjectNow: AutoFitRect;
+        caption: AutoFitRect;
+        business: AutoFitRect | null;
+      };
+    },
+  ) =>
+    client.request<{
+      overlayZoom: number;
+      overlayOffsetX: number;
+      overlayOffsetY: number;
+      captionPositionY: number;
+      captionOffsetX: number;
+      reason: string;
+    }>(`${BASE}/auto-fit`, { json: body }),
 
   triggerRender: (
     client: LabClient,
