@@ -1,13 +1,16 @@
 /**
  * Image models we can generate with on WaveSpeed, with their request shape and price.
  * Prices are per image in micro-USD (1e-6 USD), from each model's API page (checked 2026-09-16).
- * `nano-banana-2` is what customers get; the others are for the admin model test.
+ * Shop product photos use `gpt-image-2.5-flare`; everything else defaults to `nano-banana-2`.
+ * The others are for the admin model test and the failed-photo fallback.
  */
 
 export type ImageModelId =
   | 'nano-banana-2'
   | 'nano-banana-pro'
   | 'gpt-image-2'
+  | 'gpt-image-2.5-flare'
+  | 'gpt-image-2.5-sunburst'
   | 'seedream-v5-pro'
   | 'flux-2-klein-9b'
   | 'qwen-image'
@@ -80,6 +83,32 @@ export const IMAGE_MODELS: Record<ImageModelId, ImageModel> = {
     perImageUsdMicros: 12_000,
     note: 'Our fallback when a photo is blocked by the safety filter.',
   },
+  'gpt-image-2.5-flare': {
+    id: 'gpt-image-2.5-flare',
+    label: 'GPT Image 2.5 Flare',
+    path: 'openai/gpt-image-2.5-flare/edit',
+    imagesField: 'images',
+    maxImages: 16,
+    supportsAspectRatio: true,
+    supportsResolution: true,
+    extraBody: { quality: 'medium' },
+    priceUsdMicros: { '1k': 39_000, '2k': 55_000 },
+    perImageUsdMicros: 15_000,
+    note: 'What Shop product photos use. Fast tier of GPT Image 2.5 (checked 2026-09-26).',
+  },
+  'gpt-image-2.5-sunburst': {
+    id: 'gpt-image-2.5-sunburst',
+    label: 'GPT Image 2.5 Sunburst',
+    path: 'openai/gpt-image-2.5-sunburst/edit',
+    imagesField: 'images',
+    maxImages: 16,
+    supportsAspectRatio: true,
+    supportsResolution: true,
+    extraBody: { quality: 'medium' },
+    priceUsdMicros: { '1k': 39_000, '2k': 55_000 },
+    perImageUsdMicros: 15_000,
+    note: 'Slower GPT Image 2.5 tier, more care on fine detail. Same price as Flare.',
+  },
   'seedream-v5-pro': {
     id: 'seedream-v5-pro',
     label: 'Seedream 5 Pro',
@@ -129,6 +158,9 @@ export const IMAGE_MODELS: Record<ImageModelId, ImageModel> = {
     note: 'Portrait generation for new influencers — text-to-image, no reference images.',
   },
 };
+
+/** Model for Shop product photos (the "Create photos" flow and "Create more"). */
+export const SHOP_IMAGE_MODEL: ImageModelId = 'gpt-image-2.5-flare';
 
 export const IMAGE_MODEL_IDS = Object.keys(IMAGE_MODELS) as ImageModelId[];
 

@@ -27,10 +27,13 @@ export const PATCH = authedRoute<Ctx>(async (req, session, ctx) => {
   return NextResponse.json({ set: await toSetDto(await ownedSet(session.userId, setId)) });
 });
 
-/** DELETE — archives the style / shop look (its batches and photos stay in the library). */
+/** DELETE — archives the style / shop model (its batches and photos stay in the library). Shop: every row of that model. */
 export const DELETE = authedRoute<Ctx>(async (_req, session, ctx) => {
   const { setId } = await ctx.params;
   const set = await ownedSet(session.userId, setId);
-  await prisma.studioSet.update({ where: { id: set.id }, data: { status: 'archived' } });
+  const where = set.workspace.product === 'shop'
+    ? { workspaceId: set.workspaceId, modelRef: set.modelRef ?? 'me', status: { not: 'archived' as const } }
+    : { id: set.id };
+  await prisma.studioSet.updateMany({ where, data: { status: 'archived' } });
   return NextResponse.json({ archived: true });
 });

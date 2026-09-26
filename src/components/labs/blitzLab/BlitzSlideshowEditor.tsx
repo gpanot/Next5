@@ -20,6 +20,9 @@
  * videos proved too hard to copy as slideshows, and the engine already knows the business.
  * Without a linked run the editor is a free-form slideshow.
  *
+ * B2B No Website flow: Profile → Videos. Same website engine, but the profile is typed by hand
+ * and carries product photos (read by a vision model) that play behind the product shots.
+ *
  * Presentational and transport-agnostic: every request goes through the surrounding
  * <LabClientProvider>, so the same editor runs in the admin tab and on the user side.
  */
@@ -39,6 +42,7 @@ import { AssetsPanel, keyForLayer, type CurrentAssets } from './AssetsPanel';
 import { ContextPanel } from './ContextPanel';
 import { FlowTypePicker, type FlowType } from './FlowTypePicker';
 import { LibraryGrid } from './LibraryGrid';
+import { ManualProfileStep, type ManualSelection } from './manual/ManualProfileStep';
 import { RealEstateTemplateStep } from './RealEstateTemplateStep';
 import { DeckEditBar } from './DeckEditBar';
 import { SHOT_FORMAT, shotFormatError } from './shotFormat';
@@ -71,7 +75,7 @@ type Step = 'profile' | 'research' | 'deck' | 'editor';
 /** 'research' is the Angle step of the Zillow flow. */
 
 /** Numbered steps — varies by flow type and whether linked to Campaign Studio. */
-const buildSteps = (withProfile: boolean, flowType: 'b2b' | 'real_estate' | 'tiktok_shop' | null): { id: Step; label: string }[] => {
+const buildSteps = (withProfile: boolean, flowType: FlowType | null): { id: Step; label: string }[] => {
   if (flowType === 'real_estate') {
     return [
       { id: 'profile',  label: '1 · Zillow' },
@@ -79,8 +83,8 @@ const buildSteps = (withProfile: boolean, flowType: 'b2b' | 'real_estate' | 'tik
       { id: 'deck',     label: '3 · Videos' },
     ];
   }
-  // Linked to a Campaign Studio run: the website engine builds the deck from the profile.
-  if (withProfile) {
+  // Linked to a Campaign Studio run, or a hand-typed profile: the website engine builds the deck.
+  if (withProfile || flowType === 'b2b_manual') {
     return [
       { id: 'profile', label: '1 · Profile' },
       { id: 'deck',    label: '2 · Videos' },
@@ -126,13 +130,15 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
   const [selectedAngle, setSelectedAngle] = useState<ReAngle | null>(null);
   /** Deck cards for the selected angle. Owned here so editor changes show up on the deck. */
   const [deckCards, setDeckCards] = useState<DeckCardData[]>([]);
+  /** B2B No Website: the business picked or being typed in the Profile step. */
+  const [manualSelection, setManualSelection] = useState<ManualSelection>(null);
   /** The deck card open in the editor. Null = the deck is showing. */
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
 
   // ── step navigation ───────────────────────────────────────────────────
   const steps = buildSteps(withProfile, flowType);
   const [step, setStep] = useState<Step>(() => {
-    if (initialFlowType === 'real_estate') return 'profile'; // start at Zillow step
+    if (initialFlowType === 'real_estate' || initialFlowType === 'b2b_manual') return 'profile'; // Zillow / typed profile
     return withProfile ? 'profile' : 'editor';
   });
 
@@ -175,7 +181,9 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
       ? (zillowData && selectedAngle
         ? { kind: 'zillow', zillowData, angle: selectedAngle, angleLabel: ANGLE_LABELS[selectedAngle] }
         : null)
-      : (studioRun?.runId ? { kind: 'website', runId: studioRun.runId } : null);
+      : flowType === 'b2b_manual'
+        ? (manualSelection && manualSelection !== 'new' ? { kind: 'website', runId: manualSelection } : null)
+        : (studioRun?.runId ? { kind: 'website', runId: studioRun.runId } : null);
   const checkContext: CopyCheckContext | null =
     deckSource?.kind === 'zillow' ? { engine: 'zillow', facts: deckSource.zillowData.facts }
     : deckSource?.kind === 'website' ? { engine: 'website', runId: deckSource.runId }
@@ -456,6 +464,21 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
             />
           )}
 
+          {/* B2B No Website → type the profile + product photos, then the engine builds the deck */}
+          {flowType === 'b2b_manual' && (
+            <ManualProfileStep
+              selection={manualSelection}
+              onSelect={setManualSelection}
+              onUploaded={addAsset}
+              onConfirmed={(runId) => {
+                setManualSelection(runId);
+                setDeckCards([]);
+                setEditingCardId(null);
+                setStep('deck');
+              }}
+            />
+          )}
+
           {/* Real Estate → Zillow scrape + photo selection */}
           {flowType === 'real_estate' && (
             <ZillowScrapeStep
@@ -488,7 +511,9 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
       {/* open, so swipe history and filters survive the round trip.                       */}
       {step === 'deck' && !deckSource && (
         <div className="rounded-2xl border border-amber-100 bg-amber-50 p-6 text-[13px] text-amber-800 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-          {flowType === 'real_estate' ? 'Pick an angle first.' : 'Pick a Campaign Studio run and confirm its profile first.'}
+          {flowType === 'real_estate' ? 'Pick an angle first.'
+            : flowType === 'b2b_manual' ? 'Save a business profile first.'
+            : 'Pick a Campaign Studio run and confirm its profile first.'}
         </div>
       )}
       {step === 'deck' && deckSource && (

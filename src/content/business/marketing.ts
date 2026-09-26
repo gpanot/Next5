@@ -75,7 +75,7 @@ export const SHOP = {
     { q: 'What is the Scroll-Stop Score?', a: 'Every photo gets a score from 0 to 100. AI checks six things that make shoppers stop, like a clear product, good light and how it looks as a small photo. You also get a tip, like which photo to use as your cover.' },
     { q: 'What is the Beat-your-feed promise?', a: 'Post 12 Next5 photos in 30 days. Then compare them with your last 12 posts in your own stats. If they did not do better, tell us in the app and your next month is free.' },
     { q: 'What product photos work best?', a: 'One item on a hanger or laid flat. Use a plain, light background and daylight. Add a close-up for prints, buttons or lace.' },
-    { q: 'Can I wear the clothes in the photos?', a: 'Yes. Send two selfies and one full-body photo one time. Then every product can be worn by you.' },
+    { q: 'Can I wear the clothes in the photos?', a: 'Yes. Send one selfie and one full-body photo one time. Then every product can be worn by you.' },
     { q: 'Will the colors and prints match?', a: 'We tell the AI to keep the color, print, length and details the same. You see each new photo next to your product photo. If it does not match, redo it for free, two times.' },
     { q: 'What sizes do I get?', a: 'Square (1:1) for listings. Tall (9:16) for TikTok and Stories. 4:5 for Instagram. 3:4 for your website.' },
     { q: 'Can I sell on TikTok Shop with these photos?', a: 'Yes. The photo must match the real item. You must also add the AI label TikTok asks for.' },

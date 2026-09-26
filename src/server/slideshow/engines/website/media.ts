@@ -12,7 +12,10 @@
 //   Cost/bridge worried / losing-out clip, industry boosted
 //   CTA         person pointing / talking to camera, industry boosted
 // No clip appears twice in a deck. Every shot carries up to 4 swaps.
+// With product photos (manual profiles), Mechanism / Proof / CTA and Result-first hooks show
+// the business's own photos instead (productMedia.ts); no AI image is made for those shots.
 
+import type { ProductPhoto } from '../../../../lib/manualProfile';
 import type { ImageNeed } from '../../core/generatedAssets';
 import type { LibraryAsset } from '../../core/library';
 import {
@@ -20,6 +23,7 @@ import {
   directHooks,
   emptyShot,
   hookRule,
+  libraryOption,
   libraryShot,
   searchShots,
   type LibraryRule,
@@ -27,6 +31,7 @@ import {
 } from '../../core/media';
 import type { StoryMedia, StoryTexts } from '../../core/deckAssembly';
 import type { HookArchetype, Tone } from '../../core/types';
+import { planProductShots, productShot, type ProductShotKey } from './productMedia';
 
 const STORY_RULES: Record<keyof StoryTexts, LibraryRule> = {
   pain: { slot: 'slot_problem', kinds: { background: 0.1, meme: 0.1, hook: 0.05 }, minSlot: 0.4, avoidPattern: AVOID_ON_PROBLEM, intent: 'frustrated at work, stressed, annoyed' },
@@ -71,6 +76,8 @@ export type WebsiteMediaInput = {
   workspaceId?: string | null;
   /** Clip ids already used elsewhere in the deck (other audiences). Updated in place. */
   used?: Set<string>;
+  /** The business's own photos, described (manual profiles). */
+  products?: ProductPhoto[];
 };
 
 export type WebsiteMedia = {
@@ -95,6 +102,7 @@ export async function directWebsiteMedia(input: WebsiteMediaInput): Promise<Webs
     ...input.hooks.map((h) => ({ rule: hookRule(h.archetype), text: `${input.idc}: ${h.text}`, limit: 12, categories: cats, categoryMode: 'boost' as const })),
   ]);
 
+  const products = await planProductShots(input.story, input.products ?? []);
   const used = input.used ?? new Set<string>();
   const story = {} as StoryMedia;
   const needs: ImageNeed[] = [];
@@ -102,6 +110,12 @@ export async function directWebsiteMedia(input: WebsiteMediaInput): Promise<Webs
   for (let i = 0; i < STORY_KEYS.length; i++) {
     const key = STORY_KEYS[i]!;
     const pool = (ranked[i] ?? []).filter((a) => !used.has(a.assetId));
+    const photos = products.shots[key as ProductShotKey];
+    if (photos) {
+      console.log(`[WebsiteMedia] ${input.idc}/${key}: product photo "${photos[0]!.description}"`);
+      story[key] = await productShot(photos, await Promise.all(pool.slice(0, 2).map(libraryOption)));
+      continue;
+    }
     const best = pool[0];
     const inIndustry = !cats.length || Boolean(best?.categories.some((c) => cats.includes(c)));
     const weak = !best || !inIndustry || (best.similarity > 0 && best.similarity < MIN_SHOT_SIMILARITY);
@@ -114,11 +128,13 @@ export async function directWebsiteMedia(input: WebsiteMediaInput): Promise<Webs
     }
     story[key] = (await libraryShot(takeDistinct(ranked[i] ?? [], used))) ?? emptyShot();
   }
+  // Result-first leads with the most striking product photo; without photos, with a clip.
+  const hero = products.hero ? await productShot([products.hero], []) : null;
   const hooks = await directHooks(
     input.hooks.map((h) => h.archetype),
     ranked.slice(STORY_KEYS.length),
     used,
-    () => null, // Result-first on a website leads with a clip; product screenshots are not extracted yet.
+    (swaps) => (hero ? { ...hero, alternatives: swaps } : null),
   );
   return { story, hooks, needs, runnerUps };
 }

@@ -51,14 +51,14 @@ export const ShopLookStep = ({ me, advance }: StepProps) => {
       Object.entries(product).forEach(([k, v]) => form.set(k, v));
       if (await upload('/api/app/products', form)) await advance(4);
     } catch (err) {
-      setError(stepError(err, 'Could not save your look.'));
+      setError(stepError(err, 'Could not save your scene.'));
     }
   };
 
   return (
     <StepCard
-      title="Pick your shop look and your first product"
-      sub="Your look keeps every product photo consistent. Pick one product to try it for free."
+      title="Pick your scene and your first product"
+      sub="Your scene keeps every product photo the same. Pick one product to try it for free."
       footer={<AppButton size="lg" loading={busy} disabled={!ready} onClick={submit}>Continue</AppButton>}
     >
       {!hasSet && (loading ? <SkeletonGrid count={6} cols={3} /> : <TemplateGrid templates={data?.templates ?? []} value={templateId} onChange={setTemplateId} />)}

@@ -255,34 +255,34 @@ model Workspace {
   createdAt             DateTime      @default(now()) @map("created_at")
   updatedAt             DateTime      @updatedAt @map("updated_at")
 
-  owner             User                @relation(fields: [ownerUserId], references: [id])
-  identities        IdentityReference[]
-  sets              StudioSet[]
-  influencers       Influencer[]
-  products          Product[]
-  batches           Batch[]
-  subscriptions     Subscription[]
-  ledger            CreditLedger[]
-  payments          Payment[]
-  promiseClaims     PromiseClaim[]
-  shopConnections   ShopConnection[]
-  listingPacks      ListingPack[]
-  dropSchedule      DropSchedule?
-  postSchedule      PostSchedule?
-  postMaterials     PostMaterial[]
-  postSlots         PostSlot[]
-  listings          Listing[]
-  socialConnections SocialConnection[]
-  socialPosts       SocialPost[]
-  angles            WorkspaceAngle[]
-  contentTemplates  ContentTemplate[]
-  templateUsages    TemplateUsage[]
-  campaigns         Campaign[]
-  ugcCharacters     UgcCharacter[]
-  ugcVideos         UgcVideo[]
-  cloneVideos       CloneVideo[]
-  blitzAssets       BlitzAsset[]
-  blitzProjects     BlitzProject[]
+  owner               User                 @relation(fields: [ownerUserId], references: [id])
+  identities          IdentityReference[]
+  sets                StudioSet[]
+  influencers         Influencer[]
+  products            Product[]
+  batches             Batch[]
+  subscriptions       Subscription[]
+  ledger              CreditLedger[]
+  payments            Payment[]
+  promiseClaims       PromiseClaim[]
+  shopConnections     ShopConnection[]
+  listingPacks        ListingPack[]
+  dropSchedule        DropSchedule?
+  postSchedule        PostSchedule?
+  postMaterials       PostMaterial[]
+  postSlots           PostSlot[]
+  listings            Listing[]
+  socialConnections   SocialConnection[]
+  socialPosts         SocialPost[]
+  angles              WorkspaceAngle[]
+  contentTemplates    ContentTemplate[]
+  templateUsages      TemplateUsage[]
+  campaigns           Campaign[]
+  ugcCharacters       UgcCharacter[]
+  ugcVideos           UgcVideo[]
+  cloneVideos         CloneVideo[]
+  blitzAssets         BlitzAsset[]
+  blitzProjects       BlitzProject[]
   studioBrandProfiles StudioBrandProfile[]
   studioRuns          StudioRun[]
   assetDescriptors    AssetDescriptor[]
@@ -400,6 +400,7 @@ model StudioSet {
   workspace  Workspace   @relation(fields: [workspaceId], references: [id])
   template   SetTemplate @relation(fields: [templateId], references: [id])
   batches    Batch[]
+  items      BatchItem[]
   influencer Influencer? @relation(fields: [influencerId], references: [id])
 
   @@index([workspaceId])
@@ -569,7 +570,7 @@ model BatchItem {
   wavespeedTaskId  String?    @map("wavespeed_task_id")
   r2Key            String?    @map("r2_key")
   errorMessage     String?    @map("error_message")
-  /// Image model for the current run: null = nano-banana-2, "gpt-image-2" after the fallback retry.
+  /// Image model for the current run: null = nano-banana-2. Shop products use "gpt-image-2.5-flare". A failed photo retries once on the other provider.
   model            String?
   freeRedosUsed    Int        @default(0) @map("free_redos_used")
   redoReason       String?    @map("redo_reason")
@@ -585,6 +586,8 @@ model BatchItem {
   scoreDetails     Json?      @map("score_details")
   /// The drop-box material this photo was built from, so a slot can show "24 Oak St".
   materialId       String?    @map("material_id")
+  /// The set (model + scene) this photo was made with. A shop batch can spread products across several sets.
+  setId            String?    @map("set_id")
   /// She archived it (trash icon): hidden from the batch, library, zips and calendar.
   archivedAt       DateTime?  @map("archived_at")
   submittedAt      DateTime?  @map("submitted_at")
@@ -594,9 +597,11 @@ model BatchItem {
   batch    Batch         @relation(fields: [batchId], references: [id], onDelete: Cascade)
   product  Product?      @relation(fields: [productId], references: [id])
   material PostMaterial? @relation(fields: [materialId], references: [id])
+  set      StudioSet?    @relation(fields: [setId], references: [id], onDelete: SetNull)
   slots    PostSlot[]
 
   @@index([batchId])
+  @@index([setId])
   @@index([status, createdAt])
   @@index([wavespeedTaskId])
   @@map("batch_items")
@@ -1281,8 +1286,8 @@ model SlideshowSwipe {
 /// Cached result of one Zillow listing scrape for the Real Estate slideshow flow.
 /// Re-using an existing run avoids re-scraping the same listing.
 model BlitzListingRun {
-  id        String @id @default(cuid())
-  zillowUrl String @map("zillow_url")
+  id        String  @id @default(cuid())
+  zillowUrl String  @map("zillow_url")
   zpid      String
   address   String?
 
@@ -1299,9 +1304,9 @@ model BlitzListingRun {
   photoTags   Json @default("[]") @map("photo_tags")
 
   /// Wall-clock time for the Apify scrape (ms)
-  scrapeDurationMs  Int?    @map("scrape_duration_ms")
+  scrapeDurationMs   Int?    @map("scrape_duration_ms")
   /// Average download time per photo during import-photos (ms)
-  avgPhotoFetchMs   Int?    @map("avg_photo_fetch_ms")
+  avgPhotoFetchMs    Int?    @map("avg_photo_fetch_ms")
   /// Apify usage cost in micros of USD (1 USD = 1_000_000)
   apifyCostUsdMicros BigInt? @map("apify_cost_usd_micros")
 
@@ -1315,75 +1320,75 @@ model BlitzListingRun {
 
 /// Exactly one of blitzAssetId or ugcVideoId is set (enforced by DB CHECK constraint).
 model AssetDescriptor {
-  id                 String    @id @default(cuid())
-  blitzAssetId       String?   @unique @map("blitz_asset_id")
-  ugcVideoId         String?   @unique @map("ugc_video_id")
-  workspaceId        String?   @map("workspace_id")
+  id                  String                       @id @default(cuid())
+  blitzAssetId        String?                      @unique @map("blitz_asset_id")
+  ugcVideoId          String?                      @unique @map("ugc_video_id")
+  workspaceId         String?                      @map("workspace_id")
   /// 'meme' | 'ugc_video' | 'music' | 'background'
-  kind               String
+  kind                String
   /// 'scraped' | 'ai_generated' | 'uploaded' — propagated from the parent asset at enqueue time
-  source             String?
+  source              String?
   /// 'pending' | 'claimed' | 'done' | 'failed'
-  status             String    @default("pending")
-  attempts           Int       @default(0)
-  claimedAt          DateTime? @map("claimed_at")
-  error              String?
+  status              String                       @default("pending")
+  attempts            Int                          @default(0)
+  claimedAt           DateTime?                    @map("claimed_at")
+  error               String?
   /// Bumped each time the asset is re-described after a prompt improvement
-  descriptorVersion  Int       @default(1) @map("descriptor_version")
+  descriptorVersion   Int                          @default(1) @map("descriptor_version")
   /// Model slug used to produce this descriptor, e.g. google/gemini-3.1-flash-lite
-  model              String?
+  model               String?
   /// Measured by ffprobe before the model call
-  durationSec        Float?    @map("duration_sec")
+  durationSec         Float?                       @map("duration_sec")
   /// [{t: number}] — ffmpeg scene cut timestamps
-  sceneCuts          Json?     @map("scene_cuts")
+  sceneCuts           Json?                        @map("scene_cuts")
   /// [{t: number, lufs: number}] — ffmpeg loudness samples
-  loudnessCurve      Json?     @map("loudness_curve")
+  loudnessCurve       Json?                        @map("loudness_curve")
   /// Full model output (raw)
-  descriptor         Json?
+  descriptor          Json?
   /// 1-2 sentence description for BM25 / semantic search
-  retrievalText      String?   @map("retrieval_text")
+  retrievalText       String?                      @map("retrieval_text")
   // ── Filter columns (NULL = unknown / not yet described) ─────────────────
-  mood               String[]  @default([])
-  pacing             String?
-  hasSpeech          Boolean?  @map("has_speech")
+  mood                String[]                     @default([])
+  pacing              String?
+  hasSpeech           Boolean?                     @map("has_speech")
   /// 'none' | 'low' | 'high' — NULL until status=done
-  rightsRisk         String?   @map("rights_risk")
+  rightsRisk          String?                      @map("rights_risk")
   /// NULL until status=done
-  identifiablePerson  Boolean?  @map("identifiable_person")
+  identifiablePerson  Boolean?                     @map("identifiable_person")
   /// True if the person appears to be a well-known public figure (sets rightsRisk=high)
-  publicFigureLikely  Boolean?  @map("public_figure_likely")
-  avoidFor            String[]  @default([]) @map("avoid_for")
-  energyLevel         Float?    @map("energy_level")
+  publicFigureLikely  Boolean?                     @map("public_figure_likely")
+  avoidFor            String[]                     @default([]) @map("avoid_for")
+  energyLevel         Float?                       @map("energy_level")
   /// 'none' | 'top_third' | 'bottom_third' | 'center'
-  textSafeZone        String?   @map("text_safe_zone")
+  textSafeZone        String?                      @map("text_safe_zone")
   /// Admin override for rights risk; wins over model value when not null
-  rightsRiskOverride  String?   @map("rights_risk_override")
+  rightsRiskOverride  String?                      @map("rights_risk_override")
   /// DB-generated: COALESCE(rights_risk_override, rights_risk). Filter on this, never on rights_risk.
   /// Prisma maps this as read-only — never include it in create/update inputs.
-  effectiveRightsRisk String?   @map("effective_rights_risk")
+  effectiveRightsRisk String?                      @map("effective_rights_risk")
   /// LLM estimate of BPM (music only). Null = not described. Never used for timing.
-  bpmEstimate         Float?    @map("bpm")
+  bpmEstimate         Float?                       @map("bpm")
   // ── Per-role slot scores (0–1, NULL = not yet described) ────────────────
-  slotHook           Float?    @map("slot_hook")
-  slotProblem        Float?    @map("slot_problem")
-  slotProof          Float?    @map("slot_proof")
-  slotPayoff         Float?    @map("slot_payoff")
-  slotCta            Float?    @map("slot_cta")
+  slotHook            Float?                       @map("slot_hook")
+  slotProblem         Float?                       @map("slot_problem")
+  slotProof           Float?                       @map("slot_proof")
+  slotPayoff          Float?                       @map("slot_payoff")
+  slotCta             Float?                       @map("slot_cta")
   // ── Niche fit scores ────────────────────────────────────────────────────
-  nicheRealtor       Float?    @map("niche_realtor")
-  nicheTiktokShop    Float?    @map("niche_tiktok_shop")
+  nicheRealtor        Float?                       @map("niche_realtor")
+  nicheTiktokShop     Float?                       @map("niche_tiktok_shop")
   /// Industry categories (slugs from src/server/slideshow/core/categories.ts), 1–3 per asset.
-  categories         String[]  @default([])
+  categories          String[]                     @default([])
   /// pgvector embedding of the descriptor text (OpenAI text-embedding-3-small, 1536 dims).
   /// Read and written with raw SQL only (src/server/labs/assetDescriptor/embedding.ts).
-  embedding          Unsupported("vector(1536)")?
+  embedding           Unsupported("vector(1536)")?
 
-  createdAt          DateTime  @default(now()) @map("created_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   blitzAsset BlitzAsset? @relation(fields: [blitzAssetId], references: [id], onDelete: Cascade)
-  ugcVideo   UgcVideo?   @relation(fields: [ugcVideoId],   references: [id], onDelete: Cascade)
-  workspace  Workspace?  @relation(fields: [workspaceId],  references: [id], onDelete: Cascade)
+  ugcVideo   UgcVideo?   @relation(fields: [ugcVideoId], references: [id], onDelete: Cascade)
+  workspace  Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId])
   @@map("asset_descriptors")
@@ -1866,7 +1871,7 @@ model StudioBrandProfile {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  workspace Workspace?    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   runs      StudioRun[]
 
   @@index([workspaceId, sourceUrl, version(sort: Desc)])
@@ -1902,8 +1907,8 @@ model StudioRun {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  workspace    Workspace?          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  brandProfile StudioBrandProfile  @relation(fields: [brandProfileId], references: [id])
+  workspace    Workspace?           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  brandProfile StudioBrandProfile   @relation(fields: [brandProfileId], references: [id])
   items        StudioResearchItem[]
   candidates   StudioCandidate[]
 
@@ -1920,23 +1925,23 @@ model StudioResearchItem {
   author          String?
   durationSeconds Int?    @map("duration_seconds")
 
-  stats   Json @default("{}")
-  hook    String?
+  stats      Json    @default("{}")
+  hook       String?
   transcript String?
 
   templateId String? @map("template_id")
   /// Resolved variables: { KEY: { value, source } }
   variables  Json    @default("{}")
 
-  selected Boolean @default(false)
-  excluded Boolean @default(false)
+  selected       Boolean              @default(false)
+  excluded       Boolean              @default(false)
   excludedReason StudioExcludeReason? @map("excluded_reason")
 
   /// Telemetry
   fetchDurationMs         Int?    @map("fetch_duration_ms")
   transcriptCostUsdMicros BigInt? @map("transcript_cost_usd_micros")
 
-  isCompetitor Boolean @default(false) @map("is_competitor")
+  isCompetitor Boolean  @default(false) @map("is_competitor")
   createdAt    DateTime @default(now()) @map("created_at")
 
   run StudioRun @relation(fields: [runId], references: [id], onDelete: Cascade)
@@ -1958,9 +1963,9 @@ model StudioCandidate {
   payload Json @default("{}")
 
   /// Cost breakdown: { slideTextLlm, imageGeneration, totalUsdMicros }
-  costBreakdown    Json    @default("{}") @map("cost_breakdown")
-  costUsdMicros    BigInt? @map("cost_usd_micros")
-  generateDurationMs Int?  @map("generate_duration_ms")
+  costBreakdown      Json    @default("{}") @map("cost_breakdown")
+  costUsdMicros      BigInt? @map("cost_usd_micros")
+  generateDurationMs Int?    @map("generate_duration_ms")
 
   /// Profile version this candidate was generated from.
   profileVersion Int @default(1) @map("profile_version")
@@ -1988,13 +1993,13 @@ model StudioCandidate {
 
 /// Shared keyword/transcript cache. Keyword entries expire after 7 days.
 model StudioResearchCache {
-  id        String           @id @default(cuid())
-  cacheType StudioCacheType  @default(keyword) @map("cache_type")
+  id        String          @id @default(cuid())
+  cacheType StudioCacheType @default(keyword) @map("cache_type")
   /// Normalized keyword (lower+trim) or video URL.
-  cacheKey  String           @map("cache_key")
-  data      Json             @default("{}")
-  expiresAt DateTime         @map("expires_at")
-  createdAt DateTime         @default(now()) @map("created_at")
+  cacheKey  String          @map("cache_key")
+  data      Json            @default("{}")
+  expiresAt DateTime        @map("expires_at")
+  createdAt DateTime        @default(now()) @map("created_at")
 
   @@unique([cacheType, cacheKey])
   @@index([expiresAt])

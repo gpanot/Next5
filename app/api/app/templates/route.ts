@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { SetTemplateConfig } from '../../../../src/content/business/catalog/types';
+import { scenePoseImage } from '../../../../src/content/business/catalog/shopScenes';
 import { prisma } from '../../../../src/lib/db';
 import { authedRoute } from '../../../../src/server/api';
 import { isProductLine } from '../../../../src/server/workspaces/workspaces';
@@ -17,6 +18,7 @@ export const GET = authedRoute(async (req) => {
     return {
       id: t.id, product: t.product, name: t.name, description: t.description, coverImage: t.coverImage,
       locations: config.locations.map((l) => ({ id: l.id, label: l.label })), defaults: config.defaults,
+      poses: (config.poses ?? []).map((p) => ({ id: p.id, label: p.label, image: scenePoseImage(t.id, p.id) })),
     };
   });
   return NextResponse.json({ templates });

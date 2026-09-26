@@ -2,9 +2,12 @@ import { SHOP_TEMPLATES } from '../../../content/business/catalog/templates';
 import { lookCover } from '../../../content/business/marketingCovers';
 import { MarketingImage } from '../shared/MarketingImage';
 
+/** The first six scenes: the ones with full-size marketing photos. */
+const SHOWN = SHOP_TEMPLATES.slice(0, 6);
+
 export const LooksGallery = () => (
   <ul className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
-    {SHOP_TEMPLATES.map((template) => (
+    {SHOWN.map((template) => (
       <li key={template.id} className="group flex flex-col gap-3">
         <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-app-sunken ring-1 ring-black/5 dark:ring-white/10">
           <MarketingImage src={lookCover(template.id, template.coverImage)} sizes="(min-width: 1024px) 30vw, 45vw" className="transition-transform duration-500 group-hover:scale-[1.03]" caption={`Look · ${template.name}`} />

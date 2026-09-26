@@ -24,7 +24,7 @@ await page.getByText('Who wears your products?').waitFor();
 await page.getByRole('button', { name: /Studio model/ }).click();
 await page.getByRole('radio').first().click();
 await page.getByRole('button', { name: 'Continue' }).click();
-await page.getByText('Pick your shop look').waitFor();
+await page.getByText('Pick your scene').waitFor();
 await page.getByRole('radio').nth(1).click();
 await page.getByLabel('Your TikTok Shop link').fill(STORE);
 await page.getByText('I own or manage this shop.').click();

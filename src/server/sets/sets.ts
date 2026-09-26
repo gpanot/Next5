@@ -2,6 +2,7 @@
 
 import type { StudioSet, Workspace } from '@prisma/client';
 import type { SetTemplateConfig } from '../../content/business/catalog/types';
+import { STUDIO_MODELS } from '../../content/business/catalog/studioModels';
 import { POSE_ENERGIES, WARDROBES } from '../../content/business/catalog/types';
 import { prisma } from '../../lib/db';
 import type { StudioSetDto } from '../../types/business/catalog';
@@ -47,19 +48,31 @@ const validateSet = async (workspace: Workspace, input: Partial<SetInput>): Prom
     const plan = await getActivePlan(workspace.id);
     if (!plan?.allStudioModels) {
       const other = await prisma.studioSet.findFirst({ where: { workspaceId: workspace.id, status: { not: 'archived' }, modelRef: { notIn: ['me', input.modelRef] } } });
-      if (other) throw new HttpError(403, 'model_limit', 'Your plan includes one Studio model. Upgrade to Growth to use all six.');
+      if (other) throw new HttpError(403, 'model_limit', 'Your plan includes one Studio model. Upgrade to Growth to use them all.');
     }
   }
 };
 
+/** Shop: a model has no scene of her own (scenes are picked per drop). The row still needs one, so it holds this. */
+const SHOP_PLACEHOLDER_TEMPLATE = 'clean-white';
+
+const shopModelName = (modelRef: string): string => (modelRef === 'me' ? 'You' : STUDIO_MODELS.find((m) => m.slug === modelRef)?.name ?? 'Studio model');
+
 export const createSet = async (workspace: Workspace, input: Partial<SetInput>): Promise<StudioSet> => {
+  if (workspace.product === 'shop') {
+    // One row per model: adding a model she already has returns it.
+    const modelRef = input.modelRef ?? 'me';
+    const existing = await prisma.studioSet.findFirst({ where: { workspaceId: workspace.id, modelRef, status: { not: 'archived' } }, orderBy: { createdAt: 'asc' } });
+    if (existing) return existing;
+    input = { ...input, modelRef, templateId: input.templateId ?? SHOP_PLACEHOLDER_TEMPLATE };
+  }
   await validateSet(workspace, input);
   const template = await prisma.setTemplate.findUniqueOrThrow({ where: { id: input.templateId ?? '' } });
   return prisma.studioSet.create({
     data: {
       workspaceId: workspace.id,
       templateId: template.id,
-      name: input.name || template.name,
+      name: input.name || (workspace.product === 'shop' ? shopModelName(input.modelRef ?? 'me') : template.name),
       locations: input.locations ?? [],
       wardrobe: input.wardrobe ?? null,
       poseEnergy: input.poseEnergy ?? null,
@@ -71,14 +84,14 @@ export const createSet = async (workspace: Workspace, input: Partial<SetInput>):
 
 export const updateSet = async (workspace: Workspace, setId: string, input: Partial<SetInput>): Promise<StudioSet> => {
   const set = await prisma.studioSet.findFirst({ where: { id: setId, workspaceId: workspace.id } });
-  if (!set) throw new HttpError(404, 'set_not_found', workspace.product === 'shop' ? 'Shop look not found.' : 'Style not found.');
+  if (!set) throw new HttpError(404, 'set_not_found', workspace.product === 'shop' ? 'Scene not found.' : 'Style not found.');
   await validateSet(workspace, { ...input, templateId: input.templateId ?? set.templateId });
   return prisma.studioSet.update({ where: { id: set.id }, data: { ...input, templateId: undefined } });
 };
 
 /** The cover is always the template's own picture: a style must look the same every time she picks it. */
 export const toSetDto = async (set: StudioSet & { template: { name: string; coverImage: string } }): Promise<StudioSetDto> => {
-  const [batchCount, preview] = await Promise.all([prisma.batch.count({ where: { setId: set.id, kind: { not: 'trial' }, preview: false, variation: false } }), previewFor(set.id)]);
+  const [batchCount, preview] = await Promise.all([prisma.batch.count({ where: { OR: [{ setId: set.id }, { items: { some: { setId: set.id } } }], kind: { not: 'trial' }, preview: false, variation: false } }), previewFor(set.id)]);
   return {
     id: set.id, name: set.name, templateId: set.templateId, templateName: set.template.name, coverImage: set.template.coverImage,
     locations: set.locations, wardrobe: set.wardrobe,

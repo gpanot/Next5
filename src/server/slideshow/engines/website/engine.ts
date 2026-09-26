@@ -46,6 +46,7 @@ function sharedBrief(source: WebsiteSource): Omit<WebsiteBriefInput, 'idc' | 'id
     tagline: p.identity.tagline.value,
     description: p.identity.description.value,
     geography: p.positioning.geography.value,
+    howToBuy: p.positioning.howToBuy?.value ?? '',
   };
   const rawTone = p.tone.tone.value;
   return {
@@ -54,8 +55,9 @@ function sharedBrief(source: WebsiteSource): Omit<WebsiteBriefInput, 'idc' | 'id
     tone: (TONES.find((t) => rawTone.startsWith(t)) ?? 'casual') as Tone,
     proofPoints,
     suggestedHooks: p.tone.hooks.value ?? [],
+    productPhotos: (p.products?.value ?? []).map((photo) => photo.description),
     facts: {
-      siteText: [business.promoting, business.offer, business.positioning, business.tagline, business.description],
+      siteText: [business.promoting, business.offer, business.positioning, business.tagline, business.description, business.howToBuy],
       proofPoints,
       competitors: p.market.competitors.value ?? [],
     },

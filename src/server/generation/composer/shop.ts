@@ -9,6 +9,8 @@ export type ShopComposeInput = {
   template: SetTemplateConfig;
   garment: GarmentInfo;
   shot: ShotId;
+  /** The scene's own pose for this photo. Default: the shot's generic direction. */
+  poseDirection?: string;
   format: FormatId;
   identityImageCount: number;
   productImageCount: number;
@@ -20,7 +22,7 @@ export const composeShopPrompt = (input: ShopComposeInput): string => {
   const firstProduct = input.identityImageCount + 1;
   const lastProduct = input.identityImageCount + input.productImageCount;
   const location = input.template.locations[0]?.direction ?? '';
-  const shotDirection = input.template.shotOverrides?.[input.shot] ?? SHOTS[input.shot].direction;
+  const shotDirection = input.poseDirection ?? input.template.shotOverrides?.[input.shot] ?? SHOTS[input.shot].direction;
 
   return join(
     identityBlock(input.identityImageCount, input.isStudioModel),

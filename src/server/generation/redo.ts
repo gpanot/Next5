@@ -1,7 +1,7 @@
 // server-only — never import from a 'use client' file.
 
 import { FREE_REDOS_PER_ITEM } from '../../config/business';
-import { FALLBACK_MODEL } from '../../lib/wavespeed';
+import { FALLBACK_MODELS, fallbackModelFor } from '../../lib/wavespeed';
 import { chargeRedo } from '../credits/ledger';
 import { withSerializable } from '../db/transaction';
 import { HttpError } from '../http';
@@ -17,7 +17,7 @@ export type RedoResult = { charged: boolean; freeRedosLeft: number };
 
 /** A failed photo gets one free retry on the fallback model; after that it can't be retried. */
 export const canRetryFailed = (item: { status: string; model: string | null }): boolean =>
-  item.status === 'failed' && item.model !== FALLBACK_MODEL;
+  item.status === 'failed' && !FALLBACK_MODELS.includes(item.model ?? '');
 
 /**
  * Requeues a ready item (free up to FREE_REDOS_PER_ITEM, then charged) or retries a failed one once,
@@ -58,7 +58,7 @@ export const redoItem = async (
         wavespeedTaskId: null,
         errorMessage: null,
         redoReason: input.note ? `${input.reason}: ${input.note.slice(0, 200)}` : input.reason,
-        model: fallback ? FALLBACK_MODEL : undefined,
+        model: fallback ? fallbackModelFor(item.model) : undefined,
         freeRedosUsed: isFree && !fallback ? { increment: 1 } : undefined,
         pendingRefundKey,
       },

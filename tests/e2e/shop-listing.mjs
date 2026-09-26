@@ -1,5 +1,5 @@
 // Shop listing workflow: listing Post Kit (kept), "Create more photos" in the product row, earlier photos,
-// TikTok library Remove/Add (no duplicates) and 9:16 cover, archive a look, change "photos of you".
+// TikTok library Remove/Add (no duplicates) and 9:16 cover, add "You" as a model, archive a scene.
 // Run the dev server with NEXT5_MOCK_GENERATION=true and NEXT5_SHOP_IMPORT_MOCK=true (see README).
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -39,7 +39,7 @@ await page.getByText('Who wears your products?').waitFor();
 await page.getByRole('button', { name: /Studio model/ }).click();
 await page.getByRole('radio').first().click();
 await page.getByRole('button', { name: 'Continue' }).click();
-await page.getByText('Pick your shop look').waitFor();
+await page.getByText('Pick your scene').waitFor();
 await page.getByRole('radio').nth(1).click();
 await page.getByLabel('Your TikTok Shop link').fill(STORE);
 await page.getByText('I own or manage this shop.').click();
@@ -112,9 +112,10 @@ await page.getByRole('radiogroup', { name: 'Video cover' }).getByRole('radio').f
 await shot('5-cover');
 step('9:16 cover created from the library');
 
-// 5. Shop looks: change "photos of you", archive a look.
-await page.goto(`${BASE}/app/shop/sets`);
-await page.getByRole('region', { name: 'Photos of you' }).getByRole('button', { name: /Add photos|Edit photos/ }).click();
+// 5. Studio Models: add "You" as a model with your photos, then archive a scene.
+await page.goto(`${BASE}/app/shop/sets/new`);
+await page.getByRole('button', { name: /Use my photos/ }).click();
+await page.getByRole('region', { name: 'Photos of you' }).getByRole('button', { name: /Add photos|See and edit/ }).click();
 const photos = page.getByRole('dialog', { name: 'Change your photos' });
 const inputs = photos.locator('input[type=file]');
 await inputs.nth(0).setInputFiles(`${ROOT}/onboarding/selfie-good.png`);
@@ -123,14 +124,19 @@ await photos.getByText('These are photos of me').click();
 await photos.getByRole('button', { name: 'Save photos' }).click();
 await photos.waitFor({ state: 'detached', timeout: 20000 });
 await page.getByRole('region', { name: 'Photos of you' }).locator('img').nth(1).waitFor({ timeout: 10000 });
-step('photos of you replaced with the onboarding upload step');
-const looksBefore = await page.getByRole('button', { name: /^Archive / }).count();
-await page.getByRole('button', { name: /^Archive / }).first().click();
+step('photos of you added with the onboarding upload step');
+await page.getByRole('radiogroup', { name: 'Choose a look' }).getByRole('radio', { disabled: false }).first().click();
+await page.getByRole('button', { name: 'Add model', exact: true }).click();
+await page.getByRole('heading', { name: 'You', exact: true }).waitFor({ timeout: 15000 });
+step('added You as a model');
+const scenesBefore = await page.getByRole('link', { name: /^Edit / }).count();
+await page.getByRole('link', { name: /^Edit / }).first().click();
+await page.getByRole('button', { name: 'Archive scene' }).click();
 await page.getByRole('dialog').getByRole('button', { name: 'Archive', exact: true }).click();
-await page.waitForFunction((n) => document.querySelectorAll('button[aria-label^="Archive "]').length === n - 1, looksBefore, { timeout: 15000 });
-await page.getByRole('region', { name: 'Photos of you' }).waitFor(); // still there with no looks left
-await shot('6-looks');
-step('archived a look');
+await page.waitForURL(/\/sets$/, { timeout: 15000 });
+await page.waitForFunction((n) => document.querySelectorAll('a[aria-label^="Edit "]').length === n - 1, scenesBefore, { timeout: 15000 });
+await shot('6-models');
+step('archived a scene');
 
 // 6. Products: archive the selected products, then bring one back.
 await page.goto(`${BASE}/app/shop/products`);

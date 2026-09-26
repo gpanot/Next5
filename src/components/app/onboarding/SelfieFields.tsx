@@ -8,7 +8,7 @@ import type { SelfieUpload } from './useSelfieUpload';
 /** The photo slots, tips and (when needed) the face consent for "photos of me". */
 export const SelfieFields = ({ upload }: { upload: SelfieUpload }) => (
   <div className="flex flex-col gap-4">
-    <div className="grid grid-cols-3 gap-3">
+    <div className={`grid gap-3 ${upload.slots.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
       {upload.slots.map((slot, i) => (
         <PhotoSlot
           key={slot.label}

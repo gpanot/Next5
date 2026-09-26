@@ -3,6 +3,7 @@
  * Covers are the demo influencer's first sample photo (src/content/business/influencer.ts).
  */
 
+import { SHOP_TEMPLATES } from './shopScenes';
 import { B2B_TEMPLATES } from './templatesB2b';
 import type { SetTemplateSeed } from './types';
 
@@ -114,86 +115,7 @@ export const BRAND_TEMPLATES: readonly SetTemplateSeed[] = [
   },
 ];
 
-export const SHOP_TEMPLATES: readonly SetTemplateSeed[] = [
-  {
-    id: 'clean-white',
-    product: 'shop',
-    name: 'Clean Studio',
-    description: 'A plain white background. Best for shop listings.',
-    coverImage: `${IMG}/us/influencer/shop/clean-white-1.png`,
-    sortOrder: 1,
-    config: {
-      lighting: 'Even soft studio light, no harsh shadows, true-to-life colours.',
-      defaults: {},
-      locations: [{ id: 'seamless-light', label: 'Seamless light grey', direction: 'Seamless light-grey to white studio background, clean floor.' }],
-    },
-  },
-  {
-    id: 'beige-wall',
-    product: 'shop',
-    name: 'Soft Beige Wall',
-    description: 'A warm wall with soft window shadows. Great for Instagram.',
-    coverImage: `${IMG}/us/influencer/shop/beige-wall-1.png`,
-    sortOrder: 2,
-    config: {
-      lighting: 'Soft window light with gentle diagonal shadows across the wall.',
-      defaults: {},
-      locations: [{ id: 'plaster-wall', label: 'Plaster wall', direction: 'Warm beige textured plaster wall with a light wooden floor.' }],
-    },
-  },
-  {
-    id: 'cafe-lifestyle',
-    product: 'shop',
-    name: 'Café Lifestyle',
-    description: 'A bright café. Easy and natural.',
-    coverImage: `${IMG}/us/influencer/shop/cafe-lifestyle-1.png`,
-    sortOrder: 3,
-    config: {
-      lighting: 'Bright natural daylight, airy and relaxed.',
-      defaults: {},
-      locations: [{ id: 'sunny-cafe', label: 'Sunny café', direction: 'Bright sunny café interior with light wood and plants, no readable signs or logos.' }],
-    },
-  },
-  {
-    id: 'street-urban',
-    product: 'shop',
-    name: 'Street',
-    description: 'A clean city street in daylight.',
-    coverImage: `${IMG}/us/influencer/shop/street-urban-1.png`,
-    sortOrder: 4,
-    config: {
-      lighting: 'Natural daylight, slightly warm, softly blurred background.',
-      defaults: {},
-      locations: [{ id: 'modern-street', label: 'Modern street', direction: 'Clean modern street with concrete and glass buildings, no readable signs.' }],
-    },
-  },
-  {
-    id: 'boutique-rack',
-    product: 'shop',
-    name: 'Boutique',
-    description: 'A small shop with a clothes rack behind.',
-    coverImage: `${IMG}/us/influencer/shop/boutique-rack-1.png`,
-    sortOrder: 5,
-    config: {
-      lighting: 'Warm spot lighting mixed with soft daylight, elegant.',
-      defaults: {},
-      locations: [{ id: 'minimal-boutique', label: 'Minimal boutique', direction: 'Minimal boutique interior with a neutral clothing rail softly blurred behind.' }],
-    },
-  },
-  {
-    id: 'resort',
-    product: 'shop',
-    name: 'Resort',
-    description: 'A pool and a beach in bright summer sun.',
-    coverImage: `${IMG}/us/influencer/shop/resort-1.png`,
-    sortOrder: 6,
-    config: {
-      lighting: 'Bright summer sunlight with palm shadows, fresh and vivid.',
-      defaults: {},
-      locations: [{ id: 'pool-terrace', label: 'Pool terrace', direction: 'Pale stone pool terrace with palm shadows and a clear blue pool edge.' }],
-    },
-  },
-];
+export { SHOP_TEMPLATES };
 
 /** Every Brand style: the original six, then the B2B styles. */
 export const ALL_BRAND_TEMPLATES: readonly SetTemplateSeed[] = [...BRAND_TEMPLATES, ...B2B_TEMPLATES];

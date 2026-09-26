@@ -71,6 +71,13 @@ async function writeBrief(brief: WebsiteBrief): Promise<BriefStory> {
   return { brief, story, hooks, categories };
 }
 
+function proofNote(brief: WebsiteBrief): string {
+  if (brief.proofPoints.length) return `Proof quoted from the profile: "${brief.proofPoints[0]!.evidence}".`;
+  return brief.productPhotos.length
+    ? 'No proof in the profile, so the Proof shot shows your own product photo doing the job (no numbers).'
+    : 'No proof on the site, so the Proof shot shows the product doing the job (no numbers).';
+}
+
 function cardsFor(b: BriefStory, index: number, storyMedia: StoryMedia, hookMedia: ShotMedia[], tracks: LibraryTrack[]): DeckItem[] {
   const { brief } = b;
   return buildBriefCards({
@@ -84,9 +91,7 @@ function cardsFor(b: BriefStory, index: number, storyMedia: StoryMedia, hookMedi
     hooks: b.hooks,
     hookMedia,
     tracks,
-    proofNote: brief.proofPoints.length
-      ? `Proof quoted from the site: "${brief.proofPoints[0]!.evidence}".`
-      : 'No proof on the site, so the Proof shot shows the product doing the job (no numbers).',
+    proofNote: proofNote(brief),
   });
 }
 
@@ -110,7 +115,7 @@ export async function generateWebsiteDeck(runId: string): Promise<DeckItem[]> {
   for (const b of written) {
     media.push(await directWebsiteMedia({
       idc: b.brief.idc, categories: b.categories, tone: b.brief.tone, story: b.story, hooks: b.hooks,
-      workspaceId: source.workspaceId, used,
+      workspaceId: source.workspaceId, used, products: source.profile.products?.value,
     }));
   }
 

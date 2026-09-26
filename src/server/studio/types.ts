@@ -3,6 +3,8 @@
  * All server-only — never import from 'use client' files.
  */
 
+import type { ProductPhoto } from '../../lib/manualProfile';
+
 // ─── Field envelope ──────────────────────────────────────────────────────────
 
 /** Every leaf in StudioBrandProfile.data is wrapped in this envelope. */
@@ -43,6 +45,8 @@ export type StudioPositioning = {
   /** Differentiator sentence. */
   positioning: FieldEnvelope;
   geography: FieldEnvelope;
+  /** How customers buy or reach the business. Manual profiles only (no website to read it from). */
+  howToBuy?: FieldEnvelope;
 };
 
 export type StudioMarket = {
@@ -76,6 +80,8 @@ export type StudioProfileData = {
   positioning: StudioPositioning;
   market: StudioMarket;
   tone: StudioTone;
+  /** Product photos with vision descriptions. Manual profiles only (src/lib/manualProfile.ts). */
+  products?: FieldEnvelope<ProductPhoto[]>;
 };
 
 // ─── Telemetry ────────────────────────────────────────────────────────────────

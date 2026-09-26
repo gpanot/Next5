@@ -8,11 +8,10 @@ import { useUpload, type PendingPhoto } from './useUpload';
 
 export type SelfieSlot = { label: string; kind: 'face' | 'full_body'; required: boolean; capture: 'user' | 'environment' };
 
-/** Shop: 2 selfies (1 optional) + a full-body photo. Brand: 3 selfies (only the first is required). */
+/** Shop: a good selfie + a full-body photo (for her shape). Brand: 3 selfies (only the first is required). */
 export const SELFIE_SLOTS: Record<ProductLineDto, readonly SelfieSlot[]> = {
   shop: [
     { label: 'Selfie, facing camera', kind: 'face', required: true, capture: 'user' },
-    { label: 'Selfie, slight angle', kind: 'face', required: false, capture: 'user' },
     { label: 'Full body', kind: 'full_body', required: true, capture: 'environment' },
   ],
   brand: [

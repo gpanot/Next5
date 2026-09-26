@@ -21,7 +21,7 @@ await page.getByRole('button', { name: /Studio model/ }).click();
 await page.getByRole('radio').first().click();
 await page.screenshot({ path: `${OUT}/shop-model.png` });
 await page.getByRole('button', { name: 'Continue' }).click();
-await page.getByText('Pick your shop look').waitFor();
+await page.getByText('Pick your scene').waitFor();
 await page.getByRole('radio').nth(1).click();
 await page.getByRole('button', { name: 'Add one by hand' }).click();
 await page.locator('input[type=file]').first().setInputFiles(`${ROOT}/shop/slider/dress-before.png`);

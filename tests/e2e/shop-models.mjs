@@ -1,4 +1,4 @@
-// The shop look editor offers 6 Studio models for every market (Asian, White, Black, Arabic, Latina).
+// The Studio model picker offers 6 Studio models for every market (Asian, White, Black, Arabic, Latina).
 // Needs the dev server in mock mode and a seeded database (npm run db:seed:business).
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
@@ -38,16 +38,16 @@ for (const market of ['White', 'Black', 'Arabic', 'Latina']) {
 await page.screenshot({ path: `${OUT}/models-latina.png`, fullPage: true });
 step('every market has models, and the filter shows them');
 
-// A model from a new market can be picked and used for the look.
+// A model from a new market can be picked and used for the first scene.
 await page.getByRole('radio').first().click();
 await page.getByRole('button', { name: 'Continue' }).click();
-await page.getByText('Pick your shop look').waitFor({ timeout: 20000 });
+await page.getByText('Pick your scene').waitFor({ timeout: 20000 });
 await page.getByRole('radio').nth(1).click();
 await page.getByLabel('Your TikTok Shop link').fill(STORE);
 await page.getByText('I own or manage this shop.').click();
 await page.getByRole('button', { name: 'Import my store' }).click();
 await page.waitForFunction(() => { const r = document.querySelector('[aria-label="Product for your free photos"] [role=radio]'); return r && !r.hasAttribute('disabled'); }, null, { timeout: 60000 });
-step('a Latina model carries through to the shop look');
+step('a Latina model carries through to the first scene');
 
 await browser.close();
 console.log('E2E shop models OK');

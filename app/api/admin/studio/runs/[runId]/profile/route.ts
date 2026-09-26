@@ -9,6 +9,7 @@ import { adminRoute } from '../../../../../../../src/server/admin/route';
 import { studioJson } from '../../../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../../../src/lib/db';
 import { extractProfile } from '../../../../../../../src/server/studio/profileExtractor';
+import { isManualSource } from '../../../../../../../src/lib/manualProfile';
 
 export const maxDuration = 120;
 
@@ -34,6 +35,11 @@ export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
     include: { brandProfile: true },
   });
   if (!run) return NextResponse.json({ error: 'not found' }, { status: 404 });
+
+  // Hand-typed profiles ("B2B No Website") have no URL to crawl.
+  if (isManualSource(run.brandProfile.sourceUrl)) {
+    return NextResponse.json({ error: 'This profile was typed by hand. Edit it in Blitz Slideshow → B2B No Website.' }, { status: 409 });
+  }
 
   // Guard: only allow re-trigger if not currently running
   if (run.extractStatus === 'running') {

@@ -22,7 +22,11 @@ export type SetTemplateDto = {
   coverImage: string;
   locations: TemplateLocationDto[];
   defaults: { wardrobe?: string; poseEnergy?: string };
+  /** Shop: the poses that fit this scene, each with a sample photo (manifest path). Empty for Brand. */
+  poses: ScenePoseDto[];
 };
+
+export type ScenePoseDto = { id: string; label: string; image: string };
 
 /** Free photos of her in one style: none yet, being made, or ready (signed URLs). */
 export type SetPreviewDto = { status: 'none' | 'generating' | 'ready' | 'failed'; photos: string[] };

@@ -1,8 +1,8 @@
 'use client';
 
-import { Building2, Home, ShoppingBag } from 'lucide-react';
+import { Building2, Home, ShoppingBag, Store } from 'lucide-react';
 
-export type FlowType = 'b2b' | 'real_estate' | 'tiktok_shop';
+export type FlowType = 'b2b' | 'b2b_manual' | 'real_estate' | 'tiktok_shop';
 
 type FlowCard = {
   id: FlowType;
@@ -18,6 +18,12 @@ const FLOWS: FlowCard[] = [
     icon: <Building2 className="h-6 w-6" />,
     title: 'B2B Website',
     description: 'Research viral TikTok content for any niche and build a slideshow from a website URL.',
+  },
+  {
+    id: 'b2b_manual',
+    icon: <Store className="h-6 w-6" />,
+    title: 'B2B No Website',
+    description: 'For small businesses with a weak site or none. Type the profile, add product photos, get a slideshow deck.',
   },
   {
     id: 'real_estate',
@@ -45,7 +51,7 @@ export function FlowTypePicker({ onSelect }: Props) {
         <h2 className="text-[16px] font-semibold text-ink">Choose a flow</h2>
         <p className="mt-0.5 text-[13px] text-muted">Pick the type of slideshow you want to create.</p>
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {FLOWS.map((flow) => (
           <button
             key={flow.id}

@@ -9,13 +9,15 @@ import { HttpError } from '../http';
 /** Starts a one-photo batch: the product's main angle in 9:16, in the look its latest photos used. */
 export const createCoverBatch = async (ws: Workspace, productId: string): Promise<Batch> => {
   if (ws.product !== 'shop') throw new HttpError(400, 'wrong_product', 'Covers are part of Shop Studio.');
+  // The model that last wore this product: the photo's own set (rotating batches), else its batch's set.
+  const live = { status: { not: 'archived' as const } };
   const latest = await prisma.batchItem.findFirst({
-    where: { productId, status: 'ready', batch: { workspaceId: ws.id, set: { status: { not: 'archived' } } } },
+    where: { productId, status: 'ready', batch: { workspaceId: ws.id }, OR: [{ set: live }, { setId: null, batch: { set: live } }] },
     orderBy: { completedAt: 'desc' },
-    select: { batch: { select: { setId: true, highRes: true } } },
+    select: { setId: true, batch: { select: { setId: true, highRes: true } } },
   });
-  const setId = latest?.batch.setId ?? (await prisma.studioSet.findFirst({ where: { workspaceId: ws.id, status: { not: 'archived' } }, orderBy: { createdAt: 'desc' }, select: { id: true } }))?.id;
-  if (!setId) throw new HttpError(409, 'set_required', 'Pick a shop look first.');
+  const setId = latest?.setId ?? latest?.batch.setId ?? (await prisma.studioSet.findFirst({ where: { workspaceId: ws.id, status: { not: 'archived' } }, orderBy: { createdAt: 'desc' }, select: { id: true } }))?.id;
+  if (!setId) throw new HttpError(409, 'set_required', 'Pick a model and scene first.');
   return createBatch(ws, { kind: 'shop_products', setId, productIds: [productId], packId: 'listing', formats: ['story_9_16'], highRes: latest?.batch.highRes ?? false, coverOnly: true });
 };
 

@@ -16,11 +16,15 @@ export type WebsiteBriefInput = {
     tagline: string;
     description: string;
     geography: string;
+    /** How customers buy or reach them. Manual profiles only; websites leave it empty. */
+    howToBuy?: string;
   };
   tone: Tone;
   proofPoints: ProofPoint[];
   /** Hook ideas the profile extractor wrote for this business's end customer. */
   suggestedHooks: string[];
+  /** Vision descriptions of the business's own product photos (manual profiles). */
+  productPhotos: string[];
 };
 
 function profileBlock(b: WebsiteBriefInput): string {
@@ -35,6 +39,7 @@ function profileBlock(b: WebsiteBriefInput): string {
     b.business.tagline ? `- Tagline: ${b.business.tagline}` : '',
     b.business.description ? `- Description: ${b.business.description}` : '',
     b.business.geography ? `- Where: ${b.business.geography}` : '',
+    b.business.howToBuy ? `- How customers buy: ${b.business.howToBuy}` : '',
     `- Tone: ${b.tone}`,
   ].filter(Boolean).join('\n');
 }
@@ -66,7 +71,7 @@ PROFILE (the only facts you may use)
 ${profileBlock(b)}
 
 ${proofBlock(b.proofPoints)}
-
+${photoBlock(b.productPhotos)}
 STORY (write the lines in this order, each builds on the one before)
 1. Pick ONE concrete problem ${b.idc} have that this business solves. It must follow from the profile.
 2. pain: that problem in ${b.idc}'s own words, a moment from their workday.
@@ -74,7 +79,7 @@ STORY (write the lines in this order, each builds on the one before)
 4. mechanism: what the product does about it, named plainly.
 5. proof: see PROOF above.
 6. inaction: the cost of leaving it as is, then a short bridge ending with ":". Do not repeat the pain.
-7. cta: one action the site offers (book a demo, start a trial, call). Use the site's wording when the profile has it.
+7. cta: one action the business offers (book a demo, start a trial, call). Use "How customers buy" or the site's wording when the profile has it.
 
 RULES
 - Max 10 words per line. cta max 7 words.
@@ -90,6 +95,15 @@ OUTPUT: JSON only.
   "meat": { "pain": "...", "oldWay": "...", "mechanism": "...", "proof": "...", "inaction": "..." },
   "cta": "..."
 }`;
+}
+
+/** Real product photos: mechanism and proof are written to match one, so the photo plays behind the line. */
+function photoBlock(photos: string[]): string {
+  if (photos.length === 0) return '';
+  return `\nPRODUCT PHOTOS (real photos from the business; they play behind "mechanism", "proof" and "cta")
+${photos.map((d, i) => `- photo ${i + 1}: ${d}`).join('\n')}
+Write "mechanism" and "proof" so each one describes something a photo above shows. Never describe what no photo shows.
+Photos are facts about what they sell, not proof of numbers.\n`;
 }
 
 /** Brief-specific hook examples built from the IDC name and the profile's own hook ideas. */

@@ -65,7 +65,7 @@ export const saveDropSchedule = async (ws: Workspace, input: DropInput, now = ne
   if (ws.product !== 'shop') throw new HttpError(400, 'wrong_product', 'Drops are part of Shop Studio.');
   const plan = await getActivePlan(ws.id, now);
   if (!plan?.drops) throw new HttpError(403, 'plan_required', 'Weekly drops are included in Growth.');
-  if (input.setId && !(await prisma.studioSet.findFirst({ where: { id: input.setId, workspaceId: ws.id } }))) throw new HttpError(400, 'invalid_set', 'Pick one of your shop looks.');
+  if (input.setId && !(await prisma.studioSet.findFirst({ where: { id: input.setId, workspaceId: ws.id } }))) throw new HttpError(400, 'invalid_set', 'Pick one of your models and scenes.');
   const data = { ...input, nextRunAt: input.active ? nextRunAfter(now, input.weekday) : null };
   return prisma.dropSchedule.upsert({ where: { workspaceId: ws.id }, update: data, create: { workspaceId: ws.id, ...data } });
 };

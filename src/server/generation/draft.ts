@@ -39,11 +39,18 @@ export type BrandPropertyDraft = {
   influencerKey?: string;
 };
 
+export type ShopScenePick = { id: string; poseIds: string[] };
+
 export type ShopDraft = {
   kind: 'shop_products';
   setId: string;
+  /** More models (sets) to rotate through: products are spread across `setId` + these, one model per product. */
+  setIds?: string[];
   productIds: string[];
+  /** Legacy shot pack (previews, trial, "Create more photos"). Ignored when `scenes` is set. */
   packId: PackId;
+  /** Create a drop: scenes (shop template ids) and the poses picked in each. Every product × model × pose. */
+  scenes?: ShopScenePick[];
   formats: FormatId[];
   highRes: boolean;
   /** Instead of the pack: the next new angles for each product ("Create more photos"). */
@@ -81,10 +88,17 @@ export type InfluencerVariationDraft = {
 };
 export type InternalShopDraft = Omit<ShopDraft, 'kind'> & { kind: 'shop_products'; trial?: boolean; /** Free look preview. */ preview?: boolean; /** Only the 9:16 cover per product (TikTok library). */ coverOnly?: boolean };
 
+/** Free pose sheet of the seller herself ("You"): four poses in plain basics. Built server-side only. */
+
 export type BatchDraft = BrandDraft | BrandPropertyDraft | ShopDraft;
 export type AnyDraft = InternalBrandDraft | BrandPropertyDraft | InternalShopDraft | InfluencerVariationDraft;
 
 export const MAX_PRODUCTS_PER_BATCH = 40;
+/** Models one shop batch can rotate through. */
+export const MAX_SETS_PER_BATCH = 6;
+/** Scenes one shop batch can use, and poses per scene. */
+export const MAX_SCENES_PER_BATCH = 6;
+export const MAX_POSES_PER_SCENE = 6;
 
 const bad = (message: string): HttpError => new HttpError(400, 'invalid_batch', message);
 
@@ -120,6 +134,21 @@ const parsePropertyDraft = (body: Record<string, unknown>, formats: FormatId[], 
   };
 };
 
+/** `[{ id, poseIds }]`: 1 to 6 scenes, 1 to 6 poses each. Undefined when the body has none (legacy pack path). */
+const parseScenes = (value: unknown): ShopScenePick[] | undefined => {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.length === 0) throw bad('Choose at least one scene.');
+  if (value.length > MAX_SCENES_PER_BATCH) throw bad(`Pick up to ${MAX_SCENES_PER_BATCH} scenes per batch.`);
+  const picks = value.map((v): ShopScenePick => {
+    const row = (v ?? {}) as { id?: unknown; poseIds?: unknown };
+    const poseIds = Array.isArray(row.poseIds) ? [...new Set(row.poseIds.map((id) => parseId(id, 'pose')))] : [];
+    if (poseIds.length === 0 || poseIds.length > MAX_POSES_PER_SCENE) throw bad(`Pick 1 to ${MAX_POSES_PER_SCENE} poses in each scene.`);
+    return { id: parseId(row.id, 'scene'), poseIds };
+  });
+  if (new Set(picks.map((p) => p.id)).size !== picks.length) throw bad('Each scene can be picked once.');
+  return picks;
+};
+
 export const parseDraft = (body: Record<string, unknown>, influencerKey?: string): BatchDraft => {
   const formats = parseFormats(body.formats);
   const highRes = body.highRes === true;
@@ -139,9 +168,13 @@ export const parseDraft = (body: Record<string, unknown>, influencerKey?: string
     if (!Array.isArray(body.productIds) || body.productIds.length === 0) throw bad('Choose at least one product.');
     const productIds = [...new Set(body.productIds.map((id) => parseId(id, 'product')))];
     if (productIds.length > MAX_PRODUCTS_PER_BATCH) throw bad(`Choose up to ${MAX_PRODUCTS_PER_BATCH} products per batch.`);
-    const packId = String(body.packId ?? '');
+    const scenes = parseScenes(body.scenes);
+    const packId = String(body.packId ?? (scenes ? 'listing' : ''));
     if (!isPackId(packId)) throw bad('Choose a shot pack.');
-    return { kind: 'shop_products', setId: parseId(body.setId, 'shop look'), productIds, packId, formats, highRes, more: body.more === true, withCover: body.withCover === true };
+    const setId = parseId(body.setId, 'model');
+    const setIds = Array.isArray(body.setIds) ? [...new Set(body.setIds.map((id) => parseId(id, 'model')))].filter((id) => id !== setId) : [];
+    if (setIds.length >= MAX_SETS_PER_BATCH) throw bad(`Pick up to ${MAX_SETS_PER_BATCH} models per batch.`);
+    return { kind: 'shop_products', setId, ...(setIds.length ? { setIds } : {}), ...(scenes ? { scenes } : {}), productIds, packId, formats, highRes, more: body.more === true, withCover: body.withCover === true };
   }
 
   throw bad('Unknown batch type.');

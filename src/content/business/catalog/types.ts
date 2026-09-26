@@ -1,6 +1,7 @@
 /** Shared catalog types for set templates and themes (seeded into the DB and used by marketing pages). */
 
 import type { ProductLineId } from '../../../config/plans';
+import type { ShotId } from '../../../config/shots';
 
 export type TemplateLocation = { id: string; label: string; direction: string };
 
@@ -9,7 +10,12 @@ export type SetTemplateConfig = {
   lighting: string;
   defaults: { wardrobe?: string; poseEnergy?: string };
   shotOverrides?: Readonly<Record<string, string>>;
+  /** Shop: the poses that fit this scene, picked per drop. */
+  poses?: readonly ScenePose[];
 };
+
+/** One pose in a shop scene. `shot` is the angle it covers (framing rules, "Create more photos"). */
+export type ScenePose = { id: string; label: string; shot: ShotId; direction: string };
 
 export type SetTemplateSeed = {
   id: string;

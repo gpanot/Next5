@@ -107,3 +107,14 @@ export const runGenerationTick = async (options: { batchId?: string; budgetMs: n
   })();
   await Promise.race([work, new Promise((resolve) => setTimeout(resolve, options.budgetMs))]);
 };
+
+/**
+ * Free previews and pose sheets live on pages that never open a batch page, so nothing else would poll them
+ * (and locally, provider webhooks can't reach us). Moves this workspace's in-flight previews forward:
+ * finalizes finished photos, times out silent ones (then one automatic retry), and submits queued ones.
+ */
+export const tickWorkspacePreviews = async (workspaceId: string, budgetMs = 4_000): Promise<void> => {
+  const batches = await prisma.batch.findMany({ where: { workspaceId, preview: true, status: { in: ['queued', 'generating'] } }, select: { id: true } });
+  if (batches.length === 0) return;
+  await Promise.all(batches.map((b) => runGenerationTick({ batchId: b.id, budgetMs }).catch((err: unknown) => console.error(`[poll] preview tick ${b.id}:`, err))));
+};

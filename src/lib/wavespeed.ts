@@ -55,8 +55,15 @@ export type SubmitEditParams = {
 /** Re-exported so callers keep using one name for the model id. */
 export type ImageModel = ImageModelId;
 
-/** Fallback model for a manual retry after the default model fails (e.g. its safety filter blocks the photo). */
-export const FALLBACK_MODEL: ImageModelId = 'gpt-image-2';
+/**
+ * Model for the one free retry after a photo fails (often a safety filter block).
+ * GPT Image photos retry on Nano Banana 2, everything else on GPT Image 2: another provider, another filter.
+ */
+export const fallbackModelFor = (model: string | null): ImageModelId =>
+  model?.startsWith('gpt-image') ? 'nano-banana-2' : 'gpt-image-2';
+
+/** Models only a fallback retry sets explicitly (the default run stores null for Nano Banana 2). */
+export const FALLBACK_MODELS: readonly string[] = ['gpt-image-2', 'nano-banana-2'];
 
 export const isImageModel = isImageModelId;
 

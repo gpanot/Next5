@@ -28,10 +28,11 @@ export const resolveBrandIdentity = async (workspace: Workspace, influencerKey?:
 };
 
 /** Ordered identity reference keys for a batch. Brand: up to 2 faces. Shop: face + full body of "me" or a Studio model. */
-export const resolveIdentity = async (workspace: Workspace, set: StudioSet): Promise<IdentityInputs> => {
-  if (workspace.product === 'brand') return resolveBrandIdentity(workspace);
+export const resolveIdentity = async (workspace: Workspace, set: StudioSet): Promise<IdentityInputs> =>
+  workspace.product === 'brand' ? resolveBrandIdentity(workspace) : resolveShopIdentity(workspace, set.modelRef ?? 'me');
 
-  const modelRef = set.modelRef ?? 'me';
+/** Shop: face + full body of "me" (her own photos) or of a Studio model. */
+export const resolveShopIdentity = async (workspace: Workspace, modelRef: string): Promise<IdentityInputs> => {
   const refs = modelRef === 'me'
     ? await liveRefs({ workspaceId: workspace.id })
     : await liveRefs({ isStudioModel: true, studioModelSlug: modelRef });

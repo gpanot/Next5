@@ -48,7 +48,7 @@ export const DashboardView = () => {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-app-accent/40 bg-app-accent-soft p-5">
           <div>
             <p className="text-[16px] font-semibold text-app-ink">Finish setting up your studio</p>
-            <p className="text-[14px] text-app-muted">Add your photos and pick a {product === 'shop' ? 'shop look' : 'style'} to create your first batch.</p>
+            <p className="text-[14px] text-app-muted">Add your photos and pick a {product === 'shop' ? 'model' : 'style'} to create your first batch.</p>
           </div>
           <Link href={`/start/${product}`} className="inline-flex h-10 items-center rounded-xl bg-app-cta px-4 text-[14px] font-medium text-app-cta-ink hover:opacity-90">Continue setup</Link>
         </div>

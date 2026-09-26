@@ -195,3 +195,4 @@ export const nextShotsForProduct = (
   SHOT_SEQUENCE[isAccessoryCategory(category) ? 'accessory' : 'apparel']
     .filter((shot) => !madeShots.includes(shot) && (hasBackPhoto || !SHOTS[shot].requiresBackPhoto))
     .slice(0, limit);
+

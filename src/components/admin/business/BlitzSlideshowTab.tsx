@@ -40,6 +40,11 @@ export function BlitzSlideshowTab({ token }: { token: string }) {
         </StudioRunProvider>
       )}
 
+      {/* ── B2B No Website: profile typed by hand, no Studio run picker ───────── */}
+      {flowType === 'b2b_manual' && (
+        <BlitzSlideshowEditor initialFlowType="b2b_manual" />
+      )}
+
       {/* ── Real Estate: no Studio context, initialFlowType drives the steps ── */}
       {flowType === 'real_estate' && (
         <BlitzSlideshowEditor initialFlowType="real_estate" />

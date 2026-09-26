@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, UserRound } from 'lucide-react';
+import { Check, Lock, UserRound } from 'lucide-react';
 import { MODEL_ETHNICITIES, type ModelEthnicity } from '../../../content/business/catalog/studioModels';
 import Image from 'next/image';
 import { useState } from 'react';
@@ -17,13 +17,14 @@ import { useSelfieUpload } from './useSelfieUpload';
 type StudioModel = { slug: string; name: string; age: number; ethnicity: ModelEthnicity; description: string; faceImage: string; available: boolean };
 
 export const ModelGrid = ({ value, onChange }: { value: string; onChange: (slug: string) => void }) => {
-  const { data, loading } = useApi<{ models: StudioModel[] }>('/api/app/studio-models');
+  const { data, loading } = useApi<{ models: StudioModel[]; allModels: boolean }>('/api/app/studio-models');
   const [market, setMarket] = useState<ModelEthnicity | 'all'>('all');
   if (loading) return <SkeletonGrid count={6} cols={3} />;
   const models = data?.models ?? [];
   // Only show markets we have models for, so the row never has a dead chip.
   const markets = MODEL_ETHNICITIES.filter((e) => models.some((m) => m.ethnicity === e.id));
   const shown = market === 'all' ? models : models.filter((m) => m.ethnicity === market);
+  const locked = models.some((m) => !m.available);
 
   return (
     <div className="flex flex-col gap-3">
@@ -40,12 +41,14 @@ export const ModelGrid = ({ value, onChange }: { value: string; onChange: (slug:
         </button>
       ))}
     </div>
+    {locked && <p className="text-[13px] text-app-muted">Your plan includes one Studio model. Upgrade to Growth to use them all.</p>}
     <div role="radiogroup" aria-label="Studio models" className="grid grid-cols-3 gap-3">
       {shown.map((m) => (
-        <button key={m.slug} type="button" role="radio" aria-checked={value === m.slug} onClick={() => onChange(m.slug)} className="flex flex-col gap-1.5 text-left focus-visible:outline-none">
+        <button key={m.slug} type="button" role="radio" aria-checked={value === m.slug} disabled={!m.available} onClick={() => onChange(m.slug)} className="flex flex-col gap-1.5 text-left focus-visible:outline-none disabled:cursor-not-allowed">
           <div className={`relative aspect-square overflow-hidden rounded-xl ring-2 transition-colors duration-200 ${value === m.slug ? 'ring-app-accent' : 'ring-transparent'}`}>
-            {hasManifestImage(m.faceImage) && <Image src={m.faceImage} alt={`Studio model ${m.name}`} fill sizes="160px" className="object-cover" />}
+            {hasManifestImage(m.faceImage) && <Image src={m.faceImage} alt={`Studio model ${m.name}`} fill sizes="160px" className={`object-cover ${m.available ? '' : 'opacity-50 grayscale'}`} />}
             {value === m.slug && <span className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-app-cta text-app-cta-ink"><Check aria-hidden className="h-4 w-4" /></span>}
+            {!m.available && <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm"><Lock aria-hidden className="h-3 w-3" /> Growth</span>}
           </div>
           <span className="text-[13px] font-semibold text-app-ink">{m.name}, {m.age}</span>
           <span className="text-[12px] text-app-muted">{m.description}</span>
@@ -81,7 +84,7 @@ export const ShopModelStep = ({ product, me, advance }: StepProps) => {
       footer={<AppButton size="lg" loading={selfies.busy} disabled={mode === 'studio' ? !slug : !selfies.ready} onClick={submit}>Continue</AppButton>}
     >
       <div className="grid grid-cols-2 gap-3">
-        {([['me', 'Wear it yourself', '2 selfies + 1 full-body photo'], ['studio', 'Studio model', '30 models, 6 per market']] as const).map(([value, title, sub]) => (
+        {([['me', 'Wear it yourself', '1 selfie + 1 full-body photo'], ['studio', 'Studio model', '30 models, 6 per market']] as const).map(([value, title, sub]) => (
           <button key={value} type="button" onClick={() => setMode(value)} aria-pressed={mode === value} className={`flex flex-col gap-1 rounded-2xl border p-4 text-left transition-colors duration-200 ${mode === value ? 'border-app-accent bg-app-accent-soft' : 'border-app-line hover:bg-app-sunken'}`}>
             <UserRound aria-hidden className="h-5 w-5 text-app-accent" />
             <span className="text-[15px] font-semibold text-app-ink">{title}</span>
