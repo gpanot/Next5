@@ -166,7 +166,8 @@ export const BookingsTab = ({ token }: BookingsTabProps) => {
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-line bg-white">
-        <table className="w-full text-[13px]">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[900px] text-[13px]">
           <thead>
             <tr className="border-b border-line bg-surface text-left text-[10px] uppercase tracking-[0.12em] text-muted">
               <Th>ID</Th>
@@ -209,6 +210,7 @@ export const BookingsTab = ({ token }: BookingsTabProps) => {
             ))}
           </tbody>
         </table>
+        </div>
         {bookings.length === 0 && (
           <p className="px-5 py-10 text-center text-[13px] text-muted">No bookings yet.</p>
         )}

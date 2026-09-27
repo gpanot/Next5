@@ -3,6 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { FORMATS, type FormatId } from '../../../config/formats';
+import { REAPI_MODELS, type ReapiModelId } from '../../../config/reapiModels';
 import { useEstimate } from '../../../hooks/useEstimate';
 import { lastSetStore } from '../../../lib/localStore';
 import type { SetTemplateDto, StudioSetDto } from '../../../types/business/catalog';
@@ -33,6 +34,9 @@ export const useShopDraft = (sets: readonly StudioSetDto[], scenes: readonly Set
   const [formats, setFormats] = useState<FormatId[]>(urlFormats.length ? urlFormats : defaults.length ? defaults : ['square_1_1']);
   const [highRes, setHighRes] = useState(false);
   const [withCover, setWithCover] = useState(true);
+  const [imageModel, setImageModel] = useState<ReapiModelId | null>(null);
+  // A 1K-only model can't make 2K photos.
+  const supports2k = !imageModel || REAPI_MODELS[imageModel].supports2k;
 
   // Default model: the one she used last, else her first. Only one row per model counts.
   const modelIds = modelSetIds(sets);
@@ -46,7 +50,7 @@ export const useShopDraft = (sets: readonly StudioSetDto[], scenes: readonly Set
   // useEstimate keys on the JSON, so a fresh object each render is fine.
   const [setId, ...setIds] = models;
   const draft = setId && scenePicks.length && productIds.length
-    ? { product: 'shop', kind: 'shop_products', setId, setIds, scenes: scenePicks, productIds, formats, highRes, withCover }
+    ? { product: 'shop', kind: 'shop_products', setId, setIds, scenes: scenePicks, productIds, formats, highRes: highRes && supports2k, withCover, ...(imageModel ? { imageModel } : {}) }
     : null;
   const estimate = useEstimate(draft);
 
@@ -57,7 +61,7 @@ export const useShopDraft = (sets: readonly StudioSetDto[], scenes: readonly Set
   return {
     selected, toggleProduct, onlyNew, setOnlyNew,
     models, setModels, scenePicks, setScenes,
-    formats, setFormats, highRes, setHighRes, withCover, setWithCover,
+    formats, setFormats, highRes: highRes && supports2k, setHighRes, supports2k, withCover, setWithCover, imageModel, setImageModel,
     draft, breakdown, ...estimate,
   };
 };

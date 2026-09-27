@@ -91,9 +91,11 @@ export default function AdminPage() {
   const stored = adminTokenStore.useValue();
   const token = stored && isAdminToken(stored) ? stored : null;
   const [tab, setTab] = useState<Tab>('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const logout = useCallback(() => adminTokenStore.set(null), []);
   const handleToken = useCallback((t: string) => adminTokenStore.set(t), []);
+  const selectTab = useCallback((id: Tab) => { setTab(id); setSidebarOpen(false); }, []);
 
   if (stored === undefined) return null;
   if (!token) return <AdminLogin onToken={handleToken} />;
@@ -102,14 +104,47 @@ export default function AdminPage() {
     // h-screen + overflow-hidden on the root locks the viewport — nothing can grow past it.
     <div className="flex h-screen overflow-hidden bg-surface">
 
-      {/* ── Left Sidebar — fixed height, scrolls its own nav ── */}
-      <aside className="flex h-full w-56 shrink-0 flex-col border-r border-line bg-white">
+      {/* ── Mobile backdrop — closes sidebar on tap outside ── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Left Sidebar ──
+          Mobile: fixed drawer that slides in/out.
+          Desktop (lg+): static flex item, always visible.
+      ── */}
+      <aside className={[
+        // Base styles
+        'flex h-full shrink-0 flex-col border-r border-line bg-white',
+        // Mobile: fixed overlay, 256 px wide, slides via translate
+        'fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-200',
+        // Desktop: back to normal flow, narrower, no transform
+        'lg:static lg:w-56 lg:translate-x-0 lg:transition-none',
+        // Toggle visibility on mobile
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+      ].join(' ')}>
+
         {/* Logo — never scrolls */}
-        <div className="flex h-14 shrink-0 items-center gap-2 border-b border-line px-5">
-          <span className="font-display text-[17px] tracking-[0.12em] text-ink uppercase">Next5</span>
-          <span className="rounded-full bg-ink px-2 py-0.5 text-[9px] font-medium tracking-widest text-white uppercase">
-            Admin
-          </span>
+        <div className="flex h-14 shrink-0 items-center justify-between border-b border-line px-5">
+          <div className="flex items-center gap-2">
+            <span className="font-display text-[17px] tracking-[0.12em] text-ink uppercase">Next5</span>
+            <span className="rounded-full bg-ink px-2 py-0.5 text-[9px] font-medium tracking-widest text-white uppercase">
+              Admin
+            </span>
+          </div>
+          {/* Close button — only visible on mobile */}
+          <button
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close menu"
+            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-zinc-100 hover:text-ink lg:hidden"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 6 6 18M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
         {/* Nav — scrolls independently */}
@@ -122,7 +157,7 @@ export default function AdminPage() {
               {section.items.map(({ id, label, icon }) => (
                 <button
                   key={id}
-                  onClick={() => setTab(id)}
+                  onClick={() => selectTab(id)}
                   className={[
                     'flex w-full items-center gap-2.5 px-5 py-2 text-left text-[13px] font-medium transition-colors',
                     tab === id
@@ -160,14 +195,26 @@ export default function AdminPage() {
       <div className="flex h-full flex-1 flex-col overflow-hidden">
 
         {/* Top bar — never scrolls */}
-        <header className="flex h-14 shrink-0 items-center border-b border-line bg-white px-8">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-white px-4 md:px-8">
+          {/* Hamburger — only visible on mobile */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-zinc-100 hover:text-ink lg:hidden"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
           <h1 className="text-[15px] font-semibold text-ink">
             {NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.id === tab)?.label ?? tab}
           </h1>
         </header>
 
         {/* Main content — scrolls independently */}
-        <main className="flex-1 overflow-y-auto px-8 py-8">
+        <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8">
           {tab === 'overview'         && <OverviewTab          token={token} />}
           {tab === 'workspaces'       && <WorkspacesTab        token={token} />}
           {tab === 'payments'         && <PaymentsTab          token={token} />}

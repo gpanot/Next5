@@ -1,4 +1,5 @@
 import { IMAGE_MODELS, isImageModelId, modelCostUsdMicros, resolutionFor, sizeForRatio, type ImageModelId, type ModelRequestSpec, type ModelResolution } from '../config/imageModels';
+import { isReapiModelId, REAPI_FALLBACK_MODELS, reapiFallbackFor, type ReapiModelId } from '../config/reapiModels';
 
 /** Read per call so tests and local runs can set it after import. */
 const apiKey = (): string | undefined => process.env.WAVESPEED_API_KEY;
@@ -59,11 +60,14 @@ export type ImageModel = ImageModelId;
  * Model for the one free retry after a photo fails (often a safety filter block).
  * GPT Image photos retry on Nano Banana 2, everything else on GPT Image 2: another provider, another filter.
  */
-export const fallbackModelFor = (model: string | null): ImageModelId =>
-  model?.startsWith('gpt-image') ? 'nano-banana-2' : 'gpt-image-2';
+export const fallbackModelFor = (model: string | null): ImageModelId | ReapiModelId => {
+  // reAPI photos stay on reAPI.
+  if (isReapiModelId(model)) return reapiFallbackFor(model);
+  return model?.startsWith('gpt-image') ? 'nano-banana-2' : 'gpt-image-2';
+};
 
 /** Models only a fallback retry sets explicitly (the default run stores null for Nano Banana 2). */
-export const FALLBACK_MODELS: readonly string[] = ['gpt-image-2', 'nano-banana-2'];
+export const FALLBACK_MODELS: readonly string[] = ['gpt-image-2', 'nano-banana-2', ...REAPI_FALLBACK_MODELS];
 
 export const isImageModel = isImageModelId;
 

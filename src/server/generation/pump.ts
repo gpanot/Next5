@@ -5,7 +5,8 @@ import { generationMaxConcurrent } from '../../config/business';
 import { FORMATS, isFormatId } from '../../config/formats';
 import { prisma } from '../../lib/db';
 import { isMockGeneration } from '../../lib/mock';
-import { GEMINI_PRO_IMAGE, GEMINI_PRO_IMAGE_USD_MICROS, isReapiRatio, submitGeminiImage } from '../../lib/reapiImage';
+import { isReapiModelId, REAPI_MODEL_IDS } from '../../config/reapiModels';
+import { isReapiRatio, submitReapiImage } from '../../lib/reapiImage';
 import { costUsdMicros, isImageModel, submitEdit, uploadPhotoToWaveSpeed } from '../../lib/wavespeed';
 import { getObject, presignObject } from '../storage/objectStore';
 import { failItem } from './finalize';
@@ -23,7 +24,7 @@ const claimQueued = async (limit: number, batchId: string | undefined, allowReap
     WHERE id IN (
       SELECT bi.id FROM batch_items bi JOIN batches b ON b.id = bi.batch_id
       WHERE bi.status = 'queued' AND (${batchId ?? null}::text IS NULL OR bi.batch_id = ${batchId ?? null})
-        AND (${allowReapi} OR bi.model IS DISTINCT FROM ${GEMINI_PRO_IMAGE})
+        AND (${allowReapi} OR bi.model IS NULL OR NOT (bi.model = ANY(${REAPI_MODEL_IDS}::text[])))
       ORDER BY b.priority, bi.created_at
       LIMIT ${limit}
       FOR UPDATE OF bi SKIP LOCKED
@@ -50,12 +51,12 @@ const publicUrlFor = async (key: string): Promise<string> => {
   return signed?.startsWith('https://') ? signed : waveSpeedUrlFor(key);
 };
 
-/** Gemini 3 Pro Image on reAPI (influencer photos). Returns the prefixed task id and its estimated cost. */
-const submitGemini = async (item: BatchItem, highRes: boolean): Promise<{ taskId: string; cost: number }> => {
+/** Any reAPI model (influencer photos, Shop photos picked under "Advanced"). Returns the prefixed task id and its estimated cost. */
+const submitReapi = async (item: BatchItem, highRes: boolean): Promise<{ taskId: string; cost: number }> => {
+  if (!isReapiModelId(item.model)) throw new Error(`Not a reAPI model: ${item.model}`);
   const imageUrls = await Promise.all(item.inputR2Keys.map(publicUrlFor));
   const ratio = isFormatId(item.format) ? FORMATS[item.format].ratio : '9:16';
-  const taskId = await submitGeminiImage({ prompt: item.prompt, imageUrls, ratio: isReapiRatio(ratio) ? ratio : '9:16', resolution: highRes ? '2K' : '1K' });
-  return { taskId, cost: GEMINI_PRO_IMAGE_USD_MICROS };
+  return submitReapiImage({ model: item.model, prompt: item.prompt, imageUrls, ratio: isReapiRatio(ratio) ? ratio : '9:16', highRes });
 };
 
 /** Nano Banana 2 (or the fallback model) on WaveSpeed; the result comes back by webhook. */
@@ -71,12 +72,13 @@ const submitWaveSpeed = async (item: BatchItem, highRes: boolean): Promise<{ tas
 const submitItem = async (item: BatchItem): Promise<void> => {
   const batch = await prisma.batch.findUniqueOrThrow({ where: { id: item.batchId }, select: { highRes: true } });
   const isMock = isMockGeneration();
-  const provider = isMock ? 'mock' : item.model === GEMINI_PRO_IMAGE ? 'gemini-reapi' : 'wavespeed';
+  const onReapi = isReapiModelId(item.model);
+  const provider = isMock ? 'mock' : onReapi ? 'reapi' : 'wavespeed';
   console.log(`[pump] submitting item ${item.id} via ${provider} (model=${item.model ?? 'nano-banana-2'}, inputs=${item.inputR2Keys.length}, format=${item.format})`);
   try {
     const { taskId, cost } = isMock
       ? { taskId: `mock:${item.id}:${Date.now()}`, cost: 0 }
-      : item.model === GEMINI_PRO_IMAGE ? await submitGemini(item, batch.highRes) : await submitWaveSpeed(item, batch.highRes);
+      : onReapi ? await submitReapi(item, batch.highRes) : await submitWaveSpeed(item, batch.highRes);
     console.log(`[pump] item ${item.id} submitted → taskId=${taskId}`);
     await prisma.batchItem.update({ where: { id: item.id }, data: { status: 'generating', wavespeedTaskId: taskId } });
     await prisma.batch.update({
@@ -102,13 +104,13 @@ export const pump = async (options: { batchId?: string } = {}): Promise<number> 
   const slots = generationMaxConcurrent() - inFlight;
   if (slots <= 0) return 0;
 
-  const reapiSlots = REAPI_MAX_IN_FLIGHT - (await prisma.batchItem.count({ where: { status: { in: ['submitting', 'generating'] }, model: GEMINI_PRO_IMAGE } }));
+  const reapiSlots = REAPI_MAX_IN_FLIGHT - (await prisma.batchItem.count({ where: { status: { in: ['submitting', 'generating'] }, model: { in: REAPI_MODEL_IDS } } }));
   const ids = await claimQueued(slots, options.batchId, reapiSlots > 0);
   if (ids.length === 0) return 0;
   const claimed = await prisma.batchItem.findMany({ where: { id: { in: ids } } });
-  // More Gemini items than reAPI has room for: hand the extra back to the queue.
-  const gemini = claimed.filter((i) => i.model === GEMINI_PRO_IMAGE);
-  const overflow = new Set(gemini.slice(Math.max(0, reapiSlots)).map((i) => i.id));
+  // More reAPI items than reAPI has room for: hand the extra back to the queue.
+  const reapi = claimed.filter((i) => isReapiModelId(i.model));
+  const overflow = new Set(reapi.slice(Math.max(0, reapiSlots)).map((i) => i.id));
   await Promise.all([...overflow].map(requeue));
   const items = claimed.filter((i) => !overflow.has(i.id));
   await Promise.all(items.map(submitItem));

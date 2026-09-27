@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ApiError, apiFetch } from '../lib/apiClient';
 import type { BatchDetailDto } from '../types/business/batches';
 
-const BASE_INTERVAL_MS = 4_000;
+const BASE_INTERVAL_MS = 2_500;
 const MAX_BACKOFF_MS = 30_000;
 
 type State = { batch: BatchDetailDto | null; error: string | null; loading: boolean };
@@ -13,8 +13,8 @@ const isActive = (batch: BatchDetailDto | null): boolean =>
   !batch || batch.status === 'queued' || batch.status === 'generating';
 
 /**
- * Loads a batch and polls every 4 s while it is generating (each GET also advances generation).
- * Backs off on errors up to 30 s and pauses while the tab is hidden.
+ * Loads a batch and polls every 2.5 s while it is generating (each GET also advances generation).
+ * Backs off on errors up to 30 s and pauses while the tab is hidden; coming back to the tab loads at once.
  */
 export const useBatchPolling = (batchId: string | null) => {
   const [state, setState] = useState<State>({ batch: null, error: null, loading: true });
@@ -44,18 +44,28 @@ export const useBatchPolling = (batchId: string | null) => {
   useEffect(() => {
     if (!batchId || (!active && state.batch)) return;
     let stopped = false;
+    let loading = false;
 
     const tick = async () => {
-      if (stopped) return;
+      if (stopped || loading) return;
+      loading = true;
       const batch = document.hidden ? state.batch : await load();
+      loading = false;
       if (stopped || !isActive(batch)) return;
       const delay = Math.min(MAX_BACKOFF_MS, BASE_INTERVAL_MS * 2 ** failures.current);
       timer.current = window.setTimeout(() => void tick(), delay);
     };
     void tick();
+    const onVisible = () => {
+      if (document.hidden || stopped || loading) return;
+      if (timer.current) window.clearTimeout(timer.current);
+      void tick();
+    };
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       stopped = true;
+      document.removeEventListener('visibilitychange', onVisible);
       if (timer.current) window.clearTimeout(timer.current);
     };
     // Restart polling only when the batch changes or becomes active again.

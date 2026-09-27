@@ -168,7 +168,7 @@ const expandShop = async (workspace: Workspace, draft: InternalShopDraft, now: D
       template: scene.config, shot, poseDirection: pose?.direction, format, garment: product, isStudioModel: identity.isStudioModel,
       identityImageCount: identity.keys.length, productImageCount: productKeys.length,
     });
-    items.push({ sceneId: scene.id, shot, productId: product.id, format, prompt, inputR2Keys: [...identity.keys, ...productKeys], setId: set.id, model: SHOP_IMAGE_MODEL });
+    items.push({ sceneId: scene.id, shot, productId: product.id, format, prompt, inputR2Keys: [...identity.keys, ...productKeys], setId: set.id, model: draft.imageModel ?? SHOP_IMAGE_MODEL });
   };
   // A separate 9:16 cover is only needed when 9:16 isn't already one of the formats.
   const addCover = draft.coverOnly || (draft.withCover && !draft.formats.includes('story_9_16'));

@@ -26,7 +26,7 @@ export const WorkspacesTab = ({ token }: { token: string }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or email" className="w-72 rounded-lg border border-line bg-white px-3 py-2 text-[13px]" />
+      <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name or email" className="w-full max-w-xs rounded-lg border border-line bg-white px-3 py-2 text-[13px]" />
       {message && <p className="text-[13px] text-ink">{message}</p>}
       {error && <p className="text-[13px] text-red-700">{error}</p>}
       {loading && !data && <p className="text-[13px] text-muted">Loading…</p>}

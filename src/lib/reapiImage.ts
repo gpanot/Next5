@@ -1,10 +1,12 @@
 // server-only — never import from a 'use client' file.
-// Gemini 3 Pro Image on reAPI (REAPI_API_KEY): https://reapi.ai/docs/gemini-3-pro-image-preview
+// Image models on reAPI (REAPI_API_KEY): Gemini 3 Pro Image, Nano Banana 2 / Lite, GPT Image 2.5.
+// Model list and request shape: src/config/reapiModels.ts. Docs: https://reapi.ai/docs
 //
 // Submit:  POST  https://reapi.ai/api/v1/images/generations  → { id, status: 'processing' }
 // Poll:    GET   https://reapi.ai/api/v1/tasks/{id}          → { status, output.image_urls[], error }
 // No webhooks: callers poll. Failed or moderated tasks are not charged.
 
+import { REAPI_MODELS, reapiPixelSize, type ReapiModelId } from '../config/reapiModels';
 import type { PollResult } from './wavespeed';
 
 const REAPI_BASE = 'https://reapi.ai/api/v1';
@@ -51,6 +53,38 @@ const request = async <T>(method: 'GET' | 'POST', path: string, body?: unknown, 
   } finally {
     clearTimeout(timer);
   }
+};
+
+export type SubmitReapiParams = {
+  model: ReapiModelId;
+  prompt: string;
+  /** Public HTTPS URLs only. Image 1 should be the identity reference. */
+  imageUrls: readonly string[];
+  ratio: ReapiRatio;
+  highRes: boolean;
+};
+
+/** The size fields for one model: each reAPI model names its output size differently. */
+const sizeFields = (model: ReapiModelId, ratio: ReapiRatio, highRes: boolean): Record<string, string> => {
+  const spec = REAPI_MODELS[model];
+  if (spec.sizing === 'aspect_ratio') return { aspect_ratio: ratio };
+  if (spec.sizing === 'pixels') return { size: reapiPixelSize(ratio, highRes && spec.supports2k) };
+  return { size: ratio, resolution: highRes && spec.supports2k ? '2K' : '1K' };
+};
+
+/** Submits one image job on any reAPI model. Returns our prefixed task id and the estimated cost. */
+export const submitReapiImage = async (params: SubmitReapiParams): Promise<{ taskId: string; cost: number }> => {
+  const spec = REAPI_MODELS[params.model];
+  const res = await request<{ id?: string; task_id?: string }>('POST', '/images/generations', {
+    model: spec.apiModel,
+    prompt: params.prompt,
+    ...sizeFields(params.model, params.ratio, params.highRes),
+    ...spec.extraBody,
+    ...(params.imageUrls.length ? { image_urls: params.imageUrls.slice(0, spec.maxImages) } : {}),
+  });
+  const id = res.id ?? res.task_id;
+  if (!id) throw new Error('reAPI returned no task id');
+  return { taskId: `${REAPI_TASK_PREFIX}${id}`, cost: spec.priceUsdMicros[params.highRes && spec.supports2k ? '2k' : '1k'] };
 };
 
 export type SubmitGeminiParams = {

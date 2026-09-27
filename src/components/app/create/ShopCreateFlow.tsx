@@ -16,6 +16,7 @@ import { Switch } from '../../ui/Switch';
 import { SkeletonCard } from '../../ui/Skeleton';
 import type { Identity } from '../sets/IdentityPhotoGrid';
 import { useWorkspace } from '../shell/WorkspaceProvider';
+import { AdvancedModelPicker } from './AdvancedModelPicker';
 import { CreateSection } from './CreateSection';
 import { CreditSummaryBar } from './CreditSummaryBar';
 import { FormatPicker } from './FormatPicker';
@@ -64,7 +65,7 @@ const ShopCreateForm = ({ data }: { data: Data }) => {
       </CreateSection>
       <CreateSection step={4} title="Formats">
         <div className="flex flex-col gap-4">
-          <FormatPicker value={d.formats} onChange={d.setFormats} highRes={d.highRes} onHighRes={d.setHighRes} highResAllowed={Boolean(me?.plan?.highRes)} />
+          <FormatPicker value={d.formats} onChange={d.setFormats} highRes={d.highRes} onHighRes={d.setHighRes} highResAllowed={Boolean(me?.plan?.highRes) && d.supports2k} />
           <Switch
             checked={d.withCover || story}
             disabled={story}
@@ -76,6 +77,7 @@ const ShopCreateForm = ({ data }: { data: Data }) => {
               </span>
             )}
           />
+          <AdvancedModelPicker value={d.imageModel} onChange={d.setImageModel} />
         </div>
       </CreateSection>
       <CreditSummaryBar

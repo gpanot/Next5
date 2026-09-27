@@ -108,6 +108,33 @@ export const runGenerationTick = async (options: { batchId?: string; budgetMs: n
   await Promise.race([work, new Promise((resolve) => setTimeout(resolve, options.budgetMs))]);
 };
 
+/** One tick per batch at a time in this process: overlapping page polls share it instead of re-downloading the same photos. */
+const batchTicks = new Map<string, Promise<void>>();
+
+const tickBatch = (batchId: string): Promise<void> => {
+  const running = batchTicks.get(batchId);
+  if (running) return running;
+  const tick = (async () => {
+    await poll({ batchId });
+    await sweepStale();
+    await pump({ batchId });
+  })()
+    .catch((err: unknown) => console.error(`[poll] batch tick ${batchId}:`, err))
+    .finally(() => batchTicks.delete(batchId));
+  batchTicks.set(batchId, tick);
+  return tick;
+};
+
+/**
+ * Batch page poll: advances the batch and waits at most `waitMs` before answering, so a finished photo shows on the
+ * next response instead of waiting for scoring and new submits. Returns the full tick for `after()` to keep alive.
+ */
+export const advanceBatch = async (batchId: string, waitMs: number): Promise<{ tick: Promise<void> }> => {
+  const tick = tickBatch(batchId);
+  await Promise.race([tick, new Promise((resolve) => setTimeout(resolve, waitMs))]);
+  return { tick };
+};
+
 /**
  * Free previews and pose sheets live on pages that never open a batch page, so nothing else would poll them
  * (and locally, provider webhooks can't reach us). Moves this workspace's in-flight previews forward:

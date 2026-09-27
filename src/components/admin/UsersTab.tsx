@@ -66,7 +66,8 @@ export const UsersTab = ({ token }: UsersTabProps) => {
         <span className="text-[13px] text-muted">{users.length}</span>
       </div>
       <div className="overflow-hidden rounded-2xl border border-line bg-white">
-        <table className="w-full text-[13px]">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[700px] text-[13px]">
           <thead>
             <tr className="border-b border-line bg-surface text-left text-[10px] uppercase tracking-[0.12em] text-muted">
               <Th>Email</Th>
@@ -94,6 +95,7 @@ export const UsersTab = ({ token }: UsersTabProps) => {
             ))}
           </tbody>
         </table>
+        </div>
         {users.length === 0 && (
           <p className="px-5 py-10 text-center text-[13px] text-muted">No users yet.</p>
         )}

@@ -2,6 +2,7 @@
 
 import { isFormatId, type FormatId } from '../../config/formats';
 import { isPackId, type PackId } from '../../config/shots';
+import { isShopPickableModel, REAPI_MODELS, type ReapiModelId } from '../../config/reapiModels';
 import { POSE_ENERGIES, WARDROBES, type PoseEnergyId, type WardrobeId } from '../../content/business/catalog/types';
 import { isOccasion, type Occasion } from '../../lib/listingOccasions';
 import { HttpError } from '../http';
@@ -57,6 +58,8 @@ export type ShopDraft = {
   more?: boolean;
   /** Also make one 9:16 video cover per product (skipped when 9:16 is already a chosen format). */
   withCover?: boolean;
+  /** Image model picked under "Advanced" (reAPI). Omitted means SHOP_IMAGE_MODEL. */
+  imageModel?: ReapiModelId;
 };
 
 /** Built server-side only (onboarding trial, set preview) — never parsed from a request body. */
@@ -174,7 +177,11 @@ export const parseDraft = (body: Record<string, unknown>, influencerKey?: string
     const setId = parseId(body.setId, 'model');
     const setIds = Array.isArray(body.setIds) ? [...new Set(body.setIds.map((id) => parseId(id, 'model')))].filter((id) => id !== setId) : [];
     if (setIds.length >= MAX_SETS_PER_BATCH) throw bad(`Pick up to ${MAX_SETS_PER_BATCH} models per batch.`);
-    return { kind: 'shop_products', setId, ...(setIds.length ? { setIds } : {}), ...(scenes ? { scenes } : {}), productIds, packId, formats, highRes, more: body.more === true, withCover: body.withCover === true };
+    if (body.imageModel !== undefined && body.imageModel !== null && !isShopPickableModel(body.imageModel)) throw bad('Choose one of the listed AI models.');
+    const imageModel = isShopPickableModel(body.imageModel) ? body.imageModel : undefined;
+    // A 1K-only model can't make 2K photos, so it is never charged for them.
+    const shopHighRes = highRes && (!imageModel || REAPI_MODELS[imageModel].supports2k);
+    return { kind: 'shop_products', setId, ...(setIds.length ? { setIds } : {}), ...(scenes ? { scenes } : {}), productIds, packId, formats, highRes: shopHighRes, more: body.more === true, withCover: body.withCover === true, ...(imageModel ? { imageModel } : {}) };
   }
 
   throw bad('Unknown batch type.');
