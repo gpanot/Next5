@@ -21,13 +21,13 @@ type StepId = (typeof STEPS)[number]['id'];
 
 function StepNav({ current, onChange }: { current: StepId; onChange: (s: StepId) => void }) {
   return (
-    <div className="flex gap-1 border-b border-line mb-6">
+    <div className="mb-6 flex gap-1 overflow-x-auto border-b border-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {STEPS.map((s, i) => (
         <button
           key={s.id}
           onClick={() => onChange(s.id)}
           className={[
-            'flex items-center gap-2 border-b-2 -mb-px px-4 py-3 text-[13px] font-medium transition-colors',
+            'flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 -mb-px px-4 py-3 text-[13px] font-medium transition-colors',
             current === s.id ? 'border-ink text-ink' : 'border-transparent text-muted hover:text-ink',
           ].join(' ')}
         >

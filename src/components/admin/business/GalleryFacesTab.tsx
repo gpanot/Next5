@@ -709,7 +709,7 @@ export const GalleryFacesTab = ({ token }: { token: string }) => {
   return (
     <div className="flex flex-col gap-0">
       {/* Sub-tab bar */}
-      <div className="mb-6 flex gap-0 border-b border-line">
+      <div className="mb-6 flex gap-0 overflow-x-auto border-b border-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button className={subTabClass('library')} onClick={() => setSubTab('library')}>
           Library Faces
         </button>

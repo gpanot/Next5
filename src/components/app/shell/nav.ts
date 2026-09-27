@@ -31,7 +31,7 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
       ];
 };
 
-/** Bottom bar on phones: Home · Calendar/Library · Create · Store/Calendar · More. */
+/** Bottom bar on phones: Home · Library · Create · Store/Calendar, then a More button (see BottomTabBar). */
 export const mobileTabsFor = (studio: ProductLineDto): NavItem[] => {
   const s = (path: string) => studioHref(studio, path);
   return [
@@ -39,8 +39,15 @@ export const mobileTabsFor = (studio: ProductLineDto): NavItem[] => {
     { href: s('/library'), label: 'Library', icon: Images },
     { href: s('/create'), label: 'Create', icon: Plus, primary: true },
     studio === 'shop' ? { href: s('/store'), label: 'Store', icon: Store } : { href: s('/calendar'), label: 'Calendar', icon: CalendarDays },
-    { href: '/app/settings', label: 'More', icon: Grid3x3 },
   ];
+};
+
+export const MORE_ICON = Grid3x3;
+
+/** Sidebar items that do not fit in the phone tab bar; shown in the More sheet. */
+export const moreItemsFor = (studio: ProductLineDto): NavItem[] => {
+  const tabs = new Set(mobileTabsFor(studio).map((t) => t.href));
+  return navFor(studio).filter((item) => !tabs.has(item.href));
 };
 
 export const isActive = (pathname: string, href: string): boolean =>

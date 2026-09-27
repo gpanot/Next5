@@ -57,7 +57,7 @@ type TabBarProps = {
 const TabBar = ({ tabs, active, onSelect, className }: TabBarProps) => (
   <div
     role="tablist"
-    className={['flex border-b border-app-line gap-1', className ?? ''].join(' ')}
+    className={['flex gap-1 overflow-x-auto border-b border-app-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden', className ?? ''].join(' ')}
   >
     {tabs.map((tab) => {
       const isActive = tab.value === active;
@@ -69,7 +69,7 @@ const TabBar = ({ tabs, active, onSelect, className }: TabBarProps) => (
           aria-selected={isActive}
           onClick={() => onSelect(tab.value)}
           className={[
-            'border-b-2 -mb-px px-4 py-3 text-[13px] font-medium transition-colors duration-200',
+            '-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-3 text-[13px] font-medium transition-colors duration-200',
             'focus-visible:ring-2 focus-visible:ring-app-accent focus-visible:ring-offset-1 focus-visible:outline-none',
             isActive
               ? 'border-app-accent text-app-ink'

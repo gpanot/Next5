@@ -101,8 +101,8 @@ export default function AdminPage() {
   if (!token) return <AdminLogin onToken={handleToken} />;
 
   return (
-    // h-screen + overflow-hidden on the root locks the viewport — nothing can grow past it.
-    <div className="flex h-screen overflow-hidden bg-surface">
+    // h-dvh + overflow-hidden on the root locks the viewport — nothing can grow past it.
+    <div className="flex h-dvh overflow-hidden bg-surface">
 
       {/* ── Mobile backdrop — closes sidebar on tap outside ── */}
       {sidebarOpen && (
@@ -139,7 +139,7 @@ export default function AdminPage() {
           <button
             onClick={() => setSidebarOpen(false)}
             aria-label="Close menu"
-            className="flex h-7 w-7 items-center justify-center rounded-lg text-muted hover:bg-zinc-100 hover:text-ink lg:hidden"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-muted hover:bg-zinc-100 hover:text-ink lg:hidden"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 6 6 18M6 6l12 12" />
@@ -159,7 +159,7 @@ export default function AdminPage() {
                   key={id}
                   onClick={() => selectTab(id)}
                   className={[
-                    'flex w-full items-center gap-2.5 px-5 py-2 text-left text-[13px] font-medium transition-colors',
+                    'flex w-full items-center gap-2.5 px-5 py-3 text-left lg:py-2 text-[13px] font-medium transition-colors',
                     tab === id
                       ? 'bg-ink/5 text-ink'
                       : 'text-muted hover:bg-zinc-50 hover:text-ink',
@@ -181,7 +181,7 @@ export default function AdminPage() {
         </nav>
 
         {/* Sign out — never scrolls */}
-        <div className="shrink-0 border-t border-line px-5 py-4">
+        <div className="shrink-0 border-t border-line px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <button
             onClick={logout}
             className="text-[12px] text-muted hover:text-ink transition-colors"
@@ -200,7 +200,7 @@ export default function AdminPage() {
           <button
             onClick={() => setSidebarOpen(true)}
             aria-label="Open menu"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-zinc-100 hover:text-ink lg:hidden"
+            className="-ml-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-zinc-100 hover:text-ink lg:hidden"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="6" x2="21" y2="6" />
@@ -208,7 +208,7 @@ export default function AdminPage() {
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <h1 className="text-[15px] font-semibold text-ink">
+          <h1 className="truncate text-[15px] font-semibold text-ink">
             {NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.id === tab)?.label ?? tab}
           </h1>
         </header>

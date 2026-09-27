@@ -932,16 +932,16 @@ export function AssetsLibraryTab({ token }: { token: string }) {
   }, []);
 
   return (
-    <div className="flex h-full flex-col gap-0 overflow-hidden -mx-8 -my-8">
+    <div className="flex h-full flex-col gap-0 overflow-hidden -mx-4 -my-4 md:-mx-8 md:-my-8">
 
       {/* ── Section tab bar ──────────────────────────────────────────── */}
-      <nav className="flex shrink-0 border-b border-line bg-white px-8">
+      <nav className="flex shrink-0 gap-1 overflow-x-auto border-b border-line bg-white px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:px-8">
         {SECTIONS.map(({ id, label, Icon }) => (
           <button
             key={id}
             onClick={() => setSection(id)}
             className={[
-              'flex items-center gap-2 px-4 py-3.5 text-[13px] font-medium transition-colors border-b-2 -mb-px',
+              'flex shrink-0 items-center gap-2 whitespace-nowrap px-4 py-3.5 text-[13px] font-medium transition-colors border-b-2 -mb-px',
               section === id
                 ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-muted hover:text-ink',
@@ -957,7 +957,7 @@ export function AssetsLibraryTab({ token }: { token: string }) {
         <button
           onClick={() => void load()}
           disabled={loading}
-          className="ml-auto flex items-center gap-1.5 py-3.5 text-[12px] text-muted transition-colors hover:text-ink disabled:opacity-40"
+          className="ml-auto flex shrink-0 items-center gap-1.5 py-3.5 pl-3 text-[12px] text-muted transition-colors hover:text-ink disabled:opacity-40"
           title="Refresh"
         >
           <span className={loading ? 'animate-spin' : ''}>↻</span>
@@ -966,7 +966,7 @@ export function AssetsLibraryTab({ token }: { token: string }) {
       </nav>
 
       {/* ── Content area ─────────────────────────────────────────────── */}
-      <div className="flex flex-1 flex-col overflow-hidden px-8 py-6">
+      <div className="flex flex-1 flex-col overflow-hidden px-4 py-4 md:px-8 md:py-6">
         {error ? (
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <p className="text-[13px] text-red-600">{error}</p>

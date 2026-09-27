@@ -67,7 +67,7 @@ export function VersionEditor({
       <div className="flex flex-col gap-1.5">
         <p className={label}>Structure beats</p>
         {draft.beats.map((beat, i) => (
-          <div key={i} className="flex items-center gap-1.5">
+          <div key={i} className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap">
             <input
               className={`${input} w-40 shrink-0`}
               value={beat.label}
@@ -122,7 +122,7 @@ export function VersionEditor({
       <div className="flex flex-col gap-1.5">
         <p className={label}>Variables</p>
         {draft.variables.map((v, i) => (
-          <div key={i} className="flex items-center gap-1.5">
+          <div key={i} className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap">
             <input
               className={`${input} w-44 shrink-0 font-mono`}
               value={v.key}
@@ -156,7 +156,7 @@ export function VersionEditor({
       <div className="flex flex-col gap-1.5">
         <p className={label}>Asset requirements — what a recommendation of this template will show</p>
         {draft.assetRequirements.map((a, i) => (
-          <div key={i} className="flex items-center gap-1.5">
+          <div key={i} className="flex flex-wrap items-center gap-1.5 sm:flex-nowrap">
             <select className={`${input} w-48 shrink-0`} value={a.kind} onChange={(e) => set('assetRequirements', draft.assetRequirements.map((x, j) => (i === j ? { ...x, kind: e.target.value as AssetReq['kind'] } : x)))}>
               {ASSET_KINDS.map((k) => <option key={k} value={k}>{k}</option>)}
             </select>
