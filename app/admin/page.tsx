@@ -21,12 +21,13 @@ import { ContentTemplatesTab } from '../../src/components/admin/business/templat
 import { CampaignStudioTab } from '../../src/components/admin/business/CampaignStudioTab';
 import { HooksTab } from '../../src/components/admin/business/HooksTab';
 import { AssetsLibraryTab } from '../../src/components/admin/business/AssetsLibraryTab';
+import { MetaAdsTab } from '../../src/components/admin/metaAds/MetaAdsTab';
 
 type Tab =
   | 'overview' | 'workspaces' | 'payments' | 'promise' | 'qa' | 'models'
   | 'users' | 'bookings' | 'prompts'
   | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces'
-  | 'templates' | 'studio' | 'hooks'
+  | 'templates' | 'studio' | 'hooks' | 'meta-ads'
   | 'assets-library';
 
 type NavItem = { id: Tab; label: string; icon: string };
@@ -67,6 +68,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { id: 'templates', label: 'Templates', icon: '☰' },
       { id: 'studio',    label: '🎬 Studio', icon: '' },
       { id: 'hooks',     label: 'Hooks',     icon: '🪝' },
+      { id: 'meta-ads',  label: 'Perfect Ads',  icon: '▦' },
     ],
   },
   {
@@ -232,6 +234,7 @@ export default function AdminPage() {
           {tab === 'templates'        && <ContentTemplatesTab  token={token} />}
           {tab === 'studio'           && <CampaignStudioTab    token={token} />}
           {tab === 'hooks'            && <HooksTab             token={token} />}
+          {tab === 'meta-ads'         && <MetaAdsTab           token={token} />}
           {tab === 'assets-library'   && <AssetsLibraryTab     token={token} />}
         </main>
       </div>

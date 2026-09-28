@@ -16,6 +16,20 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: vector; Type: EXTENSION; Schema: -; Owner: -
+--
+
+CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION vector; Type: COMMENT; Schema: -; Owner: -
+--
+
+COMMENT ON EXTENSION vector IS 'vector data type and ivfflat and hnsw access methods';
+
+
+--
 -- Name: BatchKind; Type: TYPE; Schema: public; Owner: -
 --
 
@@ -489,6 +503,8 @@ CREATE TABLE public.asset_descriptors (
     public_figure_likely boolean,
     rights_risk_override text,
     effective_rights_risk text GENERATED ALWAYS AS (COALESCE(rights_risk_override, rights_risk)) STORED,
+    embedding public.vector(1536),
+    categories text[] DEFAULT '{}'::text[] NOT NULL,
     CONSTRAINT asset_descriptors_rights_risk_check CHECK ((rights_risk = ANY (ARRAY['none'::text, 'low'::text, 'high'::text]))),
     CONSTRAINT asset_descriptors_rights_risk_override_check CHECK ((rights_risk_override = ANY (ARRAY['none'::text, 'low'::text, 'high'::text]))),
     CONSTRAINT asset_descriptors_source_check CHECK (((((blitz_asset_id IS NOT NULL))::integer + ((ugc_video_id IS NOT NULL))::integer) = 1)),
@@ -547,7 +563,8 @@ CREATE TABLE public.batch_items (
     score_details jsonb,
     model text,
     material_id text,
-    archived_at timestamp(3) without time zone
+    archived_at timestamp(3) without time zone,
+    set_id text
 );
 
 
@@ -1010,6 +1027,58 @@ CREATE TABLE public.listings (
 
 
 --
+-- Name: meta_ad_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.meta_ad_runs (
+    id text NOT NULL,
+    url text NOT NULL,
+    ad_count integer DEFAULT 15 NOT NULL,
+    status text DEFAULT 'STEP_1_RUNNING'::text NOT NULL,
+    profile jsonb,
+    competitors jsonb,
+    copy_plan jsonb,
+    step_timings jsonb DEFAULT '{}'::jsonb NOT NULL,
+    failed_step integer,
+    error text,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    finished_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    hormozi_picks jsonb,
+    step_costs jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT meta_ad_runs_ad_count_check CHECK ((ad_count = ANY (ARRAY[1, 2, 5, 15])))
+);
+
+
+--
+-- Name: meta_ads; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.meta_ads (
+    id text NOT NULL,
+    run_id text NOT NULL,
+    "position" integer NOT NULL,
+    angle text NOT NULL,
+    style text NOT NULL,
+    headline text NOT NULL,
+    primary_text text NOT NULL,
+    primary_text_alt text DEFAULT ''::text NOT NULL,
+    overlay_text text NOT NULL,
+    image_prompt text NOT NULL,
+    raw_image_url text,
+    final_asset_key text,
+    status text DEFAULT 'pending'::text NOT NULL,
+    error text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    play text DEFAULT ''::text NOT NULL,
+    inspired_by_ad_id text,
+    CONSTRAINT meta_ads_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'imaging'::text, 'compositing'::text, 'ready'::text, 'failed'::text])))
+);
+
+
+--
 -- Name: model_test_items; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1364,6 +1433,42 @@ CREATE TABLE public.shop_connections (
 
 
 --
+-- Name: slideshow_swipes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.slideshow_swipes (
+    id text NOT NULL,
+    variant_id text NOT NULL,
+    user_id text,
+    action text NOT NULL,
+    reason text,
+    edited_shots text[] DEFAULT '{}'::text[] NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT slideshow_swipes_action_check CHECK ((action = ANY (ARRAY['keep'::text, 'discard'::text, 'undo'::text, 'open'::text, 'edit'::text, 'render'::text])))
+);
+
+
+--
+-- Name: slideshow_variants; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.slideshow_variants (
+    id text NOT NULL,
+    workspace_id text,
+    engine text NOT NULL,
+    listing_run_id text,
+    lens text NOT NULL,
+    archetype text NOT NULL,
+    plan jsonb NOT NULL,
+    status text DEFAULT 'proposed'::text NOT NULL,
+    blitz_project_id text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT slideshow_variants_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'kept'::text, 'discarded'::text, 'edited'::text, 'rendered'::text, 'failed'::text])))
+);
+
+
+--
 -- Name: social_connections; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1662,6 +1767,23 @@ CREATE TABLE public.ugc_videos (
     timing_precise boolean DEFAULT false NOT NULL,
     provider text DEFAULT 'reapi'::text NOT NULL,
     workspace_id text
+);
+
+
+--
+-- Name: user_uploads; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.user_uploads (
+    id text DEFAULT (gen_random_uuid())::text NOT NULL,
+    workspace_id text NOT NULL,
+    r2_key text NOT NULL,
+    filename text NOT NULL,
+    mime_type text DEFAULT 'image/jpeg'::text NOT NULL,
+    size_bytes integer DEFAULT 0 NOT NULL,
+    kind text DEFAULT 'photo'::text NOT NULL,
+    archived_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -1976,6 +2098,22 @@ ALTER TABLE ONLY public.listings
 
 
 --
+-- Name: meta_ad_runs meta_ad_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_ad_runs
+    ADD CONSTRAINT meta_ad_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: meta_ads meta_ads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_ads
+    ADD CONSTRAINT meta_ads_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: model_test_items model_test_items_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2120,6 +2258,22 @@ ALTER TABLE ONLY public.shop_connections
 
 
 --
+-- Name: slideshow_swipes slideshow_swipes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_swipes
+    ADD CONSTRAINT slideshow_swipes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: slideshow_variants slideshow_variants_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_variants
+    ADD CONSTRAINT slideshow_variants_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: social_connections social_connections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2240,6 +2394,14 @@ ALTER TABLE ONLY public.ugc_videos
 
 
 --
+-- Name: user_uploads user_uploads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_uploads
+    ADD CONSTRAINT user_uploads_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2279,10 +2441,24 @@ CREATE INDEX admin_audit_logs_target_idx ON public.admin_audit_logs USING btree 
 
 
 --
+-- Name: asset_descriptors_categories_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX asset_descriptors_categories_idx ON public.asset_descriptors USING gin (categories);
+
+
+--
 -- Name: asset_descriptors_effective_rights_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX asset_descriptors_effective_rights_idx ON public.asset_descriptors USING btree (effective_rights_risk);
+
+
+--
+-- Name: asset_descriptors_embedding_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX asset_descriptors_embedding_idx ON public.asset_descriptors USING hnsw (embedding public.vector_cosine_ops);
 
 
 --
@@ -2318,6 +2494,13 @@ CREATE UNIQUE INDEX bank_transactions_provider_provider_txn_id_key ON public.ban
 --
 
 CREATE INDEX batch_items_batch_id_idx ON public.batch_items USING btree (batch_id);
+
+
+--
+-- Name: batch_items_set_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX batch_items_set_id_idx ON public.batch_items USING btree (set_id);
 
 
 --
@@ -2636,6 +2819,20 @@ CREATE UNIQUE INDEX listings_workspace_id_zpid_key ON public.listings USING btre
 
 
 --
+-- Name: meta_ad_runs_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX meta_ad_runs_created_idx ON public.meta_ad_runs USING btree (created_at DESC);
+
+
+--
+-- Name: meta_ads_run_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX meta_ads_run_idx ON public.meta_ads USING btree (run_id, "position");
+
+
+--
 -- Name: model_test_items_run_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -2780,6 +2977,34 @@ CREATE INDEX shop_connections_status_next_sync_at_idx ON public.shop_connections
 --
 
 CREATE UNIQUE INDEX shop_connections_workspace_id_platform_key ON public.shop_connections USING btree (workspace_id, platform);
+
+
+--
+-- Name: slideshow_swipes_action_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX slideshow_swipes_action_idx ON public.slideshow_swipes USING btree (action, created_at DESC);
+
+
+--
+-- Name: slideshow_swipes_variant_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX slideshow_swipes_variant_idx ON public.slideshow_swipes USING btree (variant_id, created_at);
+
+
+--
+-- Name: slideshow_variants_lens_archetype_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX slideshow_variants_lens_archetype_idx ON public.slideshow_variants USING btree (engine, lens, archetype);
+
+
+--
+-- Name: slideshow_variants_listing_run_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX slideshow_variants_listing_run_idx ON public.slideshow_variants USING btree (listing_run_id);
 
 
 --
@@ -2965,6 +3190,20 @@ CREATE INDEX ugc_videos_workspace_id_created_at_idx ON public.ugc_videos USING b
 
 
 --
+-- Name: user_uploads_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_uploads_created_at_idx ON public.user_uploads USING btree (workspace_id, created_at DESC);
+
+
+--
+-- Name: user_uploads_workspace_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX user_uploads_workspace_id_idx ON public.user_uploads USING btree (workspace_id);
+
+
+--
 -- Name: workspace_angles_workspace_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3045,6 +3284,14 @@ ALTER TABLE ONLY public.batch_items
 
 ALTER TABLE ONLY public.batch_items
     ADD CONSTRAINT batch_items_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- Name: batch_items batch_items_set_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.batch_items
+    ADD CONSTRAINT batch_items_set_id_fkey FOREIGN KEY (set_id) REFERENCES public.studio_sets(id) ON DELETE SET NULL;
 
 
 --
@@ -3288,6 +3535,14 @@ ALTER TABLE ONLY public.listings
 
 
 --
+-- Name: meta_ads meta_ads_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_ads
+    ADD CONSTRAINT meta_ads_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.meta_ad_runs(id) ON DELETE CASCADE;
+
+
+--
 -- Name: model_test_items model_test_items_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3429,6 +3684,38 @@ ALTER TABLE ONLY public.promise_claims
 
 ALTER TABLE ONLY public.shop_connections
     ADD CONSTRAINT shop_connections_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: slideshow_swipes slideshow_swipes_variant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_swipes
+    ADD CONSTRAINT slideshow_swipes_variant_id_fkey FOREIGN KEY (variant_id) REFERENCES public.slideshow_variants(id) ON DELETE CASCADE;
+
+
+--
+-- Name: slideshow_variants slideshow_variants_blitz_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_variants
+    ADD CONSTRAINT slideshow_variants_blitz_project_id_fkey FOREIGN KEY (blitz_project_id) REFERENCES public.blitz_projects(id) ON DELETE SET NULL;
+
+
+--
+-- Name: slideshow_variants slideshow_variants_listing_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_variants
+    ADD CONSTRAINT slideshow_variants_listing_run_id_fkey FOREIGN KEY (listing_run_id) REFERENCES public.blitz_listing_runs(id) ON DELETE SET NULL;
+
+
+--
+-- Name: slideshow_variants slideshow_variants_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_variants
+    ADD CONSTRAINT slideshow_variants_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 
 --
@@ -3600,6 +3887,14 @@ ALTER TABLE ONLY public.ugc_videos
 
 
 --
+-- Name: user_uploads user_uploads_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.user_uploads
+    ADD CONSTRAINT user_uploads_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
 -- Name: workspace_angles workspace_angles_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3678,4 +3973,11 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261013110000'),
     ('20261013120000'),
     ('20261013130000'),
-    ('20261013200000');
+    ('20261013200000'),
+    ('20261014090000'),
+    ('20261014100000'),
+    ('20261014110000'),
+    ('20261015090000'),
+    ('20261016090000'),
+    ('20261017090000'),
+    ('20261018090000');

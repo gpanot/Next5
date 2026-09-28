@@ -2005,3 +2005,69 @@ model StudioResearchCache {
   @@index([expiresAt])
   @@map("studio_research_cache")
 }
+
+/// One "500 Meta Ads" admin run: website URL in, 15 composited 4:5 Meta ads out.
+/// Each step stores its raw output so a run can be inspected and resumed from any step.
+model MetaAdRun {
+  id               String    @id @default(cuid())
+  url              String
+  /// How many ads step 3 writes: 15 by default, 1 / 2 / 5 for demo and test runs
+  adCount          Int       @default(15) @map("ad_count")
+  /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'COMPLETED' | 'FAILED'
+  status           String    @default("STEP_1_RUNNING")
+  /// Step 1: Exa page content + company profile + CSS palette
+  profile          Json?
+  /// Step 2: competitor Meta Ad Library ads (treg), relevance-filtered, + patterns
+  competitors      Json?
+  /// Step 3: rubric ratings, verified brand levers, Hormozi picks and playbook
+  hormoziPicks     Json?     @map("hormozi_picks")
+  /// Step 4: ad copy built from the playbook
+  copyPlan         Json?     @map("copy_plan")
+  /// Wall-clock ms per step, e.g. {"1": 5200}
+  stepTimings      Json      @default("{}") @map("step_timings")
+  /// Cost per step in micro-USD with line items
+  stepCosts        Json      @default("{}") @map("step_costs")
+  failedStep       Int?      @map("failed_step")
+  error            String?
+  startedAt        DateTime  @default(now()) @map("started_at")
+  finishedAt       DateTime? @map("finished_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  ads MetaAd[]
+
+  @@index([createdAt(sort: Desc)])
+  @@map("meta_ad_runs")
+}
+
+model MetaAd {
+  id             String   @id @default(cuid())
+  runId          String   @map("run_id")
+  position       Int
+  angle          String
+  style          String
+  headline       String
+  primaryText    String   @map("primary_text")
+  primaryTextAlt String   @default("") @map("primary_text_alt")
+  overlayText    String   @map("overlay_text")
+  /// The exact prompt sent to the image model (Nano Banana Pro)
+  imagePrompt    String   @map("image_prompt")
+  /// Playbook play this ad is built on
+  play           String   @default("")
+  /// Competitor ad (Ad Library id) the play came from
+  inspiredByAdId String?  @map("inspired_by_ad_id")
+  /// Step 4 output: reAPI image URL
+  rawImageUrl    String?  @map("raw_image_url")
+  /// Step 5 output: object-store key of the composited 1080x1350 PNG
+  finalAssetKey  String?  @map("final_asset_key")
+  /// 'pending' | 'imaging' | 'compositing' | 'ready' | 'failed'
+  status         String   @default("pending")
+  error          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  run MetaAdRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, position])
+  @@map("meta_ads")
+}

@@ -63,7 +63,8 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     maxImages: 10,
     sizing: 'aspect_ratio',
     supports2k: false,
-    priceUsdMicros: { '1k': 20_000, '2k': 20_000 },
+    // $0.015 flat. Checked 2026-09-28, reapi.ai/models/nano-banana-2-lite.
+    priceUsdMicros: { '1k': 15_000, '2k': 15_000 },
   },
   'reapi-gpt-image-2.5': { id: 'reapi-gpt-image-2.5', ...GPT_IMAGE_2_5 },
   'reapi-nano-banana-2': { id: 'reapi-nano-banana-2', ...NANO_BANANA_2 },
@@ -75,7 +76,9 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     maxImages: 14,
     sizing: 'ratio',
     supports2k: true,
-    priceUsdMicros: { '1k': 134_000, '2k': 134_000 },
+    // reAPI Default channel ("gemini-3-pro-image-preview"): $0.030 at 1K and 2K. The Official Google channel
+    // ("…-official") is $0.108 — not the one we call. Checked 2026-09-28, reapi.ai/models/gemini-3-pro-image-preview.
+    priceUsdMicros: { '1k': 30_000, '2k': 30_000 },
   },
   // Same models, used only for the one free retry of a failed photo (so it is not retried again).
   'reapi-fallback-gpt-image-2.5': { id: 'reapi-fallback-gpt-image-2.5', ...GPT_IMAGE_2_5 },

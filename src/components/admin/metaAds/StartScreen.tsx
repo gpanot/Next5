@@ -1,0 +1,97 @@
+'use client';
+
+import { useState, type FormEvent } from 'react';
+import { DEMO_AD_COUNTS, META_ADS_PER_RUN } from '../../../types/admin/metaAds';
+import { adminFetch } from '../business/useAdminApi';
+import { RecentRuns } from './RecentRuns';
+
+const EXAMPLES = ['joinfleek.com', 'granola.ai', 'grok.com'];
+const AD_COUNTS = [...DEMO_AD_COUNTS, META_ADS_PER_RUN];
+
+type Props = { token: string; onRun: (runId: string) => void };
+
+function GlobeIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  );
+}
+
+export function StartScreen({ token, onRun }: Props) {
+  const [url, setUrl] = useState('');
+  const [adCount, setAdCount] = useState<number>(META_ADS_PER_RUN);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const start = async (target: string) => {
+    if (!target.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { runId } = await adminFetch<{ runId: string }>(token, '/api/admin/meta-ads/runs', { method: 'POST', body: JSON.stringify({ url: target, adCount }) });
+      onRun(runId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start');
+      setBusy(false);
+    }
+  };
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    void start(url);
+  };
+
+  return (
+    <div className="mx-auto flex max-w-3xl flex-col items-center py-8 text-center md:py-16">
+      <h2 className="text-4xl leading-[0.95] font-extrabold tracking-tight text-ink md:text-6xl dark:text-zinc-100">
+        Get 500 winning
+        <br />
+        <span className="mt-2 inline-block rounded-2xl bg-blue-50 px-4 py-1 text-blue-600 dark:bg-blue-950 dark:text-blue-400">Meta ads.</span>
+      </h2>
+      <p className="mt-4 max-w-md text-sm text-muted dark:text-zinc-400">Paste a website. We read it, study live competitor ads, and design your ads in about a minute.</p>
+
+      <form onSubmit={submit} className="mt-8 flex w-full max-w-2xl items-center rounded-full border border-line bg-white p-1.5 shadow-sm transition focus-within:ring-4 focus-within:ring-blue-50 dark:border-zinc-800 dark:bg-zinc-900 dark:focus-within:ring-blue-950">
+        <span className="ml-3 hidden text-muted sm:block"><GlobeIcon /></span>
+        <input
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="yourbrand.com"
+          inputMode="url"
+          autoCapitalize="none"
+          className="min-w-0 flex-1 bg-transparent px-3 py-3 text-base font-medium text-ink placeholder:text-zinc-300 focus:outline-none dark:text-zinc-100"
+        />
+        <select
+          aria-label="How many ads"
+          value={adCount}
+          onChange={(e) => setAdCount(Number(e.target.value))}
+          className="mr-1.5 min-h-11 rounded-full bg-zinc-100 px-3 text-sm font-medium text-ink focus:outline-none dark:bg-zinc-800 dark:text-zinc-100"
+        >
+          {AD_COUNTS.map((n) => <option key={n} value={n}>{n} {n === 1 ? 'ad' : 'ads'}</option>)}
+        </select>
+        <button type="submit" disabled={busy || !url.trim()} className="rounded-full bg-ink px-5 py-3 text-sm font-medium whitespace-nowrap text-white transition active:scale-95 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">
+          {busy ? 'Starting…' : 'Get perfect ads →'}
+        </button>
+      </form>
+      {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
+
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-sm text-muted">
+        <span>Try</span>
+        {EXAMPLES.map((example) => (
+          <button
+            key={example}
+            type="button"
+            disabled={busy}
+            onClick={() => void start(example)}
+            className="rounded-full border border-line bg-white px-3 py-2 text-xs font-medium text-ink transition hover:bg-zinc-50 disabled:opacity-40 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            {example}
+          </button>
+        ))}
+      </div>
+
+      <RecentRuns token={token} onOpen={onRun} />
+    </div>
+  );
+}

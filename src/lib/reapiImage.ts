@@ -18,8 +18,8 @@ const REAPI_MODEL = 'gemini-3-pro-image-preview';
 /** Task ids we store are prefixed so the poller knows which provider to ask. */
 export const REAPI_TASK_PREFIX = 'reapi:';
 
-/** Estimated price per image (Google list price for Gemini 3 Pro Image at 1K/2K); reAPI bills at or below it. */
-export const GEMINI_PRO_IMAGE_USD_MICROS = 134_000;
+/** Price per image on reAPI's Default channel for Gemini 3 Pro Image at 1K/2K (checked 2026-09-28). */
+export const GEMINI_PRO_IMAGE_USD_MICROS = 30_000;
 
 export type ReapiRatio = '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9';
 const RATIOS: readonly string[] = ['1:1', '2:3', '3:2', '3:4', '4:3', '4:5', '5:4', '9:16', '16:9', '21:9'];
