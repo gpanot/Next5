@@ -276,7 +276,16 @@ export type StepCost = { usdMicros: number; items: CostItem[] };
 export type HookFormat = 'label' | 'yes_question' | 'open_question' | 'conditional' | 'command' | 'statement' | 'exclamation' | 'list' | 'narrative';
 
 /** One testable hook for the image overlay: a proven template, filled for this brand. `original` is the ad's first hook. */
-export type AdHook = { id: string; format: HookFormat | 'original'; template: string; text: string };
+export type AdHook = {
+  id: string;
+  format: HookFormat | 'original';
+  template: string;
+  text: string;
+  /** Object-store key of this hook pre-rendered on the ad's current image; missing until rendered. */
+  assetKey?: string;
+  /** DTO only: presigned URL of `assetKey`, so the modal can swap the image at once. */
+  imageUrl?: string | null;
+};
 
 export type MetaAdDto = AdCopy & {
   id: string;

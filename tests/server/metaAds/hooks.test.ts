@@ -27,6 +27,11 @@ describe('hookProblem', () => {
     expect(hookProblem('Want [dream outcome]?', 'Want 12 videos in 30 days?', FACTS)).toBeNull();
   });
 
+  it('keeps list counts between 2 and 9', () => {
+    expect(hookProblem('[X] ways to [achieve goal]', '3 ways to post more', FACTS)).toBeNull();
+    expect(hookProblem('[X] ways to [achieve goal]', '12 ways to post more', FACTS)).toMatch(/2-9/);
+  });
+
   it('flags length and unproven numbers', () => {
     expect(hookProblem('Want [dream outcome]?', 'Want a whole month of listing videos done?', FACTS)).toMatch(/over 32/);
     expect(hookProblem('Want [dream outcome]?', 'Want 50% more leads?', FACTS)).toMatch(/number/);

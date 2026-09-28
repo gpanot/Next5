@@ -2061,6 +2061,8 @@ model MetaAd {
   rawImageUrl    String?  @map("raw_image_url")
   /// Testable overlay hooks (AdHook[]): proven templates filled for the brand; picking one re-composites the image
   hooks          Json?
+  /// 'top' | 'bottom': where the hook sits on this image (vision call once per image, reused for every hook)
+  textPlacement  String?  @map("text_placement")
   /// Step 5 output: object-store key of the composited 1080x1350 PNG
   finalAssetKey  String?  @map("final_asset_key")
   /// 'pending' | 'imaging' | 'compositing' | 'ready' | 'failed'

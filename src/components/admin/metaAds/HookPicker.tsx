@@ -1,12 +1,13 @@
 'use client';
 
-/** Hooks to test on the image: proven templates filled for the brand. Tapping one re-renders the ad with it. */
+/** Hooks to test on the image: proven templates filled for the brand, pre-rendered. Tapping one swaps the ad's image. */
 import { useState } from 'react';
 import { HOOK_FORMAT_LABELS } from '../../../config/metaAdsHooks';
 import type { AdHook, MetaAdDto } from '../../../types/admin/metaAds';
 import { adminFetch } from '../business/useAdminApi';
 
-type Props = { token: string; runId: string; ad: MetaAdDto; canEdit: boolean; onChanged: () => void };
+/** `onPreview`: shows an image in the modal at once, before the run reloads. */
+type Props = { token: string; runId: string; ad: MetaAdDto; canEdit: boolean; onChanged: () => void; onPreview: (url: string) => void };
 
 const formatLabel = (hook: AdHook) => (hook.format === 'original' ? 'Original' : HOOK_FORMAT_LABELS[hook.format]);
 
@@ -34,14 +35,16 @@ function HookRow({ hook, active, busy, disabled, onPick }: { hook: AdHook; activ
   );
 }
 
-export function HookPicker({ token, runId, ad, canEdit, onChanged }: Props) {
+export function HookPicker({ token, runId, ad, canEdit, onChanged, onPreview }: Props) {
   const [fresh, setFresh] = useState<AdHook[] | null>(null);
   const [generating, setGenerating] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const hooks = fresh ?? ad.hooks;
+  // Polled hooks carry the pre-rendered image URLs; freshly written ones are used until the poll catches up.
+  const polledMatch = fresh && ad.hooks?.length === fresh.length && fresh.every((h, i) => ad.hooks?.[i]?.text === h.text);
+  const hooks = fresh && !polledMatch ? fresh : ad.hooks;
   const base = `/api/admin/meta-ads/runs/${runId}/ads/${ad.id}/hooks`;
-  const rendering = ad.status === 'compositing';
 
   const generate = async () => {
     setGenerating(true);
@@ -57,15 +60,26 @@ export function HookPicker({ token, runId, ad, canEdit, onChanged }: Props) {
   };
 
   const pick = async (hook: AdHook) => {
+    const previous = picked;
     setPicked(hook.id);
     setError(null);
+    // Pre-rendered: show it now. Otherwise the server renders it (a second or two) and the spinner shows meanwhile.
+    const ready = hook.imageUrl;
+    if (ready) onPreview(ready);
+    else setSaving(hook.id);
     try {
-      await adminFetch(token, base, { method: 'PUT', body: JSON.stringify({ hookId: hook.id }) });
+      const { finalUrl } = await adminFetch<{ finalUrl: string | null }>(token, base, { method: 'PUT', body: JSON.stringify({ hookId: hook.id }) });
+      if (finalUrl) onPreview(finalUrl);
       onChanged();
     } catch (err) {
+      setPicked(previous);
       setError(err instanceof Error ? err.message : 'Could not change the hook');
+    } finally {
+      setSaving(null);
     }
   };
+
+  const activeId = picked ?? hooks?.find((h) => h.text === ad.overlayText)?.id ?? null;
 
   return (
     <section>
@@ -95,8 +109,8 @@ export function HookPicker({ token, runId, ad, canEdit, onChanged }: Props) {
             <HookRow
               key={hook.id}
               hook={hook}
-              active={hook.text === ad.overlayText}
-              busy={rendering && picked === hook.id}
+              active={hook.id === activeId}
+              busy={saving === hook.id}
               disabled={!canEdit || ad.status !== 'ready'}
               onPick={() => void pick(hook)}
             />

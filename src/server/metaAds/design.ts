@@ -7,7 +7,7 @@ import type { BrandProfile } from '../../types/admin/metaAds';
 import { prisma } from '../../lib/db';
 import { pollGeminiImage, submitReapiImage } from '../../lib/reapiImage';
 import { putObject } from '../storage/objectStore';
-import { compositeAd } from './composite';
+import { compositeAd, type TextPlacement } from './composite';
 import type { CostMeter } from './cost';
 import { placeText } from './placement';
 import { REAPI_MODELS } from '../../config/reapiModels';
@@ -70,6 +70,25 @@ const generateImage = async (prompt: string, meter: CostMeter): Promise<string> 
   throw new Error('Image generation timed out');
 };
 
+/** The saved spot for the hook on this image, or one vision call that is then saved for every later hook. */
+export const placementFor = async (ad: MetaAd, meter: CostMeter): Promise<TextPlacement> => {
+  if (ad.textPlacement === 'top' || ad.textPlacement === 'bottom') return ad.textPlacement;
+  const placement = await placeText(ad.rawImageUrl ?? '', ad.style, meter);
+  await prisma.metaAd.update({ where: { id: ad.id }, data: { textPlacement: placement } });
+  return placement;
+};
+
+/** The ad's image with `text` as its hook, as a 1080x1350 JPEG. */
+export const renderHook = (ad: MetaAd, profile: BrandProfile, text: string, placement: TextPlacement): Promise<Buffer> =>
+  compositeAd({
+    imageUrl: ad.rawImageUrl ?? '',
+    overlayText: text,
+    brandName: profile.brandName,
+    style: ad.style,
+    accent: captionAccent(profile.palette),
+    placement,
+  });
+
 /** Runs step 5 (unless the ad already has an image) then step 6 for one ad. Never throws: failures land on the ad row. */
 export const designAd = async (ad: MetaAd, profile: BrandProfile, meter: CostMeter, only: 'both' | 'composite' = 'both'): Promise<void> => {
   try {
@@ -80,16 +99,10 @@ export const designAd = async (ad: MetaAd, profile: BrandProfile, meter: CostMet
       await prisma.metaAd.update({ where: { id: ad.id }, data: { rawImageUrl: imageUrl } });
     }
     await prisma.metaAd.update({ where: { id: ad.id }, data: { status: 'compositing', error: null } });
-    const jpeg = await compositeAd({
-      imageUrl,
-      overlayText: ad.overlayText,
-      brandName: profile.brandName,
-      style: ad.style,
-      accent: captionAccent(profile.palette),
-      placement: await placeText(imageUrl, ad.style, meter),
-    });
+    // A new image needs its own placement; a re-composite reuses the saved one.
+    const placement = await placementFor({ ...ad, rawImageUrl: imageUrl, textPlacement: only === 'both' ? null : ad.textPlacement }, meter);
     const key = metaAdKey(ad.runId, ad.id);
-    await putObject(key, jpeg, 'image/jpeg');
+    await putObject(key, await renderHook({ ...ad, rawImageUrl: imageUrl }, profile, ad.overlayText, placement), 'image/jpeg');
     await prisma.metaAd.update({ where: { id: ad.id }, data: { finalAssetKey: key, status: 'ready' } });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

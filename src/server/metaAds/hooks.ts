@@ -33,6 +33,8 @@ export const fillsTemplate = (template: string, text: string): boolean => {
 /** Why a fill is rejected, or null when it can ship. Pure, unit-tested. */
 export const hookProblem = (template: string, text: string, facts: string): string | null => {
   if (!fillsTemplate(template, text)) return 'changed the template';
+  // A list hook promises a quick read: "3 ways to…", never a fact reused as a count ("12 ways to…").
+  if (template.startsWith('[X] ') && !/^[2-9] /.test(text.trim())) return 'list count must be 2-9';
   if (text.length > COPY_LIMITS.overlayText) return `over ${COPY_LIMITS.overlayText} characters`;
   if (unsupportedNumbers(text, facts).length) return 'number the brand cannot prove';
   return null;

@@ -121,6 +121,8 @@ function Tabs({ tab, onTab }: { tab: Tab; onTab: (tab: Tab) => void }) {
 
 export function AdInspector({ token, run, index, onIndex, onChanged }: Props) {
   const [tab, setTab] = useState<Tab>('image');
+  // A picked hook's image, shown before the run reloads. Tied to the ad so it never leaks to the next one.
+  const [preview, setPreview] = useState<{ adId: string; url: string } | null>(null);
   const ad = run.ads[index];
   const total = run.ads.length;
 
@@ -152,7 +154,7 @@ export function AdInspector({ token, run, index, onIndex, onChanged }: Props) {
         {tab === 'image' ? (
           <div className="flex flex-1 flex-col gap-8 overflow-y-auto bg-zinc-50 p-4 md:flex-row md:p-8 dark:bg-zinc-900/40">
             <div className="flex w-full shrink-0 flex-col gap-3 md:w-[340px]">
-              <FeedPreview ad={ad} brandName={brandName} domain={run.profile?.domain ?? ''} />
+              <FeedPreview ad={preview?.adId === ad.id ? { ...ad, finalUrl: preview.url } : ad} brandName={brandName} domain={run.profile?.domain ?? ''} />
               <div className="grid grid-cols-2 gap-2">
                 {ad.finalUrl && ad.status === 'ready' && (
                   <button onClick={() => void downloadAd(ad, brandName)} className="min-h-11 rounded-full bg-ink px-4 text-sm font-semibold text-white transition active:scale-95 dark:bg-zinc-100 dark:text-zinc-900">
@@ -165,7 +167,7 @@ export function AdInspector({ token, run, index, onIndex, onChanged }: Props) {
             <Details
               ad={ad}
               source={[...(run.competitors?.ads ?? []), ...(run.competitors?.ownAds ?? [])].find((c) => c.id === ad.inspiredByAdId)}
-              hooks={<HookPicker key={ad.id} token={token} runId={run.id} ad={ad} canEdit={isTerminalStatus(run.status)} onChanged={onChanged} />}
+              hooks={<HookPicker key={ad.id} token={token} runId={run.id} ad={ad} canEdit={isTerminalStatus(run.status)} onChanged={onChanged} onPreview={(url) => setPreview({ adId: ad.id, url })} />}
             />
           </div>
         ) : (

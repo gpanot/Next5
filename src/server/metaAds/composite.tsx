@@ -22,7 +22,21 @@ const loadFont = (): Promise<ArrayBuffer | null> => {
   return fontPromise;
 };
 
-const toDataUri = async (url: string): Promise<string> => {
+/** Resized backgrounds by source URL: switching hooks re-renders the same image many times in a row. */
+const backgrounds = new Map<string, Promise<string>>();
+const MAX_BACKGROUNDS = 30;
+
+const toDataUri = (url: string): Promise<string> => {
+  const cached = backgrounds.get(url);
+  if (cached) return cached;
+  const next = downloadBackground(url);
+  backgrounds.set(url, next);
+  next.catch(() => backgrounds.delete(url));
+  if (backgrounds.size > MAX_BACKGROUNDS) backgrounds.delete(backgrounds.keys().next().value as string);
+  return next;
+};
+
+const downloadBackground = async (url: string): Promise<string> => {
   const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
   if (!res.ok) throw new Error(`Could not download image (${res.status})`);
   const jpeg = await sharp(Buffer.from(await res.arrayBuffer()))

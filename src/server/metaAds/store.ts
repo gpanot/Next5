@@ -37,7 +37,7 @@ const toAdDto = async (ad: MetaAd): Promise<MetaAdDto> => ({
   rawImageUrl: ad.rawImageUrl,
   finalUrl: ad.finalAssetKey ? await presignObject(ad.finalAssetKey) : null,
   error: ad.error,
-  hooks: (ad.hooks as AdHook[] | null) ?? null,
+  hooks: ad.hooks ? await Promise.all((ad.hooks as AdHook[]).map(async (h) => ({ ...h, imageUrl: h.assetKey ? await presignObject(h.assetKey) : null }))) : null,
 });
 
 type RunWithAds = MetaAdRun & { ads: MetaAd[]; videos: { costMicros: number }[] };
