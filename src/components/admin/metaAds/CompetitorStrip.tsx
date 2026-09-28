@@ -2,8 +2,14 @@
 
 import { useState } from 'react';
 import type { CompetitorAd, CompetitorResearch } from '../../../types/admin/metaAds';
+import { VideoBadge } from './VideoBadge';
 
-type Props = { research: CompetitorResearch | null; insights: string[]; loading: boolean; compact: boolean };
+/** `scores`: winner score per ad once step 3 has graded them; null before. */
+type Props = { research: CompetitorResearch | null; insights: string[]; loading: boolean; compact: boolean; scores: Map<string, number> | null };
+
+/** Best score first once scores exist; the research order before. */
+const ordered = (ads: CompetitorAd[], scores: Map<string, number> | null) =>
+  scores ? [...ads].sort((a, b) => (scores.get(b.id) ?? -1) - (scores.get(a.id) ?? -1)) : ads;
 
 function Skeleton() {
   return (
@@ -14,18 +20,21 @@ function Skeleton() {
 }
 
 /** Once ads are done, the strip collapses to a "Inspired by" stack of thumbnails. Tapping it expands the strip again. */
-function Compact({ research, onExpand }: { research: CompetitorResearch; onExpand: () => void }) {
+function Compact({ research, scores, onExpand }: { research: CompetitorResearch; scores: Map<string, number> | null; onExpand: () => void }) {
   return (
     <button onClick={onExpand} aria-expanded={false} className="-mx-2 flex items-center gap-4 rounded-xl px-2 py-1 text-left transition hover:bg-zinc-50 dark:hover:bg-zinc-900">
       <div>
         <p className="text-[10px] font-bold tracking-wider text-muted uppercase">Inspired by</p>
         <p className="mt-0.5 text-sm leading-tight font-bold text-ink dark:text-zinc-100">{research.ads.length} winning Meta ads</p>
-        <p className="text-[11px] text-muted">{research.brandCount} brands · up to {research.stats.maxDaysRunning} days live</p>
+        <p className="text-[11px] text-muted">{research.brandCount} brands{scores ? ' · best score first' : ''}</p>
       </div>
       <div className="flex -space-x-2 overflow-hidden py-1">
-        {research.ads.filter((ad) => ad.imageUrl).slice(0, 6).map((ad) => (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img key={ad.id} src={ad.imageUrl ?? ''} alt={ad.pageName} referrerPolicy="no-referrer" className="h-10 w-10 rounded-lg border-2 border-white object-cover shadow-sm dark:border-zinc-900" />
+        {ordered(research.ads, scores).filter((ad) => ad.imageUrl).slice(0, 6).map((ad) => (
+          <span key={ad.id} className="relative h-10 w-10 shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={ad.imageUrl ?? ''} alt={ad.pageName} referrerPolicy="no-referrer" className="h-10 w-10 rounded-lg border-2 border-white object-cover shadow-sm dark:border-zinc-900" />
+            <VideoBadge format={ad.format} size="sm" />
+          </span>
         ))}
       </div>
       <span className="ml-auto shrink-0 text-xs font-medium text-muted">Show ▾</span>
@@ -34,7 +43,7 @@ function Compact({ research, onExpand }: { research: CompetitorResearch; onExpan
 }
 
 /** One competitor ad. Opens the ad in the Meta Ad Library so it can be checked at the source. */
-function CompetitorCard({ ad }: { ad: CompetitorAd }) {
+function CompetitorCard({ ad, score }: { ad: CompetitorAd; score: number | null }) {
   return (
     <a href={ad.libraryUrl} target="_blank" rel="noreferrer" className="flex w-40 shrink-0 snap-start flex-col transition hover:-translate-y-0.5">
       <div className="relative mb-2 h-40 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
@@ -42,7 +51,8 @@ function CompetitorCard({ ad }: { ad: CompetitorAd }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={ad.imageUrl} alt={ad.pageName} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
         )}
-        <span className="absolute top-2 left-2 rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white backdrop-blur">Running {ad.daysRunning}d</span>
+        {score !== null && <span className="absolute top-2 left-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white backdrop-blur">Score {score}</span>}
+        <VideoBadge format={ad.format} />
       </div>
       <p className="truncate text-xs leading-tight font-bold text-ink dark:text-zinc-100">{ad.pageName}</p>
       <p className="mt-0.5 line-clamp-2 text-[10px] text-muted">{ad.title || ad.body}</p>
@@ -51,10 +61,10 @@ function CompetitorCard({ ad }: { ad: CompetitorAd }) {
   );
 }
 
-export function CompetitorStrip({ research, insights, loading, compact }: Props) {
+export function CompetitorStrip({ research, insights, loading, compact, scores }: Props) {
   const [expanded, setExpanded] = useState(false);
   if (!research && !loading) return null;
-  if (research && compact && !expanded) return <Compact research={research} onExpand={() => setExpanded(true)} />;
+  if (research && compact && !expanded) return <Compact research={research} scores={scores} onExpand={() => setExpanded(true)} />;
 
   return (
     <section className="space-y-3">
@@ -72,7 +82,7 @@ export function CompetitorStrip({ research, insights, loading, compact }: Props)
         <p className="rounded-xl border border-dashed border-line p-4 text-sm text-muted dark:border-zinc-800">No live competitor ads found.</p>
       ) : (
         <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:px-0">
-          {research.ads.map((ad) => <CompetitorCard key={ad.id} ad={ad} />)}
+          {ordered(research.ads, scores).map((ad) => <CompetitorCard key={ad.id} ad={ad} score={scores?.get(ad.id) ?? null} />)}
         </div>
       )}
       {insights.length > 0 && (

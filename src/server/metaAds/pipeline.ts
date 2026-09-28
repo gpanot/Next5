@@ -4,7 +4,9 @@
 
 import type { Prisma } from '@prisma/client';
 import type { BrandProfile, CompetitorResearch, CopyPlan, HormoziResult, MetaAdRunStatus, PipelineStep, StepCost } from '../../types/admin/metaAds';
+import { signAdminToken } from '../../lib/admin-auth';
 import { prisma } from '../../lib/db';
+import { appBaseUrl } from '../social/links';
 import { researchCompetitors } from './competitors';
 import { withImageRules, writeCopy } from './copy';
 import { createMeter, type CostMeter } from './cost';
@@ -66,13 +68,32 @@ const copyStep: StepFn = async (runId, meter) => {
   return { copyPlan: json(plan) };
 };
 
-/** Step 5 designs every ad that is not ready yet (image, then text per ad). Step 6 alone re-composites saved images. */
+/** Ads designed at once. reAPI caps an account at 10 tasks in flight; 5 leaves room for regenerates and a second run. */
+const IMAGE_CONCURRENCY = 5;
+
+/** Runs `work` on every item, at most `limit` at a time; each finished item frees a slot for the next. */
+export const runPool = async <T>(items: T[], limit: number, work: (item: T) => Promise<void>): Promise<void> => {
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const item = items[next];
+      next += 1;
+      await work(item);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+};
+
+/**
+ * Step 5 designs every ad that is not ready yet (image, then text per ad), 5 at a time in position order, so the grid
+ * fills in as each ad finishes. Step 6 alone re-composites saved images.
+ */
 const designStep = (step: 5 | 6): StepFn => async (runId, meter) => {
   const run = await loadRun(runId);
   const profile = checkpoint<BrandProfile>(run.profile, 1);
   checkpoint<CopyPlan>(run.copyPlan, 4);
   const ads = await prisma.metaAd.findMany({ where: { runId, ...(step === 5 ? { status: { not: 'ready' } } : {}) }, orderBy: { position: 'asc' } });
-  await Promise.all(ads.map((ad) => designAd(ad, profile, meter, step === 6 ? 'composite' : 'both')));
+  await runPool(ads, IMAGE_CONCURRENCY, (ad) => designAd(ad, profile, meter, step === 6 ? 'composite' : 'both'));
   const ready = await prisma.metaAd.count({ where: { runId, status: 'ready' } });
   if (ready === 0) throw new Error('No ad finished designing — see each ad for its error');
   return {};
@@ -105,6 +126,28 @@ export const regenerateAdImage = async (runId: string, adId: string): Promise<vo
 
 const STEPS: Record<PipelineStep, StepFn> = { 1: profileStep, 2: competitorStep, 3: hormoziStep, 4: copyStep, 5: designStep(5), 6: designStep(6) };
 
+/**
+ * On Vercel the whole run shares one function's 300 s. Steps 1-4 take up to ~2 min and step 5 (15 images, 5 at a time)
+ * another ~2.5 min, so step 5 starts in a fresh invocation via the continue route. Locally it just keeps going.
+ * Returns true when the new invocation accepted the work.
+ */
+const handOffDesign = async (runId: string): Promise<boolean> => {
+  if (process.env.VERCEL !== '1') return false;
+  try {
+    await prisma.metaAdRun.update({ where: { id: runId }, data: { status: running(5) } });
+    const res = await fetch(`${appBaseUrl()}/api/admin/meta-ads/runs/${runId}/continue`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${signAdminToken()}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) console.warn(`[meta-ads] hand-off of run ${runId} refused (${res.status}); continuing inline`);
+    return res.ok;
+  } catch (err) {
+    console.warn(`[meta-ads] hand-off of run ${runId} failed; continuing inline:`, err instanceof Error ? err.message : err);
+    return false;
+  }
+};
+
 /** Runs steps `fromStep`…5 (step 5 already composites, so a normal run skips a separate step 6). Never throws. */
 export const runPipeline = async (runId: string, fromStep: PipelineStep = 1): Promise<void> => {
   const last: PipelineStep = fromStep === 6 ? 6 : 5;
@@ -116,6 +159,7 @@ export const runPipeline = async (runId: string, fromStep: PipelineStep = 1): Pr
       const data = await STEPS[step](runId, meter);
       await saveStep(runId, step, Date.now() - t0, meter.summary(), data);
       console.log(`[meta-ads] run ${runId} step ${step} OK in ${Date.now() - t0}ms, $${meter.summary().usdMicros / 1e6}`);
+      if (step === 4 && last === 5 && (await handOffDesign(runId))) return;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[meta-ads] run ${runId} step ${step} FAILED:`, message);

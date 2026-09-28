@@ -6,6 +6,7 @@ import { isTerminalStatus, type CompetitorAd, type MetaAdDto, type MetaAdRunDto 
 import { CopyRow } from './CopyRow';
 import { FeedPreview } from './FeedPreview';
 import { downloadAd } from './downloads';
+import { VideoAdTab } from './VideoAdTab';
 
 type Props = { token: string; run: MetaAdRunDto; index: number; onIndex: (index: number | null) => void; onChanged: () => void };
 
@@ -58,7 +59,7 @@ function Details({ ad, source }: { ad: MetaAdDto; source: CompetitorAd | undefin
         <CopyRow index={1} text={ad.headline} limit={40} primary />
       </Section>
       <details className="rounded-xl border border-line bg-white p-3 text-xs dark:border-zinc-800 dark:bg-zinc-900">
-        <summary className="cursor-pointer font-medium text-muted">Image prompt sent to Nano Banana Pro</summary>
+        <summary className="cursor-pointer font-medium text-muted">Image prompt sent to the image model</summary>
         <p className="mt-2 leading-relaxed whitespace-pre-wrap text-ink dark:text-zinc-200">{ad.imagePrompt}</p>
       </details>
       {ad.error && <p className="rounded-xl bg-red-50 p-3 text-xs text-red-700 dark:bg-red-950 dark:text-red-300">{ad.error}</p>}
@@ -94,7 +95,28 @@ function RegenerateButton({ token, run, ad, onChanged }: { token: string; run: M
   );
 }
 
+type Tab = 'image' | 'video';
+
+function Tabs({ tab, onTab }: { tab: Tab; onTab: (tab: Tab) => void }) {
+  return (
+    <div role="tablist" className="flex gap-1 border-b border-line px-4 md:px-6 dark:border-zinc-800">
+      {(['image', 'video'] as const).map((id) => (
+        <button
+          key={id}
+          role="tab"
+          aria-selected={tab === id}
+          onClick={() => onTab(id)}
+          className={['-mb-px min-h-11 border-b-2 px-3 text-sm font-semibold transition', tab === id ? 'border-ink text-ink dark:border-zinc-100 dark:text-zinc-100' : 'border-transparent text-muted hover:text-ink dark:hover:text-zinc-100'].join(' ')}
+        >
+          {id === 'image' ? 'Ad image' : 'Video ad'}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function AdInspector({ token, run, index, onIndex, onChanged }: Props) {
+  const [tab, setTab] = useState<Tab>('image');
   const ad = run.ads[index];
   const total = run.ads.length;
 
@@ -121,8 +143,8 @@ export function AdInspector({ token, run, index, onIndex, onChanged }: Props) {
             <span className="ml-1 text-xs font-medium text-muted">{String(index + 1).padStart(2, '0')} / {total}</span>
           </div>
           <div className="flex items-center gap-2">
-            {isTerminalStatus(run.status) && <RegenerateButton token={token} run={run} ad={ad} onChanged={onChanged} />}
-            {ad.finalUrl && ad.status === 'ready' && (
+            {tab === 'image' && isTerminalStatus(run.status) && <RegenerateButton token={token} run={run} ad={ad} onChanged={onChanged} />}
+            {tab === 'image' && ad.finalUrl && ad.status === 'ready' && (
               <button onClick={() => void downloadAd(ad, brandName)} className="min-h-10 rounded-full border border-line px-4 text-xs font-semibold transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800">
                 Download 4:5
               </button>
@@ -130,12 +152,19 @@ export function AdInspector({ token, run, index, onIndex, onChanged }: Props) {
             <RoundButton label="Close ad" onClick={() => onIndex(null)}>✕</RoundButton>
           </div>
         </div>
-        <div className="flex flex-1 flex-col gap-8 overflow-y-auto bg-zinc-50 p-4 md:flex-row md:p-8 dark:bg-zinc-900/40">
-          <div className="w-full shrink-0 md:w-[340px]">
-            <FeedPreview ad={ad} brandName={brandName} domain={run.profile?.domain ?? ''} />
+        <Tabs tab={tab} onTab={setTab} />
+        {tab === 'image' ? (
+          <div className="flex flex-1 flex-col gap-8 overflow-y-auto bg-zinc-50 p-4 md:flex-row md:p-8 dark:bg-zinc-900/40">
+            <div className="w-full shrink-0 md:w-[340px]">
+              <FeedPreview ad={ad} brandName={brandName} domain={run.profile?.domain ?? ''} />
+            </div>
+            <Details ad={ad} source={[...(run.competitors?.ads ?? []), ...(run.competitors?.ownAds ?? [])].find((c) => c.id === ad.inspiredByAdId)} />
           </div>
-          <Details ad={ad} source={[...(run.competitors?.ads ?? []), ...(run.competitors?.ownAds ?? [])].find((c) => c.id === ad.inspiredByAdId)} />
-        </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto bg-zinc-50 p-4 md:p-8 dark:bg-zinc-900/40">
+            <VideoAdTab key={ad.id} token={token} run={run} ad={ad} onChanged={onChanged} />
+          </div>
+        )}
       </div>
     </div>
   );

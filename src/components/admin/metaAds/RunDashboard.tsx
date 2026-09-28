@@ -50,6 +50,8 @@ export function RunDashboard({ token, runId, onBack, onRun }: Props) {
 
   const step = run.status === 'FAILED' ? run.failedStep ?? 0 : currentStep(run.status);
   const failedEarly = run.status === 'FAILED';
+  // Scores appear once step 3 has graded the ads; the strip then sorts by them.
+  const scores = run.hormozi ? new Map(run.hormozi.ratings.map((r) => [r.adId, r.winnerScore])) : null;
 
   return (
     <div className="mx-auto max-w-[1500px]">
@@ -62,7 +64,7 @@ export function RunDashboard({ token, runId, onBack, onRun }: Props) {
         </aside>
         <section className="order-1 flex min-w-0 flex-col gap-6 lg:order-2">
           <RunHeader token={token} run={run} onDownloadAll={() => void downloadRun(run)} onRun={onRun} />
-          <CompetitorStrip research={run.competitors} insights={run.competitors?.patterns ?? []} loading={step === 2} compact={step >= 3 && !failedEarly} />
+          <CompetitorStrip research={run.competitors} insights={run.competitors?.patterns ?? []} loading={step === 2} compact={step >= 3 && !failedEarly} scores={scores} />
           <HormoziPanel hormozi={run.hormozi} competitors={run.competitors} loading={step === 3 && !failedEarly} compact={step >= 5 && !failedEarly} />
           <AdGrid ads={run.ads} count={run.adCount} onOpen={setOpenIndex} />
           <PipelineInspector token={token} run={run} onResumed={refresh} />

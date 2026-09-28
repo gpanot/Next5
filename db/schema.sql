@@ -1052,6 +1052,31 @@ CREATE TABLE public.meta_ad_runs (
 
 
 --
+-- Name: meta_ad_videos; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.meta_ad_videos (
+    id text NOT NULL,
+    ad_id text NOT NULL,
+    run_id text NOT NULL,
+    duration integer NOT NULL,
+    status text DEFAULT 'scripting'::text NOT NULL,
+    script jsonb,
+    avatar_prompt text,
+    avatar_key text,
+    video_prompt text,
+    video_task_id text,
+    video_key text,
+    cost_micros integer DEFAULT 0 NOT NULL,
+    error text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT meta_ad_videos_duration_check CHECK ((duration = ANY (ARRAY[5, 10, 15]))),
+    CONSTRAINT meta_ad_videos_status_check CHECK ((status = ANY (ARRAY['scripting'::text, 'avatar'::text, 'video'::text, 'ready'::text, 'failed'::text])))
+);
+
+
+--
 -- Name: meta_ads; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2106,6 +2131,14 @@ ALTER TABLE ONLY public.meta_ad_runs
 
 
 --
+-- Name: meta_ad_videos meta_ad_videos_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_ad_videos
+    ADD CONSTRAINT meta_ad_videos_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: meta_ads meta_ads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2826,6 +2859,20 @@ CREATE INDEX meta_ad_runs_created_idx ON public.meta_ad_runs USING btree (create
 
 
 --
+-- Name: meta_ad_videos_ad_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX meta_ad_videos_ad_idx ON public.meta_ad_videos USING btree (ad_id, created_at DESC);
+
+
+--
+-- Name: meta_ad_videos_run_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX meta_ad_videos_run_idx ON public.meta_ad_videos USING btree (run_id);
+
+
+--
 -- Name: meta_ads_run_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3535,6 +3582,22 @@ ALTER TABLE ONLY public.listings
 
 
 --
+-- Name: meta_ad_videos meta_ad_videos_ad_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_ad_videos
+    ADD CONSTRAINT meta_ad_videos_ad_id_fkey FOREIGN KEY (ad_id) REFERENCES public.meta_ads(id) ON DELETE CASCADE;
+
+
+--
+-- Name: meta_ad_videos meta_ad_videos_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_ad_videos
+    ADD CONSTRAINT meta_ad_videos_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.meta_ad_runs(id) ON DELETE CASCADE;
+
+
+--
 -- Name: meta_ads meta_ads_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3980,4 +4043,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261015090000'),
     ('20261016090000'),
     ('20261017090000'),
-    ('20261018090000');
+    ('20261018090000'),
+    ('20261019090000');

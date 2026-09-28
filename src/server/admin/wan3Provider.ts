@@ -65,6 +65,11 @@ export type Wan3SubmitInput = {
   resolution: string;
   /** Optional signed URL of a voice reference audio clip (wav/mp3). */
   audioUrl?: string;
+  /**
+   * How the image is used. Default: 'first_frame' (the video opens on that exact photo), or 'reference_image' when a
+   * voice sample is given. 'reference_image' keeps the person but lets the prompt set the scene.
+   */
+  imageRole?: 'first_frame' | 'reference_image';
 };
 
 type Wan3SubmitResponse = {
@@ -93,7 +98,7 @@ export async function submitWan3Task(input: Wan3SubmitInput): Promise<string> {
     model: 'wan3.0-video',
     prompt: input.prompt,
     ...(input.imageUrl
-      ? { image_with_roles: [{ url: input.imageUrl, role: hasAudio ? 'reference_image' : 'first_frame' }] }
+      ? { image_with_roles: [{ url: input.imageUrl, role: input.imageRole ?? (hasAudio ? 'reference_image' : 'first_frame') }] }
       : {}),
     size: '9:16',
     resolution: input.resolution.toUpperCase(), // reAPI expects "480P" / "720P"

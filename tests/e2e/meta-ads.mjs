@@ -1,6 +1,6 @@
-// Admin "Perfect Ads": URL in → Exa profile → treg competitor ads → Hormozi picks → copy → Nano Banana image → composite, in the real UI.
+// Admin "Perfect Ads": URL in → Exa profile → treg competitor ads → Hormozi picks → copy → GPT Image 2.5 image → composite, in the real UI.
 // Needs the dev server, E2E_ADMIN_SECRET (the local ADMIN_SECRET) and real EXA / TREG / OPENAI / REAPI keys.
-// Runs 1 ad by default (about $0.12: Nano Banana Pro is $0.03 per image on reAPI). E2E_META_ADS_URL and E2E_META_ADS_COUNT (1 | 2 | 5 | 15) change the run.
+// Runs 1 ad by default (about $0.11: GPT Image 2.5 is $0.023 per image on reAPI). E2E_META_ADS_URL and E2E_META_ADS_COUNT (1 | 2 | 5 | 15) change the run.
 import { chromium } from 'playwright';
 import { mkdirSync, writeFileSync } from 'node:fs';
 

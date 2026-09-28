@@ -2034,7 +2034,8 @@ model MetaAdRun {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  ads MetaAd[]
+  ads    MetaAd[]
+  videos MetaAdVideo[]
 
   @@index([createdAt(sort: Desc)])
   @@map("meta_ad_runs")
@@ -2050,7 +2051,7 @@ model MetaAd {
   primaryText    String   @map("primary_text")
   primaryTextAlt String   @default("") @map("primary_text_alt")
   overlayText    String   @map("overlay_text")
-  /// The exact prompt sent to the image model (Nano Banana Pro)
+  /// The exact prompt sent to the image model
   imagePrompt    String   @map("image_prompt")
   /// Playbook play this ad is built on
   play           String   @default("")
@@ -2066,8 +2067,39 @@ model MetaAd {
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
-  run MetaAdRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  run    MetaAdRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  videos MetaAdVideo[]
 
   @@index([runId, position])
   @@map("meta_ads")
+}
+
+/// A 9:16 video version of one ad: Hormozi script → UGC avatar → Wan 3.0 video with the avatar as character reference.
+model MetaAdVideo {
+  id           String   @id @default(cuid())
+  adId         String   @map("ad_id")
+  runId        String   @map("run_id")
+  /// 5 | 10 | 15 seconds
+  duration     Int
+  /// 'scripting' | 'avatar' | 'video' | 'ready' | 'failed'
+  status       String   @default("scripting")
+  /// Persona, timed spoken lines, why it follows the Hormozi pick
+  script       Json?
+  avatarPrompt String?  @map("avatar_prompt")
+  avatarKey    String?  @map("avatar_key")
+  videoPrompt  String?  @map("video_prompt")
+  /// reAPI Wan 3.0 task, polled until the video is stored
+  videoTaskId  String?  @map("video_task_id")
+  videoKey     String?  @map("video_key")
+  costMicros   Int      @default(0) @map("cost_micros")
+  error        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  ad  MetaAd    @relation(fields: [adId], references: [id], onDelete: Cascade)
+  run MetaAdRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([adId, createdAt(sort: Desc)])
+  @@index([runId])
+  @@map("meta_ad_videos")
 }

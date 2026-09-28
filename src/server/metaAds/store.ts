@@ -38,7 +38,11 @@ const toAdDto = async (ad: MetaAd): Promise<MetaAdDto> => ({
   error: ad.error,
 });
 
-export const toRunDto = async (run: MetaAdRun & { ads: MetaAd[] }): Promise<MetaAdRunDto> => ({
+type RunWithAds = MetaAdRun & { ads: MetaAd[]; videos: { costMicros: number }[] };
+
+const videoCost = (videos: { costMicros: number }[]) => videos.reduce((sum, v) => sum + v.costMicros, 0);
+
+export const toRunDto = async (run: RunWithAds): Promise<MetaAdRunDto> => ({
   id: run.id,
   url: run.url,
   adCount: run.adCount,
@@ -49,7 +53,8 @@ export const toRunDto = async (run: MetaAdRun & { ads: MetaAd[] }): Promise<Meta
   copy: run.copyPlan as unknown as CopyPlan | null,
   stepTimings: run.stepTimings as MetaAdRunDto['stepTimings'],
   stepCosts: run.stepCosts as MetaAdRunDto['stepCosts'],
-  totalCostMicros: totalCost(run.stepCosts),
+  videoCostMicros: videoCost(run.videos),
+  totalCostMicros: totalCost(run.stepCosts) + videoCost(run.videos),
   failedStep: run.failedStep,
   error: run.error,
   startedAt: run.startedAt.toISOString(),
@@ -58,7 +63,7 @@ export const toRunDto = async (run: MetaAdRun & { ads: MetaAd[] }): Promise<Meta
 });
 
 export const getRunDto = async (runId: string): Promise<MetaAdRunDto | null> => {
-  const run = await prisma.metaAdRun.findUnique({ where: { id: runId }, include: { ads: { orderBy: { position: 'asc' } } } });
+  const run = await prisma.metaAdRun.findUnique({ where: { id: runId }, include: { ads: { orderBy: { position: 'asc' } }, videos: { select: { costMicros: true } } } });
   return run ? toRunDto(run) : null;
 };
 
@@ -66,14 +71,14 @@ export const listRuns = async (): Promise<MetaAdRunSummary[]> => {
   const runs = await prisma.metaAdRun.findMany({
     orderBy: { createdAt: 'desc' },
     take: 20,
-    include: { _count: { select: { ads: { where: { status: 'ready' } } } } },
+    include: { _count: { select: { ads: { where: { status: 'ready' } } } }, videos: { select: { costMicros: true } } },
   });
   return runs.map((run) => ({
     id: run.id,
     url: run.url,
     status: run.status as MetaAdRunStatus,
     brandName: (run.profile as { brandName?: string } | null)?.brandName ?? null,
-    totalCostMicros: totalCost(run.stepCosts),
+    totalCostMicros: totalCost(run.stepCosts) + videoCost(run.videos),
     readyCount: run._count.ads,
     createdAt: run.createdAt.toISOString(),
   }));

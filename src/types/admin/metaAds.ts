@@ -233,6 +233,39 @@ export type AdCopy = {
 /** Step 4 checkpoint. */
 export type CopyPlan = { ads: AdCopy[] };
 
+export const VIDEO_DURATIONS = [5, 10, 15] as const;
+export type VideoDuration = (typeof VIDEO_DURATIONS)[number];
+export type MetaAdVideoStatus = 'scripting' | 'avatar' | 'video' | 'ready' | 'failed';
+
+/** One timed beat of the spoken script. */
+export type VideoBeat = { from: number; to: number; say: string; action: string };
+
+/** Video script checkpoint: who speaks, what they say second by second, and which pick it follows. */
+export type VideoScript = {
+  persona: { gender: string; age: number; ethnicity: string; look: string; setting: string };
+  beats: VideoBeat[];
+  /** Spoken words, counted against the duration's budget (~2.3 words per second). */
+  wordCount: number;
+  wordBudget: number;
+  /** Why this script should work, tied to the Hormozi pick and play. */
+  why: string;
+};
+
+export type MetaAdVideoDto = {
+  id: string;
+  adId: string;
+  duration: number;
+  status: MetaAdVideoStatus;
+  script: VideoScript | null;
+  avatarPrompt: string | null;
+  avatarUrl: string | null;
+  videoPrompt: string | null;
+  videoUrl: string | null;
+  costMicros: number;
+  error: string | null;
+  createdAt: string;
+};
+
 export type CostItem = { label: string; usdMicros: number };
 export type StepCost = { usdMicros: number; items: CostItem[] };
 
@@ -256,6 +289,9 @@ export type MetaAdRunDto = {
   copy: CopyPlan | null;
   stepTimings: Partial<Record<PipelineStep, number>>;
   stepCosts: Partial<Record<PipelineStep, StepCost>>;
+  /** Spent on video ads (script, avatar, Wan 3.0), all attempts. */
+  videoCostMicros: number;
+  /** Pipeline steps plus video ads. */
   totalCostMicros: number;
   failedStep: number | null;
   error: string | null;

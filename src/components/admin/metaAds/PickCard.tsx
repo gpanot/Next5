@@ -1,5 +1,6 @@
 'use client';
 
+import { VideoBadge } from './VideoBadge';
 import { ARCHETYPE_LABELS, CRITERION_LABELS, HORMOZI_CRITERIA, type AdRating, type CompetitorAd, type HormoziPick } from '../../../types/admin/metaAds';
 
 type Props = { rank: number; pick: HormoziPick; ad: CompetitorAd; rating: AdRating };
@@ -72,11 +73,12 @@ export function PickCard({ rank, pick, ad, rating }: Props) {
   return (
     <article className="min-w-0 rounded-xl border border-line bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex gap-3">
-        <div className="h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+        <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
           {ad.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={ad.imageUrl} alt={ad.pageName} referrerPolicy="no-referrer" className="h-full w-full object-cover" />
           )}
+          <VideoBadge format={ad.format} size="sm" />
         </div>
         <div className="min-w-0 flex-1">
           <Badges rank={rank} pick={pick} />

@@ -40,7 +40,8 @@ const GPT_IMAGE_2_5: Omit<ReapiModel, 'id'> = {
   maxImages: 16,
   sizing: 'pixels',
   supports2k: true,
-  priceUsdMicros: { '1k': 39_000, '2k': 55_000 },
+  // reAPI Standard channel, flat per image. Checked 2026-09-28, reapi.ai/models/gpt-image-2-5.
+  priceUsdMicros: { '1k': 23_000, '2k': 23_000 },
   extraBody: { quality: 'medium', output_format: 'jpeg' },
 };
 
