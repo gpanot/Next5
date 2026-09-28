@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { formatUsd, isTerminalStatus, type MetaAdRunDto, type PipelineStep } from '../../../types/admin/metaAds';
+import { isTerminalStatus, type MetaAdRunDto, type PipelineStep } from '../../../types/admin/metaAds';
 import { adminFetch } from '../business/useAdminApi';
 
 type Props = { token: string; run: MetaAdRunDto; onResumed: () => void };
@@ -24,25 +24,7 @@ const payloadFor = (run: MetaAdRunDto, step: PipelineStep): unknown => {
   return run.ads.map(({ position, status, finalUrl }) => ({ position, status, finalUrl }));
 };
 
-function CostTable({ run, step }: { run: MetaAdRunDto; step: PipelineStep }) {
-  const cost = run.stepCosts[step];
-  return (
-    <div className="rounded-lg border border-line text-xs dark:border-zinc-800">
-      {(cost?.items ?? []).map((item) => (
-        <p key={item.label} className="flex justify-between gap-3 border-b border-line px-3 py-2 text-muted last:border-0 dark:border-zinc-800">
-          <span>{item.label}</span>
-          <span className="font-mono">{formatUsd(item.usdMicros)}</span>
-        </p>
-      ))}
-      <p className="flex justify-between gap-3 px-3 py-2 font-semibold text-ink dark:text-zinc-100">
-        <span>Step {step}</span>
-        <span className="font-mono">{formatUsd(cost?.usdMicros ?? 0)}</span>
-      </p>
-    </div>
-  );
-}
-
-/** Debug panel: every step's saved checkpoint and cost, the run total, and resume-from-step buttons. */
+/** Debug panel: every step's saved checkpoint and resume-from-step buttons. */
 export function PipelineInspector({ token, run, onResumed }: Props) {
   const [step, setStep] = useState<PipelineStep>(1);
   const [busy, setBusy] = useState(false);
@@ -68,7 +50,6 @@ export function PipelineInspector({ token, run, onResumed }: Props) {
     <details className="rounded-xl border border-line bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900" open={run.status === 'FAILED'}>
       <summary className="flex cursor-pointer justify-between px-4 py-3 text-sm font-semibold text-ink dark:text-zinc-100">
         <span>Pipeline checkpoints</span>
-        <span className="font-mono text-xs text-muted">Total {formatUsd(run.totalCostMicros)}</span>
       </summary>
       <div className="space-y-3 border-t border-line p-4 dark:border-zinc-800">
         <div className="-mx-1 flex gap-1 overflow-x-auto">
@@ -81,11 +62,9 @@ export function PipelineInspector({ token, run, onResumed }: Props) {
               {s.label}
               {run.failedStep === s.step && ' ✕'}
               {run.stepTimings[s.step] !== undefined && <span className="ml-1 opacity-60">{((run.stepTimings[s.step] ?? 0) / 1000).toFixed(1)}s</span>}
-              {run.stepCosts[s.step] && <span className="ml-1 opacity-60">{formatUsd(run.stepCosts[s.step]?.usdMicros ?? 0)}</span>}
             </button>
           ))}
         </div>
-        <CostTable run={run} step={step} />
         <pre className="max-h-80 overflow-auto rounded-lg bg-zinc-950 p-3 text-[11px] leading-relaxed text-zinc-200">
           {payload === null || (Array.isArray(payload) && payload.length === 0) ? 'No checkpoint saved yet.' : JSON.stringify(payload, null, 2)}
         </pre>
@@ -99,10 +78,6 @@ export function PipelineInspector({ token, run, onResumed }: Props) {
           </button>
           <span className="text-[11px] text-muted">{canResume ? 'Reuses the saved checkpoints before this step.' : 'Available when the run stops.'}</span>
         </div>
-        <p className="flex justify-between border-t border-line pt-3 text-sm font-semibold text-ink dark:border-zinc-800 dark:text-zinc-100">
-          <span>Run total</span>
-          <span className="font-mono">{formatUsd(run.totalCostMicros)}</span>
-        </p>
         {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
       </div>
     </details>

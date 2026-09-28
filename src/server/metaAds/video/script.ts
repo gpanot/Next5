@@ -25,6 +25,8 @@ const SYSTEM = `You write a vertical UGC video ad script, the way Alex Hormozi t
 The speaker is a real-looking peer of the buyer, filmed on their own phone. They may talk about the problem in first person,
 but never claim results from the product and never pretend to be a customer ("it grew my business" is forbidden).
 Only facts from BRAND FACTS. No invented numbers, prices, reviews or guarantees. Plain words.
+"say" is read aloud by a voice model, so write it exactly as a person says it: no unit abbreviations.
+Write "1 hour", "24 hours", "30 minutes", "10 seconds", "2 days", "3 weeks" — never "1h", "24h", "30min", "10s", "2d", "3wk".
 Timing: beats cover 0 to DURATION seconds with no gaps. Spoken words in total: at most WORD_BUDGET.
 "action": what the person does on camera in that beat (expression, gesture with the free hand). One hand holds the phone that films them,
 so they never hold or show a second phone. No on-screen text.
@@ -55,13 +57,31 @@ type RawScript = {
 
 const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
 
+const SPOKEN_UNITS: [RegExp, string][] = [
+  [/^(h|hr|hrs)$/i, 'hour'],
+  [/^(min|mins)$/i, 'minute'],
+  [/^(sec|secs)$/i, 'second'],
+  [/^d$/i, 'day'],
+  [/^(wk|wks)$/i, 'week'],
+];
+
 /**
- * Makes the beats usable: drops empty ones, re-times them back to back from 0 to the duration (spread by words), then
+ * The voice model reads text literally ("24h" is said "twenty-four h"), so abbreviated durations become words:
+ * "24h" → "24 hours", "1 hr" → "1 hour", "30min" → "30 minutes". A bare "s" is left alone ("the 90s"). Pure, unit-tested.
+ */
+export const spokenDurations = (text: string): string =>
+  text.replace(/\b(\d+(?:[.,]\d+)?)\s?(h|hrs?|mins?|secs?|d|wks?)\b(?!['’]|\/)/gi, (match, n: string, unit: string) => {
+    const word = SPOKEN_UNITS.find(([re]) => re.test(unit))?.[1];
+    return word ? `${n} ${word}${n === '1' ? '' : 's'}` : match;
+  });
+
+/**
+ * Makes the beats usable: spells out abbreviated durations, drops empty ones, re-times them back to back from 0 to the duration (spread by words), then
  * removes middle beats with unprovable numbers or over the word budget. The hook and CTA are never cut: if they break
  * a rule, the script is rejected. Pure, unit-tested.
  */
 export const enforceBeats = (raw: RawScript['beats'], duration: number, facts: string): { beats: VideoBeat[]; problem: string | null } => {
-  let beats = (raw ?? []).map((b) => ({ say: str(b.say), action: str(b.action) })).filter((b) => b.say);
+  let beats = (raw ?? []).map((b) => ({ say: spokenDurations(str(b.say)), action: str(b.action) })).filter((b) => b.say);
   if (beats.length < 2) return { beats: [], problem: 'needs at least a hook and a CTA' };
   const edge = (i: number) => i === 0 || i === beats.length - 1;
   if (beats.some((b, i) => edge(i) && unsupportedNumbers(b.say, facts).length)) return { beats: [], problem: 'hook or CTA has a number the brand cannot prove' };

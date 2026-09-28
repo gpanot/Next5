@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { createLocalStore } from '../../src/lib/localStore';
+import { adminTokenStore, useAdminToken } from '../../src/lib/adminToken';
 import { AdminLogin } from '../../src/components/admin/AdminLogin';
 import { BookingsTab } from '../../src/components/admin/BookingsTab';
 import { PromptsTab } from '../../src/components/admin/PromptsTab';
@@ -79,19 +79,13 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   },
 ];
 
-const adminTokenStore = createLocalStore('admin_token');
-
-const isAdminToken = (token: string): boolean => {
-  try {
-    return JSON.parse(atob(token.split('.')[1] ?? '')).type === 'admin';
-  } catch {
-    return false;
-  }
+/** Tabs that also run as a standalone page (opened in a new browser tab). */
+const STANDALONE_ROUTES: Partial<Record<Tab, string>> = {
+  'meta-ads': '/admin/perfect-ads',
 };
 
 export default function AdminPage() {
-  const stored = adminTokenStore.useValue();
-  const token = stored && isAdminToken(stored) ? stored : null;
+  const token = useAdminToken();
   const [tab, setTab] = useState<Tab>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -99,7 +93,7 @@ export default function AdminPage() {
   const handleToken = useCallback((t: string) => adminTokenStore.set(t), []);
   const selectTab = useCallback((id: Tab) => { setTab(id); setSidebarOpen(false); }, []);
 
-  if (stored === undefined) return null;
+  if (token === undefined) return null;
   if (!token) return <AdminLogin onToken={handleToken} />;
 
   return (
@@ -213,6 +207,19 @@ export default function AdminPage() {
           <h1 className="truncate text-[15px] font-semibold text-ink">
             {NAV_SECTIONS.flatMap((s) => s.items).find((i) => i.id === tab)?.label ?? tab}
           </h1>
+          {STANDALONE_ROUTES[tab] && (
+            <a
+              href={STANDALONE_ROUTES[tab]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-auto flex h-10 shrink-0 items-center gap-1.5 rounded-xl border border-line px-3 text-[12px] font-medium text-muted transition-colors hover:bg-zinc-50 hover:text-ink dark:hover:bg-zinc-800"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              </svg>
+              <span className="hidden sm:inline">Open in new tab</span>
+            </a>
+          )}
         </header>
 
         {/* Main content — scrolls independently */}

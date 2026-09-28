@@ -22,7 +22,7 @@ function Skeleton() {
 /** Once ads are done, the strip collapses to a "Inspired by" stack of thumbnails. Tapping it expands the strip again. */
 function Compact({ research, scores, onExpand }: { research: CompetitorResearch; scores: Map<string, number> | null; onExpand: () => void }) {
   return (
-    <button onClick={onExpand} aria-expanded={false} className="-mx-2 flex items-center gap-4 rounded-xl px-2 py-1 text-left transition hover:bg-zinc-50 dark:hover:bg-zinc-900">
+    <button onClick={onExpand} aria-expanded={false} className="group flex w-full items-center gap-4 rounded-xl border border-line bg-white p-4 text-left shadow-sm transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
       <div>
         <p className="text-[10px] font-bold tracking-wider text-muted uppercase">Inspired by</p>
         <p className="mt-0.5 text-sm leading-tight font-bold text-ink dark:text-zinc-100">{research.ads.length} winning Meta ads</p>
@@ -37,7 +37,7 @@ function Compact({ research, scores, onExpand }: { research: CompetitorResearch;
           </span>
         ))}
       </div>
-      <span className="ml-auto shrink-0 text-xs font-medium text-muted">Show ▾</span>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="ml-auto shrink-0 text-muted transition group-hover:text-ink dark:group-hover:text-zinc-100"><path d="m6 9 6 6 6-6" /></svg>
     </button>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { formatUsd, type MetaAdRunSummary } from '../../../types/admin/metaAds';
+import type { MetaAdRunSummary } from '../../../types/admin/metaAds';
 import { useAdminApi } from '../business/useAdminApi';
 import { StatusBadge } from './StatusBadge';
 
@@ -32,7 +32,7 @@ export function RecentRuns({ token, onOpen }: Props) {
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-ink dark:text-zinc-100">{run.brandName ?? run.url.replace(/^https?:\/\//, '')}</p>
-                <p className="text-xs text-muted">{when(run.createdAt)} · {run.readyCount} ads ready · {formatUsd(run.totalCostMicros)}</p>
+                <p className="text-xs text-muted">{when(run.createdAt)} · {run.readyCount} ads ready</p>
               </div>
               <StatusBadge status={run.status} />
             </button>

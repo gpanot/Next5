@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { currentStep, formatUsd, isTerminalStatus, type MetaAdRunDto } from '../../../types/admin/metaAds';
+import { currentStep, isTerminalStatus, type MetaAdRunDto } from '../../../types/admin/metaAds';
 
 /** Pipeline steps 5 (image) and 6 (composite) run together per ad, so the UI shows them as one "Design" step. */
 const NAV = [
@@ -55,8 +55,8 @@ export function StepNav({ run }: { run: MetaAdRunDto }) {
   const now = useNow(running);
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="-mx-1 flex gap-1 overflow-x-auto rounded-full border border-line bg-zinc-50 p-1 text-[13px] font-medium text-muted dark:border-zinc-800 dark:bg-zinc-900">
+    <div className="flex items-center justify-between gap-4">
+      <div className="flex min-w-0 gap-1 overflow-x-auto rounded-full border border-line bg-zinc-50 p-1 text-[13px] font-medium text-muted dark:border-zinc-800 dark:bg-zinc-900">
         {NAV.map(({ label, steps }, i) => {
           const state = stateFor(run, steps);
           return (
@@ -73,15 +73,12 @@ export function StepNav({ run }: { run: MetaAdRunDto }) {
           );
         })}
       </div>
-      <div className="flex items-center gap-4 text-xs font-medium text-muted">
+      <div className="hidden shrink-0 items-center gap-4 text-xs font-medium text-muted sm:flex">
         {running && (
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> Live
           </span>
         )}
-        <span>
-          Cost <span className="font-mono font-semibold text-ink dark:text-zinc-100">{formatUsd(run.totalCostMicros)}</span>
-        </span>
         <span>
           Elapsed <span className="font-mono font-semibold text-ink dark:text-zinc-100">{formatElapsed(elapsedMs(run, now))}</span>
         </span>

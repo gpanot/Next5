@@ -108,7 +108,7 @@ function Tabs({ tab, onTab }: { tab: Tab; onTab: (tab: Tab) => void }) {
           onClick={() => onTab(id)}
           className={['-mb-px min-h-11 border-b-2 px-3 text-sm font-semibold transition', tab === id ? 'border-ink text-ink dark:border-zinc-100 dark:text-zinc-100' : 'border-transparent text-muted hover:text-ink dark:hover:text-zinc-100'].join(' ')}
         >
-          {id === 'image' ? 'Ad image' : 'Video ad'}
+          {id === 'image' ? 'Image Ad' : 'Video ad'}
         </button>
       ))}
     </div>
@@ -135,7 +135,7 @@ export function AdInspector({ token, run, index, onIndex, onChanged }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => onIndex(null)}>
-      <div className="flex max-h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl dark:bg-zinc-950" onClick={(e) => e.stopPropagation()}>
+      <div className="flex h-[92dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl dark:bg-zinc-950" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3 md:px-6 dark:border-zinc-800">
           <div className="flex items-center gap-2">
             <RoundButton label="Previous ad" onClick={() => onIndex(index - 1)} disabled={index === 0}>←</RoundButton>

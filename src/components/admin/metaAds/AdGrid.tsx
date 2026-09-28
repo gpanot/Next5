@@ -39,10 +39,10 @@ function AdCard({ ad, onOpen }: { ad: MetaAdDto; onOpen: () => void }) {
 export function AdGrid({ ads, count, onOpen }: Props) {
   return (
     <section>
-      <h3 className="mb-3 flex flex-wrap items-center gap-3 text-sm font-bold text-ink dark:text-zinc-100">
-        Your ads
-        {ads.some((a) => a.status === 'ready') && <span className="rounded bg-zinc-100 px-2 py-1 text-xs font-normal text-muted dark:bg-zinc-800">Tap any ad for copy and downloads</span>}
-      </h3>
+      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-lg font-bold tracking-tight text-ink dark:text-zinc-100">Your ads</h3>
+        {ads.some((a) => a.status === 'ready') && <p className="text-xs text-muted dark:text-zinc-400">Tap an ad for copy and downloads</p>}
+      </div>
       <div className={GRID}>
         {ads.length === 0
           ? Array.from({ length: count }, (_, i) => <Placeholder key={i} n={i + 1} />)

@@ -1,9 +1,10 @@
 // server-only — never import from a 'use client' file.
 // Video ad for one generated ad: script → avatar → Wan 3.0 (9:16, 480p, avatar as character reference).
+// A variation reuses its version's script and avatar and only re-films.
 // Each step saves its output on the video row. Wan can take minutes, so the task id is stored and the video is also
 // finished by `advanceVideo` whenever the page asks for it — the background job does not have to outlive it.
 
-import type { MetaAdVideo } from '@prisma/client';
+import type { MetaAd, MetaAdVideo } from '@prisma/client';
 import type { BrandProfile, VideoScript } from '../../../types/admin/metaAds';
 import { prisma } from '../../../lib/db';
 import { checkWan3Task, submitWan3Task } from '../../admin/wan3Provider';
@@ -47,19 +48,26 @@ export const advanceVideo = async (video: MetaAdVideo): Promise<void> => {
   await prisma.metaAdVideo.updateMany({ where: { id: video.id, status: 'video' }, data: { status: 'ready', videoKey: key, costMicros: video.costMicros + cost } });
 };
 
-/** Runs the three steps for one video row. Never throws: failures land on the row. */
+type VideoWithAd = MetaAdVideo & { ad: MetaAd };
+type Meter = ReturnType<typeof createMeter>;
+
+/** Steps 1-2: script, then avatar. A variation already has both (copied from its version), so this is skipped. */
+const scriptAndAvatar = async (video: VideoWithAd, meter: Meter): Promise<{ script: VideoScript; avatarKey: string }> => {
+  if (video.script && video.avatarKey) return { script: video.script as unknown as VideoScript, avatarKey: video.avatarKey };
+  const run = await getRunDto(video.runId);
+  if (!run?.profile) throw new Error('The run has no brand profile');
+  const script = await writeVideoScript(run.profile as BrandProfile, run, video.ad, video.duration, meter);
+  const prompt = avatarPrompt(script.persona);
+  await prisma.metaAdVideo.update({ where: { id: video.id }, data: { status: 'avatar', script, avatarPrompt: prompt, costMicros: meter.summary().usdMicros } });
+  return { script, avatarKey: await generateAvatar(prompt, avatarKey(video.runId, video.id), meter) };
+};
+
+/** Runs the three steps for one video row (only the filming for a variation). Never throws: failures land on the row. */
 export const generateVideoAd = async (videoId: string): Promise<void> => {
   const meter = createMeter();
   try {
     const video = await prisma.metaAdVideo.findUniqueOrThrow({ where: { id: videoId }, include: { ad: true } });
-    const run = await getRunDto(video.runId);
-    if (!run?.profile) throw new Error('The run has no brand profile');
-
-    const script: VideoScript = await writeVideoScript(run.profile as BrandProfile, run, video.ad, video.duration, meter);
-    const prompt = avatarPrompt(script.persona);
-    await prisma.metaAdVideo.update({ where: { id: videoId }, data: { status: 'avatar', script, avatarPrompt: prompt, costMicros: meter.summary().usdMicros } });
-
-    const key = await generateAvatar(prompt, avatarKey(video.runId, videoId), meter);
+    const { script, avatarKey: key } = await scriptAndAvatar(video, meter);
     const avatarUrl = await presignObject(key, 6 * 60 * 60);
     if (!avatarUrl?.startsWith('https://')) throw new Error('The avatar needs a public HTTPS URL for Wan 3.0 (set NEXT5_STORAGE=r2)');
 

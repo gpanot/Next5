@@ -1,8 +1,8 @@
 'use client';
 
-import { currentStep, formatUsd, type MetaAdRunDto, type PipelineStep } from '../../../types/admin/metaAds';
+import { currentStep, type MetaAdRunDto, type PipelineStep } from '../../../types/admin/metaAds';
 
-type Line = { key: string; text: string; state: 'done' | 'active' | 'failed'; cost: number | null };
+type Line = { key: string; text: string; state: 'done' | 'active' | 'failed' };
 
 const seconds = (ms: number | undefined) => (ms ? ` · ${(ms / 1000).toFixed(1)}s` : '');
 
@@ -17,9 +17,8 @@ const buildLines = (run: MetaAdRunDto): Line[] => {
   const lines: Line[] = [];
   const push = (n: PipelineStep, active: string, done: string) => {
     if (n > step) return;
-    const cost = (run.stepCosts[n]?.usdMicros ?? 0) + (n === 5 ? run.stepCosts[6]?.usdMicros ?? 0 : 0);
     const state = n < step ? 'done' : failed ? 'failed' : 'active';
-    lines.push({ key: `step-${n}`, text: n < step ? done : active, state, cost: state === 'active' ? null : cost });
+    lines.push({ key: `step-${n}`, text: n < step ? done : active, state });
   };
 
   const c = run.competitors;
@@ -49,16 +48,9 @@ export function AgentLog({ run }: { run: MetaAdRunDto }) {
           <li key={line.key} className={['flex items-start gap-2', line.state === 'done' ? 'text-ink dark:text-zinc-100' : 'text-muted'].join(' ')}>
             <LineIcon state={line.state} />
             <span className="flex-1">{line.text}</span>
-            {line.cost !== null && <span className="shrink-0 font-mono text-[10px] text-muted">{formatUsd(line.cost)}</span>}
           </li>
         ))}
       </ul>
-      {run.totalCostMicros > 0 && (
-        <p className="mt-4 flex justify-between border-t border-line pt-3 text-xs font-semibold text-ink dark:border-zinc-800 dark:text-zinc-100">
-          <span>Total</span>
-          <span className="font-mono">{formatUsd(run.totalCostMicros)}</span>
-        </p>
-      )}
       {run.error && <p className="mt-4 rounded-lg bg-red-50 p-2 text-[11px] break-words text-red-700 dark:bg-red-950 dark:text-red-300">{run.error}</p>}
     </div>
   );

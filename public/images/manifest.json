@@ -3886,5 +3886,77 @@
     "bytes": 403190,
     "alt": "Side pose, night-out scene",
     "generatedAt": "2026-09-26T04:56:28.819Z"
+  },
+  "public/images/perfect-ads/vintage-store-owner.jpg": {
+    "prompt": "Output of the admin Perfect Ads pipeline (meta_ads run cmukjhlrb0000vur8gwt82est), composited 1080x1350 ad, downscaled for the Perfect Ads start screen.",
+    "model": "perfect-ads/composite",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 60762,
+    "alt": "Vintage wholesale ad: store owner among clothes racks, overlay \"Source vintage faster\"",
+    "generatedAt": "2026-09-28T06:50:00.000Z"
+  },
+  "public/images/perfect-ads/denim-flatlay.jpg": {
+    "prompt": "Output of the admin Perfect Ads pipeline (meta_ads run cmukjkpm80002vur8aq5pafyr), composited 1080x1350 ad, downscaled for the Perfect Ads start screen.",
+    "model": "perfect-ads/composite",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 63294,
+    "alt": "Vintage wholesale ad: denim jacket flat-lay, overlay \"Buyer protection on every order.\"",
+    "generatedAt": "2026-09-28T06:50:00.000Z"
+  },
+  "public/images/perfect-ads/desk-headphones.jpg": {
+    "prompt": "Output of the admin Perfect Ads pipeline (meta_ads run cmuknczvl000fvu646a3cafd6), composited 1080x1350 ad, downscaled for the Perfect Ads start screen.",
+    "model": "perfect-ads/composite",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 39353,
+    "alt": "Note-taking app ad: laptop and headphones on a desk, overlay \"Admin done instantly.\"",
+    "generatedAt": "2026-09-28T06:50:00.000Z"
+  },
+  "public/images/perfect-ads/workshop-owner.jpg": {
+    "prompt": "Output of the admin Perfect Ads pipeline (meta_ads run cmuknqj6f000hvu64adyvdjv0), composited 1080x1350 ad, downscaled for the Perfect Ads start screen.",
+    "model": "perfect-ads/composite",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 49415,
+    "alt": "Booking software ad: workshop owner on his phone, overlay \"Book from Google\"",
+    "generatedAt": "2026-09-28T06:50:00.000Z"
+  },
+  "public/images/perfect-ads/garage-phone.jpg": {
+    "prompt": "Output of the admin Perfect Ads pipeline (meta_ads run cmukp3gxk0000vu1c30yfomio), composited 1080x1350 ad, downscaled for the Perfect Ads start screen.",
+    "model": "perfect-ads/composite",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 43963,
+    "alt": "Booking software ad: mechanic checking his phone in a garage, overlay \"AI answers every call\"",
+    "generatedAt": "2026-09-28T06:50:00.000Z"
+  },
+  "public/images/perfect-ads/selfie-reminders.jpg": {
+    "prompt": "Output of the admin Perfect Ads pipeline (meta_ads run cmuktr81t0000vuivxhy3c191), composited 1080x1350 ad, downscaled for the Perfect Ads start screen.",
+    "model": "perfect-ads/composite",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 55900,
+    "alt": "Booking software ad: smiling woman taking a selfie in her workshop, overlay \"Reminders cut no-shows\"",
+    "generatedAt": "2026-09-28T06:50:00.000Z"
+  },
+  "public/images/perfect-ads/booking-ugc-poster.jpg": {
+    "prompt": "Output of the admin Perfect Ads pipeline (meta_ads run cmuknqj6f000hvu64adyvdjv0), frame from the Wan video step, downscaled for the Perfect Ads start screen.",
+    "model": "perfect-ads/wan-video",
+    "size": "720x1280",
+    "outputSize": "270x480",
+    "bytes": 17696,
+    "alt": "First frame of a 9:16 UGC video ad: woman talking to camera",
+    "generatedAt": "2026-09-28T06:50:00.000Z"
+  },
+  "public/images/perfect-ads/reminders-ugc-poster.jpg": {
+    "prompt": "Output of the admin Perfect Ads pipeline (meta_ads run cmuktr81t0000vuivxhy3c191), frame from the Wan video step, downscaled for the Perfect Ads start screen.",
+    "model": "perfect-ads/wan-video",
+    "size": "720x1280",
+    "outputSize": "270x480",
+    "bytes": 17152,
+    "alt": "First frame of a 9:16 UGC video ad: man talking to camera in a workshop",
+    "generatedAt": "2026-09-28T06:50:00.000Z"
   }
 }

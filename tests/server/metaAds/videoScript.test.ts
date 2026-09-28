@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { composeVideoPrompt, enforceBeats, placeOnly, wordBudget } from '../../../src/server/metaAds/video/script';
+import { composeVideoPrompt, enforceBeats, placeOnly, spokenDurations, wordBudget } from '../../../src/server/metaAds/video/script';
 
 const FACTS = 'Join 45,000+ resellers. Buyer protection on every order. Get up to 50% off.';
 
@@ -65,5 +65,22 @@ describe('placeOnly', () => {
   it('keeps only the place when the model describes the filming', () => {
     expect(placeOnly('filmed on a smartphone in her service workshop office, holding the phone')).toBe('her service workshop office, holding the phone');
     expect(placeOnly('a small garage workshop')).toBe('a small garage workshop');
+  });
+});
+
+describe('spokenDurations', () => {
+  it('spells out abbreviated durations so the voice says them as words', () => {
+    expect(spokenDurations('SMS reminders at 24h and 1h.')).toBe('SMS reminders at 24 hours and 1 hour.');
+    expect(spokenDurations('Ready in 30min, 1 hr or 2 hrs.')).toBe('Ready in 30 minutes, 1 hour or 2 hours.');
+    expect(spokenDurations('Takes 10 secs. Ships in 2d. Lasts 3 wks.')).toBe('Takes 10 seconds. Ships in 2 days. Lasts 3 weeks.');
+  });
+
+  it('leaves other numbers alone', () => {
+    expect(spokenDurations('Open 24/7, since the 90s, at 6am, 50% off.')).toBe('Open 24/7, since the 90s, at 6am, 50% off.');
+  });
+
+  it('is applied to the beats before the word budget', () => {
+    const { beats } = enforceBeats([{ say: 'Stop no-shows.' }, { say: 'SMS reminders at 24h and 1h.' }, { say: 'Tap Learn more.' }], 10, 'Reminders at 24 hours and 1 hour.');
+    expect(beats[1]?.say).toBe('SMS reminders at 24 hours and 1 hour.');
   });
 });

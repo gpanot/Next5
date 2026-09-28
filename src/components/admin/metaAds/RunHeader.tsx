@@ -1,6 +1,6 @@
 'use client';
 
-import { formatUsd, type MetaAdRunDto } from '../../../types/admin/metaAds';
+import type { MetaAdRunDto } from '../../../types/admin/metaAds';
 import { GetMoreButton } from './GetMoreButton';
 import { elapsedMs, formatElapsed } from './StepNav';
 
@@ -26,7 +26,7 @@ const headerCopy = (run: MetaAdRunDto): Copy => {
     case 'FAILED':
       return { tag: 'Stopped', title: `Step ${run.failedStep ?? '?'} failed`, subtitle: 'Earlier steps are saved. Fix the cause, then resume below.' };
     case 'COMPLETED':
-      return { tag: 'Ready to ship', title: `${readyLabel(run.ads.filter((a) => a.status === 'ready').length)} ready for ${brand}`, subtitle: `Researched, written and designed in ${formatElapsed(elapsedMs(run, Date.now()))} for ${formatUsd(run.totalCostMicros)}.` };
+      return { tag: 'Ready to ship', title: `${readyLabel(run.ads.filter((a) => a.status === 'ready').length)} ready for ${brand}`, subtitle: `Researched, written and designed in ${formatElapsed(elapsedMs(run, Date.now()))}.` };
   }
 };
 

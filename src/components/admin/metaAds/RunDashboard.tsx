@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { currentStep } from '../../../types/admin/metaAds';
 import { AdGrid } from './AdGrid';
 import { AdInspector } from './AdInspector';
@@ -28,21 +28,31 @@ function DashboardSkeleton() {
   );
 }
 
+/** Page top bar during a run: back link and step progress on one row, pinned while the page scrolls.
+ *  Negative margins cancel the parent's padding so the bar spans the full width. */
+function RunTopBar({ onBack, children }: { onBack: () => void; children?: ReactNode }) {
+  return (
+    <div className="sticky top-0 z-30 -mx-4 -mt-4 mb-6 border-b border-line/60 bg-white/80 backdrop-blur-md md:-mx-8 md:-mt-8 md:mb-8 dark:border-zinc-800/60 dark:bg-zinc-950/80">
+      <div className="mx-auto flex min-h-16 max-w-[1500px] items-center gap-3 px-4 py-2 md:gap-6 md:px-8">
+        <button onClick={onBack} aria-label="New run" className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-full text-sm font-medium text-muted transition hover:text-ink dark:text-zinc-400 dark:hover:text-zinc-100">
+          <span aria-hidden>←</span>
+          <span className="hidden sm:inline">New run</span>
+        </button>
+        <div className="min-w-0 flex-1">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 export function RunDashboard({ token, runId, onBack, onRun }: Props) {
   const { run, error, refresh } = useMetaAdRun(token, runId);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const onIndex = useCallback((index: number | null) => setOpenIndex(index), []);
 
-  const back = (
-    <button onClick={onBack} className="mb-4 min-h-10 text-sm text-muted transition hover:text-ink dark:hover:text-zinc-100">
-      ← New run
-    </button>
-  );
-
   if (!run) {
     return (
       <div>
-        {back}
+        <RunTopBar onBack={onBack} />
         {error ? <p className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error}</p> : <DashboardSkeleton />}
       </div>
     );
@@ -55,19 +65,24 @@ export function RunDashboard({ token, runId, onBack, onRun }: Props) {
 
   return (
     <div className="mx-auto max-w-[1500px]">
-      {back}
-      <StepNav run={run} />
-      <div className="mt-6 grid gap-6 lg:grid-cols-[320px_1fr] lg:gap-8">
+      <RunTopBar onBack={onBack}>
+        <StepNav run={run} />
+      </RunTopBar>
+      <div className="grid gap-6 lg:grid-cols-[320px_1fr] lg:gap-8">
         <aside className="order-2 flex flex-col gap-4 lg:order-1">
           <BrandCard url={run.url} profile={run.profile} />
           <AgentLog run={run} />
         </aside>
-        <section className="order-1 flex min-w-0 flex-col gap-6 lg:order-2">
+        <section className="order-1 flex min-w-0 flex-col gap-8 lg:order-2">
           <RunHeader token={token} run={run} onDownloadAll={() => void downloadRun(run)} onRun={onRun} />
           <CompetitorStrip research={run.competitors} insights={run.competitors?.patterns ?? []} loading={step === 2} compact={step >= 3 && !failedEarly} scores={scores} />
-          <HormoziPanel hormozi={run.hormozi} competitors={run.competitors} loading={step === 3 && !failedEarly} compact={step >= 5 && !failedEarly} />
           <AdGrid ads={run.ads} count={run.adCount} onOpen={setOpenIndex} />
-          <PipelineInspector token={token} run={run} onResumed={refresh} />
+          {/* Internal steps: kept below the ads so the page leads with the result */}
+          <div className="flex flex-col gap-3 border-t border-line pt-6 dark:border-zinc-800">
+            <p className="text-[11px] font-semibold tracking-widest text-muted uppercase dark:text-zinc-500">Behind the scenes</p>
+            <HormoziPanel hormozi={run.hormozi} competitors={run.competitors} loading={step === 3 && !failedEarly} compact={step >= 5 && !failedEarly} />
+            <PipelineInspector token={token} run={run} onResumed={refresh} />
+          </div>
         </section>
       </div>
       {openIndex !== null && <AdInspector token={token} run={run} index={openIndex} onIndex={onIndex} onChanged={refresh} />}

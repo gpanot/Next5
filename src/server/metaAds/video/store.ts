@@ -18,6 +18,7 @@ const toDto = async (v: MetaAdVideo): Promise<MetaAdVideoDto> => ({
   videoUrl: v.videoKey ? await presignObject(v.videoKey) : null,
   costMicros: v.costMicros,
   error: v.error,
+  variationOfId: v.variationOfId,
   createdAt: v.createdAt.toISOString(),
 });
 
@@ -26,6 +27,6 @@ export const listAdVideos = async (runId: string, adId: string): Promise<MetaAdV
   const where = { runId, adId };
   const filming = await prisma.metaAdVideo.findMany({ where: { ...where, status: 'video' } });
   await Promise.all(filming.map((v) => advanceVideo(v).catch((err: unknown) => console.warn(`[meta-ads] video ${v.id} check failed:`, err))));
-  const videos = await prisma.metaAdVideo.findMany({ where, orderBy: { createdAt: 'desc' }, take: 10 });
+  const videos = await prisma.metaAdVideo.findMany({ where, orderBy: { createdAt: 'desc' }, take: 40 });
   return Promise.all(videos.map(toDto));
 };

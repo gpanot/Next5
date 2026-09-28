@@ -2009,30 +2009,30 @@ model StudioResearchCache {
 /// One "500 Meta Ads" admin run: website URL in, 15 composited 4:5 Meta ads out.
 /// Each step stores its raw output so a run can be inspected and resumed from any step.
 model MetaAdRun {
-  id               String    @id @default(cuid())
-  url              String
+  id           String    @id @default(cuid())
+  url          String
   /// How many ads step 3 writes: 15 by default, 1 / 2 / 5 for demo and test runs
-  adCount          Int       @default(15) @map("ad_count")
+  adCount      Int       @default(15) @map("ad_count")
   /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'COMPLETED' | 'FAILED'
-  status           String    @default("STEP_1_RUNNING")
+  status       String    @default("STEP_1_RUNNING")
   /// Step 1: Exa page content + company profile + CSS palette
-  profile          Json?
+  profile      Json?
   /// Step 2: competitor Meta Ad Library ads (treg), relevance-filtered, + patterns
-  competitors      Json?
+  competitors  Json?
   /// Step 3: rubric ratings, verified brand levers, Hormozi picks and playbook
-  hormoziPicks     Json?     @map("hormozi_picks")
+  hormoziPicks Json?     @map("hormozi_picks")
   /// Step 4: ad copy built from the playbook
-  copyPlan         Json?     @map("copy_plan")
+  copyPlan     Json?     @map("copy_plan")
   /// Wall-clock ms per step, e.g. {"1": 5200}
-  stepTimings      Json      @default("{}") @map("step_timings")
+  stepTimings  Json      @default("{}") @map("step_timings")
   /// Cost per step in micro-USD with line items
-  stepCosts        Json      @default("{}") @map("step_costs")
-  failedStep       Int?      @map("failed_step")
-  error            String?
-  startedAt        DateTime  @default(now()) @map("started_at")
-  finishedAt       DateTime? @map("finished_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
+  stepCosts    Json      @default("{}") @map("step_costs")
+  failedStep   Int?      @map("failed_step")
+  error        String?
+  startedAt    DateTime  @default(now()) @map("started_at")
+  finishedAt   DateTime? @map("finished_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
 
   ads    MetaAd[]
   videos MetaAdVideo[]
@@ -2076,30 +2076,35 @@ model MetaAd {
 
 /// A 9:16 video version of one ad: Hormozi script → UGC avatar → Wan 3.0 video with the avatar as character reference.
 model MetaAdVideo {
-  id           String   @id @default(cuid())
-  adId         String   @map("ad_id")
-  runId        String   @map("run_id")
+  id            String   @id @default(cuid())
+  adId          String   @map("ad_id")
+  runId         String   @map("run_id")
   /// 5 | 10 | 15 seconds
-  duration     Int
+  duration      Int
   /// 'scripting' | 'avatar' | 'video' | 'ready' | 'failed'
-  status       String   @default("scripting")
+  status        String   @default("scripting")
   /// Persona, timed spoken lines, why it follows the Hormozi pick
-  script       Json?
-  avatarPrompt String?  @map("avatar_prompt")
-  avatarKey    String?  @map("avatar_key")
-  videoPrompt  String?  @map("video_prompt")
+  script        Json?
+  avatarPrompt  String?  @map("avatar_prompt")
+  avatarKey     String?  @map("avatar_key")
+  videoPrompt   String?  @map("video_prompt")
   /// reAPI Wan 3.0 task, polled until the video is stored
-  videoTaskId  String?  @map("video_task_id")
-  videoKey     String?  @map("video_key")
-  costMicros   Int      @default(0) @map("cost_micros")
-  error        String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  videoTaskId   String?  @map("video_task_id")
+  videoKey      String?  @map("video_key")
+  costMicros    Int      @default(0) @map("cost_micros")
+  error         String?
+  /// Set on a variation: the first video of its version (same avatar, script and duration, re-filmed)
+  variationOfId String?  @map("variation_of_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  ad  MetaAd    @relation(fields: [adId], references: [id], onDelete: Cascade)
-  run MetaAdRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  ad          MetaAd        @relation(fields: [adId], references: [id], onDelete: Cascade)
+  run         MetaAdRun     @relation(fields: [runId], references: [id], onDelete: Cascade)
+  variationOf MetaAdVideo?  @relation("MetaAdVideoVariations", fields: [variationOfId], references: [id], onDelete: Cascade)
+  variations  MetaAdVideo[] @relation("MetaAdVideoVariations")
 
   @@index([adId, createdAt(sort: Desc)])
   @@index([runId])
+  @@index([variationOfId])
   @@map("meta_ad_videos")
 }

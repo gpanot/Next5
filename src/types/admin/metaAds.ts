@@ -263,6 +263,8 @@ export type MetaAdVideoDto = {
   videoUrl: string | null;
   costMicros: number;
   error: string | null;
+  /** Set on a variation: the first video of its version (same avatar, script and duration). */
+  variationOfId: string | null;
   createdAt: string;
 };
 
