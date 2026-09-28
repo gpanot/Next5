@@ -242,7 +242,8 @@ export type VideoBeat = { from: number; to: number; say: string; action: string 
 
 /** Video script checkpoint: who speaks, what they say second by second, and which pick it follows. */
 export type VideoScript = {
-  persona: { gender: string; age: number; ethnicity: string; look: string; setting: string };
+  /** `hair` is missing on scripts written before it was added. */
+  persona: { gender: string; age: number; ethnicity: string; hair?: string; look: string; setting: string };
   beats: VideoBeat[];
   /** Spoken words, counted against the duration's budget (~2.3 words per second). */
   wordCount: number;
@@ -271,6 +272,12 @@ export type MetaAdVideoDto = {
 export type CostItem = { label: string; usdMicros: number };
 export type StepCost = { usdMicros: number; items: CostItem[] };
 
+/** Hook formats from Alex Hormozi's $100M Leads ("the hook": ways to call out the audience). */
+export type HookFormat = 'label' | 'yes_question' | 'open_question' | 'conditional' | 'command' | 'statement' | 'exclamation' | 'list' | 'narrative';
+
+/** One testable hook for the image overlay: a proven template, filled for this brand. `original` is the ad's first hook. */
+export type AdHook = { id: string; format: HookFormat | 'original'; template: string; text: string };
+
 export type MetaAdDto = AdCopy & {
   id: string;
   position: number;
@@ -278,6 +285,8 @@ export type MetaAdDto = AdCopy & {
   rawImageUrl: string | null;
   finalUrl: string | null;
   error: string | null;
+  /** Null until hooks are generated for this ad. */
+  hooks: AdHook[] | null;
 };
 
 export type MetaAdRunDto = {

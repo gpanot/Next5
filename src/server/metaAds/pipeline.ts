@@ -124,6 +124,17 @@ export const regenerateAdImage = async (runId: string, adId: string): Promise<vo
   }
 };
 
+/** Re-composites one ad with its current overlay text (a new hook was picked); same image. Its cost is added to step 6. Never throws. */
+export const recompositeAd = async (runId: string, adId: string): Promise<void> => {
+  const meter = createMeter();
+  try {
+    const [run, ad] = await Promise.all([loadRun(runId), prisma.metaAd.findFirstOrThrow({ where: { id: adId, runId } })]);
+    await designAd(ad, checkpoint<BrandProfile>(run.profile, 1), meter, 'composite');
+  } finally {
+    await addStepCost(runId, 6, meter.summary()).catch((err: unknown) => console.error('[meta-ads] hook cost not saved:', err));
+  }
+};
+
 const STEPS: Record<PipelineStep, StepFn> = { 1: profileStep, 2: competitorStep, 3: hormoziStep, 4: copyStep, 5: designStep(5), 6: designStep(6) };
 
 /**

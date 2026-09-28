@@ -2059,6 +2059,8 @@ model MetaAd {
   inspiredByAdId String?  @map("inspired_by_ad_id")
   /// Step 4 output: reAPI image URL
   rawImageUrl    String?  @map("raw_image_url")
+  /// Testable overlay hooks (AdHook[]): proven templates filled for the brand; picking one re-composites the image
+  hooks          Json?
   /// Step 5 output: object-store key of the composited 1080x1350 PNG
   finalAssetKey  String?  @map("final_asset_key")
   /// 'pending' | 'imaging' | 'compositing' | 'ready' | 'failed'

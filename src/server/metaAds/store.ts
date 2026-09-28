@@ -2,6 +2,7 @@
 
 import type { MetaAd, MetaAdRun } from '@prisma/client';
 import type {
+  AdHook,
   BrandProfile,
   CompetitorResearch,
   CopyPlan,
@@ -36,6 +37,7 @@ const toAdDto = async (ad: MetaAd): Promise<MetaAdDto> => ({
   rawImageUrl: ad.rawImageUrl,
   finalUrl: ad.finalAssetKey ? await presignObject(ad.finalAssetKey) : null,
   error: ad.error,
+  hooks: (ad.hooks as AdHook[] | null) ?? null,
 });
 
 type RunWithAds = MetaAdRun & { ads: MetaAd[]; videos: { costMicros: number }[] };

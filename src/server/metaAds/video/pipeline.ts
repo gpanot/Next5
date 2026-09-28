@@ -51,13 +51,23 @@ export const advanceVideo = async (video: MetaAdVideo): Promise<void> => {
 type VideoWithAd = MetaAdVideo & { ad: MetaAd };
 type Meter = ReturnType<typeof createMeter>;
 
+/** Personas of this ad's earlier versions (not variations), oldest first, so a new version casts someone else. */
+const earlierPersonas = async (video: VideoWithAd): Promise<VideoScript['persona'][]> => {
+  const rows = await prisma.metaAdVideo.findMany({
+    where: { adId: video.adId, variationOfId: null, id: { not: video.id }, createdAt: { lt: video.createdAt } },
+    orderBy: { createdAt: 'asc' },
+    select: { script: true },
+  });
+  return rows.flatMap((r) => ((r.script as unknown as VideoScript | null)?.persona ? [(r.script as unknown as VideoScript).persona] : []));
+};
+
 /** Steps 1-2: script, then avatar. A variation already has both (copied from its version), so this is skipped. */
 const scriptAndAvatar = async (video: VideoWithAd, meter: Meter): Promise<{ script: VideoScript; avatarKey: string }> => {
   if (video.script && video.avatarKey) return { script: video.script as unknown as VideoScript, avatarKey: video.avatarKey };
   const run = await getRunDto(video.runId);
   if (!run?.profile) throw new Error('The run has no brand profile');
-  const script = await writeVideoScript(run.profile as BrandProfile, run, video.ad, video.duration, meter);
-  const prompt = avatarPrompt(script.persona);
+  const script = await writeVideoScript(run.profile as BrandProfile, run, video.ad, video.duration, meter, await earlierPersonas(video));
+  const prompt = avatarPrompt(script.persona, video.id);
   await prisma.metaAdVideo.update({ where: { id: video.id }, data: { status: 'avatar', script, avatarPrompt: prompt, costMicros: meter.summary().usdMicros } });
   return { script, avatarKey: await generateAvatar(prompt, avatarKey(video.runId, video.id), meter) };
 };

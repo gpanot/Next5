@@ -5,6 +5,7 @@ import { adminFetch } from '../business/useAdminApi';
 import { isTerminalStatus, type CompetitorAd, type MetaAdDto, type MetaAdRunDto } from '../../../types/admin/metaAds';
 import { CopyRow } from './CopyRow';
 import { FeedPreview } from './FeedPreview';
+import { HookPicker } from './HookPicker';
 import { downloadAd } from './downloads';
 import { VideoAdTab } from './VideoAdTab';
 
@@ -30,7 +31,9 @@ function RoundButton({ label, onClick, disabled, children }: { label: string; on
   );
 }
 
-function Details({ ad, source }: { ad: MetaAdDto; source: CompetitorAd | undefined }) {
+type DetailsProps = { ad: MetaAdDto; source: CompetitorAd | undefined; hooks: ReactNode };
+
+function Details({ ad, source, hooks }: DetailsProps) {
   return (
     <div className="flex-1 space-y-6">
       <div>
@@ -51,6 +54,7 @@ function Details({ ad, source }: { ad: MetaAdDto; source: CompetitorAd | undefin
           </p>
         )}
       </div>
+      {hooks}
       <Section label="Primary text" hint="Above the image · 125 chars visible">
         <CopyRow index={1} text={ad.primaryText} limit={125} primary />
         {ad.primaryTextAlt && <CopyRow index={2} text={ad.primaryTextAlt} limit={125} primary={false} />}
@@ -81,14 +85,14 @@ function RegenerateButton({ token, run, ad, onChanged }: { token: string; run: M
     }
   };
   return (
-    <div className="flex flex-col items-end">
+    <div className="flex flex-col">
       <button
         onClick={() => void regenerate()}
         disabled={busy}
-        className="flex min-h-10 items-center gap-2 rounded-full border border-line px-4 text-xs font-semibold transition hover:bg-zinc-50 disabled:opacity-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
+        className="flex min-h-11 items-center justify-center gap-2 rounded-full border border-line bg-white px-4 text-sm font-semibold transition hover:bg-zinc-50 active:scale-95 disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
       >
         {busy && <span className="h-3 w-3 animate-spin rounded-full border-2 border-zinc-300 border-t-ink dark:border-zinc-600 dark:border-t-zinc-100" />}
-        {busy ? 'Regenerating…' : '↻ Regenerate image'}
+        {busy ? 'Regenerating…' : '↻ Regenerate'}
       </button>
       {error && <span className="mt-1 text-[10px] text-red-600">{error}</span>}
     </div>
@@ -142,23 +146,27 @@ export function AdInspector({ token, run, index, onIndex, onChanged }: Props) {
             <RoundButton label="Next ad" onClick={() => onIndex(index + 1)} disabled={index === total - 1}>→</RoundButton>
             <span className="ml-1 text-xs font-medium text-muted">{String(index + 1).padStart(2, '0')} / {total}</span>
           </div>
-          <div className="flex items-center gap-2">
-            {tab === 'image' && isTerminalStatus(run.status) && <RegenerateButton token={token} run={run} ad={ad} onChanged={onChanged} />}
-            {tab === 'image' && ad.finalUrl && ad.status === 'ready' && (
-              <button onClick={() => void downloadAd(ad, brandName)} className="min-h-10 rounded-full border border-line px-4 text-xs font-semibold transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800">
-                Download 4:5
-              </button>
-            )}
-            <RoundButton label="Close ad" onClick={() => onIndex(null)}>✕</RoundButton>
-          </div>
+          <RoundButton label="Close ad" onClick={() => onIndex(null)}>✕</RoundButton>
         </div>
         <Tabs tab={tab} onTab={setTab} />
         {tab === 'image' ? (
           <div className="flex flex-1 flex-col gap-8 overflow-y-auto bg-zinc-50 p-4 md:flex-row md:p-8 dark:bg-zinc-900/40">
-            <div className="w-full shrink-0 md:w-[340px]">
+            <div className="flex w-full shrink-0 flex-col gap-3 md:w-[340px]">
               <FeedPreview ad={ad} brandName={brandName} domain={run.profile?.domain ?? ''} />
+              <div className="grid grid-cols-2 gap-2">
+                {ad.finalUrl && ad.status === 'ready' && (
+                  <button onClick={() => void downloadAd(ad, brandName)} className="min-h-11 rounded-full bg-ink px-4 text-sm font-semibold text-white transition active:scale-95 dark:bg-zinc-100 dark:text-zinc-900">
+                    Download 4:5
+                  </button>
+                )}
+                {isTerminalStatus(run.status) && <RegenerateButton token={token} run={run} ad={ad} onChanged={onChanged} />}
+              </div>
             </div>
-            <Details ad={ad} source={[...(run.competitors?.ads ?? []), ...(run.competitors?.ownAds ?? [])].find((c) => c.id === ad.inspiredByAdId)} />
+            <Details
+              ad={ad}
+              source={[...(run.competitors?.ads ?? []), ...(run.competitors?.ownAds ?? [])].find((c) => c.id === ad.inspiredByAdId)}
+              hooks={<HookPicker key={ad.id} token={token} runId={run.id} ad={ad} canEdit={isTerminalStatus(run.status)} onChanged={onChanged} />}
+            />
           </div>
         ) : (
           <div className="flex-1 overflow-y-auto bg-zinc-50 p-4 md:p-8 dark:bg-zinc-900/40">

@@ -7,6 +7,7 @@ import { CRITERION_LABELS, type BrandLever, type BrandProfile, type CompetitorAd
 import { unsupportedNumbers } from '../claims';
 import type { CostMeter } from '../cost';
 import { metaAdsJson } from '../llm';
+import { applyCast, castBrief, nextCast, type Persona } from './cast';
 import { clip } from '../text';
 
 /** Natural UGC speech is about 2.3 words per second; more gets rushed or cut off by the model. */
@@ -30,12 +31,12 @@ Write "1 hour", "24 hours", "30 minutes", "10 seconds", "2 days", "3 weeks" — 
 Timing: beats cover 0 to DURATION seconds with no gaps. Spoken words in total: at most WORD_BUDGET.
 "action": what the person does on camera in that beat (expression, gesture with the free hand). One hand holds the phone that films them,
 so they never hold or show a second phone. No on-screen text.
-Return JSON: {"persona": {"gender", "age": number, "ethnicity", "look": outfit in one plain sentence, no logos, "setting": the place only, as a noun phrase, e.g. "a small garage workshop"},
+Return JSON: {"persona": {"gender", "age": number, "ethnicity", "hair": length, texture, color and style in a few words, "look": outfit in one plain sentence, no logos, "setting": the place only, as a noun phrase, e.g. "a small garage workshop"},
 "beats": [{"from": number, "to": number, "say": string, "action": string}], "why": one or two sentences tying the script to the winning ad and play}`;
 
 const describeLever = (l: BrandLever) => `[${CRITERION_LABELS[l.criterion]}] ${l.claim} (site: "${l.quote}")`;
 
-const userPrompt = (profile: BrandProfile, run: MetaAdRunDto, ad: AdForVideo, source: CompetitorAd | undefined, duration: number) => {
+const userPrompt = (profile: BrandProfile, run: MetaAdRunDto, ad: AdForVideo, source: CompetitorAd | undefined, duration: number, cast: string) => {
   const play = run.hormozi?.plays.find((p) => p.name === ad.play);
   const pick = run.hormozi?.picks.find((p) => p.adId === ad.inspiredByAdId);
   return `DURATION: ${duration} seconds. WORD_BUDGET: ${wordBudget(duration)} spoken words.
@@ -46,11 +47,11 @@ PLAY: ${play ? `${play.name}: ${play.structure}` : ad.play}
 WINNING AD IT COMES FROM: ${source ? `${source.pageName} — ${clip(source.body, 400)}` : 'n/a'}${pick?.why ? `\nWHY THAT AD WINS: ${pick.why}` : ''}${pick?.fix ? `\nHORMOZI'S FIX: ${pick.fix}` : ''}
 COMPETITOR PATTERNS: ${run.competitors?.patterns.join(' | ') ?? 'n/a'}
 BRAND FACTS (the only claims allowed):
-${(run.hormozi?.levers ?? []).map(describeLever).join('\n')}`;
+${(run.hormozi?.levers ?? []).map(describeLever).join('\n')}${cast}`;
 };
 
 type RawScript = {
-  persona?: Partial<Record<'gender' | 'ethnicity' | 'look' | 'setting', unknown>> & { age?: unknown };
+  persona?: Partial<Record<'gender' | 'ethnicity' | 'hair' | 'look' | 'setting', unknown>> & { age?: unknown };
   beats?: { from?: unknown; to?: unknown; say?: unknown; action?: unknown }[];
   why?: unknown;
 };
@@ -124,33 +125,35 @@ export const composeVideoPrompt = (script: VideoScript): string =>
 
 const toScript = (raw: RawScript, beats: VideoBeat[], duration: number): VideoScript | null => {
   const p = raw.persona ?? {};
-  const persona = { gender: str(p.gender), age: Math.round(Number(p.age) || 0), ethnicity: str(p.ethnicity), look: str(p.look), setting: str(p.setting) };
+  const persona = { gender: str(p.gender), age: Math.round(Number(p.age) || 0), ethnicity: str(p.ethnicity), hair: str(p.hair) || undefined, look: str(p.look), setting: str(p.setting) };
   if (!persona.gender || !persona.age || !persona.look || !persona.setting) return null;
   return { persona, beats, wordCount: beats.reduce((n, b) => n + words(b.say), 0), wordBudget: wordBudget(duration), why: str(raw.why) };
 };
 
-/** Writes the script, with one retry when it breaks a rule the code cannot repair. */
+/** Writes the script, with one retry when it breaks a rule the code cannot repair. `previous`: personas of this ad's earlier versions, oldest first. */
 export const writeVideoScript = async (
   profile: BrandProfile,
   run: MetaAdRunDto,
   ad: AdForVideo,
   duration: number,
   meter: CostMeter,
+  previous: Persona[] = [],
 ): Promise<VideoScript> => {
   const source = [...(run.competitors?.ads ?? []), ...(run.competitors?.ownAds ?? [])].find((c) => c.id === ad.inspiredByAdId);
   const facts = [...(run.hormozi?.levers ?? []).flatMap((l) => [l.claim, l.quote]), profile.pageExcerpt].join('\n');
+  const cast = nextCast(previous);
   let problem = 'no answer';
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     const raw = await metaAdsJson<RawScript>(
       [
         { role: 'system', content: SYSTEM },
-        { role: 'user', content: `${userPrompt(profile, run, ad, source, duration)}${attempt > 1 ? `\n\nYOUR LAST SCRIPT WAS REJECTED: ${problem}. Fix that.` : ''}` },
+        { role: 'user', content: `${userPrompt(profile, run, ad, source, duration, castBrief(cast, previous))}${attempt > 1 ? `\n\nYOUR LAST SCRIPT WAS REJECTED: ${problem}. Fix that.` : ''}` },
       ],
       { maxTokens: 6_000, reasoningEffort: 'medium', meter, label: 'OpenAI video script' },
     );
     const checked = enforceBeats(raw.beats, duration, facts);
     const script = checked.problem ? null : toScript(raw, checked.beats, duration);
-    if (script) return script;
+    if (script) return { ...script, persona: applyCast(script.persona, cast) };
     problem = checked.problem ?? 'persona is missing gender, age, look or setting';
   }
   throw new Error(`Video script rejected twice: ${problem}`);
