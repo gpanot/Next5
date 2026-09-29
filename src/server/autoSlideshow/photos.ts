@@ -1,5 +1,5 @@
 // server-only — never import from a 'use client' file.
-// Step 5: the run's shared mood photos, on GPT Image 2 (reAPI stable channel, low quality, 1K), 4:5. Each photo is copied
+// Step 5: the run's shared mood photos, on Grok Imagine (reAPI, 2K, 3:4 cropped to 4:5). Each photo is copied
 // to the object store right away: reAPI result links expire, and step 6 renders from our copy.
 
 import sharp from 'sharp';
@@ -11,7 +11,9 @@ import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
 import { putObject } from '../storage/objectStore';
 
-export const PHOTO_MODEL: ReapiModelId = 'reapi-gpt-image-2-low';
+export const PHOTO_MODEL: ReapiModelId = 'reapi-grok-imagine';
+/** Grok Imagine has no 4:5; 3:4 is the closest, and the 1080x1350 crop trims a little top and bottom. */
+const PHOTO_RATIO = '3:4';
 /** reAPI allows 10 tasks in flight per account; 5 leaves room for Perfect Ads and retries. */
 const CONCURRENCY = 5;
 const FIRST_POLL_MS = 8_000;
@@ -22,7 +24,7 @@ const BUSY_WAIT_MS = 15_000;
 
 // Keep this bright. "Cinematic light" made GPT Image 2 return dark, moody photos (mean luma 85-140 of 255); this wording
 // gave 164-173 on the same scenes (A/B test 2026-09-29). White slide text still reads thanks to its outline.
-const STYLE = 'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, shallow depth of field, vertical 4:5 framing with calm space in the upper half. No text, no letters, no logos, no watermarks, no phone screens.';
+const STYLE = 'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, shallow depth of field, vertical framing with calm space in the upper half. No text, no letters, no logos, no watermarks, no phone screens.';
 
 export const photoKey = (runId: string, index: number) => `admin/auto-slideshow/${runId}/photos/${index}.jpg`;
 
@@ -31,7 +33,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const submit = async (prompt: string) => {
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await submitReapiImage({ model: PHOTO_MODEL, prompt, imageUrls: [], ratio: '4:5', highRes: false });
+      return await submitReapiImage({ model: PHOTO_MODEL, prompt, imageUrls: [], ratio: PHOTO_RATIO, highRes: false });
     } catch (err) {
       const busy = err instanceof Error && err.message.includes('(429)');
       if (!busy || attempt >= SUBMIT_ATTEMPTS) throw err;

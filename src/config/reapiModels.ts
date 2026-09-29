@@ -8,6 +8,7 @@ export type ReapiModelId =
   | 'reapi-nano-banana-2-lite'
   | 'reapi-gpt-image-2.5'
   | 'reapi-gpt-image-2-low'
+  | 'reapi-grok-imagine'
   | 'reapi-nano-banana-2'
   | 'gemini-3-pro-image'
   | 'reapi-fallback-gpt-image-2.5'
@@ -82,6 +83,20 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     priceUsdMicros: { '1k': 5_000, '2k': 5_000 },
     // reAPI wants lowercase "1k" here; it overrides the ratio sizing's "1K".
     extraBody: { resolution: '1k', quality: 'low', background: 'auto', moderation: 'auto' },
+  },
+  'reapi-grok-imagine': {
+    id: 'reapi-grok-imagine',
+    // xAI Grok Imagine: Auto Slideshow backgrounds. No 4:5 ratio (1:1, 3:4, 2:3, 9:16…), so we ask 3:4 and crop.
+    apiModel: 'grok-imagine',
+    label: 'Grok Imagine',
+    note: 'Cheap, bright photos. Backgrounds under text.',
+    maxImages: 1,
+    sizing: 'aspect_ratio',
+    supports2k: false,
+    // $0.005 flat: "high" bills 5 credits, "standard" 10 (checked on real calls 2026-09-29). 2k costs the same as 1k
+    // and returns 1776x2368, so we always ask 2k.
+    priceUsdMicros: { '1k': 5_000, '2k': 5_000 },
+    extraBody: { quality: 'high', resolution: '2k' },
   },
   'reapi-nano-banana-2': { id: 'reapi-nano-banana-2', ...NANO_BANANA_2 },
   'gemini-3-pro-image': {
