@@ -75,7 +75,7 @@ export function StartScreen({ token, onRun }: Props) {
       <h2 className="text-4xl leading-[0.95] font-extrabold tracking-tight text-ink md:text-6xl dark:text-zinc-100">
         TikTok slideshows
         <br />
-        <span className="text-blue-600 dark:text-blue-400">on autopilot.</span>
+        <span className="text-blue-600 dark:text-blue-400">made from your website.</span>
       </h2>
       <p className="mt-4 text-base text-muted dark:text-zinc-400">Paste a website. Get slideshows built on formats that already win.</p>
       <form onSubmit={(e) => void submit(e)} className="mt-8 flex w-full flex-col gap-2 rounded-2xl border border-line bg-white p-2 shadow-sm sm:flex-row sm:items-center sm:rounded-full dark:border-zinc-800 dark:bg-zinc-900">
@@ -98,6 +98,7 @@ export function StartScreen({ token, onRun }: Props) {
       </form>
       {error && <p className="mt-3 text-sm text-red-600 dark:text-red-400">{error}</p>}
       <p className="mt-4 text-xs text-muted">Uses approved models from Slideshow Knowledge. About 3-5 minutes.</p>
+      <p className="mt-1 text-xs text-muted">You will need to review the posts first as per TikTok Policy.</p>
       <RecentRuns token={token} onOpen={onRun} />
     </div>
   );
