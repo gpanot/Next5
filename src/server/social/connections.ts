@@ -43,7 +43,7 @@ const reconnect = (provider: SocialProvider) =>
   new HttpError(409, 'reconnect_required', `Your ${LABEL[provider]} connection expired. Connect it again in Settings.`);
 
 /** Refreshes the token when it is close to expiring (TikTok: 24 h tokens; Instagram: 60 days). */
-const freshAccessToken = async (conn: SocialConnection): Promise<string> => {
+export const freshAccessToken = async (conn: SocialConnection): Promise<string> => {
   const provider = conn.provider as SocialProvider;
   const accessToken = decryptToken(conn.accessToken);
   const margin = provider === 'tiktok' ? 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;

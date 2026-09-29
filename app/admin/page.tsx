@@ -22,12 +22,14 @@ import { CampaignStudioTab } from '../../src/components/admin/business/CampaignS
 import { HooksTab } from '../../src/components/admin/business/HooksTab';
 import { AssetsLibraryTab } from '../../src/components/admin/business/AssetsLibraryTab';
 import { MetaAdsTab } from '../../src/components/admin/metaAds/MetaAdsTab';
+import { SlideshowKnowledgeTab } from '../../src/components/admin/slideshowKnowledge/SlideshowKnowledgeTab';
+import { AutoSlideshowTab } from '../../src/components/admin/autoSlideshow/AutoSlideshowTab';
 
 type Tab =
   | 'overview' | 'workspaces' | 'payments' | 'promise' | 'qa' | 'models'
   | 'users' | 'bookings' | 'prompts'
   | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces'
-  | 'templates' | 'studio' | 'hooks' | 'meta-ads'
+  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow'
   | 'assets-library';
 
 type NavItem = { id: Tab; label: string; icon: string };
@@ -69,6 +71,8 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { id: 'studio',    label: '🎬 Studio', icon: '' },
       { id: 'hooks',     label: 'Hooks',     icon: '🪝' },
       { id: 'meta-ads',  label: 'Perfect Ads',  icon: '▦' },
+      { id: 'slideshow-knowledge', label: 'Slideshow Knowledge', icon: '◧' },
+      { id: 'auto-slideshow', label: 'Auto Slideshow', icon: '▤' },
     ],
   },
   {
@@ -82,6 +86,8 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
 /** Tabs that also run as a standalone page (opened in a new browser tab). */
 const STANDALONE_ROUTES: Partial<Record<Tab, string>> = {
   'meta-ads': '/admin/perfect-ads',
+  'slideshow-knowledge': '/admin/slideshow-knowledge',
+  'auto-slideshow': '/admin/auto-slideshow',
 };
 
 export default function AdminPage() {
@@ -242,6 +248,8 @@ export default function AdminPage() {
           {tab === 'studio'           && <CampaignStudioTab    token={token} />}
           {tab === 'hooks'            && <HooksTab             token={token} />}
           {tab === 'meta-ads'         && <MetaAdsTab           token={token} />}
+          {tab === 'slideshow-knowledge' && <SlideshowKnowledgeTab token={token} />}
+          {tab === 'auto-slideshow'   && <AutoSlideshowTab     token={token} />}
           {tab === 'assets-library'   && <AssetsLibraryTab     token={token} />}
         </main>
       </div>

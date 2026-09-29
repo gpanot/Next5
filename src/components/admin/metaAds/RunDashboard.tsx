@@ -5,7 +5,7 @@ import { currentStep } from '../../../types/admin/metaAds';
 import { AdGrid } from './AdGrid';
 import { AdInspector } from './AdInspector';
 import { AgentLog } from './AgentLog';
-import { BrandCard } from './BrandCard';
+import { BrandCard } from '../shared/BrandCard';
 import { CompetitorStrip } from './CompetitorStrip';
 import { downloadRun } from './downloads';
 import { HormoziPanel } from './HormoziPanel';

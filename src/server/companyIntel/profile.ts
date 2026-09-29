@@ -1,12 +1,12 @@
 // server-only — never import from a 'use client' file.
 // Step 1: read the site with Exa, then turn the page text into a company profile.
 
-import type { BrandProfile } from '../../types/admin/metaAds';
+import type { BrandProfile } from '../../types/admin/companyIntel';
 import { exaFetch } from '../studio/exa';
-import { EXA_PAGE_MICROS, type CostMeter } from './cost';
-import { metaAdsJson } from './llm';
+import { EXA_PAGE_MICROS, type CostMeter } from '../metaAds/cost';
+import { metaAdsJson } from '../metaAds/llm';
 import { readSiteStyle } from './palette';
-import { clip } from './text';
+import { clip } from '../metaAds/text';
 
 type ExaPage = { url?: string; title?: string; text?: string; image?: string; favicon?: string };
 

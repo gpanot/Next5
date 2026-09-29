@@ -1,3 +1,5 @@
+import type { BrandProfile } from './companyIntel';
+
 /**
  * "Perfect Ads" admin lab — client-safe types shared by the API routes and the admin UI.
  * Pipeline: 1 profile (Exa) → 2 competitor ads (treg) → 3 Hormozi picks → 4 copy (OpenAI) → 5 images (reAPI) → 6 composite.
@@ -18,23 +20,7 @@ export const isAdCount = (value: unknown): value is number =>
   value === META_ADS_PER_RUN || (DEMO_AD_COUNTS as readonly unknown[]).includes(value);
 
 /** Step 1 checkpoint. */
-export type BrandProfile = {
-  brandName: string;
-  domain: string;
-  valueProp: string;
-  audience: string;
-  tone: string;
-  productCategories: string[];
-  /** Plain words to search the Meta Ad Library with (category words, not the brand name). */
-  searchKeywords: string[];
-  /** Hex colors read from the site's CSS (brand colors first). Empty when the site has none. */
-  palette: string[];
-  heroImageUrl: string | null;
-  faviconUrl: string | null;
-  pageTitle: string | null;
-  /** First part of the page text, so later steps can quote real facts. */
-  pageExcerpt: string;
-};
+export type { BrandProfile } from './companyIntel';
 
 /** What the advertiser's own behaviour says about one creative (computed, not judged). */
 export type WinnerEvidence = {

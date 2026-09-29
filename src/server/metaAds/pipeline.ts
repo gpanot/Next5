@@ -13,7 +13,8 @@ import { createMeter, type CostMeter } from './cost';
 import { designAd } from './design';
 import { clearHookAssets, prerenderHooks } from './hookImages';
 import { runHormozi } from './hormozi';
-import { buildProfile } from './profile';
+import { buildProfile } from '../companyIntel/profile';
+import { runPool } from '../pool';
 import { clip } from './text';
 
 const running = (step: PipelineStep): MetaAdRunStatus => `STEP_${step}_RUNNING`;
@@ -72,18 +73,8 @@ const copyStep: StepFn = async (runId, meter) => {
 /** Ads designed at once. reAPI caps an account at 10 tasks in flight; 5 leaves room for regenerates and a second run. */
 const IMAGE_CONCURRENCY = 5;
 
-/** Runs `work` on every item, at most `limit` at a time; each finished item frees a slot for the next. */
-export const runPool = async <T>(items: T[], limit: number, work: (item: T) => Promise<void>): Promise<void> => {
-  let next = 0;
-  const worker = async () => {
-    while (next < items.length) {
-      const item = items[next];
-      next += 1;
-      await work(item);
-    }
-  };
-  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
-};
+/** Kept here for existing callers; lives in ../pool so other pipelines can use it. */
+export { runPool } from '../pool';
 
 /**
  * Step 5 designs every ad that is not ready yet (image, then text per ad), 5 at a time in position order, so the grid

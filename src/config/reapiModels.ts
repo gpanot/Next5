@@ -7,6 +7,7 @@
 export type ReapiModelId =
   | 'reapi-nano-banana-2-lite'
   | 'reapi-gpt-image-2.5'
+  | 'reapi-gpt-image-2-low'
   | 'reapi-nano-banana-2'
   | 'gemini-3-pro-image'
   | 'reapi-fallback-gpt-image-2.5'
@@ -68,6 +69,20 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     priceUsdMicros: { '1k': 15_000, '2k': 15_000 },
   },
   'reapi-gpt-image-2.5': { id: 'reapi-gpt-image-2.5', ...GPT_IMAGE_2_5 },
+  'reapi-gpt-image-2-low': {
+    id: 'reapi-gpt-image-2-low',
+    // Stable (official) channel, low quality: mood backgrounds under text, where detail matters less than price.
+    apiModel: 'gpt-image-2-official',
+    label: 'GPT Image 2 (low)',
+    note: 'Cheapest. Backgrounds under text.',
+    maxImages: 16,
+    sizing: 'ratio',
+    supports2k: false,
+    // $0.005 flat at 1K, low quality. Given by the team 2026-09-29.
+    priceUsdMicros: { '1k': 5_000, '2k': 5_000 },
+    // reAPI wants lowercase "1k" here; it overrides the ratio sizing's "1K".
+    extraBody: { resolution: '1k', quality: 'low', background: 'auto', moderation: 'auto' },
+  },
   'reapi-nano-banana-2': { id: 'reapi-nano-banana-2', ...NANO_BANANA_2 },
   'gemini-3-pro-image': {
     id: 'gemini-3-pro-image',

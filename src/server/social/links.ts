@@ -40,6 +40,18 @@ export const mediaUrlFor = (itemId: string, ttlSec = 24 * 60 * 60): string => {
   return `${appBaseUrl()}/api/media/${Buffer.from(body).toString('base64url')}.${sign(body)}.jpg`;
 };
 
+/**
+ * Public JPEG link for one Auto Slideshow slide, same signed scheme as `mediaUrlFor`. The id carries no dot, because
+ * the signed body is "<id>.<expiry>".
+ */
+export const slideMediaUrl = (slideshowId: string, index: number, ttlSec = 3 * 24 * 60 * 60): string => mediaUrlFor(`slide-${slideshowId}-${index}`, ttlSec);
+
+/** The slideshow and slide a media id points to, or null for a batch item id. */
+export const parseSlideMediaId = (id: string): { slideshowId: string; index: number } | null => {
+  const m = id.match(/^slide-([a-z0-9]+)-(\d+)$/);
+  return m ? { slideshowId: m[1]!, index: Number(m[2]) } : null;
+};
+
 /** The item id a media link points to, or null when it is forged or expired. */
 export const readMediaToken = (token: string): string | null => {
   const [encoded, signature] = token.replace(/\.jpg$/, '').split('.');

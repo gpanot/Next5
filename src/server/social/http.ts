@@ -4,10 +4,14 @@ import { HttpError } from '../http';
 
 type Json = Record<string, unknown>;
 
-/** Calls a provider API and returns its JSON; a provider error becomes a 502 with the provider's own words. */
-export const providerFetch = async (provider: string, url: string, init: RequestInit = {}): Promise<Json> => {
+/**
+ * Calls a provider API and returns its JSON; a provider error becomes a 502 with the provider's own words.
+ * `onRawText` receives the body as sent, for values JSON.parse would damage (64-bit ids).
+ */
+export const providerFetch = async (provider: string, url: string, { onRawText, ...init }: RequestInit & { onRawText?: (text: string) => void } = {}): Promise<Json> => {
   const res = await fetch(url, { ...init, cache: 'no-store' });
   const text = await res.text();
+  onRawText?.(text);
   let body: Json = {};
   try {
     body = text ? (JSON.parse(text) as Json) : {};

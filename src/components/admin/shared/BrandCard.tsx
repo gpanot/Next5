@@ -1,6 +1,6 @@
 'use client';
 
-import type { BrandProfile } from '../../../types/admin/metaAds';
+import type { BrandProfile } from '../../../types/admin/companyIntel';
 
 type Props = { url: string; profile: BrandProfile | null };
 

@@ -7,7 +7,7 @@ import { waitUntil } from '@vercel/functions';
 import { adminRoute, json } from '../../../../../src/server/admin/route';
 import { prisma } from '../../../../../src/lib/db';
 import { runPipeline } from '../../../../../src/server/metaAds/pipeline';
-import { normalizeUrl } from '../../../../../src/server/metaAds/profile';
+import { normalizeUrl } from '../../../../../src/server/companyIntel/profile';
 import { listRuns } from '../../../../../src/server/metaAds/store';
 import { isAdCount, META_ADS_PER_RUN } from '../../../../../src/types/admin/metaAds';
 

@@ -2112,3 +2112,153 @@ model MetaAdVideo {
   @@index([variationOfId])
   @@map("meta_ad_videos")
 }
+
+// ─── Slideshow Knowledge Center ──────────────────────────────────────────────
+// Proven TikTok photo slideshows reduced to reusable models. Migration: 20261023090000_slideshow_knowledge.sql
+
+/// One reusable slideshow structure (hook + meat + CTA patterns). Imported posts that share it are its examples.
+model SlideshowModel {
+  id        String   @id @default(cuid())
+  name      String
+  niches    String[] @default([])
+  /// SlideshowPattern (src/types/admin/slideshowKnowledge.ts)
+  pattern   Json
+  /// 'draft' | 'approved' | 'archived'; only approved models feed generation
+  status    String   @default("draft")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  references     SlideshowReference[]
+  autoSlideshows AutoSlideshow[]
+
+  @@index([status, updatedAt(sort: Desc)])
+  @@map("slideshow_models")
+}
+
+/// One imported TikTok photo post: stats at import, slide images in the object store, slide text read by vision.
+model SlideshowReference {
+  id         String    @id @default(cuid())
+  modelId    String?   @map("model_id")
+  sourceUrl  String    @map("source_url")
+  postId     String    @unique @map("post_id")
+  creator    String    @default("")
+  caption    String    @default("")
+  views      BigInt    @default(0)
+  likes      BigInt    @default(0)
+  saves      BigInt    @default(0)
+  shares     BigInt    @default(0)
+  comments   BigInt    @default(0)
+  postedAt   DateTime? @map("posted_at")
+  /// ReferenceSlide[]
+  slides     Json      @default("[]")
+  /// 'pending' | 'reading' | 'ready' | 'failed'
+  status     String    @default("pending")
+  error      String?
+  costMicros Int       @default(0) @map("cost_micros")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  model SlideshowModel? @relation(fields: [modelId], references: [id], onDelete: SetNull)
+
+  @@index([modelId])
+  @@index([createdAt(sort: Desc)])
+  @@map("slideshow_references")
+}
+
+// ─── Auto Slideshow ──────────────────────────────────────────────────────────
+// Website URL → 1-20 TikTok photo slideshows on proven models. Migration: 20261024090000_auto_slideshow.sql
+
+/// One run: each step saves its output so it can be inspected and resumed.
+model AutoSlideshowRun {
+  id          String    @id @default(cuid())
+  url         String
+  count       Int
+  /// Workspace whose TikTok account will post; null for admin test runs
+  workspaceId String?   @map("workspace_id")
+  /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'COMPLETED' | 'FAILED'
+  status      String    @default("STEP_1_RUNNING")
+  /// Step 1: BrandProfile
+  profile     Json?
+  /// Step 2: BrandLever[]
+  levers      Json?
+  /// Step 3: AutoPlan
+  plan        Json?
+  /// Step 5: AutoPhoto[]
+  photos      Json?
+  stepTimings Json      @default("{}") @map("step_timings")
+  stepCosts   Json      @default("{}") @map("step_costs")
+  failedStep  Int?      @map("failed_step")
+  error       String?
+  startedAt   DateTime  @default(now()) @map("started_at")
+  finishedAt  DateTime? @map("finished_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  slideshows AutoSlideshow[]
+  posts      AutoSlideshowPost[]
+
+  @@index([createdAt(sort: Desc)])
+  @@map("auto_slideshow_runs")
+}
+
+/// One generated slideshow: step 4 writes its slides, step 6 renders them.
+model AutoSlideshow {
+  id          String   @id @default(cuid())
+  runId       String   @map("run_id")
+  position    Int
+  modelId     String?  @map("model_id")
+  modelName   String   @map("model_name")
+  hookPattern String   @map("hook_pattern")
+  topic       String
+  /// AutoSlide[]
+  slides      Json     @default("[]")
+  caption     String   @default("")
+  hashtags    String[] @default([])
+  /// 'written' | 'rendering' | 'ready' | 'failed'
+  status      String   @default("written")
+  error       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  run   AutoSlideshowRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+  model SlideshowModel?    @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  post  AutoSlideshowPost?
+
+  @@index([runId, position])
+  @@map("auto_slideshows")
+}
+
+/// One approved, scheduled TikTok carousel post per slideshow, sent through the workspace's TikTok connection.
+model AutoSlideshowPost {
+  id            String    @id @default(cuid())
+  slideshowId   String    @unique @map("slideshow_id")
+  runId         String    @map("run_id")
+  workspaceId   String    @map("workspace_id")
+  /// 'scheduled' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled'
+  status        String    @default("scheduled")
+  scheduledAt   DateTime  @map("scheduled_at")
+  /// Chosen by a person from the creator's own options (no default)
+  privacyLevel  String    @map("privacy_level")
+  allowComments Boolean   @default(true) @map("allow_comments")
+  brandOrganic  Boolean   @default(false) @map("brand_organic")
+  brandContent  Boolean   @default(false) @map("brand_content")
+  /// When the approver accepted TikTok's Music Usage Confirmation
+  consentAt     DateTime  @map("consent_at")
+  publishId     String?   @map("publish_id")
+  tiktokPostId  String?   @map("tiktok_post_id")
+  postUrl       String?   @map("post_url")
+  attempts      Int       @default(0)
+  error         String?
+  sentAt        DateTime? @map("sent_at")
+  postedAt      DateTime? @map("posted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  slideshow AutoSlideshow    @relation(fields: [slideshowId], references: [id], onDelete: Cascade)
+  run       AutoSlideshowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([status, scheduledAt])
+  @@index([runId])
+  @@index([workspaceId, sentAt])
+  @@map("auto_slideshow_posts")
+}
