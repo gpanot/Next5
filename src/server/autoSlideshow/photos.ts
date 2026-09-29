@@ -2,7 +2,6 @@
 // Step 5: the run's shared mood photos, on Grok Imagine (reAPI, 2K, 3:4 cropped to 4:5). Each photo is copied
 // to the object store right away: reAPI result links expire, and step 6 renders from our copy.
 
-import sharp from 'sharp';
 import { REAPI_MODELS, type ReapiModelId } from '../../config/reapiModels';
 import { pollGeminiImage, submitReapiImage } from '../../lib/reapiImage';
 import type { AutoPhoto } from '../../types/admin/autoSlideshow';
@@ -10,6 +9,8 @@ import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
 import { putObject } from '../storage/objectStore';
+import { compressJpeg } from './jpeg';
+import { SLIDE_SIZE } from './render';
 
 export const PHOTO_MODEL: ReapiModelId = 'reapi-grok-imagine';
 /** Grok Imagine has no 4:5; 3:4 is the closest, and the 1080x1350 crop trims a little top and bottom. */
@@ -42,7 +43,7 @@ const submit = async (prompt: string) => {
   }
 };
 
-/** One photo, generated and stored as a 1080x1350 JPEG. Returns its key. */
+/** One photo, generated and stored as a 1080x1350 JPEG under 1 MB. Returns its key. */
 const makePhoto = async (runId: string, index: number, prompt: string, meter: CostMeter): Promise<string> => {
   const { taskId } = await submit(`${prompt} ${STYLE}`);
   const deadline = Date.now() + TIMEOUT_MS;
@@ -54,7 +55,7 @@ const makePhoto = async (runId: string, index: number, prompt: string, meter: Co
       meter.add(`Photo (${REAPI_MODELS[PHOTO_MODEL].label})`, REAPI_MODELS[PHOTO_MODEL].priceUsdMicros['1k']);
       const res = await fetch(result.url, { signal: AbortSignal.timeout(30_000) });
       if (!res.ok) throw new Error(`photo download failed (${res.status})`);
-      const jpeg = await sharp(Buffer.from(await res.arrayBuffer())).resize(1080, 1350, { fit: 'cover' }).jpeg({ quality: 88 }).toBuffer();
+      const jpeg = await compressJpeg(Buffer.from(await res.arrayBuffer()), SLIDE_SIZE);
       const key = photoKey(runId, index);
       await putObject(key, jpeg, 'image/jpeg');
       return key;

@@ -3,9 +3,9 @@
 // hook = big white outlined text; meat and CTA = headline in a white box, one plain line of white text under it.
 
 import { ImageResponse } from 'next/og';
-import sharp from 'sharp';
 import type { AutoSlide } from '../../types/admin/autoSlideshow';
 import { getObject } from '../storage/objectStore';
+import { compressJpeg } from './jpeg';
 
 export const SLIDE_SIZE = { width: 1080, height: 1350 };
 
@@ -71,7 +71,7 @@ export const renderSlide = async (slide: Pick<AutoSlide, 'role' | 'title' | 'bod
     ),
     { ...SLIDE_SIZE, fonts: fonts.length ? fonts : undefined },
   );
-  return sharp(Buffer.from(await response.arrayBuffer())).jpeg({ quality: 88 }).toBuffer();
+  return compressJpeg(Buffer.from(await response.arrayBuffer()));
 };
 
 /**
