@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Next5 app icon: the brand "N" (app/icon.svg) in white on plum, sized to stay inside a circular crop. -->
+  <rect width="1024" height="1024" fill="#8e2a5c"/>
+  <path transform="translate(204.8 204.8) scale(19.2)" fill="#ffffff" d="M4 3h7.2L21 17.6V3h7v26h-7.2L11 14.4V29H4z"/>
+</svg>

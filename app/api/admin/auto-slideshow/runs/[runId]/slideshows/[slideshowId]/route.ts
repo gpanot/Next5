@@ -1,11 +1,11 @@
 /**
  * GET    /api/admin/auto-slideshow/runs/[runId]/slideshows/[slideshowId] — one slideshow with signed slide links
- * PATCH  /api/admin/auto-slideshow/runs/[runId]/slideshows/[slideshowId] — { caption?, hashtags? }
+ * PATCH  /api/admin/auto-slideshow/runs/[runId]/slideshows/[slideshowId] — { caption?, hashtags?, audioAssetId? (null = none) }
  * DELETE /api/admin/auto-slideshow/runs/[runId]/slideshows/[slideshowId] — remove it and its images
  */
 import type { NextRequest } from 'next/server';
 import { adminRoute, json } from '../../../../../../../../src/server/admin/route';
-import { deleteSlideshow, updateCaption } from '../../../../../../../../src/server/autoSlideshow/edit';
+import { deleteSlideshow, updateShow, type ShowPatch } from '../../../../../../../../src/server/autoSlideshow/edit';
 import { getSlideshowDto } from '../../../../../../../../src/server/autoSlideshow/store';
 
 type Ctx = { params: Promise<{ runId: string; slideshowId: string }> };
@@ -18,7 +18,7 @@ export const GET = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
 
 export const PATCH = adminRoute(async (req: NextRequest, ctx: Ctx) => {
   const { runId, slideshowId } = await ctx.params;
-  await updateCaption(runId, slideshowId, (await req.json().catch(() => ({}))) as { caption?: unknown; hashtags?: unknown });
+  await updateShow(runId, slideshowId, (await req.json().catch(() => ({}))) as ShowPatch);
   return json({ slideshow: await getSlideshowDto(runId, slideshowId) });
 });
 

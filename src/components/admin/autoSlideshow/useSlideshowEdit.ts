@@ -42,6 +42,7 @@ export const useSlideshowEdit = (token: string, runId: string, initial: AutoSlid
     saveSlide: (index: number, patch: { title?: string; body?: string; photoIndex?: number }) => call(`slide-${index}`, `/slides/${index}`, 'PATCH', patch),
     newPhoto: (index: number) => call(`photo-${index}`, `/slides/${index}/photo`, 'POST'),
     saveCaption: (caption: string, hashtags: string[]) => call('caption', '', 'PATCH', { caption, hashtags }),
+    setMusic: (audioAssetId: string | null) => call('music', '', 'PATCH', { audioAssetId }),
     regenerate: () => call('regenerate', '/regenerate', 'POST'),
     remove: async () => {
       setBusy('delete');

@@ -11,6 +11,7 @@ import type { SlideshowPattern } from '../../types/admin/slideshowKnowledge';
 import { HttpError } from '../http';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { deleteObject, putObject } from '../storage/objectStore';
+import { isTrack } from './music';
 import { makePhotos } from './photos';
 import { renderSlide, type PhotoCache } from './render';
 import { writeSlideshow } from './write';
@@ -100,9 +101,21 @@ export const newPhotoForSlide = async (runId: string, showId: string, index: num
   }
 };
 
-export const updateCaption = async (runId: string, showId: string, patch: { caption?: unknown; hashtags?: unknown }): Promise<void> => {
+export type ShowPatch = { caption?: unknown; hashtags?: unknown; audioAssetId?: unknown };
+
+/** Caption, hashtags and background music (null removes the music). */
+export const updateShow = async (runId: string, showId: string, patch: ShowPatch): Promise<void> => {
   await loadShow(runId, showId);
-  const data: { caption?: string; hashtags?: string[] } = {};
+  const data: { caption?: string; hashtags?: string[]; audioAssetId?: string | null; audioStart?: number } = {};
+  if (patch.audioAssetId !== undefined) {
+    if (patch.audioAssetId === null) data.audioAssetId = null;
+    else {
+      const track = typeof patch.audioAssetId === 'string' ? await isTrack(patch.audioAssetId) : null;
+      if (!track) throw new HttpError(400, 'bad_track', 'Pick a track from the Assets Library.');
+      data.audioAssetId = patch.audioAssetId as string;
+      data.audioStart = track.startAt;
+    }
+  }
   if (patch.caption !== undefined) {
     if (typeof patch.caption !== 'string') throw new HttpError(400, 'bad_caption', 'The caption must be text.');
     data.caption = patch.caption.trim().slice(0, 2_000);

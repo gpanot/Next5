@@ -1198,8 +1198,9 @@ model BlitzAsset {
   source       String   @default("library")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  workspace  Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  descriptor AssetDescriptor?
+  workspace      Workspace?       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  descriptor     AssetDescriptor?
+  autoSlideshows AutoSlideshow[]
 
   @@index([type])
   @@index([workspaceId, type])
@@ -2203,25 +2204,29 @@ model AutoSlideshowRun {
 
 /// One generated slideshow: step 4 writes its slides, step 6 renders them.
 model AutoSlideshow {
-  id          String   @id @default(cuid())
-  runId       String   @map("run_id")
-  position    Int
-  modelId     String?  @map("model_id")
-  modelName   String   @map("model_name")
-  hookPattern String   @map("hook_pattern")
-  topic       String
+  id           String   @id @default(cuid())
+  runId        String   @map("run_id")
+  position     Int
+  modelId      String?  @map("model_id")
+  modelName    String   @map("model_name")
+  hookPattern  String   @map("hook_pattern")
+  topic        String
   /// AutoSlide[]
-  slides      Json     @default("[]")
-  caption     String   @default("")
-  hashtags    String[] @default([])
+  slides       Json     @default("[]")
+  caption      String   @default("")
+  hashtags     String[] @default([])
+  /// Background music from the Assets Library (preview + ZIP; TikTok's photo API cannot attach it)
+  audioAssetId String?  @map("audio_asset_id")
+  audioStart   Float    @default(0) @map("audio_start") @db.Real
   /// 'written' | 'rendering' | 'ready' | 'failed'
-  status      String   @default("written")
-  error       String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  status       String   @default("written")
+  error        String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   run   AutoSlideshowRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
   model SlideshowModel?    @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  audio BlitzAsset?        @relation(fields: [audioAssetId], references: [id], onDelete: SetNull)
   post  AutoSlideshowPost?
 
   @@index([runId, position])

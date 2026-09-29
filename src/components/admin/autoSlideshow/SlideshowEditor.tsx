@@ -1,9 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import type { AutoPhotoDto, AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
+import { useEffect, useState } from 'react';
+import type { AutoPhotoDto, AutoSlideshowDto, AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { CaptionPanel } from './CaptionPanel';
 import { downloadSlideshow } from './downloads';
+import { MusicPicker } from './MusicPicker';
+import { PostToTikTok } from './PostToTikTok';
+import { SlidePreview } from './SlidePreview';
 import { SlideEditPanel } from './SlideEditPanel';
 import { useSlideshowEdit } from './useSlideshowEdit';
 
@@ -13,6 +16,9 @@ type Props = {
   brandName: string;
   initial: AutoSlideshowDto;
   photos: AutoPhotoDto[] | null;
+  tracks: AutoTrackDto[] | null;
+  /** The run's TikTok account, preselected in Post to TikTok. */
+  workspaceId: string | null;
   onChanged: () => void;
   onPhotosChanged: () => void;
   onClose: () => void;
@@ -22,42 +28,8 @@ type Props = {
 
 const ghostButton = 'min-h-11 rounded-full px-3 text-sm text-white/80 transition hover:bg-white/10 disabled:opacity-30';
 
-/** Swipeable 4:5 preview. Reports which slide is on screen. */
-function Preview({ show, onSlide, working }: { show: AutoSlideshowDto; onSlide: (i: number) => void; working: boolean }) {
-  const strip = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const el = strip.current;
-      if (!el || (e.target as HTMLElement).closest('input, textarea')) return;
-      if (e.key === 'ArrowRight') el.scrollBy({ left: el.clientWidth, behavior: 'smooth' });
-      if (e.key === 'ArrowLeft') el.scrollBy({ left: -el.clientWidth, behavior: 'smooth' });
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
-  return (
-    <div className="relative mx-auto aspect-[4/5] w-full max-w-md">
-      <div
-        ref={strip}
-        onScroll={() => strip.current && onSlide(Math.round(strip.current.scrollLeft / strip.current.clientWidth))}
-        className="flex h-full w-full snap-x snap-mandatory overflow-x-auto rounded-xl [scrollbar-width:none]"
-      >
-        {show.slides.map((s, i) => (
-          <div key={s.imageKey ?? i} className="h-full w-full shrink-0 snap-center bg-white/5">
-            {s.imageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={s.imageUrl} alt={s.title} className="h-full w-full object-cover" />
-            )}
-          </div>
-        ))}
-      </div>
-      {working && <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40"><span className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-transparent" /></div>}
-    </div>
-  );
-}
-
 /** Full-screen editor, phone first: preview on top (left on desktop), the on-screen slide's text and photo, the caption. */
-export function SlideshowEditor({ token, runId, brandName, initial, photos, onChanged, onPhotosChanged, onClose, onPrev, onNext }: Props) {
+export function SlideshowEditor({ token, runId, brandName, initial, photos, tracks, workspaceId, onChanged, onPhotosChanged, onClose, onPrev, onNext }: Props) {
   const edit = useSlideshowEdit(token, runId, initial, onChanged);
   const { show, busy } = edit;
   const [slide, setSlide] = useState(0);
@@ -97,7 +69,7 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, onCh
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
         <div className="shrink-0 p-4 md:flex md:w-1/2 md:flex-col md:justify-center md:overflow-y-auto">
-          <Preview show={show} onSlide={setSlide} working={busy !== null && busy !== 'caption' && busy !== 'delete'} />
+          <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} />
           <div className="mt-3 flex justify-center gap-1.5">
             {show.slides.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === slide ? 'w-5 bg-white' : 'w-1.5 bg-white/30'}`} />)}
           </div>
@@ -117,7 +89,11 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, onCh
               onNewPhoto={() => void edit.newPhoto(slide).then((ok) => ok && onPhotosChanged())}
             />
           )}
+          <MusicPicker show={show} tracks={tracks} busy={busy} onPick={(id) => void edit.setMusic(id)} />
           <CaptionPanel key={`${show.caption}|${show.hashtags.join()}`} show={show} busy={busy} onSave={(c, h) => void edit.saveCaption(c, h)} />
+          <div className="border-t border-white/10 pt-4">
+            <PostToTikTok token={token} runId={runId} show={show} defaultWorkspaceId={workspaceId} onPosted={onChanged} />
+          </div>
           <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
             <button onClick={() => void zip()} disabled={zipping || busy !== null} className="min-h-11 rounded-full bg-white text-sm font-semibold text-black transition active:scale-95 disabled:opacity-40">
               {zipping ? 'Zipping…' : 'Download ZIP'}

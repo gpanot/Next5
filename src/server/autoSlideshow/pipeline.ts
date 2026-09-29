@@ -16,6 +16,7 @@ import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
 import { appBaseUrl } from '../social/links';
 import { putObject } from '../storage/objectStore';
+import { pickTracks } from './music';
 import { makePhotos } from './photos';
 import { planRun } from './plan';
 import { photoIndexes, renderSlide, type PhotoCache } from './render';
@@ -72,8 +73,11 @@ const writeStep: StepFn = async (runId, meter) => {
   const models = await prisma.slideshowModel.findMany({ where: { id: { in: plan.picks.map((p) => p.modelId) } } });
   const patternOf = new Map(models.map((m) => [m.id, m.pattern as unknown as SlideshowPattern]));
   await prisma.autoSlideshow.deleteMany({ where: { runId } });
+  // A random track per slideshow, all different while the library has enough; changeable in the editor.
+  const tracks = await pickTracks(plan.picks.length);
   await runPool(plan.picks.map((pick, position) => ({ pick, position })), WRITE_CONCURRENCY, async ({ pick, position }) => {
-    const base = { runId, position, modelId: pick.modelId, modelName: pick.modelName, hookPattern: pick.hookPattern, topic: pick.topic };
+    const music = tracks[position] ? { audioAssetId: tracks[position]!.assetId, audioStart: tracks[position]!.startAt } : {};
+    const base = { runId, position, modelId: pick.modelId, modelName: pick.modelName, hookPattern: pick.hookPattern, topic: pick.topic, ...music };
     try {
       const pattern = patternOf.get(pick.modelId);
       if (!pattern) throw new Error('Model was deleted');

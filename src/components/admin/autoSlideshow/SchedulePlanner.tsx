@@ -11,7 +11,7 @@ const DEFAULT_TIMES = ['09:00', '13:00', '19:00'];
 const field = 'min-h-11 w-full rounded-lg border border-line bg-white px-3 text-base text-ink focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-100';
 const label = 'block space-y-1 text-[11px] font-semibold tracking-wide text-muted uppercase';
 
-function Toggle({ on, onChange, disabled, children }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean; children: React.ReactNode }) {
+export function Toggle({ on, onChange, disabled, children }: { on: boolean; onChange: (v: boolean) => void; disabled?: boolean; children: React.ReactNode }) {
   return (
     <label className={`flex min-h-11 items-center gap-3 text-sm text-ink dark:text-zinc-100 ${disabled ? 'opacity-50' : ''}`}>
       <input type="checkbox" checked={on} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="h-5 w-5 shrink-0 accent-blue-600" />

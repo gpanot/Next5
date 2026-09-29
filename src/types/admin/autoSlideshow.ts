@@ -66,6 +66,9 @@ export type AutoSlideshowStatus = 'written' | 'rendering' | 'ready' | 'failed';
 
 export type AutoSlideDto = AutoSlide & { imageUrl: string | null };
 
+/** A background track from the Assets Library; `url` plays in the browser. */
+export type AutoTrackDto = { assetId: string; name: string; url: string; startAt: number };
+
 export type AutoSlideshowDto = {
   id: string;
   position: number;
@@ -76,6 +79,10 @@ export type AutoSlideshowDto = {
   slides: AutoSlideDto[];
   caption: string;
   hashtags: string[];
+  /** Background music for the preview and ZIP (TikTok's photo API adds its own sound). */
+  audio: AutoTrackDto | null;
+  /** This slideshow's TikTok post, once one was scheduled or sent. */
+  post: AutoPostDto | null;
   status: AutoSlideshowStatus;
   error: string | null;
 };
@@ -128,6 +135,17 @@ export type AutoPostDto = {
 
 /** A workspace with a TikTok account connected (connected by its owner in the app's Settings). */
 export type TikTokWorkspaceDto = { workspaceId: string; workspaceName: string; username: string | null; avatarUrl: string | null };
+
+/** A workspace in the admin's TikTok accounts list; `connectedAt` null when it has no TikTok account. */
+export type TikTokAccountDto = {
+  workspaceId: string;
+  workspaceName: string;
+  product: string;
+  ownerEmail: string;
+  username: string | null;
+  avatarUrl: string | null;
+  connectedAt: string | null;
+};
 
 /** What TikTok says about the creator right now; shown to the approver before posting (TikTok UX rule). */
 export type CreatorInfoDto = { nickname: string; username: string; avatarUrl: string | null; privacyOptions: string[]; commentDisabled: boolean };

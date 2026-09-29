@@ -1,14 +1,21 @@
 // server-only — never import from a 'use client' file.
 // Database rows → client DTOs, with slide images as signed links.
 
-import type { AutoSlideshow, AutoSlideshowRun } from '@prisma/client';
+import type { AutoSlideshow, AutoSlideshowPost, AutoSlideshowRun, BlitzAsset } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import type { AutoPhoto, AutoPhotoDto, AutoPlan, AutoRunDto, AutoRunStatus, AutoRunSummary, AutoSlide, AutoSlideshowDto, AutoSlideshowStatus, AutoStep } from '../../types/admin/autoSlideshow';
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import { presignObject } from '../storage/objectStore';
+import { trackDto } from './music';
+import { toPostDto } from './posting';
 
-const toSlideshowDto = async (s: AutoSlideshow): Promise<AutoSlideshowDto> => ({
+type ShowRow = AutoSlideshow & { audio?: BlitzAsset | null; post?: AutoSlideshowPost | null };
+
+/** Relations every slideshow DTO needs. */
+export const SHOW_INCLUDE = { audio: true, post: true } as const;
+
+const toSlideshowDto = async (s: ShowRow): Promise<AutoSlideshowDto> => ({
   id: s.id,
   position: s.position,
   modelId: s.modelId,
@@ -18,11 +25,13 @@ const toSlideshowDto = async (s: AutoSlideshow): Promise<AutoSlideshowDto> => ({
   slides: await Promise.all((s.slides as unknown as AutoSlide[]).map(async (slide) => ({ ...slide, imageUrl: slide.imageKey ? await presignObject(slide.imageKey) : null }))),
   caption: s.caption,
   hashtags: s.hashtags,
+  audio: await trackDto(s.audio ?? null, s.audioStart),
+  post: s.post ? toPostDto(s.post) : null,
   status: s.status as AutoSlideshowStatus,
   error: s.error,
 });
 
-export const toRunDto = async (run: AutoSlideshowRun & { slideshows: AutoSlideshow[] }): Promise<AutoRunDto> => ({
+export const toRunDto = async (run: AutoSlideshowRun & { slideshows: ShowRow[] }): Promise<AutoRunDto> => ({
   id: run.id,
   url: run.url,
   count: run.count,
@@ -42,12 +51,12 @@ export const toRunDto = async (run: AutoSlideshowRun & { slideshows: AutoSlidesh
 });
 
 export const getRunDto = async (runId: string): Promise<AutoRunDto | null> => {
-  const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, include: { slideshows: { orderBy: { position: 'asc' } } } });
+  const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, include: { slideshows: { orderBy: { position: 'asc' }, include: SHOW_INCLUDE } } });
   return run ? toRunDto(run) : null;
 };
 
 export const getSlideshowDto = async (runId: string, slideshowId: string): Promise<AutoSlideshowDto | null> => {
-  const show = await prisma.autoSlideshow.findFirst({ where: { id: slideshowId, runId } });
+  const show = await prisma.autoSlideshow.findFirst({ where: { id: slideshowId, runId }, include: SHOW_INCLUDE });
   return show ? toSlideshowDto(show) : null;
 };
 

@@ -24,6 +24,11 @@ const addSlideshow = async (zip: JSZip, show: AutoSlideshowDto, folder: string):
     }),
   );
   zip.file(`${folder}caption.txt`, captionText(show));
+  // The chosen track, to add as the sound when posting by hand (TikTok's API cannot attach it).
+  if (show.audio) {
+    const res = await fetch(show.audio.url).catch(() => null);
+    if (res?.ok) zip.file(`${folder}music-${slug(show.audio.name) || 'track'}.mp3`, await res.arrayBuffer());
+  }
   return results.reduce<number>((a, b) => a + b, 0);
 };
 

@@ -107,6 +107,22 @@ export const cancelPost = async (runId: string, postId: string): Promise<void> =
   await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'canceled' } });
 };
 
+export type PostNowInput = Omit<ScheduleInput, 'items'> & { workspaceId: string };
+
+/** The editor's "Post to TikTok": uses the chosen account for the run, approves this slideshow for now, sends it. */
+export const postSlideshowNow = async (runId: string, slideshowId: string, input: PostNowInput): Promise<AutoPostDto> => {
+  const existing = await prisma.autoSlideshowPost.findUnique({ where: { slideshowId } });
+  if (existing && ['sending', 'processing', 'posted'].includes(existing.status)) throw new HttpError(409, 'already_posted', 'This slideshow is already posted or on its way.');
+  await setRunWorkspace(runId, input.workspaceId);
+  const { privacyLevel, allowComments, brandOrganic, brandContent, consent } = input;
+  // A scheduled post is replaced by this one (same slideshow, sent now with the settings just chosen).
+  if (existing?.status === 'scheduled') await prisma.autoSlideshowPost.update({ where: { id: existing.id }, data: { status: 'canceled' } });
+  await schedulePosts(runId, { privacyLevel, allowComments, brandOrganic, brandContent, consent, items: [{ slideshowId, scheduledAt: new Date().toISOString() }] });
+  const post = await prisma.autoSlideshowPost.findUniqueOrThrow({ where: { slideshowId } });
+  await sendPost(post.id);
+  return toPostDto(await prisma.autoSlideshowPost.findUniqueOrThrow({ where: { id: post.id } }));
+};
+
 /** Moves a scheduled or failed post to now; the next cron tick (or "Send now") sends it. */
 export const postNow = async (runId: string, postId: string): Promise<void> => {
   const post = await loadPost(runId, postId);
@@ -168,7 +184,9 @@ export const refreshPost = async (postId: string): Promise<void> => {
     const conn = await connectionFor(post.workspaceId);
     const state = await fetchPublishStatus(await freshAccessToken(conn), post.publishId);
     if (state.state === 'posted') {
-      const postUrl = state.postId && conn.username ? `https://www.tiktok.com/@${conn.username}/photo/${state.postId}` : null;
+      // Private posts get no public id: link the profile instead, where the owner sees the post.
+      const profile = conn.username ? `https://www.tiktok.com/@${conn.username}` : null;
+      const postUrl = state.postId && profile ? `${profile}/photo/${state.postId}` : profile;
       await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'posted', tiktokPostId: state.postId, postUrl, postedAt: new Date(), error: null } });
     } else if (state.state === 'failed') {
       await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'failed', error: clip(`TikTok: ${state.reason}`, 500) } });

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { DEFAULT_SLIDESHOWS, MAX_SLIDESHOWS, type AutoRunSummary } from '../../../types/admin/autoSlideshow';
 import { adminFetch, useAdminApi } from '../business/useAdminApi';
+import { TikTokAccounts, tiktokReturn } from './TikTokAccounts';
 
 type Props = { token: string; onRun: (runId: string) => void };
 
@@ -42,6 +43,8 @@ export function StartScreen({ token, onRun }: Props) {
   const [count, setCount] = useState(DEFAULT_SLIDESHOWS);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [accountsOpen, setAccountsOpen] = useState(false);
+  const [returned] = useState(tiktokReturn);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -59,6 +62,16 @@ export function StartScreen({ token, onRun }: Props) {
 
   return (
     <div className="mx-auto flex max-w-2xl flex-col items-center py-8 text-center md:py-16">
+      <div className="mb-6 flex w-full justify-end">
+        <button onClick={() => setAccountsOpen(true)} className="flex min-h-10 items-center gap-2 rounded-full border border-line px-4 text-sm font-medium text-ink transition hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-900">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+          TikTok accounts
+        </button>
+      </div>
+      {returned && (
+        <p role="status" className={`mb-6 w-full rounded-xl p-3 text-sm ${returned.ok ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'}`}>{returned.message}</p>
+      )}
+      {accountsOpen && <TikTokAccounts token={token} onClose={() => setAccountsOpen(false)} />}
       <h2 className="text-4xl leading-[0.95] font-extrabold tracking-tight text-ink md:text-6xl dark:text-zinc-100">
         TikTok slideshows
         <br />

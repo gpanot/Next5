@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AUTO_STEP_LABELS, type AutoPhotoDto, type AutoRunDto } from '../../../types/admin/autoSlideshow';
+import { AUTO_STEP_LABELS, type AutoPhotoDto, type AutoRunDto, type AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { adminFetch, useAdminApi } from '../business/useAdminApi';
 import { BrandCard } from '../shared/BrandCard';
 import { CostPanel } from './CostPanel';
@@ -119,6 +119,7 @@ export function RunView({ token, runId, onBack }: Props) {
           token={token}
           runId={runId}
           brandName={run.profile?.brandName ?? 'slideshow'}
+          workspaceId={run.workspaceId}
           show={open}
           onChanged={refresh}
           onClose={() => setOpenId(null)}
@@ -130,10 +131,11 @@ export function RunView({ token, runId, onBack }: Props) {
   );
 }
 
-type LoaderProps = Omit<Parameters<typeof SlideshowEditor>[0], 'photos' | 'onPhotosChanged' | 'initial'> & { show: AutoRunDto['slideshows'][number] };
+type LoaderProps = Omit<Parameters<typeof SlideshowEditor>[0], 'photos' | 'tracks' | 'onPhotosChanged' | 'initial'> & { show: AutoRunDto['slideshows'][number] };
 
-/** Loads the run's photo set for the picker, then opens the editor. */
+/** Loads the run's photo set and the music library for the pickers, then opens the editor. */
 function EditorLoader({ show, ...props }: LoaderProps) {
   const photos = useAdminApi<{ photos: AutoPhotoDto[] }>(props.token, `/api/admin/auto-slideshow/runs/${props.runId}/photos`);
-  return <SlideshowEditor {...props} initial={show} photos={photos.data?.photos ?? null} onPhotosChanged={photos.refresh} />;
+  const music = useAdminApi<{ tracks: AutoTrackDto[] }>(props.token, '/api/admin/auto-slideshow/music');
+  return <SlideshowEditor {...props} initial={show} photos={photos.data?.photos ?? null} tracks={music.data?.tracks ?? null} onPhotosChanged={photos.refresh} />;
 }
