@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { PRIVACY_LABELS, type AutoPostDto, type AutoSlideshowDto, type CreatorInfoDto, type TikTokWorkspaceDto } from '../../../types/admin/autoSlideshow';
 import { adminFetch, useAdminApi } from '../business/useAdminApi';
 import { Toggle } from './SchedulePlanner';
+import { TikTokAccounts } from './TikTokAccounts';
 
 type Props = { token: string; runId: string; show: AutoSlideshowDto; defaultWorkspaceId: string | null; onPosted: () => void };
 
@@ -92,6 +93,7 @@ export function PostToTikTok({ token, runId, show, defaultWorkspaceId, onPosted 
   const accounts = useAdminApi<{ workspaces: TikTokWorkspaceDto[] }>(token, '/api/admin/auto-slideshow/workspaces');
   const [workspaceId, setWorkspaceId] = useState<string | null>(defaultWorkspaceId);
   const [post, setPost] = useState<AutoPostDto | null>(show.post);
+  const [connecting, setConnecting] = useState(false);
   const list = accounts.data?.workspaces ?? [];
   const chosen = workspaceId ?? (list.length === 1 ? list[0]!.workspaceId : null);
   const done = post && post.status !== 'failed' && post.status !== 'canceled';
@@ -106,7 +108,7 @@ export function PostToTikTok({ token, runId, show, defaultWorkspaceId, onPosted 
       <p className={label}>Post to TikTok</p>
       {post && <PostStatus token={token} runId={runId} post={post} onChange={update} />}
       {!done && (accounts.data && list.length === 0 ? (
-        <p className="text-sm text-white/60">No TikTok account connected. Connect one in Auto Slideshow → TikTok accounts.</p>
+        <button onClick={() => setConnecting(true)} className="min-h-11 w-full rounded-full border border-white/30 text-sm font-semibold transition active:scale-95">Connect a TikTok account</button>
       ) : (
         <>
           {list.length > 1 && (
@@ -118,6 +120,7 @@ export function PostToTikTok({ token, runId, show, defaultWorkspaceId, onPosted 
           {chosen && <PostForm key={chosen} token={token} runId={runId} show={show} workspaceId={chosen} onSent={update} />}
         </>
       ))}
+      {connecting && <TikTokAccounts token={token} onClose={() => { setConnecting(false); accounts.refresh(); }} />}
     </div>
   );
 }
