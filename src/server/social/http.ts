@@ -21,9 +21,12 @@ export const providerFetch = async (provider: string, url: string, { onRawText, 
   const nested = body.error as { message?: string; error_msg?: string; code?: string } | string | undefined;
   const tiktokOk = typeof nested === 'object' && nested?.code === 'ok';
   if (!res.ok || (nested && !tiktokOk)) {
-    const message = typeof nested === 'string'
+    const text = typeof nested === 'string'
       ? String(body.error_description ?? nested)
       : nested?.message ?? nested?.error_msg ?? String(body.error_message ?? body.raw ?? `HTTP ${res.status}`);
+    // TikTok's code says what went wrong; its message is often a generic "review our guidelines".
+    const code = typeof nested === 'object' && nested?.code ? nested.code : null;
+    const message = code && !text.includes(code) ? `${text} (${code})` : text;
     console.error(`[social:${provider}]`, res.status, message);
     throw new HttpError(502, 'provider_error', `${provider === 'tiktok' ? 'TikTok' : 'Instagram'} said: ${message}`);
   }

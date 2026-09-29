@@ -115,6 +115,20 @@ export const postNow = async (runId: string, postId: string): Promise<void> => {
   await sendPost(postId);
 };
 
+/** Plain advice for TikTok error codes a person can fix; other errors pass through as TikTok wrote them. */
+const TIKTOK_FIXES: Record<string, string> = {
+  unaudited_client_can_only_post_to_private_accounts:
+    'Until TikTok audits the app, the TikTok account itself must be private: in the TikTok app, Settings and privacy → Privacy → turn on Private account. Then retry.',
+  spam_risk_too_many_posts: 'TikTok\'s daily posting limit for this account is reached. Retry tomorrow.',
+  url_ownership_unverified: 'TikTok cannot pull the photos: verify the app\'s domain in the TikTok developer portal (Content Posting API → Verify domains).',
+  privacy_level_option_mismatch: 'This privacy is no longer allowed on the account. Schedule it again with another privacy.',
+};
+
+const explain = (message: string): string => {
+  const code = Object.keys(TIKTOK_FIXES).find((c) => message.includes(c));
+  return code ? `${TIKTOK_FIXES[code]} (${code})` : message;
+};
+
 const captionOf = (caption: string, hashtags: string[]) => [caption.trim(), hashtags.map((h) => `#${h}`).join(' ')].filter(Boolean).join('\n\n');
 
 /** Claims one due post (so two ticks never send it twice), then creator info → init. Never throws. */
@@ -139,7 +153,7 @@ export const sendPost = async (postId: string): Promise<void> => {
     });
     await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'processing', publishId, error: null } });
   } catch (err) {
-    const message = clip(err instanceof Error ? err.message : String(err), 500);
+    const message = clip(explain(err instanceof Error ? err.message : String(err)), 500);
     // Rate limits and TikTok hiccups get another try on a later tick; anything else fails for a person to look at.
     const retry = post.attempts < MAX_ATTEMPTS && /rate|limit|timeout|temporar|internal|502|503/i.test(message);
     await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: retry ? 'scheduled' : 'failed', error: message, ...(retry ? { scheduledAt: new Date(Date.now() + 5 * 60 * 1000) } : {}) } });
