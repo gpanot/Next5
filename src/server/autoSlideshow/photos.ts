@@ -9,11 +9,10 @@ import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
 import { putObject } from '../storage/objectStore';
-import { compressJpeg } from './jpeg';
-import { SLIDE_SIZE } from './render';
+import { compressJpeg, PHOTO_SIZE } from './jpeg';
 
 export const PHOTO_MODEL: ReapiModelId = 'reapi-grok-imagine';
-/** Grok Imagine has no 4:5; 3:4 is the closest, and the 1080x1350 crop trims a little top and bottom. */
+/** Grok Imagine has no 4:5; 3:4 is the closest, and the 4:5 crop trims a little top and bottom. */
 const PHOTO_RATIO = '3:4';
 /** reAPI allows 10 tasks in flight per account; 5 leaves room for Perfect Ads and retries. */
 const CONCURRENCY = 5;
@@ -43,7 +42,7 @@ const submit = async (prompt: string) => {
   }
 };
 
-/** One photo, generated and stored as a 1080x1350 JPEG under 1 MB. Returns its key. */
+/** One photo, generated and stored as a 1440x1800 JPEG under 1 MB. Returns its key. */
 const makePhoto = async (runId: string, index: number, prompt: string, meter: CostMeter): Promise<string> => {
   const { taskId } = await submit(`${prompt} ${STYLE}`);
   const deadline = Date.now() + TIMEOUT_MS;
@@ -55,7 +54,7 @@ const makePhoto = async (runId: string, index: number, prompt: string, meter: Co
       meter.add(`Photo (${REAPI_MODELS[PHOTO_MODEL].label})`, REAPI_MODELS[PHOTO_MODEL].priceUsdMicros['1k']);
       const res = await fetch(result.url, { signal: AbortSignal.timeout(30_000) });
       if (!res.ok) throw new Error(`photo download failed (${res.status})`);
-      const jpeg = await compressJpeg(Buffer.from(await res.arrayBuffer()), SLIDE_SIZE);
+      const jpeg = await compressJpeg(Buffer.from(await res.arrayBuffer()), PHOTO_SIZE);
       const key = photoKey(runId, index);
       await putObject(key, jpeg, 'image/jpeg');
       return key;
