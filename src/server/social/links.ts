@@ -33,12 +33,22 @@ export const verifyState = (state: string, provider: SocialProvider): StatePaylo
 const sign = (body: string): string => createHmac('sha256', secret()).update(`media:${body}`).digest('base64url');
 
 /**
+ * Where TikTok and Instagram download our photos: MEDIA_PUBLIC_URL, else the app URL. Set MEDIA_PUBLIC_URL to the
+ * production domain when posting from a local server (production reads the same database and storage, and signs with
+ * the same secret), because the platforms cannot reach localhost and only pull from the verified domain.
+ */
+export const mediaBaseUrl = (): string => (process.env.MEDIA_PUBLIC_URL ?? appBaseUrl()).replace(/\/$/, '');
+
+/** True when the platforms can reach our photo links: https on a public host. */
+export const mediaIsPublic = (): boolean => /^https:\/\/(?!localhost|127\.|0\.0\.0\.0)/.test(mediaBaseUrl());
+
+/**
  * Public JPEG link for one photo, on our own domain, valid for 24 hours. TikTok only pulls photos from a
  * URL prefix verified in its developer portal (verify `${APP_URL}/api/media/`), and Instagram needs JPEG.
  */
 export const mediaUrlFor = (itemId: string, ttlSec = 24 * 60 * 60): string => {
   const body = `${itemId}.${Math.floor(Date.now() / 1000) + ttlSec}`;
-  return `${appBaseUrl()}/api/media/${Buffer.from(body).toString('base64url')}.${sign(body)}.jpg`;
+  return `${mediaBaseUrl()}/api/media/${Buffer.from(body).toString('base64url')}.${sign(body)}.jpg`;
 };
 
 /**

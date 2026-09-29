@@ -9,7 +9,7 @@ import type { AutoSlide, AutoPostDto, AutoPostStatus, TikTokWorkspaceDto } from 
 import { HttpError } from '../http';
 import { clip } from '../metaAds/text';
 import { freshAccessToken } from '../social/connections';
-import { slideMediaUrl } from '../social/links';
+import { mediaBaseUrl, mediaIsPublic, slideMediaUrl } from '../social/links';
 import { tiktok } from '../social/tiktok';
 import { fetchPublishStatus, initCarousel, queryCreatorInfo, type CreatorInfo } from '../social/tiktokCarousel';
 
@@ -153,6 +153,7 @@ export const sendPost = async (postId: string): Promise<void> => {
   if (claimed.count === 0) return;
   const post = await prisma.autoSlideshowPost.findUniqueOrThrow({ where: { id: postId }, include: { slideshow: true } });
   try {
+    if (!mediaIsPublic()) throw new Error(`TikTok cannot download photos from ${mediaBaseUrl()}. Post from the live site, or set MEDIA_PUBLIC_URL=https://next5.giinger.com on this server.`);
     const conn = await connectionFor(post.workspaceId);
     const token = await freshAccessToken(conn);
     const creator = await queryCreatorInfo(token);
@@ -167,7 +168,9 @@ export const sendPost = async (postId: string): Promise<void> => {
       brandOrganic: post.brandOrganic,
       brandContent: post.brandContent,
     });
-    await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'processing', publishId, error: null } });
+    // The creator's handle (the connection only stores the display name) links the post once it is live.
+    const profile = creator.username ? `https://www.tiktok.com/@${creator.username}` : null;
+    await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'processing', publishId, postUrl: profile, error: null } });
   } catch (err) {
     const message = clip(explain(err instanceof Error ? err.message : String(err)), 500);
     // Rate limits and TikTok hiccups get another try on a later tick; anything else fails for a person to look at.
@@ -184,8 +187,8 @@ export const refreshPost = async (postId: string): Promise<void> => {
     const conn = await connectionFor(post.workspaceId);
     const state = await fetchPublishStatus(await freshAccessToken(conn), post.publishId);
     if (state.state === 'posted') {
-      // Private posts get no public id: link the profile instead, where the owner sees the post.
-      const profile = conn.username ? `https://www.tiktok.com/@${conn.username}` : null;
+      // Private posts get no public id: link the profile instead (saved at send time), where the owner sees the post.
+      const profile = post.postUrl;
       const postUrl = state.postId && profile ? `${profile}/photo/${state.postId}` : profile;
       await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'posted', tiktokPostId: state.postId, postUrl, postedAt: new Date(), error: null } });
     } else if (state.state === 'failed') {
