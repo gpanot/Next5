@@ -64,8 +64,8 @@ export const renderSlide = async (slide: Pick<AutoSlide, 'role' | 'title' | 'bod
       <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', fontFamily: 'Inter' }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- Satori renders plain img only */}
         <img src={photo} width={SLIDE_SIZE.width} height={SLIDE_SIZE.height} alt="" style={{ position: 'absolute', top: 0, left: 0 }} />
-        {/* Light wash: keeps white text readable on bright skies without looking like an ad */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.14)' }} />
+        {/* Light wash (8%, was 14%): keeps white text readable on bright skies without darkening the photo */}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.08)' }} />
         {slide.role === 'hook' ? <HookText title={slide.title} /> : <BoxedText title={slide.title} body={slide.body} big={slide.role === 'cta'} />}
       </div>
     ),

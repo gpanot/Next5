@@ -37,8 +37,8 @@ Choose:
 - Prefer models whose niches or shape fit this business. Spread the slideshows across the good-fit models and across their hooks.
 - Every topic is different. Topics sit in the audience's world, not the product's features.
 - photoPrompts: {PHOTOS} photo descriptions for the backgrounds, shared by all slideshows. Real-looking photography of the
-  audience's world (places, objects, people doing the activity, seen from a distance or from behind), cinematic light, varied
-  scenes. Never text, logos, screens with UI, or close-up faces. One sentence each.
+  audience's world (places, objects, people doing the activity, seen from a distance or from behind), bright daytime light,
+  varied scenes. Never dusk, night, golden hour, dim interiors or cinematic/moody lighting: dark photos look bad on TikTok. Never text, logos, screens with UI, or close-up faces. One sentence each.
 Return JSON: {"slideshows": [{"modelId","hookPattern","topic"}], "photoPrompts": [string]}`;
 
 const describeModels = (models: PlanModel[]) =>

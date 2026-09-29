@@ -20,7 +20,9 @@ const TIMEOUT_MS = 180_000;
 const SUBMIT_ATTEMPTS = 4;
 const BUSY_WAIT_MS = 15_000;
 
-const STYLE = 'Photorealistic editorial photograph, natural cinematic light, shallow depth of field, vertical 4:5 framing with calm space in the upper half. No text, no letters, no logos, no watermarks, no phone screens.';
+// Keep this bright. "Cinematic light" made GPT Image 2 return dark, moody photos (mean luma 85-140 of 255); this wording
+// gave 164-173 on the same scenes (A/B test 2026-09-29). White slide text still reads thanks to its outline.
+const STYLE = 'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, shallow depth of field, vertical 4:5 framing with calm space in the upper half. No text, no letters, no logos, no watermarks, no phone screens.';
 
 export const photoKey = (runId: string, index: number) => `admin/auto-slideshow/${runId}/photos/${index}.jpg`;
 
