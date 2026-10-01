@@ -68,16 +68,18 @@ const STYLE_FOR: Record<CreativeArchetype, (typeof AD_STYLES)[number] | null> = 
 
 type Slot = { n: number; play: Play; lever: BrandLever; support: BrandLever[]; style: string };
 
-/** Play i for slot i, its own lever first, plus two other verified levers the ad may also use. */
-const planSlots = (count: number, hormozi: HormoziResult): Slot[] => {
+/** Play i for slot i, its own lever first, plus two other verified levers the ad may also use.
+ *  `offset` = ads already made for this site, so a follow-up batch starts on the next plays instead of the same ones. */
+const planSlots = (count: number, hormozi: HormoziResult, offset = 0): Slot[] => {
   const leverById = new Map(hormozi.levers.map((l) => [l.id, l]));
-  return Array.from({ length: count }, (_, i) => {
+  return Array.from({ length: count }, (_, n) => {
+    const i = n + offset;
     const play = hormozi.plays[i % hormozi.plays.length];
     const lever = leverById.get(play.leverId) ?? hormozi.levers[0];
     const others = hormozi.levers.filter((l) => l.id !== lever.id);
     const support = [others[i % Math.max(others.length, 1)], others[(i + 1) % Math.max(others.length, 1)]].filter((l): l is BrandLever => Boolean(l));
     const style = (play.archetype && STYLE_FOR[play.archetype]) ?? AD_STYLES[i % AD_STYLES.length];
-    return { n: i + 1, play, lever, support: [...new Set(support)], style };
+    return { n: n + 1, play, lever, support: [...new Set(support)], style };
   });
 };
 
@@ -101,8 +103,14 @@ const describeSlot = (s: Slot) =>
     s.support.length ? `\nMay also use: ${s.support.map(describeLever).join('; ')}` : ''
   }`;
 
-const userPrompt = (profile: BrandProfile, slots: Slot[]) =>
-  `BRAND: ${profile.brandName} (${profile.domain}) — ${profile.valueProp}\nBUYER: ${profile.audience}\nTONE: ${profile.tone}\n\n${slots.map(describeSlot).join('\n\n')}`;
+/** Ads already made for this site; the writer must not repeat them. */
+export type PriorAds = { offset: number; headlines: string[] };
+
+const priorBlock = (prior?: PriorAds) =>
+  prior?.headlines.length ? `\n\nALREADY MADE for this brand. Write new angles and new headlines; do not repeat or reword these:\n${prior.headlines.map((h) => `- ${h}`).join('\n')}` : '';
+
+const userPrompt = (profile: BrandProfile, slots: Slot[], prior?: PriorAds) =>
+  `BRAND: ${profile.brandName} (${profile.domain}) — ${profile.valueProp}\nBUYER: ${profile.audience}\nTONE: ${profile.tone}\n\n${slots.map(describeSlot).join('\n\n')}${priorBlock(prior)}`;
 
 const str = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
 
@@ -125,12 +133,12 @@ const toAdCopy = (raw: RawAd | undefined, slot: Slot): AdCopy | null => {
   return { ...ad, imagePrompt: withImageRules(ad.imagePrompt, slot.style) };
 };
 
-export const writeCopy = async (profile: BrandProfile, hormozi: HormoziResult, count: number, meter: CostMeter): Promise<CopyPlan> => {
-  const slots = planSlots(count, hormozi);
+export const writeCopy = async (profile: BrandProfile, hormozi: HormoziResult, count: number, meter: CostMeter, prior?: PriorAds): Promise<CopyPlan> => {
+  const slots = planSlots(count, hormozi, prior?.offset);
   const raw = await metaAdsJson<{ ads?: RawAd[] }>(
     [
       { role: 'system', content: SYSTEM },
-      { role: 'user', content: userPrompt(profile, slots) },
+      { role: 'user', content: userPrompt(profile, slots, prior) },
     ],
     { maxTokens: 16_000, timeoutMs: 120_000, meter, label: 'OpenAI copywriting' },
   );

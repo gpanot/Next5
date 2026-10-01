@@ -5,8 +5,12 @@ import { useState } from 'react';
 import { RunView } from './RunView';
 import { StartScreen } from './StartScreen';
 
-export function AutoSlideshowTab({ token }: { token: string }) {
-  const [runId, setRunId] = useState<string | null>(null);
-  if (runId) return <RunView key={runId} token={token} runId={runId} onBack={() => setRunId(null)} />;
+/** `stickyTop` offsets the run's pinned step bar when the page has its own sticky top bar. */
+/** `noBack`: a user's workspace shows its run without the "New run" link. */
+type Props = { token: string; stickyTop?: string; initialRunId?: string | null; noBack?: boolean };
+
+export function AutoSlideshowTab({ token, stickyTop, initialRunId = null, noBack = false }: Props) {
+  const [runId, setRunId] = useState<string | null>(initialRunId);
+  if (runId) return <RunView key={runId} token={token} runId={runId} onBack={noBack ? undefined : () => setRunId(null)} stickyTop={stickyTop} />;
   return <StartScreen token={token} onRun={setRunId} />;
 }

@@ -1,8 +1,22 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
+import { useScrolled } from '../../../hooks/useScrolled';
 import { BusinessLogo } from '../../marketing/shared/MarketingHeader';
-import { TikTokAccounts } from './TikTokAccounts';
+import { SLIDESHOW_HOME, SLIDESHOW_LOGIN } from './workspace/WorkspaceContext';
+import { SettingsModal, type SettingsTab } from './settings/SettingsModal';
+import { useSlideshowWorkspace } from './workspace/WorkspaceContext';
+import { useTopBarSlotRef } from './workspace/TopBarSlot';
+
+/** Once scrolled, the bar floats as a glass pill. Same total height in both states, so the page does not jump. */
+const barClass = (scrolled: boolean) =>
+  [
+    'flex flex-wrap items-center gap-x-3 gap-y-2 border transition-all duration-500 ease-out sm:gap-x-4',
+    scrolled
+      ? 'mx-2 my-1.5 min-h-[52px] rounded-[28px] border-app-line/70 bg-app-bg/75 px-3 py-1 shadow-[0_8px_32px_rgba(15,23,42,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] backdrop-blur-xl backdrop-saturate-150 sm:mx-4 sm:px-5 dark:shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)]'
+      : 'min-h-16 border-transparent px-5 py-2 sm:px-8',
+  ].join(' ');
 
 function GearIcon() {
   return (
@@ -15,19 +29,46 @@ function GearIcon() {
 
 /**
  * Top bar for the standalone Auto Slideshow page, styled like the app shell (/app) so a screen recording reads as the
- * Next5 app: the "NEXT5 for business" logo, the page name, and Settings (TikTok accounts) on the right.
+ * Next5 app: the "NEXT5 for business" logo, the page name, then Pricing, Log in (demo text, like Perfect Ads) and
+ * Settings on the right. The admin page has no gear, and Log in leads to the user sign-in (/slideshow/login). With `user` (signed in on /slideshow) the gear opens profile, accounts and photos, and the demo links are gone.
  */
-export function AppTopBar({ token }: { token: string }) {
-  const [settings, setSettings] = useState(false);
+export function AppTopBar({ token, page = 'app', user = false }: { token: string; page?: 'app' | 'pricing'; user?: boolean }) {
+  const [settings, setSettings] = useState<SettingsTab | null>(null);
+  const workspace = useSlideshowWorkspace();
+  const slotRef = useTopBarSlotRef();
+  const scrolled = useScrolled(8);
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-app-line bg-app-bg/90 px-5 backdrop-blur-md sm:px-8">
-      <BusinessLogo />
-      <span aria-hidden className="h-7 w-px bg-app-line" />
-      <span className="text-[15px] font-semibold text-app-ink">Auto Slideshow</span>
-      <button onClick={() => setSettings(true)} aria-label="Settings" className="ml-auto flex h-10 w-10 items-center justify-center rounded-full text-app-muted transition hover:bg-app-line/50 hover:text-app-ink">
-        <GearIcon />
-      </button>
-      {settings && <TikTokAccounts token={token} onClose={() => setSettings(false)} />}
+    <>
+    <header className={`sticky top-0 z-30 border-b transition-colors duration-300 ${scrolled ? 'border-transparent' : 'border-app-line bg-app-bg/90 backdrop-blur-md'}`}>
+      <div className={barClass(scrolled)}>
+        <span className={user ? 'hidden sm:block' : undefined}><BusinessLogo href={SLIDESHOW_HOME} /></span>
+        <span aria-hidden className="hidden h-7 w-px bg-app-line sm:block" />
+        <Link href={user ? SLIDESHOW_HOME : '/admin/auto-slideshow'} className="hidden text-[15px] font-semibold text-app-ink sm:block">Auto Slideshow</Link>
+        {user && workspace && (
+          <button onClick={() => setSettings('workspaces')} aria-label={`Workspace: ${workspace.name}. Switch workspace`} className="flex min-h-10 min-w-0 items-center gap-1.5 rounded-full border border-app-line px-3 text-sm font-semibold text-app-ink transition hover:bg-app-sunken active:scale-95">
+            <span className="truncate">{workspace.name}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-app-muted"><path d="m6 9 6 6 6-6" /></svg>
+          </button>
+        )}
+        <nav className="ml-auto flex items-center gap-1 text-sm font-medium sm:gap-2">
+          {!user && <Link
+            href="/admin/auto-slideshow/pricing"
+            aria-current={page === 'pricing' ? 'page' : undefined}
+            className="px-2 py-2 text-app-muted transition-colors hover:text-app-ink aria-[current=page]:text-app-ink sm:px-3"
+          >
+            Pricing
+          </Link>}
+          {!user && <Link href={SLIDESHOW_LOGIN} className="rounded-full border border-app-line px-4 py-2 text-app-ink transition-colors hover:bg-app-sunken">Log in</Link>}
+        </nav>
+        {/* The run's step progress and elapsed time: on its own row on phones and tablets, inline on wide screens */}
+        {slotRef && <div ref={slotRef} className="order-last min-w-0 basis-full empty:hidden xl:order-none xl:basis-auto xl:flex-1" />}
+        {user && <button onClick={() => setSettings('accounts')} aria-label="Settings" className={`${user ? 'ml-auto ' : ''}flex h-10 w-10 items-center justify-center rounded-full text-app-muted transition hover:bg-app-line/50 hover:text-app-ink`}>
+          <GearIcon />
+        </button>}
+      </div>
     </header>
+    {/* Outside the header: its backdrop blur would make it the containing block of the fixed modal. */}
+    {user && workspace && settings && <SettingsModal token={token} workspaceId={workspace.id} initialTab={settings} onClose={() => setSettings(null)} />}
+    </>
   );
 }

@@ -1,12 +1,13 @@
 // server-only — never import from a 'use client' file.
 
-import type { Subscription, Workspace } from '@prisma/client';
+import type { Subscription } from '@prisma/client';
 import { PLANS, isPlanId, type Plan } from '../config/plans';
 import { prisma } from '../lib/db';
 import type { BannerDto, BrandExtractData, MeDto, SubscriptionDto, WorkspaceDto } from '../types/business/me';
 import { getBalance, type Balance } from './credits/ledger';
 import { givenConsents } from './onboarding/account';
 import { getActiveSubscription, getQueuedRenewal } from './subscriptions/subscriptions';
+import { studioWhere, type StudioWorkspace } from './workspaces/workspaces';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -26,7 +27,7 @@ const toSubscriptionDto = (sub: Subscription | null): SubscriptionDto | null => 
   };
 };
 
-const toWorkspaceDto = async (ws: Workspace): Promise<WorkspaceDto> => {
+const toWorkspaceDto = async (ws: StudioWorkspace): Promise<WorkspaceDto> => {
   const [identities, influencers, setCount, angles] = await Promise.all([
     prisma.identityReference.count({ where: { workspaceId: ws.id, deletedAt: null } }),
     prisma.influencer.count({ where: { workspaceId: ws.id, status: 'active', baseImageKey: { not: null } } }),
@@ -60,7 +61,7 @@ const toWorkspaceDto = async (ws: Workspace): Promise<WorkspaceDto> => {
   };
 };
 
-type BannerInput = { ws: Workspace; active: Subscription | null; queued: Subscription | null; plan: Plan | null; balance: Balance; now: Date };
+type BannerInput = { ws: StudioWorkspace; active: Subscription | null; queued: Subscription | null; plan: Plan | null; balance: Balance; now: Date };
 
 const computeBanners = async ({ ws, active, queued, plan, balance, now }: BannerInput): Promise<BannerDto[]> => {
   const underpaid = await prisma.payment.findFirst({ where: { workspaceId: ws.id, state: 'underpaid' }, orderBy: { createdAt: 'desc' } });
@@ -82,7 +83,7 @@ export const buildMe = async (userId: string, product?: 'brand' | 'shop', now = 
   // Independent queries run together: each one is a network round trip to the database.
   const [user, workspaces, bookings, consents] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { id: true, email: true, displayName: true } }),
-    prisma.workspace.findMany({ where: { ownerUserId: userId }, orderBy: { createdAt: 'asc' } }),
+    prisma.workspace.findMany({ where: { ownerUserId: userId, ...studioWhere }, orderBy: { createdAt: 'asc' } }) as Promise<StudioWorkspace[]>,
     prisma.booking.count({ where: { userId } }),
     givenConsents(userId),
   ]);

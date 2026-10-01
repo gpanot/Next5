@@ -3958,5 +3958,275 @@
     "bytes": 17152,
     "alt": "First frame of a 9:16 UGC video ad: man talking to camera in a workshop",
     "generatedAt": "2026-09-28T06:50:00.000Z"
+  },
+  "public/images/auto-slideshow/legging-habits/1.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmunl8eaw0000vuui9bm6vbf5, slideshow cmunl92ib0002vuui10xvnrp0, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 107007,
+    "alt": "TikTok slide: \"7 Running Leggings Habits That Quietly Lower Rolling\"",
+    "generatedAt": "2026-09-30T04:30:14.784Z"
+  },
+  "public/images/auto-slideshow/legging-habits/2.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmunl8eaw0000vuui9bm6vbf5, slideshow cmunl92ib0002vuui10xvnrp0, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 86657,
+    "alt": "TikTok slide: \"Warm Up Before You Pull Them On\"",
+    "generatedAt": "2026-09-30T04:30:20.539Z"
+  },
+  "public/images/auto-slideshow/legging-habits/3.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmunl8eaw0000vuui9bm6vbf5, slideshow cmunl92ib0002vuui10xvnrp0, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 100642,
+    "alt": "TikTok slide: \"Pick the Right Size Tightness\"",
+    "generatedAt": "2026-09-30T04:30:22.993Z"
+  },
+  "public/images/auto-slideshow/legging-habits/4.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmunl8eaw0000vuui9bm6vbf5, slideshow cmunl92ib0002vuui10xvnrp0, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 64595,
+    "alt": "TikTok slide: \"Smooth the Waistband Down First\"",
+    "generatedAt": "2026-09-30T04:30:25.504Z"
+  },
+  "public/images/auto-slideshow/legging-habits/5.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmunl8eaw0000vuui9bm6vbf5, slideshow cmunl92ib0002vuui10xvnrp0, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 104989,
+    "alt": "TikTok slide: \"Fix the Knee Bend While Standing\"",
+    "generatedAt": "2026-09-30T04:30:26.477Z"
+  },
+  "public/images/auto-slideshow/listing-video-tips/1.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumk3m3q0000l6049710ktw1, slideshow cmumk43bz0004l604lsaaxe0g, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 74121,
+    "alt": "TikTok slide: \"5 Listing Video Tips For Busy Realtors\"",
+    "generatedAt": "2026-09-30T04:30:30.670Z"
+  },
+  "public/images/auto-slideshow/listing-video-tips/2.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumk3m3q0000l6049710ktw1, slideshow cmumk43bz0004l604lsaaxe0g, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 88113,
+    "alt": "TikTok slide: \"Pick One Best Photo\"",
+    "generatedAt": "2026-09-30T04:30:35.478Z"
+  },
+  "public/images/auto-slideshow/listing-video-tips/3.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumk3m3q0000l6049710ktw1, slideshow cmumk43bz0004l604lsaaxe0g, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 81268,
+    "alt": "TikTok slide: \"Crop To 9:16\"",
+    "generatedAt": "2026-09-30T04:30:38.826Z"
+  },
+  "public/images/auto-slideshow/listing-video-tips/4.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumk3m3q0000l6049710ktw1, slideshow cmumk43bz0004l604lsaaxe0g, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 70254,
+    "alt": "TikTok slide: \"Use One Key Detail\"",
+    "generatedAt": "2026-09-30T04:30:39.878Z"
+  },
+  "public/images/auto-slideshow/listing-video-tips/5.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumk3m3q0000l6049710ktw1, slideshow cmumk43bz0004l604lsaaxe0g, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 89478,
+    "alt": "TikTok slide: \"Order Photos By Story\"",
+    "generatedAt": "2026-09-30T04:30:41.459Z"
+  },
+  "public/images/auto-slideshow/missed-call-tips/1.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumj7ufx0005vuhzrr1sbw08, slideshow cmumj8pmf0007vuhzw6ml5lqd, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 83829,
+    "alt": "TikTok slide: \"5 Missed-Call Booking Tips For Service Owners\"",
+    "generatedAt": "2026-09-30T04:30:43.914Z"
+  },
+  "public/images/auto-slideshow/missed-call-tips/2.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumj7ufx0005vuhzrr1sbw08, slideshow cmumj8pmf0007vuhzw6ml5lqd, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 71718,
+    "alt": "TikTok slide: \"Enable Click-To-Book\"",
+    "generatedAt": "2026-09-30T04:30:44.719Z"
+  },
+  "public/images/auto-slideshow/missed-call-tips/3.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumj7ufx0005vuhzrr1sbw08, slideshow cmumj8pmf0007vuhzw6ml5lqd, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 108142,
+    "alt": "TikTok slide: \"Turn On Instant Confirmation\"",
+    "generatedAt": "2026-09-30T04:30:46.292Z"
+  },
+  "public/images/auto-slideshow/missed-call-tips/4.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumj7ufx0005vuhzrr1sbw08, slideshow cmumj8pmf0007vuhzw6ml5lqd, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 105851,
+    "alt": "TikTok slide: \"Set Reminder Timing\"",
+    "generatedAt": "2026-09-30T04:30:47.457Z"
+  },
+  "public/images/auto-slideshow/missed-call-tips/5.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumj7ufx0005vuhzrr1sbw08, slideshow cmumj8pmf0007vuhzw6ml5lqd, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 101030,
+    "alt": "TikTok slide: \"Activate The 24/7 AI Agent\"",
+    "generatedAt": "2026-09-30T04:30:48.937Z"
+  },
+  "public/images/auto-slideshow/golf-striking/1.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumf9brj0000vu7bo1dsku1c, slideshow cmumfa8eb0006vu7bemfd53tr, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 72345,
+    "alt": "TikTok slide: \"5 Striking is Easy for Golfers (if you Fix Contact)\"",
+    "generatedAt": "2026-09-30T04:30:52.182Z"
+  },
+  "public/images/auto-slideshow/golf-striking/2.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumf9brj0000vu7bo1dsku1c, slideshow cmumfa8eb0006vu7bemfd53tr, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 75085,
+    "alt": "TikTok slide: \"Square Face Starts With a Light Grip\"",
+    "generatedAt": "2026-09-30T04:30:54.743Z"
+  },
+  "public/images/auto-slideshow/golf-striking/3.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumf9brj0000vu7bo1dsku1c, slideshow cmumfa8eb0006vu7bemfd53tr, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 115418,
+    "alt": "TikTok slide: \"Aim Your Feet to Aim Your Shot\"",
+    "generatedAt": "2026-09-30T04:30:57.945Z"
+  },
+  "public/images/auto-slideshow/golf-striking/4.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumf9brj0000vu7bo1dsku1c, slideshow cmumfa8eb0006vu7bemfd53tr, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 93139,
+    "alt": "TikTok slide: \"Ball Position Drives Your Iron Strike\"",
+    "generatedAt": "2026-09-30T04:30:58.757Z"
+  },
+  "public/images/auto-slideshow/golf-striking/5.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumf9brj0000vu7bo1dsku1c, slideshow cmumfa8eb0006vu7bemfd53tr, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 77237,
+    "alt": "TikTok slide: \"Make Divots, Not Pops\"",
+    "generatedAt": "2026-09-30T04:31:00.326Z"
+  },
+  "public/images/auto-slideshow/realtor-habits/1.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumk3m3q0000l6049710ktw1, slideshow cmumk40i00002l604iy8i49z5, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 70269,
+    "alt": "TikTok slide: \"7 Realtor Habits That Quietly Lower Video Time\"",
+    "generatedAt": "2026-09-30T04:31:02.643Z"
+  },
+  "public/images/auto-slideshow/realtor-habits/2.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumk3m3q0000l6049710ktw1, slideshow cmumk40i00002l604iy8i49z5, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 87787,
+    "alt": "TikTok slide: \"Set A Timer Before You Film\"",
+    "generatedAt": "2026-09-30T04:31:03.721Z"
+  },
+  "public/images/auto-slideshow/realtor-habits/3.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumk3m3q0000l6049710ktw1, slideshow cmumk40i00002l604iy8i49z5, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 86853,
+    "alt": "TikTok slide: \"Batch Uploads Instead Of Posting Now\"",
+    "generatedAt": "2026-09-30T04:31:05.325Z"
+  },
+  "public/images/auto-slideshow/realtor-habits/4.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumk3m3q0000l6049710ktw1, slideshow cmumk40i00002l604iy8i49z5, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 70964,
+    "alt": "TikTok slide: \"Use One Shot Setup Per Listing\"",
+    "generatedAt": "2026-09-30T04:31:06.091Z"
+  },
+  "public/images/auto-slideshow/realtor-habits/5.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumk3m3q0000l6049710ktw1, slideshow cmumk40i00002l604iy8i49z5, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 80931,
+    "alt": "TikTok slide: \"Choose Captions After You Record\"",
+    "generatedAt": "2026-09-30T04:31:11.622Z"
+  },
+  "public/images/auto-slideshow/no-show-fixes/1.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumhcb4o0000vuqnpd62vjyp, slideshow cmumhcz1l0002vuqnhviaezsg, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 89919,
+    "alt": "TikTok slide: \"5 No-Show Fixes For Service Teams (If Reminders Actually Send)\"",
+    "generatedAt": "2026-09-30T04:31:14.475Z"
+  },
+  "public/images/auto-slideshow/no-show-fixes/2.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumhcb4o0000vuqnpd62vjyp, slideshow cmumhcz1l0002vuqnhviaezsg, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 72133,
+    "alt": "TikTok slide: \"Instant Confirmation Stops Misses\"",
+    "generatedAt": "2026-09-30T04:31:16.949Z"
+  },
+  "public/images/auto-slideshow/no-show-fixes/3.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumhcb4o0000vuqnpd62vjyp, slideshow cmumhcz1l0002vuqnhviaezsg, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 98938,
+    "alt": "TikTok slide: \"Two Reminders Beat One Reminder\"",
+    "generatedAt": "2026-09-30T04:31:18.808Z"
+  },
+  "public/images/auto-slideshow/no-show-fixes/4.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumhcb4o0000vuqnpd62vjyp, slideshow cmumhcz1l0002vuqnhviaezsg, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 87031,
+    "alt": "TikTok slide: \"Message Details Must Match The Job\"",
+    "generatedAt": "2026-09-30T04:31:19.721Z"
+  },
+  "public/images/auto-slideshow/no-show-fixes/5.jpg": {
+    "prompt": "Output of the admin Auto Slideshow pipeline (run cmumhcb4o0000vuqnpd62vjyp, slideshow cmumhcz1l0002vuqnhviaezsg, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow start screen.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 61850,
+    "alt": "TikTok slide: \"Make Changes Easy\"",
+    "generatedAt": "2026-09-30T04:31:20.767Z"
   }
 }

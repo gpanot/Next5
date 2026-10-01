@@ -6,7 +6,8 @@ import { form, providerFetch, secondsFromNow } from './http';
 import type { ProviderClient, ProviderTokens } from './types';
 
 const API = 'https://open.tiktokapis.com/v2';
-const SCOPES = ['user.info.basic', 'video.publish'];
+// video.list: read a post's views, likes, comments and shares (Display API) for the stats loop.
+const SCOPES = ['user.info.basic', 'video.publish', 'video.list'];
 
 const clientKey = (): string => process.env.TIKTOK_CLIENT_KEY ?? '';
 const clientSecret = (): string => process.env.TIKTOK_CLIENT_SECRET ?? '';
@@ -41,7 +42,9 @@ export const tiktok: ProviderClient = {
   configured: () => Boolean(clientKey() && clientSecret()),
 
   authorizeUrl: (state, redirectUri) => {
-    const params = new URLSearchParams({ client_key: clientKey(), scope: SCOPES.join(','), response_type: 'code', redirect_uri: redirectUri, state });
+    // disable_auto_auth=1: always show TikTok's consent screen, which names the signed-in account, instead of skipping it.
+    // Someone connecting several workspaces (one per client) sees which TikTok account each one gets.
+    const params = new URLSearchParams({ client_key: clientKey(), scope: SCOPES.join(','), response_type: 'code', redirect_uri: redirectUri, state, disable_auto_auth: '1' });
     return `https://www.tiktok.com/v2/auth/authorize/?${params.toString()}`;
   },
 

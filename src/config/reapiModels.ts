@@ -9,6 +9,7 @@ export type ReapiModelId =
   | 'reapi-gpt-image-2.5'
   | 'reapi-gpt-image-2-low'
   | 'reapi-grok-imagine'
+  | 'reapi-grok-imagine-2-official'
   | 'reapi-nano-banana-2'
   | 'gemini-3-pro-image'
   | 'reapi-fallback-gpt-image-2.5'
@@ -32,7 +33,7 @@ export type ReapiModel = {
   sizing: ReapiSizing;
   supports2k: boolean;
   priceUsdMicros: Readonly<Record<'1k' | '2k', number>>;
-  extraBody?: Readonly<Record<string, string>>;
+  extraBody?: Readonly<Record<string, string | number>>;
 };
 
 const GPT_IMAGE_2_5: Omit<ReapiModel, 'id'> = {
@@ -97,6 +98,21 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     // and returns 1776x2368, so we always ask 2k.
     priceUsdMicros: { '1k': 5_000, '2k': 5_000 },
     extraBody: { quality: 'high', resolution: '2k' },
+  },
+  'reapi-grok-imagine-2-official': {
+    id: 'reapi-grok-imagine-2-official',
+    // xAI Grok Imagine Image 2.0, official channel: Auto Slideshow backgrounds since 2026-09-30. The non-official
+    // "grok-imagine-image-2-0" failed too many generations. 3:4 at "1k" comes back 864x1152 in about 30 s; "2k" gives
+    // 1776x2368 for 25 credits (tested 2026-09-30).
+    apiModel: 'grok-imagine-image-2.0-official',
+    label: 'Grok Imagine 2 (official)',
+    note: 'Bright, clean photos. Backgrounds under text.',
+    maxImages: 1,
+    sizing: 'aspect_ratio',
+    supports2k: false,
+    // 17 credits a photo at 1k, low quality = $0.017 (real call 2026-09-30).
+    priceUsdMicros: { '1k': 17_000, '2k': 17_000 },
+    extraBody: { resolution: '1k', quality: 'low', n: 1 },
   },
   'reapi-nano-banana-2': { id: 'reapi-nano-banana-2', ...NANO_BANANA_2 },
   'gemini-3-pro-image': {

@@ -3,7 +3,9 @@
  * Generates a new photo for this slide (same mood as the one it replaces), adds it to the run's set, re-renders the slide.
  */
 import type { NextRequest } from 'next/server';
-import { adminRoute, json } from '../../../../../../../../../../../src/server/admin/route';
+import { json } from '../../../../../../../../../../../src/server/admin/route';
+import { assertRunAccess } from '../../../../../../../../../../../src/server/autoSlideshow/access';
+import { slideshowRoute } from '../../../../../../../../../../../src/server/autoSlideshow/route';
 import { newPhotoForSlide } from '../../../../../../../../../../../src/server/autoSlideshow/edit';
 import { getSlideshowDto } from '../../../../../../../../../../../src/server/autoSlideshow/store';
 
@@ -12,8 +14,9 @@ export const maxDuration = 240;
 
 type Ctx = { params: Promise<{ runId: string; slideshowId: string; index: string }> };
 
-export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
+export const POST = slideshowRoute(async (_req: NextRequest, ctx: Ctx, access) => {
   const { runId, slideshowId, index } = await ctx.params;
+  await assertRunAccess(access, runId);
   await newPhotoForSlide(runId, slideshowId, Number(index));
   return json({ slideshow: await getSlideshowDto(runId, slideshowId) });
 });

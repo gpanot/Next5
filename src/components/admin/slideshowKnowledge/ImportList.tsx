@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { isBusy, type ReferenceDto } from '../../../types/admin/slideshowKnowledge';
 import { adminFetch } from '../business/useAdminApi';
-import { cardClass, compact, errorClass, usd } from './format';
+import { cardClass, compact, errorClass } from './format';
 
 type Props = { token: string; references: ReferenceDto[] | null; error: string | null; onChanged: () => void; onOpenModel: (id: string) => void };
 
@@ -38,7 +38,7 @@ function Row({ token, reference: r, onChanged, onOpenModel }: { token: string; r
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-ink dark:text-zinc-100">{hook?.title || r.sourceUrl.replace(/^https?:\/\/(www\.)?/, '')}</p>
         <p className="truncate text-xs text-muted">
-          {r.creator ? `@${r.creator} · ` : ''}{compact(r.stats.views)} views · {compact(r.stats.saves)} saves · {r.slides.length} slides{r.costMicros ? ` · ${usd(r.costMicros)}` : ''}
+          {r.creator ? `@${r.creator} · ` : ''}{compact(r.stats.views)} views · {compact(r.stats.saves)} saves · {r.slides.length} slides
         </p>
         {r.error && <p className="mt-1 line-clamp-2 text-xs text-red-600 dark:text-red-400">{r.error}</p>}
       </div>

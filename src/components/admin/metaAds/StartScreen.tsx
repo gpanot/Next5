@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { DEMO_AD_COUNTS, META_ADS_PER_RUN } from '../../../types/admin/metaAds';
 import { adminFetch } from '../business/useAdminApi';
 import { AdSideDecks, AdStrip } from './AdShowcase';
 import { HowItWorks } from './HowItWorks';
 import { RecentRuns } from './RecentRuns';
 
 const EXAMPLES = ['allbirds.com', 'glossier.com', 'warbyparker.com'];
-const AD_COUNTS = [...DEMO_AD_COUNTS, META_ADS_PER_RUN];
+
+/** A first run makes one ad; "Get 5 more" on the run page makes the rest. */
+const FIRST_RUN_ADS = 1;
 
 type Props = { token: string; onRun: (runId: string) => void };
 
@@ -23,7 +24,6 @@ function GlobeIcon() {
 
 export function StartScreen({ token, onRun }: Props) {
   const [url, setUrl] = useState('');
-  const [adCount, setAdCount] = useState<number>(META_ADS_PER_RUN);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +32,7 @@ export function StartScreen({ token, onRun }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const { runId } = await adminFetch<{ runId: string }>(token, '/api/admin/meta-ads/runs', { method: 'POST', body: JSON.stringify({ url: target, adCount }) });
+      const { runId } = await adminFetch<{ runId: string }>(token, '/api/admin/meta-ads/runs', { method: 'POST', body: JSON.stringify({ url: target, adCount: FIRST_RUN_ADS }) });
       onRun(runId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start');
@@ -68,14 +68,6 @@ export function StartScreen({ token, onRun }: Props) {
             autoCapitalize="none"
             className="min-w-0 flex-1 bg-transparent px-3 py-3 text-base font-medium text-ink placeholder:text-zinc-300 focus:outline-none dark:text-zinc-100"
           />
-          <select
-            aria-label="How many ads"
-            value={adCount}
-            onChange={(e) => setAdCount(Number(e.target.value))}
-            className="mr-1.5 min-h-11 rounded-full bg-zinc-100 px-3 text-sm font-medium text-ink focus:outline-none dark:bg-zinc-800 dark:text-zinc-100"
-          >
-            {AD_COUNTS.map((n) => <option key={n} value={n}>{n} {n === 1 ? 'ad' : 'ads'}</option>)}
-          </select>
           <button type="submit" disabled={busy || !url.trim()} className="rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500 dark:hover:bg-blue-400">
             {busy ? 'Starting…' : 'Get ads →'}
           </button>

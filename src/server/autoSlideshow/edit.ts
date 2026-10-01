@@ -133,7 +133,7 @@ export const rewriteSlideshow = async (runId: string, showId: string): Promise<v
   if (!show.modelId) throw new HttpError(409, 'model_deleted', 'This slideshow\'s model was deleted.');
   const model = await prisma.slideshowModel.findUniqueOrThrow({ where: { id: show.modelId } });
   const [profile, levers, photos] = [show.run.profile as unknown as BrandProfile, (show.run.levers as unknown as BrandLever[] | null) ?? [], photosOf(show.run)];
-  const available = photos.flatMap((p, i) => (p.imageKey ? [i] : []));
+  const available = photos.flatMap((p, i) => (p.imageKey && p.kind !== 'hook' ? [i] : []));
   if (!profile || available.length === 0) throw new HttpError(409, 'run_incomplete', 'This run has no profile or photos yet.');
   const meter = createMeter();
   try {
@@ -154,8 +154,27 @@ export const rewriteSlideshow = async (runId: string, showId: string): Promise<v
   }
 };
 
+/** Fewest slides a slideshow keeps: a hook and one more. */
+export const MIN_SLIDES = 2;
+
+/** Removes one slide and its image; the others keep their text, photos and renders. */
+export const deleteSlide = async (runId: string, showId: string, index: number): Promise<void> => {
+  const show = await loadShow(runId, showId);
+  const slides = show.slides as unknown as AutoSlide[];
+  if (!slides[index]) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
+  if (slides.length <= MIN_SLIDES) throw new HttpError(409, 'too_few_slides', `A slideshow needs at least ${MIN_SLIDES} slides.`);
+  const removed = slides[index]!;
+  await prisma.autoSlideshow.update({ where: { id: showId }, data: { slides: slides.filter((_, i) => i !== index) as unknown as Prisma.InputJsonValue } });
+  if (removed.imageKey) await deleteObject(removed.imageKey).catch(() => undefined);
+};
+
+/** Deletes the slideshow and lowers the run's count, so nothing shows it as "still being made" or makes it again.
+ *  The DB check constraint keeps count >= 1, so the last slideshow leaves count at 1. */
 export const deleteSlideshow = async (runId: string, showId: string): Promise<void> => {
   const show = await loadShow(runId, showId);
-  await prisma.autoSlideshow.delete({ where: { id: showId } });
+  await prisma.$transaction([
+    prisma.autoSlideshow.delete({ where: { id: showId } }),
+    prisma.autoSlideshowRun.updateMany({ where: { id: runId, count: { gt: 1 } }, data: { count: { decrement: 1 } } }),
+  ]);
   for (const s of show.slides as unknown as AutoSlide[]) if (s.imageKey) await deleteObject(s.imageKey).catch(() => undefined);
 };

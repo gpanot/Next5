@@ -36,7 +36,7 @@ Choose:
   topic (what this slideshow teaches, 3-8 words, specific to the audience, e.g. "putting mistakes that cost beginners strokes").
 - Prefer models whose niches or shape fit this business. Spread the slideshows across the good-fit models and across their hooks.
 - Every topic is different. Topics sit in the audience's world, not the product's features.
-- photoPrompts: {PHOTOS} photo descriptions for the backgrounds, shared by all slideshows. Real-looking photography of the
+- photoPrompts: {PHOTOS} photo descriptions for the backgrounds, shared by all slideshows (the hook slide of each slideshow gets its own photo later; these fill the other slides). Real-looking photography of the
   audience's world (places, objects, people doing the activity, seen from a distance or from behind), bright daytime light,
   varied scenes. Never dusk, night, golden hour, dim interiors or cinematic/moody lighting: dark photos look bad on TikTok. Never text, logos, screens with UI, or close-up faces. One sentence each.
 Return JSON: {"slideshows": [{"modelId","hookPattern","topic"}], "photoPrompts": [string]}`;
@@ -68,11 +68,11 @@ const toPicks = (raw: RawPlan, models: PlanModel[], count: number): SlideshowPic
 };
 
 export const planRun = async (
-  input: { profile: BrandProfile; levers: BrandLever[]; count: number },
+  input: { profile: BrandProfile; levers: BrandLever[]; count: number; avoidTopics?: string[]},
   meter: CostMeter,
 ): Promise<AutoPlan> => {
   const { models, usedDrafts } = await loadPlanModels();
-  const { profile, levers, count } = input;
+  const { profile, levers, count, avoidTopics = [] } = input;
   const photos = Math.min(Math.max(Math.max(...models.map((m) => m.pattern.itemCount)) + 5, 8), 16);
   const raw = await metaAdsJson<RawPlan>(
     [
@@ -86,8 +86,9 @@ export const planRun = async (
           `Audience: ${profile.audience}`,
           `Categories: ${profile.productCategories.join(', ')}`,
           `Claims the site proves: ${levers.map((l) => l.claim).join(' · ') || 'none'}`,
+          avoidTopics.length ? `Topics already made for this business (pick new ones, not rewordings): ${avoidTopics.join(' · ')}` : '',
           `\nPROVEN MODELS\n${describeModels(models)}`,
-        ].join('\n'),
+        ].filter(Boolean).join('\n'),
       },
     ],
     { maxTokens: 6_000, meter, label: 'OpenAI slideshow plan' },

@@ -15,6 +15,8 @@ export type WrittenSlideshow = { slides: Omit<AutoSlide, 'photoIndex' | 'imageKe
 const SYSTEM = `You write one TikTok photo slideshow that copies a proven structure. Simple words a 10-year-old can read.
 Structure: 1 hook slide, then exactly {N} meat slides, then 1 CTA slide.
 - hook: fill the hook pattern's [slots] for this business's audience and topic. [N] is {N}. Title Case. Max 10 words. No body.
+- hook.photo: one sentence describing the background photo that fits the hook best, so a viewer sees the hook's subject at once. Real-looking
+  photography, bright daytime light, seen from a distance or from behind. Never dusk, night, dim or moody light. Never text, logos, screens with UI, or close-up faces.
 - meat slides: follow the meat pattern exactly (title length, voice, what the body holds). Each slide teaches one useful,
   correct, well-known thing about the topic. Body: ONE plain sentence, max 90 characters. No made-up statistics, studies or
   percentages about people. Never mention the business on meat slides.
@@ -23,9 +25,9 @@ Structure: 1 hook slide, then exactly {N} meat slides, then 1 CTA slide.
   use claims from "Proven claims" (reword lightly, keep every number exactly). Never copy numbers from the CTA pattern.
   No proven claims → a plain benefit from "Sells", with no numbers.
 - caption: follow the caption style; hashtags: 3-6 lowercase tags without #, niche first.
-Return JSON: {"hook":{"title"},"items":[{"title","body"}],"cta":{"title","body"},"caption","hashtags":[string]}`;
+Return JSON: {"hook":{"title","photo"},"items":[{"title","body"}],"cta":{"title","body"},"caption","hashtags":[string]}`;
 
-type RawSlide = { title?: unknown; body?: unknown };
+type RawSlide = { title?: unknown; body?: unknown; photo?: unknown };
 type Raw = { hook?: RawSlide; items?: RawSlide[]; cta?: RawSlide; caption?: unknown; hashtags?: unknown };
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? clip(v.replace(/\s+/g, ' ').trim(), max) : '');
@@ -65,6 +67,7 @@ export const hookMatchesCount = (hook: string, count: number): boolean => {
 const toSlideshow = (raw: Raw, n: number, levers: BrandLever[], profile: BrandProfile): WrittenSlideshow | string => {
   const hook = str(raw.hook?.title, 120);
   const items = (raw.items ?? []).map((i) => ({ title: str(i.title, 90), body: str(i.body, 220) })).filter((i) => i.title);
+  const hookPhoto = str(raw.hook?.photo, 400);
   const ctaTitle = str(raw.cta?.title, 120);
   let ctaBody = str(raw.cta?.body, 220);
   if (!hook) return 'no hook';
@@ -80,7 +83,7 @@ const toSlideshow = (raw: Raw, n: number, levers: BrandLever[], profile: BrandPr
     : [];
   return {
     slides: [
-      { role: 'hook', title: hook, body: '' },
+      { role: 'hook', title: hook, body: '', ...(hookPhoto ? { photoPrompt: hookPhoto } : {}) },
       ...items.map((i) => ({ role: 'item' as const, ...i })),
       { role: 'cta', title: ctaTitle, body: ctaBody },
     ],

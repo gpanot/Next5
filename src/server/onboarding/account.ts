@@ -1,6 +1,5 @@
 // server-only — never import from a 'use client' file.
 
-import type { ProductLine } from '@prisma/client';
 import { CONSENT_VERSION, hasRequiredConsents } from '../../config/consents';
 import { prisma } from '../../lib/db';
 import { sendEmail } from '../../lib/maileroo';
@@ -9,10 +8,10 @@ import { THEME } from '../../config/theme';
 import { HttpError } from '../http';
 import { sendOnceQuietly } from '../email/send';
 import { welcomeEmail } from '../email/templates';
-import { createWorkspace } from '../workspaces/workspaces';
+import { createWorkspace, studioWhere, type StudioProduct } from '../workspaces/workspaces';
 
 export type AccountInput = {
-  product: ProductLine;
+  product: StudioProduct;
   email: string;
   firstName: string;
   businessName: string;
@@ -43,7 +42,7 @@ export const parseAccountInput = (body: Record<string, unknown>): AccountInput =
   return { ...parseProfileInput(body), email };
 };
 
-const sendContinueEmail = async (email: string, product: ProductLine): Promise<void> => {
+const sendContinueEmail = async (email: string, product: StudioProduct): Promise<void> => {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const link = `${appUrl}/start/${product}?token=${signMagicToken(email)}`;
   if (process.env.NODE_ENV !== 'production' && process.env.NEXT5_SEND_DEV_EMAILS !== 'true') {
@@ -81,10 +80,10 @@ export const setupWorkspace = async (userId: string, input: ProfileInput): Promi
 };
 
 /** A signed-in user with one studio adds the other: reuse their name and handle instead of asking again. */
-export const addStudio = async (userId: string, product: ProductLine): Promise<void> => {
+export const addStudio = async (userId: string, product: StudioProduct): Promise<void> => {
   const [user, existing] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { displayName: true } }),
-    prisma.workspace.findFirst({ where: { ownerUserId: userId }, orderBy: { createdAt: 'asc' }, select: { name: true, handle: true } }),
+    prisma.workspace.findFirst({ where: { ownerUserId: userId, ...studioWhere }, orderBy: { createdAt: 'asc' }, select: { name: true, handle: true } }),
   ]);
   const firstName = user.displayName ?? existing?.name;
   if (!firstName) throw new HttpError(400, 'first_name_required', 'Add your first name.');

@@ -5,7 +5,7 @@ import type { AutoPhotoDto, AutoSlideshowDto, AutoTrackDto } from '../../../type
 import { CaptionPanel } from './CaptionPanel';
 import { downloadSlideshow } from './downloads';
 import { MusicPicker } from './MusicPicker';
-import { PostToTikTok } from './PostToTikTok';
+import { PostPanel } from './posting/PostPanel';
 import { SlidePreview } from './SlidePreview';
 import { SlideEditPanel } from './SlideEditPanel';
 import { useSlideshowEdit } from './useSlideshowEdit';
@@ -17,8 +17,6 @@ type Props = {
   initial: AutoSlideshowDto;
   photos: AutoPhotoDto[] | null;
   tracks: AutoTrackDto[] | null;
-  /** The run's TikTok account, preselected in Post to TikTok. */
-  workspaceId: string | null;
   onChanged: () => void;
   onPhotosChanged: () => void;
   onClose: () => void;
@@ -29,7 +27,7 @@ type Props = {
 const ghostButton = 'min-h-11 rounded-full px-3 text-sm text-white/80 transition hover:bg-white/10 disabled:opacity-30';
 
 /** Full-screen editor, phone first: preview on top (left on desktop), the on-screen slide's text and photo, the caption. */
-export function SlideshowEditor({ token, runId, brandName, initial, photos, tracks, workspaceId, onChanged, onPhotosChanged, onClose, onPrev, onNext }: Props) {
+export function SlideshowEditor({ token, runId, brandName, initial, photos, tracks, onChanged, onPhotosChanged, onClose, onPrev, onNext }: Props) {
   const edit = useSlideshowEdit(token, runId, initial, onChanged);
   const { show, busy } = edit;
   const [slide, setSlide] = useState(0);
@@ -46,6 +44,11 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
     setZipping(true);
     await downloadSlideshow(show, brandName);
     setZipping(false);
+  };
+
+  const removeSlide = async () => {
+    if (!window.confirm(`Delete slide ${slide + 1}? This cannot be undone.`)) return;
+    if (await edit.deleteSlide(slide)) setSlide((i) => Math.min(i, show.slides.length - 2));
   };
 
   const remove = async () => {
@@ -70,8 +73,25 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
         <div className="shrink-0 p-4 md:flex md:w-1/2 md:flex-col md:justify-center md:overflow-y-auto">
           <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} />
-          <div className="mt-3 flex justify-center gap-1.5">
-            {show.slides.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === slide ? 'w-5 bg-white' : 'w-1.5 bg-white/30'}`} />)}
+          <div className="mt-3 flex items-center justify-center gap-3">
+            <div className="flex gap-1.5">
+              {show.slides.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === slide ? 'w-5 bg-white' : 'w-1.5 bg-white/30'}`} />)}
+            </div>
+            <button
+              onClick={() => void removeSlide()}
+              disabled={busy !== null || show.slides.length <= 2}
+              aria-label={`Delete slide ${slide + 1}`}
+              title={show.slides.length <= 2 ? 'A slideshow needs at least 2 slides' : `Delete slide ${slide + 1}`}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:bg-red-500/15 hover:text-red-300 active:scale-95 disabled:opacity-30"
+            >
+              {busy === `delete-slide-${slide}` ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+                </svg>
+              )}
+            </button>
           </div>
         </div>
 
@@ -92,7 +112,7 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
           <MusicPicker show={show} tracks={tracks} busy={busy} onPick={(id) => void edit.setMusic(id)} />
           <CaptionPanel key={`${show.caption}|${show.hashtags.join()}`} show={show} busy={busy} onSave={(c, h) => void edit.saveCaption(c, h)} />
           <div className="border-t border-white/10 pt-4">
-            <PostToTikTok token={token} runId={runId} show={show} defaultWorkspaceId={workspaceId} onPosted={onChanged} />
+            <PostPanel token={token} runId={runId} show={show} onPosted={onChanged} />
           </div>
           <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
             <button onClick={() => void zip()} disabled={zipping || busy !== null} className="min-h-11 rounded-full bg-white text-sm font-semibold text-black transition active:scale-95 disabled:opacity-40">

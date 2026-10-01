@@ -2,6 +2,7 @@
 
 import { PLANS, isPlanId } from '../../config/plans';
 import { prisma } from '../../lib/db';
+import { studioWhere, type StudioProduct } from '../workspaces/workspaces';
 import { newThemeEmail, renewalEmail, restockNudgeEmail, trialNudgeEmail } from '../email/templates';
 import { sendOnce } from '../email/send';
 
@@ -32,12 +33,12 @@ export const sendRenewalReminders = async (now: Date): Promise<number> => {
 /** One nudge 24 h after the free trial for workspaces that never bought a plan. */
 export const sendTrialNudges = async (now: Date): Promise<number> => {
   const workspaces = await prisma.workspace.findMany({
-    where: { trialUsedAt: { lte: new Date(now.getTime() - DAY), gte: new Date(now.getTime() - 14 * DAY) }, subscriptions: { none: { status: { in: ['active', 'expired', 'cancelled'] } } } },
+    where: { ...studioWhere, trialUsedAt: { lte: new Date(now.getTime() - DAY), gte: new Date(now.getTime() - 14 * DAY) }, subscriptions: { none: { status: { in: ['active', 'expired', 'cancelled'] } } } },
     select: { id: true, ownerUserId: true, product: true },
   });
   let sent = 0;
   for (const ws of workspaces) {
-    if (await sendOnce({ userId: ws.ownerUserId, workspaceId: ws.id, template: 'trial_nudge', dedupeKey: `trial-nudge:${ws.id}`, content: trialNudgeEmail(ws.product) })) sent += 1;
+    if (await sendOnce({ userId: ws.ownerUserId, workspaceId: ws.id, template: 'trial_nudge', dedupeKey: `trial-nudge:${ws.id}`, content: trialNudgeEmail(ws.product as StudioProduct) })) sent += 1;
   }
   return sent;
 };

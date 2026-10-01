@@ -1,5 +1,5 @@
 /** Floating example ads around the Perfect Ads start screen (side decks on wide screens, swipe strip below). */
-import Image from 'next/image';
+import { FittedImage } from '../shared/FittedImage';
 
 type Stat = { label: string; value: string; direction: 'up' | 'down' };
 
@@ -67,8 +67,9 @@ const SHOWCASE_ADS: ShowcaseAd[] = [
 ];
 
 /** Absolute slots for the wide-screen side decks: 3 cards per side, tilted like prints on a desk. */
-const LEFT_SLOTS = ['left-0 top-4 -rotate-6', 'left-24 top-64 rotate-3', 'left-2 top-[31rem] -rotate-3'];
-const RIGHT_SLOTS = ['right-2 top-0 rotate-6', 'right-24 top-60 -rotate-3', 'right-0 top-[30rem] rotate-3'];
+/** Cards are ~300px tall on 2xl; 21rem steps keep them apart even when tilted. */
+const LEFT_SLOTS = ['left-0 top-4 -rotate-6', 'left-24 top-[21rem] rotate-3', 'left-2 top-[42rem] -rotate-3'];
+const RIGHT_SLOTS = ['right-2 top-0 rotate-6', 'right-24 top-[21rem] -rotate-3', 'right-0 top-[42rem] rotate-3'];
 const STRIP_TILTS = ['-rotate-2', 'rotate-2', '-rotate-1', 'rotate-1'];
 
 function Arrow({ direction }: { direction: Stat['direction'] }) {
@@ -95,13 +96,13 @@ function AdMedia({ ad }: { ad: ShowcaseAd }) {
       />
     );
   }
-  return <Image src={ad.src} alt={ad.alt} fill sizes="176px" className="object-cover" />;
+  return <FittedImage src={ad.src} alt={ad.alt} sizes="160px" />;
 }
 
 function AdCard({ ad, className }: { ad: ShowcaseAd; className: string }) {
   return (
-    <figure className={`w-40 shrink-0 rounded-2xl border border-line bg-white p-2 shadow-sm transition duration-300 hover:z-10 hover:scale-105 hover:rotate-0 hover:shadow-lg 2xl:w-44 dark:border-zinc-800 dark:bg-zinc-900 ${className}`}>
-      <div className="relative aspect-[4/5] overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
+    <figure className={`w-36 shrink-0 rounded-2xl border border-line bg-white p-2 shadow-sm transition duration-300 hover:z-10 hover:scale-105 hover:rotate-0 hover:shadow-lg 2xl:w-40 dark:border-zinc-800 dark:bg-zinc-900 ${className}`}>
+      <div className="relative aspect-[9/16] overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
         <AdMedia ad={ad} />
         {ad.kind === 'video' && (
           <span className="absolute right-2 bottom-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white">Video</span>

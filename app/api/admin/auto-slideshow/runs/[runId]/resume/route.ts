@@ -4,7 +4,9 @@
  */
 import type { NextRequest } from 'next/server';
 import { waitUntil } from '@vercel/functions';
-import { adminRoute, json } from '../../../../../../../src/server/admin/route';
+import { json } from '../../../../../../../src/server/admin/route';
+import { assertRunAccess } from '../../../../../../../src/server/autoSlideshow/access';
+import { slideshowRoute } from '../../../../../../../src/server/autoSlideshow/route';
 import { prisma } from '../../../../../../../src/lib/db';
 import { runAutoPipeline } from '../../../../../../../src/server/autoSlideshow/pipeline';
 import { AUTO_STEPS, isTerminalAutoStatus, type AutoRunStatus, type AutoStep } from '../../../../../../../src/types/admin/autoSlideshow';
@@ -13,8 +15,9 @@ export const maxDuration = 300;
 
 type Ctx = { params: Promise<{ runId: string }> };
 
-export const POST = adminRoute(async (req: NextRequest, ctx: Ctx) => {
+export const POST = slideshowRoute(async (req: NextRequest, ctx: Ctx, access) => {
   const { runId } = await ctx.params;
+  await assertRunAccess(access, runId);
   const body = (await req.json().catch(() => ({}))) as { fromStep?: unknown };
   const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { status: true, failedStep: true } });
   if (!run) return json({ error: 'Run not found' }, { status: 404 });

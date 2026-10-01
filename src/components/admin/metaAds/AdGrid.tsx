@@ -1,8 +1,10 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import type { MetaAdDto } from '../../../types/admin/metaAds';
 
-type Props = { ads: MetaAdDto[]; count: number; onOpen: (index: number) => void };
+/** `more`: an extra slot after the ads (the "Get more" card once the run is done). */
+type Props = { ads: MetaAdDto[]; count: number; onOpen: (index: number) => void; more?: ReactNode };
 
 const GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-5';
 
@@ -36,7 +38,7 @@ function AdCard({ ad, onOpen }: { ad: MetaAdDto; onOpen: () => void }) {
   );
 }
 
-export function AdGrid({ ads, count, onOpen }: Props) {
+export function AdGrid({ ads, count, onOpen, more }: Props) {
   return (
     <section>
       <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
@@ -44,9 +46,10 @@ export function AdGrid({ ads, count, onOpen }: Props) {
         {ads.some((a) => a.status === 'ready') && <p className="text-xs text-muted dark:text-zinc-400">Tap an ad for copy and downloads</p>}
       </div>
       <div className={GRID}>
-        {ads.length === 0
-          ? Array.from({ length: count }, (_, i) => <Placeholder key={i} n={i + 1} />)
-          : ads.map((ad, i) => <AdCard key={ad.id} ad={ad} onOpen={() => onOpen(i)} />)}
+        {ads.map((ad, i) => <AdCard key={ad.id} ad={ad} onOpen={() => onOpen(i)} />)}
+        {/* Ads not written yet: on a first run all of them, on "Get more" the new batch */}
+        {Array.from({ length: Math.max(0, count - ads.length) }, (_, i) => <Placeholder key={`p${i}`} n={ads.length + i + 1} />)}
+        {more}
       </div>
     </section>
   );

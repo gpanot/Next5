@@ -10,6 +10,7 @@ import type { BrandProfile } from '../../types/admin/companyIntel';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import type { SlideshowPattern } from '../../types/admin/slideshowKnowledge';
 import { buildProfile } from '../companyIntel/profile';
+import { priorTopicsForSite } from './more';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { extractLevers } from '../metaAds/hormozi/levers';
 import { clip } from '../metaAds/text';
@@ -44,7 +45,10 @@ const saveStep = async (runId: string, step: AutoStep, ms: number, cost: StepCos
   });
 };
 
-type StepFn = (runId: string, meter: CostMeter) => Promise<Prisma.AutoSlideshowRunUpdateInput>;
+/** `append` > 0: a "Get more" batch adding that many slideshows to a finished run. `rerender`: step 6 was asked for
+ *  directly, so every slideshow renders again; otherwise only the ones not rendered yet. */
+type RunOpts = { append: number; rerender: boolean };
+type StepFn = (runId: string, meter: CostMeter, opts: RunOpts) => Promise<Prisma.AutoSlideshowRunUpdateInput>;
 
 const profileStep: StepFn = async (runId, meter) => ({ profile: json(await buildProfile((await loadRun(runId)).url, meter)) });
 
@@ -58,25 +62,38 @@ const leverStep: StepFn = async (runId, meter) => {
   return { levers: json(levers) };
 };
 
-const planStep: StepFn = async (runId, meter) => {
+/** Picks models and topics. On "Get more" it adds picks to the plan and keeps the run's photo set, so step 5 has nothing to redo. */
+const planStep: StepFn = async (runId, meter, { append }) => {
   const run = await loadRun(runId);
-  const plan = await planRun({ profile: checkpoint<BrandProfile>(run.profile, 1), levers: checkpoint<BrandLever[]>(run.levers, 2), count: run.count }, meter);
-  return { plan: json(plan) };
+  const avoidTopics = await priorTopicsForSite(run.url, run.createdAt, append > 0 ? runId : undefined);
+  const input = { profile: checkpoint<BrandProfile>(run.profile, 1), levers: checkpoint<BrandLever[]>(run.levers, 2), avoidTopics };
+  const plan = await planRun({ ...input, count: append > 0 ? append : run.count }, meter);
+  if (append === 0) return { plan: json(plan) };
+  const before = checkpoint<AutoPlan>(run.plan, 3);
+  return { plan: json({ ...before, picks: [...before.picks, ...plan.picks], usedDrafts: before.usedDrafts || plan.usedDrafts }) };
 };
 
 const WRITE_CONCURRENCY = 5;
 
-/** Replaces the run's slideshows with freshly written ones. A slideshow that fails is kept as failed, with its reason. */
-const writeStep: StepFn = async (runId, meter) => {
+/** Replaces the run's slideshows with freshly written ones (on "Get more", writes only the new picks after the existing
+ *  slideshows). A slideshow that fails is kept as failed, with its reason. */
+const writeStep: StepFn = async (runId, meter, { append }) => {
   const run = await loadRun(runId);
   const [profile, levers, plan] = [checkpoint<BrandProfile>(run.profile, 1), checkpoint<BrandLever[]>(run.levers, 2), checkpoint<AutoPlan>(run.plan, 3)];
   const models = await prisma.slideshowModel.findMany({ where: { id: { in: plan.picks.map((p) => p.modelId) } } });
   const patternOf = new Map(models.map((m) => [m.id, m.pattern as unknown as SlideshowPattern]));
-  await prisma.autoSlideshow.deleteMany({ where: { runId } });
+  // "Get more" writes only the picks step 3 just added (the plan's last `append`), after the highest position in use.
+  // Counting existing slideshows is not enough: deleted ones leave their picks in the plan.
+  const last = append > 0 ? await prisma.autoSlideshow.aggregate({ where: { runId }, _max: { position: true } }) : null;
+  const start = append > 0 ? (last?._max.position ?? -1) + 1 : 0;
+  if (append === 0) await prisma.autoSlideshow.deleteMany({ where: { runId } });
+  const picks = append > 0 ? plan.picks.slice(-append) : plan.picks;
+  const todo = picks.map((pick, i) => ({ pick, position: start + i }));
   // A random track per slideshow, all different while the library has enough; changeable in the editor.
-  const tracks = await pickTracks(plan.picks.length);
-  await runPool(plan.picks.map((pick, position) => ({ pick, position })), WRITE_CONCURRENCY, async ({ pick, position }) => {
-    const music = tracks[position] ? { audioAssetId: tracks[position]!.assetId, audioStart: tracks[position]!.startAt } : {};
+  const tracks = await pickTracks(todo.length);
+  await runPool(todo, WRITE_CONCURRENCY, async ({ pick, position }) => {
+    const track = tracks[position - start];
+    const music = track ? { audioAssetId: track.assetId, audioStart: track.startAt } : {};
     const base = { runId, position, modelId: pick.modelId, modelName: pick.modelName, hookPattern: pick.hookPattern, topic: pick.topic, ...music };
     try {
       const pattern = patternOf.get(pick.modelId);
@@ -88,34 +105,55 @@ const writeStep: StepFn = async (runId, meter) => {
       await prisma.autoSlideshow.create({ data: { ...base, status: 'failed', error: clip(err instanceof Error ? err.message : String(err), 500) } });
     }
   });
-  if ((await prisma.autoSlideshow.count({ where: { runId, status: 'written' } })) === 0) throw new Error('No slideshow could be written — see each one for its reason');
+  if ((await prisma.autoSlideshow.count({ where: { runId, status: 'written', position: { gte: start } } })) === 0) throw new Error('No slideshow could be written — see each one for its reason');
   return {};
 };
 
 const photoStep: StepFn = async (runId, meter) => {
   const run = await loadRun(runId);
   const plan = checkpoint<AutoPlan>(run.plan, 3);
-  const photos = await makePhotos(runId, plan.photoPrompts, run.photos as AutoPhoto[] | null, meter);
-  const made = photos.filter((p) => p.imageKey).length;
-  if (made < 3) throw new Error(`Only ${made} of ${photos.length} photos were made: ${photos.find((p) => p.error)?.error ?? 'unknown error'}`);
+  const pool = plan.photoPrompts.length;
+  const existing = (run.photos as AutoPhoto[] | null) ?? [];
+  const shows = await prisma.autoSlideshow.findMany({ where: { runId, status: { not: 'failed' } }, orderBy: { position: 'asc' } });
+  const hookOf = (show: { slides: unknown }) => (show.slides as AutoSlide[] | null)?.[0]?.photoPrompt;
+  // The pool (shared, reused by every slideshow) comes first and never moves; hook photos follow, one per slideshow.
+  const hookPrompts = existing.slice(pool).filter((p) => p.kind === 'hook').map((p) => p.prompt);
+  for (const show of shows) {
+    const prompt = hookOf(show);
+    if (prompt && !hookPrompts.includes(prompt)) hookPrompts.push(prompt);
+  }
+  const made = await makePhotos(runId, [...plan.photoPrompts, ...hookPrompts], existing, meter);
+  const photos = made.map((p, i) => (i >= pool ? { ...p, kind: 'hook' as const } : p));
+  const poolMade = photos.slice(0, pool).filter((p) => p.imageKey).length;
+  if (poolMade < 3) throw new Error(`Only ${poolMade} of ${pool} photos were made: ${photos.find((p) => p.error)?.error ?? 'unknown error'}`);
+  // Point each new slideshow's hook slide at its own photo; one whose photo failed falls back to the pool in step 6.
+  for (const show of shows.filter((s) => s.status === 'written')) {
+    const prompt = hookOf(show);
+    const index = prompt ? photos.findIndex((p, i) => i >= pool && p.prompt === prompt && p.imageKey) : -1;
+    if (index < 0) continue;
+    const slides = (show.slides as unknown as AutoSlide[]).map((s, i) => (i === 0 ? { ...s, photoIndex: index } : s));
+    await prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(slides) } });
+  }
   return { photos: json(photos) };
 };
 
 const RENDER_CONCURRENCY = 4;
 export const slideKey = (runId: string, slideshowId: string, index: number) => `admin/auto-slideshow/${runId}/${slideshowId}/${index}.jpg`;
 
-/** Renders every written slideshow (all of them again on a re-run of step 6). */
-const renderStep: StepFn = async (runId) => {
+/** Renders slideshows not rendered yet (all of them again when step 6 is re-run directly). */
+const renderStep: StepFn = async (runId, _meter, { rerender }) => {
   const run = await loadRun(runId);
   const photos = checkpoint<AutoPhoto[]>(run.photos, 5);
-  const available = photos.flatMap((p, i) => (p.imageKey ? [i] : []));
-  const shows = await prisma.autoSlideshow.findMany({ where: { runId, status: { not: 'failed' } }, orderBy: { position: 'asc' } });
+  const available = photos.flatMap((p, i) => (p.imageKey && p.kind !== 'hook' ? [i] : []));
+  const shows = await prisma.autoSlideshow.findMany({ where: { runId, status: rerender ? { not: 'failed' } : { in: ['written', 'rendering'] } }, orderBy: { position: 'asc' } });
   const cache: PhotoCache = new Map();
   await runPool(shows, RENDER_CONCURRENCY, async (show) => {
     try {
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { status: 'rendering', error: null } });
       const slides = show.slides as unknown as AutoSlide[];
       const indexes = photoIndexes(slides.length, show.position, available);
+      const hookPhoto = photos[slides[0]?.photoIndex ?? -1];
+      if (hookPhoto?.kind === 'hook' && hookPhoto.imageKey) indexes[0] = slides[0]!.photoIndex;
       const rendered: AutoSlide[] = [];
       for (const [i, slide] of slides.entries()) {
         const key = slideKey(runId, show.id, i);
@@ -154,14 +192,16 @@ const handOff = async (runId: string): Promise<boolean> => {
   }
 };
 
-/** Runs steps `fromStep`…6. Never throws: a failure is saved on the run with its step. */
-export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1): Promise<void> => {
+/** Runs steps `fromStep`…6. Never throws: a failure is saved on the run with its step.
+ *  `append` > 0 adds that many slideshows to a finished run (see ./more). */
+export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, append = 0): Promise<void> => {
+  const opts: RunOpts = { append, rerender: fromStep === 6 };
   for (let step = fromStep; step <= 6; step = (step + 1) as AutoStep) {
     const t0 = Date.now();
     const meter = createMeter();
     try {
       await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { status: running(step), error: null, failedStep: null } });
-      const data = await STEPS[step](runId, meter);
+      const data = await STEPS[step](runId, meter, opts);
       await saveStep(runId, step, Date.now() - t0, meter.summary(), data);
       console.log(`[auto-slideshow] run ${runId} step ${step} OK in ${Date.now() - t0}ms, $${meter.summary().usdMicros / 1e6}`);
       if (step === 4 && (await handOff(runId))) return;

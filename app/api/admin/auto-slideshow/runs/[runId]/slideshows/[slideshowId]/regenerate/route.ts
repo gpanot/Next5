@@ -3,7 +3,9 @@
  * Writes the slideshow again on the same model, hook and topic (also retries a failed one), keeps its photos, re-renders.
  */
 import type { NextRequest } from 'next/server';
-import { adminRoute, json } from '../../../../../../../../../src/server/admin/route';
+import { json } from '../../../../../../../../../src/server/admin/route';
+import { assertRunAccess } from '../../../../../../../../../src/server/autoSlideshow/access';
+import { slideshowRoute } from '../../../../../../../../../src/server/autoSlideshow/route';
 import { rewriteSlideshow } from '../../../../../../../../../src/server/autoSlideshow/edit';
 import { getSlideshowDto } from '../../../../../../../../../src/server/autoSlideshow/store';
 
@@ -12,8 +14,9 @@ export const maxDuration = 120;
 
 type Ctx = { params: Promise<{ runId: string; slideshowId: string }> };
 
-export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
+export const POST = slideshowRoute(async (_req: NextRequest, ctx: Ctx, access) => {
   const { runId, slideshowId } = await ctx.params;
+  await assertRunAccess(access, runId);
   await rewriteSlideshow(runId, slideshowId);
   return json({ slideshow: await getSlideshowDto(runId, slideshowId) });
 });

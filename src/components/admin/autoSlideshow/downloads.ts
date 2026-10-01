@@ -1,7 +1,7 @@
 'use client';
 
 import type JSZip from 'jszip';
-import type { AutoRunDto, AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
+import type { AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
 
 const slug = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -48,16 +48,4 @@ export const downloadSlideshow = async (show: AutoSlideshowDto, brandName: strin
   const count = await addSlideshow(zip, show, '');
   if (count > 0) save(await zip.generateAsync({ type: 'blob' }), `${slug(brandName)}-${pad(show.position + 1)}-${slug(show.topic)}.zip`);
   return count;
-};
-
-/** Every ready slideshow of the run, one folder each. */
-export const downloadRun = async (run: AutoRunDto): Promise<number> => {
-  const { default: Zip } = await import('jszip');
-  const zip = new Zip();
-  const brand = run.profile?.brandName ?? 'slideshows';
-  const ready = run.slideshows.filter((s) => s.status === 'ready');
-  const counts = await Promise.all(ready.map((s) => addSlideshow(zip, s, `${pad(s.position + 1)}-${slug(s.topic)}/`)));
-  const total = counts.reduce((a, b) => a + b, 0);
-  if (total > 0) save(await zip.generateAsync({ type: 'blob' }), `${slug(brand)}-tiktok-slideshows.zip`);
-  return total;
 };

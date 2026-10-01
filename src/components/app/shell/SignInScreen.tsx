@@ -10,7 +10,9 @@ import { BusinessLogo } from '../../marketing/shared/MarketingHeader';
 
 type Phase = { name: 'idle' } | { name: 'sending' } | { name: 'sent'; email: string } | { name: 'error'; message: string };
 
-export const SignInScreen = ({ notice }: { notice?: string }) => {
+type Props = { notice?: string; destination?: 'app' | 'slideshow'; title?: string };
+
+export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to Next5' }: Props) => {
   const [email, setEmail] = useState('');
   const [phase, setPhase] = useState<Phase>({ name: 'idle' });
 
@@ -20,7 +22,7 @@ export const SignInScreen = ({ notice }: { notice?: string }) => {
     const res = await fetch('/api/auth/studio/magic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, destination: 'app' }),
+      body: JSON.stringify({ email, destination }),
     }).catch(() => null);
     if (res?.ok) setPhase({ name: 'sent', email: email.trim().toLowerCase() });
     else setPhase({ name: 'error', message: 'We couldn’t send the link. Check the address and try again.' });
@@ -28,7 +30,7 @@ export const SignInScreen = ({ notice }: { notice?: string }) => {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 px-5 py-12">
-      <BusinessLogo />
+      <BusinessLogo href={destination === 'slideshow' ? '/slideshow' : '/'} />
       <div className="w-full max-w-sm rounded-2xl border border-app-line bg-app-panel p-6 shadow-sm sm:p-8">
         {phase.name === 'sent' ? (
           <div className="flex flex-col items-center gap-3 text-center" role="status">
@@ -40,8 +42,8 @@ export const SignInScreen = ({ notice }: { notice?: string }) => {
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-5">
             <div>
-              <h1 className="text-[22px] font-semibold text-app-ink">Log in to Next5</h1>
-              <p className="mt-1 text-[14px] text-app-muted">{notice ?? 'We’ll email you a secure sign-in link. No password needed.'}</p>
+              <h1 className="text-[22px] font-semibold text-app-ink">{title}</h1>
+              <p className="mt-1 text-[14px] text-app-muted">{notice ?? 'We’ll email you a secure sign-in link. New here? The same link creates your account.'}</p>
             </div>
             <Field label="Work email" htmlFor="signin-email" error={phase.name === 'error' ? phase.message : undefined}>
               <TextInput id="signin-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" />
@@ -50,7 +52,7 @@ export const SignInScreen = ({ notice }: { notice?: string }) => {
           </form>
         )}
       </div>
-      <p className="text-[14px] text-app-muted">New to Next5? <Link href="/start/brand" className="font-medium text-app-accent hover:text-app-ink">Start free</Link></p>
+      {destination === 'app' && <p className="text-[14px] text-app-muted">New to Next5? <Link href="/start/brand" className="font-medium text-app-accent hover:text-app-ink">Start free</Link></p>}
     </div>
   );
 };

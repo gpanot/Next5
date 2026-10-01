@@ -69,12 +69,19 @@ export const deleteObject = async (key: string): Promise<void> => {
   await deleteFromR2(key);
 };
 
-/** A time-limited URL the browser can load. */
+/** Links are signed at the start of the hour, so the same object gets the same URL all hour and the browser cache works. */
+const SIGN_WINDOW_SEC = 60 * 60;
+
+/** A time-limited URL the browser can load, valid at least `expiresInSec` from now. */
 export const presignObject = async (key: string, expiresInSec = 24 * 60 * 60): Promise<string | null> => {
+  const nowSec = Math.floor(Date.now() / 1000);
+  const windowStart = nowSec - (nowSec % SIGN_WINDOW_SEC);
+  // Signed earlier than now, so it lasts longer to still give the caller its full time.
+  const lifetime = expiresInSec + SIGN_WINDOW_SEC;
   if (storageDriver() === 'local') {
-    const exp = Math.floor(Date.now() / 1000) + expiresInSec;
+    const exp = windowStart + lifetime;
     const params = new URLSearchParams({ key, exp: String(exp), sig: sign(key, exp) });
     return `/api/dev/object?${params.toString()}`;
   }
-  return getPresignedUrl(key, expiresInSec);
+  return getPresignedUrl(key, lifetime, undefined, new Date(windowStart * 1000));
 };

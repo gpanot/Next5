@@ -13,7 +13,7 @@ import { HttpError } from '../../../../../src/server/http';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, destination } = (await req.json()) as { email?: string; destination?: 'app' | 'studio' };
+    const { email, destination } = (await req.json()) as { email?: string; destination?: 'app' | 'studio' | 'slideshow' };
     const trimmed = email?.trim().toLowerCase() ?? '';
 
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) {
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     const token = signMagicToken(trimmed);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const path = destination === 'app' ? '/app' : '/studio';
+    const path = destination === 'app' ? '/app' : destination === 'slideshow' ? '/slideshow/login' : '/studio';
     const link = `${appUrl}${path}?token=${token}`;
 
     const reference = await sendEmail({

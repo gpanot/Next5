@@ -17,11 +17,11 @@ export const useSlideshowEdit = (token: string, runId: string, initial: AutoSlid
   const base = `/api/admin/auto-slideshow/runs/${runId}/slideshows/${initial.id}`;
 
   const call = useCallback(
-    async (label: string, path: string, method: 'POST' | 'PATCH', body?: unknown): Promise<boolean> => {
+    async (label: string, path: string, method: 'POST' | 'PATCH' | 'DELETE', body?: unknown): Promise<boolean> => {
       setBusy(label);
       setError(null);
       try {
-        const res = await adminFetch<Response>(token, `${base}${path}`, { method, body: JSON.stringify(body ?? {}) });
+        const res = await adminFetch<Response>(token, `${base}${path}`, { method, ...(method === 'DELETE' ? {} : { body: JSON.stringify(body ?? {}) }) });
         if (res.slideshow) setShow(res.slideshow);
         onChanged();
         return true;
@@ -40,6 +40,7 @@ export const useSlideshowEdit = (token: string, runId: string, initial: AutoSlid
     busy,
     error,
     saveSlide: (index: number, patch: { title?: string; body?: string; photoIndex?: number }) => call(`slide-${index}`, `/slides/${index}`, 'PATCH', patch),
+    deleteSlide: (index: number) => call(`delete-slide-${index}`, `/slides/${index}`, 'DELETE'),
     newPhoto: (index: number) => call(`photo-${index}`, `/slides/${index}/photo`, 'POST'),
     saveCaption: (caption: string, hashtags: string[]) => call('caption', '', 'PATCH', { caption, hashtags }),
     setMusic: (audioAssetId: string | null) => call('music', '', 'PATCH', { audioAssetId }),

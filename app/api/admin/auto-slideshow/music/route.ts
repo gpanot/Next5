@@ -1,5 +1,6 @@
 /** GET /api/admin/auto-slideshow/music — background tracks from the Assets Library (type AUDIO), by name */
-import { adminRoute, json } from '../../../../../src/server/admin/route';
+import { json } from '../../../../../src/server/admin/route';
 import { listTracks } from '../../../../../src/server/autoSlideshow/music';
+import { slideshowRoute } from '../../../../../src/server/autoSlideshow/route';
 
-export const GET = adminRoute(async () => json({ tracks: await listTracks() }));
+export const GET = slideshowRoute(async () => json({ tracks: await listTracks() }));

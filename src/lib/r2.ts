@@ -52,14 +52,14 @@ export async function uploadToR2(
  * Returns a presigned GET URL for a private R2 object.
  * Returns null if R2 is not configured.
  */
-export async function getPresignedUrl(key: string, expiresIn = 3600, downloadName?: string): Promise<string | null> {
+export async function getPresignedUrl(key: string, expiresIn = 3600, downloadName?: string, signingDate?: Date): Promise<string | null> {
   if (!isConfigured()) return null;
   // With a download name the browser saves the file instead of opening it.
   const disposition = downloadName ? `attachment; filename="${downloadName.replace(/"/g, '')}"` : undefined;
   return getSignedUrl(
     getClient(),
     new GetObjectCommand({ Bucket: BUCKET, Key: key, ResponseContentDisposition: disposition }),
-    { expiresIn },
+    { expiresIn, ...(signingDate ? { signingDate } : {}) },
   );
 }
 

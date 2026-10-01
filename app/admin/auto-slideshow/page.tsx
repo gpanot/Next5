@@ -18,7 +18,7 @@ export default function AutoSlideshowPage() {
     <div className="min-h-dvh bg-app-bg">
       <AppTopBar token={token} />
       <main className="px-4 py-4 md:px-8 md:py-8">
-        <AutoSlideshowTab token={token} />
+        <AutoSlideshowTab token={token} stickyTop="top-16" />
       </main>
     </div>
   );

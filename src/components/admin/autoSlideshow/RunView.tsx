@@ -1,18 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { AUTO_STEP_LABELS, type AutoPhotoDto, type AutoRunDto, type AutoTrackDto } from '../../../types/admin/autoSlideshow';
+import { AUTO_STEP_LABELS, isTerminalAutoStatus, type AutoPhotoDto, type AutoRunDto, type AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { adminFetch, useAdminApi } from '../business/useAdminApi';
+import { AgentLog } from '../shared/AgentLog';
 import { BrandCard } from '../shared/BrandCard';
-import { CostPanel } from './CostPanel';
+import { PipelineNav } from '../shared/PipelineNav';
+import { RunCounter, RunTitle } from '../shared/RunTitle';
+import { RunTopBar } from '../shared/RunTopBar';
 import { SlideshowGrid } from './SlideshowGrid';
-import { downloadRun } from './downloads';
-import { PostingPanel } from './PostingPanel';
+import { PostingCalendar } from './calendar/PostingCalendar';
 import { SlideshowEditor } from './SlideshowEditor';
-import { StepProgress } from './StepProgress';
+import { headerCopy, logLines, navItems } from './runCopy';
 import { useAutoRun } from './useAutoRun';
+import { useSidePanel } from './useSidePanel';
+import { TopBarPortal, useHasTopBarSlot } from './workspace/TopBarSlot';
 
-type Props = { token: string; runId: string; onBack: () => void };
+/** Without `onBack` (a user's workspace) the top bar has no "New run" link. */
+type Props = { token: string; runId: string; onBack?: () => void; stickyTop?: string };
 
 const errorClass = 'rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300';
 
@@ -45,11 +50,49 @@ function PlanNote({ run }: { run: AutoRunDto }) {
   );
 }
 
-/** One run: progress and cost on the side (below on phones), slideshows first. */
-export function RunView({ token, runId, onBack }: Props) {
+/**
+ * Folds the brand card and agent log away, or brings them back. Wide screens: a round icon pinned in the gap between
+ * the two columns. Phones (side panel below the work): a full-width button above it.
+ */
+function SideToggle({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  const label = open ? 'Hide brand and agent log' : 'Show brand and agent log';
+  return (
+    <div className="order-2">
+      <button
+        onClick={onToggle}
+        aria-expanded={open}
+        aria-label={label}
+        title={label}
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-line bg-white text-sm font-medium text-muted shadow-sm transition hover:text-ink active:scale-95 lg:sticky lg:top-40 lg:h-9 lg:min-h-0 lg:w-9 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:text-zinc-100"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={`hidden transition-transform lg:block ${open ? '' : 'rotate-180'}`}>
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+        <span className="lg:hidden">{label}</span>
+      </button>
+    </div>
+  );
+}
+
+function RunHeading({ run }: { run: AutoRunDto }) {
+  const ready = run.slideshows.filter((s) => s.status === 'ready').length;
+  const rendering = run.slideshows.filter((s) => s.status === 'rendering').length;
+  const done = run.status === 'COMPLETED';
+  const aside = !isTerminalAutoStatus(run.status) && (
+    <RunCounter done={ready} total={run.count} label="slideshows ready" note={run.slideshows.length === 0 ? 'Waiting for scripts' : `${rendering} rendering in parallel`} />
+  );
+  return (
+    <div className="space-y-2">
+      <RunTitle {...headerCopy(run)} tone={done ? 'done' : run.status === 'FAILED' ? 'failed' : 'running'} aside={aside} />
+      <PlanNote run={run} />
+    </div>
+  );
+}
+
+/** One run: calendar and slideshows first; brand and agent log on a side panel that folds away (below on phones). */
+export function RunView({ token, runId, onBack, stickyTop }: Props) {
   const { run, error, refresh } = useAutoRun(token, runId);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [zipping, setZipping] = useState(false);
   const [retrying, setRetrying] = useState<string | null>(null);
   const ready = run?.slideshows.filter((s) => s.status === 'ready') ?? [];
   const at = ready.findIndex((s) => s.id === openId);
@@ -63,43 +106,36 @@ export function RunView({ token, runId, onBack }: Props) {
     refresh();
   };
 
-  const zipAll = async () => {
-    if (!run) return;
-    setZipping(true);
-    await downloadRun(run);
-    setZipping(false);
-  };
+  const [sideOpen, toggleSide] = useSidePanel(run?.status);
+  // The editor's photo and music pickers load once, on the first slideshow opened, and stay for the next ones.
+  const [editorUsed, setEditorUsed] = useState(false);
+  if (openId && !editorUsed) setEditorUsed(true);
+  const photos = useAdminApi<{ photos: AutoPhotoDto[] }>(token, editorUsed ? `/api/admin/auto-slideshow/runs/${runId}/photos` : null);
+  const music = useAdminApi<{ tracks: AutoTrackDto[] }>(token, editorUsed ? '/api/admin/auto-slideshow/music' : null);
+  // A workspace puts the step progress in its own top bar; the admin page keeps a second bar under its header.
+  const inTopBar = useHasTopBarSlot();
+  const pipeline = run && <PipelineNav items={navItems(run)} running={!isTerminalAutoStatus(run.status)} startedAt={run.startedAt} finishedAt={run.finishedAt} />;
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-6">
-      <div className="flex min-h-12 items-center gap-3">
-        <button onClick={onBack} className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-full text-sm font-medium text-muted transition hover:text-ink dark:hover:text-zinc-100">
-          <span aria-hidden>←</span> New run
-        </button>
-        {run && <div className="min-w-0 flex-1"><StepProgress run={run} /></div>}
-      </div>
+    <div className="mx-auto max-w-[1500px]">
+      {inTopBar ? <TopBarPortal>{pipeline}</TopBarPortal> : <RunTopBar onBack={onBack} stickyTop={stickyTop}>{pipeline}</RunTopBar>}
 
       {!run ? (
         error ? <p className={errorClass}>{error}</p> : <div className="h-80 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
-          <aside className="order-2 space-y-4 lg:order-1">
-            <CostPanel run={run} />
-            <BrandCard url={run.url} profile={run.profile} />
-          </aside>
-          <section className="order-1 min-w-0 space-y-4 lg:order-2">
+        <div className={`grid gap-4 lg:gap-4 ${sideOpen ? 'lg:grid-cols-[320px_auto_1fr]' : 'lg:grid-cols-[auto_1fr]'}`}>
+          {sideOpen && (
+            <aside className="order-3 space-y-4 lg:order-1">
+              <BrandCard url={run.url} profile={run.profile} />
+              <AgentLog lines={logLines(run)} error={null} />
+            </aside>
+          )}
+          <SideToggle open={sideOpen} onToggle={toggleSide} />
+          <section className="order-1 min-w-0 space-y-4 lg:order-3">
             {run.status === 'FAILED' && <FailedBanner token={token} run={run} onResumed={refresh} />}
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div className="min-w-0 space-y-1">
-                <h2 className="text-xl font-extrabold text-ink dark:text-zinc-100">{run.profile?.brandName ?? run.url.replace(/^https?:\/\//, '')}</h2>
-                <PlanNote run={run} />
-              </div>
-              {done && ready.length > 0 && (
-                <button onClick={() => void zipAll()} disabled={zipping} className="min-h-11 rounded-full bg-ink px-5 text-sm font-semibold text-white shadow-sm transition active:scale-95 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">
-                  {zipping ? 'Zipping…' : `Download all (${ready.length})`}
-                </button>
-              )}
-            </div>
+            <RunHeading run={run} />
+            {(run.status !== 'FAILED' || run.slideshows.length > 0) && <PostingCalendar token={token} run={run} onOpen={setOpenId} onRunChanged={refresh} />}
+            <h3 className="pt-2 text-sm font-bold text-ink dark:text-zinc-100">All slideshows</h3>
             <SlideshowGrid
               slideshows={run.slideshows}
               expected={run.count}
@@ -108,19 +144,20 @@ export function RunView({ token, runId, onBack }: Props) {
               onOpen={(i) => setOpenId(run.slideshows[i]!.id)}
               onRetry={done ? (id) => void retry(id) : undefined}
             />
-            {done && ready.length > 0 && <PostingPanel token={token} run={run} onRunChanged={refresh} />}
           </section>
         </div>
       )}
 
       {open && run && (
-        <EditorLoader
+        <SlideshowEditor
           key={open.id}
           token={token}
           runId={runId}
           brandName={run.profile?.brandName ?? 'slideshow'}
-          workspaceId={run.workspaceId}
-          show={open}
+          initial={open}
+          photos={photos.data?.photos ?? null}
+          tracks={music.data?.tracks ?? null}
+          onPhotosChanged={photos.refresh}
           onChanged={refresh}
           onClose={() => setOpenId(null)}
           onPrev={at > 0 ? () => setOpenId(ready[at - 1]!.id) : undefined}
@@ -129,13 +166,4 @@ export function RunView({ token, runId, onBack }: Props) {
       )}
     </div>
   );
-}
-
-type LoaderProps = Omit<Parameters<typeof SlideshowEditor>[0], 'photos' | 'tracks' | 'onPhotosChanged' | 'initial'> & { show: AutoRunDto['slideshows'][number] };
-
-/** Loads the run's photo set and the music library for the pickers, then opens the editor. */
-function EditorLoader({ show, ...props }: LoaderProps) {
-  const photos = useAdminApi<{ photos: AutoPhotoDto[] }>(props.token, `/api/admin/auto-slideshow/runs/${props.runId}/photos`);
-  const music = useAdminApi<{ tracks: AutoTrackDto[] }>(props.token, '/api/admin/auto-slideshow/music');
-  return <SlideshowEditor {...props} initial={show} photos={photos.data?.photos ?? null} tracks={music.data?.tracks ?? null} onPhotosChanged={photos.refresh} />;
 }

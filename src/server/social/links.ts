@@ -13,8 +13,9 @@ export const appBaseUrl = (): string => (process.env.NEXT_PUBLIC_APP_URL ?? 'htt
 /** Must match the redirect URI registered in the TikTok and Meta developer apps. */
 export const redirectUriFor = (provider: SocialProvider): string => `${appBaseUrl()}/api/app/integrations/${provider}/callback`;
 
-/** `returnTo: 'admin'` when an admin connected the account from Auto Slideshow → TikTok accounts. */
-type StatePayload = { workspaceId: string; product: ProductLine; provider: SocialProvider; returnTo?: 'admin'; type: 'social_state' };
+/** `returnTo: 'admin'` when an admin connected the account from Auto Slideshow → TikTok accounts; 'slideshow' from a user's Auto Slideshow settings. */
+export type ReturnTo = 'admin' | 'slideshow';
+type StatePayload = { workspaceId: string; product: ProductLine; provider: SocialProvider; returnTo?: ReturnTo; type: 'social_state' };
 
 /** OAuth `state`: signed, 10 minutes. The callback has no session header, so this carries the workspace. */
 export const signState = (payload: Omit<StatePayload, 'type'>): string =>

@@ -3,15 +3,18 @@
  * posting): the given workspace's, else the run's.
  */
 import type { NextRequest } from 'next/server';
-import { adminRoute, json } from '../../../../../../../src/server/admin/route';
+import { json } from '../../../../../../../src/server/admin/route';
+import { assertRunAccess } from '../../../../../../../src/server/autoSlideshow/access';
+import { slideshowRoute } from '../../../../../../../src/server/autoSlideshow/route';
 import { prisma } from '../../../../../../../src/lib/db';
 import { creatorInfoFor } from '../../../../../../../src/server/autoSlideshow/posting';
 
 type Ctx = { params: Promise<{ runId: string }> };
 
-export const GET = adminRoute(async (req: NextRequest, ctx: Ctx) => {
+export const GET = slideshowRoute(async (req: NextRequest, ctx: Ctx, access) => {
   const { runId } = await ctx.params;
-  const picked = new URL(req.url).searchParams.get('workspaceId');
+  const runWorkspace = await assertRunAccess(access, runId);
+  const picked = access.admin ? new URL(req.url).searchParams.get('workspaceId') : runWorkspace;
   const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { workspaceId: true } });
   const workspaceId = picked || run?.workspaceId;
   if (!workspaceId) return json({ error: 'Pick a workspace first' }, { status: 409 });

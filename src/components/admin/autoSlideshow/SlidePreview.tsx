@@ -91,7 +91,7 @@ export function SlidePreview({ show, index, onIndex, working }: Props) {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M8 5v14l11-7z" /></svg>
         )}
       </button>
-      {show.audio && <span className="pointer-events-none absolute bottom-3 left-3 max-w-[60%] truncate rounded-full bg-black/55 px-3 py-1 text-[11px] text-white">♪ {show.audio.name}</span>}
+      {show.audio && <span title="Reference music: TikTok picks the music when it posts" className="pointer-events-none absolute bottom-3 left-3 max-w-[60%] truncate rounded-full bg-black/55 px-3 py-1 text-[11px] text-white">♪ {show.audio.name} · reference</span>}
       {show.audio && <audio ref={audio} src={show.audio.url} loop preload="none" />}
       {working && <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40"><span className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-transparent" /></div>}
     </div>

@@ -9,6 +9,7 @@ import { prisma } from '../../lib/db';
 import { appBaseUrl } from '../social/links';
 import { researchCompetitors } from './competitors';
 import { withImageRules, writeCopy } from './copy';
+import { priorAdsForSite } from './more';
 import { createMeter, type CostMeter } from './cost';
 import { designAd } from './design';
 import { clearHookAssets, prerenderHooks } from './hookImages';
@@ -41,7 +42,8 @@ const saveStep = async (runId: string, step: PipelineStep, ms: number, cost: Ste
   await prisma.metaAdRun.update({ where: { id: runId }, data: { ...data, stepTimings: timings, stepCosts: json(costs) } });
 };
 
-type StepFn = (runId: string, meter: CostMeter) => Promise<Prisma.MetaAdRunUpdateInput>;
+/** `append` > 0: a "Get more" batch that adds that many ads to a finished run instead of replacing its ads. */
+type StepFn = (runId: string, meter: CostMeter, append: number) => Promise<Prisma.MetaAdRunUpdateInput>;
 
 const profileStep: StepFn = async (runId, meter) => {
   const run = await loadRun(runId);
@@ -60,15 +62,28 @@ const hormoziStep: StepFn = async (runId, meter) => {
 };
 
 /** Writes the copy checkpoint and replaces the run's ads with `adCount` fresh rows. */
-const copyStep: StepFn = async (runId, meter) => {
+const writeAllCopy: StepFn = async (runId, meter) => {
   const run = await loadRun(runId);
-  const plan = await writeCopy(checkpoint<BrandProfile>(run.profile, 1), checkpoint<HormoziResult>(run.hormoziPicks, 3), run.adCount, meter);
+  const prior = await priorAdsForSite(run.url, run.createdAt);
+  const plan = await writeCopy(checkpoint<BrandProfile>(run.profile, 1), checkpoint<HormoziResult>(run.hormoziPicks, 3), run.adCount, meter, prior);
   await prisma.$transaction([
     prisma.metaAd.deleteMany({ where: { runId } }),
     prisma.metaAd.createMany({ data: plan.ads.map((ad, position) => ({ ...ad, runId, position })) }),
   ]);
   return { copyPlan: json(plan) };
 };
+
+/** "Get more": writes `append` new ads after the run's existing ones, steering away from every ad this site has. */
+const appendCopy: StepFn = async (runId, meter, append) => {
+  const run = await loadRun(runId);
+  const [existing, prior] = await Promise.all([prisma.metaAd.count({ where: { runId } }), priorAdsForSite(run.url, run.createdAt, runId)]);
+  const plan = await writeCopy(checkpoint<BrandProfile>(run.profile, 1), checkpoint<HormoziResult>(run.hormoziPicks, 3), append, meter, prior);
+  await prisma.metaAd.createMany({ data: plan.ads.map((ad, i) => ({ ...ad, runId, position: existing + i })) });
+  const before = (run.copyPlan as unknown as CopyPlan | null)?.ads ?? [];
+  return { copyPlan: json({ ads: [...before, ...plan.ads] }) };
+};
+
+const copyStep: StepFn = (runId, meter, append) => (append > 0 ? appendCopy(runId, meter, append) : writeAllCopy(runId, meter, 0));
 
 /** Ads designed at once. reAPI caps an account at 10 tasks in flight; 5 leaves room for regenerates and a second run. */
 const IMAGE_CONCURRENCY = 5;
@@ -142,15 +157,16 @@ const handOffDesign = async (runId: string): Promise<boolean> => {
   }
 };
 
-/** Runs steps `fromStep`…5 (step 5 already composites, so a normal run skips a separate step 6). Never throws. */
-export const runPipeline = async (runId: string, fromStep: PipelineStep = 1): Promise<void> => {
+/** Runs steps `fromStep`…5 (step 5 already composites, so a normal run skips a separate step 6). Never throws.
+ *  `append` > 0 adds that many ads to a finished run (see ./more). */
+export const runPipeline = async (runId: string, fromStep: PipelineStep = 1, append = 0): Promise<void> => {
   const last: PipelineStep = fromStep === 6 ? 6 : 5;
   for (let step = fromStep; step <= last; step = (step + 1) as PipelineStep) {
     const t0 = Date.now();
     const meter = createMeter();
     try {
       await prisma.metaAdRun.update({ where: { id: runId }, data: { status: running(step), error: null, failedStep: null } });
-      const data = await STEPS[step](runId, meter);
+      const data = await STEPS[step](runId, meter, append);
       await saveStep(runId, step, Date.now() - t0, meter.summary(), data);
       console.log(`[meta-ads] run ${runId} step ${step} OK in ${Date.now() - t0}ms, $${meter.summary().usdMicros / 1e6}`);
       if (step === 4 && last === 5 && (await handOffDesign(runId))) return;

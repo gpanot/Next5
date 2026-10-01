@@ -1,20 +1,22 @@
 'use client';
 
-import { useCallback, useState, type ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 import { currentStep } from '../../../types/admin/metaAds';
 import { AdGrid } from './AdGrid';
 import { AdInspector } from './AdInspector';
 import { AgentLog } from './AgentLog';
 import { BrandCard } from '../shared/BrandCard';
+import { MoreCard } from '../shared/MoreCard';
 import { CompetitorStrip } from './CompetitorStrip';
 import { downloadRun } from './downloads';
 import { HormoziPanel } from './HormoziPanel';
 import { PipelineInspector } from './PipelineInspector';
 import { RunHeader } from './RunHeader';
+import { RunTopBar } from '../shared/RunTopBar';
 import { StepNav } from './StepNav';
 import { useMetaAdRun } from './useMetaAdRun';
 
-type Props = { token: string; runId: string; onBack: () => void; onRun: (runId: string) => void };
+type Props = { token: string; runId: string; onBack: () => void };
 
 function DashboardSkeleton() {
   return (
@@ -28,23 +30,7 @@ function DashboardSkeleton() {
   );
 }
 
-/** Page top bar during a run: back link and step progress on one row, pinned while the page scrolls.
- *  Negative margins cancel the parent's padding so the bar spans the full width. */
-function RunTopBar({ onBack, children }: { onBack: () => void; children?: ReactNode }) {
-  return (
-    <div className="sticky top-0 z-30 -mx-4 -mt-4 mb-6 border-b border-line/60 bg-white/80 backdrop-blur-md md:-mx-8 md:-mt-8 md:mb-8 dark:border-zinc-800/60 dark:bg-zinc-950/80">
-      <div className="mx-auto flex min-h-16 max-w-[1500px] items-center gap-3 px-4 py-2 md:gap-6 md:px-8">
-        <button onClick={onBack} aria-label="New run" className="flex min-h-10 shrink-0 items-center gap-1.5 rounded-full text-sm font-medium text-muted transition hover:text-ink dark:text-zinc-400 dark:hover:text-zinc-100">
-          <span aria-hidden>←</span>
-          <span className="hidden sm:inline">New run</span>
-        </button>
-        <div className="min-w-0 flex-1">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-export function RunDashboard({ token, runId, onBack, onRun }: Props) {
+export function RunDashboard({ token, runId, onBack }: Props) {
   const { run, error, refresh } = useMetaAdRun(token, runId);
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const onIndex = useCallback((index: number | null) => setOpenIndex(index), []);
@@ -74,9 +60,14 @@ export function RunDashboard({ token, runId, onBack, onRun }: Props) {
           <AgentLog run={run} />
         </aside>
         <section className="order-1 flex min-w-0 flex-col gap-8 lg:order-2">
-          <RunHeader token={token} run={run} onDownloadAll={() => void downloadRun(run)} onRun={onRun} />
+          <RunHeader run={run} onDownloadAll={() => void downloadRun(run)} />
           <CompetitorStrip research={run.competitors} insights={run.competitors?.patterns ?? []} loading={step === 2} compact={step >= 3 && !failedEarly} scores={scores} />
-          <AdGrid ads={run.ads} count={run.adCount} onOpen={setOpenIndex} />
+          <AdGrid
+            ads={run.ads}
+            count={run.adCount}
+            onOpen={setOpenIndex}
+            more={run.status === 'COMPLETED' && <MoreCard token={token} endpoint={`/api/admin/meta-ads/runs/${run.id}/more`} made={run.ads.filter((a) => a.status === 'ready').length} noun="ad" onStarted={refresh} />}
+          />
           {/* Internal steps: kept below the ads so the page leads with the result */}
           <div className="flex flex-col gap-3 border-t border-line pt-6 dark:border-zinc-800">
             <p className="text-[11px] font-semibold tracking-widest text-muted uppercase dark:text-zinc-500">Behind the scenes</p>

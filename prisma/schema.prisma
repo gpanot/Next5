@@ -144,6 +144,8 @@ model BookingRegeneration {
 enum ProductLine {
   brand
   shop
+  /// Auto Slideshow workspace: one per website. A user can have many (the one-per-product index skips these).
+  slideshow
 }
 
 enum IdentityKind {
@@ -288,7 +290,9 @@ model Workspace {
   assetDescriptors    AssetDescriptor[]
   userUploads         UserUpload[]
 
-  @@unique([ownerUserId, product])
+  // One Brand and one Shop studio per user: a partial unique index in SQL (db/migrations, *_slideshow_workspaces.sql)
+  // that skips 'slideshow' workspaces. Prisma cannot express it, so it is not declared here.
+  @@index([ownerUserId, product])
   @@map("workspaces")
 }
 
@@ -2227,7 +2231,8 @@ model AutoSlideshow {
   run   AutoSlideshowRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
   model SlideshowModel?    @relation(fields: [modelId], references: [id], onDelete: SetNull)
   audio BlitzAsset?        @relation(fields: [audioAssetId], references: [id], onDelete: SetNull)
-  post  AutoSlideshowPost?
+  /// One per platform it was approved for (TikTok, Instagram)
+  posts AutoSlideshowPost[]
 
   @@index([runId, position])
   @@map("auto_slideshows")
@@ -2236,7 +2241,9 @@ model AutoSlideshow {
 /// One approved, scheduled TikTok carousel post per slideshow, sent through the workspace's TikTok connection.
 model AutoSlideshowPost {
   id            String    @id @default(cuid())
-  slideshowId   String    @unique @map("slideshow_id")
+  slideshowId   String    @map("slideshow_id")
+  /// 'tiktok' | 'instagram'
+  platform      String    @default("tiktok")
   runId         String    @map("run_id")
   workspaceId   String    @map("workspace_id")
   /// 'scheduled' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled'
@@ -2247,15 +2254,20 @@ model AutoSlideshowPost {
   allowComments Boolean   @default(true) @map("allow_comments")
   brandOrganic  Boolean   @default(false) @map("brand_organic")
   brandContent  Boolean   @default(false) @map("brand_content")
-  /// When the approver accepted TikTok's Music Usage Confirmation
+  /// When the approver accepted TikTok's Music Usage Confirmation (Instagram: when it was approved)
   consentAt     DateTime  @map("consent_at")
+  /// TikTok: publish id to poll. Instagram: the carousel container id until it is published.
   publishId     String?   @map("publish_id")
+  /// The platform's post id: TikTok post id, or the Instagram media id
   tiktokPostId  String?   @map("tiktok_post_id")
   postUrl       String?   @map("post_url")
   attempts      Int       @default(0)
   error         String?
   sentAt        DateTime? @map("sent_at")
   postedAt      DateTime? @map("posted_at")
+  /// Latest numbers from the platform: { views, likes, comments, shares, saves, reach } (missing when not offered)
+  stats         Json?
+  statsAt       DateTime? @map("stats_at")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
@@ -2263,6 +2275,8 @@ model AutoSlideshowPost {
   run       AutoSlideshowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
 
   @@index([status, scheduledAt])
+  @@unique([slideshowId, platform])
+  @@index([status, statsAt])
   @@index([runId])
   @@index([workspaceId, sentAt])
   @@map("auto_slideshow_posts")

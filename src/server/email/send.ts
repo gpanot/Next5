@@ -14,7 +14,7 @@ const shouldDeliver = (): boolean => process.env.NODE_ENV === 'production' || pr
 const scopeCta = async (content: EmailContent, workspaceId: string | null): Promise<EmailContent> => {
   if (!content.cta || !workspaceId) return content;
   const ws = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { product: true } });
-  if (!ws) return content;
+  if (!ws || ws.product === 'slideshow') return content;
   try {
     const url = new URL(content.cta.url);
     return { ...content, cta: { ...content.cta, url: `${url.origin}${scopeAppPath(`${url.pathname}${url.search}`, ws.product)}` } };

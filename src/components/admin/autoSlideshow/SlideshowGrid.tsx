@@ -1,5 +1,6 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import type { AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
   onOpen: (index: number) => void;
   /** Offered on failed slideshows once the run is done. */
   onRetry?: (slideshowId: string) => void;
+  /** An extra slot after the slideshows (the "Get more" card once the run is done). */
+  more?: ReactNode;
 };
 
 const frame = 'relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-zinc-100 shadow-sm dark:bg-zinc-800';
@@ -57,9 +60,9 @@ function Card(props: { show: AutoSlideshowDto; onOpen: () => void; onRetry?: () 
 }
 
 /** Slideshows as 4:5 covers; skeletons stand in for the ones not written yet. */
-export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry }: Props) {
+export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more }: Props) {
   const missing = writing ? Math.max(0, expected - slideshows.length) : 0;
-  if (slideshows.length === 0 && missing === 0) {
+  if (slideshows.length === 0 && missing === 0 && !more) {
     return <p className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted dark:border-zinc-800">Slideshows show up here once they are written.</p>;
   }
   return (
@@ -70,6 +73,7 @@ export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen,
         </li>
       ))}
       {Array.from({ length: missing }, (_, i) => <li key={`s${i}`}><div className="aspect-[4/5] animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" /></li>)}
+      {more && <li>{more}</li>}
     </ul>
   );
 }

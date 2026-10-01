@@ -1,7 +1,6 @@
 /** 546301 → "546K", 1250000 → "1.3M". */
 export const compact = (n: number): string => new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n);
 
-export const usd = (micros: number): string => `$${(micros / 1e6).toFixed(micros < 10_000 ? 4 : 3)}`;
 
 export const cardClass = 'rounded-xl border border-line bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900';
 

@@ -1,5 +1,5 @@
 // server-only — never import from a 'use client' file.
-// Step 5: the run's shared mood photos, on Grok Imagine (reAPI, 2K, 3:4 cropped to 4:5). Each photo is copied
+// Step 5: the run's shared mood photos, on Grok Imagine 2 official (reAPI, 864x1152 3:4 cropped to 4:5). Each photo is copied
 // to the object store right away: reAPI result links expire, and step 6 renders from our copy.
 
 import { REAPI_MODELS, type ReapiModelId } from '../../config/reapiModels';
@@ -11,8 +11,8 @@ import { runPool } from '../pool';
 import { putObject } from '../storage/objectStore';
 import { compressJpeg, PHOTO_SIZE } from './jpeg';
 
-export const PHOTO_MODEL: ReapiModelId = 'reapi-grok-imagine';
-/** Grok Imagine has no 4:5; 3:4 is the closest, and the 4:5 crop trims a little top and bottom. */
+export const PHOTO_MODEL: ReapiModelId = 'reapi-grok-imagine-2-official';
+/** Grok Imagine 2 has no 4:5; 3:4 is the closest, and the 4:5 crop trims a little top and bottom. */
 const PHOTO_RATIO = '3:4';
 /** reAPI allows 10 tasks in flight per account; 5 leaves room for Perfect Ads and retries. */
 const CONCURRENCY = 5;
@@ -72,9 +72,9 @@ const makePhoto = async (runId: string, index: number, prompt: string, meter: Co
 export const makePhotos = async (runId: string, prompts: string[], existing: AutoPhoto[] | null, meter: CostMeter): Promise<AutoPhoto[]> => {
   const photos: AutoPhoto[] = prompts.map((prompt, i) => {
     const prior = existing?.[i];
-    return prior?.imageKey && prior.prompt === prompt ? prior : { prompt, imageKey: null, error: null };
+    return (prior?.imageKey || prior?.deleted) && prior.prompt === prompt ? prior : { prompt, imageKey: null, error: null };
   });
-  const todo = photos.map((p, i) => ({ p, i })).filter(({ p }) => !p.imageKey);
+  const todo = photos.map((p, i) => ({ p, i })).filter(({ p }) => !p.imageKey && !p.deleted);
   await runPool(todo, CONCURRENCY, async ({ p, i }) => {
     try {
       photos[i] = { ...p, imageKey: await makePhoto(runId, i, p.prompt, meter), error: null };

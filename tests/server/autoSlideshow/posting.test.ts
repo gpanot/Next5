@@ -66,3 +66,35 @@ describe('slide media links', () => {
     expect(parseSlideMediaId('cmitem123')).toBeNull();
   });
 });
+
+describe('instagram posting', () => {
+  it('caps the caption at 2,200 characters and 30 hashtags', async () => {
+    const { instagramCaption } = await import('../../../src/server/social/instagramCarousel');
+    const tags = Array.from({ length: 40 }, (_, i) => `t${i}`);
+    const text = instagramCaption('Save this', tags);
+    expect(text.startsWith('Save this\n\n#t0 #t1')).toBe(true);
+    expect(text.match(/#/g)).toHaveLength(30);
+    expect(instagramCaption('x'.repeat(3000), []).length).toBe(2200);
+  });
+
+  it('refuses a carousel over 10 slides before calling Instagram', async () => {
+    const { createCarousel } = await import('../../../src/server/social/instagramCarousel');
+    const urls = Array.from({ length: 11 }, (_, i) => `https://app.test/${i}.jpg`);
+    await expect(createCarousel('token', 'ig', urls, '')).rejects.toThrow(/up to 10 slides/);
+  });
+});
+
+describe('parsePlatforms', () => {
+  it('keeps TikTok choices only when TikTok is picked', async () => {
+    const { parsePlatforms } = await import('../../../src/server/autoSlideshow/parsePosting');
+    expect(parsePlatforms({ platforms: ['instagram', 'instagram', 'facebook'] })).toEqual({ platforms: ['instagram'], tiktok: null });
+    const both = parsePlatforms({ platforms: ['tiktok', 'instagram'], tiktok: { privacyLevel: 'SELF_ONLY', consent: true } });
+    expect(both.tiktok).toEqual({ privacyLevel: 'SELF_ONLY', allowComments: true, brandOrganic: false, brandContent: false, consent: true });
+  });
+
+  it('asks for a platform, and for TikTok privacy', async () => {
+    const { parsePlatforms } = await import('../../../src/server/autoSlideshow/parsePosting');
+    expect(() => parsePlatforms({ platforms: [] })).toThrow(/Pick TikTok, Instagram or both/);
+    expect(() => parsePlatforms({ platforms: ['tiktok'] })).toThrow(/who can see/);
+  });
+});

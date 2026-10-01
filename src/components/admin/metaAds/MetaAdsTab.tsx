@@ -9,7 +9,7 @@ import { StartScreen } from './StartScreen';
 export function MetaAdsTab({ token, header }: { token: string; header?: ReactNode }) {
   const [runId, setRunId] = useState<string | null>(null);
 
-  if (runId) return <RunDashboard key={runId} token={token} runId={runId} onBack={() => setRunId(null)} onRun={setRunId} />;
+  if (runId) return <RunDashboard key={runId} token={token} runId={runId} onBack={() => setRunId(null)} />;
   return (
     <>
       {header}

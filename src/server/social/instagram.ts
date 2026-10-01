@@ -6,7 +6,8 @@ import { form, providerFetch, secondsFromNow } from './http';
 import type { ProviderClient, ProviderTokens } from './types';
 
 const GRAPH = 'https://graph.instagram.com/v23.0';
-const SCOPES = ['instagram_business_basic', 'instagram_business_content_publish'];
+// manage_insights: a post's views, reach, saves and shares for the stats loop.
+const SCOPES = ['instagram_business_basic', 'instagram_business_content_publish', 'instagram_business_manage_insights'];
 
 const appId = (): string => process.env.INSTAGRAM_APP_ID ?? '';
 const appSecret = (): string => process.env.INSTAGRAM_APP_SECRET ?? '';

@@ -33,7 +33,7 @@ export function MusicPicker({ show, tracks, busy, onPick }: Props) {
 
   return (
     <div className="space-y-2">
-      <p className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Music</p>
+      <p className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Music · for reference</p>
       <div className="flex gap-2">
         <select
           aria-label="Background music"
@@ -54,7 +54,7 @@ export function MusicPicker({ show, tracks, busy, onPick }: Props) {
           {listening ? '■' : '▶'}
         </button>
       </div>
-      <p className="text-[11px] text-white/40">In the preview and the ZIP. Posting from here uses TikTok&apos;s own trending sound.</p>
+      <p className="text-[11px] text-white/40">For the preview and the ZIP only. When we post, TikTok picks the music itself, often a trending sound that gets more views.</p>
       <audio ref={audio} onEnded={() => setListening(null)} />
     </div>
   );
