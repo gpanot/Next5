@@ -44,12 +44,15 @@ export const GET = businessRoute<Ctx>(async (req, ctx) => {
   const url = new URL(req.url);
   const code = url.searchParams.get('code');
   const origin = startedFrom(url.searchParams.get('state'));
+  const q = url.searchParams;
+  console.info(`[social:callback] ${provider}`, { hasCode: Boolean(code), error: q.get('error'), error_reason: q.get('error_reason'), error_description: q.get('error_description'), returnTo: origin?.returnTo, site: origin?.site });
   if (!code) return back({ integration_error: url.searchParams.get('error_description') ?? 'You did not allow the connection.' }, origin);
   try {
     const { workspaceId } = verifyState(url.searchParams.get('state') ?? '', provider);
     await saveConnection(workspaceId, provider, await PROVIDERS[provider].exchangeCode(code, redirectUriFor(provider)));
     return back({ connected: provider }, origin);
   } catch (err) {
+    console.error(`[social:callback] ${provider} failed:`, err instanceof Error ? err.message : err);
     return back({ integration_error: err instanceof HttpError ? err.message : 'We could not connect that account. Try again.' }, origin);
   }
 });

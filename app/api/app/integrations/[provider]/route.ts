@@ -26,7 +26,11 @@ export const POST = authedRoute<Ctx>(async (req, session, ctx) => {
   const body = await readJsonObject(req);
   const ws = await workspaceFor(session.userId, body.workspaceId, body.product);
   const state = signState({ workspaceId: ws.id, product: ws.product, provider, ...(body.returnTo === 'slideshow' ? { returnTo: 'slideshow' as const } : {}) });
-  return NextResponse.json({ url: PROVIDERS[provider].authorizeUrl(state, redirectUriFor(provider)) });
+  const url = PROVIDERS[provider].authorizeUrl(state, redirectUriFor(provider));
+  // What the platform receives, for "invalid app / redirect / scope" errors shown on its own page (they never reach us).
+  const q = new URL(url).searchParams;
+  console.info(`[social:connect] ${provider}`, { app: q.get('client_id') ?? q.get('client_key'), redirect_uri: q.get('redirect_uri'), scope: q.get('scope'), workspaceId: ws.id, authorize: `${new URL(url).origin}${new URL(url).pathname}` });
+  return NextResponse.json({ url });
 });
 
 /** DELETE ?product= or ?workspaceId= — forget the account. Posts already sent stay on the platform. */
