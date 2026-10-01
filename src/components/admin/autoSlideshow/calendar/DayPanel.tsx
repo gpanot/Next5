@@ -59,7 +59,7 @@ export function DayPanel({ day, actions }: { day: PlanDay; actions: DayActions }
   return (
     <div className="space-y-2 rounded-xl bg-zinc-50 p-3 dark:bg-zinc-950">
       <p className="text-sm font-bold text-ink dark:text-zinc-100">{day.date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-      {filled.map((slot, i) => <PanelRow key={`${i}-${slot.at.toISOString()}`} slot={slot} onOpen={actions.onOpen} />)}
+      {filled.filter((s) => s.item.kind !== 'making').map((slot, i) => <PanelRow key={`${i}-${slot.at.toISOString()}`} slot={slot} onOpen={actions.onOpen} />)}
       {filled.length === 0 && day.past && <p className="py-2 text-sm text-muted">Nothing posted this day.</p>}
       {!day.past && <div className="rounded-xl border border-dashed border-blue-200 bg-white p-1 dark:border-blue-900/60 dark:bg-zinc-900"><DayAdd day={day} actions={actions} size="touch" /></div>}
     </div>

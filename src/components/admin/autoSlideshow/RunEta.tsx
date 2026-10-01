@@ -3,7 +3,7 @@
 import { formatElapsed, useNow } from '../shared/runClock';
 
 /** A run usually takes about two minutes, start to finish. */
-const TYPICAL_RUN_MS = 120_000;
+export const TYPICAL_RUN_MS = 120_000;
 
 /** "~2:00 min" estimate that counts down while the run works, so a long wait never feels stuck. */
 export function RunEta({ startedAt }: { startedAt: string }) {

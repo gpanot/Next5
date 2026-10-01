@@ -114,7 +114,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
     const next = day ? dropPins(all, id, day) : null;
     if (next) setPins(next);
   };
-  const actions: DayActions = { onSetCount, onOpen };
+  const actions: DayActions = { startedAt: run.startedAt, onSetCount, onOpen };
 
   return (
     <section className="space-y-4 rounded-2xl border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
@@ -133,6 +133,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
           {approve.length > 0 ? `Approve & Publish (${approve.length}) →` : 'Nothing to approve'}
         </button>
       </div>
+      {run.status === 'FAILED' && fill > 0 && <p className="text-center text-xs text-muted">Tap “Retry” on the failed step above first, then Generate.</p>}
       {tooMany && <p className="text-center text-xs text-muted">Up to {MAX_SLIDESHOWS} slideshows at a time for now. Remove a few posts, generate, then add the rest.</p>}
       {working && <p className="text-center text-[11px] text-muted">Making your slideshows… they land on the calendar as they finish.</p>}
       {posting.posts && posting.posts.length > 0 && (
