@@ -3,6 +3,7 @@
 /** Floating example slideshows around the Auto Slideshow start screen (side decks on wide screens, swipe strip below). */
 import { useEffect, useState } from 'react';
 import { FittedImage } from '../shared/FittedImage';
+import { useAutoScroll } from './useAutoScroll';
 
 type Stat = 'views' | 'likes' | 'saves' | 'comments';
 
@@ -27,6 +28,8 @@ const SHOWCASE: ShowcaseSlideshow[] = [
 /** Cards are ~360px tall; 25rem steps keep them apart even when tilted. */
 const LEFT_SLOTS = ['left-0 top-4 -rotate-6', 'left-24 top-[25rem] rotate-3', 'left-2 top-[50rem] -rotate-3'];
 const RIGHT_SLOTS = ['right-2 top-0 rotate-6', 'right-24 top-[25rem] -rotate-3', 'right-0 top-[50rem] rotate-3'];
+/** Strip drift speed: slow enough to read the cards. */
+const STRIP_PX_PER_SECOND = 24;
 const STRIP_TILTS = ['-rotate-2', 'rotate-2', '-rotate-1', 'rotate-1'];
 
 const ICON_PATHS: Record<Stat, string> = {
@@ -111,13 +114,17 @@ export function SlideshowSideDecks() {
   );
 }
 
-/** Phones to laptops: one horizontal swipe row with snap. */
+/** Phones to laptops: one row that drifts sideways on its own and loops. Swipe pauses it. Cards are listed twice for the loop. */
 export function SlideshowStrip() {
+  const rowRef = useAutoScroll<HTMLDivElement>(STRIP_PX_PER_SECOND);
+  const loop = [...SHOWCASE, ...SHOWCASE];
   return (
     <div className="-mx-4 mt-10 w-[calc(100%+2rem)] 2xl:hidden">
-      <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pt-3 pb-6 [scrollbar-width:none]">
-        {SHOWCASE.map((show, i) => (
-          <SlideshowCard key={show.slug} show={show} order={i} className={`snap-center ${STRIP_TILTS[i % STRIP_TILTS.length]}`} />
+      <div ref={rowRef} className="flex overflow-x-auto px-6 pt-3 pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {loop.map((show, i) => (
+          <div key={`${show.slug}-${i}`} aria-hidden={i >= SHOWCASE.length || undefined} className="shrink-0 pr-4">
+            <SlideshowCard show={show} order={i} className={STRIP_TILTS[i % STRIP_TILTS.length]} />
+          </div>
         ))}
       </div>
     </div>

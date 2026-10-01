@@ -4,8 +4,8 @@ import { BusinessSurface } from '../../src/components/ui/BusinessSurface';
 import { SkeletonText } from '../../src/components/ui/Skeleton';
 
 export const metadata: Metadata = {
-  title: 'Auto Slideshow',
-  robots: { index: false, follow: false },
+  title: 'Auto Slideshow: slideshows that bring you customers',
+  description: 'Paste your website. Get TikTok and Instagram slideshows built on formats that already get views. No filming, no editing. 99¢ a post.',
 };
 
 export default function SlideshowLayout({ children }: { children: ReactNode }) {
