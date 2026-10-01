@@ -35,10 +35,28 @@ const returnUrl = (workspaceId: string, state: 'paid' | 'card' | 'cancel') =>
 
 type CheckoutInput = { userId: string; email: string; workspaceId: string };
 
+/**
+ * Stripe Managed Payments (on by default for new accounts) does not allow setup mode and needs a tax code per product.
+ * We charge as the merchant ourselves, the same way auto recharge does, so every Checkout session turns it off.
+ */
+const DIRECT = { managed_payments: { enabled: false } } as const;
+
+/** Creates a Checkout session and returns its URL. A Stripe refusal is logged and shown as a clear message, not a bare 500. */
+const openCheckout = async (params: Stripe.Checkout.SessionCreateParams): Promise<string> => {
+  try {
+    const session = await stripe().checkout.sessions.create({ ...DIRECT, ...params });
+    if (session.url) return session.url;
+  } catch (err) {
+    if (!(err instanceof Stripe.errors.StripeError)) throw err;
+    console.error(`[slideshow-credits] checkout (${params.mode}) refused by Stripe: ${err.type} ${err.code ?? ''} ${err.message}`);
+  }
+  throw new HttpError(502, 'checkout_failed', 'Could not open checkout. Try again in a minute.');
+};
+
 /** Hosted Checkout for a one-time top up. The card is saved for auto recharge. */
 export const topUpCheckout = async ({ userId, email, workspaceId }: CheckoutInput, amountCents: number): Promise<string> => {
   const customer = await ensureCustomer(userId, email);
-  const session = await stripe().checkout.sessions.create({
+  return openCheckout({
     mode: 'payment',
     customer,
     line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: amountCents, product_data: { name: 'Auto Slideshow credits', description: '99¢ per slideshow' } } }],
@@ -47,14 +65,12 @@ export const topUpCheckout = async ({ userId, email, workspaceId }: CheckoutInpu
     success_url: returnUrl(workspaceId, 'paid'),
     cancel_url: returnUrl(workspaceId, 'cancel'),
   });
-  if (!session.url) throw new HttpError(502, 'checkout_failed', 'Could not open checkout. Try again.');
-  return session.url;
 };
 
 /** Hosted Checkout that only saves a card (no charge). */
 export const addCardCheckout = async ({ userId, email, workspaceId }: CheckoutInput): Promise<string> => {
   const customer = await ensureCustomer(userId, email);
-  const session = await stripe().checkout.sessions.create({
+  return openCheckout({
     mode: 'setup',
     customer,
     currency: 'usd',
@@ -62,8 +78,6 @@ export const addCardCheckout = async ({ userId, email, workspaceId }: CheckoutIn
     success_url: returnUrl(workspaceId, 'card'),
     cancel_url: returnUrl(workspaceId, 'cancel'),
   });
-  if (!session.url) throw new HttpError(502, 'checkout_failed', 'Could not open checkout. Try again.');
-  return session.url;
 };
 
 export const listCards = async (customerId: string | null): Promise<CardDto[]> => {
