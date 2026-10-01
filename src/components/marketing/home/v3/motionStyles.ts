@@ -30,18 +30,18 @@ export const MOTION_CSS = String.raw`
 .v3aud button{transition:background-color .25s ease,color .25s ease,box-shadow .25s ease}
 .v3aud button:active{transform:scale(.96)}
 .v3linkbox{transition:box-shadow .25s ease,border-color .25s ease}
-/* nav: a full-width bar at the top; once scrolled it turns into a floating glass pill (same height, so no layout shift) */
-.v3nav{--glass-hi:rgba(255,255,255,.9);transition:background-color .3s ease,border-color .3s ease,backdrop-filter .3s ease}
+/* nav: a full-width bar at the top; once scrolled it turns into a floating glass pill (same space in the flow via a negative bottom margin, so no layout shift) */
+.v3nav{display:flow-root;--glass-hi:rgba(255,255,255,.9);transition:background-color .3s ease,border-color .3s ease,backdrop-filter .3s ease}
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .v3nav{--glass-hi:rgba(255,255,255,.08)}}
 :root[data-theme="dark"] .v3nav{--glass-hi:rgba(255,255,255,.08)}
 .v3nav .v3wrap{border:1px solid transparent;border-radius:999px;
   transition:max-width .5s var(--ease-out),height .3s ease,margin .3s ease,padding .5s var(--ease-out),background-color .3s ease,border-color .3s ease,box-shadow .3s ease}
 .v3nav.scrolled{background:transparent;border-bottom-color:transparent;backdrop-filter:none;-webkit-backdrop-filter:none}
-.v3nav.scrolled .v3wrap{max-width:780px;height:52px;margin:6px auto;padding:0 6px 0 22px;
+.v3nav.scrolled .v3wrap{max-width:780px;height:62px;margin:12px auto -10px;padding:0 10px 0 26px;
   background:color-mix(in srgb,var(--paper) 72%,transparent);border-color:color-mix(in srgb,var(--ink) 7%,transparent);
   backdrop-filter:blur(24px) saturate(1.5);-webkit-backdrop-filter:blur(24px) saturate(1.5);
   box-shadow:0 8px 32px rgba(15,23,42,.12),inset 0 1px 1px var(--glass-hi)}
-@media (max-width:760px){.v3nav.scrolled .v3wrap{height:50px;margin:4px 12px;padding:0 2px 0 18px}}
+@media (max-width:760px){.v3nav.scrolled .v3wrap{height:56px;margin:8px 12px -6px;padding:0 6px 0 20px}}
 .v3nav-links a{transition:color .2s ease}
 
 /* hero entrance */

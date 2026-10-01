@@ -9,12 +9,15 @@ import { SettingsModal, type SettingsTab } from './settings/SettingsModal';
 import { useSlideshowWorkspace } from './workspace/WorkspaceContext';
 import { useTopBarSlotRef } from './workspace/TopBarSlot';
 
-/** Once scrolled, the bar floats as a glass pill. Same total height in both states, so the page does not jump. */
+/**
+ * Once scrolled, the bar floats as a glass pill, as wide as its content on wide screens (no empty stretches).
+ * Same space in the page flow in both states (the pill's negative bottom margin), so the page does not jump.
+ */
 const barClass = (scrolled: boolean) =>
   [
     'flex flex-wrap items-center gap-x-3 gap-y-2 border transition-all duration-500 ease-out sm:gap-x-4',
     scrolled
-      ? 'mx-2 my-1.5 min-h-[52px] rounded-[28px] border-app-line/70 bg-app-bg/75 px-3 py-1 shadow-[0_8px_32px_rgba(15,23,42,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] backdrop-blur-xl backdrop-saturate-150 sm:mx-4 sm:px-5 dark:shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)]'
+      ? 'mx-2 mt-3 -mb-2.5 min-h-[62px] rounded-[32px] border-app-line/70 bg-app-bg/75 py-1 pr-2 pl-4 sm:pl-6 xl:mx-auto xl:w-fit xl:max-w-[calc(100%-2rem)] xl:gap-x-6 shadow-[0_8px_32px_rgba(15,23,42,0.12),inset_0_1px_1px_rgba(255,255,255,0.9)] backdrop-blur-xl backdrop-saturate-150 sm:mx-4 dark:shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.08)]'
       : 'min-h-16 border-transparent px-5 py-2 sm:px-8',
   ].join(' ');
 
@@ -39,7 +42,7 @@ export function AppTopBar({ token, page = 'app', user = false }: { token: string
   const scrolled = useScrolled(8);
   return (
     <>
-    <header className={`sticky top-0 z-30 border-b transition-colors duration-300 ${scrolled ? 'border-transparent' : 'border-app-line bg-app-bg/90 backdrop-blur-md'}`}>
+    <header className={`sticky top-0 z-30 flow-root border-b transition-colors duration-300 ${scrolled ? 'border-transparent' : 'border-app-line bg-app-bg/90 backdrop-blur-md'}`}>
       <div className={barClass(scrolled)}>
         <span className={user ? 'hidden sm:block' : undefined}><BusinessLogo href={SLIDESHOW_HOME} /></span>
         <span aria-hidden className="hidden h-7 w-px bg-app-line sm:block" />
