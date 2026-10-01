@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react';
 import { SlideshowSideDecks, SlideshowStrip } from '../SlideshowShowcase';
 import { HomeFaq } from './HomeFaq';
 import { PlatformBadges } from './PlatformBadges';
+import { PublicFooter } from './PublicFooter';
 import { PublicTopBar } from './PublicTopBar';
 import { pendingSiteStore, SLIDESHOW_LOGIN } from './WorkspaceContext';
 
@@ -60,6 +61,7 @@ export function SlideshowHome() {
         </div>
         <HomeFaq />
       </main>
+      <PublicFooter />
     </div>
   );
 }
