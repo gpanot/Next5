@@ -5,6 +5,7 @@ import { PlatformIcon } from '../../../marketing/offer/PlatformMarks';
 import type { ConnectionDto, SocialProviderDto } from '../../../../types/business/integrations';
 import type { SlideshowMeDto } from '../../../../types/admin/autoSlideshow';
 import { adminFetch } from '../../business/useAdminApi';
+import { InstagramTypeDialog } from './InstagramTypeDialog';
 
 type Props = { token: string; me: SlideshowMeDto; onChanged: () => void };
 
@@ -16,6 +17,8 @@ type RowProps = { token: string; workspace: string; provider: SocialProviderDto;
 /** One platform: its state, and Connect or Disconnect. */
 function AccountRow({ token, workspace, provider, connection, available, soon, onChanged }: RowProps) {
   const [busy, setBusy] = useState(false);
+  // Instagram asks the account type first: only Business and Creator accounts can be connected.
+  const [askingType, setAskingType] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const connect = async () => {
@@ -55,12 +58,13 @@ function AccountRow({ token, workspace, provider, connection, available, soon, o
         {connection ? (
           <button onClick={() => void disconnect()} disabled={busy} className="min-h-10 shrink-0 rounded-full border border-line px-4 text-xs font-semibold text-muted transition hover:text-red-600 disabled:opacity-40 dark:border-zinc-700">Disconnect</button>
         ) : (
-          <button onClick={() => void connect()} disabled={busy || soon || !available} className="min-h-10 shrink-0 rounded-full bg-ink px-4 text-xs font-semibold text-white transition active:scale-95 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">{busy ? 'Opening…' : 'Connect'}</button>
+          <button onClick={() => (provider === 'instagram' ? setAskingType(true) : void connect())} disabled={busy || soon || !available} className="min-h-10 shrink-0 rounded-full bg-ink px-4 text-xs font-semibold text-white transition active:scale-95 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">{busy ? 'Opening…' : 'Connect'}</button>
         )}
       </div>
       {!connection && provider === 'instagram' && available && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-muted dark:bg-zinc-950">Needs an Instagram Professional account (Business or Creator). Instagram connects the account signed in to instagram.com in this browser.</p>}
       {!connection && provider === 'tiktok' && available && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-muted dark:bg-zinc-950">TikTok connects the account signed in to TikTok in this browser. For a client&apos;s account, log in to it on tiktok.com first, then Connect. Each workspace keeps its own account.</p>}
       {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
+      {askingType && <InstagramTypeDialog onClose={() => setAskingType(false)} onBusiness={() => { setAskingType(false); void connect(); }} />}
     </li>
   );
 }
