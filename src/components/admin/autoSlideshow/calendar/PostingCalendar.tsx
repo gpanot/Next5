@@ -10,7 +10,7 @@ import { ApproveSheet } from './ApproveSheet';
 import { DayCell } from './DayCell';
 import { PostingOptions } from './PostingOptions';
 import { DEFAULT_TIMES, MAX_PER_DAY, usePostTimes } from './usePostTime';
-import { buildPlan, emptyThrough, openSlots, toApprove } from './weekPlan';
+import { buildPlan, emptyThrough, openSlots, openWeeks, toApprove } from './weekPlan';
 
 type Props = { token: string; run: AutoRunDto; onOpen: (slideshowId: string) => void; onRunChanged: () => void };
 
@@ -83,6 +83,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
   const working = !isTerminalAutoStatus(run.status);
   const days = useMemo(() => buildPlan({ slideshows: run.slideshows, pending, times, working }), [run.slideshows, pending, times, working]);
   const open = openSlots(days);
+  const weeks = openWeeks(days);
   const approve = toApprove(days);
   const idle = run.status === 'COMPLETED' && adding === null;
   // One request adds at most MAX_SLIDESHOWS; a bigger week fills over two taps.
@@ -109,7 +110,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
       {(error || posting.error) && <p className="text-sm text-red-600 dark:text-red-400">{error ?? posting.error}</p>}
       <div className="flex flex-col gap-2 sm:flex-row">
         <button onClick={() => void add(fill)} disabled={!idle} className="min-h-12 flex-1 rounded-full border-2 border-blue-600 px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 active:scale-95 disabled:opacity-40 dark:border-blue-400 dark:text-blue-300 dark:hover:bg-blue-950">
-          {adding !== null && addingDay === null ? 'Adding…' : open > 0 ? `Fill my week (+${fill})` : `Add next week (+${fill})`}
+          {adding !== null && addingDay === null ? 'Adding…' : open > 0 ? `Fill ${weeks > 1 ? `${weeks} weeks` : 'my week'} (+${fill})` : `Add next week (+${fill})`}
         </button>
         <button onClick={() => setApproving(true)} disabled={approve.length === 0} className="min-h-12 flex-1 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500 dark:hover:bg-blue-400">
           {approve.length > 0 ? `Approve ${approve.length} ${approve.length === 1 ? 'post' : 'posts'} →` : 'Nothing to approve'}

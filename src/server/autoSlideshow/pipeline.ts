@@ -67,9 +67,9 @@ const planStep: StepFn = async (runId, meter, { append }) => {
   const run = await loadRun(runId);
   const avoidTopics = await priorTopicsForSite(run.url, run.createdAt, append > 0 ? runId : undefined);
   const input = { profile: checkpoint<BrandProfile>(run.profile, 1), levers: checkpoint<BrandLever[]>(run.levers, 2), avoidTopics };
-  const plan = await planRun({ ...input, count: append > 0 ? append : run.count }, meter);
-  if (append === 0) return { plan: json(plan) };
+  if (append === 0) return { plan: json(await planRun({ ...input, count: run.count }, meter)) };
   const before = checkpoint<AutoPlan>(run.plan, 3);
+  const plan = await planRun({ ...input, count: append, priorPicks: before.picks }, meter);
   return { plan: json({ ...before, picks: [...before.picks, ...plan.picks], usedDrafts: before.usedDrafts || plan.usedDrafts }) };
 };
 

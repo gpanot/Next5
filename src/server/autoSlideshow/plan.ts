@@ -10,6 +10,7 @@ import type { SlideshowPattern } from '../../types/admin/slideshowKnowledge';
 import type { CostMeter } from '../metaAds/cost';
 import { metaAdsJson } from '../metaAds/llm';
 import { clip } from '../metaAds/text';
+import { describeUsedTemplates, rotatePicks } from './rotate';
 
 export type PlanModel = { id: string; name: string; niches: string[]; pattern: SlideshowPattern; views: number; savesPerMille: number };
 
@@ -68,11 +69,11 @@ const toPicks = (raw: RawPlan, models: PlanModel[], count: number): SlideshowPic
 };
 
 export const planRun = async (
-  input: { profile: BrandProfile; levers: BrandLever[]; count: number; avoidTopics?: string[]},
+  input: { profile: BrandProfile; levers: BrandLever[]; count: number; avoidTopics?: string[]; priorPicks?: SlideshowPick[] },
   meter: CostMeter,
 ): Promise<AutoPlan> => {
   const { models, usedDrafts } = await loadPlanModels();
-  const { profile, levers, count, avoidTopics = [] } = input;
+  const { profile, levers, count, avoidTopics = [], priorPicks = [] } = input;
   const photos = Math.min(Math.max(Math.max(...models.map((m) => m.pattern.itemCount)) + 5, 8), 16);
   const raw = await metaAdsJson<RawPlan>(
     [
@@ -87,6 +88,7 @@ export const planRun = async (
           `Categories: ${profile.productCategories.join(', ')}`,
           `Claims the site proves: ${levers.map((l) => l.claim).join(' · ') || 'none'}`,
           avoidTopics.length ? `Topics already made for this business (pick new ones, not rewordings): ${avoidTopics.join(' · ')}` : '',
+          describeUsedTemplates(priorPicks),
           `\nPROVEN MODELS\n${describeModels(models)}`,
         ].filter(Boolean).join('\n'),
       },
@@ -101,7 +103,8 @@ export const planRun = async (
     const base = picks[i % planned]!;
     picks.push({ ...base, topic: `${base.topic}, part ${Math.floor(i / planned) + 2}` });
   }
+  const rotated = rotatePicks(models, priorPicks, picks);
   const photoPrompts = Array.isArray(raw.photoPrompts) ? raw.photoPrompts.map((p) => str(p, 400)).filter(Boolean).slice(0, 16) : [];
   if (photoPrompts.length < 3) throw new Error('The plan returned too few photo descriptions');
-  return { picks, photoPrompts, usedDrafts };
+  return { picks: rotated, photoPrompts, usedDrafts };
 };

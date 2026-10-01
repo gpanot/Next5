@@ -21,6 +21,8 @@ const WEEK = 7;
 const MAX_DAYS = 8 * WEEK;
 /** Days before today still shown, so this week's posted slideshows stay in view. */
 const LOOKBACK = WEEK - 1;
+/** Empty days shown after a calendar with no free slot left. */
+const EXTEND = 2 * WEEK;
 const LIVE: AutoPostDto['status'][] = ['scheduled', 'sending', 'processing', 'posted'];
 
 export const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -67,6 +69,8 @@ const postsByDay = (slideshows: AutoSlideshowDto[]) => {
   return byDay;
 };
 
+const hasOpenSlot = (days: PlanDay[]) => days.some((d) => !d.past && d.slots.some((s) => s.item === null));
+
 export const buildPlan = (input: { slideshows: AutoSlideshowDto[]; pending: number; times: string[]; working?: boolean; now?: Date }): PlanDay[] => {
   const now = input.now ?? new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -80,19 +84,32 @@ export const buildPlan = (input: { slideshows: AutoSlideshowDto[]; pending: numb
   const start = firstPost && firstPost < dayKey(tomorrow) ? new Date(Math.max(earliest.getTime(), new Date(`${firstPost}T00:00`).getTime())) : tomorrow;
   const queue = waitingQueue(input.slideshows, input.pending, input.working ?? true);
   const days: PlanDay[] = [];
+  // Every shown day full: show the next 2 weeks empty, so they can be filled right away.
+  let until = 0;
   for (let i = 0; i < MAX_DAYS; i += 1) {
     const date = addDays(start, i);
     const key = dayKey(date);
-    if (days.length >= WEEK && days.length % WEEK === 0 && queue.length === 0 && key > lastPost) break;
+    if (days.length >= WEEK && days.length % WEEK === 0 && queue.length === 0 && key > lastPost && days.length >= until) {
+      if (until > 0 || hasOpenSlot(days)) break;
+      until = days.length + EXTEND;
+    }
     const past = date < tomorrow;
     days.push({ key, date, past, slots: daySlots(date, byDay.get(key) ?? [], times, past, queue) });
   }
   return days;
 };
 
-/** Empty slots from tomorrow through the first week. */
+/** Empty slots from tomorrow through the last day shown. */
 export const openSlots = (days: PlanDay[]) =>
-  days.filter((d) => !d.past).slice(0, WEEK).reduce((n, d) => n + d.slots.filter((s) => s.item === null).length, 0);
+  days.filter((d) => !d.past).reduce((n, d) => n + d.slots.filter((s) => s.item === null).length, 0);
+
+/** Weeks that hold empty slots, counted from the first open day to the last: "Fill my week" or "Fill 2 weeks". */
+export const openWeeks = (days: PlanDay[]) => {
+  const open = days.filter((d) => !d.past && d.slots.some((s) => s.item === null));
+  if (open.length === 0) return 0;
+  const span = Math.round((open[open.length - 1]!.date.getTime() - open[0]!.date.getTime()) / 86_400_000) + 1;
+  return Math.ceil(span / WEEK);
+};
 
 /** Empty future slots from the first open day through day `key`: what "Add" on that day makes, so it lands there. */
 export const emptyThrough = (days: PlanDay[], key: string) =>
