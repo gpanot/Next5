@@ -2,29 +2,32 @@ import { NextResponse } from 'next/server';
 import { businessRoute } from '../../../../../../src/server/api';
 import { HttpError } from '../../../../../../src/server/http';
 import { PROVIDERS, saveConnection } from '../../../../../../src/server/social/connections';
-import { appBaseUrl, redirectUriFor, verifyState, type ReturnTo } from '../../../../../../src/server/social/links';
+import { appBaseUrl, redirectUriFor, safeOrigin, verifyState, type ReturnTo } from '../../../../../../src/server/social/links';
 import { isSocialProvider } from '../../../../../../src/server/social/types';
 
 type Ctx = RouteContext<'/api/app/integrations/[provider]/callback'>;
 
-type Origin = { returnTo: ReturnTo; workspaceId: string | null };
+/** Where the flow started: the page (admin or a user's workspace) and the site (this one, or a local dev server). */
+type Origin = { returnTo?: ReturnTo; workspaceId: string | null; site: string };
 
 /** The page the flow started on; a user's Auto Slideshow lands back in the workspace that connected. */
 const pageFor = ({ returnTo, workspaceId }: Origin): string =>
-  returnTo === 'admin' ? '/admin/auto-slideshow' : workspaceId ? `/slideshow/${workspaceId}` : '/slideshow/login';
+  returnTo === 'admin' ? '/admin/auto-slideshow' : returnTo === 'slideshow' ? (workspaceId ? `/slideshow/${workspaceId}` : '/slideshow/login') : '/app/settings';
 
-const back = (params: Record<string, string>, origin?: Origin) =>
-  NextResponse.redirect(origin
-    ? `${appBaseUrl()}${pageFor(origin)}?${new URLSearchParams(params).toString()}`
-    : `${appBaseUrl()}/app/settings?${new URLSearchParams(params).toString()}#integrations`);
+const back = (params: Record<string, string>, origin?: Origin) => {
+  const site = origin?.site ?? appBaseUrl();
+  const query = new URLSearchParams(params).toString();
+  return NextResponse.redirect(origin?.returnTo ? `${site}${pageFor(origin)}?${query}` : `${site}/app/settings?${query}#integrations`);
+};
 
 /** Where the flow started, read without verifying (verification happens below; this only picks the page to land on). */
 const startedFrom = (state: string | null): Origin | undefined => {
   try {
-    const payload = JSON.parse(Buffer.from((state ?? '').split('.')[1] ?? '', 'base64url').toString('utf8')) as { returnTo?: unknown; workspaceId?: unknown };
-    if (payload.returnTo !== 'admin' && payload.returnTo !== 'slideshow') return undefined;
+    const payload = JSON.parse(Buffer.from((state ?? '').split('.')[1] ?? '', 'base64url').toString('utf8')) as { returnTo?: unknown; workspaceId?: unknown; origin?: unknown };
+    const returnTo = payload.returnTo === 'admin' || payload.returnTo === 'slideshow' ? payload.returnTo : undefined;
     const id = typeof payload.workspaceId === 'string' && /^[a-z0-9]+$/i.test(payload.workspaceId) ? payload.workspaceId : null;
-    return { returnTo: payload.returnTo, workspaceId: id };
+    // Only this site or localhost: the state is not verified yet here, so it must not send the browser anywhere else.
+    return { returnTo, workspaceId: id, site: safeOrigin(payload.origin) ?? appBaseUrl() };
   } catch {
     return undefined;
   }
@@ -43,9 +46,9 @@ export const GET = businessRoute<Ctx>(async (req, ctx) => {
   const origin = startedFrom(url.searchParams.get('state'));
   if (!code) return back({ integration_error: url.searchParams.get('error_description') ?? 'You did not allow the connection.' }, origin);
   try {
-    const { workspaceId, returnTo } = verifyState(url.searchParams.get('state') ?? '', provider);
+    const { workspaceId } = verifyState(url.searchParams.get('state') ?? '', provider);
     await saveConnection(workspaceId, provider, await PROVIDERS[provider].exchangeCode(code, redirectUriFor(provider)));
-    return back({ connected: provider }, returnTo ? { returnTo, workspaceId } : undefined);
+    return back({ connected: provider }, origin);
   } catch (err) {
     return back({ integration_error: err instanceof HttpError ? err.message : 'We could not connect that account. Try again.' }, origin);
   }

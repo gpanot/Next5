@@ -10,16 +10,27 @@ const secret = (): string => process.env.JWT_SECRET ?? 'dev-secret-change-in-pro
 
 export const appBaseUrl = (): string => (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000').replace(/\/$/, '');
 
-/** Must match the redirect URI registered in the TikTok and Meta developer apps. */
-export const redirectUriFor = (provider: SocialProvider): string => `${appBaseUrl()}/api/app/integrations/${provider}/callback`;
+/**
+ * Where TikTok and Instagram send the browser back. Must match the redirect URI registered in their developer apps,
+ * which only accept https. Locally, set OAUTH_REDIRECT_BASE_URL to the live site: the live callback saves the account
+ * (same database) and sends the browser back here (see `origin` in the state).
+ */
+const oauthBaseUrl = (): string => (process.env.OAUTH_REDIRECT_BASE_URL ?? appBaseUrl()).replace(/\/$/, '');
+
+export const redirectUriFor = (provider: SocialProvider): string => `${oauthBaseUrl()}/api/app/integrations/${provider}/callback`;
+
+/** The site that started a connection, when the callback may send the browser back to it: this site, or localhost. */
+export const safeOrigin = (origin: unknown): string | null =>
+  typeof origin === 'string' && (origin === appBaseUrl() || /^http:\/\/localhost(:\d+)?$/.test(origin)) ? origin : null;
 
 /** `returnTo: 'admin'` when an admin connected the account from Auto Slideshow → TikTok accounts; 'slideshow' from a user's Auto Slideshow settings. */
 export type ReturnTo = 'admin' | 'slideshow';
-type StatePayload = { workspaceId: string; product: ProductLine; provider: SocialProvider; returnTo?: ReturnTo; type: 'social_state' };
+/** `origin`: the site that started the connection, so a local server gets the browser back after the live callback. */
+type StatePayload = { workspaceId: string; product: ProductLine; provider: SocialProvider; returnTo?: ReturnTo; origin?: string; type: 'social_state' };
 
 /** OAuth `state`: signed, 10 minutes. The callback has no session header, so this carries the workspace. */
-export const signState = (payload: Omit<StatePayload, 'type'>): string =>
-  jwt.sign({ ...payload, type: 'social_state' } satisfies StatePayload, secret(), { expiresIn: 10 * 60 });
+export const signState = (payload: Omit<StatePayload, 'type' | 'origin'>): string =>
+  jwt.sign({ ...payload, origin: appBaseUrl(), type: 'social_state' } satisfies StatePayload, secret(), { expiresIn: 10 * 60 });
 
 export const verifyState = (state: string, provider: SocialProvider): StatePayload => {
   try {
