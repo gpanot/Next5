@@ -6,11 +6,17 @@ import { isTerminalAutoStatus, MAX_SLIDESHOWS, POST_PLATFORMS, type AutoRunDto, 
 import { adminFetch } from '../../business/useAdminApi';
 import { PostQueue } from '../PostQueue';
 import { usePosting } from '../usePosting';
+import { PRICE_CENTS, money } from '../pricing/pricing';
 import { ApproveSheet } from './ApproveSheet';
-import { DayCell } from './DayCell';
+import type { DayActions } from './DayTile';
+import { GoalLegend } from './GoalLegend';
+import { MonthGrid } from './MonthGrid';
+import { MonthHeader } from './MonthHeader';
+import { addMonths, buildMonth, currentPins, dayKey, dropPins, emptyThrough, monthCounts, monthOf, monthRange, toApprove } from './monthPlan';
 import { PostingOptions } from './PostingOptions';
+import { SlideshowDnd } from './SlideshowDnd';
+import { usePins, usePlanStart } from './useCalendarStore';
 import { DEFAULT_TIMES, MAX_PER_DAY, usePostTimes } from './usePostTime';
-import { buildPlan, emptyThrough, openSlots, openWeeks, toApprove } from './weekPlan';
 
 type Props = { token: string; run: AutoRunDto; onOpen: (slideshowId: string) => void; onRunChanged: () => void };
 
@@ -18,7 +24,10 @@ function Header({ accounts }: { accounts: RunAccountsDto | null | undefined }) {
   const connected = POST_PLATFORMS.flatMap((p) => (accounts?.accounts[p] ? [{ p, username: accounts.accounts[p]!.username }] : []));
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h3 className="text-lg font-bold tracking-tight text-ink dark:text-zinc-100">Your posting calendar</h3>
+      <div>
+        <h3 className="text-lg font-bold tracking-tight text-ink dark:text-zinc-100">Your content plan</h3>
+        <p className="text-sm text-muted">Nothing posts until you approve.</p>
+      </div>
       <div className="flex flex-wrap gap-1.5">
         {connected.map(({ p, username }) => (
           <span key={p} className="flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-ink dark:bg-zinc-800 dark:text-zinc-100">
@@ -65,58 +74,81 @@ const useAdd = (token: string, runId: string, onRunChanged: () => void) => {
   return { adding, error, add };
 };
 
+/** The month shown: starts on tomorrow's month (on the last day of a month, the next one); arrows move it. */
+const useMonth = (run: AutoRunDto) => {
+  const [month, setMonth] = useState(() => monthOf(new Date(Date.now() + 86_400_000)));
+  const range = monthRange(run.slideshows);
+  const step = (n: -1 | 1) => setMonth((m) => addMonths(m, n));
+  return { month, step, canPrev: month > range.min, canNext: month < range.max };
+};
+
 /**
- * Autopilot view: 1 to 5 posts a day. Ready slideshows fill the next free slots, "+" on an empty day makes one for it,
- * "Fill my week" makes the rest, and one approval schedules them all on TikTok and/or Instagram (a person approves each batch).
+ * Autopilot view, one month at a time: 1 to 5 posts a day. Ready slideshows fill the next free slots from tomorrow.
+ * "+ Add post" on a day opens a − N + stepper that sets posts a day for every day, "Generate" makes slideshows for
+ * every empty slot to the month's end, and one approval
+ * schedules them all on TikTok and/or Instagram (a person approves each batch).
  */
 export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
   const [times, setTimes] = usePostTimes();
   const [approving, setApproving] = useState(false);
-  const [addingDay, setAddingDay] = useState<string | null>(null);
+  const [planStart, setPlanStart] = usePlanStart(run.id);
+  const [pins, setPins] = usePins(run.id);
   const posting = usePosting(token, run.id, onRunChanged);
   useWatchPosts(run, onRunChanged);
   const { adding, error, add } = useAdd(token, run.id, onRunChanged);
+  const { month, step, canPrev, canNext } = useMonth(run);
   // Only a working run has slideshows still to come; a finished one shows what it has.
-  const pending = isTerminalAutoStatus(run.status) ? 0 : Math.max(0, run.count - run.slideshows.length);
-  // The stepper sets posts a day for the whole week; the times come with it (Advanced options can change them).
-  const setPerDay = (n: number) => setTimes(DEFAULT_TIMES[Math.min(Math.max(n, 1), MAX_PER_DAY)]!);
   const working = !isTerminalAutoStatus(run.status);
-  const days = useMemo(() => buildPlan({ slideshows: run.slideshows, pending, times, working }), [run.slideshows, pending, times, working]);
-  const open = openSlots(days);
-  const weeks = openWeeks(days);
-  const approve = toApprove(days);
+  const pending = working ? Math.max(0, run.count - run.slideshows.length) : 0;
+  const start = useMemo(() => (planStart ? new Date(`${planStart}T00:00`) : null), [planStart]);
+  const { days, all } = useMemo(() => buildMonth({ slideshows: run.slideshows, pending, times, working, month, start, pins }), [run.slideshows, pending, times, working, month, start, pins]);
+  const counts = monthCounts(days);
+  const approve = toApprove(all);
   const idle = run.status === 'COMPLETED' && adding === null;
-  // One request adds at most MAX_SLIDESHOWS; a bigger week fills over two taps.
-  const fill = Math.min(open > 0 ? open : 7 * times.length, MAX_SLIDESHOWS);
+  // With a plan: every empty planned slot to the month's end. One request makes at most MAX_SLIDESHOWS for now.
+  const lastDay = days.filter((d) => d.inMonth).at(-1);
+  const fill = planStart && lastDay ? emptyThrough(all, lastDay.key) : 0;
+  const tooMany = fill > MAX_SLIDESHOWS;
+  // The stepper sets posts a day for every planned day; the times come with it (Advanced options can change them).
+  // − at 1 removes the plan: the days go back to "+ Add post".
+  // Plan changes pin the slideshows already made where they are, so only new ones fill the planned days.
+  const keepPlaced = () => setPins(currentPins(all));
+  const onPerDay = (n: number) => {
+    keepPlaced();
+    if (n < 1) setPlanStart(null);
+    else setTimes(DEFAULT_TIMES[Math.min(n, MAX_PER_DAY)]!);
+  };
+  const onStart = (key: string) => {
+    keepPlaced();
+    setPlanStart(key);
+  };
+  const onMove = (id: string, key: string) => {
+    const day = all.find((d) => d.key === key);
+    const next = day ? dropPins(all, id, day, times) : null;
+    if (next) setPins(next);
+  };
+  const actions: DayActions = { perDay: times.length, planStart, onStart, onPerDay, onOpen };
 
   return (
     <section className="space-y-4 rounded-2xl border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
       <Header accounts={posting.accounts} />
+      <MonthHeader month={month} counts={counts} canPrev={canPrev} canNext={canNext} onMonth={step} />
+      <GoalLegend days={days} />
+      <SlideshowDnd onMove={onMove}>
+        <MonthGrid key={dayKey(month)} days={days} actions={actions} />
+      </SlideshowDnd>
       <PostingOptions times={times} onTimes={setTimes} />
-      <div className="-mx-4 flex snap-x gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:grid md:grid-cols-7 md:gap-3 md:overflow-visible md:px-0">
-        {days.map((day) => (
-          <DayCell
-            key={day.key}
-            day={day}
-            perDay={times.length}
-            onPerDay={setPerDay}
-            addCount={Math.min(emptyThrough(days, day.key), MAX_SLIDESHOWS)}
-            onOpen={onOpen}
-            adding={addingDay === day.key}
-            onAdd={idle ? (count) => { setAddingDay(day.key); void add(count).finally(() => setAddingDay(null)); } : undefined}
-          />
-        ))}
-      </div>
       {(error || posting.error) && <p className="text-sm text-red-600 dark:text-red-400">{error ?? posting.error}</p>}
       <div className="flex flex-col gap-2 sm:flex-row">
-        <button onClick={() => void add(fill)} disabled={!idle} className="min-h-12 flex-1 rounded-full border-2 border-blue-600 px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 active:scale-95 disabled:opacity-40 dark:border-blue-400 dark:text-blue-300 dark:hover:bg-blue-950">
-          {adding !== null && addingDay === null ? 'Adding…' : open > 0 ? `Fill ${weeks > 1 ? `${weeks} weeks` : 'my week'} (+${fill})` : `Add next week (+${fill})`}
+        <button onClick={() => void add(fill)} disabled={!idle || fill === 0 || tooMany} className="min-h-12 flex-1 rounded-full border-2 border-blue-600 px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 active:scale-95 disabled:opacity-40 dark:border-blue-400 dark:text-blue-300 dark:hover:bg-blue-950">
+          {adding !== null ? 'Generating…' : fill > 0 ? `Generate ${fill} ${fill === 1 ? 'slideshow' : 'slideshows'} · ${money(PRICE_CENTS * fill)}` : 'Tap + Add post on a day to plan'}
         </button>
         <button onClick={() => setApproving(true)} disabled={approve.length === 0} className="min-h-12 flex-1 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500 dark:hover:bg-blue-400">
-          {approve.length > 0 ? `Approve ${approve.length} ${approve.length === 1 ? 'post' : 'posts'} →` : 'Nothing to approve'}
+          {approve.length > 0 ? `Approve & Publish (${approve.length}) →` : 'Nothing to approve'}
         </button>
       </div>
-      <p className="text-center text-[11px] text-muted">{run.status === 'COMPLETED' ? 'Set posts a day with − and +, then Add. Nothing posts until you approve.' : 'Making your slideshows… they land on the calendar as they finish.'}</p>
+      {tooMany && <p className="text-center text-xs text-muted">Up to {MAX_SLIDESHOWS} slideshows at a time for now. Lower posts a day, or start the plan later.</p>}
+      {working && <p className="text-center text-[11px] text-muted">Making your slideshows… they land on the calendar as they finish.</p>}
       {posting.posts && posting.posts.length > 0 && (
         <details className="border-t border-line pt-3 dark:border-zinc-800">
           <summary className="cursor-pointer py-2 text-xs font-bold tracking-wider text-muted uppercase">Post history ({posting.posts.length})</summary>

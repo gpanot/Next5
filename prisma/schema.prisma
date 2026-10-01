@@ -2217,6 +2217,8 @@ model AutoSlideshow {
   modelName    String   @map("model_name")
   hookPattern  String   @map("hook_pattern")
   topic        String
+  /// 'teach' | 'proof' | 'myth' | 'story' | 'product' (src/types/admin/contentGoals.ts); null before goals existed
+  goal         String?
   /// AutoSlide[]
   slides       Json     @default("[]")
   caption      String   @default("")

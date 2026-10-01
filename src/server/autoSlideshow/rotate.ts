@@ -3,9 +3,10 @@
 // (which plans 1 slideshow at a time) does not keep returning the top model's main hook.
 
 import type { SlideshowPick } from '../../types/admin/autoSlideshow';
+import { goalFitsPattern } from '../../types/admin/contentGoals';
 import type { PlanModel } from './plan';
 
-type Template = { modelId: string; modelName: string; hookPattern: string };
+type Template = { modelId: string; modelName: string; hookPattern: string; model: PlanModel };
 
 const keyOf = (t: { modelId: string; hookPattern: string }) => `${t.modelId}\n${t.hookPattern}`;
 
@@ -14,20 +15,28 @@ const templatesInPlay = (models: PlanModel[], picks: SlideshowPick[]): Template[
   const inPlay = new Set(picks.map((p) => p.modelId));
   return models
     .filter((m) => inPlay.has(m.id))
-    .flatMap((m) => [...new Set([m.pattern.hookPattern, ...(m.pattern.hookVariants ?? [])])].map((hookPattern) => ({ modelId: m.id, modelName: m.name, hookPattern })));
+    .flatMap((m) => [...new Set([m.pattern.hookPattern, ...(m.pattern.hookVariants ?? [])])].map((hookPattern) => ({ modelId: m.id, modelName: m.name, hookPattern, model: m })));
 };
 
-/** Moves each new pick to a least-used template when its own is used more often. Keeps the topic. Ties keep the
- *  plan's choice, then prefer another hook of the same model, then the more proven model (`models` is sorted). */
+/** Templates that suit the pick's goal; all of them when none does (or the pick has no goal). */
+const forGoal = (templates: Template[], pick: SlideshowPick): Template[] => {
+  if (!pick.goal) return templates;
+  const fit = templates.filter((t) => goalFitsPattern(pick.goal!, t.model.pattern));
+  return fit.length > 0 ? fit : templates;
+};
+
+/** Moves each new pick to a least-used template (among those suiting its goal) when its own is used more often. Keeps
+ *  the topic and goal. Ties keep the plan's choice, then prefer another hook of the same model, then the more proven model. */
 export const rotatePicks = (models: PlanModel[], prior: SlideshowPick[], picks: SlideshowPick[]): SlideshowPick[] => {
   const templates = templatesInPlay(models, [...prior, ...picks]);
   if (templates.length < 2) return picks;
   const uses = new Map(templates.map((t) => [keyOf(t), 0]));
   for (const p of prior) uses.set(keyOf(p), (uses.get(keyOf(p)) ?? 0) + 1);
   return picks.map((pick) => {
-    const min = Math.min(...templates.map((t) => uses.get(keyOf(t)) ?? 0));
+    const candidates = forGoal(templates, pick);
+    const min = Math.min(...candidates.map((t) => uses.get(keyOf(t)) ?? 0));
     const own = uses.get(keyOf(pick)) ?? 0;
-    const target = own <= min ? pick : (templates.find((t) => t.modelId === pick.modelId && uses.get(keyOf(t)) === min) ?? templates.find((t) => uses.get(keyOf(t)) === min)!);
+    const target = own <= min ? pick : (candidates.find((t) => t.modelId === pick.modelId && uses.get(keyOf(t)) === min) ?? candidates.find((t) => uses.get(keyOf(t)) === min)!);
     uses.set(keyOf(target), (uses.get(keyOf(target)) ?? 0) + 1);
     return { ...pick, modelId: target.modelId, modelName: target.modelName, hookPattern: target.hookPattern };
   });

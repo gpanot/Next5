@@ -5,6 +5,7 @@ import type { AutoSlideshow, AutoSlideshowPost, AutoSlideshowRun, BlitzAsset } f
 import { prisma } from '../../lib/db';
 import type { AutoPhoto, AutoPhotoDto, AutoPlan, AutoRunDto, AutoRunStatus, AutoRunSummary, AutoSlide, AutoSlideshowDto, AutoSlideshowStatus, AutoStep } from '../../types/admin/autoSlideshow';
 import type { BrandProfile } from '../../types/admin/companyIntel';
+import { isContentGoal } from '../../types/admin/contentGoals';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import { presignObject } from '../storage/objectStore';
 import { trackDto } from './music';
@@ -28,6 +29,7 @@ const toSlideshowDto = async (s: ShowRow): Promise<AutoSlideshowDto> => ({
   modelName: s.modelName,
   hookPattern: s.hookPattern,
   topic: s.topic,
+  goal: isContentGoal(s.goal) ? s.goal : null,
   slides: await Promise.all((s.slides as unknown as AutoSlide[]).map(async (slide) => ({ ...slide, imageUrl: slide.imageKey ? await presignObject(slide.imageKey) : null }))),
   caption: s.caption,
   hashtags: s.hashtags,

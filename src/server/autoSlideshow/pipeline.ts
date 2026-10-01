@@ -95,7 +95,7 @@ const writeStep: StepFn = async (runId, meter, { append }) => {
   await runPool(todo, WRITE_CONCURRENCY, async ({ pick, position }) => {
     const track = tracks[position - start];
     const music = track ? { audioAssetId: track.assetId, audioStart: track.startAt } : {};
-    const base = { runId, position, modelId: pick.modelId, modelName: pick.modelName, hookPattern: pick.hookPattern, topic: pick.topic, ...music };
+    const base = { runId, position, modelId: pick.modelId, modelName: pick.modelName, hookPattern: pick.hookPattern, topic: pick.topic, goal: pick.goal ?? null, ...music };
     try {
       const pattern = patternOf.get(pick.modelId);
       if (!pattern) throw new Error('Model was deleted');

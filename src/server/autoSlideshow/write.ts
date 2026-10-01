@@ -19,7 +19,11 @@ Structure: 1 hook slide, then exactly {N} meat slides, then 1 CTA slide.
   photography, bright daytime light, seen from a distance or from behind. Never dusk, night, dim or moody light. Never text, logos, screens with UI, or close-up faces.
 - meat slides: follow the meat pattern exactly (title length, voice, what the body holds). Each slide teaches one useful,
   correct, well-known thing about the topic. Body: ONE plain sentence, max 90 characters. No made-up statistics, studies or
-  percentages about people. Never mention the business on meat slides.
+  percentages about people. Never mention the business on meat slides, except for the product goal.
+- goal: serve the slideshow's goal.
+  teach → practical tips or steps. proof → the slides build toward a real result; any number comes only from "Proven claims".
+  myth → each meat slide states a common belief, then the truth. story → one person's problem, turning point and result, in order.
+  product → meat slides show what the product does and how to use it, using only facts from "Sells" and "Proven claims".
 - cta: follow the CTA pattern's shape with the business's name and how people really get it. Say "download" or "App Store"
   only if "Sells" says it is an app; otherwise use the business's own path (join, book, try free, shop). The body may only
   use claims from "Proven claims" (reword lightly, keep every number exactly). Never copy numbers from the CTA pattern.
@@ -95,6 +99,7 @@ const toSlideshow = (raw: Raw, n: number, levers: BrandLever[], profile: BrandPr
 const brief = (pick: SlideshowPick, pattern: SlideshowPattern, profile: BrandProfile, levers: BrandLever[]) =>
   [
     `Topic: ${pick.topic}`,
+    `Goal: ${pick.goal ?? 'teach'}`,
     `Hook pattern: ${pick.hookPattern}`,
     `Meat pattern: ${pattern.itemPattern}`,
     `CTA pattern: ${pattern.ctaPattern}`,

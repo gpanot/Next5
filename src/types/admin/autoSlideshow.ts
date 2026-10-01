@@ -6,6 +6,7 @@
 
 import type { ConnectionDto, SocialProviderDto } from '../business/integrations';
 import type { BrandProfile } from './companyIntel';
+import type { ContentGoal } from './contentGoals';
 import type { BrandLever, StepCost } from './metaAds';
 import type { SlideRole } from './slideshowKnowledge';
 
@@ -36,6 +37,8 @@ export type SlideshowPick = {
   hookPattern: string;
   /** The value topic, e.g. "putting mistakes beginners make". */
   topic: string;
+  /** What the slideshow is for; missing on plans made before goals. */
+  goal?: ContentGoal;
 };
 
 /** Step 3 checkpoint. */
@@ -81,6 +84,8 @@ export type AutoSlideshowDto = {
   modelName: string;
   hookPattern: string;
   topic: string;
+  /** Null on slideshows made before goals. */
+  goal: ContentGoal | null;
   slides: AutoSlideDto[];
   caption: string;
   hashtags: string[];
