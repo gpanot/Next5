@@ -1,3 +1,4 @@
+import { SplitWords } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY, type Audience } from './copy';
 import { CheckIcon, XIcon } from './icons';
 import { reveal } from './reveal';
@@ -17,7 +18,7 @@ export function GuaranteeSection() {
             <div>30<small>DAY</small></div>
           </div>
           <div>
-            <h2>The Beat Your Feed Guarantee.</h2>
+            <h2 data-split=""><SplitWords text="The Beat Your Feed Guarantee." /></h2>
             <p className="v3lede">
               Post 12 Next5 videos in 30 days. If they don&rsquo;t get more views than your last 12 posts,
               your next month is free. You check it in your own stats. No forms, no arguing.
@@ -64,7 +65,7 @@ export function NumbersSection() {
     <section className="v3section">
       <div className="v3wrap">
         <div className="v3section-head" {...reveal()}>
-          <h2>The numbers don&rsquo;t lie.</h2>
+          <h2 data-split=""><SplitWords text="The numbers don’t lie." /></h2>
           <p className="v3lede">Your customers are already scrolling. The only question is whether they see you.</p>
         </div>
         <div className="v3nums">

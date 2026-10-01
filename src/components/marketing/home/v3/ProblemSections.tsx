@@ -1,3 +1,4 @@
+import { SplitWords } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY, type Audience } from './copy';
 import { CheckIcon, XIcon } from './icons';
 import { reveal } from './reveal';
@@ -12,7 +13,7 @@ export function PainSection({ audience }: { audience: Audience }) {
     <section className="v3section">
       <div className="v3wrap">
         <div className="v3section-head" {...reveal()}>
-          <h2>You know you should post every day.<br /><span className="v3muted">Here&rsquo;s why you don&rsquo;t.</span></h2>
+          <h2 data-split=""><SplitWords text="You know you should post every day." /><br /><SplitWords className="v3muted" text="Here’s why you don’t." /></h2>
         </div>
         <div className="v3pains">
           {pains.map((pain, i) => (
@@ -40,7 +41,7 @@ export function WaysSection() {
     <section className="v3section">
       <div className="v3wrap">
         <div className="v3section-head" {...reveal()}>
-          <h2>3 ways to get a month of videos.</h2>
+          <h2 data-split=""><SplitWords text="3 ways to get a month of videos." /></h2>
           <p className="v3lede">Only one of them takes 3 minutes a week.</p>
         </div>
         <div className="v3ways">

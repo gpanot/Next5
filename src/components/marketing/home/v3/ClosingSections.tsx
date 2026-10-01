@@ -1,3 +1,4 @@
+import { SplitWords } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY, type Audience } from './copy';
 import { reveal } from './reveal';
 
@@ -13,7 +14,7 @@ export function FaqSection() {
   return (
     <section className="v3section" id="faq">
       <div className="v3wrap">
-        <div className="v3section-head" {...reveal()}><h2>Still on the fence?</h2></div>
+        <div className="v3section-head" {...reveal()}><h2 data-split=""><SplitWords text="Still on the fence?" /></h2></div>
         <div className="v3faq">
           {FAQS.map((faq, i) => (
             <details key={faq.q} open={i === 0} {...reveal(i)}>
@@ -32,7 +33,7 @@ export function FinalCtaSection({ audience }: { audience: Audience }) {
     <section className="v3final">
       <div className="v3wrap">
         <div className="v3final-box" {...reveal()}>
-          <h2>You have two options.</h2>
+          <h2 data-split=""><SplitWords text="You have two options." /></h2>
           <div className="v3two">
             <p><b>Option 1:</b> keep telling yourself you&rsquo;ll post next week.</p>
             <p><b>Option 2:</b> paste your link and watch your first video in 2 minutes. Free.</p>

@@ -1,9 +1,11 @@
 /**
  * Inline vanilla JS for homepage v3 (the page stays a server component).
  * Handles: audience toggle, hero build demo, link forms, swipe deck loop,
- * scroll reveals, count-ups, nav shadow and the sticky mobile CTA.
+ * nav shadow and the sticky mobile CTA. Scroll reveals, count-ups and the hero
+ * intro live in the GSAP layer (src/components/motion), smooth scroll in Lenis.
  * Audience copy is injected as JSON from copy.ts so server and client agree.
  */
+import { SPLIT_JS } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY } from './copy';
 
 const CORE_JS = String.raw`
@@ -15,17 +17,23 @@ const CORE_JS = String.raw`
   var current=copy[urlAud]?urlAud:"realtor";
 
   function setText(sel,v){var el=q(sel);if(el)el.textContent=v}
+  // Scroll through Lenis when it runs, so smooth scroll and ScrollTrigger stay in sync.
+  function smoothTo(target,offset){
+    if(window.__lenis){window.__lenis.scrollTo(target,{offset:offset||0});return}
+    if(typeof target==="number"){scrollTo({top:target,behavior:reduce?"auto":"smooth"});return}
+    target.scrollIntoView({block:"center",behavior:reduce?"auto":"smooth"});
+  }
   function setAud(a){
     if(current==="realtor"&&a!=="realtor")stopRealtorVideo();
     current=a;var c=copy[a];
     root.setAttribute("data-aud",a);
     history.replaceState(null,"",a==="realtor"?location.pathname:"?for="+a);
     qa("button[data-aud]").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.aud===a?"true":"false")});
-    setText(".js-h1a",c.h1);setText(".js-sub",c.sub);
+    setSplit(".js-h1a",c.h1);setText(".js-sub",c.sub);
     q(".js-input").placeholder=c.ph;q(".js-input2").placeholder=c.ph;
     setText(".js-hook",c.hooks[0]);
     q(".js-facts").innerHTML=c.facts.map(function(f){return"<span>"+f+"</span>"}).join("");
-    setText(".js-s0",c.s0);setText(".js-phlabel",c.label);
+    setText(".js-s0",c.s0);
     setText(".js-statnum",c.statNum);setText(".js-stattext"," "+c.statText);setText(".js-src",c.src);
     setText(".js-noun",c.noun);setText(".js-photos",c.photos);
     setText(".js-pain1",c.pain1);setText(".js-fit1",c.fit1);setText(".js-ddhook",c.dd);
@@ -99,7 +107,7 @@ const CORE_JS = String.raw`
   });
   q(".js-form2").addEventListener("submit",function(e){
     e.preventDefault();var val=q(".js-input2").value.trim();
-    if(!val){scrollTo({top:0,behavior:reduce?"auto":"smooth"});at(500,function(){runDemo(true)});return}
+    if(!val){smoothTo(0);at(500,function(){runDemo(true)});return}
     submitLink(val);
   });
 `;
@@ -125,25 +133,6 @@ const MOTION_JS = String.raw`
       else if(!e[0].isIntersecting&&loop){clearInterval(loop);loop=0}
     }).observe(dd);
   }
-  function countUp(el){
-    var raw=el.getAttribute("data-count-to")||el.textContent,m=raw.match(/^([^0-9]*)([0-9][0-9,]*)(.*)$/);
-    if(!m)return;el.setAttribute("data-count-to",raw);
-    var end=parseInt(m[2].replace(/,/g,""),10),comma=m[2].indexOf(",")>-1,t0=0,dur=1100;
-    function fmt(v){var s=String(v);return comma?s.replace(/\B(?=(\d{3})+(?!\d))/g,","):s}
-    function frame(ts){if(!t0)t0=ts;var p=Math.min(1,(ts-t0)/dur),e=1-Math.pow(1-p,3);
-      el.textContent=m[1]+fmt(Math.round(end*e))+m[3];if(p<1)requestAnimationFrame(frame)}
-    requestAnimationFrame(frame);
-  }
-  function reveals(){
-    var els=qa("[data-reveal]"),vh=innerHeight;
-    els.forEach(function(el){var r=el.getBoundingClientRect();if(r.top<vh&&r.bottom>0)el.classList.add("in")});
-    root.classList.add("v3js");
-    var io=new IntersectionObserver(function(entries){entries.forEach(function(en){
-      if(!en.isIntersecting)return;en.target.classList.add("in");io.unobserve(en.target);
-      qa("[data-count]").forEach(function(c){if(en.target.contains(c)&&!c.dataset.done){c.dataset.done="1";countUp(c)}});
-    })},{rootMargin:"0px 0px -8% 0px",threshold:.12});
-    els.forEach(function(el){if(!el.classList.contains("in"))io.observe(el)});
-  }
   function chrome(){
     var nav=q(".v3nav"),sc=q(".js-sticky-cta"),form=q(".js-form"),fin=q(".v3final-box"),formOut=false,finIn=false;
     function upd(){sc.classList.toggle("on",formOut&&!finIn)}
@@ -153,10 +142,9 @@ const MOTION_JS = String.raw`
   }
   qa('a.v3btn[href="#top"]').forEach(function(a){a.addEventListener("click",function(e){
     var inp=q(".js-input");if(!inp)return;e.preventDefault();
-    inp.focus({preventScroll:true});inp.scrollIntoView({block:"center",behavior:reduce?"auto":"smooth"});
+    inp.focus({preventScroll:true});smoothTo(inp,-Math.round(innerHeight/2-inp.offsetHeight/2)+(parseFloat(getComputedStyle(inp).scrollMarginTop)||0));
   })});
   chrome();swipeDeck();
-  if(!reduce)reveals();
   // Start the build demo when the phone is on screen. On phones it sits below
   // the fold, so running it on load would finish before anyone sees it.
   var demoIO=new IntersectionObserver(function(e){
@@ -167,5 +155,5 @@ const MOTION_JS = String.raw`
 `;
 
 export function buildHomeScript(): string {
-  return `(function(){var copy=${JSON.stringify(AUDIENCE_COPY)};${CORE_JS}${MOTION_JS}})();`;
+  return `(function(){var copy=${JSON.stringify(AUDIENCE_COPY)};${SPLIT_JS}${CORE_JS}${MOTION_JS}})();`;
 }

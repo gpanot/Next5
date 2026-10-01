@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { SplitWords } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY, type Audience } from './copy';
 import { CheckIcon } from './icons';
 import { reveal } from './reveal';
@@ -21,7 +22,7 @@ export function OfferSection({ audience }: { audience: Audience }) {
     <section className="v3section v3offer-sec" id="offer">
       <div className="v3wrap">
         <div className="v3section-head v3center" {...reveal()}>
-          <h2>Here&rsquo;s everything you get.</h2>
+          <h2 data-split=""><SplitWords text="Here’s everything you get." /></h2>
           <p className="v3lede">Every month, for one price.</p>
         </div>
         <div className="v3stack">

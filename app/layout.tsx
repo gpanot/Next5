@@ -37,7 +37,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${bricolage.variable}`}>
+    // suppressHydrationWarning: the motion pre-paint script sets data-motion on <html> before React hydrates
+    // (src/components/motion/MotionPrepaint.tsx). It only silences this element's own attributes.
+    <html lang="en" className={`${inter.variable} ${bricolage.variable}`} suppressHydrationWarning>
       <body className="min-h-full antialiased">
         <LocaleProvider>{children}</LocaleProvider>
         <SiteAnalytics />

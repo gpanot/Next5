@@ -4228,5 +4228,22 @@
     "bytes": 61850,
     "alt": "TikTok slide: \"Make Changes Easy\"",
     "generatedAt": "2026-09-30T04:31:20.767Z"
+  },
+  "public/images/business/us/service-video.png": {
+    "prompt": "Vertical smartphone video still: an American woman electrician in her mid 30s with dark hair tied back, wearing a navy work shirt and a tool belt, talking to the camera with a confident friendly expression and one hand pointing at an open residential breaker panel beside her, standing in a bright clean suburban garage. Handheld phone camera look at eye level, soft natural daylight from an open garage door, bright and airy, authentic social media creator style, realistic photograph. Face in the upper third of the frame, calm plain lower area for captions.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "864x1536",
+    "outputSize": "864x1536",
+    "bytes": 1764386,
+    "alt": "Electrician talking to the camera beside an open breaker panel, filmed on a phone",
+    "generatedAt": "2026-10-01T12:15:52.035Z"
+  },
+  "public/images/welcome/hormozi-books.webp": {
+    "prompt": "Not generated: user-supplied public photo.",
+    "size": "800x450",
+    "bytes": 34016,
+    "alt": "Alex Hormozi holding his books $100M Offers and $100M Leads",
+    "addedAt": "2026-10-01",
+    "outputSize": "800x450"
   }
 }

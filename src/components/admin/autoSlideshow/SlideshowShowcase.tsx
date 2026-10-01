@@ -24,10 +24,17 @@ const SHOWCASE: ShowcaseSlideshow[] = [
   { slug: 'no-show-fixes', alt: '5 No-Show Fixes For Service Teams', slides: SLIDES_PER_SHOW, stats: { likes: '9.9K', saves: '4.2K' } },
 ];
 
-/** Absolute slots for the wide-screen side decks: 3 cards per side, tilted like prints on a desk. */
-/** Cards are ~360px tall; 25rem steps keep them apart even when tilted. */
-const LEFT_SLOTS = ['left-0 top-4 -rotate-6', 'left-24 top-[25rem] rotate-3', 'left-2 top-[50rem] -rotate-3'];
-const RIGHT_SLOTS = ['right-2 top-0 rotate-6', 'right-24 top-[25rem] -rotate-3', 'right-0 top-[50rem] rotate-3'];
+/** Absolute slots for the wide-screen side decks: 3 cards per side, anchored to the page center so they hug the hero. */
+/** Top cards clear the one-line headline (~1065px wide, plus tilt); lower cards keep ~70px off the 672px form and FAQ. */
+/** Cards are ~400px tall; 27rem steps keep them apart even when tilted. */
+const LEFT_SLOTS = ['right-[calc(50%+36rem)] top-4', 'right-[calc(50%+26.5rem)] top-[27rem]', 'right-[calc(50%+28rem)] top-[54rem]'];
+const RIGHT_SLOTS = ['left-[calc(50%+36rem)] top-0', 'left-[calc(50%+26.5rem)] top-[27rem]', 'left-[calc(50%+28rem)] top-[54rem]'];
+const LEFT_TILTS = ['-rotate-6', 'rotate-3', '-rotate-3'];
+const RIGHT_TILTS = ['rotate-6', '-rotate-3', 'rotate-3'];
+/** Side deck cards are 10% wider than strip cards (192px). */
+const DECK_CARD_WIDTH = 'w-[211px]';
+/** Float delays so the six cards bob out of sync. */
+const FLOAT_DELAYS_S = [0, 1.4, 2.6, 0.8, 2, 3.2];
 /** Strip drift speed: slow enough to read the cards. */
 const STRIP_PX_PER_SECOND = 24;
 const STRIP_TILTS = ['-rotate-2', 'rotate-2', '-rotate-1', 'rotate-1'];
@@ -70,14 +77,14 @@ function useAutoplay(count: number, offset: number) {
 function SlideshowCard({ show, order, className }: { show: ShowcaseSlideshow; order: number; className: string }) {
   const index = useAutoplay(show.slides, (order * 700) % SLIDE_MS);
   return (
-    <figure className={`w-48 shrink-0 rounded-2xl border border-line bg-white p-2 shadow-sm transition duration-300 hover:z-10 hover:scale-105 hover:rotate-0 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 ${className}`}>
+    <figure className={`shrink-0 rounded-2xl border border-line bg-white p-2 shadow-sm transition duration-300 hover:z-10 hover:scale-105 hover:rotate-0 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 ${className}`}>
       <div className="relative aspect-[9/16] overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
         {Array.from({ length: show.slides }, (_, i) => (
           <FittedImage
             key={i}
             src={`/images/auto-slideshow/${show.slug}/${i + 1}.jpg`}
             alt={i === 0 ? `TikTok slideshow: "${show.alt}"` : ''}
-            sizes="192px"
+            sizes="211px"
             className={`transition-opacity duration-500 ${i === index ? 'opacity-100' : 'opacity-0'}`}
           />
         ))}
@@ -100,16 +107,31 @@ function SlideshowCard({ show, order, className }: { show: ShowcaseSlideshow; or
   );
 }
 
-/** Wide screens only: cards float in the empty space on both sides of the hero. */
+/** One side-deck slot. Layers, outer to inner: slot position, GSAP intro (data-deck-card), CSS float, card tilt and hover. */
+function DeckCard({ show, order, slot, tilt }: { show: ShowcaseSlideshow; order: number; slot: string; tilt: string }) {
+  return (
+    <div className={`pointer-events-auto absolute ${slot}`} data-deck-card="">
+      <div className="animate-float" style={{ animationDelay: `-${FLOAT_DELAYS_S[order]}s` }}>
+        <SlideshowCard show={show} order={order} className={`${DECK_CARD_WIDTH} ${tilt}`} />
+      </div>
+    </div>
+  );
+}
+
+/** Wide screens only: cards float in the empty space on both sides of the hero. Each side is one pointer-depth layer (data-deck-side). */
 export function SlideshowSideDecks() {
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 hidden 2xl:block">
-      {SHOWCASE.slice(0, 3).map((show, i) => (
-        <SlideshowCard key={show.slug} show={show} order={i} className={`pointer-events-auto absolute ${LEFT_SLOTS[i]}`} />
-      ))}
-      {SHOWCASE.slice(3, 6).map((show, i) => (
-        <SlideshowCard key={show.slug} show={show} order={i + 3} className={`pointer-events-auto absolute ${RIGHT_SLOTS[i]}`} />
-      ))}
+    <div aria-hidden className="pointer-events-none absolute inset-0 hidden overflow-x-clip 2xl:block" data-decks="">
+      <div className="absolute inset-0" data-deck-side="left">
+        {SHOWCASE.slice(0, 3).map((show, i) => (
+          <DeckCard key={show.slug} show={show} order={i} slot={LEFT_SLOTS[i]} tilt={LEFT_TILTS[i]} />
+        ))}
+      </div>
+      <div className="absolute inset-0" data-deck-side="right">
+        {SHOWCASE.slice(3, 6).map((show, i) => (
+          <DeckCard key={show.slug} show={show} order={i + 3} slot={RIGHT_SLOTS[i]} tilt={RIGHT_TILTS[i]} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -119,11 +141,11 @@ export function SlideshowStrip() {
   const rowRef = useAutoScroll<HTMLDivElement>(STRIP_PX_PER_SECOND);
   const loop = [...SHOWCASE, ...SHOWCASE];
   return (
-    <div className="-mx-4 mt-10 w-[calc(100%+2rem)] 2xl:hidden">
+    <div className="-mx-4 mt-10 w-[calc(100%+2rem)] 2xl:hidden" data-intro="5" data-intro-lift="56">
       <div ref={rowRef} className="flex overflow-x-auto px-6 pt-3 pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {loop.map((show, i) => (
           <div key={`${show.slug}-${i}`} aria-hidden={i >= SHOWCASE.length || undefined} className="shrink-0 pr-4">
-            <SlideshowCard show={show} order={i} className={STRIP_TILTS[i % STRIP_TILTS.length]} />
+            <SlideshowCard show={show} order={i} className={`w-48 ${STRIP_TILTS[i % STRIP_TILTS.length]}`} />
           </div>
         ))}
       </div>

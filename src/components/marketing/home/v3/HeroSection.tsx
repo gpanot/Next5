@@ -1,5 +1,13 @@
+import Image from 'next/image';
+import { SplitWords } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY, type Audience } from './copy';
-import { CheckIcon, PlayIcon, TikTokIcon, VolumeOffIcon, VolumeOnIcon } from './icons';
+import { CheckIcon, TikTokIcon, VolumeOffIcon, VolumeOnIcon } from './icons';
+
+/** Phone-filmed stills for the audiences without a demo video yet. Both are in public/images/manifest.json. */
+const DEMO_STILLS: { only: Audience; src: string; alt: string }[] = [
+  { only: 'service', src: '/images/business/us/service-video.png', alt: 'Electrician talking to the camera beside an open breaker panel, filmed on a phone' },
+  { only: 'seller', src: '/images/business/us/shop-video.png', alt: 'Young woman showing a beige trench coat to the camera in her bright bedroom' },
+];
 
 const AUDIENCE_LABELS: { id: Audience; label: string }[] = [
   { id: 'realtor', label: 'Realtor' },
@@ -9,7 +17,7 @@ const AUDIENCE_LABELS: { id: Audience; label: string }[] = [
 
 function AudienceToggle({ audience }: { audience: Audience }) {
   return (
-    <div className="v3aud" role="group" aria-label="I am a">
+    <div className="v3aud" role="group" aria-label="I am a" data-intro="1">
       {AUDIENCE_LABELS.map(({ id, label }) => (
         <button key={id} type="button" data-aud={id} aria-pressed={audience === id ? 'true' : 'false'}>
           {label}
@@ -22,19 +30,16 @@ function AudienceToggle({ audience }: { audience: Audience }) {
 function HeroDemo({ audience }: { audience: Audience }) {
   const c = AUDIENCE_COPY[audience];
   return (
-    <div className="v3stage">
-      <div className="v3phone">
+    <div className="v3stage" data-intro="2" data-intro-lift="64" data-tilt-zone="">
+      <div className="v3phone" data-tilt="">
         <div className="v3phone-notch" />
         <div className="v3phone-screen">
 
           {/* ── Background layer ── */}
-          {/* Non-realtor: grey placeholder with label */}
-          <div className="v3ph" data-kind="video" data-only="service seller" style={{ position: 'absolute', inset: 0 }}>
-            <div className="v3ph-label">
-              <PlayIcon />
-              <span className="js-phlabel">{c.label}</span>
-            </div>
-          </div>
+          {/* Non-realtor: a phone-filmed still of the kind of video we make */}
+          {DEMO_STILLS.map((still) => (
+            <Image key={still.only} className="v3photo" data-only={still.only} src={still.src} alt={still.alt} fill sizes="(max-width: 520px) 236px, 290px" />
+          ))}
           {/* Realtor: the actual UGC clone video — plays after build animation */}
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video
@@ -117,11 +122,11 @@ export function HeroSection({ audience }: { audience: Audience }) {
       <div className="v3wrap v3hero-grid">
         <div>
           <AudienceToggle audience={audience} />
-          <h1>
-            <span className="js-h1a">{c.h1}</span>
-            <span className="l2">Without filming a single one.</span>
+          <h1 data-intro-split="">
+            <SplitWords className="js-h1a" text={c.h1} />
+            <SplitWords className="l2" text="Without filming a single one." />
           </h1>
-          <p className="v3lede js-sub">{c.sub}</p>
+          <p className="v3lede js-sub" data-intro="3">{c.sub}</p>
 
           <form className="v3linkbox js-form" autoComplete="off">
             <label htmlFor="link1">Your link</label>
@@ -129,13 +134,13 @@ export function HeroSection({ audience }: { audience: Audience }) {
             <button className="v3btn v3btn-signal" type="submit">Make my free video</button>
           </form>
 
-          <div className="v3fine">
+          <div className="v3fine" data-intro="4">
             <span><CheckIcon />Free video, no card</span>
             <span><CheckIcon />2 minutes</span>
             <span><CheckIcon />Keep it even if you never pay</span>
           </div>
 
-          <div className="v3stars">
+          <div className="v3stars" data-intro="5">
             <span className="v3stat-pill">
               <b className="js-statnum">{c.statNum}</b>
               <span className="js-stattext"> {c.statText}</span>

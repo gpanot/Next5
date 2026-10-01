@@ -75,8 +75,43 @@
   }
 }
 
-html {
-  scroll-behavior: smooth;
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Lenis owns smooth scrolling while it runs; native smooth scroll would fight it. */
+html.lenis,
+html.lenis.lenis-smooth {
+  scroll-behavior: auto;
+}
+
+/* Split headings (see src/components/motion/SplitWords.tsx). Each word rises out of its own mask. */
+.split-w {
+  display: inline-block;
+  overflow: clip;
+  vertical-align: top;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+}
+.split-wi {
+  display: inline-block;
+  will-change: transform;
+}
+
+/* Pre-paint state for the hero intro (src/components/motion/MotionPrepaint.tsx).
+   If the motion bundle never runs, the failsafe animation reveals everything after 2.5s. */
+@keyframes motion-failsafe {
+  to {
+    visibility: visible;
+  }
+}
+html[data-motion='pending'] [data-intro],
+html[data-motion='pending'] [data-intro-split] .split-wi,
+html[data-motion='pending'] [data-deck-card] {
+  visibility: hidden;
+  animation: motion-failsafe 0s 2.5s forwards;
 }
 
 body {

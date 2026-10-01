@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { AUTO_STEP_LABELS, isTerminalAutoStatus, type AutoPhotoDto, type AutoRunDto, type AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { adminFetch, useAdminApi } from '../business/useAdminApi';
 import { AgentLog } from '../shared/AgentLog';
@@ -10,11 +10,14 @@ import { RunCounter, RunTitle } from '../shared/RunTitle';
 import { RunTopBar } from '../shared/RunTopBar';
 import { SlideshowGrid } from './SlideshowGrid';
 import { PostingCalendar } from './calendar/PostingCalendar';
+import { RunEta } from './RunEta';
 import { SlideshowEditor } from './SlideshowEditor';
+import { WelcomeDialog } from './WelcomeDialog';
 import { headerCopy, logLines, navItems } from './runCopy';
 import { useAutoRun } from './useAutoRun';
 import { useSidePanel } from './useSidePanel';
 import { TopBarPortal, useHasTopBarSlot } from './workspace/TopBarSlot';
+import { useSlideshowWorkspace } from './workspace/WorkspaceContext';
 
 /** Without `onBack` (a user's workspace) the top bar has no "New run" link. */
 type Props = { token: string; runId: string; onBack?: () => void; stickyTop?: string };
@@ -79,12 +82,33 @@ function RunHeading({ run }: { run: AutoRunDto }) {
   const rendering = run.slideshows.filter((s) => s.status === 'rendering').length;
   const done = run.status === 'COMPLETED';
   const aside = !isTerminalAutoStatus(run.status) && (
-    <RunCounter done={ready} total={run.count} label="slideshows ready" note={run.slideshows.length === 0 ? 'Waiting for scripts' : `${rendering} rendering in parallel`} />
+    <div className="flex shrink-0 flex-col items-start gap-2 sm:items-end">
+      <RunEta startedAt={run.startedAt} />
+      <RunCounter done={ready} total={run.count} label="slideshows ready" note={run.slideshows.length === 0 ? 'Waiting for scripts' : `${rendering} rendering in parallel`} />
+    </div>
   );
   return (
     <div className="space-y-2">
       <RunTitle {...headerCopy(run)} tone={done ? 'done' : run.status === 'FAILED' ? 'failed' : 'running'} aside={aside} />
       <PlanNote run={run} />
+    </div>
+  );
+}
+
+/** "All slideshows": folded by default since the calendar shows the same slideshows; opens itself when one failed. */
+function AllSlideshows({ run, children }: { run: AutoRunDto; children: ReactNode }) {
+  const [opened, setOpened] = useState<boolean | null>(null);
+  const failed = run.slideshows.some((s) => s.status === 'failed');
+  const open = opened ?? failed;
+  return (
+    <div className="space-y-4 pt-2">
+      <button onClick={() => setOpened(!open)} aria-expanded={open} className="flex min-h-11 items-center gap-2 text-sm font-bold text-ink transition hover:text-blue-600 dark:text-zinc-100 dark:hover:text-blue-400">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={`transition-transform ${open ? 'rotate-90' : ''}`}>
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+        All slideshows <span className="font-normal text-muted">({run.slideshows.length})</span>
+      </button>
+      {open && children}
     </div>
   );
 }
@@ -114,6 +138,7 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
   const music = useAdminApi<{ tracks: AutoTrackDto[] }>(token, editorUsed ? '/api/admin/auto-slideshow/music' : null);
   // A workspace puts the step progress in its own top bar; the admin page keeps a second bar under its header.
   const inTopBar = useHasTopBarSlot();
+  const workspace = useSlideshowWorkspace();
   // The elapsed time lives in the agent log; the top bar's right side shows the credits left instead.
   const pipeline = run && <PipelineNav items={navItems(run)} running={!isTerminalAutoStatus(run.status)} startedAt={run.startedAt} finishedAt={run.finishedAt} clock={false} />;
 
@@ -136,18 +161,21 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
             {run.status === 'FAILED' && <FailedBanner token={token} run={run} onResumed={refresh} />}
             <RunHeading run={run} />
             {(run.status !== 'FAILED' || run.slideshows.length > 0) && <PostingCalendar token={token} run={run} onOpen={setOpenId} onRunChanged={refresh} />}
-            <h3 className="pt-2 text-sm font-bold text-ink dark:text-zinc-100">All slideshows</h3>
-            <SlideshowGrid
-              slideshows={run.slideshows}
-              expected={run.count}
-              writing={!done}
-              retrying={retrying}
-              onOpen={(i) => setOpenId(run.slideshows[i]!.id)}
-              onRetry={done ? (id) => void retry(id) : undefined}
-            />
+            <AllSlideshows run={run}>
+              <SlideshowGrid
+                slideshows={run.slideshows}
+                expected={run.count}
+                writing={!done}
+                retrying={retrying}
+                onOpen={(i) => setOpenId(run.slideshows[i]!.id)}
+                onRetry={done ? (id) => void retry(id) : undefined}
+              />
+            </AllSlideshows>
           </section>
         </div>
       )}
+
+      {workspace && run && !isTerminalAutoStatus(run.status) && <WelcomeDialog workspaceId={workspace.id} />}
 
       {open && run && (
         <SlideshowEditor

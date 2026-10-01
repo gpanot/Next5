@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import type { ReactNode } from 'react';
 import type { AutoPhotoDto, AutoSlideDto } from '../../../types/admin/autoSlideshow';
 
 type Props = {
@@ -8,7 +8,12 @@ type Props = {
   index: number;
   photos: AutoPhotoDto[] | null;
   busy: string | null;
-  onSaveText: (patch: { title: string; body: string }) => void;
+  title: string;
+  body: string;
+  onTitle: (value: string) => void;
+  onBody: (value: string) => void;
+  /** Rendered at the end of the "Slide N · role" line. */
+  menu?: ReactNode;
   onPhoto: (photoIndex: number) => void;
   onNewPhoto: () => void;
 };
@@ -19,27 +24,20 @@ function Spinner() {
   return <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />;
 }
 
-/** Text and photo of the slide on screen. Saving re-renders that slide only. */
-export function SlideEditPanel({ slide, index, photos, busy, onSaveText, onPhoto, onNewPhoto }: Props) {
-  const [title, setTitle] = useState(slide.title);
-  const [body, setBody] = useState(slide.body);
-  const dirty = title.trim() !== slide.title || body.trim() !== slide.body;
+/** Text and photo of the slide on screen. Text is saved by the editor's Save button and re-renders that slide only. */
+export function SlideEditPanel({ slide, index, photos, busy, title, body, onTitle, onBody, menu, onPhoto, onNewPhoto }: Props) {
   const locked = busy !== null;
 
   return (
     <div className="space-y-3">
-      <p className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Slide {index + 1} · {slide.role}</p>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} aria-label="Headline" placeholder="Headline" className={`${fieldClass} font-semibold`} />
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Slide {index + 1} · {slide.role}</p>
+        {menu}
+      </div>
+      <input value={title} onChange={(e) => onTitle(e.target.value)} aria-label="Headline" placeholder="Headline" className={`${fieldClass} font-semibold`} />
       {slide.role !== 'hook' && (
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} aria-label="Text under the headline" placeholder="One short line" rows={2} className={fieldClass} />
+        <textarea value={body} onChange={(e) => onBody(e.target.value)} aria-label="Text under the headline" placeholder="One short line" rows={2} className={fieldClass} />
       )}
-      <button
-        disabled={locked || !dirty || !title.trim()}
-        onClick={() => onSaveText({ title, body })}
-        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-white text-sm font-semibold text-black transition active:scale-95 disabled:opacity-30"
-      >
-        {busy === `slide-${index}` ? <><Spinner /> Saving…</> : 'Save text'}
-      </button>
 
       <div className="space-y-2 pt-2">
         <p className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Photo</p>

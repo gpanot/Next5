@@ -1,6 +1,15 @@
+import Image from 'next/image';
+import { SplitWords } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY, type Audience } from './copy';
 import { XIcon } from './icons';
 import { reveal } from './reveal';
+
+/** One phone-filmed still per audience on the top card. All three are in public/images/manifest.json. */
+const DECK_STILLS: { only: Audience; src: string }[] = [
+  { only: 'realtor', src: '/images/business/us/realtor-video.png' },
+  { only: 'service', src: '/images/business/us/service-video.png' },
+  { only: 'seller', src: '/images/business/us/shop-video.png' },
+];
 
 const STEPS = ['Paste your link once.', 'Swipe through your week.', 'Post with the caption ready.'];
 
@@ -12,9 +21,9 @@ function SwipeDeck({ audience }: { audience: Audience }) {
         <div className="v3dd-card b2" />
         <div className="v3dd-card b1" />
         <div className="v3dd-card top js-ddcard">
-          <div className="v3ph" data-kind="video" style={{ position: 'absolute', inset: 0 }}>
-            <div className="v3ph-label">Video option</div>
-          </div>
+          {DECK_STILLS.map((still) => (
+            <Image key={still.only} className="v3photo" data-only={still.only} src={still.src} alt="" fill sizes="(max-width: 520px) 260px, 320px" />
+          ))}
           <div className="v3dd-hook js-ddhook">{AUDIENCE_COPY[audience].dd}</div>
         </div>
       </div>
@@ -36,7 +45,7 @@ export function SwipeSection({ audience }: { audience: Audience }) {
       <div className="v3wrap v3swipe-grid">
         <div>
           <div {...reveal()}>
-            <h2>Your only job: swipe.</h2>
+            <h2 data-split=""><SplitWords text="Your only job: swipe." /></h2>
             <p className="v3lede">
               Every week we make options for each day. Swipe right on the one you like.
               Swipe left and we show you another.

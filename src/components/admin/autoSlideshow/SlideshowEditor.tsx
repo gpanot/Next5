@@ -8,6 +8,8 @@ import { MusicPicker } from './MusicPicker';
 import { PostPanel } from './posting/PostPanel';
 import { SlidePreview } from './SlidePreview';
 import { SlideEditPanel } from './SlideEditPanel';
+import { SlideshowMenu } from './SlideshowMenu';
+import { parseTags, useSlideshowDrafts } from './useSlideshowDrafts';
 import { useSlideshowEdit } from './useSlideshowEdit';
 
 type Props = {
@@ -33,6 +35,8 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
   const [slide, setSlide] = useState(0);
   const [zipping, setZipping] = useState(false);
   const current = show.slides[Math.min(slide, show.slides.length - 1)];
+  const drafts = useSlideshowDrafts(show, slide);
+  const saving = busy === 'caption' || busy === `slide-${slide}`;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -46,9 +50,28 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
     setZipping(false);
   };
 
+  /** Stores the slide text and the caption, whichever changed. */
+  const save = async () => {
+    if (drafts.textDirty) {
+      if (!(await edit.saveSlide(slide, { title: drafts.title, body: drafts.body }))) return;
+      drafts.clearText();
+    }
+    if (drafts.captionDirty && (await edit.saveCaption(drafts.caption, parseTags(drafts.tags)))) drafts.clearCaption();
+  };
+
+  const rewrite = async () => {
+    if (await edit.regenerate()) {
+      drafts.clearText();
+      drafts.clearCaption();
+    }
+  };
+
   const removeSlide = async () => {
     if (!window.confirm(`Delete slide ${slide + 1}? This cannot be undone.`)) return;
-    if (await edit.deleteSlide(slide)) setSlide((i) => Math.min(i, show.slides.length - 2));
+    if (await edit.deleteSlide(slide)) {
+      drafts.clearText();
+      setSlide((i) => Math.min(i, show.slides.length - 2));
+    }
   };
 
   const remove = async () => {
@@ -66,6 +89,16 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
           <p className="truncate text-sm font-semibold">{show.topic}</p>
           <p className="truncate text-[11px] text-white/50">{show.modelName} · {slide + 1}/{show.slides.length}</p>
         </div>
+        <button
+          onClick={() => void save()}
+          disabled={busy !== null || !drafts.dirty || !drafts.valid}
+          className={`mr-1 flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold transition active:scale-95 ${
+            drafts.dirty ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-white/10 text-white/40'
+          } disabled:active:scale-100 ${drafts.dirty && !saving ? 'disabled:opacity-50' : ''}`}
+        >
+          {saving && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
+          {saving ? 'Saving…' : 'Save'}
+        </button>
         <button onClick={onPrev} disabled={!onPrev || busy !== null} aria-label="Previous slideshow" className={ghostButton}>‹</button>
         <button onClick={onNext} disabled={!onNext || busy !== null} aria-label="Next slideshow" className={ghostButton}>›</button>
       </header>
@@ -99,31 +132,23 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
           {edit.error && <p className="rounded-lg bg-red-500/15 p-3 text-sm text-red-300">{edit.error}</p>}
           {current && (
             <SlideEditPanel
-              key={`${slide}-${current.imageKey}`}
               slide={current}
               index={slide}
               photos={photos}
               busy={busy}
-              onSaveText={(patch) => void edit.saveSlide(slide, patch)}
+              title={drafts.title}
+              body={drafts.body}
+              onTitle={drafts.setTitle}
+              onBody={drafts.setBody}
+              menu={<SlideshowMenu disabled={zipping || busy !== null} zipping={zipping} busy={busy} onZip={() => void zip()} onRewrite={() => void rewrite()} onDelete={() => void remove()} />}
               onPhoto={(photoIndex) => void edit.saveSlide(slide, { photoIndex })}
               onNewPhoto={() => void edit.newPhoto(slide).then((ok) => ok && onPhotosChanged())}
             />
           )}
           <MusicPicker show={show} tracks={tracks} busy={busy} onPick={(id) => void edit.setMusic(id)} />
-          <CaptionPanel key={`${show.caption}|${show.hashtags.join()}`} show={show} busy={busy} onSave={(c, h) => void edit.saveCaption(c, h)} />
+          <CaptionPanel caption={drafts.caption} tags={drafts.tags} onCaption={drafts.setCaption} onTags={drafts.setTags} />
           <div className="border-t border-white/10 pt-4">
             <PostPanel token={token} runId={runId} show={show} onPosted={onChanged} />
-          </div>
-          <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
-            <button onClick={() => void zip()} disabled={zipping || busy !== null} className="min-h-11 rounded-full bg-white text-sm font-semibold text-black transition active:scale-95 disabled:opacity-40">
-              {zipping ? 'Zipping…' : 'Download ZIP'}
-            </button>
-            <button onClick={() => void edit.regenerate()} disabled={busy !== null} className="min-h-11 rounded-full border border-white/30 text-sm font-semibold transition active:scale-95 disabled:opacity-40">
-              {busy === 'regenerate' ? 'Rewriting…' : 'Rewrite all text'}
-            </button>
-            <button onClick={() => void remove()} disabled={busy !== null} className="col-span-2 min-h-11 rounded-full text-sm font-medium text-red-300 transition hover:bg-red-500/10 disabled:opacity-40">
-              {busy === 'delete' ? 'Deleting…' : 'Delete slideshow'}
-            </button>
           </div>
         </div>
       </div>

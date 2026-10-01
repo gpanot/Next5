@@ -15,7 +15,6 @@ export interface AudienceCopy {
   hooks: string[];
   facts: string[];
   s0: string;
-  label: string;
   noun: string;
   photos: string;
   statNum: string;
@@ -35,7 +34,6 @@ export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
     hooks: ['Wait till you see the kitchen.', 'This backyard sold me.', '3 bd in Austin. Come look.'],
     facts: ['$649,000', '3 bd', '2 ba', 'Austin, TX'],
     s0: 'Pulling your 24 listing photos',
-    label: 'Video: listing slideshow, 9:16',
     noun: 'listing',
     photos: 'photos of you',
     statNum: '39%',
@@ -53,7 +51,6 @@ export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
     hooks: ['3 signs your panel needs an upgrade.', 'Is your breaker doing this?', 'What a same-day fix looks like.'],
     facts: ['Licensed and insured', 'Same-day service', 'Austin, TX'],
     s0: 'Reading your website and job photos',
-    label: 'Video: tip video over your job photos, 9:16',
     noun: 'job',
     photos: 'photos of your team and work',
     statNum: '40%',
@@ -71,7 +68,6 @@ export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
     hooks: ['The dress everyone keeps asking about.', '1,240 sold for a reason.', '4 colors. Which one is you?'],
     facts: ['$38', '1,240 sold', '4 colors'],
     s0: 'Pulling your 8 product photos',
-    label: 'Video: product video, 9:16',
     noun: 'product',
     photos: 'try-on photos on a model',
     statNum: '215,000+',
