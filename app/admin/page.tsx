@@ -6,6 +6,7 @@ import { AdminLogin } from '../../src/components/admin/AdminLogin';
 import { BookingsTab } from '../../src/components/admin/BookingsTab';
 import { PromptsTab } from '../../src/components/admin/PromptsTab';
 import { UsersTab } from '../../src/components/admin/UsersTab';
+import { CreditsTab } from '../../src/components/admin/credits/CreditsTab';
 import { OverviewTab } from '../../src/components/admin/business/OverviewTab';
 import { PaymentsTab } from '../../src/components/admin/business/PaymentsTab';
 import { PromiseTab } from '../../src/components/admin/business/PromiseTab';
@@ -27,7 +28,7 @@ import { AutoSlideshowTab } from '../../src/components/admin/autoSlideshow/AutoS
 
 type Tab =
   | 'overview' | 'workspaces' | 'payments' | 'promise' | 'qa' | 'models'
-  | 'users' | 'bookings' | 'prompts'
+  | 'users' | 'credits' | 'bookings' | 'prompts'
   | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces'
   | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow'
   | 'assets-library';
@@ -50,6 +51,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     title: 'Users',
     items: [
       { id: 'users',    label: 'Users',    icon: '◎' },
+      { id: 'credits',  label: 'Credits',  icon: '¢' },
       { id: 'bookings', label: 'Bookings', icon: '◷' },
       { id: 'prompts',  label: 'Prompts',  icon: '✦' },
     ],
@@ -237,6 +239,7 @@ export default function AdminPage() {
           {tab === 'qa'               && <QaTab                token={token} />}
           {tab === 'models'           && <ModelTestTab         token={token} />}
           {tab === 'users'            && <UsersTab             token={token} />}
+          {tab === 'credits'          && <CreditsTab           token={token} />}
           {tab === 'bookings'         && <BookingsTab          token={token} />}
           {tab === 'prompts'          && <PromptsTab           token={token} />}
           {tab === 'ugc-lab'          && <UgcLabTab            token={token} />}

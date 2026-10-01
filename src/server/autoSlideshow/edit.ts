@@ -10,6 +10,7 @@ import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import type { SlideshowPattern } from '../../types/admin/slideshowKnowledge';
 import { HttpError } from '../http';
 import { createMeter, type CostMeter } from '../metaAds/cost';
+import { chargeSlideshow } from '../slideshowCredits/charge';
 import { deleteObject, putObject } from '../storage/objectStore';
 import { isTrack } from './music';
 import { makePhotos } from './photos';
@@ -149,6 +150,8 @@ export const rewriteSlideshow = async (runId: string, showId: string): Promise<v
     }
     for (const extra of old.slice(slides.length)) if (extra.imageKey) await deleteObject(extra.imageKey).catch(() => undefined);
     await prisma.autoSlideshow.update({ where: { id: showId }, data: { slides: json(slides), caption: written.caption, hashtags: written.hashtags, status: 'ready', error: null } });
+    // A failed slideshow made good here is charged now; one that was already ready was charged before (no-op).
+    await chargeSlideshow(runId, showId);
   } finally {
     await addStepCost(runId, 4, 'Rewrite', meter);
   }

@@ -114,7 +114,8 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
   const music = useAdminApi<{ tracks: AutoTrackDto[] }>(token, editorUsed ? '/api/admin/auto-slideshow/music' : null);
   // A workspace puts the step progress in its own top bar; the admin page keeps a second bar under its header.
   const inTopBar = useHasTopBarSlot();
-  const pipeline = run && <PipelineNav items={navItems(run)} running={!isTerminalAutoStatus(run.status)} startedAt={run.startedAt} finishedAt={run.finishedAt} />;
+  // The elapsed time lives in the agent log; the top bar's right side shows the credits left instead.
+  const pipeline = run && <PipelineNav items={navItems(run)} running={!isTerminalAutoStatus(run.status)} startedAt={run.startedAt} finishedAt={run.finishedAt} clock={false} />;
 
   return (
     <div className="mx-auto max-w-[1500px]">
@@ -127,7 +128,7 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
           {sideOpen && (
             <aside className="order-3 space-y-4 lg:order-1">
               <BrandCard url={run.url} profile={run.profile} />
-              <AgentLog lines={logLines(run)} error={null} />
+              <AgentLog lines={logLines(run)} error={null} clock={{ running: !isTerminalAutoStatus(run.status), startedAt: run.startedAt, finishedAt: run.finishedAt }} />
             </aside>
           )}
           <SideToggle open={sideOpen} onToggle={toggleSide} />

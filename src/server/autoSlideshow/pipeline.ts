@@ -16,6 +16,7 @@ import { extractLevers } from '../metaAds/hormozi/levers';
 import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
 import { appBaseUrl } from '../social/links';
+import { chargeSlideshow } from '../slideshowCredits/charge';
 import { putObject } from '../storage/objectStore';
 import { pickTracks } from './music';
 import { makePhotos } from './photos';
@@ -161,6 +162,7 @@ const renderStep: StepFn = async (runId, _meter, { rerender }) => {
         rendered.push({ ...slide, photoIndex: indexes[i]!, imageKey: key });
       }
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(rendered), status: 'ready' } });
+      await chargeSlideshow(runId, show.id);
     } catch (err) {
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { status: 'failed', error: clip(err instanceof Error ? err.message : String(err), 500) } });
     }

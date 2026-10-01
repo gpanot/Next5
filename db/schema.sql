@@ -144,7 +144,8 @@ CREATE TYPE public."PhotoType" AS ENUM (
 
 CREATE TYPE public."ProductLine" AS ENUM (
     'brand',
-    'shop'
+    'shop',
+    'slideshow'
 );
 
 
@@ -510,6 +511,90 @@ CREATE TABLE public.asset_descriptors (
     CONSTRAINT asset_descriptors_source_check CHECK (((((blitz_asset_id IS NOT NULL))::integer + ((ugc_video_id IS NOT NULL))::integer) = 1)),
     CONSTRAINT asset_descriptors_source_check1 CHECK ((source = ANY (ARRAY['scraped'::text, 'ai_generated'::text, 'uploaded'::text]))),
     CONSTRAINT asset_descriptors_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'claimed'::text, 'done'::text, 'failed'::text])))
+);
+
+
+--
+-- Name: auto_slideshow_posts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auto_slideshow_posts (
+    id text NOT NULL,
+    slideshow_id text NOT NULL,
+    run_id text NOT NULL,
+    workspace_id text NOT NULL,
+    status text DEFAULT 'scheduled'::text NOT NULL,
+    scheduled_at timestamp with time zone NOT NULL,
+    privacy_level text NOT NULL,
+    allow_comments boolean DEFAULT true NOT NULL,
+    brand_organic boolean DEFAULT false NOT NULL,
+    brand_content boolean DEFAULT false NOT NULL,
+    consent_at timestamp with time zone NOT NULL,
+    publish_id text,
+    tiktok_post_id text,
+    post_url text,
+    attempts integer DEFAULT 0 NOT NULL,
+    error text,
+    sent_at timestamp with time zone,
+    posted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    platform text DEFAULT 'tiktok'::text NOT NULL,
+    stats jsonb,
+    stats_at timestamp with time zone,
+    CONSTRAINT auto_slideshow_posts_platform_check CHECK ((platform = ANY (ARRAY['tiktok'::text, 'instagram'::text]))),
+    CONSTRAINT auto_slideshow_posts_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'sending'::text, 'processing'::text, 'posted'::text, 'failed'::text, 'canceled'::text])))
+);
+
+
+--
+-- Name: auto_slideshow_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auto_slideshow_runs (
+    id text NOT NULL,
+    url text NOT NULL,
+    count integer NOT NULL,
+    workspace_id text,
+    status text DEFAULT 'STEP_1_RUNNING'::text NOT NULL,
+    profile jsonb,
+    levers jsonb,
+    plan jsonb,
+    photos jsonb,
+    step_timings jsonb DEFAULT '{}'::jsonb NOT NULL,
+    step_costs jsonb DEFAULT '{}'::jsonb NOT NULL,
+    failed_step integer,
+    error text,
+    started_at timestamp with time zone DEFAULT now() NOT NULL,
+    finished_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT auto_slideshow_runs_count_check CHECK (((count >= 1) AND (count <= 20)))
+);
+
+
+--
+-- Name: auto_slideshows; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auto_slideshows (
+    id text NOT NULL,
+    run_id text NOT NULL,
+    "position" integer NOT NULL,
+    model_id text,
+    model_name text NOT NULL,
+    hook_pattern text NOT NULL,
+    topic text NOT NULL,
+    slides jsonb DEFAULT '[]'::jsonb NOT NULL,
+    caption text DEFAULT ''::text NOT NULL,
+    hashtags text[] DEFAULT '{}'::text[] NOT NULL,
+    status text DEFAULT 'written'::text NOT NULL,
+    error text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    audio_asset_id text,
+    audio_start real DEFAULT 0 NOT NULL,
+    CONSTRAINT auto_slideshows_status_check CHECK ((status = ANY (ARRAY['written'::text, 'rendering'::text, 'ready'::text, 'failed'::text])))
 );
 
 
@@ -1071,6 +1156,7 @@ CREATE TABLE public.meta_ad_videos (
     error text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    variation_of_id text,
     CONSTRAINT meta_ad_videos_duration_check CHECK ((duration = ANY (ARRAY[5, 10, 15]))),
     CONSTRAINT meta_ad_videos_status_check CHECK ((status = ANY (ARRAY['scripting'::text, 'avatar'::text, 'video'::text, 'ready'::text, 'failed'::text])))
 );
@@ -1099,6 +1185,8 @@ CREATE TABLE public.meta_ads (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     play text DEFAULT ''::text NOT NULL,
     inspired_by_ad_id text,
+    hooks jsonb,
+    text_placement text,
     CONSTRAINT meta_ads_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'imaging'::text, 'compositing'::text, 'ready'::text, 'failed'::text])))
 );
 
@@ -1458,6 +1546,65 @@ CREATE TABLE public.shop_connections (
 
 
 --
+-- Name: slideshow_credit_ledger; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.slideshow_credit_ledger (
+    id text NOT NULL,
+    user_id text NOT NULL,
+    delta_cents integer NOT NULL,
+    reason text NOT NULL,
+    ref text,
+    note text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT slideshow_credit_ledger_reason_check CHECK ((reason = ANY (ARRAY['free_grant'::text, 'topup'::text, 'auto_recharge'::text, 'slideshow_charge'::text, 'slideshow_refund'::text, 'admin_adjust'::text])))
+);
+
+
+--
+-- Name: slideshow_models; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.slideshow_models (
+    id text NOT NULL,
+    name text NOT NULL,
+    niches text[] DEFAULT '{}'::text[] NOT NULL,
+    pattern jsonb NOT NULL,
+    status text DEFAULT 'draft'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT slideshow_models_status_check CHECK ((status = ANY (ARRAY['draft'::text, 'approved'::text, 'archived'::text])))
+);
+
+
+--
+-- Name: slideshow_references; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.slideshow_references (
+    id text NOT NULL,
+    model_id text,
+    source_url text NOT NULL,
+    post_id text NOT NULL,
+    creator text DEFAULT ''::text NOT NULL,
+    caption text DEFAULT ''::text NOT NULL,
+    views bigint DEFAULT 0 NOT NULL,
+    likes bigint DEFAULT 0 NOT NULL,
+    saves bigint DEFAULT 0 NOT NULL,
+    shares bigint DEFAULT 0 NOT NULL,
+    comments bigint DEFAULT 0 NOT NULL,
+    posted_at timestamp with time zone,
+    slides jsonb DEFAULT '[]'::jsonb NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    error text,
+    cost_micros integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT slideshow_references_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'reading'::text, 'ready'::text, 'failed'::text])))
+);
+
+
+--
 -- Name: slideshow_swipes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1490,6 +1637,25 @@ CREATE TABLE public.slideshow_variants (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT slideshow_variants_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'kept'::text, 'discarded'::text, 'edited'::text, 'rendered'::text, 'failed'::text])))
+);
+
+
+--
+-- Name: slideshow_wallets; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.slideshow_wallets (
+    user_id text NOT NULL,
+    balance_cents integer DEFAULT 0 NOT NULL,
+    stripe_customer_id text,
+    auto_recharge_enabled boolean DEFAULT false NOT NULL,
+    auto_recharge_threshold_cents integer DEFAULT 500 NOT NULL,
+    auto_recharge_amount_cents integer DEFAULT 2000 NOT NULL,
+    auto_recharge_payment_method text,
+    auto_recharge_last_at timestamp with time zone,
+    auto_recharge_error text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -1923,6 +2089,30 @@ ALTER TABLE ONLY public.asset_descriptors
 
 
 --
+-- Name: auto_slideshow_posts auto_slideshow_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshow_posts
+    ADD CONSTRAINT auto_slideshow_posts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: auto_slideshow_runs auto_slideshow_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshow_runs
+    ADD CONSTRAINT auto_slideshow_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: auto_slideshows auto_slideshows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshows
+    ADD CONSTRAINT auto_slideshows_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: bank_transactions bank_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2291,6 +2481,38 @@ ALTER TABLE ONLY public.shop_connections
 
 
 --
+-- Name: slideshow_credit_ledger slideshow_credit_ledger_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_credit_ledger
+    ADD CONSTRAINT slideshow_credit_ledger_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: slideshow_models slideshow_models_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_models
+    ADD CONSTRAINT slideshow_models_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: slideshow_references slideshow_references_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_references
+    ADD CONSTRAINT slideshow_references_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: slideshow_references slideshow_references_post_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_references
+    ADD CONSTRAINT slideshow_references_post_id_key UNIQUE (post_id);
+
+
+--
 -- Name: slideshow_swipes slideshow_swipes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2304,6 +2526,22 @@ ALTER TABLE ONLY public.slideshow_swipes
 
 ALTER TABLE ONLY public.slideshow_variants
     ADD CONSTRAINT slideshow_variants_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: slideshow_wallets slideshow_wallets_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_wallets
+    ADD CONSTRAINT slideshow_wallets_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: slideshow_wallets slideshow_wallets_stripe_customer_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_wallets
+    ADD CONSTRAINT slideshow_wallets_stripe_customer_id_key UNIQUE (stripe_customer_id);
 
 
 --
@@ -2506,6 +2744,55 @@ CREATE INDEX asset_descriptors_pending_idx ON public.asset_descriptors USING btr
 --
 
 CREATE INDEX asset_descriptors_workspace_idx ON public.asset_descriptors USING btree (workspace_id);
+
+
+--
+-- Name: auto_slideshow_posts_due_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_posts_due_idx ON public.auto_slideshow_posts USING btree (status, scheduled_at);
+
+
+--
+-- Name: auto_slideshow_posts_run_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_posts_run_idx ON public.auto_slideshow_posts USING btree (run_id);
+
+
+--
+-- Name: auto_slideshow_posts_slideshow_id_platform_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX auto_slideshow_posts_slideshow_id_platform_key ON public.auto_slideshow_posts USING btree (slideshow_id, platform);
+
+
+--
+-- Name: auto_slideshow_posts_stats_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_posts_stats_idx ON public.auto_slideshow_posts USING btree (status, stats_at);
+
+
+--
+-- Name: auto_slideshow_posts_workspace_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_posts_workspace_idx ON public.auto_slideshow_posts USING btree (workspace_id, sent_at);
+
+
+--
+-- Name: auto_slideshow_runs_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_runs_created_idx ON public.auto_slideshow_runs USING btree (created_at DESC);
+
+
+--
+-- Name: auto_slideshows_run_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshows_run_idx ON public.auto_slideshows USING btree (run_id, "position");
 
 
 --
@@ -2873,6 +3160,13 @@ CREATE INDEX meta_ad_videos_run_idx ON public.meta_ad_videos USING btree (run_id
 
 
 --
+-- Name: meta_ad_videos_variation_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX meta_ad_videos_variation_idx ON public.meta_ad_videos USING btree (variation_of_id);
+
+
+--
 -- Name: meta_ads_run_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3024,6 +3318,48 @@ CREATE INDEX shop_connections_status_next_sync_at_idx ON public.shop_connections
 --
 
 CREATE UNIQUE INDEX shop_connections_workspace_id_platform_key ON public.shop_connections USING btree (workspace_id, platform);
+
+
+--
+-- Name: slideshow_credit_ledger_once_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX slideshow_credit_ledger_once_key ON public.slideshow_credit_ledger USING btree (reason, ref) WHERE (reason = ANY (ARRAY['free_grant'::text, 'topup'::text, 'auto_recharge'::text, 'slideshow_charge'::text]));
+
+
+--
+-- Name: slideshow_credit_ledger_ref_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX slideshow_credit_ledger_ref_idx ON public.slideshow_credit_ledger USING btree (ref);
+
+
+--
+-- Name: slideshow_credit_ledger_user_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX slideshow_credit_ledger_user_idx ON public.slideshow_credit_ledger USING btree (user_id, created_at DESC);
+
+
+--
+-- Name: slideshow_models_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX slideshow_models_status_idx ON public.slideshow_models USING btree (status, updated_at DESC);
+
+
+--
+-- Name: slideshow_references_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX slideshow_references_created_idx ON public.slideshow_references USING btree (created_at DESC);
+
+
+--
+-- Name: slideshow_references_model_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX slideshow_references_model_idx ON public.slideshow_references USING btree (model_id);
 
 
 --
@@ -3258,10 +3594,17 @@ CREATE INDEX workspace_angles_workspace_id_idx ON public.workspace_angles USING 
 
 
 --
+-- Name: workspaces_owner_user_id_product_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX workspaces_owner_user_id_product_idx ON public.workspaces USING btree (owner_user_id, product);
+
+
+--
 -- Name: workspaces_owner_user_id_product_key; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX workspaces_owner_user_id_product_key ON public.workspaces USING btree (owner_user_id, product);
+CREATE UNIQUE INDEX workspaces_owner_user_id_product_key ON public.workspaces USING btree (owner_user_id, product) WHERE (product = ANY (ARRAY['brand'::public."ProductLine", 'shop'::public."ProductLine"]));
 
 
 --
@@ -3307,6 +3650,46 @@ ALTER TABLE ONLY public.asset_descriptors
 
 ALTER TABLE ONLY public.asset_descriptors
     ADD CONSTRAINT asset_descriptors_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
+-- Name: auto_slideshow_posts auto_slideshow_posts_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshow_posts
+    ADD CONSTRAINT auto_slideshow_posts_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.auto_slideshow_runs(id) ON DELETE CASCADE;
+
+
+--
+-- Name: auto_slideshow_posts auto_slideshow_posts_slideshow_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshow_posts
+    ADD CONSTRAINT auto_slideshow_posts_slideshow_id_fkey FOREIGN KEY (slideshow_id) REFERENCES public.auto_slideshows(id) ON DELETE CASCADE;
+
+
+--
+-- Name: auto_slideshows auto_slideshows_audio_asset_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshows
+    ADD CONSTRAINT auto_slideshows_audio_asset_id_fkey FOREIGN KEY (audio_asset_id) REFERENCES public.blitz_assets(id) ON DELETE SET NULL;
+
+
+--
+-- Name: auto_slideshows auto_slideshows_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshows
+    ADD CONSTRAINT auto_slideshows_model_id_fkey FOREIGN KEY (model_id) REFERENCES public.slideshow_models(id) ON DELETE SET NULL;
+
+
+--
+-- Name: auto_slideshows auto_slideshows_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshows
+    ADD CONSTRAINT auto_slideshows_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.auto_slideshow_runs(id) ON DELETE CASCADE;
 
 
 --
@@ -3598,6 +3981,14 @@ ALTER TABLE ONLY public.meta_ad_videos
 
 
 --
+-- Name: meta_ad_videos meta_ad_videos_variation_of_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.meta_ad_videos
+    ADD CONSTRAINT meta_ad_videos_variation_of_id_fkey FOREIGN KEY (variation_of_id) REFERENCES public.meta_ad_videos(id) ON DELETE CASCADE;
+
+
+--
 -- Name: meta_ads meta_ads_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3750,6 +4141,22 @@ ALTER TABLE ONLY public.shop_connections
 
 
 --
+-- Name: slideshow_credit_ledger slideshow_credit_ledger_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_credit_ledger
+    ADD CONSTRAINT slideshow_credit_ledger_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: slideshow_references slideshow_references_model_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_references
+    ADD CONSTRAINT slideshow_references_model_id_fkey FOREIGN KEY (model_id) REFERENCES public.slideshow_models(id) ON DELETE SET NULL;
+
+
+--
 -- Name: slideshow_swipes slideshow_swipes_variant_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3779,6 +4186,14 @@ ALTER TABLE ONLY public.slideshow_variants
 
 ALTER TABLE ONLY public.slideshow_variants
     ADD CONSTRAINT slideshow_variants_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
+-- Name: slideshow_wallets slideshow_wallets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_wallets
+    ADD CONSTRAINT slideshow_wallets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -4044,4 +4459,15 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261016090000'),
     ('20261017090000'),
     ('20261018090000'),
-    ('20261019090000');
+    ('20261019090000'),
+    ('20261020090000'),
+    ('20261021090000'),
+    ('20261022090000'),
+    ('20261023090000'),
+    ('20261024090000'),
+    ('20261025090000'),
+    ('20261026090000'),
+    ('20261027090000'),
+    ('20261028090000'),
+    ('20261028091000'),
+    ('20261029090000');

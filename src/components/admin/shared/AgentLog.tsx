@@ -1,5 +1,8 @@
 'use client';
 
+import { RunClock } from './PipelineNav';
+import { elapsedBetween, useNow } from './runClock';
+
 export type LogLine = { key: string; text: string; state: 'done' | 'active' | 'failed' };
 
 function LineIcon({ state }: { state: LogLine['state'] }) {
@@ -8,11 +11,26 @@ function LineIcon({ state }: { state: LogLine['state'] }) {
   return <span className="w-3.5 shrink-0 text-emerald-500">✓</span>;
 }
 
-/** Step-by-step log of a run: finished steps, the one running, and the error if it stopped. */
-export function AgentLog({ lines, error }: { lines: LogLine[]; error: string | null }) {
+export type LogClock = { running: boolean; startedAt: string; finishedAt: string | null };
+
+/** Live badge and elapsed time, ticking each second while the run is going. */
+function LogClockView({ clock }: { clock: LogClock }) {
+  const now = useNow(clock.running);
+  return (
+    <span className="flex items-center gap-3 text-xs font-medium whitespace-nowrap text-muted">
+      <RunClock running={clock.running} elapsedMs={elapsedBetween(clock.startedAt, clock.finishedAt, now)} />
+    </span>
+  );
+}
+
+/** Step-by-step log of a run: finished steps, the one running, and the error if it stopped. With `clock`, the elapsed time sits in its header. */
+export function AgentLog({ lines, error, clock }: { lines: LogLine[]; error: string | null; clock?: LogClock }) {
   return (
     <div className="rounded-xl border border-line bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <p className="mb-4 text-[10px] font-bold tracking-wider text-muted uppercase">Agent log</p>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <p className="text-[10px] font-bold tracking-wider text-muted uppercase">Agent log</p>
+        {clock && <LogClockView clock={clock} />}
+      </div>
       <ul className="space-y-3 text-xs">
         {lines.map((line) => (
           <li key={line.key} className={['flex items-start gap-2', line.state === 'done' ? 'text-ink dark:text-zinc-100' : 'text-muted'].join(' ')}>

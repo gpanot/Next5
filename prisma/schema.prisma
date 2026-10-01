@@ -2281,3 +2281,37 @@ model AutoSlideshowPost {
   @@index([workspaceId, sentAt])
   @@map("auto_slideshow_posts")
 }
+
+/// Auto Slideshow credits: one USD wallet per user, shared by all their slideshow workspaces. Cents.
+model SlideshowWallet {
+  userId                     String    @id @map("user_id")
+  balanceCents               Int       @default(0) @map("balance_cents")
+  stripeCustomerId           String?   @unique @map("stripe_customer_id")
+  autoRechargeEnabled        Boolean   @default(false) @map("auto_recharge_enabled")
+  autoRechargeThresholdCents Int       @default(500) @map("auto_recharge_threshold_cents")
+  autoRechargeAmountCents    Int       @default(2000) @map("auto_recharge_amount_cents")
+  /// Stripe PaymentMethod id charged off session
+  autoRechargePaymentMethod  String?   @map("auto_recharge_payment_method")
+  autoRechargeLastAt         DateTime? @map("auto_recharge_last_at")
+  autoRechargeError          String?   @map("auto_recharge_error")
+  createdAt                  DateTime  @default(now()) @map("created_at")
+  updatedAt                  DateTime  @updatedAt @map("updated_at")
+
+  @@map("slideshow_wallets")
+}
+
+/// Every change to a slideshow wallet. reason: free_grant | topup | auto_recharge | slideshow_charge | slideshow_refund | admin_adjust
+model SlideshowCreditEntry {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  deltaCents Int      @map("delta_cents")
+  reason     String
+  /// Stripe Checkout session / PaymentIntent id, or the slideshow id for slideshow charges
+  ref        String?
+  note       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([ref])
+  @@map("slideshow_credit_ledger")
+}

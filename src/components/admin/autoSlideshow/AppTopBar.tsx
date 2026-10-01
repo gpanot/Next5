@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { CreditsPill } from './CreditsPill';
+import { isCheckoutReturn } from './settings/credits/useCheckoutReturn';
 import { useScrolled } from '../../../hooks/useScrolled';
 import { BusinessLogo } from '../../marketing/shared/MarketingHeader';
 import { SLIDESHOW_HOME, SLIDESHOW_LOGIN } from './workspace/WorkspaceContext';
@@ -36,7 +38,14 @@ function GearIcon() {
  * Settings on the right. The admin page has no gear, and Log in leads to the user sign-in (/slideshow/login). With `user` (signed in on /slideshow) the gear opens profile, accounts and photos, and the demo links are gone.
  */
 export function AppTopBar({ token, page = 'app', user = false }: { token: string; page?: 'app' | 'pricing'; user?: boolean }) {
-  const [settings, setSettings] = useState<SettingsTab | null>(null);
+  // Back from Stripe Checkout: open Settings on Credits so the payment is confirmed and shown.
+  const [settings, setSettings] = useState<SettingsTab | null>(() => (user && isCheckoutReturn() ? 'credits' : null));
+  // Bumped when Settings closes, so the credits pill re-reads the balance after a top up or card change.
+  const [creditsVersion, setCreditsVersion] = useState(0);
+  const closeSettings = () => {
+    setSettings(null);
+    setCreditsVersion((v) => v + 1);
+  };
   const workspace = useSlideshowWorkspace();
   const slotRef = useTopBarSlotRef();
   const scrolled = useScrolled(8);
@@ -65,13 +74,18 @@ export function AppTopBar({ token, page = 'app', user = false }: { token: string
         </nav>
         {/* The run's step progress and elapsed time: on its own row on phones and tablets, inline on wide screens */}
         {slotRef && <div ref={slotRef} className="order-last min-w-0 basis-full empty:hidden xl:order-none xl:basis-auto xl:flex-1" />}
-        {user && <button onClick={() => setSettings('accounts')} aria-label="Settings" className={`${user ? 'ml-auto ' : ''}flex h-10 w-10 items-center justify-center rounded-full text-app-muted transition hover:bg-app-line/50 hover:text-app-ink`}>
-          <GearIcon />
-        </button>}
+        {user && (
+          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+            {workspace && <CreditsPill token={token} version={creditsVersion} onOpen={() => setSettings('credits')} />}
+            <button onClick={() => setSettings('accounts')} aria-label="Settings" className="flex h-10 w-10 items-center justify-center rounded-full text-app-muted transition hover:bg-app-line/50 hover:text-app-ink">
+              <GearIcon />
+            </button>
+          </div>
+        )}
       </div>
     </header>
     {/* Outside the header: its backdrop blur would make it the containing block of the fixed modal. */}
-    {user && workspace && settings && <SettingsModal token={token} workspaceId={workspace.id} initialTab={settings} onClose={() => setSettings(null)} />}
+    {user && workspace && settings && <SettingsModal token={token} workspaceId={workspace.id} initialTab={settings} onClose={closeSettings} />}
     </>
   );
 }

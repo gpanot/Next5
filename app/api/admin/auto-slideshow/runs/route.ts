@@ -14,6 +14,7 @@ import { listRuns } from '../../../../../src/server/autoSlideshow/store';
 import { expireStuck } from '../../../../../src/server/autoSlideshow/stuck';
 import { normalizeUrl } from '../../../../../src/server/companyIntel/profile';
 import { enforceRateLimit } from '../../../../../src/server/rateLimit';
+import { requireCredits } from '../../../../../src/server/slideshowCredits/charge';
 import { DEFAULT_SLIDESHOWS, isSlideshowCount, MAX_SLIDESHOWS } from '../../../../../src/types/admin/autoSlideshow';
 
 // Steps 1-4 run here; on Vercel steps 5-6 continue in their own invocation (see the pipeline hand-off).
@@ -35,13 +36,16 @@ export const POST = slideshowRoute(async (req: NextRequest, _ctx: unknown, acces
   }
   if (body.count !== undefined && !isSlideshowCount(body.count)) return json({ error: `count must be 1 to ${MAX_SLIDESHOWS}` }, { status: 400 });
   // A user's run belongs to one of their workspaces. Each run pays for photos: a user can start 10 a day in all.
+  // Each slideshow costs 99¢: the balance must cover the whole run before it starts.
+  const count = (body.count as number | undefined) ?? DEFAULT_SLIDESHOWS;
   let workspaceId: string | null = null;
   if (!access.admin) {
     const user = requireUser(access);
     workspaceId = (await requireSlideshowWorkspace(user.userId, typeof body.workspaceId === 'string' ? body.workspaceId : '')).id;
+    await requireCredits(user.userId, count);
     await enforceRateLimit(`slideshow-run:${user.userId}`, 10, 24 * 60 * 60);
   }
-  const run = await prisma.autoSlideshowRun.create({ data: { url, count: (body.count as number | undefined) ?? DEFAULT_SLIDESHOWS, workspaceId } });
+  const run = await prisma.autoSlideshowRun.create({ data: { url, count, workspaceId } });
   waitUntil(runAutoPipeline(run.id, 1));
   return json({ runId: run.id }, { status: 201 });
 });

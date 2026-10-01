@@ -19,11 +19,28 @@ function StepIcon({ state, index }: { state: StepState; index: number }) {
   return <span className="text-zinc-300 dark:text-zinc-600">{index + 1}</span>;
 }
 
-type Props = { items: NavItem[]; running: boolean; startedAt: string; finishedAt: string | null };
+/** `clock: false` leaves out the live badge and timer (shown elsewhere, e.g. in the agent log). */
+/** "● Live  Elapsed 00:47". */
+export function RunClock({ running, elapsedMs }: { running: boolean; elapsedMs: number }) {
+  return (
+    <>
+      {running && (
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> Live
+        </span>
+      )}
+      <span>
+        Elapsed <span className="font-mono font-semibold text-ink dark:text-zinc-100">{formatElapsed(elapsedMs)}</span>
+      </span>
+    </>
+  );
+}
+
+type Props = { items: NavItem[]; running: boolean; startedAt: string; finishedAt: string | null; clock?: boolean };
 
 /** Centered pill row of pipeline steps, with a live badge and elapsed timer on the right from tablet width up. */
-export function PipelineNav({ items, running, startedAt, finishedAt }: Props) {
-  const now = useNow(running);
+export function PipelineNav({ items, running, startedAt, finishedAt, clock = true }: Props) {
+  const now = useNow(running && clock);
   return (
     <div className="flex items-center gap-4">
       {/* Equal flexible sides keep the pills centered from tablet width up */}
@@ -42,16 +59,13 @@ export function PipelineNav({ items, running, startedAt, finishedAt }: Props) {
           </div>
         ))}
       </div>
-      <div className="hidden flex-1 items-center justify-end gap-4 text-xs font-medium whitespace-nowrap text-muted sm:flex">
-        {running && (
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" /> Live
-          </span>
-        )}
-        <span>
-          Elapsed <span className="font-mono font-semibold text-ink dark:text-zinc-100">{formatElapsed(elapsedBetween(startedAt, finishedAt, now))}</span>
-        </span>
-      </div>
+      {clock ? (
+        <div className="hidden flex-1 items-center justify-end gap-4 text-xs font-medium whitespace-nowrap text-muted sm:flex">
+          <RunClock running={running} elapsedMs={elapsedBetween(startedAt, finishedAt, now)} />
+        </div>
+      ) : (
+        <div aria-hidden className="hidden flex-1 sm:block" />
+      )}
     </div>
   );
 }
