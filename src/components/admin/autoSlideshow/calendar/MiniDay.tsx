@@ -21,7 +21,7 @@ export function MiniDay({ day, selected, onSelect }: Props) {
       onClick={onSelect}
       aria-label={label}
       aria-pressed={selected}
-      className={`relative aspect-[4/5] w-full overflow-hidden rounded-lg border transition active:scale-95 ${selected || isOver ? 'border-blue-600 ring-2 ring-blue-600' : empty > 0 && items.length === 0 ? 'border-dashed border-blue-200 dark:border-blue-900/60' : 'border-line dark:border-zinc-800'} ${!day.inMonth ? 'opacity-40' : ''} ${items[0]?.kind === 'making' ? 'animate-pulse bg-zinc-100 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'}`}
+      className={`relative aspect-[4/5] w-full overflow-hidden rounded-lg border transition active:scale-95 ${selected || isOver ? 'border-blue-600 ring-2 ring-blue-600' : !day.past && items.length === 0 ? 'border-dashed border-blue-200 dark:border-blue-900/60' : 'border-line dark:border-zinc-800'} ${!day.inMonth ? 'opacity-40' : ''} ${items[0]?.kind === 'making' ? 'animate-pulse bg-zinc-100 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'}`}
     >
       {cover && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -33,7 +33,7 @@ export function MiniDay({ day, selected, onSelect }: Props) {
           {items.map((item, i) => <span key={i} className={`h-1.5 w-1.5 rounded-full ring-1 ring-white dark:ring-zinc-900 ${goalStyle(item.show?.goal).dot}`} />)}
         </span>
       )}
-      {!cover && empty > 0 && <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-2 text-sm text-blue-500">+</span>}
+      {!cover && !day.past && (items.length === 0 || empty > 0) && <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-2 text-sm text-blue-500">+</span>}
     </button>
   );
 }

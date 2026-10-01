@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { Pins } from './monthPlan';
+import type { Pins, Targets } from './monthPlan';
 
 /** A value remembered per run in this browser only; storage errors (private mode) keep it for this visit. */
 const useRunStore = <T,>(key: string, parse: (raw: string | null) => T, serialize: (v: T) => string | null): [T, (v: T) => void] => {
@@ -26,11 +26,20 @@ const useRunStore = <T,>(key: string, parse: (raw: string | null) => T, serializ
   return [value, save];
 };
 
-const isDayKey = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const isDayKey = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
 
-/** The day the user's posting plan starts ("Add post" on that day), or null with no plan. */
-export const usePlanStart = (runId: string) =>
-  useRunStore<string | null>(`autoSlideshow.planStart.${runId}`, (raw) => (isDayKey(raw) ? raw : null), (v) => v);
+const parseTargets = (raw: string | null): Targets => {
+  try {
+    const value: unknown = JSON.parse(raw ?? '{}');
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    return Object.fromEntries(Object.entries(value).filter((e): e is [string, number] => isDayKey(e[0]) && Number.isInteger(e[1]) && e[1] > 0));
+  } catch {
+    return {};
+  }
+};
+
+/** Posts the user wants on each day, set day by day with − N +. */
+export const useTargets = (runId: string) => useRunStore<Targets>(`autoSlideshow.targets.${runId}`, parseTargets, (v) => JSON.stringify(v));
 
 const parsePins = (raw: string | null): Pins => {
   try {

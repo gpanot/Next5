@@ -1,12 +1,12 @@
 import type { AutoPostDto, AutoSlideshowDto } from '../../../../types/admin/autoSlideshow';
 
 /**
- * The posting calendar, worked out on the client from the run: `times.length` posts a day at the chosen times.
- * Days keep their live posts; ready slideshows not scheduled yet fill the next free slots from tomorrow; slideshows
- * still being made hold the slots after that. Nothing here is saved until the user approves.
- * The page shows one calendar month (Monday to Sunday weeks). The queue fills from `start` (the day the user's plan
- * starts, else tomorrow), whatever month is shown; days before it only show their live posts.
- * Pinned slideshows (`pins`: dragged, or kept in place when the plan changed) sit at their own time and never move.
+ * The posting calendar, worked out on the client from the run. Nothing here is saved until the user approves.
+ * - Live posts and pinned slideshows (`pins`: dragged, or kept in place when the plan changed) sit at their own time.
+ * - `targets`: posts the user wants on a given day (1 to 5, set day by day). Waiting slideshows fill those slots first,
+ *   in day order; empty ones are what "Generate" makes.
+ * - Waiting slideshows left over (no target slot) go one a day at 7 PM on the next free days from tomorrow.
+ * The page shows one calendar month (Monday to Sunday weeks); targets and pins in any month count.
  */
 
 export type DayItem =
@@ -21,6 +21,21 @@ export type PlanDay = { key: string; date: Date; past: boolean; today: boolean; 
 
 /** `days`: the month grid (whole weeks). `all`: every day built, from the earliest shown or tomorrow to the last queued slot. */
 export type MonthPlan = { days: PlanDay[]; all: PlanDay[] };
+
+/** Most posts on one day. */
+export const MAX_PER_DAY = 5;
+
+/** Post times for 1 to 5 posts on a day, spread over the hours people scroll most. */
+export const POST_TIMES: Record<number, string[]> = {
+  1: ['19:00'],
+  2: ['12:00', '19:00'],
+  3: ['09:00', '13:00', '19:00'],
+  4: ['09:00', '12:00', '16:00', '19:00'],
+  5: ['08:00', '11:00', '14:00', '17:00', '20:00'],
+};
+
+/** Day key → posts wanted that day. */
+export type Targets = Record<string, number>;
 
 /** Days built at most, so a long queue cannot loop for ever. */
 const MAX_DAYS = 400;
@@ -70,17 +85,6 @@ const waitingQueue = (slideshows: AutoSlideshowDto[], pending: number, working: 
   return { queue, pinned };
 };
 
-/** A day's slots: its live posts and pinned slideshows at their own times, then (on an open day) its free times up to
- *  `times.length` in all. */
-const daySlots = (day: Date, fixed: PlanSlot[], times: string[], open: boolean, queue: DayItem[]): PlanSlot[] => {
-  const taken = [...fixed].sort((a, b) => a.at.getTime() - b.at.getTime());
-  if (!open) return taken;
-  const busy = new Set(taken.map((s) => hhmm(s.at)));
-  const free = times.filter((t) => !busy.has(t)).slice(0, Math.max(0, times.length - taken.length));
-  const filled = free.map((t) => ({ at: atTime(day, t), item: queue.shift() ?? null }));
-  return [...taken, ...filled].sort((a, b) => a.at.getTime() - b.at.getTime());
-};
-
 /** Groups live posts by day key. */
 const postsByDay = (slideshows: AutoSlideshowDto[]) => {
   const byDay = new Map<string, PostItem[]>();
@@ -91,59 +95,88 @@ const postsByDay = (slideshows: AutoSlideshowDto[]) => {
   return byDay;
 };
 
-/** `start`: first day the queue and empty slots use (never before tomorrow); default tomorrow. */
-type PlanInput = { slideshows: AutoSlideshowDto[]; pending: number; times: string[]; month: Date; start?: Date | null; pins?: Pins; working?: boolean; now?: Date };
+/** Free post times on a day wanting `target` posts, after its fixed ones; at most `need` of them. */
+const freeTimes = (target: number, fixed: PlanSlot[], need: number): string[] => {
+  const busy = new Set(fixed.map((s) => hhmm(s.at)));
+  const all = [...new Set([...(POST_TIMES[Math.min(target, MAX_PER_DAY)] ?? []), ...POST_TIMES[MAX_PER_DAY]!])];
+  return all.filter((t) => !busy.has(t)).slice(0, need);
+};
 
-/** The month grid, plus every day the queue reaches (so approving takes all ready slideshows, in any month). */
+type Draft = { date: Date; key: string; fixed: PlanSlot[]; open: PlanSlot[] };
+
+/** Every day from `from` to `end`, with its fixed slots and its empty target slots. */
+const draftDays = (from: Date, end: Date, tomorrow: Date, fixedOf: (key: string) => PlanSlot[], targets: Targets): Draft[] => {
+  const drafts: Draft[] = [];
+  for (let date = from; date <= end && drafts.length < MAX_DAYS; date = addDays(date, 1)) {
+    const key = dayKey(date);
+    const fixed = fixedOf(key);
+    const target = date >= tomorrow ? (targets[key] ?? 0) : 0;
+    const open = freeTimes(target, fixed, Math.max(0, target - fixed.length)).map((t) => ({ at: atTime(date, t), item: null as DayItem | null }));
+    drafts.push({ date, key, fixed, open });
+  }
+  return drafts;
+};
+
+/** Waiting slideshows fill target slots in day order; the rest go one a day on free days from tomorrow (adding days as needed). */
+const placeQueue = (drafts: Draft[], queue: DayItem[], tomorrow: Date) => {
+  for (const d of drafts) for (const slot of d.open) slot.item = queue.shift() ?? null;
+  for (let i = 0; queue.length > 0 && i < MAX_DAYS; i += 1) {
+    const last = drafts[drafts.length - 1]!;
+    const d = i < drafts.length ? drafts[i]! : { date: addDays(last.date, 1), key: dayKey(addDays(last.date, 1)), fixed: [], open: [] };
+    if (i >= drafts.length) drafts.push(d);
+    if (d.date >= tomorrow && d.fixed.length === 0 && d.open.length === 0) d.open.push({ at: atTime(d.date, '19:00'), item: queue.shift()! });
+  }
+};
+
+type PlanInput = { slideshows: AutoSlideshowDto[]; pending: number; month: Date; targets?: Targets; pins?: Pins; working?: boolean; now?: Date };
+
+/** The month grid, plus every day with a target, pin or queued slideshow (so approving takes them all, in any month). */
 export const buildMonth = (input: PlanInput): MonthPlan => {
   const now = input.now ?? new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const tomorrow = addDays(today, 1);
-  const start = input.start && input.start > tomorrow ? input.start : tomorrow;
-  const times = [...input.times].sort();
+  const targets = input.targets ?? {};
   const byDay = postsByDay(input.slideshows);
   const { queue, pinned } = waitingQueue(input.slideshows, input.pending, input.working ?? true, input.pins ?? {}, tomorrow);
-  const lastPinned = [...pinned.keys()].sort().at(-1) ?? '';
   const grid = gridOf(input.month);
   const from = grid.start < tomorrow ? grid.start : tomorrow;
+  const lastKey = [...pinned.keys(), ...Object.keys(targets)].sort().at(-1);
+  const lastDate = lastKey ? new Date(`${lastKey}T00:00`) : grid.end;
+  const fixedOf = (key: string) =>
+    [...(byDay.get(key) ?? []).map((p) => ({ at: new Date(p.post.scheduledAt), item: p as DayItem | null })), ...(pinned.get(key) ?? [])].sort((a, b) => a.at.getTime() - b.at.getTime());
+  const drafts = draftDays(from, lastDate > grid.end ? lastDate : grid.end, tomorrow, fixedOf, targets);
+  placeQueue(drafts, queue, tomorrow);
   const month = input.month.getMonth();
-  const days: PlanDay[] = [];
-  const all: PlanDay[] = [];
-  for (let i = 0; i < MAX_DAYS; i += 1) {
-    const date = addDays(from, i);
-    const key = dayKey(date);
-    if (date > grid.end && queue.length === 0 && key > lastPinned) break;
-    const fixed: PlanSlot[] = [...(byDay.get(key) ?? []).map((p) => ({ at: new Date(p.post.scheduledAt), item: p })), ...(pinned.get(key) ?? [])];
-    const past = date < tomorrow;
-    const day = { key, date, past, today: key === dayKey(today), inMonth: date.getMonth() === month, slots: daySlots(date, fixed, times, date >= start, queue) };
-    all.push(day);
-    if (date >= grid.start && date <= grid.end) days.push(day);
-  }
-  return { days, all };
+  const all = drafts.map(({ date, key, fixed, open }) => ({
+    key, date, past: date < tomorrow, today: key === dayKey(today), inMonth: date.getMonth() === month,
+    slots: [...fixed, ...open].sort((a, b) => a.at.getTime() - b.at.getTime()),
+  }));
+  return { days: all.filter((d) => d.date >= grid.start && d.date <= grid.end), all };
 };
 
 const emptyIn = (d: PlanDay) => (d.past ? 0 : d.slots.filter((s) => s.item === null).length);
 
-/** Empty future slots through day `key`: what "Generate" makes, so the new ones land up to there. */
-export const emptyThrough = (all: PlanDay[], key: string) => all.filter((d) => d.key <= key).reduce((n, d) => n + emptyIn(d), 0);
+/** Empty target slots on every day: what "Generate" makes. */
+export const emptySlots = (all: PlanDay[]) => all.reduce((n, d) => n + emptyIn(d), 0);
 
 /** Where every not-yet-approved slideshow sits now, so a plan change can keep them in place. */
 export const currentPins = (all: PlanDay[]): Pins =>
   Object.fromEntries(all.flatMap((d) => d.slots.flatMap((s) => (s.item && s.item.kind !== 'post' && s.item.show ? [[s.item.show.id, s.at.toISOString()]] : []))));
 
 /**
- * Pins after dropping slideshow `id` on `day`: at the day's first free post time; on a full day, it swaps with a ready
- * slideshow there. Null when the day has no room (only scheduled posts).
+ * Pins after dropping slideshow `id` on `day`: into one of its empty slots, else at a free time when the day holds no
+ * more than its target; on a full day it swaps with a ready slideshow there. Null when it cannot go there.
  */
-export const dropPins = (all: PlanDay[], id: string, day: PlanDay, times: string[]): Pins | null => {
+export const dropPins = (all: PlanDay[], id: string, day: PlanDay): Pins | null => {
   const pins = currentPins(all);
   const from = pins[id];
   if (!from || day.past) return null;
-  const others = day.slots.filter((s) => s.item && !(s.item.kind !== 'post' && s.item.show?.id === id));
-  const busy = new Set(others.map((s) => hhmm(s.at)));
-  const free = [...times].sort().find((t) => !busy.has(t)) ?? (others.length === 0 ? '19:00' : null);
-  if (free && others.length < Math.max(times.length, 1)) return { ...pins, [id]: atTime(day.date, free).toISOString() };
-  const swap = others.find((s) => s.item?.kind === 'ready');
+  const others = day.slots.filter((s) => !(s.item && s.item.kind !== 'post' && s.item.show?.id === id));
+  const empty = others.find((s) => s.item === null);
+  if (empty) return { ...pins, [id]: empty.at.toISOString() };
+  const filled = others.filter((s) => s.item !== null);
+  if (filled.length === 0) return { ...pins, [id]: atTime(day.date, '19:00').toISOString() };
+  const swap = filled.find((s) => s.item?.kind === 'ready');
   if (!swap || swap.item?.kind !== 'ready') return null;
   return { ...pins, [id]: swap.at.toISOString(), [swap.item.show.id]: from };
 };

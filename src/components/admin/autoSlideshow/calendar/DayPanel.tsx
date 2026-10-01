@@ -3,7 +3,7 @@
 import { PlatformIcon } from '../../../marketing/offer/PlatformMarks';
 import { compact } from '../posting/PostStats';
 import type { PlanDay, PlanSlot } from './monthPlan';
-import { DayAdd, emptyOf, type DayActions } from './DayTile';
+import { DayAdd, type DayActions } from './DayTile';
 import { GOAL_LABELS } from '../../../../types/admin/contentGoals';
 import { goalStyle } from './goalStyle';
 import { badgeOf, coverOf, timeOf, titleOf } from './slotBadge';
@@ -61,7 +61,7 @@ export function DayPanel({ day, actions }: { day: PlanDay; actions: DayActions }
       <p className="text-sm font-bold text-ink dark:text-zinc-100">{day.date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
       {filled.map((slot, i) => <PanelRow key={`${i}-${slot.at.toISOString()}`} slot={slot} onOpen={actions.onOpen} />)}
       {filled.length === 0 && day.past && <p className="py-2 text-sm text-muted">Nothing posted this day.</p>}
-      {!day.past && (emptyOf(day) > 0 || filled.length < actions.perDay) && <div className="rounded-xl border border-dashed border-blue-200 bg-white p-1 dark:border-blue-900/60 dark:bg-zinc-900"><DayAdd day={day} actions={actions} size="touch" /></div>}
+      {!day.past && <div className="rounded-xl border border-dashed border-blue-200 bg-white p-1 dark:border-blue-900/60 dark:bg-zinc-900"><DayAdd day={day} actions={actions} size="touch" /></div>}
     </div>
   );
 }

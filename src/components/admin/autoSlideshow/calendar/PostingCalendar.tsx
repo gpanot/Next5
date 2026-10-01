@@ -12,11 +12,9 @@ import type { DayActions } from './DayTile';
 import { GoalLegend } from './GoalLegend';
 import { MonthGrid } from './MonthGrid';
 import { MonthHeader } from './MonthHeader';
-import { addMonths, buildMonth, currentPins, dayKey, dropPins, emptyThrough, monthCounts, monthOf, monthRange, toApprove } from './monthPlan';
-import { PostingOptions } from './PostingOptions';
+import { addMonths, buildMonth, currentPins, dayKey, dropPins, emptySlots, MAX_PER_DAY, monthCounts, monthOf, monthRange, toApprove } from './monthPlan';
 import { SlideshowDnd } from './SlideshowDnd';
-import { usePins, usePlanStart } from './useCalendarStore';
-import { DEFAULT_TIMES, MAX_PER_DAY, usePostTimes } from './usePostTime';
+import { usePins, useTargets } from './useCalendarStore';
 
 type Props = { token: string; run: AutoRunDto; onOpen: (slideshowId: string) => void; onRunChanged: () => void };
 
@@ -83,15 +81,13 @@ const useMonth = (run: AutoRunDto) => {
 };
 
 /**
- * Autopilot view, one month at a time: 1 to 5 posts a day. Ready slideshows fill the next free slots from tomorrow.
- * "+ Add post" on a day opens a − N + stepper that sets posts a day for every day, "Generate" makes slideshows for
- * every empty slot to the month's end, and one approval
- * schedules them all on TikTok and/or Instagram (a person approves each batch).
+ * Autopilot view, one month at a time. The user picks each day: "+ Add post" then − N + (1 to 5 posts on that day only).
+ * "Generate" makes slideshows for the empty slots, slideshows can be dragged to another day, and one approval schedules
+ * them all on TikTok and/or Instagram (a person approves each batch).
  */
 export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
-  const [times, setTimes] = usePostTimes();
   const [approving, setApproving] = useState(false);
-  const [planStart, setPlanStart] = usePlanStart(run.id);
+  const [targets, setTargets] = useTargets(run.id);
   const [pins, setPins] = usePins(run.id);
   const posting = usePosting(token, run.id, onRunChanged);
   useWatchPosts(run, onRunChanged);
@@ -100,34 +96,25 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
   // Only a working run has slideshows still to come; a finished one shows what it has.
   const working = !isTerminalAutoStatus(run.status);
   const pending = working ? Math.max(0, run.count - run.slideshows.length) : 0;
-  const start = useMemo(() => (planStart ? new Date(`${planStart}T00:00`) : null), [planStart]);
-  const { days, all } = useMemo(() => buildMonth({ slideshows: run.slideshows, pending, times, working, month, start, pins }), [run.slideshows, pending, times, working, month, start, pins]);
+  const { days, all } = useMemo(() => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins }), [run.slideshows, pending, working, month, targets, pins]);
   const counts = monthCounts(days);
   const approve = toApprove(all);
   const idle = run.status === 'COMPLETED' && adding === null;
-  // With a plan: every empty planned slot to the month's end. One request makes at most MAX_SLIDESHOWS for now.
-  const lastDay = days.filter((d) => d.inMonth).at(-1);
-  const fill = planStart && lastDay ? emptyThrough(all, lastDay.key) : 0;
+  // Every empty slot the user asked for, in any month. One request makes at most MAX_SLIDESHOWS for now.
+  const fill = emptySlots(all);
   const tooMany = fill > MAX_SLIDESHOWS;
-  // The stepper sets posts a day for every planned day; the times come with it (Advanced options can change them).
-  // − at 1 removes the plan: the days go back to "+ Add post".
-  // Plan changes pin the slideshows already made where they are, so only new ones fill the planned days.
-  const keepPlaced = () => setPins(currentPins(all));
-  const onPerDay = (n: number) => {
-    keepPlaced();
-    if (n < 1) setPlanStart(null);
-    else setTimes(DEFAULT_TIMES[Math.min(n, MAX_PER_DAY)]!);
-  };
-  const onStart = (key: string) => {
-    keepPlaced();
-    setPlanStart(key);
+  // A day's count changing pins the slideshows already made where they are, so only new ones fill the new slots.
+  const onSetCount = (key: string, n: number) => {
+    setPins(currentPins(all));
+    const rest = Object.fromEntries(Object.entries(targets).filter(([k]) => k !== key));
+    setTargets(n > 0 ? { ...rest, [key]: Math.min(n, MAX_PER_DAY) } : rest);
   };
   const onMove = (id: string, key: string) => {
     const day = all.find((d) => d.key === key);
-    const next = day ? dropPins(all, id, day, times) : null;
+    const next = day ? dropPins(all, id, day) : null;
     if (next) setPins(next);
   };
-  const actions: DayActions = { perDay: times.length, planStart, onStart, onPerDay, onOpen };
+  const actions: DayActions = { onSetCount, onOpen };
 
   return (
     <section className="space-y-4 rounded-2xl border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
@@ -137,7 +124,6 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
       <SlideshowDnd onMove={onMove}>
         <MonthGrid key={dayKey(month)} days={days} actions={actions} />
       </SlideshowDnd>
-      <PostingOptions times={times} onTimes={setTimes} />
       {(error || posting.error) && <p className="text-sm text-red-600 dark:text-red-400">{error ?? posting.error}</p>}
       <div className="flex flex-col gap-2 sm:flex-row">
         <button onClick={() => void add(fill)} disabled={!idle || fill === 0 || tooMany} className="min-h-12 flex-1 rounded-full border-2 border-blue-600 px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 active:scale-95 disabled:opacity-40 dark:border-blue-400 dark:text-blue-300 dark:hover:bg-blue-950">
@@ -147,7 +133,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
           {approve.length > 0 ? `Approve & Publish (${approve.length}) →` : 'Nothing to approve'}
         </button>
       </div>
-      {tooMany && <p className="text-center text-xs text-muted">Up to {MAX_SLIDESHOWS} slideshows at a time for now. Lower posts a day, or start the plan later.</p>}
+      {tooMany && <p className="text-center text-xs text-muted">Up to {MAX_SLIDESHOWS} slideshows at a time for now. Remove a few posts, generate, then add the rest.</p>}
       {working && <p className="text-center text-[11px] text-muted">Making your slideshows… they land on the calendar as they finish.</p>}
       {posting.posts && posting.posts.length > 0 && (
         <details className="border-t border-line pt-3 dark:border-zinc-800">
