@@ -10,15 +10,19 @@ import { HttpError } from '../http';
 /** Most workspaces one user can have. */
 export const MAX_WORKSPACES = 20;
 
+/** Live (not deleted) workspaces of one user. */
+export const countSlideshowWorkspaces = (userId: string): Promise<number> =>
+  prisma.workspace.count({ where: { ownerUserId: userId, product: 'slideshow', deletedAt: null } });
+
 export const requireSlideshowWorkspace = async (userId: string, workspaceId: string): Promise<Workspace> => {
-  const ws = await prisma.workspace.findFirst({ where: { id: workspaceId, ownerUserId: userId, product: 'slideshow' } });
+  const ws = await prisma.workspace.findFirst({ where: { id: workspaceId, ownerUserId: userId, product: 'slideshow', deletedAt: null } });
   if (!ws) throw new HttpError(404, 'workspace_not_found', 'Workspace not found.');
   return ws;
 };
 
 export const listSlideshowWorkspaces = async (userId: string): Promise<SlideshowWorkspaceDto[]> => {
   const rows = await prisma.workspace.findMany({
-    where: { ownerUserId: userId, product: 'slideshow' },
+    where: { ownerUserId: userId, product: 'slideshow', deletedAt: null },
     orderBy: { createdAt: 'asc' },
     include: { socialConnections: { select: { provider: true, username: true } } },
   });
@@ -36,9 +40,9 @@ export const createSlideshowWorkspace = async (userId: string, input: { websiteU
   } catch {
     throw new HttpError(400, 'bad_url', 'Enter a valid website, like yourbrand.com');
   }
-  const count = await prisma.workspace.count({ where: { ownerUserId: userId, product: 'slideshow' } });
-  if (count >= MAX_WORKSPACES) throw new HttpError(409, 'too_many_workspaces', `You can have up to ${MAX_WORKSPACES} workspaces.`);
+  if ((await countSlideshowWorkspaces(userId)) >= MAX_WORKSPACES) throw new HttpError(409, 'too_many_workspaces', `You can have up to ${MAX_WORKSPACES} workspaces.`);
   const name = (typeof input.name === 'string' ? input.name.trim().slice(0, 80) : '') || hostOf(websiteUrl);
   const ws = await prisma.workspace.create({ data: { ownerUserId: userId, product: 'slideshow', name, websiteUrl, onboardingStep: 0 } });
   return { id: ws.id, name: ws.name, websiteUrl: ws.websiteUrl, tiktokUsername: null, instagramUsername: null, createdAt: ws.createdAt.toISOString() };
 };
+

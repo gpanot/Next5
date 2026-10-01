@@ -15,7 +15,7 @@ const LIMIT = 30;
 export const listTikTokAccounts = async (q: string): Promise<TikTokAccountDto[]> => {
   const term = q.trim();
   const rows = await prisma.workspace.findMany({
-    where: term ? { OR: [{ name: { contains: term, mode: 'insensitive' } }, { owner: { email: { contains: term, mode: 'insensitive' } } }] } : undefined,
+    where: { deletedAt: null, ...(term ? { OR: [{ name: { contains: term, mode: 'insensitive' as const } }, { owner: { email: { contains: term, mode: 'insensitive' as const } } }] } : {}) },
     include: { owner: { select: { email: true } }, socialConnections: { where: { provider: 'tiktok' } } },
     orderBy: { createdAt: 'desc' },
     take: LIMIT,

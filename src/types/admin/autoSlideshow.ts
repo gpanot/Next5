@@ -192,6 +192,9 @@ export const currentAutoStep = (s: AutoRunStatus): number => (s === 'COMPLETED' 
 /** One of a user's Auto Slideshow workspaces (one per website). */
 export type SlideshowWorkspaceDto = { id: string; name: string; websiteUrl: string | null; tiktokUsername: string | null; instagramUsername: string | null; createdAt: string };
 
+/** A deleted workspace the user can still restore, until `purgeAt`. */
+export type DeletedWorkspaceDto = { id: string; name: string; websiteUrl: string | null; deletedAt: string; purgeAt: string };
+
 /** The signed-in user behind /slideshow: profile, the current workspace and the accounts connected to it. */
 export type SlideshowMeDto = {
   email: string;

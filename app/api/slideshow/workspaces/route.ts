@@ -1,14 +1,20 @@
 /**
- * GET  /api/slideshow/workspaces — the signed-in user's Auto Slideshow workspaces (one per website), oldest first
+ * GET  /api/slideshow/workspaces — the signed-in user's Auto Slideshow workspaces (one per website), oldest first,
+ *      plus `deleted`: the ones still restorable
  * POST /api/slideshow/workspaces — { websiteUrl, name? } → a new workspace
  */
 import { NextResponse } from 'next/server';
 import { requireUser } from '../../../../src/server/autoSlideshow/access';
 import { slideshowRoute } from '../../../../src/server/autoSlideshow/route';
+import { listDeletedSlideshowWorkspaces } from '../../../../src/server/autoSlideshow/workspaceTrash';
 import { createSlideshowWorkspace, listSlideshowWorkspaces } from '../../../../src/server/autoSlideshow/workspaces';
 import { enforceRateLimit } from '../../../../src/server/rateLimit';
 
-export const GET = slideshowRoute(async (_req, _ctx: unknown, access) => NextResponse.json({ workspaces: await listSlideshowWorkspaces(requireUser(access).userId) }));
+export const GET = slideshowRoute(async (_req, _ctx: unknown, access) => {
+  const { userId } = requireUser(access);
+  const [workspaces, deleted] = await Promise.all([listSlideshowWorkspaces(userId), listDeletedSlideshowWorkspaces(userId)]);
+  return NextResponse.json({ workspaces, deleted });
+});
 
 export const POST = slideshowRoute(async (req, _ctx: unknown, access) => {
   const { userId } = requireUser(access);

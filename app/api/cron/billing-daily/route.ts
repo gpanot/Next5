@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { saveGeneratingVideos } from '../../../../src/server/admin/ugcVideos';
+import { purgeDeletedSlideshowWorkspaces } from '../../../../src/server/autoSlideshow/workspaceTrash';
 import { sendWeeklyDigests } from '../../../../src/server/calendar/digest';
 import { runGenerationTick } from '../../../../src/server/generation/poll';
 import { runBillingDaily } from '../../../../src/server/lifecycle/billingDaily';
@@ -19,6 +20,7 @@ export async function GET(req: Request): Promise<Response> {
   const drops = await runDueDrops().catch(() => 0);
   const digests = await sendWeeklyDigests().catch(() => 0);
   const ugcVideosSaved = await saveGeneratingVideos().catch(() => 0);
+  const workspacesPurged = await purgeDeletedSlideshowWorkspaces().catch(() => 0);
   await runGenerationTick({ budgetMs: 20_000 });
-  return NextResponse.json({ ok: true, summary, storeSyncs, drops, digests, ugcVideosSaved });
+  return NextResponse.json({ ok: true, summary, storeSyncs, drops, digests, ugcVideosSaved, workspacesPurged });
 }
