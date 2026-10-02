@@ -6,6 +6,7 @@ import { SmoothScroll } from '../../../motion/SmoothScroll';
 import { SplitWords } from '../../../motion/SplitWords';
 import { PRICE_CENTS } from '../pricing/pricing';
 import { SlideshowSideDecks, SlideshowStrip } from '../SlideshowShowcase';
+import { BuiltWith } from './BuiltWith';
 import { HomeFaq } from './HomeFaq';
 import { HomeFinalCta } from './HomeFinalCta';
 import { HomeStory } from './HomeStory';
@@ -40,6 +41,7 @@ export function SlideshowHome() {
         <HomeStory />
         <HomeFaq />
         <HomeFinalCta />
+        <BuiltWith />
       </main>
       <PublicFooter />
       <SmoothScroll />

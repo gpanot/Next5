@@ -4245,5 +4245,13 @@
     "alt": "Alex Hormozi holding his books $100M Offers and $100M Leads",
     "addedAt": "2026-10-01",
     "outputSize": "800x450"
+  },
+  "public/images/brand-logos/jev.png": {
+    "prompt": "Not generated: official Jev (TypeSafe AI) logo from typesafe.ai.",
+    "size": "400x400",
+    "outputSize": "96x96",
+    "bytes": 8085,
+    "alt": "Jev logo",
+    "addedAt": "2026-10-02"
   }
 }
