@@ -18,7 +18,7 @@ import { headerCopy, logLines, navItems } from './runCopy';
 import { waitLines } from './waitCopy';
 import { useAutoRun } from './useAutoRun';
 import { useSidePanel } from './useSidePanel';
-import { TopBarPortal, useHasTopBarSlot } from './workspace/TopBarSlot';
+import { useHasTopBarSlot } from './workspace/TopBarSlot';
 import { useSlideshowWorkspace } from './workspace/WorkspaceContext';
 
 /** Without `onBack` (a user's workspace) the top bar has no "New run" link. */
@@ -143,15 +143,14 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
   if (openId && !editorUsed) setEditorUsed(true);
   const photos = useAdminApi<{ photos: AutoPhotoDto[] }>(token, editorUsed ? `/api/admin/auto-slideshow/runs/${runId}/photos` : null);
   const music = useAdminApi<{ tracks: AutoTrackDto[] }>(token, editorUsed ? '/api/admin/auto-slideshow/music' : null);
-  // A workspace puts the step progress in its own top bar; the admin page keeps a second bar under its header.
+  // A workspace shows progress only in the agent log; the admin page keeps a step bar under its header.
   const inTopBar = useHasTopBarSlot();
   const workspace = useSlideshowWorkspace();
-  // The elapsed time lives in the agent log; the top bar's right side shows the credits left instead.
   const pipeline = run && <PipelineNav items={navItems(run)} running={!isTerminalAutoStatus(run.status)} startedAt={run.startedAt} finishedAt={run.finishedAt} clock={false} />;
 
   return (
     <div className="mx-auto max-w-[1500px]">
-      {inTopBar ? <TopBarPortal>{pipeline}</TopBarPortal> : <RunTopBar onBack={onBack} stickyTop={stickyTop}>{pipeline}</RunTopBar>}
+      {!inTopBar && <RunTopBar onBack={onBack} stickyTop={stickyTop}>{pipeline}</RunTopBar>}
 
       {!run ? (
         error ? <p className={errorClass}>{error}</p> : <div className="h-80 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />

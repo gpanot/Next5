@@ -18,21 +18,17 @@ import { usePins, useTargets } from './useCalendarStore';
 
 type Props = { token: string; run: AutoRunDto; onOpen: (slideshowId: string) => void; onRunChanged: () => void };
 
-function Header({ accounts }: { accounts: RunAccountsDto | null | undefined }) {
+/** The connected posting accounts, as small chips. */
+function Accounts({ accounts }: { accounts: RunAccountsDto | null | undefined }) {
   const connected = POST_PLATFORMS.flatMap((p) => (accounts?.accounts[p] ? [{ p, username: accounts.accounts[p]!.username }] : []));
+  if (connected.length === 0) return null;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h3 className="text-lg font-bold tracking-tight text-ink dark:text-zinc-100">Your content plan</h3>
-        <p className="text-sm text-muted">Nothing posts until you approve.</p>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {connected.map(({ p, username }) => (
-          <span key={p} className="flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-ink dark:bg-zinc-800 dark:text-zinc-100">
-            <PlatformIcon id={p} className="h-3 w-3" />{username ? `@${username.replace(/^@/, '')}` : 'connected'}
-          </span>
-        ))}
-      </div>
+    <div className="flex flex-wrap gap-1.5">
+      {connected.map(({ p, username }) => (
+        <span key={p} className="flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-ink dark:bg-zinc-800 dark:text-zinc-100">
+          <PlatformIcon id={p} className="h-3 w-3" />{username ? `@${username.replace(/^@/, '')}` : 'connected'}
+        </span>
+      ))}
     </div>
   );
 }
@@ -118,9 +114,11 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
 
   return (
     <section className="space-y-4 rounded-2xl border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
-      <Header accounts={posting.accounts} />
       <MonthHeader month={month} counts={counts} canPrev={canPrev} canNext={canNext} onMonth={step} />
-      <GoalLegend days={days} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <GoalLegend days={days} />
+        <Accounts accounts={posting.accounts} />
+      </div>
       <SlideshowDnd onMove={onMove}>
         <MonthGrid key={dayKey(month)} days={days} actions={actions} />
       </SlideshowDnd>
