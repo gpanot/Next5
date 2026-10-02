@@ -32,6 +32,14 @@ function GearIcon() {
   );
 }
 
+function ChartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </svg>
+  );
+}
+
 /**
  * Top bar for the standalone Auto Slideshow page, styled like the app shell (/app) so a screen recording reads as the
  * Next5 app: the "NEXT5 for business" logo, the page name, then Pricing, Log in (demo text, like Perfect Ads) and
@@ -76,6 +84,12 @@ export function AppTopBar({ token, page = 'app', user = false }: { token: string
         {slotRef && <div ref={slotRef} className="order-last min-w-0 basis-full empty:hidden xl:order-none xl:basis-auto xl:flex-1" />}
         {user && (
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
+            {workspace && (
+              <Link href={`/slideshow/${workspace.id}/analytics`} aria-label="Analytics" className="flex h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-app-muted transition hover:bg-app-line/50 hover:text-app-ink active:scale-95">
+                <ChartIcon />
+                <span className="hidden sm:inline">Analytics</span>
+              </Link>
+            )}
             {workspace && <CreditsPill token={token} version={creditsVersion} onOpen={() => setSettings('credits')} />}
             <button onClick={() => setSettings('accounts')} aria-label="Settings" className="flex h-10 w-10 items-center justify-center rounded-full text-app-muted transition hover:bg-app-line/50 hover:text-app-ink">
               <GearIcon />

@@ -2226,15 +2226,19 @@ model AutoSlideshow {
   /// Background music from the Assets Library (preview + ZIP; TikTok's photo API cannot attach it)
   audioAssetId String?  @map("audio_asset_id")
   audioStart   Float    @default(0) @map("audio_start") @db.Real
+  /// Slideshow Bank parts this slideshow uses (src/types/admin/slideshowBank.ts); null before the bank
+  bankMeatId   String?  @map("bank_meat_id")
+  bankHookId   String?  @map("bank_hook_id")
+  bankCtaId    String?  @map("bank_cta_id")
   /// 'written' | 'rendering' | 'ready' | 'failed'
   status       String   @default("written")
   error        String?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  run   AutoSlideshowRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
-  model SlideshowModel?    @relation(fields: [modelId], references: [id], onDelete: SetNull)
-  audio BlitzAsset?        @relation(fields: [audioAssetId], references: [id], onDelete: SetNull)
+  run   AutoSlideshowRun    @relation(fields: [runId], references: [id], onDelete: Cascade)
+  model SlideshowModel?     @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  audio BlitzAsset?         @relation(fields: [audioAssetId], references: [id], onDelete: SetNull)
   /// One per platform it was approved for (TikTok, Instagram)
   posts AutoSlideshowPost[]
 
@@ -2243,6 +2247,19 @@ model AutoSlideshow {
 }
 
 /// One approved, scheduled TikTok carousel post per slideshow, sent through the workspace's TikTok connection.
+/// One per website: meats × hooks × CTAs built on its first Auto Slideshow run; later slideshows reuse it.
+model SlideshowBank {
+  id         String   @id @default(cuid())
+  url        String   @unique
+  /// SlideshowBankContent (src/types/admin/slideshowBank.ts)
+  content    Json
+  costMicros Int      @default(0) @map("cost_micros")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@map("slideshow_banks")
+}
+
 model AutoSlideshowPost {
   id            String    @id @default(cuid())
   slideshowId   String    @map("slideshow_id")
@@ -2272,18 +2289,42 @@ model AutoSlideshowPost {
   /// Latest numbers from the platform: { views, likes, comments, shares, saves, reach } (missing when not offered)
   stats         Json?
   statsAt       DateTime? @map("stats_at")
+  /// When the numbers are read next (+48 h, +96 h, +7 d, then weekly; src/server/autoSlideshow/statsSchedule.ts); null once tracking ended
+  nextStatsAt   DateTime? @map("next_stats_at")
+  /// Failed reads in a row for the current checkpoint
+  statsTries    Int       @default(0) @map("stats_tries")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  slideshow AutoSlideshow    @relation(fields: [slideshowId], references: [id], onDelete: Cascade)
-  run       AutoSlideshowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  slideshow AutoSlideshow          @relation(fields: [slideshowId], references: [id], onDelete: Cascade)
+  run       AutoSlideshowRun       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  /// Every read of the numbers, oldest first: the post's history for Analytics
+  snapshots AutoSlideshowPostStat[]
 
-  @@index([status, scheduledAt])
   @@unique([slideshowId, platform])
+  @@index([status, scheduledAt])
   @@index([status, statsAt])
   @@index([runId])
   @@index([workspaceId, sentAt])
   @@map("auto_slideshow_posts")
+}
+
+/// One read of a post's numbers. Kept so posts of different ages compare at the same age (views at 48 h).
+model AutoSlideshowPostStat {
+  id       String   @id @default(cuid())
+  postId   String   @map("post_id")
+  takenAt  DateTime @default(now()) @map("taken_at")
+  /// Hours between the post going live and this read
+  ageHours Int      @map("age_hours")
+  /// PostStats: { views, likes, comments, shares, saves, reach }, only the numbers the source gave
+  stats    Json
+  /// 'treg' | 'instagram' | 'tiktok_api'
+  source   String
+
+  post AutoSlideshowPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, takenAt])
+  @@map("auto_slideshow_post_stats")
 }
 
 /// Auto Slideshow credits: one USD wallet per user, shared by all their slideshow workspaces. Cents.

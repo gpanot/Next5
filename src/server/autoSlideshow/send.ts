@@ -14,6 +14,7 @@ import { containerStatus, createCarousel, instagramCaption, publishContainer } f
 import { mediaBaseUrl, mediaIsPublic, slideMediaUrl } from '../social/links';
 import { fetchPublishStatus, initCarousel, queryCreatorInfo } from '../social/tiktokCarousel';
 import { refreshDueStats } from './stats';
+import { firstStatsAt } from './statsSchedule';
 
 /** Our own ceiling per account per 24 h, under TikTok's third-party cap and Instagram's 100 API posts. */
 export const MAX_POSTS_PER_DAY = 10;
@@ -84,7 +85,8 @@ const finishInstagram = async (post: AutoSlideshowPost, token: string, igUserId:
     await new Promise((r) => setTimeout(r, 3_000));
   }
   const { mediaId, permalink } = await publishContainer(token, igUserId, containerId);
-  await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'posted', tiktokPostId: mediaId, postUrl: permalink, postedAt: new Date(), error: null } });
+  const postedAt = new Date();
+  await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'posted', tiktokPostId: mediaId, postUrl: permalink, postedAt, nextStatsAt: firstStatsAt(postedAt), error: null } });
 };
 
 const sendInstagram = async (post: PostWithShow): Promise<void> => {
@@ -117,7 +119,10 @@ const refreshTikTok = async (post: AutoSlideshowPost): Promise<void> => {
     // Private posts get no public id: link the profile instead (saved at send time), where the owner sees the post.
     const profile = post.postUrl;
     const postUrl = state.postId && profile ? `${profile}/photo/${state.postId}` : profile;
-    await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'posted', tiktokPostId: state.postId, postUrl, postedAt: new Date(), error: null } });
+    const postedAt = new Date();
+    // Private posts have no public numbers: they are never scheduled for a read.
+    const nextStatsAt = state.postId && post.privacyLevel !== 'SELF_ONLY' ? firstStatsAt(postedAt) : null;
+    await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'posted', tiktokPostId: state.postId, postUrl, postedAt, nextStatsAt, error: null } });
   } else if (state.state === 'failed') {
     await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'failed', error: clip(`TikTok: ${state.reason}`, 500) } });
   }

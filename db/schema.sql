@@ -515,6 +515,20 @@ CREATE TABLE public.asset_descriptors (
 
 
 --
+-- Name: auto_slideshow_post_stats; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auto_slideshow_post_stats (
+    id text NOT NULL,
+    post_id text NOT NULL,
+    taken_at timestamp with time zone DEFAULT now() NOT NULL,
+    age_hours integer NOT NULL,
+    stats jsonb NOT NULL,
+    source text NOT NULL
+);
+
+
+--
 -- Name: auto_slideshow_posts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -542,6 +556,8 @@ CREATE TABLE public.auto_slideshow_posts (
     platform text DEFAULT 'tiktok'::text NOT NULL,
     stats jsonb,
     stats_at timestamp with time zone,
+    next_stats_at timestamp with time zone,
+    stats_tries integer DEFAULT 0 NOT NULL,
     CONSTRAINT auto_slideshow_posts_platform_check CHECK ((platform = ANY (ARRAY['tiktok'::text, 'instagram'::text]))),
     CONSTRAINT auto_slideshow_posts_status_check CHECK ((status = ANY (ARRAY['scheduled'::text, 'sending'::text, 'processing'::text, 'posted'::text, 'failed'::text, 'canceled'::text])))
 );
@@ -594,6 +610,10 @@ CREATE TABLE public.auto_slideshows (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     audio_asset_id text,
     audio_start real DEFAULT 0 NOT NULL,
+    goal text,
+    bank_meat_id text,
+    bank_hook_id text,
+    bank_cta_id text,
     CONSTRAINT auto_slideshows_status_check CHECK ((status = ANY (ARRAY['written'::text, 'rendering'::text, 'ready'::text, 'failed'::text])))
 );
 
@@ -1546,6 +1566,20 @@ CREATE TABLE public.shop_connections (
 
 
 --
+-- Name: slideshow_banks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.slideshow_banks (
+    id text NOT NULL,
+    url text NOT NULL,
+    content jsonb NOT NULL,
+    cost_micros integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: slideshow_credit_ledger; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2045,7 +2079,8 @@ CREATE TABLE public.workspaces (
     positioning text,
     geography text,
     brand_extract jsonb,
-    brand_extract_at timestamp with time zone
+    brand_extract_at timestamp with time zone,
+    deleted_at timestamp with time zone
 );
 
 
@@ -2086,6 +2121,14 @@ ALTER TABLE ONLY public.asset_descriptors
 
 ALTER TABLE ONLY public.asset_descriptors
     ADD CONSTRAINT asset_descriptors_ugc_video_id_key UNIQUE (ugc_video_id);
+
+
+--
+-- Name: auto_slideshow_post_stats auto_slideshow_post_stats_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshow_post_stats
+    ADD CONSTRAINT auto_slideshow_post_stats_pkey PRIMARY KEY (id);
 
 
 --
@@ -2481,6 +2524,22 @@ ALTER TABLE ONLY public.shop_connections
 
 
 --
+-- Name: slideshow_banks slideshow_banks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_banks
+    ADD CONSTRAINT slideshow_banks_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: slideshow_banks slideshow_banks_url_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.slideshow_banks
+    ADD CONSTRAINT slideshow_banks_url_key UNIQUE (url);
+
+
+--
 -- Name: slideshow_credit_ledger slideshow_credit_ledger_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2747,10 +2806,24 @@ CREATE INDEX asset_descriptors_workspace_idx ON public.asset_descriptors USING b
 
 
 --
+-- Name: auto_slideshow_post_stats_post_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_post_stats_post_idx ON public.auto_slideshow_post_stats USING btree (post_id, taken_at);
+
+
+--
 -- Name: auto_slideshow_posts_due_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX auto_slideshow_posts_due_idx ON public.auto_slideshow_posts USING btree (status, scheduled_at);
+
+
+--
+-- Name: auto_slideshow_posts_next_stats_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_posts_next_stats_idx ON public.auto_slideshow_posts USING btree (next_stats_at) WHERE (next_stats_at IS NOT NULL);
 
 
 --
@@ -3594,6 +3667,13 @@ CREATE INDEX workspace_angles_workspace_id_idx ON public.workspace_angles USING 
 
 
 --
+-- Name: workspaces_deleted_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX workspaces_deleted_at_idx ON public.workspaces USING btree (deleted_at) WHERE (deleted_at IS NOT NULL);
+
+
+--
 -- Name: workspaces_owner_user_id_product_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3650,6 +3730,14 @@ ALTER TABLE ONLY public.asset_descriptors
 
 ALTER TABLE ONLY public.asset_descriptors
     ADD CONSTRAINT asset_descriptors_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
+-- Name: auto_slideshow_post_stats auto_slideshow_post_stats_post_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshow_post_stats
+    ADD CONSTRAINT auto_slideshow_post_stats_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.auto_slideshow_posts(id) ON DELETE CASCADE;
 
 
 --
@@ -4470,4 +4558,8 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261027090000'),
     ('20261028090000'),
     ('20261028091000'),
-    ('20261029090000');
+    ('20261029090000'),
+    ('20261030090000'),
+    ('20261031090000'),
+    ('20261101090000'),
+    ('20261102090000');
