@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { AUTO_STEP_LABELS, isTerminalAutoStatus, type AutoPhotoDto, type AutoRunDto, type AutoTrackDto } from '../../../types/admin/autoSlideshow';
+import { AUTO_STEP_LABELS, currentAutoStep, isTerminalAutoStatus, type AutoStep, type AutoPhotoDto, type AutoRunDto, type AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { adminFetch, useAdminApi } from '../business/useAdminApi';
 import { AgentLog } from '../shared/AgentLog';
 import { BrandCard } from '../shared/BrandCard';
 import { PipelineNav } from '../shared/PipelineNav';
+import { RotatingLine } from '../shared/RotatingLine';
 import { RunCounter, RunTitle } from '../shared/RunTitle';
 import { RunTopBar } from '../shared/RunTopBar';
 import { SlideshowGrid } from './SlideshowGrid';
@@ -14,6 +15,7 @@ import { RunEta } from './RunEta';
 import { SlideshowEditor } from './SlideshowEditor';
 import { WelcomeDialog } from './WelcomeDialog';
 import { headerCopy, logLines, navItems } from './runCopy';
+import { waitLines } from './waitCopy';
 import { useAutoRun } from './useAutoRun';
 import { useSidePanel } from './useSidePanel';
 import { TopBarPortal, useHasTopBarSlot } from './workspace/TopBarSlot';
@@ -94,6 +96,7 @@ function RunHeading({ run }: { run: AutoRunDto }) {
   return (
     <div className="space-y-2">
       <RunTitle {...headerCopy(run)} tone={done ? 'done' : run.status === 'FAILED' ? 'failed' : 'running'} aside={aside} />
+      {!isTerminalAutoStatus(run.status) && <RotatingLine key={run.status} lines={waitLines(run, currentAutoStep(run.status) as AutoStep)} />}
       <PlanNote run={run} />
     </div>
   );
