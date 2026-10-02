@@ -26,6 +26,9 @@ type Options = {
   textOverride: Partial<TextConfig>;
   setDeckCards: Dispatch<SetStateAction<DeckCardData[]>>;
   submit: Submit;
+  /** Render queue positions (PENDING jobs) and jobs the poller gave up on, by project id. */
+  queue: Record<string, number>;
+  stalled: Record<string, true>;
 };
 
 /** The card's shots as render slides; listing-photo shots get their imported photo. */
@@ -38,13 +41,16 @@ async function slidesFor(card: DeckCardData, o: Options, client: LabClient): Pro
 }
 
 /** Library project → what the kept row shows. */
-function viewFor(project: BlitzProjectDto | undefined): KeptRenderView {
-  if (!project) return { state: 'working' };
+function viewFor(projectId: string, project: BlitzProjectDto | undefined, o: Options): KeptRenderView {
+  if (o.stalled[projectId] && project?.renderStatus !== 'COMPLETED') {
+    return { state: 'failed', error: 'Render is taking too long. Tap Generate to try again.' };
+  }
+  if (!project) return { state: 'working', queuePosition: o.queue[projectId] };
   if (project.renderStatus === 'FAILED') return { state: 'failed', error: 'Render failed. Try again.' };
   if (project.renderStatus === 'COMPLETED' && project.renderedVideoUrl) {
     return { state: 'ready', videoUrl: project.renderedVideoUrl, projectId: project.id };
   }
-  return { state: 'working' };
+  return { state: 'working', queuePosition: o.queue[projectId] };
 }
 
 /**
@@ -105,7 +111,7 @@ export function useDeckCardRender(o: Options) {
     if (starting[card.id]) return { state: 'working' };
     if (errors[card.id]) return { state: 'failed', error: errors[card.id] };
     if (!card.renderProjectId) return undefined;
-    return viewFor(o.library.find((p) => p.id === card.renderProjectId));
+    return viewFor(card.renderProjectId, o.library.find((p) => p.id === card.renderProjectId), o);
   };
 
   return { generate, renderFor };

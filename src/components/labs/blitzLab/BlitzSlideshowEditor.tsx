@@ -203,7 +203,7 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
   // Kept cards render straight from the deck (Generate → Download), no editor round trip.
   const cardRender = useDeckCardRender({
     template: carouselTemplate, zillowData, checkContext, assets, addAsset, library,
-    textOverride: text.override, setDeckCards, submit: render.submit,
+    textOverride: text.override, setDeckCards, submit: render.submit, queue: render.queue, stalled: render.stalled,
   });
   const durationSeconds = deck.fixedDurationSeconds ?? freeFormSeconds;
 

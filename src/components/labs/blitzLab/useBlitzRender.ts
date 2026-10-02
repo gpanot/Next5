@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { BLITZ_POLL_INTERVAL_MS, BLITZ_RENDER_TIMEOUT_MS } from '../../../config/blitzLab';
+import { BLITZ_POLL_INTERVAL_MS, BLITZ_QUEUE_TIMEOUT_MS, BLITZ_RENDER_TIMEOUT_MS } from '../../../config/blitzLab';
 import { useLabClient } from '../LabClientProvider';
 import { blitzApi, type BlitzProjectDto } from './api';
 
@@ -26,7 +26,10 @@ type RenderBody = Parameters<typeof blitzApi.triggerRender>[1];
  *  - A background poller updates the library card via onProjectUpdate() and
  *    finally via onCompleted() when the render finishes.
  *  - Multiple renders can be in-flight simultaneously (one poller per render).
- *  - Stops polling with a timeout error after BLITZ_RENDER_TIMEOUT_MS.
+ *  - The worker renders one job at a time, oldest first. While a job waits (PENDING) the poller
+ *    reports its queue position and does not time out; the render clock starts at PROCESSING.
+ *  - Gives up after BLITZ_RENDER_TIMEOUT_MS of rendering, or BLITZ_QUEUE_TIMEOUT_MS in the queue
+ *    (worker down). Given-up jobs are listed in `stalled`.
  */
 export function useBlitzRender(
   onCompleted: (project: BlitzProjectDto) => void,
@@ -37,6 +40,20 @@ export function useBlitzRender(
   const [state, setState] = useState<RenderState>({ phase: 'idle' });
   // Map of projectId → intervalId for active pollers
   const pollersRef = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
+  /** projectId → place in the render queue (1 = next) while PENDING. */
+  const [queue, setQueue] = useState<Record<string, number>>({});
+  /** Jobs the poller gave up on (stuck render or worker down). */
+  const [stalled, setStalled] = useState<Record<string, true>>({});
+
+  const setQueuePosition = useCallback((projectId: string, position: number | null) => {
+    setQueue((prev) => {
+      if ((prev[projectId] ?? null) === position) return prev;
+      const next = { ...prev };
+      if (position === null) delete next[projectId];
+      else next[projectId] = position;
+      return next;
+    });
+  }, []);
 
   const stopPoller = useCallback((projectId: string) => {
     const id = pollersRef.current.get(projectId);
@@ -51,20 +68,31 @@ export function useBlitzRender(
     pollersRef.current.clear();
   }, []);
 
+  const giveUp = useCallback((projectId: string, message: string) => {
+    stopPoller(projectId);
+    console.warn(`[blitz-render] Gave up on project ${projectId}: ${message}`);
+    setQueuePosition(projectId, null);
+    setStalled((prev) => ({ ...prev, [projectId]: true }));
+    setState((prev) =>
+      prev.phase !== 'idle' && 'projectId' in prev && prev.projectId === projectId ? { phase: 'error', message } : prev,
+    );
+  }, [stopPoller, setQueuePosition]);
+
   const startPoller = useCallback((projectId: string) => {
     stopPoller(projectId); // guard against double-start
-    const startedAt = Date.now();
+    const queuedAt = Date.now();
+    /** Set when the worker picks the job up: only rendering time counts toward the timeout. */
+    let renderingSince: number | null = null;
     console.log(`[blitz-render] Starting poller for project ${projectId}`);
 
     const intervalId = setInterval(async () => {
-      if (Date.now() - startedAt > BLITZ_RENDER_TIMEOUT_MS) {
-        stopPoller(projectId);
-        console.warn(`[blitz-render] Render timed out for project ${projectId}`);
-        setState((prev) =>
-          prev.phase !== 'idle' && 'projectId' in prev && prev.projectId === projectId
-            ? { phase: 'error', message: 'Render timed out. Is the blitz-worker running on Railway?' }
-            : prev,
-        );
+      const now = Date.now();
+      if (renderingSince !== null && now - renderingSince > BLITZ_RENDER_TIMEOUT_MS) {
+        giveUp(projectId, 'Render is taking too long. Try again.');
+        return;
+      }
+      if (renderingSince === null && now - queuedAt > BLITZ_QUEUE_TIMEOUT_MS) {
+        giveUp(projectId, 'Still waiting in the queue. Is the blitz-worker running on Railway?');
         return;
       }
 
@@ -79,8 +107,15 @@ export function useBlitzRender(
         return;
       }
 
-      console.log(`[blitz-render] Project ${projectId} status: ${project.renderStatus}`);
       onProjectUpdate?.(project);
+
+      if (project.renderStatus === 'PENDING') {
+        // Back in the queue (e.g. its worker restarted): the render clock starts again.
+        renderingSince = null;
+        setQueuePosition(projectId, res?.data.queuePosition ?? null);
+        return;
+      }
+      setQueuePosition(projectId, null);
 
       if (project.renderStatus === 'COMPLETED') {
         stopPoller(projectId);
@@ -95,6 +130,7 @@ export function useBlitzRender(
             : prev,
         );
       } else if (project.renderStatus === 'PROCESSING') {
+        renderingSince ??= now;
         setState((prev) =>
           prev.phase !== 'idle' && 'projectId' in prev && prev.projectId === projectId
             ? { phase: 'rendering', projectId }
@@ -104,7 +140,7 @@ export function useBlitzRender(
     }, BLITZ_POLL_INTERVAL_MS);
 
     pollersRef.current.set(projectId, intervalId);
-  }, [client, stopPoller, onCompleted, onProjectUpdate]);
+  }, [client, stopPoller, giveUp, setQueuePosition, onCompleted, onProjectUpdate]);
 
   /** Queues a render. Resolves to the new project id, or null when the request failed. */
   const submit = useCallback(async (body: RenderBody): Promise<string | null> => {
@@ -142,5 +178,5 @@ export function useBlitzRender(
 
   // isBusy = only during the initial POST (submitting phase)
   const isBusy = state.phase === 'submitting';
-  return { state, submit, isBusy };
+  return { state, submit, isBusy, queue, stalled };
 }

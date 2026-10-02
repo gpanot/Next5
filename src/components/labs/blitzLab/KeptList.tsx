@@ -8,7 +8,8 @@ import type { DeckCardData } from './SwipeDeck';
 
 /** Background render of a kept card, as the row shows it. */
 export type KeptRenderView =
-  | { state: 'working' }
+  /** `queuePosition`: place in the render queue (1 = next); absent while rendering. */
+  | { state: 'working'; queuePosition?: number }
   | { state: 'ready'; videoUrl: string; projectId: string }
   | { state: 'failed'; error: string };
 
@@ -78,7 +79,8 @@ function RenderButton({ card, view, onGenerate }: { card: DeckCardData; view?: K
   if (view?.state === 'working') {
     return (
       <button type="button" disabled className={solid} aria-live="polite">
-        <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" /> Rendering…
+        <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" />
+        {view.queuePosition ? `In queue · #${view.queuePosition}` : 'Rendering…'}
       </button>
     );
   }

@@ -29,8 +29,15 @@ export const BLITZ_AUDIO_FADE_FRAMES = 15;
 /** How often the browser polls for render completion (ms). */
 export const BLITZ_POLL_INTERVAL_MS = 4_000;
 
-/** Give up polling after this long (worker down, job stuck). */
-export const BLITZ_RENDER_TIMEOUT_MS = 5 * 60_000;
+/**
+ * Give up on a render that has been PROCESSING this long. The worker cancels and fails a job
+ * itself after 10 min (JOB_TIMEOUT_MS); this is the browser's backstop. Time spent waiting in
+ * the queue does not count: the worker renders one job at a time, oldest first.
+ */
+export const BLITZ_RENDER_TIMEOUT_MS = 12 * 60_000;
+
+/** Give up on a job still PENDING after this long (worker down). */
+export const BLITZ_QUEUE_TIMEOUT_MS = 90 * 60_000;
 
 /** Remotion canvas resolution. */
 export const BLITZ_CANVAS_WIDTH = 1080;

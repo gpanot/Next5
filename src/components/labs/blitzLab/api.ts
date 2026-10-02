@@ -24,7 +24,7 @@ export const blitzApi = {
     client.request<{ assets: BlitzAssetDto[] }>(`${BASE}/assets${type ? `?type=${type}` : ''}`),
 
   getProject: (client: LabClient, id: string) =>
-    client.request<{ project: BlitzProjectDto }>(`${BASE}/projects/${id}`),
+    client.request<{ project: BlitzProjectDto; queuePosition?: number | null }>(`${BASE}/projects/${id}`),
 
   listCompleted: (client: LabClient) =>
     client.request<{ projects: BlitzProjectDto[] }>(`${BASE}/projects`),

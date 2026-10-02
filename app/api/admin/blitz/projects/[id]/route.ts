@@ -7,6 +7,7 @@ import { deleteFromR2 } from '../../../../../../src/lib/r2';
 /**
  * GET /api/admin/blitz/projects/[id]
  * Polling endpoint — returns the current renderStatus + signed renderedVideoUrl.
+ * While PENDING it also returns queuePosition: 1 = next to render. The worker renders oldest first.
  */
 export const GET = adminRoute(async (_req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
   const { id } = await ctx.params;
@@ -22,7 +23,11 @@ export const GET = adminRoute(async (_req: NextRequest, ctx: { params: Promise<{
     console.log(`[blitz/projects/${id}] Poll — status=${project.renderStatus}`);
   }
 
-  return NextResponse.json({ project: await toProjectDto(project) });
+  const queuePosition = project.renderStatus === 'PENDING'
+    ? (await prisma.blitzProject.count({ where: { renderStatus: 'PENDING', createdAt: { lt: project.createdAt } } })) + 1
+    : null;
+
+  return NextResponse.json({ project: await toProjectDto(project), queuePosition });
 });
 
 /**
