@@ -3,12 +3,11 @@
 
 import type { Workspace } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import type { SlideshowWorkspaceDto } from '../../types/admin/autoSlideshow';
+import { MAX_WORKSPACES, type SlideshowWorkspaceDto } from '../../types/admin/autoSlideshow';
 import { normalizeUrl } from '../companyIntel/profile';
 import { HttpError } from '../http';
 
-/** Most workspaces one user can have. */
-export const MAX_WORKSPACES = 20;
+export { MAX_WORKSPACES };
 
 /** Live (not deleted) workspaces of one user. */
 export const countSlideshowWorkspaces = (userId: string): Promise<number> =>

@@ -14,7 +14,7 @@ function Centered({ children }: { children: React.ReactNode }) {
 }
 
 /** First workspace: "Which website do you want slideshows for?" */
-function FirstWorkspace({ token, error, onCreated }: { token: string; error?: string; onCreated: (ws: SlideshowWorkspaceDto) => void }) {
+function FirstWorkspace({ token, error, onCreated }: { token: string; error?: string; onCreated: (path: string) => void }) {
   return (
     <Centered>
       <div className="w-full max-w-sm rounded-2xl border border-line bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -52,8 +52,8 @@ export function WorkspaceLanding({ token }: { token: string }) {
     if (target) router.replace(`/slideshow/${target.id}${window.location.search}`);
   }, [target, router]);
 
-  if (pendingError && data?.workspaces.length === 0) return <FirstWorkspace token={token} error={pendingError} onCreated={(ws) => router.replace(`/slideshow/${ws.id}`)} />;
+  if (pendingError && data?.workspaces.length === 0) return <FirstWorkspace token={token} error={pendingError} onCreated={(path) => router.replace(path)} />;
   if (error) return <Centered><p className="max-w-sm rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error}</p></Centered>;
-  if (data && data.workspaces.length === 0 && !pending) return <FirstWorkspace token={token} onCreated={(ws) => router.replace(`/slideshow/${ws.id}`)} />;
+  if (data && data.workspaces.length === 0 && !pending) return <FirstWorkspace token={token} onCreated={(path) => router.replace(path)} />;
   return <Centered><div className="h-24 w-full max-w-sm animate-pulse rounded-2xl bg-zinc-100 dark:bg-zinc-800" /></Centered>;
 }

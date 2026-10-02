@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import type { DeletedWorkspaceDto, SlideshowWorkspaceDto } from '../../../../types/admin/autoSlideshow';
+import { MAX_WORKSPACES, type DeletedWorkspaceDto, type SlideshowWorkspaceDto } from '../../../../types/admin/autoSlideshow';
 import { useAdminApi } from '../../business/useAdminApi';
 import { CreateWorkspaceForm } from '../workspace/CreateWorkspaceForm';
 import { lastWorkspaceStore } from '../workspace/WorkspaceContext';
@@ -28,7 +28,7 @@ function TrashIcon() {
 
 type Props = { token: string; currentId: string; onClose: () => void };
 
-/** Every workspace (one per website): open one, add a new one, delete one (not the last), or restore a deleted one. */
+/** Every workspace (one per website): open one, add a new one (up to MAX_WORKSPACES), delete one (not the last), or restore a deleted one. */
 export function WorkspacesSection({ token, currentId, onClose }: Props) {
   const router = useRouter();
   const { data, error, loading, refresh } = useAdminApi<{ workspaces: SlideshowWorkspaceDto[]; deleted: DeletedWorkspaceDto[] }>(token, '/api/slideshow/workspaces');
@@ -47,7 +47,13 @@ export function WorkspacesSection({ token, currentId, onClose }: Props) {
     onClose();
     router.replace(next ? `/slideshow/${next.id}` : '/slideshow/login');
   };
+  // A new workspace opens straight on its first run.
+  const onCreated = (path: string) => {
+    onClose();
+    router.push(path);
+  };
   const canDelete = (data?.workspaces.length ?? 0) > 1;
+  const atLimit = (data?.workspaces.length ?? 0) >= MAX_WORKSPACES;
 
   if (loading && !data) return <div className="space-y-2">{[0, 1].map((i) => <div key={i} className="h-16 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />)}</div>;
   if (error) return <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error}</p>;
@@ -76,10 +82,12 @@ export function WorkspacesSection({ token, currentId, onClose }: Props) {
           </li>
         ))}
       </ul>
-      {adding ? (
+      {atLimit ? (
+        <p className="rounded-xl border border-line bg-zinc-50 p-3 text-center text-sm text-muted dark:border-zinc-800 dark:bg-zinc-900">You have {MAX_WORKSPACES} workspaces, the most you can have. Delete one to add a new one.</p>
+      ) : adding ? (
         <div className="rounded-xl border border-line bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
           <p className="mb-3 text-sm font-semibold text-ink dark:text-zinc-100">New workspace</p>
-          <CreateWorkspaceForm token={token} compact onCreated={(ws) => open(ws.id)} />
+          <CreateWorkspaceForm token={token} compact onCreated={onCreated} />
           <button onClick={() => setAdding(false)} className="mt-2 min-h-10 w-full text-sm font-semibold text-muted">Cancel</button>
         </div>
       ) : (

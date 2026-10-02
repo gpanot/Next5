@@ -3,12 +3,13 @@
 import { useState, type FormEvent } from 'react';
 import type { SlideshowWorkspaceDto } from '../../../../types/admin/autoSlideshow';
 import { adminFetch } from '../../business/useAdminApi';
+import { startFirstRun } from './startPendingSite';
 
-type Props = { token: string; onCreated: (ws: SlideshowWorkspaceDto) => void; compact?: boolean };
+type Props = { token: string; onCreated: (path: string) => void; compact?: boolean };
 
 const input = 'min-h-11 w-full rounded-xl border border-line bg-white px-3 text-base text-ink placeholder:text-zinc-400 focus:border-blue-500 focus:outline-none dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100';
 
-/** A new workspace: just the website it makes slideshows for. It is named after the site's domain. */
+/** A new workspace: just the website it makes slideshows for. It is named after the site's domain and starts its first run straight away. */
 export function CreateWorkspaceForm({ token, onCreated, compact = false }: Props) {
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [busy, setBusy] = useState(false);
@@ -21,7 +22,7 @@ export function CreateWorkspaceForm({ token, onCreated, compact = false }: Props
     setError(null);
     try {
       const { workspace } = await adminFetch<{ workspace: SlideshowWorkspaceDto }>(token, '/api/slideshow/workspaces', { method: 'POST', body: JSON.stringify({ websiteUrl }) });
-      onCreated(workspace);
+      onCreated(await startFirstRun(token, workspace, websiteUrl.trim()));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not create the workspace');
       setBusy(false);

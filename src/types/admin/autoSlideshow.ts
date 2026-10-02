@@ -202,6 +202,9 @@ export const isTerminalAutoStatus = (s: AutoRunStatus) => s === 'COMPLETED' || s
 
 export const currentAutoStep = (s: AutoRunStatus): number => (s === 'COMPLETED' ? 7 : s === 'FAILED' ? 0 : Number(s.charAt(5)));
 
+/** Most live workspaces one user can have. */
+export const MAX_WORKSPACES = 10;
+
 /** One of a user's Auto Slideshow workspaces (one per website). */
 export type SlideshowWorkspaceDto = { id: string; name: string; websiteUrl: string | null; tiktokUsername: string | null; instagramUsername: string | null; createdAt: string };
 
