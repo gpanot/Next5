@@ -1,8 +1,8 @@
 'use client';
 
-// Presentational pieces of the SwipeDeck: app bar and the end-of-deck screen. Kept rows live in KeptList.
+// Presentational pieces of the SwipeDeck: end-of-deck screen and controls. Kept rows live in KeptList.
 
-import { ArrowLeft, Check, Pencil, Volume2, VolumeX, X } from 'lucide-react';
+import { Check, Pencil, X } from 'lucide-react';
 import type { DeckCardData, DeckLens } from './SwipeDeck';
 
 // ── Done (end) screen ─────────────────────────────────────────────────────────
@@ -92,95 +92,6 @@ export function DoneScreen({
         Make another batch
       </button>
     </div>
-  );
-}
-
-
-// ── App bar ───────────────────────────────────────────────────────────────────
-
-export function DeckAppBar({
-  onBack,
-  subLabel,
-  showSourceToggle,
-  lenses,
-  keptCount,
-  soundOn,
-  onToggleSound,
-}: {
-  onBack?: () => void;
-  subLabel?: string;
-  showSourceToggle: boolean;
-  lenses: DeckLens[];
-  keptCount: number;
-  soundOn: boolean;
-  onToggleSound: () => void;
-}) {
-  return (
-  <header className="sticky top-[env(safe-area-inset-top,0px)] z-10 bg-[color-mix(in_srgb,var(--page,#f7f6f4)_90%,transparent)] backdrop-blur-[10px]">
-    <div className="mx-auto flex max-w-[960px] items-center gap-3.5 px-5 pb-2.5 pt-3.5">
-      {onBack && (
-        <button
-          type="button"
-          aria-label="Back"
-          onClick={onBack}
-          className="grid h-[38px] w-[38px] flex-none place-items-center rounded-full border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] text-[var(--ink,#000)]"
-        >
-          <ArrowLeft aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.4} />
-        </button>
-      )}
-      <div className="min-w-0 flex-1">
-        <h1 className="text-[19px] font-bold leading-snug tracking-[-0.025em] text-[var(--ink,#000)]">
-          Your videos
-        </h1>
-        {subLabel && (
-          <div className="text-[13px] text-[var(--mute,#7c7d82)] sm:block hidden">{subLabel}</div>
-        )}
-      </div>
-
-      {showSourceToggle && (
-        <div
-          role="group"
-          aria-label="Source"
-          className="inline-flex flex-none rounded-full bg-[var(--soft-2,#e6e1db)] p-[3px]"
-        >
-          {(['website', 'zillow'] as const).map((src) => (
-            <button
-              key={src}
-              type="button"
-              className="rounded-full px-3 py-1.5 text-[13px] font-semibold capitalize text-[var(--body,#4a4b50)] aria-pressed:bg-[var(--paper,#fff)] aria-pressed:text-[var(--ink,#000)] aria-pressed:shadow-sm"
-              aria-pressed={lenses[0]?.engine === src}
-            >
-              {src.charAt(0).toUpperCase() + src.slice(1)}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Sound: clip audio + music, for the whole deck (default on) */}
-      <button
-        type="button"
-        onClick={onToggleSound}
-        aria-pressed={soundOn}
-        aria-label={soundOn ? 'Mute sound' : 'Turn sound on'}
-        title={soundOn ? 'Sound on (M)' : 'Sound off (M)'}
-        className="grid h-[38px] w-[38px] flex-none place-items-center rounded-full border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] text-[var(--ink,#000)] transition-colors hover:bg-[var(--soft-2,#e6e1db)]"
-      >
-        {soundOn
-          ? <Volume2 aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />
-          : <VolumeX aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.2} />}
-      </button>
-
-      {/* Mobile: kept pill */}
-      <button
-        type="button"
-        className="inline-flex h-[34px] flex-none items-center gap-1.5 rounded-full border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] px-3 text-[13px] font-semibold text-[var(--ink,#000)] sm:hidden"
-        onClick={() => {/* open kept sheet on mobile */}}
-        aria-label={`Kept: ${keptCount}`}
-      >
-        Kept <b>{keptCount}</b>
-      </button>
-    </div>
-  </header>
   );
 }
 

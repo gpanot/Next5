@@ -26,7 +26,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { SwipeCard } from './SwipeCard';
 import { KeptItem, type KeptRenderView } from './KeptList';
-import { DeckAppBar, DeckControls, DoneScreen } from './SwipeDeckParts';
+import { DeckControls, DoneScreen } from './SwipeDeckParts';
 import { useDeckSound } from './useDeckSound';
 import type { CopyCheckContext } from './deckApi';
 import type { SwipeCardTag, SwipeCardWhyPanel, ShotView } from './SwipeCard';
@@ -73,11 +73,11 @@ export type DeckCardData = {
   musicMatched?: boolean;
 };
 
+/** Deck sound (clip audio + music), on by default, remembered per browser. */
+export type DeckSound = { on: boolean; toggle: () => void };
+
 /** One entry in the undo history. */
 type HistEntry = { id: string; from: DeckCardStatus };
-
-/** Sub-label shown below the appbar title. */
-export type DeckSubLabel = string;
 
 /** Lens metadata for the source toggle and filter chips. */
 export type DeckLens = {
@@ -90,7 +90,6 @@ export type DeckLens = {
 export type SwipeDeckProps = {
   cards: DeckCardData[];
   lenses: DeckLens[];
-  subLabel?: DeckSubLabel;
   /** Called when a card is kept (to trigger render). */
   onKeep?: (cardId: string) => void;
   /** Called when the user taps Edit on a card. */
@@ -101,12 +100,8 @@ export type SwipeDeckProps = {
   onMakeMore?: () => void;
   /** Called whenever the cards array changes status (keep/skip/generate). Parent uses it to cache state. */
   onCardsChange?: (cards: DeckCardData[]) => void;
-  /** Whether to show the source toggle (website / zillow). */
-  showSourceToggle?: boolean;
   /** Pauses the top card and keyboard shortcuts, e.g. while the editor is open over the deck. */
   paused?: boolean;
-  /** App-bar back button. Hidden when absent. */
-  onBack?: () => void;
   /** Music for cards without their own track (e.g. the editor's default library track). */
   fallbackAudioUrl?: string;
   /** Every deck action, for logging: keep, discard (reason arrives in a second call), undo. */
@@ -115,8 +110,8 @@ export type SwipeDeckProps = {
   onGenerate?: (cardId: string) => void;
   /** Background render state per kept card. */
   renderFor?: (card: DeckCardData) => KeptRenderView | undefined;
-  /** Right column, given the card on screen (top card or the one in Preview), e.g. its music. */
-  aside?: (card: DeckCardData | null) => ReactNode;
+  /** Right column, given the card on screen (top card or the one in Preview) and the deck's sound switch. */
+  aside?: (card: DeckCardData | null, sound: DeckSound) => ReactNode;
 };
 
 // ── Skip reason options ───────────────────────────────────────────────────────
@@ -137,15 +132,12 @@ type ToastState = {
 export function SwipeDeck({
   cards: initialCards,
   lenses,
-  subLabel,
   onKeep,
   onEdit,
   onSkipReason,
   onMakeMore,
   onCardsChange,
-  showSourceToggle = false,
   paused = false,
-  onBack,
   onSwipe,
   fallbackAudioUrl,
   onGenerate,
@@ -290,21 +282,12 @@ export function SwipeDeck({
   return (
     <div className="flex min-h-0 flex-col">
 
-      <DeckAppBar
-        onBack={onBack}
-        subLabel={subLabel}
-        showSourceToggle={showSourceToggle}
-        lenses={lenses}
-        keptCount={keptCards.length}
-        soundOn={soundOn}
-        onToggleSound={toggleSound}
-      />
 
       {/* ── Kept list | deck | aside (music) ──────────────────────────────── */}
       <div className="mx-auto grid w-full max-w-[1240px] grid-cols-1 items-start gap-8 px-5 pb-7 pt-1.5 sm:grid-cols-[320px_1fr] lg:grid-cols-[340px_1fr_260px]">
         {/* ── Sidebar: kept list ─────────────────────────────────────────── */}
         <aside
-          className="sticky top-24 hidden sm:block"
+          className="sticky top-4 hidden sm:block"
           aria-label="Kept videos"
         >
           <h2 className="mb-2.5 text-[14px] font-semibold text-[var(--mute,#7c7d82)]">
@@ -480,8 +463,8 @@ export function SwipeDeck({
         </main>
 
         {aside && (
-          <div className="sm:col-span-2 lg:sticky lg:top-24 lg:col-span-1">
-            {aside(playing)}
+          <div className="sm:col-span-2 lg:sticky lg:top-4 lg:col-span-1">
+            {aside(playing, { on: soundOn, toggle: toggleSound })}
           </div>
         )}
       </div>

@@ -22,6 +22,7 @@ import { SwipeDeck } from './SwipeDeck';
 import type { DeckCardData } from './SwipeDeck';
 import type { KeptRenderView } from './KeptList';
 import type { ReactNode } from 'react';
+import type { DeckSound } from './SwipeDeck';
 import type { ShotView } from './SwipeCard';
 import { logDeckAction, type CopyCheckContext } from './deckApi';
 
@@ -46,9 +47,9 @@ export type DeckSource =
 export const checkContextFor = (source: DeckSource): CopyCheckContext =>
   source.kind === 'zillow' ? { engine: 'zillow', facts: source.zillowData.facts } : { engine: 'website', runId: source.runId };
 
-function deckRequest(source: DeckSource): { path: string; body: unknown; label: string; sub: string } {
+function deckRequest(source: DeckSource): { path: string; body: unknown; label: string } {
   if (source.kind === 'website') {
-    return { path: '/blitz/slideshow-deck/website', body: { runId: source.runId }, label: 'your audiences', sub: 'From your brand profile' };
+    return { path: '/blitz/slideshow-deck/website', body: { runId: source.runId }, label: 'your audiences' };
   }
   const { zillowData, angle, angleLabel } = source;
   return {
@@ -61,7 +62,6 @@ function deckRequest(source: DeckSource): { path: string; body: unknown; label: 
       listingRunId: zillowData.listingRunId,
     },
     label: angleLabel,
-    sub: `${angleLabel} · ${zillowData.facts.city ?? 'listing'}`,
   };
 }
 
@@ -200,8 +200,6 @@ export type SlideshowDeckStepProps = {
   onEditCard: (card: DeckCardData) => void;
   /** True while the editor is open over the deck. */
   paused?: boolean;
-  /** Back to the previous step (angle or profile). */
-  onBack?: () => void;
   /** Music for cards without an engine track. */
   fallbackAudioUrl?: string;
   /** Renders a kept card in the background, without opening the editor. */
@@ -209,7 +207,7 @@ export type SlideshowDeckStepProps = {
   /** Background render state per kept card. */
   renderFor?: (card: DeckCardData) => KeptRenderView | undefined;
   /** Right column next to the deck, given the card on screen. */
-  aside?: (card: DeckCardData | null) => ReactNode;
+  aside?: (card: DeckCardData | null, sound: DeckSound) => ReactNode;
 };
 
 export function SlideshowDeckStep({
@@ -218,7 +216,6 @@ export function SlideshowDeckStep({
   onCardsChange,
   onEditCard,
   paused = false,
-  onBack,
   fallbackAudioUrl,
   onGenerateCard,
   renderFor,
@@ -295,7 +292,6 @@ export function SlideshowDeckStep({
     <SwipeDeck
       cards={cards}
       lenses={lenses}
-      subLabel={`${cards.length} variations · ${request.sub}`}
       onCardsChange={onCardsChange}
       onEdit={(cardId) => {
         const card = cards.find((c) => c.id === cardId);
@@ -303,7 +299,6 @@ export function SlideshowDeckStep({
       }}
       onMakeMore={() => void fetchDeck(cards)}
       paused={paused}
-      onBack={onBack}
       fallbackAudioUrl={fallbackAudioUrl}
       onGenerate={onGenerateCard && ((cardId) => {
         const card = cards.find((c) => c.id === cardId);

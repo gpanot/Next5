@@ -3,19 +3,21 @@
 // Music for the card on screen in the deck: one dropdown for the Assets Library tracks, one for the
 // tracks the Auto Slideshow detail page uses (same library, with each track's best start point).
 
-import { Music, Shuffle } from 'lucide-react';
+import { Music, Shuffle, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { useLabClient } from '../LabClientProvider';
 import type { BlitzAssetDto } from './api';
 import { MusicSelect } from './MusicSelect';
-import type { DeckCardData } from './SwipeDeck';
+import type { DeckCardData, DeckSound } from './SwipeDeck';
 
 type DeckAudio = NonNullable<DeckCardData['audio']>;
 
 type Props = {
   /** The card on screen (top of the deck or the one in Preview). Null = nothing to set music on. */
   card: DeckCardData | null;
+  /** Deck sound on/off (clip audio + music). */
+  sound: DeckSound;
   /** Blitz assets; only AUDIO ones are listed. */
   assets: BlitzAssetDto[];
   onChange: (cardId: string, audio: DeckAudio) => void;
@@ -51,7 +53,7 @@ function buildOptions(tracks: AutoTrackDto[] | null, audioAssets: BlitzAssetDto[
   return [...tiktok, ...assets];
 }
 
-export function DeckMusicPanel({ card, assets, onChange }: Props) {
+export function DeckMusicPanel({ card, sound, assets, onChange }: Props) {
   const tracks = useSlideshowTracks();
   const options = buildOptions(tracks, assets.filter((a) => a.type === 'AUDIO'));
   const currentKey = card?.audio?.assetKey;
@@ -73,9 +75,21 @@ export function DeckMusicPanel({ card, assets, onChange }: Props) {
 
   return (
     <section aria-label="Music" className="rounded-2xl border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <h2 className="mb-3 flex items-center gap-1.5 text-[14px] font-semibold text-[var(--ink,#000)] dark:text-neutral-100">
-        <Music aria-hidden className="h-4 w-4" /> Music
-      </h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-1.5 text-[14px] font-semibold text-[var(--ink,#000)] dark:text-neutral-100">
+          <Music aria-hidden className="h-4 w-4" /> Music
+        </h2>
+        <button
+          type="button"
+          onClick={sound.toggle}
+          aria-pressed={sound.on}
+          aria-label={sound.on ? 'Mute sound' : 'Turn sound on'}
+          title={sound.on ? 'Sound on (M)' : 'Sound off (M)'}
+          className="grid h-10 w-10 flex-none place-items-center rounded-full border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] text-[var(--ink,#000)] transition-colors hover:bg-[var(--soft-2,#e6e1db)] dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:hover:bg-neutral-800"
+        >
+          {sound.on ? <Volume2 aria-hidden className="h-[18px] w-[18px]" /> : <VolumeX aria-hidden className="h-[18px] w-[18px]" />}
+        </button>
+      </div>
       {!card ? (
         <p className="text-[13px] text-[var(--mute,#7c7d82)]">No video on screen.</p>
       ) : (

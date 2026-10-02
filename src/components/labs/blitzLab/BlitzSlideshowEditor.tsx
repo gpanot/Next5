@@ -45,7 +45,7 @@ import { LibraryGrid } from './LibraryGrid';
 import { ManualProfileStep, type ManualSelection } from './manual/ManualProfileStep';
 import { RealEstateTemplateStep } from './RealEstateTemplateStep';
 import { DeckEditBar } from './DeckEditBar';
-import { DeckMusicPanel } from './DeckMusicPanel';
+import { DeckAside } from './DeckAside';
 import { SHOT_FORMAT, shotFormatError } from './shotFormat';
 import { ANGLE_LABELS, SlideshowDeckStep, type DeckSource } from './SlideshowDeckStep';
 import type { CopyCheckContext } from './deckApi';
@@ -536,17 +536,10 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
               onCardsChange={setDeckCards}
               onEditCard={deck.openCard}
               paused={Boolean(editingCard)}
-              onBack={() => setStep(flowType === 'real_estate' ? 'research' : 'profile')}
               fallbackAudioUrl={assets.find((a) => a.type === 'AUDIO')?.url}
               onGenerateCard={(card) => void cardRender.generate(card)}
               renderFor={cardRender.renderFor}
-              aside={(card) => (
-                <DeckMusicPanel
-                  card={card}
-                  assets={assets}
-                  onChange={(cardId, audio) => setDeckCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, audio } : c)))}
-                />
-              )}
+              aside={(card, sound) => <DeckAside card={card} sound={sound} deckCards={deckCards} setDeckCards={setDeckCards} assets={assets} />}
             />
           </div>
           {editingCard && (
