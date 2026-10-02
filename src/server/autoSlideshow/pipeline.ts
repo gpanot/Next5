@@ -21,6 +21,7 @@ import { chargeSlideshow } from '../slideshowCredits/charge';
 import { putObject } from '../storage/objectStore';
 import { bankForSite, loadUsage } from './bank/build';
 import { assembleCombo, pickCombos } from './bank/pick';
+import { headsFor, withDetectedHeads, type HeadsCache } from './heads';
 import { pickTracks } from './music';
 import { makePhotos } from './photos';
 import { renderSlide, slidePhotoIndexes, type PhotoCache } from './render';
@@ -162,12 +163,14 @@ const photoStep: StepFn = async (runId, meter, { continued }) => {
 const RENDER_CONCURRENCY = 4;
 export const slideKey = (runId: string, slideshowId: string, index: number) => `admin/auto-slideshow/${runId}/${slideshowId}/${index}.jpg`;
 
-/** Renders slideshows not rendered yet (all of them again when step 6 is re-run directly). */
+/** Renders slideshows not rendered yet (all of them again when step 6 is re-run directly). Heads found on photos made
+ *  before head detection existed are stored with the photos. */
 const renderStep: StepFn = async (runId, _meter, { rerender }) => {
   const run = await loadRun(runId);
   const photos = checkpoint<AutoPhoto[]>(run.photos, 5);
   const shows = await prisma.autoSlideshow.findMany({ where: { runId, status: rerender ? { not: 'failed' } : { in: ['written', 'rendering'] } }, orderBy: { position: 'asc' } });
   const cache: PhotoCache = new Map();
+  const heads: HeadsCache = new Map();
   const look = (run.profile as unknown as BrandProfile | null)?.slideshowStyle;
   await runPool(shows, RENDER_CONCURRENCY, async (show) => {
     try {
@@ -178,9 +181,9 @@ const renderStep: StepFn = async (runId, _meter, { rerender }) => {
       const rendered: AutoSlide[] = [];
       for (const [i, slide] of slides.entries()) {
         const key = slideKey(runId, show.id, i);
-        const index = indexes[i]!;
-        await putObject(key, await renderSlide(slide, photos[index]!.imageKey!, cache, look), 'image/jpeg');
-        rendered.push({ ...slide, photoIndex: index, imageKey: key });
+        const photo = photos[indexes[i]!]!;
+        await putObject(key, await renderSlide(slide, photo.imageKey!, cache, look, await headsFor(photo, cache, heads)), 'image/jpeg');
+        rendered.push({ ...slide, photoIndex: indexes[i]!, imageKey: key });
       }
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(rendered), status: 'ready' } });
       await chargeSlideshow(runId, show.id);
@@ -189,7 +192,8 @@ const renderStep: StepFn = async (runId, _meter, { rerender }) => {
     }
   });
   if ((await prisma.autoSlideshow.count({ where: { runId, status: 'ready' } })) === 0) throw new Error('No slideshow could be rendered');
-  return {};
+  const withHeads = await withDetectedHeads(photos, heads);
+  return withHeads ? { photos: json(withHeads) } : {};
 };
 
 const STEPS: Record<AutoStep, StepFn> = { 1: profileStep, 2: leverStep, 3: planStep, 4: writeStep, 5: photoStep, 6: renderStep };

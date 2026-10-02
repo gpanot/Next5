@@ -6,7 +6,8 @@ import type { BrandProfile } from '../../../types/admin/companyIntel';
 import type { BrandLever } from '../../../types/admin/metaAds';
 
 export const PHOTO_RULES = `Photo rules: one sentence. Real-looking photography of a PERSON or PLACE in the audience's world, showing the
-slide's action so a viewer gets the slide from the photo alone. Bright daytime light, person seen from a distance or from behind.
+slide's action so a viewer gets the slide from the photo alone. Bright daytime light, person seen from behind or from the side,
+in the lower half of the frame with open sky or wall above them (the slide text sits up there).
 Follow the brief's "Visual style" for who and what appears, the setting and the framing: the photos must feel like the brand.
 When the brief says "Product as subject: yes", the product itself (in use, in its real setting) may be the subject.
 A person may hold a phone, but its screen never shows.

@@ -4,11 +4,12 @@
 
 import { REAPI_MODELS, type ReapiModelId } from '../../config/reapiModels';
 import { pollGeminiImage, submitReapiImage } from '../../lib/reapiImage';
-import type { AutoPhoto } from '../../types/admin/autoSlideshow';
+import type { AutoPhoto, HeadBox } from '../../types/admin/autoSlideshow';
 import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
 import { putObject } from '../storage/objectStore';
+import { detectHeads } from './heads';
 import { compressJpeg, PHOTO_SIZE } from './jpeg';
 
 export const PHOTO_MODEL: ReapiModelId = 'reapi-grok-imagine-2-official';
@@ -24,7 +25,7 @@ const BUSY_WAIT_MS = 15_000;
 
 // Keep this bright. "Cinematic light" made GPT Image 2 return dark, moody photos (mean luma 85-140 of 255); this wording
 // gave 164-173 on the same scenes (A/B test 2026-09-29). White slide text still reads thanks to its outline.
-const STYLE = 'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, shallow depth of field, vertical framing with calm space in the upper half. No text, no letters, no logos, no watermarks, no phone screens.';
+const STYLE = 'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, shallow depth of field, vertical framing: people stand in the lower half of the frame with their heads below the middle, and the upper 40% is open sky, wall or plain background. No text, no letters, no logos, no watermarks, no phone screens.';
 
 export const photoKey = (runId: string, index: number) => `admin/auto-slideshow/${runId}/photos/${index}.jpg`;
 
@@ -42,8 +43,10 @@ const submit = async (prompt: string) => {
   }
 };
 
-/** One photo, generated and stored as a 1440x1800 JPEG under 1 MB. Returns its key. */
-const makePhoto = async (runId: string, index: number, prompt: string, look: string | undefined, meter: CostMeter): Promise<string> => {
+type MadePhoto = { key: string; heads: HeadBox[] | null };
+
+/** One photo, generated and stored as a 1440x1800 JPEG under 1 MB, with its heads found so step 6 keeps text off them. */
+const makePhoto = async (runId: string, index: number, prompt: string, look: string | undefined, meter: CostMeter): Promise<MadePhoto> => {
   const { taskId } = await submit([prompt, look && `Brand look: ${look}`, STYLE].filter(Boolean).join(' '));
   const deadline = Date.now() + TIMEOUT_MS;
   await sleep(FIRST_POLL_MS);
@@ -57,7 +60,7 @@ const makePhoto = async (runId: string, index: number, prompt: string, look: str
       const jpeg = await compressJpeg(Buffer.from(await res.arrayBuffer()), PHOTO_SIZE);
       const key = photoKey(runId, index);
       await putObject(key, jpeg, 'image/jpeg');
-      return key;
+      return { key, heads: await detectHeads(`data:image/jpeg;base64,${jpeg.toString('base64')}`) };
     }
     if (result.status === 'failed') throw new Error(result.error ?? 'Photo generation failed');
     await sleep(POLL_MS);
@@ -86,7 +89,9 @@ export const makePhotos = async (runId: string, prompts: string[], existing: Aut
   await runPool(todo, CONCURRENCY, async ({ p, i }) => {
     if (options.deadline && Date.now() > options.deadline) return;
     try {
-      photos[i] = { ...p, imageKey: await makePhoto(runId, i, p.prompt, options.look, meter), error: null };
+      const { key, heads } = await makePhoto(runId, i, p.prompt, options.look, meter);
+      // Unknown heads (detection failed) stay unset, so step 6 tries again.
+      photos[i] = { ...p, imageKey: key, error: null, ...(heads ? { heads } : {}) };
     } catch (err) {
       photos[i] = { ...p, imageKey: null, error: clip(err instanceof Error ? err.message : String(err), 300) };
     }

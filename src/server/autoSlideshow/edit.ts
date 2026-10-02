@@ -15,6 +15,7 @@ import { chargeSlideshow } from '../slideshowCredits/charge';
 import { deleteObject, putObject } from '../storage/objectStore';
 import { loadUsage } from './bank/build';
 import { assembleCombo, swapCombo } from './bank/pick';
+import { headsFor } from './heads';
 import { isTrack } from './music';
 import { makePhotos } from './photos';
 import { renderSlide, type BoxLook, type PhotoCache } from './render';
@@ -51,7 +52,7 @@ const renderInto = async (runId: string, showId: string, index: number, slide: A
   const photo = photos[slide.photoIndex];
   if (!photo?.imageKey) throw new HttpError(409, 'photo_missing', 'That photo was not generated. Pick another one.');
   const key = editedKey(runId, showId, index);
-  await putObject(key, await renderSlide(slide, photo.imageKey, cache, look), 'image/jpeg');
+  await putObject(key, await renderSlide(slide, photo.imageKey, cache, look, await headsFor(photo, cache, new Map())), 'image/jpeg');
   if (slide.imageKey) await deleteObject(slide.imageKey).catch(() => undefined);
   return { ...slide, imageKey: key };
 };

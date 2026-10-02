@@ -61,7 +61,10 @@ export type AutoPlan = {
 /** `hook`: made for one slideshow's first slide (older runs). `slide`: made for one slide, named by `owner`
  *  ("slideshowId:slideIndex"), so two slideshows on the same bank meat get different images. Other photos are the run's
  *  shared pool. `deleted`: the owner removed this photo from Settings; a re-run keeps it removed instead of making it again. */
-export type AutoPhoto = { prompt: string; imageKey: string | null; error: string | null; kind?: 'hook' | 'slide'; owner?: string; deleted?: true };
+export type AutoPhoto = { prompt: string; imageKey: string | null; error: string | null; kind?: 'hook' | 'slide'; owner?: string; deleted?: true; heads?: HeadBox[] };
+
+/** One human head in a photo, as shares (0-1) of its width and height. Step 6 keeps the slide text off these. */
+export type HeadBox = { top: number; left: number; bottom: number; right: number };
 
 export type AutoSlide = {
   role: SlideRole;
