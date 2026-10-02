@@ -97,7 +97,7 @@ async function createAsset(plan: ImagePlan, need: ImageNeed, categories: string[
       kind: 'background',
       source: 'ai_generated',
       status: 'done',
-      model: 'nano-banana-2-lite',
+      model: 'gpt-image-2.5-flare',
       descriptor,
       retrievalText: `${plan.description} AI image for ${need.role} shots.`,
       rightsRisk: 'none',
