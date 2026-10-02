@@ -7,9 +7,11 @@ import type { BrandLever } from '../../../types/admin/metaAds';
 
 export const PHOTO_RULES = `Photo rules: one sentence. Real-looking photography of a PERSON or PLACE in the audience's world, showing the
 slide's action so a viewer gets the slide from the photo alone. Bright daytime light, person seen from a distance or from behind.
+Follow the brief's "Visual style" for who and what appears, the setting and the framing: the photos must feel like the brand.
+When the brief says "Product as subject: yes", the product itself (in use, in its real setting) may be the subject.
 A person may hold a phone, but its screen never shows.
 Never: dusk, night, golden hour, moody light, close-up faces, text, logos, captions, sounds, screens, laptops, calendars,
-spreadsheets, documents, checklists, clipboards, paper, notebooks or any object shown alone as the subject.
+spreadsheets, documents, checklists, clipboards, paper, notebooks or any other object shown alone as the subject.
 Do not list what is absent (no "no text", "no logos"): describe only what is in the photo.`;
 
 export const MEAT_GOALS = ['teach', 'myth', 'proof', 'story', 'teach', 'product'] as const;
@@ -81,4 +83,7 @@ export const businessBrief = (profile: BrandProfile, levers: BrandLever[]): stri
     `Audience: ${profile.audience}`,
     `Tone: ${profile.tone}`,
     `Proven claims: ${levers.map((l) => `"${l.claim}"`).join(' · ') || 'none'}`,
+    ...(profile.slideshowStyle
+      ? [`Visual style: ${profile.slideshowStyle.photoStyle}`, `Product as subject: ${profile.slideshowStyle.productAsSubject ? 'yes' : 'no'}`]
+      : []),
   ].join('\n');

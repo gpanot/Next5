@@ -49,6 +49,21 @@ export function BrandCard({ url, profile }: Props) {
           )}
           <p className="text-xs leading-relaxed font-medium text-ink dark:text-zinc-200">{profile.valueProp}</p>
           {profile.audience && <p className="text-[11px] leading-relaxed text-muted">{profile.audience}</p>}
+          {profile.slideshowStyle && (
+            <div className="flex items-start gap-2 border-t border-line pt-3 dark:border-zinc-800">
+              <span
+                title="Slide headline box"
+                className="mt-0.5 flex h-5 w-7 shrink-0 items-center justify-center rounded text-[9px] font-bold"
+                style={{ background: profile.slideshowStyle.boxColor, color: profile.slideshowStyle.boxTextColor, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.12)' }}
+              >
+                Aa
+              </span>
+              <p className="text-[11px] leading-relaxed text-muted">
+                <span className="font-semibold text-ink dark:text-zinc-200">Slideshow look: </span>
+                {profile.slideshowStyle.photoStyle}
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-3 p-4">

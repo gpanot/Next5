@@ -43,8 +43,8 @@ const submit = async (prompt: string) => {
 };
 
 /** One photo, generated and stored as a 1440x1800 JPEG under 1 MB. Returns its key. */
-const makePhoto = async (runId: string, index: number, prompt: string, meter: CostMeter): Promise<string> => {
-  const { taskId } = await submit(`${prompt} ${STYLE}`);
+const makePhoto = async (runId: string, index: number, prompt: string, look: string | undefined, meter: CostMeter): Promise<string> => {
+  const { taskId } = await submit([prompt, look && `Brand look: ${look}`, STYLE].filter(Boolean).join(' '));
   const deadline = Date.now() + TIMEOUT_MS;
   await sleep(FIRST_POLL_MS);
   while (Date.now() < deadline) {
@@ -66,8 +66,9 @@ const makePhoto = async (runId: string, index: number, prompt: string, meter: Co
 };
 
 /** `deadline`: no new photo starts after it (the rest stay untried for the next invocation). `skipFailed`: a continued
- *  pass leaves photos that already failed, so retries do not eat its time. */
-export type MakePhotosOptions = { deadline?: number; skipFailed?: boolean };
+ *  pass leaves photos that already failed, so retries do not eat its time. `look`: the brand's photo style, added to
+ *  every prompt (banks built before the style existed get it this way too). */
+export type MakePhotosOptions = { deadline?: number; skipFailed?: boolean; look?: string };
 
 /**
  * Generates every photo not stored yet (a resumed run keeps the ones it has). A failed photo is recorded, not fatal;
@@ -85,7 +86,7 @@ export const makePhotos = async (runId: string, prompts: string[], existing: Aut
   await runPool(todo, CONCURRENCY, async ({ p, i }) => {
     if (options.deadline && Date.now() > options.deadline) return;
     try {
-      photos[i] = { ...p, imageKey: await makePhoto(runId, i, p.prompt, meter), error: null };
+      photos[i] = { ...p, imageKey: await makePhoto(runId, i, p.prompt, options.look, meter), error: null };
     } catch (err) {
       photos[i] = { ...p, imageKey: null, error: clip(err instanceof Error ? err.message : String(err), 300) };
     }

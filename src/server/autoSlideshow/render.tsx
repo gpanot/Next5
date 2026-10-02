@@ -1,9 +1,12 @@
 // server-only — never import from a 'use client' file.
 // Step 6: burn each slide's text onto its photo, 1080x1350 JPEG, in TikTok's native look (what the proven slideshows use):
-// hook = big white outlined text; meat and CTA = headline in a white box, one plain line of white text under it.
+// hook = big white outlined text; meat and CTA = headline in a box (white, or the brand's box color), one plain line of
+// white text under it.
 
 import { ImageResponse } from 'next/og';
 import type { AutoPhoto, AutoSlide } from '../../types/admin/autoSlideshow';
+import type { SlideshowStyle } from '../../types/admin/companyIntel';
+import { DEFAULT_BOX } from '../companyIntel/slideshowStyle';
 import { getObject } from '../storage/objectStore';
 import { compressJpeg } from './jpeg';
 
@@ -49,15 +52,18 @@ const HookText = ({ title }: { title: string }) => (
   </div>
 );
 
-const BoxedText = ({ title, body, big }: { title: string; body: string; big: boolean }) => (
+/** The headline box colors of the brand's style. */
+export type BoxLook = Pick<SlideshowStyle, 'boxColor' | 'boxTextColor'>;
+
+const BoxedText = ({ title, body, big, look }: { title: string; body: string; big: boolean; look: BoxLook }) => (
   <div style={{ position: 'absolute', top: big ? 300 : 330, left: 80, right: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 36 }}>
-    <div style={{ display: 'flex', background: '#ffffff', color: '#111111', fontSize: big ? 62 : 54, fontWeight: 800, lineHeight: 1.12, padding: '16px 30px', borderRadius: 18, textAlign: 'center' }}>{title}</div>
+    <div style={{ display: 'flex', background: look.boxColor, color: look.boxTextColor, fontSize: big ? 62 : 54, fontWeight: 800, lineHeight: 1.12, padding: '16px 30px', borderRadius: 18, textAlign: 'center' }}>{title}</div>
     {body && <div style={{ display: 'flex', color: '#ffffff', fontSize: 44, fontWeight: 600, lineHeight: 1.2, textAlign: 'center', textShadow: SOFT }}>{body}</div>}
   </div>
 );
 
-/** One rendered slide as a JPEG. */
-export const renderSlide = async (slide: Pick<AutoSlide, 'role' | 'title' | 'body'>, photoKeyForSlide: string, cache: PhotoCache): Promise<Buffer> => {
+/** One rendered slide as a JPEG. `look`: the brand's box colors (white box, dark text when the profile has no style). */
+export const renderSlide = async (slide: Pick<AutoSlide, 'role' | 'title' | 'body'>, photoKeyForSlide: string, cache: PhotoCache, look: BoxLook = DEFAULT_BOX): Promise<Buffer> => {
   const [photo, fonts] = await Promise.all([photoUri(photoKeyForSlide, cache), loadFonts()]);
   const response = new ImageResponse(
     (
@@ -66,7 +72,7 @@ export const renderSlide = async (slide: Pick<AutoSlide, 'role' | 'title' | 'bod
         <img src={photo} width={SLIDE_SIZE.width} height={SLIDE_SIZE.height} alt="" style={{ position: 'absolute', top: 0, left: 0 }} />
         {/* Light wash (8%, was 14%): keeps white text readable on bright skies without darkening the photo */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.08)' }} />
-        {slide.role === 'hook' ? <HookText title={slide.title} /> : <BoxedText title={slide.title} body={slide.body} big={slide.role === 'cta'} />}
+        {slide.role === 'hook' ? <HookText title={slide.title} /> : <BoxedText title={slide.title} body={slide.body} big={slide.role === 'cta'} look={look} />}
       </div>
     ),
     { ...SLIDE_SIZE, fonts: fonts.length ? fonts : undefined },

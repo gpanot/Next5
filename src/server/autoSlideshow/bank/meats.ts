@@ -59,13 +59,13 @@ const conflicts = async (meats: BankMeat[], meter: CostMeter): Promise<string[]>
 };
 
 /** Rewrites only the photo descriptions that break the photo rules, in one call. */
-const fixPhotos = async (meats: BankMeat[], meter: CostMeter): Promise<void> => {
+const fixPhotos = async (meats: BankMeat[], brief: string, meter: CostMeter): Promise<void> => {
   const bad = meats.flatMap((m) => m.items.filter((it) => photoProblem(it.photo)).map((it) => ({ it, problem: photoProblem(it.photo)! })));
   if (bad.length === 0) return;
   const raw = await metaAdsJson<{ photos?: unknown }>(
     [
       { role: 'system', content: PHOTO_FIX_SYSTEM },
-      { role: 'user', content: bad.map(({ it, problem }, i) => `${i}. slide "${it.title} — ${it.body}" photo: "${it.photo}" -> ${problem}`).join('\n') },
+      { role: 'user', content: `${brief}\n\n${bad.map(({ it, problem }, i) => `${i}. slide "${it.title} — ${it.body}" photo: "${it.photo}" -> ${problem}`).join('\n')}` },
     ],
     { maxTokens: 3_000, meter, label: 'OpenAI bank photo fix' },
   );
@@ -95,6 +95,6 @@ export const writeMeats = async (brief: string, brand: string, meter: CostMeter)
   // Sets still breaking a text rule after the rewrites are dropped; a few unresolved conflicts are not worth losing a set.
   const kept = meats.filter((m) => meatProblems(m, brand).length === 0);
   if (kept.length === 0) throw new Error(`No meat set passed the checks: ${problems.slice(0, 3).join('; ')}`);
-  await fixPhotos(kept, meter);
+  await fixPhotos(kept, brief, meter);
   return kept;
 };

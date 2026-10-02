@@ -17,7 +17,7 @@ import { loadUsage } from './bank/build';
 import { assembleCombo, swapCombo } from './bank/pick';
 import { isTrack } from './music';
 import { makePhotos } from './photos';
-import { renderSlide, type PhotoCache } from './render';
+import { renderSlide, type BoxLook, type PhotoCache } from './render';
 import { writeSlideshow } from './write';
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
@@ -32,6 +32,8 @@ const loadShow = async (runId: string, showId: string) => {
 };
 
 const photosOf = (run: { photos: Prisma.JsonValue }): AutoPhoto[] => (run.photos as unknown as AutoPhoto[] | null) ?? [];
+/** The brand's slideshow style; undefined on runs profiled before it existed. */
+const styleOf = (run: { profile: Prisma.JsonValue }) => (run.profile as unknown as BrandProfile | null)?.slideshowStyle;
 
 /** Adds an edit's spend to a step, as its own line, so the run total stays what was really paid. */
 const addStepCost = async (runId: string, step: AutoStep, label: string, meter: CostMeter) => {
@@ -45,11 +47,11 @@ const addStepCost = async (runId: string, step: AutoStep, label: string, meter: 
 };
 
 /** Renders one slide onto its photo under a fresh key and removes the old image. */
-const renderInto = async (runId: string, showId: string, index: number, slide: AutoSlide, photos: AutoPhoto[], cache: PhotoCache): Promise<AutoSlide> => {
+const renderInto = async (runId: string, showId: string, index: number, slide: AutoSlide, photos: AutoPhoto[], cache: PhotoCache, look?: BoxLook): Promise<AutoSlide> => {
   const photo = photos[slide.photoIndex];
   if (!photo?.imageKey) throw new HttpError(409, 'photo_missing', 'That photo was not generated. Pick another one.');
   const key = editedKey(runId, showId, index);
-  await putObject(key, await renderSlide(slide, photo.imageKey, cache), 'image/jpeg');
+  await putObject(key, await renderSlide(slide, photo.imageKey, cache, look), 'image/jpeg');
   if (slide.imageKey) await deleteObject(slide.imageKey).catch(() => undefined);
   return { ...slide, imageKey: key };
 };
@@ -79,7 +81,7 @@ export const updateSlide = async (runId: string, showId: string, index: number, 
     if (!Number.isInteger(patch.photoIndex) || !photos[patch.photoIndex as number]?.imageKey) throw new HttpError(400, 'bad_photo', 'Pick one of the run\'s photos.');
     next.photoIndex = patch.photoIndex as number;
   }
-  slides[index] = await renderInto(runId, showId, index, next, photos, new Map());
+  slides[index] = await renderInto(runId, showId, index, next, photos, new Map(), styleOf(show.run));
   await saveSlides(show, slides);
 };
 
@@ -94,13 +96,13 @@ export const newPhotoForSlide = async (runId: string, showId: string, index: num
   const prompt = `${base} Another moment of the same scene: different angle and framing.`;
   const meter = createMeter();
   try {
-    const all = await makePhotos(runId, [...photos.map((p) => p.prompt), prompt], photos, meter);
+    const all = await makePhotos(runId, [...photos.map((p) => p.prompt), prompt], photos, meter, { look: styleOf(show.run)?.photoStyle });
     // On bank runs the new photo belongs to this slide, not to the shared pool other slides fall back on.
     const made = show.bankHookId ? { ...all[all.length - 1]!, kind: 'slide' as const } : all[all.length - 1]!;
     all[all.length - 1] = made;
     if (!made.imageKey) throw new HttpError(502, 'photo_failed', made.error ?? 'The new photo failed.');
     await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { photos: json(all) } });
-    slides[index] = await renderInto(runId, showId, index, { ...slide, photoIndex: all.length - 1 }, all, new Map());
+    slides[index] = await renderInto(runId, showId, index, { ...slide, photoIndex: all.length - 1 }, all, new Map(), styleOf(show.run));
     await saveSlides(show, slides);
   } finally {
     await addStepCost(runId, 5, 'New photo', meter);
@@ -148,8 +150,8 @@ const rewriteFromBank = async (show: LoadedShow): Promise<void> => {
   const photos = photosOf(show.run);
   const cache: PhotoCache = new Map();
   const lastIndex = slides.length - 1;
-  slides[0] = await renderInto(show.runId, show.id, 0, { ...slides[0]!, title: hook.title }, photos, cache);
-  if (slides[lastIndex]?.role === 'cta') slides[lastIndex] = await renderInto(show.runId, show.id, lastIndex, { ...slides[lastIndex]!, title: cta.title, body: cta.body }, photos, cache);
+  slides[0] = await renderInto(show.runId, show.id, 0, { ...slides[0]!, title: hook.title }, photos, cache, styleOf(show.run));
+  if (slides[lastIndex]?.role === 'cta') slides[lastIndex] = await renderInto(show.runId, show.id, lastIndex, { ...slides[lastIndex]!, title: cta.title, body: cta.body }, photos, cache, styleOf(show.run));
   await prisma.autoSlideshow.update({
     where: { id: show.id },
     data: { slides: json(slides), hookPattern: next.hookPattern, bankHookId: combo.hookId, bankCtaId: combo.ctaId, status: 'ready', error: null },
@@ -177,7 +179,7 @@ export const rewriteSlideshow = async (runId: string, showId: string): Promise<v
     for (const [i, s] of written.slides.entries()) {
       // Same photo per position when there is one, the next photos of the set for extra slides.
       const photoIndex = old[i]?.photoIndex ?? available[(show.position * 3 + i) % available.length]!;
-      slides.push(await renderInto(runId, showId, i, { ...s, photoIndex, imageKey: old[i]?.imageKey ?? null }, photos, cache));
+      slides.push(await renderInto(runId, showId, i, { ...s, photoIndex, imageKey: old[i]?.imageKey ?? null }, photos, cache, styleOf(show.run)));
     }
     for (const extra of old.slice(slides.length)) if (extra.imageKey) await deleteObject(extra.imageKey).catch(() => undefined);
     await prisma.autoSlideshow.update({ where: { id: showId }, data: { slides: json(slides), caption: written.caption, hashtags: written.hashtags, status: 'ready', error: null } });

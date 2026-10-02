@@ -146,7 +146,8 @@ const photoStep: StepFn = async (runId, meter, { continued }) => {
   const shows = rows.map((r) => ({ id: r.id, status: r.status, slides: r.slides as unknown as AutoSlide[], bank: r.bankHookId !== null }));
   const entries = ownPhotoEntries(pool, existing, shows);
   const deadline = process.env.VERCEL === '1' ? Date.now() + PHOTO_BUDGET_MS : undefined;
-  const made = await makePhotos(runId, [...plan.photoPrompts, ...entries.map((e) => e.prompt)], existing, meter, { deadline, skipFailed: continued });
+  const look = (run.profile as unknown as BrandProfile | null)?.slideshowStyle?.photoStyle;
+  const made = await makePhotos(runId, [...plan.photoPrompts, ...entries.map((e) => e.prompt)], existing, meter, { deadline, skipFailed: continued, look });
   const photos = made.map((p, i) => (i >= pool ? { ...p, ...entries[i - pool] } : p));
   const poolMade = photos.slice(0, pool).filter((p) => p.imageKey).length;
   if (pool > 0 && poolMade < 3) throw new Error(`Only ${poolMade} of ${pool} photos were made: ${photos.find((p) => p.error)?.error ?? 'unknown error'}`);
@@ -167,6 +168,7 @@ const renderStep: StepFn = async (runId, _meter, { rerender }) => {
   const photos = checkpoint<AutoPhoto[]>(run.photos, 5);
   const shows = await prisma.autoSlideshow.findMany({ where: { runId, status: rerender ? { not: 'failed' } : { in: ['written', 'rendering'] } }, orderBy: { position: 'asc' } });
   const cache: PhotoCache = new Map();
+  const look = (run.profile as unknown as BrandProfile | null)?.slideshowStyle;
   await runPool(shows, RENDER_CONCURRENCY, async (show) => {
     try {
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { status: 'rendering', error: null } });
@@ -177,7 +179,7 @@ const renderStep: StepFn = async (runId, _meter, { rerender }) => {
       for (const [i, slide] of slides.entries()) {
         const key = slideKey(runId, show.id, i);
         const index = indexes[i]!;
-        await putObject(key, await renderSlide(slide, photos[index]!.imageKey!, cache), 'image/jpeg');
+        await putObject(key, await renderSlide(slide, photos[index]!.imageKey!, cache, look), 'image/jpeg');
         rendered.push({ ...slide, photoIndex: index, imageKey: key });
       }
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(rendered), status: 'ready' } });

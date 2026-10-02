@@ -6,6 +6,7 @@ import { exaFetch } from '../studio/exa';
 import { EXA_PAGE_MICROS, type CostMeter } from '../metaAds/cost';
 import { metaAdsJson } from '../metaAds/llm';
 import { readSiteStyle } from './palette';
+import { STYLE_PROMPT, toSlideshowStyle } from './slideshowStyle';
 import { clip } from '../metaAds/text';
 
 type ExaPage = { url?: string; title?: string; text?: string; image?: string; favicon?: string };
@@ -32,11 +33,12 @@ const readSite = async (url: string, meter: CostMeter): Promise<ExaPage> => {
   return page;
 };
 
-type LlmProfile = Omit<BrandProfile, 'domain' | 'heroImageUrl' | 'faviconUrl' | 'pageTitle' | 'pageExcerpt' | 'palette'>;
+type LlmProfile = Omit<BrandProfile, 'domain' | 'heroImageUrl' | 'faviconUrl' | 'pageTitle' | 'pageExcerpt' | 'palette' | 'slideshowStyle'> & { photoStyle: unknown; productAsSubject: unknown; boxColor: unknown; boxTextColor: unknown };
 
 const SYSTEM = `You profile a business from its homepage text for a Meta ads copywriter.
 Return JSON: {"brandName": string, "valueProp": string (one sentence, plain words), "audience": string (who buys, one sentence),
-"tone": string (3-5 words), "productCategories": string[] (2-4), "searchKeywords": string[] (3 phrases of 2-3 words that a competitor's ad text would contain: what is sold and to whom, category words not the brand name, e.g. "vintage wholesale", "wholesale clothing", "reseller bundles")}.
+"tone": string (3-5 words), "productCategories": string[] (2-4), "searchKeywords": string[] (3 phrases of 2-3 words that a competitor's ad text would contain: what is sold and to whom, category words not the brand name, e.g. "vintage wholesale", "wholesale clothing", "reseller bundles"),
+${STYLE_PROMPT}}.
 Use only facts from the text. No hype.`;
 
 const clean = (list: unknown, max: number): string[] =>
@@ -47,7 +49,7 @@ export const buildProfile = async (url: string, meter: CostMeter): Promise<Brand
   const raw = await metaAdsJson<Partial<LlmProfile>>(
     [
       { role: 'system', content: SYSTEM },
-      { role: 'user', content: `URL: ${url}\nTitle: ${page.title ?? ''}\n\n${page.text}` },
+      { role: 'user', content: `URL: ${url}\nTitle: ${page.title ?? ''}\nPalette: ${style.palette.join(', ') || 'none'}\n\n${page.text}` },
     ],
     { maxTokens: 4_000, meter, label: 'OpenAI profile' },
   );
@@ -63,9 +65,11 @@ export const buildProfile = async (url: string, meter: CostMeter): Promise<Brand
     productCategories: clean(raw.productCategories, 4),
     searchKeywords: keywords,
     palette: style.palette,
-    heroImageUrl: page.image ?? null,
+    // Exa sometimes leaves the image out; the site's own og:image is the same picture.
+    heroImageUrl: page.image ?? style.shareImageUrl,
     faviconUrl: page.favicon ?? style.faviconUrl,
     pageTitle: page.title ?? null,
     pageExcerpt: clip(page.text ?? '', 6_000),
+    slideshowStyle: toSlideshowStyle(raw),
   };
 };
