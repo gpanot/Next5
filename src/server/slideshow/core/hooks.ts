@@ -1,9 +1,11 @@
 // server-only — never import from a 'use client' file.
 // Hook generation: one LLM call produces 18 hooks per brief; a filter keeps the best 1 per archetype → 6 hooks.
+// "Best" = highest Jev stop-scroll score (hookScorer.ts), with the specificity heuristic as tie-break and fallback.
 
 import { chatJsonWithMeta } from '../../ai/openai';
 import { contentWords, findSlopPhrase, wordCount, wordOverlap } from './copyGuards';
 import { libraryFewShots } from './hookLibrary';
+import { scoreHooksWithJev } from './hookScorer';
 import { HOOK_ARCHETYPES } from './types';
 import type { HookArchetype, HookRules, Issue, ValueLevers } from './types';
 
@@ -31,6 +33,8 @@ export type HookGenerationResult = {
   kept: HookCandidate[];       // 6 (fewer only when nothing valid exists at all)
   all: HookCandidate[];        // all 18 generated
   fallbackApplied: boolean;
+  /** Jev stop-scroll score (0..1) per valid hook text; null when Jev was unavailable. */
+  scores: Record<string, number> | null;
 };
 
 /** On-screen hook limit (spec 3.1). Slideshow hooks are never spoken, so no UGC allowance here. */
@@ -122,15 +126,27 @@ function rejectReason(hook: HookCandidate, terms: string[], rules: HookRules): s
 
 type FilterResult = { kept: HookCandidate[]; fallbackApplied: boolean };
 
-/** Keep the best valid hook per archetype; fill empty or dropped slots from fear/curiosity (spec 7.4). */
-function filterHooks(candidates: HookCandidate[], audience: string, rules: HookRules): FilterResult {
+/** Drops hooks that break a hard rule (spec 7.3, steps 1 to 4). */
+function validHooks(candidates: HookCandidate[], audience: string, rules: HookRules): HookCandidate[] {
   const terms = specificTerms(audience, rules);
-  const valid = candidates.filter((h) => {
+  return candidates.filter((h) => {
     const reason = rejectReason(h, terms, rules);
     if (reason) console.log(`  [hooks] ❌ ${reason}: "${h.text}"`);
     return !reason;
   });
-  const ranked = [...valid].sort((a, b) => specificityScore(b.text, terms) - specificityScore(a.text, terms));
+}
+
+/**
+ * Keep the best valid hook per archetype; fill empty or dropped slots from fear/curiosity (spec 7.4).
+ * Ranking: Jev score first (unscored hooks last), then specificity.
+ */
+function filterHooks(
+  valid: HookCandidate[], audience: string, rules: HookRules, scores: Map<string, number> | null,
+): FilterResult {
+  const terms = specificTerms(audience, rules);
+  const jev = (h: HookCandidate) => scores?.get(h.text) ?? -1;
+  const ranked = [...valid].sort((a, b) =>
+    jev(b) - jev(a) || specificityScore(b.text, terms) - specificityScore(a.text, terms));
   const isDuplicate = (h: HookCandidate, kept: HookCandidate[]) =>
     kept.some((k) => wordOverlap(k.text, h.text) > DEDUP_OVERLAP);
 
@@ -169,7 +185,7 @@ export async function generateHooks(input: HookGenerationInput): Promise<HookGen
       { role: 'system', content: buildSystemPrompt(input) },
       { role: 'user',   content: 'Generate the hooks JSON now.' },
     ],
-    { maxTokens: 2000, temperature: 0.9, model: 'gpt-5.5' },
+    { maxTokens: 2000, temperature: 0.9, model: 'gpt-5.5', reasoningEffort: 'low', timeoutMs: 45_000 },
   );
   // One retry when the call fails or returns no hooks list (seen occasionally).
   let { result } = await ask();
@@ -185,11 +201,24 @@ export async function generateHooks(input: HookGenerationInput): Promise<HookGen
 
   console.log(`   LLM returned ${all.length} hooks`);
   if (all.length === 0) console.warn(`[HookGen] unusable model output: ${JSON.stringify(result).slice(0, 300)}`);
-  const { kept, fallbackApplied } = filterHooks(all, input.audience, input.rules);
+  const valid = validHooks(all, input.audience, input.rules);
+  const scores = await scoreHooksWithJev({
+    audience: input.audience,
+    lensLine: input.lensLine,
+    pain: input.pain,
+    dreamOutcome: input.dreamOutcome,
+    mechanism: input.levers.namedMechanism,
+    proof: input.proofLine,
+  }, valid.map((h) => h.text));
+  if (!scores) console.warn('[HookGen] Jev scoring unavailable, ranking by specificity only');
+  const { kept, fallbackApplied } = filterHooks(valid, input.audience, input.rules, scores);
   console.log(`   → kept ${kept.length}${fallbackApplied ? ' (fallback applied)' : ''}:`);
-  kept.forEach((h) => console.log(`     ✅ [${h.archetype}] "${h.text}"`));
+  kept.forEach((h) => {
+    const s = scores?.get(h.text);
+    console.log(`     ✅ [${h.archetype}]${s === undefined ? '' : ` ${s.toFixed(2)}`} "${h.text}"`);
+  });
 
-  return { kept, all, fallbackApplied };
+  return { kept, all, fallbackApplied, scores: scores ? Object.fromEntries(scores) : null };
 }
 
 // ── Validation issues from hook step ─────────────────────────────────────────

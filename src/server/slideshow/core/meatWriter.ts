@@ -61,7 +61,7 @@ export async function writeMeatWithRetries(input: WriteMeatInput): Promise<MeatD
   let draft = normalizeDraft(null, proof);
   let errors: string[] = [];
   for (let attempt = 1; attempt <= MEAT_ATTEMPTS; attempt++) {
-    const { result } = await chatJsonWithMeta<RawMeat>(messages, { maxTokens: 700, temperature: 0.6, model: 'gpt-5.5' });
+    const { result } = await chatJsonWithMeta<RawMeat>(messages, { maxTokens: 700, temperature: 0.6, model: 'gpt-5.5', reasoningEffort: 'low', timeoutMs: 45_000 });
     draft = normalizeDraft(result, proof);
     errors = checkMeatDraft(draft.meat, draft.cta, input.guard);
     if (errors.length === 0) return draft;

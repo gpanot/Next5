@@ -15,11 +15,20 @@ export type ChatMeta = {
   model: string;
 };
 
+export type ChatOptions = {
+  maxTokens: number;
+  temperature?: number;
+  timeoutMs?: number;
+  model?: string;
+  /** gpt-5.x only. Reasoning tokens count against maxTokens; the default (medium) can use the whole budget and return empty content. */
+  reasoningEffort?: 'none' | 'low' | 'medium' | 'high';
+};
+
 /** True when real OpenAI calls are allowed (key present, not in mock mode). */
 export const isOpenAiEnabled = (): boolean => Boolean(process.env.OPENAI_API_KEY) && process.env.NEXT5_MOCK_GENERATION !== 'true';
 
 /** One OpenAI JSON completion. Defaults to gpt-4o-mini. Returns null on any failure — callers keep a fallback. */
-export const chatJson = async <T>(messages: ChatMessage[], options: { maxTokens: number; temperature?: number; timeoutMs?: number; model?: string }): Promise<T | null> => {
+export const chatJson = async <T>(messages: ChatMessage[], options: ChatOptions): Promise<T | null> => {
   const meta = await chatJsonWithMeta<T>(messages, options);
   return meta.result;
 };
@@ -30,7 +39,7 @@ export const chatJson = async <T>(messages: ChatMessage[], options: { maxTokens:
  */
 export const chatJsonWithMeta = async <T>(
   messages: ChatMessage[],
-  options: { maxTokens: number; temperature?: number; timeoutMs?: number; model?: string },
+  options: ChatOptions,
 ): Promise<{ result: T | null; meta: ChatMeta }> => {
   const key = process.env.OPENAI_API_KEY;
   const model = options.model ?? 'gpt-4o-mini';
@@ -52,6 +61,7 @@ export const chatJsonWithMeta = async <T>(
         model,
         ...(isGpt5 ? {} : { temperature: options.temperature ?? 0.7 }),
         ...(isGpt5 ? { max_completion_tokens: options.maxTokens } : { max_tokens: options.maxTokens }),
+        ...(isGpt5 && options.reasoningEffort ? { reasoning_effort: options.reasoningEffort } : {}),
         response_format: { type: 'json_object' },
         messages,
       }),
