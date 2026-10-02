@@ -12,7 +12,7 @@ export const STYLE_PROMPT = `"photoStyle": string (max 30 words, a plain list: w
 settings, framing and wardrobe, at the brand's own price level and feel. Luxury car maker: "The car itself on open coastal roads
 and in clean modern architecture; owners in tailored clothes; wide, uncluttered frames". Budget family car: "Families loading
 groceries, busy city streets, everyday driveways; candid, close to the action". Never mention light, weather, time of day, text,
-graphics, prices, offers, screens or logos),
+graphics, prices, offers, screens or logos. Never name the brand, its products or models: describe them ("the SUV", "the driver")),
 "productAsSubject": boolean (true when the product is a physical thing people like to look at, like cars, clothes, food, homes,
 jewelry; false for services and software),
 "boxColor": hex (slide headline box. The brand's signature color when it has one people know (Porsche black, Coca-Cola red),
@@ -37,7 +37,20 @@ export const cleanPhotoStyle = (text: string): string => {
   return kept.join(' ').replace(/[,;]\s*$/, '.').trim();
 };
 
-const luminance = (hex: string): number => {
+const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * The photo style as the photo model gets it: the brand's name dropped. Brand names in the prompt made the models draw
+ * logos even when told not to (A/B test 2026-10-02). Profiles written before the style prompt banned names need this.
+ */
+export const photoLook = (style: SlideshowStyle | undefined, brandName: string | undefined): string | undefined => {
+  if (!style) return undefined;
+  const name = brandName?.trim();
+  if (!name) return style.photoStyle;
+  return style.photoStyle.replace(new RegExp(`\\b${escapeRegex(name)}('s)?\\b\\s*`, 'gi'), '').replace(/\s{2,}/g, ' ').trim();
+};
+
+const luminance =(hex: string): number => {
   const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
   return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
 };

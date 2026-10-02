@@ -12,6 +12,7 @@ import { assignGoals, GOAL_LABELS, type ContentGoal } from '../../types/admin/co
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import type { SlideshowBankContent } from '../../types/admin/slideshowBank';
 import { buildProfile } from '../companyIntel/profile';
+import { photoLook } from '../companyIntel/slideshowStyle';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { extractLevers } from '../metaAds/hormozi/levers';
 import { clip } from '../metaAds/text';
@@ -159,7 +160,8 @@ const photoStep: StepFn = async (runId, meter, { continued }) => {
   const shows = rows.map((r) => ({ id: r.id, status: r.status, slides: r.slides as unknown as AutoSlide[], bank: r.bankHookId !== null }));
   const entries = ownPhotoEntries(pool, existing, shows);
   const deadline = process.env.VERCEL === '1' ? Date.now() + PHOTO_BUDGET_MS : undefined;
-  const look = (run.profile as unknown as BrandProfile | null)?.slideshowStyle?.photoStyle;
+  const profile = run.profile as unknown as BrandProfile | null;
+  const look = photoLook(profile?.slideshowStyle, profile?.brandName);
   const made = await makePhotos(runId, [...plan.photoPrompts, ...entries.map((e) => e.prompt)], existing, meter, { deadline, skipFailed: continued, look });
   const photos = made.map((p, i) => (i >= pool ? { ...p, ...entries[i - pool] } : p));
   const poolMade = photos.slice(0, pool).filter((p) => p.imageKey).length;

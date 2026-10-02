@@ -9,6 +9,7 @@ import type { BrandProfile } from '../../types/admin/companyIntel';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import type { SlideshowBankContent } from '../../types/admin/slideshowBank';
 import type { SlideshowPattern } from '../../types/admin/slideshowKnowledge';
+import { photoLook } from '../companyIntel/slideshowStyle';
 import { HttpError } from '../http';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { chargeSlideshow } from '../slideshowCredits/charge';
@@ -97,7 +98,7 @@ export const newPhotoForSlide = async (runId: string, showId: string, index: num
   const prompt = `${base} Another moment of the same scene: different angle and framing.`;
   const meter = createMeter();
   try {
-    const all = await makePhotos(runId, [...photos.map((p) => p.prompt), prompt], photos, meter, { look: styleOf(show.run)?.photoStyle });
+    const all = await makePhotos(runId, [...photos.map((p) => p.prompt), prompt], photos, meter, { look: photoLook(styleOf(show.run), (show.run.profile as unknown as BrandProfile | null)?.brandName) });
     // On bank runs the new photo belongs to this slide, not to the shared pool other slides fall back on.
     const made = show.bankHookId ? { ...all[all.length - 1]!, kind: 'slide' as const } : all[all.length - 1]!;
     all[all.length - 1] = made;

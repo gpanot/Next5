@@ -61,7 +61,11 @@ export type AutoPlan = {
 /** `hook`: made for one slideshow's first slide (older runs). `slide`: made for one slide, named by `owner`
  *  ("slideshowId:slideIndex"), so two slideshows on the same bank meat get different images. Other photos are the run's
  *  shared pool. `deleted`: the owner removed this photo from Settings; a re-run keeps it removed instead of making it again. */
-export type AutoPhoto = { prompt: string; imageKey: string | null; error: string | null; kind?: 'hook' | 'slide'; owner?: string; deleted?: true; heads?: HeadBox[] };
+export type AutoPhoto = { prompt: string; imageKey: string | null; error: string | null; kind?: 'hook' | 'slide'; owner?: string; deleted?: true; heads?: HeadBox[]; gen?: PhotoGen };
+
+/** How a photo was made, kept so it can be made again for a test. `prompt` above is only the scene; `sentPrompt` is the
+ *  full text the model got (scene + brand look + style). Missing on photos made before 2026-10-02. */
+export type PhotoGen = { sentPrompt: string; model: string; ratio: string; highRes: boolean; taskId: string; styleVersion: string; createdAt: string };
 
 /** One human head in a photo, as shares (0-1) of its width and height. Step 6 keeps the slide text off these. */
 export type HeadBox = { top: number; left: number; bottom: number; right: number };

@@ -1,10 +1,10 @@
 // server-only — never import from a 'use client' file.
-// Step 5: the run's shared mood photos, on Grok Imagine 2 official (reAPI, 864x1152 3:4 cropped to 4:5). Each photo is copied
-// to the object store right away: reAPI result links expire, and step 6 renders from our copy.
+// Step 5: the run's photos, on reAPI (model in PHOTO_GEN, cropped to 4:5). Each photo is copied to the object store right
+// away: reAPI result links expire, and step 6 renders from our copy. Each photo keeps how it was made (`gen`) for replays.
 
 import { REAPI_MODELS, type ReapiModelId } from '../../config/reapiModels';
-import { pollGeminiImage, submitReapiImage } from '../../lib/reapiImage';
-import type { AutoPhoto, HeadBox } from '../../types/admin/autoSlideshow';
+import { pollGeminiImage, submitReapiImage, type ReapiRatio } from '../../lib/reapiImage';
+import type { AutoPhoto, HeadBox, PhotoGen } from '../../types/admin/autoSlideshow';
 import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
@@ -12,9 +12,13 @@ import { putObject } from '../storage/objectStore';
 import { detectHeads } from './heads';
 import { compressJpeg, PHOTO_SIZE } from './jpeg';
 
-export const PHOTO_MODEL: ReapiModelId = 'reapi-grok-imagine-2-official';
-/** Grok Imagine 2 has no 4:5; 3:4 is the closest, and the 4:5 crop trims a little top and bottom. */
-const PHOTO_RATIO = '3:4';
+export type PhotoGenConfig = { model: ReapiModelId; ratio: ReapiRatio; highRes: boolean };
+/**
+ * GPT Image 2.5 at native 4:5 (1632x2048), $0.023 a photo, about 33 s. It beat Grok Imagine 2 ($0.017, 864x1152 at 3:4,
+ * cropped) on the same 10 scenes (A/B test 2026-10-02): more natural people and scenes, sharper. Grok repeated one person
+ * twice in a frame and refused a fitness photo in moderation. Back to Grok: model 'reapi-grok-imagine-2-official', '3:4', false.
+ */
+export const PHOTO_GEN: PhotoGenConfig = { model: 'reapi-gpt-image-2.5', ratio: '4:5', highRes: true };
 /** reAPI allows 10 tasks in flight per account; 5 leaves room for Perfect Ads and retries. */
 const CONCURRENCY = 5;
 const FIRST_POLL_MS = 8_000;
@@ -25,16 +29,24 @@ const BUSY_WAIT_MS = 15_000;
 
 // Keep this bright. "Cinematic light" made GPT Image 2 return dark, moody photos (mean luma 85-140 of 255); this wording
 // gave 164-173 on the same scenes (A/B test 2026-09-29). White slide text still reads thanks to its outline.
-const STYLE = 'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, shallow depth of field, vertical framing: people stand in the lower half of the frame with their heads below the middle, and the upper 40% is open sky, wall or plain background. No text, no letters, no logos, no watermarks, no phone screens.';
+// No framing rule: "heads below the middle, upper 40% empty" bent scenes (roofless cars, sky inside rooms) and heads still
+// landed in the text zone 9 times in 10, so the text moves off heads instead (A/B test 2026-10-02). The "No logos" list
+// stays: without it the models drew brand logos and license plates.
+const STYLE = 'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, realistic candid photo with natural proportions, vertical framing. No text, no letters, no logos, no watermarks, no phone screens.';
+/** Bump when STYLE changes, so each photo's record says which wording made it. */
+export const STYLE_VERSION = '2026-10-02';
+
+/** The full text the photo model gets: the scene, the brand's look, then the shared style. */
+export const photoPrompt = (scene: string, look?: string): string => [scene, look && `Brand look: ${look}`, STYLE].filter(Boolean).join(' ');
 
 export const photoKey = (runId: string, index: number) => `admin/auto-slideshow/${runId}/photos/${index}.jpg`;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const submit = async (prompt: string) => {
+const submit = async (prompt: string, gen: PhotoGenConfig) => {
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await submitReapiImage({ model: PHOTO_MODEL, prompt, imageUrls: [], ratio: PHOTO_RATIO, highRes: false });
+      return await submitReapiImage({ model: gen.model, prompt, imageUrls: [], ratio: gen.ratio, highRes: gen.highRes });
     } catch (err) {
       const busy = err instanceof Error && err.message.includes('(429)');
       if (!busy || attempt >= SUBMIT_ATTEMPTS) throw err;
@@ -43,24 +55,26 @@ const submit = async (prompt: string) => {
   }
 };
 
-type MadePhoto = { key: string; heads: HeadBox[] | null };
+type MadePhoto = { key: string; heads: HeadBox[] | null; gen: PhotoGen };
 
 /** One photo, generated and stored as a 1440x1800 JPEG under 1 MB, with its heads found so step 6 keeps text off them. */
-const makePhoto = async (runId: string, index: number, prompt: string, look: string | undefined, meter: CostMeter): Promise<MadePhoto> => {
-  const { taskId } = await submit([prompt, look && `Brand look: ${look}`, STYLE].filter(Boolean).join(' '));
+const makePhoto = async (runId: string, index: number, scene: string, look: string | undefined, meter: CostMeter, config: PhotoGenConfig = PHOTO_GEN): Promise<MadePhoto> => {
+  const sentPrompt = photoPrompt(scene, look);
+  const { taskId, cost } = await submit(sentPrompt, config);
+  const gen: PhotoGen = { sentPrompt, model: config.model, ratio: config.ratio, highRes: config.highRes, taskId, styleVersion: STYLE_VERSION, createdAt: new Date().toISOString() };
   const deadline = Date.now() + TIMEOUT_MS;
   await sleep(FIRST_POLL_MS);
   while (Date.now() < deadline) {
     const result = await pollGeminiImage(taskId);
     if (result.status === 'completed' && result.url) {
       // reAPI bills finished images only.
-      meter.add(`Photo (${REAPI_MODELS[PHOTO_MODEL].label})`, REAPI_MODELS[PHOTO_MODEL].priceUsdMicros['1k']);
+      meter.add(`Photo (${REAPI_MODELS[config.model].label})`, cost);
       const res = await fetch(result.url, { signal: AbortSignal.timeout(30_000) });
       if (!res.ok) throw new Error(`photo download failed (${res.status})`);
       const jpeg = await compressJpeg(Buffer.from(await res.arrayBuffer()), PHOTO_SIZE);
       const key = photoKey(runId, index);
       await putObject(key, jpeg, 'image/jpeg');
-      return { key, heads: await detectHeads(`data:image/jpeg;base64,${jpeg.toString('base64')}`) };
+      return { key, gen, heads: await detectHeads(`data:image/jpeg;base64,${jpeg.toString('base64')}`) };
     }
     if (result.status === 'failed') throw new Error(result.error ?? 'Photo generation failed');
     await sleep(POLL_MS);
@@ -89,9 +103,9 @@ export const makePhotos = async (runId: string, prompts: string[], existing: Aut
   await runPool(todo, CONCURRENCY, async ({ p, i }) => {
     if (options.deadline && Date.now() > options.deadline) return;
     try {
-      const { key, heads } = await makePhoto(runId, i, p.prompt, options.look, meter);
+      const { key, heads, gen } = await makePhoto(runId, i, p.prompt, options.look, meter);
       // Unknown heads (detection failed) stay unset, so step 6 tries again.
-      photos[i] = { ...p, imageKey: key, error: null, ...(heads ? { heads } : {}) };
+      photos[i] = { ...p, imageKey: key, error: null, gen, ...(heads ? { heads } : {}) };
     } catch (err) {
       photos[i] = { ...p, imageKey: null, error: clip(err instanceof Error ? err.message : String(err), 300) };
     }
