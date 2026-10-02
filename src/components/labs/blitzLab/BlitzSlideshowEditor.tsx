@@ -45,6 +45,7 @@ import { LibraryGrid } from './LibraryGrid';
 import { ManualProfileStep, type ManualSelection } from './manual/ManualProfileStep';
 import { RealEstateTemplateStep } from './RealEstateTemplateStep';
 import { DeckEditBar } from './DeckEditBar';
+import { DeckMusicPanel } from './DeckMusicPanel';
 import { SHOT_FORMAT, shotFormatError } from './shotFormat';
 import { ANGLE_LABELS, SlideshowDeckStep, type DeckSource } from './SlideshowDeckStep';
 import type { CopyCheckContext } from './deckApi';
@@ -61,6 +62,7 @@ import { isLocalKey } from './useBlitzUploads';
 import { useBlitzWorkspace } from './useBlitzWorkspace';
 import { useDeckCardEditor } from './useDeckCardEditor';
 import { useDeckCardRender } from './useDeckCardRender';
+import { useDeckMusicMatch } from './useDeckMusicMatch';
 import { useSetRemix } from './useSetRemix';
 import { buildSet } from './slideshowSet';
 import { useTextLayout } from './useTextLayout';
@@ -196,6 +198,8 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
     assets, addAsset, setCurrentAssets,
   });
   const { editingCard } = deck;
+  // Jev picks each new card's music, as in the Auto Slideshow.
+  useDeckMusicMatch(deckCards, setDeckCards);
   // Kept cards render straight from the deck (Generate → Download), no editor round trip.
   const cardRender = useDeckCardRender({
     template: carouselTemplate, zillowData, checkContext, assets, addAsset, library,
@@ -536,6 +540,13 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
               fallbackAudioUrl={assets.find((a) => a.type === 'AUDIO')?.url}
               onGenerateCard={(card) => void cardRender.generate(card)}
               renderFor={cardRender.renderFor}
+              aside={(card) => (
+                <DeckMusicPanel
+                  card={card}
+                  assets={assets}
+                  onChange={(cardId, audio) => setDeckCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, audio } : c)))}
+                />
+              )}
             />
           </div>
           {editingCard && (

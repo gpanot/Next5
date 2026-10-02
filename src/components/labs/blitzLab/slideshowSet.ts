@@ -95,5 +95,7 @@ export function cardFromSet(projectId: string, set: SlideshowSet): DeckCardData 
     check: set.check,
     status: 'kept',
     edited: true,
+    // A remix keeps the music it was rendered with: no Jev pass.
+    musicMatched: true,
   };
 }

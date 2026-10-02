@@ -35,7 +35,8 @@ export const pickTracks = async (count: number): Promise<Array<{ assetId: string
   });
 };
 
-export type ShowForMusic = { goal: string | null; slides: Pick<AutoSlide, 'title' | 'body'>[] };
+/** `audience`: who this one slideshow is for, when it differs from the profile's (Blitz deck cards, one per audience). */
+export type ShowForMusic = { goal: string | null; slides: Pick<AutoSlide, 'title' | 'body'>[]; audience?: string };
 export type MusicPick = { assetId: string; startAt: number; recommended: boolean };
 
 const FIT_RUBRIC = ['Clashes with it', 'Weak fit', 'Okay', 'Good fit', 'Perfect fit'];
@@ -54,7 +55,7 @@ const scoreTracks = async (shows: ShowForMusic[], profile: BrandProfile | null, 
   const scores = shows.map(() => new Map<string, number>());
   const pairs = shows.flatMap((show, i) => tracks.map((track) => ({ i, show, track })));
   await runPool(pairs, JEV_CONCURRENCY, async ({ i, show, track }) => {
-    const slideshow = { business, goal: show.goal, slides: show.slides.map((s) => `${s.title} ${s.body}`.trim()) };
+    const slideshow = { business, goal: show.goal, ...(show.audience ? { audience: show.audience } : {}), slides: show.slides.map((s) => `${s.title} ${s.body}`.trim()) };
     const s = await jevScore({ slideshow, track: trackState(track) }, FIT_QUESTION, FIT_RUBRIC);
     if (s !== null) scores[i]!.set(track.id, s);
   });

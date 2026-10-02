@@ -23,7 +23,7 @@
  * Reusable: accepts `DeckCardData[]` (engine-agnostic), renders everything else.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { SwipeCard } from './SwipeCard';
 import { KeptItem, type KeptRenderView } from './KeptList';
 import { DeckAppBar, DeckControls, DoneScreen } from './SwipeDeckParts';
@@ -67,6 +67,10 @@ export type DeckCardData = {
   check?: CopyCheckContext;
   /** The BlitzProject rendering (or rendered) this card. */
   renderProjectId?: string;
+  /** Track Jev rated the best fit for this card (R2 key). Shown with a green dot in the music list. */
+  jevAudioKey?: string;
+  /** True once the Jev music pass ran for this card (hit or miss), so it runs once. */
+  musicMatched?: boolean;
 };
 
 /** One entry in the undo history. */
@@ -111,6 +115,8 @@ export type SwipeDeckProps = {
   onGenerate?: (cardId: string) => void;
   /** Background render state per kept card. */
   renderFor?: (card: DeckCardData) => KeptRenderView | undefined;
+  /** Right column, given the card on screen (top card or the one in Preview), e.g. its music. */
+  aside?: (card: DeckCardData | null) => ReactNode;
 };
 
 // ── Skip reason options ───────────────────────────────────────────────────────
@@ -144,6 +150,7 @@ export function SwipeDeck({
   fallbackAudioUrl,
   onGenerate,
   renderFor,
+  aside,
 }: SwipeDeckProps) {
   const [cards, setCards] = useState<DeckCardData[]>(initialCards);
   const [filter, setFilter] = useState<string>('all');
@@ -293,11 +300,8 @@ export function SwipeDeck({
         onToggleSound={toggleSound}
       />
 
-      {/* ── Two-col layout ────────────────────────────────────────────────── */}
-      <div
-        className="mx-auto grid w-full max-w-[960px] items-start gap-12 px-5 pb-7 pt-1.5"
-        style={{ gridTemplateColumns: '250px 1fr' }}
-      >
+      {/* ── Kept list | deck | aside (music) ──────────────────────────────── */}
+      <div className="mx-auto grid w-full max-w-[1240px] grid-cols-1 items-start gap-8 px-5 pb-7 pt-1.5 sm:grid-cols-[320px_1fr] lg:grid-cols-[340px_1fr_260px]">
         {/* ── Sidebar: kept list ─────────────────────────────────────────── */}
         <aside
           className="sticky top-24 hidden sm:block"
@@ -474,6 +478,12 @@ export function SwipeDeck({
             onUndo={handleUndo}
           />
         </main>
+
+        {aside && (
+          <div className="sm:col-span-2 lg:sticky lg:top-24 lg:col-span-1">
+            {aside(playing)}
+          </div>
+        )}
       </div>
 
       {/* ── Toast ──────────────────────────────────────────────────────────── */}

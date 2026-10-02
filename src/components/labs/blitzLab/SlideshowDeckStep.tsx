@@ -21,6 +21,7 @@ import { useLabClient } from '../LabClientProvider';
 import { SwipeDeck } from './SwipeDeck';
 import type { DeckCardData } from './SwipeDeck';
 import type { KeptRenderView } from './KeptList';
+import type { ReactNode } from 'react';
 import type { ShotView } from './SwipeCard';
 import { logDeckAction, type CopyCheckContext } from './deckApi';
 
@@ -207,6 +208,8 @@ export type SlideshowDeckStepProps = {
   onGenerateCard?: (card: DeckCardData) => void;
   /** Background render state per kept card. */
   renderFor?: (card: DeckCardData) => KeptRenderView | undefined;
+  /** Right column next to the deck, given the card on screen. */
+  aside?: (card: DeckCardData | null) => ReactNode;
 };
 
 export function SlideshowDeckStep({
@@ -219,6 +222,7 @@ export function SlideshowDeckStep({
   fallbackAudioUrl,
   onGenerateCard,
   renderFor,
+  aside,
 }: SlideshowDeckStepProps) {
   const client = useLabClient();
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(cards.length > 0 ? 'ready' : 'loading');
@@ -306,6 +310,7 @@ export function SlideshowDeckStep({
         if (card) onGenerateCard(card);
       })}
       renderFor={renderFor}
+      aside={aside}
       onSwipe={(card, action, reason) => logDeckAction(client, card.variantId, action, reason ? { reason } : {})}
     />
   );
