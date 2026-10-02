@@ -41,6 +41,8 @@ export const chatJsonWithMeta = async <T>(
   }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 20_000);
+  // gpt-5.x uses max_completion_tokens and does not accept temperature overrides.
+  const isGpt5 = model.startsWith('gpt-5');
   try {
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -48,8 +50,8 @@ export const chatJsonWithMeta = async <T>(
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model,
-        temperature: options.temperature ?? 0.7,
-        max_tokens: options.maxTokens,
+        ...(isGpt5 ? {} : { temperature: options.temperature ?? 0.7 }),
+        ...(isGpt5 ? { max_completion_tokens: options.maxTokens } : { max_tokens: options.maxTokens }),
         response_format: { type: 'json_object' },
         messages,
       }),

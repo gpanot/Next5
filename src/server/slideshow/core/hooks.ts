@@ -169,7 +169,7 @@ export async function generateHooks(input: HookGenerationInput): Promise<HookGen
       { role: 'system', content: buildSystemPrompt(input) },
       { role: 'user',   content: 'Generate the hooks JSON now.' },
     ],
-    { maxTokens: 2000, temperature: 0.9, model: 'gpt-4o-mini' },
+    { maxTokens: 2000, temperature: 0.9, model: 'gpt-5.5' },
   );
   // One retry when the call fails or returns no hooks list (seen occasionally).
   let { result } = await ask();
