@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { adminFetch } from '../business/useAdminApi';
 
-type Video = { projectId: string; status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'; downloadUrl: string | null };
+type Video = { projectId: string; status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'; downloadUrl: string | null; downloadId: string | null };
 type Response = { video: Video };
 
 const POLL_MS = 3_000;
@@ -26,6 +26,9 @@ const save = (url: string) => {
 export const useSlideshowVideo = (token: string, runId: string, slideshowId: string) => {
   const [rendering, setRendering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** When the current tap started (drives the countdown), and how long the last finished one took. */
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [lastMs, setLastMs] = useState<number | null>(null);
   const alive = useRef(true);
   const base = `/api/admin/auto-slideshow/runs/${runId}/slideshows/${slideshowId}/video`;
 
@@ -40,26 +43,34 @@ export const useSlideshowVideo = (token: string, runId: string, slideshowId: str
     while (alive.current && (video.status === 'PENDING' || video.status === 'PROCESSING')) {
       if (Date.now() - started > GIVE_UP_MS) throw new Error('The video is taking too long. Try again in a minute.');
       await sleep(POLL_MS);
-      video = (await adminFetch<Response>(token, `${base}?projectId=${video.projectId}`)).video;
+      const query = new URLSearchParams({ projectId: video.projectId, ...(first.downloadId ? { downloadId: first.downloadId } : {}) });
+      video = { ...(await adminFetch<Response>(token, `${base}?${query}`)).video, downloadId: first.downloadId };
     }
     return video;
   };
 
   const download = async () => {
+    const tapped = Date.now();
     setRendering(true);
     setError(null);
+    setLastMs(null);
+    setStartedAt(tapped);
     try {
       const started = (await adminFetch<Response>(token, base, { method: 'POST', body: '{}' })).video;
       const video = await waitForVideo(started);
       if (!alive.current) return;
       if (video.status === 'FAILED' || !video.downloadUrl) throw new Error('The video failed to render. Try again.');
       save(video.downloadUrl);
+      setLastMs(Date.now() - tapped);
     } catch (err) {
       if (alive.current) setError(err instanceof Error ? err.message : 'Video download failed');
     } finally {
-      if (alive.current) setRendering(false);
+      if (alive.current) {
+        setRendering(false);
+        setStartedAt(null);
+      }
     }
   };
 
-  return { rendering, error, download };
+  return { rendering, error, download, startedAt, lastMs };
 };

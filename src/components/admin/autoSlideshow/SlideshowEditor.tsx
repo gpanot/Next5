@@ -107,6 +107,8 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
             </div>
             <VideoButton
               rendering={video.rendering}
+              startedAt={video.startedAt}
+              lastMs={video.lastMs}
               disabled={busy !== null || show.slides.some((s) => !s.imageUrl)}
               onClick={() => void video.download()}
             />

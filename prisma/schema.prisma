@@ -2210,42 +2210,70 @@ model AutoSlideshowRun {
 
 /// One generated slideshow: step 4 writes its slides, step 6 renders them.
 model AutoSlideshow {
-  id           String   @id @default(cuid())
-  runId        String   @map("run_id")
-  position     Int
-  modelId      String?  @map("model_id")
-  modelName    String   @map("model_name")
-  hookPattern  String   @map("hook_pattern")
-  topic        String
+  id                      String   @id @default(cuid())
+  runId                   String   @map("run_id")
+  position                Int
+  modelId                 String?  @map("model_id")
+  modelName               String   @map("model_name")
+  hookPattern             String   @map("hook_pattern")
+  topic                   String
   /// 'teach' | 'proof' | 'myth' | 'story' | 'product' (src/types/admin/contentGoals.ts); null before goals existed
-  goal         String?
+  goal                    String?
   /// AutoSlide[]
-  slides       Json     @default("[]")
-  caption      String   @default("")
-  hashtags     String[] @default([])
+  slides                  Json     @default("[]")
+  caption                 String   @default("")
+  hashtags                String[] @default([])
   /// Background music from the Assets Library (preview + ZIP; TikTok's photo API cannot attach it)
-  audioAssetId String?  @map("audio_asset_id")
-  audioStart   Float    @default(0) @map("audio_start") @db.Real
+  audioAssetId            String?  @map("audio_asset_id")
+  audioStart              Float    @default(0) @map("audio_start") @db.Real
   /// Track Jev matched to this slideshow at generation (tagged "Recommended" in the editor); null when Jev was unavailable
-  recommendedAudioAssetId String? @map("recommended_audio_asset_id")
+  recommendedAudioAssetId String?  @map("recommended_audio_asset_id")
   /// Slideshow Bank parts this slideshow uses (src/types/admin/slideshowBank.ts); null before the bank
-  bankMeatId   String?  @map("bank_meat_id")
-  bankHookId   String?  @map("bank_hook_id")
-  bankCtaId    String?  @map("bank_cta_id")
+  bankMeatId              String?  @map("bank_meat_id")
+  bankHookId              String?  @map("bank_hook_id")
+  bankCtaId               String?  @map("bank_cta_id")
   /// 'written' | 'rendering' | 'ready' | 'failed'
-  status       String   @default("written")
-  error        String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  status                  String   @default("written")
+  error                   String?
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
 
-  run   AutoSlideshowRun    @relation(fields: [runId], references: [id], onDelete: Cascade)
-  model SlideshowModel?     @relation(fields: [modelId], references: [id], onDelete: SetNull)
-  audio BlitzAsset?         @relation(fields: [audioAssetId], references: [id], onDelete: SetNull)
+  run            AutoSlideshowRun             @relation(fields: [runId], references: [id], onDelete: Cascade)
+  model          SlideshowModel?              @relation(fields: [modelId], references: [id], onDelete: SetNull)
+  audio          BlitzAsset?                  @relation(fields: [audioAssetId], references: [id], onDelete: SetNull)
   /// One per platform it was approved for (TikTok, Instagram)
-  posts AutoSlideshowPost[]
+  posts          AutoSlideshowPost[]
+  /// Every "Download video" tap, for stats
+  videoDownloads AutoSlideshowVideoDownload[]
 
   @@index([runId, position])
   @@map("auto_slideshows")
+}
+
+/// One "Download video" tap in the slideshow editor: who asked, when, and how long the MP4 took (db/migrations/20261103090000).
+model AutoSlideshowVideoDownload {
+  id          String    @id @default(cuid())
+  slideshowId String    @map("slideshow_id")
+  runId       String    @map("run_id")
+  workspaceId String?   @map("workspace_id")
+  /// Null when an admin downloaded
+  userId      String?   @map("user_id")
+  /// The blitz_projects render that made (or already had) the MP4
+  projectId   String    @map("project_id")
+  /// True when a finished render was reused, so the download was instant
+  reused      Boolean   @default(false)
+  /// 'rendering' | 'completed' | 'failed'; still 'rendering' when the person left before it finished
+  status      String    @default("rendering")
+  requestedAt DateTime  @default(now()) @map("requested_at")
+  finishedAt  DateTime? @map("finished_at")
+  /// Milliseconds from the tap to the MP4 being ready (or failing)
+  waitMs      Int?      @map("wait_ms")
+
+  slideshow AutoSlideshow @relation(fields: [slideshowId], references: [id], onDelete: Cascade)
+
+  @@index([slideshowId])
+  @@index([requestedAt])
+  @@map("auto_slideshow_video_downloads")
 }
 
 /// One approved, scheduled TikTok carousel post per slideshow, sent through the workspace's TikTok connection.
@@ -2298,8 +2326,8 @@ model AutoSlideshowPost {
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  slideshow AutoSlideshow          @relation(fields: [slideshowId], references: [id], onDelete: Cascade)
-  run       AutoSlideshowRun       @relation(fields: [runId], references: [id], onDelete: Cascade)
+  slideshow AutoSlideshow           @relation(fields: [slideshowId], references: [id], onDelete: Cascade)
+  run       AutoSlideshowRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
   /// Every read of the numbers, oldest first: the post's history for Analytics
   snapshots AutoSlideshowPostStat[]
 
