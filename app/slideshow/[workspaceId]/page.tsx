@@ -1,11 +1,11 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { UserGate } from '../../../src/components/admin/autoSlideshow/UserGate';
 import { WorkspaceApp } from '../../../src/components/admin/autoSlideshow/workspace/WorkspaceApp';
+import { useWorkspaceToken } from '../../../src/components/admin/autoSlideshow/workspace/WorkspaceShell';
 
-/** One Auto Slideshow workspace (one website): make slideshows, connect its TikTok account, post. */
+/** One Auto Slideshow workspace (one website): its Calendar. Make slideshows, connect its TikTok account, post. */
 export default function SlideshowWorkspacePage() {
   const { workspaceId } = useParams<{ workspaceId: string }>();
-  return <UserGate>{(token) => <WorkspaceApp token={token} workspaceId={workspaceId} />}</UserGate>;
+  return <WorkspaceApp token={useWorkspaceToken()} workspaceId={workspaceId} />;
 }

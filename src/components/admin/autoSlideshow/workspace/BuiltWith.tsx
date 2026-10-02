@@ -1,21 +1,11 @@
 import type { ReactNode } from 'react';
 import { InstagramGlyph, TikTokGlyph } from './PlatformBadges';
 
-/** Treg's official bee mark, copied from treg.dev. */
+/** Treg's official ▚ mark, from treg.to/favicon.svg (the black tile comes from TOOLS). */
 const TregLogo = () => (
-  <svg viewBox="0 0 32 32" className="h-7 w-7" aria-hidden="true">
-    <defs>
-      <linearGradient id="builtWithTregHex" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor="#ffc107" />
-        <stop offset="1" stopColor="#c77800" />
-      </linearGradient>
-    </defs>
-    <path d="M16 1.5 28.6 8.75v14.5L16 30.5 3.4 23.25V8.75z" fill="url(#builtWithTregHex)" stroke="#3e2723" strokeWidth="1.2" strokeLinejoin="round" />
-    <ellipse cx="12.2" cy="11.6" rx="3" ry="2" fill="#fff8e1" opacity=".9" transform="rotate(-22 12.2 11.6)" />
-    <ellipse cx="19.8" cy="11.6" rx="3" ry="2" fill="#fff8e1" opacity=".9" transform="rotate(22 19.8 11.6)" />
-    <ellipse cx="16" cy="18" rx="5.4" ry="6.6" fill="#3e2723" />
-    <path d="M11.1 15.2h9.8M10.9 19h10.2m-8.8 3.7h7.4" stroke="#ffc107" strokeWidth="1.6" strokeLinecap="round" />
-    <path d="M14 12.2c-1-1.4-1.8-1.8-3-1.9m7 1.9c1-1.4 1.8-1.8 3-1.9" stroke="#3e2723" strokeWidth="1.1" strokeLinecap="round" fill="none" />
+  <svg viewBox="111 111 290 290" className="h-[1.125rem] w-[1.125rem]" fill="currentColor" aria-hidden="true">
+    <rect x="111" y="111" width="140.5" height="140.5" rx="20" />
+    <rect x="260.5" y="260.5" width="140.5" height="140.5" rx="20" />
   </svg>
 );
 
@@ -37,7 +27,7 @@ const ChatGptLogo = () => (
 type Tool = { name: string; logo: ReactNode; tile: string };
 
 const TOOLS: readonly Tool[] = [
-  { name: 'Treg', logo: <TregLogo />, tile: 'bg-white ring-1 ring-line dark:bg-zinc-900 dark:ring-zinc-800' },
+  { name: 'Treg', logo: <TregLogo />, tile: 'bg-black text-white ring-1 ring-white/10' },
   { name: 'Jev', logo: <JevLogo />, tile: 'bg-white ring-1 ring-line dark:bg-zinc-900 dark:ring-zinc-800' },
   { name: 'Grok', logo: <GrokLogo />, tile: 'bg-black text-white ring-1 ring-white/10' },
   { name: 'ChatGPT', logo: <ChatGptLogo />, tile: 'bg-black text-white ring-1 ring-white/10' },
