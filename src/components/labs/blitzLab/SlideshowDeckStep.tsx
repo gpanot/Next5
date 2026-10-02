@@ -20,6 +20,7 @@ import type { ZillowData } from './ZillowScrapeStep';
 import { useLabClient } from '../LabClientProvider';
 import { SwipeDeck } from './SwipeDeck';
 import type { DeckCardData } from './SwipeDeck';
+import type { KeptRenderView } from './KeptList';
 import type { ShotView } from './SwipeCard';
 import { logDeckAction, type CopyCheckContext } from './deckApi';
 
@@ -202,6 +203,10 @@ export type SlideshowDeckStepProps = {
   onBack?: () => void;
   /** Music for cards without an engine track. */
   fallbackAudioUrl?: string;
+  /** Renders a kept card in the background, without opening the editor. */
+  onGenerateCard?: (card: DeckCardData) => void;
+  /** Background render state per kept card. */
+  renderFor?: (card: DeckCardData) => KeptRenderView | undefined;
 };
 
 export function SlideshowDeckStep({
@@ -212,6 +217,8 @@ export function SlideshowDeckStep({
   paused = false,
   onBack,
   fallbackAudioUrl,
+  onGenerateCard,
+  renderFor,
 }: SlideshowDeckStepProps) {
   const client = useLabClient();
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(cards.length > 0 ? 'ready' : 'loading');
@@ -294,6 +301,11 @@ export function SlideshowDeckStep({
       paused={paused}
       onBack={onBack}
       fallbackAudioUrl={fallbackAudioUrl}
+      onGenerate={onGenerateCard && ((cardId) => {
+        const card = cards.find((c) => c.id === cardId);
+        if (card) onGenerateCard(card);
+      })}
+      renderFor={renderFor}
       onSwipe={(card, action, reason) => logDeckAction(client, card.variantId, action, reason ? { reason } : {})}
     />
   );

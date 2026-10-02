@@ -35,7 +35,7 @@ type Options = {
 };
 
 /** A card shot → editor slide: text, library clip (already in R2), trim, caption position, fixed length. */
-const toSlide = (shot: ShotView, i: number): SlideData => ({
+export const toSlide = (shot: ShotView, i: number): SlideData => ({
   text: shot.text,
   backgroundKey: shot.edit?.assetKey,
   trimStart: shot.edit?.trimStart,
@@ -144,7 +144,7 @@ export function useDeckCardEditor(o: Options) {
 
   const markRendered = (projectId: string | null) => {
     if (!editingCard || !projectId) return;
-    setDeckCards((prev) => prev.map((c) => (c.id === editingCard.id ? { ...c, status: 'generated' } : c)));
+    setDeckCards((prev) => prev.map((c) => (c.id === editingCard.id ? { ...c, status: 'generated', renderProjectId: projectId } : c)));
     logDeckAction(client, editingCard.variantId, 'render', { blitzProjectId: projectId });
   };
 

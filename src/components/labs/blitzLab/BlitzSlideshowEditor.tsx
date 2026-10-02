@@ -60,6 +60,7 @@ import type { BlitzUploadType } from './upload';
 import { isLocalKey } from './useBlitzUploads';
 import { useBlitzWorkspace } from './useBlitzWorkspace';
 import { useDeckCardEditor } from './useDeckCardEditor';
+import { useDeckCardRender } from './useDeckCardRender';
 import { useSetRemix } from './useSetRemix';
 import { buildSet } from './slideshowSet';
 import { useTextLayout } from './useTextLayout';
@@ -195,6 +196,11 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
     assets, addAsset, setCurrentAssets,
   });
   const { editingCard } = deck;
+  // Kept cards render straight from the deck (Generate → Download), no editor round trip.
+  const cardRender = useDeckCardRender({
+    template: carouselTemplate, zillowData, checkContext, assets, addAsset, library,
+    textOverride: text.override, setDeckCards, submit: render.submit,
+  });
   const durationSeconds = deck.fixedDurationSeconds ?? freeFormSeconds;
 
   // ── load the carousel template + assets ────────────────────────────────
@@ -528,6 +534,8 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
               paused={Boolean(editingCard)}
               onBack={() => setStep(flowType === 'real_estate' ? 'research' : 'profile')}
               fallbackAudioUrl={assets.find((a) => a.type === 'AUDIO')?.url}
+              onGenerateCard={(card) => void cardRender.generate(card)}
+              renderFor={cardRender.renderFor}
             />
           </div>
           {editingCard && (

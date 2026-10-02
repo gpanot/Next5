@@ -1,69 +1,9 @@
 'use client';
 
-// Presentational pieces of the SwipeDeck: kept-list row and the end-of-deck screen.
+// Presentational pieces of the SwipeDeck: app bar and the end-of-deck screen. Kept rows live in KeptList.
 
-import { ArrowLeft, Check, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Check, Pencil, Volume2, VolumeX, X } from 'lucide-react';
 import type { DeckCardData, DeckLens } from './SwipeDeck';
-
-// ── Kept thumbnail item ───────────────────────────────────────────────────────
-
-/**
- * Poster for a kept card: the hook shot's clip (first frame at its best moment) or photo.
- * CSS background-image cannot show a video, which left clip-led cards blank.
- */
-function KeptThumb({ card }: { card: DeckCardData }) {
-  const shot = card.shots[0];
-  const box = 'h-[50px] w-[34px] flex-none overflow-hidden rounded-[7px] bg-neutral-800';
-  if (shot?.mediaUrl && shot.mediaKind === 'video') {
-    return (
-      <div className={box} aria-hidden>
-        <video src={shot.mediaUrl} muted playsInline preload="metadata" className="h-full w-full object-cover" />
-      </div>
-    );
-  }
-  if (shot?.mediaUrl) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={shot.mediaUrl} alt="" aria-hidden className={`${box} object-cover`} />
-    );
-  }
-  return (
-    <div
-      className={box}
-      style={{ background: `linear-gradient(160deg,hsl(${card.hue ?? 220} 32% 38%),hsl(${((card.hue ?? 220) + 24) % 360} 38% 21%))` }}
-      aria-hidden
-    />
-  );
-}
-
-export function KeptItem({ card, onEdit }: { card: DeckCardData; onEdit: (cardId: string) => void }) {
-  const posterShot = card.shots[0];
-  const isGenerated = card.status === 'generated';
-  return (
-    <div className="mb-2 flex items-center gap-2.5 rounded-2xl border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] p-2">
-      <KeptThumb card={card} />
-      <div className="min-w-0 flex-1">
-        <b className="block truncate text-[13px] font-semibold leading-snug text-[var(--ink,#000)]">
-          {posterShot?.text ?? card.hookStyle}
-        </b>
-        <span className="text-[12px] text-[var(--mute,#7c7d82)]">{card.lensValue}</span>
-      </div>
-      {isGenerated ? (
-        <span className="ml-auto flex-none rounded-full bg-[var(--ready-bg,#e4f3ea)] px-2.5 py-0.5 text-[11.5px] font-semibold text-[var(--ready,#1e8049)]">
-          Generated
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={() => onEdit(card.id)}
-          className="ml-auto flex-none rounded-full bg-[var(--ink,#000)] px-3 py-1 text-[11.5px] font-semibold text-white transition-opacity hover:opacity-80"
-        >
-          Edit
-        </button>
-      )}
-    </div>
-  );
-}
 
 // ── Done (end) screen ─────────────────────────────────────────────────────────
 
@@ -241,5 +181,93 @@ export function DeckAppBar({
       </button>
     </div>
   </header>
+  );
+}
+
+
+// ── Controls (skip / edit / keep, undo, shortcuts) ───────────────────────────
+
+export function DeckControls({
+  disabled,
+  canUndo,
+  onSkip,
+  onEdit,
+  onKeep,
+  onUndo,
+}: {
+  disabled: boolean;
+  canUndo: boolean;
+  onSkip: () => void;
+  onEdit: () => void;
+  onKeep: () => void;
+  onUndo: () => void;
+}) {
+  return (
+    <>
+      {/* ── Controls ─────────────────────────────────────────────────── */}
+      <div className="mt-9 flex items-center justify-center gap-3.5">
+        {/* Skip */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onSkip}
+          aria-label="Skip this video"
+          className="grid h-[68px] w-[68px] place-items-center rounded-full border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] text-[#555] shadow-[0_8px_18px_-12px_rgba(0,0,0,.35)] active:scale-[.94] disabled:opacity-35"
+        >
+          <X aria-hidden className="h-7 w-7" strokeWidth={2.6} strokeLinecap="round" />
+        </button>
+
+        {/* Edit */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onEdit}
+          aria-label="Edit this video"
+          className="grid h-[50px] w-[50px] place-items-center rounded-full border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] text-[var(--ink,#000)] shadow-[0_8px_18px_-12px_rgba(0,0,0,.35)] active:scale-[.94] disabled:opacity-35"
+        >
+          <Pencil aria-hidden className="h-[21px] w-[21px]" strokeWidth={2.2} />
+        </button>
+
+        {/* Keep */}
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={onKeep}
+          aria-label="Keep this video"
+          className="grid h-[68px] w-[68px] place-items-center rounded-full border border-[var(--ready,#1e8049)] bg-[var(--ready,#1e8049)] text-white shadow-[0_8px_18px_-12px_rgba(0,0,0,.35)] active:scale-[.94] disabled:opacity-35"
+        >
+          <Check aria-hidden className="h-[30px] w-[30px]" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" />
+        </button>
+      </div>
+
+      {/* Control labels */}
+      <div className="mt-1.5 flex justify-center gap-3.5" aria-hidden>
+        <span className="w-[68px] text-center text-[12px] text-[var(--mute,#7c7d82)]">Skip</span>
+        <span className="w-[50px] text-center text-[12px] text-[var(--mute,#7c7d82)]">Edit</span>
+        <span className="w-[68px] text-center text-[12px] text-[var(--mute,#7c7d82)]">Keep</span>
+      </div>
+
+      {/* Undo + keyboard hint */}
+      <div className="mt-2.5 flex items-center justify-center gap-[18px] text-[13px] text-[var(--mute,#7c7d82)]">
+        <button
+          type="button"
+          disabled={!canUndo}
+          onClick={onUndo}
+          className="bg-none border-0 cursor-pointer text-[var(--ink,#000)] text-[13.5px] font-semibold underline underline-offset-[3px] disabled:cursor-default disabled:text-[var(--mute,#7c7d82)] disabled:no-underline"
+        >
+          Undo
+        </button>
+        <span className="hidden text-[12px] md:inline">
+          <kbd className="rounded-[5px] border border-b-2 border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] px-[5px] text-[11.5px] text-[var(--ink,#000)]">←</kbd>
+          {' '}skip{' '}
+          <kbd className="rounded-[5px] border border-b-2 border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] px-[5px] text-[11.5px] text-[var(--ink,#000)]">→</kbd>
+          {' '}keep{' '}
+          <kbd className="rounded-[5px] border border-b-2 border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] px-[5px] text-[11.5px] text-[var(--ink,#000)]">E</kbd>
+          {' '}edit{' '}
+          <kbd className="rounded-[5px] border border-b-2 border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] px-[5px] text-[11.5px] text-[var(--ink,#000)]">Space</kbd>
+          {' '}pause
+        </span>
+      </div>
+    </>
   );
 }

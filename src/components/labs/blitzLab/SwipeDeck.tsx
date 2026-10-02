@@ -23,10 +23,10 @@
  * Reusable: accepts `DeckCardData[]` (engine-agnostic), renders everything else.
  */
 
-import { Check, Pencil, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { SwipeCard } from './SwipeCard';
-import { DeckAppBar, DoneScreen, KeptItem } from './SwipeDeckParts';
+import { KeptItem, type KeptRenderView } from './KeptList';
+import { DeckAppBar, DeckControls, DoneScreen } from './SwipeDeckParts';
 import { useDeckSound } from './useDeckSound';
 import type { CopyCheckContext } from './deckApi';
 import type { SwipeCardTag, SwipeCardWhyPanel, ShotView } from './SwipeCard';
@@ -65,6 +65,8 @@ export type DeckCardData = {
   audio?: { assetKey: string; url?: string; startAt: number; label: string } | null;
   /** What edited copy is checked against before render (listing facts or the brand profile). */
   check?: CopyCheckContext;
+  /** The BlitzProject rendering (or rendered) this card. */
+  renderProjectId?: string;
 };
 
 /** One entry in the undo history. */
@@ -105,6 +107,10 @@ export type SwipeDeckProps = {
   fallbackAudioUrl?: string;
   /** Every deck action, for logging: keep, discard (reason arrives in a second call), undo. */
   onSwipe?: (card: DeckCardData, action: 'keep' | 'discard' | 'undo', reason?: string) => void;
+  /** Renders a kept card in the background. Absent = no Generate button. */
+  onGenerate?: (cardId: string) => void;
+  /** Background render state per kept card. */
+  renderFor?: (card: DeckCardData) => KeptRenderView | undefined;
 };
 
 // ── Skip reason options ───────────────────────────────────────────────────────
@@ -136,12 +142,16 @@ export function SwipeDeck({
   onBack,
   onSwipe,
   fallbackAudioUrl,
+  onGenerate,
+  renderFor,
 }: SwipeDeckProps) {
   const [cards, setCards] = useState<DeckCardData[]>(initialCards);
   const [filter, setFilter] = useState<string>('all');
   const [history, setHistory] = useState<HistEntry[]>([]);
   const [toast, setToast] = useState<ToastState>(null);
   const [exitMap, setExitMap] = useState<Record<string, 'keep' | 'discard'>>({});
+  /** Kept card shown again in the card slot. Swipes and shortcuts are off while it shows. */
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const { soundOn, toggleSound } = useDeckSound();
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -163,19 +173,21 @@ export function SwipeDeck({
   });
   const allNewCount = cards.filter((c) => c.status === 'new').length;
 
-  const current = queue[0] ?? null;
+  const previewCard = cards.find((c) => c.id === previewId) ?? null;
+  const current = previewCard ? null : (queue[0] ?? null);
 
-  // ── Music for the top card ────────────────────────────────────────────────
-  const trackUrl = current?.audio?.url ?? fallbackAudioUrl;
-  const trackStart = current?.audio?.startAt ?? 0;
+  // ── Music for the top card (or the previewed one) ─────────────────────────
+  const playing = previewCard ?? current;
+  const trackUrl = playing?.audio?.url ?? fallbackAudioUrl;
+  const trackStart = playing?.audio?.startAt ?? 0;
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (soundOn && !paused && trackUrl && current) audio.play().catch(() => undefined); // autoplay may be blocked until a tap
+    if (soundOn && !paused && trackUrl && playing) audio.play().catch(() => undefined); // autoplay may be blocked until a tap
     else audio.pause();
-  }, [soundOn, paused, trackUrl, current]);
-  const next1 = queue[1] ?? null;
-  const next2 = queue[2] ?? null;
+  }, [soundOn, paused, trackUrl, playing]);
+  const next1 = current ? (queue[1] ?? null) : null;
+  const next2 = current ? (queue[2] ?? null) : null;
 
   // ── Toast helpers ──────────────────────────────────────────────────────────
   const toastTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -197,7 +209,7 @@ export function SwipeDeck({
     }, 320);
     onKeep?.(current.id);
     onSwipe?.(current, 'keep');
-    showToast({ message: 'Kept. Tap Edit to finish and render it.', withUndo: true }, 3200);
+    showToast({ message: 'Kept. Tap Generate to render it, or Edit to change it.', withUndo: true }, 3200);
   }, [current, onKeep, onSwipe, showToast]);
 
   // ── Skip ───────────────────────────────────────────────────────────────────
@@ -245,7 +257,8 @@ export function SwipeDeck({
     const handler = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).matches('textarea, input')) return;
       if (paused) return;
-      if (e.key === 'ArrowRight') handleKeep();
+      if (e.key === 'Escape') setPreviewId(null);
+      else if (e.key === 'ArrowRight') handleKeep();
       else if (e.key === 'ArrowLeft') handleSkip();
       else if (e.key === 'z' || e.key === 'Z') handleUndo();
       else if (e.key === 'e' || e.key === 'E') { e.preventDefault(); handleEditOpen(); }
@@ -295,10 +308,16 @@ export function SwipeDeck({
           </h2>
           {keptCards.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[var(--line,#e8e5e1)] p-[14px] text-[13.5px] text-[var(--mute,#7c7d82)]">
-              Swipe right to keep a variation, then tap Edit to build the slideshow.
+              Swipe right to keep a variation, then tap Generate to render it.
             </div>
           ) : (
-            keptCards.map((c) => <KeptItem key={c.id} card={c} onEdit={(cardId) => { onEdit?.(cardId); }} />)
+            keptCards.map((c) => (
+              <KeptItem
+                key={c.id}
+                card={c}
+                actions={{ onEdit: (cardId) => onEdit?.(cardId), onPreview: setPreviewId, onGenerate, renderFor }}
+              />
+            ))
           )}
         </aside>
 
@@ -334,6 +353,22 @@ export function SwipeDeck({
               </button>
             ))}
           </div>
+
+          {/* Preview bar: a kept card is back in the card slot */}
+          {previewCard && (
+            <div className="mb-2.5 flex w-full max-w-[380px] items-center justify-between gap-2">
+              <span className="truncate text-[13px] font-semibold text-[var(--ink,#000)] dark:text-neutral-100">
+                Preview · {previewCard.lensValue}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPreviewId(null)}
+                className="flex-none rounded-full border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] px-3 py-1.5 text-[12.5px] font-semibold text-[var(--ink,#000)] transition-opacity hover:opacity-80"
+              >
+                Back to deck
+              </button>
+            </div>
+          )}
 
           {/* Head row: audience tag, style tag */}
           {current && (
@@ -388,8 +423,21 @@ export function SwipeDeck({
               />
             )}
 
-            {/* top */}
-            {current ? (
+            {/* kept card shown again (Preview) */}
+            {previewCard ? (
+              <SwipeCard
+                key={`preview-${previewCard.id}`}
+                shots={previewCard.shots}
+                position="top"
+                hue={previewCard.hue}
+                onKeep={() => {}}
+                onDiscard={() => {}}
+                onOpen={() => onEdit?.(previewCard.id)}
+                externalPause={paused}
+                soundOn={soundOn}
+                ariaLabel={`Preview of kept video for ${previewCard.lensValue}`}
+              />
+            ) : current ? (
               <SwipeCard
                 key={current.id}
                 shots={current.shots}
@@ -417,70 +465,14 @@ export function SwipeDeck({
             )}
           </div>
 
-          {/* ── Controls ─────────────────────────────────────────────────── */}
-          <div className="mt-9 flex items-center justify-center gap-3.5">
-            {/* Skip */}
-            <button
-              type="button"
-              disabled={!current}
-              onClick={handleSkip}
-              aria-label="Skip this video"
-              className="grid h-[68px] w-[68px] place-items-center rounded-full border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] text-[#555] shadow-[0_8px_18px_-12px_rgba(0,0,0,.35)] active:scale-[.94] disabled:opacity-35"
-            >
-              <X aria-hidden className="h-7 w-7" strokeWidth={2.6} strokeLinecap="round" />
-            </button>
-
-            {/* Edit */}
-            <button
-              type="button"
-              disabled={!current}
-              onClick={handleEditOpen}
-              aria-label="Edit this video"
-              className="grid h-[50px] w-[50px] place-items-center rounded-full border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] text-[var(--ink,#000)] shadow-[0_8px_18px_-12px_rgba(0,0,0,.35)] active:scale-[.94] disabled:opacity-35"
-            >
-              <Pencil aria-hidden className="h-[21px] w-[21px]" strokeWidth={2.2} />
-            </button>
-
-            {/* Keep */}
-            <button
-              type="button"
-              disabled={!current}
-              onClick={handleKeep}
-              aria-label="Keep this video"
-              className="grid h-[68px] w-[68px] place-items-center rounded-full border border-[var(--ready,#1e8049)] bg-[var(--ready,#1e8049)] text-white shadow-[0_8px_18px_-12px_rgba(0,0,0,.35)] active:scale-[.94] disabled:opacity-35"
-            >
-              <Check aria-hidden className="h-[30px] w-[30px]" strokeWidth={2.8} strokeLinecap="round" strokeLinejoin="round" />
-            </button>
-          </div>
-
-          {/* Control labels */}
-          <div className="mt-1.5 flex justify-center gap-3.5" aria-hidden>
-            <span className="w-[68px] text-center text-[12px] text-[var(--mute,#7c7d82)]">Skip</span>
-            <span className="w-[50px] text-center text-[12px] text-[var(--mute,#7c7d82)]">Edit</span>
-            <span className="w-[68px] text-center text-[12px] text-[var(--mute,#7c7d82)]">Keep</span>
-          </div>
-
-          {/* Undo + keyboard hint */}
-          <div className="mt-2.5 flex items-center justify-center gap-[18px] text-[13px] text-[var(--mute,#7c7d82)]">
-            <button
-              type="button"
-              disabled={history.length === 0}
-              onClick={handleUndo}
-              className="bg-none border-0 cursor-pointer text-[var(--ink,#000)] text-[13.5px] font-semibold underline underline-offset-[3px] disabled:cursor-default disabled:text-[var(--mute,#7c7d82)] disabled:no-underline"
-            >
-              Undo
-            </button>
-            <span className="hidden text-[12px] md:inline">
-              <kbd className="rounded-[5px] border border-b-2 border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] px-[5px] text-[11.5px] text-[var(--ink,#000)]">←</kbd>
-              {' '}skip{' '}
-              <kbd className="rounded-[5px] border border-b-2 border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] px-[5px] text-[11.5px] text-[var(--ink,#000)]">→</kbd>
-              {' '}keep{' '}
-              <kbd className="rounded-[5px] border border-b-2 border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] px-[5px] text-[11.5px] text-[var(--ink,#000)]">E</kbd>
-              {' '}edit{' '}
-              <kbd className="rounded-[5px] border border-b-2 border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] px-[5px] text-[11.5px] text-[var(--ink,#000)]">Space</kbd>
-              {' '}pause
-            </span>
-          </div>
+          <DeckControls
+            disabled={!current}
+            canUndo={history.length > 0}
+            onSkip={handleSkip}
+            onEdit={handleEditOpen}
+            onKeep={handleKeep}
+            onUndo={handleUndo}
+          />
         </main>
       </div>
 
@@ -542,7 +534,7 @@ export function SwipeDeck({
       {/* Hidden music player: restarts at the track's best moment on every new card */}
       {trackUrl && (
         <audio
-          key={`${current?.id ?? 'none'}-${trackUrl}`}
+          key={`${playing?.id ?? 'none'}-${trackUrl}`}
           ref={audioRef}
           src={trackUrl}
           loop
