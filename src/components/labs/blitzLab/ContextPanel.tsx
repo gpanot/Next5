@@ -44,8 +44,10 @@ const CAPTION_STYLES: CaptionStyleDef[] = [
   {
     id: 'tiktok-classic',
     label: 'TikTok classic',
-    patch: { font: _f('Anton'), color: '#ffffff', fontWeight: 400, strokeWidth: 4, strokeColor: '#000000', textBackground: undefined },
-    preview: { font: 'Anton, sans-serif', color: '#ffffff', fontWeight: 400, strokeWidth: 2, strokeColor: '#000000', thumbnailBg: '#111111' },
+    // Same look as the Auto Slideshow hook text (server/autoSlideshow/render.tsx): Inter ExtraBold, white, 3px black
+    // outline. The stroke is painted under the fill, so half of it shows: 6 here = 3px outside the glyphs.
+    patch: { font: _f('Inter'), color: '#ffffff', fontWeight: 800, strokeWidth: 6, strokeColor: '#000000', textBackground: undefined },
+    preview: { font: 'Inter, sans-serif', color: '#ffffff', fontWeight: 800, strokeWidth: 2, strokeColor: '#000000', thumbnailBg: '#111111' },
   },
   {
     id: 'bold-impact',
