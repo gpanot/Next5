@@ -1,9 +1,14 @@
 // server-only — never import from a 'use client' file.
-// 9:16 image generation via reAPI Nano Banana 2 Lite (Gemini Flash-Lite Image: fast, low cost, 1K).
+// 9:16 image generation via reAPI GPT Image 2.5 (`gpt-image-2.5-flare`), the model the Auto Slideshow photos use.
 // Used by the Blitz "Generate AI background" button and by the slideshow engines' image fallback.
 
-const REAPI_BASE = 'https://reapi.ai/api/v1';
-const POLL_MS = 5_000;
+import type { ReapiModelId } from '../../config/reapiModels';
+import { pollGeminiImage, submitReapiImage } from '../../lib/reapiImage';
+
+/** GPT Image 2.5: more natural people and scenes than Nano Banana 2 Lite, $0.023 flat at 2K (1152x2048 for 9:16). */
+const MODEL: ReapiModelId = 'reapi-gpt-image-2.5';
+const FIRST_POLL_MS = 8_000;
+const POLL_MS = 3_000;
 const MAX_WAIT_MS = 5 * 60_000;
 
 export type GeneratedImage = { buffer: Buffer; contentType: string; ext: 'png' | 'jpg' | 'webp' };
@@ -12,39 +17,32 @@ export class ImageGenerationError extends Error {
   constructor(message: string, readonly status: number) { super(message); }
 }
 
-async function pollTask(taskId: string, apiKey: string): Promise<{ status: string; output?: { image_urls?: string[] } }> {
-  const start = Date.now();
-  while (Date.now() - start < MAX_WAIT_MS) {
-    await new Promise((r) => setTimeout(r, POLL_MS));
-    const res = await fetch(`${REAPI_BASE}/tasks/${taskId}`, { headers: { Authorization: `Bearer ${apiKey}` } });
-    const json = (await res.json()) as { status: string; output?: { image_urls?: string[] } };
-    if (json.status === 'completed' || json.status === 'failed') return json;
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Polls the reAPI task until it has an image URL. */
+async function waitForImage(taskId: string): Promise<string> {
+  const deadline = Date.now() + MAX_WAIT_MS;
+  await sleep(FIRST_POLL_MS);
+  while (Date.now() < deadline) {
+    const result = await pollGeminiImage(taskId);
+    if (result.status === 'completed' && result.url) return result.url;
+    if (result.status === 'failed') throw new ImageGenerationError(`Image generation failed: ${result.error ?? 'unknown'}`, 502);
+    await sleep(POLL_MS);
   }
-  return { status: 'timeout' };
+  throw new ImageGenerationError('Image generation timed out', 504);
 }
 
 /** Generates one vertical image. Throws ImageGenerationError (with an HTTP-ish status) on failure. */
 export async function generateVerticalImage(prompt: string): Promise<GeneratedImage> {
-  const apiKey = process.env.REAPI_API_KEY;
-  if (!apiKey) throw new ImageGenerationError('REAPI_API_KEY is not configured on the server.', 503);
+  if (!process.env.REAPI_API_KEY) throw new ImageGenerationError('REAPI_API_KEY is not configured on the server.', 503);
 
-  const submitRes = await fetch(`${REAPI_BASE}/images/generations`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: 'nano-banana-2-lite', prompt, aspect_ratio: '9:16' }),
-  });
-  if (!submitRes.ok) {
-    const errText = await submitRes.text().catch(() => submitRes.statusText);
-    throw new ImageGenerationError(`reAPI submission failed: ${errText.slice(0, 200)}`, 502);
+  let taskId: string;
+  try {
+    ({ taskId } = await submitReapiImage({ model: MODEL, prompt, imageUrls: [], ratio: '9:16', highRes: true }));
+  } catch (err) {
+    throw new ImageGenerationError(`reAPI submission failed: ${err instanceof Error ? err.message.slice(0, 200) : 'unknown'}`, 502);
   }
-  const submission = (await submitRes.json()) as { id?: string; task_id?: string };
-  const taskId = submission.id ?? submission.task_id;
-  if (!taskId) throw new ImageGenerationError('No task_id returned from reAPI', 502);
-
-  const result = await pollTask(taskId, apiKey);
-  if (result.status !== 'completed') throw new ImageGenerationError(`Image generation failed: ${result.status}`, 502);
-  const imageUrl = result.output?.image_urls?.[0];
-  if (!imageUrl) throw new ImageGenerationError('No image URL in completed task output', 502);
+  const imageUrl = await waitForImage(taskId);
 
   const imageRes = await fetch(imageUrl);
   if (!imageRes.ok) throw new ImageGenerationError(`Failed to download generated image: ${imageRes.status}`, 502);

@@ -9,7 +9,7 @@
  *   AUDIO      → Library | My uploads
  *
  * The "Photos (AI)" tab shows AI-generated image assets (source === 'library') and
- * a Nano Banana 2 Lite generator. User-uploaded files appear only in "My uploads".
+ * a GPT Image 2.5 generator. User-uploaded files appear only in "My uploads".
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -211,7 +211,7 @@ export function AssetLibraryModal({
             {/* Generate section */}
             <div className="border-b border-line bg-surface-alt/50 px-4 py-3 sm:px-6 dark:border-neutral-800">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
-                Generate AI Background — 9:16 Vertical · Nano Banana 2 Lite
+                Generate AI Background — 9:16 Vertical · GPT Image 2.5
               </p>
               <div className="flex gap-2">
                 <input

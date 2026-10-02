@@ -11,8 +11,7 @@ type GenerateBody = { prompt?: string };
  * POST /api/admin/blitz/generate-background
  * Body: { prompt: string }
  *
- * Generates a 9:16 background image via reAPI Nano Banana 2 Lite
- * (Gemini 3.1 Flash-Lite Image — fast, low-cost 1K),
+ * Generates a 9:16 background image via reAPI GPT Image 2.5 (gpt-image-2.5-flare, 1152x2048),
  * uploads the result to R2 as a BACKGROUND asset, and returns the asset DTO.
  *
  * The image is tagged as AI-generated via the name field ("… [AI]") for future

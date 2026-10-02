@@ -129,7 +129,7 @@ export const blitzApi = {
   deleteProject: (client: LabClient, id: string) =>
     client.request<{ ok: boolean }>(`${BASE}/projects/${id}`, { method: 'DELETE' }),
 
-  /** Generate an AI background image via GPT-image-2 (9:16, 1k ≈ $0.03/image). */
+  /** Generate an AI background image via GPT Image 2.5 (9:16, 2K, $0.023/image). */
   generateBackground: (client: LabClient, prompt: string) =>
     client.request<{ asset: BlitzAssetDto }>(`${BASE}/generate-background`, { json: { prompt } }),
 };
