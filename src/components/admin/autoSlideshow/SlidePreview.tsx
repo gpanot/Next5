@@ -25,7 +25,8 @@ function Arrow({ dir }: { dir: 'left' | 'right' }) {
 export function SlidePreview({ show, index, onIndex, working }: Props) {
   const strip = useRef<HTMLDivElement>(null);
   const audio = useRef<HTMLAudioElement>(null);
-  const [playing, setPlaying] = useState(false);
+  // Opening a slideshow plays it, like TikTok; the music may wait for a tap if the browser blocks it.
+  const [playing, setPlaying] = useState(true);
   const count = show.slides.length;
 
   const go = (i: number) => {

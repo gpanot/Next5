@@ -125,7 +125,8 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
         <MonthGrid key={dayKey(month)} days={days} actions={actions} />
       </SlideshowDnd>
       {(error || posting.error) && <p className="text-sm text-red-600 dark:text-red-400">{error ?? posting.error}</p>}
-      <div className="flex flex-col gap-2 sm:flex-row">
+      {/* Pinned to the screen bottom while the plan is on screen: users don't always scroll down to find them. */}
+      <div className="sticky bottom-0 z-20 -mx-4 flex flex-col gap-2 border-t border-line bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:flex-row md:-mx-5 md:px-5 dark:border-zinc-800 dark:bg-zinc-900/95">
         <button onClick={() => void add(fill)} disabled={!idle || fill === 0 || tooMany} className="min-h-12 flex-1 rounded-full border-2 border-blue-600 px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 active:scale-95 disabled:opacity-40 dark:border-blue-400 dark:text-blue-300 dark:hover:bg-blue-950">
           {adding !== null ? 'Generating…' : fill > 0 ? `Generate ${fill} ${fill === 1 ? 'slideshow' : 'slideshows'} · ${money(PRICE_CENTS * fill)}` : 'Tap + Add post on a day to plan'}
         </button>
