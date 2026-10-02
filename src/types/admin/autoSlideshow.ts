@@ -102,6 +102,8 @@ export type AutoSlideshowDto = {
   hashtags: string[];
   /** Background music for the preview and ZIP (TikTok's photo API adds its own sound). */
   audio: AutoTrackDto | null;
+  /** Track Jev matched to this slideshow at generation; null on older slideshows or when Jev was unavailable. */
+  recommendedAudioId: string | null;
   /** This slideshow's TikTok post, once one was scheduled or sent. */
   /** The post shown on the calendar: the first live one (TikTok first), else the latest. */
   post: AutoPostDto | null;

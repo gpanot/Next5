@@ -30,6 +30,9 @@ export function MusicPicker({ show, tracks, busy, onPick }: Props) {
   };
 
   const current = tracks?.find((t) => t.assetId === show.audio?.assetId);
+  // Jev's match goes first in the list, tagged, so it is easy to get back to after trying others.
+  const recommended = tracks?.find((t) => t.assetId === show.recommendedAudioId);
+  const others = tracks?.filter((t) => t !== recommended);
 
   return (
     <div className="space-y-2">
@@ -43,7 +46,8 @@ export function MusicPicker({ show, tracks, busy, onPick }: Props) {
           className={field}
         >
           <option value="">No music</option>
-          {tracks?.map((t) => <option key={t.assetId} value={t.assetId}>{t.name}</option>)}
+          {recommended && <option value={recommended.assetId}>Recommended · {recommended.name}</option>}
+          {others?.map((t) => <option key={t.assetId} value={t.assetId}>{t.name}</option>)}
         </select>
         <button
           onClick={() => listen(current)}
@@ -54,6 +58,15 @@ export function MusicPicker({ show, tracks, busy, onPick }: Props) {
           {listening ? '■' : '▶'}
         </button>
       </div>
+      {recommended && current?.assetId !== recommended.assetId && (
+        <button
+          onClick={() => onPick(recommended.assetId)}
+          disabled={busy !== null}
+          className="text-left text-[12px] text-white/60 underline underline-offset-2 transition active:opacity-60 disabled:opacity-30"
+        >
+          Use recommended: {recommended.name}
+        </button>
+      )}
       <p className="text-[11px] text-white/40">For the preview and the ZIP only. When we post, TikTok picks the music itself, often a trending sound that gets more views.</p>
       <audio ref={audio} onEnded={() => setListening(null)} />
     </div>

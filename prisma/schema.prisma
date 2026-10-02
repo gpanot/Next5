@@ -2226,6 +2226,8 @@ model AutoSlideshow {
   /// Background music from the Assets Library (preview + ZIP; TikTok's photo API cannot attach it)
   audioAssetId String?  @map("audio_asset_id")
   audioStart   Float    @default(0) @map("audio_start") @db.Real
+  /// Track Jev matched to this slideshow at generation (tagged "Recommended" in the editor); null when Jev was unavailable
+  recommendedAudioAssetId String? @map("recommended_audio_asset_id")
   /// Slideshow Bank parts this slideshow uses (src/types/admin/slideshowBank.ts); null before the bank
   bankMeatId   String?  @map("bank_meat_id")
   bankHookId   String?  @map("bank_hook_id")

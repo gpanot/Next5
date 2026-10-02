@@ -34,6 +34,7 @@ const toSlideshowDto = async (s: ShowRow): Promise<AutoSlideshowDto> => ({
   caption: s.caption,
   hashtags: s.hashtags,
   audio: await trackDto(s.audio ?? null, s.audioStart),
+  recommendedAudioId: s.recommendedAudioAssetId,
   post: (() => { const p = primaryPost(s.posts ?? []); return p ? toPostDto(p) : null; })(),
   posts: (s.posts ?? []).map(toPostDto),
   status: s.status as AutoSlideshowStatus,

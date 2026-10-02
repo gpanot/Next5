@@ -22,7 +22,7 @@ import { putObject } from '../storage/objectStore';
 import { bankForSite, loadUsage } from './bank/build';
 import { assembleCombo, pickCombos } from './bank/pick';
 import { headsFor, withDetectedHeads, type HeadsCache } from './heads';
-import { pickTracks } from './music';
+import { matchTracks } from './music';
 import { makePhotos } from './photos';
 import { renderSlide, slidePhotoIndexes, type PhotoCache } from './render';
 import { ownPhotoEntries, photosPending, withOwnPhotos } from './slidePhotos';
@@ -113,17 +113,29 @@ const writeStep: StepFn = async (runId, _meter, { append }) => {
   const start = append > 0 ? (last?._max.position ?? -1) + 1 : 0;
   if (append === 0) await prisma.autoSlideshow.deleteMany({ where: { runId } });
   const picks = append > 0 ? plan.picks.slice(-append) : plan.picks;
-  // A random track per slideshow, all different while the library has enough; changeable in the editor.
-  const tracks = await pickTracks(picks.length);
+  const shows = picks.map((pick) => {
+    try {
+      if (!pick.bank) throw new Error('Planned before the Slideshow Bank: re-run from step 3');
+      return assembleCombo(bank, pick.bank);
+    } catch (err) {
+      return err instanceof Error ? err : new Error(String(err));
+    }
+  });
+  // Jev's best-matching track per slideshow, all different while the library has enough; changeable in the editor.
+  const tracks = await matchTracks(
+    shows.map((show, i) => (show instanceof Error ? { goal: null, slides: [] } : { goal: picks[i]!.goal ?? null, slides: show.slides })),
+    run.profile as unknown as BrandProfile | null,
+  );
   for (const [i, pick] of picks.entries()) {
     const track = tracks[i];
     const base = {
       runId, position: start + i, modelId: null, modelName: pick.modelName, hookPattern: pick.hookPattern, topic: pick.topic, goal: pick.goal ?? null,
-      ...(track ? { audioAssetId: track.assetId, audioStart: track.startAt } : {}),
+      ...(track ? { audioAssetId: track.assetId, audioStart: track.startAt, recommendedAudioAssetId: track.recommended ? track.assetId : null } : {}),
     };
     try {
+      const show = shows[i]!;
+      if (show instanceof Error) throw show;
       if (!pick.bank) throw new Error('Planned before the Slideshow Bank: re-run from step 3');
-      const show = assembleCombo(bank, pick.bank);
       const slides: AutoSlide[] = show.slides.map((s) => ({ ...s, imageKey: null }));
       const ids = { bankMeatId: pick.bank.meatId, bankHookId: pick.bank.hookId, bankCtaId: pick.bank.ctaId };
       await prisma.autoSlideshow.create({ data: { ...base, ...ids, slides: json(slides), caption: show.caption, hashtags: show.hashtags } });

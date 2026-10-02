@@ -8,9 +8,10 @@ import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import {
   describeAsset,
   writeVideo,
+  writeMusic,
   markFailed,
 } from '../../../../../src/server/labs/assetDescriptor';
-import type { AssetKind, AssetSource } from '../../../../../src/server/labs/assetDescriptor';
+import type { AssetKind, AssetSource, MusicDescriptor, VideoDescriptor } from '../../../../../src/server/labs/assetDescriptor';
 
 /**
  * POST /api/admin/assets-library/generate-descriptions
@@ -162,16 +163,12 @@ export const POST = adminRoute(async (req: NextRequest) => {
       ext,
     });
 
-    await writeVideo(
-      { blitzAssetId: assetId },
-      kind,
-      source,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      result.descriptor as any,
-      result.durationSec,
-      result.cuts,
-      result.loudDigits,
-    );
+    // Music has its own descriptor shape (no slot scores): writeVideo would throw on it.
+    if (kind === 'music') {
+      await writeMusic({ blitzAssetId: assetId }, source, result.descriptor as MusicDescriptor, result.durationSec, result.loudDigits);
+    } else {
+      await writeVideo({ blitzAssetId: assetId }, kind, source, result.descriptor as VideoDescriptor, result.durationSec, result.cuts, result.loudDigits);
+    }
 
     const costUsd = (result.usageTotal * 0.15 + result.usageOut * 0.60) / 1_000_000;
     return NextResponse.json({ success: true, assetId, costUsd, durationSec: result.durationSec });

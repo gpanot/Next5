@@ -6,7 +6,7 @@ const now = new Date(2026, 9, 1, 10, 0); // Thu Oct 1 2026, 10:00 local
 
 const show = (position: number, status: AutoSlideshowDto['status'] = 'ready', post: AutoPostDto | null = null): AutoSlideshowDto => ({
   id: `s${position}`, position, modelId: null, modelName: 'm', hookPattern: 'h', topic: `t${position}`, goal: null, slides: [], caption: '', hashtags: [],
-  audio: null, post, posts: post ? [post] : [], status, error: null,
+  audio: null, recommendedAudioId: null, post, posts: post ? [post] : [], status, error: null,
 });
 
 const post = (slideshowId: string, scheduledAt: Date, status: AutoPostDto['status'] = 'scheduled'): AutoPostDto => ({
