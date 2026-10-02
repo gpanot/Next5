@@ -1,12 +1,14 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import type { AutoPhotoDto, AutoSlideDto } from '../../../types/admin/autoSlideshow';
+import type { AutoSlideDto } from '../../../types/admin/autoSlideshow';
+import type { OrderedPhoto } from './photoOrder';
 
 type Props = {
   slide: AutoSlideDto;
   index: number;
-  photos: AutoPhotoDto[] | null;
+  /** This slideshow's photos first, in slide order (photoOrder.ts), then the run's others. */
+  photos: OrderedPhoto[] | null;
   busy: string | null;
   title: string;
   body: string;
@@ -52,17 +54,18 @@ export function SlideEditPanel({ slide, index, photos, busy, title, body, onTitl
           </button>
           {photos === null
             ? [0, 1, 2, 3].map((i) => <div key={i} className="h-20 w-16 shrink-0 animate-pulse rounded-lg bg-white/10" />)
-            : photos.filter((p) => p.url).map((p) => (
+            : photos.map(({ photo: p, slide: usedBy }) => (
                 <button
                   key={p.index}
                   onClick={() => onPhoto(p.index)}
                   disabled={locked || p.index === slide.photoIndex}
-                  aria-label={`Use photo ${p.index + 1}`}
+                  aria-label={usedBy ? `Use the photo of slide ${usedBy}` : `Use photo ${p.index + 1}`}
                   aria-pressed={p.index === slide.photoIndex}
-                  className={`h-20 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition active:scale-95 disabled:cursor-default ${p.index === slide.photoIndex ? 'border-white' : 'border-transparent opacity-80 hover:opacity-100'}`}
+                  className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition active:scale-95 disabled:cursor-default ${p.index === slide.photoIndex ? 'border-white' : 'border-transparent opacity-80 hover:opacity-100'}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.url!} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  {usedBy && <span className="absolute top-1 left-1 rounded bg-black/70 px-1 text-[10px] font-bold text-white">{usedBy}</span>}
                 </button>
               ))}
         </div>

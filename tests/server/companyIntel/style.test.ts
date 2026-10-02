@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { findShareImage, pickPalette } from '../../../src/server/companyIntel/palette';
-import { boxColors, contrast, toSlideshowStyle, cleanPhotoStyle, photoLook } from '../../../src/server/companyIntel/slideshowStyle';
+import { boxColors, contrast, toSlideshowStyle, cleanPhotoStyle } from '../../../src/server/companyIntel/slideshowStyle';
 
 describe('pickPalette', () => {
   it('keeps a black-and-white brand black and white when its only strong colors are rare', () => {
@@ -49,15 +49,3 @@ describe('slideshow style', () => {
   });
 });
 
-describe('photoLook', () => {
-  const style = { photoStyle: 'Golfers holding TaylorMade bags; athletes in TaylorMade apparel and TaylorMade\'s caps.', productAsSubject: true, boxColor: '#ffffff', boxTextColor: '#111111' };
-
-  it('drops the brand name, any case, possessive included', () => {
-    expect(photoLook(style, 'taylormade')).toBe('Golfers holding bags; athletes in apparel and caps.');
-  });
-
-  it('keeps the style as is without a brand name, and gives undefined without a style', () => {
-    expect(photoLook(style, '')).toBe(style.photoStyle);
-    expect(photoLook(undefined, 'TaylorMade')).toBeUndefined();
-  });
-});

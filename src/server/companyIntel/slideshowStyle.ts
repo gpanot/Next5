@@ -12,18 +12,18 @@ export const STYLE_PROMPT = `"photoStyle": string (max 30 words, a plain list: w
 settings, framing and wardrobe, at the brand's own price level and feel. Luxury car maker: "The car itself on open coastal roads
 and in clean modern architecture; owners in tailored clothes; wide, uncluttered frames". Budget family car: "Families loading
 groceries, busy city streets, everyday driveways; candid, close to the action". Never mention light, weather, time of day, text,
-graphics, prices, offers, screens or logos. Never name the brand, its products or models: describe them ("the SUV", "the driver")),
+graphics, prices or offers),
 "productAsSubject": boolean (true when the product is a physical thing people like to look at, like cars, clothes, food, homes,
 jewelry; false for services and software),
 "boxColor": hex (slide headline box. The brand's signature color when it has one people know (Porsche black, Coca-Cola red),
 from Palette when it fits; #ffffff for soft, friendly or everyday brands), "boxTextColor": hex (readable on boxColor)`;
 
 /** Clauses setting the light (photos must stay bright) or asking for things the photo model renders badly. */
-const BANNED = /\b(dark|darker|moody|night|nighttime|dusk|dawn|sunset|sunrise|golden hour|cinematic|low[- ]key|shadowy|shadows|dim|dimly|noir|neon|evening|text|graphics?|overlays?|prices?|offers?|screens?|logos?|captions?)\b/i;
+const BANNED = /\b(dark|darker|moody|night|nighttime|dusk|dawn|sunset|sunrise|golden hour|cinematic|low[- ]key|shadowy|shadows|dim|dimly|noir|neon|evening|text|graphics?|overlays?|prices?|offers?|captions?)\b/i;
 const MAX_STYLE_WORDS = 40;
 const HEX = /^#[0-9a-f]{6}$/i;
 
-/** Drops each clause that sets the light or asks for text or screens, and keeps whole clauses up to 40 words. */
+/** Drops each clause that sets the light or asks for text, and keeps whole clauses up to 40 words. */
 export const cleanPhotoStyle = (text: string): string => {
   const kept: string[] = [];
   let words = 0;
@@ -35,19 +35,6 @@ export const cleanPhotoStyle = (text: string): string => {
     words += count;
   }
   return kept.join(' ').replace(/[,;]\s*$/, '.').trim();
-};
-
-const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-/**
- * The photo style as the photo model gets it: the brand's name dropped. Brand names in the prompt made the models draw
- * logos even when told not to (A/B test 2026-10-02). Profiles written before the style prompt banned names need this.
- */
-export const photoLook = (style: SlideshowStyle | undefined, brandName: string | undefined): string | undefined => {
-  if (!style) return undefined;
-  const name = brandName?.trim();
-  if (!name) return style.photoStyle;
-  return style.photoStyle.replace(new RegExp(`\\b${escapeRegex(name)}('s)?\\b\\s*`, 'gi'), '').replace(/\s{2,}/g, ' ').trim();
 };
 
 const luminance =(hex: string): number => {

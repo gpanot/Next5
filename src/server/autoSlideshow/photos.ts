@@ -30,11 +30,12 @@ const BUSY_WAIT_MS = 15_000;
 // Keep this bright. "Cinematic light" made GPT Image 2 return dark, moody photos (mean luma 85-140 of 255); this wording
 // gave 164-173 on the same scenes (A/B test 2026-09-29). White slide text still reads thanks to its outline.
 // No framing rule: "heads below the middle, upper 40% empty" bent scenes (roofless cars, sky inside rooms) and heads still
-// landed in the text zone 9 times in 10, so the text moves off heads instead (A/B test 2026-10-02). The "No logos" list
-// stays: without it the models drew brand logos and license plates.
-const STYLE = 'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, realistic candid photo with natural proportions, vertical framing. No text, no letters, no logos, no watermarks, no phone screens.';
+// landed in the text zone 9 times in 10, so the text moves off heads instead (A/B test 2026-10-02).
+// No brand ban: "no logos, no phone screens" made people hold phones flipped and hid the brand. Logos and brand names may
+// show. Only stray text is kept out, so it never fights the slide text.
+const STYLE = 'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, realistic candid photo with natural proportions, vertical framing. No text overlays, no watermarks.';
 /** Bump when STYLE changes, so each photo's record says which wording made it. */
-export const STYLE_VERSION = '2026-10-02';
+export const STYLE_VERSION = '2026-10-02b';
 
 /** The full text the photo model gets: the scene, the brand's look, then the shared style. */
 export const photoPrompt = (scene: string, look?: string): string => [scene, look && `Brand look: ${look}`, STYLE].filter(Boolean).join(' ');

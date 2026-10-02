@@ -10,10 +10,10 @@ slide's action so a viewer gets the slide from the photo alone. Bright daytime l
 natural framing (no empty space left for text: the text finds its own spot).
 Follow the brief's "Visual style" for who and what appears, the setting and the framing: the photos must feel like the brand.
 When the brief says "Product as subject: yes", the product itself (in use, in its real setting) may be the subject.
-A person may hold a phone, but its screen never shows.
-Never: dusk, night, golden hour, moody light, close-up faces, text, logos, captions, sounds, screens, laptops, calendars,
+A person may hold a phone and look at it naturally; the brand and its products may appear as they really look.
+Never: dusk, night, golden hour, moody light, close-up faces, text, captions, sounds, laptops, calendars,
 spreadsheets, documents, checklists, clipboards, paper, notebooks or any other object shown alone as the subject.
-Do not list what is absent (no "no text", "no logos"): describe only what is in the photo.`;
+Do not list what is absent (no "no text"): describe only what is in the photo.`;
 
 export const MEAT_GOALS = ['teach', 'myth', 'proof', 'story', 'teach', 'product'] as const;
 

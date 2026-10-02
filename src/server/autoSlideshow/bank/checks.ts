@@ -14,8 +14,8 @@ export const MAX_HOOK_WORDS = 10;
 const MAX_CTA_BODY = 70;
 const MAX_CTA_TITLE_WORDS = 7;
 
-/** Things that render badly or show fake UI. A phone in someone's hand is fine; its screen is not. */
-const BANNED_PHOTO = /\b(calendar|spreadsheet|laptop|screens?|caption|sound|checklist|notebook|document|clipboard|printed|sheet|UI|text|logo)\b/i;
+/** Things that render badly as a subject. A phone in hand, its screen, logos and the brand's products are fine. */
+const BANNED_PHOTO = /\b(calendar|spreadsheet|laptop|caption|sound|checklist|notebook|document|clipboard|printed|sheet|UI|text)\b/i;
 /** "no text, no logos" is how the model says what is absent; those words are not in the photo. */
 const ABSENT = /\b(no|never|without|free of)\b[^,.;]*/gi;
 

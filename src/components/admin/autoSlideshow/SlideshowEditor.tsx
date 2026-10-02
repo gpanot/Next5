@@ -6,6 +6,7 @@ import { CaptionPanel } from './CaptionPanel';
 import { MusicPicker } from './MusicPicker';
 import { PostPanel } from './posting/PostPanel';
 import { SlidePreview } from './SlidePreview';
+import { photosInSlideOrder } from './photoOrder';
 import { SlideEditPanel } from './SlideEditPanel';
 import { SlideshowMenu } from './SlideshowMenu';
 import { VideoButton } from './VideoButton';
@@ -133,7 +134,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
             <SlideEditPanel
               slide={current}
               index={slide}
-              photos={photos}
+              photos={photos && photosInSlideOrder(show.slides, photos)}
               busy={busy}
               title={drafts.title}
               body={drafts.body}

@@ -16,7 +16,7 @@ const SYSTEM = `You write one TikTok photo slideshow that copies a proven struct
 Structure: 1 hook slide, then exactly {N} meat slides, then 1 CTA slide.
 - hook: fill the hook pattern's [slots] for this business's audience and topic. [N] is {N}. Title Case. Max 10 words. No body.
 - hook.photo: one sentence describing the background photo that fits the hook best, so a viewer sees the hook's subject at once. Real-looking
-  photography, bright daytime light, seen from behind or from the side, natural framing. Never dusk, night, dim or moody light. Never text, logos, screens with UI, or close-up faces.
+  photography, bright daytime light, seen from behind or from the side, natural framing. Never dusk, night, dim or moody light. Never text or close-up faces.
 - meat slides: follow the meat pattern exactly (title length, voice, what the body holds). Each slide teaches one useful,
   correct, well-known thing about the topic. Body: ONE plain sentence, max 90 characters. No made-up statistics, studies or
   percentages about people. Never mention the business on meat slides, except for the product goal.
