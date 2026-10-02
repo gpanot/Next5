@@ -56,6 +56,8 @@ export type SlideshowSlide = {
   trimStart?: number;
   /** Caption position for this slide (same scale as TextConfig.positionY), from the asset's text-safe zone. */
   positionY?: number;
+  /** 'contain': show the whole image (e.g. a 4:5 slide with its text drawn in) over a blurred fill. Default 'cover'. */
+  fit?: 'cover' | 'contain';
 };
 
 /** Props for the Slideshow (CAROUSEL) Remotion composition. */
@@ -66,6 +68,8 @@ export type SlideshowProps = {
   backgroundIsImage?: boolean;
   /** Optional audio track URL */
   audioUrl?: string;
+  /** Where the track starts playing, in seconds (its best start). Default 0. */
+  audioStartAt?: number;
   /** Silence background video audio */
   muteVideoAudio?: boolean;
   /** Optional business pill shown on every slide */

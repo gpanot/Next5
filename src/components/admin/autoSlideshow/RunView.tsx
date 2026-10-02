@@ -189,7 +189,6 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
           key={open.id}
           token={token}
           runId={runId}
-          brandName={run.profile?.brandName ?? 'slideshow'}
           initial={open}
           photos={photos.data?.photos ?? null}
           tracks={music.data?.tracks ?? null}

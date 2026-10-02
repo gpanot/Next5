@@ -40,7 +40,7 @@ const isImageUrl = (url: string) =>
  * not re-run and Remotion never waits for the new image to load — causing text
  * to change one frame before the background arrives.
  */
-function BackgroundImg({ src }: { src: string }) {
+function BackgroundImg({ src, fit = 'cover', blur = false }: { src: string; fit?: 'cover' | 'contain'; blur?: boolean }) {
   const ref = useRef<HTMLImageElement>(null);
   const handle = useMemo(() => delayRender('Loading background image'), []);
   useEffect(() => {
@@ -55,7 +55,18 @@ function BackgroundImg({ src }: { src: string }) {
   }, [handle]);
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img ref={ref} src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+    <img
+      ref={ref}
+      src={src}
+      alt=""
+      style={{
+        width: '100%',
+        height: '100%',
+        objectFit: fit,
+        display: 'block',
+        ...(blur ? { filter: 'blur(40px) brightness(0.6)', transform: 'scale(1.15)' } : {}),
+      }}
+    />
   );
 }
 
@@ -118,6 +129,7 @@ export function SlideshowComposition({
   backgroundUrl,
   backgroundIsImage,
   audioUrl,
+  audioStartAt,
   muteVideoAudio,
   businessText,
   slides,
@@ -125,7 +137,8 @@ export function SlideshowComposition({
 }: SlideshowProps) {
   const { durationInFrames, width, height, fps } = useVideoConfig();
 
-  const nonEmptySlides = slides.filter((s) => s.text.trim());
+  // Image-only slides (text already drawn on the picture) count as slides too.
+  const nonEmptySlides = slides.filter((s) => s.text.trim() || s.backgroundUrl);
   const timeline = slideTimeline(nonEmptySlides, durationInFrames, fps);
 
   // Audio volume: fade to 0 in the last AUDIO_FADE_FRAMES
@@ -167,7 +180,12 @@ export function SlideshowComposition({
           <Sequence key={i} from={from} durationInFrames={duration} layout="none">
             {/* Background */}
             <AbsoluteFill>
-              {bgIsImage ? (
+              {bgIsImage && slide.fit === 'contain' ? (
+                <>
+                  <AbsoluteFill style={{ overflow: 'hidden' }}><BackgroundImg src={bgUrl} blur /></AbsoluteFill>
+                  <AbsoluteFill><BackgroundImg src={bgUrl} fit="contain" /></AbsoluteFill>
+                </>
+              ) : bgIsImage ? (
                 <BackgroundImg src={bgUrl} />
               ) : (
                 <OffthreadVideo
@@ -200,7 +218,12 @@ export function SlideshowComposition({
 
       {/* ── Audio (optional) ────────────────────────────────────────────── */}
       {audioUrl ? (
-        <Audio src={audioUrl} volume={audioVolume} onError={() => undefined} />
+        <Audio
+          src={audioUrl}
+          volume={audioVolume}
+          trimBefore={Math.max(0, Math.round((audioStartAt ?? 0) * fps))}
+          onError={() => undefined}
+        />
       ) : null}
     </AbsoluteFill>
   );

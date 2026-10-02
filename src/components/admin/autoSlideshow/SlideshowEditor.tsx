@@ -3,19 +3,19 @@
 import { useEffect, useState } from 'react';
 import type { AutoPhotoDto, AutoSlideshowDto, AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { CaptionPanel } from './CaptionPanel';
-import { downloadSlideshow } from './downloads';
 import { MusicPicker } from './MusicPicker';
 import { PostPanel } from './posting/PostPanel';
 import { SlidePreview } from './SlidePreview';
 import { SlideEditPanel } from './SlideEditPanel';
 import { SlideshowMenu } from './SlideshowMenu';
+import { VideoButton } from './VideoButton';
 import { parseTags, useSlideshowDrafts } from './useSlideshowDrafts';
 import { useSlideshowEdit } from './useSlideshowEdit';
+import { useSlideshowVideo } from './useSlideshowVideo';
 
 type Props = {
   token: string;
   runId: string;
-  brandName: string;
   initial: AutoSlideshowDto;
   photos: AutoPhotoDto[] | null;
   tracks: AutoTrackDto[] | null;
@@ -29,11 +29,11 @@ type Props = {
 const ghostButton = 'min-h-11 rounded-full px-3 text-sm text-white/80 transition hover:bg-white/10 disabled:opacity-30';
 
 /** Full-screen editor, phone first: preview on top (left on desktop), the on-screen slide's text and photo, the caption. */
-export function SlideshowEditor({ token, runId, brandName, initial, photos, tracks, onChanged, onPhotosChanged, onClose, onPrev, onNext }: Props) {
+export function SlideshowEditor({ token, runId, initial, photos, tracks, onChanged, onPhotosChanged, onClose, onPrev, onNext }: Props) {
   const edit = useSlideshowEdit(token, runId, initial, onChanged);
   const { show, busy } = edit;
   const [slide, setSlide] = useState(0);
-  const [zipping, setZipping] = useState(false);
+  const video = useSlideshowVideo(token, runId, initial.id);
   const current = show.slides[Math.min(slide, show.slides.length - 1)];
   const drafts = useSlideshowDrafts(show, slide);
   const saving = busy === 'caption' || busy === `slide-${slide}`;
@@ -43,12 +43,6 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
-
-  const zip = async () => {
-    setZipping(true);
-    await downloadSlideshow(show, brandName);
-    setZipping(false);
-  };
 
   /** Stores the slide text and the caption, whichever changed. */
   const save = async () => {
@@ -110,6 +104,11 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
             <div className="flex gap-1.5">
               {show.slides.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === slide ? 'w-5 bg-white' : 'w-1.5 bg-white/30'}`} />)}
             </div>
+            <VideoButton
+              rendering={video.rendering}
+              disabled={busy !== null || show.slides.some((s) => !s.imageUrl)}
+              onClick={() => void video.download()}
+            />
             <button
               onClick={() => void removeSlide()}
               disabled={busy !== null || show.slides.length <= 2}
@@ -129,7 +128,7 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
         </div>
 
         <div className="space-y-6 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] md:w-1/2 md:overflow-y-auto md:border-l md:border-white/10">
-          {edit.error && <p className="rounded-lg bg-red-500/15 p-3 text-sm text-red-300">{edit.error}</p>}
+          {(edit.error ?? video.error) && <p className="rounded-lg bg-red-500/15 p-3 text-sm text-red-300">{edit.error ?? video.error}</p>}
           {current && (
             <SlideEditPanel
               slide={current}
@@ -140,7 +139,7 @@ export function SlideshowEditor({ token, runId, brandName, initial, photos, trac
               body={drafts.body}
               onTitle={drafts.setTitle}
               onBody={drafts.setBody}
-              menu={<SlideshowMenu disabled={zipping || busy !== null} zipping={zipping} busy={busy} onZip={() => void zip()} onRewrite={() => void rewrite()} onDelete={() => void remove()} />}
+              menu={<SlideshowMenu disabled={video.rendering || busy !== null} busy={busy} onRewrite={() => void rewrite()} onDelete={() => void remove()} />}
               onPhoto={(photoIndex) => void edit.saveSlide(slide, { photoIndex })}
               onNewPhoto={() => void edit.newPhoto(slide).then((ok) => ok && onPhotosChanged())}
             />

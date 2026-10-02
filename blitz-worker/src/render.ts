@@ -40,11 +40,15 @@ export async function renderProject(
       trimStart?: number;
       /** Per-slide caption position (TextConfig.positionY scale). */
       positionY?: number;
+      /** 'contain' = whole image over a blurred fill (Auto Slideshow slides, text drawn in). */
+      fit?: 'cover' | 'contain';
     };
     const currentAssets = project.currentAssets as {
       backgroundKey: string;
       overlayKey: string;
       audioKey?: string;
+      /** Track start offset in seconds (Auto Slideshow music best start). */
+      audioStartAt?: number;
       /** Optional per-project text style overrides from the editor */
       textConfigOverride?: Partial<TextConfig>;
       /** Clip length from the editor (shortest video layer); falls back to the template. */
@@ -96,7 +100,8 @@ export async function renderProject(
       const rawSlides = (currentAssets.slides ?? [project.captionText]).map(
         (s: SlideInput) => (typeof s === 'string' ? { text: s } : s),
       );
-      const filteredSlides = rawSlides.filter((s) => s.text.trim());
+      // Image-only slides (Auto Slideshow JPEGs with the text drawn in) are kept.
+      const filteredSlides = rawSlides.filter((s) => s.text.trim() || s.backgroundKey);
 
       // Generate presigned URLs for per-slide backgrounds (if any).
       const slides: SlideshowProps['slides'] = await Promise.all(
@@ -105,6 +110,7 @@ export async function renderProject(
             ...(s.durationSec ? { durationSec: s.durationSec } : {}),
             ...(s.trimStart ? { trimStart: s.trimStart } : {}),
             ...(s.positionY != null ? { positionY: s.positionY } : {}),
+            ...(s.fit ? { fit: s.fit } : {}),
           };
           if (!s.backgroundKey) return { text: s.text, ...timing };
           const bgUrl = await getPresignedUrl(s.backgroundKey);
@@ -120,6 +126,7 @@ export async function renderProject(
       const inputProps: SlideshowProps = {
         backgroundUrl,
         audioUrl,
+        audioStartAt: currentAssets.audioStartAt,
         muteVideoAudio: currentAssets.muteVideoAudio ?? false,
         businessText: currentAssets.businessText,
         slides,
