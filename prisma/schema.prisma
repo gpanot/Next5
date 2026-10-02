@@ -2348,7 +2348,7 @@ model AutoSlideshowPostStat {
   ageHours Int      @map("age_hours")
   /// PostStats: { views, likes, comments, shares, saves, reach }, only the numbers the source gave
   stats    Json
-  /// 'treg' | 'instagram' | 'tiktok_api'
+  /// 'treg' | 'instagram' | 'tiktok_api' (saves, which the Display API lacks, still come from treg)
   source   String
 
   post AutoSlideshowPost @relation(fields: [postId], references: [id], onDelete: Cascade)

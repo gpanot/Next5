@@ -12,6 +12,12 @@ type Props = { token: string; me: SlideshowMeDto; onChanged: () => void };
 const LABEL: Record<SocialProviderDto, string> = { tiktok: 'TikTok', instagram: 'Instagram' };
 const handle = (c: ConnectionDto) => (c.username ? ` as ${c.username.startsWith('@') ? c.username : `@${c.username}`}` : '');
 
+/** Sends the browser to the platform's sign-in; it comes back to the slideshow workspace once approved. */
+export const startConnect = async (token: string, workspace: string, provider: SocialProviderDto): Promise<void> => {
+  const { url } = await adminFetch<{ url: string }>(token, `/api/app/integrations/${provider}`, { method: 'POST', body: JSON.stringify({ workspaceId: workspace, returnTo: 'slideshow' }) });
+  window.location.href = url;
+};
+
 export type AccountRowProps = { token: string; workspace: string; provider: SocialProviderDto; connection: ConnectionDto | undefined; available: boolean; soon?: boolean; onChanged: () => void };
 
 /** One platform: its state, and Connect or Disconnect. Also used in the approve sheet. */
@@ -25,8 +31,7 @@ export function AccountRow({ token, workspace, provider, connection, available, 
     setBusy(true);
     setError(null);
     try {
-      const { url } = await adminFetch<{ url: string }>(token, `/api/app/integrations/${provider}`, { method: 'POST', body: JSON.stringify({ workspaceId: workspace, returnTo: 'slideshow' }) });
-      window.location.href = url;
+      await startConnect(token, workspace, provider);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start the connection');
       setBusy(false);

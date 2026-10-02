@@ -3,8 +3,11 @@
 
 import type { AutoSlide, PostStats } from '../../types/admin/autoSlideshow';
 import { isContentGoal } from '../../types/admin/contentGoals';
-import type { AnalyticsPostDto, NoNumbersReason } from '../../types/admin/slideshowAnalytics';
+import type { AnalyticsPostDto, NoNumbersReason, TikTokAccountDto } from '../../types/admin/slideshowAnalytics';
 import { prisma } from '../../lib/db';
+import { freshAccessToken } from '../social/connections';
+import { hasStatsScopes, statsScopesOn } from '../social/tiktok';
+import { fetchTikTokAccountStats } from '../social/tiktokStats';
 import { presignObject } from '../storage/objectStore';
 import { isReadable } from './stats';
 
@@ -58,3 +61,17 @@ const toAnalyticsDto = async (p: Row): Promise<AnalyticsPostDto> => {
 /** The workspace's posts that went live in the last 180 days, newest first. */
 export const listAnalyticsPosts = async (workspaceId: string): Promise<AnalyticsPostDto[]> =>
   Promise.all((await findPosts(workspaceId)).map(toAnalyticsDto));
+
+/** The workspace's TikTok account and its totals, read live (one user.info call). Never throws. */
+export const tiktokAccount = async (workspaceId: string): Promise<TikTokAccountDto> => {
+  const conn = await prisma.socialConnection.findUnique({ where: { workspaceId_provider: { workspaceId, provider: 'tiktok' } } });
+  if (!conn || !statsScopesOn()) return { state: 'none' };
+  const who = { username: conn.username, avatarUrl: conn.avatarUrl };
+  if (!hasStatsScopes(conn.scopes)) return { state: 'reconnect', ...who };
+  try {
+    return { state: 'connected', ...who, stats: await fetchTikTokAccountStats(await freshAccessToken(conn)) };
+  } catch (err) {
+    console.warn(`[auto-slideshow] TikTok account of ${workspaceId} unavailable:`, err instanceof Error ? err.message : err);
+    return { state: 'unavailable', ...who };
+  }
+};

@@ -35,4 +35,17 @@ export type AnalyticsPostDto = {
   noNumbers: NoNumbersReason;
 };
 
-export type AnalyticsDto = { posts: AnalyticsPostDto[] };
+/** The connected TikTok account's totals right now (user.info.stats). A field TikTok did not send is null. */
+export type TikTokAccountStatsDto = { followers: number | null; following: number | null; likes: number | null; posts: number | null };
+
+/**
+ * The workspace's TikTok account on Analytics: `connected` with its totals, `reconnect` when it was connected before
+ * the analytics scopes were added, `unavailable` when TikTok did not answer, `none` with no TikTok account (or the
+ * scopes not live on this server yet).
+ */
+export type TikTokAccountDto =
+  | { state: 'connected'; username: string | null; avatarUrl: string | null; stats: TikTokAccountStatsDto }
+  | { state: 'reconnect' | 'unavailable'; username: string | null; avatarUrl: string | null }
+  | { state: 'none' };
+
+export type AnalyticsDto = { posts: AnalyticsPostDto[]; tiktok: TikTokAccountDto };

@@ -8,6 +8,7 @@ import { AnalyticsFilters, type Filters } from './AnalyticsFilters';
 import { filterPosts, liftOf, platformMedians, sortPosts, summarize } from './insights';
 import { PostCard } from './PostCard';
 import { SummaryCards, SummaryCardsSkeleton } from './SummaryCards';
+import { TikTokAccountCard } from './TikTokAccountCard';
 import { WhatWorks } from './WhatWorks';
 
 function ListSkeleton() {
@@ -69,6 +70,7 @@ export function AnalyticsPage({ token, workspaceId }: { token: string; workspace
       )}
       {data && (
         <>
+          <TikTokAccountCard token={token} workspaceId={workspaceId} account={data.tiktok} />
           <SummaryCards summary={summarize(shown)} />
           {all.length > 0 && <WhatWorks posts={shown} medians={medians} />}
           {sorted.length === 0 ? (

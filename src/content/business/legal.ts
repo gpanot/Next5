@@ -26,8 +26,8 @@ export const PRIVACY: readonly LegalSection[] = [
   {
     heading: 'Connected TikTok and Instagram accounts',
     body: [
-      'When you connect TikTok, TikTok shares with us, with your permission: your account’s basic profile (a user ID, display name, username and profile picture) and an access token that lets Next5 publish posts you approve (scopes user.info.basic and video.publish). Before each post we also ask TikTok which privacy options and comment settings your account allows, so we can show them to you.',
-      'We use this only to show which account will post, to publish the posts you approved, and to check whether each post went live. We do not read your videos, followers, messages or analytics, we never post anything you did not approve, and we never sell or share this data. Access tokens are stored encrypted.',
+      'When you connect TikTok, TikTok shares with us, with your permission: your account’s basic profile (a user ID, display name, username and profile picture) an access token that lets Next5 publish posts you approve (scopes user.info.basic and video.publish), and read access to your account’s totals (follower, following, like and video counts; scope user.info.stats) and to your public posts and their view, like, comment and share counts (scope video.list). Before each post we also ask TikTok which privacy options and comment settings your account allows, so we can show them to you.',
+      'We use this only to show which account will post, to publish the posts you approved, to check whether each post went live, and to show you how your posts and account are doing on your Analytics page. We do not read your messages or who your followers are, we never post anything you did not approve, and we never sell or share this data. Access tokens are stored encrypted.',
       'We keep your TikTok profile details and tokens until you disconnect. Disconnect in Settings → Integrations, or remove Next5 in the TikTok app (Settings and privacy → Security → Manage app permissions); we then delete the tokens. We keep a record of posts already sent (time, status and link) with your account history.',
     ],
   },

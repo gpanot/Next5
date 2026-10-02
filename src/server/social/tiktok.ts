@@ -7,11 +7,16 @@ import type { ProviderClient, ProviderTokens } from './types';
 
 const API = 'https://open.tiktokapis.com/v2';
 /**
- * video.list reads a post's views, likes, comments and shares (Display API) for the stats loop. TikTok refuses the
- * whole sign-in when the app does not have that scope yet, so it is asked only with TIKTOK_STATS_SCOPE=true (set it once
- * TikTok approves video.list, then reconnect the accounts).
+ * Analytics scopes: video.list reads a post's views, likes, comments and shares (Display API), user.info.stats the
+ * account's followers, likes and video count. TikTok refuses the whole sign-in when the app does not have a scope it is
+ * asked for, so they are asked only with TIKTOK_STATS_SCOPE=true (set it once both are approved on the app in the
+ * developer portal). Accounts connected before then keep working and are asked to reconnect for the numbers.
  */
-const scopes = (): string[] => ['user.info.basic', 'video.publish', ...(process.env.TIKTOK_STATS_SCOPE === 'true' ? ['video.list'] : [])];
+export const STATS_SCOPES = ['video.list', 'user.info.stats'] as const;
+export const statsScopesOn = (): boolean => process.env.TIKTOK_STATS_SCOPE === 'true';
+/** True when this connection's token was granted every analytics scope. */
+export const hasStatsScopes = (granted: string[]): boolean => STATS_SCOPES.every((s) => granted.includes(s));
+const scopes = (): string[] => ['user.info.basic', 'video.publish', ...(statsScopesOn() ? STATS_SCOPES : [])];
 
 const clientKey = (): string => process.env.TIKTOK_CLIENT_KEY ?? '';
 const clientSecret = (): string => process.env.TIKTOK_CLIENT_SECRET ?? '';

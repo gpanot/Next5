@@ -1,14 +1,18 @@
 // server-only — never import from a 'use client' file.
 // The performance loop: each posted slideshow's numbers (views, likes, comments, shares, saves, reach) are read back on
 // a schedule (+48 h, +96 h, +7 d, then weekly; statsSchedule.ts). Every read is kept as a snapshot for Analytics, and
-// the latest one also sits on the post. TikTok numbers come from the public post through treg; Instagram from insights.
+// the latest one also sits on the post. TikTok numbers come from TikTok's Display API when the account granted
+// video.list, with saves (which that API lacks) from the public post through treg; treg alone otherwise. Instagram
+// numbers come from insights.
 
 import type { AutoSlideshowPost, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import type { PostStats } from '../../types/admin/autoSlideshow';
 import { freshAccessToken } from '../social/connections';
 import { fetchInstagramStats } from '../social/instagramCarousel';
+import { hasStatsScopes } from '../social/tiktok';
 import { fetchTikTokPublicStats } from '../social/tiktokPublicStats';
+import { fetchTikTokStats } from '../social/tiktokStats';
 import { afterFailedRead, afterGoodRead, ageHours } from './statsSchedule';
 
 /** Posts read per tick: the first-week checkpoints must land on time, but a tick stays well under a minute. */
@@ -24,14 +28,30 @@ type Read = { stats: PostStats; source: string };
 export const isReadable = (post: Pick<AutoSlideshowPost, 'platform' | 'privacyLevel' | 'tiktokPostId'>): boolean =>
   Boolean(post.tiktokPostId) && !(post.platform === 'tiktok' && post.privacyLevel === 'SELF_ONLY');
 
+const settled = <T>(result: PromiseSettledResult<T>, label: string): T | null => {
+  if (result.status === 'fulfilled') return result.value;
+  console.warn(`[auto-slideshow] ${label} read failed:`, result.reason instanceof Error ? result.reason.message : result.reason);
+  return null;
+};
+
+/** Official numbers first; treg's public read fills saves, and stands in when the official read is missing. */
+const readTikTok = async (post: AutoSlideshowPost): Promise<Read | null> => {
+  const conn = await prisma.socialConnection.findUnique({ where: { workspaceId_provider: { workspaceId: post.workspaceId, provider: 'tiktok' } } });
+  const official = conn && hasStatsScopes(conn.scopes) ? freshAccessToken(conn).then((t) => fetchTikTokStats(t, post.tiktokPostId!)) : Promise.resolve(null);
+  const [api, pub] = await Promise.allSettled([official, fetchTikTokPublicStats(post.tiktokPostId!, post.postUrl)]);
+  const apiStats = settled(api, 'tiktok api');
+  const pubStats = settled(pub, 'treg');
+  if (apiStats?.views !== undefined) return { stats: { ...apiStats, saves: pubStats?.saves }, source: 'tiktok_api' };
+  return pubStats ? { stats: pubStats, source: 'treg' } : null;
+};
+
 const readStats = async (post: AutoSlideshowPost): Promise<Read | null> => {
   if (post.platform === 'instagram') {
     const conn = await prisma.socialConnection.findUnique({ where: { workspaceId_provider: { workspaceId: post.workspaceId, provider: 'instagram' } } });
     if (!conn) return null;
     return { stats: await fetchInstagramStats(await freshAccessToken(conn), post.tiktokPostId!), source: 'instagram' };
   }
-  const stats = await fetchTikTokPublicStats(post.tiktokPostId!, post.postUrl);
-  return stats ? { stats, source: 'treg' } : null;
+  return readTikTok(post);
 };
 
 const saveGoodRead = async (post: AutoSlideshowPost, read: Read, now: Date): Promise<void> => {
