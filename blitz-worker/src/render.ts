@@ -8,7 +8,7 @@
  *  3. Temp dir is cleaned up after the render regardless of success/failure.
  */
 
-import { renderMedia, selectComposition } from '@remotion/renderer';
+import { renderMedia, selectComposition, type CancelSignal } from '@remotion/renderer';
 import fs from 'fs';
 import path from 'path';
 import type { BlitzProject, BlitzTemplate } from '@prisma/client';
@@ -22,6 +22,8 @@ export async function renderProject(
   project: BlitzProject,
   template: BlitzTemplate,
   serveUrl: string,
+  /** Fired by the worker's per-job time limit: stops the render and frees Chromium. */
+  cancelSignal?: CancelSignal,
 ): Promise<string> {
   const jobId = project.id;
   // Only the rendered output.mp4 and any overlay transcode go to disk —
@@ -153,6 +155,7 @@ export async function renderProject(
         inputProps,
         browserExecutable,
         chromiumOptions,
+        cancelSignal,
         onProgress: ({ progress }) => {
           process.stdout.write(`\r[render:${jobId}] ${Math.round(progress * 100)} %`);
         },
@@ -202,6 +205,7 @@ export async function renderProject(
         inputProps,
         browserExecutable,
         chromiumOptions,
+        cancelSignal,
         onProgress: ({ progress }) => {
           process.stdout.write(`\r[render:${jobId}] ${Math.round(progress * 100)} %`);
         },

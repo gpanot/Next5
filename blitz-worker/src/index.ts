@@ -3,9 +3,16 @@
  *
  * Startup sequence:
  *   1. bundle() the Remotion composition ONCE and cache serveUrl.
- *   2. Start a polling loop that claims PENDING BlitzProject rows
- *      with a FOR UPDATE SKIP LOCKED pessimistic lock.
+ *   2. Start a polling loop that claims PENDING BlitzProject rows, oldest first (FIFO),
+ *      with a FOR UPDATE SKIP LOCKED pessimistic lock. One job at a time per worker.
  *   3. For each job: render → upload to R2 → mark COMPLETED (or FAILED).
+ *
+ * Queue safety:
+ *   - Every job has a time limit (JOB_TIMEOUT_MS). Past it the render is cancelled and the job
+ *     marked FAILED, so one hung render can never block the jobs behind it.
+ *   - While a job runs, the worker refreshes its updated_at (heartbeat). A PROCESSING job with
+ *     no heartbeat for STALE_AFTER_MS lost its worker (crash, redeploy): it goes back to PENDING
+ *     and, keeping its created_at, back to its FIFO place.
  *
  * bundle() takes 10–20 s (Webpack). Running it per-job would add that cost
  * to every render — cache it at startup instead.
@@ -19,11 +26,17 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import { bundle } from '@remotion/bundler';
 import { prisma } from './db';
+import { makeCancelSignal } from '@remotion/renderer';
 import { renderProject } from './render';
 
 const execFileAsync = promisify(execFile);
 
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS ?? '5000', 10);
+/** A 30 s slideshow renders in about 2 min; 10 min means the job is stuck. */
+const JOB_TIMEOUT_MS = parseInt(process.env.JOB_TIMEOUT_MS ?? String(10 * 60_000), 10);
+const HEARTBEAT_MS = 30_000;
+/** No heartbeat for this long = the worker running the job is gone. Several heartbeats of margin. */
+const STALE_AFTER_MS = 2 * 60_000;
 
 // ── Bundle composition at startup ─────────────────────────────────────────────
 
@@ -93,19 +106,40 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
     return;
   }
 
+  const { cancelSignal, cancel } = makeCancelSignal();
+  let timedOut = false;
+  const limit = setTimeout(() => {
+    timedOut = true;
+    cancel();
+  }, JOB_TIMEOUT_MS);
+  // Heartbeat: tells other workers (and the reaper) this job is alive.
+  const heartbeat = setInterval(() => {
+    prisma.$executeRaw`UPDATE blitz_projects SET updated_at = now() WHERE id = ${jobId} AND render_status = 'PROCESSING'`
+      .catch((err) => console.warn(`[blitz-worker] Heartbeat failed for ${jobId}:`, err));
+  }, HEARTBEAT_MS);
+
   try {
-    const r2Key = await renderProject(project, template, serveUrl);
+    // The race also covers the steps before renderMedia (URL signing, transcode), which ignore the cancel signal.
+    const r2Key = await Promise.race([
+      renderProject(project, template, serveUrl, cancelSignal),
+      new Promise<never>((_, reject) => {
+        cancelSignal(() => reject(new Error(`Render took longer than ${Math.round(JOB_TIMEOUT_MS / 60_000)} min — cancelled`)));
+      }),
+    ]);
     await prisma.blitzProject.update({
       where: { id: jobId },
       data: { renderStatus: 'COMPLETED', renderedVideoKey: r2Key, updatedAt: new Date() },
     });
     console.log(`[blitz-worker] Job ${jobId} COMPLETED → ${r2Key}`);
   } catch (err) {
-    console.error(`[blitz-worker] Job ${jobId} FAILED:`, err);
+    console.error(`[blitz-worker] Job ${jobId} FAILED${timedOut ? ' (time limit)' : ''}:`, err);
     await prisma.blitzProject.update({
       where: { id: jobId },
       data: { renderStatus: 'FAILED', updatedAt: new Date() },
     });
+  } finally {
+    clearTimeout(limit);
+    clearInterval(heartbeat);
   }
 }
 
@@ -116,6 +150,7 @@ async function startPollingLoop(serveUrl: string): Promise<void> {
 
   const tick = async () => {
     try {
+      await requeueStaleJobs();
       const jobId = await claimNextJob();
       if (jobId) {
         await processJob(jobId, serveUrl);
@@ -146,18 +181,21 @@ process.on('unhandledRejection', (reason) => {
   console.error('[blitz-worker] Unhandled rejection:', reason);
 });
 
-// ── Recover jobs stuck in PROCESSING at startup ───────────────────────────────
-// If the worker crashed mid-render, those rows stay PROCESSING forever.
-// Reset them to PENDING so they are retried.
+// ── Recover jobs whose worker is gone ─────────────────────────────────────────
+// A crash or redeploy mid-render leaves the row PROCESSING with no heartbeat. Put it back in the
+// queue; its created_at is unchanged, so it keeps its FIFO place. Jobs another live worker is
+// running keep heartbeating and are never touched (safe with several replicas).
 
-async function resetStuckJobs(): Promise<void> {
+async function requeueStaleJobs(): Promise<void> {
+  const staleSeconds = Math.round(STALE_AFTER_MS / 1000);
   const result = await prisma.$executeRaw`
     UPDATE blitz_projects
     SET render_status = 'PENDING', updated_at = now()
     WHERE render_status = 'PROCESSING'
+      AND updated_at < now() - make_interval(secs => ${staleSeconds})
   `;
   if (result > 0) {
-    console.log(`[blitz-worker] Reset ${result} stuck PROCESSING job(s) → PENDING`);
+    console.log(`[blitz-worker] Re-queued ${result} PROCESSING job(s) with no heartbeat → PENDING`);
   }
 }
 
@@ -227,7 +265,7 @@ async function checkFfmpeg(): Promise<void> {
 // ── Entry ─────────────────────────────────────────────────────────────────────
 
 async function main() {
-  await resetStuckJobs();
+  await requeueStaleJobs();
   await checkFfmpeg();
   const serveUrl = await buildBundle();
   await startPollingLoop(serveUrl);
