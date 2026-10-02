@@ -3,7 +3,7 @@
 // hook = big white outlined text; meat and CTA = headline in a white box, one plain line of white text under it.
 
 import { ImageResponse } from 'next/og';
-import type { AutoSlide } from '../../types/admin/autoSlideshow';
+import type { AutoPhoto, AutoSlide } from '../../types/admin/autoSlideshow';
 import { getObject } from '../storage/objectStore';
 import { compressJpeg } from './jpeg';
 
@@ -80,3 +80,16 @@ export const renderSlide = async (slide: Pick<AutoSlide, 'role' | 'title' | 'bod
  */
 export const photoIndexes = (slideCount: number, position: number, available: number[]): number[] =>
   Array.from({ length: slideCount }, (_, i) => available[(position * 3 + i) % available.length]!);
+
+/**
+ * The photo of each slide of the slideshow at `position`: its own photo when made (every slide on bank runs, the hook on
+ * older runs), else the run's shared pool (older runs), else another own photo of the same slideshow. Null when none exists.
+ */
+export const slidePhotoIndexes = (slides: AutoSlide[], position: number, photos: AutoPhoto[]): (number | null)[] => {
+  const made = (i: number) => Boolean(photos[i]?.imageKey);
+  const own = slides.map((s) => (s.photoPrompt && photos[s.photoIndex]?.kind && made(s.photoIndex) ? s.photoIndex : null));
+  const pool = photos.flatMap((p, i) => (!p.kind && made(i) ? [i] : []));
+  const fromPool = pool.length > 0 ? photoIndexes(slides.length, position, pool) : [];
+  const spare = own.filter((i): i is number => i !== null);
+  return slides.map((_, i) => own[i] ?? fromPool[i] ?? (spare.length > 0 ? spare[i % spare.length]! : null));
+};

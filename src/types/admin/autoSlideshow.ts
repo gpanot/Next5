@@ -8,6 +8,7 @@ import type { ConnectionDto, SocialProviderDto } from '../business/integrations'
 import type { BrandProfile } from './companyIntel';
 import type { ContentGoal } from './contentGoals';
 import type { BrandLever, StepCost } from './metaAds';
+import type { BankCombo } from './slideshowBank';
 import type { SlideRole } from './slideshowKnowledge';
 
 export const AUTO_STEPS = [1, 2, 3, 4, 5, 6] as const;
@@ -30,30 +31,37 @@ export const DEFAULT_SLIDESHOWS = 5;
 
 export const isSlideshowCount = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= MIN_SLIDESHOWS && (v as number) <= MAX_SLIDESHOWS;
 
-/** One planned slideshow: which proven model, which of its hooks, and what it teaches. */
+/** One planned slideshow. Bank picks (`bank` set) name the Slideshow Bank parts; older picks name a proven model. */
 export type SlideshowPick = {
-  modelId: string;
+  /** Null on bank picks. */
+  modelId: string | null;
   modelName: string;
   hookPattern: string;
   /** The value topic, e.g. "putting mistakes beginners make". */
   topic: string;
   /** What the slideshow is for; missing on plans made before goals. */
   goal?: ContentGoal;
+  /** The Slideshow Bank meat, hook and CTA this slideshow uses. */
+  bank?: BankCombo;
 };
 
 /** Step 3 checkpoint. */
 export type AutoPlan = {
   picks: SlideshowPick[];
-  /** Mood photo descriptions shared by the run; each slideshow uses them in its own order. */
+  /** Mood photo descriptions shared by the run (older runs). Bank runs leave it empty: every slide has its own photo. */
   photoPrompts: string[];
   /** True when no approved model fit and drafts were used. */
   usedDrafts: boolean;
+  /** The Slideshow Bank the picks come from; true `bankBuilt` when this run built it. */
+  bankId?: string;
+  bankBuilt?: boolean;
 };
 
 /** Step 5 checkpoint: one generated photo per prompt (null when that image failed). */
-/** `hook`: made for one slideshow's first slide. Other photos are the run's shared pool for the remaining slides. */
-/** `deleted`: the owner removed this photo from Settings; a re-run keeps it removed instead of making it again. */
-export type AutoPhoto = { prompt: string; imageKey: string | null; error: string | null; kind?: 'hook'; deleted?: true };
+/** `hook`: made for one slideshow's first slide (older runs). `slide`: made for one slide, named by `owner`
+ *  ("slideshowId:slideIndex"), so two slideshows on the same bank meat get different images. Other photos are the run's
+ *  shared pool. `deleted`: the owner removed this photo from Settings; a re-run keeps it removed instead of making it again. */
+export type AutoPhoto = { prompt: string; imageKey: string | null; error: string | null; kind?: 'hook' | 'slide'; owner?: string; deleted?: true };
 
 export type AutoSlide = {
   role: SlideRole;
@@ -61,7 +69,7 @@ export type AutoSlide = {
   body: string;
   /** Index into the run's photo set. */
   photoIndex: number;
-  /** Hook slide only: scene that fits the hook, made as its own photo in step 5. */
+  /** Scene made as this slide's own photo in step 5 (every slide on bank runs; the hook slide only on older runs). */
   photoPrompt?: string;
   /** Rendered 1080x1350 JPEG, once step 6 ran. */
   imageKey: string | null;

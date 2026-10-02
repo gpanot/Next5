@@ -44,6 +44,10 @@ function FailedBanner({ token, run, onResumed }: { token: string; run: AutoRunDt
 
 function PlanNote({ run }: { run: AutoRunDto }) {
   if (!run.plan) return null;
+  if (run.plan.bankId) {
+    const hooks = new Set(run.plan.picks.map((p) => p.bank?.hookId)).size;
+    return <p className="text-xs text-muted">{run.plan.picks.length} slideshows from the Slideshow Bank · {hooks} different hooks · a new photo for every slide</p>;
+  }
   const models = new Set(run.plan.picks.map((p) => p.modelName));
   return (
     <p className="text-xs text-muted">

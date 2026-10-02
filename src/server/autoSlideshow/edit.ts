@@ -7,11 +7,14 @@ import { prisma } from '../../lib/db';
 import type { AutoPhoto, AutoPlan, AutoSlide, AutoStep } from '../../types/admin/autoSlideshow';
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
+import type { SlideshowBankContent } from '../../types/admin/slideshowBank';
 import type { SlideshowPattern } from '../../types/admin/slideshowKnowledge';
 import { HttpError } from '../http';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { chargeSlideshow } from '../slideshowCredits/charge';
 import { deleteObject, putObject } from '../storage/objectStore';
+import { loadUsage } from './bank/build';
+import { assembleCombo, swapCombo } from './bank/pick';
 import { isTrack } from './music';
 import { makePhotos } from './photos';
 import { renderSlide, type PhotoCache } from './render';
@@ -92,7 +95,9 @@ export const newPhotoForSlide = async (runId: string, showId: string, index: num
   const meter = createMeter();
   try {
     const all = await makePhotos(runId, [...photos.map((p) => p.prompt), prompt], photos, meter);
-    const made = all[all.length - 1]!;
+    // On bank runs the new photo belongs to this slide, not to the shared pool other slides fall back on.
+    const made = show.bankHookId ? { ...all[all.length - 1]!, kind: 'slide' as const } : all[all.length - 1]!;
+    all[all.length - 1] = made;
     if (!made.imageKey) throw new HttpError(502, 'photo_failed', made.error ?? 'The new photo failed.');
     await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { photos: json(all) } });
     slides[index] = await renderInto(runId, showId, index, { ...slide, photoIndex: all.length - 1 }, all, new Map());
@@ -128,9 +133,35 @@ export const updateShow = async (runId: string, showId: string, patch: ShowPatch
   await prisma.autoSlideshow.update({ where: { id: showId }, data });
 };
 
-/** Writes the slideshow again on the same model, hook and topic, keeping each slide's photo, then renders it. */
+type LoadedShow = Awaited<ReturnType<typeof loadShow>>;
+
+/** Bank slideshow: a new hook (same meat) and CTA from the bank, least used first. No model call; the slides keep their
+ *  photos, and only the hook and CTA slides render again. */
+const rewriteFromBank = async (show: LoadedShow): Promise<void> => {
+  const row = await prisma.slideshowBank.findUnique({ where: { url: show.run.url } });
+  if (!row || !show.bankMeatId || !show.bankHookId) throw new HttpError(409, 'bank_missing', 'This site\'s Slideshow Bank was deleted.');
+  const bank = row.content as unknown as SlideshowBankContent;
+  const combo = swapCombo(bank, await loadUsage(show.run.url), { meatId: show.bankMeatId, hookId: show.bankHookId, ctaId: show.bankCtaId ?? '' });
+  const next = assembleCombo(bank, combo);
+  const [hook, cta] = [next.slides[0]!, next.slides[next.slides.length - 1]!];
+  const slides = show.slides as unknown as AutoSlide[];
+  const photos = photosOf(show.run);
+  const cache: PhotoCache = new Map();
+  const lastIndex = slides.length - 1;
+  slides[0] = await renderInto(show.runId, show.id, 0, { ...slides[0]!, title: hook.title }, photos, cache);
+  if (slides[lastIndex]?.role === 'cta') slides[lastIndex] = await renderInto(show.runId, show.id, lastIndex, { ...slides[lastIndex]!, title: cta.title, body: cta.body }, photos, cache);
+  await prisma.autoSlideshow.update({
+    where: { id: show.id },
+    data: { slides: json(slides), hookPattern: next.hookPattern, bankHookId: combo.hookId, bankCtaId: combo.ctaId, status: 'ready', error: null },
+  });
+  await chargeSlideshow(show.runId, show.id);
+};
+
+/** Writes the slideshow again: bank slideshows get a new hook and CTA from the bank; older ones are rewritten on the same
+ *  model, hook and topic, keeping each slide's photo. Then renders it. */
 export const rewriteSlideshow = async (runId: string, showId: string): Promise<void> => {
   const show = await loadShow(runId, showId);
+  if (show.bankHookId) return rewriteFromBank(show);
   if (!show.modelId) throw new HttpError(409, 'model_deleted', 'This slideshow\'s model was deleted.');
   const model = await prisma.slideshowModel.findUniqueOrThrow({ where: { id: show.modelId } });
   const [profile, levers, photos] = [show.run.profile as unknown as BrandProfile, (show.run.levers as unknown as BrandLever[] | null) ?? [], photosOf(show.run)];

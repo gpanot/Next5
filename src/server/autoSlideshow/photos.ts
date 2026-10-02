@@ -65,17 +65,25 @@ const makePhoto = async (runId: string, index: number, prompt: string, meter: Co
   throw new Error('Photo generation timed out');
 };
 
+/** `deadline`: no new photo starts after it (the rest stay untried for the next invocation). `skipFailed`: a continued
+ *  pass leaves photos that already failed, so retries do not eat its time. */
+export type MakePhotosOptions = { deadline?: number; skipFailed?: boolean };
+
 /**
  * Generates every photo not stored yet (a resumed run keeps the ones it has). A failed photo is recorded, not fatal;
  * the step fails only when fewer photos exist than the longest slideshow needs.
  */
-export const makePhotos = async (runId: string, prompts: string[], existing: AutoPhoto[] | null, meter: CostMeter): Promise<AutoPhoto[]> => {
+export const makePhotos = async (runId: string, prompts: string[], existing: AutoPhoto[] | null, meter: CostMeter, options: MakePhotosOptions = {}): Promise<AutoPhoto[]> => {
   const photos: AutoPhoto[] = prompts.map((prompt, i) => {
     const prior = existing?.[i];
-    return (prior?.imageKey || prior?.deleted) && prior.prompt === prompt ? prior : { prompt, imageKey: null, error: null };
+    if (prior?.prompt !== prompt) return { prompt, imageKey: null, error: null };
+    if (prior.imageKey || prior.deleted || (options.skipFailed && prior.error)) return prior;
+    const { kind, owner } = prior;
+    return { prompt, imageKey: null, error: null, ...(kind ? { kind } : {}), ...(owner ? { owner } : {}) };
   });
-  const todo = photos.map((p, i) => ({ p, i })).filter(({ p }) => !p.imageKey && !p.deleted);
+  const todo = photos.map((p, i) => ({ p, i })).filter(({ p }) => !p.imageKey && !p.deleted && !p.error);
   await runPool(todo, CONCURRENCY, async ({ p, i }) => {
+    if (options.deadline && Date.now() > options.deadline) return;
     try {
       photos[i] = { ...p, imageKey: await makePhoto(runId, i, p.prompt, meter), error: null };
     } catch (err) {

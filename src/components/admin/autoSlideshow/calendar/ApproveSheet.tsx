@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { AutoRunDto, AutoSlideshowDto, PostPlatform, RunAccountsDto } from '../../../../types/admin/autoSlideshow';
 import { defaultPlatforms, PlatformPicker } from '../posting/PlatformPicker';
 import { formatWhen } from '../schedule';
+import { AccountRow } from '../settings/AccountsSection';
 import { TikTokAccounts } from '../TikTokAccounts';
 import type { usePosting } from '../usePosting';
 import { ApproveForm } from './ApproveForm';
@@ -67,10 +68,26 @@ function AccountPicker({ token, run, posting }: Pick<Props, 'token' | 'run' | 'p
 type ScheduleItems = { slideshowId: string; scheduledAt: string }[];
 type FormProps = Pick<Props, 'token' | 'run' | 'posting'> & { accounts: RunAccountsDto; items: ScheduleItems; onApprove: (req: Parameters<Props['posting']['schedule']>[0]) => Promise<boolean> };
 
+/** No platform connected yet: connect one right here, the same rows as Settings → Accounts. Connecting returns to this page. */
+function ConnectFirst({ token, accounts }: { token: string; accounts: RunAccountsDto }) {
+  const workspace = accounts.workspaceId;
+  if (!workspace) return null;
+  return (
+    <section className="space-y-2">
+      <p className="text-sm font-semibold text-ink dark:text-zinc-100">Connect where to post</p>
+      <ul className="space-y-2">
+        {(['tiktok', 'instagram'] as const).map((p) => (
+          <AccountRow key={p} token={token} workspace={workspace} provider={p} connection={undefined} available={accounts.configured[p]} onChanged={() => undefined} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 /** Platforms, then the approval form for them. */
 function PlatformsAndForm({ token, run, accounts, items, posting, onApprove }: FormProps) {
   const [platforms, setPlatforms] = useState<PostPlatform[]>(() => defaultPlatforms(accounts));
-  if (!accounts.accounts.tiktok && !accounts.accounts.instagram) return <p className={notice}>Connect TikTok or Instagram first: gear → Accounts.</p>;
+  if (!accounts.accounts.tiktok && !accounts.accounts.instagram) return <ConnectFirst accounts={accounts} token={token} />;
   return (
     <>
       <PlatformPicker accounts={accounts} value={platforms} onChange={setPlatforms} />

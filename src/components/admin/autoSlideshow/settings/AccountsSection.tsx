@@ -12,10 +12,10 @@ type Props = { token: string; me: SlideshowMeDto; onChanged: () => void };
 const LABEL: Record<SocialProviderDto, string> = { tiktok: 'TikTok', instagram: 'Instagram' };
 const handle = (c: ConnectionDto) => (c.username ? ` as ${c.username.startsWith('@') ? c.username : `@${c.username}`}` : '');
 
-type RowProps = { token: string; workspace: string; provider: SocialProviderDto; connection: ConnectionDto | undefined; available: boolean; soon?: boolean; onChanged: () => void };
+export type AccountRowProps = { token: string; workspace: string; provider: SocialProviderDto; connection: ConnectionDto | undefined; available: boolean; soon?: boolean; onChanged: () => void };
 
-/** One platform: its state, and Connect or Disconnect. */
-function AccountRow({ token, workspace, provider, connection, available, soon, onChanged }: RowProps) {
+/** One platform: its state, and Connect or Disconnect. Also used in the approve sheet. */
+export function AccountRow({ token, workspace, provider, connection, available, soon, onChanged }: AccountRowProps) {
   const [busy, setBusy] = useState(false);
   // Instagram asks the account type first: only Business and Creator accounts can be connected.
   const [askingType, setAskingType] = useState(false);

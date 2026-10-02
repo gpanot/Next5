@@ -22,9 +22,9 @@ const activeCopy = (run: AutoRunDto, step: AutoStep): [string, string] => {
   switch (step) {
     case 1: return [`Reading ${domainOf(run)}`, 'Reading the site for brand, product, audience and tone.'];
     case 2: return [`Finding proof on ${brand}'s site`, 'Pulling real numbers, promises and quotes to build on.'];
-    case 3: return ['Picking formats that already win', `Matching ${plural(run.count, 'slideshow')} to proven TikTok models.`];
+    case 3: return ['Picking hooks that already win', `Building ${brand}'s bank of proven hooks, slides and CTAs once, then picking ${plural(run.count, 'slideshow')}.`];
     case 4: return [`Writing ${plural(run.count, 'slideshow')}`, 'Hooks, slides and captions, all from the plan.'];
-    case 5: return ['Making the photos', `${plural(run.plan?.photoPrompts.length ?? 0, 'photo')}, shared across the slideshows.`];
+    case 5: return ['Making the photos', run.plan?.bankId ? 'A new photo for every slide.' : `${plural(run.plan?.photoPrompts.length ?? 0, 'photo')}, shared across the slideshows.`];
     case 6: return ['Building your slides', 'Putting text on photos, all in parallel.'];
   }
 };
@@ -44,7 +44,9 @@ const doneCopy = (run: AutoRunDto, step: AutoStep): string => {
   switch (step) {
     case 1: return `Mapped ${brandOf(run)}'s audience and value prop`;
     case 2: return `Found ${plural(run.levers?.length ?? 0, 'proof point')}`;
-    case 3: return `Planned ${plural(plan?.picks.length ?? 0, 'slideshow')} on ${plural(new Set(plan?.picks.map((p) => p.modelName)).size, 'model')}`;
+    case 3: return plan?.bankId
+      ? `Picked ${plural(plan.picks.length, 'slideshow')} from the bank${plan.bankBuilt ? ' (built for this site)' : ''}`
+      : `Planned ${plural(plan?.picks.length ?? 0, 'slideshow')} on ${plural(new Set(plan?.picks.map((p) => p.modelName)).size, 'model')}`;
     case 4: return `Wrote ${plural(run.slideshows.length, 'slideshow')}`;
     case 5: return `Made ${photosOk} of ${plural(run.photos?.length ?? 0, 'photo')}`;
     case 6: return `Rendered ${plural(readyCount(run), 'slideshow')}`;

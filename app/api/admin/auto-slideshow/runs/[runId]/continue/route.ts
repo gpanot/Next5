@@ -1,6 +1,7 @@
 /**
  * POST /api/admin/auto-slideshow/runs/[runId]/continue
- * Internal: the pipeline calls this after step 4 so photos and render get their own function time budget.
+ * Internal: the pipeline calls this after step 4 so photos and render get their own function time budget, and again
+ * when step 5 ran out of its time budget with photos left.
  * Accepts only a run already marked STEP_5_RUNNING by that hand-off.
  */
 import type { NextRequest } from 'next/server';
@@ -18,6 +19,6 @@ export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
   const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { status: true } });
   if (!run) return json({ error: 'Run not found' }, { status: 404 });
   if (run.status !== 'STEP_5_RUNNING') return json({ error: `Run is ${run.status}, not waiting for step 5` }, { status: 409 });
-  waitUntil(runAutoPipeline(runId, 5));
+  waitUntil(runAutoPipeline(runId, 5, 0, true));
   return json({ ok: true }, { status: 202 });
 });
