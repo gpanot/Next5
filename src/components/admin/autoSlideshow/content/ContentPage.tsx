@@ -1,0 +1,49 @@
+'use client';
+
+import { useState } from 'react';
+import { BlitzSlideTab } from './BlitzSlideTab';
+
+type ContentTab = 'blitz' | 'slideshow';
+
+const TABS: { id: ContentTab; label: string }[] = [
+  { id: 'blitz', label: 'Blitz Slide' },
+  { id: 'slideshow', label: 'Slideshow' },
+];
+
+const tabClass = (active: boolean) =>
+  [
+    'min-h-11 shrink-0 whitespace-nowrap rounded-full px-5 text-sm font-semibold transition active:scale-95',
+    active ? 'bg-app-cta text-app-cta-ink shadow-sm' : 'bg-app-sunken text-app-muted hover:text-app-ink',
+  ].join(' ');
+
+function SlideshowTab() {
+  return (
+    <div className="rounded-xl border border-dashed border-app-line p-8 text-center">
+      <p className="text-base font-semibold text-app-ink">Coming soon</p>
+      <p className="mt-1 text-sm text-app-muted">More ways to make content will show up here.</p>
+    </div>
+  );
+}
+
+/** One workspace's Content page: a tab per way to make content. Blitz Slide is the swipe deck from the admin lab. */
+export function ContentPage({ token, workspaceId }: { token: string; workspaceId: string }) {
+  const [tab, setTab] = useState<ContentTab>('blitz');
+  return (
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+      <div role="tablist" aria-label="Content" className="flex gap-2 overflow-x-auto pb-1">
+        {TABS.map((t) => (
+          <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={tabClass(tab === t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {/* Both panels stay mounted: switching tabs keeps the deck, its swipes and renders in flight. */}
+      <div role="tabpanel" hidden={tab !== 'blitz'}>
+        <BlitzSlideTab token={token} workspaceId={workspaceId} />
+      </div>
+      <div role="tabpanel" hidden={tab !== 'slideshow'}>
+        <SlideshowTab />
+      </div>
+    </div>
+  );
+}

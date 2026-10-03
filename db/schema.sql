@@ -585,7 +585,27 @@ CREATE TABLE public.auto_slideshow_runs (
     finished_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    brand_profile_id text,
     CONSTRAINT auto_slideshow_runs_count_check CHECK (((count >= 1) AND (count <= 20)))
+);
+
+
+--
+-- Name: auto_slideshow_video_downloads; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.auto_slideshow_video_downloads (
+    id text NOT NULL,
+    slideshow_id text NOT NULL,
+    run_id text NOT NULL,
+    workspace_id text,
+    user_id text,
+    project_id text NOT NULL,
+    reused boolean DEFAULT false NOT NULL,
+    status text DEFAULT 'rendering'::text NOT NULL,
+    requested_at timestamp with time zone DEFAULT now() NOT NULL,
+    finished_at timestamp with time zone,
+    wait_ms integer
 );
 
 
@@ -614,6 +634,7 @@ CREATE TABLE public.auto_slideshows (
     bank_meat_id text,
     bank_hook_id text,
     bank_cta_id text,
+    recommended_audio_asset_id text,
     CONSTRAINT auto_slideshows_status_check CHECK ((status = ANY (ARRAY['written'::text, 'rendering'::text, 'ready'::text, 'failed'::text])))
 );
 
@@ -758,7 +779,42 @@ CREATE TABLE public.blitz_projects (
     is_identifiable_person boolean DEFAULT false NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    workspace_id text
+    workspace_id text,
+    render_started_at timestamp with time zone,
+    render_finished_at timestamp with time zone
+);
+
+
+--
+-- Name: blitz_scheduled_posts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.blitz_scheduled_posts (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    user_id text NOT NULL,
+    card_id text NOT NULL,
+    variant_id text,
+    title text NOT NULL,
+    cover_key text,
+    render_body jsonb NOT NULL,
+    scheduled_at timestamp with time zone NOT NULL,
+    status text DEFAULT 'scheduled'::text NOT NULL,
+    project_id text,
+    privacy_level text NOT NULL,
+    allow_comments boolean DEFAULT true NOT NULL,
+    brand_organic boolean DEFAULT false NOT NULL,
+    brand_content boolean DEFAULT false NOT NULL,
+    consent_at timestamp with time zone NOT NULL,
+    publish_id text,
+    tiktok_post_id text,
+    post_url text,
+    attempts integer DEFAULT 0 NOT NULL,
+    error text,
+    sent_at timestamp with time zone,
+    posted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -2080,7 +2136,8 @@ CREATE TABLE public.workspaces (
     geography text,
     brand_extract jsonb,
     brand_extract_at timestamp with time zone,
-    deleted_at timestamp with time zone
+    deleted_at timestamp with time zone,
+    purge_at timestamp with time zone
 );
 
 
@@ -2148,6 +2205,14 @@ ALTER TABLE ONLY public.auto_slideshow_runs
 
 
 --
+-- Name: auto_slideshow_video_downloads auto_slideshow_video_downloads_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshow_video_downloads
+    ADD CONSTRAINT auto_slideshow_video_downloads_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: auto_slideshows auto_slideshows_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2209,6 +2274,14 @@ ALTER TABLE ONLY public.blitz_listing_runs
 
 ALTER TABLE ONLY public.blitz_projects
     ADD CONSTRAINT blitz_projects_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: blitz_scheduled_posts blitz_scheduled_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_scheduled_posts
+    ADD CONSTRAINT blitz_scheduled_posts_pkey PRIMARY KEY (id);
 
 
 --
@@ -2855,10 +2928,31 @@ CREATE INDEX auto_slideshow_posts_workspace_idx ON public.auto_slideshow_posts U
 
 
 --
+-- Name: auto_slideshow_runs_brand_profile_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_runs_brand_profile_idx ON public.auto_slideshow_runs USING btree (brand_profile_id);
+
+
+--
 -- Name: auto_slideshow_runs_created_idx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX auto_slideshow_runs_created_idx ON public.auto_slideshow_runs USING btree (created_at DESC);
+
+
+--
+-- Name: auto_slideshow_video_downloads_requested_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_video_downloads_requested_idx ON public.auto_slideshow_video_downloads USING btree (requested_at);
+
+
+--
+-- Name: auto_slideshow_video_downloads_slideshow_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_video_downloads_slideshow_idx ON public.auto_slideshow_video_downloads USING btree (slideshow_id);
 
 
 --
@@ -2971,6 +3065,20 @@ CREATE INDEX blitz_projects_render_status_idx ON public.blitz_projects USING btr
 --
 
 CREATE INDEX blitz_projects_workspace_id_created_at_idx ON public.blitz_projects USING btree (workspace_id, created_at DESC);
+
+
+--
+-- Name: blitz_scheduled_posts_status_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blitz_scheduled_posts_status_idx ON public.blitz_scheduled_posts USING btree (status, scheduled_at);
+
+
+--
+-- Name: blitz_scheduled_posts_workspace_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX blitz_scheduled_posts_workspace_idx ON public.blitz_scheduled_posts USING btree (workspace_id, scheduled_at);
 
 
 --
@@ -3757,6 +3865,22 @@ ALTER TABLE ONLY public.auto_slideshow_posts
 
 
 --
+-- Name: auto_slideshow_runs auto_slideshow_runs_brand_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshow_runs
+    ADD CONSTRAINT auto_slideshow_runs_brand_profile_id_fkey FOREIGN KEY (brand_profile_id) REFERENCES public.studio_brand_profiles(id) ON DELETE SET NULL;
+
+
+--
+-- Name: auto_slideshow_video_downloads auto_slideshow_video_downloads_slideshow_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.auto_slideshow_video_downloads
+    ADD CONSTRAINT auto_slideshow_video_downloads_slideshow_id_fkey FOREIGN KEY (slideshow_id) REFERENCES public.auto_slideshows(id) ON DELETE CASCADE;
+
+
+--
 -- Name: auto_slideshows auto_slideshows_audio_asset_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3866,6 +3990,14 @@ ALTER TABLE ONLY public.blitz_projects
 
 ALTER TABLE ONLY public.blitz_projects
     ADD CONSTRAINT blitz_projects_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: blitz_scheduled_posts blitz_scheduled_posts_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_scheduled_posts
+    ADD CONSTRAINT blitz_scheduled_posts_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 
 --
@@ -4562,4 +4694,9 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261030090000'),
     ('20261031090000'),
     ('20261101090000'),
-    ('20261102090000');
+    ('20261102090000'),
+    ('20261103090000'),
+    ('20261104090000'),
+    ('20261105090000'),
+    ('20261106090000'),
+    ('20261107090000');

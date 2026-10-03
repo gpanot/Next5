@@ -1,15 +1,15 @@
 import { after, NextResponse, type NextRequest } from 'next/server';
-import { adminRoute } from '../../../../../../src/server/admin/route';
+import { labRoute, type LabAccess } from '../../../../../../src/server/labs/labAccess';
 import { isBlitzUploadKey, toAssetDto } from '../../../../../../src/server/admin/blitzStore';
 import { deleteFromR2 } from '../../../../../../src/lib/r2';
 import { prisma } from '../../../../../../src/lib/db';
 
 type Ctx = { params: Promise<{ id: string }> };
 
-/** Loads an uploaded asset. Curated library assets are read-only and return 403. */
-const findUpload = async (id: string) => {
+/** Loads an uploaded asset. Curated library assets are read-only and return 403; users only reach their workspace's. */
+const findUpload = async (id: string, access: LabAccess) => {
   const asset = await prisma.blitzAsset.findUnique({ where: { id } });
-  if (!asset) return { error: NextResponse.json({ error: 'Asset not found' }, { status: 404 }) };
+  if (!asset || (!access.admin && asset.workspaceId !== access.workspaceId)) return { error: NextResponse.json({ error: 'Asset not found' }, { status: 404 }) };
   if (!isBlitzUploadKey(asset.r2Key)) {
     return { error: NextResponse.json({ error: 'Library assets cannot be changed' }, { status: 403 }) };
   }
@@ -17,9 +17,9 @@ const findUpload = async (id: string) => {
 };
 
 /** PATCH /api/admin/blitz/assets/[id]  Body: { name } — rename an uploaded asset. */
-export const PATCH = adminRoute(async (req: NextRequest, ctx: Ctx) => {
+export const PATCH = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
   const { id } = await ctx.params;
-  const found = await findUpload(id);
+  const found = await findUpload(id, access);
   if (found.error) return found.error;
   const body = (await req.json().catch(() => ({}))) as { name?: string };
   const name = body.name?.trim().slice(0, 120);
@@ -33,9 +33,9 @@ export const PATCH = adminRoute(async (req: NextRequest, ctx: Ctx) => {
  * DELETE /api/admin/blitz/assets/[id] — delete an uploaded asset and its R2 file.
  * Finished renders are separate files, so they keep working.
  */
-export const DELETE = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
+export const DELETE = labRoute(async (_req: NextRequest, ctx: Ctx, access) => {
   const { id } = await ctx.params;
-  const found = await findUpload(id);
+  const found = await findUpload(id, access);
   if (found.error) return found.error;
 
   // Do not pull the file out from under a render that is still queued or running.

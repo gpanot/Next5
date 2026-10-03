@@ -25,7 +25,8 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { SwipeCard } from './SwipeCard';
-import { KeptItem, type KeptRenderView } from './KeptList';
+import { KeptItem, type KeptActions, type KeptRenderView } from './KeptList';
+import { KeptSheet } from './KeptSheet';
 import { DeckControls, DoneScreen } from './SwipeDeckParts';
 import { useDeckSound } from './useDeckSound';
 import type { CopyCheckContext } from './deckApi';
@@ -112,6 +113,8 @@ export type SwipeDeckProps = {
   renderFor?: (card: DeckCardData) => KeptRenderView | undefined;
   /** Right column, given the card on screen (top card or the one in Preview) and the deck's sound switch. */
   aside?: (card: DeckCardData | null, sound: DeckSound) => ReactNode;
+  /** Audience filter chips and the card's audience / hook-style tags above the deck. Off on the Content page. */
+  labels?: boolean;
 };
 
 // ── Skip reason options ───────────────────────────────────────────────────────
@@ -143,6 +146,7 @@ export function SwipeDeck({
   onGenerate,
   renderFor,
   aside,
+  labels = true,
 }: SwipeDeckProps) {
   const [cards, setCards] = useState<DeckCardData[]>(initialCards);
   const [filter, setFilter] = useState<string>('all');
@@ -173,6 +177,7 @@ export function SwipeDeck({
   const allNewCount = cards.filter((c) => c.status === 'new').length;
 
   const previewCard = cards.find((c) => c.id === previewId) ?? null;
+  const keptActions: KeptActions = { onEdit: (cardId) => onEdit?.(cardId), onPreview: setPreviewId, onGenerate, renderFor };
   const current = previewCard ? null : (queue[0] ?? null);
 
   // ── Music for the top card (or the previewed one) ─────────────────────────
@@ -254,8 +259,9 @@ export function SwipeDeck({
   // ── Keyboard ───────────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.target as HTMLElement).matches('textarea, input')) return;
-      if (paused) return;
+      if ((e.target as HTMLElement).matches('textarea, input, select')) return;
+      // A dialog over the deck (e.g. Add to calendar) keeps its keys.
+      if (paused || document.querySelector('[role="dialog"][aria-modal="true"]')) return;
       if (e.key === 'Escape') setPreviewId(null);
       else if (e.key === 'ArrowRight') handleKeep();
       else if (e.key === 'ArrowLeft') handleSkip();
@@ -302,7 +308,7 @@ export function SwipeDeck({
               <KeptItem
                 key={c.id}
                 card={c}
-                actions={{ onEdit: (cardId) => onEdit?.(cardId), onPreview: setPreviewId, onGenerate, renderFor }}
+                actions={keptActions}
               />
             ))
           )}
@@ -310,9 +316,10 @@ export function SwipeDeck({
 
         {/* ── Main area ─────────────────────────────────────────────────── */}
         <main className="flex flex-col items-center">
+          <KeptSheet cards={keptCards} actions={keptActions} />
 
           {/* Filter chips */}
-          <div
+          {labels && <div
             role="group"
             aria-label="Filter by audience"
             className="mb-0 flex w-full max-w-[380px] gap-1.5 overflow-x-auto pb-2.5 scrollbar-hide"
@@ -339,7 +346,7 @@ export function SwipeDeck({
                 <small className="ml-1 font-medium opacity-60">{lensCounts[lens.id] ?? 0}</small>
               </button>
             ))}
-          </div>
+          </div>}
 
           {/* Preview bar: a kept card is back in the card slot */}
           {previewCard && (
@@ -358,7 +365,7 @@ export function SwipeDeck({
           )}
 
           {/* Head row: audience tag, style tag */}
-          {current && (
+          {labels && current && (
             <div className="mb-2.5 flex w-full max-w-[380px] flex-wrap items-center gap-1.5">
               {currentTags.map((tag, i) => (
                 <span

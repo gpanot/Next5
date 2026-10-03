@@ -1,15 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute } from '../../../../../../src/server/admin/route';
+import { assertOwned, labRoute } from '../../../../../../src/server/labs/labAccess';
 import { toProjectDto } from '../../../../../../src/server/admin/blitzStore';
 import { prisma } from '../../../../../../src/lib/db';
 import { deleteFromR2 } from '../../../../../../src/lib/r2';
+import { refundFailedRender } from '../../../../../../src/server/slideshowCredits/blitzCharge';
 
 /**
  * GET /api/admin/blitz/projects/[id]
  * Polling endpoint — returns the current renderStatus + signed renderedVideoUrl.
  * While PENDING it also returns queuePosition: 1 = next to render. The worker renders oldest first.
  */
-export const GET = adminRoute(async (_req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
+export const GET = labRoute(async (_req: NextRequest, ctx: { params: Promise<{ id: string }> }, access) => {
   const { id } = await ctx.params;
 
   const project = await prisma.blitzProject.findUnique({ where: { id } });
@@ -17,6 +18,9 @@ export const GET = adminRoute(async (_req: NextRequest, ctx: { params: Promise<{
     console.warn(`[blitz/projects/${id}] Not found`);
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
+  assertOwned(access, project.workspaceId, 'Project');
+  // A workspace render that failed gives its credit back (once).
+  if (project.renderStatus === 'FAILED' && project.workspaceId) await refundFailedRender(project.id);
 
   // Log status changes (only when PENDING/PROCESSING to avoid noise for completed)
   if (project.renderStatus !== 'COMPLETED') {
@@ -34,11 +38,12 @@ export const GET = adminRoute(async (_req: NextRequest, ctx: { params: Promise<{
  * DELETE /api/admin/blitz/projects/[id]
  * Deletes the DB row and the rendered R2 video.
  */
-export const DELETE = adminRoute(async (_req: NextRequest, ctx: { params: Promise<{ id: string }> }) => {
+export const DELETE = labRoute(async (_req: NextRequest, ctx: { params: Promise<{ id: string }> }, access) => {
   const { id } = await ctx.params;
 
   const project = await prisma.blitzProject.findUnique({ where: { id } });
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+  assertOwned(access, project.workspaceId, 'Project');
 
   // Delete R2 object if present
   if (project.renderedVideoKey) {

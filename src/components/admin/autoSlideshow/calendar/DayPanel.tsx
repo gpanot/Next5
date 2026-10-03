@@ -20,13 +20,20 @@ function PanelRow({ slot, onOpen }: { slot: Filled; onOpen: (id: string) => void
   const views = live.reduce((n, p) => n + (p.stats?.views ?? 0), 0);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggableShow('panel', item.show?.id, cover, item.kind === 'ready');
   const { justDropped } = useSlideshowDrag();
+  // A Blitz video opens its TikTok post once live; until then it is shown only.
+  const link = item.kind === 'blitz' ? item.blitz.postUrl : null;
+  const open = () => {
+    if (justDropped()) return;
+    if (link) window.open(link, '_blank', 'noopener');
+    else if (item.show && item.kind !== 'making') onOpen(item.show.id);
+  };
   return (
     <button
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      onClick={() => !justDropped() && item.show && item.kind !== 'making' && onOpen(item.show.id)}
-      disabled={!item.show || item.kind === 'making'}
+      onClick={open}
+      disabled={!link && (!item.show || item.kind === 'making')}
       className={`${NO_LONG_PRESS_MENU} ${isDragging ? 'opacity-30' : ''} flex min-h-20 w-full items-center gap-3 rounded-xl border border-line bg-white p-2 text-left transition active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900`}
     >
       <span className={`relative h-20 w-16 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800 ${item.kind === 'making' ? 'animate-pulse' : ''}`}>
@@ -42,6 +49,12 @@ function PanelRow({ slot, onOpen }: { slot: Filled; onOpen: (id: string) => void
           <span className="text-xs text-muted">{timeOf(slot.at)}</span>
         </span>
         <span className="line-clamp-2 block text-sm font-semibold text-ink dark:text-zinc-100">{titleOf(item)}</span>
+        {item.kind === 'blitz' && (
+          <span className={`flex items-center gap-1 text-[11px] ${item.blitz.error ? 'text-red-600 dark:text-red-400' : 'text-muted'}`}>
+            <PlatformIcon id="tiktok" className="h-3 w-3" />
+            {item.blitz.error ?? 'Video · made 1 hour before it posts'}
+          </span>
+        )}
         {live.length > 0 && (
           <span className="flex items-center gap-1 text-[11px] text-muted">
             {live.map((p) => <PlatformIcon key={p.platform} id={p.platform} className="h-3 w-3" />)}

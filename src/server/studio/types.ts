@@ -4,6 +4,7 @@
  */
 
 import type { ProductPhoto } from '../../lib/manualProfile';
+import type { SlideshowStyle } from '../../types/admin/companyIntel';
 
 // ─── Field envelope ──────────────────────────────────────────────────────────
 
@@ -73,6 +74,29 @@ export type StudioTone = {
   hooks: FieldEnvelope<string[]>;
 };
 
+/** The site's look, read from its HTML/CSS and the profile call. Used by Auto Slideshow's photos and slide boxes. */
+export type StudioVisual = {
+  /** Hex colors from the site's CSS, brand colors first. */
+  palette: FieldEnvelope<string[]>;
+  faviconUrl: FieldEnvelope<string | null>;
+  /** The site's share image (og:image). */
+  heroImageUrl: FieldEnvelope<string | null>;
+  /** Null when the model gave no usable photo direction: slideshows then use the default look. */
+  slideshowStyle: FieldEnvelope<SlideshowStyle | null>;
+};
+
+/**
+ * The brand in Auto Slideshow's words, from its own prompt and model (companyIntel/profile.ts summarizeBrand): one plain
+ * sentence naming the brand and what it sells, and the buyer. Richer than `promoting` / `audienceDescription`, which
+ * are capped short for Blitz's research.
+ */
+export type StudioBrand = {
+  valueProp: FieldEnvelope;
+  audience: FieldEnvelope;
+  tone: FieldEnvelope;
+  productCategories: FieldEnvelope<string[]>;
+};
+
 /** Shape of StudioBrandProfile.data */
 export type StudioProfileData = {
   classification: StudioClassification;
@@ -82,6 +106,15 @@ export type StudioProfileData = {
   tone: StudioTone;
   /** Product photos with vision descriptions. Manual profiles only (src/lib/manualProfile.ts). */
   products?: FieldEnvelope<ProductPhoto[]>;
+  /** Absent on profiles extracted before 2026-10-02. */
+  visual?: StudioVisual;
+  /** Absent on profiles extracted before 2026-10-02, or when the brand call failed. */
+  brand?: StudioBrand;
+  /**
+   * The crawled text (menu + homepage + key pages). Later steps check quotes against it (levers, CTAs).
+   * Absent on profiles extracted before 2026-10-02 and on hand-typed profiles.
+   */
+  siteText?: string;
 };
 
 // ─── Telemetry ────────────────────────────────────────────────────────────────

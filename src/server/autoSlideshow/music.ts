@@ -11,18 +11,18 @@ import { isJevEnabled, jevScore } from '../ai/jev';
 import { runPool } from '../pool';
 
 type MusicDescriptor = { vibe?: string[]; pacing?: string; energyLevel?: number; emotion?: string; sound?: string; imagery?: string; avoidFor?: string[] };
-type TrackRow = { id: string; name: string; r2_key: string; best_start: number | null; descriptor: MusicDescriptor | null };
+type TrackRow = { id: string; name: string; r2_key: string; best_start: number | null; duration_sec: number | null; descriptor: MusicDescriptor | null };
 
 /** Shared audio tracks, by name. The start point is the descriptor's best start when the track was described. */
 const loadTracks = () =>
   prisma.$queryRaw<TrackRow[]>`
-    SELECT a.id, a.name, a.r2_key, (d.descriptor->>'bestStart')::float AS best_start, d.descriptor
+    SELECT a.id, a.name, a.r2_key, (d.descriptor->>'bestStart')::float AS best_start, d.duration_sec, d.descriptor
     FROM blitz_assets a LEFT JOIN asset_descriptors d ON d.blitz_asset_id = a.id
     WHERE a.type = 'AUDIO' AND a.workspace_id IS NULL
     ORDER BY lower(a.name)`;
 
 export const listTracks = async (): Promise<AutoTrackDto[]> =>
-  Promise.all((await loadTracks()).map(async (t) => ({ assetId: t.id, name: t.name, url: await blitzBrowserUrl(t.r2_key), startAt: t.best_start ?? 0 })));
+  Promise.all((await loadTracks()).map(async (t) => ({ assetId: t.id, name: t.name, url: await blitzBrowserUrl(t.r2_key), startAt: t.best_start ?? 0, durationSec: t.duration_sec })));
 
 /** `count` random tracks, all different while the library has enough. Empty when the library has no audio. */
 export const pickTracks = async (count: number): Promise<Array<{ assetId: string; startAt: number }>> => {

@@ -44,32 +44,42 @@ Use only facts from the text. No hype.`;
 const clean = (list: unknown, max: number): string[] =>
   Array.isArray(list) ? list.filter((v): v is string => typeof v === 'string' && v.trim().length > 0).map((v) => v.trim()).slice(0, max) : [];
 
-export const buildProfile = async (url: string, meter: CostMeter): Promise<BrandProfile> => {
-  const [page, style] = await Promise.all([readSite(url, meter), readSiteStyle(url)]);
+/** The brand fields the old Auto Slideshow profile had, made by its own prompt: one plain sentence that names the brand,
+ *  the buyer, tone and the slideshow look. Also run by the shared Studio extractor on its crawled text. */
+export type BrandSummary = Pick<BrandProfile, 'brandName' | 'valueProp' | 'audience' | 'tone' | 'productCategories' | 'searchKeywords' | 'slideshowStyle'>;
+
+export const summarizeBrand = async (input: { url: string; title: string | null; palette: string[]; text: string }, meter: CostMeter): Promise<BrandSummary> => {
   const raw = await metaAdsJson<Partial<LlmProfile>>(
     [
       { role: 'system', content: SYSTEM },
-      { role: 'user', content: `URL: ${url}\nTitle: ${page.title ?? ''}\nPalette: ${style.palette.join(', ') || 'none'}\n\n${page.text}` },
+      { role: 'user', content: `URL: ${input.url}\nTitle: ${input.title ?? ''}\nPalette: ${input.palette.join(', ') || 'none'}\n\n${input.text}` },
     ],
     { maxTokens: 4_000, meter, label: 'OpenAI profile' },
   );
-  const domain = domainOf(url);
   const keywords = clean(raw.searchKeywords, 3);
   if (!raw.brandName || !raw.valueProp || keywords.length === 0) throw new Error('Profile is missing brandName, valueProp or searchKeywords');
   return {
     brandName: raw.brandName.trim(),
-    domain,
     valueProp: raw.valueProp.trim(),
     audience: (raw.audience ?? '').trim(),
     tone: (raw.tone ?? '').trim(),
     productCategories: clean(raw.productCategories, 4),
     searchKeywords: keywords,
+    slideshowStyle: toSlideshowStyle(raw),
+  };
+};
+
+export const buildProfile = async (url: string, meter: CostMeter): Promise<BrandProfile> => {
+  const [page, style] = await Promise.all([readSite(url, meter), readSiteStyle(url)]);
+  const brand = await summarizeBrand({ url, title: page.title ?? null, palette: style.palette, text: page.text ?? '' }, meter);
+  return {
+    ...brand,
+    domain: domainOf(url),
     palette: style.palette,
     // Exa sometimes leaves the image out; the site's own og:image is the same picture.
     heroImageUrl: page.image ?? style.shareImageUrl,
     faviconUrl: page.favicon ?? style.faviconUrl,
     pageTitle: page.title ?? null,
     pageExcerpt: clip(page.text ?? '', 6_000),
-    slideshowStyle: toSlideshowStyle(raw),
   };
 };

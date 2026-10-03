@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { prisma } from '../../../../../src/lib/db';
-import { adminRoute } from '../../../../../src/server/admin/route';
+import { labRoute } from '../../../../../src/server/labs/labAccess';
 import { blitzBrowserUrl } from '../../../../../src/server/admin/blitzStore';
 import { matchTracks } from '../../../../../src/server/autoSlideshow/music';
 import { HttpError } from '../../../../../src/server/http';
@@ -21,7 +21,7 @@ const MAX_CARDS = 30;
  * different while the library has enough. `recommended` is false when Jev was unavailable and
  * the pick is random.
  */
-export const POST = adminRoute(async (req: NextRequest) => {
+export const POST = labRoute(async (req: NextRequest) => {
   const body = (await req.json().catch(() => ({}))) as { cards?: CardBody[] };
   const cards = (body.cards ?? []).filter((c) => c?.id && Array.isArray(c.texts)).slice(0, MAX_CARDS);
   if (cards.length === 0) throw new HttpError(400, 'missing_cards', 'cards is required.');

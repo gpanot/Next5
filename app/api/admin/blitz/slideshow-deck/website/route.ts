@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute } from '../../../../../../src/server/admin/route';
+import { assertRunAccess, labRoute } from '../../../../../../src/server/labs/labAccess';
 import { HttpError } from '../../../../../../src/server/http';
 import { generateWebsiteDeck } from '../../../../../../src/server/labs/websiteDeck';
 
@@ -14,9 +14,10 @@ export const maxDuration = 280;
  *
  * The engine works from the run's confirmed brand profile. No TikTok research step.
  */
-export const POST = adminRoute(async (req: NextRequest) => {
+export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => {
   const body = (await req.json()) as { runId?: string };
   if (!body.runId) throw new HttpError(400, 'missing_run', 'runId is required.');
+  await assertRunAccess(access, body.runId);
   const deckItems = await generateWebsiteDeck(body.runId);
   console.log(`✅ /slideshow-deck/website → ${deckItems.length} cards for run ${body.runId}`);
   return NextResponse.json({ deckItems });

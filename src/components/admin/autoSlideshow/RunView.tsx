@@ -13,6 +13,11 @@ import { SlideshowGrid } from './SlideshowGrid';
 import { PostingCalendar } from './calendar/PostingCalendar';
 import { RunEta } from './RunEta';
 import { SlideshowEditor } from './SlideshowEditor';
+import { MatrixDialog } from './matrix/MatrixDialog';
+
+/** The Matrix view (the site's Slideshow Bank) is a local dev tool: hidden in production builds. */
+const SHOW_MATRIX = process.env.NODE_ENV !== 'production';
+import { VideoRendersNote } from './VideoRendersNote';
 import { WelcomeDialog } from './WelcomeDialog';
 import { headerCopy, logLines, navItems } from './runCopy';
 import { waitLines } from './waitCopy';
@@ -124,6 +129,7 @@ function AllSlideshows({ run, children }: { run: AutoRunDto; children: ReactNode
 export function RunView({ token, runId, onBack, stickyTop }: Props) {
   const { run, error, refresh } = useAutoRun(token, runId);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [matrixOpen, setMatrixOpen] = useState(false);
   const [retrying, setRetrying] = useState<string | null>(null);
   const ready = run?.slideshows.filter((s) => s.status === 'ready') ?? [];
   const at = ready.findIndex((s) => s.id === openId);
@@ -160,6 +166,7 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
             <aside className="order-3 space-y-4 lg:order-1">
               <BrandCard url={run.url} profile={run.profile} />
               <AgentLog lines={logLines(run)} error={null} clock={{ running: !isTerminalAutoStatus(run.status), startedAt: run.startedAt, finishedAt: run.finishedAt }} />
+              {SHOW_MATRIX && <button onClick={() => setMatrixOpen(true)} className="min-h-11 px-1 text-sm font-semibold text-blue-600 underline-offset-4 transition hover:underline dark:text-blue-400">Matrix</button>}
             </aside>
           )}
           <SideToggle open={sideOpen} onToggle={toggleSide} />
@@ -183,6 +190,8 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
 
       {workspace && run && !isTerminalAutoStatus(run.status) && <WelcomeDialog workspaceId={workspace.id} />}
 
+      {!open && <VideoRendersNote />}
+      {SHOW_MATRIX && matrixOpen && <MatrixDialog token={token} runId={runId} onClose={() => setMatrixOpen(false)} onOpenSlideshow={setOpenId} />}
       {open && run && (
         <SlideshowEditor
           key={open.id}

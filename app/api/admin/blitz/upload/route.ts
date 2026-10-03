@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute } from '../../../../../src/server/admin/route';
+import { labRoute } from '../../../../../src/server/labs/labAccess';
 import { uploadToR2 } from '../../../../../src/lib/r2';
 import {
   BLITZ_UPLOAD_TYPES,
@@ -20,7 +20,7 @@ import {
  * Multipart form: file, type ("BACKGROUND" | "OVERLAY" | "AUDIO"). Returns { r2Key }.
  * The caller registers the asset with POST /api/admin/blitz/assets.
  */
-export const POST = adminRoute(async (req: NextRequest) => {
+export const POST = labRoute(async (req: NextRequest) => {
   const form = await req.formData().catch(() => null);
   if (!form) {
     return NextResponse.json({ error: 'Multipart body expected' }, { status: 400 });

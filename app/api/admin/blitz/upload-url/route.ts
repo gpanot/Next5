@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute } from '../../../../../src/server/admin/route';
+import { labRoute } from '../../../../../src/server/labs/labAccess';
 import { getPresignedPutUrl } from '../../../../../src/lib/r2';
 import {
   BLITZ_UPLOAD_TYPES,
@@ -20,7 +20,7 @@ type UploadUrlBody = { type?: string; fileName?: string };
  * then registers it with POST /api/admin/blitz/assets. The file never passes
  * through this server, so size limits and double transfer do not apply.
  */
-export const POST = adminRoute(async (req: NextRequest) => {
+export const POST = labRoute(async (req: NextRequest) => {
   const body = (await req.json().catch(() => ({}))) as UploadUrlBody;
   const type = body.type?.toUpperCase();
   if (!type || !BLITZ_UPLOAD_TYPES.has(type)) {

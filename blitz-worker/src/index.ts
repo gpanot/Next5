@@ -70,7 +70,7 @@ async function claimNextJob() {
   // Raw SQL so we can use FOR UPDATE SKIP LOCKED (Prisma doesn't expose this directly).
   const rows = await prisma.$queryRaw<Array<{ id: string }>>`
     UPDATE blitz_projects
-    SET render_status = 'PROCESSING', updated_at = now()
+    SET render_status = 'PROCESSING', updated_at = now(), render_started_at = now(), render_finished_at = NULL
     WHERE id = (
       SELECT id FROM blitz_projects
       WHERE render_status = 'PENDING'
@@ -84,6 +84,11 @@ async function claimNextJob() {
 }
 
 // ── Process one job ───────────────────────────────────────────────────────────
+
+/** Render time for stats (render_finished_at - render_started_at). Raw SQL: the worker's Prisma schema is a subset. */
+const markFinished = (jobId: string) =>
+  prisma.$executeRaw`UPDATE blitz_projects SET render_finished_at = now() WHERE id = ${jobId}`
+    .catch((err) => console.warn(`[blitz-worker] Could not record finish time for ${jobId}:`, err));
 
 async function processJob(jobId: string, serveUrl: string): Promise<void> {
   console.log(`[blitz-worker] Processing job: ${jobId}`);
@@ -130,6 +135,7 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
       where: { id: jobId },
       data: { renderStatus: 'COMPLETED', renderedVideoKey: r2Key, updatedAt: new Date() },
     });
+    await markFinished(jobId);
     console.log(`[blitz-worker] Job ${jobId} COMPLETED → ${r2Key}`);
   } catch (err) {
     console.error(`[blitz-worker] Job ${jobId} FAILED${timedOut ? ' (time limit)' : ''}:`, err);
@@ -137,6 +143,7 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
       where: { id: jobId },
       data: { renderStatus: 'FAILED', updatedAt: new Date() },
     });
+    await markFinished(jobId);
   } finally {
     clearTimeout(limit);
     clearInterval(heartbeat);

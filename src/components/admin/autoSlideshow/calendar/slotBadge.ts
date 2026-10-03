@@ -1,4 +1,5 @@
 import type { AutoPostStatus } from '../../../../types/admin/autoSlideshow';
+import type { BlitzScheduleStatus } from '../../../../types/admin/blitzSchedule';
 import type { DayItem } from './monthPlan';
 
 /** A slot's status pill. Neutral on purpose: on the calendar, color means the content goal (goalStyle.ts). */
@@ -17,11 +18,24 @@ const POST_BADGE: Record<AutoPostStatus, Badge> = {
 const READY: Badge = { label: 'Ready', short: 'Ready', tone: 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900' };
 const MAKING: Badge = { label: 'Making…', short: 'Making', tone: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400' };
 
-export const badgeOf = (item: DayItem): Badge => (item.kind === 'post' ? POST_BADGE[item.post.status] : item.kind === 'ready' ? READY : MAKING);
+const neutral = 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200';
+/** A Blitz video: made about an hour before its time, then posted like the others. */
+const BLITZ_BADGE: Record<BlitzScheduleStatus, Badge> = {
+  scheduled: { label: '✓ Video scheduled', short: '✓ Video', tone: neutral },
+  rendering: { label: 'Making video', short: 'Making', tone: neutral },
+  sending: POST_BADGE.sending,
+  processing: POST_BADGE.processing,
+  posted: POST_BADGE.posted,
+  failed: POST_BADGE.failed,
+  canceled: POST_BADGE.canceled,
+};
 
-/** The slideshow's hook photo, or null while it is being made. */
-export const coverOf = (item: DayItem): string | null => item.show?.slides[0]?.imageUrl ?? null;
+export const badgeOf = (item: DayItem): Badge =>
+  item.kind === 'post' ? POST_BADGE[item.post.status] : item.kind === 'blitz' ? BLITZ_BADGE[item.blitz.status] : item.kind === 'ready' ? READY : MAKING;
 
-export const titleOf = (item: DayItem): string => item.show?.topic ?? 'New slideshow';
+/** The slideshow's hook photo (a video's first slide), or null while it is being made. */
+export const coverOf = (item: DayItem): string | null => (item.kind === 'blitz' ? item.blitz.coverUrl : item.show?.slides[0]?.imageUrl ?? null);
+
+export const titleOf = (item: DayItem): string => (item.kind === 'blitz' ? item.blitz.title : item.show?.topic ?? 'New slideshow');
 
 export const timeOf = (d: Date) => d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });

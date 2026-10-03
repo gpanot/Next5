@@ -188,8 +188,8 @@ describe('posting', () => {
     const slots = await listSlots(ws.id, NOW, at('2026-10-30T00:00:00Z'));
 
     expect((await skipSlot(ws.id, slots[0]!.id)).status).toBe('skipped');
-    expect(isoDate((await moveSlot(ws.id, slots[1]!.id, '2026-09-30')).scheduledFor)).toBe('2026-09-30');
-    await expect(moveSlot(ws.id, slots[1]!.id, 'soon')).rejects.toMatchObject({ status: 400 });
+    expect(isoDate((await moveSlot(ws.id, slots[1]!.id, '2026-09-30', NOW)).scheduledFor)).toBe('2026-09-30');
+    await expect(moveSlot(ws.id, slots[1]!.id, 'soon', NOW)).rejects.toMatchObject({ status: 400 });
 
     // Swapping in a photo that is booked elsewhere frees the other slot rather than failing.
     const swapped = await swapPhoto(ws.id, slots[1]!.id, items[2]!.id);

@@ -3,10 +3,23 @@
 import { useEffect, useMemo } from 'react';
 import { createLocalStore } from '../../../lib/localStore';
 
-const PROOF = [
-  { title: 'Top hooks of the last 180 days', body: 'We start from the hooks and slideshows that got the most views.' },
-  { title: 'Checked with $100M Leads', body: "Every hook, photo and slide is checked with Alex Hormozi's $100M Leads rules." },
-  { title: 'We learn from your posts', body: 'What works for you gets used more. Each week gets better.' },
+/** Why slideshows work. Keep every number tied to a named study. */
+const STATS = [
+  {
+    value: '81%',
+    body: 'more likes and comments on TikTok. Photo slideshows beat videos.',
+    source: 'Fanpage Karma, 700,000 posts, 2025',
+  },
+  {
+    value: '114%',
+    body: 'more likes and comments on Instagram. Slideshows beat one photo.',
+    source: 'Buffer, 4 million posts',
+  },
+  {
+    value: '180',
+    body: 'days of top posts. We copy the hooks that got the most views.',
+    source: 'Next5 data',
+  },
 ];
 
 function CalendarIcon() {
@@ -19,36 +32,19 @@ function CalendarIcon() {
   );
 }
 
-/** Step 2's proof: the author with both books. A public photo; we use his book's rules, we are not him. */
-function BooksPhoto() {
+function StatList() {
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src="/images/welcome/hormozi-books.webp"
-      alt="Alex Hormozi holding his books $100M Offers and $100M Leads"
-      width={800}
-      height={450}
-      className="mt-2 h-28 w-full rounded-xl bg-white object-cover object-[center_30%] shadow-sm"
-    />
-  );
-}
-
-function ProofList() {
-  return (
-    <ol className="space-y-3">
-      {PROOF.map((p, i) => (
-        <li key={p.title} className="flex gap-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-            {i + 1}
-          </span>
+    <ul className="space-y-3">
+      {STATS.map((s) => (
+        <li key={s.value} className="flex items-start gap-3 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
+          <span className="w-16 shrink-0 text-2xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{s.value}</span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-ink dark:text-zinc-100">{p.title}</p>
-            <p className="text-sm text-muted">{p.body}</p>
-            {i === 1 && <BooksPhoto />}
+            <p className="text-sm font-medium text-ink dark:text-zinc-100">{s.body}</p>
+            <p className="mt-0.5 text-xs text-muted">{s.source}</p>
           </div>
         </li>
       ))}
-    </ol>
+    </ul>
   );
 }
 
@@ -81,9 +77,9 @@ export function WelcomeDialog({ workspaceId }: { workspaceId: string }) {
         </div>
         <div className="space-y-1">
           <h2 id="welcome-title" className="text-xl font-bold tracking-tight text-ink dark:text-zinc-100">Fill your next 30 days in one click</h2>
-          <p className="text-sm text-muted">Your slideshows are being made now. They are built on data, not guesses.</p>
+          <p className="text-sm text-muted">Your slideshows are being made now. Here is why slideshows work.</p>
         </div>
-        <ProofList />
+        <StatList />
         <p className="rounded-xl bg-zinc-50 p-3 text-sm text-muted dark:bg-zinc-900">
           <span className="font-semibold text-ink dark:text-zinc-100">Some slideshows look alike.</span> That is on purpose. TikTok and Instagram push what already works.
         </p>

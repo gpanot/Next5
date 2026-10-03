@@ -38,7 +38,10 @@ function useSlideshowTracks(): AutoTrackDto[] | null {
   return tracks;
 }
 
-type Option = { value: string; label: string; audio: DeckAudio };
+type Option = { value: string; label: string; detail?: string; audio: DeckAudio };
+
+/** Track length as the list shows it: "26s". Unknown (not described yet) = nothing shown. */
+const lengthOf = (seconds?: number | null): string | undefined => (seconds && seconds > 0 ? `${Math.round(seconds)}s` : undefined);
 
 const randomItem = <T,>(items: T[]): T | undefined => items[Math.floor(Math.random() * items.length)];
 
@@ -47,7 +50,7 @@ function buildOptions(tracks: AutoTrackDto[] | null, audioAssets: BlitzAssetDto[
   // Slideshow tracks carry an asset id; the card stores the R2 key, so map through the asset list.
   const tiktok = (tracks ?? []).flatMap((t) => {
     const asset = audioAssets.find((a) => a.id === t.assetId);
-    return asset ? [{ value: `t:${t.assetId}`, label: `TikTok - ${t.name}`, audio: { assetKey: asset.r2Key, url: t.url, startAt: t.startAt, label: t.name } }] : [];
+    return asset ? [{ value: `t:${t.assetId}`, label: `TikTok - ${t.name}`, detail: lengthOf(t.durationSec), audio: { assetKey: asset.r2Key, url: t.url, startAt: t.startAt, label: t.name } }] : [];
   });
   const assets = audioAssets.map((a) => ({ value: `a:${a.r2Key}`, label: `Asset - ${a.name}`, audio: { assetKey: a.r2Key, url: a.url, startAt: 0, label: a.name } }));
   return [...tiktok, ...assets];

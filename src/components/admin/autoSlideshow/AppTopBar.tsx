@@ -42,19 +42,33 @@ function CalendarIcon() {
   );
 }
 
+function ContentIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="6" y="3" width="12" height="18" rx="2" />
+      <path d="M2 6v12M22 6v12M10 9.5v5l4-2.5z" />
+    </svg>
+  );
+}
+
 const navLinkClass =
   'flex h-10 items-center gap-1.5 rounded-full px-2.5 text-sm font-semibold text-app-muted transition hover:bg-app-line/50 hover:text-app-ink active:scale-95 aria-[current=page]:bg-app-line/50 aria-[current=page]:text-app-ink';
 
-/** Calendar and Analytics links of the workspace bar; client side, so the bar stays mounted and only the content changes. */
+/** Calendar, Content and Analytics links of the workspace bar; client side, so the bar stays mounted and only the content changes. */
 function WorkspaceNav({ workspaceId }: { workspaceId: string }) {
   const pathname = usePathname();
   const calendarHref = `/slideshow/${workspaceId}`;
+  const contentHref = `${calendarHref}/content`;
   const analyticsHref = `${calendarHref}/analytics`;
   return (
     <>
       <Link href={calendarHref} aria-label="Calendar" aria-current={pathname === calendarHref ? 'page' : undefined} className={navLinkClass}>
         <CalendarIcon />
         <span className="hidden sm:inline">Calendar</span>
+      </Link>
+      <Link href={contentHref} aria-label="Content" aria-current={pathname === contentHref ? 'page' : undefined} className={navLinkClass}>
+        <ContentIcon />
+        <span className="hidden sm:inline">Content</span>
       </Link>
       <Link href={analyticsHref} aria-label="Analytics" aria-current={pathname === analyticsHref ? 'page' : undefined} className={navLinkClass}>
         <ChartIcon />

@@ -6,6 +6,7 @@ import { prisma } from '../../lib/db';
 import { MAX_WORKSPACES, type SlideshowWorkspaceDto } from '../../types/admin/autoSlideshow';
 import { normalizeUrl } from '../companyIntel/profile';
 import { HttpError } from '../http';
+import { EMPTY_COUNTS, workspacePostCounts } from './workspaceCounts';
 
 export { MAX_WORKSPACES };
 
@@ -26,7 +27,16 @@ export const listSlideshowWorkspaces = async (userId: string): Promise<Slideshow
     include: { socialConnections: { select: { provider: true, username: true } } },
   });
   const handle = (w: (typeof rows)[number], provider: string) => w.socialConnections.find((c) => c.provider === provider)?.username ?? null;
-  return rows.map((w) => ({ id: w.id, name: w.name, websiteUrl: w.websiteUrl, tiktokUsername: handle(w, 'tiktok'), instagramUsername: handle(w, 'instagram'), createdAt: w.createdAt.toISOString() }));
+  const counts = await workspacePostCounts(rows.map((w) => w.id));
+  return rows.map((w) => ({
+    id: w.id,
+    name: w.name,
+    websiteUrl: w.websiteUrl,
+    tiktokUsername: handle(w, 'tiktok'),
+    instagramUsername: handle(w, 'instagram'),
+    createdAt: w.createdAt.toISOString(),
+    counts: counts.get(w.id) ?? { ...EMPTY_COUNTS },
+  }));
 };
 
 /** The site's host, for a default name: "https://www.acme.com/shop" → "acme.com". */
@@ -42,6 +52,6 @@ export const createSlideshowWorkspace = async (userId: string, input: { websiteU
   if ((await countSlideshowWorkspaces(userId)) >= MAX_WORKSPACES) throw new HttpError(409, 'too_many_workspaces', `You can have up to ${MAX_WORKSPACES} workspaces.`);
   const name = (typeof input.name === 'string' ? input.name.trim().slice(0, 80) : '') || hostOf(websiteUrl);
   const ws = await prisma.workspace.create({ data: { ownerUserId: userId, product: 'slideshow', name, websiteUrl, onboardingStep: 0 } });
-  return { id: ws.id, name: ws.name, websiteUrl: ws.websiteUrl, tiktokUsername: null, instagramUsername: null, createdAt: ws.createdAt.toISOString() };
+  return { id: ws.id, name: ws.name, websiteUrl: ws.websiteUrl, tiktokUsername: null, instagramUsername: null, createdAt: ws.createdAt.toISOString(), counts: { ...EMPTY_COUNTS } };
 };
 

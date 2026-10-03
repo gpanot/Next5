@@ -6,7 +6,8 @@
 import { Check, ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
-export type MusicOption = { value: string; label: string };
+/** `detail`: muted text after the label, e.g. the track length "26s". */
+export type MusicOption = { value: string; label: string; detail?: string };
 
 type Props = {
   options: MusicOption[];
@@ -65,6 +66,7 @@ export function MusicSelect({ options, value, jevValue, placeholder, disabled = 
       >
         <JevDot on={Boolean(selected) && selected?.value === jevValue} />
         <span className="min-w-0 flex-1 truncate">{selected?.label ?? placeholder}</span>
+        {selected?.detail && <span className="flex-none text-[12.5px] tabular-nums text-[var(--muted,#6b6b6b)] dark:text-neutral-400">{selected.detail}</span>}
         <ChevronDown aria-hidden className={`h-4 w-4 flex-none transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
@@ -87,6 +89,7 @@ export function MusicSelect({ options, value, jevValue, placeholder, disabled = 
             >
               <JevDot on={o.value === jevValue} />
               <span className="min-w-0 flex-1 truncate">{o.label}</span>
+              {o.detail && <span className="flex-none text-[12px] font-normal tabular-nums text-[var(--muted,#6b6b6b)] dark:text-neutral-400">{o.detail}</span>}
               {o.value === value && <Check aria-hidden className="h-4 w-4 flex-none" />}
             </li>
           ))}

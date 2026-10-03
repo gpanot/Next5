@@ -13,6 +13,7 @@ import { freshAccessToken } from '../social/connections';
 import { containerStatus, createCarousel, instagramCaption, publishContainer } from '../social/instagramCarousel';
 import { mediaBaseUrl, mediaIsPublic, slideMediaUrl } from '../social/links';
 import { fetchPublishStatus, initCarousel, queryCreatorInfo } from '../social/tiktokCarousel';
+import { runBlitzScheduleTick } from '../labs/blitzScheduleTick';
 import { refreshDueStats } from './stats';
 import { firstStatsAt } from './statsSchedule';
 
@@ -153,8 +154,9 @@ export const refreshPost = async (postId: string): Promise<void> => {
 const sentToday = (workspaceId: string, platform: string) =>
   prisma.autoSlideshowPost.count({ where: { workspaceId, platform, sentAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }, status: { in: ['sending', 'processing', 'posted'] } } });
 
-/** One tick: recover stuck sends, send due posts within the limits, poll sent ones, then refresh some stats. */
-export const runPostingTick = async (): Promise<{ sent: number; polled: number; deferred: number; stats: number }> => {
+/** One tick: recover stuck sends, send due posts within the limits, poll sent ones, refresh some stats, then move
+ *  scheduled Blitz videos along (render near their time, post when due). */
+export const runPostingTick = async (): Promise<{ sent: number; polled: number; deferred: number; stats: number; blitz: Awaited<ReturnType<typeof runBlitzScheduleTick>> }> => {
   await prisma.autoSlideshowPost.updateMany({ where: { status: 'sending', sentAt: { lt: new Date(Date.now() - STALE_SENDING_MS) } }, data: { status: 'scheduled' } });
   const due = await prisma.autoSlideshowPost.findMany({ where: { status: 'scheduled', scheduledAt: { lte: new Date() } }, orderBy: { scheduledAt: 'asc' }, take: 50 });
   const perAccount = new Map<string, number>();
@@ -173,7 +175,7 @@ export const runPostingTick = async (): Promise<{ sent: number; polled: number; 
   }
   const processing = await prisma.autoSlideshowPost.findMany({ where: { status: 'processing' }, orderBy: { sentAt: 'asc' }, take: POLLS_PER_TICK, select: { id: true } });
   for (const p of processing) await refreshPost(p.id);
-  return { sent, polled: processing.length, deferred, stats: await refreshDueStats() };
+  return { sent, polled: processing.length, deferred, stats: await refreshDueStats(), blitz: await runBlitzScheduleTick() };
 };
 
 /** Smallest gap between two ticks started from page loads (the cron has its own schedule). */

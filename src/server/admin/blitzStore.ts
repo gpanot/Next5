@@ -137,6 +137,8 @@ export type BlitzProjectDto = {
   createdAt: string;
   /** Set when status transitions to COMPLETED — used to compute render duration. */
   updatedAt: string;
+  /** When the worker started rendering; null while queued. Drives the render countdown. */
+  renderStartedAt: string | null;
 };
 
 export const toAssetDto = async (asset: BlitzAsset): Promise<BlitzAssetDto> => ({
@@ -182,4 +184,5 @@ export const toProjectDto = async (project: BlitzProject): Promise<BlitzProjectD
   isIdentifiablePerson: project.isIdentifiablePerson,
   createdAt: project.createdAt.toISOString(),
   updatedAt: project.updatedAt.toISOString(),
+  renderStartedAt: project.renderStartedAt?.toISOString() ?? null,
 });

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute } from '../../../../../src/server/admin/route';
+import { labRoute } from '../../../../../src/server/labs/labAccess';
 import { blitzKeys, toAssetDto } from '../../../../../src/server/admin/blitzStore';
 import { uploadToR2 } from '../../../../../src/lib/r2';
 import { prisma } from '../../../../../src/lib/db';
@@ -17,7 +17,7 @@ type GenerateBody = { prompt?: string };
  * The image is tagged as AI-generated via the name field ("… [AI]") for future
  * filtering and reuse across similar clients.
  */
-export const POST = adminRoute(async (req: NextRequest) => {
+export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => {
   const body = (await req.json().catch(() => ({}))) as GenerateBody;
   const prompt = body.prompt?.trim();
   if (!prompt) {
@@ -39,7 +39,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
 
   // 5. Create DB asset — name encodes the prompt for future search + [AI] tag
   const name = `${prompt.slice(0, 90)} [AI]`;
-  const asset = await prisma.blitzAsset.create({ data: { type: 'BACKGROUND', r2Key, name } });
+  const asset = await prisma.blitzAsset.create({ data: { type: 'BACKGROUND', r2Key, name, workspaceId: access.workspaceId } });
 
   return NextResponse.json({ asset: await toAssetDto(asset) }, { status: 201 });
 });

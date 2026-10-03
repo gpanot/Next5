@@ -45,7 +45,7 @@ export function VideoButton({ rendering, disabled, startedAt, lastMs, onClick }:
       onClick={onClick}
       disabled={disabled || rendering}
       aria-label={rendering ? `Making video, about ${left} seconds left` : 'Download video'}
-      title={rendering ? 'Making your video… about 90 seconds' : 'Download as video (MP4)'}
+      title={rendering ? 'Making your video… about 90 seconds. You can close this: it downloads when ready.' : 'Download as video (MP4)'}
       className={`flex h-10 min-w-10 items-center justify-center gap-2 rounded-full px-2.5 text-white/70 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:active:scale-100 ${rendering ? '' : 'disabled:opacity-30'}`}
     >
       {rendering ? (

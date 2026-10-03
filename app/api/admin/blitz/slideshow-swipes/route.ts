@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute } from '../../../../../src/server/admin/route';
+import { prisma } from '../../../../../src/lib/db';
+import { assertOwned, labRoute } from '../../../../../src/server/labs/labAccess';
 import { HttpError } from '../../../../../src/server/http';
 import { SWIPE_ACTIONS, logSwipe, type SwipeAction } from '../../../../../src/server/slideshow/core/variants';
 
@@ -19,9 +20,13 @@ const isStringArray = (v: unknown): v is string[] => Array.isArray(v) && v.every
  * Body: { variantId, action: keep|discard|undo|open|edit|render, reason?, editedShots?, shotTexts?, blitzProjectId? }
  * Logs one deck action and moves the card's status. Returns 204.
  */
-export const POST = adminRoute(async (req: NextRequest) => {
+export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => {
   const body = (await req.json()) as Body;
   if (!body.variantId) throw new HttpError(400, 'missing_variant', 'variantId is required.');
+  if (!access.admin) {
+    const variant = await prisma.slideshowVariant.findUnique({ where: { id: body.variantId }, select: { workspaceId: true } });
+    assertOwned(access, variant?.workspaceId, 'Card');
+  }
   if (!body.action || !SWIPE_ACTIONS.includes(body.action as SwipeAction)) {
     throw new HttpError(400, 'invalid_action', `action must be one of: ${SWIPE_ACTIONS.join(', ')}`);
   }

@@ -1,17 +1,17 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute } from '../../../../../src/server/admin/route';
+import { labRoute, visibleTo } from '../../../../../src/server/labs/labAccess';
 import { BLITZ_UPLOAD_TYPES, isBlitzUploadKey, toAssetDto } from '../../../../../src/server/admin/blitzStore';
 import { prisma } from '../../../../../src/lib/db';
 
 /**
  * GET /api/admin/blitz/assets?type=BACKGROUND|OVERLAY|AUDIO
- * Returns the asset library (seeded + uploaded) filtered by type.
+ * Returns the asset library (seeded + uploaded) filtered by type. Users see the shared library plus their workspace's.
  */
-export const GET = adminRoute(async (req: NextRequest) => {
+export const GET = labRoute(async (req: NextRequest, _ctx: unknown, access) => {
   const type = req.nextUrl.searchParams.get('type') ?? undefined;
 
   const assets = await prisma.blitzAsset.findMany({
-    where: type ? { type } : undefined,
+    where: { ...(type ? { type } : {}), ...visibleTo(access) },
     orderBy: { createdAt: 'asc' },
   });
 
@@ -27,7 +27,7 @@ type RegisterBody = { type?: string; r2Key?: string; name?: string };
  * Registers a file the browser already uploaded to R2, so it shows up in the
  * library next time. Only keys under blitz/uploads/ are accepted.
  */
-export const POST = adminRoute(async (req: NextRequest) => {
+export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => {
   const body = (await req.json().catch(() => ({}))) as RegisterBody;
   const type = body.type?.toUpperCase();
   if (!type || !BLITZ_UPLOAD_TYPES.has(type)) {
@@ -38,6 +38,6 @@ export const POST = adminRoute(async (req: NextRequest) => {
   }
   const name = (body.name?.trim() || 'Upload').slice(0, 120);
 
-  const asset = await prisma.blitzAsset.create({ data: { type, r2Key: body.r2Key, name } });
+  const asset = await prisma.blitzAsset.create({ data: { type, r2Key: body.r2Key, name, workspaceId: access.workspaceId } });
   return NextResponse.json({ asset: await toAssetDto(asset) }, { status: 201 });
 });

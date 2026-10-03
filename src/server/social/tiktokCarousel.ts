@@ -14,7 +14,7 @@ export const MAX_PHOTOS = 35;
 const TITLE_MAX = 90;
 const DESCRIPTION_MAX = 4_000;
 
-const post = (token: string, path: string, body: unknown) =>
+export const post = (token: string, path: string, body: unknown) =>
   providerFetch('tiktok', `${API}${path}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json; charset=UTF-8' },

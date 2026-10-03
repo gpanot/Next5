@@ -20,6 +20,9 @@
  * videos proved too hard to copy as slideshows, and the engine already knows the business.
  * Without a linked run the editor is a free-form slideshow.
  *
+ * Workspace flow (Content page): `workspaceRunId` is the run built from the workspace's own site profile, so there is
+ * no Profile step; the editor opens on the Videos deck.
+ *
  * B2B No Website flow: Profile → Videos. Same website engine, but the profile is typed by hand
  * and carries product photos (read by a vision model) that play behind the product shots.
  *
@@ -49,7 +52,6 @@ import { DeckAside } from './DeckAside';
 import { SHOT_FORMAT, shotFormatError } from './shotFormat';
 import { ANGLE_LABELS, SlideshowDeckStep, type DeckSource } from './SlideshowDeckStep';
 import type { CopyCheckContext } from './deckApi';
-import type { DeckCardData } from './SwipeDeck';
 import type { ReAngle } from '../../../server/labs/slideshowCopy';
 import { RenderControls } from './RenderControls';
 import { SlidePreview, type SlideData } from './SlidePreview';
@@ -62,6 +64,8 @@ import { isLocalKey } from './useBlitzUploads';
 import { useBlitzWorkspace } from './useBlitzWorkspace';
 import { useDeckCardEditor } from './useDeckCardEditor';
 import { useDeckCardRender } from './useDeckCardRender';
+import { MaybeSchedule } from './schedule/MaybeSchedule';
+import { useCachedDeckCards, useResumeDeckRenders } from './useDeckCache';
 import { useDeckMusicMatch } from './useDeckMusicMatch';
 import { useSetRemix } from './useSetRemix';
 import { buildSet } from './slideshowSet';
@@ -112,7 +116,13 @@ function EditorSkeleton() {
   );
 }
 
-export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: FlowType } = {}) {
+type EditorProps = {
+  initialFlowType?: FlowType;
+  /** Content page: the workspace's run. Skips the Profile step and opens on the deck. */
+  workspaceRunId?: string;
+};
+
+export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId }: EditorProps = {}) {
   const client = useLabClient();
 
   // ── data ──────────────────────────────────────────────────────────────
@@ -126,21 +136,23 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
   const withProfile = studioRun !== null;
   // When linked to Campaign Studio, always B2B. initialFlowType overrides (for RE from the tab).
   const [flowType, setFlowType] = useState<FlowType | null>(
-    initialFlowType ?? (withProfile ? 'b2b' : null),
+    initialFlowType ?? (withProfile || workspaceRunId ? 'b2b' : null),
   );
   const [zillowData, setZillowData] = useState<ZillowData | null>(null);
   /** The angle the user selected in step 2 (Zillow flow only). */
   const [selectedAngle, setSelectedAngle] = useState<ReAngle | null>(null);
   /** Deck cards for the selected angle. Owned here so editor changes show up on the deck. */
-  const [deckCards, setDeckCards] = useState<DeckCardData[]>([]);
+  // Content page: kept per run for the browser session, so leaving and coming back does not rebuild the deck.
+  const [deckCards, setDeckCards] = useCachedDeckCards(workspaceRunId ? `blitz-deck:${workspaceRunId}` : null);
   /** B2B No Website: the business picked or being typed in the Profile step. */
   const [manualSelection, setManualSelection] = useState<ManualSelection>(null);
   /** The deck card open in the editor. Null = the deck is showing. */
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
 
   // ── step navigation ───────────────────────────────────────────────────
-  const steps = buildSteps(withProfile, flowType);
+  const steps = workspaceRunId ? [{ id: 'deck' as const, label: 'Videos' }] : buildSteps(withProfile, flowType);
   const [step, setStep] = useState<Step>(() => {
+    if (workspaceRunId) return 'deck';
     if (initialFlowType === 'real_estate' || initialFlowType === 'b2b_manual') return 'profile'; // Zillow / typed profile
     return withProfile ? 'profile' : 'editor';
   });
@@ -179,6 +191,7 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
   } = useBlitzWorkspace({ onKeyReplaced: handleKeyReplaced, filterLibrary: isSlideshowProject });
 
   // Where the deck comes from, and what edited copy is checked against before render.
+  const websiteRunId = studioRun?.runId ?? workspaceRunId;
   const deckSource: DeckSource | null =
     flowType === 'real_estate'
       ? (zillowData && selectedAngle
@@ -186,7 +199,7 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
         : null)
       : flowType === 'b2b_manual'
         ? (manualSelection && manualSelection !== 'new' ? { kind: 'website', runId: manualSelection } : null)
-        : (studioRun?.runId ? { kind: 'website', runId: studioRun.runId } : null);
+        : (websiteRunId ? { kind: 'website', runId: websiteRunId } : null);
   const checkContext: CopyCheckContext | null =
     deckSource?.kind === 'zillow' ? { engine: 'zillow', facts: deckSource.zillowData.facts }
     : deckSource?.kind === 'website' ? { engine: 'website', runId: deckSource.runId }
@@ -205,6 +218,7 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
     template: carouselTemplate, zillowData, checkContext, assets, addAsset, library,
     textOverride: text.override, setDeckCards, submit: render.submit, queue: render.queue, stalled: render.stalled,
   });
+  useResumeDeckRenders(deckCards, library, libraryLoading, render.watch);
   const durationSeconds = deck.fixedDurationSeconds ?? freeFormSeconds;
 
   // ── load the carousel template + assets ────────────────────────────────
@@ -310,7 +324,7 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
     setDeckCards([]);
     setEditingCardId(null);
     setStep('deck');
-  }, []);
+  }, [setDeckCards]);
 
   const remix = useSetRemix({
     setSlides, setCurrentSlideIndex, setCurrentAssets, setMentionBusiness, setBusinessText, setMuteVideoAudio,
@@ -458,7 +472,7 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
     <div className="flex flex-col gap-6">
 
       {/* Step pills — always shown since flow is always set before editor renders */}
-      <StepPills steps={steps} current={step} onChange={setStep} label="Blitz Slideshow steps" />
+      {!workspaceRunId && <StepPills steps={steps} current={step} onChange={setStep} label="Blitz Slideshow steps" />}
 
       {/* ── Profile step ──────────────────────────────────────────────── */}
       {step === 'profile' && (
@@ -528,20 +542,24 @@ export function BlitzSlideshowEditor({ initialFlowType }: { initialFlowType?: Fl
       )}
       {step === 'deck' && deckSource && (
         <>
-          <div className={editingCard ? 'hidden' : undefined}>
-            <SlideshowDeckStep
-              key={deckSource.kind === 'zillow' ? `zillow-${deckSource.angle}` : `website-${deckSource.runId}`}
-              source={deckSource}
-              cards={deckCards}
-              onCardsChange={setDeckCards}
-              onEditCard={deck.openCard}
-              paused={Boolean(editingCard)}
-              fallbackAudioUrl={assets.find((a) => a.type === 'AUDIO')?.url}
-              onGenerateCard={(card) => void cardRender.generate(card)}
-              renderFor={cardRender.renderFor}
-              aside={(card, sound) => <DeckAside card={card} sound={sound} deckCards={deckCards} setDeckCards={setDeckCards} assets={assets} />}
-            />
-          </div>
+          {/* Workspace decks can put kept videos on the calendar. */}
+          <MaybeSchedule on={Boolean(workspaceRunId)} bodyFor={cardRender.bodyFor}>
+            <div className={editingCard ? 'hidden' : undefined}>
+              <SlideshowDeckStep
+                key={deckSource.kind === 'zillow' ? `zillow-${deckSource.angle}` : `website-${deckSource.runId}`}
+                source={deckSource}
+                cards={deckCards}
+                onCardsChange={setDeckCards}
+                onEditCard={deck.openCard}
+                paused={Boolean(editingCard)}
+                fallbackAudioUrl={assets.find((a) => a.type === 'AUDIO')?.url}
+                onGenerateCard={(card) => void cardRender.generate(card)}
+                renderFor={cardRender.renderFor}
+                labels={!workspaceRunId}
+                aside={(card, sound) => <DeckAside card={card} sound={sound} deckCards={deckCards} setDeckCards={setDeckCards} assets={assets} />}
+              />
+            </div>
+          </MaybeSchedule>
           {editingCard && (
             <>
               <DeckEditBar

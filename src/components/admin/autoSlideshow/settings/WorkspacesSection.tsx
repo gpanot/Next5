@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { MAX_WORKSPACES, type DeletedWorkspaceDto, type SlideshowWorkspaceDto } from '../../../../types/admin/autoSlideshow';
+import { MAX_WORKSPACES, type DeletedWorkspaceDto, type SlideshowWorkspaceDto, type WorkspacePostCounts } from '../../../../types/admin/autoSlideshow';
 import { useAdminApi } from '../../business/useAdminApi';
 import { CreateWorkspaceForm } from '../workspace/CreateWorkspaceForm';
 import { lastWorkspaceStore } from '../workspace/WorkspaceContext';
@@ -17,6 +17,25 @@ const accountsOf = (w: SlideshowWorkspaceDto) => {
   const parts = [w.tiktokUsername && `TikTok ${at(w.tiktokUsername)}`, w.instagramUsername && `Instagram ${at(w.instagramUsername)}`].filter(Boolean);
   return parts.length ? parts.join(' · ') : 'No account connected';
 };
+
+const COUNT_LABELS: { key: keyof WorkspacePostCounts; label: string }[] = [
+  { key: 'posted', label: 'posted' },
+  { key: 'scheduled', label: 'scheduled' },
+  { key: 'ready', label: 'ready to post' },
+];
+
+/** "3 posted · 2 scheduled · 5 ready to post", the same counts as the calendar. */
+function PostCounts({ counts }: { counts: WorkspacePostCounts }) {
+  return (
+    <span className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted">
+      {COUNT_LABELS.map((c) => (
+        <span key={c.key}>
+          <span className="font-bold text-ink tabular-nums dark:text-zinc-100">{counts[c.key]}</span> {c.label}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 function TrashIcon() {
   return (
@@ -69,6 +88,7 @@ export function WorkspacesSection({ token, currentId, onClose }: Props) {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-ink dark:text-zinc-100">{w.name}</span>
                   <span className="block truncate text-xs text-muted">{host(w.websiteUrl)} · {accountsOf(w)}</span>
+                  {w.counts && <PostCounts counts={w.counts} />}
                 </span>
                 {w.id === currentId ? <span className="shrink-0 text-xs font-semibold text-blue-600 dark:text-blue-400">Current</span> : <span aria-hidden className="shrink-0 text-muted">›</span>}
               </button>
@@ -93,7 +113,7 @@ export function WorkspacesSection({ token, currentId, onClose }: Props) {
       ) : (
         <button onClick={() => setAdding(true)} className="min-h-12 w-full rounded-full border border-dashed border-line text-sm font-semibold text-ink transition hover:bg-zinc-50 active:scale-95 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-900">+ New workspace</button>
       )}
-      <DeletedWorkspaces token={token} workspaces={data?.deleted ?? []} onRestored={refresh} />
+      <DeletedWorkspaces token={token} workspaces={data?.deleted ?? []} onChanged={refresh} />
     </section>
   );
 }

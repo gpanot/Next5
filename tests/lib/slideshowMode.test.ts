@@ -4,7 +4,7 @@ import {
   resolveSlideshowMode,
 } from '../../src/components/labs/blitzLab/useSlideshowMode';
 import type { BlitzAssetDto } from '../../src/components/labs/blitzLab/api';
-import { BLITZ_MAX_DURATION_S, BLITZ_SLIDESHOW_MAX_DURATION_S } from '../../src/config/blitzLab';
+import { BLITZ_SLIDESHOW_MAX_DURATION_S } from '../../src/config/blitzLab';
 
 const asset = (r2Key: string, mediaKind: 'image' | 'video'): BlitzAssetDto =>
   ({ id: r2Key, r2Key, mediaKind, name: r2Key, type: 'BACKGROUND', url: `https://r2/${r2Key}` } as BlitzAssetDto);
@@ -26,31 +26,18 @@ describe('resolveSlideshowMode', () => {
     expect(result.durationSeconds).toBe(9); // 3 slides x 3 s, not the 99 s clip
   });
 
-  it('falls back to the global background when a slide has none of its own', () => {
-    const images = resolveSlideshowMode([slide('one'), slide('two')], ASSETS, 'img-a', 4, 99);
-    expect(images.mode).toBe('slideshow');
-    expect(images.durationSeconds).toBe(8);
-
+  it('times footage backgrounds by the slide count too, never by the clip length', () => {
     const footage = resolveSlideshowMode([slide('one'), slide('two')], ASSETS, 'clip', 4, 12.5);
-    expect(footage.mode).toBe('video');
-    expect(footage.videoSlideNumbers).toEqual([1, 2]);
-    expect(footage.durationSeconds).toBe(12.5); // the clip drives the length now
+    expect(footage.mode).toBe('slideshow');
+    expect(footage.videoSlideNumbers).toEqual([]);
+    expect(footage.durationSeconds).toBe(8); // 2 slides x 4 s; the clip is trimmed or held per slide
+
+    const mixed = resolveSlideshowMode([slide('one', 'img-a'), slide('two', 'clip'), slide('three', 'img-b')], ASSETS, 'img-a', 3, 7.5);
+    expect(mixed.mode).toBe('slideshow');
+    expect(mixed.durationSeconds).toBe(9);
   });
 
-  it('becomes a video as soon as one slide carries footage, and names that slide', () => {
-    const result = resolveSlideshowMode(
-      [slide('one', 'img-a'), slide('two', 'clip'), slide('three', 'img-b')],
-      ASSETS,
-      'img-a',
-      3,
-      7.5,
-    );
-    expect(result.mode).toBe('video');
-    expect(result.videoSlideNumbers).toEqual([2]);
-    expect(result.durationSeconds).toBe(7.5);
-  });
-
-  it('counts only slides that have text, and numbers them as the editor does', () => {
+  it('counts only slides that have text', () => {
     const result = resolveSlideshowMode(
       [slide('one', 'img-a'), slide('   ', 'clip'), slide('three', 'clip')],
       ASSETS,
@@ -58,8 +45,7 @@ describe('resolveSlideshowMode', () => {
       2,
       6,
     );
-    // The blank slide is dropped, so the footage slide is #2, not #3.
-    expect(result.videoSlideNumbers).toEqual([2]);
+    expect(result.durationSeconds).toBe(4); // the blank slide is dropped: 2 slides x 2 s
   });
 
   it('ignores a background still uploading rather than guessing its kind', () => {
@@ -80,20 +66,6 @@ describe('resolveSlideshowMode', () => {
     const many = Array.from({ length: 40 }, (_, i) => slide(`slide ${i}`, 'img-a'));
     expect(resolveSlideshowMode(many, ASSETS, 'img-a', 10, 5).durationSeconds)
       .toBe(BLITZ_SLIDESHOW_MAX_DURATION_S);
-  });
-
-  it('leaves footage on the 60 s cap — only still images get the longer ceiling', () => {
-    // Video mode takes the measured clip length, which useClipDuration has
-    // already clamped to BLITZ_MAX_DURATION_S before it reaches here.
-    const result = resolveSlideshowMode(
-      [slide('one', 'clip'), slide('two', 'img-a')],
-      ASSETS,
-      'img-a',
-      10,
-      BLITZ_MAX_DURATION_S,
-    );
-    expect(result.mode).toBe('video');
-    expect(result.durationSeconds).toBe(60);
   });
 
   it('never returns a zero-length clip for an empty slide list', () => {

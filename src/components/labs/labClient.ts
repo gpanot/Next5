@@ -80,6 +80,18 @@ export const createAdminLabClient = (token: string): LabClient =>
   });
 
 /**
+ * The labs as an Auto Slideshow user runs them on the Content page: their session token, the same `/api/admin` routes
+ * (they accept user tokens, see src/server/labs/labAccess.ts), and the workspace named in a header so every row read
+ * or written is that workspace's.
+ */
+export const createWorkspaceLabClient = (token: string, workspaceId: string): LabClient =>
+  createLabClient({
+    id: `workspace:${workspaceId}`,
+    basePath: '/api/admin',
+    authHeaders: () => ({ Authorization: `Bearer ${token}`, 'X-Workspace-Id': workspaceId }),
+  });
+
+/**
  * The labs as a signed-in business runs them: session cookie, `/api/app/labs` routes, rows owned
  * by her workspace.
  *

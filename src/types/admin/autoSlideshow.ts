@@ -90,7 +90,8 @@ export type AutoSlideshowStatus = 'written' | 'rendering' | 'ready' | 'failed';
 export type AutoSlideDto = AutoSlide & { imageUrl: string | null };
 
 /** A background track from the Assets Library; `url` plays in the browser. */
-export type AutoTrackDto = { assetId: string; name: string; url: string; startAt: number };
+/** `durationSec`: full track length, measured when the track was described; null when not described yet. */
+export type AutoTrackDto = { assetId: string; name: string; url: string; startAt: number; durationSec?: number | null };
 
 export type AutoSlideshowDto = {
   id: string;
@@ -215,10 +216,14 @@ export const currentAutoStep = (s: AutoRunStatus): number => (s === 'COMPLETED' 
 export const MAX_WORKSPACES = 10;
 
 /** One of a user's Auto Slideshow workspaces (one per website). */
-export type SlideshowWorkspaceDto = { id: string; name: string; websiteUrl: string | null; tiktokUsername: string | null; instagramUsername: string | null; createdAt: string };
+/** Slideshows of a workspace, as on the calendar: ready to post, scheduled (or on their way), posted. */
+export type WorkspacePostCounts = { ready: number; scheduled: number; posted: number };
+
+export type SlideshowWorkspaceDto = { id: string; name: string; websiteUrl: string | null; tiktokUsername: string | null; instagramUsername: string | null; createdAt: string; counts: WorkspacePostCounts };
 
 /** A deleted workspace the user can still restore, until `purgeAt`. */
-export type DeletedWorkspaceDto = { id: string; name: string; websiteUrl: string | null; deletedAt: string; purgeAt: string };
+/** `purgeAt`: when it is deleted for good; `deletingForever`: "Delete forever" was tapped, so that is within 2 minutes. */
+export type DeletedWorkspaceDto = { id: string; name: string; websiteUrl: string | null; deletedAt: string; purgeAt: string; deletingForever: boolean };
 
 /** The signed-in user behind /slideshow: profile, the current workspace and the accounts connected to it. */
 export type SlideshowMeDto = {

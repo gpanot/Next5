@@ -160,7 +160,7 @@ export function GreenScreenComposition({
 
       {/* ── Audio (optional) ────────────────────────────────────────────── */}
       {audioUrl ? (
-        <Audio src={audioUrl} volume={audioVolume} onError={() => undefined} />
+        <Audio src={audioUrl} loop volume={audioVolume} onError={() => undefined} />
       ) : null}
     </AbsoluteFill>
   );

@@ -1,4 +1,5 @@
 import type { AutoPostDto, AutoSlideshowDto } from '../../../../types/admin/autoSlideshow';
+import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
 
 /**
  * The posting calendar, worked out on the client from the run. Nothing here is saved until the user approves.
@@ -6,13 +7,16 @@ import type { AutoPostDto, AutoSlideshowDto } from '../../../../types/admin/auto
  * - `targets`: posts the user wants on a given day (1 to 5, set day by day). Waiting slideshows fill those slots first,
  *   in day order; empty ones are what "Generate" makes.
  * - Waiting slideshows left over (no target slot) go one a day at 7 PM on the next free days from tomorrow.
+ * - Blitz videos put on the calendar from the Content page (`blitz`) sit at their own time, like live posts.
  * The page shows one calendar month (Monday to Sunday weeks); targets and pins in any month count.
  */
 
 export type DayItem =
   | { kind: 'post'; show: AutoSlideshowDto; post: AutoPostDto }
   | { kind: 'ready'; show: AutoSlideshowDto }
-  | { kind: 'making'; show: AutoSlideshowDto | null };
+  | { kind: 'making'; show: AutoSlideshowDto | null }
+  /** A kept Blitz video scheduled from the Content page: rendered near its time, then posted. */
+  | { kind: 'blitz'; show: null; blitz: BlitzScheduleDto };
 
 type PostItem = Extract<DayItem, { kind: 'post' }>;
 
@@ -128,7 +132,17 @@ const placeQueue = (drafts: Draft[], queue: DayItem[], tomorrow: Date) => {
   }
 };
 
-type PlanInput = { slideshows: AutoSlideshowDto[]; pending: number; month: Date; targets?: Targets; pins?: Pins; working?: boolean; now?: Date };
+type PlanInput = { slideshows: AutoSlideshowDto[]; pending: number; month: Date; targets?: Targets; pins?: Pins; working?: boolean; now?: Date; blitz?: BlitzScheduleDto[] };
+
+/** Blitz videos as fixed slots, by day key. */
+const blitzByDay = (items: BlitzScheduleDto[]) => {
+  const byDay = new Map<string, PlanSlot[]>();
+  for (const blitz of items) {
+    const at = new Date(blitz.scheduledAt);
+    byDay.set(dayKey(at), [...(byDay.get(dayKey(at)) ?? []), { at, item: { kind: 'blitz', show: null, blitz } }]);
+  }
+  return byDay;
+};
 
 /** The month grid, plus every day with a target, pin or queued slideshow (so approving takes them all, in any month). */
 export const buildMonth = (input: PlanInput): MonthPlan => {
@@ -137,13 +151,14 @@ export const buildMonth = (input: PlanInput): MonthPlan => {
   const tomorrow = addDays(today, 1);
   const targets = input.targets ?? {};
   const byDay = postsByDay(input.slideshows);
+  const videos = blitzByDay(input.blitz ?? []);
   const { queue, pinned } = waitingQueue(input.slideshows, input.pending, input.working ?? true, input.pins ?? {}, tomorrow);
   const grid = gridOf(input.month);
   const from = grid.start < tomorrow ? grid.start : tomorrow;
   const lastKey = [...pinned.keys(), ...Object.keys(targets)].sort().at(-1);
   const lastDate = lastKey ? new Date(`${lastKey}T00:00`) : grid.end;
   const fixedOf = (key: string) =>
-    [...(byDay.get(key) ?? []).map((p) => ({ at: new Date(p.post.scheduledAt), item: p as DayItem | null })), ...(pinned.get(key) ?? [])].sort((a, b) => a.at.getTime() - b.at.getTime());
+    [...(byDay.get(key) ?? []).map((p) => ({ at: new Date(p.post.scheduledAt), item: p as DayItem | null })), ...(videos.get(key) ?? []), ...(pinned.get(key) ?? [])].sort((a, b) => a.at.getTime() - b.at.getTime());
   const drafts = draftDays(from, lastDate > grid.end ? lastDate : grid.end, tomorrow, fixedOf, targets);
   placeQueue(drafts, queue, tomorrow);
   const month = input.month.getMonth();
@@ -195,6 +210,7 @@ export const monthCounts = (days: PlanDay[]): MonthCounts => {
     for (const { item } of day.slots) {
       if (item?.kind === 'ready') counts.ready += 1;
       if (item?.kind === 'post') counts[item.post.status === 'posted' ? 'posted' : 'scheduled'] += 1;
+      if (item?.kind === 'blitz' && item.blitz.status !== 'failed') counts[item.blitz.status === 'posted' ? 'posted' : 'scheduled'] += 1;
     }
   }
   return counts;

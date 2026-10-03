@@ -256,6 +256,8 @@ model Workspace {
   brandExtractAt        DateTime?     @map("brand_extract_at")
   /// Auto Slideshow only: deleted by the user, restorable until the daily cron purges it 30 days later
   deletedAt             DateTime?     @map("deleted_at")
+  /// Set by "Delete forever": the workspace is purged at this time (2 minutes later, undoable until then)
+  purgeAt               DateTime?     @map("purge_at")
   createdAt             DateTime      @default(now()) @map("created_at")
   updatedAt             DateTime      @updatedAt @map("updated_at")
 
@@ -1232,6 +1234,10 @@ model BlitzProject {
   captionText          String            @default("") @map("caption_text")
   renderStatus         BlitzRenderStatus @default(PENDING) @map("render_status")
   renderedVideoKey     String?           @map("rendered_video_key")
+  /// Set by the blitz-worker when it claims the job. Queue wait = renderStartedAt - createdAt.
+  renderStartedAt      DateTime?         @map("render_started_at")
+  /// Set by the blitz-worker when the job ends (COMPLETED or FAILED). Render time = renderFinishedAt - renderStartedAt.
+  renderFinishedAt     DateTime?         @map("render_finished_at")
   /// Hard-blocks any future export path; set manually for real-person test footage.
   isIdentifiablePerson Boolean           @default(false) @map("is_identifiable_person")
   createdAt            DateTime          @default(now()) @map("created_at")
@@ -1245,6 +1251,43 @@ model BlitzProject {
 
 /// Slideshow engine: one generated deck card (one hook archetype on a brief's shared meat + CTA).
 /// Foreign keys (workspace, listing run, blitz project) live in the SQL migration only.
+/// A kept Blitz video put on the calendar (db/migrations/20261107090000_blitz_scheduled_posts.sql). Rendered about an
+/// hour before `scheduledAt` (src/server/labs/blitzScheduleTick.ts), then posted to the workspace's TikTok.
+model BlitzScheduledPost {
+  id            String    @id @default(cuid())
+  workspaceId   String    @map("workspace_id")
+  /// Who scheduled it: pays the render credit
+  userId        String    @map("user_id")
+  cardId        String    @map("card_id")
+  variantId     String?   @map("variant_id")
+  title         String
+  coverKey      String?   @map("cover_key")
+  /// The exact render request, frozen at scheduling time
+  renderBody    Json      @map("render_body")
+  scheduledAt   DateTime  @map("scheduled_at")
+  /// 'scheduled' | 'rendering' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled'
+  status        String    @default("scheduled")
+  projectId     String?   @map("project_id")
+  privacyLevel  String    @map("privacy_level")
+  allowComments Boolean   @default(true) @map("allow_comments")
+  brandOrganic  Boolean   @default(false) @map("brand_organic")
+  brandContent  Boolean   @default(false) @map("brand_content")
+  consentAt     DateTime  @map("consent_at")
+  publishId     String?   @map("publish_id")
+  tiktokPostId  String?   @map("tiktok_post_id")
+  postUrl       String?   @map("post_url")
+  attempts      Int       @default(0)
+  error         String?
+  sentAt        DateTime? @map("sent_at")
+  postedAt      DateTime? @map("posted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([status, scheduledAt])
+  @@index([workspaceId, scheduledAt])
+  @@map("blitz_scheduled_posts")
+}
+
 model SlideshowVariant {
   id             String   @id @default(cuid())
   workspaceId    String?  @map("workspace_id")
@@ -1880,6 +1923,7 @@ model StudioBrandProfile {
 
   workspace Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   runs      StudioRun[]
+  autoSlideshowRuns AutoSlideshowRun[]
 
   @@index([workspaceId, sourceUrl, version(sort: Desc)])
   @@map("studio_brand_profiles")
@@ -2184,8 +2228,10 @@ model AutoSlideshowRun {
   workspaceId String?   @map("workspace_id")
   /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'COMPLETED' | 'FAILED'
   status      String    @default("STEP_1_RUNNING")
-  /// Step 1: BrandProfile
+  /// Step 1: BrandProfile (flat copy of the shared profile below)
   profile     Json?
+  /// The shared company profile (studio_brand_profiles) step 1 used; null on runs made before 2026-10-02
+  brandProfileId String? @map("brand_profile_id")
   /// Step 2: BrandLever[]
   levers      Json?
   /// Step 3: AutoPlan
@@ -2201,6 +2247,7 @@ model AutoSlideshowRun {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
+  brandProfile StudioBrandProfile? @relation(fields: [brandProfileId], references: [id], onDelete: SetNull)
   slideshows AutoSlideshow[]
   posts      AutoSlideshowPost[]
 

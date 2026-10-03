@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { adminRoute } from '../../../../../../src/server/admin/route';
+import { assertRunAccess, labRoute } from '../../../../../../src/server/labs/labAccess';
 import { HttpError } from '../../../../../../src/server/http';
 import type { ListingFacts } from '../../../../../../src/server/labs/slideshowCopy';
 import { loadWebsiteSource } from '../../../../../../src/server/labs/websiteDeck';
@@ -19,7 +19,7 @@ type Body =
  * Same guardrails as generation plus the 7-shot format, so a user edit cannot ship what the
  * engine would reject (invented numbers, Fair Housing, unprovable claims, competitor names…).
  */
-export const POST = adminRoute(async (req: NextRequest) => {
+export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => {
   const body = (await req.json()) as Body;
   if (!Array.isArray(body.texts) || !body.texts.every((t) => typeof t === 'string')) {
     throw new HttpError(400, 'invalid_texts', 'texts must be an array of strings.');
@@ -28,6 +28,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
 
   if (body.engine === 'website') {
     if (!body.runId) throw new HttpError(400, 'missing_run', 'runId is required.');
+    await assertRunAccess(access, body.runId);
     const brief = websiteEngine.briefs(await loadWebsiteSource(body.runId))[0];
     if (!brief) throw new HttpError(409, 'no_brief', 'The profile has no audience to check against.');
     return NextResponse.json({ problems: checkWebsiteShots(texts, brief.facts) });

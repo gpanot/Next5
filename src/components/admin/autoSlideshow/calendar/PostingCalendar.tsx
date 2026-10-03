@@ -14,6 +14,7 @@ import { MonthGrid } from './MonthGrid';
 import { MonthHeader } from './MonthHeader';
 import { addMonths, buildMonth, currentPins, dayKey, dropPins, emptySlots, MAX_PER_DAY, monthCounts, monthOf, monthRange, toApprove } from './monthPlan';
 import { SlideshowDnd } from './SlideshowDnd';
+import { useBlitzOnCalendar } from './useBlitzOnCalendar';
 import { usePins, useTargets } from './useCalendarStore';
 
 type Props = { token: string; run: AutoRunDto; onOpen: (slideshowId: string) => void; onRunChanged: () => void };
@@ -89,10 +90,11 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged }: Props) {
   useWatchPosts(run, onRunChanged);
   const { adding, error, add } = useAdd(token, run.id, onRunChanged);
   const { month, step, canPrev, canNext } = useMonth(run);
+  const blitz = useBlitzOnCalendar(token, run.workspaceId);
   // Only a working run has slideshows still to come; a finished one shows what it has.
   const working = !isTerminalAutoStatus(run.status);
   const pending = working ? Math.max(0, run.count - run.slideshows.length) : 0;
-  const { days, all } = useMemo(() => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins }), [run.slideshows, pending, working, month, targets, pins]);
+  const { days, all } = useMemo(() => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins, blitz }), [run.slideshows, pending, working, month, targets, pins, blitz]);
   const counts = monthCounts(days);
   const approve = toApprove(all);
   const idle = run.status === 'COMPLETED' && adding === null;

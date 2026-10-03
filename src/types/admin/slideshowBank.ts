@@ -42,3 +42,19 @@ export type SlideshowBankContent = { meats: BankMeat[]; hooks: BankHook[]; ctas:
 
 /** Which bank parts one slideshow uses. */
 export type BankCombo = { meatId: string; hookId: string; ctaId: string };
+
+/** One slideshow made from the bank, for the Matrix view. `post`: its first live post's status (TikTok first), if any. */
+export type BankUseDto = {
+  slideshowId: string;
+  runId: string;
+  position: number;
+  meatId: string;
+  hookId: string;
+  ctaId: string | null;
+  status: string;
+  post: 'scheduled' | 'posted' | null;
+  createdAt: string;
+};
+
+/** The site's bank and the slideshows made from it (this workspace's only). `bank` is null before the first plan. */
+export type BankMatrixDto = { bank: SlideshowBankContent | null; builtAt: string | null; used: BankUseDto[] };

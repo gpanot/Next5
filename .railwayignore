@@ -1,0 +1,12 @@
+# `railway up` from this folder deploys the blitz-worker service only. Upload just what
+# blitz-worker/Dockerfile copies, so the upload stays small (the whole repo is ~450 MB → 413 error).
+/*
+!/blitz-worker/
+/blitz-worker/node_modules/
+/blitz-worker/.DS_Store
+!/src/
+/src/*
+!/src/remotion/
+!/src/config/
+/src/config/*
+!/src/config/blitzLab.ts

@@ -11,13 +11,13 @@ import type { BrandProfile } from '../../types/admin/companyIntel';
 import { assignGoals, GOAL_LABELS, type ContentGoal } from '../../types/admin/contentGoals';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import type { SlideshowBankContent } from '../../types/admin/slideshowBank';
-import { buildProfile } from '../companyIntel/profile';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { extractLevers } from '../metaAds/hormozi/levers';
 import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
 import { appBaseUrl } from '../social/links';
 import { chargeSlideshow } from '../slideshowCredits/charge';
+import { profileForSite } from '../studio/siteProfile';
 import { putObject } from '../storage/objectStore';
 import { bankForSite, loadUsage } from './bank/build';
 import { assembleCombo, pickCombos } from './bank/pick';
@@ -55,7 +55,13 @@ const saveStep = async (runId: string, step: AutoStep, ms: number, cost: StepCos
 type RunOpts = { append: number; rerender: boolean; continued: boolean };
 type StepFn = (runId: string, meter: CostMeter, opts: RunOpts) => Promise<Prisma.AutoSlideshowRunUpdateInput>;
 
-const profileStep: StepFn = async (runId, meter) => ({ profile: json(await buildProfile((await loadRun(runId)).url, meter)) });
+/** The site's shared company profile (same one Blitz uses); the run keeps a flat copy so later steps and old runs read
+ *  one shape. */
+const profileStep: StepFn = async (runId, meter) => {
+  const run = await loadRun(runId);
+  const { id, profile } = await profileForSite(run.url, run.workspaceId, meter);
+  return { profile: json(profile), brandProfile: { connect: { id } } };
+};
 
 /** A site with no quotable claim still gets slideshows: the CTA then uses a plain benefit, with no numbers. */
 const leverStep: StepFn = async (runId, meter) => {

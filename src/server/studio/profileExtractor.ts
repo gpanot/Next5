@@ -7,13 +7,16 @@
  */
 // server-only
 import { chatJson } from '../ai/openai';
-import type { ExtractTelemetry, FieldEnvelope, StudioProfileData, StageMetrics } from './types';
+import type { ExtractTelemetry, FieldEnvelope, StudioBrand, StudioProfileData, StudioVisual, StageMetrics } from './types';
 import { KNOWN_VERTICALS } from './verticalPacks';
 import { crawlSite } from './siteCrawl';
 import { findCompetitors } from './competitors';
 import { discoverKeywords, keywordInputSignature } from './keywordDiscovery';
 import { groundIndustries, groundProofPoints } from './grounding';
 import { classifyVertical } from './verticalClassifier';
+import { readSiteStyle, type SiteStyle } from '../companyIntel/palette';
+import { summarizeBrand, type BrandSummary } from '../companyIntel/profile';
+import { createMeter } from '../metaAds/cost';
 
 /** Dedicated vertical call (verticalClassifier.ts): ~$0.0001. */
 const VERTICAL_COST_MICROS = 100;
@@ -133,12 +136,64 @@ function envelope<T>(value: T, source: 'crawl' | 'inferred', confidence: number)
   return { value, source, confidence, locked: false };
 }
 
+const NO_STYLE: SiteStyle = { palette: [], faviconUrl: null, shareImageUrl: null };
+
+/** Palette, favicon and share image from the site's HTML/CSS; none when the site blocks the fetch. */
+async function readStyle(url: string): Promise<SiteStyle> {
+  try {
+    return await readSiteStyle(url);
+  } catch (err) {
+    console.warn(`[studio/profile] site style unreadable for ${url}:`, err instanceof Error ? err.message : err);
+    return NO_STYLE;
+  }
+}
+
+/** The crawl without its menu-link list: page text only, as the brand prompt was written for. With the menu first, it
+ *  described the website ("Explore models on the official site") instead of the business. */
+const pagesOnly = (text: string): string => text.replace(/^## Site menu and links\n[\s\S]*?(?=\n## )/, '').trim();
+
+/** Auto Slideshow's brand summary (its own prompt and model) on the crawled pages; null when the call fails. */
+async function brandSummary(url: string, text: string, palette: string[]): Promise<{ brand: BrandSummary | null; costMicros: number }> {
+  const meter = createMeter();
+  try {
+    const brand = await summarizeBrand({ url, title: null, palette, text: pagesOnly(text).slice(0, MAX_INFER_CHARS) }, meter);
+    return { brand, costMicros: meter.summary().usdMicros };
+  } catch (err) {
+    console.warn(`[studio/profile] brand summary failed for ${url}:`, err instanceof Error ? err.message : err);
+    return { brand: null, costMicros: meter.summary().usdMicros };
+  }
+}
+
+function buildBrand(brand: BrandSummary): StudioBrand {
+  return {
+    valueProp: envelope(brand.valueProp, 'inferred', 0.8),
+    audience: envelope(brand.audience, 'inferred', brand.audience ? 0.8 : 0),
+    tone: envelope(brand.tone, 'inferred', brand.tone ? 0.8 : 0),
+    productCategories: envelope(brand.productCategories, 'inferred', brand.productCategories.length > 0 ? 0.8 : 0),
+  };
+}
+
+function buildVisual(style: SiteStyle, brand: BrandSummary | null): StudioVisual {
+  const slideshowStyle = brand?.slideshowStyle ?? null;
+  return {
+    palette: envelope(style.palette, 'crawl', style.palette.length > 0 ? 0.9 : 0),
+    faviconUrl: envelope(style.faviconUrl, 'crawl', style.faviconUrl ? 0.9 : 0),
+    heroImageUrl: envelope(style.shareImageUrl, 'crawl', style.shareImageUrl ? 0.9 : 0),
+    slideshowStyle: envelope(slideshowStyle, 'inferred', slideshowStyle ? 0.7 : 0),
+  };
+}
+
 // ─── Public API ────────────────────────────────────────────────────────────────
 
 export type ExtractProfileInput = {
   sourceUrl: string;
   /** Admin can pass a hint to override the LLM classification. */
   verticalHint?: string;
+  /**
+   * Skips competitor search and keyword discovery (Auto Slideshow does not use them). Blitz research
+   * regenerates the keywords when it needs them (researchKeywords.ts), since they are stored empty.
+   */
+  skipMarketResearch?: boolean;
 };
 
 export type ExtractProfileResult = {
@@ -155,7 +210,7 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
   const zeroStage: StageMetrics = { durationMs: 0, costUsdMicros: 0 };
 
   // ── Stage 1: crawl ─────────────────────────────────────────────────────────
-  const crawlResult = await crawlSite(input.sourceUrl);
+  const [crawlResult, style] = await Promise.all([crawlSite(input.sourceUrl), readStyle(input.sourceUrl)]);
   const crawlStage: StageMetrics = { durationMs: crawlResult.durationMs, costUsdMicros: crawlResult.costUsdMicros };
 
   if (!crawlResult.text) {
@@ -168,7 +223,10 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
   }
 
   // ── Stage 2: LLM inference ─────────────────────────────────────────────────
-  const { result: inferred, durationMs: inferMs, costMicros: inferCost } = await inferProfile(crawlResult.text, input.sourceUrl);
+  const [{ result: inferred, durationMs: inferMs, costMicros: inferCost }, summary] = await Promise.all([
+    inferProfile(crawlResult.text, input.sourceUrl),
+    brandSummary(input.sourceUrl, crawlResult.text, style.palette),
+  ]);
 
   const businessName = str(inferred.businessName, new URL(input.sourceUrl).hostname.replace(/^www\./, ''));
   const promoting = str(inferred.promoting);
@@ -178,16 +236,13 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
     input.verticalHint ??
     (await classifyVertical({ businessName, promoting, description: str(inferred.description), businessModel })) ??
     inferredVertical;
-  const inferStage: StageMetrics = { durationMs: inferMs, costUsdMicros: inferCost + VERTICAL_COST_MICROS };
+  const inferStage: StageMetrics = { durationMs: inferMs, costUsdMicros: inferCost + VERTICAL_COST_MICROS + summary.costMicros };
   const geography = str(inferred.geography);
 
   // ── Stage 3: competitor discovery (Exa search, validated — not LLM memory) ──
-  const { competitors, durationMs: competitorMs, costUsdMicros: competitorCost } = await findCompetitors({
-    businessName,
-    promoting,
-    geography,
-    sourceUrl: input.sourceUrl,
-  });
+  const { competitors, durationMs: competitorMs, costUsdMicros: competitorCost } = input.skipMarketResearch
+    ? { competitors: [] as string[], durationMs: 0, costUsdMicros: 0 }
+    : await findCompetitors({ businessName, promoting, geography, sourceUrl: input.sourceUrl });
   const competitorStage: StageMetrics = { durationMs: competitorMs, costUsdMicros: competitorCost };
 
   // Target customer industries: kept only when a verbatim quote from the crawl backs them up.
@@ -207,7 +262,9 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
     promoting,
     targetCustomerIndustries,
   };
-  const { keywords, durationMs: keywordMs, verified: keywordsVerified } = await discoverKeywords(keywordInput);
+  const { keywords, durationMs: keywordMs, verified: keywordsVerified } = input.skipMarketResearch
+    ? { keywords: [] as string[], durationMs: 0, verified: false }
+    : await discoverKeywords(keywordInput);
   const keywordStage: StageMetrics = { durationMs: keywordMs, costUsdMicros: 0 };
 
   const totalDurationMs = crawlResult.durationMs + inferMs + competitorMs + keywordMs;
@@ -261,6 +318,9 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
       tone: envelope(str(inferred.tone, 'casual_professional'), 'inferred', confidence),
       hooks: envelope(rawHooks, 'inferred', confidence),
     },
+    visual: buildVisual(style, summary.brand),
+    ...(summary.brand ? { brand: buildBrand(summary.brand) } : {}),
+    siteText: crawlResult.text,
   };
 
   console.log(`[studio/profile] extractProfile DONE url=${input.sourceUrl} durationMs=${totalDurationMs} costMicros=${totalCostUsdMicros} idc=${JSON.stringify(targetCustomerIndustries)} keywords=${JSON.stringify(keywords)}`);

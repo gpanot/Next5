@@ -208,6 +208,8 @@ export type SlideshowDeckStepProps = {
   renderFor?: (card: DeckCardData) => KeptRenderView | undefined;
   /** Right column next to the deck, given the card on screen. */
   aside?: (card: DeckCardData | null, sound: DeckSound) => ReactNode;
+  /** Filter chips and tags above the deck (see SwipeDeck). */
+  labels?: boolean;
 };
 
 export function SlideshowDeckStep({
@@ -220,6 +222,7 @@ export function SlideshowDeckStep({
   onGenerateCard,
   renderFor,
   aside,
+  labels,
 }: SlideshowDeckStepProps) {
   const client = useLabClient();
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(cards.length > 0 ? 'ready' : 'loading');
@@ -306,6 +309,7 @@ export function SlideshowDeckStep({
       })}
       renderFor={renderFor}
       aside={aside}
+      labels={labels}
       onSwipe={(card, action, reason) => logDeckAction(client, card.variantId, action, reason ? { reason } : {})}
     />
   );

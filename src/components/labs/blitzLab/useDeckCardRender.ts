@@ -14,7 +14,8 @@ import { toSlide } from './useDeckCardEditor';
 import { fetchListingPhotos, fillListingBackgrounds } from './useListingPhotoImport';
 import type { ZillowData } from './ZillowScrapeStep';
 
-type Submit = (body: Parameters<typeof blitzApi.triggerRender>[1]) => Promise<string | null>;
+type RenderBody = Parameters<typeof blitzApi.triggerRender>[1];
+type Submit = (body: RenderBody, onError?: (message: string) => void) => Promise<string | null>;
 
 type Options = {
   template: BlitzTemplateDto | null;
@@ -50,7 +51,8 @@ function viewFor(projectId: string, project: BlitzProjectDto | undefined, o: Opt
   if (project.renderStatus === 'COMPLETED' && project.renderedVideoUrl) {
     return { state: 'ready', videoUrl: project.renderedVideoUrl, projectId: project.id };
   }
-  return { state: 'working', queuePosition: o.queue[projectId] };
+  const startedAt = project.renderStatus === 'PROCESSING' && project.renderStartedAt ? Date.parse(project.renderStartedAt) : undefined;
+  return { state: 'working', queuePosition: o.queue[projectId], startedAt };
 }
 
 /**
@@ -71,28 +73,38 @@ export function useDeckCardRender(o: Options) {
       return next;
     });
 
-  const run = async (card: DeckCardData): Promise<string | null> => {
-    if (!o.template) return 'No slideshow template loaded.';
+  /** The render request for a card exactly as it is, or why it cannot render yet. Also what scheduling saves. */
+  const bodyFor = async (card: DeckCardData): Promise<{ body: RenderBody } | { error: string }> => {
+    if (!o.template) return { error: 'No slideshow template loaded.' };
     const slides = await slidesFor(card, o, client);
-    if (slides.some((s) => !s.backgroundKey)) return 'Some shots have no photo. Tap Edit to pick one.';
+    if (slides.some((s) => !s.backgroundKey)) return { error: 'Some shots have no photo. Tap Edit to pick one.' };
     const context = card.check ?? o.checkContext;
     const problems = context ? await checkDeckCopy(client, context, slides.map((s) => s.text)) : [];
-    if (problems.length > 0) return `Fix before rendering: ${problems.join(' ')}`;
+    if (problems.length > 0) return { error: `Fix before rendering: ${problems.join(' ')}` };
     const audioKey = card.audio?.assetKey ?? o.assets.find((a) => a.type === 'AUDIO')?.r2Key;
-    const projectId = await o.submit({
-      templateId: o.template.id,
-      currentAssets: { backgroundKey: slides[0]!.backgroundKey!, ...(audioKey ? { audioKey } : {}) },
-      overlayZoom: 1.0,
-      overlayOffsetX: 0,
-      overlayOffsetY: 0,
-      mentionBusiness: false,
-      captionText: slides[0]?.text ?? '',
-      slides,
-      durationSeconds: slides.reduce((sum, s, i) => sum + (s.durationSec ?? SHOT_FORMAT[i]?.durationSec ?? 0), 0),
-      textConfigOverride: o.textOverride,
-      set: buildSet(card, slides),
-    });
-    if (!projectId) return 'Render request failed. Try again.';
+    return {
+      body: {
+        templateId: o.template.id,
+        currentAssets: { backgroundKey: slides[0]!.backgroundKey!, ...(audioKey ? { audioKey } : {}) },
+        overlayZoom: 1.0,
+        overlayOffsetX: 0,
+        overlayOffsetY: 0,
+        mentionBusiness: false,
+        captionText: slides[0]?.text ?? '',
+        slides,
+        durationSeconds: slides.reduce((sum, s, i) => sum + (s.durationSec ?? SHOT_FORMAT[i]?.durationSec ?? 0), 0),
+        textConfigOverride: o.textOverride,
+        set: buildSet(card, slides),
+      },
+    };
+  };
+
+  const run = async (card: DeckCardData): Promise<string | null> => {
+    const built = await bodyFor(card);
+    if ('error' in built) return built.error;
+    let failure = 'Render request failed. Try again.';
+    const projectId = await o.submit(built.body, (message) => { failure = message; });
+    if (!projectId) return failure;
     o.setDeckCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, status: 'generated', renderProjectId: projectId } : c)));
     logDeckAction(client, card.variantId, 'render', { blitzProjectId: projectId });
     return null;
@@ -114,5 +126,5 @@ export function useDeckCardRender(o: Options) {
     return viewFor(card.renderProjectId, o.library.find((p) => p.id === card.renderProjectId), o);
   };
 
-  return { generate, renderFor };
+  return { generate, renderFor, bodyFor };
 }

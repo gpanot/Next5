@@ -8,7 +8,7 @@
  *   1. Background  — full-bleed image or video (loops if shorter than clip)
  *   2. Slide text  — one caption per slide, fades in over 4 frames
  *   3. Business    — optional pill, same as GreenScreenComposition
- *   4. Audio       — optional, volume fade at end
+ *   4. Audio       — optional, loops if shorter than the video, volume fade at end
  */
 
 import { useEffect, useMemo, useRef } from 'react';
@@ -217,9 +217,11 @@ export function SlideshowComposition({
       ) : null}
 
       {/* ── Audio (optional) ────────────────────────────────────────────── */}
+      {/* Loops (from the start point) when the track is shorter than the video, so the end is never silent. */}
       {audioUrl ? (
         <Audio
           src={audioUrl}
+          loop
           volume={audioVolume}
           trimBefore={Math.max(0, Math.round((audioStartAt ?? 0) * fps))}
           onError={() => undefined}

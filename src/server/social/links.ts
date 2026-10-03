@@ -58,9 +58,9 @@ export const mediaIsPublic = (): boolean => /^https:\/\/(?!localhost|127\.|0\.0\
  * Public JPEG link for one photo, on our own domain, valid for 24 hours. TikTok only pulls photos from a
  * URL prefix verified in its developer portal (verify `${APP_URL}/api/media/`), and Instagram needs JPEG.
  */
-export const mediaUrlFor = (itemId: string, ttlSec = 24 * 60 * 60): string => {
+export const mediaUrlFor = (itemId: string, ttlSec = 24 * 60 * 60, ext: 'jpg' | 'mp4' = 'jpg'): string => {
   const body = `${itemId}.${Math.floor(Date.now() / 1000) + ttlSec}`;
-  return `${mediaBaseUrl()}/api/media/${Buffer.from(body).toString('base64url')}.${sign(body)}.jpg`;
+  return `${mediaBaseUrl()}/api/media/${Buffer.from(body).toString('base64url')}.${sign(body)}.${ext}`;
 };
 
 /**
@@ -75,9 +75,15 @@ export const parseSlideMediaId = (id: string): { slideshowId: string; index: num
   return m ? { slideshowId: m[1]!, index: Number(m[2]) } : null;
 };
 
+/** Public MP4 link for a rendered Blitz video (a scheduled post), same signed scheme, valid for a day. */
+export const blitzVideoMediaUrl = (projectId: string): string => mediaUrlFor(`blitz-${projectId}`, 24 * 60 * 60, 'mp4');
+
+/** The Blitz render a media id points to, or null. */
+export const parseBlitzMediaId = (id: string): string | null => id.match(/^blitz-([a-z0-9]+)$/)?.[1] ?? null;
+
 /** The item id a media link points to, or null when it is forged or expired. */
 export const readMediaToken = (token: string): string | null => {
-  const [encoded, signature] = token.replace(/\.jpg$/, '').split('.');
+  const [encoded, signature] = token.replace(/\.(jpg|mp4)$/, '').split('.');
   if (!encoded || !signature) return null;
   const body = Buffer.from(encoded, 'base64url').toString('utf8');
   const expected = Buffer.from(sign(body));

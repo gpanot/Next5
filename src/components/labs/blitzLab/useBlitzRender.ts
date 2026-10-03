@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { BLITZ_POLL_INTERVAL_MS, BLITZ_QUEUE_TIMEOUT_MS, BLITZ_RENDER_TIMEOUT_MS } from '../../../config/blitzLab';
+import { errorOf } from '../labClient';
 import { useLabClient } from '../LabClientProvider';
 import { blitzApi, type BlitzProjectDto } from './api';
 
@@ -142,8 +143,9 @@ export function useBlitzRender(
     pollersRef.current.set(projectId, intervalId);
   }, [client, stopPoller, giveUp, setQueuePosition, onCompleted, onProjectUpdate]);
 
-  /** Queues a render. Resolves to the new project id, or null when the request failed. */
-  const submit = useCallback(async (body: RenderBody): Promise<string | null> => {
+  /** Queues a render. Resolves to the new project id, or null when the request failed (`onError` gets the reason,
+   *  e.g. "Not enough credits"). */
+  const submit = useCallback(async (body: RenderBody, onError?: (message: string) => void): Promise<string | null> => {
     setState({ phase: 'submitting' });
     console.log('[blitz-render] Submitting render job…', body);
 
@@ -154,7 +156,9 @@ export function useBlitzRender(
 
     if (!res?.ok) {
       console.error('[blitz-render] Render request failed:', res?.data);
-      setState({ phase: 'error', message: res?.data?.error ?? 'Render request failed' });
+      const message = res ? errorOf(res) : 'Render request failed';
+      setState({ phase: 'error', message });
+      onError?.(message);
       return null;
     }
 
@@ -178,5 +182,6 @@ export function useBlitzRender(
 
   // isBusy = only during the initial POST (submitting phase)
   const isBusy = state.phase === 'submitting';
-  return { state, submit, isBusy, queue, stalled };
+  // watch: resume polling a render queued earlier (e.g. a deck restored after leaving the page).
+  return { state, submit, isBusy, queue, stalled, watch: startPoller };
 }
