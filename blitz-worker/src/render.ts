@@ -18,6 +18,26 @@ import type { GreenScreenProps, SlideshowProps, TextConfig } from '../../src/rem
 
 const RENDER_OUTPUT_KEY = (projectId: string) => `blitz/renders/${projectId}/output.mp4`;
 
+/**
+ * Resource caps for renderMedia. Remotion's defaults size themselves from os.cpus(), which in a Railway container is
+ * the host's core count, not the container's share: it opened so many Chrome tabs, each decoding up to 7 video clips,
+ * that the container ran out of threads (spawn ffprobe EAGAIN), frame fetches returned 500 and the render failed.
+ */
+const envInt = (name: string, fallback: number) => {
+  const value = parseInt(process.env[name] ?? '', 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+};
+const RENDER_LIMITS = {
+  /** Browser tabs rendering frames in parallel. */
+  concurrency: envInt('RENDER_CONCURRENCY', 2),
+  /** Threads the compositor uses to extract video frames. */
+  offthreadVideoThreads: envInt('OFFTHREAD_VIDEO_THREADS', 2),
+  /** Decoded-frame cache: bounded so memory stays flat across a 7-clip slideshow. */
+  offthreadVideoCacheSizeInBytes: envInt('OFFTHREAD_VIDEO_CACHE_MB', 512) * 1024 * 1024,
+  /** Per-frame load limit (default 30 s): a slow R2 fetch under load is not a failed render. */
+  timeoutInMilliseconds: envInt('FRAME_TIMEOUT_MS', 90_000),
+};
+
 export async function renderProject(
   project: BlitzProject,
   template: BlitzTemplate,
@@ -156,6 +176,7 @@ export async function renderProject(
         browserExecutable,
         chromiumOptions,
         cancelSignal,
+        ...RENDER_LIMITS,
         onProgress: ({ progress }) => {
           process.stdout.write(`\r[render:${jobId}] ${Math.round(progress * 100)} %`);
         },
@@ -206,6 +227,7 @@ export async function renderProject(
         browserExecutable,
         chromiumOptions,
         cancelSignal,
+        ...RENDER_LIMITS,
         onProgress: ({ progress }) => {
           process.stdout.write(`\r[render:${jobId}] ${Math.round(progress * 100)} %`);
         },
