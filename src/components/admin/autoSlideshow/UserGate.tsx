@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { SignInScreen } from '../../app/shell/SignInScreen';
+import { RotatingWord } from '../../motion/RotatingWord';
 import { SkeletonText } from '../../ui/Skeleton';
 import { useMagicToken } from '../../../hooks/useMagicToken';
 import { UNAUTHORIZED_EVENT } from '../../../lib/apiClient';
@@ -20,7 +21,7 @@ export function UserGate({ children }: { children: (token: string) => ReactNode 
 
   if (token === undefined || verifying) return <div className="mx-auto max-w-md px-5 py-24"><SkeletonText lines={4} /></div>;
   if (!token) {
-    return <SignInScreen destination="slideshow" title="Log in to Auto Slideshow" notice={failed ? 'That sign-in link has expired. Enter your email for a new one.' : undefined} />;
+    return <SignInScreen destination="slideshow" title={<>Log in to Auto <RotatingWord words={['Slideshows', 'Videos']} label="Slideshows and Videos" /></>} notice={failed ? 'That sign-in link has expired. Enter your email for a new one.' : undefined} />;
   }
   return <>{children(token)}</>;
 }

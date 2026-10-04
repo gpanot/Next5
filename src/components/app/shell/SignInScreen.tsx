@@ -2,7 +2,7 @@
 
 import { MailCheck } from 'lucide-react';
 import Link from 'next/link';
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { AppButton } from '../../ui/AppButton';
 import { Field } from '../../ui/Field';
 import { TextInput } from '../../ui/TextInput';
@@ -10,7 +10,7 @@ import { BusinessLogo } from '../../marketing/shared/MarketingHeader';
 
 type Phase = { name: 'idle' } | { name: 'sending' } | { name: 'sent'; email: string } | { name: 'error'; message: string };
 
-type Props = { notice?: string; destination?: 'app' | 'slideshow'; title?: string };
+type Props = { notice?: string; destination?: 'app' | 'slideshow'; title?: ReactNode };
 
 export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to Next5' }: Props) => {
   const [email, setEmail] = useState('');
