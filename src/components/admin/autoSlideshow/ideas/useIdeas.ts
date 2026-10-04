@@ -40,20 +40,24 @@ const splitIdeas = (ideas: IdeaDto[]) => {
   };
 };
 
+/** Ideas made into posts in this session: left out of every list, so an older response can't show them as kept again. */
+type MadeIds = { current: Set<string> };
+
 /** Applies a list response, or keeps the error. Returns the list when it worked. */
-const useApply = (setState: SetState) =>
+const useApply = (setState: SetState, made: MadeIds) =>
   useCallback((res: LabResponse<IdeasListDto> | null): IdeasListDto | null => {
     if (res?.ok) {
-      setState((s) => ({ ...s, ideas: res.data.ideas, slideshowPct: res.data.slideshowPct, reserve: res.data.reserve, error: null }));
+      const ideas = res.data.ideas.filter((i) => !made.current.has(i.id));
+      setState((s) => ({ ...s, ideas, slideshowPct: res.data.slideshowPct, reserve: res.data.reserve, error: null }));
       return res.data;
     }
     setState((s) => ({ ...s, error: res ? errorOf(res) : OFFLINE }));
     return null;
-  }, [setState]);
+  }, [setState, made]);
 
 /** First load; with no ideas yet and a finished run, the first batch is written on its own (free). */
-const useLoad = (client: LabClient | null, runId: string, autoGenerate: boolean, setState: SetState) => {
-  const apply = useApply(setState);
+const useLoad = (client: LabClient | null, runId: string, autoGenerate: boolean, setState: SetState, made: MadeIds) => {
+  const apply = useApply(setState, made);
   const generatedFor = useRef<string | null>(null);
   const generate = useCallback(async () => {
     if (!client) return;
@@ -140,16 +144,22 @@ const useActions = (client: LabClient | null, apply: (res: LabResponse<IdeasList
 export function useIdeas(client: LabClient | null, runId: string, autoGenerate: boolean) {
   const [state, setStateRaw] = useState<State>({ ideas: [], slideshowPct: 10, reserve: 0, loading: Boolean(client), generating: false, error: null });
   const setState = useCallback<SetState>((fn) => setStateRaw(fn), []);
-  const { apply, generate } = useLoad(client, runId, autoGenerate, setState);
+  const made = useRef(new Set<string>());
+  const { apply, generate } = useLoad(client, runId, autoGenerate, setState, made);
   const actions = useActions(client, apply, setState);
   const lists = useMemo(() => splitIdeas(state.ideas), [state.ideas]);
   usePoll(client, lists.making.length, apply);
   const current = lists.deck.find((i) => i.id === actions.focusId) ?? lists.deck[0] ?? null;
   const reviewSkipped = useCallback(() => lists.skipped.forEach((i) => void actions.patch(i.id, { status: 'proposed' })), [lists.skipped, actions]);
+  /** Made into posts: off the deck and the day lists at once (they become calendar posts). */
+  const markMade = useCallback((ids: string[]) => {
+    ids.forEach((id) => made.current.add(id));
+    setState((s) => ({ ...s, ideas: s.ideas.filter((i) => !made.current.has(i.id)) }));
+  }, [setState]);
   const reload = useCallback(async () => {
     if (client) apply(await ideasApi.list(client).catch(() => null));
   }, [client, apply]);
-  return { ...state, ...lists, ...actions, client, current, generate, reviewSkipped, reload };
+  return { ...state, ...lists, ...actions, client, current, generate, reviewSkipped, reload, markMade };
 }
 
 export type IdeasState = ReturnType<typeof useIdeas>;

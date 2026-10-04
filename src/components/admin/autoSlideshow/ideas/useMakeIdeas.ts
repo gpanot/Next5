@@ -16,8 +16,8 @@ type Options = {
   runId: string;
   /** Pins made slideshows to their idea's time (slideshow id → ISO time), so they sit on that day. */
   pinSlideshows: (pins: Record<string, string>) => void;
-  /** Called once the made ideas are on the calendar (Blitz videos and the run reload). */
-  onMade: () => void;
+  /** Called once a batch is on the calendar, with the ideas made (the others failed and stay kept). */
+  onMade: (madeIds: string[]) => void;
 };
 
 /** A kept Blitz idea on the calendar as a planned video (1 credit now, refunded if not approved in time). */
@@ -85,7 +85,7 @@ export function useMakeIdeas(o: Options) {
       const failed = await makeBatch(o.client, o, batch);
       setErrors((e) => ({ ...Object.fromEntries(Object.entries(e).filter(([id]) => !batch.some((i) => i.id === id))), ...failed }));
       announceCreditsChanged();
-      o.onMade();
+      o.onMade(batch.filter((i) => !failed[i.id]).map((i) => i.id));
     }
     running.current = false;
     setMaking(false);

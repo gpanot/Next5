@@ -37,7 +37,8 @@ export function useCalendarIdeas({ token, run, enabled, pinSlideshows, onMade }:
     client,
     runId: run.id,
     pinSlideshows,
-    onMade: () => {
+    onMade: (madeIds) => {
+      ideas.markMade(madeIds);
       onMade();
       void ideas.reload();
     },
