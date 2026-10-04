@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { HttpError } from '../../../../../../src/server/http';
 import { labRoute } from '../../../../../../src/server/labs/labAccess';
-import { approveBlitz, cancelBlitz, getBlitzEdit } from '../../../../../../src/server/labs/blitzSchedule';
-import type { ApproveBlitzRequest } from '../../../../../../src/types/admin/blitzSchedule';
+import { approveBlitz, cancelBlitz, getBlitzEdit, moveBlitz } from '../../../../../../src/server/labs/blitzSchedule';
+import type { ApproveBlitzRequest, MoveBlitzRequest } from '../../../../../../src/types/admin/blitzSchedule';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -28,5 +28,14 @@ export const POST = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
   if (access.admin) throw new HttpError(400, 'user_only', 'Approve from a workspace.');
   const { id } = await ctx.params;
   const item = await approveBlitz(access.workspaceId, id, (await req.json()) as ApproveBlitzRequest);
+  return NextResponse.json({ item });
+});
+
+/** PATCH /api/admin/blitz/schedule/[id] — moves a video not started yet to another time (dragged to another day). */
+export const PATCH = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
+  const { id } = await ctx.params;
+  const workspaceId = access.admin ? new URL(req.url).searchParams.get('workspaceId') : access.workspaceId;
+  if (!workspaceId) throw new HttpError(400, 'no_workspace', 'Pick a workspace.');
+  const item = await moveBlitz(workspaceId, id, (await req.json()) as MoveBlitzRequest);
   return NextResponse.json({ item });
 });

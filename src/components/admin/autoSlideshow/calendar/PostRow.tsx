@@ -8,18 +8,21 @@ import { compact } from '../posting/PostStats';
 import { goalStyle } from './goalStyle';
 import { blitzOpenable } from './monthPlan';
 import { badgeOf, coverIsVideoOf, coverOf, timeOf, titleOf } from './slotBadge';
-import { NO_LONG_PRESS_MENU, useDraggableShow, useSlideshowDrag } from './SlideshowDnd';
+import { NO_LONG_PRESS_MENU, useDraggablePost, useSlideshowDrag, type DragKind } from './SlideshowDnd';
 import type { Filled } from './tileModel';
 
 /** One post of the chosen day: photo, goal, status, time, platforms and views. Tap: open it (edit, approve, or see it
- *  live); slideshows can be dragged to another day. */
+ *  live); slideshows and videos not started yet can be dragged to another day. */
 export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (id: string) => void; onOpenBlitz: (item: BlitzScheduleDto) => void }) {
   const { item } = slot;
   const badge = badgeOf(item);
   const cover = coverOf(item);
   const live = item.show?.posts.filter((p) => p.status !== 'canceled' && p.status !== 'failed') ?? [];
   const views = live.reduce((n, p) => n + (p.stats?.views ?? 0), 0);
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggableShow('panel', item.show?.id, cover, item.kind === 'ready');
+  // A ready slideshow, or a Blitz video not started yet, can be dragged to another day.
+  const drag: { kind: DragKind; id: string | undefined; enabled: boolean } =
+    item.kind === 'blitz' ? { kind: 'blitz', id: item.blitz.id, enabled: blitzOpenable(item.blitz) } : { kind: 'show', id: item.show?.id, enabled: item.kind === 'ready' };
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggablePost('panel', drag.kind, drag.id, cover, drag.enabled, coverIsVideoOf(item));
   const { justDropped } = useSlideshowDrag();
   // A Blitz video opens its approval until it starts, then its TikTok post once live.
   const link = item.kind === 'blitz' ? item.blitz.postUrl : null;

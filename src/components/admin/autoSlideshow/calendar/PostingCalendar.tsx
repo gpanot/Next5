@@ -28,6 +28,7 @@ import { entriesOf } from './tileModel';
 import { useBlitzOnCalendar } from './useBlitzOnCalendar';
 import { usePins, useTargets } from './useCalendarStore';
 import { useIsWide } from './useIsWide';
+import { useMoveOnCalendar } from './useMoveOnCalendar';
 
 type Props = {
   token: string;
@@ -106,12 +107,13 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
     const rest = Object.fromEntries(Object.entries(targets).filter(([k]) => k !== key));
     setTargets(n > 0 ? { ...rest, [key]: Math.min(n, MAX_PER_DAY) } : rest);
   };
-  const onMove = (id: string, key: string) => {
+  const moveShow = (id: string, key: string) => {
     const day = all.find((d) => d.key === key);
     const next = day ? dropPins(all, id, day) : null;
     if (next) setPins(next);
   };
   const ui = useCalendarIdeas({ token, run, enabled: ideasEnabled, pinSlideshows: (more) => setPins({ ...currentPins(all), ...more }), onMade: () => { reloadBlitz(); onRunChanged(); } });
+  const move = useMoveOnCalendar({ token, workspaceId: run.workspaceId, blitz, ideas: ui?.ideas ?? null, moveShow, reloadBlitz });
   const rail = useRail(ui, onRailOpen);
   const wide = useIsWide();
   const ideasOn = (day: PlanDay) => ui?.byDay.get(day.key) ?? [];
@@ -129,6 +131,8 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const hasRail = ui !== null || selected !== null;
 
   return (
+    // One drag context for the grid and the day on the right, so a post in the day panel drops on any day of the grid.
+    <SlideshowDnd onMove={move.onMove}>
     <div className={hasRail ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]' : ''}>
     <section className="space-y-4 rounded-[20px] border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
       <MonthHeader month={month} canPrev={canPrev} canNext={canNext} onMonth={step} subtitle={ui ? 'Each idea you keep fills your next empty day' : countsLine(counts) || 'Tap a day to plan it'}>
@@ -138,11 +142,9 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
         <Accounts accounts={posting.accounts} />
         {ui && <IdeasButton ui={ui} onOpen={rail.openDeck} />}
       </div>
-      <SlideshowDnd onMove={onMove}>
-        <MonthGrid key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={focusKey} onSelect={rail.select} detail={(day) => (wide || rail.deckOpen ? null : detail(day))} />
-      </SlideshowDnd>
+      <MonthGrid key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={focusKey} onSelect={rail.select} detail={(day) => (wide || rail.deckOpen ? null : detail(day))} />
       <p className="hidden border-t border-zinc-100 pt-3 text-xs text-muted md:block dark:border-zinc-800">Click a day to see its posts. A stack means more than one post that day (up to {MAX_PER_DAY}).</p>
-      {(error || posting.error) && <p className="text-sm text-red-600 dark:text-red-400">{error ?? posting.error}</p>}
+      {(error || posting.error || move.error) && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error ?? posting.error ?? move.error}</p>}
       {/* Pinned to the screen bottom while the plan is on screen: users don't always scroll down to find them. */}
       <div className="sticky bottom-0 z-20 -mx-4 flex flex-col gap-2 border-t border-line bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:flex-row md:-mx-5 md:px-5 dark:border-zinc-800 dark:bg-zinc-900/95">
         {/* Only when empty slots wait (ideas fill days by swiping, so there is no "plan a day" step to point to). */}
@@ -183,5 +185,6 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
       />
     )}
     </div>
+    </SlideshowDnd>
   );
 }

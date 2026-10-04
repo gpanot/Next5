@@ -5,6 +5,7 @@ import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { CoverMedia } from '../../../labs/addToCalendar/CoverMedia';
 import { formatLabel } from '../ideas/ideaCards';
 import { ideaCover } from '../ideas/ideaCover';
+import { NO_LONG_PRESS_MENU, useDraggablePost } from './SlideshowDnd';
 import { timeOf } from './slotBadge';
 
 type Props = {
@@ -23,14 +24,16 @@ const CHIP: Record<'proposed' | 'kept' | 'discarded', { label: string; tone: str
 
 const round = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition active:scale-90';
 
-/** One idea on the chosen day: faded photo, time, Idea / Kept / Skipped, its first line, and ✕ / ✓. */
+/** One idea on the chosen day: faded photo, time, Idea / Kept / Skipped, its first line, and ✕ / ✓. A kept one can be
+ *  dragged to another day. */
 export function IdeaRow({ idea, onDecide, onOpen }: Props) {
   const status = idea.status === 'kept' || idea.status === 'discarded' ? idea.status : 'proposed';
   const skipped = status === 'discarded';
   const making = idea.slideshow?.state === 'making';
   const cover = ideaCover(idea);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggablePost('panel', 'idea', idea.id, cover?.url ?? null, status === 'kept' && !making, cover?.video);
   return (
-    <li className={`flex items-center gap-3 rounded-[14px] border border-line p-1.5 pr-2.5 dark:border-zinc-800 ${skipped ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-white dark:bg-zinc-900'}`}>
+    <li ref={setNodeRef} {...listeners} {...attributes} className={`${NO_LONG_PRESS_MENU} ${isDragging ? 'opacity-30' : ''} flex items-center gap-3 rounded-[14px] border border-line p-1.5 pr-2.5 dark:border-zinc-800 ${skipped ? 'bg-zinc-50 dark:bg-zinc-950' : 'bg-white dark:bg-zinc-900'}`}>
       <button type="button" onClick={() => onOpen(idea)} disabled={skipped || making} aria-label={`Watch: ${idea.hook}`} className="relative h-20 w-16 shrink-0 overflow-hidden rounded-[10px] bg-zinc-100 transition active:scale-95 disabled:cursor-default dark:bg-zinc-800">
         {cover && <span className={`absolute inset-0 ${status !== 'kept' ? 'opacity-55' : ''} ${making ? 'animate-pulse grayscale' : ''}`}><CoverMedia src={cover.url} video={cover.video} /></span>}
       </button>

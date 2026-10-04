@@ -56,6 +56,9 @@ export type ScheduleBlitzRequest = {
 /** The approval on the calendar: TikTok's Direct Post choices for this video. */
 export type ApproveBlitzRequest = { tiktok: TikTokChoices };
 
+/** PATCH /blitz/schedule/[id]: moves a video not started yet to another time (dragged to another day). */
+export type MoveBlitzRequest = { scheduledAt: string; tzOffsetMin?: number };
+
 /** Statuses that hold a calendar slot. */
 export const BLITZ_LIVE: BlitzScheduleStatus[] = ['planned', 'scheduled', 'rendering', 'sending', 'processing', 'posted'];
 

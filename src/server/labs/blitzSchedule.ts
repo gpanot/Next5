@@ -4,7 +4,7 @@
 
 import type { BlitzScheduledPost, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { BLITZ_LIVE, MAX_POSTS_PER_DAY, type BlitzEditDto, type BlitzScheduleDto, type BlitzScheduleStatus, type ApproveBlitzRequest, type CalendarBusyDto, type ScheduleBlitzRequest } from '../../types/admin/blitzSchedule';
+import { BLITZ_LIVE, MAX_POSTS_PER_DAY, type BlitzEditDto, type BlitzScheduleDto, type BlitzScheduleStatus, type ApproveBlitzRequest, type CalendarBusyDto, type MoveBlitzRequest, type ScheduleBlitzRequest } from '../../types/admin/blitzSchedule';
 import { blitzBrowserUrl } from '../admin/blitzStore';
 import { connectionFor } from '../autoSlideshow/posting';
 import { HttpError } from '../http';
@@ -175,6 +175,15 @@ export async function approveBlitz(workspaceId: string, id: string, req: Approve
     where: { id, workspaceId, status: { in: MOVABLE } },
     data: { status: 'scheduled', privacyLevel: tiktok.privacyLevel, allowComments: tiktok.allowComments, brandOrganic: tiktok.brandOrganic, brandContent: tiktok.brandContent, consentAt: new Date(), error: null },
   });
+  if (done.count === 0) throw new HttpError(409, 'started', 'This video is already being made or posted.');
+  return toScheduleDto(await prisma.blitzScheduledPost.findUniqueOrThrow({ where: { id } }));
+}
+
+/** Moves a video not started yet to another time (dragged to another day). Free; keeps its approval. */
+export async function moveBlitz(workspaceId: string, id: string, req: MoveBlitzRequest): Promise<BlitzScheduleDto> {
+  const scheduledAt = scheduledAtOf(req.scheduledAt);
+  await checkDayRoom(workspaceId, scheduledAt, req.tzOffsetMin, id);
+  const done = await prisma.blitzScheduledPost.updateMany({ where: { id, workspaceId, status: { in: MOVABLE } }, data: { scheduledAt } });
   if (done.count === 0) throw new HttpError(409, 'started', 'This video is already being made or posted.');
   return toScheduleDto(await prisma.blitzScheduledPost.findUniqueOrThrow({ where: { id } }));
 }
