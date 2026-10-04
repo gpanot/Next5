@@ -68,6 +68,7 @@ import { MaybeSchedule } from './schedule/MaybeSchedule';
 import { useCachedDeckCards, useResumeDeckRenders } from './useDeckCache';
 import { useDeckMusicMatch } from './useDeckMusicMatch';
 import { useSetRemix } from './useSetRemix';
+import { OpenPostError, SaveToCalendar, useOpenPost } from './schedule/editPost';
 import { buildSet } from './slideshowSet';
 import { useTextLayout } from './useTextLayout';
 import type { BlitzLayer } from './canvasHitTest';
@@ -120,9 +121,11 @@ type EditorProps = {
   initialFlowType?: FlowType;
   /** Content page: the workspace's run. Skips the Profile step and opens on the deck. */
   workspaceRunId?: string;
+  /** Content page `?editPost=`: a calendar video to open in the editor (Save changes updates it). */
+  editPostId?: string;
 };
 
-export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId }: EditorProps = {}) {
+export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPostId }: EditorProps = {}) {
   const client = useLabClient();
 
   // ── data ──────────────────────────────────────────────────────────────
@@ -130,8 +133,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId }: Editor
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // ── flow type ─────────────────────────────────────────────────────────
-  // null = picker not yet shown (only when !withProfile && no B2B is forced)
+  // ── flow type: null = picker not yet shown (only when !withProfile && no B2B is forced) ──
   const studioRun = useStudioRunContext();
   const withProfile = studioRun !== null;
   // When linked to Campaign Studio, always B2B. initialFlowType overrides (for RE from the tab).
@@ -171,8 +173,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId }: Editor
 
   const text = useTextLayout(carouselTemplate?.textConfig ?? BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS);
 
-  // Free-form: secondsPerSlide × slideCount. Deck videos: the fixed 3/4/4/4/4/4/3 s shots (below).
-  // Video backgrounds are trimmed/held by the Remotion Sequence window, not the clip length.
+  // Free-form: secondsPerSlide × slideCount. Deck videos: fixed 3/4/4/4/4/4/3 s shots (below). Remotion trims/holds clips.
   const { durationSeconds: freeFormSeconds } = resolveSlideshowMode(slides, null, null, secondsPerSlide);
 
   // ── assets, uploads, library, render ───────────────────────────────────
@@ -332,6 +333,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId }: Editor
     // A free-form Set opens in the plain editor, whatever step the deck flow is on.
     showFreeEditor: () => { if (step === 'deck') setStep('editor'); },
   });
+  const openPost = useOpenPost(editPostId ?? null, !libraryLoading, remix);
 
   const audioAsset = currentAssets.audioKey && !isLocalKey(currentAssets.audioKey)
     ? assets.find((a) => a.r2Key === currentAssets.audioKey)
@@ -559,7 +561,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId }: Editor
                 aside={(card, sound) => <DeckAside card={card} sound={sound} deckCards={deckCards} setDeckCards={setDeckCards} assets={assets} />}
               />
             </div>
-          </MaybeSchedule>
+          <OpenPostError message={openPost.error} />
           {editingCard && (
             <>
               <DeckEditBar
@@ -568,10 +570,12 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId }: Editor
                 position={deckCards.indexOf(editingCard) + 1}
                 total={deckCards.length}
                 onBack={deck.backToDeck}
+                actions={<SaveToCalendar card={editingCard} current={deck.cardWithEdits} finish={deck.backToDeck} onSaved={openPost.onSaved} />}
               />
               {editorView}
             </>
           )}
+          </MaybeSchedule>
         </>
       )}
 

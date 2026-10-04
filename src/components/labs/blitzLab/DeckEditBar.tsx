@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowLeft } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 type DeckEditBarProps = {
   /** Angle or audience label, e.g. "Price Reduction". */
@@ -11,10 +12,12 @@ type DeckEditBarProps = {
   position: number;
   total: number;
   onBack: () => void;
+  /** Extra buttons on the right (Save changes for a video on the calendar). */
+  actions?: ReactNode;
 };
 
 /** Header shown above the editor when a deck card is open. Back returns to the same spot in the deck. */
-export function DeckEditBar({ lensLabel, hookStyle, position, total, onBack }: DeckEditBarProps) {
+export function DeckEditBar({ lensLabel, hookStyle, position, total, onBack, actions }: DeckEditBarProps) {
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-white px-3 py-2 shadow-sm transition-colors dark:border-neutral-800 dark:bg-neutral-900">
       <button
@@ -34,6 +37,7 @@ export function DeckEditBar({ lensLabel, hookStyle, position, total, onBack }: D
       <span className="ml-auto text-[12px] tabular-nums text-muted">
         Video {position} of {total}
       </span>
+      {actions}
     </div>
   );
 }

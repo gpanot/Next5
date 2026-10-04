@@ -32,7 +32,8 @@ export type IdeaDto = {
   slideshow: { state: 'making' | 'ready'; slides: string[] } | null;
 };
 
-export type IdeasListDto = { ideas: IdeaDto[]; slideshowPct: number };
+/** `reserve`: unused Blitz cards not on a day yet; a day's "+" (or a skipped idea) takes the next one. */
+export type IdeasListDto = { ideas: IdeaDto[]; slideshowPct: number; reserve: number };
 
 /** POST /blitz/ideas/day: one more idea on a day ("+"), or the day's last idea back to the reserve ("−"). */
 export type IdeaDayRequest = { action: 'add' | 'remove'; day: string; tzOffsetMin?: number };

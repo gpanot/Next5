@@ -66,16 +66,16 @@ export async function listIdeas(workspaceId: string): Promise<IdeasListDto> {
     prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ideaSlideshowPct: true } }),
   ]);
   const ideas = await Promise.all(rows.map((r) => (r.engine === 'bank' ? slideshowDto(r) : Promise.resolve(blitzDto(r, reserve)))));
-  return { ideas: ideas.filter((i): i is IdeaDto => i !== null), slideshowPct: ws?.ideaSlideshowPct ?? 10 };
+  return { ideas: ideas.filter((i): i is IdeaDto => i !== null), slideshowPct: ws?.ideaSlideshowPct ?? 10, reserve: reserve.length };
 }
 
-/** Posts and ideas already on each of the viewer's days over the ideas window. */
+/** Posts and kept ideas on each of the viewer's days over the ideas window (waiting ideas do not hold a day). */
 const busyDays = async (workspaceId: string, tzOffsetMin: unknown): Promise<Map<number, number>> => {
   const range = { gte: new Date(), lt: new Date(Date.now() + (IDEA_DAYS + 2) * 86_400_000) };
   const [blitz, posts, ideas] = await Promise.all([
     prisma.blitzScheduledPost.findMany({ where: { workspaceId, status: { in: BLITZ_LIVE }, scheduledAt: range }, select: { scheduledAt: true } }),
     prisma.autoSlideshowPost.findMany({ where: { workspaceId, status: { in: ['scheduled', 'sending', 'processing', 'posted'] }, scheduledAt: range }, select: { scheduledAt: true } }),
-    prisma.slideshowVariant.findMany({ where: { workspaceId, status: { in: ['proposed', 'kept'] }, plannedAt: range }, select: { plannedAt: true } }),
+    prisma.slideshowVariant.findMany({ where: { workspaceId, status: 'kept', plannedAt: range }, select: { plannedAt: true } }),
   ]);
   const map = new Map<number, number>();
   for (const at of [...blitz.map((b) => b.scheduledAt), ...posts.map((p) => p.scheduledAt), ...ideas.map((i) => i.plannedAt!)]) {

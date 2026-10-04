@@ -4,6 +4,18 @@
 export type BlitzScheduleStatus = 'planned' | 'scheduled' | 'rendering' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled';
 
 /** One scheduled Blitz video. */
+/**
+ * GET /blitz/schedule/[id]: a calendar video as saved, to preview it and re-open it in the Blitz editor. `assets` is
+ * what the editor's Remix reads (slides, music, text style, the deck Set); `media` is each slide's background as a
+ * browser URL (null when it has none), in slide order.
+ */
+export type BlitzEditDto = {
+  item: BlitzScheduleDto;
+  assets: { slides: Array<{ text: string; backgroundKey?: string; durationSec?: number; trimStart?: number; positionY?: number }>; audioKey?: string; textConfigOverride?: unknown; businessText?: string; muteVideoAudio?: boolean; set?: unknown };
+  media: Array<{ url: string; video: boolean } | null>;
+  audioUrl: string | null;
+};
+
 export type BlitzScheduleDto = {
   id: string;
   cardId: string;

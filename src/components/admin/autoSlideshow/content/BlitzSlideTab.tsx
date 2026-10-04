@@ -21,7 +21,7 @@ function DeckSkeleton() {
  * The Blitz Slideshow deck, run on this workspace: its website's company profile builds the deck, and every upload,
  * render and swipe is saved to this workspace.
  */
-export function BlitzSlideTab({ token, workspaceId }: { token: string; workspaceId: string }) {
+export function BlitzSlideTab({ token, workspaceId, editPostId }: { token: string; workspaceId: string; editPostId?: string }) {
   const client = useMemo(() => createWorkspaceLabClient(token, workspaceId), [token, workspaceId]);
   const [run, setRun] = useState<RunState>({ status: 'loading' });
 
@@ -60,7 +60,7 @@ export function BlitzSlideTab({ token, workspaceId }: { token: string; workspace
   }
   return (
     <LabClientProvider client={client}>
-      <BlitzSlideshowEditor key={run.runId} workspaceRunId={run.runId} />
+      <BlitzSlideshowEditor key={run.runId} workspaceRunId={run.runId} editPostId={editPostId} />
     </LabClientProvider>
   );
 }

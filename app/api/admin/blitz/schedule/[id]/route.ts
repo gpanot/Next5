@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { HttpError } from '../../../../../../src/server/http';
 import { labRoute } from '../../../../../../src/server/labs/labAccess';
-import { approveBlitz, cancelBlitz } from '../../../../../../src/server/labs/blitzSchedule';
+import { approveBlitz, cancelBlitz, getBlitzEdit } from '../../../../../../src/server/labs/blitzSchedule';
 import type { ApproveBlitzRequest } from '../../../../../../src/types/admin/blitzSchedule';
 
 type Ctx = { params: Promise<{ id: string }> };
+
+/** GET /api/admin/blitz/schedule/[id] — a calendar video as saved: its preview and what re-opens it in the editor. */
+export const GET = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
+  const { id } = await ctx.params;
+  const workspaceId = access.admin ? new URL(req.url).searchParams.get('workspaceId') : access.workspaceId;
+  if (!workspaceId) throw new HttpError(400, 'no_workspace', 'Pick a workspace.');
+  return NextResponse.json(await getBlitzEdit(workspaceId, id));
+});
 
 /** DELETE /api/admin/blitz/schedule/[id] — takes a scheduled video off the calendar, before it starts rendering. */
 export const DELETE = labRoute(async (req: NextRequest, ctx: Ctx, access) => {

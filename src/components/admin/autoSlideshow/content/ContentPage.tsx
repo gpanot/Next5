@@ -1,5 +1,6 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { BlitzSlideTab } from './BlitzSlideTab';
 
@@ -28,6 +29,8 @@ function SlideshowTab() {
 /** One workspace's Content page: a tab per way to make content. Blitz Slide is the swipe deck from the admin lab. */
 export function ContentPage({ token, workspaceId }: { token: string; workspaceId: string }) {
   const [tab, setTab] = useState<ContentTab>('blitz');
+  // From the calendar's "Edit": that video opens in the Blitz editor.
+  const editPostId = useSearchParams().get('editPost') ?? undefined;
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <div role="tablist" aria-label="Content" className="flex gap-2 overflow-x-auto pb-1">
@@ -39,7 +42,7 @@ export function ContentPage({ token, workspaceId }: { token: string; workspaceId
       </div>
       {/* Both panels stay mounted: switching tabs keeps the deck, its swipes and renders in flight. */}
       <div role="tabpanel" hidden={tab !== 'blitz'}>
-        <BlitzSlideTab token={token} workspaceId={workspaceId} />
+        <BlitzSlideTab token={token} workspaceId={workspaceId} editPostId={editPostId} />
       </div>
       <div role="tabpanel" hidden={tab !== 'slideshow'}>
         <SlideshowTab />

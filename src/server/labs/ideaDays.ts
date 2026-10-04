@@ -21,23 +21,23 @@ export const atViewerTime = (day: number, hhmm: string, tzOffsetMin: unknown): D
 
 /**
  * Times for `count` ideas over the next IDEA_DAYS days, from tomorrow (the viewer's days). `busy` holds the posts and
- * ideas already on each day (by viewer day number). Ideas spread evenly: every day with room gets one before any day
- * gets a second, and a day never goes past IDEAS_PER_DAY new ideas or MAX_PER_DAY posts. Fewer times come back when
- * the days are full. Each day's ideas take the day's later post times, so they sit after what is there.
+ * ideas already on each day (by viewer day number). Empty days fill first: each idea goes on the soonest day with the
+ * fewest posts and ideas, so a day only gets a second once every day has one. A day never goes past IDEAS_PER_DAY new
+ * ideas or MAX_PER_DAY posts; fewer times come back when the days are full. Each day's ideas take the day's later post
+ * times, so they sit after what is there.
  */
 export const planIdeaTimes = (count: number, busy: Map<number, number>, now: Date, tzOffsetMin: unknown): Date[] => {
   const first = viewerDay(now, tzOffsetMin) + 1;
   const days = Array.from({ length: IDEA_DAYS }, (_, i) => first + i);
   const added = new Map<number, number>();
   const order: number[] = [];
-  for (let round = 1; round <= IDEAS_PER_DAY && order.length < count; round += 1) {
-    for (const day of days) {
-      if (order.length >= count) break;
-      const mine = added.get(day) ?? 0;
-      if (mine >= round || (busy.get(day) ?? 0) + mine >= MAX_PER_DAY) continue;
-      added.set(day, mine + 1);
-      order.push(day);
-    }
+  const load = (day: number) => (busy.get(day) ?? 0) + (added.get(day) ?? 0);
+  while (order.length < count) {
+    const open = days.filter((day) => (added.get(day) ?? 0) < IDEAS_PER_DAY && load(day) < MAX_PER_DAY);
+    if (open.length === 0) break;
+    const day = open.reduce((best, d) => (load(d) < load(best) ? d : best));
+    added.set(day, (added.get(day) ?? 0) + 1);
+    order.push(day);
   }
   const nth = new Map<number, number>();
   return order

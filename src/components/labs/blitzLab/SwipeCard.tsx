@@ -44,6 +44,11 @@ export type ShotView = {
   /** Optional media URL (image or video). Falls back to gradient. */
   mediaUrl?: string;
   mediaKind?: 'image' | 'video';
+  /**
+   * 'contain': show the whole picture (a finished slide, not 9:16), with a blurred copy of it filling the bands above
+   * and below. Default 'cover' fills the card.
+   */
+  fit?: 'cover' | 'contain';
   /** Human label: "Electricians clip", "Product screenshot", etc. */
   mediaLabel?: string;
   /**
@@ -201,6 +206,19 @@ function WhyDrawer({ data, open, onClose }: { data: SwipeCardWhyPanel; open: boo
       </dl>
     </div>
   );
+}
+
+/** A shot's photo: filling the card, or whole over a blurred copy of itself (finished slides keep their framing). */
+function ShotImage({ src, fit }: { src: string; fit: 'cover' | 'contain' }) {
+  /* eslint-disable @next/next/no-img-element */
+  if (fit === 'cover') return <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" draggable={false} />;
+  return (
+    <>
+      <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-90" draggable={false} />
+      <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full object-contain" draggable={false} />
+    </>
+  );
+  /* eslint-enable @next/next/no-img-element */
 }
 
 // ── Main SwipeCard component ─────────────────────────────────────────────────
@@ -420,15 +438,7 @@ export function SwipeCard({
             aria-hidden
           />
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={displayedShot.mediaUrl}
-            src={displayedShot.mediaUrl}
-            alt=""
-            aria-hidden
-            className="absolute inset-0 h-full w-full object-cover"
-            draggable={false}
-          />
+          <ShotImage key={displayedShot.mediaUrl} src={displayedShot.mediaUrl} fit={displayedShot.fit ?? 'cover'} />
         )
       ) : (
         <div

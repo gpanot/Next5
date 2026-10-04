@@ -44,6 +44,16 @@ describe('planIdeaTimes', () => {
     expect(more.size).toBe(IDEA_DAYS);
   });
 
+  it('fills empty days before adding to days that already have posts or ideas', () => {
+    const busy = new Map([[TODAY + 1, 4], [TODAY + 2, 1], [TODAY + 3, 2]]);
+    const counts = countByDay(planIdeaTimes(IDEA_DAYS - 3, busy, NOW, NY));
+    expect([TODAY + 1, TODAY + 2, TODAY + 3].some((d) => counts.has(d))).toBe(false);
+    expect(counts.size).toBe(IDEA_DAYS - 3);
+    const next = countByDay(planIdeaTimes(IDEA_DAYS - 2, busy, NOW, NY));
+    expect(next.get(TODAY + 2)).toBe(1); // every empty day has one: then the day with 1 post
+    expect(next.has(TODAY + 1)).toBe(false);
+  });
+
   it('skips full days and never passes the per-day idea cap', () => {
     const busy = new Map([[TODAY + 1, 5], [TODAY + 2, 4]]);
     const times = planIdeaTimes(60, busy, NOW, NY);
@@ -58,7 +68,8 @@ describe('planIdeaTimes', () => {
     const [first] = planIdeaTimes(1, new Map(), NOW, NY);
     expect(first!.toISOString()).toBe(atViewerTime(TODAY + 1, '19:00', NY).toISOString());
     expect(first!.toISOString()).toBe('2026-10-05T23:00:00.000Z'); // 7 PM in New York
-    const [after] = planIdeaTimes(1, new Map([[TODAY + 1, 1]]), NOW, NY);
+    const everyDayOne = new Map(Array.from({ length: IDEA_DAYS }, (_, i) => [TODAY + 1 + i, 1]));
+    const [after] = planIdeaTimes(1, everyDayOne, NOW, NY);
     expect(after!.toISOString()).toBe(atViewerTime(TODAY + 1, '19:00', NY).toISOString()); // 2 posts: 12:00, 19:00
   });
 });

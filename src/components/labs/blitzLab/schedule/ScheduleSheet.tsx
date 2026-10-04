@@ -12,7 +12,7 @@ export type BodyFor = (card: DeckCardData) => Promise<{ body: unknown } | { erro
 
 type Props = { card: DeckCardData; schedule: BlitzSchedule; bodyFor: BodyFor; onClose: () => void };
 
-const titleOf = (card: DeckCardData) => card.shots[0]?.text ?? card.hookStyle;
+export const titleOf = (card: DeckCardData) => card.shots[0]?.text ?? card.hookStyle;
 
 /** Every post on the calendar by day (this card's own post left out, so it can move). */
 const postsByDay = (schedule: BlitzSchedule, own: BlitzScheduleDto | null) => {

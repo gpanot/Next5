@@ -2,7 +2,8 @@
 
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { money, PRICE_CENTS } from '../pricing/pricing';
-import { MakeBar, type Make } from './IdeasPanel';
+import type { Make } from './IdeasPanel';
+import { MakeStatus } from './MakeStatus';
 import type { IdeasState } from './useIdeas';
 
 type Props = { ideas: IdeasState; maker: Make; onOpen: () => void };
@@ -16,14 +17,14 @@ function Pitch({ ideas, onOpen }: Omit<Props, 'maker'>) {
   if (ideas.generating && n === 0) {
     return (
       <p className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-        <span aria-hidden className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" /> Writing your next 2 weeks… 1 to 3 minutes.
+        <span aria-hidden className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" /> Writing your post ideas… 1 to 3 minutes.
       </p>
     );
   }
   if (n > 0) {
     return (
       <>
-        <p className="text-[15px] leading-normal text-zinc-700 dark:text-zinc-300">{n} post {n === 1 ? 'idea' : 'ideas'}, 1 to 3 a day. They are on your calendar as faded photos. Keep the ones you like. Skip the rest.</p>
+        <p className="text-[15px] leading-normal text-zinc-700 dark:text-zinc-300">{n} post {n === 1 ? 'idea' : 'ideas'} to swipe. Each one you keep goes on your next empty day. Skip the rest.</p>
         <button type="button" onClick={onOpen} className={cta}>See my {n} {n === 1 ? 'idea' : 'ideas'} <ArrowRight aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.5} /></button>
         <p className="text-center text-xs text-zinc-600 dark:text-zinc-400">Free to look. {money(PRICE_CENTS)} for each idea you keep.</p>
       </>
@@ -34,7 +35,7 @@ function Pitch({ ideas, onOpen }: Omit<Props, 'maker'>) {
   }
   return (
     <>
-      <p className="text-[15px] leading-normal text-zinc-700 dark:text-zinc-300">Get 12 post ideas for the next 2 weeks, 1 to 3 a day. Keep the ones you like. Skip the rest.</p>
+      <p className="text-[15px] leading-normal text-zinc-700 dark:text-zinc-300">Get 12 post ideas to swipe. Each one you keep fills your next empty day. Skip the rest.</p>
       {ideas.error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{ideas.error}</p>}
       <button type="button" onClick={() => void ideas.generate()} className={cta}><Sparkles aria-hidden className="h-4 w-4" /> Get my 12 ideas</button>
       <p className="text-center text-xs text-zinc-600 dark:text-zinc-400">Free to look. {money(PRICE_CENTS)} for each idea you keep.</p>
@@ -48,11 +49,11 @@ export function IdeasStart({ ideas, maker, onOpen }: Props) {
     <section className={box}>
       <div>
         <p className="text-xs font-bold tracking-wide text-blue-700 uppercase dark:text-blue-300">What&apos;s next</p>
-        <h2 className="mt-1 text-xl leading-tight font-extrabold text-ink dark:text-zinc-100">We planned your next 2 weeks.</h2>
+        <h2 className="mt-1 text-xl leading-tight font-extrabold text-ink dark:text-zinc-100">Your next 2 weeks</h2>
       </div>
       <Pitch ideas={ideas} onOpen={onOpen} />
       {ideas.making.length > 0 && <p className="text-xs text-zinc-600 dark:text-zinc-400">A photo slideshow is being made for you. It joins the ideas in 1 to 2 minutes.</p>}
-      {ideas.kept.length > 0 && <div className="-mx-5 -mb-5 rounded-b-[20px] bg-white px-5 dark:bg-zinc-900"><MakeBar ideas={ideas} maker={maker} plain /></div>}
+      <MakeStatus kept={ideas.kept} maker={maker} />
     </section>
   );
 }

@@ -2,7 +2,9 @@
 
 import { Check, RotateCcw, Sparkles } from 'lucide-react';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
+import { CoverMedia } from '../../../labs/addToCalendar/CoverMedia';
 import { formatLabel, whenOf } from './ideaCards';
+import { ideaCover } from './ideaCover';
 
 type Props = {
   kept: IdeaDto[];
@@ -18,8 +20,7 @@ function KeptRow({ idea, error }: { idea: IdeaDto; error?: string }) {
   return (
     <li className="flex gap-3 rounded-xl border border-line bg-white p-2 dark:border-zinc-800 dark:bg-zinc-900">
       <span className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {idea.coverUrl && <img src={idea.coverUrl} alt="" loading="lazy" className="h-full w-full object-cover" />}
+        {ideaCover(idea) && <CoverMedia src={ideaCover(idea)!.url} video={ideaCover(idea)!.video} />}
       </span>
       <span className="min-w-0 flex-1 space-y-0.5">
         <span className="line-clamp-2 text-sm font-semibold text-ink dark:text-zinc-100">{idea.hook}</span>
@@ -38,8 +39,8 @@ export function KeptIdeas({ kept, skipped, errors, generating, onReviewSkipped, 
         <span className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
           <Check aria-hidden className="h-6 w-6" />
         </span>
-        <h3 className="text-lg font-extrabold text-ink dark:text-zinc-100">{kept.length > 0 ? `You kept ${kept.length} ${kept.length === 1 ? 'idea' : 'ideas'}` : 'Nothing kept yet'}</h3>
-        <p className="max-w-[28ch] text-sm text-muted">Skipped days get a fresh idea. Nothing posts until you approve.</p>
+        <h3 className="text-lg font-extrabold text-ink dark:text-zinc-100">{kept.length > 0 ? `${kept.length} kept ${kept.length === 1 ? 'idea is' : 'ideas are'} not made yet` : 'You saw every idea'}</h3>
+        <p className="max-w-[28ch] text-sm text-muted">The ones you kept are on your calendar. Nothing posts until you approve.</p>
       </div>
       {kept.length > 0 && <ul className="space-y-2">{kept.map((i) => <KeptRow key={i.id} idea={i} error={errors[i.id]} />)}</ul>}
       <div className="flex flex-col gap-2">

@@ -4,7 +4,7 @@
 
 import type { BlitzScheduledPost, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { BLITZ_LIVE, MAX_POSTS_PER_DAY, type BlitzScheduleDto, type BlitzScheduleStatus, type ApproveBlitzRequest, type CalendarBusyDto, type ScheduleBlitzRequest } from '../../types/admin/blitzSchedule';
+import { BLITZ_LIVE, MAX_POSTS_PER_DAY, type BlitzEditDto, type BlitzScheduleDto, type BlitzScheduleStatus, type ApproveBlitzRequest, type CalendarBusyDto, type ScheduleBlitzRequest } from '../../types/admin/blitzSchedule';
 import { blitzBrowserUrl } from '../admin/blitzStore';
 import { connectionFor } from '../autoSlideshow/posting';
 import { HttpError } from '../http';
@@ -35,6 +35,25 @@ export const toScheduleDto = async (p: BlitzScheduledPost): Promise<BlitzSchedul
   postUrl: p.postUrl,
   error: p.error,
 });
+
+/** A key as a browser URL with its kind, or null for anything that is not a photo or a clip. */
+const mediaOf = async (key: string | undefined) =>
+  key && (IMAGE_KEY.test(key) || VIDEO_KEY.test(key)) ? { url: await blitzBrowserUrl(key), video: VIDEO_KEY.test(key) } : null;
+
+/** One calendar video as saved: its preview (each shot's media, the music) and what re-opens it in the Blitz editor. */
+export async function getBlitzEdit(workspaceId: string, id: string): Promise<BlitzEditDto> {
+  const post = await prisma.blitzScheduledPost.findFirst({ where: { id, workspaceId } });
+  if (!post) throw new HttpError(404, 'not_found', 'This video is not on the calendar.');
+  const body = post.renderBody as unknown as RenderBody;
+  const slides = (body.slides ?? []).map((s) => (typeof s === 'string' ? { text: s } : s));
+  const audioKey = body.currentAssets?.audioKey;
+  return {
+    item: await toScheduleDto(post),
+    assets: { slides, audioKey, textConfigOverride: body.textConfigOverride, businessText: body.mentionBusiness ? body.businessText : undefined, muteVideoAudio: body.muteVideoAudio, set: body.set },
+    media: await Promise.all(slides.map((s) => mediaOf(s.backgroundKey))),
+    audioUrl: audioKey ? await blitzBrowserUrl(audioKey) : null,
+  };
+}
 
 /** The workspace's scheduled videos from a year back, oldest first (canceled ones left out). */
 export async function listSchedule(workspaceId: string): Promise<BlitzScheduleDto[]> {

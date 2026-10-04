@@ -1726,7 +1726,7 @@ CREATE TABLE public.slideshow_variants (
     blitz_project_id text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    CONSTRAINT slideshow_variants_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'kept'::text, 'discarded'::text, 'edited'::text, 'rendered'::text, 'failed'::text])))
+    CONSTRAINT slideshow_variants_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'kept'::text, 'discarded'::text, 'edited'::text, 'rendered'::text, 'failed'::text, 'made'::text])))
 );
 
 

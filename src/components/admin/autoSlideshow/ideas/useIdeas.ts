@@ -5,7 +5,7 @@ import { SLIDESHOW_AFTER, type IdeaAudio, type IdeaDto, type IdeaPatch, type Ide
 import { errorOf, type LabClient, type LabResponse } from '../../../labs/labClient';
 import { ideasApi } from './ideasApi';
 
-type State = { ideas: IdeaDto[]; slideshowPct: number; loading: boolean; generating: boolean; error: string | null };
+type State = { ideas: IdeaDto[]; slideshowPct: number; reserve: number; loading: boolean; generating: boolean; error: string | null };
 type SetState = (fn: (s: State) => State) => void;
 
 /** One swipe, so Undo can put the card back as it was. */
@@ -44,7 +44,7 @@ const splitIdeas = (ideas: IdeaDto[]) => {
 const useApply = (setState: SetState) =>
   useCallback((res: LabResponse<IdeasListDto> | null): IdeasListDto | null => {
     if (res?.ok) {
-      setState((s) => ({ ...s, ideas: res.data.ideas, slideshowPct: res.data.slideshowPct, error: null }));
+      setState((s) => ({ ...s, ideas: res.data.ideas, slideshowPct: res.data.slideshowPct, reserve: res.data.reserve, error: null }));
       return res.data;
     }
     setState((s) => ({ ...s, error: res ? errorOf(res) : OFFLINE }));
@@ -104,6 +104,11 @@ const useActions = (client: LabClient | null, apply: (res: LabResponse<IdeasList
     setFocusId(null);
     void patch(idea.id, { status });
   }, [patch]);
+  /** Keeps an idea (on `plannedAt` when given) to be made right away: no undo, it is paid for. True once saved. */
+  const keepNow = useCallback(async (idea: IdeaDto, plannedAt?: string) => {
+    setFocusId(null);
+    return Boolean(await patch(idea.id, plannedAt ? { plannedAt, status: 'kept' } : { status: 'kept' }));
+  }, [patch]);
   const undo = useCallback(() => {
     const last = history[history.length - 1];
     if (!last) return;
@@ -121,9 +126,11 @@ const useActions = (client: LabClient | null, apply: (res: LabResponse<IdeasList
     void patch(idea.id, { audio });
   }, [patch, setState]);
   const changeDay = useCallback(async (action: 'add' | 'remove', day: string) => {
-    if (client) apply(await ideasApi.day(client, action, day).catch(() => null));
-  }, [client, apply]);
-  return { focusId, setFocusId, canUndo: history.length > 0, patch, decide, undo, pickHook, setMusic, changeDay };
+    if (!client) return;
+    setState((s) => ({ ...s, error: null }));
+    apply(await ideasApi.day(client, action, day).catch(() => null));
+  }, [client, apply, setState]);
+  return { focusId, setFocusId, canUndo: history.length > 0, patch, decide, keepNow, undo, pickHook, setMusic, changeDay };
 };
 
 /**
@@ -131,7 +138,7 @@ const useActions = (client: LabClient | null, apply: (res: LabResponse<IdeasList
  * every action on them. `autoGenerate`: the run is finished, so the first batch can be written.
  */
 export function useIdeas(client: LabClient | null, runId: string, autoGenerate: boolean) {
-  const [state, setStateRaw] = useState<State>({ ideas: [], slideshowPct: 10, loading: Boolean(client), generating: false, error: null });
+  const [state, setStateRaw] = useState<State>({ ideas: [], slideshowPct: 10, reserve: 0, loading: Boolean(client), generating: false, error: null });
   const setState = useCallback<SetState>((fn) => setStateRaw(fn), []);
   const { apply, generate } = useLoad(client, runId, autoGenerate, setState);
   const actions = useActions(client, apply, setState);

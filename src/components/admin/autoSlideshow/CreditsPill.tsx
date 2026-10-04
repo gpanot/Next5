@@ -3,20 +3,26 @@
 import { useEffect } from 'react';
 import type { CreditsDto } from '../../../types/admin/slideshowCredits';
 import { useAdminApi } from '../business/useAdminApi';
+import { CREDITS_CHANGED } from './creditsEvents';
 
 /** How often the pill re-reads the balance: slideshows are charged as they finish rendering. */
 const REFRESH_MS = 30_000;
 
-/** Balance, kept fresh: every 30 s, when the tab comes back into view, and when `version` changes (Settings closed). */
+/**
+ * Balance, kept fresh: every 30 s, when the tab comes back into view, when `version` changes (Settings closed), and at
+ * once when credits are spent (a kept idea made into a post).
+ */
 const useCreditsBalance = (token: string, version: number) => {
   const { data, refresh } = useAdminApi<CreditsDto>(token, `/api/slideshow/credits?v=${version}`);
   useEffect(() => {
     const id = setInterval(refresh, REFRESH_MS);
     const onVisible = () => document.visibilityState === 'visible' && refresh();
     document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener(CREDITS_CHANGED, refresh);
     return () => {
       clearInterval(id);
       document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener(CREDITS_CHANGED, refresh);
     };
   }, [refresh]);
   return data;

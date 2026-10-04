@@ -66,8 +66,11 @@ export type RemixData = {
   set: SlideshowSet;
 };
 
-/** Reads a render back into editor state. Renders made before Sets existed come back as 'free'. */
-export function readRemix(project: BlitzProjectDto): RemixData | null {
+/**
+ * Reads a render (or a calendar video's saved render request) back into editor state. Renders made before Sets existed
+ * come back as 'free'.
+ */
+export function readRemix(project: Pick<BlitzProjectDto, 'currentAssets'> | { currentAssets: unknown }): RemixData | null {
   const assets = project.currentAssets as StoredAssets | null;
   if (!assets?.slides?.length) return null;
   const slides = assets.slides.map((s) => (typeof s === 'string' ? { text: s } : s));
@@ -82,10 +85,13 @@ export function readRemix(project: BlitzProjectDto): RemixData | null {
   };
 }
 
-/** A deck Set back as a card the editor can open (fixed format, swaps, check). */
-export function cardFromSet(projectId: string, set: SlideshowSet): DeckCardData {
+/**
+ * A deck Set back as a card the editor can open (fixed format, swaps, check). `id`: a calendar video keeps its card id,
+ * so saving updates that post instead of adding one.
+ */
+export function cardFromSet(projectId: string, set: SlideshowSet, id = `remix-${projectId}`): DeckCardData {
   return {
-    id: `remix-${projectId}`,
+    id,
     variantId: set.variantId,
     lensValue: set.lensLabel ?? 'Remix',
     lensId: set.lensId ?? 'remix',

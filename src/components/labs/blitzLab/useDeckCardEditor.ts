@@ -92,36 +92,48 @@ export function useDeckCardEditor(o: Options) {
     logDeckAction(client, card.variantId, 'open');
   };
 
-  /** Back to the deck: text and media edits go onto the card; an edited new card counts as kept. */
-  const backToDeck = () => {
+  /** The open card with the editor's text and media edits on it, and which shots changed (nothing saved yet). */
+  const withEdits = (): { card: DeckCardData; editedShots: string[]; texts: string[] } | null => {
     const card = editingCard;
-    o.setEditingCardId(null);
-    if (!card) return;
+    if (!card) return null;
     const texts = card.shots.map((shot, i) => (o.slides[i]?.text ?? shot.text).trim());
     const editedShots = SHOT_ROLES.filter((_, i) => texts[i] !== card.shots[i]?.text);
     const mediaChanged = card.shots.some((shot, i) => (o.slides[i]?.backgroundKey ?? undefined) !== (shot.edit?.assetKey ?? undefined)
       && shot.edit?.source === 'library');
-    if (editedShots.length === 0 && !mediaChanged) return;
+    if (editedShots.length === 0 && !mediaChanged) return { card, editedShots, texts };
+    return {
+      editedShots,
+      texts,
+      card: {
+        ...card,
+        edited: true,
+        status: card.status === 'new' ? 'kept' : card.status,
+        shots: card.shots.map((shot, i) => {
+          const slide = o.slides[i];
+          const asset = slide?.backgroundKey ? o.assets.find((a) => a.r2Key === slide.backgroundKey) : undefined;
+          if (!slide) return shot;
+          return {
+            ...shot,
+            text: texts[i]!,
+            ...(asset && shot.edit?.source === 'library'
+              ? { mediaUrl: asset.url, mediaKind: asset.mediaKind === 'video' ? 'video' as const : 'image' as const, mediaLabel: asset.name }
+              : {}),
+            edit: shot.edit && { ...shot.edit, assetKey: slide.backgroundKey ?? shot.edit.assetKey, trimStart: slide.trimStart, positionY: slide.positionY },
+          };
+        }),
+      },
+    };
+  };
 
-    setDeckCards((prev) => prev.map((c) => (c.id !== card.id ? c : {
-      ...c,
-      edited: true,
-      status: c.status === 'new' ? 'kept' : c.status,
-      shots: c.shots.map((shot, i) => {
-        const slide = o.slides[i];
-        const asset = slide?.backgroundKey ? o.assets.find((a) => a.r2Key === slide.backgroundKey) : undefined;
-        if (!slide) return shot;
-        return {
-          ...shot,
-          text: texts[i]!,
-          ...(asset && shot.edit?.source === 'library'
-            ? { mediaUrl: asset.url, mediaKind: asset.mediaKind === 'video' ? 'video' as const : 'image' as const, mediaLabel: asset.name }
-            : {}),
-          edit: shot.edit && { ...shot.edit, assetKey: slide.backgroundKey ?? shot.edit.assetKey, trimStart: slide.trimStart, positionY: slide.positionY },
-        };
-      }),
-    })));
-    logDeckAction(client, card.variantId, 'edit', { editedShots, shotTexts: texts });
+  /** Back to the deck: text and media edits go onto the card; an edited new card counts as kept. Returns the card as saved. */
+  const backToDeck = (): DeckCardData | null => {
+    const result = withEdits();
+    o.setEditingCardId(null);
+    if (!result) return null;
+    if (result.card === editingCard) return result.card;
+    setDeckCards((prev) => prev.map((c) => (c.id !== result.card.id ? c : result.card)));
+    logDeckAction(client, result.card.variantId, 'edit', { editedShots: result.editedShots, shotTexts: result.texts });
+    return result.card;
   };
 
   /** Deck videos keep a caption position per slide (from the clip's text-safe zone); drag moves that one. */
@@ -155,6 +167,8 @@ export function useDeckCardEditor(o: Options) {
     openCard,
     openRemix,
     backToDeck,
+    /** The open card with the current edits on it, without closing the editor. */
+    cardWithEdits: () => withEdits()?.card ?? null,
     dragSlideCaption,
     checkBeforeRender,
     markRendered,

@@ -3,7 +3,7 @@
 import { Shuffle, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 
-const round = 'flex h-11 w-11 items-center justify-center rounded-full border border-line bg-white text-ink shadow-sm transition hover:bg-zinc-50 active:scale-90 disabled:opacity-30 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800';
+const round = 'flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-ink shadow-sm transition hover:bg-zinc-50 active:scale-90 disabled:opacity-30 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800';
 
 type Props = {
   soundOn: boolean;
@@ -13,16 +13,16 @@ type Props = {
   trackLabel: string | null;
 };
 
-/** Beside the card, as in the Blitz deck: sound on/off, and another track at random. */
+/** Beside the card (small, so the card stays centered), as in the Blitz deck: sound on/off, and another track at random. */
 export function DeckSide({ soundOn, onToggleSound, onShuffle, trackLabel }: Props) {
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-1.5">
       <button type="button" onClick={onToggleSound} aria-pressed={soundOn} aria-label={soundOn ? 'Mute sound' : 'Turn sound on'} title={soundOn ? 'Sound on' : 'Sound off'} className={round}>
-        {soundOn ? <Volume2 aria-hidden className="h-[18px] w-[18px]" /> : <VolumeX aria-hidden className="h-[18px] w-[18px]" />}
+        {soundOn ? <Volume2 aria-hidden className="h-4 w-4" /> : <VolumeX aria-hidden className="h-4 w-4" />}
       </button>
       {onShuffle && (
         <button type="button" onClick={onShuffle} aria-label="Pick another track at random" title={trackLabel ? `Music: ${trackLabel}. Tap for another.` : 'Another track'} className={round}>
-          <Shuffle aria-hidden className="h-[18px] w-[18px]" />
+          <Shuffle aria-hidden className="h-4 w-4" />
         </button>
       )}
     </div>

@@ -17,6 +17,7 @@ import { Accounts } from './Accounts';
 import { ApproveSheet } from './ApproveSheet';
 import { CalendarRail } from './CalendarRail';
 import { DayDetail } from './DayDetail';
+import { placeIdea, takenBy } from './ideaPlacement';
 import { MonthGrid } from './MonthGrid';
 import { countsLine, MonthHeader } from './MonthHeader';
 import { buildMonth, currentPins, dayKey, dropPins, emptySlots, MAX_PER_DAY, monthCounts, toApprove, type PlanDay } from './monthPlan';
@@ -26,6 +27,7 @@ import { StatusLegend } from './StatusLegend';
 import { entriesOf } from './tileModel';
 import { useBlitzOnCalendar } from './useBlitzOnCalendar';
 import { usePins, useTargets } from './useCalendarStore';
+import { useIsWide } from './useIsWide';
 
 type Props = {
   token: string;
@@ -111,11 +113,16 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   };
   const ui = useCalendarIdeas({ token, run, enabled: ideasEnabled, pinSlideshows: (more) => setPins({ ...currentPins(all), ...more }), onMade: () => { reloadBlitz(); onRunChanged(); } });
   const rail = useRail(ui, onRailOpen);
+  const wide = useIsWide();
   const ideasOn = (day: PlanDay) => ui?.byDay.get(day.key) ?? [];
   const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day));
-  const focusKey = ui?.ideas.current && rail.deckOpen && !rail.selectedKey ? dayKey(new Date(ui.ideas.current.plannedAt)) : null;
+  // A kept idea fills the soonest empty day (no slideshow, video or kept idea yet); only a full calendar stacks days.
+  const placeOf = (idea: IdeaDto) => placeIdea(idea.id, all, (day, id) => takenBy(entriesFor(day), id));
+  // The day the idea in the deck would fill if kept: ringed in blue.
+  const current = ui?.ideas.current && rail.deckOpen && !rail.selectedKey ? ui.ideas.current : null;
+  const focusKey = current ? dayKey(new Date(placeOf(current) ?? current.plannedAt)) : null;
   const detail = (day: PlanDay, onBack?: () => void) => (
-    <DayDetail day={day} entries={entriesFor(day)} skipped={ideasOn(day).filter((i) => i.status === 'discarded')} ideas={ui?.ideas ?? null}
+    <DayDetail key={day.key} day={day} entries={entriesFor(day)} ideas={ui?.ideas ?? null} maker={ui?.maker ?? null}
       onOpen={onOpen} onOpenBlitz={setOpenBlitz} onSetCount={onSetCount} onOpenIdea={rail.openIdea} onBack={onBack} />
   );
   const selected = all.concat(days).find((d) => d.key === rail.selectedKey) ?? null;
@@ -124,7 +131,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   return (
     <div className={hasRail ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]' : ''}>
     <section className="space-y-4 rounded-[20px] border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
-      <MonthHeader month={month} canPrev={canPrev} canNext={canNext} onMonth={step} subtitle={ui ? 'Each idea you keep stays on its day' : countsLine(counts) || 'Tap a day to plan it'}>
+      <MonthHeader month={month} canPrev={canPrev} canNext={canNext} onMonth={step} subtitle={ui ? 'Each idea you keep fills your next empty day' : countsLine(counts) || 'Tap a day to plan it'}>
         <StatusLegend />
       </MonthHeader>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -132,7 +139,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
         {ui && <IdeasButton ui={ui} onOpen={rail.openDeck} />}
       </div>
       <SlideshowDnd onMove={onMove}>
-        <MonthGrid key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={focusKey} onSelect={rail.select} detail={(day) => detail(day)} />
+        <MonthGrid key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={focusKey} onSelect={rail.select} detail={(day) => (wide || rail.deckOpen ? null : detail(day))} />
       </SlideshowDnd>
       <p className="hidden border-t border-zinc-100 pt-3 text-xs text-muted md:block dark:border-zinc-800">Click a day to see its posts. A stack means more than one post that day (up to {MAX_PER_DAY}).</p>
       {(error || posting.error) && <p className="text-sm text-red-600 dark:text-red-400">{error ?? posting.error}</p>}
@@ -156,7 +163,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
       )}
       {openBlitz && labClient && (
         <LabClientProvider client={labClient}>
-          <ApproveVideoSheet item={openBlitz} onClose={() => setOpenBlitz(null)} onChanged={reloadBlitz} />
+          <ApproveVideoSheet item={openBlitz} onClose={() => setOpenBlitz(null)} onChanged={reloadBlitz} editHref={`/slideshow/${run.workspaceId}/content?editPost=${openBlitz.id}`} />
         </LabClientProvider>
       )}
       {approving && <ApproveSheet token={token} run={run} items={approve} videos={plannedVideos} onVideosChanged={reloadBlitz} posting={posting} onClose={() => { setApproving(false); onRunChanged(); }} />}
@@ -165,10 +172,11 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
       <CalendarRail
         ideas={ui?.ideas ?? null}
         maker={ui?.maker ?? null}
-        day={selected && detail(selected, ui ? () => rail.setSelectedKey(null) : undefined)}
+        day={wide && selected ? detail(selected, ui ? () => rail.setSelectedKey(null) : undefined) : null}
         deckOpen={rail.deckOpen}
         onOpenDeck={rail.openDeck}
         onCloseDeck={() => rail.setDeckOpen(false)}
+        placeOf={placeOf}
       />
     )}
     </div>

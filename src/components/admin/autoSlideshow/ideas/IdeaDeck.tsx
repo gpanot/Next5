@@ -20,6 +20,20 @@ type Props = {
   onEditHook: (idea: IdeaDto) => void;
   /** Another track at random for this idea; null when it takes no other music. */
   onShuffle: ((idea: IdeaDto) => void) | null;
+  /** "panel": the ideas panel (or phone sheet). "day": inside a day's card, with less room around it. */
+  size?: DeckSize;
+  /** When it will be posted if kept, when not its own day (a day's deck reusing an idea of another day). */
+  plannedAt?: string;
+  /** Asked before a keep (it uses a credit): false leaves the card where it is. */
+  confirmKeep?: () => Promise<boolean>;
+};
+
+export type DeckSize = 'panel' | 'day';
+
+/** Card widths that keep ~42px free on each side for the sound buttons (36px + gap) while the card stays centered. */
+const CARD_WIDTH: Record<DeckSize, string> = {
+  panel: 'w-[min(calc(100vw-7.5rem),calc((100dvh-16rem)*0.5625),337px)] lg:w-[min(calc((100dvh-28rem)*0.5625),260px)]',
+  day: 'w-[min(calc(100vw-11.5rem),calc((100dvh-18rem)*0.5625),300px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
 };
 
 const round = 'flex items-center justify-center rounded-full border shadow-sm transition active:scale-90 disabled:opacity-30';
@@ -42,13 +56,14 @@ function Controls({ idea, onSkip, onKeep, onEditHook }: { idea: IdeaDto; onSkip:
 }
 
 /** One idea at a time: swipe or tap ✓ / ✕. The day it will be posted shows under the card. */
-export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onShuffle }: Props) {
+export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onShuffle, size = 'panel', plannedAt, confirmKeep }: Props) {
   const { soundOn, toggleSound } = useDeckSound();
   const [exit, setExit] = useState<{ id: string; dir: 'keep' | 'discard' } | null>(null);
   const card = useMemo(() => ideaCard(idea), [idea]);
   const back = useMemo(() => (next ? ideaCard(next) : null), [next]);
-  const decide = (status: 'kept' | 'discarded') => {
+  const decide = async (status: 'kept' | 'discarded') => {
     if (exit) return;
+    if (status === 'kept' && confirmKeep && !(await confirmKeep())) return; // the card slides back
     setExit({ id: idea.id, dir: status === 'kept' ? 'keep' : 'discard' });
     setTimeout(() => {
       setExit(null);
@@ -58,9 +73,8 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
   const tags = [{ label: formatLabel(idea), variant: 'style' as const }, { label: card.lensValue, variant: 'audience' as const }];
   return (
     <div className="flex flex-col items-center gap-3">
-      <div className="flex items-end gap-2.5">
-      {/* Sized by the screen height (✕ and ✓ stay in view) and the width left beside the sound buttons. */}
-      <div className="relative aspect-[9/16] w-[min(calc(100vw-5.5rem),calc((100dvh-16rem)*0.5625),337px)] lg:w-[min(calc((100dvh-28rem)*0.5625),300px)]" aria-live="polite">
+      {/* Centered over ✕ / ✓; sized by the screen height (✕ and ✓ stay in view) and leaving room for the sound buttons. */}
+      <div className={`relative aspect-[9/16] ${CARD_WIDTH[size]}`} aria-live="polite">
         {back && <SwipeCard key={back.id} shots={back.shots} position="back1" hue={back.hue} onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} />}
         <SwipeCard
           key={card.id}
@@ -70,22 +84,23 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
           position="top"
           hue={card.hue}
           exitDirection={exit?.id === idea.id ? exit.dir : null}
-          onKeep={() => decide('kept')}
-          onDiscard={() => decide('discarded')}
+          onKeep={() => void decide('kept')}
+          onDiscard={() => void decide('discarded')}
           onOpen={() => {}}
           soundOn={soundOn}
           ariaLabel={`${formatLabel(idea)} idea: ${idea.hook}`}
         />
-      </div>
-      <DeckSide soundOn={soundOn} onToggleSound={toggleSound} onShuffle={onShuffle && idea.card ? () => onShuffle(idea) : null} trackLabel={card.audio?.label ?? null} />
+        <div className="absolute bottom-0 left-full ml-1.5">
+          <DeckSide soundOn={soundOn} onToggleSound={toggleSound} onShuffle={onShuffle && idea.card ? () => onShuffle(idea) : null} trackLabel={card.audio?.label ?? null} />
+        </div>
       </div>
       <CardMusic url={card.audio?.url ?? null} startAt={card.audio?.startAt ?? 0} playing={soundOn && !exit} />
-      <Controls idea={idea} onSkip={() => decide('discarded')} onKeep={() => decide('kept')} onEditHook={() => onEditHook(idea)} />
+      <Controls idea={idea} onSkip={() => void decide('discarded')} onKeep={() => void decide('kept')} onEditHook={() => onEditHook(idea)} />
       <div className="flex items-center gap-3 text-xs text-muted">
         <button type="button" onClick={onUndo} disabled={!canUndo} className="flex min-h-11 items-center gap-1 px-2 font-semibold transition hover:text-ink disabled:opacity-30 dark:hover:text-zinc-100">
           <Undo2 aria-hidden className="h-4 w-4" /> Undo
         </button>
-        <span>Will be posted: <span className="font-semibold text-ink dark:text-zinc-100">{whenOf(idea)}</span></span>
+        <span>Will be posted: <span className="font-semibold text-ink dark:text-zinc-100">{whenOf(idea, plannedAt)}</span></span>
       </div>
     </div>
   );

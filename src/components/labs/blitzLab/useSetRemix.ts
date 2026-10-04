@@ -23,12 +23,15 @@ type Options = {
   showFreeEditor: () => void;
 };
 
+/** What Remix re-opens: a render, or a calendar video (`cardId` keeps its card, so saving updates the post). */
+export type RemixSource = Pick<BlitzProjectDto, 'id'> & { currentAssets: unknown; cardId?: string };
+
 /**
  * Remix: re-open a rendered slideshow with everything it was made of (slides, clips, trims,
  * caption positions, music, text style, business line), ready to edit and render again.
  */
 export function useSetRemix(o: Options) {
-  return (project: BlitzProjectDto) => {
+  return (project: RemixSource) => {
     const data = readRemix(project);
     if (!data) return;
 
@@ -40,7 +43,7 @@ export function useSetRemix(o: Options) {
     o.setMuteVideoAudio(data.muteVideoAudio);
 
     if (data.set.kind === 'deck') {
-      o.openRemix(cardFromSet(project.id, data.set), data.slides);
+      o.openRemix(cardFromSet(project.id, data.set, project.cardId), data.slides);
     } else {
       o.setEditingCardId(null);
       o.setSlides(data.slides);

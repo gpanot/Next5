@@ -10,8 +10,8 @@ import type { ShotView } from '../../../labs/blitzLab/SwipeCard';
 export const formatLabel = (idea: IdeaDto) => (idea.format === 'blitz' ? 'Video' : 'Photo slideshow');
 
 /** "Tue, Oct 7 · 7:00 PM" */
-export const whenOf = (idea: IdeaDto) => {
-  const at = new Date(idea.plannedAt);
+export const whenOf = (idea: IdeaDto, plannedAt: string = idea.plannedAt) => {
+  const at = new Date(plannedAt);
   return `${at.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} · ${at.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
 };
 
@@ -19,7 +19,7 @@ export const whenOf = (idea: IdeaDto) => {
  *  slide titles on the run photo. */
 const slideshowShots = (idea: IdeaDto): ShotView[] =>
   idea.slideshow?.slides.length
-    ? idea.slideshow.slides.map((url) => ({ text: '', textZone: 'bottom', mediaUrl: url, mediaKind: 'image', mediaLabel: 'Slide' }))
+    ? idea.slideshow.slides.map((url) => ({ text: '', textZone: 'bottom', mediaUrl: url, mediaKind: 'image', fit: 'contain', mediaLabel: 'Slide' }))
     : [idea.hook, ...idea.outline].map((text, i) => ({
         text,
         textZone: i === 0 ? 'middle' : 'bottom',

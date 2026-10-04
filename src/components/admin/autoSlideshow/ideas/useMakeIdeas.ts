@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { deckRenderBody, type RenderBodyContext } from '../../../labs/blitzLab/deckRenderBody';
 import { scheduleApi } from '../../../labs/blitzLab/schedule/scheduleApi';
 import { toSlide } from '../../../labs/blitzLab/useDeckCardEditor';
 import { errorOf, type LabClient } from '../../../labs/labClient';
+import { announceCreditsChanged } from '../creditsEvents';
 import { ideaCard } from './ideaCards';
 import { ideasApi } from './ideasApi';
 import { loadRenderContext } from './renderContext';
@@ -43,28 +44,51 @@ const makeSlideshows = async (client: LabClient, o: Options, ideas: IdeaDto[]): 
   return res.data.errors;
 };
 
+/** Makes one batch of kept ideas; returns the reason for each one that failed. */
+const makeBatch = async (client: LabClient, o: Options, kept: IdeaDto[]): Promise<Record<string, string>> => {
+  const next: Record<string, string> = { ...(await makeSlideshows(client, o, kept.filter((i) => i.format === 'slideshow'))) };
+  const videos = kept.filter((i) => i.format === 'blitz');
+  const ctx = videos.length > 0 ? await loadRenderContext(client).catch((err: unknown) => (err instanceof Error ? err.message : 'Could not load the video template.')) : null;
+  for (const idea of videos) {
+    const error = typeof ctx === 'string' ? ctx : ctx ? await scheduleBlitz(client, ctx, idea) : null;
+    if (error) next[idea.id] = error;
+  }
+  return next;
+};
+
 /**
- * "Make N": kept ideas become posts on their days. Videos are scheduled one by one (each its own credit); slideshows
- * (made while the user swiped) move into the run, each charged as it moves. Failed ones stay kept, with the reason, so Make can be tapped again.
+ * A kept idea becomes a post on its day right away (swipe right = keep = 1 credit). Videos are scheduled one by one
+ * (each its own credit); slideshows (made while the user swiped) move into the run, each charged as it moves. Ideas
+ * kept while a batch runs wait in a queue, so fast swipes are never dropped. Failed ones stay kept, with the reason,
+ * so "Try again" can make them.
  */
 export function useMakeIdeas(o: Options) {
   const [making, setMaking] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const queue = useRef<IdeaDto[]>([]);
+  const running = useRef(false);
 
-  const make = async (kept: IdeaDto[]) => {
-    if (!o.client || making || kept.length === 0) return;
+  /** `prepare` runs first (saving the keep and its day), with "making" already shown; false stops there. */
+  const make = async (kept: IdeaDto[], prepare?: () => Promise<boolean>) => {
+    if (!o.client || kept.length === 0) return;
     setMaking(true);
-    const next: Record<string, string> = {};
-    Object.assign(next, await makeSlideshows(o.client, o, kept.filter((i) => i.format === 'slideshow')));
-    const videos = kept.filter((i) => i.format === 'blitz');
-    const ctx = videos.length > 0 ? await loadRenderContext(o.client).catch((err: unknown) => (err instanceof Error ? err.message : 'Could not load the video template.')) : null;
-    for (const idea of videos) {
-      const error = typeof ctx === 'string' ? ctx : ctx ? await scheduleBlitz(o.client, ctx, idea) : null;
-      if (error) next[idea.id] = error;
+    if (prepare && !(await prepare())) {
+      if (!running.current) setMaking(false);
+      return;
     }
-    setErrors(next);
+    queue.current.push(...kept);
+    if (running.current) return;
+    running.current = true;
+    setMaking(true);
+    while (queue.current.length > 0) {
+      const batch = queue.current.splice(0);
+      const failed = await makeBatch(o.client, o, batch);
+      setErrors((e) => ({ ...Object.fromEntries(Object.entries(e).filter(([id]) => !batch.some((i) => i.id === id))), ...failed }));
+      announceCreditsChanged();
+      o.onMade();
+    }
+    running.current = false;
     setMaking(false);
-    o.onMade();
   };
 
   return { making, errors, make };

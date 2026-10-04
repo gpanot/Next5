@@ -2,6 +2,7 @@
 // is tested on its own (tests/components/calendarTiles.test.ts).
 
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
+import { ideaCover } from '../ideas/ideaCover';
 import type { DayItem, PlanDay, PlanSlot } from './monthPlan';
 import { coverIsVideoOf, coverOf, titleOf } from './slotBadge';
 
@@ -35,7 +36,10 @@ export const statusOf = (item: DayItem): TileStatus | null => {
   return s === 'canceled' ? null : s === 'failed' ? 'failed' : s === 'planned' ? 'ready' : s === 'rendering' ? 'making' : 'scheduled';
 };
 
-/** The day's posts and its ideas (waiting or kept), by time. Skipped ideas and canceled posts are left out. */
+/**
+ * The day's posts and kept ideas, by time. Waiting ideas live in the deck only (they get a day when kept), and skipped
+ * ideas and canceled posts are left out.
+ */
 export const entriesOf = (day: PlanDay, ideas: IdeaDto[]): TileEntry[] => {
   const posts = day.slots.flatMap((slot): TileEntry[] => {
     const status = slot.item ? statusOf(slot.item) : null;
@@ -43,8 +47,8 @@ export const entriesOf = (day: PlanDay, ideas: IdeaDto[]): TileEntry[] => {
     const id = slot.item.kind === 'blitz' ? slot.item.blitz.id : slot.item.show?.id ?? `making-${slot.at.toISOString()}`;
     return [{ id, status, at: slot.at, cover: coverOf(slot.item), coverIsVideo: coverIsVideoOf(slot.item), caption: titleOf(slot.item), captionOnCover: slot.item.kind === 'blitz', slot: slot as Filled }];
   });
-  const planned = day.past ? [] : ideas.filter((i) => i.status === 'proposed' || i.status === 'kept').map((idea): TileEntry => ({
-    id: idea.id, status: idea.status === 'kept' ? 'kept' : 'idea', at: new Date(idea.plannedAt), cover: idea.coverUrl, coverIsVideo: false, caption: idea.hook, captionOnCover: idea.slideshow?.state !== 'ready', idea,
+  const planned = day.past ? [] : ideas.filter((i) => i.status === 'kept').map((idea): TileEntry => ({
+    id: idea.id, status: 'kept', at: new Date(idea.plannedAt), cover: ideaCover(idea)?.url ?? null, coverIsVideo: ideaCover(idea)?.video ?? false, caption: idea.hook, captionOnCover: idea.slideshow?.state !== 'ready', idea,
   }));
   return [...posts, ...planned].sort((a, b) => a.at.getTime() - b.at.getTime());
 };
