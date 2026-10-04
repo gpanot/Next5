@@ -111,8 +111,9 @@ export function AppTopBar({ token, page = 'app', user = false }: { token: string
         {/* Admin page only: the workspace and home bars show just the logo. */}
         {!user && <span aria-hidden className="hidden h-7 w-px bg-app-line sm:block" />}
         {!user && <Link href="/admin/auto-slideshow" className="hidden text-[15px] font-semibold text-app-ink sm:block">Auto Slideshow</Link>}
+        {/* Hidden on phones to keep the bar to one row; Settings > Workspaces still switches. */}
         {user && workspace && (
-          <button onClick={() => setSettings('workspaces')} aria-label={`Workspace: ${workspace.name}. Switch workspace`} className="flex min-h-10 min-w-0 items-center gap-1.5 rounded-full border border-app-line px-3 text-sm font-semibold text-app-ink transition hover:bg-app-sunken active:scale-95">
+          <button onClick={() => setSettings('workspaces')} aria-label={`Workspace: ${workspace.name}. Switch workspace`} className="hidden min-h-10 min-w-0 items-center sm:flex gap-1.5 rounded-full border border-app-line px-3 text-sm font-semibold text-app-ink transition hover:bg-app-sunken active:scale-95">
             <span className="truncate">{workspace.name}</span>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-app-muted"><path d="m6 9 6 6 6-6" /></svg>
           </button>

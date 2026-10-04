@@ -163,7 +163,8 @@ body {
   .animate-hero-6,
   .animate-hero-right,
   .animate-hero-bg,
-  .animate-float {
+  .animate-float,
+  .animate-nudge {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
@@ -295,4 +296,16 @@ body {
 /* Gentle perpetual float — hero calendar */
 @utility animate-float {
   animation: float 5s ease-in-out infinite;
+}
+
+/* Attention nudge for a key CTA: rests, then a small pop and a fading blue ring, every 4s */
+@keyframes nudge {
+  0%, 70%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgb(37 99 235 / 0); }
+  76%           { transform: scale(1.05); box-shadow: 0 0 0 0 rgb(37 99 235 / 0.45); }
+  82%           { transform: scale(0.98); }
+  88%           { transform: scale(1.02); }
+  94%           { box-shadow: 0 0 0 10px rgb(37 99 235 / 0); }
+}
+@utility animate-nudge {
+  animation: nudge 4s ease-in-out 1s infinite;
 }

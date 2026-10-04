@@ -20,7 +20,7 @@ type Props = {
 };
 
 /**
- * The right side of the calendar, as in the canvas: the start card ("See my N ideas"), the ideas deck (✕ goes back to
+ * The right side of the calendar, as in the canvas: the start card ("Your next N post ideas"), the ideas deck (✕ goes back to
  * the start card), or the day the user opened. Wide screens only; on phones the deck opens as a full-screen sheet and
  * a day opens below the grid.
  */

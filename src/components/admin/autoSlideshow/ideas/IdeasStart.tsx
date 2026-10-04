@@ -25,7 +25,7 @@ function Pitch({ ideas, onOpen }: Omit<Props, 'maker'>) {
     return (
       <>
         <p className="text-[15px] leading-normal text-zinc-700 dark:text-zinc-300">{n} post {n === 1 ? 'idea' : 'ideas'} to swipe. Each one you keep goes on your next empty day. Skip the rest.</p>
-        <button type="button" onClick={onOpen} className={cta}>See my {n} {n === 1 ? 'idea' : 'ideas'} <ArrowRight aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.5} /></button>
+        <button type="button" onClick={onOpen} className={`${cta} animate-nudge`}>{n === 1 ? 'Your next post idea' : `Your next ${n} post ideas`} <ArrowRight aria-hidden className="h-[18px] w-[18px]" strokeWidth={2.5} /></button>
         <p className="text-center text-xs text-zinc-600 dark:text-zinc-400">Free to look. {money(PRICE_CENTS)} for each idea you keep.</p>
       </>
     );

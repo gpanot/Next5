@@ -41,13 +41,13 @@ type Props = {
   onRailOpen?: () => void;
 };
 
-/** Phones: "See my N ideas" opens the ideas deck (wide screens have the start card on the right). */
+/** Phones: "Your next N post ideas" opens the ideas deck (wide screens have the start card on the right). */
 function IdeasButton({ ui, onOpen }: { ui: CalendarIdeasUi; onOpen: () => void }) {
   const n = ui.ideas.deck.length;
   return (
-    <button type="button" onClick={onOpen} className="flex min-h-11 items-center gap-2 rounded-full bg-blue-50 px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 active:scale-95 lg:hidden dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900">
+    <button type="button" onClick={onOpen} className={`flex min-h-11 items-center gap-2 rounded-full bg-blue-50 px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 active:scale-95 lg:hidden dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900 ${n > 0 ? 'animate-nudge' : ''}`}>
       <Sparkles aria-hidden className="h-4 w-4" />
-      {n > 0 ? `See my ${n} ${n === 1 ? 'idea' : 'ideas'}` : 'Post ideas'}
+      {n > 0 ? (n === 1 ? 'Your next post idea' : `Your next ${n} post ideas`) : 'Post ideas'}
     </button>
   );
 }
@@ -135,7 +135,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
     <SlideshowDnd onMove={move.onMove}>
     <div className={hasRail ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]' : ''}>
     <section className="space-y-4 rounded-[20px] border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
-      <MonthHeader month={month} canPrev={canPrev} canNext={canNext} onMonth={step} subtitle={ui ? 'Each idea you keep fills your next empty day' : countsLine(counts) || 'Tap a day to plan it'}>
+      <MonthHeader month={month} canPrev={canPrev} canNext={canNext} onMonth={step} subtitle={ui ? 'Each idea you keep fills your next empty day' : countsLine(counts) || 'Tap a day to plan it'} subtitleOnPhone={!ui}>
         <StatusLegend />
       </MonthHeader>
       <div className="flex flex-wrap items-center justify-between gap-2">
