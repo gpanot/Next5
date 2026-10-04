@@ -30,7 +30,8 @@ const activeCopy = (run: AutoRunDto, step: AutoStep): [string, string] => {
 };
 
 export const headerCopy = (run: AutoRunDto): RunTitleCopy => {
-  if (run.status === 'COMPLETED') return { tag: 'Ready to post', title: `${plural(readyCount(run), 'slideshow')} ready for ${brandOf(run)}`, subtitle: '' };
+  // A finished run shows only its title above the calendar: no tag.
+  if (run.status === 'COMPLETED') return { tag: '', title: `${plural(readyCount(run), 'slideshow')} ready for ${brandOf(run)}`, subtitle: '' };
   if (run.status === 'FAILED') return { tag: 'Stopped', title: `Step ${run.failedStep ?? '?'} failed`, subtitle: 'Earlier steps are saved. Retry below.' };
   const step = currentAutoStep(run.status) as AutoStep;
   const [title, subtitle] = activeCopy(run, step);

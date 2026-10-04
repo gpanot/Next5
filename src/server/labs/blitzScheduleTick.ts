@@ -1,6 +1,7 @@
 // server-only — never import from a 'use client' file.
 // Moves scheduled Blitz videos along, one step per tick (run with the Auto Slideshow posting tick):
-//   scheduled → rendering   about an hour before the post time: queue the render (the credit is charged now)
+//   planned → failed        its time came and it was never approved on the calendar: the credit is refunded
+//   scheduled → rendering   about an hour before the post time: queue the render (paid when scheduled)
 //   rendering → sending     once the MP4 is ready and the post is due: Direct Post to TikTok
 //   processing → posted     TikTok says it is live
 // Every step claims its row first, so two ticks never act twice.
@@ -10,7 +11,7 @@ import { prisma } from '../../lib/db';
 import { BLITZ_RENDER_LEAD_MS } from '../../types/admin/blitzSchedule';
 import { connectionFor } from '../autoSlideshow/posting';
 import { clip } from '../metaAds/text';
-import { refundFailedRender } from '../slideshowCredits/blitzCharge';
+import { isPrepaid, refundBlitzCharge, refundFailedRender } from '../slideshowCredits/blitzCharge';
 import { freshAccessToken } from '../social/connections';
 import { blitzVideoMediaUrl, mediaBaseUrl, mediaIsPublic } from '../social/links';
 import { fetchPublishStatus, queryCreatorInfo } from '../social/tiktokCarousel';
@@ -30,9 +31,11 @@ const startRender = async (post: BlitzScheduledPost): Promise<void> => {
   const claimed = await prisma.blitzScheduledPost.updateMany({ where: { id: post.id, status: 'scheduled' }, data: { status: 'rendering', attempts: { increment: 1 } } });
   if (claimed.count === 0) return;
   try {
-    const project = await queueBlitzRender({ admin: false, userId: post.userId, workspaceId: post.workspaceId }, post.renderBody as unknown as RenderBody);
+    const prepaid = await isPrepaid(post.id);
+    const project = await queueBlitzRender({ admin: false, userId: post.userId, workspaceId: post.workspaceId }, post.renderBody as unknown as RenderBody, prepaid);
     await prisma.blitzScheduledPost.update({ where: { id: post.id }, data: { projectId: project.id, error: null } });
   } catch (err) {
+    await refundBlitzCharge(post.id, 'Scheduled Blitz video failed');
     await fail(post.id, `Could not make the video: ${errorText(err)}`);
   }
 };
@@ -45,6 +48,7 @@ const sendVideo = async (post: BlitzScheduledPost): Promise<void> => {
     if (!mediaIsPublic()) throw new Error(`TikTok cannot download videos from ${mediaBaseUrl()}. Set MEDIA_PUBLIC_URL to the live https site.`);
     const token = await freshAccessToken(await connectionFor(post.workspaceId, 'tiktok'));
     const creator = await queryCreatorInfo(token);
+    if (!post.privacyLevel || !post.consentAt) throw new Error('This video was never approved.');
     if (!creator.privacyOptions.includes(post.privacyLevel)) throw new Error(`The account no longer allows "${post.privacyLevel}". Schedule it again with another privacy.`);
     const publishId = await initVideo(token, {
       videoUrl: blitzVideoMediaUrl(post.projectId!),
@@ -70,6 +74,7 @@ const followRender = async (post: BlitzScheduledPost, now: number): Promise<void
   const project = await prisma.blitzProject.findUnique({ where: { id: post.projectId }, select: { renderStatus: true } });
   if (!project || project.renderStatus === 'FAILED') {
     await refundFailedRender(post.projectId);
+    await refundBlitzCharge(post.id, 'Scheduled Blitz video failed');
     await fail(post.id, 'The video could not be made. Your credit was refunded. Schedule it again.');
   } else if (project.renderStatus === 'COMPLETED' && post.scheduledAt.getTime() <= now) {
     await sendVideo(post);
@@ -91,10 +96,20 @@ const followPublish = async (post: BlitzScheduledPost): Promise<void> => {
   }
 };
 
+/** Planned videos whose time came without an approval: off the calendar, credit back. */
+const expireUnapproved = async (now: number): Promise<void> => {
+  const missed = await prisma.blitzScheduledPost.findMany({ where: { status: 'planned', scheduledAt: { lte: new Date(now) } }, select: { id: true }, take: PER_TICK });
+  for (const { id } of missed) {
+    const done = await prisma.blitzScheduledPost.updateMany({ where: { id, status: 'planned' }, data: { status: 'failed', error: 'Not approved in time. Your credit was refunded.' } });
+    if (done.count > 0) await refundBlitzCharge(id, 'Scheduled Blitz video not approved');
+  }
+};
+
 /** One tick. Never throws. */
 export async function runBlitzScheduleTick(): Promise<{ rendering: number; followed: number; polled: number }> {
   try {
     const now = Date.now();
+    await expireUnapproved(now);
     const due = await prisma.blitzScheduledPost.findMany({ where: { status: 'scheduled', scheduledAt: { lte: new Date(now + BLITZ_RENDER_LEAD_MS) } }, orderBy: { scheduledAt: 'asc' }, take: PER_TICK });
     for (const post of due) await startRender(post);
     const rendering = await prisma.blitzScheduledPost.findMany({ where: { status: 'rendering' }, orderBy: { scheduledAt: 'asc' }, take: PER_TICK });

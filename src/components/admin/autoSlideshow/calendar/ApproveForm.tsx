@@ -13,13 +13,15 @@ type Props = {
   platforms: PostPlatform[];
   busy: boolean;
   onApprove: (req: ScheduleRequest) => Promise<boolean>;
+  /** Posts approved in all, when more than `items` (Blitz videos ride along on TikTok). */
+  total?: number;
 };
 
 const count = (n: number) => `${n} ${n === 1 ? 'post' : 'posts'}`;
 const approveLabel = (n: number, platforms: PostPlatform[]) => `Approve ${count(n)} on ${platforms.map((p) => PLATFORM_LABELS[p]).join(' + ')}`;
 
 /** Instagram only: nothing to choose, Instagram posts are public on the account. */
-function InstagramOnly({ items, busy, onApprove }: Omit<Props, 'token' | 'runId' | 'platforms'>) {
+function InstagramOnly({ items, busy, onApprove }: Omit<Props, 'token' | 'runId' | 'platforms' | 'total'>) {
   return (
     <button onClick={() => void onApprove({ items, platforms: ['instagram'], tiktok: null })} disabled={busy} className="min-h-12 w-full rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500">
       {busy ? 'Scheduling…' : approveLabel(items.length, ['instagram'])}
@@ -55,7 +57,7 @@ export function ApproveForm(props: Props) {
   return <TikTokApprove {...props} />;
 }
 
-function TikTokApprove({ token, runId, items, platforms, busy, onApprove }: Props) {
+function TikTokApprove({ token, runId, items, platforms, busy, onApprove, total }: Props) {
   const { data, error } = useAdminApi<{ creator: CreatorInfoDto }>(token, `/api/admin/auto-slideshow/runs/${runId}/tiktok`);
   const [privacy, setPrivacy] = useState('');
   const [comments, setComments] = useState(true);
@@ -99,7 +101,7 @@ function TikTokApprove({ token, runId, items, platforms, busy, onApprove }: Prop
         <a className="underline" href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noreferrer">Music Usage Confirmation</a>
       </Toggle>
       <button onClick={submit} disabled={!ready || busy} className="min-h-12 w-full rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500">
-        {busy ? 'Scheduling…' : approveLabel(items.length, platforms)}
+        {busy ? 'Scheduling…' : approveLabel(total ?? items.length, platforms)}
       </button>
     </div>
   );

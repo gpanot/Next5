@@ -102,7 +102,8 @@ function RunHeading({ run }: { run: AutoRunDto }) {
     <div className="space-y-2">
       <RunTitle {...headerCopy(run)} tone={done ? 'done' : run.status === 'FAILED' ? 'failed' : 'running'} aside={aside} />
       {!isTerminalAutoStatus(run.status) && <RotatingLine key={run.status} lines={waitLines(run, currentAutoStep(run.status) as AutoStep)} />}
-      <PlanNote run={run} />
+      {/* How the slideshows were planned: shown while they are made, not over the finished calendar. */}
+      {!done && <PlanNote run={run} />}
     </div>
   );
 }
@@ -143,7 +144,7 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
     refresh();
   };
 
-  const [sideOpen, toggleSide] = useSidePanel(run?.status);
+  const [sideOpen, toggleSide, setSideOpen] = useSidePanel(run?.status);
   // The editor's photo and music pickers load once, on the first slideshow opened, and stay for the next ones.
   const [editorUsed, setEditorUsed] = useState(false);
   if (openId && !editorUsed) setEditorUsed(true);
@@ -173,7 +174,7 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
           <section className="order-1 min-w-0 space-y-4 lg:order-3">
             {run.status === 'FAILED' && <FailedBanner token={token} run={run} onResumed={refresh} />}
             <RunHeading run={run} />
-            {(run.status !== 'FAILED' || run.slideshows.length > 0) && <PostingCalendar token={token} run={run} onOpen={setOpenId} onRunChanged={refresh} />}
+            {(run.status !== 'FAILED' || run.slideshows.length > 0) && <PostingCalendar token={token} run={run} onOpen={setOpenId} onRunChanged={refresh} ideasEnabled={Boolean(workspace)} onRailOpen={() => setSideOpen(false)} />}
             <AllSlideshows run={run}>
               <SlideshowGrid
                 slideshows={run.slideshows}

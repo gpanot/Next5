@@ -1,14 +1,17 @@
 // Blitz videos on the calendar: shared by the server (src/server/labs/blitzSchedule.ts) and the browser.
 
-export type BlitzScheduleStatus = 'scheduled' | 'rendering' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled';
+/** `planned`: on the calendar, waiting for the user's TikTok approval there. `scheduled`: approved. */
+export type BlitzScheduleStatus = 'planned' | 'scheduled' | 'rendering' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled';
 
 /** One scheduled Blitz video. */
 export type BlitzScheduleDto = {
   id: string;
   cardId: string;
   title: string;
-  /** First slide's photo, or null (video background or none). */
+  /** First slide's photo or video background, or null. */
   coverUrl: string | null;
+  /** The cover is a video (shown as its first frame). */
+  coverIsVideo: boolean;
   scheduledAt: string;
   status: BlitzScheduleStatus;
   postUrl: string | null;
@@ -32,13 +35,20 @@ export type ScheduleBlitzRequest = {
   variantId?: string;
   title: string;
   scheduledAt: string;
+  /** The viewer's `Date.getTimezoneOffset()`, so the 5-posts-a-day limit counts their own day. */
+  tzOffsetMin?: number;
   /** The render request, exactly as Generate would send it. */
   renderBody: unknown;
-  tiktok: TikTokChoices;
 };
 
+/** The approval on the calendar: TikTok's Direct Post choices for this video. */
+export type ApproveBlitzRequest = { tiktok: TikTokChoices };
+
 /** Statuses that hold a calendar slot. */
-export const BLITZ_LIVE: BlitzScheduleStatus[] = ['scheduled', 'rendering', 'sending', 'processing', 'posted'];
+export const BLITZ_LIVE: BlitzScheduleStatus[] = ['planned', 'scheduled', 'rendering', 'sending', 'processing', 'posted'];
 
 /** How long before its time a scheduled video is rendered (the worker takes about 5 minutes, plus its queue). */
+/** Most posts a workspace's calendar can hold in one day, Blitz and Auto Slideshow together. */
+export const MAX_POSTS_PER_DAY = 5;
+
 export const BLITZ_RENDER_LEAD_MS = 60 * 60 * 1000;

@@ -6,7 +6,7 @@
 import { CalendarCheck, CalendarPlus, Download, Loader2, Pencil, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useDeckSchedule } from './schedule/DeckSchedule';
-import { whenLabel } from './schedule/slots';
+import { whenLabel } from '../addToCalendar/slots';
 import type { DeckCardData } from './SwipeDeck';
 
 /** Background render of a kept card, as the row shows it. */

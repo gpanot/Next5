@@ -1,15 +1,19 @@
 // server-only — never import from a 'use client' file.
-// Kept Blitz videos on the calendar: schedule, list, cancel. Scheduling saves the render request only; the tick
+// Kept Blitz videos on the calendar: schedule (planned), approve, list, cancel. Scheduling charges 1 credit and saves the render request; the tick
 // (blitzScheduleTick.ts) renders and posts it near its time.
 
 import type { BlitzScheduledPost, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { BLITZ_LIVE, type BlitzScheduleDto, type BlitzScheduleStatus, type CalendarBusyDto, type ScheduleBlitzRequest } from '../../types/admin/blitzSchedule';
+import { BLITZ_LIVE, MAX_POSTS_PER_DAY, type BlitzScheduleDto, type BlitzScheduleStatus, type ApproveBlitzRequest, type CalendarBusyDto, type ScheduleBlitzRequest } from '../../types/admin/blitzSchedule';
 import { blitzBrowserUrl } from '../admin/blitzStore';
 import { connectionFor } from '../autoSlideshow/posting';
 import { HttpError } from '../http';
 import { presignObject } from '../storage/objectStore';
+import { refundBlitzCharge } from '../slideshowCredits/blitzCharge';
+import { maybeAutoRecharge } from '../slideshowCredits/autoRecharge';
 import { requireCredits } from '../slideshowCredits/charge';
+import { SLIDESHOW_PRICE_CENTS } from '../../types/admin/slideshowCredits';
+import { applyEntry } from '../slideshowCredits/wallet';
 import type { RenderBody } from './blitzRender';
 
 /** A post must be at least this far ahead, so the render has time to start. */
@@ -18,12 +22,14 @@ const MIN_AHEAD_MS = 10 * 60 * 1000;
 const MAX_AHEAD_MS = 120 * 24 * 60 * 60 * 1000;
 const MAX_BODY_BYTES = 250_000;
 const IMAGE_KEY = /\.(jpe?g|png|webp)$/i;
+const VIDEO_KEY = /\.(mp4|mov|webm|m4v)$/i;
 
 export const toScheduleDto = async (p: BlitzScheduledPost): Promise<BlitzScheduleDto> => ({
   id: p.id,
   cardId: p.cardId,
   title: p.title,
-  coverUrl: p.coverKey && IMAGE_KEY.test(p.coverKey) ? await blitzBrowserUrl(p.coverKey) : null,
+  coverUrl: p.coverKey && (IMAGE_KEY.test(p.coverKey) || VIDEO_KEY.test(p.coverKey)) ? await blitzBrowserUrl(p.coverKey) : null,
+  coverIsVideo: Boolean(p.coverKey && VIDEO_KEY.test(p.coverKey)),
   scheduledAt: p.scheduledAt.toISOString(),
   status: p.status as BlitzScheduleStatus,
   postUrl: p.postUrl,
@@ -75,24 +81,53 @@ const scheduledAtOf = (iso: string): Date => {
   return at;
 };
 
-const checkTikTok = (t: ScheduleBlitzRequest['tiktok'] | undefined) => {
+const checkTikTok = (t: ApproveBlitzRequest['tiktok'] | undefined) => {
   if (!t?.privacyLevel) throw new HttpError(400, 'no_privacy', 'Pick who can see this post.');
   if (!t.consent) throw new HttpError(400, 'no_consent', "Accept TikTok's Music Usage Confirmation first.");
   if (t.brandContent && t.privacyLevel === 'SELF_ONLY') throw new HttpError(400, 'branded_private', 'Branded content cannot be private.');
   return t;
 };
 
+/** The viewer's day around `at`, from their `getTimezoneOffset()` (UTC when missing). */
+const dayAround = (at: Date, tzOffsetMin: unknown) => {
+  const offsetMs = (typeof tzOffsetMin === 'number' && Math.abs(tzOffsetMin) <= 14 * 60 ? tzOffsetMin : 0) * 60_000;
+  const start = new Date(Math.floor((at.getTime() - offsetMs) / 86_400_000) * 86_400_000 + offsetMs);
+  return { gte: start, lt: new Date(start.getTime() + 86_400_000) };
+};
+
+/** Refuses a 6th post on one day: Blitz and Auto Slideshow posts together, `except` the post being moved. */
+const checkDayRoom = async (workspaceId: string, at: Date, tzOffsetMin: unknown, except?: string) => {
+  const day = dayAround(at, tzOffsetMin);
+  const [blitz, slideshows] = await Promise.all([
+    prisma.blitzScheduledPost.count({ where: { workspaceId, status: { in: BLITZ_LIVE }, scheduledAt: day, ...(except ? { id: { not: except } } : {}) } }),
+    prisma.autoSlideshowPost.count({ where: { workspaceId, status: { in: ['scheduled', 'sending', 'processing', 'posted'] }, scheduledAt: day } }),
+  ]);
+  if (blitz + slideshows >= MAX_POSTS_PER_DAY) throw new HttpError(409, 'day_full', `That day already has ${MAX_POSTS_PER_DAY} posts. Pick another day.`);
+};
+
+/** A new post and its 1 credit, in one transaction: a short balance (402) schedules nothing. */
+const createPaidPost = async (userId: string, data: Prisma.BlitzScheduledPostUncheckedCreateInput) => {
+  const row = await prisma.$transaction(async (tx) => {
+    const created = await tx.blitzScheduledPost.create({ data });
+    await applyEntry(tx, { userId, deltaCents: -SLIDESHOW_PRICE_CENTS, reason: 'slideshow_charge', ref: created.id, note: 'Scheduled Blitz video' }, true);
+    return created;
+  });
+  await maybeAutoRecharge(userId).catch((err: unknown) => console.error('[blitz-schedule] auto recharge failed:', err));
+  return row;
+};
+
+/** Not started yet: still on the calendar, waiting for approval or for its render. */
+const MOVABLE = ['planned', 'scheduled'];
+
 /**
- * Puts a kept card on the calendar. Needs a TikTok account and one credit in the wallet now (it is charged when the
- * video renders). A card already scheduled moves to the new time and choices.
+ * Puts a kept card on the calendar as `planned` and charges 1 credit now (refunded when canceled, when it is not
+ * approved in time, or when the video cannot be made). It is approved on the calendar, like the slideshows. A card
+ * already on the calendar moves to the new day, free, and keeps its approval.
  */
 export async function scheduleBlitz(workspaceId: string, userId: string, req: ScheduleBlitzRequest): Promise<BlitzScheduleDto> {
   const scheduledAt = scheduledAtOf(req.scheduledAt);
   const renderBody = renderBodyOf(req.renderBody);
-  const tiktok = checkTikTok(req.tiktok);
   if (!req.cardId) throw new HttpError(400, 'no_card', 'Missing card.');
-  await connectionFor(workspaceId, 'tiktok');
-  await requireCredits(userId, 1);
   const data = {
     userId,
     variantId: req.variantId ?? null,
@@ -100,27 +135,39 @@ export async function scheduleBlitz(workspaceId: string, userId: string, req: Sc
     coverKey: typeof renderBody.slides?.[0] === 'object' ? (renderBody.slides[0].backgroundKey ?? null) : renderBody.currentAssets.backgroundKey,
     renderBody: renderBody as unknown as Prisma.InputJsonValue,
     scheduledAt,
-    privacyLevel: tiktok.privacyLevel,
-    allowComments: tiktok.allowComments,
-    brandOrganic: tiktok.brandOrganic,
-    brandContent: tiktok.brandContent,
-    consentAt: new Date(),
   };
   const existing = await prisma.blitzScheduledPost.findFirst({ where: { workspaceId, cardId: req.cardId, status: { in: BLITZ_LIVE } } });
-  if (existing && existing.status !== 'scheduled') throw new HttpError(409, 'started', 'This video is already being made or posted.');
+  if (existing && !MOVABLE.includes(existing.status)) throw new HttpError(409, 'started', 'This video is already being made or posted.');
+  await checkDayRoom(workspaceId, scheduledAt, req.tzOffsetMin, existing?.id);
+  if (!existing) await requireCredits(userId, 1);
   const row = existing
     ? await prisma.blitzScheduledPost.update({ where: { id: existing.id }, data })
-    : await prisma.blitzScheduledPost.create({ data: { ...data, workspaceId, cardId: req.cardId } });
+    : await createPaidPost(userId, { ...data, workspaceId, cardId: req.cardId, status: 'planned' });
+  // A calendar idea made into a post leaves the ideas list.
+  if (req.variantId) await prisma.slideshowVariant.updateMany({ where: { id: req.variantId, workspaceId, plannedAt: { not: null } }, data: { status: 'made' } });
   return toScheduleDto(row);
 }
 
-/** Takes a video off the calendar. Only before it starts rendering. */
+/** The approval on the calendar: TikTok's choices and consent. Needs the TikTok account connected. Can be redone. */
+export async function approveBlitz(workspaceId: string, id: string, req: ApproveBlitzRequest): Promise<BlitzScheduleDto> {
+  const tiktok = checkTikTok(req.tiktok);
+  await connectionFor(workspaceId, 'tiktok');
+  const done = await prisma.blitzScheduledPost.updateMany({
+    where: { id, workspaceId, status: { in: MOVABLE } },
+    data: { status: 'scheduled', privacyLevel: tiktok.privacyLevel, allowComments: tiktok.allowComments, brandOrganic: tiktok.brandOrganic, brandContent: tiktok.brandContent, consentAt: new Date(), error: null },
+  });
+  if (done.count === 0) throw new HttpError(409, 'started', 'This video is already being made or posted.');
+  return toScheduleDto(await prisma.blitzScheduledPost.findUniqueOrThrow({ where: { id } }));
+}
+
+/** Takes a video off the calendar and gives its credit back. Only before it starts rendering. */
 export async function cancelBlitz(workspaceId: string, id: string): Promise<void> {
-  const done = await prisma.blitzScheduledPost.updateMany({ where: { id, workspaceId, status: 'scheduled' }, data: { status: 'canceled' } });
+  const done = await prisma.blitzScheduledPost.updateMany({ where: { id, workspaceId, status: { in: MOVABLE } }, data: { status: 'canceled' } });
   if (done.count === 0) {
     const row = await prisma.blitzScheduledPost.findFirst({ where: { id, workspaceId }, select: { status: true } });
     if (!row) throw new HttpError(404, 'not_found', 'Post not found.');
-    if (!BLITZ_LIVE.includes(row.status as BlitzScheduleStatus) || row.status === 'scheduled') return;
+    if (!BLITZ_LIVE.includes(row.status as BlitzScheduleStatus) || MOVABLE.includes(row.status)) return;
     throw new HttpError(409, 'started', 'This video is already being made. It can no longer be canceled.');
   }
+  await refundBlitzCharge(id, 'Scheduled Blitz video canceled');
 }

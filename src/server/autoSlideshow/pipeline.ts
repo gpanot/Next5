@@ -86,7 +86,10 @@ const planStep: StepFn = async (runId, meter, { append }) => {
   // A full re-plan replaces this run's slideshows, so they do not count as used.
   const usage = await loadUsage(run.url, append > 0 ? undefined : runId);
   const goals = assignGoals(append > 0 ? append : run.count, (before?.picks ?? []).map((p) => p.goal));
-  const picks: SlideshowPick[] = pickCombos(bank.content, usage, goals).map((combo) => {
+  // Kept calendar ideas name their exact combos (the hook the user swiped); otherwise the least-used ones are picked.
+  const requested = append > 0 && before?.requested?.length === append ? before.requested : null;
+  const combos = requested ?? pickCombos(bank.content, usage, goals);
+  const picks: SlideshowPick[] = combos.map((combo) => {
     const show = assembleCombo(bank.content, combo);
     return { modelId: null, modelName: bankModelName(show.meat.goal), hookPattern: show.hookPattern, topic: show.meat.topic, goal: show.meat.goal, bank: combo };
   });

@@ -3,18 +3,16 @@
 import { useState, type Dispatch, type SetStateAction } from 'react';
 import type { TextConfig } from '../../../remotion/types';
 import { useLabClient } from '../LabClientProvider';
-import type { blitzApi, BlitzAssetDto, BlitzProjectDto, BlitzTemplateDto, LabClient } from './api';
-import { checkDeckCopy, logDeckAction, type CopyCheckContext } from './deckApi';
+import type { BlitzAssetDto, BlitzProjectDto, BlitzTemplateDto, LabClient } from './api';
+import { logDeckAction, type CopyCheckContext } from './deckApi';
+import { deckRenderBody, type RenderBody } from './deckRenderBody';
 import type { KeptRenderView } from './KeptList';
-import { SHOT_FORMAT } from './shotFormat';
-import { buildSet } from './slideshowSet';
 import type { SlideData } from './SlidePreview';
 import type { DeckCardData } from './SwipeDeck';
 import { toSlide } from './useDeckCardEditor';
 import { fetchListingPhotos, fillListingBackgrounds } from './useListingPhotoImport';
 import type { ZillowData } from './ZillowScrapeStep';
 
-type RenderBody = Parameters<typeof blitzApi.triggerRender>[1];
 type Submit = (body: RenderBody, onError?: (message: string) => void) => Promise<string | null>;
 
 type Options = {
@@ -74,30 +72,8 @@ export function useDeckCardRender(o: Options) {
     });
 
   /** The render request for a card exactly as it is, or why it cannot render yet. Also what scheduling saves. */
-  const bodyFor = async (card: DeckCardData): Promise<{ body: RenderBody } | { error: string }> => {
-    if (!o.template) return { error: 'No slideshow template loaded.' };
-    const slides = await slidesFor(card, o, client);
-    if (slides.some((s) => !s.backgroundKey)) return { error: 'Some shots have no photo. Tap Edit to pick one.' };
-    const context = card.check ?? o.checkContext;
-    const problems = context ? await checkDeckCopy(client, context, slides.map((s) => s.text)) : [];
-    if (problems.length > 0) return { error: `Fix before rendering: ${problems.join(' ')}` };
-    const audioKey = card.audio?.assetKey ?? o.assets.find((a) => a.type === 'AUDIO')?.r2Key;
-    return {
-      body: {
-        templateId: o.template.id,
-        currentAssets: { backgroundKey: slides[0]!.backgroundKey!, ...(audioKey ? { audioKey } : {}) },
-        overlayZoom: 1.0,
-        overlayOffsetX: 0,
-        overlayOffsetY: 0,
-        mentionBusiness: false,
-        captionText: slides[0]?.text ?? '',
-        slides,
-        durationSeconds: slides.reduce((sum, s, i) => sum + (s.durationSec ?? SHOT_FORMAT[i]?.durationSec ?? 0), 0),
-        textConfigOverride: o.textOverride,
-        set: buildSet(card, slides),
-      },
-    };
-  };
+  const bodyFor = async (card: DeckCardData): Promise<{ body: RenderBody } | { error: string }> =>
+    deckRenderBody(client, card, await slidesFor(card, o, client), { template: o.template, assets: o.assets, textOverride: o.textOverride, checkContext: o.checkContext });
 
   const run = async (card: DeckCardData): Promise<string | null> => {
     const built = await bodyFor(card);

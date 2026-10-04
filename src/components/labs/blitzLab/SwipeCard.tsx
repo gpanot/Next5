@@ -232,6 +232,25 @@ export function SwipeCard({
   // Keep ref in sync with state (RAF closure reads ref, not state)
   useEffect(() => { shotIdxRef.current = shotIdx; }, [shotIdx]);
 
+  // ── Segmented progress bar via DOM refs (avoid re-render on every frame) ───
+  const barsRef = useRef<HTMLDivElement>(null);
+
+  function setBarsFromRef() {
+    const container = barsRef.current;
+    if (!container) return;
+    const bars = container.querySelectorAll<HTMLElement>('b');
+    bars.forEach((b, i) => {
+      if (i < shotIdxRef.current) {
+        b.style.width = '100%';
+      } else if (i > shotIdxRef.current) {
+        b.style.width = '0%';
+      } else {
+        const dur = SHOT_DURATIONS[i] ?? 4;
+        b.style.width = Math.min(100, (elapsedRef.current / dur) * 100) + '%';
+      }
+    });
+  }
+
   // RAF ticker — only runs when this card is top
   useEffect(() => {
     if (!isTop) return;
@@ -261,25 +280,6 @@ export function SwipeCard({
     return () => { cancelAnimationFrame(rafRef.current); lastTsRef.current = 0; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isTop, paused, externalPause]);
-
-  // ── Segmented progress bar via DOM refs (avoid re-render on every frame) ───
-  const barsRef = useRef<HTMLDivElement>(null);
-
-  function setBarsFromRef() {
-    const container = barsRef.current;
-    if (!container) return;
-    const bars = container.querySelectorAll<HTMLElement>('b');
-    bars.forEach((b, i) => {
-      if (i < shotIdxRef.current) {
-        b.style.width = '100%';
-      } else if (i > shotIdxRef.current) {
-        b.style.width = '0%';
-      } else {
-        const dur = SHOT_DURATIONS[i] ?? 4;
-        b.style.width = Math.min(100, (elapsedRef.current / dur) * 100) + '%';
-      }
-    });
-  }
 
   function jumpShot(delta: number) {
     const next = Math.max(0, Math.min(shots.length - 1, shotIdxRef.current + delta));
@@ -438,18 +438,6 @@ export function SwipeCard({
         />
       )}
 
-      {/* Video scanline shimmer for video shots */}
-      {displayedShot?.mediaKind === 'video' && isTop && (
-        <div
-          className="pointer-events-none absolute inset-0"
-          aria-hidden
-          style={{
-            backgroundImage: 'repeating-linear-gradient(115deg,transparent 0 22px,rgba(255,255,255,.07) 22px 23px)',
-            animation: 'drift 6s linear infinite',
-          }}
-        />
-      )}
-
       {/* ── Progress bars ───────────────────────────────────────────────── */}
       {isTop && (
         <div
@@ -522,7 +510,7 @@ export function SwipeCard({
         <WhyDrawer data={whyPanel} open={whyOpen} onClose={toggleWhy} />
       )}
 
-      {/* ── Why toggle button (only on top card, inside card near bottom) ── */}
+      {/* ── Why toggle button (only on top card, small, in the bottom-right corner off the captions) ── */}
       {isTop && whyPanel && (
         <button
           type="button"
@@ -531,18 +519,18 @@ export function SwipeCard({
           aria-controls="why-drawer"
           onClick={(e) => { e.stopPropagation(); toggleWhy(); }}
           className={[
-            'absolute bottom-[68px] right-3 z-[5] inline-flex h-8 items-center gap-1.5 rounded-full border px-3',
-            'text-[13px] font-semibold transition-colors',
+            'absolute bottom-3 right-3 z-[5] inline-flex h-7 items-center gap-1 rounded-full border px-2.5',
+            'text-[11px] font-semibold transition-colors',
             whyOpen
               ? 'border-[var(--ink,#000)] bg-[var(--ink,#000)] text-white'
               : 'border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] text-[var(--ink,#000)]',
           ].join(' ')}
         >
-          <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
+          <Info aria-hidden className="h-3 w-3 shrink-0" />
           Why this?
           <ChevronDown
             aria-hidden
-            className={['h-3 w-3 shrink-0 transition-transform', whyOpen ? 'rotate-180' : ''].join(' ')}
+            className={['h-2.5 w-2.5 shrink-0 transition-transform', whyOpen ? 'rotate-180' : ''].join(' ')}
           />
         </button>
       )}

@@ -254,6 +254,8 @@ model Workspace {
   /// Rich brand profile extracted from the website (JSON blob). Shape: BrandExtractData in me.ts.
   brandExtract          Json?         @map("brand_extract")
   brandExtractAt        DateTime?     @map("brand_extract_at")
+  /// Share of slideshows (0-100) in a batch of calendar ideas; the rest are Blitz videos. Settings › Content.
+  ideaSlideshowPct      Int           @default(10) @map("idea_slideshow_pct")
   /// Auto Slideshow only: deleted by the user, restorable until the daily cron purges it 30 days later
   deletedAt             DateTime?     @map("deleted_at")
   /// Set by "Delete forever": the workspace is purged at this time (2 minutes later, undoable until then)
@@ -1265,14 +1267,15 @@ model BlitzScheduledPost {
   /// The exact render request, frozen at scheduling time
   renderBody    Json      @map("render_body")
   scheduledAt   DateTime  @map("scheduled_at")
-  /// 'scheduled' | 'rendering' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled'
-  status        String    @default("scheduled")
+  /// 'planned' (waits for approval on the calendar) | 'scheduled' | 'rendering' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled'
+  status        String    @default("planned")
   projectId     String?   @map("project_id")
-  privacyLevel  String    @map("privacy_level")
+  /// TikTok choices: null until approved on the calendar
+  privacyLevel  String?   @map("privacy_level")
   allowComments Boolean   @default(true) @map("allow_comments")
   brandOrganic  Boolean   @default(false) @map("brand_organic")
   brandContent  Boolean   @default(false) @map("brand_content")
-  consentAt     DateTime  @map("consent_at")
+  consentAt     DateTime? @map("consent_at")
   publishId     String?   @map("publish_id")
   tiktokPostId  String?   @map("tiktok_post_id")
   postUrl       String?   @map("post_url")
@@ -1291,7 +1294,7 @@ model BlitzScheduledPost {
 model SlideshowVariant {
   id             String   @id @default(cuid())
   workspaceId    String?  @map("workspace_id")
-  /// 'website' | 'zillow'
+  /// 'website' | 'zillow' | 'bank' (a Slideshow Bank combo offered as a calendar idea)
   engine         String
   listingRunId   String?  @map("listing_run_id")
   /// IDC name (website) or listing angle (zillow)
@@ -1302,12 +1305,15 @@ model SlideshowVariant {
   /// 'proposed' | 'kept' | 'discarded' | 'edited' | 'rendered' | 'failed'
   status         String   @default("proposed")
   blitzProjectId String?  @map("blitz_project_id")
+  /// Calendar ideas: the day and time this card is planned for, before the user keeps it
+  plannedAt      DateTime? @map("planned_at")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   swipes SlideshowSwipe[]
 
   @@index([listingRunId])
+  @@index([workspaceId, status, plannedAt])
   @@index([engine, lens, archetype])
   @@map("slideshow_variants")
 }
@@ -2232,6 +2238,8 @@ model AutoSlideshowRun {
   profile     Json?
   /// The shared company profile (studio_brand_profiles) step 1 used; null on runs made before 2026-10-02
   brandProfileId String? @map("brand_profile_id")
+  /// Hidden run making one calendar slideshow idea (no workspace, never charged); the workspace run it belongs to
+  ideaForRunId String? @map("idea_for_run_id")
   /// Step 2: BrandLever[]
   levers      Json?
   /// Step 3: AutoPlan
@@ -2252,6 +2260,7 @@ model AutoSlideshowRun {
   posts      AutoSlideshowPost[]
 
   @@index([createdAt(sort: Desc)])
+  @@index([ideaForRunId])
   @@map("auto_slideshow_runs")
 }
 

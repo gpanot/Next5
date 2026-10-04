@@ -13,9 +13,11 @@ export function RunTitle({ tag, title, subtitle, tone, aside }: Props) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <p className={`mb-2 inline-block text-[10px] font-bold tracking-wider uppercase ${tagClass}`}>
-          {tone === 'done' ? '✓ ' : ''}{tag}
-        </p>
+        {tag && (
+          <p className={`mb-2 inline-block text-[10px] font-bold tracking-wider uppercase ${tagClass}`}>
+            {tone === 'done' ? '✓ ' : ''}{tag}
+          </p>
+        )}
         <h2 className="text-2xl font-bold tracking-tight text-ink md:text-3xl dark:text-zinc-100">{title}</h2>
         {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
       </div>

@@ -2,14 +2,17 @@
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { addMonths, dayKey, monthDays, monthOf, startOfToday } from './slots';
+import { CoverMedia } from './CoverMedia';
+import { addMonths, atTime, dayKey, DEFAULT_TIME, isBookable, MAX_POSTS_PER_DAY, monthDays, monthOf, startOfToday } from './slots';
 
 /** A post already on a day: its photo, or a dot when it has none. */
-export type DayPost = { coverUrl: string | null; title: string; blitz: boolean };
+export type DayPost = { coverUrl: string | null; coverIsVideo?: boolean; title: string; blitz: boolean };
 
 type Props = {
   /** Posts on each day, by day key. */
   posts: Map<string, DayPost[]>;
+  /** Day keys to badge "Best". */
+  best: Set<string>;
   selected: Date | null;
   onSelect: (day: Date) => void;
 };
@@ -18,14 +21,18 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /** Months ahead the arrows reach (the server takes up to 4). */
 const MAX_MONTHS_AHEAD = 3;
 
-function DayCell({ day, posts, inMonth, past, selected, onSelect }: { day: Date; posts: DayPost[]; inMonth: boolean; past: boolean; selected: boolean; onSelect: () => void }) {
-  const cover = posts.find((p) => p.coverUrl)?.coverUrl ?? null;
-  const label = `${day.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}${posts.length ? `, ${posts.length} ${posts.length === 1 ? 'post' : 'posts'}` : ''}`;
+type CellProps = { day: Date; posts: DayPost[]; inMonth: boolean; past: boolean; best: boolean; selected: boolean; onSelect: () => void };
+
+function DayCell({ day, posts, inMonth, past, best, selected, onSelect }: CellProps) {
+  const full = posts.length >= MAX_POSTS_PER_DAY;
+  const coverPost = posts.find((p) => p.coverUrl);
+  const cover = coverPost?.coverUrl ?? null;
+  const label = `${day.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}${posts.length ? `, ${posts.length} ${posts.length === 1 ? 'post' : 'posts'}` : ''}${full ? ', full' : ''}${best ? ', best day' : ''}`;
   return (
     <button
       type="button"
       onClick={onSelect}
-      disabled={past}
+      disabled={past || full}
       aria-label={label}
       aria-pressed={selected}
       className={[
@@ -36,12 +43,17 @@ function DayCell({ day, posts, inMonth, past, selected, onSelect }: { day: Date;
       ].join(' ')}
     >
       {cover && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={cover} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover opacity-80" />
+        <CoverMedia src={cover} video={coverPost?.coverIsVideo} className="absolute inset-0 h-full w-full object-cover opacity-80" />
       )}
       <span className={`absolute top-1 left-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-bold ${cover ? 'bg-black/55 text-white' : 'text-[var(--ink,#000)] dark:text-neutral-100'}`}>
         {day.getDate()}
       </span>
+      {best && !past && (
+        <span aria-hidden className="absolute inset-x-0.5 bottom-1 rounded-full bg-[var(--ready,#1e8049)] py-0.5 text-center text-[9px] font-bold tracking-wide text-white uppercase">Best</span>
+      )}
+      {full && !past && (
+        <span aria-hidden className="absolute inset-x-0.5 top-6 rounded-full bg-black/55 py-0.5 text-center text-[9px] font-bold tracking-wide text-white uppercase">Full</span>
+      )}
       {posts.length > 0 && (
         <span aria-hidden className="absolute inset-x-0 bottom-1 flex justify-center gap-0.5">
           {posts.slice(0, 4).map((p, i) => (
@@ -53,8 +65,8 @@ function DayCell({ day, posts, inMonth, past, selected, onSelect }: { day: Date;
   );
 }
 
-/** One month, Monday first. Past days are off; days with posts show their photo and a dot per post. */
-export function MonthPicker({ posts, selected, onSelect }: Props) {
+/** One month, Monday first. Past and full days are off; days with posts show their photo and a dot per post; suggested days say "Best". */
+export function MonthPicker({ posts, best, selected, onSelect }: Props) {
   const today = startOfToday();
   const [month, setMonth] = useState(() => monthOf(selected ?? today));
   const canPrev = month > monthOf(today);
@@ -83,7 +95,8 @@ export function MonthPicker({ posts, selected, onSelect }: Props) {
             day={day}
             posts={posts.get(dayKey(day)) ?? []}
             inMonth={day.getMonth() === month.getMonth()}
-            past={day < today}
+            past={day < today || !isBookable(atTime(day, DEFAULT_TIME))}
+            best={best.has(dayKey(day))}
             selected={selected !== null && dayKey(selected) === dayKey(day)}
             onSelect={() => onSelect(day)}
           />

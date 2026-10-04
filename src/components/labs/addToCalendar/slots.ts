@@ -1,10 +1,14 @@
 // Calendar math for the "Add to calendar" picker, in the viewer's local time.
 
+import { MAX_POSTS_PER_DAY } from '../../../types/admin/blitzSchedule';
+
+export { MAX_POSTS_PER_DAY };
+
 /** Times offered for a post, spread over the hours people scroll most. */
 export const TIME_OPTIONS = ['09:00', '12:00', '15:00', '19:00', '21:00'];
 /** What "Auto schedule" and a fresh pick use. */
 export const DEFAULT_TIME = '19:00';
-/** Days "Auto schedule" looks ahead for a free one. */
+/** Days "Auto schedule" looks ahead for a day with room. */
 const AUTO_HORIZON_DAYS = 120;
 
 export const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -33,13 +37,35 @@ export const atTime = (day: Date, time: string) => {
 /** True when a post at that time still leaves the render time to start (the server wants 10 minutes). */
 export const isBookable = (at: Date, now = new Date()) => at.getTime() - now.getTime() > 15 * 60 * 1000;
 
-/** First day from tomorrow with no post on it, at 7 PM. */
-export const autoSlot = (taken: Date[], now = new Date()): Date => {
-  const busy = new Set(taken.map(dayKey));
+/** How many "Best" days the picker shows, and how far ahead it looks for them. */
+const BEST_COUNT = 3;
+const BEST_HORIZON_DAYS = 14;
+
+/** Posts per day, by day key. */
+export type DayCounts = Map<string, number>;
+
+export const isFull = (counts: DayCounts, day: Date) => (counts.get(dayKey(day)) ?? 0) >= MAX_POSTS_PER_DAY;
+
+/** The days to suggest: empty days from tomorrow, never two in a row, so posts are spread out. */
+export const bestDays = (counts: DayCounts, now = new Date()): Date[] => {
+  const tomorrow = addDays(startOfToday(now), 1);
+  const best: Date[] = [];
+  for (let i = 0; i < BEST_HORIZON_DAYS && best.length < BEST_COUNT; i += 1) {
+    const day = addDays(tomorrow, i);
+    const last = best.at(-1);
+    if (!counts.get(dayKey(day)) && (!last || day > addDays(last, 1))) best.push(day);
+  }
+  return best;
+};
+
+/** The first "Best" day at 7 PM; else the first day from tomorrow that is not full. */
+export const autoSlot = (counts: DayCounts, now = new Date()): Date => {
+  const best = bestDays(counts, now)[0];
+  if (best) return atTime(best, DEFAULT_TIME);
   const tomorrow = addDays(startOfToday(now), 1);
   for (let i = 0; i < AUTO_HORIZON_DAYS; i += 1) {
     const day = addDays(tomorrow, i);
-    if (!busy.has(dayKey(day))) return atTime(day, DEFAULT_TIME);
+    if (!isFull(counts, day)) return atTime(day, DEFAULT_TIME);
   }
   return atTime(tomorrow, DEFAULT_TIME);
 };

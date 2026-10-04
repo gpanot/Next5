@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
 import { adminFetch } from '../../business/useAdminApi';
 
@@ -11,8 +11,10 @@ const REFRESH_MS = 60_000;
  * Blitz videos put on this workspace's calendar from the Content page. Users name the workspace in the header,
  * admins in the query. A failed read leaves the calendar as it is.
  */
-export function useBlitzOnCalendar(token: string, workspaceId: string | null): BlitzScheduleDto[] {
+export function useBlitzOnCalendar(token: string, workspaceId: string | null): { items: BlitzScheduleDto[]; reload: () => void } {
   const [items, setItems] = useState<BlitzScheduleDto[]>([]);
+  const [tick, setTick] = useState(0);
+  const reload = useCallback(() => setTick((n) => n + 1), []);
   useEffect(() => {
     if (!workspaceId) return;
     let cancelled = false;
@@ -26,6 +28,6 @@ export function useBlitzOnCalendar(token: string, workspaceId: string | null): B
       cancelled = true;
       clearInterval(id);
     };
-  }, [token, workspaceId]);
-  return items;
+  }, [token, workspaceId, tick]);
+  return { items, reload };
 }

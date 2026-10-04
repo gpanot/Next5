@@ -109,9 +109,9 @@ const checkRequest = async (body: RenderBody) => {
 
 /**
  * Creates the PENDING render. Workspace users pay 1 credit per video (402 and nothing queued when short); admins
- * render for free. Throws HttpError on a bad request.
+ * render for free, and `prepaid` (a scheduled video, paid when scheduled) is not charged again. Throws HttpError on a bad request.
  */
-export async function queueBlitzRender(access: LabAccess, body: RenderBody): Promise<BlitzProject> {
+export async function queueBlitzRender(access: LabAccess, body: RenderBody, prepaid = false): Promise<BlitzProject> {
   const templateType = await checkRequest(body);
   // Normalize slides early so we can validate per-slide backgroundKeys below
   const normalizedSlides = (body.slides ?? []).map((s) => (typeof s === 'string' ? { text: s } : cleanSlide(s)));
@@ -145,7 +145,7 @@ export async function queueBlitzRender(access: LabAccess, body: RenderBody): Pro
     renderStatus: 'PENDING',
     isIdentifiablePerson: body.isIdentifiablePerson ?? false,
   };
-  const project = access.admin ? await prisma.blitzProject.create({ data }) : await createPaidRender(access.userId, data);
+  const project = access.admin || prepaid ? await prisma.blitzProject.create({ data }) : await createPaidRender(access.userId, data);
   console.log(`[blitz/render] BlitzProject created: id=${project.id} status=PENDING template.type=${templateType}`);
   return project;
 }

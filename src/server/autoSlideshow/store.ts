@@ -81,7 +81,7 @@ export const listPhotoDtos = async (runId: string): Promise<AutoPhotoDto[]> => {
 /** Recent runs; `workspaceId` limits them to one workspace's (a signed-in user's own). */
 export const listRuns = async (workspaceId?: string): Promise<AutoRunSummary[]> => {
   const runs = await prisma.autoSlideshowRun.findMany({
-    where: workspaceId ? { workspaceId } : undefined,
+    where: workspaceId ? { workspaceId } : { ideaForRunId: null },
     orderBy: { createdAt: 'desc' },
     take: 20,
     include: { _count: { select: { slideshows: { where: { status: 'ready' } } } } },

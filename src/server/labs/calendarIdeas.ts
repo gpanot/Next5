@@ -1,0 +1,239 @@
+// server-only — never import from a 'use client' file.
+// Calendar ideas: a batch of free ideas planned on the next two weeks, mixed by the workspace's Settings › Content share
+// (default 90% Blitz videos, 10% real slideshows). The user keeps or skips each; only kept ones are made and paid for.
+// Rows live in slideshow_variants: `website` rows are Blitz deck cards, `bank` rows are slideshows made in a hidden run
+// while the user swipes. Blitz cards that were not planned stay as a reserve: they refill a skipped day, fill a day's
+// "+", and serve as other first lines.
+
+import type { Prisma, SlideshowVariant } from '@prisma/client';
+import { prisma } from '../../lib/db';
+import { BLITZ_LIVE } from '../../types/admin/blitzSchedule';
+import { IDEAS_PER_BATCH, IDEA_DAYS, slideshowShare, type IdeaDayRequest, type IdeaDto, type IdeaPatch, type IdeasListDto, type MadeSlideshow } from '../../types/admin/calendarIdeas';
+import type { DeckItem } from '../slideshow/core/deckAssembly';
+import { logSwipe } from '../slideshow/core/variants';
+import { runAutoPipeline } from '../autoSlideshow/pipeline';
+import { HttpError } from '../http';
+import { requireCredits } from '../slideshowCredits/charge';
+import { presignObject } from '../storage/objectStore';
+import { newBankIdeas, type BankIdeaPlan } from './bankIdeas';
+import { atViewerTime, planIdeaTimes, viewerDay } from './ideaDays';
+import { adoptIdeaSlideshow, createIdeaRun, ideaSlideshowState } from './ideaSlideshowRun';
+import { generateWebsiteDeck } from './websiteDeck';
+import { workspaceRunId } from './workspaceRun';
+
+type BlitzIdeaPlan = { card?: DeckItem };
+const LISTED = ['proposed', 'kept', 'discarded'];
+const SINCE_MS = 12 * 60 * 60 * 1000;
+const asJson = (v: unknown) => v as Prisma.InputJsonValue;
+
+const firstLine = (card: DeckItem) => card.shots[0]?.text ?? card.hookStyle;
+
+/** Reserve Blitz cards (not planned), newest first. Content-page deck cards are saved without their full card: left out. */
+const loadReserve = async (workspaceId: string) => {
+  const rows = await prisma.slideshowVariant.findMany({ where: { workspaceId, engine: 'website', status: 'proposed', plannedAt: null }, orderBy: { createdAt: 'desc' }, take: 120 });
+  return rows.filter((r) => (r.plan as BlitzIdeaPlan).card);
+};
+
+const blitzDto = (row: SlideshowVariant, reserve: SlideshowVariant[]): IdeaDto | null => {
+  const card = (row.plan as BlitzIdeaPlan).card;
+  if (!card) return null;
+  const hooks = reserve.filter((r) => r.lens === row.lens).map((r) => ({ id: r.id, text: firstLine((r.plan as BlitzIdeaPlan).card!) }));
+  // The calendar shows photos only: the first shot that is a photo.
+  const coverUrl = card.shots.find((shot) => shot.mediaKind === 'image' && shot.mediaUrl)?.mediaUrl ?? null;
+  return {
+    id: row.id, status: row.status as IdeaDto['status'], plannedAt: row.plannedAt!.toISOString(), format: 'blitz', hook: firstLine(card),
+    card: { ...card, id: row.id, variantId: row.id }, goal: null, coverUrl, outline: [], hooks: hooks.slice(0, 5), slideshow: null,
+  };
+};
+
+/** A slideshow idea; null once its slideshow failed (it leaves the list). */
+const slideshowDto = async (row: SlideshowVariant): Promise<IdeaDto | null> => {
+  const plan = row.plan as unknown as BankIdeaPlan;
+  const made = plan.ideaRunId ? await ideaSlideshowState(plan.ideaRunId) : null;
+  if (!made || made.state === 'failed') return null;
+  const cover = made.slides[0] ?? (plan.coverKey ? await presignObject(plan.coverKey) : null);
+  return {
+    id: row.id, status: row.status as IdeaDto['status'], plannedAt: row.plannedAt!.toISOString(), format: 'slideshow', hook: plan.hook,
+    card: null, goal: plan.goal, coverUrl: cover, outline: plan.outline, hooks: [], slideshow: { state: made.state, slides: made.slides },
+  };
+};
+
+/** The workspace's ideas from today on (skipped ones too, for "Look at skipped again"), soonest first. */
+export async function listIdeas(workspaceId: string): Promise<IdeasListDto> {
+  const [rows, reserve, ws] = await Promise.all([
+    prisma.slideshowVariant.findMany({ where: { workspaceId, status: { in: LISTED }, plannedAt: { gte: new Date(Date.now() - SINCE_MS) } }, orderBy: { plannedAt: 'asc' } }),
+    loadReserve(workspaceId),
+    prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ideaSlideshowPct: true } }),
+  ]);
+  const ideas = await Promise.all(rows.map((r) => (r.engine === 'bank' ? slideshowDto(r) : Promise.resolve(blitzDto(r, reserve)))));
+  return { ideas: ideas.filter((i): i is IdeaDto => i !== null), slideshowPct: ws?.ideaSlideshowPct ?? 10 };
+}
+
+/** Posts and ideas already on each of the viewer's days over the ideas window. */
+const busyDays = async (workspaceId: string, tzOffsetMin: unknown): Promise<Map<number, number>> => {
+  const range = { gte: new Date(), lt: new Date(Date.now() + (IDEA_DAYS + 2) * 86_400_000) };
+  const [blitz, posts, ideas] = await Promise.all([
+    prisma.blitzScheduledPost.findMany({ where: { workspaceId, status: { in: BLITZ_LIVE }, scheduledAt: range }, select: { scheduledAt: true } }),
+    prisma.autoSlideshowPost.findMany({ where: { workspaceId, status: { in: ['scheduled', 'sending', 'processing', 'posted'] }, scheduledAt: range }, select: { scheduledAt: true } }),
+    prisma.slideshowVariant.findMany({ where: { workspaceId, status: { in: ['proposed', 'kept'] }, plannedAt: range }, select: { plannedAt: true } }),
+  ]);
+  const map = new Map<number, number>();
+  for (const at of [...blitz.map((b) => b.scheduledAt), ...posts.map((p) => p.scheduledAt), ...ideas.map((i) => i.plannedAt!)]) {
+    const day = viewerDay(at, tzOffsetMin);
+    map.set(day, (map.get(day) ?? 0) + 1);
+  }
+  return map;
+};
+
+/** Blitz deck cards for the workspace, each saved with its full card (the deck saves only the shots). */
+const blitzCards = async (workspaceId: string): Promise<string[]> => {
+  const deck = await generateWebsiteDeck(await workspaceRunId(workspaceId));
+  const saved = deck.filter((c) => c.variantId);
+  await prisma.$transaction(saved.map((c) => prisma.slideshowVariant.update({
+    where: { id: c.variantId! },
+    data: { plan: asJson({ shots: c.shots, audio: c.audio, hookStyle: c.hookStyle, card: c }) },
+  })));
+  return saved.map((c) => c.variantId!);
+};
+
+/** Slideshow ideas: saved, each with its hidden run. Returns the ids and the work to run after the response. */
+const startSlideshows = async (workspaceId: string, runId: string, count: number) => {
+  const plans = await newBankIdeas(workspaceId, runId, count);
+  const ids: string[] = [];
+  const runs: string[] = [];
+  for (const plan of plans) {
+    const ideaRunId = await createIdeaRun(runId, plan.combo).catch((err: unknown) => {
+      console.error('[calendar-ideas] slideshow idea not started:', err instanceof Error ? err.message : err);
+      return null;
+    });
+    if (!ideaRunId) continue;
+    const row = await prisma.slideshowVariant.create({ data: { workspaceId, engine: 'bank', lens: plan.goal, archetype: plan.combo.hookId, plan: asJson({ ...plan, ideaRunId }) } });
+    ids.push(row.id);
+    runs.push(ideaRunId);
+  }
+  return { ids, work: () => Promise.all(runs.map((id) => runAutoPipeline(id, 3, 1))).then(() => undefined) };
+};
+
+/**
+ * A new batch of IDEAS_PER_BATCH ideas after what is on the calendar. The slideshows (Settings › Content share, from
+ * the Slideshow Bank of `runId`) are created first and made in the background (`work`, run after the response) while
+ * the user swipes the Blitz cards, which fill the rest. Slideshows take the batch's later days.
+ */
+export async function generateIdeas(workspaceId: string, runId: string, tzOffsetMin: unknown): Promise<{ list: IdeasListDto; work: () => Promise<void> }> {
+  const ws = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ideaSlideshowPct: true } });
+  const slides = await startSlideshows(workspaceId, runId, slideshowShare(IDEAS_PER_BATCH, ws?.ideaSlideshowPct ?? 10));
+  const blitz = await blitzCards(workspaceId).catch((err: unknown) => {
+    console.error('[calendar-ideas] Blitz deck failed:', err instanceof Error ? err.message : err);
+    return [] as string[];
+  });
+  const planned = [...blitz.slice(0, IDEAS_PER_BATCH - slides.ids.length), ...slides.ids];
+  if (planned.length === 0) throw new HttpError(502, 'no_ideas', 'Could not write ideas right now. Try again.');
+  const times = planIdeaTimes(planned.length, await busyDays(workspaceId, tzOffsetMin), new Date(), tzOffsetMin);
+  await prisma.$transaction(times.map((at, i) => prisma.slideshowVariant.update({ where: { id: planned[i]! }, data: { plannedAt: at } })));
+  return { list: await listIdeas(workspaceId), work: slides.work };
+}
+
+const ownIdea = async (workspaceId: string, id: string) => {
+  const row = await prisma.slideshowVariant.findFirst({ where: { id, workspaceId, plannedAt: { not: null }, engine: { in: ['website', 'bank'] } } });
+  if (!row) throw new HttpError(404, 'idea_not_found', 'Idea not found.');
+  return row;
+};
+
+/** A skipped day keeps an idea: the newest reserve Blitz card (slideshows are only made by a batch). */
+const refill = async (workspaceId: string, at: Date | null) => {
+  const [next] = await loadReserve(workspaceId);
+  if (next && at) await prisma.slideshowVariant.update({ where: { id: next.id }, data: { plannedAt: at } });
+};
+
+/** A Blitz idea's other first line: the reserve card takes the idea's day, the idea goes back to the reserve. */
+const swapBlitzHook = async (workspaceId: string, row: SlideshowVariant, hookId: string) => {
+  const other = (await loadReserve(workspaceId)).find((r) => r.id === hookId && r.lens === row.lens);
+  if (!other) throw new HttpError(404, 'hook_not_found', 'That hook is gone. Pick another.');
+  await prisma.$transaction([
+    prisma.slideshowVariant.update({ where: { id: other.id }, data: { plannedAt: row.plannedAt, status: row.status } }),
+    prisma.slideshowVariant.update({ where: { id: row.id }, data: { plannedAt: null, status: 'proposed' } }),
+  ]);
+};
+
+const SWIPE: Record<NonNullable<IdeaPatch['status']>, 'keep' | 'discard' | 'undo'> = { kept: 'keep', discarded: 'discard', proposed: 'undo' };
+
+/** Keep, skip or bring back an idea (logged like a deck swipe), move it, or give a Blitz idea another first line or music. */
+export async function patchIdea(workspaceId: string, id: string, patch: IdeaPatch): Promise<IdeasListDto> {
+  const row = await ownIdea(workspaceId, id);
+  if (row.status === 'made') throw new HttpError(409, 'made', 'This idea is already made.');
+  if (patch.hookId) {
+    if (row.engine !== 'website') throw new HttpError(400, 'no_hooks', 'This slideshow is already made with its first line.');
+    await swapBlitzHook(workspaceId, row, patch.hookId);
+  }
+  if (patch.audio) {
+    const card = (row.plan as BlitzIdeaPlan).card;
+    if (row.engine !== 'website' || !card) throw new HttpError(400, 'no_music', 'Only videos take music here.');
+    await prisma.slideshowVariant.update({ where: { id }, data: { plan: asJson({ ...(row.plan as object), audio: patch.audio, card: { ...card, audio: patch.audio } }) } });
+  }
+  if (patch.plannedAt) {
+    const at = new Date(patch.plannedAt);
+    if (Number.isNaN(at.getTime()) || at.getTime() < Date.now()) throw new HttpError(400, 'invalid_date', 'Pick a day from tomorrow on.');
+    await prisma.slideshowVariant.update({ where: { id }, data: { plannedAt: at } });
+  }
+  if (patch.status && patch.status !== row.status) {
+    await logSwipe({ variantId: id, action: SWIPE[patch.status] });
+    if (patch.status === 'discarded' && row.status === 'proposed') await refill(workspaceId, row.plannedAt);
+  }
+  return listIdeas(workspaceId);
+}
+
+/** The viewer's day `YYYY-MM-DD` as a day number. */
+const dayNumber = (day: string): number => {
+  const start = new Date(`${day}T00:00:00Z`);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || Number.isNaN(start.getTime())) throw new HttpError(400, 'invalid_day', 'Pick a day.');
+  return Math.floor(start.getTime() / 86_400_000);
+};
+
+/**
+ * "+" on a day: the newest reserve Blitz card goes on it (after the day's other ideas). "−": the day's last idea not
+ * kept leaves it (a Blitz card back to the reserve, a slideshow skipped).
+ */
+export async function changeDay(workspaceId: string, req: IdeaDayRequest): Promise<IdeasListDto> {
+  const day = dayNumber(req.day);
+  const range = { gte: atViewerTime(day, '00:00', req.tzOffsetMin), lt: atViewerTime(day + 1, '00:00', req.tzOffsetMin) };
+  const onDay = await prisma.slideshowVariant.findMany({ where: { workspaceId, status: 'proposed', plannedAt: range }, orderBy: { plannedAt: 'asc' } });
+  if (req.action === 'remove') {
+    const last = onDay[onDay.length - 1];
+    if (!last) throw new HttpError(409, 'no_idea', 'No idea to remove on this day.');
+    await prisma.slideshowVariant.update({ where: { id: last.id }, data: last.engine === 'website' ? { plannedAt: null } : { status: 'discarded' } });
+    return listIdeas(workspaceId);
+  }
+  const [next] = await loadReserve(workspaceId);
+  if (!next) throw new HttpError(409, 'no_reserve', 'No more ideas for now. Open the ideas panel and get 12 more.');
+  const lastAt = onDay[onDay.length - 1]?.plannedAt;
+  const at = lastAt ? new Date(lastAt.getTime() + 2 * 60 * 60 * 1000) : atViewerTime(day, '19:00', req.tzOffsetMin);
+  if (at.getTime() < Date.now() + 15 * 60 * 1000) throw new HttpError(400, 'too_soon', 'Pick a day from tomorrow on.');
+  await prisma.slideshowVariant.update({ where: { id: next.id }, data: { plannedAt: at } });
+  return listIdeas(workspaceId);
+}
+
+/**
+ * Makes the kept slideshow ideas: each ready slideshow moves into run `runId` and is charged. Ideas still being made
+ * stay kept (the reason comes back per idea). Returns the made ones with their days, so the calendar pins them there.
+ */
+export async function makeSlideshowIdeas(workspaceId: string, userId: string, runId: string, ids: string[]): Promise<{ made: MadeSlideshow[]; errors: Record<string, string> }> {
+  const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { workspaceId: true } });
+  if (!run || run.workspaceId !== workspaceId) throw new HttpError(404, 'run_not_found', 'Run not found.');
+  const rows = await prisma.slideshowVariant.findMany({ where: { id: { in: ids }, workspaceId, engine: 'bank', status: 'kept' } });
+  if (rows.length === 0) throw new HttpError(400, 'nothing_kept', 'Keep a slideshow idea first.');
+  await requireCredits(userId, rows.length);
+  const made: MadeSlideshow[] = [];
+  const errors: Record<string, string> = {};
+  for (const row of rows) {
+    const plan = row.plan as unknown as BankIdeaPlan;
+    try {
+      if (!plan.ideaRunId) throw new HttpError(409, 'not_ready', 'This slideshow was never started. Skip it.');
+      const slideshowId = await adoptIdeaSlideshow(plan.ideaRunId, runId);
+      await prisma.slideshowVariant.update({ where: { id: row.id }, data: { status: 'made' } });
+      made.push({ ideaId: row.id, slideshowId, plannedAt: row.plannedAt!.toISOString() });
+    } catch (err) {
+      errors[row.id] = err instanceof Error ? err.message : 'Could not make this slideshow.';
+    }
+  }
+  return { made, errors };
+}

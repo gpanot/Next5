@@ -21,6 +21,8 @@ const MAKING: Badge = { label: 'Making…', short: 'Making', tone: 'bg-zinc-100 
 const neutral = 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200';
 /** A Blitz video: made about an hour before its time, then posted like the others. */
 const BLITZ_BADGE: Record<BlitzScheduleStatus, Badge> = {
+  // Waits for the user's approval, like a ready slideshow: the strong pill.
+  planned: { label: 'Approve video', short: 'Approve', tone: READY.tone },
   scheduled: { label: '✓ Video scheduled', short: '✓ Video', tone: neutral },
   rendering: { label: 'Making video', short: 'Making', tone: neutral },
   sending: POST_BADGE.sending,
@@ -34,6 +36,9 @@ export const badgeOf = (item: DayItem): Badge =>
   item.kind === 'post' ? POST_BADGE[item.post.status] : item.kind === 'blitz' ? BLITZ_BADGE[item.blitz.status] : item.kind === 'ready' ? READY : MAKING;
 
 /** The slideshow's hook photo (a video's first slide), or null while it is being made. */
+/** True when the cover is a video (shown as its first frame). */
+export const coverIsVideoOf = (item: DayItem): boolean => item.kind === 'blitz' && item.blitz.coverIsVideo;
+
 export const coverOf = (item: DayItem): string | null => (item.kind === 'blitz' ? item.blitz.coverUrl : item.show?.slides[0]?.imageUrl ?? null);
 
 export const titleOf = (item: DayItem): string => (item.kind === 'blitz' ? item.blitz.title : item.show?.topic ?? 'New slideshow');

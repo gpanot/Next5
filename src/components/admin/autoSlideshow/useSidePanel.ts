@@ -16,13 +16,13 @@ const readSaved = (): boolean | null => {
 
 /**
  * Brand card and agent log on the side: open while a run works (the first time it explains what happens), closed once
- * it is done. After the user toggles it, their choice sticks in this browser.
+ * it is done. After the user toggles it, their choice sticks in this browser. The third value sets it (the ideas panel
+ * folds it away).
  */
-export const useSidePanel = (status: AutoRunStatus | undefined): [boolean, () => void] => {
+export const useSidePanel = (status: AutoRunStatus | undefined): [boolean, () => void, (open: boolean) => void] => {
   const [saved, setSaved] = useState<boolean | null>(() => (typeof window === 'undefined' ? null : readSaved()));
   const open = saved ?? status !== 'COMPLETED';
-  const toggle = () => {
-    const next = !open;
+  const set = (next: boolean) => {
     setSaved(next);
     try {
       window.localStorage.setItem(KEY, next ? 'open' : 'closed');
@@ -30,5 +30,5 @@ export const useSidePanel = (status: AutoRunStatus | undefined): [boolean, () =>
       // Private mode or blocked storage: the choice still applies for this visit.
     }
   };
-  return [open, toggle];
+  return [open, () => set(!open), set];
 };

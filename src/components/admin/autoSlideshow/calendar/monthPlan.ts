@@ -1,5 +1,6 @@
 import type { AutoPostDto, AutoSlideshowDto } from '../../../../types/admin/autoSlideshow';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
+import { MAX_PER_DAY, POST_TIMES } from '../../../../lib/postTimes';
 
 /**
  * The posting calendar, worked out on the client from the run. Nothing here is saved until the user approves.
@@ -26,17 +27,7 @@ export type PlanDay = { key: string; date: Date; past: boolean; today: boolean; 
 /** `days`: the month grid (whole weeks). `all`: every day built, from the earliest shown or tomorrow to the last queued slot. */
 export type MonthPlan = { days: PlanDay[]; all: PlanDay[] };
 
-/** Most posts on one day. */
-export const MAX_PER_DAY = 5;
-
-/** Post times for 1 to 5 posts on a day, spread over the hours people scroll most. */
-export const POST_TIMES: Record<number, string[]> = {
-  1: ['19:00'],
-  2: ['12:00', '19:00'],
-  3: ['09:00', '13:00', '19:00'],
-  4: ['09:00', '12:00', '16:00', '19:00'],
-  5: ['08:00', '11:00', '14:00', '17:00', '20:00'],
-};
+export { MAX_PER_DAY, POST_TIMES };
 
 /** Day key → posts wanted that day. */
 export type Targets = Record<string, number>;
@@ -200,6 +191,9 @@ export const dropPins = (all: PlanDay[], id: string, day: PlanDay): Pins | null 
 export const toApprove = (all: PlanDay[]) =>
   all.flatMap((d) => d.slots.flatMap((s) => (s.item?.kind === 'ready' ? [{ show: s.item.show, at: s.at }] : [])));
 
+/** A Blitz video not started yet: its approval can still be made or changed. */
+export const blitzOpenable = (b: BlitzScheduleDto) => b.status === 'planned' || b.status === 'scheduled';
+
 export type MonthCounts = { ready: number; scheduled: number; posted: number; empty: number };
 
 /** The month's chips: ready to approve, scheduled (or on their way), posted, and empty future slots. */
@@ -210,7 +204,7 @@ export const monthCounts = (days: PlanDay[]): MonthCounts => {
     for (const { item } of day.slots) {
       if (item?.kind === 'ready') counts.ready += 1;
       if (item?.kind === 'post') counts[item.post.status === 'posted' ? 'posted' : 'scheduled'] += 1;
-      if (item?.kind === 'blitz' && item.blitz.status !== 'failed') counts[item.blitz.status === 'posted' ? 'posted' : 'scheduled'] += 1;
+      if (item?.kind === 'blitz' && item.blitz.status !== 'failed') counts[item.blitz.status === 'posted' ? 'posted' : item.blitz.status === 'planned' ? 'ready' : 'scheduled'] += 1;
     }
   }
   return counts;

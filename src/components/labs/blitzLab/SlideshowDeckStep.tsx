@@ -68,7 +68,7 @@ function deckRequest(source: DeckSource): { path: string; body: unknown; label: 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 /** Engine shot → card shot; library asset, trim, caption position and swaps ride along for the editor. */
-function toShotView(shot: DeckItem['shots'][number]): ShotView {
+export function toShotView(shot: DeckItem['shots'][number]): ShotView {
   return {
     text:       shot.text,
     textZone:   shot.textZone,
@@ -88,7 +88,7 @@ function toShotView(shot: DeckItem['shots'][number]): ShotView {
 }
 
 /** Convert a ZillowDeckItem (from API) into a DeckCardData (for SwipeDeck). The batch keeps ids unique across batches. */
-function toDeckCard(item: DeckItem, batch: number, check: CopyCheckContext): DeckCardData {
+export function toDeckCard(item: DeckItem, batch: number, check: CopyCheckContext | undefined): DeckCardData {
   return {
     check,
     id:         `${item.id}-b${batch}`,

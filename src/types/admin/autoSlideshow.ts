@@ -55,6 +55,8 @@ export type AutoPlan = {
   /** The Slideshow Bank the picks come from; true `bankBuilt` when this run built it. */
   bankId?: string;
   bankBuilt?: boolean;
+  /** Combos the next "Get more" makes as they are (kept calendar ideas), instead of picking. Step 3 drops them once used. */
+  requested?: BankCombo[];
 };
 
 /** Step 5 checkpoint: one generated photo per prompt (null when that image failed). */
