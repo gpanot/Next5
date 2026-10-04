@@ -9,7 +9,7 @@ export const contentType = 'image/png';
 export const alt = 'Auto Slideshow: three TikTok slideshow covers made by Next5. Slideshows that bring you customers.';
 
 // Real slide covers already in public/images/manifest.json (realtor, TikTok Shop, local service).
-const SLIDE_PATHS = ['legging-habits', 'listing-video-tips', 'missed-call-tips'];
+const SLIDE_PATHS = ['pantry-gaps', 'porsche-calmer', 'golf-setup'];
 
 const slideSrcs = await Promise.all(
   SLIDE_PATHS.map(async (name) => {

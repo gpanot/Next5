@@ -4253,5 +4253,320 @@
     "bytes": 8085,
     "alt": "Jev logo",
     "addedAt": "2026-10-02"
+  },
+  "public/images/auto-slideshow/pantry-gaps/1.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmurqt8g40000l204mucs9lfa, slideshow cmurquw8i0003l204hs6qx712, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 65547,
+    "alt": "TikTok slide: \"3 ways to avoid empty gaps (without double-buying):\"",
+    "generatedAt": "2026-10-04T09:54:16.494Z"
+  },
+  "public/images/auto-slideshow/pantry-gaps/2.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmurqt8g40000l204mucs9lfa, slideshow cmurquw8i0003l204hs6qx712, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 63637,
+    "alt": "TikTok slide: \"3 ways to avoid empty gaps (without double-buying):\"",
+    "generatedAt": "2026-10-04T09:54:16.537Z"
+  },
+  "public/images/auto-slideshow/pantry-gaps/3.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmurqt8g40000l204mucs9lfa, slideshow cmurquw8i0003l204hs6qx712, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 57056,
+    "alt": "TikTok slide: \"3 ways to avoid empty gaps (without double-buying):\"",
+    "generatedAt": "2026-10-04T09:54:16.576Z"
+  },
+  "public/images/auto-slideshow/pantry-gaps/4.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmurqt8g40000l204mucs9lfa, slideshow cmurquw8i0003l204hs6qx712, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 50020,
+    "alt": "TikTok slide: \"3 ways to avoid empty gaps (without double-buying):\"",
+    "generatedAt": "2026-10-04T09:54:16.609Z"
+  },
+  "public/images/auto-slideshow/pantry-gaps/5.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmurqt8g40000l204mucs9lfa, slideshow cmurquw8i0003l204hs6qx712, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 57192,
+    "alt": "TikTok slide: \"3 ways to avoid empty gaps (without double-buying):\"",
+    "generatedAt": "2026-10-04T09:54:16.646Z"
+  },
+  "public/images/auto-slideshow/porsche-calmer/1.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutm5bji0001l204nnh6ydbu, slideshow cmutm5x18000el2047nb25cc4, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 62603,
+    "alt": "TikTok slide: \"Last visit: overloaded. This year: calmer decisions and smoother drives.\"",
+    "generatedAt": "2026-10-04T09:54:16.686Z"
+  },
+  "public/images/auto-slideshow/porsche-calmer/2.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutm5bji0001l204nnh6ydbu, slideshow cmutm5x18000el2047nb25cc4, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 57478,
+    "alt": "TikTok slide: \"Last visit: overloaded. This year: calmer decisions and smoother drives.\"",
+    "generatedAt": "2026-10-04T09:54:16.723Z"
+  },
+  "public/images/auto-slideshow/porsche-calmer/3.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutm5bji0001l204nnh6ydbu, slideshow cmutm5x18000el2047nb25cc4, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 59233,
+    "alt": "TikTok slide: \"Last visit: overloaded. This year: calmer decisions and smoother drives.\"",
+    "generatedAt": "2026-10-04T09:54:16.762Z"
+  },
+  "public/images/auto-slideshow/porsche-calmer/4.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutm5bji0001l204nnh6ydbu, slideshow cmutm5x18000el2047nb25cc4, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 59257,
+    "alt": "TikTok slide: \"Last visit: overloaded. This year: calmer decisions and smoother drives.\"",
+    "generatedAt": "2026-10-04T09:54:16.801Z"
+  },
+  "public/images/auto-slideshow/porsche-calmer/5.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutm5bji0001l204nnh6ydbu, slideshow cmutm5x18000el2047nb25cc4, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 61209,
+    "alt": "TikTok slide: \"Last visit: overloaded. This year: calmer decisions and smoother drives.\"",
+    "generatedAt": "2026-10-04T09:54:16.844Z"
+  },
+  "public/images/auto-slideshow/golf-setup/1.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutks5360014vuu06kwbqowh, slideshow cmutksoh3001dvuu0na52y11b, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 49179,
+    "alt": "TikTok slide: \"Did you know setup decides the start line?\"",
+    "generatedAt": "2026-10-04T09:54:16.883Z"
+  },
+  "public/images/auto-slideshow/golf-setup/2.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutks5360014vuu06kwbqowh, slideshow cmutksoh3001dvuu0na52y11b, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 50701,
+    "alt": "TikTok slide: \"Did you know setup decides the start line?\"",
+    "generatedAt": "2026-10-04T09:54:16.922Z"
+  },
+  "public/images/auto-slideshow/golf-setup/3.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutks5360014vuu06kwbqowh, slideshow cmutksoh3001dvuu0na52y11b, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 60600,
+    "alt": "TikTok slide: \"Did you know setup decides the start line?\"",
+    "generatedAt": "2026-10-04T09:54:16.967Z"
+  },
+  "public/images/auto-slideshow/golf-setup/4.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutks5360014vuu06kwbqowh, slideshow cmutksoh3001dvuu0na52y11b, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 54939,
+    "alt": "TikTok slide: \"Did you know setup decides the start line?\"",
+    "generatedAt": "2026-10-04T09:54:17.008Z"
+  },
+  "public/images/auto-slideshow/golf-setup/5.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutks5360014vuu06kwbqowh, slideshow cmutksoh3001dvuu0na52y11b, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 48982,
+    "alt": "TikTok slide: \"Did you know setup decides the start line?\"",
+    "generatedAt": "2026-10-04T09:54:17.047Z"
+  },
+  "public/images/auto-slideshow/trading-gaps/1.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutl9ypo0007vunbsih5hlku, slideshow cmutlbopw0017vunb0xesf5aq, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 53634,
+    "alt": "TikTok slide: \"How to enter faster when gaps reopen—without rushing spikes.\"",
+    "generatedAt": "2026-10-04T09:54:17.084Z"
+  },
+  "public/images/auto-slideshow/trading-gaps/2.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutl9ypo0007vunbsih5hlku, slideshow cmutlbopw0017vunb0xesf5aq, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 52049,
+    "alt": "TikTok slide: \"How to enter faster when gaps reopen—without rushing spikes.\"",
+    "generatedAt": "2026-10-04T09:54:17.123Z"
+  },
+  "public/images/auto-slideshow/trading-gaps/3.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutl9ypo0007vunbsih5hlku, slideshow cmutlbopw0017vunb0xesf5aq, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 59286,
+    "alt": "TikTok slide: \"How to enter faster when gaps reopen—without rushing spikes.\"",
+    "generatedAt": "2026-10-04T09:54:17.166Z"
+  },
+  "public/images/auto-slideshow/trading-gaps/4.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutl9ypo0007vunbsih5hlku, slideshow cmutlbopw0017vunb0xesf5aq, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 57820,
+    "alt": "TikTok slide: \"How to enter faster when gaps reopen—without rushing spikes.\"",
+    "generatedAt": "2026-10-04T09:54:17.211Z"
+  },
+  "public/images/auto-slideshow/trading-gaps/5.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmutl9ypo0007vunbsih5hlku, slideshow cmutlbopw0017vunb0xesf5aq, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 48267,
+    "alt": "TikTok slide: \"How to enter faster when gaps reopen—without rushing spikes.\"",
+    "generatedAt": "2026-10-04T09:54:17.246Z"
+  },
+  "public/images/auto-slideshow/first-slide-signs/1.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmuthj4m30001vuzsl9inx2jg, slideshow cmuthjpvk000avuzs9jk3t47x, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 56536,
+    "alt": "TikTok slide: \"3 signs you're losing first-slide reads. Number 3 is crucial:\"",
+    "generatedAt": "2026-10-04T09:54:17.286Z"
+  },
+  "public/images/auto-slideshow/first-slide-signs/2.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmuthj4m30001vuzsl9inx2jg, slideshow cmuthjpvk000avuzs9jk3t47x, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 50403,
+    "alt": "TikTok slide: \"3 signs you're losing first-slide reads. Number 3 is crucial:\"",
+    "generatedAt": "2026-10-04T09:54:17.323Z"
+  },
+  "public/images/auto-slideshow/first-slide-signs/3.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmuthj4m30001vuzsl9inx2jg, slideshow cmuthjpvk000avuzs9jk3t47x, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 53519,
+    "alt": "TikTok slide: \"3 signs you're losing first-slide reads. Number 3 is crucial:\"",
+    "generatedAt": "2026-10-04T09:54:17.363Z"
+  },
+  "public/images/auto-slideshow/first-slide-signs/4.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmuthj4m30001vuzsl9inx2jg, slideshow cmuthjpvk000avuzs9jk3t47x, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 47534,
+    "alt": "TikTok slide: \"3 signs you're losing first-slide reads. Number 3 is crucial:\"",
+    "generatedAt": "2026-10-04T09:54:17.398Z"
+  },
+  "public/images/auto-slideshow/first-slide-signs/5.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmuthj4m30001vuzsl9inx2jg, slideshow cmuthjpvk000avuzs9jk3t47x, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 48065,
+    "alt": "TikTok slide: \"3 signs you're losing first-slide reads. Number 3 is crucial:\"",
+    "generatedAt": "2026-10-04T09:54:17.434Z"
+  },
+  "public/images/auto-slideshow/meal-planning/1.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmurqt8ju0000jk044dk71i6w, slideshow cmurqvgrn0003jk04bzs12s3y, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 55663,
+    "alt": "TikTok slide: \"Hot take: a long list isn’t the problem—planning is.\"",
+    "generatedAt": "2026-10-04T09:54:17.473Z"
+  },
+  "public/images/auto-slideshow/meal-planning/2.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmurqt8ju0000jk044dk71i6w, slideshow cmurqvgrn0003jk04bzs12s3y, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 64817,
+    "alt": "TikTok slide: \"Hot take: a long list isn’t the problem—planning is.\"",
+    "generatedAt": "2026-10-04T09:54:17.520Z"
+  },
+  "public/images/auto-slideshow/meal-planning/3.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmurqt8ju0000jk044dk71i6w, slideshow cmurqvgrn0003jk04bzs12s3y, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 54346,
+    "alt": "TikTok slide: \"Hot take: a long list isn’t the problem—planning is.\"",
+    "generatedAt": "2026-10-04T09:54:17.557Z"
+  },
+  "public/images/auto-slideshow/meal-planning/4.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmurqt8ju0000jk044dk71i6w, slideshow cmurqvgrn0003jk04bzs12s3y, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 60033,
+    "alt": "TikTok slide: \"Hot take: a long list isn’t the problem—planning is.\"",
+    "generatedAt": "2026-10-04T09:54:17.601Z"
+  },
+  "public/images/auto-slideshow/meal-planning/5.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmurqt8ju0000jk044dk71i6w, slideshow cmurqvgrn0003jk04bzs12s3y, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 61195,
+    "alt": "TikTok slide: \"Hot take: a long list isn’t the problem—planning is.\"",
+    "generatedAt": "2026-10-04T09:54:17.643Z"
+  },
+  "public/images/auto-slideshow/slide-chapters/1.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmuti0y4z000yvuzseqpg55i8, slideshow cmuti1gmx0011vuzss9yxdokk, slide 1), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 55538,
+    "alt": "TikTok slide: \"The clarity glow-up: your slideshow finally reads like chapters.\"",
+    "generatedAt": "2026-10-04T09:54:17.682Z"
+  },
+  "public/images/auto-slideshow/slide-chapters/2.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmuti0y4z000yvuzseqpg55i8, slideshow cmuti1gmx0011vuzss9yxdokk, slide 2), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 56119,
+    "alt": "TikTok slide: \"The clarity glow-up: your slideshow finally reads like chapters.\"",
+    "generatedAt": "2026-10-04T09:54:17.721Z"
+  },
+  "public/images/auto-slideshow/slide-chapters/3.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmuti0y4z000yvuzseqpg55i8, slideshow cmuti1gmx0011vuzss9yxdokk, slide 3), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 56770,
+    "alt": "TikTok slide: \"The clarity glow-up: your slideshow finally reads like chapters.\"",
+    "generatedAt": "2026-10-04T09:54:17.763Z"
+  },
+  "public/images/auto-slideshow/slide-chapters/4.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmuti0y4z000yvuzseqpg55i8, slideshow cmuti1gmx0011vuzss9yxdokk, slide 4), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 45770,
+    "alt": "TikTok slide: \"The clarity glow-up: your slideshow finally reads like chapters.\"",
+    "generatedAt": "2026-10-04T09:54:17.802Z"
+  },
+  "public/images/auto-slideshow/slide-chapters/5.jpg": {
+    "prompt": "Output of the Auto Slideshow pipeline (run cmuti0y4z000yvuzseqpg55i8, slideshow cmuti1gmx0011vuzss9yxdokk, slide 5), rendered 1080x1350 slide, downscaled for the Auto Slideshow home.",
+    "model": "auto-slideshow/render",
+    "size": "1080x1350",
+    "outputSize": "540x675",
+    "bytes": 42461,
+    "alt": "TikTok slide: \"The clarity glow-up: your slideshow finally reads like chapters.\"",
+    "generatedAt": "2026-10-04T09:54:17.833Z"
   }
 }

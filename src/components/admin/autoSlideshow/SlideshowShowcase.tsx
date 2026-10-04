@@ -16,12 +16,12 @@ const SLIDES_PER_SHOW = 5;
 const SLIDE_MS = 2_500;
 
 const SHOWCASE: ShowcaseSlideshow[] = [
-  { slug: 'legging-habits', alt: '7 Running Leggings Habits That Quietly Lower Rolling', slides: SLIDES_PER_SHOW, stats: { views: '412K', saves: '9.4K' } },
-  { slug: 'listing-video-tips', alt: '5 Listing Video Tips For Busy Realtors', slides: SLIDES_PER_SHOW, stats: { likes: '14.2K', comments: '284' } },
-  { slug: 'missed-call-tips', alt: '5 Missed-Call Booking Tips For Service Owners', slides: SLIDES_PER_SHOW, stats: { views: '97K', likes: '6.8K' } },
-  { slug: 'golf-striking', alt: '5 Striking is Easy for Golfers (if you Fix Contact)', slides: SLIDES_PER_SHOW, stats: { saves: '31K', comments: '1.8K' } },
-  { slug: 'realtor-habits', alt: '7 Realtor Habits That Quietly Lower Video Time', slides: SLIDES_PER_SHOW, stats: { views: '254K', comments: '395' } },
-  { slug: 'no-show-fixes', alt: '5 No-Show Fixes For Service Teams', slides: SLIDES_PER_SHOW, stats: { likes: '9.9K', saves: '4.2K' } },
+  { slug: 'pantry-gaps', alt: '3 ways to avoid empty gaps (without double-buying)', slides: SLIDES_PER_SHOW, stats: { views: '412K', saves: '9.4K' } },
+  { slug: 'porsche-calmer', alt: 'Last visit: overloaded. This year: calmer decisions and smoother drives.', slides: SLIDES_PER_SHOW, stats: { likes: '14.2K', comments: '284' } },
+  { slug: 'golf-setup', alt: 'Did you know setup decides the start line?', slides: SLIDES_PER_SHOW, stats: { views: '97K', likes: '6.8K' } },
+  { slug: 'trading-gaps', alt: 'How to enter faster when gaps reopen, without rushing spikes', slides: SLIDES_PER_SHOW, stats: { saves: '31K', comments: '1.8K' } },
+  { slug: 'first-slide-signs', alt: "3 signs you're losing first-slide reads", slides: SLIDES_PER_SHOW, stats: { views: '254K', comments: '395' } },
+  { slug: 'meal-planning', alt: 'Hot take: a long list is not the problem. Planning is.', slides: SLIDES_PER_SHOW, stats: { likes: '9.9K', saves: '4.2K' } },
 ];
 
 /** Absolute slots for the wide-screen side decks: 3 cards per side, anchored to the page center so they hug the hero. */
@@ -74,17 +74,23 @@ function useAutoplay(count: number, offset: number) {
   return index;
 }
 
-function SlideshowCard({ show, order, className }: { show: ShowcaseSlideshow; order: number; className: string }) {
+/** Side decks keep the 9:16 phone frame; the strip uses the slides' own 4:5, so phones get bigger, readable slides with no blur bands. */
+type CardFrame = 'phone' | 'post';
+const FRAME_CLASS: Record<CardFrame, string> = { phone: 'aspect-[9/16]', post: 'aspect-[4/5]' };
+
+type CardProps = { show: ShowcaseSlideshow; order: number; className: string; frame?: CardFrame; sizes?: string };
+
+function SlideshowCard({ show, order, className, frame = 'phone', sizes = '211px' }: CardProps) {
   const index = useAutoplay(show.slides, (order * 700) % SLIDE_MS);
   return (
     <figure className={`shrink-0 rounded-2xl border border-line bg-white p-2 shadow-sm transition duration-300 hover:z-10 hover:scale-105 hover:rotate-0 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 ${className}`}>
-      <div className="relative aspect-[9/16] overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
+      <div className={`relative ${FRAME_CLASS[frame]} overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800`}>
         {Array.from({ length: show.slides }, (_, i) => (
           <FittedImage
             key={i}
             src={`/images/auto-slideshow/${show.slug}/${i + 1}.jpg`}
             alt={i === 0 ? `TikTok slideshow: "${show.alt}"` : ''}
-            sizes="211px"
+            sizes={sizes}
             className={`transition-opacity duration-500 ${i === index ? 'opacity-100' : 'opacity-0'}`}
           />
         ))}
@@ -94,11 +100,11 @@ function SlideshowCard({ show, order, className }: { show: ShowcaseSlideshow; or
           ))}
         </div>
       </div>
-      <figcaption className="mt-2 flex items-center justify-center gap-2.5 text-[11px] whitespace-nowrap text-muted dark:text-zinc-400">
+      <figcaption className="mt-2 flex items-center justify-center gap-3 text-xs sm:gap-2.5 sm:text-[11px] whitespace-nowrap text-muted dark:text-zinc-400">
         {(Object.keys(STAT_LABELS) as Stat[]).filter((stat) => show.stats[stat]).map((stat) => (
           <span key={stat} className="flex items-center gap-1" title={STAT_LABELS[stat]}>
             <StatIcon stat={stat} />
-            {STAT_LABELS[stat]}
+            <span className="sr-only sm:not-sr-only">{STAT_LABELS[stat]}</span>
             <b className="font-semibold text-ink dark:text-zinc-100">{show.stats[stat]}</b>
           </span>
         ))}
@@ -142,10 +148,10 @@ export function SlideshowStrip() {
   const loop = [...SHOWCASE, ...SHOWCASE];
   return (
     <div className="-mx-4 mt-10 w-[calc(100%+2rem)] 2xl:hidden" data-intro="5" data-intro-lift="56">
-      <div ref={rowRef} className="flex overflow-x-auto px-6 pt-3 pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div ref={rowRef} className="flex overflow-x-auto overscroll-x-contain px-6 pt-3 pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {loop.map((show, i) => (
           <div key={`${show.slug}-${i}`} aria-hidden={i >= SHOWCASE.length || undefined} className="shrink-0 pr-4">
-            <SlideshowCard show={show} order={i} className={`w-48 ${STRIP_TILTS[i % STRIP_TILTS.length]}`} />
+            <SlideshowCard show={show} order={i} frame="post" sizes="(min-width: 640px) 240px, 224px" className={`w-56 sm:w-60 ${STRIP_TILTS[i % STRIP_TILTS.length]}`} />
           </div>
         ))}
       </div>

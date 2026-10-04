@@ -13,8 +13,8 @@ import { SplitWords } from '../../../motion/SplitWords';
 
 /** On 2xl the section narrows to the gap between the floating side decks (inner edges sit ~26.5rem from center). */
 /** Real output from the showcase (public/images/auto-slideshow, listed in the image manifest). */
-const STORY_SLUG = 'listing-video-tips';
-const STORY_ALT = 'TikTok slideshow: "5 Listing Video Tips For Busy Realtors"';
+const STORY_SLUG = 'slide-chapters';
+const STORY_ALT = 'TikTok slideshow: "The clarity glow-up: your slideshow finally reads like chapters."';
 
 /** Plain words, only claims the FAQ backs up. */
 const STEPS = [
@@ -48,14 +48,14 @@ function StoryPhone({ active }: { active: number }) {
 function StoryStep({ index, active }: { index: number; active: boolean }) {
   const step = STEPS[index];
   return (
-    <li data-story-step="" className="flex items-center gap-4 lg:min-h-[48vh]">
-      <div className="relative aspect-[9/16] w-24 shrink-0 overflow-hidden rounded-xl bg-zinc-100 shadow-sm lg:hidden dark:bg-zinc-800">
-        <FittedImage src={slideSrc(index)} alt="" sizes="96px" />
+    <li data-story-step="" className="flex items-center gap-4 sm:gap-6 lg:min-h-[48vh]">
+      <div className="relative aspect-[4/5] w-32 shrink-0 overflow-hidden rounded-xl bg-zinc-100 shadow-sm sm:w-40 lg:hidden dark:bg-zinc-800">
+        <FittedImage src={slideSrc(index)} alt="" sizes="(min-width: 640px) 160px, 128px" />
       </div>
-      <div className={`motion-safe:transition-opacity motion-safe:duration-500 ${active ? 'lg:opacity-100' : 'lg:opacity-30'}`}>
+      <div className={`min-w-0 motion-safe:transition-opacity motion-safe:duration-500 ${active ? 'lg:opacity-100' : 'lg:opacity-30'}`}>
         <span className="text-sm font-semibold text-blue-600 tabular-nums dark:text-blue-400">Step {index + 1} of {STEPS.length}</span>
-        <h3 className="mt-1 text-2xl leading-tight font-extrabold tracking-tight text-balance text-ink md:text-4xl dark:text-zinc-100">{step.title}</h3>
-        <p className="mt-2 max-w-md text-base leading-relaxed text-muted md:text-lg dark:text-zinc-400">{step.body}</p>
+        <h3 className="mt-1 text-xl leading-tight font-extrabold sm:text-2xl tracking-tight text-balance text-ink md:text-4xl dark:text-zinc-100">{step.title}</h3>
+        <p className="mt-1.5 max-w-md text-[15px] leading-snug sm:mt-2 sm:text-base sm:leading-relaxed text-muted md:text-lg dark:text-zinc-400">{step.body}</p>
       </div>
     </li>
   );
@@ -79,13 +79,13 @@ export function HomeStory() {
   const listRef = useRef<HTMLOListElement>(null);
   const active = useActiveStep(listRef);
   return (
-    <section aria-labelledby="slideshow-story" className="relative mx-auto w-full max-w-5xl px-1 pt-16 pb-8 text-left md:pt-24 2xl:max-w-[50rem]">
+    <section aria-labelledby="slideshow-story" className="relative mx-auto w-full max-w-5xl px-1 pt-10 pb-8 text-left md:pt-16 lg:pt-24 2xl:max-w-[50rem]">
       <h2 id="slideshow-story" data-split="" className="mx-auto max-w-2xl text-center text-3xl font-extrabold tracking-tight text-balance text-ink md:text-5xl dark:text-zinc-100">
         <SplitWords text="From your website to a post in 5 steps." />
       </h2>
-      <div className="mt-10 grid gap-10 md:mt-14 lg:grid-cols-[260px_1fr] lg:gap-16 2xl:gap-10">
+      <div className="mt-8 grid gap-10 md:mt-14 lg:grid-cols-[260px_1fr] lg:gap-16 2xl:gap-10">
         <div className="hidden lg:block"><StoryPhone active={active} /></div>
-        <ol ref={listRef} className="flex flex-col gap-8 lg:gap-0 lg:pb-[12vh]">
+        <ol ref={listRef} className="flex flex-col gap-6 sm:gap-8 lg:gap-0 lg:pb-[12vh]">
           {STEPS.map((step, i) => <StoryStep key={step.title} index={i} active={i === active} />)}
         </ol>
       </div>

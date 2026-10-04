@@ -23,7 +23,7 @@ export function SiteForm({ className = '' }: { className?: string }) {
         aria-label="Your website"
         inputMode="url"
         autoCapitalize="none"
-        className="min-w-0 flex-1 bg-transparent px-3 py-3 text-base font-medium text-ink placeholder:text-zinc-300 focus:outline-none dark:text-zinc-100"
+        className="min-w-0 flex-1 bg-transparent px-3 py-3 text-base font-medium text-ink placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none dark:text-zinc-100"
       />
       <button type="submit" disabled={!url.trim()} className="min-h-11 rounded-full bg-blue-600 px-5 text-sm font-semibold whitespace-nowrap text-white shadow-sm transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 active:scale-95 disabled:opacity-40 dark:bg-blue-500 dark:hover:bg-blue-400">
         Make slideshows →

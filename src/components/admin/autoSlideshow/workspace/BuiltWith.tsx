@@ -41,7 +41,7 @@ export function BuiltWith() {
     <section aria-labelledby="slideshow-built-with" className="relative mx-auto w-full max-w-4xl pb-12 md:pb-16">
       <div data-reveal="" className="flex flex-col items-center gap-5 text-center">
         <h2 id="slideshow-built-with" className="text-sm font-semibold tracking-wide text-muted uppercase dark:text-zinc-400">Build with</h2>
-        <ul className="flex flex-wrap items-start justify-center gap-x-5 gap-y-4 md:gap-x-8">
+        <ul className="grid grid-cols-3 justify-items-center gap-x-6 gap-y-5 sm:flex sm:flex-wrap sm:items-start sm:justify-center sm:gap-x-5 sm:gap-y-4 md:gap-x-8">
           {TOOLS.map(({ name, logo, tile }) => (
             <li key={name} className="flex w-16 flex-col items-center gap-2">
               <span className={`flex h-11 w-11 items-center justify-center rounded-xl shadow-sm transition-transform duration-200 hover:-translate-y-0.5 ${tile}`}>{logo}</span>
