@@ -30,9 +30,10 @@ type Props = {
 
 export type DeckSize = 'panel' | 'day';
 
-/** Card widths that keep ~42px free on each side for the sound buttons (36px + gap) while the card stays centered. */
+/** Card widths that keep ~48px free on each side for the sound buttons (36px + gap) while the card stays centered.
+ *  Phone panel: the height left after the tight header (~4.5rem) and the controls + undo row (~7.5rem) goes to the card. */
 const CARD_WIDTH: Record<DeckSize, string> = {
-  panel: 'w-[min(calc(100vw-7.5rem),calc((100dvh-16rem)*0.5625),337px)] lg:w-[min(calc((100dvh-28rem)*0.5625),260px)]',
+  panel: 'w-[min(calc(100vw-6rem),calc((100dvh-13rem)*0.5625),380px)] lg:w-[min(calc((100dvh-28rem)*0.5625),260px)]',
   day: 'w-[min(calc(100vw-11.5rem),calc((100dvh-18rem)*0.5625),300px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
 };
 
@@ -72,7 +73,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
   };
   const tags = [{ label: formatLabel(idea), variant: 'style' as const }, { label: card.lensValue, variant: 'audience' as const }];
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-2 lg:gap-3">
       {/* Centered over ✕ / ✓; sized by the screen height (✕ and ✓ stay in view) and leaving room for the sound buttons. */}
       <div className={`relative aspect-[9/16] ${CARD_WIDTH[size]}`} aria-live="polite">
         {back && <SwipeCard key={back.id} shots={back.shots} position="back1" hue={back.hue} onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} />}
@@ -96,8 +97,8 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
       </div>
       <CardMusic url={card.audio?.url ?? null} startAt={card.audio?.startAt ?? 0} playing={soundOn && !exit} />
       <Controls idea={idea} onSkip={() => void decide('discarded')} onKeep={() => void decide('kept')} onEditHook={() => onEditHook(idea)} />
-      <div className="flex items-center gap-3 text-xs text-muted">
-        <button type="button" onClick={onUndo} disabled={!canUndo} className="flex min-h-11 items-center gap-1 px-2 font-semibold transition hover:text-ink disabled:opacity-30 dark:hover:text-zinc-100">
+      <div className="-mt-1 flex items-center gap-3 text-xs text-muted lg:mt-0">
+        <button type="button" onClick={onUndo} disabled={!canUndo} className="flex min-h-10 lg:min-h-11 items-center gap-1 px-2 font-semibold transition hover:text-ink disabled:opacity-30 dark:hover:text-zinc-100">
           <Undo2 aria-hidden className="h-4 w-4" /> Undo
         </button>
         <span>Will be posted: <span className="font-semibold text-ink dark:text-zinc-100">{whenOf(idea, plannedAt)}</span></span>

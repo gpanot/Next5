@@ -26,7 +26,7 @@ function Header({ ideas, onClose }: { ideas: IdeasState; onClose: () => void }) 
   const total = ideas.deck.length + ideas.kept.length + ideas.skipped.length;
   const decided = ideas.kept.length + ideas.skipped.length;
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 lg:space-y-3">
       <header className="flex items-center gap-1.5">
         <button type="button" onClick={onClose} aria-label="Close ideas" className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800">
           <X aria-hidden className="h-5 w-5" strokeWidth={2.4} />
@@ -46,7 +46,7 @@ function Header({ ideas, onClose }: { ideas: IdeasState; onClose: () => void }) 
 function Writing() {
   return (
     <div className="space-y-3" aria-busy="true" aria-label="Writing your ideas">
-      <div className="mx-auto aspect-[9/16] h-[min(600px,calc(100dvh-16rem))] max-w-full animate-pulse rounded-[26px] bg-zinc-100 lg:h-[min(560px,calc(100dvh-28rem))] dark:bg-zinc-800" />
+      <div className="mx-auto aspect-[9/16] h-[min(680px,calc(100dvh-13rem))] max-w-full animate-pulse rounded-[26px] bg-zinc-100 lg:h-[min(560px,calc(100dvh-28rem))] dark:bg-zinc-800" />
       <RotatingLine lines={WRITING_LINES} />
       <p className="text-center text-xs text-muted">This takes 1 to 3 minutes. You can keep using the calendar.</p>
     </div>
@@ -68,7 +68,7 @@ function Empty({ onGenerate, error }: { onGenerate: () => void; error: string | 
 
 /** What the panel shows: writing, empty, the deck, or the kept list once every idea was looked at. */
 function Body({ ideas, maker, placeOf }: { ideas: IdeasState; maker: Make; placeOf?: Placer }): ReactNode {
-  if (ideas.loading) return <div className="mx-auto aspect-[9/16] h-[min(600px,calc(100dvh-16rem))] max-w-full animate-pulse rounded-[26px] bg-zinc-100 lg:h-[min(560px,calc(100dvh-28rem))] dark:bg-zinc-800" />;
+  if (ideas.loading) return <div className="mx-auto aspect-[9/16] h-[min(680px,calc(100dvh-13rem))] max-w-full animate-pulse rounded-[26px] bg-zinc-100 lg:h-[min(560px,calc(100dvh-28rem))] dark:bg-zinc-800" />;
   if (ideas.generating && ideas.deck.length === 0) return <Writing />;
   const total = ideas.deck.length + ideas.making.length + ideas.kept.length + ideas.skipped.length;
   if (total === 0) return <Empty onGenerate={() => void ideas.generate()} error={ideas.error} />;
@@ -84,7 +84,7 @@ function Body({ ideas, maker, placeOf }: { ideas: IdeasState; maker: Make; place
  */
 export function IdeasPanel({ ideas, maker, onClose, placeOf }: Props) {
   return (
-    <div className="flex h-full flex-col gap-4 overflow-y-auto bg-white p-4 dark:bg-zinc-900">
+    <div className="flex h-full flex-col gap-3 overflow-y-auto bg-white px-4 pt-[max(0.25rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] lg:gap-4 lg:p-4 dark:bg-zinc-900">
       <Header ideas={ideas} onClose={onClose} />
       {ideas.making.length > 0 && (
         <p className="flex items-center gap-2 rounded-xl bg-zinc-50 px-3 py-2 text-xs text-muted dark:bg-zinc-950">
