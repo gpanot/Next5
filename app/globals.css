@@ -100,6 +100,26 @@ html.lenis.lenis-smooth {
   will-change: transform;
 }
 
+/* Rotating headline word (src/components/motion/RotatingWord.tsx): new word rises in from below, old word leaves upward. */
+@keyframes word-in {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+@keyframes word-out {
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+.word-in {
+  animation: word-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.word-out {
+  animation: word-out 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Pre-paint state for the hero intro (src/components/motion/MotionPrepaint.tsx).
    If the motion bundle never runs, the failsafe animation reveals everything after 2.5s. */
 @keyframes motion-failsafe {

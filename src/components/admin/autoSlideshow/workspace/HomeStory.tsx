@@ -20,7 +20,7 @@ const STORY_ALT = 'TikTok slideshow: "The clarity glow-up: your slideshow finall
 const STEPS = [
   { title: 'You paste your website.', body: 'We read it to learn what you sell and who buys it.' },
   { title: 'We pick a format that already gets views.', body: 'Only formats from our approved list. No guessing.' },
-  { title: 'We make the slides.', body: 'Photos and text on every slide. 5 to 9 slides a post.' },
+  { title: 'We make the slides and videos.', body: 'Photos and text on every slide. 5 to 9 slides a post.' },
   { title: 'We write the caption.', body: 'A hook, a caption and hashtags, ready to go.' },
   { title: 'You say yes. We post it.', body: 'Nothing goes live until you approve it.' },
 ];

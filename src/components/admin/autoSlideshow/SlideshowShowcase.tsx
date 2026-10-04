@@ -1,7 +1,7 @@
 'use client';
 
 /** Floating example slideshows around the Auto Slideshow start screen (side decks on wide screens, swipe strip below). */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FittedImage } from '../shared/FittedImage';
 import { useAutoScroll } from './useAutoScroll';
 
@@ -9,7 +9,8 @@ type Stat = 'views' | 'likes' | 'saves' | 'comments';
 
 /** Real Auto Slideshow outputs (latest runs), copied from the object store into public/. Slide text is baked into each image. */
 /** Two of the four KPIs per card, mixed across cards so the row doesn't read like a table. */
-type ShowcaseSlideshow = { slug: string; alt: string; slides: number; stats: Partial<Record<Stat, string>> };
+/** `video` cards play one looping clip from public/videos instead of cycling slide images. */
+type ShowcaseSlideshow = { slug: string; alt: string; slides: number; stats: Partial<Record<Stat, string>>; video?: string };
 
 const SLIDES_PER_SHOW = 5;
 /** Seconds per slide, like a TikTok carousel on auto-advance. */
@@ -17,11 +18,11 @@ const SLIDE_MS = 2_500;
 
 const SHOWCASE: ShowcaseSlideshow[] = [
   { slug: 'pantry-gaps', alt: '3 ways to avoid empty gaps (without double-buying)', slides: SLIDES_PER_SHOW, stats: { views: '412K', saves: '9.4K' } },
+  { slug: 'booking-ugc', alt: 'UGC video about online booking', slides: 1, stats: { views: '97K', likes: '6.8K' }, video: '/videos/perfect-ads/booking-ugc.mp4' },
   { slug: 'porsche-calmer', alt: 'Last visit: overloaded. This year: calmer decisions and smoother drives.', slides: SLIDES_PER_SHOW, stats: { likes: '14.2K', comments: '284' } },
-  { slug: 'golf-setup', alt: 'Did you know setup decides the start line?', slides: SLIDES_PER_SHOW, stats: { views: '97K', likes: '6.8K' } },
-  { slug: 'trading-gaps', alt: 'How to enter faster when gaps reopen, without rushing spikes', slides: SLIDES_PER_SHOW, stats: { saves: '31K', comments: '1.8K' } },
-  { slug: 'first-slide-signs', alt: "3 signs you're losing first-slide reads", slides: SLIDES_PER_SHOW, stats: { views: '254K', comments: '395' } },
+  { slug: 'r1', alt: 'UGC video: 24 hours a day', slides: 1, stats: { saves: '31K', comments: '1.8K' }, video: '/videos/perfect-ads/r1.mp4' },
   { slug: 'meal-planning', alt: 'Hot take: a long list is not the problem. Planning is.', slides: SLIDES_PER_SHOW, stats: { likes: '9.9K', saves: '4.2K' } },
+  { slug: 'reminders-ugc', alt: 'UGC video about appointment reminders', slides: 1, stats: { views: '254K', comments: '395' }, video: '/videos/perfect-ads/reminders-ugc.mp4' },
 ];
 
 /** Absolute slots for the wide-screen side decks: 3 cards per side, anchored to the page center so they hug the hero. */
@@ -78,6 +79,49 @@ function useAutoplay(count: number, offset: number) {
 type CardFrame = 'phone' | 'post';
 const FRAME_CLASS: Record<CardFrame, string> = { phone: 'aspect-[9/16]', post: 'aspect-[4/5]' };
 
+/** Image slideshow: slides cross-fade on the autoplay index, with TikTok-style progress bars on top. */
+function SlideStack({ show, index, sizes }: { show: ShowcaseSlideshow; index: number; sizes: string }) {
+  return (
+    <>
+      {Array.from({ length: show.slides }, (_, i) => (
+        <FittedImage
+          key={i}
+          src={`/images/auto-slideshow/${show.slug}/${i + 1}.jpg`}
+          alt={i === 0 ? `TikTok slideshow: "${show.alt}"` : ''}
+          sizes={sizes}
+          className={`transition-opacity duration-500 ${i === index ? 'opacity-100' : 'opacity-0'}`}
+        />
+      ))}
+      <div aria-hidden className="absolute inset-x-2 top-2 flex gap-1">
+        {Array.from({ length: show.slides }, (_, i) => (
+          <span key={i} className={`h-0.5 flex-1 rounded-full transition-colors duration-300 ${i <= index ? 'bg-white' : 'bg-white/40'}`} />
+        ))}
+      </div>
+    </>
+  );
+}
+
+/** Video card: muted autoplay loop, like a TikTok in the feed. Reduced motion shows the first frame only. */
+function ShowcaseVideo({ src, alt }: { src: string; alt: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    ref.current?.play().catch(() => {});
+  }, []);
+  return (
+    <video
+      ref={ref}
+      src={`${src}#t=0.1`}
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      aria-label={`TikTok video: ${alt}`}
+      className="absolute inset-0 h-full w-full object-cover"
+    />
+  );
+}
+
 type CardProps = { show: ShowcaseSlideshow; order: number; className: string; frame?: CardFrame; sizes?: string };
 
 function SlideshowCard({ show, order, className, frame = 'phone', sizes = '211px' }: CardProps) {
@@ -85,20 +129,7 @@ function SlideshowCard({ show, order, className, frame = 'phone', sizes = '211px
   return (
     <figure className={`shrink-0 rounded-2xl border border-line bg-white p-2 shadow-sm transition duration-300 hover:z-10 hover:scale-105 hover:rotate-0 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 ${className}`}>
       <div className={`relative ${FRAME_CLASS[frame]} overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800`}>
-        {Array.from({ length: show.slides }, (_, i) => (
-          <FittedImage
-            key={i}
-            src={`/images/auto-slideshow/${show.slug}/${i + 1}.jpg`}
-            alt={i === 0 ? `TikTok slideshow: "${show.alt}"` : ''}
-            sizes={sizes}
-            className={`transition-opacity duration-500 ${i === index ? 'opacity-100' : 'opacity-0'}`}
-          />
-        ))}
-        <div aria-hidden className="absolute inset-x-2 top-2 flex gap-1">
-          {Array.from({ length: show.slides }, (_, i) => (
-            <span key={i} className={`h-0.5 flex-1 rounded-full transition-colors duration-300 ${i <= index ? 'bg-white' : 'bg-white/40'}`} />
-          ))}
-        </div>
+        {show.video ? <ShowcaseVideo src={show.video} alt={show.alt} /> : <SlideStack show={show} index={index} sizes={sizes} />}
       </div>
       <figcaption className="mt-2 flex items-center justify-center gap-3 text-xs sm:gap-2.5 sm:text-[11px] whitespace-nowrap text-muted dark:text-zinc-400">
         {(Object.keys(STAT_LABELS) as Stat[]).filter((stat) => show.stats[stat]).map((stat) => (
