@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { AUTO_STEP_LABELS, currentAutoStep, isTerminalAutoStatus, type AutoStep, type AutoPhotoDto, type AutoRunDto, type AutoTrackDto } from '../../../types/admin/autoSlideshow';
-import { adminFetch, useAdminApi } from '../business/useAdminApi';
+import { AUTO_STEP_LABELS, currentAutoStep, isTerminalAutoStatus, type AutoStep, type AutoRunDto } from '../../../types/admin/autoSlideshow';
+import { adminFetch } from '../business/useAdminApi';
 import { AgentLog } from '../shared/AgentLog';
 import { BrandCard } from '../shared/BrandCard';
 import { PipelineNav } from '../shared/PipelineNav';
@@ -12,7 +12,7 @@ import { RunTopBar } from '../shared/RunTopBar';
 import { SlideshowGrid } from './SlideshowGrid';
 import { PostingCalendar } from './calendar/PostingCalendar';
 import { RunEta } from './RunEta';
-import { SlideshowEditor } from './SlideshowEditor';
+import { RunSlideshowEditor } from './RunSlideshowEditor';
 import { MatrixDialog } from './matrix/MatrixDialog';
 
 /** The Matrix view (the site's Slideshow Bank) is a local dev tool: hidden in production builds. */
@@ -108,7 +108,10 @@ function RunHeading({ run }: { run: AutoRunDto }) {
   );
 }
 
-/** "All slideshows": folded by default since the calendar shows the same slideshows; opens itself when one failed. */
+/**
+ * "All slideshows" on the admin page: folded by default since the calendar shows the same slideshows; opens itself when
+ * one failed. A workspace lists them on Content › Slideshows instead.
+ */
 function AllSlideshows({ run, children }: { run: AutoRunDto; children: ReactNode }) {
   const [opened, setOpened] = useState<boolean | null>(null);
   const failed = run.slideshows.some((s) => s.status === 'failed');
@@ -132,9 +135,6 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [matrixOpen, setMatrixOpen] = useState(false);
   const [retrying, setRetrying] = useState<string | null>(null);
-  const ready = run?.slideshows.filter((s) => s.status === 'ready') ?? [];
-  const at = ready.findIndex((s) => s.id === openId);
-  const open = at >= 0 ? ready[at] : null;
   const done = run?.status === 'COMPLETED' || run?.status === 'FAILED';
 
   const retry = async (slideshowId: string) => {
@@ -145,11 +145,6 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
   };
 
   const [sideOpen, toggleSide, setSideOpen] = useSidePanel(run?.status);
-  // The editor's photo and music pickers load once, on the first slideshow opened, and stay for the next ones.
-  const [editorUsed, setEditorUsed] = useState(false);
-  if (openId && !editorUsed) setEditorUsed(true);
-  const photos = useAdminApi<{ photos: AutoPhotoDto[] }>(token, editorUsed ? `/api/admin/auto-slideshow/runs/${runId}/photos` : null);
-  const music = useAdminApi<{ tracks: AutoTrackDto[] }>(token, editorUsed ? '/api/admin/auto-slideshow/music' : null);
   // A workspace shows progress only in the agent log; the admin page keeps a step bar under its header.
   const inTopBar = useHasTopBarSlot();
   const workspace = useSlideshowWorkspace();
@@ -175,39 +170,27 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
             {run.status === 'FAILED' && <FailedBanner token={token} run={run} onResumed={refresh} />}
             <RunHeading run={run} />
             {(run.status !== 'FAILED' || run.slideshows.length > 0) && <PostingCalendar token={token} run={run} onOpen={setOpenId} onRunChanged={refresh} ideasEnabled={Boolean(workspace)} onRailOpen={() => setSideOpen(false)} />}
-            <AllSlideshows run={run}>
-              <SlideshowGrid
-                slideshows={run.slideshows}
-                expected={run.count}
-                writing={!done}
-                retrying={retrying}
-                onOpen={(i) => setOpenId(run.slideshows[i]!.id)}
-                onRetry={done ? (id) => void retry(id) : undefined}
-              />
-            </AllSlideshows>
+            {!workspace && (
+              <AllSlideshows run={run}>
+                <SlideshowGrid
+                  slideshows={run.slideshows}
+                  expected={run.count}
+                  writing={!done}
+                  retrying={retrying}
+                  onOpen={(i) => setOpenId(run.slideshows[i]!.id)}
+                  onRetry={done ? (id) => void retry(id) : undefined}
+                />
+              </AllSlideshows>
+            )}
           </section>
         </div>
       )}
 
       {workspace && run && !isTerminalAutoStatus(run.status) && <WelcomeDialog workspaceId={workspace.id} />}
 
-      {!open && <VideoRendersNote />}
+      {!openId && <VideoRendersNote />}
       {SHOW_MATRIX && matrixOpen && <MatrixDialog token={token} runId={runId} onClose={() => setMatrixOpen(false)} onOpenSlideshow={setOpenId} />}
-      {open && run && (
-        <SlideshowEditor
-          key={open.id}
-          token={token}
-          runId={runId}
-          initial={open}
-          photos={photos.data?.photos ?? null}
-          tracks={music.data?.tracks ?? null}
-          onPhotosChanged={photos.refresh}
-          onChanged={refresh}
-          onClose={() => setOpenId(null)}
-          onPrev={at > 0 ? () => setOpenId(ready[at - 1]!.id) : undefined}
-          onNext={at < ready.length - 1 ? () => setOpenId(ready[at + 1]!.id) : undefined}
-        />
-      )}
+      {run && <RunSlideshowEditor token={token} run={run} openId={openId} onOpen={setOpenId} onChanged={refresh} />}
     </div>
   );
 }

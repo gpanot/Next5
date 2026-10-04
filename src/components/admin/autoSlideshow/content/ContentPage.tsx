@@ -3,12 +3,13 @@
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { BlitzSlideTab } from './BlitzSlideTab';
+import { SlideshowsTab } from './SlideshowsTab';
 
 type ContentTab = 'blitz' | 'slideshow';
 
 const TABS: { id: ContentTab; label: string }[] = [
   { id: 'blitz', label: 'Blitz Slide' },
-  { id: 'slideshow', label: 'Slideshow' },
+  { id: 'slideshow', label: 'Slideshows' },
 ];
 
 const tabClass = (active: boolean) =>
@@ -16,15 +17,6 @@ const tabClass = (active: boolean) =>
     'min-h-11 shrink-0 whitespace-nowrap rounded-full px-5 text-sm font-semibold transition active:scale-95',
     active ? 'bg-app-cta text-app-cta-ink shadow-sm' : 'bg-app-sunken text-app-muted hover:text-app-ink',
   ].join(' ');
-
-function SlideshowTab() {
-  return (
-    <div className="rounded-xl border border-dashed border-app-line p-8 text-center">
-      <p className="text-base font-semibold text-app-ink">Coming soon</p>
-      <p className="mt-1 text-sm text-app-muted">More ways to make content will show up here.</p>
-    </div>
-  );
-}
 
 /** One workspace's Content page: a tab per way to make content. Blitz Slide is the swipe deck from the admin lab. */
 export function ContentPage({ token, workspaceId }: { token: string; workspaceId: string }) {
@@ -45,7 +37,7 @@ export function ContentPage({ token, workspaceId }: { token: string; workspaceId
         <BlitzSlideTab token={token} workspaceId={workspaceId} editPostId={editPostId} />
       </div>
       <div role="tabpanel" hidden={tab !== 'slideshow'}>
-        <SlideshowTab />
+        <SlideshowsTab token={token} workspaceId={workspaceId} />
       </div>
     </div>
   );
