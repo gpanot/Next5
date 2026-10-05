@@ -1,7 +1,7 @@
 'use client';
 
 import { Sparkles } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { AutoRunDto } from '../../../../types/admin/autoSlideshow';
 import { isTerminalAutoStatus, MAX_SLIDESHOWS } from '../../../../types/admin/autoSlideshow';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
@@ -17,7 +17,7 @@ import { Accounts } from './Accounts';
 import { ApproveSheet } from './ApproveSheet';
 import { CalendarRail } from './CalendarRail';
 import { DayDetail } from './DayDetail';
-import { placeIdea, takenBy } from './ideaPlacement';
+import { placeIdea, takenBy, uniqueTimes } from './ideaPlacement';
 import { MonthGrid } from './MonthGrid';
 import { countsLine, MonthHeader } from './MonthHeader';
 import { buildMonth, currentPins, dayKey, dropPins, emptySlots, MAX_PER_DAY, monthCounts, toApprove, type PlanDay } from './monthPlan';
@@ -52,6 +52,44 @@ function IdeasButton({ ui, onOpen }: { ui: CalendarIdeasUi; onOpen: () => void }
   );
 }
 
+/**
+ * New ideas just finished writing ("Get my 12 ideas", or the first batch after the run): the deck opens at once, with
+ * no "Your next N post ideas" step in between. Not when a day is open (the user is looking at it).
+ */
+const useDeckWhenWritten = (ui: CalendarIdeasUi | null, free: boolean, openDeck: () => void) => {
+  const generating = Boolean(ui?.ideas.generating);
+  const ready = (ui?.ideas.deck.length ?? 0) > 0;
+  const wasGenerating = useRef(generating);
+  const open = useRef(openDeck);
+  useEffect(() => {
+    open.current = openDeck;
+  });
+  useEffect(() => {
+    const finished = wasGenerating.current && !generating;
+    wasGenerating.current = generating;
+    if (finished && ready && free) open.current();
+  }, [generating, ready, free]);
+};
+
+/** Times of the live slideshow posts and Blitz videos, by day key (canceled and failed ones free their day). */
+const usePostTimes = (run: AutoRunDto, blitz: BlitzScheduleDto[]) => useMemo(() => {
+  const map = new Map<string, Date[]>();
+  const add = (iso: string) => {
+    const at = new Date(iso);
+    map.set(dayKey(at), [...(map.get(dayKey(at)) ?? []), at]);
+  };
+  blitz.filter((b) => b.status !== 'canceled' && b.status !== 'failed').forEach((b) => add(b.scheduledAt));
+  run.slideshows.forEach((s) => s.post && s.post.status !== 'canceled' && s.post.status !== 'failed' && add(s.post.scheduledAt));
+  return map;
+}, [run.slideshows, blitz]);
+
+/** Keeps now on the calendar (a post or kept idea at that time) stop being held. */
+const useConfirmHeld = (ui: CalendarIdeasUi | null, all: PlanDay[]) => {
+  const confirm = ui?.confirmHeld;
+  const times = useMemo(() => new Set(all.flatMap((d) => d.slots.filter((s) => s.item).map((s) => s.at.getTime()))), [all]);
+  useEffect(() => confirm?.(times), [confirm, times]);
+};
+
 /** Which day is open on the right (or below the grid), and whether the ideas deck is open (else the start card). */
 const useRail = (ui: CalendarIdeasUi | null, onRailOpen?: () => void) => {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
@@ -69,6 +107,7 @@ const useRail = (ui: CalendarIdeasUi | null, onRailOpen?: () => void) => {
     ui?.ideas.setFocusId(idea.id);
     openDeck();
   };
+  useDeckWhenWritten(ui, selectedKey === null, openDeck);
   return { selectedKey, setSelectedKey, deckOpen, setDeckOpen, select, openDeck, openIdea };
 };
 
@@ -117,14 +156,19 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const rail = useRail(ui, onRailOpen);
   const wide = useIsWide();
   const ideasOn = (day: PlanDay) => ui?.byDay.get(day.key) ?? [];
-  const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day));
+  const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day), run.startedAt);
   // A kept idea fills the soonest empty day (no slideshow, video or kept idea yet); only a full calendar stacks days.
-  const placeOf = (idea: IdeaDto) => placeIdea(idea.id, all, (day, id) => takenBy(entriesFor(day), id));
+  // Times on a day: its posts and kept ideas, plus keeps still being saved (so fast swipes never share a time).
+  // Live posts by day, any month: the days past the built ones have no slots, so their posts are counted from here.
+  const postedOn = usePostTimes(run, blitz);
+  const takenOn = (day: PlanDay, id = '') => uniqueTimes([...takenBy(entriesFor(day), id), ...(ui?.heldOn(day.key) ?? []), ...(postedOn.get(day.key) ?? [])]);
+  const placeOf = (idea: IdeaDto) => placeIdea(idea.id, all, takenOn);
+  useConfirmHeld(ui, all);
   // The day the idea in the deck would fill if kept: ringed in blue.
   const current = ui?.ideas.current && rail.deckOpen && !rail.selectedKey ? ui.ideas.current : null;
   const focusKey = current ? dayKey(new Date(placeOf(current) ?? current.plannedAt)) : null;
   const detail = (day: PlanDay, onBack?: () => void) => (
-    <DayDetail key={day.key} day={day} entries={entriesFor(day)} ideas={ui?.ideas ?? null} maker={ui?.maker ?? null}
+    <DayDetail key={day.key} day={day} entries={entriesFor(day)} taken={takenOn(day)} ideas={ui?.ideas ?? null} maker={ui?.maker ?? null}
       onOpen={onOpen} onOpenBlitz={setOpenBlitz} onSetCount={onSetCount} onOpenIdea={rail.openIdea} onBack={onBack} />
   );
   const selected = all.concat(days).find((d) => d.key === rail.selectedKey) ?? null;

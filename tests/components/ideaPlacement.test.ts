@@ -11,25 +11,48 @@ const day = (date: number): PlanDay => {
 
 const days = Array.from({ length: 28 }, (_, i) => day(i + 1));
 
-/** Posts and kept ideas on each day: by day of month. */
-const takenFrom = (taken: Record<number, number>) => (d: PlanDay) => taken[d.date.getDate()] ?? 0;
+/** Posts and kept ideas on each day: by day of month, at 8 AM, 9 AM, … (times no keep would pick). */
+const takenFrom = (taken: Record<number, number>) => (d: PlanDay) =>
+  Array.from({ length: taken[d.date.getDate()] ?? 0 }, (_, i) => new Date(2026, 9, d.date.getDate(), 6 + i));
 
 describe('placeIdea', () => {
   it('fills the soonest empty day, from tomorrow', () => {
-    expect(placeIdea('i', days, takenFrom({}), NOW)).toBe(keepTimeOn(day(5), 0));
+    expect(placeIdea('i', days, takenFrom({}), NOW)).toBe(keepTimeOn(day(5), []));
   });
 
   it('skips days that already have a slideshow, a video or a kept idea', () => {
-    expect(placeIdea('i', days, takenFrom({ 5: 1, 6: 1, 7: 2 }), NOW)).toBe(keepTimeOn(day(8), 0));
+    expect(placeIdea('i', days, takenFrom({ 5: 1, 6: 1, 7: 2 }), NOW)).toBe(keepTimeOn(day(8), []));
   });
 
-  it('adds a second post only once every day of the ideas window has one', () => {
-    const taken = Object.fromEntries(days.map((d) => [d.date.getDate(), 1]));
-    expect(placeIdea('i', days, takenFrom({ ...taken, 5: 2 }), NOW)).toBe(keepTimeOn(day(6), 1));
+  it('never stacks onto a day with a post: the next empty day, however far', () => {
+    const taken = Object.fromEntries(days.filter((d) => d.date.getDate() !== 21).map((d) => [d.date.getDate(), 1]));
+    expect(placeIdea('i', days, takenFrom(taken), NOW)).toBe(keepTimeOn(day(21), []));
   });
 
-  it('never uses today or a past day, and gives up when every day is full', () => {
-    const full = Object.fromEntries(days.map((d) => [d.date.getDate(), 5]));
-    expect(placeIdea('i', days, takenFrom(full), NOW)).toBeUndefined();
+  it('walks past the days built when every one of them has a post', () => {
+    const full = Object.fromEntries(days.map((d) => [d.date.getDate(), 2]));
+    const after = new Date(2026, 9, 29);
+    expect(placeIdea('i', days, takenFrom(full), NOW)).toBe(keepTimeOn({ ...day(28), key: dayKey(after), date: after }, []));
+  });
+
+  it('never uses today or a past day', () => {
+    const full = Object.fromEntries(days.filter((d) => d.date.getDate() >= 5).map((d) => [d.date.getDate(), 1]));
+    expect(new Date(placeIdea('i', days, takenFrom(full), NOW)!).getDate()).toBe(29);
+  });
+});
+
+describe('keepTimeOn', () => {
+  const at = (iso: string | undefined) => (iso ? new Date(iso).toTimeString().slice(0, 5) : undefined);
+  const on = (...hours: number[]) => hours.map((h) => new Date(2026, 9, 6, h));
+
+  it('gives each keep on a day its own time, 7 PM first', () => {
+    expect(at(keepTimeOn(day(6), []))).toBe('19:00');
+    expect(at(keepTimeOn(day(6), on(19)))).toBe('21:00');
+    expect(at(keepTimeOn(day(6), on(19, 21)))).toBe('17:00');
+    expect(at(keepTimeOn(day(6), on(21)))).toBe('19:00');
+  });
+
+  it('stops at 5 posts on a day', () => {
+    expect(keepTimeOn(day(6), on(8, 11, 14, 17, 20))).toBeUndefined();
   });
 });

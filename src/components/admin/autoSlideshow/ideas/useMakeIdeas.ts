@@ -44,16 +44,33 @@ const makeSlideshows = async (client: LabClient, o: Options, ideas: IdeaDto[]): 
   return res.data.errors;
 };
 
-/** Makes one batch of kept ideas; returns the reason for each one that failed. */
-const makeBatch = async (client: LabClient, o: Options, kept: IdeaDto[]): Promise<Record<string, string>> => {
-  const next: Record<string, string> = { ...(await makeSlideshows(client, o, kept.filter((i) => i.format === 'slideshow'))) };
+type ContextCache = { current: Promise<RenderBodyContext> | null };
+
+/** The video template and assets, loaded once per page (they do not change between keeps); a failed load is retried. */
+const renderContextOf = (client: LabClient, cache: ContextCache): Promise<RenderBodyContext | string> => {
+  cache.current ??= loadRenderContext(client);
+  return cache.current.catch((err: unknown) => {
+    cache.current = null;
+    return err instanceof Error ? err.message : 'Could not load the video template.';
+  });
+};
+
+/** Makes one batch of kept ideas; returns the reason for each one that failed. Slideshows and videos go side by side. */
+const makeBatch = async (client: LabClient, o: Options, kept: IdeaDto[], cache: ContextCache): Promise<Record<string, string>> => {
   const videos = kept.filter((i) => i.format === 'blitz');
-  const ctx = videos.length > 0 ? await loadRenderContext(client).catch((err: unknown) => (err instanceof Error ? err.message : 'Could not load the video template.')) : null;
-  for (const idea of videos) {
-    const error = typeof ctx === 'string' ? ctx : ctx ? await scheduleBlitz(client, ctx, idea) : null;
-    if (error) next[idea.id] = error;
-  }
-  return next;
+  const scheduleVideos = async (): Promise<Record<string, string>> => {
+    if (videos.length === 0) return {};
+    const ctx = await renderContextOf(client, cache);
+    // One by one: each checks its day still has room, so two videos on one day must not race.
+    const errors: Record<string, string> = {};
+    for (const idea of videos) {
+      const error = typeof ctx === 'string' ? ctx : await scheduleBlitz(client, ctx, idea);
+      if (error) errors[idea.id] = error;
+    }
+    return errors;
+  };
+  const [shows, clips] = await Promise.all([makeSlideshows(client, o, kept.filter((i) => i.format === 'slideshow')), scheduleVideos()]);
+  return { ...shows, ...clips };
 };
 
 /**
@@ -67,6 +84,7 @@ export function useMakeIdeas(o: Options) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const queue = useRef<IdeaDto[]>([]);
   const running = useRef(false);
+  const context = useRef<Promise<RenderBodyContext> | null>(null);
 
   /** `prepare` runs first (saving the keep and its day), with "making" already shown; false stops there. */
   const make = async (kept: IdeaDto[], prepare?: () => Promise<boolean>) => {
@@ -82,7 +100,7 @@ export function useMakeIdeas(o: Options) {
     setMaking(true);
     while (queue.current.length > 0) {
       const batch = queue.current.splice(0);
-      const failed = await makeBatch(o.client, o, batch);
+      const failed = await makeBatch(o.client, o, batch, context);
       setErrors((e) => ({ ...Object.fromEntries(Object.entries(e).filter(([id]) => !batch.some((i) => i.id === id))), ...failed }));
       announceCreditsChanged();
       o.onMade(batch.filter((i) => !failed[i.id]).map((i) => i.id));

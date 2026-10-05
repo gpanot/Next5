@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronLeft, Loader2 } from 'lucide-react';
+import { ChevronLeft, Loader2, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
@@ -18,6 +18,8 @@ export type DayDetailProps = {
   day: PlanDay;
   /** The day's posts and kept ideas, by time (waiting ideas are in the deck, not on days). */
   entries: TileEntry[];
+  /** Times already used on the day: posts, kept ideas, and keeps still being saved. */
+  taken: Date[];
   /** Null where ideas are off (admins viewing a run): "+" then asks for a slideshow, as before. */
   ideas: IdeasState | null;
   maker: Make | null;
@@ -30,23 +32,25 @@ export type DayDetailProps = {
   onBack?: () => void;
 };
 
-const step = 'flex h-11 w-11 items-center justify-center text-xl font-semibold text-ink transition active:scale-90 disabled:opacity-30 dark:text-zinc-100';
+type AddMoreProps = { busy: boolean; open: boolean; canAdd: boolean; onAdd: () => void; onClose: () => void };
 
-type StepperProps = { count: number; busy: boolean; canMinus: boolean; canPlus: boolean; onMinus: () => void; onPlus: () => void };
-
-/** "− N +": with ideas, "+" opens the ideas deck for this day (counted as 1) and "−" closes it; else empty slots. */
-function Stepper({ count, busy, canMinus, canPlus, onMinus, onPlus }: StepperProps) {
+/** "Add more posts": with ideas, opens the ideas deck for this day (tap again to close it); else one more empty slot. */
+function AddMore({ busy, open, canAdd, onAdd, onClose }: AddMoreProps) {
   return (
-    <div className="flex items-center rounded-full border-[1.5px] border-line dark:border-zinc-700" role="group" aria-label="Posts this day">
-      <button type="button" onClick={onMinus} disabled={busy || !canMinus} aria-label="One less post" className={step}>−</button>
-      <span className="min-w-6 text-center text-base font-extrabold tabular-nums" aria-live="polite">{busy ? <Loader2 aria-hidden className="mx-auto h-4 w-4 animate-spin" /> : count}</span>
-      <button type="button" onClick={onPlus} disabled={busy || !canPlus} aria-label="One more post" className={step}>+</button>
-    </div>
+    <button
+      type="button"
+      onClick={open ? onClose : onAdd}
+      disabled={busy || (!open && !canAdd)}
+      className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-line px-4 text-sm font-bold text-ink transition hover:bg-zinc-50 active:scale-95 disabled:opacity-30 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
+    >
+      {busy ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : open ? <X aria-hidden className="h-4 w-4" strokeWidth={2.6} /> : <Plus aria-hidden className="h-4 w-4" strokeWidth={2.6} />}
+      {open ? 'Close' : 'Add more posts'}
+    </button>
   );
 }
 
 const noteOf = (p: DayDetailProps, count: number) =>
-  p.day.today ? "Today's posts are set. New posts and ideas start tomorrow." : p.day.past ? 'This day is over.' : count >= MAX_PER_DAY ? '5 posts is the most for one day.' : p.ideas ? '' : 'Click + to plan one more slideshow on this day.';
+  p.day.today ? "Today's posts are set. New posts and ideas start tomorrow." : p.day.past ? 'This day is over.' : count >= MAX_PER_DAY ? '5 posts is the most for one day.' : p.ideas ? '' : 'Tap "Add more posts" to plan one more slideshow on this day.';
 
 /**
  * The deck ran out while the day wants an idea: one more unused card joins it ("+" on the server). Stops on an error,
@@ -76,7 +80,8 @@ function useWanted(p: DayDetailProps, count: number) {
 /** One day, as in the canvas's right panel: its posts and kept ideas, the ideas deck for it, and how many posts it gets. */
 export function DayDetail(p: DayDetailProps) {
   const empty = openSlots(p.day);
-  const count = p.entries.length + empty;
+  // Keeps still being saved count too, so fast swipes stop at the day's limit.
+  const count = Math.max(p.entries.length, p.taken.length) + empty;
   const ideas = p.ideas;
   const { wanted, open, set } = useWanted(p, count);
   useRefill(ideas, p.day.key, wanted);
@@ -86,7 +91,7 @@ export function DayDetail(p: DayDetailProps) {
   // No idea left anywhere: offer a new batch (the same one the ideas panel writes).
   const offerBatch = wanted && !showing && Boolean(ideas) && (ideas!.generating || ideas!.reserve === 0);
   const plus = () => (ideas ? set(true) : p.onSetCount(p.day.key, p.day.slots.length + 1));
-  const minus = () => (ideas && wanted ? set(false) : p.onSetCount(p.day.key, p.day.slots.length - 1));
+  const dropSlot = () => p.onSetCount(p.day.key, p.day.slots.length - 1);
   const shown = count + (wanted ? 1 : 0);
   return (
     <section className="flex flex-col gap-3 rounded-[20px] border border-line bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
@@ -100,15 +105,18 @@ export function DayDetail(p: DayDetailProps) {
           <h2 className="text-xl font-extrabold text-ink dark:text-zinc-100">{p.day.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</h2>
           <p className="text-xs text-muted">Posts this day</p>
         </div>
-        <Stepper count={shown} busy={Boolean(ideas?.generating)} canMinus={!p.day.past && (wanted || empty > 0)} canPlus={ideas ? open && !wanted : !p.day.past && count < MAX_PER_DAY} onMinus={minus} onPlus={plus} />
+        <AddMore busy={Boolean(ideas?.generating)} open={Boolean(ideas) && wanted} canAdd={ideas ? open : !p.day.past && count < MAX_PER_DAY} onAdd={plus} onClose={() => set(false)} />
       </header>
       <ul className="flex flex-col gap-2">
-        {p.entries.map((e) => (e.idea ? <IdeaRow key={e.id} idea={e.idea} onDecide={decide} onOpen={p.onOpenIdea} /> : e.slot && <li key={e.id}><PostRow slot={e.slot} onOpen={p.onOpen} onOpenBlitz={p.onOpenBlitz} /></li>))}
+        {p.entries.map((e) => (e.idea ? <IdeaRow key={e.id} idea={e.idea} onDecide={decide} onOpen={p.onOpenIdea} busy={Boolean(p.maker?.making)} /> : e.slot && <li key={e.id}><PostRow slot={e.slot} onOpen={p.onOpen} onOpenBlitz={p.onOpenBlitz} /></li>))}
         {Array.from({ length: empty }, (_, i) => (
-          <li key={`empty-${i}`} className="flex min-h-14 items-center rounded-[14px] border border-dashed border-zinc-300 px-3 text-sm text-muted dark:border-zinc-700">Empty slot · made when you tap Generate</li>
+          <li key={`empty-${i}`} className="flex min-h-14 items-center gap-2 rounded-[14px] border border-dashed border-zinc-300 pr-1.5 pl-3 text-sm text-muted dark:border-zinc-700">
+            <span className="flex-1">Empty slot · made when you tap Generate</span>
+            <button type="button" onClick={dropSlot} aria-label="Remove this slot" className="flex h-11 w-11 items-center justify-center rounded-full transition hover:bg-zinc-100 active:scale-90 dark:hover:bg-zinc-800"><X aria-hidden className="h-4 w-4" /></button>
+          </li>
         ))}
       </ul>
-      {ideas && showing && <DayDeck ideas={ideas} maker={p.maker} day={p.day} taken={count} />}
+      {ideas && showing && <DayDeck ideas={ideas} maker={p.maker} day={p.day} taken={p.taken} />}
       {ideas && offerBatch && !ideas.loading && <DayGenerate writing={ideas.generating} onGenerate={() => void ideas.generate()} />}
       {shown === 0 && <p className="text-sm text-muted">{p.day.past && !p.day.today ? 'Nothing posted this day.' : 'Nothing planned yet.'}</p>}
       {ideas?.error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{ideas.error}</p>}

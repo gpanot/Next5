@@ -23,6 +23,8 @@ export type TileEntry = {
   captionOnCover: boolean;
   slot?: Filled;
   idea?: IdeaDto;
+  /** Making: when the work began (the run's start), for the countdown on the tile. */
+  makingSince?: string;
 };
 
 /** Legend order and labels. */
@@ -40,15 +42,17 @@ export const statusOf = (item: DayItem): TileStatus | null => {
  * The day's posts and kept ideas, by time. Waiting ideas live in the deck only (they get a day when kept), and skipped
  * ideas and canceled posts are left out.
  */
-export const entriesOf = (day: PlanDay, ideas: IdeaDto[]): TileEntry[] => {
+export const entriesOf = (day: PlanDay, ideas: IdeaDto[], makingSince?: string): TileEntry[] => {
   const posts = day.slots.flatMap((slot): TileEntry[] => {
     const status = slot.item ? statusOf(slot.item) : null;
     if (!slot.item || !status) return [];
     const id = slot.item.kind === 'blitz' ? slot.item.blitz.id : slot.item.show?.id ?? `making-${slot.at.toISOString()}`;
-    return [{ id, status, at: slot.at, cover: coverOf(slot.item), coverIsVideo: coverIsVideoOf(slot.item), caption: titleOf(slot.item), captionOnCover: slot.item.kind === 'blitz', slot: slot as Filled }];
+    return [{ id, status, at: slot.at, cover: coverOf(slot.item), coverIsVideo: coverIsVideoOf(slot.item), caption: titleOf(slot.item), captionOnCover: slot.item.kind === 'blitz', slot: slot as Filled, ...(status === 'making' && makingSince ? { makingSince } : {}) }];
   });
   const planned = day.past ? [] : ideas.filter((i) => i.status === 'kept').map((idea): TileEntry => ({
-    id: idea.id, status: 'kept', at: new Date(idea.plannedAt), cover: ideaCover(idea)?.url ?? null, coverIsVideo: ideaCover(idea)?.video ?? false, caption: idea.hook, captionOnCover: idea.slideshow?.state !== 'ready', idea,
+    // A kept idea is already finished (videos render near their time, slideshows were made while swiping): it reads
+    // as a ready post at once, while it is saved onto the calendar behind the scenes.
+    id: idea.id, status: 'ready', at: new Date(idea.plannedAt), cover: ideaCover(idea)?.url ?? null, coverIsVideo: ideaCover(idea)?.video ?? false, caption: idea.hook, captionOnCover: idea.slideshow?.state !== 'ready', idea,
   }));
   return [...posts, ...planned].sort((a, b) => a.at.getTime() - b.at.getTime());
 };

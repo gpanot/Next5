@@ -41,7 +41,7 @@ describe('calendar tile statuses', () => {
   it('lists a day\'s posts and kept ideas by time, without waiting or skipped ideas, and none on past days', () => {
     const day: PlanDay = { key: '2026-10-12', date: new Date(2026, 9, 12), past: false, today: false, inMonth: true, slots: [{ at: new Date('2026-10-12T12:00:00Z'), item: { kind: 'blitz', show: null, blitz: blitz('planned') } }] };
     const ideas = [idea('b1', 'blitz', { plannedAt: '2026-10-12T09:00:00Z' }), idea('b2', 'blitz', { status: 'discarded' }), idea('b3', 'blitz', { status: 'kept', plannedAt: '2026-10-12T20:00:00Z' })];
-    expect(entriesOf(day, ideas).map((e) => [e.id, e.status])).toEqual([['planned', 'ready'], ['b3', 'kept']]);
+    expect(entriesOf(day, ideas).map((e) => [e.id, e.status])).toEqual([['planned', 'ready'], ['b3', 'ready']]);
     expect(entriesOf({ ...day, past: true }, ideas).map((e) => e.id)).toEqual(['planned']);
   });
 });
