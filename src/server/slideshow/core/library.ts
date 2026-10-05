@@ -113,6 +113,18 @@ function keywordMatch(text: string) {
   return Prisma.sql`LEAST(ts_rank_cd(${doc}, to_tsquery('english', ${tsq})), 1) * 0.6`;
 }
 
+/**
+ * One video file, whatever asset row holds it: the library has the same clip under two folders (blitz/hooks/ and
+ * blitz/hook-library/), so "no clip twice" compares files, not asset ids.
+ */
+export const clipKey = (r2Key: string): string => r2Key.replace(/^.*\//, '');
+
+/** Keeps the first (best-ranked) asset of each file. */
+const oncePerFile = (assets: LibraryAsset[]): LibraryAsset[] => {
+  const seen = new Set<string>();
+  return assets.filter((a) => !seen.has(clipKey(a.r2Key)) && Boolean(seen.add(clipKey(a.r2Key))));
+};
+
 /** Ranked library assets for one shot. Empty when nothing passes the rights / safety filters. */
 export async function searchLibrary(q: LibraryQuery): Promise<LibraryAsset[]> {
   const kinds = Object.keys(q.kinds) as LibraryKind[];
@@ -163,7 +175,7 @@ export async function searchLibrary(q: LibraryQuery): Promise<LibraryAsset[]> {
     ORDER BY score DESC
     LIMIT ${q.limit ?? 5}`;
 
-  return rows.map((r) => ({
+  return oncePerFile(rows.map((r) => ({
     assetId: r.asset_id,
     kind: r.kind,
     r2Key: r.r2_key,
@@ -175,7 +187,7 @@ export async function searchLibrary(q: LibraryQuery): Promise<LibraryAsset[]> {
     score: Number(r.score),
     similarity: Number(r.similarity),
     categories: r.categories ?? [],
-  }));
+  })));
 }
 
 // ── Music ─────────────────────────────────────────────────────────────────────

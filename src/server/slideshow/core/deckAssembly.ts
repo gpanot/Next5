@@ -94,17 +94,20 @@ export type BriefCardsInput = {
   hue: number;
   story: StoryTexts;
   storyMedia: StoryMedia;
+  /** Cards 2…n: their own footage for some story shots (same lines, other clips). Absent = all share `storyMedia`. */
+  storyPerCard?: Array<Partial<StoryMedia>>;
   hooks: Array<{ archetype: HookArchetype; text: string }>;
   hookMedia: ShotMedia[];
   tracks: LibraryTrack[];
   proofNote: string;
 };
 
-/** One card per hook; story, story media and CTA shared (Hormozi hook test). */
+/** One card per hook; story lines and CTA shared (Hormozi hook test), footage per card when `storyPerCard` gives it. */
 export function buildBriefCards(input: BriefCardsInput): DeckItem[] {
-  const storyShots = STORY_ORDER.map(([key, role], i) => shot(role, input.story[key], input.storyMedia[key], i + 1));
   const storyLines = STORY_ORDER.slice(0, 5).map(([key, , label]) => ({ label, text: input.story[key] }));
   return input.hooks.map((hook, i) => {
+    const media = { ...input.storyMedia, ...(i > 0 ? input.storyPerCard?.[i - 1] : undefined) };
+    const storyShots = STORY_ORDER.map(([key, role], n) => shot(role, input.story[key], media[key], n + 1));
     const track = input.tracks.length ? input.tracks[i % input.tracks.length]! : null;
     return {
       id:        `${input.engine}-${input.lensId}-${hook.archetype}-${i}`,

@@ -8,7 +8,7 @@ import { prisma } from '../../../lib/db';
 import { embedQueries } from '../../ai/embeddings';
 import { blitzBrowserUrl } from '../../admin/blitzStore';
 import { embeddingColumnReady } from '../../labs/assetDescriptor/embedding';
-import { SAFE_ZONE_POSITION_Y, assetLabel, searchLibrary, type LibraryAsset, type LibraryQuery } from './library';
+import { SAFE_ZONE_POSITION_Y, assetLabel, clipKey, searchLibrary, type LibraryAsset, type LibraryQuery } from './library';
 import type { HookArchetype } from './types';
 
 // ── Output shape (JSON-safe, sent to the deck) ───────────────────────────────
@@ -143,22 +143,39 @@ export async function libraryShot(ranked: LibraryAsset[]): Promise<ShotMedia | n
 }
 
 /**
- * One hook shot per card, never reusing a clip already in the deck.
- * `hero` builds the Result-first shot (listing photo, product screenshot…) with library swaps.
+ * The ranking without files already in this deck (`used`, by clipKey), with files the workspace showed recently
+ * (`recent`) moved to the end: fresh footage first, a recent clip only when nothing else fits.
+ */
+export const freshFirst = (ranked: LibraryAsset[], used: Set<string>, recent?: Set<string>): LibraryAsset[] => {
+  const unused = ranked.filter((a) => !used.has(clipKey(a.r2Key)));
+  if (!recent?.size) return unused;
+  return [...unused.filter((a) => !recent.has(clipKey(a.r2Key))), ...unused.filter((a) => recent.has(clipKey(a.r2Key)))];
+};
+
+/** Claims the shot's file for the deck, so no other shot shows it. */
+export const claim = (used: Set<string>, shot: Pick<MediaOption, 'assetKey'> | null | undefined) => {
+  if (shot?.assetKey) used.add(clipKey(shot.assetKey));
+};
+
+/**
+ * One hook shot per card, never reusing a file already in the deck (`used`: clipKeys), and leaving files the workspace
+ * showed recently (`recent`) for last. `hero` builds the Result-first shot (listing photo, product screenshot…) with
+ * library swaps.
  */
 export async function directHooks(
   archetypes: HookArchetype[],
   ranked: LibraryAsset[][],
-  usedIds: Set<string>,
+  used: Set<string>,
   hero: (swaps: MediaOption[]) => ShotMedia | null,
+  recent?: Set<string>,
 ): Promise<ShotMedia[]> {
   const out: ShotMedia[] = [];
   for (let i = 0; i < archetypes.length; i++) {
-    const fresh = (ranked[i] ?? []).filter((a) => !usedIds.has(a.assetId));
+    const fresh = freshFirst(ranked[i] ?? [], used, recent);
     const swaps = () => Promise.all(fresh.slice(0, 4).map(libraryOption));
     const heroShot = HOOK_RULES[archetypes[i]!] === 'hero' ? hero(await swaps()) : null;
     const shot = heroShot ?? (await libraryShot(fresh));
-    if (shot?.assetId) usedIds.add(shot.assetId);
+    claim(used, shot);
     out.push(shot ?? hero([]) ?? emptyShot());
   }
   return out;

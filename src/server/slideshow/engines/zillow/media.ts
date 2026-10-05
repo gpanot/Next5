@@ -12,6 +12,7 @@
 
 import {
   AVOID_ON_PROBLEM,
+  claim,
   directHooks,
   hookRule,
   libraryOption,
@@ -123,7 +124,9 @@ export async function directBriefMedia(input: BriefMediaInput): Promise<BriefMed
     cta: listingShot(heroPhoto, await Promise.all(ctaRanked!.map(libraryOption))),
   };
 
-  const used = new Set([meat.pain.assetId, meat.oldWay.assetId].filter((id): id is string => Boolean(id)));
+  const used = new Set<string>();
+  claim(used, meat.pain);
+  claim(used, meat.oldWay);
   const hooks = await directHooks(
     input.hooks.map((h) => h.archetype),
     hookRanked,

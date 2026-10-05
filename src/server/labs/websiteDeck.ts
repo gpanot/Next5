@@ -18,12 +18,11 @@ import { HttpError } from '../http';
 import { contentWords } from '../slideshow/core/copyGuards';
 import { buildBriefCards, interleave, persistCards, type DeckItem, type StoryMedia, type StoryTexts } from '../slideshow/core/deckAssembly';
 import { generateHooks } from '../slideshow/core/hooks';
-import { searchMusic, type LibraryTrack } from '../slideshow/core/library';
+import { clipKey, searchMusic, type LibraryTrack } from '../slideshow/core/library';
 import { websiteEngine, type WebsiteBrief, type WebsiteSource } from '../slideshow/engines/website/engine';
 import { TONE_ENERGY, applyGenerated, directWebsiteMedia, type WebsiteMedia } from '../slideshow/engines/website/media';
 import { categoriesForAudience } from '../slideshow/core/audienceCategories';
 import { generateShotImages } from '../slideshow/core/generatedAssets';
-import type { ShotMedia } from '../slideshow/core/media';
 import type { StudioProfileData } from '../studio/types';
 import type { HookArchetype } from '../slideshow/core/types';
 
@@ -78,7 +77,7 @@ function proofNote(brief: WebsiteBrief): string {
     : 'No proof on the site, so the Proof shot shows the product doing the job (no numbers).';
 }
 
-function cardsFor(b: BriefStory, index: number, storyMedia: StoryMedia, hookMedia: ShotMedia[], tracks: LibraryTrack[]): DeckItem[] {
+function cardsFor(b: BriefStory, index: number, storyMedia: StoryMedia, media: WebsiteMedia, tracks: LibraryTrack[]): DeckItem[] {
   const { brief } = b;
   return buildBriefCards({
     engine: 'website',
@@ -88,11 +87,28 @@ function cardsFor(b: BriefStory, index: number, storyMedia: StoryMedia, hookMedi
     hue: BRIEF_HUES[index % BRIEF_HUES.length]!,
     story: b.story,
     storyMedia,
+    storyPerCard: media.perCard,
     hooks: b.hooks,
-    hookMedia,
+    hookMedia: media.hooks,
     tracks,
     proofNote: proofNote(brief),
   });
+}
+
+/** How far back a workspace's cards and posts count as "shown lately". */
+const RECENT_DAYS = 45;
+
+/** Files (clipKey) in the workspace's recent deck cards and calendar videos. */
+async function recentClips(workspaceId: string | null | undefined): Promise<Set<string>> {
+  if (!workspaceId) return new Set();
+  const since = new Date(Date.now() - RECENT_DAYS * 86_400_000);
+  const rows = await prisma.$queryRaw<Array<{ key: string }>>`
+    SELECT s->>'assetKey' AS key FROM slideshow_variants v, jsonb_array_elements(v.plan->'shots') s
+    WHERE v.workspace_id = ${workspaceId} AND v.engine = 'website' AND v.created_at >= ${since} AND s->>'assetKey' IS NOT NULL
+    UNION
+    SELECT s->>'backgroundKey' FROM blitz_scheduled_posts p, jsonb_array_elements(p.render_body->'slides') s
+    WHERE p.workspace_id = ${workspaceId} AND p.created_at >= ${since} AND s->>'backgroundKey' IS NOT NULL`;
+  return new Set(rows.map((r) => clipKey(r.key)));
 }
 
 /** Generates the whole deck for a Campaign Studio run. A brief that fails is skipped, not fatal. */
@@ -109,13 +125,18 @@ export async function generateWebsiteDeck(runId: string): Promise<DeckItem[]> {
   const written = settled.flatMap((r) => (r.status === 'fulfilled' && r.value.hooks.length > 0 ? [r.value] : []));
   if (written.length === 0 && settled[0]?.status === 'rejected') throw settled[0].reason;
 
-  // Library search: sequential, one used-clip set, so no clip appears twice in the deck.
+  // Library search: sequential, one used-file set, so no clip appears twice in the deck; files the workspace showed
+  // lately go last, so a new batch does not repeat the last one.
   const used = new Set<string>();
+  const recent = await recentClips(source.workspaceId).catch((err: unknown) => {
+    console.warn('[WebsiteDeck] recent clips unreadable:', err instanceof Error ? err.message : err);
+    return new Set<string>();
+  });
   const media: WebsiteMedia[] = [];
   for (const b of written) {
     media.push(await directWebsiteMedia({
       idc: b.brief.idc, categories: b.categories, tone: b.brief.tone, story: b.story, hooks: b.hooks,
-      workspaceId: source.workspaceId, used, products: source.profile.products?.value,
+      workspaceId: source.workspaceId, used, recent, products: source.profile.products?.value,
     }));
   }
 
@@ -125,6 +146,6 @@ export async function generateWebsiteDeck(runId: string): Promise<DeckItem[]> {
     generateShotImages(b.brief.idc, b.categories, media[i]!.needs, source.workspaceId)));
 
   const decks = await Promise.all(written.map(async (b, i) =>
-    cardsFor(b, i, await applyGenerated(media[i]!, b.brief.idc, generated[i]!), media[i]!.hooks, tracks)));
+    cardsFor(b, i, await applyGenerated(media[i]!, b.brief.idc, generated[i]!), media[i]!, tracks)));
   return persistCards(interleave(decks), { workspaceId: source.workspaceId });
 }
