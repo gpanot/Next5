@@ -90,8 +90,9 @@ function ChartIcon() {
  * Top bar for the standalone Auto Slideshow page, styled like the app shell (/app) so a screen recording reads as the
  * Next5 app: the "NEXT5 for business" logo, the page name, then Pricing, Log in (demo text, like Perfect Ads) and
  * Settings on the right. The admin page has no gear, and Log in leads to the user sign-in (/slideshow/login). With `user` (signed in on /slideshow) the gear opens profile, accounts and photos, and the demo links are gone.
+ * `workspaceId` (from the URL) draws the nav and credits before the workspace itself has loaded, so the bar never changes shape.
  */
-export function AppTopBar({ token, page = 'app', user = false }: { token: string; page?: 'app' | 'pricing'; user?: boolean }) {
+export function AppTopBar({ token, page = 'app', user = false, workspaceId }: { token: string; page?: 'app' | 'pricing'; user?: boolean; workspaceId?: string }) {
   // Back from Stripe Checkout: open Settings on Credits so the payment is confirmed and shown.
   const [settings, setSettings] = useState<SettingsTab | null>(() => (user && isCheckoutReturn() ? 'credits' : null));
   // Bumped when Settings closes, so the credits pill re-reads the balance after a top up or card change.
@@ -101,6 +102,7 @@ export function AppTopBar({ token, page = 'app', user = false }: { token: string
     setCreditsVersion((v) => v + 1);
   };
   const workspace = useSlideshowWorkspace();
+  const navWorkspaceId = workspace?.id ?? workspaceId;
   const slotRef = useTopBarSlotRef();
   const scrolled = useScrolled(8);
   return (
@@ -118,6 +120,7 @@ export function AppTopBar({ token, page = 'app', user = false }: { token: string
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-app-muted"><path d="m6 9 6 6 6-6" /></svg>
           </button>
         )}
+        {user && !workspace && workspaceId && <span aria-hidden className="hidden h-10 w-32 animate-pulse rounded-full bg-app-line/60 sm:block" />}
         <nav className="ml-auto flex items-center gap-1 text-sm font-medium sm:gap-2">
           {!user && <Link
             href="/admin/auto-slideshow/pricing"
@@ -132,8 +135,8 @@ export function AppTopBar({ token, page = 'app', user = false }: { token: string
         {slotRef && <div ref={slotRef} className="order-last min-w-0 basis-full empty:hidden xl:order-none xl:basis-auto xl:flex-1" />}
         {user && (
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
-            {workspace && <WorkspaceNav workspaceId={workspace.id} />}
-            {workspace && <CreditsPill token={token} version={creditsVersion} onOpen={() => setSettings('credits')} />}
+            {navWorkspaceId && <WorkspaceNav workspaceId={navWorkspaceId} />}
+            {navWorkspaceId && <CreditsPill token={token} version={creditsVersion} onOpen={() => setSettings('credits')} />}
             <button onClick={() => setSettings('accounts')} aria-label="Settings" className="flex h-10 w-10 items-center justify-center rounded-full text-app-muted transition hover:bg-app-line/50 hover:text-app-ink">
               <GearIcon />
             </button>

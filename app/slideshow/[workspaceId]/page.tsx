@@ -1,11 +1,8 @@
-'use client';
-
-import { useParams } from 'next/navigation';
-import { WorkspaceApp } from '../../../src/components/admin/autoSlideshow/workspace/WorkspaceApp';
-import { useWorkspaceToken } from '../../../src/components/admin/autoSlideshow/workspace/WorkspaceShell';
-
-/** One Auto Slideshow workspace (one website): its Calendar. Make slideshows, connect its TikTok account, post. */
+/**
+ * One Auto Slideshow workspace (one website): its Calendar. Make slideshows, connect its TikTok account, post.
+ * Rendered by the workspace layout (WorkspacePages), which keeps each page mounted once opened so switching pages
+ * never reloads. This route only gives the page its URL.
+ */
 export default function SlideshowWorkspacePage() {
-  const { workspaceId } = useParams<{ workspaceId: string }>();
-  return <WorkspaceApp token={useWorkspaceToken()} workspaceId={workspaceId} />;
+  return null;
 }

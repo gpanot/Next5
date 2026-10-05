@@ -1,11 +1,8 @@
-'use client';
-
-import { useParams } from 'next/navigation';
-import { ContentPage } from '../../../../src/components/admin/autoSlideshow/content/ContentPage';
-import { useWorkspaceToken } from '../../../../src/components/admin/autoSlideshow/workspace/WorkspaceShell';
-
-/** One workspace's Content: Blitz Slide (the swipe deck) and more content tools later. */
+/**
+ * One workspace's Content: Blitz Slide (the swipe deck) and more content tools later.
+ * Rendered by the workspace layout (WorkspacePages), which keeps each page mounted once opened so switching pages
+ * never reloads. This route only gives the page its URL.
+ */
 export default function SlideshowContentPage() {
-  const { workspaceId } = useParams<{ workspaceId: string }>();
-  return <ContentPage token={useWorkspaceToken()} workspaceId={workspaceId} />;
+  return null;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { Sparkles } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { AutoRunDto } from '../../../../types/admin/autoSlideshow';
 import { isTerminalAutoStatus, MAX_SLIDESHOWS } from '../../../../types/admin/autoSlideshow';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
@@ -126,6 +126,9 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const { month, step, canPrev, canNext } = useMonth(run);
   const { items: blitz, reload: reloadBlitz } = useBlitzOnCalendar(token, run.workspaceId);
   const [openBlitz, setOpenBlitz] = useState<BlitzScheduleDto | null>(null);
+  // The Calendar stays mounted while another workspace page shows (its "Edit" leads to Content): close the video sheet
+  // when it is hidden, so coming back shows the calendar, not a sheet for a video that may have changed.
+  useLayoutEffect(() => () => setOpenBlitz(null), []);
   const labClient = useMemo(() => (run.workspaceId ? createWorkspaceLabClient(token, run.workspaceId) : null), [token, run.workspaceId]);
   // Only a working run has slideshows still to come; a finished one shows what it has.
   const working = !isTerminalAutoStatus(run.status);

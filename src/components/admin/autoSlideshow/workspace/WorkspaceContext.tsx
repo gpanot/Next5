@@ -7,7 +7,7 @@ import type { SlideshowWorkspaceDto } from '../../../../types/admin/autoSlidesho
 /** The workspace a signed-in user is in; null on the admin page (admins see every run). */
 const CurrentWorkspace = createContext<SlideshowWorkspaceDto | null>(null);
 
-export const WorkspaceProvider = ({ workspace, children }: { workspace: SlideshowWorkspaceDto; children: ReactNode }) => (
+export const WorkspaceProvider = ({ workspace, children }: { workspace: SlideshowWorkspaceDto | null; children: ReactNode }) => (
   <CurrentWorkspace.Provider value={workspace}>{children}</CurrentWorkspace.Provider>
 );
 

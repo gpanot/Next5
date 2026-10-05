@@ -18,6 +18,8 @@ export function useOpenPost(postId: string | null, ready: boolean, remix: (sourc
   const opened = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
+    // Cleared once the URL drops the post, so editing the same post again (the page stays mounted) opens it again.
+    if (!postId) opened.current = null;
     if (!postId || !ready || opened.current === postId) return;
     opened.current = postId;
     void scheduleApi.get(client, postId).catch(() => null).then((res) => {

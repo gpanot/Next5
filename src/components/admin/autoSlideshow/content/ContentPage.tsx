@@ -23,6 +23,12 @@ export function ContentPage({ token, workspaceId }: { token: string; workspaceId
   const [tab, setTab] = useState<ContentTab>('blitz');
   // From the calendar's "Edit": that video opens in the Blitz editor.
   const editPostId = useSearchParams().get('editPost') ?? undefined;
+  // The page stays mounted between visits: a new "Edit" from the calendar brings Blitz Slide to the front.
+  const [seenEditPostId, setSeenEditPostId] = useState(editPostId);
+  if (editPostId !== seenEditPostId) {
+    setSeenEditPostId(editPostId);
+    if (editPostId) setTab('blitz');
+  }
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <div role="tablist" aria-label="Content" className="flex gap-2 overflow-x-auto pb-1">

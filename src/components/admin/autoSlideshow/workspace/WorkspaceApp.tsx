@@ -22,5 +22,6 @@ export function WorkspaceApp({ token, workspaceId }: { token: string; workspaceI
   }, [linkedRunId]);
 
   if (!linkedRunId && !runs.data && !runs.error) return <div className="mx-auto mt-12 h-40 max-w-2xl animate-pulse rounded-2xl bg-app-sunken" />;
-  return <AutoSlideshowTab key={workspaceId} token={token} initialRunId={initialRunId} noBack />;
+  // The run list may first come from this tab's cache; keyed so the fresh list's latest run wins if it differs.
+  return <AutoSlideshowTab key={`${workspaceId}:${initialRunId}`} token={token} initialRunId={initialRunId} noBack />;
 }
