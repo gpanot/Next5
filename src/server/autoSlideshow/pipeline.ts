@@ -31,6 +31,13 @@ const running = (step: AutoStep): AutoRunStatus => `STEP_${step}_RUNNING`;
 const json = (value: unknown) => value as Prisma.InputJsonValue;
 const loadRun = (runId: string) => prisma.autoSlideshowRun.findUniqueOrThrow({ where: { id: runId } });
 
+/** The workspace a run makes content for: its own, or for a slideshow idea's hidden run, its main run's. */
+const contentWorkspaceId = async (run: { workspaceId: string | null; ideaForRunId: string | null }): Promise<string | null> => {
+  if (run.workspaceId || !run.ideaForRunId) return run.workspaceId;
+  const main = await prisma.autoSlideshowRun.findUnique({ where: { id: run.ideaForRunId }, select: { workspaceId: true } });
+  return main?.workspaceId ?? null;
+};
+
 const checkpoint = <T>(value: Prisma.JsonValue | null, step: number): T => {
   if (value === null) throw new Error(`Step ${step} checkpoint is missing — resume from step ${step}`);
   return value as unknown as T;
@@ -130,10 +137,11 @@ const writeStep: StepFn = async (runId, _meter, { append }) => {
       return err instanceof Error ? err : new Error(String(err));
     }
   });
-  // Jev's best-matching track per slideshow, all different while the library has enough; changeable in the editor.
+  // Same music pick as Blitz cards: Jev fit, not what the workspace used lately, no repeat in the run; changeable in the editor.
   const tracks = await matchTracks(
     shows.map((show, i) => (show instanceof Error ? { goal: null, slides: [] } : { goal: picks[i]!.goal ?? null, slides: show.slides })),
     run.profile as unknown as BrandProfile | null,
+    await contentWorkspaceId(run),
   );
   for (const [i, pick] of picks.entries()) {
     const track = tracks[i];

@@ -18,9 +18,11 @@ import { HttpError } from '../http';
 import { contentWords } from '../slideshow/core/copyGuards';
 import { buildBriefCards, interleave, persistCards, type DeckItem, type StoryMedia, type StoryTexts } from '../slideshow/core/deckAssembly';
 import { generateHooks } from '../slideshow/core/hooks';
-import { clipKey, searchMusic, type LibraryTrack } from '../slideshow/core/library';
+import { clipKey, type LibraryTrack } from '../slideshow/core/library';
+import { matchTracks } from '../autoSlideshow/music';
+import { blitzBrowserUrl } from '../admin/blitzStore';
 import { websiteEngine, type WebsiteBrief, type WebsiteSource } from '../slideshow/engines/website/engine';
-import { TONE_ENERGY, applyGenerated, directWebsiteMedia, type WebsiteMedia } from '../slideshow/engines/website/media';
+import { applyGenerated, directWebsiteMedia, type WebsiteMedia } from '../slideshow/engines/website/media';
 import { categoriesForAudience } from '../slideshow/core/audienceCategories';
 import { generateShotImages } from '../slideshow/core/generatedAssets';
 import type { StudioProfileData } from '../studio/types';
@@ -111,12 +113,30 @@ async function recentClips(workspaceId: string | null | undefined): Promise<Set<
   return new Set(rows.map((r) => clipKey(r.key)));
 }
 
+/**
+ * One track per card, in card order (per brief, one per hook), from the same picker as slideshows: Jev fit for the
+ * card's hook and story, fewer points for what the workspace used lately, no repeat in the deck while the library has
+ * enough. A failure leaves the cards without music (picked in the editor).
+ */
+async function cardTracks(written: BriefStory[], workspaceId: string | null): Promise<LibraryTrack[][]> {
+  const shows = written.flatMap((b) => b.hooks.map((h) => ({
+    goal: null,
+    audience: b.brief.idc,
+    slides: [h.text, ...Object.values(b.story)].map((title) => ({ title, body: '' })),
+  })));
+  const picks = await matchTracks(shows, null, workspaceId).catch((err: unknown) => {
+    console.error('[WebsiteDeck] music pick failed:', err instanceof Error ? err.message : err);
+    return [];
+  });
+  const tracks = await Promise.all(picks.map(async (p): Promise<LibraryTrack> => ({ assetId: p.assetId, r2Key: p.r2Key, url: await blitzBrowserUrl(p.r2Key), name: p.name, startAt: p.startAt })));
+  let next = 0;
+  return written.map((b) => b.hooks.map(() => tracks[next++]).filter((t): t is LibraryTrack => Boolean(t)));
+}
+
 /** Generates the whole deck for a Campaign Studio run. A brief that fails is skipped, not fatal. */
 export async function generateWebsiteDeck(runId: string): Promise<DeckItem[]> {
   const source = await loadWebsiteSource(runId);
   const briefs = websiteEngine.briefs(source);
-  const tone = briefs[0]?.tone ?? 'casual';
-  const tracks = await searchMusic(TONE_ENERGY[tone] ?? 0.5).catch((): LibraryTrack[] => []);
 
   const settled = await Promise.allSettled(briefs.map(writeBrief));
   settled.forEach((r, i) => {
@@ -124,6 +144,9 @@ export async function generateWebsiteDeck(runId: string): Promise<DeckItem[]> {
   });
   const written = settled.flatMap((r) => (r.status === 'fulfilled' && r.value.hooks.length > 0 ? [r.value] : []));
   if (written.length === 0 && settled[0]?.status === 'rejected') throw settled[0].reason;
+
+  // Music in parallel with the footage: one track per card, picked like a slideshow's (shared matchTracks).
+  const music = cardTracks(written, source.workspaceId).catch((): LibraryTrack[][] => written.map(() => []));
 
   // Library search: sequential, one used-file set, so no clip appears twice in the deck; files the workspace showed
   // lately go last, so a new batch does not repeat the last one.
@@ -145,7 +168,8 @@ export async function generateWebsiteDeck(runId: string): Promise<DeckItem[]> {
   const generated = await Promise.all(written.map((b, i) =>
     generateShotImages(b.brief.idc, b.categories, media[i]!.needs, source.workspaceId)));
 
+  const tracks = await music;
   const decks = await Promise.all(written.map(async (b, i) =>
-    cardsFor(b, i, await applyGenerated(media[i]!, b.brief.idc, generated[i]!), media[i]!, tracks)));
+    cardsFor(b, i, await applyGenerated(media[i]!, b.brief.idc, generated[i]!), media[i]!, tracks[i]!)));
   return persistCards(interleave(decks), { workspaceId: source.workspaceId });
 }
