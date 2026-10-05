@@ -68,7 +68,8 @@ import { MaybeSchedule } from './schedule/MaybeSchedule';
 import { useCachedDeckCards, useResumeDeckRenders } from './useDeckCache';
 import { useDeckMusicMatch } from './useDeckMusicMatch';
 import { useSetRemix } from './useSetRemix';
-import { OpenPostError, SaveToCalendar, useOpenPost } from './schedule/editPost';
+import { OpenPostError, SaveOrFinish, useOpenPost } from './schedule/editPost';
+import { PlayItButton, usePlayThrough } from './PlayIt';
 import { buildSet } from './slideshowSet';
 import { useTextLayout } from './useTextLayout';
 import type { BlitzLayer } from './canvasHitTest';
@@ -340,6 +341,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
     : undefined;
 
   /** The 3-panel editor + library. Shared by the free-form Slideshow step and the deck's edit view. */
+  const play = usePlayThrough({ slides, index: currentSlideIndex, setIndex: setCurrentSlideIndex, secondsPerSlide });
   const editorView = (
     <>
       {loadError && (
@@ -407,6 +409,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
               textConfig={text.resolved}
               onDragCaption={editingCard ? deck.dragSlideCaption : text.dragCaption}
               onDragBusiness={text.dragBusiness}
+              corner={<PlayItButton playing={play.playing} onToggle={play.toggle} />}
             />
             {/* Hidden auto-playing audio — loops as long as a track is selected. */}
             {audioAsset && !muteVideoAudio && (
@@ -427,12 +430,9 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 </ul>
               </div>
             )}
-            <RenderControls
-              state={render.state}
-              isBusy={render.isBusy}
-              blockedReason={blockedReason}
-              onSubmit={() => void handleDoneEditing()}
-            />
+            {/* A video already on the calendar only saves its edits ("Save changes"); others render ("Done Editing"). */}
+            <SaveOrFinish card={editingCard} current={deck.cardWithEdits} finish={deck.backToDeck} onSaved={openPost.onSaved}
+              fallback={<RenderControls state={render.state} isBusy={render.isBusy} blockedReason={blockedReason} onSubmit={() => void handleDoneEditing()} />} />
           </div>
 
           {/* Right: text style */}
@@ -570,7 +570,6 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 position={deckCards.indexOf(editingCard) + 1}
                 total={deckCards.length}
                 onBack={deck.backToDeck}
-                actions={<SaveToCalendar card={editingCard} current={deck.cardWithEdits} finish={deck.backToDeck} onSaved={openPost.onSaved} />}
               />
               {editorView}
             </>

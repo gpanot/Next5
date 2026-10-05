@@ -18,6 +18,7 @@
  */
 
 import { ChevronDown, Info, Pause, Play, X } from 'lucide-react';
+import { ShotLayers } from './ShotLayers';
 import type { ShotEditData } from './shotFormat';
 import {
   useCallback,
@@ -130,7 +131,8 @@ function WhyDrawer({ data, open, onClose }: { data: SwipeCardWhyPanel; open: boo
       aria-label="Why this video"
       aria-hidden={!open}
       className={[
-        'absolute inset-x-0 bottom-0 z-10 overflow-auto rounded-b-[26px] rounded-t-3xl',
+        // Sits beside the card (not clipped by it), 15% wider than the card; phones keep it inside the screen gutter.
+        'absolute -inset-x-3 bottom-0 z-[3] overflow-auto rounded-3xl sm:-inset-x-[7.5%]',
         'bg-[var(--paper,#fff)] px-[18px] pb-4 pt-[14px] shadow-[0_-12px_30px_-16px_rgba(0,0,0,.35)]',
         'transition-[transform,opacity] duration-[260ms] cubic-[.2,.8,.2,1]',
         open ? 'translate-y-0 opacity-100 pointer-events-auto' : 'translate-y-[105%] opacity-0 pointer-events-none',
@@ -150,7 +152,7 @@ function WhyDrawer({ data, open, onClose }: { data: SwipeCardWhyPanel; open: boo
           <X aria-hidden className="h-4 w-4" />
         </button>
       </div>
-      <dl className="m-0 grid gap-x-3 gap-y-2.5 text-[14px]" style={{ gridTemplateColumns: 'auto 1fr' }}>
+      <dl className="m-0 grid gap-x-3 gap-y-2 text-[12.5px] leading-snug" style={{ gridTemplateColumns: 'auto 1fr' }}>
         {/* Audience */}
         <dt className="text-[var(--mute,#7c7d82)]">Made for</dt>
         <dd className="m-0 text-[var(--ink,#000)]">
@@ -162,7 +164,7 @@ function WhyDrawer({ data, open, onClose }: { data: SwipeCardWhyPanel; open: boo
         <dd className="m-0 text-[var(--ink,#000)]">
           {data.hookStyle}
           {data.hookStyleReason && (
-            <span className="mt-0.5 block text-[13px] text-[var(--body,#4a4b50)]">
+            <span className="mt-0.5 block text-[12px] text-[var(--body,#4a4b50)]">
               {data.hookStyleReason}
             </span>
           )}
@@ -175,7 +177,7 @@ function WhyDrawer({ data, open, onClose }: { data: SwipeCardWhyPanel; open: boo
             <dd className="m-0">
               <ol className="m-0 flex list-none flex-col gap-[3px] p-0">
                 {data.storyLines.map((line) => (
-                  <li key={line.label} className="text-[13px] text-[var(--body,#4a4b50)]">
+                  <li key={line.label} className="text-[12px] text-[var(--body,#4a4b50)]">
                     <b className="font-semibold text-[var(--ink,#000)]">{line.label}</b>: {line.text}
                   </li>
                 ))}
@@ -208,18 +210,6 @@ function WhyDrawer({ data, open, onClose }: { data: SwipeCardWhyPanel; open: boo
   );
 }
 
-/** A shot's photo: filling the card, or whole over a blurred copy of itself (finished slides keep their framing). */
-function ShotImage({ src, fit }: { src: string; fit: 'cover' | 'contain' }) {
-  /* eslint-disable @next/next/no-img-element */
-  if (fit === 'cover') return <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" draggable={false} />;
-  return (
-    <>
-      <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-xl brightness-90" draggable={false} />
-      <img src={src} alt="" aria-hidden className="absolute inset-0 h-full w-full object-contain" draggable={false} />
-    </>
-  );
-  /* eslint-enable @next/next/no-img-element */
-}
 
 // ── Main SwipeCard component ─────────────────────────────────────────────────
 
@@ -402,148 +392,136 @@ export function SwipeCard({
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div
-      ref={cardRef}
-      role={isTop ? 'article' : 'presentation'}
-      tabIndex={isTop ? 0 : -1}
-      aria-label={isTop ? ariaLabel : undefined}
-      aria-roledescription={isTop ? 'Swipeable video card. Swipe right to keep, left to skip.' : undefined}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={() => { dragStartX.current = null; setDragX(0); setIsDragging(false); }}
-      className="absolute inset-0 overflow-hidden rounded-[26px] bg-[#222] shadow-[0_22px_50px_-26px_rgba(0,0,0,.5)]"
-      style={{
-        cursor: isTop ? (isDragging ? 'grabbing' : 'grab') : 'default',
-        transform: stackTransform,
-        filter: stackFilter,
-        transition,
-        opacity: exitDirection ? 0 : 1,
-        transformOrigin: '50% 90%',
-        willChange: 'transform',
-        touchAction: 'none',
-        userSelect: 'none',
-        WebkitUserSelect: 'none',
-        zIndex: position === 'top' ? 2 : position === 'back1' ? 1 : 0,
-      }}
-    >
-      {/* ── Shot background ─────────────────────────────────────────────── */}
-      {displayedShot?.mediaUrl ? (
-        displayedShot.mediaKind === 'video' ? (
-          <video
-            key={displayedShot.mediaUrl}
-            src={displayedShot.mediaUrl}
-            autoPlay muted={!soundOn || !isTop || paused || externalPause} loop playsInline
-            className="absolute inset-0 h-full w-full object-cover"
-            aria-hidden
-          />
-        ) : (
-          <ShotImage key={displayedShot.mediaUrl} src={displayedShot.mediaUrl} fit={displayedShot.fit ?? 'cover'} />
-        )
-      ) : (
-        <div
-          className="absolute inset-0"
-          style={{ background: tint(hue, displayedShotIdx) }}
-          aria-hidden
+    <>
+      <div
+        ref={cardRef}
+        role={isTop ? 'article' : 'presentation'}
+        tabIndex={isTop ? 0 : -1}
+        aria-label={isTop ? ariaLabel : undefined}
+        aria-roledescription={isTop ? 'Swipeable video card. Swipe right to keep, left to skip.' : undefined}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={() => { dragStartX.current = null; setDragX(0); setIsDragging(false); }}
+        className="absolute inset-0 overflow-hidden rounded-[26px] bg-[#222] shadow-[0_22px_50px_-26px_rgba(0,0,0,.5)]"
+        style={{
+          cursor: isTop ? (isDragging ? 'grabbing' : 'grab') : 'default',
+          transform: stackTransform,
+          filter: stackFilter,
+          transition,
+          opacity: exitDirection ? 0 : 1,
+          transformOrigin: '50% 90%',
+          willChange: 'transform',
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          zIndex: position === 'top' ? 2 : position === 'back1' ? 1 : 0,
+        }}
+      >
+        {/* ── Shot backgrounds: every shot stacked and loaded ahead, one shown ── */}
+        <ShotLayers
+          shots={shots}
+          index={displayedShotIdx}
+          loadAll={position !== 'back2'}
+          playing={isTop}
+          muted={!soundOn || !isTop || paused || externalPause}
+          fallback={(i) => tint(hue, i)}
         />
-      )}
 
-      {/* ── Progress bars ───────────────────────────────────────────────── */}
-      {isTop && (
-        <div
-          ref={barsRef}
-          className="absolute left-3 right-3 top-3 z-[3] flex gap-1"
-          aria-hidden
-        >
-          {SHOT_DURATIONS.map((dur, i) => (
-            <i
-              key={i}
-              className="relative h-[3px] flex-none overflow-hidden rounded-full bg-white/35"
-              style={{ flex: dur }}
-            >
-              <b className="absolute inset-0 w-0 rounded-full bg-white transition-none" />
-            </i>
-          ))}
-        </div>
-      )}
-
-      {/* ── Caption ─────────────────────────────────────────────────────── */}
-      {displayedShot && (
-        <div
-          className={[
-            'absolute left-5 right-5 z-[1] text-center font-extrabold leading-[1.15] tracking-[-0.01em] text-white',
-            captionClass(displayedShotIdx),
-            // bold text shadow
-            'drop-shadow-[0_0_2px_#000] drop-shadow-[0_2px_10px_rgba(0,0,0,.55)]',
-          ].join(' ')}
-          style={textZoneStyle(displayedShot.textZone)}
-        >
-          {displayedShot.textStyle === 'box' ? (
-            <span className="rounded-md bg-white px-2 py-0.5 text-black [box-decoration-break:clone] [line-height:1.55]">
-              {displayedShot.text}
-            </span>
-          ) : (
-            <span>{displayedShot.text}</span>
-          )}
-        </div>
-      )}
-
-      {/* ── Pause overlay ───────────────────────────────────────────────── */}
-      {isTop && paused && (
-        <div className="pointer-events-none absolute inset-0 z-[3] grid place-items-center">
-          <span className="grid h-16 w-16 place-items-center rounded-full bg-black/50 text-white">
-            <Pause aria-hidden className="h-6 w-6" />
-          </span>
-        </div>
-      )}
-
-      {/* ── KEEP stamp ──────────────────────────────────────────────────── */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-[18px] top-[70px] z-[4] -rotate-[10deg] rounded-xl border-[3px] border-[var(--ready,#1e8049)] bg-white/[0.94] px-[14px] py-[6px] text-[26px] font-black text-[var(--ready,#1e8049)] opacity-0 transition-none"
-        style={{ opacity: keepStampOpacity }}
-      >
-        KEEP
-      </div>
-
-      {/* ── SKIP stamp ──────────────────────────────────────────────────── */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-[18px] top-[70px] z-[4] rotate-[10deg] rounded-xl border-[3px] border-[#555] bg-white/[0.94] px-[14px] py-[6px] text-[26px] font-black text-[#555] opacity-0 transition-none"
-        style={{ opacity: skipStampOpacity }}
-      >
-        SKIP
-      </div>
-
-      {/* ── "Why this?" drawer (slides up from inside the card) ─────────── */}
-      {isTop && whyPanel && (
-        <WhyDrawer data={whyPanel} open={whyOpen} onClose={toggleWhy} />
-      )}
-
-      {/* ── Why toggle button (only on top card, small, in the bottom-right corner off the captions) ── */}
-      {isTop && whyPanel && (
-        <button
-          type="button"
-          data-no-swipe
-          aria-expanded={whyOpen}
-          aria-controls="why-drawer"
-          onClick={(e) => { e.stopPropagation(); toggleWhy(); }}
-          className={[
-            'absolute bottom-3 right-3 z-[5] inline-flex h-7 items-center gap-1 rounded-full border px-2.5',
-            'text-[11px] font-semibold transition-colors',
-            whyOpen
-              ? 'border-[var(--ink,#000)] bg-[var(--ink,#000)] text-white'
-              : 'border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] text-[var(--ink,#000)]',
-          ].join(' ')}
-        >
-          <Info aria-hidden className="h-3 w-3 shrink-0" />
-          Why this?
-          <ChevronDown
+        {/* ── Progress bars ───────────────────────────────────────────────── */}
+        {isTop && (
+          <div
+            ref={barsRef}
+            className="absolute left-3 right-3 top-3 z-[3] flex gap-1"
             aria-hidden
-            className={['h-2.5 w-2.5 shrink-0 transition-transform', whyOpen ? 'rotate-180' : ''].join(' ')}
-          />
-        </button>
-      )}
-    </div>
+          >
+            {SHOT_DURATIONS.map((dur, i) => (
+              <i
+                key={i}
+                className="relative h-[3px] flex-none overflow-hidden rounded-full bg-white/35"
+                style={{ flex: dur }}
+              >
+                <b className="absolute inset-0 w-0 rounded-full bg-white transition-none" />
+              </i>
+            ))}
+          </div>
+        )}
+
+        {/* ── Caption ─────────────────────────────────────────────────────── */}
+        {displayedShot && (
+          <div
+            className={[
+              'absolute left-5 right-5 z-[1] text-center font-extrabold leading-[1.15] tracking-[-0.01em] text-white',
+              captionClass(displayedShotIdx),
+              // bold text shadow
+              'drop-shadow-[0_0_2px_#000] drop-shadow-[0_2px_10px_rgba(0,0,0,.55)]',
+            ].join(' ')}
+            style={textZoneStyle(displayedShot.textZone)}
+          >
+            {displayedShot.textStyle === 'box' ? (
+              <span className="rounded-md bg-white px-2 py-0.5 text-black [box-decoration-break:clone] [line-height:1.55]">
+                {displayedShot.text}
+              </span>
+            ) : (
+              <span>{displayedShot.text}</span>
+            )}
+          </div>
+        )}
+
+        {/* ── Pause overlay ───────────────────────────────────────────────── */}
+        {isTop && paused && (
+          <div className="pointer-events-none absolute inset-0 z-[3] grid place-items-center">
+            <span className="grid h-16 w-16 place-items-center rounded-full bg-black/50 text-white">
+              <Pause aria-hidden className="h-6 w-6" />
+            </span>
+          </div>
+        )}
+
+        {/* ── KEEP stamp ──────────────────────────────────────────────────── */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-[18px] top-[70px] z-[4] -rotate-[10deg] rounded-xl border-[3px] border-[var(--ready,#1e8049)] bg-white/[0.94] px-[14px] py-[6px] text-[26px] font-black text-[var(--ready,#1e8049)] opacity-0 transition-none"
+          style={{ opacity: keepStampOpacity }}
+        >
+          KEEP
+        </div>
+
+        {/* ── SKIP stamp ──────────────────────────────────────────────────── */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute right-[18px] top-[70px] z-[4] rotate-[10deg] rounded-xl border-[3px] border-[#555] bg-white/[0.94] px-[14px] py-[6px] text-[26px] font-black text-[#555] opacity-0 transition-none"
+          style={{ opacity: skipStampOpacity }}
+        >
+          SKIP
+        </div>
+
+        {/* ── Why toggle button (only on top card, small, in the bottom-right corner off the captions) ── */}
+        {isTop && whyPanel && (
+          <button
+            type="button"
+            data-no-swipe
+            aria-expanded={whyOpen}
+            aria-controls="why-drawer"
+            onClick={(e) => { e.stopPropagation(); toggleWhy(); }}
+            className={[
+              'absolute bottom-3 right-3 z-[5] inline-flex h-7 items-center gap-1 rounded-full border px-2.5',
+              'text-[11px] font-semibold transition-colors',
+              whyOpen
+                ? 'border-[var(--ink,#000)] bg-[var(--ink,#000)] text-white'
+                : 'border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] text-[var(--ink,#000)]',
+            ].join(' ')}
+          >
+            <Info aria-hidden className="h-3 w-3 shrink-0" />
+            Why this?
+            <ChevronDown
+              aria-hidden
+              className={['h-2.5 w-2.5 shrink-0 transition-transform', whyOpen ? 'rotate-180' : ''].join(' ')}
+            />
+          </button>
+        )}
+      </div>
+      {/* ── "Why this?" drawer: slides up over the card, outside it so it can be wider ── */}
+      {isTop && whyPanel && <WhyDrawer data={whyPanel} open={whyOpen} onClose={toggleWhy} />}
+    </>
   );
 }

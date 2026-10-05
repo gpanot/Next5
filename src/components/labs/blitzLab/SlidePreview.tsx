@@ -45,6 +45,8 @@ type SlidePreviewProps = {
   onDragCaption: (dx: number, dy: number) => void;
   /** Called when the user drags the business line (canvas-px delta). */
   onDragBusiness: (dx: number, dy: number) => void;
+  /** Shown in the canvas's bottom-right corner, above the drag layer ("Play it"). */
+  corner?: React.ReactNode;
 };
 
 const LAYER_LABEL: Record<BlitzLayer, string> = {
@@ -85,6 +87,7 @@ export function SlidePreview({
   textConfig,
   onDragCaption,
   onDragBusiness,
+  corner,
 }: SlidePreviewProps) {
   // Always navigate over ALL slides (including empty), so the user sees 3 slots.
   const count = Math.max(1, slides.length);
@@ -248,6 +251,7 @@ export function SlidePreview({
             Moving {LAYER_LABEL[draggingLayer].toLowerCase()}…
           </div>
         )}
+        {corner && <div className="absolute right-2 bottom-2 z-20">{corner}</div>}
       </div>{/* end canvas */}
 
         {/* Next arrow — outside the canvas on the right */}
