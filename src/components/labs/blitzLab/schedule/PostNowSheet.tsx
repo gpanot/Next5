@@ -12,8 +12,8 @@ import { usePostChoices } from './usePostChoices';
 type Props = { card: DeckCardData; schedule: BlitzSchedule; bodyFor: BodyFor; onClose: () => void };
 
 /**
- * "Post now" for a kept Blitz video, the same choices as approving one on the calendar: where it posts (TikTok or
- * YouTube Shorts) and that platform's options. 1 credit; the video is made first (about 5 minutes), then posted.
+ * "Post now" for a kept Blitz video already made with Generate, the same choices as approving one on the calendar:
+ * where it posts (TikTok or YouTube Shorts) and that platform's options. The made video is uploaded at once, free.
  */
 export function PostNowSheet({ card, schedule, bodyFor, onClose }: Props) {
   const choices = usePostChoices();
@@ -33,7 +33,7 @@ export function PostNowSheet({ card, schedule, bodyFor, onClose }: Props) {
     setBusy(true);
     setError(null);
     const built = await bodyFor(card).catch(() => ({ error: 'Could not prepare this video. Try again.' }));
-    const failure = 'error' in built ? built.error : await schedule.postNow({ cardId: card.id, variantId: card.variantId, title: titleOf(card), tzOffsetMin: new Date().getTimezoneOffset(), renderBody: built.body, ...choices.request() });
+    const failure = 'error' in built ? built.error : await schedule.postNow({ cardId: card.id, variantId: card.variantId, title: titleOf(card), tzOffsetMin: new Date().getTimezoneOffset(), renderBody: built.body, projectId: card.renderProjectId, ...choices.request() });
     setBusy(false);
     if (failure) return setError(failure);
     setStarted(true);
@@ -52,7 +52,7 @@ export function PostNowSheet({ card, schedule, bodyFor, onClose }: Props) {
         <div className="space-y-4 overflow-y-auto p-4">
           <p className="line-clamp-2 text-[14px] font-semibold text-[var(--ink,#000)] dark:text-neutral-100">{titleOf(card)}</p>
           <PostChoicesForm choices={choices} />
-          <p className="text-[12.5px] text-[var(--mute,#7c7d82)]">Uses 1 credit. The video is made first (about 5 minutes), then posted.</p>
+          <p className="text-[12.5px] text-[var(--mute,#7c7d82)]">Posts the video you made, right now. No extra credit.</p>
           {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error}</p>}
         </div>
         <footer className="border-t border-[var(--line,#e8e5e1)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-neutral-800">
@@ -74,11 +74,8 @@ function Started({ platform, onDone }: { platform: 'tiktok' | 'youtube'; onDone:
       <div className="space-y-3 p-6 text-center">
         <CheckCircle2 aria-hidden className="mx-auto h-10 w-10 text-[var(--ready,#1e8049)]" />
         <p className="text-[16px] font-bold text-[var(--ink,#000)] dark:text-neutral-100">Your video is on its way</p>
-        <ol className="space-y-1 text-left text-[13.5px] text-[var(--mute,#7c7d82)]">
-          <li><b className="text-[var(--ink,#000)] dark:text-neutral-100">1. Making the video</b>, about 5 minutes.</li>
-          <li><b className="text-[var(--ink,#000)] dark:text-neutral-100">2. Posting it to {where}.</b></li>
-        </ol>
-        <p className="text-[13px] text-[var(--mute,#7c7d82)]">Follow it on the video&apos;s card in Kept videos. You can leave this page open or come back later.</p>
+        <p className="text-[13.5px] text-[var(--mute,#7c7d82)]">Posting it to <b className="text-[var(--ink,#000)] dark:text-neutral-100">{where}</b> now. It usually takes a minute or two.</p>
+        <p className="text-[13px] text-[var(--mute,#7c7d82)]">Follow it in the Library tab. Once live, the video shows &ldquo;Posted&rdquo; with the date and time.</p>
       </div>
       <footer className="border-t border-[var(--line,#e8e5e1)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-neutral-800">
         <button type="button" onClick={onDone} className="min-h-12 w-full rounded-full bg-[var(--ink,#000)] px-4 text-[14px] font-semibold text-white transition active:scale-95 dark:bg-white dark:text-black">Done</button>

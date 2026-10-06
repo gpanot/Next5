@@ -6,6 +6,7 @@
 import { CalendarCheck, CalendarPlus, Download, Loader2, Pencil, Send, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useDeckSchedule } from './schedule/DeckSchedule';
+import { postedStamp } from './schedule/postedStamp';
 import { whenLabel } from '../addToCalendar/slots';
 import type { BlitzScheduleDto } from '../../../types/admin/blitzSchedule';
 import type { DeckCardData } from './SwipeDeck';
@@ -145,7 +146,7 @@ function PostProgress({ item }: { item: BlitzScheduleDto }) {
   const text = progressOf(item);
   if (text) return <span role="status" className={`${ghost} cursor-default`}><Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" />{text}</span>;
   if (item.status === 'posted') {
-    const body = <><CalendarCheck aria-hidden className="h-3.5 w-3.5" />Posted to {PLATFORM[item.platform]}</>;
+    const body = <><CalendarCheck aria-hidden className="h-3.5 w-3.5" />Posted to {PLATFORM[item.platform]} · {postedStamp(item)}</>;
     const done = `${ghost} border-[var(--ready,#1e8049)] text-[var(--ready,#1e8049)] dark:border-emerald-700 dark:text-emerald-400`;
     return item.postUrl ? <a href={item.postUrl} target="_blank" rel="noreferrer" className={done}>{body} ↗</a> : <span className={done}>{body}</span>;
   }
@@ -174,15 +175,19 @@ function CalendarButton({ card }: { card: DeckCardData }) {
   );
 }
 
-/** "Post now": made and posted at once. Hidden once the video is being made or posted. Workspace decks only. */
-function PostNowButton({ card }: { card: DeckCardData }) {
+/**
+ * "Post now": uploads the video made with Generate at once. Disabled until the video is ready (Generate first), hidden
+ * once it is being posted or posted. Workspace decks only.
+ */
+function PostNowButton({ card, view }: { card: DeckCardData; view?: KeptRenderView }) {
   const schedule = useDeckSchedule();
   if (!schedule) return null;
   const item = schedule.itemFor(card.id);
   if (item && item.status !== 'planned' && item.status !== 'scheduled') return null;
   if (item && progressOf(item)) return null;
+  const ready = view?.state === 'ready';
   return (
-    <button type="button" onClick={() => schedule.openPostNow(card)} className={ghost}>
+    <button type="button" onClick={() => schedule.openPostNow(card)} disabled={!ready} title={ready ? undefined : 'Generate the video first'} className={ghost}>
       <Send aria-hidden className="h-3.5 w-3.5" /> Post now
     </button>
   );
@@ -235,7 +240,7 @@ export function KeptItem({ card, actions, mode = 'kept' }: { card: DeckCardData;
         ) : (
           <>
             {actions.onGenerate && <RenderButton card={card} view={view} onGenerate={actions.onGenerate} />}
-            <PostNowButton card={card} />
+            <PostNowButton card={card} view={view} />
             <PostStatus card={card} />
           </>
         )}

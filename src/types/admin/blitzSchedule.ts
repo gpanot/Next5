@@ -34,6 +34,10 @@ export type BlitzScheduleDto = {
   postUrl: string | null;
   error: string | null;
   platform: BlitzPlatform;
+  /** The rendered video it posts (null until its render is queued). */
+  projectId: string | null;
+  /** When the platform said it was live. */
+  postedAt: string | null;
 };
 
 /** Any post already on the workspace's calendar, so the picker shows busy days. */
@@ -62,8 +66,11 @@ export type ScheduleBlitzRequest = {
 /** The approval on the calendar: the platform and its choices (TikTok's Direct Post choices, or YouTube's privacy). */
 export type ApproveBlitzRequest = { platform?: BlitzPlatform; tiktok?: TikTokChoices; youtube?: { privacyLevel: string } };
 
-/** "Post now": schedule the kept card for now, already approved. It is made (about 5 minutes) and posted by the tick. */
-export type PostNowBlitzRequest = Omit<ScheduleBlitzRequest, 'scheduledAt'> & ApproveBlitzRequest;
+/**
+ * "Post now": schedule the kept card for now, already approved. With `projectId` (a video already made with Generate)
+ * it is uploaded at once, free; without it, it is made first (about 5 minutes, 1 credit) and then posted.
+ */
+export type PostNowBlitzRequest = Omit<ScheduleBlitzRequest, 'scheduledAt'> & ApproveBlitzRequest & { projectId?: string };
 
 /** GET /blitz/schedule/accounts: the platforms this workspace has connected. */
 export type BlitzAccountsDto = { accounts: Partial<Record<BlitzPlatform, { username: string | null }>>; configured: Record<BlitzPlatform, boolean> };

@@ -39,6 +39,8 @@ export const toScheduleDto = async (p: BlitzScheduledPost): Promise<BlitzSchedul
   postUrl: p.postUrl,
   error: p.error,
   platform: p.platform === 'youtube' ? 'youtube' : 'tiktok',
+  projectId: p.projectId,
+  postedAt: p.postedAt?.toISOString() ?? null,
 });
 
 /** A key as a browser URL with its kind, or null for anything that is not a photo or a clip. */
@@ -195,15 +197,26 @@ export async function approveBlitz(workspaceId: string, id: string, req: Approve
   return toScheduleDto(await prisma.blitzScheduledPost.findUniqueOrThrow({ where: { id } }));
 }
 
+/** The workspace's finished render that "Post now" uploads as is, or a 400 saying why it cannot. */
+const readyVideoOf = async (workspaceId: string, projectId: string): Promise<string> => {
+  const project = await prisma.blitzProject.findFirst({ where: { id: projectId, workspaceId }, select: { renderStatus: true, renderedVideoKey: true } });
+  if (!project) throw new HttpError(400, 'no_video', 'This video was not found. Tap Generate again.');
+  if (project.renderStatus !== 'COMPLETED' || !project.renderedVideoKey) throw new HttpError(400, 'not_rendered', 'The video is not ready yet. Wait for Download, then post it.');
+  return projectId;
+};
+
 /**
- * "Post now" from the kept list: 1 credit, approved at once and due now, so the next tick renders it (about 5 minutes)
- * and posts it. A card already on the calendar (not started) is replaced by this post, with its credit kept.
+ * "Post now" from the kept list, approved at once and due now. With a `projectId` (made with Generate, already paid)
+ * the tick uploads that video right away, free. Without one it costs 1 credit and the tick renders it first (about
+ * 5 minutes). A card already on the calendar (not started) is replaced by this post; its credit is kept, or refunded
+ * when the post uses a video already made.
  */
 export async function postBlitzNow(workspaceId: string, userId: string, req: PostNowBlitzRequest): Promise<BlitzScheduleDto> {
   const approval = approvalOf(req);
   await connectionFor(workspaceId, approval.platform);
   const renderBody = renderBodyOf(req.renderBody);
   if (!req.cardId) throw new HttpError(400, 'no_card', 'Missing card.');
+  const projectId = req.projectId ? await readyVideoOf(workspaceId, req.projectId) : null;
   const scheduledAt = new Date();
   const data = {
     userId,
@@ -212,7 +225,9 @@ export async function postBlitzNow(workspaceId: string, userId: string, req: Pos
     coverKey: typeof renderBody.slides?.[0] === 'object' ? (renderBody.slides[0].backgroundKey ?? null) : renderBody.currentAssets.backgroundKey,
     renderBody: renderBody as unknown as Prisma.InputJsonValue,
     scheduledAt,
-    status: 'scheduled',
+    // A video already made skips the render: the tick sees it finished and uploads it.
+    status: projectId ? 'rendering' : 'scheduled',
+    projectId,
     ...approval,
     consentAt: scheduledAt,
     error: null,
@@ -220,10 +235,13 @@ export async function postBlitzNow(workspaceId: string, userId: string, req: Pos
   const existing = await prisma.blitzScheduledPost.findFirst({ where: { workspaceId, cardId: req.cardId, status: { in: BLITZ_LIVE } } });
   if (existing && !MOVABLE.includes(existing.status)) throw new HttpError(409, 'started', 'This video is already being made or posted.');
   await checkDayRoom(workspaceId, scheduledAt, req.tzOffsetMin, existing?.id);
-  if (!existing) await requireCredits(userId, 1);
+  if (!existing && !projectId) await requireCredits(userId, 1);
   const row = existing
     ? await prisma.blitzScheduledPost.update({ where: { id: existing.id }, data })
-    : await createPaidPost(userId, { ...data, workspaceId, cardId: req.cardId });
+    : projectId
+      ? await prisma.blitzScheduledPost.create({ data: { ...data, workspaceId, cardId: req.cardId } })
+      : await createPaidPost(userId, { ...data, workspaceId, cardId: req.cardId });
+  if (existing && projectId) await refundBlitzCharge(existing.id, 'Posted a video already made');
   if (req.variantId) await prisma.slideshowVariant.updateMany({ where: { id: req.variantId, workspaceId, plannedAt: { not: null } }, data: { status: 'made' } });
   return toScheduleDto(row);
 }

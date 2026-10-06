@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
-import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
+import { BLITZ_LIVE, type BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
 import type { DeckCardData } from '../SwipeDeck';
 import { PostNowSheet } from './PostNowSheet';
 import { ScheduleSheet, titleOf, type BodyFor } from './ScheduleSheet';
@@ -10,10 +10,12 @@ import { useBlitzSchedule } from './useBlitzSchedule';
 type DeckScheduleValue = {
   /** Opens "Add to calendar" for a kept card. */
   open: (card: DeckCardData) => void;
-  /** Opens "Post now" for a kept card: pick the platform, then it is made and posted at once. */
+  /** Opens "Post now" for a kept card already made: pick the platform, then it is uploaded at once. */
   openPostNow: (card: DeckCardData) => void;
   /** The calendar post made from this card, if any. */
   itemFor: (cardId: string) => BlitzScheduleDto | null;
+  /** The live post of a rendered video (Library), so a posted video keeps its "Posted" date after a reload. */
+  postFor: (projectId: string) => BlitzScheduleDto | null;
   /** The card's latest post when it failed (no live post). Null otherwise. */
   failedFor: (cardId: string) => BlitzScheduleDto | null;
   /** Saves an edited card onto its calendar post (same day, free). Resolves null when saved, else the reason. */
@@ -34,6 +36,7 @@ export function DeckScheduleProvider({ bodyFor, children }: { bodyFor: BodyFor; 
     open: setCard,
     openPostNow: setNowCard,
     itemFor: schedule.itemFor,
+    postFor: (projectId) => [...schedule.items].reverse().find((i) => i.projectId === projectId && BLITZ_LIVE.includes(i.status)) ?? null,
     failedFor: (cardId) => (schedule.itemFor(cardId) ? null : [...schedule.items].reverse().find((i) => i.cardId === cardId && i.status === 'failed') ?? null),
     save: async (edited) => {
       const own = schedule.itemFor(edited.id);

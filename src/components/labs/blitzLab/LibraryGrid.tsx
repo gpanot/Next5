@@ -1,9 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Repeat2, Trash2 } from 'lucide-react';
+import { CalendarCheck, Loader2, Repeat2, Trash2 } from 'lucide-react';
+import { BLITZ_PLATFORM_LABELS } from '../../../types/admin/blitzSchedule';
 import { useLabClient } from '../LabClientProvider';
 import { blitzApi, type BlitzProjectDto } from './api';
+import { useDeckSchedule } from './schedule/DeckSchedule';
+import { postedStamp } from './schedule/postedStamp';
 
 type LibraryGridProps = {
   projects: BlitzProjectDto[];
@@ -50,6 +53,21 @@ function RenderBadge({ status }: { status: string }) {
     );
   }
   return null;
+}
+
+/** "Posted · 10/07/26 4:31pm" (or "Posting…") on a rendered video posted from the deck. Workspace decks only. */
+function PostedLine({ projectId }: { projectId: string }) {
+  const post = useDeckSchedule()?.postFor(projectId);
+  if (!post || (post.status !== 'posted' && post.status !== 'rendering' && post.status !== 'sending' && post.status !== 'processing')) return null;
+  const tone = 'mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold';
+  if (post.status !== 'posted') {
+    return <p role="status" className={`${tone} text-muted`}><Loader2 aria-hidden className="h-3 w-3 animate-spin" />Posting to {BLITZ_PLATFORM_LABELS[post.platform]}…</p>;
+  }
+  const label = <><CalendarCheck aria-hidden className="h-3 w-3" />Posted · {postedStamp(post)}</>;
+  const green = `${tone} text-[var(--ready,#1e8049)] dark:text-emerald-400`;
+  return post.postUrl
+    ? <a href={post.postUrl} target="_blank" rel="noreferrer" className={`${green} hover:underline`} aria-label={`Posted to ${BLITZ_PLATFORM_LABELS[post.platform]} ${postedStamp(post)}. Open the post`}>{label}</a>
+    : <p className={green}>{label}</p>;
 }
 
 function LibraryCard({
@@ -158,6 +176,7 @@ function LibraryCard({
           {project.captionText && (
             <p className="line-clamp-2 text-[12px] text-ink">{project.captionText}</p>
           )}
+          <PostedLine projectId={project.id} />
         </div>
 
         {/* Remix: re-open this Set in the editor */}
