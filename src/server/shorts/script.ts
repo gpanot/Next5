@@ -41,7 +41,9 @@ The structure is FIXED. Do not deviate.
 REGISTER: CONVERSATIONAL register. Audience is general scrolling viewers. Plain language; second person where natural.
 No jargon without a one-clause translation. TIGHT sentences — no padding.
 
-TOTAL LENGTH: 55-62 words. The reel lands at ~20-22s. FAST delivery — every pause is attention you've lost.
+TOTAL LENGTH: 45-52 words. The voice reads ~160 words a minute, so the reel lands at ~18-21s. Tight, punchy lines —
+every pause is attention you've lost. Prices and big numbers are read in full ("$135,500" is 7 spoken words):
+round them ("$135K") or keep one per sentence, or the reel runs long.
 
 ──── INLINE TTS TAGS — STRICTLY LIMITED ────
 The "narration" field is passed VERBATIM to a TTS engine. Tags go in [square brackets] BEFORE the clause they modify.
@@ -72,7 +74,8 @@ const clean = (w: string) => w.replace(/^[^\p{L}\p{N}$]+|[^\p{L}\p{N}%]+$/gu, ''
 /** Null when the script is usable; otherwise what to fix. */
 export const scriptProblem = (s: ShortScript): string | null => {
   const words = stripTags(s.narration).split(' ').filter(Boolean);
-  if (words.length < 40 || words.length > 75) return `The narration has ${words.length} words; write 55-62.`;
+  // 45-52 at ~160 wpm ≈ 20 s (reels-af's 55-62 needed a rushed 175+ wpm read). A little slack before rejecting.
+  if (words.length < 40 || words.length > 56) return `The narration has ${words.length} words; write 45-52.`;
   if (s.mechanismLines.length < 2 || s.mechanismLines.length > 4) return 'Write 2-4 mechanism lines.';
   const hookWords = s.hook.split(/\s+/).map(clean).filter((w) => w.length >= 4 && !STOPWORDS.has(w));
   const tail = new Set(words.slice(-12).map(clean));
