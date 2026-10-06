@@ -25,7 +25,8 @@
 
 import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { SwipeCard } from './SwipeCard';
-import { KeptItem, type KeptActions, type KeptRenderView } from './KeptList';
+import type { KeptActions, KeptRenderView } from './KeptList';
+import { KeptTabs, type KeptTab } from './KeptTabs';
 import { KeptSheet } from './KeptSheet';
 import { DeckControls, DoneScreen } from './SwipeDeckParts';
 import { useDeckSound } from './useDeckSound';
@@ -121,6 +122,8 @@ export type SwipeDeckProps = {
   labels?: boolean;
   /** Caption style for every card, drawn like the render. Absent = the card's own style (marketing deck). */
   captionConfig?: TextConfig;
+  /** The workspace's slideshow library: a "Library" tab beside "Kept videos". Absent = no tab. */
+  library?: ReactNode;
 };
 
 // ── Skip reason options ───────────────────────────────────────────────────────
@@ -146,7 +149,7 @@ export function SwipeDeck({
   onSkipReason,
   onMakeMore,
   onCardsChange,
-  paused = false,
+  paused: pausedProp = false,
   onSwipe,
   fallbackAudioUrl,
   onGenerate,
@@ -154,7 +157,12 @@ export function SwipeDeck({
   aside,
   labels = true,
   captionConfig,
+  library,
 }: SwipeDeckProps) {
+  // The Library tab is only about the library: the deck, its music and shortcuts rest while it is open.
+  const [tab, setTab] = useState<KeptTab>('kept');
+  const inLibrary = Boolean(library) && tab === 'library';
+  const paused = pausedProp || inLibrary;
   const [cards, setCards] = useState<DeckCardData[]>(initialCards);
   const [filter, setFilter] = useState<string>('all');
   const [history, setHistory] = useState<HistEntry[]>([]);
@@ -307,30 +315,15 @@ export function SwipeDeck({
       <div className="mx-auto grid w-full max-w-[1240px] grid-cols-1 items-start gap-8 px-5 pb-7 pt-1.5 sm:grid-cols-[320px_1fr] lg:grid-cols-[340px_1fr_260px]">
         {/* ── Sidebar: kept list ─────────────────────────────────────────── */}
         <aside
-          className="sticky top-4 hidden sm:block"
+          className={`hidden sm:block ${inLibrary ? 'sm:col-span-full' : 'sticky top-4'}`}
           aria-label="Kept videos"
         >
-          <h2 className="mb-2.5 text-[14px] font-semibold text-[var(--mute,#7c7d82)]">
-            Kept videos
-          </h2>
-          {keptCards.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-[var(--line,#e8e5e1)] p-[14px] text-[13.5px] text-[var(--mute,#7c7d82)]">
-              Swipe right to keep a variation, then tap Generate to render it.
-            </div>
-          ) : (
-            keptCards.map((c) => (
-              <KeptItem
-                key={c.id}
-                card={c}
-                actions={keptActions}
-              />
-            ))
-          )}
+          <KeptTabs cards={keptCards} actions={keptActions} library={library} tab={tab} onTab={setTab} />
         </aside>
 
         {/* ── Main area ─────────────────────────────────────────────────── */}
-        <main className="flex flex-col items-center">
-          <KeptSheet cards={keptCards} actions={keptActions} />
+        <main className={`flex flex-col items-center ${inLibrary ? 'sm:hidden' : ''}`}>
+          <KeptSheet cards={keptCards} actions={keptActions} library={library} />
 
           {/* Filter chips */}
           {labels && <div
@@ -488,7 +481,7 @@ export function SwipeDeck({
         </main>
 
         {aside && (
-          <div className="sm:col-span-2 lg:sticky lg:top-4 lg:col-span-1">
+          <div className={`sm:col-span-2 lg:sticky lg:top-4 lg:col-span-1 ${inLibrary ? 'sm:hidden' : ''}`}>
             {aside(playing, { on: soundOn, toggle: toggleSound })}
           </div>
         )}

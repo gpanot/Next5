@@ -1,8 +1,12 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { after, NextResponse, type NextRequest } from 'next/server';
+import { tickFromPage } from '../../../../../src/server/autoSlideshow/send';
 import { HttpError } from '../../../../../src/server/http';
 import { labRoute, type LabAccess } from '../../../../../src/server/labs/labAccess';
-import { listBusy, listSchedule, scheduleBlitz } from '../../../../../src/server/labs/blitzSchedule';
-import type { ScheduleBlitzRequest } from '../../../../../src/types/admin/blitzSchedule';
+import { listBusy, listSchedule, postBlitzNow, scheduleBlitz } from '../../../../../src/server/labs/blitzSchedule';
+import type { PostNowBlitzRequest, ScheduleBlitzRequest } from '../../../../../src/types/admin/blitzSchedule';
+
+/** The posting tick runs after the response and may upload a video. */
+export const maxDuration = 60;
 
 /** The caller's workspace; admins name one with ?workspaceId=. */
 const workspaceOf = (access: LabAccess, req: NextRequest): string => {
@@ -18,12 +22,17 @@ const workspaceOf = (access: LabAccess, req: NextRequest): string => {
 export const GET = labRoute(async (req: NextRequest, _ctx: unknown, access) => {
   const workspaceId = workspaceOf(access, req);
   const [items, busy] = await Promise.all([listSchedule(workspaceId), listBusy(workspaceId)]);
+  // The posting cron is not on Vercel's schedule: a page that is open moves due posts along (at most every 30 s).
+  after(() => tickFromPage());
   return NextResponse.json({ items, busy });
 });
 
-/** POST /api/admin/blitz/schedule — puts a kept card on the calendar. Rendered and posted near its time. Users only. */
+/** POST /api/admin/blitz/schedule — puts a kept card on the calendar (rendered and posted near its time), or with `postNow` posts it as soon as it is made. Users only. */
 export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => {
   if (access.admin) throw new HttpError(400, 'user_only', 'Schedule from a workspace.');
-  const item = await scheduleBlitz(access.workspaceId, access.userId, (await req.json()) as ScheduleBlitzRequest);
+  const body = (await req.json()) as ScheduleBlitzRequest & { postNow?: boolean };
+  const item = body.postNow
+    ? await postBlitzNow(access.workspaceId, access.userId, body as unknown as PostNowBlitzRequest)
+    : await scheduleBlitz(access.workspaceId, access.userId, body);
   return NextResponse.json({ item }, { status: 201 });
 });

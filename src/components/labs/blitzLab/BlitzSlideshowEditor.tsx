@@ -345,6 +345,8 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
     ? assets.find((a) => a.r2Key === currentAssets.audioKey)
     : undefined;
 
+  const libraryGrid = <LibraryGrid projects={library} isLoading={libraryLoading} onDelete={removeLibraryProject} onVideoPlay={() => undefined} onRemix={remix} />;
+
   /** The 3-panel editor + library. Shared by the free-form Slideshow step and the deck's edit view. */
   const play = usePlayThrough({ slides, index: currentSlideIndex, setIndex: setCurrentSlideIndex, secondsPerSlide });
   const editorView = (
@@ -453,16 +455,11 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
         </div>
       ) : null}
 
-      {!isLoading && (
+      {/* In the deck the library is a tab beside the kept videos. */}
+      {!isLoading && step !== 'deck' && (
         <section className="flex flex-col gap-3">
           <p className="text-[15px] font-semibold text-ink">Slideshow Library</p>
-          <LibraryGrid
-            projects={library}
-            isLoading={libraryLoading}
-            onDelete={removeLibraryProject}
-            onVideoPlay={() => undefined}
-            onRemix={remix}
-          />
+          {libraryGrid}
         </section>
       )}
     </>
@@ -557,6 +554,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 renderFor={cardRender.renderFor}
                 labels={!workspaceRunId}
                 captionConfig={text.resolved}
+                library={libraryGrid}
                 aside={(card, sound) => <DeckAside card={card} sound={sound} deckCards={deckCards} setDeckCards={setDeckCards} assets={assets} />}
               />
             </div>

@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { BLITZ_LIVE, type BlitzScheduleDto, type CalendarBusyDto, type ScheduleBlitzRequest } from '../../../../types/admin/blitzSchedule';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { BLITZ_LIVE, type BlitzScheduleDto, type CalendarBusyDto, type PostNowBlitzRequest, type ScheduleBlitzRequest } from '../../../../types/admin/blitzSchedule';
 import { errorOf } from '../../labClient';
 import { useLabClient } from '../../LabClientProvider';
 import { scheduleApi } from './scheduleApi';
@@ -25,9 +25,34 @@ export function useBlitzSchedule() {
     };
   }, [client]);
 
+  // A video on its way (being made, uploading, or due now) is re-read every 15 s so its status stays true.
+  const hasPending = state.items.some((i) => ['scheduled', 'rendering', 'sending', 'processing'].includes(i.status));
+  const itemsRef = useRef(state.items);
+  useEffect(() => {
+    itemsRef.current = state.items;
+  }, [state.items]);
+  useEffect(() => {
+    if (!hasPending) return;
+    const due = (i: BlitzScheduleDto) => i.status !== 'scheduled' || new Date(i.scheduledAt).getTime() <= Date.now() + 5 * 60_000;
+    const id = setInterval(() => {
+      if (!itemsRef.current.some((i) => ['scheduled', 'rendering', 'sending', 'processing'].includes(i.status) && due(i))) return;
+      void scheduleApi.list(client).then((res) => res.ok && setState((prev) => ({ ...prev, items: res.data.items, busy: res.data.busy }))).catch(() => undefined);
+    }, 15_000);
+    return () => clearInterval(id);
+  }, [hasPending, client]);
+
   /** Resolves to null when scheduled, else the reason it was not. */
   const schedule = useCallback(async (req: ScheduleBlitzRequest): Promise<string | null> => {
     const res = await scheduleApi.create(client, req).catch(() => null);
+    if (!res?.ok) return res ? errorOf(res) : 'Could not reach the server. Check your connection.';
+    const item = res.data.item;
+    setState((prev) => ({ ...prev, items: [...prev.items.filter((i) => i.id !== item.id), item] }));
+    return null;
+  }, [client]);
+
+  /** "Post now": made and posted as soon as the tick has it. Resolves to null when accepted, else the reason. */
+  const postNow = useCallback(async (req: PostNowBlitzRequest): Promise<string | null> => {
+    const res = await scheduleApi.postNow(client, req).catch(() => null);
     if (!res?.ok) return res ? errorOf(res) : 'Could not reach the server. Check your connection.';
     const item = res.data.item;
     setState((prev) => ({ ...prev, items: [...prev.items.filter((i) => i.id !== item.id), item] }));
@@ -47,7 +72,7 @@ export function useBlitzSchedule() {
     [state.items],
   );
 
-  return { ...state, schedule, cancel, itemFor };
+  return { ...state, schedule, postNow, cancel, itemFor };
 }
 
 export type BlitzSchedule = ReturnType<typeof useBlitzSchedule>;

@@ -3,14 +3,19 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
 import type { DeckCardData } from '../SwipeDeck';
+import { PostNowSheet } from './PostNowSheet';
 import { ScheduleSheet, titleOf, type BodyFor } from './ScheduleSheet';
 import { useBlitzSchedule } from './useBlitzSchedule';
 
 type DeckScheduleValue = {
   /** Opens "Add to calendar" for a kept card. */
   open: (card: DeckCardData) => void;
+  /** Opens "Post now" for a kept card: pick the platform, then it is made and posted at once. */
+  openPostNow: (card: DeckCardData) => void;
   /** The calendar post made from this card, if any. */
   itemFor: (cardId: string) => BlitzScheduleDto | null;
+  /** The card's latest post when it failed (no live post). Null otherwise. */
+  failedFor: (cardId: string) => BlitzScheduleDto | null;
   /** Saves an edited card onto its calendar post (same day, free). Resolves null when saved, else the reason. */
   save: (card: DeckCardData) => Promise<string | null>;
 };
@@ -24,9 +29,12 @@ export const useDeckSchedule = () => useContext(DeckScheduleContext);
 export function DeckScheduleProvider({ bodyFor, children }: { bodyFor: BodyFor; children: ReactNode }) {
   const schedule = useBlitzSchedule();
   const [card, setCard] = useState<DeckCardData | null>(null);
+  const [nowCard, setNowCard] = useState<DeckCardData | null>(null);
   const value = useMemo<DeckScheduleValue>(() => ({
     open: setCard,
+    openPostNow: setNowCard,
     itemFor: schedule.itemFor,
+    failedFor: (cardId) => (schedule.itemFor(cardId) ? null : [...schedule.items].reverse().find((i) => i.cardId === cardId && i.status === 'failed') ?? null),
     save: async (edited) => {
       const own = schedule.itemFor(edited.id);
       if (!own) return 'This video is not on the calendar.';
@@ -40,6 +48,7 @@ export function DeckScheduleProvider({ bodyFor, children }: { bodyFor: BodyFor; 
     <DeckScheduleContext.Provider value={value}>
       {children}
       {card && <ScheduleSheet card={card} schedule={schedule} bodyFor={bodyFor} onClose={() => setCard(null)} />}
+      {nowCard && <PostNowSheet card={nowCard} schedule={schedule} bodyFor={bodyFor} onClose={() => setNowCard(null)} />}
     </DeckScheduleContext.Provider>
   );
 }

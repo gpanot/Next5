@@ -2,8 +2,8 @@
 // Moves scheduled Blitz videos along, one step per tick (run with the Auto Slideshow posting tick):
 //   planned → failed        its time came and it was never approved on the calendar: the credit is refunded
 //   scheduled → rendering   about an hour before the post time: queue the render (paid when scheduled)
-//   rendering → sending     once the MP4 is ready and the post is due: Direct Post to TikTok
-//   processing → posted     TikTok says it is live
+//   rendering → sending     once the MP4 is ready and the post is due: Direct Post to TikTok, or upload as a YouTube Short
+//   processing → posted     the platform says it is live
 // Every step claims its row first, so two ticks never act twice.
 
 import type { BlitzScheduledPost } from '@prisma/client';
@@ -15,6 +15,8 @@ import { isPrepaid, refundBlitzCharge, refundFailedRender } from '../slideshowCr
 import { freshAccessToken } from '../social/connections';
 import { blitzVideoMediaUrl, mediaBaseUrl, mediaIsPublic } from '../social/links';
 import { fetchPublishStatus, queryCreatorInfo } from '../social/tiktokCarousel';
+import { getObject } from '../storage/objectStore';
+import { isYouTubePrivacy, shortState, uploadShort } from '../social/youtubeUpload';
 import { initVideo } from '../social/tiktokVideo';
 import { queueBlitzRender, type RenderBody } from './blitzRender';
 
@@ -40,11 +42,30 @@ const startRender = async (post: BlitzScheduledPost): Promise<void> => {
   }
 };
 
+/** Uploads the rendered MP4 to the workspace's YouTube channel as a Short; YouTube then checks it (see followPublish). */
+const sendYouTube = async (post: BlitzScheduledPost): Promise<void> => {
+  const project = await prisma.blitzProject.findUnique({ where: { id: post.projectId! }, select: { renderedVideoKey: true } });
+  const mp4 = project?.renderedVideoKey ? await getObject(project.renderedVideoKey) : null;
+  if (!mp4) throw new Error('The rendered video file is missing. Schedule it again.');
+  const videoId = await uploadShort(await freshAccessToken(await connectionFor(post.workspaceId, 'youtube')), {
+    title: post.title,
+    description: post.title,
+    tags: [],
+    privacy: isYouTubePrivacy(post.privacyLevel) ? post.privacyLevel : 'private',
+    video: mp4,
+  });
+  await prisma.blitzScheduledPost.update({ where: { id: post.id }, data: { status: 'processing', publishId: videoId, tiktokPostId: videoId, postUrl: `https://www.youtube.com/shorts/${videoId}`, error: null } });
+};
+
 /** Direct Post of the rendered MP4. */
 const sendVideo = async (post: BlitzScheduledPost): Promise<void> => {
   const claimed = await prisma.blitzScheduledPost.updateMany({ where: { id: post.id, status: 'rendering' }, data: { status: 'sending', sentAt: new Date() } });
   if (claimed.count === 0) return;
   try {
+    if (post.platform === 'youtube') {
+      if (!post.consentAt) throw new Error('This video was never approved.');
+      return await sendYouTube(post);
+    }
     if (!mediaIsPublic()) throw new Error(`TikTok cannot download videos from ${mediaBaseUrl()}. Set MEDIA_PUBLIC_URL to the live https site.`);
     const token = await freshAccessToken(await connectionFor(post.workspaceId, 'tiktok'));
     const creator = await queryCreatorInfo(token);
@@ -81,9 +102,15 @@ const followRender = async (post: BlitzScheduledPost, now: number): Promise<void
   }
 };
 
-/** Asks TikTok how a sent video is doing. */
+/** Asks the platform how a sent video is doing. */
 const followPublish = async (post: BlitzScheduledPost): Promise<void> => {
   try {
+    if (post.platform === 'youtube') {
+      const state = await shortState(await freshAccessToken(await connectionFor(post.workspaceId, 'youtube')), post.publishId!);
+      if (state.state === 'posted') await prisma.blitzScheduledPost.update({ where: { id: post.id }, data: { status: 'posted', postedAt: new Date(), error: null } });
+      else if (state.state === 'failed') await fail(post.id, clip(`YouTube: ${state.reason}`, 500));
+      return;
+    }
     const state = await fetchPublishStatus(await freshAccessToken(await connectionFor(post.workspaceId, 'tiktok')), post.publishId!);
     if (state.state === 'posted') {
       const postUrl = state.postId && post.postUrl ? `${post.postUrl}/video/${state.postId}` : post.postUrl;

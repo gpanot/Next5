@@ -3,67 +3,48 @@
 import { Loader2, Pencil, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import type { BlitzScheduleDto, TikTokChoices } from '../../../../types/admin/blitzSchedule';
+import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
 import { errorOf } from '../../labClient';
 import { useLabClient } from '../../LabClientProvider';
 import { CoverMedia } from '../../addToCalendar/CoverMedia';
-import { ConnectTikTok } from './ConnectTikTok';
+import { PostChoicesForm } from './PostChoicesForm';
 import { scheduleApi } from './scheduleApi';
 import { whenLabel } from '../../addToCalendar/slots';
-import { choicesReady, TikTokFields, useTikTokCreator } from './TikTokFields';
+import { usePostChoices, type PostChoices } from './usePostChoices';
 import { VideoPreview } from './VideoPreview';
 
 /** `editHref`: where the video opens in the Blitz editor (it is not made yet, so it can still change). */
 type Props = { item: BlitzScheduleDto; onClose: () => void; onChanged: () => void; editHref?: string };
 
-const NO_CHOICES: TikTokChoices = { privacyLevel: '', allowComments: true, brandOrganic: false, brandContent: false, consent: false };
-
-type Creator = ReturnType<typeof useTikTokCreator>;
-
-/** The TikTok part: loading, not connected (connect right here), or the choices. */
-function TikTokPart({ creator, choices, setChoices, disclose, setDisclose }: { creator: Creator; choices: TikTokChoices; setChoices: (c: TikTokChoices) => void; disclose: boolean; setDisclose: (v: boolean) => void }) {
-  if (creator.status === 'loading') return <div className="h-32 animate-pulse rounded-xl bg-neutral-100 dark:bg-neutral-800" aria-label="Loading your TikTok account" />;
-  if (creator.status === 'error') {
-    if (creator.notConnected) return <ConnectTikTok />;
-    return <p role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[13px] text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">{creator.message}</p>;
-  }
-  return <TikTokFields creator={creator.creator} value={choices} onChange={setChoices} disclose={disclose} onDisclose={setDisclose} />;
-}
-
 /** Approve, or remove, one video; resolves the error text or null. */
-function useApprove({ item, onClose, onChanged }: Props) {
+function useApprove({ item, onClose, onChanged }: Props, choices: PostChoices) {
   const client = useLabClient();
-  const [choices, setChoices] = useState<TikTokChoices>(NO_CHOICES);
-  const [disclose, setDisclose] = useState(false);
   const [busy, setBusy] = useState<'approve' | 'remove' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const run = async (how: 'approve' | 'remove') => {
     setBusy(how);
     setError(null);
-    const tiktok = { ...choices, brandOrganic: disclose && choices.brandOrganic, brandContent: disclose && choices.brandContent };
-    const res = await (how === 'approve' ? scheduleApi.approve(client, item.id, { tiktok }) : scheduleApi.cancel(client, item.id)).catch(() => null);
+    const res = await (how === 'approve' ? scheduleApi.approve(client, item.id, choices.request()) : scheduleApi.cancel(client, item.id)).catch(() => null);
     setBusy(null);
     if (!res?.ok) return setError(res ? errorOf(res) : 'Could not reach the server. Check your connection.');
     onChanged();
     onClose();
   };
-  return { choices, setChoices, disclose, setDisclose, busy, error, setError, ready: choicesReady(choices, disclose), run };
+  return { busy, error, setError, run };
 }
 
 /**
- * A planned Blitz video on the calendar: the user approves it here with TikTok's choices (connecting TikTok first when
- * needed), like the slideshows. Also removes it (its credit comes back).
+ * A planned Blitz video on the calendar: the user approves it here, picking where it posts (TikTok or YouTube Shorts)
+ * and that platform's choices (connecting the account first when needed), like the slideshows. Also removes it (its credit comes back).
  */
 export function ApproveVideoSheet(props: Props) {
   const { item, onClose } = props;
-  const f = useApprove(props);
-  const creator = useTikTokCreator();
+  const choices = usePostChoices();
+  const f = useApprove(props, choices);
   // The button stays green: a tap says what is missing instead of a greyed-out button that says nothing.
   const approve = () => {
-    if (creator.status === 'loading') return;
-    if (creator.status === 'error' && creator.notConnected) return f.setError('Connect at least one social media account.');
-    if (creator.status === 'error') return f.setError(creator.message);
-    if (!f.ready) return f.setError('Pick who can see it on TikTok and tick the box to agree.');
+    const missing = choices.check();
+    if (missing) return f.setError(missing);
     void f.run('approve');
   };
   // Not made yet: it plays as a deck card and can still be edited.
@@ -100,7 +81,7 @@ export function ApproveVideoSheet(props: Props) {
               </Link>
             )}
           </div>
-          <TikTokPart creator={creator} choices={f.choices} setChoices={f.setChoices} disclose={f.disclose} setDisclose={f.setDisclose} />
+          <PostChoicesForm choices={choices} />
           {f.error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{f.error}</p>}
         </div>
         <footer className="flex gap-2 border-t border-[var(--line,#e8e5e1)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-neutral-800">

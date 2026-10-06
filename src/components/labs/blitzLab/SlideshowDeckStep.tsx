@@ -213,6 +213,8 @@ export type SlideshowDeckStepProps = {
   labels?: boolean;
   /** Caption style the render uses (template + Text panel edits), so cards match the video. */
   captionConfig?: TextConfig;
+  /** The slideshow library, shown as a tab beside the kept videos. */
+  library?: ReactNode;
 };
 
 export function SlideshowDeckStep({
@@ -227,6 +229,7 @@ export function SlideshowDeckStep({
   aside,
   labels,
   captionConfig,
+  library,
 }: SlideshowDeckStepProps) {
   const client = useLabClient();
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(cards.length > 0 ? 'ready' : 'loading');
@@ -315,6 +318,7 @@ export function SlideshowDeckStep({
       aside={aside}
       labels={labels}
       captionConfig={captionConfig}
+      library={library}
       onSwipe={(card, action, reason) => logDeckAction(client, card.variantId, action, reason ? { reason } : {})}
     />
   );

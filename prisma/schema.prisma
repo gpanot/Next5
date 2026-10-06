@@ -1279,7 +1279,9 @@ model BlitzScheduledPost {
   /// 'planned' (waits for approval on the calendar) | 'scheduled' | 'rendering' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled'
   status        String    @default("planned")
   projectId     String?   @map("project_id")
-  /// TikTok choices: null until approved on the calendar
+  /// 'tiktok' | 'youtube'
+  platform      String    @default("tiktok")
+  /// Choices: null until approved on the calendar. TikTok's privacy option, or private | unlisted | public for YouTube
   privacyLevel  String?   @map("privacy_level")
   allowComments Boolean   @default(true) @map("allow_comments")
   brandOrganic  Boolean   @default(false) @map("brand_organic")

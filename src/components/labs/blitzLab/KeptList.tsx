@@ -1,12 +1,13 @@
 'use client';
 
-// Kept videos list of the SwipeDeck: one card per kept video. Tapping the card previews it; Edit, Add to calendar and
-// Generate → Download sit below.
+// Kept videos of the SwipeDeck: one card per kept video. In the Kept videos tab, tapping the card previews it; Edit and
+// Add to calendar sit below. In the Library tab the same card carries Generate → Download and Post now.
 
-import { CalendarCheck, CalendarPlus, Download, Loader2, Pencil, Sparkles } from 'lucide-react';
+import { CalendarCheck, CalendarPlus, Download, Loader2, Pencil, Send, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useDeckSchedule } from './schedule/DeckSchedule';
 import { whenLabel } from '../addToCalendar/slots';
+import type { BlitzScheduleDto } from '../../../types/admin/blitzSchedule';
 import type { DeckCardData } from './SwipeDeck';
 
 /** Background render of a kept card, as the row shows it. */
@@ -128,11 +129,35 @@ function RenderButton({ card, view, onGenerate }: { card: DeckCardData; view?: K
   );
 }
 
+const PLATFORM = { tiktok: 'TikTok', youtube: 'YouTube' } as const;
+
+/** What is happening to a video that is being made or posted, as a short line; null when it is just on the calendar. */
+const progressOf = (item: BlitzScheduleDto): string | null => {
+  const where = PLATFORM[item.platform];
+  if (item.status === 'rendering') return 'Making your video…';
+  if (item.status === 'sending' || item.status === 'processing') return `Posting to ${where}…`;
+  if (item.status === 'scheduled' && new Date(item.scheduledAt).getTime() <= Date.now()) return 'Starting…';
+  return null;
+};
+
+/** Live status of a post made now: progress while it works, a link once posted, the reason when it failed. */
+function PostProgress({ item }: { item: BlitzScheduleDto }) {
+  const text = progressOf(item);
+  if (text) return <span role="status" className={`${ghost} cursor-default`}><Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" />{text}</span>;
+  if (item.status === 'posted') {
+    const body = <><CalendarCheck aria-hidden className="h-3.5 w-3.5" />Posted to {PLATFORM[item.platform]}</>;
+    const done = `${ghost} border-[var(--ready,#1e8049)] text-[var(--ready,#1e8049)] dark:border-emerald-700 dark:text-emerald-400`;
+    return item.postUrl ? <a href={item.postUrl} target="_blank" rel="noreferrer" className={done}>{body} ↗</a> : <span className={done}>{body}</span>;
+  }
+  return <span role="alert" className={`${ghost} border-red-300 text-red-600 dark:border-red-900 dark:text-red-400`}>Failed to post</span>;
+}
+
 /** "Add to calendar", or the post's day once it is on the calendar (tap to move or remove it). Workspace decks only. */
 function CalendarButton({ card }: { card: DeckCardData }) {
   const schedule = useDeckSchedule();
   if (!schedule) return null;
-  const item = schedule.itemFor(card.id);
+  const item = schedule.itemFor(card.id) ?? schedule.failedFor(card.id);
+  if (item && (progressOf(item) || item.status === 'posted' || item.status === 'failed')) return <PostProgress item={item} />;
   if (!item) {
     return (
       <button type="button" onClick={() => schedule.open(card)} className={ghost}>
@@ -149,15 +174,47 @@ function CalendarButton({ card }: { card: DeckCardData }) {
   );
 }
 
-/** One kept video. The whole card previews it; the buttons below keep their own action. */
-export function KeptItem({ card, actions }: { card: DeckCardData; actions: KeptActions }) {
+/** "Post now": made and posted at once. Hidden once the video is being made or posted. Workspace decks only. */
+function PostNowButton({ card }: { card: DeckCardData }) {
+  const schedule = useDeckSchedule();
+  if (!schedule) return null;
+  const item = schedule.itemFor(card.id);
+  if (item && item.status !== 'planned' && item.status !== 'scheduled') return null;
+  if (item && progressOf(item)) return null;
+  return (
+    <button type="button" onClick={() => schedule.openPostNow(card)} className={ghost}>
+      <Send aria-hidden className="h-3.5 w-3.5" /> Post now
+    </button>
+  );
+}
+
+/** Why the last post of this video failed, under its buttons. */
+function PostFailure({ card }: { card: DeckCardData }) {
+  const failed = useDeckSchedule()?.failedFor(card.id);
+  if (!failed?.error) return null;
+  return <p role="alert" className="mt-1.5 text-[11.5px] leading-snug text-red-600 dark:text-red-400">{failed.error}</p>;
+}
+
+/** Progress, posted or failed chip of a card's post; nothing while it is only on the calendar. */
+function PostStatus({ card }: { card: DeckCardData }) {
+  const schedule = useDeckSchedule();
+  const item = schedule?.itemFor(card.id) ?? schedule?.failedFor(card.id);
+  return item && (progressOf(item) || item.status === 'posted' || item.status === 'failed') ? <PostProgress item={item} /> : null;
+}
+
+/**
+ * One kept video. `kept` (the Kept videos tab): the card previews it; Edit and the calendar below. `library` (the
+ * Library tab): what makes it, Generate → Download and Post now, with the post's status. The buttons keep their own
+ * action: a tap on them never previews.
+ */
+export function KeptItem({ card, actions, mode = 'kept' }: { card: DeckCardData; actions: KeptActions; mode?: 'kept' | 'library' }) {
   const posterShot = card.shots[0];
   const view = actions.renderFor?.(card);
   const title = posterShot?.text ?? card.hookStyle;
   return (
     <div
-      onClick={() => actions.onPreview(card.id)}
-      className="mb-2 cursor-pointer rounded-2xl border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] p-2 transition hover:border-neutral-400 hover:shadow-sm active:scale-[0.99] dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-600"
+      onClick={mode === 'kept' ? () => actions.onPreview(card.id) : undefined}
+      className={`${mode === 'kept' ? 'cursor-pointer active:scale-[0.99]' : ''} rounded-2xl border border-[var(--line,#e8e5e1)] bg-[var(--paper,#fff)] p-2 transition hover:border-neutral-400 hover:shadow-sm dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-600`}
     >
       <button type="button" className="flex w-full items-center gap-2.5 text-left" aria-label={`Preview: ${title}`}>
         <KeptThumb card={card} />
@@ -168,12 +225,22 @@ export function KeptItem({ card, actions }: { card: DeckCardData; actions: KeptA
       </button>
       {/* The buttons keep their own action: a tap on them never previews. */}
       <div className="mt-2 flex flex-wrap items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-        <button type="button" onClick={() => actions.onEdit(card.id)} className={ghost}>
-          <Pencil aria-hidden className="h-3.5 w-3.5" /> Edit
-        </button>
-        <CalendarButton card={card} />
-        {actions.onGenerate && <RenderButton card={card} view={view} onGenerate={actions.onGenerate} />}
+        {mode === 'kept' ? (
+          <>
+            <button type="button" onClick={() => actions.onEdit(card.id)} className={ghost}>
+              <Pencil aria-hidden className="h-3.5 w-3.5" /> Edit
+            </button>
+            <CalendarButton card={card} />
+          </>
+        ) : (
+          <>
+            {actions.onGenerate && <RenderButton card={card} view={view} onGenerate={actions.onGenerate} />}
+            <PostNowButton card={card} />
+            <PostStatus card={card} />
+          </>
+        )}
       </div>
+      <PostFailure card={card} />
       {view?.state === 'failed' && (
         <p role="alert" className="mt-1.5 text-[11.5px] leading-snug text-red-600 dark:text-red-400">{view.error}</p>
       )}

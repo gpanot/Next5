@@ -3,6 +3,11 @@
 /** `planned`: on the calendar, waiting for the user's TikTok approval there. `scheduled`: approved. */
 export type BlitzScheduleStatus = 'planned' | 'scheduled' | 'rendering' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled';
 
+/** Where a Blitz video posts: one platform each. */
+export type BlitzPlatform = 'tiktok' | 'youtube';
+export const BLITZ_PLATFORMS: readonly BlitzPlatform[] = ['tiktok', 'youtube'];
+export const BLITZ_PLATFORM_LABELS: Record<BlitzPlatform, string> = { tiktok: 'TikTok', youtube: 'YouTube Shorts' };
+
 /** One scheduled Blitz video. */
 /**
  * GET /blitz/schedule/[id]: a calendar video as saved, to preview it and re-open it in the Blitz editor. `assets` is
@@ -28,6 +33,7 @@ export type BlitzScheduleDto = {
   status: BlitzScheduleStatus;
   postUrl: string | null;
   error: string | null;
+  platform: BlitzPlatform;
 };
 
 /** Any post already on the workspace's calendar, so the picker shows busy days. */
@@ -53,8 +59,14 @@ export type ScheduleBlitzRequest = {
   renderBody: unknown;
 };
 
-/** The approval on the calendar: TikTok's Direct Post choices for this video. */
-export type ApproveBlitzRequest = { tiktok: TikTokChoices };
+/** The approval on the calendar: the platform and its choices (TikTok's Direct Post choices, or YouTube's privacy). */
+export type ApproveBlitzRequest = { platform?: BlitzPlatform; tiktok?: TikTokChoices; youtube?: { privacyLevel: string } };
+
+/** "Post now": schedule the kept card for now, already approved. It is made (about 5 minutes) and posted by the tick. */
+export type PostNowBlitzRequest = Omit<ScheduleBlitzRequest, 'scheduledAt'> & ApproveBlitzRequest;
+
+/** GET /blitz/schedule/accounts: the platforms this workspace has connected. */
+export type BlitzAccountsDto = { accounts: Partial<Record<BlitzPlatform, { username: string | null }>>; configured: Record<BlitzPlatform, boolean> };
 
 /** PATCH /blitz/schedule/[id]: moves a video not started yet to another time (dragged to another day). */
 export type MoveBlitzRequest = { scheduledAt: string; tzOffsetMin?: number };

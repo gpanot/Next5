@@ -87,14 +87,16 @@ describe('instagram posting', () => {
 describe('parsePlatforms', () => {
   it('keeps TikTok choices only when TikTok is picked', async () => {
     const { parsePlatforms } = await import('../../../src/server/autoSlideshow/parsePosting');
-    expect(parsePlatforms({ platforms: ['instagram', 'instagram', 'facebook'] })).toEqual({ platforms: ['instagram'], tiktok: null });
+    expect(parsePlatforms({ platforms: ['instagram', 'instagram', 'facebook'] })).toEqual({ platforms: ['instagram'], tiktok: null, youtube: null });
+    expect(parsePlatforms({ platforms: ['youtube'], youtube: { privacyLevel: 'unlisted' } })).toEqual({ platforms: ['youtube'], tiktok: null, youtube: { privacyLevel: 'unlisted' } });
+    expect(parsePlatforms({ platforms: ['youtube'] }).youtube).toEqual({ privacyLevel: 'private' });
     const both = parsePlatforms({ platforms: ['tiktok', 'instagram'], tiktok: { privacyLevel: 'SELF_ONLY', consent: true } });
     expect(both.tiktok).toEqual({ privacyLevel: 'SELF_ONLY', allowComments: true, brandOrganic: false, brandContent: false, consent: true });
   });
 
   it('asks for a platform, and for TikTok privacy', async () => {
     const { parsePlatforms } = await import('../../../src/server/autoSlideshow/parsePosting');
-    expect(() => parsePlatforms({ platforms: [] })).toThrow(/Pick TikTok, Instagram or both/);
+    expect(() => parsePlatforms({ platforms: [] })).toThrow(/Pick where to post/);
     expect(() => parsePlatforms({ platforms: ['tiktok'] })).toThrow(/who can see/);
   });
 });

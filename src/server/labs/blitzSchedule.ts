@@ -4,9 +4,13 @@
 
 import type { BlitzScheduledPost, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { BLITZ_LIVE, MAX_POSTS_PER_DAY, type BlitzEditDto, type BlitzScheduleDto, type BlitzScheduleStatus, type ApproveBlitzRequest, type CalendarBusyDto, type MoveBlitzRequest, type ScheduleBlitzRequest } from '../../types/admin/blitzSchedule';
+import { BLITZ_LIVE, MAX_POSTS_PER_DAY, type BlitzAccountsDto, type BlitzEditDto, type BlitzPlatform, type BlitzScheduleDto, type PostNowBlitzRequest, type BlitzScheduleStatus, type ApproveBlitzRequest, type CalendarBusyDto, type MoveBlitzRequest, type ScheduleBlitzRequest } from '../../types/admin/blitzSchedule';
 import { blitzBrowserUrl } from '../admin/blitzStore';
 import { connectionFor } from '../autoSlideshow/posting';
+import { isYouTubePrivacy } from '../social/youtubeUpload';
+import { listConnections } from '../social/connections';
+import { tiktok } from '../social/tiktok';
+import { youtube } from '../social/youtube';
 import { HttpError } from '../http';
 import { presignObject } from '../storage/objectStore';
 import { refundBlitzCharge } from '../slideshowCredits/blitzCharge';
@@ -34,6 +38,7 @@ export const toScheduleDto = async (p: BlitzScheduledPost): Promise<BlitzSchedul
   status: p.status as BlitzScheduleStatus,
   postUrl: p.postUrl,
   error: p.error,
+  platform: p.platform === 'youtube' ? 'youtube' : 'tiktok',
 });
 
 /** A key as a browser URL with its kind, or null for anything that is not a photo or a clip. */
@@ -167,16 +172,67 @@ export async function scheduleBlitz(workspaceId: string, userId: string, req: Sc
   return toScheduleDto(row);
 }
 
-/** The approval on the calendar: TikTok's choices and consent. Needs the TikTok account connected. Can be redone. */
+/** What an approval stores: the platform and its checked choices. */
+const approvalOf = (req: ApproveBlitzRequest) => {
+  if (req.platform === 'youtube') {
+    const privacy = req.youtube?.privacyLevel ?? 'private';
+    if (!isYouTubePrivacy(privacy)) throw new HttpError(400, 'bad_privacy', 'Pick who can see the Short: private, unlisted or public.');
+    return { platform: 'youtube' as const, privacyLevel: privacy, allowComments: true, brandOrganic: false, brandContent: false };
+  }
+  const t = checkTikTok(req.tiktok);
+  return { platform: 'tiktok' as const, privacyLevel: t.privacyLevel, allowComments: t.allowComments, brandOrganic: t.brandOrganic, brandContent: t.brandContent };
+};
+
+/** The approval on the calendar: the platform's choices and consent. Needs that account connected. Can be redone. */
 export async function approveBlitz(workspaceId: string, id: string, req: ApproveBlitzRequest): Promise<BlitzScheduleDto> {
-  const tiktok = checkTikTok(req.tiktok);
-  await connectionFor(workspaceId, 'tiktok');
+  const approval = approvalOf(req);
+  await connectionFor(workspaceId, approval.platform);
   const done = await prisma.blitzScheduledPost.updateMany({
     where: { id, workspaceId, status: { in: MOVABLE } },
-    data: { status: 'scheduled', privacyLevel: tiktok.privacyLevel, allowComments: tiktok.allowComments, brandOrganic: tiktok.brandOrganic, brandContent: tiktok.brandContent, consentAt: new Date(), error: null },
+    data: { status: 'scheduled', ...approval, consentAt: new Date(), error: null },
   });
   if (done.count === 0) throw new HttpError(409, 'started', 'This video is already being made or posted.');
   return toScheduleDto(await prisma.blitzScheduledPost.findUniqueOrThrow({ where: { id } }));
+}
+
+/**
+ * "Post now" from the kept list: 1 credit, approved at once and due now, so the next tick renders it (about 5 minutes)
+ * and posts it. A card already on the calendar (not started) is replaced by this post, with its credit kept.
+ */
+export async function postBlitzNow(workspaceId: string, userId: string, req: PostNowBlitzRequest): Promise<BlitzScheduleDto> {
+  const approval = approvalOf(req);
+  await connectionFor(workspaceId, approval.platform);
+  const renderBody = renderBodyOf(req.renderBody);
+  if (!req.cardId) throw new HttpError(400, 'no_card', 'Missing card.');
+  const scheduledAt = new Date();
+  const data = {
+    userId,
+    variantId: req.variantId ?? null,
+    title: (req.title || renderBody.captionText).trim().slice(0, 300),
+    coverKey: typeof renderBody.slides?.[0] === 'object' ? (renderBody.slides[0].backgroundKey ?? null) : renderBody.currentAssets.backgroundKey,
+    renderBody: renderBody as unknown as Prisma.InputJsonValue,
+    scheduledAt,
+    status: 'scheduled',
+    ...approval,
+    consentAt: scheduledAt,
+    error: null,
+  };
+  const existing = await prisma.blitzScheduledPost.findFirst({ where: { workspaceId, cardId: req.cardId, status: { in: BLITZ_LIVE } } });
+  if (existing && !MOVABLE.includes(existing.status)) throw new HttpError(409, 'started', 'This video is already being made or posted.');
+  await checkDayRoom(workspaceId, scheduledAt, req.tzOffsetMin, existing?.id);
+  if (!existing) await requireCredits(userId, 1);
+  const row = existing
+    ? await prisma.blitzScheduledPost.update({ where: { id: existing.id }, data })
+    : await createPaidPost(userId, { ...data, workspaceId, cardId: req.cardId });
+  if (req.variantId) await prisma.slideshowVariant.updateMany({ where: { id: req.variantId, workspaceId, plannedAt: { not: null } }, data: { status: 'made' } });
+  return toScheduleDto(row);
+}
+
+/** The connected platforms a Blitz video can post to, for the approve and post-now sheets. */
+export async function blitzAccounts(workspaceId: string): Promise<BlitzAccountsDto> {
+  const accounts: BlitzAccountsDto['accounts'] = {};
+  for (const c of await listConnections(workspaceId)) if (c.provider === 'tiktok' || c.provider === 'youtube') accounts[c.provider as BlitzPlatform] = { username: c.username };
+  return { accounts, configured: { tiktok: tiktok.configured(), youtube: youtube.configured() } };
 }
 
 /** Moves a video not started yet to another time (dragged to another day). Free; keeps its approval. */

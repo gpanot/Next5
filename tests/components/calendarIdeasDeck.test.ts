@@ -34,7 +34,7 @@ describe('deckOrder', () => {
   });
 });
 
-const blitz = (status: BlitzScheduleDto['status']): BlitzScheduleDto => ({ id: status, cardId: 'c', title: 'T', coverUrl: null, coverIsVideo: false, scheduledAt: '2026-10-12T19:00:00Z', status, postUrl: null, error: null });
+const blitz = (status: BlitzScheduleDto['status']): BlitzScheduleDto => ({ id: status, cardId: 'c', title: 'T', coverUrl: null, coverIsVideo: false, scheduledAt: '2026-10-12T19:00:00Z', status, postUrl: null, error: null, platform: 'tiktok' });
 
 describe('calendar tile statuses', () => {
   it('maps Blitz videos to the canvas statuses', () => {
