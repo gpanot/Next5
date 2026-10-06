@@ -5,23 +5,31 @@ import { Dialog } from '../../../ui/Dialog';
 import { LegalSections, type LegalSection } from '../../../marketing/legal/LegalPage';
 import { LEGAL_UPDATED, PRIVACY, TERMS } from '../../../../content/business/legal';
 
-type LegalDoc = { key: string; label: string; title: string; sections: readonly LegalSection[] };
+type LegalDoc = { key: string; label: string; title: string; href: string; sections: readonly LegalSection[] };
 
 const LEGAL_DOCS: readonly LegalDoc[] = [
-  { key: 'terms', label: 'Terms', title: 'Terms of Service', sections: TERMS },
-  { key: 'privacy', label: 'Privacy', title: 'Privacy Policy', sections: PRIVACY },
+  { key: 'terms', label: 'Terms', title: 'Terms of Service', href: '/legal/terms', sections: TERMS },
+  { key: 'privacy', label: 'Privacy', title: 'Privacy Policy', href: '/legal/privacy', sections: PRIVACY },
 ];
 
-/** Public Auto Slideshow footer: legal docs open in a modal so users stay on /slideshow, not the Next5 marketing site. */
+/** Public Auto Slideshow footer: real links (crawlers and Google app review need them); a normal click opens the doc in a modal so users stay on /slideshow. */
 export function PublicFooter() {
   const [openDoc, setOpenDoc] = useState<LegalDoc | null>(null);
   return (
     <footer className="border-t border-line px-4 py-6 md:px-8 dark:border-zinc-800">
       <nav aria-label="Legal" className="mx-auto flex max-w-6xl items-center justify-center gap-6 text-[13px] text-muted dark:text-zinc-400">
         {LEGAL_DOCS.map((doc) => (
-          <button key={doc.key} type="button" onClick={() => setOpenDoc(doc)} className="min-h-11 px-1 transition hover:text-ink dark:hover:text-zinc-100">
+          <a
+            key={doc.key}
+            href={doc.href}
+            onClick={(event) => {
+              event.preventDefault();
+              setOpenDoc(doc);
+            }}
+            className="inline-flex min-h-11 items-center px-1 transition hover:text-ink dark:hover:text-zinc-100"
+          >
             {doc.label}
-          </button>
+          </a>
         ))}
       </nav>
       <Dialog open={openDoc !== null} onClose={() => setOpenDoc(null)} title={openDoc?.title} description={`Last updated ${LEGAL_UPDATED}`} className="max-w-2xl">
