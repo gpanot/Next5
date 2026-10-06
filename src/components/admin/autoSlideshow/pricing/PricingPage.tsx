@@ -18,7 +18,7 @@ function Hero({ homeHref }: { homeHref: string }) {
   return (
     <section className="flex flex-col items-center text-center">
       <p className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold tracking-wide text-blue-700 uppercase dark:bg-blue-950 dark:text-blue-300">Pay as you go · No subscription</p>
-      <h2 className="mt-5 text-4xl leading-[0.95] font-extrabold tracking-tight text-ink md:text-6xl dark:text-zinc-100">
+      <h2 className="mt-5 text-4xl leading-[1.12] font-extrabold tracking-tight text-ink md:text-6xl dark:text-zinc-100">
         A new TikTok post
         <br />
         every day. <span className="text-blue-600 dark:text-blue-400">For {PRICE_LABEL}.</span>
