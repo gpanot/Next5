@@ -20,6 +20,10 @@ const MARKS: Record<PlatformId, { label: string; svg: React.ReactNode }> = {
       </>
     ),
   },
+  youtube: {
+    label: 'YouTube',
+    svg: <path d="M21.6 7.2a2.5 2.5 0 0 0-1.76-1.77C18.27 5 12 5 12 5s-6.27 0-7.84.43A2.5 2.5 0 0 0 2.4 7.2C2 8.78 2 12 2 12s0 3.22.4 4.8a2.5 2.5 0 0 0 1.76 1.77C5.73 19 12 19 12 19s6.27 0 7.84-.43a2.5 2.5 0 0 0 1.76-1.77C22 15.22 22 12 22 12s0-3.22-.4-4.8zM10 15V9l5.2 3L10 15z" fill="currentColor" />,
+  },
   facebook: {
     label: 'Facebook',
     svg: <path d="M13.4 21v-7.6H16l.4-3h-3V8.5c0-.9.3-1.5 1.6-1.5h1.6V4.3A21 21 0 0 0 14.3 4c-2.4 0-4 1.5-4 4.1v2.3H7.7v3h2.6V21h3.1Z" fill="currentColor" />,

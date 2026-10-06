@@ -1,20 +1,24 @@
 // server-only — never import from a 'use client' file.
 // Sends approved posts when due and follows them until they are live, per platform:
 //   TikTok: creator info → init carousel → poll the publish status.
+//   YouTube: render the MP4 (Blitz worker) → upload it as a Short → wait until YouTube has processed it.
 //   Instagram: item containers → carousel container → publish once Meta has the photos (FINISHED).
 // Limits: TikTok allows 6 requests a minute per token and caps posts a day per creator; we stay under both.
 
 import type { AutoSlideshowPost } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import type { AutoSlide } from '../../types/admin/autoSlideshow';
+import { PLATFORM_LABELS, type AutoSlide, type PostPlatform } from '../../types/admin/autoSlideshow';
 import { HttpError } from '../http';
 import { clip } from '../metaAds/text';
 import { freshAccessToken } from '../social/connections';
 import { containerStatus, createCarousel, instagramCaption, publishContainer } from '../social/instagramCarousel';
 import { mediaBaseUrl, mediaIsPublic, slideMediaUrl } from '../social/links';
+import { getObject } from '../storage/objectStore';
+import { shortState, uploadShort, isYouTubePrivacy } from '../social/youtubeUpload';
 import { fetchPublishStatus, initCarousel, queryCreatorInfo } from '../social/tiktokCarousel';
 import { runBlitzScheduleTick } from '../labs/blitzScheduleTick';
 import { refreshDueStats } from './stats';
+import { videoForPost } from './video';
 import { firstStatsAt } from './statsSchedule';
 
 /** Our own ceiling per account per 24 h, under TikTok's third-party cap and Instagram's 100 API posts. */
@@ -32,7 +36,7 @@ type PostWithShow = AutoSlideshowPost & { slideshow: { slides: unknown; topic: s
 
 const connection = async (post: AutoSlideshowPost) => {
   const conn = await prisma.socialConnection.findUnique({ where: { workspaceId_provider: { workspaceId: post.workspaceId, provider: post.platform } } });
-  if (!conn) throw new HttpError(409, 'not_connected', `This workspace has no ${post.platform === 'instagram' ? 'Instagram' : 'TikTok'} account connected anymore.`);
+  if (!conn) throw new HttpError(409, 'not_connected', `This workspace has no ${PLATFORM_LABELS[post.platform as PostPlatform] ?? post.platform} account connected anymore.`);
   return conn;
 };
 
@@ -44,6 +48,10 @@ const FIXES: Record<string, string> = {
   url_ownership_unverified: 'TikTok cannot pull the photos: verify the app\'s domain in the TikTok developer portal (Content Posting API → Verify domains).',
   privacy_level_option_mismatch: 'This privacy is no longer allowed on the account. Schedule it again with another privacy.',
   'Only photo or video can be accepted as media type': 'Instagram could not read a slide image. Check MEDIA_PUBLIC_URL points to the live https site.',
+  quotaExceeded: 'YouTube\'s daily upload quota of the app is used up. It resets at midnight Pacific time. Retry tomorrow.',
+  uploadLimitExceeded: 'This YouTube channel hit its daily upload limit. Retry tomorrow.',
+  youtubeSignupRequired: 'The Google account has no YouTube channel. Create one on youtube.com, then connect YouTube again.',
+  forbidden: 'YouTube refused the upload. Disconnect and connect YouTube again in Settings → Accounts, and tick every permission box.',
   'Application does not have permission': 'The Instagram connection is missing a permission: disconnect and connect Instagram again in Settings → Accounts.',
 };
 
@@ -98,14 +106,52 @@ const sendInstagram = async (post: PostWithShow): Promise<void> => {
   await finishInstagram(post, token, conn.externalId, containerId, IG_WAIT_MS);
 };
 
+/** Marker in publish_id while a YouTube post waits for its MP4 to render; after the upload it holds the video id. */
+const RENDERING = 'render';
+
+/** YouTube takes an MP4, not photos: render the slideshow (about 90 s), then upload it. Called on send and on every poll. */
+const deliverYouTube = async (post: AutoSlideshowPost): Promise<void> => {
+  const conn = await connection(post);
+  const video = await videoForPost(post.slideshowId, post.workspaceId);
+  if (!video.key) {
+    await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'processing', publishId: RENDERING, error: null } });
+    return;
+  }
+  const mp4 = await getObject(video.key);
+  if (!mp4) throw new Error('The rendered video file is missing. Download the video once to render it again.');
+  const show = await prisma.autoSlideshow.findUniqueOrThrow({ where: { id: post.slideshowId }, select: { topic: true, caption: true, hashtags: true, slides: true } });
+  const privacy = isYouTubePrivacy(post.privacyLevel) ? post.privacyLevel : 'private';
+  const videoId = await uploadShort(await freshAccessToken(conn), {
+    title: (show.slides as AutoSlide[])[0]?.title ?? show.topic,
+    description: captionOf(show.caption, show.hashtags),
+    tags: show.hashtags.map((h) => h.replace(/^#/, '')),
+    privacy,
+    video: mp4,
+  });
+  await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'processing', publishId: videoId, tiktokPostId: videoId, postUrl: `https://www.youtube.com/shorts/${videoId}`, error: null } });
+};
+
+/** Waits for YouTube to finish checking an uploaded video; posted once it is processed. */
+const refreshYouTube = async (post: AutoSlideshowPost): Promise<void> => {
+  if (post.publishId === RENDERING) return deliverYouTube(post);
+  const state = await shortState(await freshAccessToken(await connection(post)), post.publishId!);
+  if (state.state === 'posted') {
+    const postedAt = new Date();
+    // Stats for YouTube are not read yet: no schedule.
+    await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'posted', postedAt, nextStatsAt: null, error: null } });
+  } else if (state.state === 'failed') {
+    await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'failed', error: clip(`YouTube: ${state.reason}`, 500) } });
+  }
+};
+
 /** Claims one due post (so two ticks never send it twice), then sends it on its platform. Never throws. */
 export const sendPost = async (postId: string): Promise<void> => {
   const claimed = await prisma.autoSlideshowPost.updateMany({ where: { id: postId, status: 'scheduled' }, data: { status: 'sending', sentAt: new Date(), attempts: { increment: 1 } } });
   if (claimed.count === 0) return;
   const post = await prisma.autoSlideshowPost.findUniqueOrThrow({ where: { id: postId }, include: { slideshow: true } });
   try {
-    if (!mediaIsPublic()) throw new Error(`The platforms cannot download photos from ${mediaBaseUrl()}. Post from the live site, or set MEDIA_PUBLIC_URL=https://next5.giinger.com on this server.`);
-    await (post.platform === 'instagram' ? sendInstagram(post) : sendTikTok(post));
+    if (post.platform !== 'youtube' && !mediaIsPublic()) throw new Error(`The platforms cannot download photos from ${mediaBaseUrl()}. Post from the live site, or set MEDIA_PUBLIC_URL=https://next5.giinger.com on this server.`);
+    await (post.platform === 'youtube' ? deliverYouTube(post) : post.platform === 'instagram' ? sendInstagram(post) : sendTikTok(post));
   } catch (err) {
     const message = clip(explain(err instanceof Error ? err.message : String(err)), 500);
     // Rate limits and platform hiccups get another try on a later tick; anything else fails for a person to look at.
@@ -134,7 +180,9 @@ export const refreshPost = async (postId: string): Promise<void> => {
   const post = await prisma.autoSlideshowPost.findUnique({ where: { id: postId } });
   if (!post?.publishId || post.status !== 'processing') return;
   try {
-    if (post.platform === 'instagram') {
+    if (post.platform === 'youtube') {
+      await refreshYouTube(post);
+    } else if (post.platform === 'instagram') {
       const conn = await connection(post);
       await finishInstagram(post, await freshAccessToken(conn), conn.externalId, post.publishId, 0);
     } else {
@@ -146,6 +194,8 @@ export const refreshPost = async (postId: string): Promise<void> => {
       await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'failed', error: clip(message, 500) } });
     } else {
       console.warn(`[auto-slideshow] status of post ${postId} unknown:`, message);
+      // A render that failed for good is a failed post, not one to poll forever.
+      if (post.platform === 'youtube' && /failed to render|file is missing/.test(message)) await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'failed', error: clip(message, 500) } });
     }
   }
 };

@@ -1,7 +1,7 @@
 // server-only — never import from a 'use client' file.
 // The workspace's Analytics: its live posts, what each slideshow was made of, and every read of its numbers.
 
-import type { AutoSlide, PostStats } from '../../types/admin/autoSlideshow';
+import { isPostPlatform, type AutoSlide, type PostStats } from '../../types/admin/autoSlideshow';
 import { isContentGoal } from '../../types/admin/contentGoals';
 import type { AnalyticsPostDto, NoNumbersReason, TikTokAccountDto } from '../../types/admin/slideshowAnalytics';
 import { prisma } from '../../lib/db';
@@ -41,7 +41,7 @@ const toAnalyticsDto = async (p: Row): Promise<AnalyticsPostDto> => {
     id: p.id,
     slideshowId: p.slideshowId,
     runId: p.runId,
-    platform: p.platform === 'instagram' ? 'instagram' : 'tiktok',
+    platform: isPostPlatform(p.platform) ? p.platform : 'tiktok',
     postedAt: (p.postedAt ?? p.createdAt).toISOString(),
     postUrl: p.postUrl,
     hook: first?.title ?? p.slideshow.topic,

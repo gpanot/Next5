@@ -16,7 +16,7 @@ const PROVIDERS: { id: SocialProviderDto; label: string; note: string }[] = [
   { id: 'tiktok', label: 'TikTok', note: 'Log in to TikTok in this browser before you connect. The account signed in is the one we connect.' },
 ];
 
-const LABEL: Record<SocialProviderDto, string> = { instagram: 'Instagram', tiktok: 'TikTok' };
+const LABEL: Record<SocialProviderDto, string> = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube' };
 
 /** Settings > Integrations: connect Instagram and TikTok, then post from the calendar with one tap. */
 export const IntegrationsCard = ({ product }: { product: ProductLineDto }) => {

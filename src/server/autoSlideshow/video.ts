@@ -135,3 +135,26 @@ export const getSlideshowVideo = async (runId: string, slideshowId: string, proj
   if (downloadId) await finishDownload(downloadId, project);
   return toDto(project, show, downloadId);
 };
+
+/** Renders that failed for this slideshow's current fingerprint; posting gives up after this many. */
+const MAX_FAILED_RENDERS = 2;
+
+/**
+ * For posting to YouTube: starts (or reuses) the MP4 render of a slideshow, with no tap recorded, and says where it is.
+ * `key` is the MP4's storage key once COMPLETED. Throws when the render failed twice.
+ */
+export const videoForPost = async (slideshowId: string, workspaceId: string | null): Promise<{ status: BlitzProject['renderStatus']; key: string | null }> => {
+  const show = await prisma.autoSlideshow.findUnique({ where: { id: slideshowId }, include: { audio: { select: { r2Key: true } } } });
+  if (!show) throw new HttpError(404, 'not_found', 'Slideshow not found');
+  const keys = slideKeys(show);
+  const print = fingerprint(show, keys);
+  const existing = await findRender(slideshowId, print);
+  if (!existing) {
+    const failed = await prisma.blitzProject.count({
+      where: { AND: [{ currentAssets: { path: ['autoSlideshow', 'id'], equals: slideshowId } }, { currentAssets: { path: ['autoSlideshow', 'fingerprint'], equals: print } }], renderStatus: 'FAILED' },
+    });
+    if (failed >= MAX_FAILED_RENDERS) throw new HttpError(500, 'render_failed', 'The video of this slideshow failed to render twice. Open the slideshow and try Download video, or change a slide.');
+  }
+  const project = existing ?? (await createRender(show, keys, print, workspaceId));
+  return { status: project.renderStatus, key: project.renderStatus === 'COMPLETED' ? project.renderedVideoKey : null };
+};

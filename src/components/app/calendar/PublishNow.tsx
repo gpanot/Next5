@@ -11,7 +11,7 @@ import { AppButton } from '../../ui/AppButton';
 import { PlatformIcon } from '../../marketing/offer/PlatformMarks';
 import { AppLink as Link } from '../shell/AppLink';
 
-const LABEL: Record<SocialProviderDto, string> = { instagram: 'Instagram', tiktok: 'TikTok' };
+const LABEL: Record<SocialProviderDto, string> = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube' };
 
 type Props = { slot: SlotDto; onChanged: (slot: SlotDto) => void; onToast: (message: string) => void };
 

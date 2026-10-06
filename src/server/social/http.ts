@@ -4,6 +4,8 @@ import { HttpError } from '../http';
 
 type Json = Record<string, unknown>;
 
+const LABELS: Record<string, string> = { tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube' };
+
 /**
  * Calls a provider API and returns its JSON; a provider error becomes a 502 with the provider's own words.
  * `onRawText` receives the body as sent, for values JSON.parse would damage (64-bit ids).
@@ -28,7 +30,7 @@ export const providerFetch = async (provider: string, url: string, { onRawText, 
     const code = typeof nested === 'object' && nested?.code ? nested.code : null;
     const message = code && !text.includes(code) ? `${text} (${code})` : text;
     console.error(`[social:${provider}]`, res.status, message);
-    throw new HttpError(502, 'provider_error', `${provider === 'tiktok' ? 'TikTok' : 'Instagram'} said: ${message}`);
+    throw new HttpError(502, 'provider_error', `${LABELS[provider] ?? provider} said: ${message}`);
   }
   return body;
 };

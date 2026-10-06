@@ -9,8 +9,8 @@ export const TERMS: readonly LegalSection[] = [
   {
     heading: 'Connected accounts and posting',
     body: [
-      'You can connect your TikTok or Instagram account in Settings → Integrations. Next5 only posts content that you (or someone you authorised in your workspace) reviewed and approved, with the privacy setting you chose, at the time you chose. You can cancel a scheduled post before it is sent, and disconnect your account at any time.',
-      'When you post through Next5 you must follow the platform’s own rules, including TikTok’s Terms of Service, Community Guidelines, Music Usage Confirmation and, for paid partnerships, Branded Content Policy. You are responsible for the content you approve and for disclosing commercial content. The platform may delay, limit or reject posts; Next5 does not control that.',
+      'You can connect your TikTok, Instagram or YouTube account in Settings → Integrations. Next5 only posts content that you (or someone you authorised in your workspace) reviewed and approved, with the privacy setting you chose, at the time you chose. You can cancel a scheduled post before it is sent, and disconnect your account at any time.',
+      'When you post through Next5 you must follow the platform’s own rules, including TikTok’s Terms of Service, the YouTube Terms of Service (https://www.youtube.com/t/terms), Community Guidelines, Music Usage Confirmation and, for paid partnerships, Branded Content Policy. You are responsible for the content you approve and for disclosing commercial content. The platform may delay, limit or reject posts; Next5 does not control that.',
     ],
   },
   { heading: 'Plans and photo credits', body: ['Plans are prepaid monthly or yearly and add a monthly allowance of photo credits on the same date each month. One credit creates one photo in one format; high-res photos use two credits.', 'Monthly plan credits expire at the end of each monthly cycle. Top-up credits expire 12 months after purchase. Nothing renews automatically — you choose whether to renew.'] },
@@ -21,6 +21,14 @@ export const TERMS: readonly LegalSection[] = [
 ];
 
 export const PRIVACY: readonly LegalSection[] = [
+  {
+    heading: 'YouTube API Services',
+    body: [
+      'If you connect a YouTube channel, Next5 uses YouTube API Services. By connecting, you also agree to be bound by the YouTube Terms of Service (https://www.youtube.com/t/terms). Google’s Privacy Policy applies to data Google handles (https://policies.google.com/privacy).',
+      'We ask for two permissions: to upload videos to your channel (youtube.upload) and to read your channel’s name, picture and, later, the view and like counts of videos we posted (youtube.readonly). We store your channel ID, name and picture, and encrypted access tokens. We use them only to publish the videos you approve and show how they perform. We do not sell this data or use it for advertising.',
+      'You can disconnect at any time in Settings → Accounts: we then delete the stored tokens. You can also revoke Next5’s access at https://security.google.com/settings/security/permissions. Videos already published stay on YouTube until you delete them there.',
+    ],
+  },
   { heading: 'What we collect', body: ['Your email, name, business name and handle; the photos you upload (selfies, full-body photos, product photos); the photos we create; payment references and amounts; and basic technical data such as IP address for security and consent records.'] },
   { heading: 'Why we use it', body: ['To create and deliver your photos, run your account and plan, prevent abuse, send service emails (receipts, renewal reminders, photos ready) and improve quality — for example by reviewing photos you asked us to redo.'] },
   {

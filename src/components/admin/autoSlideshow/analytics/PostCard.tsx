@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { PLATFORM_LABELS } from '../../../../types/admin/autoSlideshow';
 import type { AnalyticsPostDto } from '../../../../types/admin/slideshowAnalytics';
 import { PostStatsLine } from '../posting/PostStats';
-import { InstagramGlyph, TikTokGlyph } from '../workspace/PlatformBadges';
+import { InstagramGlyph, TikTokGlyph, YouTubeGlyph } from '../workspace/PlatformBadges';
 import { badgeOf, engagementRate, type Badge } from './insights';
 import { StatsHistory } from './StatsHistory';
 
@@ -56,7 +56,7 @@ export function PostCard({ post, lift }: { post: AnalyticsPostDto; lift: number 
         <Thumbnail url={post.thumbnailUrl} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 text-xs text-app-muted">
-            <span aria-label={PLATFORM_LABELS[post.platform]} className="text-app-ink">{post.platform === 'instagram' ? <InstagramGlyph /> : <TikTokGlyph />}</span>
+            <span aria-label={PLATFORM_LABELS[post.platform]} className="text-app-ink">{post.platform === 'instagram' ? <InstagramGlyph /> : post.platform === 'youtube' ? <YouTubeGlyph /> : <TikTokGlyph />}</span>
             <span>{shortDate(post.postedAt)}</span>
             {badge && <span className={`rounded-full px-2 py-0.5 font-bold ${BADGE_STYLE[badge].className}`}>{BADGE_STYLE[badge].text}</span>}
             {lift !== null && <span className="ml-auto font-semibold tabular-nums">{lift.toFixed(1)}×</span>}

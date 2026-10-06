@@ -1,6 +1,6 @@
 /** Client-safe DTOs for /api/app/integrations. */
 
-export type SocialProviderDto = 'instagram' | 'tiktok';
+export type SocialProviderDto = 'instagram' | 'tiktok' | 'youtube';
 
 export type ConnectionDto = { provider: SocialProviderDto; username: string | null; avatarUrl: string | null; connectedAt: string };
 

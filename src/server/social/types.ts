@@ -1,10 +1,10 @@
 // server-only — never import from a 'use client' file.
 
-export type SocialProvider = 'instagram' | 'tiktok';
+export type SocialProvider = 'instagram' | 'tiktok' | 'youtube';
 
-export const SOCIAL_PROVIDERS: readonly SocialProvider[] = ['instagram', 'tiktok'];
+export const SOCIAL_PROVIDERS: readonly SocialProvider[] = ['instagram', 'tiktok', 'youtube'];
 
-export const isSocialProvider = (value: unknown): value is SocialProvider => value === 'instagram' || value === 'tiktok';
+export const isSocialProvider = (value: unknown): value is SocialProvider => value === 'instagram' || value === 'tiktok' || value === 'youtube';
 
 /** What a provider hands back after the OAuth code exchange (or a refresh). */
 export type ProviderTokens = {

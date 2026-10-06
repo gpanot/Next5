@@ -11,6 +11,7 @@ export type ScheduleRequest = {
   items: Array<{ slideshowId: string; scheduledAt: string }>;
   platforms: PostPlatform[];
   tiktok: TikTokChoices | null;
+  youtube?: { privacyLevel: string } | null;
 };
 
 /** Everything the posting panel reads and does: workspaces, the run's accounts, its posts and their actions. */

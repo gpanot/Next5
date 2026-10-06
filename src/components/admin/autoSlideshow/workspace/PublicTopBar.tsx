@@ -6,7 +6,7 @@ import { sessionTokenStore } from '../../../../lib/localStore';
 import { SLIDESHOW_HOME, SLIDESHOW_LOGIN, SLIDESHOW_PRICING } from './WorkspaceContext';
 
 /** Top bar of the public pages (home, pricing): Pricing, then Log in, or My workspace when the user is signed in. */
-export function PublicTopBar({ page }: { page: 'home' | 'pricing' }) {
+export function PublicTopBar({ page }: { page?: 'home' | 'pricing' }) {
   const token = sessionTokenStore.useValue();
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-app-line bg-app-bg/90 px-5 backdrop-blur-md sm:px-8">

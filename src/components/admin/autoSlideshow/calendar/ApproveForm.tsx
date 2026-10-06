@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { PLATFORM_LABELS, PRIVACY_LABELS, type CreatorInfoDto, type PostPlatform } from '../../../../types/admin/autoSlideshow';
+import { PLATFORM_LABELS, PRIVACY_LABELS, type CreatorInfoDto, type PostPlatform, type YouTubePrivacyChoice } from '../../../../types/admin/autoSlideshow';
 import { useAdminApi } from '../../business/useAdminApi';
 import { Toggle } from '../Toggle';
+import { YouTubeFields } from '../posting/YouTubeFields';
 import type { ScheduleRequest } from '../usePosting';
 
 type Props = {
@@ -20,12 +21,17 @@ type Props = {
 const count = (n: number) => `${n} ${n === 1 ? 'post' : 'posts'}`;
 const approveLabel = (n: number, platforms: PostPlatform[]) => `Approve ${count(n)} on ${platforms.map((p) => PLATFORM_LABELS[p]).join(' + ')}`;
 
-/** Instagram only: nothing to choose, Instagram posts are public on the account. */
-function InstagramOnly({ items, busy, onApprove }: Omit<Props, 'token' | 'runId' | 'platforms' | 'total'>) {
+/** Instagram and/or YouTube, no TikTok: Instagram posts are public on the account; YouTube asks who can see the Short. */
+function NoTikTok({ items, platforms, busy, onApprove }: Omit<Props, 'token' | 'runId' | 'total'>) {
+  const [yt, setYt] = useState<YouTubePrivacyChoice>('private');
+  const withYouTube = platforms.includes('youtube');
   return (
-    <button onClick={() => void onApprove({ items, platforms: ['instagram'], tiktok: null })} disabled={busy} className="min-h-12 w-full rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500">
-      {busy ? 'Scheduling…' : approveLabel(items.length, ['instagram'])}
-    </button>
+    <div className="space-y-3">
+      {withYouTube && <YouTubeFields value={yt} onChange={setYt} />}
+      <button onClick={() => void onApprove({ items, platforms, tiktok: null, youtube: withYouTube ? { privacyLevel: yt } : null })} disabled={busy} className="min-h-12 w-full rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500">
+        {busy ? 'Scheduling…' : approveLabel(items.length, platforms)}
+      </button>
+    </div>
   );
 }
 
@@ -53,7 +59,7 @@ function CreatorRow({ creator }: { creator: CreatorInfoDto }) {
  * by hand (no default), comments and disclosure are set, and the Music Usage Confirmation is accepted first.
  */
 export function ApproveForm(props: Props) {
-  if (!props.platforms.includes('tiktok')) return <InstagramOnly items={props.items} busy={props.busy} onApprove={props.onApprove} />;
+  if (!props.platforms.includes('tiktok')) return <NoTikTok items={props.items} platforms={props.platforms} busy={props.busy} onApprove={props.onApprove} />;
   return <TikTokApprove {...props} />;
 }
 
@@ -65,6 +71,7 @@ function TikTokApprove({ token, runId, items, platforms, busy, onApprove, total 
   const [brandOrganic, setBrandOrganic] = useState(false);
   const [brandContent, setBrandContent] = useState(false);
   const [consent, setConsent] = useState(false);
+  const [yt, setYt] = useState<YouTubePrivacyChoice>('private');
   const creator = data?.creator;
 
   if (!creator) return error ? <p className="text-sm text-red-600 dark:text-red-400">{error}</p> : <div className="h-40 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />;
@@ -73,7 +80,7 @@ function TikTokApprove({ token, runId, items, platforms, busy, onApprove, total 
   const brandedPrivate = brandContent && privacy === 'SELF_ONLY';
   const ready = privacy && consent && !discloseIncomplete && !brandedPrivate;
   const submit = () =>
-    void onApprove({ items, platforms, tiktok: { privacyLevel: privacy, allowComments: comments && !creator.commentDisabled, brandOrganic: disclose && brandOrganic, brandContent: disclose && brandContent, consent } });
+    void onApprove({ items, platforms, youtube: platforms.includes('youtube') ? { privacyLevel: yt } : null, tiktok: { privacyLevel: privacy, allowComments: comments && !creator.commentDisabled, brandOrganic: disclose && brandOrganic, brandContent: disclose && brandContent, consent } });
 
   return (
     <div className="space-y-3">
@@ -100,6 +107,7 @@ function TikTokApprove({ token, runId, items, platforms, busy, onApprove, total 
         {brandContent ? <><a className="underline" href="https://www.tiktok.com/legal/page/global/bc-policy/en" target="_blank" rel="noreferrer">Branded Content Policy</a> and </> : null}
         <a className="underline" href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noreferrer">Music Usage Confirmation</a>
       </Toggle>
+      {platforms.includes('youtube') && <YouTubeFields value={yt} onChange={setYt} />}
       <button onClick={submit} disabled={!ready || busy} className="min-h-12 w-full rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500">
         {busy ? 'Scheduling…' : approveLabel(total ?? items.length, platforms)}
       </button>

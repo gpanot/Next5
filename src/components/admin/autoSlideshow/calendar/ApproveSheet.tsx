@@ -105,7 +105,7 @@ function ConnectFirst({ token, accounts }: { token: string; accounts: RunAccount
     <section className="space-y-2">
       <p className="text-sm font-semibold text-ink dark:text-zinc-100">Connect where to post</p>
       <ul className="space-y-2">
-        {(['tiktok', 'instagram'] as const).map((p) => (
+        {(['tiktok', 'instagram', 'youtube'] as const).map((p) => (
           <AccountRow key={p} token={token} workspace={workspace} provider={p} connection={undefined} available={accounts.configured[p]} onChanged={() => undefined} />
         ))}
       </ul>
@@ -116,7 +116,7 @@ function ConnectFirst({ token, accounts }: { token: string; accounts: RunAccount
 /** Platforms, then the approval form for them. */
 function PlatformsAndForm({ token, run, accounts, items, videoCount, posting, onApprove }: FormProps) {
   const [platforms, setPlatforms] = useState<PostPlatform[]>(() => defaultPlatforms(accounts));
-  if (!accounts.accounts.tiktok && !accounts.accounts.instagram) return <ConnectFirst accounts={accounts} token={token} />;
+  if (!accounts.accounts.tiktok && !accounts.accounts.instagram && !accounts.accounts.youtube) return <ConnectFirst accounts={accounts} token={token} />;
   const withVideos = platforms.includes('tiktok') ? videoCount : 0;
   // Videos post to TikTok only: without it, only the slideshows can be approved.
   const nothing = items.length + withVideos === 0;

@@ -9,11 +9,12 @@ import { decryptToken, encryptToken } from './crypto';
 import { instagram } from './instagram';
 import { mediaUrlFor } from './links';
 import { tiktok } from './tiktok';
+import { youtube } from './youtube';
 import type { ProviderClient, ProviderTokens, SocialProvider } from './types';
 
-export const PROVIDERS: Record<SocialProvider, ProviderClient> = { instagram, tiktok };
+export const PROVIDERS: Record<SocialProvider, ProviderClient> = { instagram, tiktok, youtube };
 
-const LABEL: Record<SocialProvider, string> = { instagram: 'Instagram', tiktok: 'TikTok' };
+const LABEL: Record<SocialProvider, string> = { instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube' };
 
 export const listConnections = async (workspaceId: string): Promise<ConnectionDto[]> => {
   const rows = await prisma.socialConnection.findMany({ where: { workspaceId }, orderBy: { createdAt: 'asc' } });
@@ -42,11 +43,11 @@ export const disconnect = async (workspaceId: string, provider: SocialProvider):
 const reconnect = (provider: SocialProvider) =>
   new HttpError(409, 'reconnect_required', `Your ${LABEL[provider]} connection expired. Connect it again in Settings.`);
 
-/** Refreshes the token when it is close to expiring (TikTok: 24 h tokens; Instagram: 60 days). */
+/** Refreshes the token when it is close to expiring (TikTok: 24 h tokens; YouTube: 1 h; Instagram: 60 days). */
 export const freshAccessToken = async (conn: SocialConnection): Promise<string> => {
   const provider = conn.provider as SocialProvider;
   const accessToken = decryptToken(conn.accessToken);
-  const margin = provider === 'tiktok' ? 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+  const margin = provider === 'tiktok' ? 60 * 60 * 1000 : provider === 'youtube' ? 5 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
   if (!conn.expiresAt || conn.expiresAt.getTime() - Date.now() > margin) return accessToken;
   if (conn.expiresAt.getTime() <= Date.now() && provider === 'instagram') throw reconnect(provider);
   // Instagram only refreshes tokens that are at least 24 hours old.

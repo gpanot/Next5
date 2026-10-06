@@ -9,7 +9,7 @@ import { InstagramTypeDialog } from './InstagramTypeDialog';
 
 type Props = { token: string; me: SlideshowMeDto; onChanged: () => void };
 
-const LABEL: Record<SocialProviderDto, string> = { tiktok: 'TikTok', instagram: 'Instagram' };
+const LABEL: Record<SocialProviderDto, string> = { tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube' };
 const handle = (c: ConnectionDto) => (c.username ? ` as ${c.username.startsWith('@') ? c.username : `@${c.username}`}` : '');
 
 /** Sends the browser to the platform's sign-in; it comes back to the slideshow workspace once approved. */
@@ -68,6 +68,7 @@ export function AccountRow({ token, workspace, provider, connection, available, 
       </div>
       {!connection && provider === 'instagram' && available && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-muted dark:bg-zinc-950">Needs an Instagram Professional account (Business or Creator). Instagram connects the account signed in to instagram.com in this browser.</p>}
       {!connection && provider === 'tiktok' && available && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-muted dark:bg-zinc-950">TikTok connects the account signed in to TikTok in this browser. For a client&apos;s account, log in to it on tiktok.com first, then Connect. Each workspace keeps its own account.</p>}
+      {!connection && provider === 'youtube' && available && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-muted dark:bg-zinc-950">Posts as YouTube Shorts. Pick the Google account that owns the channel, and tick every permission box. Each workspace keeps its own channel.</p>}
       {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}
       {askingType && <InstagramTypeDialog onClose={() => setAskingType(false)} onBusiness={() => { setAskingType(false); void connect(); }} />}
     </li>
@@ -83,6 +84,7 @@ export function AccountsSection({ token, me, onChanged }: Props) {
       <ul className="space-y-2">
         <AccountRow token={token} workspace={me.workspace.id} provider="tiktok" connection={find('tiktok')} available={me.available.includes('tiktok')} onChanged={onChanged} />
         <AccountRow token={token} workspace={me.workspace.id} provider="instagram" connection={find('instagram')} available={me.available.includes('instagram')} onChanged={onChanged} />
+        <AccountRow token={token} workspace={me.workspace.id} provider="youtube" connection={find('youtube')} available={me.available.includes('youtube')} onChanged={onChanged} />
       </ul>
     </section>
   );

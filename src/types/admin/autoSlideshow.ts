@@ -154,10 +154,14 @@ export type AutoRunSummary = {
 
 // ── Phase 4: posting (TikTok, Instagram) ────────────────────────────────────
 
-export type PostPlatform = 'tiktok' | 'instagram';
-export const POST_PLATFORMS: readonly PostPlatform[] = ['tiktok', 'instagram'];
-export const PLATFORM_LABELS: Record<PostPlatform, string> = { tiktok: 'TikTok', instagram: 'Instagram' };
-export const isPostPlatform = (v: unknown): v is PostPlatform => v === 'tiktok' || v === 'instagram';
+export type PostPlatform = 'tiktok' | 'instagram' | 'youtube';
+export const POST_PLATFORMS: readonly PostPlatform[] = ['tiktok', 'instagram', 'youtube'];
+export const PLATFORM_LABELS: Record<PostPlatform, string> = { tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube Shorts' };
+export const isPostPlatform = (v: unknown): v is PostPlatform => v === 'tiktok' || v === 'instagram' || v === 'youtube';
+
+/** Who can see a YouTube Short. Until Google audits the app, YouTube keeps every upload private whatever is picked. */
+export type YouTubePrivacyChoice = 'private' | 'unlisted' | 'public';
+export const YOUTUBE_PRIVACY_LABELS: Record<YouTubePrivacyChoice, string> = { private: 'Only me', unlisted: 'Anyone with the link', public: 'Public' };
 
 export type AutoPostStatus = 'scheduled' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled';
 

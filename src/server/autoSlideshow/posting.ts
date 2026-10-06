@@ -1,15 +1,17 @@
 // server-only — never import from a 'use client' file.
-// Phase 4: approval-first posting to TikTok and Instagram. A person picks the platforms and, for TikTok, the privacy
+// Phase 4: approval-first posting to TikTok, Instagram and YouTube Shorts. A person picks the platforms and, for TikTok, the privacy
 // (from the creator's own options) and consents; each approved slideshow gets a time and one post per platform. The
 // tick (send.ts) sends posts when due, follows them until they are live, then keeps their numbers fresh (stats.ts).
 
 import type { AutoSlideshowPost } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { PLATFORM_LABELS, type AutoPostDto, type AutoPostStatus, type PostPlatform, type PostStats, type RunAccountsDto, type TikTokWorkspaceDto } from '../../types/admin/autoSlideshow';
+import { isPostPlatform, PLATFORM_LABELS, type AutoPostDto, type AutoPostStatus, type PostPlatform, type PostStats, type RunAccountsDto, type TikTokWorkspaceDto } from '../../types/admin/autoSlideshow';
 import { HttpError } from '../http';
 import { freshAccessToken } from '../social/connections';
 import { instagram } from '../social/instagram';
 import { tiktok } from '../social/tiktok';
+import { youtube } from '../social/youtube';
+import { isYouTubePrivacy } from '../social/youtubeUpload';
 import { queryCreatorInfo, type CreatorInfo } from '../social/tiktokCarousel';
 import { sendPost } from './send';
 
@@ -29,8 +31,8 @@ export const listTikTokWorkspaces = async (only?: string): Promise<TikTokWorkspa
 export const runAccounts = async (workspaceId: string | null): Promise<RunAccountsDto> => {
   const rows = workspaceId ? await prisma.socialConnection.findMany({ where: { workspaceId } }) : [];
   const accounts: RunAccountsDto['accounts'] = {};
-  for (const c of rows) if (c.provider === 'tiktok' || c.provider === 'instagram') accounts[c.provider] = { username: c.username, avatarUrl: c.avatarUrl };
-  return { workspaceId, accounts, configured: { tiktok: tiktok.configured(), instagram: instagram.configured() } };
+  for (const c of rows) if (isPostPlatform(c.provider)) accounts[c.provider] = { username: c.username, avatarUrl: c.avatarUrl };
+  return { workspaceId, accounts, configured: { tiktok: tiktok.configured(), instagram: instagram.configured(), youtube: youtube.configured() } };
 };
 
 export const setRunWorkspace = async (runId: string, workspaceId: string | null): Promise<void> => {
@@ -47,7 +49,7 @@ export const creatorInfoFor = async (workspaceId: string): Promise<CreatorInfo> 
 export const toPostDto = (p: AutoSlideshowPost): AutoPostDto => ({
   id: p.id,
   slideshowId: p.slideshowId,
-  platform: p.platform === 'instagram' ? 'instagram' : 'tiktok',
+  platform: isPostPlatform(p.platform) ? p.platform : 'tiktok',
   status: p.status as AutoPostStatus,
   scheduledAt: p.scheduledAt.toISOString(),
   privacyLevel: p.privacyLevel,
@@ -65,10 +67,14 @@ export const listPosts = async (runId: string): Promise<AutoPostDto[]> =>
 /** TikTok's choices; required only when TikTok is one of the platforms. */
 export type TikTokChoices = { privacyLevel: string; allowComments: boolean; brandOrganic: boolean; brandContent: boolean; consent: boolean };
 
+/** YouTube's one choice: who can see the Short. */
+export type YouTubeChoices = { privacyLevel: string };
+
 export type ScheduleInput = {
   items: Array<{ slideshowId: string; scheduledAt: string }>;
   platforms: PostPlatform[];
   tiktok: TikTokChoices | null;
+  youtube?: YouTubeChoices | null;
 };
 
 const LIVE = ['scheduled', 'sending', 'processing', 'posted'];
@@ -83,6 +89,12 @@ const tiktokFields = async (workspaceId: string, choices: TikTokChoices | null) 
   return { privacyLevel: choices.privacyLevel, allowComments: choices.allowComments && !creator.commentDisabled, brandOrganic: choices.brandOrganic, brandContent: choices.brandContent };
 };
 
+const youtubeFields = (choices: YouTubeChoices | null | undefined) => {
+  const privacy = choices?.privacyLevel ?? 'private';
+  if (!isYouTubePrivacy(privacy)) throw new HttpError(400, 'bad_privacy', 'Pick who can see the YouTube Short: private, unlisted or public.');
+  return { ...INSTAGRAM_FIELDS, privacyLevel: privacy };
+};
+
 const INSTAGRAM_FIELDS = { privacyLevel: 'PUBLIC', allowComments: true, brandOrganic: false, brandContent: false };
 
 /**
@@ -92,11 +104,11 @@ const INSTAGRAM_FIELDS = { privacyLevel: 'PUBLIC', allowComments: true, brandOrg
 export const schedulePosts = async (runId: string, input: ScheduleInput): Promise<AutoPostDto[]> => {
   const run = await prisma.autoSlideshowRun.findUniqueOrThrow({ where: { id: runId }, select: { workspaceId: true } });
   if (!run.workspaceId) throw new HttpError(409, 'no_workspace', 'Pick the workspace whose accounts will post.');
-  if (input.platforms.length === 0) throw new HttpError(400, 'no_platform', 'Pick TikTok, Instagram or both.');
+  if (input.platforms.length === 0) throw new HttpError(400, 'no_platform', 'Pick where to post.');
   const fields: Partial<Record<PostPlatform, typeof INSTAGRAM_FIELDS>> = {};
   for (const platform of input.platforms) {
     await connectionFor(run.workspaceId, platform);
-    fields[platform] = platform === 'tiktok' ? await tiktokFields(run.workspaceId, input.tiktok) : INSTAGRAM_FIELDS;
+    fields[platform] = platform === 'tiktok' ? await tiktokFields(run.workspaceId, input.tiktok) : platform === 'youtube' ? youtubeFields(input.youtube) : INSTAGRAM_FIELDS;
   }
   const shows = await prisma.autoSlideshow.findMany({ where: { runId, id: { in: input.items.map((i) => i.slideshowId) } }, include: { posts: true } });
   const now = new Date();
@@ -130,7 +142,7 @@ export const cancelPost = async (runId: string, postId: string): Promise<void> =
   await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'canceled' } });
 };
 
-export type PostNowInput = { workspaceId: string; platforms: PostPlatform[]; tiktok: TikTokChoices | null };
+export type PostNowInput = { workspaceId: string; platforms: PostPlatform[]; tiktok: TikTokChoices | null; youtube?: YouTubeChoices | null };
 
 /** The editor's "Post now": approves this slideshow for now on each chosen platform and sends it. */
 export const postSlideshowNow = async (runId: string, slideshowId: string, input: PostNowInput): Promise<AutoPostDto[]> => {
@@ -141,7 +153,7 @@ export const postSlideshowNow = async (runId: string, slideshowId: string, input
   // A scheduled post is replaced by this one (same slideshow, sent now with the settings just chosen).
   const scheduled = existing.filter((p) => p.status === 'scheduled').map((p) => p.id);
   if (scheduled.length) await prisma.autoSlideshowPost.updateMany({ where: { id: { in: scheduled } }, data: { status: 'canceled' } });
-  await schedulePosts(runId, { platforms: input.platforms, tiktok: input.tiktok, items: [{ slideshowId, scheduledAt: new Date().toISOString() }] });
+  await schedulePosts(runId, { platforms: input.platforms, tiktok: input.tiktok, youtube: input.youtube, items: [{ slideshowId, scheduledAt: new Date().toISOString() }] });
   const posts = await prisma.autoSlideshowPost.findMany({ where: { slideshowId, platform: { in: input.platforms } } });
   for (const p of posts) await sendPost(p.id);
   return (await prisma.autoSlideshowPost.findMany({ where: { slideshowId } })).map(toPostDto);

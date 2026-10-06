@@ -8,7 +8,7 @@ import type { ScoreDetailsDto } from '../../types/business/batches';
 
 const IMG = '/images/business';
 
-export type PlatformId = 'tiktok' | 'instagram' | 'facebook' | 'shopee' | 'linkedin';
+export type PlatformId = 'tiktok' | 'instagram' | 'facebook' | 'shopee' | 'linkedin' | 'youtube';
 /** Where a "paste your link" import can bring things in from. */
 export type ImportSourceId = 'zillow' | 'tiktok_shop';
 export type ChatGptRow = { topic: string; chatgpt: string; next5: string };
