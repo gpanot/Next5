@@ -21,7 +21,7 @@ const SHOWCASE: ShowcaseSlideshow[] = [
   { slug: 'booking-ugc', alt: 'UGC video about online booking', slides: 1, stats: { views: '97K', likes: '6.8K' }, video: '/videos/perfect-ads/booking-ugc.mp4' },
   { slug: 'porsche-calmer', alt: 'Last visit: overloaded. This year: calmer decisions and smoother drives.', slides: SLIDES_PER_SHOW, stats: { likes: '14.2K', comments: '284' } },
   { slug: 'r1', alt: 'UGC video: 24 hours a day', slides: 1, stats: { saves: '31K', comments: '1.8K' }, video: '/videos/perfect-ads/r1.mp4' },
-  { slug: 'meal-planning', alt: 'Hot take: a long list is not the problem. Planning is.', slides: SLIDES_PER_SHOW, stats: { likes: '9.9K', saves: '4.2K' } },
+  { slug: 'golf-short', alt: 'Short: "Just hit balls" doesn\'t work anymore. It kills consistency.', slides: 1, stats: { likes: '9.9K', saves: '4.2K' }, video: '/videos/perfect-ads/golf-short.mp4' },
   { slug: 'reminders-ugc', alt: 'UGC video about appointment reminders', slides: 1, stats: { views: '254K', comments: '395' }, video: '/videos/perfect-ads/reminders-ugc.mp4' },
 ];
 

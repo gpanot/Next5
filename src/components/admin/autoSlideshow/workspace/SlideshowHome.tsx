@@ -32,7 +32,7 @@ export function SlideshowHome() {
           <div data-intro="1"><PlatformBadges /></div>
           <h1 data-intro-split="" className="text-[2.375rem] leading-[1.05] font-extrabold tracking-tight text-balance text-ink md:text-5xl md:leading-[1.0] lg:text-[3.625rem] dark:text-zinc-100">
             <span className="block xl:whitespace-nowrap">
-              <RotatingWord words={['Slideshows', 'Videos']} label="Slideshows and videos" />{' '}
+              <RotatingWord words={['Slideshows', 'Videos', 'Shorts']} label="Slideshows, videos and shorts" />{' '}
               <SplitWords text="that bring you customers." />
             </span>
             {/* Lines never break mid-claim. Phones: one claim per line. sm to lg: two lines. lg+: one line. */}
