@@ -18,11 +18,11 @@ export const VOICE = 'Kore';
 /**
  * Per-sentence speed-up so every sentence lands at the same pace: voices, delivery notes and even sentences of one take
  * read at very different speeds (one 2026-10-06 Porsche sentence ran 9 words in 12 s raw). 160 wpm keeps a 45-52 word
- * script at ~20 s. Above ~1.4× it sounds rushed (reels-af found 1.5× already too fast).
+ * script at ~20 s. Above ~1.35× it sounds rushed (reels-af found 1.5× already too fast).
  */
 const TARGET_WPM = 160;
 const MIN_TEMPO = 1.0;
-const MAX_TEMPO = 1.4;
+const MAX_TEMPO = 1.35;
 /** A sentence of 4+ words read slower than this (after pause trimming) is a dragged-out take: record it again once. */
 const DRAGGED_WPM = 85;
 
