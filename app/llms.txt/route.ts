@@ -1,5 +1,5 @@
 import { HOME_FAQ } from '../../src/components/admin/autoSlideshow/workspace/homeFaqItems';
-import { MIN_DEPOSIT_CENTS, PRICE_CENTS, shortMoney } from '../../src/components/admin/autoSlideshow/pricing/pricing';
+import { MIN_DEPOSIT_CENTS, PRICE_LABEL, shortMoney } from '../../src/components/admin/autoSlideshow/pricing/pricing';
 
 export const dynamic = 'force-static';
 
@@ -9,7 +9,7 @@ export function GET() {
   const faq = HOME_FAQ.map(({ q, a }) => `### ${q}\n\n${a}`).join('\n\n');
   const body = `# Next5 Auto Slideshow
 
-> Auto Slideshow makes TikTok and Instagram photo slideshows from a business website, and posts them for you. Paste a website, and it writes a hook, 5 to 9 slides, a caption and hashtags, with fresh photos for the brand. Every slideshow copies a format that already pulls views on TikTok and Instagram. ${PRICE_CENTS}¢ per slideshow, pay as you go, no subscription.
+> Auto Slideshow makes TikTok and Instagram photo slideshows from a business website, and posts them for you. Paste a website, and it writes a hook, 5 to 9 slides, a caption and hashtags, with fresh photos for the brand. Every slideshow copies a format that already pulls views on TikTok and Instagram. ${PRICE_LABEL} per slideshow, pay as you go, no subscription.
 
 Auto Slideshow is part of Next5, a US-only service for small businesses such as realtors and TikTok Shop sellers.
 
@@ -22,7 +22,7 @@ Auto Slideshow is part of Next5, a US-only service for small businesses such as 
 
 ## Pricing
 
-- ${PRICE_CENTS}¢ per slideshow, taken from a prepaid balance.
+- ${PRICE_LABEL} per slideshow, taken from a prepaid balance.
 - ${shortMoney(MIN_DEPOSIT_CENTS)} minimum top-up. The top-up is balance, not a fee.
 - No subscription, no contract. When the balance runs out, autopilot stops and nothing is charged.
 

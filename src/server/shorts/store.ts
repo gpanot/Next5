@@ -56,16 +56,19 @@ export const getShortDetail = async (id: string): Promise<ShortDetailDto | null>
   const names = await workspaceNames([short.workspaceId]);
   const audio = short.audio as unknown as ShortAudio | null;
   const beats = short.beats as unknown as ShortBeat[];
-  const [base, audioUrl, signedBeats] = await Promise.all([
+  const [base, audioUrl, signedBeats, options] = await Promise.all([
     toDto(short, names.get(short.workspaceId) ?? ''),
     sign(audio?.key),
     Promise.all(beats.map(async (b) => ({ ...b, imageUrl: await sign(b.imageKey), clipUrl: await sign(b.clipKey) }))),
+    Promise.all((audio?.options ?? []).map(async (o) => ({ ...o, sampleUrl: await sign(o.sampleKey) }))),
   ]);
   return {
     ...base,
     inputs: short.inputs as unknown as ShortInputs | null,
     attempts: short.attempts as unknown as ShortScriptAttempt[],
-    audio: audio ? { durationS: audio.durationS, voice: audio.voice, words: audio.words, sentences: audio.sentences, url: audioUrl } : null,
+    audio: audio
+      ? { durationS: audio.durationS, voice: audio.voice, words: audio.words, sentences: audio.sentences, direction: audio.direction, pickedBy: audio.pickedBy, options, url: audioUrl }
+      : null,
     beats: signedBeats,
     stepTimings: short.stepTimings as Partial<Record<ShortStep, number>>,
     stepCosts: short.stepCosts as Partial<Record<ShortStep, StepCost>>,

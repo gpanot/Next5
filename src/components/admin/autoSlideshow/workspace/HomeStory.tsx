@@ -2,8 +2,9 @@
 
 /**
  * "Website to post" story on the /slideshow home. On large screens a phone stays
- * pinned (CSS sticky) while 5 steps scroll past; each step shows the matching
- * slide of a real Auto Slideshow output. Phones get each slide inline instead.
+ * pinned (CSS sticky) while 5 steps scroll past; each step shows a real output:
+ * a slide of an Auto Slideshow post or a short video (compressed, public/videos/story).
+ * Phones get each one inline instead.
  * The active step is plain state, so it also works with reduced motion.
  */
 import { useEffect, useRef, useState } from 'react';
@@ -25,14 +26,47 @@ const STEPS = [
   { title: 'You say yes. We post it.', body: 'Nothing goes live until you approve it.' },
 ];
 
+type StoryMedia = { kind: 'slide'; src: string } | { kind: 'video'; src: string; poster: string };
+
 const slideSrc = (i: number) => `/images/auto-slideshow/${STORY_SLUG}/${i + 1}.jpg`;
+const shortMedia = (n: number): StoryMedia => ({ kind: 'video', src: `/videos/story/short-${n}.mp4`, poster: `/videos/story/short-${n}.jpg` });
+
+/** One output per step: shorts and slideshow slides, mixed. */
+const MEDIA: StoryMedia[] = [
+  shortMedia(1),
+  { kind: 'slide', src: slideSrc(1) },
+  shortMedia(2),
+  { kind: 'slide', src: slideSrc(3) },
+  { kind: 'slide', src: slideSrc(4) },
+];
+
+/** Muted looping clip. Plays only while `playing`, so off-screen steps cost nothing. */
+function StoryVideo({ media, playing, className = '' }: { media: Extract<StoryMedia, { kind: 'video' }>; playing: boolean; className?: string }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (playing) el.play().catch(() => {});
+    else el.pause();
+  }, [playing]);
+  return (
+    <video ref={ref} src={media.src} poster={media.poster} muted loop playsInline preload="metadata" aria-hidden
+      className={`absolute inset-0 h-full w-full object-cover ${className}`} />
+  );
+}
+
+function StoryMediaView({ media, alt, sizes, playing, className = '' }: { media: StoryMedia; alt: string; sizes: string; playing: boolean; className?: string }) {
+  return media.kind === 'video'
+    ? <StoryVideo media={media} playing={playing} className={className} />
+    : <FittedImage src={media.src} alt={alt} sizes={sizes} className={className} />;
+}
 
 function StoryPhone({ active }: { active: number }) {
   return (
     <div className="sticky top-28 mx-auto w-[260px] rounded-[2.25rem] bg-ink p-2.5 shadow-[0_40px_80px_-40px_rgb(0_0_0/0.55)] dark:bg-zinc-100">
       <div className="relative aspect-[9/16] overflow-hidden rounded-[1.75rem] bg-zinc-100 dark:bg-zinc-800">
         {STEPS.map((step, i) => (
-          <FittedImage key={step.title} src={slideSrc(i)} alt={i === 0 ? STORY_ALT : ''} sizes="260px"
+          <StoryMediaView key={step.title} media={MEDIA[i]} alt={i === 1 ? STORY_ALT : ''} sizes="260px" playing={i === active}
             className={`motion-safe:transition-opacity motion-safe:duration-500 ${i === active ? 'opacity-100' : 'opacity-0'}`} />
         ))}
         <div aria-hidden className="absolute inset-x-3 top-3 flex gap-1">
@@ -50,7 +84,7 @@ function StoryStep({ index, active }: { index: number; active: boolean }) {
   return (
     <li data-story-step="" className="flex items-center gap-4 sm:gap-6 lg:min-h-[48vh]">
       <div className="relative aspect-[4/5] w-32 shrink-0 overflow-hidden rounded-xl bg-zinc-100 shadow-sm sm:w-40 lg:hidden dark:bg-zinc-800">
-        <FittedImage src={slideSrc(index)} alt="" sizes="(min-width: 640px) 160px, 128px" />
+        <StoryMediaView media={MEDIA[index]} alt="" sizes="(min-width: 640px) 160px, 128px" playing={active} />
       </div>
       <div className={`min-w-0 motion-safe:transition-opacity motion-safe:duration-500 ${active ? 'lg:opacity-100' : 'lg:opacity-30'}`}>
         <span className="text-sm font-semibold text-blue-600 tabular-nums dark:text-blue-400">Step {index + 1} of {STEPS.length}</span>

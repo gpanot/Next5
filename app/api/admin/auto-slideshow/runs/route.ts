@@ -36,7 +36,7 @@ export const POST = slideshowRoute(async (req: NextRequest, _ctx: unknown, acces
   }
   if (body.count !== undefined && !isSlideshowCount(body.count)) return json({ error: `count must be 1 to ${MAX_SLIDESHOWS}` }, { status: 400 });
   // A user's run belongs to one of their workspaces. Each run pays for photos: a user can start 10 a day in all.
-  // Each slideshow costs 99¢: the balance must cover the whole run before it starts.
+  // Each slideshow costs $1.99: the balance must cover the whole run before it starts.
   const count = (body.count as number | undefined) ?? DEFAULT_SLIDESHOWS;
   let workspaceId: string | null = null;
   if (!access.admin) {

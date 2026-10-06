@@ -18,7 +18,7 @@ function CreditsSkeleton() {
   );
 }
 
-/** Settings → Credits: balance, top up by card, auto top up and saved cards. 99¢ per slideshow. */
+/** Settings → Credits: balance, top up by card, auto top up and saved cards. $1.99 per slideshow. */
 export function CreditsSection({ token, workspaceId }: { token: string; workspaceId: string }) {
   const { data, error, loading, refresh } = useAdminApi<CreditsDto>(token, '/api/slideshow/credits');
   const returned = useCheckoutReturn(token, refresh);

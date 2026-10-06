@@ -8,6 +8,7 @@ import { ScriptPanel } from './ScriptPanel';
 import { Section } from './Section';
 import { StatusPill } from './StatusPill';
 import { StepsPanel } from './StepsPanel';
+import { VoicesPanel } from './VoicesPanel';
 import { isRunning, rerunShort, seconds, usd, useShortDetail } from './useShorts';
 
 function Player({ short }: { short: ShortDetailDto }) {
@@ -95,6 +96,7 @@ export function ShortDetail({ token, id }: { token: string; id: string }) {
           <div className="space-y-4 lg:sticky lg:top-6 lg:self-start">
             <Player short={short} />
             <Summary short={short} token={token} onRerun={refresh} />
+            <VoicesPanel short={short} token={token} onSwap={refresh} />
           </div>
           <div className="min-w-0 space-y-4">
             <StepsPanel short={short} />

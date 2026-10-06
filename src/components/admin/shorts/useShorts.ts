@@ -42,6 +42,10 @@ export const createShort = (token: string, workspaceId: string, videoModel: Shor
 export const rerunShort = (token: string, id: string, fromStep: ShortStep) =>
   adminFetch<{ ok: boolean }>(token, `/api/admin/shorts/${id}`, { method: 'POST', body: JSON.stringify({ fromStep }) });
 
+/** New narration with another of the short's voice options, then a new render on the same photos and clips. */
+export const swapVoice = (token: string, id: string, voice: string) =>
+  adminFetch<{ ok: boolean }>(token, `/api/admin/shorts/${id}`, { method: 'POST', body: JSON.stringify({ voice }) });
+
 export const usd = (micros: number) => `$${(micros / 1e6).toFixed(micros >= 1e6 ? 2 : 3)}`;
 
 export const seconds = (ms: number) => (ms >= 60_000 ? `${Math.floor(ms / 60_000)} min ${Math.round((ms % 60_000) / 1000)} s` : `${(ms / 1000).toFixed(1)} s`);

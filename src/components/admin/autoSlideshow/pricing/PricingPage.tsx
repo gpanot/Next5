@@ -3,7 +3,7 @@ import { SlideshowStrip } from '../SlideshowShowcase';
 import { CheckoutButton } from './CheckoutButton';
 import { PriceCalculator } from './PriceCalculator';
 import { PricingFaq } from './PricingFaq';
-import { DAYS_PER_MONTH, MIN_DEPOSIT_CENTS, PRICE_CENTS, money, shortMoney } from './pricing';
+import { DAYS_PER_MONTH, MIN_DEPOSIT_CENTS, PRICE_CENTS, PRICE_LABEL, money, shortMoney } from './pricing';
 import { ValueStack } from './ValueStack';
 
 const PER_DAY_EXAMPLES = [1, 2, 3];
@@ -21,11 +21,11 @@ function Hero({ homeHref }: { homeHref: string }) {
       <h2 className="mt-5 text-4xl leading-[0.95] font-extrabold tracking-tight text-ink md:text-6xl dark:text-zinc-100">
         A new TikTok post
         <br />
-        every day. <span className="text-blue-600 dark:text-blue-400">For 99¢.</span>
+        every day. <span className="text-blue-600 dark:text-blue-400">For {PRICE_LABEL}.</span>
       </h2>
       <p className="mt-5 max-w-xl text-base text-muted md:text-lg dark:text-zinc-400">We make it from your website and post it for you. You don’t film. You don’t write. You don’t design.</p>
       <div className="mt-8 flex items-end gap-2">
-        <span className="text-6xl font-extrabold tracking-tighter text-ink md:text-7xl dark:text-zinc-100">99¢</span>
+        <span className="text-6xl font-extrabold tracking-tighter text-ink md:text-7xl dark:text-zinc-100">{PRICE_LABEL}</span>
         <span className="pb-2 text-left text-sm leading-tight text-muted dark:text-zinc-400">per slideshow
           <br />per day</span>
       </div>
@@ -74,7 +74,7 @@ export function PricingPage({ homeHref = '/admin/auto-slideshow' }: { homeHref?:
       </div>
       <section className="flex w-full flex-col items-center gap-6">
         <h3 className="text-center text-3xl font-extrabold tracking-tight text-ink md:text-4xl dark:text-zinc-100">Want more? Just add more.</h3>
-        <p className="-mt-3 text-center text-base text-muted dark:text-zinc-400">99¢ each. 2 a day is {money(PRICE_CENTS * 2)}. That’s it.</p>
+        <p className="-mt-3 text-center text-base text-muted dark:text-zinc-400">{PRICE_LABEL} each. 2 a day is {money(PRICE_CENTS * 2)}. That’s it.</p>
         <PerDayTiles />
         <PriceCalculator />
       </section>

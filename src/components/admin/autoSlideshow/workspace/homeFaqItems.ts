@@ -1,6 +1,6 @@
-import { MIN_DEPOSIT_CENTS, PRICE_CENTS, shortMoney } from '../pricing/pricing';
+import { MIN_DEPOSIT_CENTS, PRICE_LABEL, shortMoney } from '../pricing/pricing';
 
-const price = `${PRICE_CENTS}¢`;
+const price = PRICE_LABEL;
 const minimum = shortMoney(MIN_DEPOSIT_CENTS);
 
 /** Questions on the public /slideshow home. Plain words, only claims a buyer can check. Also feeds the FAQPage JSON-LD. */

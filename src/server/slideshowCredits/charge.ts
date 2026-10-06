@@ -30,7 +30,7 @@ const payerOf = async (runId: string): Promise<string | null> => {
   return ws?.ownerUserId ?? null;
 };
 
-/** Charges 99¢ for a slideshow that just became ready (once per slideshow), then tops up if the balance got low.
+/** Charges $1.99 for a slideshow that just became ready (once per slideshow), then tops up if the balance got low.
  *  Never throws: a billing hiccup must not fail a slideshow that was already made. */
 export const chargeSlideshow = async (runId: string, slideshowId: string): Promise<void> => {
   try {

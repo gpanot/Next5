@@ -1,9 +1,10 @@
 // server-only — never import from a 'use client' file.
 // Shorts pipeline: 1 script (+ fact check) → 2 voice → 3 shots + photos → 4 video clips → 5 render.
+// A voice swap runs only 2 and 5: the new narration is re-timed onto the existing photos and clips.
 // Each step saves its checkpoint, time and cost on the short. On Vercel (300 s per function) clips and render each
 // start in a fresh invocation via the continue route (photos too: the script step alone can take 2 min); locally the pipeline just keeps going.
 
-import type { Prisma, ShortReel } from '@prisma/client';
+import { Prisma, type ShortReel } from '@prisma/client';
 import { signAdminToken } from '../../lib/admin-auth';
 import { prisma } from '../../lib/db';
 import type { ShortAudio, ShortBeat, ShortInputs, ShortScriptAttempt, ShortStep, ShortVideoModel } from '../../types/admin/shorts';
@@ -21,7 +22,8 @@ import { renderShort } from './render';
 import { writeScript } from './script';
 import { planAccents } from './accents';
 import { photoPrompt, planVisuals, videoPrompt } from './visuals';
-import { stripTags, synthesize, VOICE } from './voice';
+import { stripTags, synthesize } from './voice';
+import { pickVoice, planVoices, sampleVoices } from './voices';
 
 const MAX_DRAFTS = 3;
 const json = (v: unknown) => v as Prisma.InputJsonValue;
@@ -48,15 +50,43 @@ const scriptStep: StepFn = async (short, meter) => {
     feedback = factFeedback(claims);
     if (!feedback) break;
   }
-  return { inputs: json(inputs), attempts: json(attempts) };
+  // A new script gets a new voice cast (the samples read the old hook).
+  return { inputs: json(inputs), attempts: json(attempts), audio: Prisma.DbNull };
+};
+
+/** The voice options: kept from an earlier run (a swap or a re-run), else cast, sampled and picked by Jev. */
+const voiceCast = async (short: ShortReel, meter: CostMeter): Promise<Pick<ShortAudio, 'voice' | 'direction' | 'options' | 'pickedBy'>> => {
+  const earlier = short.audio as unknown as ShortAudio | null;
+  if (earlier?.options?.length && earlier.direction) return earlier;
+  const inputs = short.inputs as unknown as ShortInputs;
+  const script = lastScript(short);
+  const { direction, options } = await planVoices(inputs, script, meter);
+  const save = async (name: string, wav: Buffer) => {
+    const key = keyFor(short.id, `voice-sample-${name}.wav`);
+    await putObject(key, wav, 'audio/wav');
+    return key;
+  };
+  const [sampled, picked] = await Promise.all([sampleVoices(options, script.hook, direction, meter, save), pickVoice(options, inputs, script, direction)]);
+  const merged = picked.options.map((o) => ({ ...o, sampleKey: sampled.find((s) => s.name === o.name)?.sampleKey }));
+  return { voice: picked.voice, direction, options: merged, pickedBy: picked.pickedBy };
+};
+
+/** Existing beats moved onto the new narration's timing; photos, prompts and clips are kept. */
+const retimed = (short: ShortReel, audio: ShortAudio): ShortBeat[] | null => {
+  const beats = short.beats as unknown as ShortBeat[] | null;
+  if (!beats?.length) return null;
+  const timing = planBeats(lastScript(short), audio.words, audio.durationS);
+  return beats.map((b) => ({ ...b, startS: timing[b.idx]?.startS ?? b.startS, spanS: timing[b.idx]?.spanS ?? b.spanS }));
 };
 
 const voiceStep: StepFn = async (short, meter) => {
-  const { wav, durationS, words, sentences } = await synthesize(lastScript(short).narration, meter);
+  const cast = await voiceCast(short, meter);
+  const { wav, durationS, words, sentences } = await synthesize(lastScript(short).narration, { voice: cast.voice, direction: cast.direction }, meter);
   const key = keyFor(short.id, 'voice.wav');
   await putObject(key, wav, 'audio/wav');
-  const audio: ShortAudio = { key, durationS, voice: VOICE, words, sentences };
-  return { audio: json(audio) };
+  const audio: ShortAudio = { ...cast, key, durationS, words, sentences };
+  const beats = retimed(short, audio);
+  return { audio: json(audio), ...(beats ? { beats: json(beats) } : {}) };
 };
 
 const photoStep: StepFn = async (short, meter) => {
@@ -169,9 +199,14 @@ const handOff = async (id: string, step: ShortStep): Promise<boolean> => {
   }
 };
 
-/** Runs steps `fromStep`…5. Never throws: a failure is saved on the short with its step. */
-export const runShortPipeline = async (id: string, fromStep: ShortStep = 1, continued = false): Promise<void> => {
+const ALL_STEPS: ShortStep[] = [1, 2, 3, 4, 5];
+/** A voice swap: new narration, then the render; photos and clips stay. */
+export const VOICE_SWAP_STEPS: ShortStep[] = [2, 5];
+
+/** Runs steps `fromStep`…5 (only those in `steps`). Never throws: a failure is saved on the short with its step. */
+export const runShortPipeline = async (id: string, fromStep: ShortStep = 1, continued = false, steps: ShortStep[] = ALL_STEPS): Promise<void> => {
   for (let step = fromStep; step <= 5; step = (step + 1) as ShortStep) {
+    if (!steps.includes(step)) continue;
     if (FRESH_INVOCATION.has(step) && !(continued && step === fromStep) && (await handOff(id, step))) return;
     const t0 = Date.now();
     const meter = createMeter();

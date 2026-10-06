@@ -1,4 +1,5 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { SLIDESHOW_PRICE_CENTS } from '../../../src/types/admin/slideshowCredits';
 import { prisma } from '../../../src/lib/db';
 import { requireCredits } from '../../../src/server/slideshowCredits/charge';
 import { adjustCredits } from '../../../src/server/slideshowCredits/admin';
@@ -19,7 +20,7 @@ describe('slideshow wallet', () => {
   it('gives one free slideshow once', async () => {
     const user = await newUser();
     await Promise.all([ensureWallet(user.id), ensureWallet(user.id)]);
-    expect(await balance(user.id)).toBe(99);
+    expect(await balance(user.id)).toBe(SLIDESHOW_PRICE_CENTS);
     expect(await prisma.slideshowCreditEntry.count({ where: { userId: user.id, reason: 'free_grant' } })).toBe(1);
   });
 
@@ -27,14 +28,14 @@ describe('slideshow wallet', () => {
     const user = await newUser();
     await addEntry({ userId: user.id, deltaCents: 2_500, reason: 'topup', ref: 'cs_1' });
     expect(await addEntry({ userId: user.id, deltaCents: 2_500, reason: 'topup', ref: 'cs_1' })).toBeNull();
-    expect(await balance(user.id)).toBe(99 + 2_500);
+    expect(await balance(user.id)).toBe(SLIDESHOW_PRICE_CENTS + 2_500);
     expect(await ledgerSum(user.id)).toBe(await balance(user.id));
   });
 
   it('charges a slideshow once', async () => {
     const user = await newUser();
-    await addEntry({ userId: user.id, deltaCents: -99, reason: 'slideshow_charge', ref: 'show_1' });
-    await addEntry({ userId: user.id, deltaCents: -99, reason: 'slideshow_charge', ref: 'show_1' });
+    await addEntry({ userId: user.id, deltaCents: -SLIDESHOW_PRICE_CENTS, reason: 'slideshow_charge', ref: 'show_1' });
+    await addEntry({ userId: user.id, deltaCents: -SLIDESHOW_PRICE_CENTS, reason: 'slideshow_charge', ref: 'show_1' });
     expect(await balance(user.id)).toBe(0);
   });
 
@@ -46,10 +47,10 @@ describe('slideshow wallet', () => {
 
   it('lets an admin add credits but not remove below zero', async () => {
     const user = await newUser();
-    expect(await adjustCredits(user.id, 1_000, 'Goodwill')).toBe(1_099);
+    expect(await adjustCredits(user.id, 1_000, 'Goodwill')).toBe(1_000 + SLIDESHOW_PRICE_CENTS);
     await expect(adjustCredits(user.id, -5_000, 'Too much')).rejects.toMatchObject({ status: 402 });
     await expect(adjustCredits(user.id, 500, '')).rejects.toMatchObject({ status: 400 });
-    expect(await balance(user.id)).toBe(1_099);
-    expect(await ledgerSum(user.id)).toBe(1_099);
+    expect(await balance(user.id)).toBe(1_000 + SLIDESHOW_PRICE_CENTS);
+    expect(await ledgerSum(user.id)).toBe(1_000 + SLIDESHOW_PRICE_CENTS);
   });
 });

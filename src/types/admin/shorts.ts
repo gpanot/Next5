@@ -58,7 +58,38 @@ export type ShortScriptAttempt = { script: ShortScript; claims: ShortClaim[] };
 
 export type WordTiming = { word: string; startS: number; endS: number };
 
-export type ShortAudio = { key: string; durationS: number; voice: string; words: WordTiming[]; sentences: number };
+export type VoiceGender = 'male' | 'female';
+
+/** One of the 6 candidate voices planned for a short (3 male, 3 female, Gemini prebuilt voices). */
+export type ShortVoiceOption = {
+  name: string;
+  gender: VoiceGender;
+  /** Google's one-word descriptor ("Friendly", "Firm"). */
+  style: string;
+  /** Why the planner thinks it fits this brand and script. */
+  why: string;
+  /** The hook line read by this voice, so it can be compared before a re-run. */
+  sampleKey?: string;
+  /** Jev's fit score, 0..1; null when Jev was unavailable. */
+  jevScore?: number | null;
+};
+
+/** Who chose the voice the narration used. */
+export type VoicePicker = 'jev' | 'planner' | 'you';
+
+export type ShortAudio = {
+  key: string;
+  durationS: number;
+  voice: string;
+  words: WordTiming[];
+  sentences: number;
+  /** Delivery notes sent with every sentence (Gemini TTS director's notes), written from the brand and script. */
+  direction?: string;
+  options?: ShortVoiceOption[];
+  pickedBy?: VoicePicker;
+};
+
+export type ShortVoiceOptionDto = ShortVoiceOption & { sampleUrl: string | null };
 
 export type MotionHint = 'static' | 'slow_zoom_in' | 'slow_zoom_out' | 'pan_left' | 'pan_right' | 'ken_burns';
 
@@ -113,7 +144,7 @@ export type ShortBeatDto = ShortBeat & { imageUrl: string | null; clipUrl: strin
 export type ShortDetailDto = ShortDto & {
   inputs: ShortInputs | null;
   attempts: ShortScriptAttempt[];
-  audio: (Omit<ShortAudio, 'key'> & { url: string | null }) | null;
+  audio: (Omit<ShortAudio, 'key' | 'options'> & { url: string | null; options: ShortVoiceOptionDto[] }) | null;
   beats: ShortBeatDto[];
   stepTimings: Partial<Record<ShortStep, number>>;
   stepCosts: Partial<Record<ShortStep, StepCost>>;

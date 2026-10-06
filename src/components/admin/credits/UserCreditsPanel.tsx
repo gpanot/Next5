@@ -6,7 +6,7 @@ import { adminFetch, useAdminApi } from '../business/useAdminApi';
 
 type Props = { token: string; user: AdminCreditUserDto; onChanged: () => void; onClose: () => void };
 
-const PRESETS = [99, 500, 1_000, 2_500];
+const PRESETS = [199, 500, 1_000, 2_500];
 
 /** Parses "5", "-2.50", "$10" into cents; null when it is not a money amount. */
 const parseCents = (text: string): number | null => {

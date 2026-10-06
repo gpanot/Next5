@@ -1,5 +1,5 @@
 import { SplitWords } from '../../../motion/SplitWords';
-import { PRICE_CENTS } from '../pricing/pricing';
+import { PRICE_LABEL } from '../pricing/pricing';
 import { SiteForm } from './SiteForm';
 
 /** Last ask on the /slideshow home, after the FAQ: same website box as the hero. */
@@ -12,7 +12,7 @@ export function HomeFinalCta() {
         </h2>
         <p className="mt-4 max-w-md text-base text-white/70 md:text-lg dark:text-zinc-600">Paste your website. You approve every post first.</p>
         <SiteForm className="mt-8" />
-        <p className="mt-4 text-[13px] text-white/60 dark:text-zinc-500">{PRICE_CENTS}¢ a post. No subscription. No contract.</p>
+        <p className="mt-4 text-[13px] text-white/60 dark:text-zinc-500">{PRICE_LABEL} a post. No subscription. No contract.</p>
       </div>
     </section>
   );

@@ -46,7 +46,7 @@ export function CreditsTab({ token }: { token: string }) {
     <div className="space-y-4">
       <div className="flex flex-wrap items-baseline gap-2">
         <h2 className="font-display text-[22px] tracking-[0.04em] text-ink uppercase dark:text-zinc-100">Credits</h2>
-        <span className="text-[13px] text-muted">{data ? data.users.length : ''} Auto Slideshow users · 99¢ per slideshow</span>
+        <span className="text-[13px] text-muted">{data ? data.users.length : ''} Auto Slideshow users · $1.99 per slideshow</span>
       </div>
       <input
         type="search"

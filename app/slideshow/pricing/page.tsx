@@ -2,7 +2,7 @@ import { PricingPage } from '../../../src/components/admin/autoSlideshow/pricing
 import { PublicFooter } from '../../../src/components/admin/autoSlideshow/workspace/PublicFooter';
 import { PublicTopBar } from '../../../src/components/admin/autoSlideshow/workspace/PublicTopBar';
 
-/** Auto Slideshow pricing, public: pay as you go, 99¢ per slideshow. Checkout is not wired yet. */
+/** Auto Slideshow pricing, public: pay as you go, $1.99 per slideshow. Checkout is not wired yet. */
 export default function SlideshowPricingPage() {
   return (
     <div className="min-h-dvh bg-app-bg">

@@ -5,7 +5,7 @@ import { PageMotion } from '../../../motion/PageMotion';
 import { RotatingWord } from '../../../motion/RotatingWord';
 import { SmoothScroll } from '../../../motion/SmoothScroll';
 import { SplitWords } from '../../../motion/SplitWords';
-import { PRICE_CENTS } from '../pricing/pricing';
+import { PRICE_LABEL } from '../pricing/pricing';
 import { SlideshowSideDecks, SlideshowStrip } from '../SlideshowShowcase';
 import { BuiltWith } from './BuiltWith';
 import { HomeFaq } from './HomeFaq';
@@ -32,7 +32,8 @@ export function SlideshowHome() {
           <div data-intro="1"><PlatformBadges /></div>
           <h1 data-intro-split="" className="text-[2.375rem] leading-[1.05] font-extrabold tracking-tight text-balance text-ink md:text-5xl md:leading-[1.0] lg:text-[3.625rem] dark:text-zinc-100">
             <span className="block xl:whitespace-nowrap">
-              <RotatingWord words={['Slideshows', 'Videos', 'Shorts']} label="Slideshows, videos and shorts" />{' '}
+              {/* Phones: the swapping word owns line 1, so every word gives the same 3 lines. */}
+              <span className="block md:inline"><RotatingWord words={['Slideshows', 'Videos', 'Shorts']} label="Slideshows, videos and shorts" /></span>{' '}
               <SplitWords text="that bring you customers." />
             </span>
             {/* Lines never break mid-claim. Phones: one claim per line. sm to lg: two lines. lg+: one line. */}
@@ -44,7 +45,7 @@ export function SlideshowHome() {
               <SplitWords className="block lg:inline" text="No content team." />
             </span>
           </h1>
-          <p data-intro="2" className="mt-5 max-w-sm text-[17px] leading-relaxed text-muted md:mt-4 md:max-w-none md:text-base lg:text-lg dark:text-zinc-400">Paste your website. Get {PRICE_CENTS}¢ posts built on formats that already get views.</p>
+          <p data-intro="2" className="mt-5 max-w-sm text-[17px] leading-relaxed text-muted md:mt-4 md:max-w-none md:text-base lg:text-lg dark:text-zinc-400">Paste your website. Get {PRICE_LABEL} posts built on formats that already get views.</p>
           <SiteForm className="mt-7" />
           <p className="mt-4 text-[13px] text-muted md:mt-3 md:text-xs">Ready in about 5 minutes. You approve every post first.</p>
           <SlideshowStrip />

@@ -1,4 +1,4 @@
-import { PRICE_CENTS, STACK_TOTAL, VALUE_STACK, money } from './pricing';
+import { PRICE_CENTS, PRICE_LABEL, STACK_TOTAL, VALUE_STACK, money } from './pricing';
 
 function Check() {
   return (
@@ -12,7 +12,7 @@ function Check() {
 export function ValueStack() {
   return (
     <section className="w-full text-left">
-      <h3 className="text-center text-3xl font-extrabold tracking-tight text-ink md:text-4xl dark:text-zinc-100">What you get for 99¢</h3>
+      <h3 className="text-center text-3xl font-extrabold tracking-tight text-ink md:text-4xl dark:text-zinc-100">What you get for {PRICE_LABEL}</h3>
       <p className="mt-2 text-center text-base text-muted dark:text-zinc-400">Every single slideshow. Every single day.</p>
       <ul className="mt-8 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white shadow-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
         {VALUE_STACK.map((item) => (

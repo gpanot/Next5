@@ -1,6 +1,6 @@
 /** Auto Slideshow credits: shared by the API and the Settings → Credits tab. All money in cents (USD). */
 
-export const SLIDESHOW_PRICE_CENTS = 99;
+export const SLIDESHOW_PRICE_CENTS = 199;
 /** New users get one slideshow free. */
 export const FREE_GRANT_CENTS = SLIDESHOW_PRICE_CENTS;
 export const MIN_TOPUP_CENTS = 1_000;
