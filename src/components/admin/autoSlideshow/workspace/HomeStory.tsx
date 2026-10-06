@@ -81,7 +81,7 @@ export function HomeStory() {
   return (
     <section aria-labelledby="slideshow-story" className="relative mx-auto w-full max-w-5xl px-1 pt-10 pb-8 text-left md:pt-16 lg:pt-24 2xl:max-w-[50rem]">
       <h2 id="slideshow-story" data-split="" className="mx-auto max-w-2xl text-center text-3xl font-extrabold tracking-tight text-balance text-ink md:text-5xl dark:text-zinc-100">
-        <SplitWords text="From your website to a post in 5 steps." />
+        <SplitWords text="Your 30 Days content in 5 steps." />
       </h2>
       <div className="mt-8 grid gap-10 md:mt-14 lg:grid-cols-[260px_1fr] lg:gap-16 2xl:gap-10">
         <div className="hidden lg:block"><StoryPhone active={active} /></div>

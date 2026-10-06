@@ -1,9 +1,11 @@
 'use client';
 
 import { Check, Pencil, Undo2, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS } from '../../../../config/blitzLab';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { SwipeCard } from '../../../labs/blitzLab/SwipeCard';
+import { mergeTextConfig } from '../../../labs/blitzLab/useTextLayout';
 import { useDeckSound } from '../../../labs/blitzLab/useDeckSound';
 import { CardMusic, DeckSide } from './DeckSide';
 import { formatLabel, ideaCard, whenOf } from './ideaCards';
@@ -26,6 +28,8 @@ type Props = {
   plannedAt?: string;
   /** Asked before a keep (it uses a credit): false leaves the card where it is. */
   confirmKeep?: () => Promise<boolean>;
+  /** Pinned outside the card, top right (the deck's ⋯ menu). */
+  menu?: ReactNode;
 };
 
 export type DeckSize = 'panel' | 'day';
@@ -56,8 +60,13 @@ function Controls({ idea, onSkip, onKeep, onEditHook }: { idea: IdeaDto; onSkip:
   );
 }
 
+/** Video ideas draw their captions like the editor's "Default" style (and the render), each at its shot's position.
+ *  Photo slideshows have their text in the pictures. */
+const VIDEO_CAPTION = mergeTextConfig(BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS);
+const captionFor = (idea: IdeaDto) => (idea.card ? VIDEO_CAPTION : undefined);
+
 /** One idea at a time: swipe or tap ✓ / ✕. The day it will be posted shows under the card. */
-export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onShuffle, size = 'panel', plannedAt, confirmKeep }: Props) {
+export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onShuffle, size = 'panel', plannedAt, confirmKeep, menu }: Props) {
   const { soundOn, toggleSound } = useDeckSound();
   const [exit, setExit] = useState<{ id: string; dir: 'keep' | 'discard' } | null>(null);
   const card = useMemo(() => ideaCard(idea), [idea]);
@@ -76,10 +85,11 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
     <div className="flex flex-col items-center gap-2 lg:gap-3">
       {/* Centered over ✕ / ✓; sized by the screen height (✕ and ✓ stay in view) and leaving room for the sound buttons. */}
       <div className={`relative aspect-[9/16] ${CARD_WIDTH[size]}`} aria-live="polite">
-        {back && <SwipeCard key={back.id} shots={back.shots} position="back1" hue={back.hue} onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} />}
+        {back && next && <SwipeCard key={back.id} shots={back.shots} captionConfig={captionFor(next)} position="back1" hue={back.hue} onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} />}
         <SwipeCard
           key={card.id}
           shots={card.shots}
+          captionConfig={captionFor(idea)}
           tags={tags}
           whyPanel={card.whyPanel}
           position="top"
@@ -91,6 +101,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
           soundOn={soundOn}
           ariaLabel={`${formatLabel(idea)} idea: ${idea.hook}`}
         />
+        {menu && <div className="absolute top-0 left-full z-10 ml-1.5">{menu}</div>}
         <div className="absolute bottom-0 left-full ml-1.5">
           <DeckSide soundOn={soundOn} onToggleSound={toggleSound} onShuffle={onShuffle && idea.card ? () => onShuffle(idea) : null} trackLabel={card.audio?.label ?? null} />
         </div>

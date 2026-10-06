@@ -11,11 +11,12 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { BLITZ_CANVAS_WIDTH } from '../../../config/blitzLab';
-import { resolveBlitzFont } from '../../../remotion/fonts';
+import { slideTextConfig } from '../../../remotion/slideTextConfig';
 import type { TextConfig } from '../../../remotion/types';
 import { hitTest } from './canvasHitTest';
 import type { BlitzLayer } from './canvasHitTest';
 import type { BlitzAssetDto } from './api';
+import { CaptionText } from './SlideCaption';
 
 export type SlideData = {
   text: string;
@@ -55,28 +56,6 @@ const LAYER_LABEL: Record<BlitzLayer, string> = {
   BUSINESS: 'Business line',
 };
 
-/** Maps TextConfig values to CSS proportional to the 9:16 preview container. */
-function cssTextStyle(config: TextConfig): React.CSSProperties {
-  const strokeW = config.strokeWidth ?? 3;
-  const strokeC = config.strokeColor ?? '#000000';
-  return {
-    fontFamily: resolveBlitzFont(config.font),
-    // Scale font relative to the container width (1080px canvas → 100cqw in this preview).
-    // cqw requires containerType: 'inline-size' on the parent — set on the canvas div.
-    fontSize: `${Math.round((config.fontSize / 1080) * 100)}cqw`,
-    fontWeight: config.fontWeight ?? 700,
-    color: config.color ?? '#ffffff',
-    textAlign: 'center' as const,
-    whiteSpace: 'pre-wrap' as const,
-    lineHeight: 1.25,
-    ...(strokeW > 0
-      ? ({ WebkitTextStroke: `${(strokeW / 1080) * 100}cqw ${strokeC}`, paintOrder: 'stroke fill' } as React.CSSProperties)
-      : { textShadow: '0 2px 8px rgba(0,0,0,0.8)' }),
-    padding: '0 8%',
-    margin: 0,
-  };
-}
-
 export function SlidePreview({
   slides,
   currentIndex,
@@ -84,14 +63,17 @@ export function SlidePreview({
   assets,
   fallbackBackgroundKey,
   businessText,
-  textConfig,
+  textConfig: allSlidesConfig,
   onDragCaption,
   onDragBusiness,
   corner,
 }: SlidePreviewProps) {
   // Always navigate over ALL slides (including empty), so the user sees 3 slots.
   const count = Math.max(1, slides.length);
+
   const safeIndex = Math.min(currentIndex, count - 1);
+  // Hook (first) and CTA (last) may have their own look.
+  const textConfig = slideTextConfig(allSlidesConfig, safeIndex, count);
   const currentSlide = slides[safeIndex];
   const rawText = currentSlide?.text ?? '';
   // Replace [BUSINESS_NAME] placeholder with the actual business text for preview display.
@@ -169,10 +151,10 @@ export function SlidePreview({
           <div className="w-9 shrink-0" />
         )}
 
-      {/* Canvas — containerType enables cqw units in cssTextStyle */}
+      {/* Canvas — containerType enables cqw units in CaptionText */}
       <div
         ref={canvasRef}
-        className="relative w-full max-w-[300px] overflow-hidden rounded-2xl bg-neutral-900"
+        className="relative w-full max-w-[330px] overflow-hidden rounded-2xl bg-neutral-900"
         style={{ aspectRatio: '9/16', containerType: 'inline-size' } as React.CSSProperties}
       >
         {/* Background */}
@@ -215,13 +197,9 @@ export function SlidePreview({
           style={{ bottom: `${(1 - (currentSlide?.positionY ?? textConfig.positionY ?? 0.15)) * 100}%` }}
         >
           {currentText ? (
-            <p style={cssTextStyle(textConfig)}>{currentText}</p>
+            <CaptionText text={currentText} config={textConfig} />
           ) : (
-            <p
-              style={{ ...cssTextStyle(textConfig), opacity: 0.35 }}
-            >
-              Slide {safeIndex + 1} text…
-            </p>
+            <CaptionText text={`Slide ${safeIndex + 1} text…`} config={textConfig} dim />
           )}
         </div>
 

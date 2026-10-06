@@ -64,11 +64,15 @@ import { isLocalKey } from './useBlitzUploads';
 import { useBlitzWorkspace } from './useBlitzWorkspace';
 import { useDeckCardEditor } from './useDeckCardEditor';
 import { useDeckCardRender } from './useDeckCardRender';
+import { useMissingAssetRefresh } from './useMissingAssetRefresh';
+import { AutoFitButton } from './autoFit/AutoFitButton';
+import { useSlideCaptionFit } from './autoFit/useSlideCaptionFit';
+import { useHookCtaStyle } from './useHookCtaStyle';
 import { MaybeSchedule } from './schedule/MaybeSchedule';
 import { useCachedDeckCards, useResumeDeckRenders } from './useDeckCache';
 import { useDeckMusicMatch } from './useDeckMusicMatch';
 import { useSetRemix } from './useSetRemix';
-import { OpenPostError, SaveOrFinish, useOpenPost } from './schedule/editPost';
+import { OpenPostError, SaveToCalendar, useOpenPost } from './schedule/editPost';
 import { PlayItButton, usePlayThrough } from './PlayIt';
 import { buildSet } from './slideshowSet';
 import { useTextLayout } from './useTextLayout';
@@ -222,16 +226,17 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
   });
   useResumeDeckRenders(deckCards, library, libraryLoading, render.watch);
   const durationSeconds = deck.fixedDurationSeconds ?? freeFormSeconds;
-
+  useMissingAssetRefresh(slides, assets, setAssets, !isLoading);
+  const hookCta = useHookCtaStyle(text, () => setCurrentSlideIndex(0));
+  const captionFit = useSlideCaptionFit({ slides, setSlides, currentIndex: currentSlideIndex, assets, fallbackBackgroundKey: currentAssets.backgroundKey, textConfig: text.resolved, businessText: mentionBusiness ? businessText : undefined });
   // ── load the carousel template + assets ────────────────────────────────
   useEffect(() => {
     Promise.all([blitzApi.listTemplates(client), blitzApi.listAssets(client)])
       .then(([tRes, aRes]) => {
         if (!tRes.ok || !aRes.ok) throw new Error('Failed to load data');
         const carousel = (tRes.data.templates ?? []).find((t) => t.type === 'CAROUSEL') ?? null;
-        setCarouselTemplate(carousel);
         const allAssets = aRes.data.assets ?? [];
-        setAssets(allAssets);
+        setCarouselTemplate(carousel); setAssets(allAssets);
         if (carousel) {
           const defaults = carousel.defaultAssets as { backgroundKey?: string; audioKey?: string };
           setCurrentAssets({
@@ -377,8 +382,6 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
               secondsPerSlide={secondsPerSlide}
               onSecondsPerSlideChange={setSecondsPerSlide}
               durationSeconds={durationSeconds}
-              audioAssets={assets.filter((a) => a.type === 'AUDIO')}
-              onAutoAudioPick={(key) => setCurrentAssets((prev) => ({ ...prev, audioKey: key }))}
               shotFormat={editingCard ? SHOT_FORMAT : undefined}
               alternatives={deck.alternatives}
             />
@@ -413,14 +416,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
             />
             {/* Hidden auto-playing audio — loops as long as a track is selected. */}
             {audioAsset && !muteVideoAudio && (
-              <audio
-                key={audioAsset.r2Key}
-                autoPlay
-                loop
-                src={audioAsset.url}
-                preload="auto"
-                style={{ display: 'none' }}
-              />
+              <audio key={audioAsset.r2Key} autoPlay loop src={audioAsset.url} preload="auto" style={{ display: 'none' }} />
             )}
             {deck.copyProblems.length > 0 && (
               <div role="alert" className="w-full rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
@@ -430,9 +426,8 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 </ul>
               </div>
             )}
-            {/* A video already on the calendar only saves its edits ("Save changes"); others render ("Done Editing"). */}
-            <SaveOrFinish card={editingCard} current={deck.cardWithEdits} finish={deck.backToDeck} onSaved={openPost.onSaved}
-              fallback={<RenderControls state={render.state} isBusy={render.isBusy} blockedReason={blockedReason} onSubmit={() => void handleDoneEditing()} />} />
+            {/* Deck cards save from the edit bar ("Save changes"): users do not render themselves. Free-form slideshows render here. */}
+            {!editingCard && <RenderControls state={render.state} isBusy={render.isBusy} blockedReason={blockedReason} onSubmit={() => void handleDoneEditing()} />}
           </div>
 
           {/* Right: text style */}
@@ -447,9 +442,12 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
               onZoomChange={() => undefined}
               onResetPosition={() => undefined}
               onSwapOverlay={() => undefined}
-              textConfig={text.resolved}
-              onTextConfigChange={text.patch}
-              onResetTextPosition={text.resetCaptionPosition}
+              textConfig={hookCta.textConfig}
+              onTextConfigChange={hookCta.onTextConfigChange}
+              scope={hookCta.scope}
+              onResetTextPosition={() => { deck.resetSlideCaption(); if (!editingCard) text.resetCaptionPosition(); }}
+              autoFit={<AutoFitButton {...captionFit} />}
+              defaultStyle={{ fontSize: BLITZ_SLIDESHOW_TEXT_DEFAULTS.fontSize, strokeWidth: BLITZ_SLIDESHOW_TEXT_DEFAULTS.strokeWidth }}
             />
           </div>
         </div>
@@ -558,6 +556,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 onGenerateCard={(card) => void cardRender.generate(card)}
                 renderFor={cardRender.renderFor}
                 labels={!workspaceRunId}
+                captionConfig={text.resolved}
                 aside={(card, sound) => <DeckAside card={card} sound={sound} deckCards={deckCards} setDeckCards={setDeckCards} assets={assets} />}
               />
             </div>
@@ -570,6 +569,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 position={deckCards.indexOf(editingCard) + 1}
                 total={deckCards.length}
                 onBack={deck.backToDeck}
+                actions={<SaveToCalendar card={editingCard} current={deck.cardWithEdits} finish={deck.backToDeck} onSaved={openPost.onSaved} />}
               />
               {editorView}
             </>

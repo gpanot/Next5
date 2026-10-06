@@ -8,7 +8,7 @@
 import type { Prisma, SlideshowVariant } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { BLITZ_LIVE } from '../../types/admin/blitzSchedule';
-import { IDEAS_PER_BATCH, IDEA_DAYS, slideshowShare, type IdeaDayRequest, type IdeaDto, type IdeaPatch, type IdeasListDto, type MadeSlideshow } from '../../types/admin/calendarIdeas';
+import { IDEAS_PER_BATCH, IDEA_DAYS, REQUESTED_SLIDESHOWS, slideshowShare, type IdeaDayRequest, type IdeaDto, type IdeaPatch, type IdeasListDto, type MadeSlideshow } from '../../types/admin/calendarIdeas';
 import type { DeckItem } from '../slideshow/core/deckAssembly';
 import { logSwipe } from '../slideshow/core/variants';
 import { runAutoPipeline } from '../autoSlideshow/pipeline';
@@ -18,6 +18,7 @@ import { presignObject } from '../storage/objectStore';
 import { newBankIdeas, type BankIdeaPlan } from './bankIdeas';
 import { atViewerTime, planIdeaTimes, viewerDay } from './ideaDays';
 import { adoptIdeaSlideshow, createIdeaRun, ideaSlideshowState } from './ideaSlideshowRun';
+import { fitDeckCaptions } from '../slideshow/core/captionFit';
 import { generateWebsiteDeck } from './websiteDeck';
 import { workspaceRunId } from './workspaceRun';
 
@@ -55,6 +56,7 @@ const slideshowDto = async (row: SlideshowVariant): Promise<IdeaDto | null> => {
   return {
     id: row.id, status: row.status as IdeaDto['status'], plannedAt: row.plannedAt!.toISOString(), format: 'slideshow', hook: plan.hook,
     card: null, goal: plan.goal, coverUrl: cover, outline: plan.outline, hooks: [], slideshow: { state: made.state, slides: made.slides },
+    requested: plan.requested === true,
   };
 };
 
@@ -88,7 +90,8 @@ const busyDays = async (workspaceId: string, tzOffsetMin: unknown): Promise<Map<
 /** Blitz deck cards for the workspace, each saved with its full card (the deck saves only the shots). */
 const blitzCards = async (workspaceId: string): Promise<string[]> => {
   const deck = await generateWebsiteDeck(await workspaceRunId(workspaceId));
-  const saved = deck.filter((c) => c.variantId);
+  // Quality first: every shot's caption is placed by the vision Auto Fit on its real frame (~$0.006 per unique shot).
+  const saved = await fitDeckCaptions(deck.filter((c) => c.variantId));
   await prisma.$transaction(saved.map((c) => prisma.slideshowVariant.update({
     where: { id: c.variantId! },
     data: { plan: asJson({ shots: c.shots, audio: c.audio, hookStyle: c.hookStyle, card: c }) },
@@ -96,8 +99,9 @@ const blitzCards = async (workspaceId: string): Promise<string[]> => {
   return saved.map((c) => c.variantId!);
 };
 
-/** Slideshow ideas: saved, each with its hidden run. Returns the ids and the work to run after the response. */
-const startSlideshows = async (workspaceId: string, runId: string, count: number) => {
+/** Slideshow ideas: saved, each with its hidden run. Returns the ids and the work to run after the response.
+ *  `requested`: asked for by the user ("Create 3 slideshows"), so they lead the deck once ready. */
+const startSlideshows = async (workspaceId: string, runId: string, count: number, requested = false) => {
   const plans = await newBankIdeas(workspaceId, runId, count);
   const ids: string[] = [];
   const runs: string[] = [];
@@ -107,7 +111,7 @@ const startSlideshows = async (workspaceId: string, runId: string, count: number
       return null;
     });
     if (!ideaRunId) continue;
-    const row = await prisma.slideshowVariant.create({ data: { workspaceId, engine: 'bank', lens: plan.goal, archetype: plan.combo.hookId, plan: asJson({ ...plan, ideaRunId }) } });
+    const row = await prisma.slideshowVariant.create({ data: { workspaceId, engine: 'bank', lens: plan.goal, archetype: plan.combo.hookId, plan: asJson({ ...plan, ideaRunId, ...(requested ? { requested } : {}) }) } });
     ids.push(row.id);
     runs.push(ideaRunId);
   }
@@ -128,8 +132,25 @@ export async function generateIdeas(workspaceId: string, runId: string, tzOffset
   });
   const planned = [...blitz.slice(0, IDEAS_PER_BATCH - slides.ids.length), ...slides.ids];
   if (planned.length === 0) throw new HttpError(502, 'no_ideas', 'Could not write ideas right now. Try again.');
-  const times = planIdeaTimes(planned.length, await busyDays(workspaceId, tzOffsetMin), new Date(), tzOffsetMin);
-  await prisma.$transaction(times.map((at, i) => prisma.slideshowVariant.update({ where: { id: planned[i]! }, data: { plannedAt: at } })));
+  await planOnDays(workspaceId, planned, tzOffsetMin);
+  return { list: await listIdeas(workspaceId), work: slides.work };
+}
+
+/** Gives `ids` their days and times over the next two weeks, after what is already planned. */
+const planOnDays = async (workspaceId: string, ids: string[], tzOffsetMin: unknown) => {
+  const times = planIdeaTimes(ids.length, await busyDays(workspaceId, tzOffsetMin), new Date(), tzOffsetMin);
+  await prisma.$transaction(times.map((at, i) => prisma.slideshowVariant.update({ where: { id: ids[i]! }, data: { plannedAt: at } })));
+};
+
+/**
+ * "Create 3 slideshows": REQUESTED_SLIDESHOWS slideshow ideas made now (in the background, like a batch's), shown first
+ * in the deck once ready. Free to make; each one kept is charged like any slideshow idea, so the balance must cover them.
+ */
+export async function createSlideshowIdeas(workspaceId: string, userId: string, runId: string, tzOffsetMin: unknown): Promise<{ list: IdeasListDto; work: () => Promise<void> }> {
+  await requireCredits(userId, REQUESTED_SLIDESHOWS);
+  const slides = await startSlideshows(workspaceId, runId, REQUESTED_SLIDESHOWS, true);
+  if (slides.ids.length === 0) throw new HttpError(502, 'no_ideas', 'Could not start new slideshows right now. Try again.');
+  await planOnDays(workspaceId, slides.ids, tzOffsetMin);
   return { list: await listIdeas(workspaceId), work: slides.work };
 }
 

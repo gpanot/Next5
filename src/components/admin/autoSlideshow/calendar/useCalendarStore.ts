@@ -53,3 +53,9 @@ const parsePins = (raw: string | null): Pins => {
 
 /** Where each not-yet-approved slideshow is pinned (dragged, or kept in place when the plan changed). */
 export const usePins = (runId: string) => useRunStore<Pins>(`autoSlideshow.pins.${runId}`, parsePins, (v) => JSON.stringify(v));
+
+export type CalendarView = 'grid' | 'list';
+
+/** Month as photo tiles or as a list by day: one choice for every run, in this browser. */
+export const useCalendarView = () =>
+  useRunStore<CalendarView>('autoSlideshow.calendarView', (raw) => (raw === 'list' ? 'list' : 'grid'), (v) => (v === 'list' ? v : null));

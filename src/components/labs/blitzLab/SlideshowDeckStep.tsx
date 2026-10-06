@@ -13,7 +13,7 @@
  */
 
 import { Loader2, RefreshCw, Sparkles } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import type { ReAngle } from '../../../server/labs/slideshowCopy';
 import type { DeckItem } from '../../../server/slideshow/core/deckAssembly';
 import type { ZillowData } from './ZillowScrapeStep';
@@ -24,6 +24,7 @@ import type { KeptRenderView } from './KeptList';
 import type { ReactNode } from 'react';
 import type { DeckSound } from './SwipeDeck';
 import type { ShotView } from './SwipeCard';
+import type { TextConfig } from '../../../remotion/types';
 import { logDeckAction, type CopyCheckContext } from './deckApi';
 
 /** Client-safe angle labels (the server sends lensLabel on each card too). */
@@ -195,7 +196,7 @@ export type SlideshowDeckStepProps = {
   /** Deck cards owned by the parent. Empty on first visit → this step generates them. */
   cards: DeckCardData[];
   /** Called with new cards (generation) and on every status change (keep / skip / undo). */
-  onCardsChange: (cards: DeckCardData[]) => void;
+  onCardsChange: Dispatch<SetStateAction<DeckCardData[]>>;
   /** Called when the user taps Edit on a card. */
   onEditCard: (card: DeckCardData) => void;
   /** True while the editor is open over the deck. */
@@ -210,6 +211,8 @@ export type SlideshowDeckStepProps = {
   aside?: (card: DeckCardData | null, sound: DeckSound) => ReactNode;
   /** Filter chips and tags above the deck (see SwipeDeck). */
   labels?: boolean;
+  /** Caption style the render uses (template + Text panel edits), so cards match the video. */
+  captionConfig?: TextConfig;
 };
 
 export function SlideshowDeckStep({
@@ -223,6 +226,7 @@ export function SlideshowDeckStep({
   renderFor,
   aside,
   labels,
+  captionConfig,
 }: SlideshowDeckStepProps) {
   const client = useLabClient();
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(cards.length > 0 ? 'ready' : 'loading');
@@ -310,6 +314,7 @@ export function SlideshowDeckStep({
       renderFor={renderFor}
       aside={aside}
       labels={labels}
+      captionConfig={captionConfig}
       onSwipe={(card, action, reason) => logDeckAction(client, card.variantId, action, reason ? { reason } : {})}
     />
   );

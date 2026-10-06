@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { isTerminalAutoStatus, type AutoRunSummary } from '../../../../types/admin/autoSlideshow';
 import { adminFetch, useAdminApi } from '../../business/useAdminApi';
+import { CreateSlideshowsButton } from './CreateSlideshows';
 import { RunSlideshowEditor } from '../RunSlideshowEditor';
 import { SlideshowGrid } from '../SlideshowGrid';
 import { useAutoRun } from '../useAutoRun';
@@ -52,11 +53,15 @@ function RunSection({ token, summary, latest, calendarOnly }: { token: string; s
   };
   return (
     <section className="space-y-3">
-      <h2 className="flex flex-wrap items-center gap-2 text-sm font-bold text-app-ink">
-        {when(summary.createdAt)}
-        <span className="font-normal text-app-muted">· {run ? shows.length : summary.count} slideshows</span>
-        {latest && <span className="rounded-full bg-app-sunken px-2 py-0.5 text-xs font-semibold text-app-muted">On calendar</span>}
-      </h2>
+      <div className="flex flex-wrap items-center gap-2">
+        <h2 className="flex flex-wrap items-center gap-2 text-sm font-bold text-app-ink">
+          {when(summary.createdAt)}
+          <span className="font-normal text-app-muted">· {run ? shows.length : summary.count} slideshows</span>
+          {latest && <span className="rounded-full bg-app-sunken px-2 py-0.5 text-xs font-semibold text-app-muted">On calendar</span>}
+        </h2>
+        {/* New slideshows join the latest run, the one the Calendar places on days. */}
+        {latest && run && <CreateSlideshowsButton token={token} runId={run.id} ready={run.status === 'COMPLETED'} working={!done} onCreated={refresh} />}
+      </div>
       {!run ? (
         error ? <p className={errorClass}>{error}</p> : <GridSkeleton />
       ) : (
@@ -64,6 +69,7 @@ function RunSection({ token, summary, latest, calendarOnly }: { token: string; s
           slideshows={shows}
           expected={calendarOnly && done ? shows.length : run.count}
           writing={!done}
+          since={done ? undefined : run.startedAt}
           retrying={retrying}
           onOpen={(i) => setOpenId(shows[i]!.id)}
           onRetry={done ? (id) => void retry(id) : undefined}

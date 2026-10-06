@@ -19,6 +19,7 @@ import { CalendarRail } from './CalendarRail';
 import { DayDetail } from './DayDetail';
 import { placeIdea, takenBy, uniqueTimes } from './ideaPlacement';
 import { MonthGrid } from './MonthGrid';
+import { MonthList } from './MonthList';
 import { countsLine, MonthHeader } from './MonthHeader';
 import { buildMonth, currentPins, dayKey, dropPins, emptySlots, MAX_PER_DAY, monthCounts, toApprove, type PlanDay } from './monthPlan';
 import { useAdd, useMonth, useWatchPosts } from './postingHooks';
@@ -26,7 +27,7 @@ import { SlideshowDnd } from './SlideshowDnd';
 import { StatusLegend } from './StatusLegend';
 import { entriesOf } from './tileModel';
 import { useBlitzOnCalendar } from './useBlitzOnCalendar';
-import { usePins, useTargets } from './useCalendarStore';
+import { useCalendarView, usePins, useTargets } from './useCalendarStore';
 import { useIsWide } from './useIsWide';
 import { useMoveOnCalendar } from './useMoveOnCalendar';
 
@@ -158,6 +159,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const move = useMoveOnCalendar({ token, workspaceId: run.workspaceId, blitz, ideas: ui?.ideas ?? null, moveShow, reloadBlitz });
   const rail = useRail(ui, onRailOpen);
   const wide = useIsWide();
+  const [view, setView] = useCalendarView();
   const ideasOn = (day: PlanDay) => ui?.byDay.get(day.key) ?? [];
   const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day), run.startedAt);
   // A kept idea fills the soonest empty day (no slideshow, video or kept idea yet); only a full calendar stacks days.
@@ -183,14 +185,18 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
     <div className={hasRail ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]' : ''}>
     <section className="space-y-4 rounded-[20px] border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
       <MonthHeader month={month} canPrev={canPrev} canNext={canNext} onMonth={step} subtitle={ui ? 'Each idea you keep fills your next empty day' : countsLine(counts) || 'Tap a day to plan it'} subtitleOnPhone={!ui}>
-        <StatusLegend />
+        <StatusLegend view={view} onView={setView} />
       </MonthHeader>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Accounts accounts={posting.accounts} />
         {ui && <IdeasButton ui={ui} onOpen={rail.openDeck} />}
       </div>
-      <MonthGrid key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={focusKey} onSelect={rail.select} detail={(day) => (wide || rail.deckOpen ? null : detail(day))} />
-      <p className="hidden border-t border-zinc-100 pt-3 text-xs text-muted md:block dark:border-zinc-800">Click a day to see its posts. A stack means more than one post that day (up to {MAX_PER_DAY}).</p>
+      {view === 'list' ? (
+        <MonthList key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={focusKey} onSelect={rail.select} detail={(day) => (wide || rail.deckOpen ? null : detail(day))} />
+      ) : (
+        <MonthGrid key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={focusKey} onSelect={rail.select} detail={(day) => (wide || rail.deckOpen ? null : detail(day))} />
+      )}
+      {view === 'grid' && <p className="hidden border-t border-zinc-100 pt-3 text-xs text-muted md:block dark:border-zinc-800">Click a day to see its posts. A stack means more than one post that day (up to {MAX_PER_DAY}).</p>}
       {(error || posting.error || move.error) && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error ?? posting.error ?? move.error}</p>}
       {/* Pinned to the screen bottom while the plan is on screen: users don't always scroll down to find them. */}
       <div className="sticky bottom-0 z-20 -mx-4 flex flex-col gap-2 border-t border-line bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:flex-row md:-mx-5 md:px-5 dark:border-zinc-800 dark:bg-zinc-900/95">

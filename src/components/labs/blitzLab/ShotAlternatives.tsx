@@ -1,5 +1,6 @@
 'use client';
 
+import { Loader2, Plus } from 'lucide-react';
 import type { MediaChoice } from './shotFormat';
 
 type ShotAlternativesProps = {
@@ -7,12 +8,18 @@ type ShotAlternativesProps = {
   /** R2 key of the slide's current background, to mark the active choice. */
   currentKey?: string;
   onPick: (choice: MediaChoice) => void;
+  /** Picture shots: an empty "+" slot that opens the background prompt, to add a picture of your own. */
+  onAdd?: () => void;
+  /** The "+" slot's prompt is open or generating. */
+  addState?: 'open' | 'generating';
 };
 
 /** Row of runner-up clips the engine found for this shot. One tap swaps the background. */
-export function ShotAlternatives({ choices, currentKey, onPick }: ShotAlternativesProps) {
-  const swappable = choices.filter((c) => c.assetKey);
-  if (swappable.length === 0) return null;
+export function ShotAlternatives({ choices, currentKey, onPick, onAdd, addState }: ShotAlternativesProps) {
+  // The engine can return the same clip for several candidates; show each clip once.
+  const seen = new Set<string>();
+  const swappable = choices.filter((c) => c.assetKey && !seen.has(c.assetKey) && seen.add(c.assetKey));
+  if (swappable.length === 0 && !onAdd) return null;
   return (
     <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5" role="group" aria-label="Other clips for this shot">
       <span className="shrink-0 text-[10px] font-medium text-muted">Swap</span>
@@ -40,6 +47,22 @@ export function ShotAlternatives({ choices, currentKey, onPick }: ShotAlternativ
           </button>
         );
       })}
+      {onAdd && (
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={addState === 'generating'}
+          title="Add a picture: describe it and AI makes it"
+          aria-label="Add a picture"
+          aria-expanded={addState === 'open'}
+          className={[
+            'flex h-12 w-[27px] shrink-0 items-center justify-center rounded-md border border-dashed transition-colors',
+            addState ? 'border-orange-500 bg-orange-50 text-orange-500 dark:bg-orange-950/40' : 'border-line text-muted hover:border-orange-400 hover:text-orange-500 dark:border-neutral-700',
+          ].join(' ')}
+        >
+          {addState === 'generating' ? <Loader2 aria-hidden className="h-3.5 w-3.5 animate-spin" /> : <Plus aria-hidden className="h-3.5 w-3.5" />}
+        </button>
+      )}
     </div>
   );
 }

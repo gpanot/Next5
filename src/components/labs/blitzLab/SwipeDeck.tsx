@@ -23,12 +23,13 @@
  * Reusable: accepts `DeckCardData[]` (engine-agnostic), renders everything else.
  */
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { SwipeCard } from './SwipeCard';
 import { KeptItem, type KeptActions, type KeptRenderView } from './KeptList';
 import { KeptSheet } from './KeptSheet';
 import { DeckControls, DoneScreen } from './SwipeDeckParts';
 import { useDeckSound } from './useDeckSound';
+import type { TextConfig } from '../../../remotion/types';
 import type { CopyCheckContext } from './deckApi';
 import type { SwipeCardTag, SwipeCardWhyPanel, ShotView } from './SwipeCard';
 
@@ -99,8 +100,11 @@ export type SwipeDeckProps = {
   onSkipReason?: (cardId: string, reason: string) => void;
   /** Called when "Make another batch" is pressed. */
   onMakeMore?: () => void;
-  /** Called whenever the cards array changes status (keep/skip/generate). Parent uses it to cache state. */
-  onCardsChange?: (cards: DeckCardData[]) => void;
+  /**
+   * Receives every change the deck makes (keep / skip / undo / reason) as the same updater it applies locally, so
+   * the parent owns the source of truth. A state setter fits.
+   */
+  onCardsChange?: Dispatch<SetStateAction<DeckCardData[]>>;
   /** Pauses the top card and keyboard shortcuts, e.g. while the editor is open over the deck. */
   paused?: boolean;
   /** Music for cards without their own track (e.g. the editor's default library track). */
@@ -115,6 +119,8 @@ export type SwipeDeckProps = {
   aside?: (card: DeckCardData | null, sound: DeckSound) => ReactNode;
   /** Audience filter chips and the card's audience / hook-style tags above the deck. Off on the Content page. */
   labels?: boolean;
+  /** Caption style for every card, drawn like the render. Absent = the card's own style (marketing deck). */
+  captionConfig?: TextConfig;
 };
 
 // ── Skip reason options ───────────────────────────────────────────────────────
@@ -147,6 +153,7 @@ export function SwipeDeck({
   renderFor,
   aside,
   labels = true,
+  captionConfig,
 }: SwipeDeckProps) {
   const [cards, setCards] = useState<DeckCardData[]>(initialCards);
   const [filter, setFilter] = useState<string>('all');
@@ -158,12 +165,19 @@ export function SwipeDeck({
   const { soundOn, toggleSound } = useDeckSound();
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Sync incoming cards changes (e.g. edits saved by the parent editor)
-  useEffect(() => { setCards(initialCards); }, [initialCards]);
+  // Sync incoming cards changes (e.g. edits saved by the parent editor). Adjusted during render, not in an effect.
+  const [syncedCards, setSyncedCards] = useState(initialCards);
+  if (syncedCards !== initialCards) {
+    setSyncedCards(initialCards);
+    setCards(initialCards);
+  }
 
-  // Report every status change (keep, skip, undo, reason) so the parent owns the source of truth.
-  // Re-reporting the array the parent just passed in is a no-op for its state setter.
-  useEffect(() => { onCardsChange?.(cards); }, [cards]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The deck's own changes go to the parent as the same updater, never by mirroring `cards` back in an effect:
+  // mirroring both ways ping-pongs forever when the parent and the deck change cards in the same commit.
+  const updateCards = useCallback((fn: (prev: DeckCardData[]) => DeckCardData[]) => {
+    setCards(fn);
+    onCardsChange?.(fn);
+  }, [onCardsChange]);
 
   // ── Derived data ───────────────────────────────────────────────────────────
   const visible = cards.filter((c) => filter === 'all' || c.lensId === filter);
@@ -208,13 +222,13 @@ export function SwipeDeck({
     setHistory((h) => [...h, { id: current.id, from: 'new' }]);
     setExitMap((m) => ({ ...m, [current.id]: 'keep' }));
     setTimeout(() => {
-      setCards((prev) => prev.map((c) => (c.id === current.id ? { ...c, status: 'kept' as DeckCardStatus } : c)));
+      updateCards((prev) => prev.map((c) => (c.id === current.id ? { ...c, status: 'kept' as DeckCardStatus } : c)));
       setExitMap((m) => { const n = { ...m }; delete n[current.id]; return n; });
     }, 320);
     onKeep?.(current.id);
     onSwipe?.(current, 'keep');
     showToast({ message: 'Kept. Tap Generate to render it, or Edit to change it.', withUndo: true }, 3200);
-  }, [current, onKeep, onSwipe, showToast]);
+  }, [current, onKeep, onSwipe, showToast, updateCards]);
 
   // ── Skip ───────────────────────────────────────────────────────────────────
   const handleSkip = useCallback(() => {
@@ -222,19 +236,19 @@ export function SwipeDeck({
     setHistory((h) => [...h, { id: current.id, from: 'new' }]);
     setExitMap((m) => ({ ...m, [current.id]: 'discard' }));
     setTimeout(() => {
-      setCards((prev) => prev.map((c) => (c.id === current.id ? { ...c, status: 'skipped' as DeckCardStatus } : c)));
+      updateCards((prev) => prev.map((c) => (c.id === current.id ? { ...c, status: 'skipped' as DeckCardStatus } : c)));
       setExitMap((m) => { const n = { ...m }; delete n[current.id]; return n; });
     }, 320);
     onSwipe?.(current, 'discard');
     showToast({ message: 'Skipped. What was off?', withUndo: true, skipReasonFor: current }, 6000);
-  }, [current, onSwipe, showToast]);
+  }, [current, onSwipe, showToast, updateCards]);
 
   // ── Undo ───────────────────────────────────────────────────────────────────
   const handleUndo = useCallback(() => {
     const entry = history[history.length - 1];
     if (!entry) return;
     setHistory((h) => h.slice(0, -1));
-    setCards((prevCards) => {
+    updateCards((prevCards) => {
       const card = prevCards.find((c) => c.id === entry.id);
       if (!card) return prevCards;
       // Restore to previous status and move to front of queue
@@ -248,7 +262,7 @@ export function SwipeDeck({
     if (undone) onSwipe?.(undone, 'undo');
     setToast(null);
     if (filter !== 'all') setFilter('all');
-  }, [history, cards, filter, onSwipe]);
+  }, [history, cards, filter, onSwipe, updateCards]);
 
   // ── Edit ───────────────────────────────────────────────────────────────────
   // The parent opens the full editor for this card; the deck stays mounted underneath.
@@ -401,6 +415,7 @@ export function SwipeDeck({
                 onKeep={() => {}}
                 onDiscard={() => {}}
                 onOpen={() => {}}
+                captionConfig={captionConfig}
               />
             )}
 
@@ -414,6 +429,7 @@ export function SwipeDeck({
                 onKeep={() => {}}
                 onDiscard={() => {}}
                 onOpen={() => {}}
+                captionConfig={captionConfig}
               />
             )}
 
@@ -430,6 +446,7 @@ export function SwipeDeck({
                 externalPause={paused}
                 soundOn={soundOn}
                 ariaLabel={`Preview of kept video for ${previewCard.lensValue}`}
+                captionConfig={captionConfig}
               />
             ) : current ? (
               <SwipeCard
@@ -446,6 +463,7 @@ export function SwipeDeck({
                 externalPause={paused}
                 soundOn={soundOn}
                 ariaLabel={`Video for ${current.lensValue}: ${current.hookStyle} hook`}
+                captionConfig={captionConfig}
               />
             ) : (
               <DoneScreen
@@ -507,8 +525,9 @@ export function SwipeDeck({
                     type="button"
                     onClick={() => {
                       if (toast.skipReasonFor) {
-                        setCards((prev) =>
-                          prev.map((c) => (c.id === toast.skipReasonFor!.id ? { ...c, reason: r } : c)),
+                        const skippedId = toast.skipReasonFor.id;
+                        updateCards((prev) =>
+                          prev.map((c) => (c.id === skippedId ? { ...c, reason: r } : c)),
                         );
                         onSkipReason?.(toast.skipReasonFor.id, r);
                         onSwipe?.(toast.skipReasonFor, 'discard', r);

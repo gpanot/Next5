@@ -11,7 +11,16 @@ import { resolveBlitzFont } from './fonts';
 import type { TextConfig } from './types';
 
 
-type CaptionProps = { text: string; config: TextConfig; width: number; height: number };
+/** Background painted behind each wrapped line; `clone` gives every line its own padding and corners. */
+const lineHighlightStyle = (bg: string, fontSize: number): React.CSSProperties => ({
+  background: bg,
+  borderRadius: Math.round(fontSize * 0.14),
+  padding: `${Math.round(fontSize * 0.06)}px ${Math.round(fontSize * 0.3)}px`,
+  boxDecorationBreak: 'clone',
+  WebkitBoxDecorationBreak: 'clone',
+});
+
+type CaptionProps ={ text: string; config: TextConfig; width: number; height: number };
 
 export function CaptionLayer({ text, config, width, height }: CaptionProps) {
   const strokeW = config.strokeWidth ?? 3;
@@ -46,7 +55,11 @@ export function CaptionLayer({ text, config, width, height }: CaptionProps) {
         transform: config.offsetX ? `translateX(${config.offsetX}px)` : undefined,
       }}
     >
-      {bg ? (
+      {bg && config.lineHighlight ? (
+        <p data-blitz-layer="TEXT" style={{ ...textStyle, textTransform: 'uppercase', textShadow: 'none', lineHeight: 1.3 }}>
+          <span style={lineHighlightStyle(bg, config.fontSize)}>{text}</span>
+        </p>
+      ) : bg ? (
         <div
           data-blitz-layer="TEXT"
           style={{

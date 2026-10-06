@@ -6,6 +6,10 @@ const nextConfig: NextConfig = {
   // Remotion packages use CommonJS internals that the Next.js App Router
   // bundler won't resolve correctly without explicit transpilation.
   transpilePackages: ['remotion', '@remotion/player'],
+  // Shorts render with ffmpeg-static (resolved at runtime, so not traced) and burn captions in Montserrat Bold.
+  outputFileTracingIncludes: {
+    '/api/admin/shorts/**': ['./node_modules/ffmpeg-static/ffmpeg', './assets/fonts/**'],
+  },
 };
 
 export default nextConfig;

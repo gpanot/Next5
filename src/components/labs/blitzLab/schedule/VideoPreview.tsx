@@ -2,10 +2,13 @@
 
 import { Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { BLITZ_DEFAULT_TEXT_CONFIG } from '../../../../config/blitzLab';
+import type { TextConfig } from '../../../../remotion/types';
 import type { BlitzEditDto } from '../../../../types/admin/blitzSchedule';
 import { useLabClient } from '../../LabClientProvider';
 import { SwipeCard, type ShotView } from '../SwipeCard';
 import { useDeckSound } from '../useDeckSound';
+import { mergeTextConfig } from '../useTextLayout';
 import { scheduleApi } from './scheduleApi';
 
 /** The saved deck shots (zones, labels), if the video came from a deck card. */
@@ -19,9 +22,15 @@ export const previewShots = (edit: BlitzEditDto): ShotView[] => {
   const deck = setShots(edit.assets.set);
   return edit.assets.slides.map((slide, i) => {
     const media = edit.media[i];
-    return { ...deck[i], textZone: deck[i]?.textZone ?? 'bottom', text: slide.text, mediaUrl: media?.url ?? deck[i]?.mediaUrl, mediaKind: media ? (media.video ? 'video' : 'image') : deck[i]?.mediaKind };
+    // The caption sits at the slide's saved position, as in the editor and the render.
+    const shotEdit = { ...(deck[i]?.edit ?? { source: 'library' as const, durationSec: slide.durationSec ?? 0, alternatives: [] }), positionY: slide.positionY };
+    return { ...deck[i], edit: shotEdit, textZone: deck[i]?.textZone ?? 'bottom', text: slide.text, mediaUrl: media?.url ?? deck[i]?.mediaUrl, mediaKind: media ? (media.video ? 'video' : 'image') : deck[i]?.mediaKind };
   });
 };
+
+/** The video's caption style as it will render (and as the editor opens it): the template's, plus the saved changes. */
+export const previewCaption = (edit: BlitzEditDto): TextConfig =>
+  mergeTextConfig(BLITZ_DEFAULT_TEXT_CONFIG, (edit.assets.textConfigOverride ?? {}) as Partial<TextConfig>);
 
 /** The video's music, hidden, at half volume: plays while sound is on (the same on/off as the deck). */
 function PreviewMusic({ url, playing }: { url: string; playing: boolean }) {
@@ -49,6 +58,7 @@ export function VideoPreview({ id, title }: { id: string; title: string }) {
   const client = useLabClient();
   const { soundOn, toggleSound } = useDeckSound();
   const [shots, setShots] = useState<ShotView[] | null>(null);
+  const [caption, setCaption] = useState<TextConfig | undefined>(undefined);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -57,6 +67,7 @@ export function VideoPreview({ id, title }: { id: string; title: string }) {
       if (cancelled) return;
       if (!res?.ok) return setFailed(true);
       setShots(previewShots(res.data));
+      setCaption(previewCaption(res.data));
       setAudioUrl(res.data.audioUrl);
     });
     return () => {
@@ -68,7 +79,7 @@ export function VideoPreview({ id, title }: { id: string; title: string }) {
     <div className="relative mx-auto aspect-[9/16] w-[min(56vw,220px)]">
       {shots ? (
         <>
-          <SwipeCard shots={shots} position="top" onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} soundOn={soundOn} ariaLabel={`Preview: ${title}`} />
+          <SwipeCard shots={shots} captionConfig={caption} position="top" onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} soundOn={soundOn} ariaLabel={`Preview: ${title}`} />
           <SoundButton on={soundOn} onToggle={toggleSound} />
           {audioUrl && <PreviewMusic url={audioUrl} playing={soundOn} />}
         </>

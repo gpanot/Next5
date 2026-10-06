@@ -16,8 +16,10 @@
 import type React from 'react';
 import { BLITZ_FONTS, BLITZ_DEFAULT_FONT, resolveBlitzFont } from '../../../remotion/fonts';
 import { BUSINESS_DEFAULTS } from '../../../remotion/businessDefaults';
+import { BLITZ_DEFAULT_TEXT_CONFIG } from '../../../config/blitzLab';
 import type { TextConfig } from '../../../remotion/types';
 import type { BlitzLayer } from './canvasHitTest';
+import type { HookCtaScope } from './useHookCtaStyle';
 
 // ── Caption style presets ─────────────────────────────────────────────────────
 
@@ -40,50 +42,54 @@ type CaptionStyleDef = {
 
 const _f = (label: string) => BLITZ_FONTS.find((f) => f.label === label)?.value ?? BLITZ_DEFAULT_FONT;
 
+/** The look a new video starts with (BLITZ_DEFAULT_TEXT_CONFIG), so it can be picked again after trying others. */
+const D = BLITZ_DEFAULT_TEXT_CONFIG;
+
 const CAPTION_STYLES: CaptionStyleDef[] = [
+  {
+    id: 'default',
+    label: 'Default',
+    patch: { font: _f(D.font), color: D.color, fontWeight: D.fontWeight, strokeWidth: D.strokeWidth, strokeColor: D.strokeColor, textBackground: undefined, lineHighlight: false },
+    preview: { font: `${D.font}, sans-serif`, color: D.color, fontWeight: D.fontWeight, strokeWidth: 1, strokeColor: D.strokeColor, thumbnailBg: '#111111' },
+  },
   {
     id: 'tiktok-classic',
     label: 'TikTok classic',
     // Same look as the Auto Slideshow hook text (server/autoSlideshow/render.tsx): Inter ExtraBold, white, 3px black
     // outline. The stroke is painted under the fill, so half of it shows: 6 here = 3px outside the glyphs.
-    patch: { font: _f('Inter'), color: '#ffffff', fontWeight: 800, strokeWidth: 6, strokeColor: '#000000', textBackground: undefined },
+    patch: { font: _f('Inter'), color: '#ffffff', fontWeight: 800, strokeWidth: 6, strokeColor: '#000000', textBackground: undefined, lineHighlight: false },
     preview: { font: 'Inter, sans-serif', color: '#ffffff', fontWeight: 800, strokeWidth: 2, strokeColor: '#000000', thumbnailBg: '#111111' },
-  },
-  {
-    id: 'bold-impact',
-    label: 'Bold impact',
-    patch: { font: _f('Bebas Neue'), color: '#ffffff', fontWeight: 400, strokeWidth: 6, strokeColor: '#111111', textBackground: undefined },
-    preview: { font: "'Bebas Neue', sans-serif", color: '#ffffff', fontWeight: 400, strokeWidth: 3, strokeColor: '#111111', thumbnailBg: '#1c1c1c' },
   },
   {
     id: 'snapchat',
     label: 'Snapchat',
-    patch: { font: _f('Poppins'), color: '#ffffff', fontWeight: 700, strokeWidth: 0, strokeColor: '#000000', textBackground: 'rgba(0,0,0,0.72)' },
+    patch: { font: _f('Poppins'), color: '#ffffff', fontWeight: 700, strokeWidth: 0, strokeColor: '#000000', textBackground: 'rgba(0,0,0,0.72)', lineHighlight: false },
     preview: { font: 'Poppins, sans-serif', color: '#ffffff', fontWeight: 700, strokeWidth: 0, strokeColor: '#000000', textBg: 'rgba(0,0,0,0.72)', thumbnailBg: '#444' },
   },
   {
     id: 'white-box',
     label: 'White box',
-    patch: { font: _f('Inter'), color: '#111111', fontWeight: 700, strokeWidth: 0, strokeColor: '#000000', textBackground: 'rgba(255,255,255,0.95)' },
+    patch: { font: _f('Inter'), color: '#111111', fontWeight: 700, strokeWidth: 0, strokeColor: '#000000', textBackground: 'rgba(255,255,255,0.95)', lineHighlight: false },
     preview: { font: 'Inter, sans-serif', color: '#111111', fontWeight: 700, strokeWidth: 0, strokeColor: '#000000', textBg: 'rgba(255,255,255,0.95)', thumbnailBg: '#555' },
   },
   {
     id: 'yellow-pop',
     label: 'Yellow pop',
-    patch: { font: _f('Poppins'), color: '#FFE600', fontWeight: 800, strokeWidth: 0, strokeColor: '#000000', textBackground: '#000000' },
+    patch: { font: _f('Poppins'), color: '#FFE600', fontWeight: 800, strokeWidth: 0, strokeColor: '#000000', textBackground: '#000000', lineHighlight: false },
     preview: { font: 'Poppins, sans-serif', color: '#FFE600', fontWeight: 800, strokeWidth: 0, strokeColor: '#000000', textBg: '#000000', thumbnailBg: '#222' },
   },
   {
     id: 'clean-karaoke',
     label: 'Clean karaoke',
-    patch: { font: _f('Montserrat'), color: '#ffffff', fontWeight: 600, strokeWidth: 0, strokeColor: '#000000', textBackground: undefined },
+    patch: { font: _f('Montserrat'), color: '#ffffff', fontWeight: 600, strokeWidth: 0, strokeColor: '#000000', textBackground: undefined, lineHighlight: false },
     preview: { font: 'Montserrat, sans-serif', color: '#ffffff', fontWeight: 600, strokeWidth: 0, strokeColor: '#000000', thumbnailBg: '#1a1a1a' },
   },
   {
-    id: 'script-playful',
-    label: 'Script playful',
-    patch: { font: _f('Pacifico'), color: '#ffffff', fontWeight: 400, strokeWidth: 2, strokeColor: '#000000', textBackground: undefined },
-    preview: { font: 'Pacifico, cursive', color: '#ffffff', fontWeight: 400, strokeWidth: 1, strokeColor: '#000000', thumbnailBg: '#1a1a1a' },
+    id: 'tiktok-red',
+    label: 'TikTok Red (popular)',
+    // White capitals on a red highlight behind each line, like viral TikTok hooks.
+    patch: { font: _f('TikTok Sans'), fontSize: 60, color: '#ffffff', fontWeight: 600, strokeWidth: 0, strokeColor: '#000000', textBackground: '#E8453C', lineHighlight: true },
+    preview: { font: "'TikTok Sans', sans-serif", color: '#ffffff', fontWeight: 600, strokeWidth: 0, strokeColor: '#000000', textBg: '#E8453C', thumbnailBg: '#1a1a1a' },
   },
 ];
 
@@ -117,9 +123,49 @@ type ContextPanelProps = {
   onResetTextPosition: () => void;
   /** Optional "Auto Fit" CTA, shown under Reset Position in the Video and Text tabs. */
   autoFit?: React.ReactNode;
+  /** Editor-level defaults the "Default" caption style restores on top of the template's (Slideshow: 74 px, no stroke). */
+  defaultStyle?: Partial<TextConfig>;
+  /** Slideshow: the "All slides / Hook & CTA" switch. `textConfig` and changes then follow the chosen slides. */
+  scope?: HookCtaScope;
 };
 
 // ── Helper components ──────────────────────────────────────────────────────────
+
+/** Which slides the Text controls style: all of them, or the hook (first) and CTA (last) on their own. */
+function ScopeSwitch({ scope }: { scope: HookCtaScope }) {
+  const options = [{ on: false, label: 'All slides' }, { on: true, label: 'Hook & CTA' }];
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div role="radiogroup" aria-label="Slides to style" className="grid grid-cols-2 gap-1 rounded-lg bg-surface-alt p-1 dark:bg-neutral-800">
+        {options.map((o) => (
+          <button
+            key={o.label}
+            type="button"
+            role="radio"
+            aria-checked={scope.hookCta === o.on}
+            onClick={() => scope.onChange(o.on)}
+            className={[
+              'min-h-8 rounded-md px-2 text-[12px] font-semibold transition-colors',
+              scope.hookCta === o.on ? 'bg-white text-ink shadow-sm dark:bg-neutral-700 dark:text-neutral-100' : 'text-muted hover:text-ink',
+            ].join(' ')}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+      {scope.hookCta && (
+        <p className="text-[11px] leading-snug text-muted">
+          Changes here only style the first and last slide.
+          {scope.onClear && (
+            <button type="button" onClick={scope.onClear} className="ml-1 font-semibold text-orange-600 hover:underline dark:text-orange-400">
+              Match other slides
+            </button>
+          )}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function SliderRow({
   label,
@@ -254,7 +300,16 @@ export function ContextPanel({
   onTextConfigChange,
   onResetTextPosition,
   autoFit,
+  defaultStyle,
+  scope,
 }: ContextPanelProps) {
+  const styles = defaultStyle
+    ? CAPTION_STYLES.map((s) => (s.id !== 'default' ? s : {
+      ...s,
+      patch: { ...s.patch, ...defaultStyle },
+      preview: { ...s.preview, strokeWidth: Math.min(1, defaultStyle.strokeWidth ?? s.preview.strokeWidth) },
+    }))
+    : CAPTION_STYLES;
   const tabs: { id: BlitzLayer; label: string }[] = [
     ...(!hideOverlay ? [{ id: 'OVERLAY' as const, label: 'Video' }] : []),
     { id: 'TEXT', label: 'Text' },
@@ -271,7 +326,7 @@ export function ContextPanel({
    * (fontSize, positionY, …) are intentionally excluded so the active chip
    * stays highlighted even after the user adjusts the size.
    */
-  const activeStyleId = CAPTION_STYLES.find((s) => {
+  const activeStyleId = styles.find((s) => {
     const p = s.patch;
     return (
       resolveBlitzFont(textConfig.font) === resolveBlitzFont(p.font) &&
@@ -279,7 +334,8 @@ export function ContextPanel({
       (textConfig.fontWeight ?? 700) === (p.fontWeight ?? 700) &&
       (textConfig.strokeWidth ?? 3) === (p.strokeWidth ?? 3) &&
       (textConfig.strokeColor ?? '#000000') === (p.strokeColor ?? '#000000') &&
-      (textConfig.textBackground ?? undefined) === (p.textBackground ?? undefined)
+      (textConfig.textBackground ?? undefined) === (p.textBackground ?? undefined) &&
+      (textConfig.lineHighlight ?? false) === (p.lineHighlight ?? false)
     );
   })?.id ?? null;
 
@@ -354,13 +410,14 @@ export function ContextPanel({
         {/* ──────────────────────────── TEXT TAB ─────────────────────── */}
         {activeLayer === 'TEXT' && (
           <>
+            {scope && <ScopeSwitch scope={scope} />}
             {/* ── Caption style presets ──────────────────────────────── */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-semibold tracking-widest text-muted/70 uppercase">
                 Caption Style Mix
               </span>
               <div className="flex flex-col gap-0.5">
-                {CAPTION_STYLES.map((style) => (
+                {styles.map((style) => (
                   <button
                     key={style.id}
                     type="button"

@@ -25,12 +25,13 @@ import { AssetsLibraryTab } from '../../src/components/admin/business/AssetsLibr
 import { MetaAdsTab } from '../../src/components/admin/metaAds/MetaAdsTab';
 import { SlideshowKnowledgeTab } from '../../src/components/admin/slideshowKnowledge/SlideshowKnowledgeTab';
 import { AutoSlideshowTab } from '../../src/components/admin/autoSlideshow/AutoSlideshowTab';
+import { ShortsPage } from '../../src/components/admin/shorts/ShortsPage';
 
 type Tab =
   | 'overview' | 'workspaces' | 'payments' | 'promise' | 'qa' | 'models'
   | 'users' | 'credits' | 'bookings' | 'prompts'
   | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces'
-  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow'
+  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow' | 'shorts'
   | 'assets-library';
 
 type NavItem = { id: Tab; label: string; icon: string };
@@ -75,6 +76,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { id: 'meta-ads',  label: 'Perfect Ads',  icon: '▦' },
       { id: 'slideshow-knowledge', label: 'Slideshow Knowledge', icon: '◧' },
       { id: 'auto-slideshow', label: 'Auto Slideshow', icon: '▤' },
+      { id: 'shorts', label: 'Shorts', icon: '▶' },
     ],
   },
   {
@@ -90,6 +92,7 @@ const STANDALONE_ROUTES: Partial<Record<Tab, string>> = {
   'meta-ads': '/admin/perfect-ads',
   'slideshow-knowledge': '/admin/slideshow-knowledge',
   'auto-slideshow': '/admin/auto-slideshow',
+  shorts: '/admin/shorts',
 };
 
 export default function AdminPage() {
@@ -253,6 +256,7 @@ export default function AdminPage() {
           {tab === 'meta-ads'         && <MetaAdsTab           token={token} />}
           {tab === 'slideshow-knowledge' && <SlideshowKnowledgeTab token={token} />}
           {tab === 'auto-slideshow'   && <AutoSlideshowTab     token={token} />}
+          {tab === 'shorts'           && <ShortsPage           token={token} />}
           {tab === 'assets-library'   && <AssetsLibraryTab     token={token} />}
         </main>
       </div>

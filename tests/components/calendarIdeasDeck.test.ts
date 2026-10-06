@@ -26,6 +26,12 @@ describe('deckOrder', () => {
   it('puts the slideshow last when there are few videos', () => {
     expect(deckOrder([idea('s1', 'slideshow'), idea('b1', 'blitz'), idea('b2', 'blitz')]).map((i) => i.id)).toEqual(['b1', 'b2', 's1']);
   });
+
+  it('puts ready slideshows the user asked for before everything else', () => {
+    const asked = (id: string, state: 'making' | 'ready') => idea(id, 'slideshow', { requested: true, slideshow: { state, slides: [] } });
+    const order = deckOrder([idea('b1', 'blitz'), idea('b2', 'blitz'), asked('r1', 'ready'), asked('r2', 'making'), idea('s1', 'slideshow')]).map((i) => i.id);
+    expect(order).toEqual(['r1', 'b1', 'b2', 's1']);
+  });
 });
 
 const blitz = (status: BlitzScheduleDto['status']): BlitzScheduleDto => ({ id: status, cardId: 'c', title: 'T', coverUrl: null, coverIsVideo: false, scheduledAt: '2026-10-12T19:00:00Z', status, postUrl: null, error: null });

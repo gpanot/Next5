@@ -59,10 +59,11 @@ export const BLITZ_DEFAULT_TEXT_CONFIG = {
 /**
  * Initial text-style overrides for the Slideshow (CAROUSEL) tab.
  * Applied on top of the template's stored textConfig — user can still adjust via ContextPanel.
- * 88 px gives a bold card-style look; positionY 0.5 centres the text block on the slide.
+ * 74 px with no stroke gives a clean card-style look; positionY 0.5 centres the text block on the slide.
  */
 export const BLITZ_SLIDESHOW_TEXT_DEFAULTS = {
-  fontSize: 88,
+  fontSize: 74,
+  strokeWidth: 0,
   positionY: 0.5,
 } as const;
 

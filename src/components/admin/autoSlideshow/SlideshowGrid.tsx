@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import type { AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
+import { MakingCountdown } from './calendar/MakingCountdown';
 
 type Props = {
   slideshows: AutoSlideshowDto[];
@@ -13,12 +14,16 @@ type Props = {
   onRetry?: (slideshowId: string) => void;
   /** An extra slot after the slideshows (the "Get more" card once the run is done). */
   more?: ReactNode;
+  /** When the work began: slideshows still being made show the 3:00 countdown instead of a grey box. */
+  since?: string;
 };
 
 const frame = 'relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-zinc-100 shadow-sm dark:bg-zinc-800';
 
 /** Ready: a button that opens the editor. Failed: its reason and a Retry. Otherwise: what it is waiting for. */
-function Cover({ show, onOpen, onRetry, retrying }: { show: AutoSlideshowDto; onOpen: () => void; onRetry?: () => void; retrying: boolean }) {
+type CardProps = { show: AutoSlideshowDto; onOpen: () => void; onRetry?: () => void; retrying: boolean; since?: string };
+
+function Cover({ show, onOpen, onRetry, retrying, since }: CardProps) {
   const cover = show.slides[0];
   if (show.status === 'ready' && cover?.imageUrl) {
     return (
@@ -41,6 +46,7 @@ function Cover({ show, onOpen, onRetry, retrying }: { show: AutoSlideshowDto; on
       </div>
     );
   }
+  if (since) return <div className={frame}><MakingCountdown since={since} /></div>;
   return (
     <div className={`${frame} flex animate-pulse flex-col justify-center gap-2 p-4`}>
       <p className="text-center text-sm font-bold text-ink dark:text-zinc-100">{cover?.title}</p>
@@ -49,7 +55,7 @@ function Cover({ show, onOpen, onRetry, retrying }: { show: AutoSlideshowDto; on
   );
 }
 
-function Card(props: { show: AutoSlideshowDto; onOpen: () => void; onRetry?: () => void; retrying: boolean }) {
+function Card(props: CardProps) {
   return (
     <div>
       <Cover {...props} />
@@ -60,7 +66,7 @@ function Card(props: { show: AutoSlideshowDto; onOpen: () => void; onRetry?: () 
 }
 
 /** Slideshows as 4:5 covers; skeletons stand in for the ones not written yet. */
-export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more }: Props) {
+export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since }: Props) {
   const missing = writing ? Math.max(0, expected - slideshows.length) : 0;
   if (slideshows.length === 0 && missing === 0 && !more) {
     return <p className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted dark:border-zinc-800">Slideshows show up here once they are written.</p>;
@@ -69,10 +75,12 @@ export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen,
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
       {slideshows.map((show, i) => (
         <li key={show.id}>
-          <Card show={show} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} />
+          <Card show={show} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} since={since} />
         </li>
       ))}
-      {Array.from({ length: missing }, (_, i) => <li key={`s${i}`}><div className="aspect-[4/5] animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" /></li>)}
+      {Array.from({ length: missing }, (_, i) => (
+        <li key={`s${i}`}>{since ? <div className={frame}><MakingCountdown since={since} /></div> : <div className="aspect-[4/5] animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />}</li>
+      ))}
       {more && <li>{more}</li>}
     </ul>
   );

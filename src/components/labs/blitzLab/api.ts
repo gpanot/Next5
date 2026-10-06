@@ -81,6 +81,12 @@ export const blitzApi = {
       reason: string;
     }>(`${BASE}/auto-fit`, { json: body }),
 
+  /** Slideshow "Auto Fit": the model places one slide's caption from a snapshot of its picture. */
+  autoFitCaption: (
+    client: LabClient,
+    body: { backgroundJpeg: string; compositeJpeg: string; captionText: string; layout: { caption: AutoFitRect; business: AutoFitRect | null } },
+  ) => client.request<{ captionPositionY: number; reason: string }>(`${BASE}/auto-fit-caption`, { json: body }),
+
   triggerRender: (
     client: LabClient,
     body: {

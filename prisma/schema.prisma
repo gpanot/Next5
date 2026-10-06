@@ -304,16 +304,25 @@ model Workspace {
 
 /// A photo or video the user uploaded to their own brand media bank.
 model UserUpload {
-  id          String    @id @default(cuid())
-  workspaceId String    @map("workspace_id")
-  r2Key       String    @map("r2_key")
-  filename    String
-  mimeType    String    @default("image/jpeg") @map("mime_type")
-  sizeBytes   Int       @default(0) @map("size_bytes")
+  id             String    @id @default(cuid())
+  workspaceId    String    @map("workspace_id")
+  r2Key          String    @map("r2_key")
+  filename       String
+  mimeType       String    @default("image/jpeg") @map("mime_type")
+  sizeBytes      Int       @default(0) @map("size_bytes")
   /// "photo" | "video"
-  kind        String    @default("photo")
-  archivedAt  DateTime? @map("archived_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  kind           String    @default("photo")
+  archivedAt     DateTime? @map("archived_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  /// Vision description, made in the background after upload: "pending" | "done" | "failed"
+  describeStatus String    @default("pending") @map("describe_status")
+  /// 1-2 plain sentences: what the photo shows
+  description    String?
+  tags           String[]  @default([])
+  /// Full model output (flat keys, see src/server/brandContent/describePhoto.ts)
+  descriptor     Json?
+  describeError  String?   @map("describe_error")
+  describedAt    DateTime? @map("described_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
@@ -1292,23 +1301,23 @@ model BlitzScheduledPost {
 }
 
 model SlideshowVariant {
-  id             String   @id @default(cuid())
-  workspaceId    String?  @map("workspace_id")
+  id             String    @id @default(cuid())
+  workspaceId    String?   @map("workspace_id")
   /// 'website' | 'zillow' | 'bank' (a Slideshow Bank combo offered as a calendar idea)
   engine         String
-  listingRunId   String?  @map("listing_run_id")
+  listingRunId   String?   @map("listing_run_id")
   /// IDC name (website) or listing angle (zillow)
   lens           String
   archetype      String
   /// Card shots as generated (text, media, asset ids, alternatives)
   plan           Json
   /// 'proposed' | 'kept' | 'discarded' | 'edited' | 'rendered' | 'failed'
-  status         String   @default("proposed")
-  blitzProjectId String?  @map("blitz_project_id")
+  status         String    @default("proposed")
+  blitzProjectId String?   @map("blitz_project_id")
   /// Calendar ideas: the day and time this card is planned for, before the user keeps it
   plannedAt      DateTime? @map("planned_at")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   swipes SlideshowSwipe[]
 
@@ -1927,8 +1936,8 @@ model StudioBrandProfile {
 
   createdAt DateTime @default(now()) @map("created_at")
 
-  workspace Workspace?  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  runs      StudioRun[]
+  workspace         Workspace?         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runs              StudioRun[]
   autoSlideshowRuns AutoSlideshowRun[]
 
   @@index([workspaceId, sourceUrl, version(sort: Desc)])
@@ -2227,37 +2236,37 @@ model SlideshowReference {
 
 /// One run: each step saves its output so it can be inspected and resumed.
 model AutoSlideshowRun {
-  id          String    @id @default(cuid())
-  url         String
-  count       Int
+  id             String    @id @default(cuid())
+  url            String
+  count          Int
   /// Workspace whose TikTok account will post; null for admin test runs
-  workspaceId String?   @map("workspace_id")
+  workspaceId    String?   @map("workspace_id")
   /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'COMPLETED' | 'FAILED'
-  status      String    @default("STEP_1_RUNNING")
+  status         String    @default("STEP_1_RUNNING")
   /// Step 1: BrandProfile (flat copy of the shared profile below)
-  profile     Json?
+  profile        Json?
   /// The shared company profile (studio_brand_profiles) step 1 used; null on runs made before 2026-10-02
-  brandProfileId String? @map("brand_profile_id")
+  brandProfileId String?   @map("brand_profile_id")
   /// Hidden run making one calendar slideshow idea (no workspace, never charged); the workspace run it belongs to
-  ideaForRunId String? @map("idea_for_run_id")
+  ideaForRunId   String?   @map("idea_for_run_id")
   /// Step 2: BrandLever[]
-  levers      Json?
+  levers         Json?
   /// Step 3: AutoPlan
-  plan        Json?
+  plan           Json?
   /// Step 5: AutoPhoto[]
-  photos      Json?
-  stepTimings Json      @default("{}") @map("step_timings")
-  stepCosts   Json      @default("{}") @map("step_costs")
-  failedStep  Int?      @map("failed_step")
-  error       String?
-  startedAt   DateTime  @default(now()) @map("started_at")
-  finishedAt  DateTime? @map("finished_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  photos         Json?
+  stepTimings    Json      @default("{}") @map("step_timings")
+  stepCosts      Json      @default("{}") @map("step_costs")
+  failedStep     Int?      @map("failed_step")
+  error          String?
+  startedAt      DateTime  @default(now()) @map("started_at")
+  finishedAt     DateTime? @map("finished_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   brandProfile StudioBrandProfile? @relation(fields: [brandProfileId], references: [id], onDelete: SetNull)
-  slideshows AutoSlideshow[]
-  posts      AutoSlideshowPost[]
+  slideshows   AutoSlideshow[]
+  posts        AutoSlideshowPost[]
 
   @@index([createdAt(sort: Desc)])
   @@index([ideaForRunId])
@@ -2445,4 +2454,38 @@ model SlideshowCreditEntry {
   @@index([userId, createdAt(sort: Desc)])
   @@index([ref])
   @@map("slideshow_credit_ledger")
+}
+
+// ─── Shorts (admin) ──────────────────────────────────────────────────────────
+// Workspace brand + Slideshow Bank hook → narrated 9:16 video short. Migration: 20261113090000_short_reels.sql
+
+/// One short: each pipeline step saves its checkpoint, time and cost so it can be inspected.
+model ShortReel {
+  id          String    @id @default(cuid())
+  workspaceId String    @map("workspace_id")
+  /// 'veo' | 'seedance' | 'wan3'
+  videoModel  String    @map("video_model")
+  /// 'STEP_1_RUNNING' … 'STEP_5_RUNNING' | 'COMPLETED' | 'FAILED'
+  status      String    @default("STEP_1_RUNNING")
+  /// ShortInputs (src/types/admin/shorts.ts)
+  inputs      Json?
+  /// ShortScriptAttempt[]
+  attempts    Json      @default("[]")
+  /// ShortAudio
+  audio       Json?
+  /// ShortBeat[]
+  beats       Json      @default("[]")
+  videoKey    String?   @map("video_key")
+  posterKey   String?   @map("poster_key")
+  stepTimings Json      @default("{}") @map("step_timings")
+  stepCosts   Json      @default("{}") @map("step_costs")
+  failedStep  Int?      @map("failed_step")
+  error       String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  finishedAt  DateTime? @map("finished_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@map("short_reels")
 }

@@ -6,6 +6,8 @@ import type { CostItem, StepCost } from '../../types/admin/metaAds';
 /** OpenAI list prices, micro-USD per token (checked 2026-09-28, developers.openai.com/api/docs/models). */
 const OPENAI_PRICES: Record<string, { input: number; output: number }> = {
   'gpt-5.4-nano': { input: 0.2, output: 1.25 },
+  'gpt-5.4-mini': { input: 0.75, output: 4.5 },
+  'gpt-5.5': { input: 5, output: 30 },
   'gpt-4o-mini': { input: 0.15, output: 0.6 },
 };
 

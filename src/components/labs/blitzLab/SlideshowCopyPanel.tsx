@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { GripVertical, Images, ImagePlus, Loader2, Minus, Plus, Sparkles, Wand2, X } from 'lucide-react';
+import { GripVertical, Images, ImagePlus, Loader2, Minus, Plus, Sparkles, X } from 'lucide-react';
 import {
   BLITZ_BUSINESS_TEXT_MAX,
   BLITZ_SLIDESHOW_SECONDS_MAX,
@@ -40,10 +40,6 @@ type SlideshowCopyPanelProps = {
   onSecondsPerSlideChange: (seconds: number) => void;
   /** Resulting clip length, in seconds. */
   durationSeconds: number;
-  /** Audio library assets — used by Auto to pick a random track. */
-  audioAssets?: BlitzAssetDto[];
-  /** Called when Auto picks an audio track so the parent can set audioKey. */
-  onAutoAudioPick?: (audioKey: string) => void;
   /**
    * Fixed shot format (deck videos): labels each slide with its role and a live word limit,
    * and locks the slide count and order. Absent = free-form slideshow.
@@ -69,8 +65,6 @@ export function SlideshowCopyPanel({
   secondsPerSlide,
   onSecondsPerSlideChange,
   durationSeconds,
-  audioAssets = [],
-  onAutoAudioPick,
   shotFormat,
   alternatives,
 }: SlideshowCopyPanelProps) {
@@ -83,9 +77,8 @@ export function SlideshowCopyPanel({
   // Per-slide prompt override (user can edit before generating)
   const [genPrompt, setGenPrompt] = useState<Record<number, string>>({});
 
-  // Auto-generate state: null = idle, number = index currently generating
-  const [autoGenerating, setAutoGenerating] = useState<boolean>(false);
-  const [autoProgress, setAutoProgress] = useState<number>(0);
+  // Deck videos: pictures generated from the Swap row's "+", kept as extra swaps for that slide.
+  const [generated, setGenerated] = useState<Record<number, MediaChoice[]>>({});
 
   // ── drag-to-reorder ────────────────────────────────────────────────────
   const dragIndexRef = useRef<number | null>(null);
@@ -160,6 +153,8 @@ export function SlideshowCopyPanel({
         next[i] = { ...next[i], backgroundKey: asset.r2Key };
         onChange(next);
         onAssetCreated?.(asset);
+        const choice: MediaChoice = { mediaUrl: asset.thumbnailUrl ?? asset.url, mediaKind: 'image', mediaLabel: asset.name, assetKey: asset.r2Key };
+        setGenerated((prev) => ({ ...prev, [i]: [...(prev[i] ?? []), choice] }));
         setGenState((prev) => ({ ...prev, [i]: 'idle' }));
       } else {
         setGenState((prev) => ({ ...prev, [i]: 'error' }));
@@ -197,61 +192,10 @@ export function SlideshowCopyPanel({
     onIndexChange(Math.min(currentIndex, next.length - 1));
   };
 
-  /**
-   * Auto: generate backgrounds for every slide that has a prompt suggestion
-   * (or uses the slide text as a fallback prompt), then pick a random audio.
-   * Runs slides sequentially so the user can see progress.
-   */
-  const handleAutoGenerate = async () => {
-    if (autoGenerating) return;
-    setAutoGenerating(true);
-    setAutoProgress(0);
-
-    // Work on a mutable copy we'll accumulate into
-    let current = [...slides];
-
-    for (let i = 0; i < current.length; i++) {
-      const slide = current[i];
-      const prompt = (slide.bgPromptSuggestion ?? slide.text).trim();
-      if (!prompt) {
-        setAutoProgress(i + 1);
-        continue;
-      }
-      // Mark this slide as generating
-      setGenState((prev) => ({ ...prev, [i]: 'generating' }));
-      onIndexChange(i);
-      try {
-        const res = await blitzApi.generateBackground(client, prompt);
-        if (res.ok && res.data.asset) {
-          const asset = res.data.asset;
-          onAssetCreated?.(asset);
-          current = current.map((s, idx) =>
-            idx === i ? { ...s, backgroundKey: asset.r2Key } : s,
-          );
-          onChange(current);
-          setGenState((prev) => ({ ...prev, [i]: 'idle' }));
-        } else {
-          setGenState((prev) => ({ ...prev, [i]: 'error' }));
-        }
-      } catch {
-        setGenState((prev) => ({ ...prev, [i]: 'error' }));
-      }
-      setAutoProgress(i + 1);
-    }
-
-    // Pick a random audio from the library (if any exist and none is set yet)
-    const libraryAudio = audioAssets.filter((a) => a.source === 'library');
-    if (libraryAudio.length > 0 && onAutoAudioPick) {
-      const pick = libraryAudio[Math.floor(Math.random() * libraryAudio.length)];
-      onAutoAudioPick(pick.r2Key);
-    }
-
-    setAutoGenerating(false);
-  };
-
   return (
     <>
-      {/* ── Business line ─────────────────────────────────────────────── */}
+      {/* ── Business line (free-form only: deck videos don't mention the business) ── */}
+      {!isFixed && (
       <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center justify-between gap-3">
           <p className="text-[13px] font-medium text-ink">Mention your business?</p>
@@ -292,57 +236,27 @@ export function SlideshowCopyPanel({
           </div>
         )}
       </div>
+      )}
 
       {/* ── Slide inputs ──────────────────────────────────────────────── */}
       <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex items-center justify-between gap-2">
           <p className="text-[13px] font-semibold text-ink">Slides</p>
           <div className="flex items-center gap-2">
-            {/* Auto-generate all backgrounds + pick a track */}
-            <button
-                type="button"
-                onClick={() => void handleAutoGenerate()}
-                disabled={autoGenerating || !slides.some((s) => (s.bgPromptSuggestion ?? s.text).trim())}
-                title="Generate all backgrounds and pick a music track automatically"
-                className={[
-                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors',
-                  autoGenerating
-                    ? 'bg-orange-100 text-orange-500 cursor-default'
-                    : 'bg-orange-500 text-white hover:opacity-90 disabled:opacity-40',
-                ].join(' ')}
-              >
-                {autoGenerating ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    {autoProgress}/{slides.length}
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="h-3 w-3" />
-                    Auto
-                  </>
-                )}
-              </button>
+            <span className="text-[11px] tabular-nums text-muted">{durationSeconds.toFixed(0)} s total</span>
             <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-700">
               {nonEmptyCount} / {slides.length}
             </span>
           </div>
         </div>
 
-        {/* ── Timing control ───────────────────────────────────────────── */}
+        {/* ── Timing control (free-form only: deck videos have fixed shot lengths) ── */}
+        {!isFixed && (
         <div className="flex flex-col gap-2 rounded-xl border border-line bg-surface-alt px-3 py-2.5">
           <div className="flex items-center gap-1.5">
             <Images className="h-3.5 w-3.5 shrink-0 text-muted" />
             <p className="text-[12px] font-medium text-ink">Slideshow</p>
-            <span className="ml-auto text-[11px] tabular-nums text-muted">
-              {durationSeconds.toFixed(0)} s total
-            </span>
           </div>
-          {isFixed ? (
-            <p className="text-[11px] text-muted">
-              Fixed timing: hook {shotFormat?.[0]?.durationSec}s, story {shotFormat?.[1]?.durationSec}s each, CTA {shotFormat?.[shotFormat.length - 1]?.durationSec}s.
-            </p>
-          ) : (
           <div className="flex items-center justify-between gap-2">
             <label htmlFor="seconds-per-slide" className="text-[11px] text-muted">
               Seconds per slide
@@ -371,8 +285,8 @@ export function SlideshowCopyPanel({
               </button>
             </div>
           </div>
-          )}
         </div>
+        )}
 
         <div className="flex flex-col gap-2">
           {slides.map((slide, i) => {
@@ -385,6 +299,9 @@ export function SlideshowCopyPanel({
             const fmt = shotFormat?.[i];
             const words = countWords(slide.text);
             const overLimit = Boolean(fmt && (words === 0 || words > fmt.maxWords));
+            const choices = alternatives?.[i] ? [...alternatives[i]!, ...(generated[i] ?? [])] : undefined;
+            // Picture shots get the "+" slot; video shots only swap clips.
+            const isPicture = (choices?.find((c) => c.assetKey === slide.backgroundKey)?.mediaKind ?? bgAsset?.mediaKind) === 'image';
 
             return (
               <div
@@ -433,7 +350,8 @@ export function SlideshowCopyPanel({
                     </span>
                   </button>
 
-                  {/* AI generate button */}
+                  {/* AI generate button (free-form only: deck videos use the Swap row's "+") */}
+                  {!isFixed && (
                   <button
                       type="button"
                       onClick={() => {
@@ -459,6 +377,7 @@ export function SlideshowCopyPanel({
                         <Sparkles className="h-3.5 w-3.5" />
                       )}
                     </button>
+                  )}
 
                   {slides.length > 1 && !isFixed && (
                     <button
@@ -471,6 +390,29 @@ export function SlideshowCopyPanel({
                     </button>
                   )}
                 </div>
+
+                {/* Shot role + live word limit (deck videos) */}
+                {fmt && (
+                  <div className="flex items-baseline justify-between px-0.5 text-[11px]">
+                    <span className="font-semibold text-ink">
+                      {fmt.label} <span className="font-normal text-muted">· {fmt.durationSec}s</span>
+                    </span>
+                    <span className={overLimit ? 'font-semibold text-red-600 dark:text-red-400' : 'tabular-nums text-muted'}>
+                      {words}/{fmt.maxWords} words
+                    </span>
+                  </div>
+                )}
+
+                {/* Engine runner-ups for this shot (deck videos) */}
+                {choices && (
+                  <ShotAlternatives
+                    choices={choices}
+                    currentKey={slide.backgroundKey}
+                    onPick={(c) => pickAlternative(i, c)}
+                    onAdd={isPicture ? () => { onIndexChange(i); toggleGenOpen(i); } : undefined}
+                    addState={isGenerating ? 'generating' : isOpen ? 'open' : undefined}
+                  />
+                )}
 
                 {/* Inline AI generate row */}
                 {(isOpen || isGenerating || hasError) && (
@@ -502,27 +444,6 @@ export function SlideshowCopyPanel({
                       <p className="text-[10px] text-muted">Usually 10–30 seconds…</p>
                     )}
                   </div>
-                )}
-
-                {/* Shot role + live word limit (deck videos) */}
-                {fmt && (
-                  <div className="flex items-baseline justify-between px-0.5 text-[11px]">
-                    <span className="font-semibold text-ink">
-                      {fmt.label} <span className="font-normal text-muted">· {fmt.durationSec}s</span>
-                    </span>
-                    <span className={overLimit ? 'font-semibold text-red-600 dark:text-red-400' : 'tabular-nums text-muted'}>
-                      {words}/{fmt.maxWords} words
-                    </span>
-                  </div>
-                )}
-
-                {/* Engine runner-ups for this shot (deck videos) */}
-                {alternatives?.[i] && (
-                  <ShotAlternatives
-                    choices={alternatives[i]!}
-                    currentKey={slide.backgroundKey}
-                    onPick={(c) => pickAlternative(i, c)}
-                  />
                 )}
 
                 {/* Text input */}

@@ -5,7 +5,8 @@ import { SLIDESHOW_AFTER, type IdeaAudio, type IdeaDto, type IdeaPatch, type Ide
 import { errorOf, type LabClient, type LabResponse } from '../../../labs/labClient';
 import { ideasApi } from './ideasApi';
 
-type State = { ideas: IdeaDto[]; slideshowPct: number; reserve: number; loading: boolean; generating: boolean; error: string | null };
+/** `generatingSince`: when the batch being written was asked for (ISO), for the countdown on the empty card. */
+type State = { ideas: IdeaDto[]; slideshowPct: number; reserve: number; loading: boolean; generating: boolean; generatingSince: string | null; error: string | null };
 type SetState = (fn: (s: State) => State) => void;
 
 /** One swipe, so Undo can put the card back as it was. */
@@ -18,14 +19,17 @@ const OFFLINE = 'Could not reach the server. Check your connection.';
 const byTime = (a: IdeaDto, b: IdeaDto) => a.plannedAt.localeCompare(b.plannedAt);
 
 /**
- * The deck: Blitz ideas first (soonest day first), each ready slideshow after the first SLIDESHOW_AFTER of them, so it
- * has had time to be made. Slideshows still being made wait out of the deck.
+ * The deck: slideshows the user asked for ("Create 3 slideshows") first, then Blitz ideas (soonest day first), each
+ * other ready slideshow after the first SLIDESHOW_AFTER of them, so it has had time to be made. Slideshows still being
+ * made wait out of the deck.
  */
 export const deckOrder = (waiting: IdeaDto[]): IdeaDto[] => {
   const videos = waiting.filter((i) => i.format === 'blitz');
-  const slides = waiting.filter((i) => i.format === 'slideshow' && i.slideshow?.state === 'ready');
+  const ready = waiting.filter((i) => i.format === 'slideshow' && i.slideshow?.state === 'ready');
+  const asked = ready.filter((i) => i.requested);
+  const slides = ready.filter((i) => !i.requested);
   const at = Math.min(SLIDESHOW_AFTER, videos.length);
-  return [...videos.slice(0, at), ...slides, ...videos.slice(at)];
+  return [...asked, ...videos.slice(0, at), ...slides, ...videos.slice(at)];
 };
 
 /** Waiting (in deck order), kept and skipped ideas; slideshows still being made. */
@@ -61,9 +65,9 @@ const useLoad = (client: LabClient | null, runId: string, autoGenerate: boolean,
   const generatedFor = useRef<string | null>(null);
   const generate = useCallback(async () => {
     if (!client) return;
-    setState((s) => ({ ...s, generating: true, error: null }));
+    setState((s) => ({ ...s, generating: true, generatingSince: new Date().toISOString(), error: null }));
     apply(await ideasApi.generate(client, runId).catch(() => null));
-    setState((s) => ({ ...s, generating: false }));
+    setState((s) => ({ ...s, generating: false, generatingSince: null }));
   }, [client, runId, apply, setState]);
 
   useEffect(() => {
@@ -142,7 +146,7 @@ const useActions = (client: LabClient | null, apply: (res: LabResponse<IdeasList
  * every action on them. `autoGenerate`: the run is finished, so the first batch can be written.
  */
 export function useIdeas(client: LabClient | null, runId: string, autoGenerate: boolean) {
-  const [state, setStateRaw] = useState<State>({ ideas: [], slideshowPct: 10, reserve: 0, loading: Boolean(client), generating: false, error: null });
+  const [state, setStateRaw] = useState<State>({ ideas: [], slideshowPct: 10, reserve: 0, loading: Boolean(client), generating: false, generatingSince: null, error: null });
   const setState = useCallback<SetState>((fn) => setStateRaw(fn), []);
   const made = useRef(new Set<string>());
   const { apply, generate } = useLoad(client, runId, autoGenerate, setState, made);
@@ -159,7 +163,15 @@ export function useIdeas(client: LabClient | null, runId: string, autoGenerate: 
   const reload = useCallback(async () => {
     if (client) apply(await ideasApi.list(client).catch(() => null));
   }, [client, apply]);
-  return { ...state, ...lists, ...actions, client, current, generate, reviewSkipped, reload, markMade };
+  /** "Create 3 slideshows": null once started, else the reason (shown in the dialog, not over the deck). */
+  const createSlideshows = useCallback(async (): Promise<string | null> => {
+    if (!client) return OFFLINE;
+    const res = await ideasApi.createSlideshows(client, runId).catch(() => null);
+    if (!res?.ok) return res ? errorOf(res) : OFFLINE;
+    apply(res);
+    return null;
+  }, [client, runId, apply]);
+  return { ...state, ...lists, ...actions, client, current, generate, reviewSkipped, reload, markMade, createSlideshows };
 }
 
 export type IdeasState = ReturnType<typeof useIdeas>;

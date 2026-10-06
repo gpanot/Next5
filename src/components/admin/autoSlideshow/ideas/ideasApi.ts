@@ -12,6 +12,8 @@ export const ideasApi = {
   patch: (client: LabClient, id: string, patch: IdeaPatch) => client.request<IdeasListDto>(`/blitz/ideas/${id}`, { method: 'PATCH', json: patch }),
   /** "+" (one more idea) or "−" (the last idea leaves) on a day key. */
   day: (client: LabClient, action: 'add' | 'remove', day: string) => client.request<IdeasListDto>('/blitz/ideas/day', { json: { action, day, tzOffsetMin: tz() } }),
+  /** "Create 3 slideshows": slideshow ideas made now, first in the deck once ready. */
+  createSlideshows: (client: LabClient, runId: string) => client.request<IdeasListDto>('/blitz/ideas/slideshows', { json: { runId, tzOffsetMin: tz() } }),
   make: (client: LabClient, runId: string, ids: string[]) =>
     client.request<{ made: MadeSlideshow[]; errors: Record<string, string> }>('/blitz/ideas/make', { json: { runId, ids } }),
 };

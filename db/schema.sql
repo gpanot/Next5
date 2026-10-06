@@ -586,6 +586,7 @@ CREATE TABLE public.auto_slideshow_runs (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     brand_profile_id text,
+    idea_for_run_id text,
     CONSTRAINT auto_slideshow_runs_count_check CHECK (((count >= 1) AND (count <= 20)))
 );
 
@@ -1695,6 +1696,31 @@ CREATE TABLE public.slideshow_references (
 
 
 --
+-- Name: short_reels; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.short_reels (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    video_model text NOT NULL,
+    status text DEFAULT 'STEP_1_RUNNING'::text NOT NULL,
+    inputs jsonb,
+    attempts jsonb DEFAULT '[]'::jsonb NOT NULL,
+    audio jsonb,
+    beats jsonb DEFAULT '[]'::jsonb NOT NULL,
+    video_key text,
+    poster_key text,
+    step_timings jsonb DEFAULT '{}'::jsonb NOT NULL,
+    step_costs jsonb DEFAULT '{}'::jsonb NOT NULL,
+    failed_step integer,
+    error text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    finished_at timestamp with time zone
+);
+
+
+--
 -- Name: slideshow_swipes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1726,6 +1752,7 @@ CREATE TABLE public.slideshow_variants (
     blitz_project_id text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    planned_at timestamp with time zone,
     CONSTRAINT slideshow_variants_status_check CHECK ((status = ANY (ARRAY['proposed'::text, 'kept'::text, 'discarded'::text, 'edited'::text, 'rendered'::text, 'failed'::text, 'made'::text])))
 );
 
@@ -2064,7 +2091,13 @@ CREATE TABLE public.user_uploads (
     size_bytes integer DEFAULT 0 NOT NULL,
     kind text DEFAULT 'photo'::text NOT NULL,
     archived_at timestamp with time zone,
-    created_at timestamp with time zone DEFAULT now() NOT NULL
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    describe_status text DEFAULT 'pending'::text NOT NULL,
+    description text,
+    tags text[] DEFAULT '{}'::text[] NOT NULL,
+    descriptor jsonb,
+    describe_error text,
+    described_at timestamp with time zone
 );
 
 
@@ -2137,7 +2170,8 @@ CREATE TABLE public.workspaces (
     brand_extract jsonb,
     brand_extract_at timestamp with time zone,
     deleted_at timestamp with time zone,
-    purge_at timestamp with time zone
+    purge_at timestamp with time zone,
+    idea_slideshow_pct integer DEFAULT 10 NOT NULL
 );
 
 
@@ -2645,6 +2679,14 @@ ALTER TABLE ONLY public.slideshow_references
 
 
 --
+-- Name: short_reels short_reels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.short_reels
+    ADD CONSTRAINT short_reels_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: slideshow_swipes slideshow_swipes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2939,6 +2981,13 @@ CREATE INDEX auto_slideshow_runs_brand_profile_idx ON public.auto_slideshow_runs
 --
 
 CREATE INDEX auto_slideshow_runs_created_idx ON public.auto_slideshow_runs USING btree (created_at DESC);
+
+
+--
+-- Name: auto_slideshow_runs_idea_for_run_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_runs_idea_for_run_id_idx ON public.auto_slideshow_runs USING btree (idea_for_run_id);
 
 
 --
@@ -3544,6 +3593,20 @@ CREATE INDEX slideshow_references_model_idx ON public.slideshow_references USING
 
 
 --
+-- Name: short_reels_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX short_reels_created_idx ON public.short_reels USING btree (created_at DESC);
+
+
+--
+-- Name: short_reels_workspace_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX short_reels_workspace_idx ON public.short_reels USING btree (workspace_id, created_at DESC);
+
+
+--
 -- Name: slideshow_swipes_action_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3569,6 +3632,13 @@ CREATE INDEX slideshow_variants_lens_archetype_idx ON public.slideshow_variants 
 --
 
 CREATE INDEX slideshow_variants_listing_run_idx ON public.slideshow_variants USING btree (listing_run_id);
+
+
+--
+-- Name: slideshow_variants_workspace_status_planned_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX slideshow_variants_workspace_status_planned_idx ON public.slideshow_variants USING btree (workspace_id, status, planned_at);
 
 
 --
@@ -4361,6 +4431,14 @@ ALTER TABLE ONLY public.shop_connections
 
 
 --
+-- Name: short_reels short_reels_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.short_reels
+    ADD CONSTRAINT short_reels_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
 -- Name: slideshow_credit_ledger slideshow_credit_ledger_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4699,4 +4777,10 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261104090000'),
     ('20261105090000'),
     ('20261106090000'),
-    ('20261107090000');
+    ('20261107090000'),
+    ('20261108090000'),
+    ('20261109090000'),
+    ('20261110090000'),
+    ('20261111090000'),
+    ('20261112090000'),
+    ('20261113090000');

@@ -4,6 +4,7 @@ import { Sparkles, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { RotatingLine } from '../../shared/RotatingLine';
+import { MakingCountdown } from '../calendar/MakingCountdown';
 import { KeptIdeas } from './KeptIdeas';
 import { LiveDeck } from './LiveDeck';
 import { MakeStatus } from './MakeStatus';
@@ -20,6 +21,9 @@ const WRITING_LINES = [
   'Picking photos and clips for each idea…',
   'Getting them ready to swipe…',
 ];
+
+/** Writing a batch of ideas usually takes about two minutes. */
+const TYPICAL_IDEAS_MS = 120_000;
 
 /** As in the canvas: ✕ (back to the start card), the title, "3 / 12", and a progress bar. */
 function Header({ ideas, onClose }: { ideas: IdeasState; onClose: () => void }) {
@@ -43,10 +47,13 @@ function Header({ ideas, onClose }: { ideas: IdeasState; onClose: () => void }) 
   );
 }
 
-function Writing() {
+/** The empty card while ideas are written: the slide animation and a 2:00 countdown, so the wait never looks stuck. */
+function Writing({ since }: { since: string | null }) {
   return (
     <div className="space-y-3" aria-busy="true" aria-label="Writing your ideas">
-      <div className="mx-auto aspect-[9/16] h-[min(680px,calc(100dvh-13rem))] max-w-full animate-pulse rounded-[26px] bg-zinc-100 lg:h-[min(560px,calc(100dvh-28rem))] dark:bg-zinc-800" />
+      <div className={`relative mx-auto aspect-[9/16] h-[min(680px,calc(100dvh-13rem))] max-w-full rounded-[26px] bg-zinc-100 lg:h-[min(560px,calc(100dvh-28rem))] dark:bg-zinc-800 ${since ? '' : 'animate-pulse'}`}>
+        {since && <MakingCountdown since={since} totalMs={TYPICAL_IDEAS_MS} label="Writing your ideas" />}
+      </div>
       <RotatingLine lines={WRITING_LINES} />
       <p className="text-center text-xs text-muted">This takes 1 to 3 minutes. You can keep using the calendar.</p>
     </div>
@@ -69,7 +76,7 @@ function Empty({ onGenerate, error }: { onGenerate: () => void; error: string | 
 /** What the panel shows: writing, empty, the deck, or the kept list once every idea was looked at. */
 function Body({ ideas, maker, placeOf }: { ideas: IdeasState; maker: Make; placeOf?: Placer }): ReactNode {
   if (ideas.loading) return <div className="mx-auto aspect-[9/16] h-[min(680px,calc(100dvh-13rem))] max-w-full animate-pulse rounded-[26px] bg-zinc-100 lg:h-[min(560px,calc(100dvh-28rem))] dark:bg-zinc-800" />;
-  if (ideas.generating && ideas.deck.length === 0) return <Writing />;
+  if (ideas.generating && ideas.deck.length === 0) return <Writing since={ideas.generatingSince} />;
   const total = ideas.deck.length + ideas.making.length + ideas.kept.length + ideas.skipped.length;
   if (total === 0) return <Empty onGenerate={() => void ideas.generate()} error={ideas.error} />;
   const current = ideas.current;

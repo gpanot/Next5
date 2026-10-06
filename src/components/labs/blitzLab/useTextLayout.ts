@@ -24,7 +24,7 @@ export const mergeTextConfig = (templateTextConfig: unknown, overrides: Partial<
  *
  * @param templateTextConfig   The template's stored textConfig (merged over BLITZ_DEFAULT_TEXT_CONFIG).
  * @param initialOverride      Tab-level defaults applied on top of the template on first render
- *                             (e.g. slideshow wants fontSize:88 centered regardless of template).
+ *                             (e.g. slideshow wants 74 px, no stroke, centered regardless of template).
  */
 export function useTextLayout(templateTextConfig: unknown, initialOverride?: Partial<TextConfig>) {
   const [override, setOverride] = useState<Partial<TextConfig>>(initialOverride ?? {});

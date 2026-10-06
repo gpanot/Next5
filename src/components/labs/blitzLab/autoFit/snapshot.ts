@@ -67,9 +67,30 @@ function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number
 
 const fontOf = (c: TextConfig, size: number) => `${c.fontWeight ?? 700} ${size}px ${resolveBlitzFont(c.font)}`;
 
+/** TikTok-red style: background behind each wrapped line, like CaptionLayer's lineHighlight. */
+function drawHighlightCaption(ctx: CanvasRenderingContext2D, text: string, c: TextConfig): Rect {
+  const padX = c.fontSize * 0.3;
+  const lines = wrapLines(ctx, text, W - c.safeZonePadding * 2 - padX * 2);
+  const lineH = c.fontSize * 1.3;
+  const cx = W / 2 + (c.offsetX ?? 0);
+  const top = c.positionY * H - lines.length * lineH;
+  const widths = lines.map((l) => ctx.measureText(l).width + padX * 2);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  lines.forEach((l, i) => {
+    ctx.fillStyle = c.textBackground ?? '#E8453C';
+    ctx.fillRect(cx - widths[i] / 2, top + lineH * i, widths[i], lineH);
+    ctx.fillStyle = c.color ?? '#fff';
+    ctx.fillText(l, cx, top + lineH * (i + 0.5));
+  });
+  const boxW = Math.max(...widths);
+  return { x: cx - boxW / 2, y: top, w: boxW, h: lines.length * lineH };
+}
+
 /** Draws the caption like CaptionLayer and returns its box. */
 function drawCaption(ctx: CanvasRenderingContext2D, text: string, c: TextConfig): Rect {
   ctx.font = fontOf(c, c.fontSize);
+  if (c.textBackground && c.lineHighlight) return drawHighlightCaption(ctx, text.toUpperCase(), c);
   const pad = c.textBackground ? { x: c.fontSize * 0.55, y: c.fontSize * 0.18 } : { x: 0, y: 0 };
   const maxW = W - c.safeZonePadding * 2 - pad.x * 2;
   const lines = wrapLines(ctx, text, maxW);
@@ -154,4 +175,17 @@ export async function buildSnapshot(input: SnapshotInput): Promise<Snapshot> {
       business,
     },
   };
+}
+
+export type CaptionSnapshotInput = Pick<SnapshotInput, 'backgroundUrl' | 'backgroundIsImage' | 'captionText' | 'textConfig' | 'businessText'>;
+
+/** Slideshow Auto Fit: the slide's picture with its caption (no meme), and the caption's box. */
+export async function buildCaptionSnapshot(input: CaptionSnapshotInput) {
+  const bg = await loadFrame(input.backgroundUrl, input.backgroundIsImage);
+  const [canvas, ctx] = newCanvas();
+  drawRect(ctx, bg.source, fitBox(bg, W, H, 'cover'));
+  const backgroundJpeg = canvas.toDataURL('image/jpeg', 0.8);
+  const caption = drawCaption(ctx, input.captionText, input.textConfig);
+  const business = input.businessText?.trim() ? drawBusiness(ctx, input.businessText.trim(), input.textConfig) : null;
+  return { backgroundJpeg, compositeJpeg: canvas.toDataURL('image/jpeg', 0.8), layout: { caption, business } };
 }

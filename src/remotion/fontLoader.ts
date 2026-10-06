@@ -12,6 +12,7 @@ import { loadFont as loadMontserrat } from '@remotion/google-fonts/Montserrat';
 import { loadFont as loadOswald } from '@remotion/google-fonts/Oswald';
 import { loadFont as loadPacifico } from '@remotion/google-fonts/Pacifico';
 import { loadFont as loadPoppins } from '@remotion/google-fonts/Poppins';
+import { loadFont as loadTikTokSans } from '@remotion/google-fonts/TikTokSans';
 
 let loaded = false;
 
@@ -25,4 +26,5 @@ export const loadBlitzFonts = (): void => {
   loadOswald('normal', { weights: ['400', '500', '600', '700'], subsets: ['latin'] });
   loadInter('normal', { weights: ['400', '600', '700', '800', '900'], subsets: ['latin'] });
   loadPacifico('normal', { weights: ['400'], subsets: ['latin'] });
+  loadTikTokSans('normal', { weights: ['400', '600', '700', '800'], subsets: ['latin'] });
 };

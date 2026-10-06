@@ -21,6 +21,8 @@ export type BankIdeaPlan = {
   hook: string;
   outline: string[];
   coverKey: string | null;
+  /** Asked for with "Create 3 slideshows": leads the deck once ready. */
+  requested?: boolean;
 };
 
 type RunForIdeas = { id: string; url: string; photos: Prisma.JsonValue; plan: Prisma.JsonValue };

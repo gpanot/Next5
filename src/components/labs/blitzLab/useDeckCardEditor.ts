@@ -144,6 +144,16 @@ export function useDeckCardEditor(o: Options) {
     })));
   }, [setSlides, o.currentSlideIndex]);
 
+  /** Reset Position: the caption goes back to where the engine put it for this slide's clip (its text-safe zone). */
+  const resetSlideCaption = useCallback(() => {
+    const shot = editingCard?.shots[o.currentSlideIndex];
+    setSlides((prev) => prev.map((s, i) => {
+      if (i !== o.currentSlideIndex) return s;
+      const choice = shot ? choicesFor(shot).find((c) => c.assetKey === s.backgroundKey) : undefined;
+      return { ...s, positionY: choice?.positionY ?? shot?.edit?.positionY };
+    }));
+  }, [editingCard, setSlides, o.currentSlideIndex]);
+
   /** Server re-check of the edited copy. True = ok to render. */
   const checkBeforeRender = async (): Promise<boolean> => {
     // The card's own context first: a remixed Set keeps what it was made from.
@@ -170,6 +180,7 @@ export function useDeckCardEditor(o: Options) {
     /** The open card with the current edits on it, without closing the editor. */
     cardWithEdits: () => withEdits()?.card ?? null,
     dragSlideCaption,
+    resetSlideCaption,
     checkBeforeRender,
     markRendered,
     alternatives: editingCard ? editingCard.shots.map(choicesFor) : undefined,

@@ -22,19 +22,22 @@ function Shuffle({ small }: { small: boolean }) {
   );
 }
 
+type Props = { since: string; small?: boolean; totalMs?: number; label?: string };
+
 /**
  * On a tile whose slideshow is being made: a small animation and a "3:00" countdown from when the work began, so the
- * wait never looks stuck. `small`: the phone's month cell (no words, just the clock).
+ * wait never looks stuck. `small`: the phone's month cell (no words, just the clock). `totalMs`/`label`: other waits
+ * (the ideas deck: 2:00).
  */
-export function MakingCountdown({ since, small = false }: { since: string; small?: boolean }) {
+export function MakingCountdown({ since, small = false, totalMs = TYPICAL_MAKE_MS, label = 'Making your slideshow' }: Props) {
   const now = useNow(true);
-  const left = TYPICAL_MAKE_MS - (now - new Date(since).getTime());
+  const left = totalMs - (now - new Date(since).getTime());
   const late = left <= 0;
   return (
     <span className={`absolute inset-0 z-[3] flex flex-col items-center justify-center ${small ? 'gap-0.5 pt-2' : 'gap-2'}`} aria-live="off">
       <Shuffle small={small} />
       <span className={`tabular-nums font-extrabold text-ink dark:text-zinc-100 ${small ? 'text-[9px]' : 'text-base'}`}>{late ? (small ? '…' : 'Almost done') : formatElapsed(left).replace(/^0/, '')}</span>
-      {!small && <span className="text-[11px] font-semibold text-muted">Making your slideshow</span>}
+      {!small && <span className="text-[11px] font-semibold text-muted">{label}</span>}
     </span>
   );
 }

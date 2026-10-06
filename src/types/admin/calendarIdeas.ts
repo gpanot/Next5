@@ -30,6 +30,8 @@ export type IdeaDto = {
   hooks: IdeaHook[];
   /** Slideshow: the real slideshow, made while the user swipes. `slides`: its rendered slides, once ready. */
   slideshow: { state: 'making' | 'ready'; slides: string[] } | null;
+  /** Slideshow asked for with "Create 3 slideshows": leads the deck once ready. */
+  requested?: boolean;
 };
 
 /** `reserve`: unused Blitz cards not on a day yet; a day's "+" (or a skipped idea) takes the next one. */
@@ -40,6 +42,9 @@ export type IdeaDayRequest = { action: 'add' | 'remove'; day: string; tzOffsetMi
 
 /** POST /blitz/ideas/make → the slideshows made from kept slideshow ideas, and their days (to pin them there). */
 export type MadeSlideshow = { ideaId: string; slideshowId: string; plannedAt: string };
+
+/** "Create 3 slideshows" on the deck's menu: slideshow ideas asked for at once (paid only when kept). */
+export const REQUESTED_SLIDESHOWS = 3;
 
 /** Blitz ideas shown before the first slideshow idea, so it has time to be made (about 1-2 minutes). */
 export const SLIDESHOW_AFTER = 8;

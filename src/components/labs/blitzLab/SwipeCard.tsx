@@ -18,7 +18,10 @@
  */
 
 import { ChevronDown, Info, Pause, Play, X } from 'lucide-react';
+import { slideTextConfig } from '../../../remotion/slideTextConfig';
+import type { TextConfig } from '../../../remotion/types';
 import { ShotLayers } from './ShotLayers';
+import { SlideCaption } from './SlideCaption';
 import type { ShotEditData } from './shotFormat';
 import {
   useCallback,
@@ -57,7 +60,7 @@ export type ShotView = {
    * Used by the editor import flow to match the correct R2 photo.
    */
   photoTag?: string;
-  /** Editor-only data (library asset, trim, caption position, swaps). Ignored by the card. */
+  /** Editor data (library asset, trim, caption position, swaps). The card reads only positionY, with captionConfig. */
   edit?: ShotEditData;
 };
 
@@ -98,6 +101,11 @@ export type SwipeCardProps = {
   /** Play the clips' own sound (top card only). Controlled by the deck's sound toggle. */
   soundOn?: boolean;
   ariaLabel?: string;
+  /**
+   * The editor's caption style (template + Text panel edits). When set, captions are drawn exactly like the render,
+   * at each shot's own position. Absent = the card's own readable style (calendar, marketing).
+   */
+  captionConfig?: TextConfig;
 };
 
 // ── Gradient tint (fallback when no media URL) ────────────────────────────────
@@ -226,6 +234,7 @@ export function SwipeCard({
   externalPause = false,
   soundOn = false,
   ariaLabel = 'Video card',
+  captionConfig,
 }: SwipeCardProps) {
   const isTop = position === 'top';
 
@@ -416,7 +425,9 @@ export function SwipeCard({
           userSelect: 'none',
           WebkitUserSelect: 'none',
           zIndex: position === 'top' ? 2 : position === 'back1' ? 1 : 0,
-        }}
+          // cqw units for SlideCaption: caption sizes scale with the card width like the render.
+          ...(captionConfig ? { containerType: 'inline-size' } : {}),
+        } as React.CSSProperties}
       >
         {/* ── Shot backgrounds: every shot stacked and loaded ahead, one shown ── */}
         <ShotLayers
@@ -448,7 +459,10 @@ export function SwipeCard({
         )}
 
         {/* ── Caption ─────────────────────────────────────────────────────── */}
-        {displayedShot && (
+        {displayedShot && captionConfig && (
+          <SlideCaption text={displayedShot.text} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} />
+        )}
+        {displayedShot && !captionConfig && (
           <div
             className={[
               'absolute left-5 right-5 z-[1] text-center font-extrabold leading-[1.15] tracking-[-0.01em] text-white',

@@ -24,6 +24,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { loadBlitzFonts } from './fontLoader';
+import { slideTextConfig } from './slideTextConfig';
 import { BusinessLayer, CaptionLayer } from './TextLayers';
 import type { SlideshowProps } from './types';
 
@@ -173,6 +174,8 @@ export function SlideshowComposition({
         const { from, duration } = timeline[i]!;
 
         const bgUrl = slide.backgroundUrl ?? backgroundUrl;
+        // Hook (first) and CTA (last) may have their own look.
+        const config = slideTextConfig(textConfig, i, nonEmptySlides.length);
         const bgIsImage =
           slide.backgroundIsImage ?? (backgroundIsImage ?? isImageUrl(bgUrl));
 
@@ -202,7 +205,7 @@ export function SlideshowComposition({
             {slide.text.trim() ? (
               <SlideTextLayer
                 text={slide.text}
-                config={slide.positionY != null ? { ...textConfig, positionY: slide.positionY } : textConfig}
+                config={slide.positionY != null ? { ...config, positionY: slide.positionY } : config}
                 width={width}
                 height={height}
               />

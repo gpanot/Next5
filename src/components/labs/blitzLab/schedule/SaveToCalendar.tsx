@@ -1,7 +1,7 @@
 'use client';
 
 import { CalendarCheck, Loader2 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { whenLabel } from '../../addToCalendar/slots';
 import type { DeckCardData } from '../SwipeDeck';
 import { useDeckSchedule } from './DeckSchedule';
@@ -23,15 +23,16 @@ const usePostOnCalendar = (cardId: string | undefined) => {
   return schedule && own && (own.status === 'planned' || own.status === 'scheduled') ? { schedule, own } : null;
 };
 
-/** In the editor, for a card already on the calendar: saves the edits onto that post (same day, no new credit). Only
- *  saves, never renders (the post renders when its day comes). */
+/** The deck card editor's "Save changes" (users do not render themselves). For a card already on the calendar it saves
+ *  the edits onto that post (same day, no new credit); otherwise it keeps them on the card and goes back to the deck.
+ *  Never renders: a post renders when its day comes. */
 export function SaveToCalendar({ card, current, finish, onSaved }: Props) {
   const post = usePostOnCalendar(card.id);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  if (!post) return null;
-  const { schedule, own } = post;
   const save = async () => {
+    if (!post) return void finish();
+    const { schedule } = post;
     setBusy(true);
     setError(null);
     const failure = await schedule.save(current() ?? card);
@@ -41,17 +42,13 @@ export function SaveToCalendar({ card, current, finish, onSaved }: Props) {
     onSaved?.();
   };
   return (
-    <div className="flex w-full max-w-[400px] flex-col items-center gap-2">
-      <button type="button" onClick={() => void save()} disabled={busy} aria-label={`Save changes to the video on ${whenLabel(new Date(own.scheduledAt))}`} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[14px] font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500 dark:hover:bg-blue-400">
+    <div className="flex flex-col items-end gap-1">
+      <button type="button" onClick={() => void save()} disabled={busy} aria-label={post ? `Save changes to the video on ${whenLabel(new Date(post.own.scheduledAt))}` : 'Save changes to this video'} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 text-[14px] font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500 dark:hover:bg-blue-400">
         {busy ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <CalendarCheck aria-hidden className="h-4 w-4" />} Save changes
       </button>
-      {error && <p role="alert" className="text-center text-[12px] text-red-600 dark:text-red-400">{error}</p>}
+      {error && <p role="alert" className="text-right text-[12px] text-red-600 dark:text-red-400">{error}</p>}
     </div>
   );
 }
 
-/** The editor's main button: "Save changes" for a card already on the calendar, else `fallback` ("Done Editing"). */
-export function SaveOrFinish({ card, fallback, ...rest }: Omit<Props, 'card'> & { card: DeckCardData | null; fallback: ReactNode }) {
-  const post = usePostOnCalendar(card?.id);
-  return card && post ? <SaveToCalendar card={card} {...rest} /> : <>{fallback}</>;
-}
+

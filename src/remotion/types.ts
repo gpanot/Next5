@@ -38,7 +38,21 @@ export type TextConfig = {
    * When absent the caption renders as plain text with stroke.
    */
   textBackground?: string;
+  /**
+   * TikTok-style highlight: textBackground is painted behind each wrapped line
+   * (not one box) and the caption is shown in capitals. Default false.
+   */
+  lineHighlight?: boolean;
+  /**
+   * Slideshow only: a different look for the first slide (hook) and the last one (CTA), on top of the fields above.
+   * Style fields only (font, size, weight, colors, box); the position stays per slide.
+   */
+  hookCtaStyle?: HookCtaStyle;
 };
+
+/** The caption fields the hook and CTA may change. */
+export type HookCtaStyle = Partial<Pick<TextConfig,
+  'font' | 'fontSize' | 'fontWeight' | 'color' | 'strokeWidth' | 'strokeColor' | 'textBackground' | 'lineHighlight'>>;
 
 /** One slide in a Slideshow: text + optional per-slide background. */
 export type SlideshowSlide = {
