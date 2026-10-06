@@ -36,6 +36,6 @@ export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => 
     ? await postBlitzNow(access.workspaceId, access.userId, body as unknown as PostNowBlitzRequest)
     : await scheduleBlitz(access.workspaceId, access.userId, body);
   // A video already made posts now: upload it after the response instead of waiting for the next tick.
-  if (body.postNow && item.status === 'rendering') after(() => runBlitzScheduleTick());
+  if (body.postNow && item.projectId && item.status !== 'posted') after(() => runBlitzScheduleTick());
   return NextResponse.json({ item }, { status: 201 });
 });

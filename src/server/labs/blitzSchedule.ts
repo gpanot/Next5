@@ -28,6 +28,16 @@ const MAX_BODY_BYTES = 250_000;
 const IMAGE_KEY = /\.(jpe?g|png|webp)$/i;
 const VIDEO_KEY = /\.(mp4|mov|webm|m4v)$/i;
 
+/**
+ * The status the user sees. `rendering` with a finished video (Post now of a video made with Generate, or a render
+ * that just completed) is only waiting for the upload: shown as `sending`, so nobody thinks it is made again.
+ */
+const shownStatus = async (p: BlitzScheduledPost): Promise<BlitzScheduleStatus> => {
+  if (p.status !== 'rendering' || !p.projectId) return p.status as BlitzScheduleStatus;
+  const project = await prisma.blitzProject.findUnique({ where: { id: p.projectId }, select: { renderStatus: true } });
+  return project?.renderStatus === 'COMPLETED' ? 'sending' : 'rendering';
+};
+
 export const toScheduleDto = async (p: BlitzScheduledPost): Promise<BlitzScheduleDto> => ({
   id: p.id,
   cardId: p.cardId,
@@ -35,7 +45,7 @@ export const toScheduleDto = async (p: BlitzScheduledPost): Promise<BlitzSchedul
   coverUrl: p.coverKey && (IMAGE_KEY.test(p.coverKey) || VIDEO_KEY.test(p.coverKey)) ? await blitzBrowserUrl(p.coverKey) : null,
   coverIsVideo: Boolean(p.coverKey && VIDEO_KEY.test(p.coverKey)),
   scheduledAt: p.scheduledAt.toISOString(),
-  status: p.status as BlitzScheduleStatus,
+  status: await shownStatus(p),
   postUrl: p.postUrl,
   error: p.error,
   platform: p.platform === 'youtube' ? 'youtube' : 'tiktok',
