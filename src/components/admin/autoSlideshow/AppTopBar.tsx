@@ -89,7 +89,7 @@ function ChartIcon() {
 /**
  * Top bar for the standalone Auto Slideshow page, styled like the app shell (/app) so a screen recording reads as the
  * Next5 app: the "NEXT5 for business" logo, the page name, then Pricing, Log in (demo text, like Perfect Ads) and
- * Settings on the right. The admin page has no gear, and Log in leads to the user sign-in (/slideshow/login). With `user` (signed in on /slideshow) the gear opens profile, accounts and photos, and the demo links are gone.
+ * Settings on the right. The admin page has no gear, and Log in leads to the user sign-in (/slideshow/login). With `user` (signed in on Auto Slideshow) the gear opens profile, accounts and photos, and the demo links are gone.
  * `workspaceId` (from the URL) draws the nav and credits before the workspace itself has loaded, so the bar never changes shape.
  */
 export function AppTopBar({ token, page = 'app', user = false, workspaceId }: { token: string; page?: 'app' | 'pricing'; user?: boolean; workspaceId?: string }) {

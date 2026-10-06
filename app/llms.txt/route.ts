@@ -3,7 +3,7 @@ import { MIN_DEPOSIT_CENTS, PRICE_LABEL, shortMoney } from '../../src/components
 
 export const dynamic = 'force-static';
 
-/** /llms.txt (llmstxt.org): a plain Markdown summary of Next5 Auto Slideshow for AI tools. FAQ comes from the /slideshow page, so both stay in sync. */
+/** /llms.txt (llmstxt.org): a plain Markdown summary of Next5 Auto Slideshow for AI tools. FAQ comes from the home page (/), so both stay in sync. */
 export function GET() {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
   const faq = HOME_FAQ.map(({ q, a }) => `### ${q}\n\n${a}`).join('\n\n');
@@ -15,7 +15,7 @@ Auto Slideshow is part of Next5, a US-only service for small businesses such as 
 
 ## How it works
 
-1. Paste your website on ${base}/slideshow.
+1. Paste your website on ${base}/.
 2. Sign in with your email. The email link signs you up and logs you in.
 3. Your first slideshows are ready in about 3 to 5 minutes.
 4. You review and approve each post before it goes to TikTok or Instagram. TikTok policy asks for this.
@@ -28,8 +28,8 @@ Auto Slideshow is part of Next5, a US-only service for small businesses such as 
 
 ## Pages
 
-- [Auto Slideshow home](${base}/slideshow): paste a website and start.
-- [Auto Slideshow pricing](${base}/slideshow/pricing): price calculator and pricing questions.
+- [Auto Slideshow home](${base}/): paste a website and start.
+- [Auto Slideshow pricing](${base}/pricing): price calculator and pricing questions.
 - [Terms](${base}/legal/terms)
 - [Privacy](${base}/legal/privacy)
 

@@ -13,12 +13,12 @@ export const WorkspaceProvider = ({ workspace, children }: { workspace: Slidesho
 
 export const useSlideshowWorkspace = (): SlideshowWorkspaceDto | null => useContext(CurrentWorkspace);
 
-/** The public Auto Slideshow home page; every Auto Slideshow logo leads there. */
-export const SLIDESHOW_HOME = '/slideshow';
+/** The public Auto Slideshow home page (the site root); every Auto Slideshow logo leads there. */
+export const SLIDESHOW_HOME = '/';
 /** Sign in, then into a workspace. The email link lands here too. */
 export const SLIDESHOW_LOGIN = '/slideshow/login';
 
-export const SLIDESHOW_PRICING = '/slideshow/pricing';
+export const SLIDESHOW_PRICING = '/pricing';
 
 /** A website typed on the home page before signing in; after sign-in it becomes a workspace and its first run. */
 export const pendingSiteStore = createLocalStore('slideshow-pending-site');

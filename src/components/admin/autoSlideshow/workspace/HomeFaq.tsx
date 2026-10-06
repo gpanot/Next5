@@ -8,7 +8,7 @@ const faqJsonLd = JSON.stringify({
   mainEntity: HOME_FAQ.map(({ q, a }) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
 }).replace(/</g, '\\u003c');
 
-/** FAQ on the /slideshow home. Native <details> so it works without JS and with the keyboard. */
+/** FAQ on the Auto Slideshow home. Native <details> so it works without JS and with the keyboard. */
 export function HomeFaq() {
   return (
     <section aria-labelledby="slideshow-faq" className="relative mx-auto w-full max-w-2xl px-1 pt-8 pb-16 text-left md:pt-12 md:pb-24">

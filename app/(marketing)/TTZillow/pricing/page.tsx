@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { PricingExplorer } from '../../../src/components/marketing/pricing/PricingExplorer';
-import { TopupsRow } from '../../../src/components/marketing/pricing/TopupsRow';
-import { FaqAccordion } from '../../../src/components/marketing/shared/FaqAccordion';
-import { Section } from '../../../src/components/marketing/shared/Section';
-import { StepsGrid } from '../../../src/components/marketing/shared/StepsGrid';
-import { SkeletonCard } from '../../../src/components/ui/Skeleton';
-import { PRICING } from '../../../src/content/business/marketing';
+import { PricingExplorer } from '../../../../src/components/marketing/pricing/PricingExplorer';
+import { TopupsRow } from '../../../../src/components/marketing/pricing/TopupsRow';
+import { FaqAccordion } from '../../../../src/components/marketing/shared/FaqAccordion';
+import { Section } from '../../../../src/components/marketing/shared/Section';
+import { StepsGrid } from '../../../../src/components/marketing/shared/StepsGrid';
+import { SkeletonCard } from '../../../../src/components/ui/Skeleton';
+import { PRICING } from '../../../../src/content/business/marketing';
 
 export const metadata: Metadata = {
   title: 'Next5 Pricing — Plans from $29 a month',

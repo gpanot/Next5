@@ -6,21 +6,22 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useScrolled } from '../../../hooks/useScrolled';
 import { CtaLink } from './CtaLink';
+import { TTZILLOW_HOME, TTZILLOW_PRICING } from './sitePaths';
 
 const LINKS = [
   { href: '/brand', label: 'For realtors' },
   { href: '/shop', label: 'For TikTok Shop' },
-  { href: '/pricing', label: 'Pricing' },
+  { href: TTZILLOW_PRICING, label: 'Pricing' },
 ] as const;
 
 const ctaFor = (pathname: string): { href: string; label: string } => {
   if (pathname.startsWith('/shop')) return { href: '/start/shop', label: 'Try it free' };
   if (pathname.startsWith('/brand')) return { href: '/start/brand', label: 'Start free' };
-  return { href: pathname === '/' ? '/#start' : '/start/brand', label: pathname === '/' ? 'Try it free' : 'Get started' };
+  return pathname === TTZILLOW_HOME ? { href: `${TTZILLOW_HOME}#start`, label: 'Try it free' } : { href: '/start/brand', label: 'Get started' };
 };
 
-/** `href`: where the logo leads (the marketing home by default; Auto Slideshow pages lead to their own home). */
-export const BusinessLogo = ({ href = '/' }: { href?: string }) => (
+/** `href`: where the logo leads (the realtor / TikTok Shop home by default; Auto Slideshow pages lead to the site root). */
+export const BusinessLogo = ({ href = TTZILLOW_HOME }: { href?: string }) => (
   <Link href={href} className="block leading-none text-app-ink" aria-label="Next5 for business — home">
     <span className="font-display text-[22px] font-medium tracking-[0.22em]">NEXT5</span>
     <span className="label-caps mt-0.5 block text-[8px] text-app-muted">for business</span>

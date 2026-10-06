@@ -7,6 +7,8 @@ import { AppButton } from '../../ui/AppButton';
 import { Field } from '../../ui/Field';
 import { TextInput } from '../../ui/TextInput';
 import { BusinessLogo } from '../../marketing/shared/MarketingHeader';
+import { TTZILLOW_HOME } from '../../marketing/shared/sitePaths';
+import { SLIDESHOW_HOME } from '../../admin/autoSlideshow/workspace/WorkspaceContext';
 
 type Phase = { name: 'idle' } | { name: 'sending' } | { name: 'sent'; email: string } | { name: 'error'; message: string };
 
@@ -30,7 +32,7 @@ export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to N
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-8 px-5 py-12">
-      <BusinessLogo href={destination === 'slideshow' ? '/slideshow' : '/'} />
+      <BusinessLogo href={destination === 'slideshow' ? SLIDESHOW_HOME : TTZILLOW_HOME} />
       <div className="w-full max-w-sm rounded-2xl border border-app-line bg-app-panel p-6 shadow-sm sm:p-8">
         {phase.name === 'sent' ? (
           <div className="flex flex-col items-center gap-3 text-center" role="status">

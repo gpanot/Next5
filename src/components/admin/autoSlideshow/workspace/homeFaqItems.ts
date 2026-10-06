@@ -3,7 +3,7 @@ import { MIN_DEPOSIT_CENTS, PRICE_LABEL, shortMoney } from '../pricing/pricing';
 const price = PRICE_LABEL;
 const minimum = shortMoney(MIN_DEPOSIT_CENTS);
 
-/** Questions on the public /slideshow home. Plain words, only claims a buyer can check. Also feeds the FAQPage JSON-LD. */
+/** Questions on the public Auto Slideshow home. Plain words, only claims a buyer can check. Also feeds the FAQPage JSON-LD. */
 export const HOME_FAQ: { q: string; a: string }[] = [
   { q: 'What is Auto Slideshow?', a: 'You paste your website. We make TikTok and Instagram photo slideshows about your brand. Each one has a hook, 5 to 9 slides, a caption and hashtags. We post them for you.' },
   { q: 'How long does it take?', a: 'About 3 to 5 minutes for your first slideshows. You do not need to stay on the page.' },

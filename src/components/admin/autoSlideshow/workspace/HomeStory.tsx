@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * "Website to post" story on the /slideshow home. On large screens a phone stays
+ * "Website to post" story on the Auto Slideshow home. On large screens a phone stays
  * pinned (CSS sticky) while 5 steps scroll past; each step shows a real output:
  * a slide of an Auto Slideshow post or a short video (compressed, public/videos/story).
  * Phones get each one inline instead.

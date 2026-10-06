@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { BusinessLogo } from './MarketingHeader';
+import { TTZILLOW_PRICING } from './sitePaths';
 
 const COLUMNS = [
   { title: 'Products', links: [{ href: '/brand', label: 'For realtors' }, { href: '/shop', label: 'For TikTok Shop' }] },
-  { title: 'Company', links: [{ href: '/pricing', label: 'Pricing' }, { href: '/app', label: 'Log in' }, { href: 'mailto:hello@next5.studio', label: 'Contact' }] },
+  { title: 'Company', links: [{ href: TTZILLOW_PRICING, label: 'Pricing' }, { href: '/app', label: 'Log in' }, { href: 'mailto:hello@next5.studio', label: 'Contact' }] },
   { title: 'Legal', links: [{ href: '/legal/terms', label: 'Terms' }, { href: '/legal/privacy', label: 'Privacy' }, { href: '/legal/ai-and-face-data', label: 'AI & face data' }] },
 ] as const;
 

@@ -10,6 +10,17 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/admin/shorts/**': ['./node_modules/ffmpeg-static/ffmpeg', './assets/fonts/**'],
   },
+  // Auto Slideshow is the site root; the realtor/TikTok Shop home moved to /TTZillow. Old links keep working.
+  async redirects() {
+    return [
+      { source: '/slideshow', destination: '/', permanent: true },
+      { source: '/slideshow/pricing', destination: '/pricing', permanent: true },
+      { source: '/slideshow/privacy', destination: '/privacy', permanent: true },
+      { source: '/slideshow/terms', destination: '/terms', permanent: true },
+      // Old home links carried the audience (?for=seller); the query string passes through.
+      { source: '/', has: [{ type: 'query', key: 'for' }], destination: '/TTZillow', permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

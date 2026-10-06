@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense, type ReactNode } from 'react';
-import { WorkspaceShell } from '../../../src/components/admin/autoSlideshow/workspace/WorkspaceShell';
-import { WorkspaceShellSkeleton } from '../../../src/components/admin/autoSlideshow/workspace/WorkspaceShellSkeleton';
+import { WorkspaceShell } from '../../../../src/components/admin/autoSlideshow/workspace/WorkspaceShell';
+import { WorkspaceShellSkeleton } from '../../../../src/components/admin/autoSlideshow/workspace/WorkspaceShellSkeleton';
 
 /** Private Auto Slideshow page: kept out of search and AI indexes. */
 export const metadata: Metadata = { robots: { index: false, follow: false } };

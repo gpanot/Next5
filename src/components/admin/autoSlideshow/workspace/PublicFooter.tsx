@@ -12,7 +12,7 @@ const LEGAL_DOCS: readonly LegalDoc[] = [
   { key: 'privacy', label: 'Privacy', title: 'Privacy Policy', href: '/legal/privacy', sections: PRIVACY },
 ];
 
-/** Public Auto Slideshow footer: real links (crawlers and Google app review need them); a normal click opens the doc in a modal so users stay on /slideshow. */
+/** Public Auto Slideshow footer: real links (crawlers and Google app review need them); a normal click opens the doc in a modal so users stay on the page. */
 export function PublicFooter() {
   const [openDoc, setOpenDoc] = useState<LegalDoc | null>(null);
   return (

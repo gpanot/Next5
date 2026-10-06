@@ -4,6 +4,7 @@ import { AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
 import { sessionTokenStore } from '../../../lib/localStore';
+import { TTZILLOW_HOME } from '../../marketing/shared/sitePaths';
 import { AppButton } from '../../ui/AppButton';
 import { Card, CardBody } from '../../ui/Card';
 
@@ -99,7 +100,7 @@ export const DangerZoneCard = () => {
       await apiFetch('/api/app/me', { method: 'DELETE' });
       // Clear the session token and redirect to home.
       sessionTokenStore.set(null);
-      window.location.href = '/';
+      window.location.href = TTZILLOW_HOME;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
       setBusy(false);

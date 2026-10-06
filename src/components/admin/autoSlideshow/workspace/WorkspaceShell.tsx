@@ -8,7 +8,7 @@ import { prefetchAdminApi, useAdminApi } from '../../business/useAdminApi';
 import { AppTopBar } from '../AppTopBar';
 import { UserGate } from '../UserGate';
 import { TopBarSlotProvider } from './TopBarSlot';
-import { lastWorkspaceStore, WorkspaceProvider } from './WorkspaceContext';
+import { lastWorkspaceStore, SLIDESHOW_HOME, WorkspaceProvider } from './WorkspaceContext';
 import { WorkspacePages } from './WorkspacePages';
 import { WorkspaceContentSkeleton, WorkspaceShellSkeleton } from './WorkspaceShellSkeleton';
 import { readCachedWorkspaces, writeCachedWorkspaces } from './workspacesCache';
@@ -79,7 +79,7 @@ function WorkspaceNotFound() {
   return (
     <div className="flex flex-col items-center gap-3 px-4 py-24 text-center">
       <p className="text-base font-semibold text-app-ink">This workspace was not found.</p>
-      <Link href="/slideshow" onClick={() => lastWorkspaceStore.set(null)} className="min-h-11 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition active:scale-95">Go to my workspaces</Link>
+      <Link href={SLIDESHOW_HOME} onClick={() => lastWorkspaceStore.set(null)} className="min-h-11 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition active:scale-95">Go to my workspaces</Link>
     </div>
   );
 }

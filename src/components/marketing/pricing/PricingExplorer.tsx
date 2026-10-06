@@ -6,6 +6,7 @@ import { DEFAULT_TERM, plansForProduct, type ProductLineId, type TermMonths } fr
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { PlanCard } from '../shared/PlanCard';
 import { TermToggle } from '../shared/PricingPreview';
+import { TTZILLOW_PRICING } from '../shared/sitePaths';
 import { ComparisonTable } from './ComparisonTable';
 
 const PRODUCT_OPTIONS = [
@@ -20,7 +21,7 @@ export const PricingExplorer = () => {
   const product: ProductLineId = audience === 'shops' ? 'shop' : 'brand';
   const [term, setTerm] = useState<TermMonths>(DEFAULT_TERM);
 
-  const setAudience = (value: string) => router.replace(`/pricing?for=${value}`, { scroll: false });
+  const setAudience = (value: string) => router.replace(`${TTZILLOW_PRICING}?for=${value}`, { scroll: false });
 
   return (
     <div className="flex flex-col gap-10">

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import { HomePageV3 } from '../src/components/marketing/home/HomePageV3';
-import type { Audience } from '../src/components/marketing/home/HomePageV3';
+import { HomePageV3 } from '../../src/components/marketing/home/HomePageV3';
+import type { Audience } from '../../src/components/marketing/home/HomePageV3';
 
 export const metadata: Metadata = {
   title: 'Next5 | A month of videos without filming a single one',
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 const VALID_AUDIENCES: Audience[] = ['realtor', 'service', 'seller'];
 
 /**
- * Homepage v3. Audience is read server-side from ?for= so the correct
+ * Realtor / TikTok Shop homepage (v3), at /TTZillow (the site root is Auto Slideshow). Audience is read server-side from ?for= so the correct
  * segment renders on first paint with no layout shift.
  */
 export default async function HomePage({

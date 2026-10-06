@@ -2,7 +2,7 @@ import { SplitWords } from '../../../motion/SplitWords';
 import { PRICE_LABEL } from '../pricing/pricing';
 import { SiteForm } from './SiteForm';
 
-/** Last ask on the /slideshow home, after the FAQ: same website box as the hero. */
+/** Last ask on the Auto Slideshow home, after the FAQ: same website box as the hero. */
 export function HomeFinalCta() {
   return (
     <section aria-labelledby="slideshow-final" className="relative mx-auto w-full max-w-4xl pb-16 md:pb-24">

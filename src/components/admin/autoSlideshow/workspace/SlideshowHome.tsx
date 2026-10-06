@@ -19,7 +19,7 @@ import { slideshowDeckMotion } from './slideshowDeckMotion';
 
 const ROOT_ID = 'slideshow-home';
 
-/** /slideshow: the public Auto Slideshow home. Website in, then sign in (the email link also signs up), then the run starts. */
+/** / (site root): the public Auto Slideshow home. Website in, then sign in (the email link also signs up), then the run starts. */
 export function SlideshowHome() {
   return (
     <div id={ROOT_ID} className="min-h-dvh bg-app-bg">

@@ -7,7 +7,7 @@ import { isBusinessEnabled } from '../../src/config/business';
 
 /**
  * Archived homepage (v1/v2 design). Preserved at /oldsite for reference.
- * The live homepage is now served from app/page.tsx (v3 design).
+ * The live realtor / TikTok Shop home is app/TTZillow/page.tsx (v3 design).
  */
 export const generateMetadata = (): Metadata =>
   isBusinessEnabled()
