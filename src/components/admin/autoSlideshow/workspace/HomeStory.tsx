@@ -17,13 +17,13 @@ import { SplitWords } from '../../../motion/SplitWords';
 const STORY_SLUG = 'slide-chapters';
 const STORY_ALT = 'TikTok slideshow: "The clarity glow-up: your slideshow finally reads like chapters."';
 
-/** Plain words, only claims the FAQ backs up. */
+/** Each step: a short name, a promise, then what it means for the business. */
 const STEPS = [
-  { title: 'You paste your website.', body: 'We read it to learn what you sell and who buys it.' },
-  { title: 'We pick a format that already gets views.', body: 'Only formats from our approved list. No guessing.' },
-  { title: 'We make the slides and videos.', body: 'Photos and text on every slide. 5 to 9 slides a post.' },
-  { title: 'We write the caption.', body: 'A hook, a caption and hashtags, ready to go.' },
-  { title: 'You say yes. We post it.', body: 'Nothing goes live until you approve it.' },
+  { name: 'Choose Your Outcome', title: 'What do you want more of?', body: 'Leads. Enquiries. Bookings. Sales. Or simply more people discovering your business.' },
+  { name: 'Find Your Winning Angles', title: 'We find what already gets attention in your market.', body: 'We research proven content patterns, hooks and angles—so you’re not guessing what to post.' },
+  { name: 'Build Your Content Machine', title: 'We turn winning ideas into content for YOUR business.', body: 'Your offers, products, services, location and audience become the raw material for content designed to get attention and drive action.' },
+  { name: 'Fill Your Next 30 Days', title: 'Your content is created, organized and ready to publish.', body: 'No blank calendar. No wondering what to post tomorrow. Just a pipeline of content you can publish consistently.' },
+  { name: 'Turn Attention Into Customers', title: 'We identify what actually works—and make more of it.', body: 'Double down on the posts that generate views, enquiries and customers. Stop wasting time on content that doesn’t move the business.' },
 ];
 
 type StoryMedia = { kind: 'slide'; src: string } | { kind: 'video'; src: string; poster: string };
@@ -87,7 +87,7 @@ function StoryStep({ index, active }: { index: number; active: boolean }) {
         <StoryMediaView media={MEDIA[index]} alt="" sizes="(min-width: 640px) 160px, 128px" playing={active} />
       </div>
       <div className={`min-w-0 motion-safe:transition-opacity motion-safe:duration-500 ${active ? 'lg:opacity-100' : 'lg:opacity-30'}`}>
-        <span className="text-sm font-semibold text-blue-600 tabular-nums dark:text-blue-400">Step {index + 1} of {STEPS.length}</span>
+        <span className="text-sm font-semibold text-blue-600 tabular-nums dark:text-blue-400">{String(index + 1).padStart(2, '0')} — {step.name}</span>
         <h3 className="mt-1 text-xl leading-tight font-extrabold sm:text-2xl tracking-tight text-balance text-ink md:text-4xl dark:text-zinc-100">{step.title}</h3>
         <p className="mt-1.5 max-w-md text-[15px] leading-snug sm:mt-2 sm:text-base sm:leading-relaxed text-muted md:text-lg dark:text-zinc-400">{step.body}</p>
       </div>
@@ -115,7 +115,7 @@ export function HomeStory() {
   return (
     <section aria-labelledby="slideshow-story" className="relative mx-auto w-full max-w-5xl px-1 pt-10 pb-8 text-left md:pt-16 lg:pt-24 2xl:max-w-[50rem]">
       <h2 id="slideshow-story" data-split="" className="mx-auto max-w-2xl text-center text-3xl font-extrabold tracking-tight text-balance text-ink md:text-5xl dark:text-zinc-100">
-        <SplitWords text="Your 30 Days content in 5 steps." />
+        <SplitWords text="Get 30 Days of Content Built to Grow Your Business" />
       </h2>
       <div className="mt-8 grid gap-10 md:mt-14 lg:grid-cols-[260px_1fr] lg:gap-16 2xl:gap-10">
         <div className="hidden lg:block"><StoryPhone active={active} /></div>
