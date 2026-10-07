@@ -7,8 +7,12 @@ const nextConfig: NextConfig = {
   // bundler won't resolve correctly without explicit transpilation.
   transpilePackages: ['remotion', '@remotion/player'],
   // Shorts render with ffmpeg-static (resolved at runtime, so not traced) and burn captions in Montserrat Bold.
+  // The routes that run the posting tick use it too: a YouTube upload grabs its thumbnail frame with ffmpeg.
   outputFileTracingIncludes: {
     '/api/admin/shorts/**': ['./node_modules/ffmpeg-static/ffmpeg', './assets/fonts/**'],
+    '/api/admin/blitz/schedule': ['./node_modules/ffmpeg-static/ffmpeg'],
+    '/api/admin/auto-slideshow/**': ['./node_modules/ffmpeg-static/ffmpeg'],
+    '/api/cron/**': ['./node_modules/ffmpeg-static/ffmpeg'],
   },
   // Auto Slideshow is the site root; the realtor/TikTok Shop home moved to /TTZillow. Old links keep working.
   async redirects() {

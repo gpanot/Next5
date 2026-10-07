@@ -5,6 +5,7 @@
 
 import { HttpError } from '../http';
 import { providerFetch } from './http';
+import { setThumbnailFromVideo } from './youtubeThumbnail';
 
 const UPLOAD = 'https://www.googleapis.com/upload/youtube/v3/videos';
 const VIDEOS = 'https://www.googleapis.com/youtube/v3/videos';
@@ -22,7 +23,10 @@ const titleOf = (title: string): string => {
   return (base.length + tag.length > 100 ? `${base.slice(0, 100 - tag.length - 1)}…` : base) + tag;
 };
 
-/** Uploads the MP4 and returns the video id. Quota: 1600 units per upload (10,000 a day by default). */
+/**
+ * Uploads the MP4, sets its thumbnail (the frame at 2 s, best effort) and returns the video id. Quota: 1600 units per
+ * upload plus 50 for the thumbnail (10,000 a day by default).
+ */
 export const uploadShort = async (accessToken: string, input: ShortInput): Promise<string> => {
   const meta = {
     snippet: { title: titleOf(input.title), description: input.description.slice(0, 4900), tags: input.tags.slice(0, 15), categoryId: '22' },
@@ -49,6 +53,7 @@ export const uploadShort = async (accessToken: string, input: ShortInput): Promi
   }
   const id = (JSON.parse(text) as { id?: string }).id;
   if (!id) throw new HttpError(502, 'provider_error', 'YouTube accepted the video but sent no video id.');
+  await setThumbnailFromVideo(accessToken, id, input.video);
   return id;
 };
 
