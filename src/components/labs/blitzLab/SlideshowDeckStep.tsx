@@ -9,6 +9,7 @@
  *
  * Controlled: the parent owns the cards so edits made in the editor show up on the deck.
  * On mount with no cards: asks the engine for a deck (POST /blitz/slideshow-deck[/website]).
+ * Saved deck (Content page): loads the run's saved cards first (GET) and only builds a batch when none is left to swipe.
  * onEditCard: the parent opens the editor over this step; the deck stays mounted underneath.
  */
 
@@ -65,6 +66,9 @@ function deckRequest(source: DeckSource): { path: string; body: unknown; label: 
     label: angleLabel,
   };
 }
+
+/** A saved card from GET /blitz/slideshow-deck/website. */
+type SavedCardDto = { item: DeckItem; status: 'new' | 'kept' | 'edited' };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -215,6 +219,10 @@ export type SlideshowDeckStepProps = {
   captionConfig?: TextConfig;
   /** The slideshow library, shown as a tab beside the kept videos. */
   library?: ReactNode;
+  /** Content page: the run's deck is saved on the server, so a visit picks up the cards not swiped yet. */
+  saved?: boolean;
+  /** Content page: the deck lines up with the page edge (see SwipeDeck). */
+  flush?: boolean;
 };
 
 export function SlideshowDeckStep({
@@ -230,6 +238,8 @@ export function SlideshowDeckStep({
   labels,
   captionConfig,
   library,
+  saved = false,
+  flush,
 }: SlideshowDeckStepProps) {
   const client = useLabClient();
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(cards.length > 0 ? 'ready' : 'loading');
@@ -241,10 +251,12 @@ export function SlideshowDeckStep({
     setStatus('loading');
     setErrorMsg('');
     try {
+      // Saved deck: the server skips the cards already here when a batch was built in the background.
+      const have = existing.flatMap((c) => (c.variantId ? [c.variantId] : []));
       const res = await fetch(client.url(request.path), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...client.authHeaders() },
-        body: JSON.stringify(request.body),
+        body: JSON.stringify(saved ? { ...(request.body as object), have } : request.body),
       });
 
       if (!res.ok) {
@@ -255,7 +267,9 @@ export function SlideshowDeckStep({
       const data = (await res.json()) as { deckItems: DeckItem[] };
       const batch = Date.now();
       const check = checkContextFor(source);
-      onCardsChange([...existing, ...(data.deckItems ?? []).map((item) => toDeckCard(item, batch, check))]);
+      const known = new Set(have);
+      const added = (data.deckItems ?? []).filter((item) => !item.variantId || !known.has(item.variantId));
+      onCardsChange([...existing, ...added.map((item) => toDeckCard(item, batch, check))]);
       setStatus('ready');
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Unknown error');
@@ -263,9 +277,29 @@ export function SlideshowDeckStep({
     }
   };
 
-  // Only fetch if the parent has no cards for this angle yet.
+  /** Saved deck: the run's cards not swiped away or rendered yet. Empty when unreachable (a batch is built as before). */
+  const loadSaved = async (runId: string): Promise<DeckCardData[]> => {
+    try {
+      const res = await fetch(client.url(`${request.path}?runId=${encodeURIComponent(runId)}`), { headers: client.authHeaders() });
+      if (!res.ok) return [];
+      const data = (await res.json()) as { cards?: SavedCardDto[] };
+      const batch = Date.now();
+      const check = checkContextFor(source);
+      return (data.cards ?? []).map((c) => ({ ...toDeckCard(c.item, batch, check), status: c.status, edited: c.status === 'edited' }));
+    } catch {
+      return [];
+    }
+  };
+
+  // Only fetch if the parent has no cards for this angle yet. A saved deck builds a batch only when none is left to swipe.
   useEffect(() => {
-    if (cards.length === 0) void fetchDeck([]);
+    if (cards.length > 0) return;
+    const restoring = saved && source.kind === 'website' ? loadSaved(source.runId) : Promise.resolve([]);
+    void restoring.then((restored) => {
+      if (!restored.some((c) => c.status === 'new')) return fetchDeck(restored);
+      onCardsChange(restored);
+      setStatus('ready');
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run only once on mount
 
@@ -317,6 +351,7 @@ export function SlideshowDeckStep({
       renderFor={renderFor}
       aside={aside}
       labels={labels}
+      flush={flush}
       captionConfig={captionConfig}
       library={library}
       onSwipe={(card, action, reason) => logDeckAction(client, card.variantId, action, reason ? { reason } : {})}

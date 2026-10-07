@@ -125,6 +125,8 @@ export type SwipeDeckProps = {
   captionConfig?: TextConfig;
   /** The workspace's slideshow library: a "Library" tab beside "Kept videos". Absent = no tab. */
   library?: ReactNode;
+  /** Content page: no centering or side padding, so the kept list lines up with the page tabs above. */
+  flush?: boolean;
 };
 
 // ── Skip reason options ───────────────────────────────────────────────────────
@@ -159,6 +161,7 @@ export function SwipeDeck({
   labels = true,
   captionConfig,
   library,
+  flush = false,
 }: SwipeDeckProps) {
   // The Library tab is only about the library: the deck, its music and shortcuts rest while it is open.
   const [tab, setTab] = useState<KeptTab>('kept');
@@ -315,7 +318,7 @@ export function SwipeDeck({
 
 
       {/* ── Kept list | deck | aside (music) ──────────────────────────────── */}
-      <div className="mx-auto grid w-full max-w-[1240px] grid-cols-1 items-start gap-8 px-5 pb-7 pt-1.5 sm:grid-cols-[320px_1fr] lg:grid-cols-[340px_1fr_260px]">
+      <div className={`grid w-full grid-cols-1 items-start gap-8 pb-7 pt-1.5 sm:grid-cols-[320px_1fr] lg:grid-cols-[340px_1fr_260px] ${flush ? '' : 'mx-auto max-w-[1240px] px-5'}`}>
         {/* ── Sidebar: kept list ─────────────────────────────────────────── */}
         <aside
           className={`hidden sm:block ${inLibrary ? 'sm:col-span-full' : 'sticky top-4'}`}

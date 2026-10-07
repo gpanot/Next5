@@ -100,7 +100,10 @@ export function useDeckCardEditor(o: Options) {
     const editedShots = SHOT_ROLES.filter((_, i) => texts[i] !== card.shots[i]?.text);
     const mediaChanged = card.shots.some((shot, i) => (o.slides[i]?.backgroundKey ?? undefined) !== (shot.edit?.assetKey ?? undefined)
       && shot.edit?.source === 'library');
-    if (editedShots.length === 0 && !mediaChanged) return { card, editedShots, texts };
+    // Caption moves (drag, Auto Fit, Reset) and trims are edits too: Save keeps them.
+    const layoutChanged = card.shots.some((shot, i) => shot.edit && o.slides[i]
+      && (o.slides[i]!.positionY !== shot.edit.positionY || o.slides[i]!.trimStart !== shot.edit.trimStart));
+    if (editedShots.length === 0 && !mediaChanged && !layoutChanged) return { card, editedShots, texts };
     return {
       editedShots,
       texts,
@@ -132,7 +135,18 @@ export function useDeckCardEditor(o: Options) {
     if (!result) return null;
     if (result.card === editingCard) return result.card;
     setDeckCards((prev) => prev.map((c) => (c.id !== result.card.id ? c : result.card)));
-    logDeckAction(client, result.card.variantId, 'edit', { editedShots: result.editedShots, shotTexts: result.texts });
+    logDeckAction(client, result.card.variantId, 'edit', {
+      editedShots: result.editedShots,
+      shotTexts: result.texts,
+      shotEdits: result.card.shots.map((s) => ({
+        assetKey: s.edit?.assetKey,
+        trimStart: s.edit?.trimStart,
+        positionY: s.edit?.positionY,
+        mediaUrl: s.mediaUrl,
+        mediaKind: s.mediaKind,
+        mediaLabel: s.mediaLabel,
+      })),
+    });
     return result.card;
   };
 

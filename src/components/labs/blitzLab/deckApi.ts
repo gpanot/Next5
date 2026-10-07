@@ -9,7 +9,18 @@ export type DeckActionExtra = {
   reason?: string;
   editedShots?: string[];
   shotTexts?: string[];
+  /** 'edit': each shot's media, trim and caption position after the edit, in order. */
+  shotEdits?: ShotEdit[];
   blitzProjectId?: string;
+};
+
+export type ShotEdit = {
+  assetKey?: string;
+  trimStart?: number;
+  positionY?: number;
+  mediaUrl?: string;
+  mediaKind?: 'image' | 'video';
+  mediaLabel?: string;
 };
 
 /**

@@ -11,7 +11,7 @@
 //      must match the audience's industry (sequential across briefs: no clip twice in a deck)
 //   4. generateShotImages AI images for story shots the library can't cover (parallel), saved to
 //      the library with categories so the next deck reuses them
-// Then music, interleave, persist.
+// Then music, interleave, caption Auto Fit on every shot (captionFit.tsx), persist.
 
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
@@ -25,6 +25,7 @@ import { websiteEngine, type WebsiteBrief, type WebsiteSource } from '../slidesh
 import { applyGenerated, directWebsiteMedia, type WebsiteMedia } from '../slideshow/engines/website/media';
 import { categoriesForAudience } from '../slideshow/core/audienceCategories';
 import { generateShotImages } from '../slideshow/core/generatedAssets';
+import { fitDeckCaptions } from '../slideshow/core/captionFit';
 import type { StudioProfileData } from '../studio/types';
 import type { HookArchetype } from '../slideshow/core/types';
 
@@ -133,8 +134,11 @@ async function cardTracks(written: BriefStory[], workspaceId: string | null): Pr
   return written.map((b) => b.hooks.map(() => tracks[next++]).filter((t): t is LibraryTrack => Boolean(t)));
 }
 
-/** Generates the whole deck for a Campaign Studio run. A brief that fails is skipped, not fatal. */
-export async function generateWebsiteDeck(runId: string): Promise<DeckItem[]> {
+/**
+ * Generates the whole deck for a Campaign Studio run. A brief that fails is skipped, not fatal.
+ * `contentDeck`: a Content-page batch, saved so its cards come back on the next visit (workspaceDeck.ts).
+ */
+export async function generateWebsiteDeck(runId: string, opts: { contentDeck?: boolean } = {}): Promise<DeckItem[]> {
   const source = await loadWebsiteSource(runId);
   const briefs = websiteEngine.briefs(source);
 
@@ -171,5 +175,8 @@ export async function generateWebsiteDeck(runId: string): Promise<DeckItem[]> {
   const tracks = await music;
   const decks = await Promise.all(written.map(async (b, i) =>
     cardsFor(b, i, await applyGenerated(media[i]!, b.brief.idc, generated[i]!), media[i]!, tracks[i]!)));
-  return persistCards(interleave(decks), { workspaceId: source.workspaceId });
+  // Quality first: every shot's caption is placed by the vision Auto Fit on its real frame (~$0.006 per unique shot),
+  // so no card shows its caption over a face. A shot that cannot be fitted keeps its text-safe-zone position.
+  const fitted = await fitDeckCaptions(interleave(decks));
+  return persistCards(fitted, { workspaceId: source.workspaceId, deckRunId: opts.contentDeck ? runId : undefined });
 }

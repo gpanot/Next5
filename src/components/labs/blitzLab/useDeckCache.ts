@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * Keeps a deck across visits. Leaving the Content page unmounts the editor; without a cache, coming back would build
- * a brand-new deck (LLM calls, AI images) and lose the swipes. The cards — statuses, edits, music, render ids — are
- * kept in sessionStorage per run, so the deck comes back exactly as it was for the rest of the browser session.
+ * Keeps a deck across visits in the same browser session. Leaving the Content page unmounts the editor; the cards —
+ * statuses, edits, music, render ids — are kept in sessionStorage per run, so the deck comes back exactly as it was.
+ * A later session loads the run's saved cards from the server instead (SlideshowDeckStep `saved`).
  * Shot URLs are same-origin proxy paths, so they never expire.
  */
 

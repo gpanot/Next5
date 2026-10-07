@@ -61,16 +61,34 @@ export type SwipeInput = {
   /** 'edit': shot roles that changed, and the new shot texts in order. */
   editedShots?: string[];
   shotTexts?: string[];
+  /** 'edit': each shot's media, trim and caption position after the edit, in order. */
+  shotEdits?: ShotEdit[];
   /** 'render': the queued BlitzProject. */
   blitzProjectId?: string;
 };
 
-/** Stores the new texts on the variant's plan so the edited version is what gets analysed. */
-async function applyEditedTexts(variantId: string, shotTexts: string[]): Promise<void> {
+export type ShotEdit = {
+  assetKey?: string;
+  trimStart?: number;
+  positionY?: number;
+  mediaUrl?: string;
+  mediaKind?: 'image' | 'video';
+  mediaLabel?: string;
+};
+
+/** A shot edit's set fields only: an absent field keeps the saved value. */
+const definedFields = (edit: ShotEdit | undefined): ShotEdit =>
+  Object.fromEntries(Object.entries(edit ?? {}).filter(([, v]) => v !== undefined)) as ShotEdit;
+
+/**
+ * Stores the edit on the variant's plan: new texts (so the edited version is what gets analysed), and each shot's
+ * media, trim and caption position (so the saved card comes back as edited on the next visit).
+ */
+async function applyEdits(variantId: string, shotTexts: string[] | undefined, shotEdits: ShotEdit[] | undefined): Promise<void> {
   const variant = await prisma.slideshowVariant.findUnique({ where: { id: variantId }, select: { plan: true } });
   const plan = variant?.plan as { shots?: Array<{ text: string }> } | null;
   if (!plan?.shots) return;
-  const shots = plan.shots.map((s, i) => ({ ...s, text: shotTexts[i] ?? s.text }));
+  const shots = plan.shots.map((s, i) => ({ ...s, ...definedFields(shotEdits?.[i]), text: shotTexts?.[i] ?? s.text }));
   await prisma.slideshowVariant.update({ where: { id: variantId }, data: { plan: { ...plan, shots } } });
 }
 
@@ -100,7 +118,7 @@ export async function logSwipe(input: SwipeInput): Promise<void> {
   });
 
   const status = STATUS_AFTER[action];
-  if (action === 'edit' && input.shotTexts) await applyEditedTexts(variantId, input.shotTexts);
+  if (action === 'edit' && (input.shotTexts || input.shotEdits)) await applyEdits(variantId, input.shotTexts, input.shotEdits);
   if (status) {
     await prisma.slideshowVariant.update({
       where: { id: variantId },

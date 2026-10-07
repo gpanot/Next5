@@ -553,6 +553,8 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 onGenerateCard={(card) => void cardRender.generate(card)}
                 renderFor={cardRender.renderFor}
                 labels={!workspaceRunId}
+                saved={Boolean(workspaceRunId)}
+                flush={Boolean(workspaceRunId)}
                 captionConfig={text.resolved}
                 library={libraryGrid}
                 aside={(card, sound) => <DeckAside card={card} sound={sound} deckCards={deckCards} setDeckCards={setDeckCards} assets={assets} />}

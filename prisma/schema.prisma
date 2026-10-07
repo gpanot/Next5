@@ -1971,6 +1971,9 @@ model StudioRun {
   extractCostUsdMicros  BigInt? @map("extract_cost_usd_micros")
   researchCostUsdMicros BigInt? @map("research_cost_usd_micros")
 
+  /// Content page Blitz deck: set while a new batch of cards is being built (lock; stale after 5 min).
+  deckRefillAt DateTime? @map("deck_refill_at")
+
   createdBy String   @default("admin") @map("created_by")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

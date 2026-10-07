@@ -18,7 +18,6 @@ import { presignObject } from '../storage/objectStore';
 import { newBankIdeas, type BankIdeaPlan } from './bankIdeas';
 import { atViewerTime, planIdeaTimes, viewerDay } from './ideaDays';
 import { adoptIdeaSlideshow, createIdeaRun, ideaSlideshowState } from './ideaSlideshowRun';
-import { fitDeckCaptions } from '../slideshow/core/captionFit';
 import { generateWebsiteDeck } from './websiteDeck';
 import { workspaceRunId } from './workspaceRun';
 
@@ -89,9 +88,9 @@ const busyDays = async (workspaceId: string, tzOffsetMin: unknown): Promise<Map<
 
 /** Blitz deck cards for the workspace, each saved with its full card (the deck saves only the shots). */
 const blitzCards = async (workspaceId: string): Promise<string[]> => {
+  // generateWebsiteDeck already placed every caption with the vision Auto Fit.
   const deck = await generateWebsiteDeck(await workspaceRunId(workspaceId));
-  // Quality first: every shot's caption is placed by the vision Auto Fit on its real frame (~$0.006 per unique shot).
-  const saved = await fitDeckCaptions(deck.filter((c) => c.variantId));
+  const saved = deck.filter((c) => c.variantId);
   await prisma.$transaction(saved.map((c) => prisma.slideshowVariant.update({
     where: { id: c.variantId! },
     data: { plan: asJson({ shots: c.shots, audio: c.audio, hookStyle: c.hookStyle, card: c }) },

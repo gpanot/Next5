@@ -140,18 +140,41 @@ export function interleave<T>(decks: T[][]): T[] {
   return out;
 }
 
-/** Saves the cards; ids become the variant ids. Unsaved cards keep working, unlogged. */
+/**
+ * What a Content-page card needs, beyond its shots, to come back on the deck later (workspaceDeck.ts). Saved as
+ * `plan.deck`: `plan.card` is the calendar ideas' full card.
+ */
+export type SavedCardMeta = {
+  runId: string;
+  lensLabel: string;
+  hue: number;
+  whyPanel: DeckItem['whyPanel'];
+  /** When the batch was built (ms) and the card's place in it: saved cards come back in deck order. */
+  deckAt: number;
+  seq: number;
+};
+
+/**
+ * Saves the cards; ids become the variant ids. Unsaved cards keep working, unlogged.
+ * `deckRunId`: a Content-page batch of that run, saved so its cards come back on the next visit.
+ */
 export async function persistCards(
   cards: DeckItem[],
-  ref: { listingRunId?: string | null; workspaceId?: string | null },
+  ref: { listingRunId?: string | null; workspaceId?: string | null; deckRunId?: string },
 ): Promise<DeckItem[]> {
-  const ids = await createVariants(cards.map((c) => ({
-    engine: c.engine,
-    lens: c.lensId,
-    archetype: c.archetype,
-    listingRunId: ref.listingRunId ?? null,
-    workspaceId: ref.workspaceId ?? null,
-    plan: { shots: c.shots, audio: c.audio, hookStyle: c.hookStyle },
-  })));
+  const deckAt = Date.now();
+  const ids = await createVariants(cards.map((c, seq) => {
+    const deck: SavedCardMeta | undefined = ref.deckRunId
+      ? { runId: ref.deckRunId, lensLabel: c.lensLabel, hue: c.hue, whyPanel: c.whyPanel, deckAt, seq }
+      : undefined;
+    return {
+      engine: c.engine,
+      lens: c.lensId,
+      archetype: c.archetype,
+      listingRunId: ref.listingRunId ?? null,
+      workspaceId: ref.workspaceId ?? null,
+      plan: { shots: c.shots, audio: c.audio, hookStyle: c.hookStyle, ...(deck ? { deck } : {}) },
+    };
+  }));
   return ids ? cards.map((c, i) => ({ ...c, id: ids[i]!, variantId: ids[i]! })) : cards;
 }
