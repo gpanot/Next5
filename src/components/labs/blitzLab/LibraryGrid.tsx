@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { CalendarCheck, Loader2, Repeat2, Trash2 } from 'lucide-react';
+import { CalendarCheck, Loader2, Repeat2, Send, Trash2 } from 'lucide-react';
 import { BLITZ_PLATFORM_LABELS } from '../../../types/admin/blitzSchedule';
 import { useLabClient } from '../LabClientProvider';
 import { blitzApi, type BlitzProjectDto } from './api';
 import { useDeckSchedule } from './schedule/DeckSchedule';
 import { postedStamp } from './schedule/postedStamp';
+import { useResumeProjectPostNow } from './schedule/useResumePostNow';
 
 type LibraryGridProps = {
   projects: BlitzProjectDto[];
@@ -68,6 +69,24 @@ function PostedLine({ projectId }: { projectId: string }) {
   return post.postUrl
     ? <a href={post.postUrl} target="_blank" rel="noreferrer" className={`${green} hover:underline`} aria-label={`Posted to ${BLITZ_PLATFORM_LABELS[post.platform]} ${postedStamp(post)}. Open the post`}>{label}</a>
     : <p className={green}>{label}</p>;
+}
+
+/** "Post now" under Remix: a made video not posted yet. Workspace decks only (the admin tab has no posting). */
+function TilePostNow({ project }: { project: BlitzProjectDto }) {
+  const schedule = useDeckSchedule();
+  if (!schedule || project.renderStatus !== 'COMPLETED' || !project.renderedVideoUrl) return null;
+  const post = schedule.postFor(project.id);
+  if (post && ['rendering', 'sending', 'processing', 'posted'].includes(post.status)) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => schedule.openPostNowForProject(project)}
+      className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-full bg-ink px-2.5 text-[11px] font-semibold text-white transition active:scale-95 dark:bg-white dark:text-black"
+    >
+      <Send aria-hidden className="h-3.5 w-3.5" />
+      Post now
+    </button>
+  );
 }
 
 function LibraryCard({
@@ -179,6 +198,8 @@ function LibraryCard({
           <PostedLine projectId={project.id} />
         </div>
 
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <div className="flex items-start gap-1">
         {/* Remix: re-open this Set in the editor */}
         {onRemix && (
           <button
@@ -205,12 +226,17 @@ function LibraryCard({
             : <Trash2 className="h-3.5 w-3.5" />
           }
         </button>
+        </div>
+        <TilePostNow project={project} />
+        </div>
       </div>
     </div>
   );
 }
 
 export function LibraryGrid({ projects, isLoading, onDelete, onVideoPlay, onRemix, canRemix }: LibraryGridProps) {
+  // Back from connecting an account in a tile's Post now: open it again.
+  useResumeProjectPostNow(projects);
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

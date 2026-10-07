@@ -2,7 +2,7 @@
 // Kept Blitz videos on the calendar: schedule (planned), approve, list, cancel. Scheduling charges 1 credit and saves the render request; the tick
 // (blitzScheduleTick.ts) renders and posts it near its time.
 
-import type { BlitzScheduledPost, Prisma } from '@prisma/client';
+import type { BlitzProject, BlitzScheduledPost, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { BLITZ_LIVE, MAX_POSTS_PER_DAY, type BlitzAccountsDto, type BlitzEditDto, type BlitzPlatform, type BlitzScheduleDto, type PostNowBlitzRequest, type BlitzScheduleStatus, type ApproveBlitzRequest, type CalendarBusyDto, type MoveBlitzRequest, type ScheduleBlitzRequest } from '../../types/admin/blitzSchedule';
 import { blitzBrowserUrl } from '../admin/blitzStore';
@@ -208,11 +208,23 @@ export async function approveBlitz(workspaceId: string, id: string, req: Approve
 }
 
 /** The workspace's finished render that "Post now" uploads as is, or a 400 saying why it cannot. */
-const readyVideoOf = async (workspaceId: string, projectId: string): Promise<string> => {
-  const project = await prisma.blitzProject.findFirst({ where: { id: projectId, workspaceId }, select: { renderStatus: true, renderedVideoKey: true } });
+const readyVideoOf = async (workspaceId: string, projectId: string) => {
+  const project = await prisma.blitzProject.findFirst({ where: { id: projectId, workspaceId } });
   if (!project) throw new HttpError(400, 'no_video', 'This video was not found. Tap Generate again.');
   if (project.renderStatus !== 'COMPLETED' || !project.renderedVideoKey) throw new HttpError(400, 'not_rendered', 'The video is not ready yet. Wait for Download, then post it.');
-  return projectId;
+  return project;
+};
+
+/** A render's own request, for a Rendered videos tile posted with no kept card: kept with the post (preview, Remix). */
+const bodyOfProject = (project: BlitzProject): RenderBody => {
+  const assets = project.currentAssets as unknown as RenderBody['currentAssets'] & { slides?: RenderBody['slides']; set?: unknown };
+  return { templateId: project.templateId, currentAssets: { backgroundKey: assets.backgroundKey, overlayKey: assets.overlayKey, audioKey: assets.audioKey }, captionText: project.captionText, mentionBusiness: project.mentionBusiness, slides: assets.slides, set: assets.set };
+};
+
+/** One video goes to each platform once: refuses a second live post of the same render to the same platform. */
+const checkNotPosted = async (workspaceId: string, projectId: string, platform: BlitzPlatform, cardId: string) => {
+  const live = await prisma.blitzScheduledPost.findFirst({ where: { workspaceId, projectId, platform, cardId: { not: cardId }, status: { in: ['rendering', 'sending', 'processing', 'posted'] } } });
+  if (live) throw new HttpError(409, 'already_posted', live.status === 'posted' ? 'This video is already posted there.' : 'This video is already being posted there.');
 };
 
 /**
@@ -224,9 +236,12 @@ const readyVideoOf = async (workspaceId: string, projectId: string): Promise<str
 export async function postBlitzNow(workspaceId: string, userId: string, req: PostNowBlitzRequest): Promise<BlitzScheduleDto> {
   const approval = approvalOf(req);
   await connectionFor(workspaceId, approval.platform);
-  const renderBody = renderBodyOf(req.renderBody);
   if (!req.cardId) throw new HttpError(400, 'no_card', 'Missing card.');
-  const projectId = req.projectId ? await readyVideoOf(workspaceId, req.projectId) : null;
+  const project = req.projectId ? await readyVideoOf(workspaceId, req.projectId) : null;
+  const projectId = project?.id ?? null;
+  if (project) await checkNotPosted(workspaceId, project.id, approval.platform, req.cardId);
+  // A Rendered videos tile sends no request: the render's own stands in.
+  const renderBody = project && !req.renderBody ? bodyOfProject(project) : renderBodyOf(req.renderBody);
   const scheduledAt = new Date();
   const data = {
     userId,

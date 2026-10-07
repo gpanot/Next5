@@ -5,7 +5,7 @@
 
 import { CalendarCheck, CalendarPlus, Download, Loader2, Pencil, Send, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useDeckSchedule } from './schedule/DeckSchedule';
+import { useDeckSchedule, type DeckSchedule } from './schedule/DeckSchedule';
 import { postedStamp } from './schedule/postedStamp';
 import { whenLabel } from '../addToCalendar/slots';
 import type { BlitzScheduleDto } from '../../../types/admin/blitzSchedule';
@@ -175,19 +175,22 @@ function CalendarButton({ card }: { card: DeckCardData }) {
   );
 }
 
+/** The card's live post: its own, or one made from its video on the Rendered videos tile. */
+const livePostOf = (schedule: DeckSchedule, card: DeckCardData) =>
+  schedule.itemFor(card.id) ?? (card.renderProjectId ? schedule.postFor(card.renderProjectId) : null);
+
 /**
- * "Post now": uploads the video made with Generate at once. Disabled until the video is ready (Generate first), hidden
- * once it is being posted or posted. Workspace decks only.
+ * "Post now": uploads the video made with Generate at once. Shown only once the video is made (Download), hidden once
+ * it is being posted or posted (from here or its Rendered videos tile). Workspace decks only.
  */
 function PostNowButton({ card, view }: { card: DeckCardData; view?: KeptRenderView }) {
   const schedule = useDeckSchedule();
-  if (!schedule) return null;
-  const item = schedule.itemFor(card.id);
+  if (!schedule || view?.state !== 'ready') return null;
+  const item = livePostOf(schedule, card);
   if (item && item.status !== 'planned' && item.status !== 'scheduled') return null;
   if (item && progressOf(item)) return null;
-  const ready = view?.state === 'ready';
   return (
-    <button type="button" onClick={() => schedule.openPostNow(card)} disabled={!ready} title={ready ? undefined : 'Generate the video first'} className={ghost}>
+    <button type="button" onClick={() => schedule.openPostNow(card)} className={ghost}>
       <Send aria-hidden className="h-3.5 w-3.5" /> Post now
     </button>
   );
@@ -203,7 +206,7 @@ function PostFailure({ card }: { card: DeckCardData }) {
 /** Progress, posted or failed chip of a card's post; nothing while it is only on the calendar. */
 function PostStatus({ card }: { card: DeckCardData }) {
   const schedule = useDeckSchedule();
-  const item = schedule?.itemFor(card.id) ?? schedule?.failedFor(card.id);
+  const item = schedule ? livePostOf(schedule, card) ?? schedule.failedFor(card.id) : null;
   return item && (progressOf(item) || item.status === 'posted' || item.status === 'failed') ? <PostProgress item={item} /> : null;
 }
 

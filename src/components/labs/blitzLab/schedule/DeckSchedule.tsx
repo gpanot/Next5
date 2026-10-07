@@ -3,16 +3,21 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { BLITZ_LIVE, type BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
 import type { BlitzPlatform } from '../../../../types/admin/blitzSchedule';
+import type { BlitzProjectDto } from '../api';
 import type { DeckCardData } from '../SwipeDeck';
-import { PostNowSheet } from './PostNowSheet';
+import { PostNowSheet, type PostTarget } from './PostNowSheet';
 import { ScheduleSheet, titleOf, type BodyFor } from './ScheduleSheet';
 import { useBlitzSchedule } from './useBlitzSchedule';
+
+export type DeckSchedule = DeckScheduleValue;
 
 type DeckScheduleValue = {
   /** Opens "Add to calendar" for a kept card. */
   open: (card: DeckCardData) => void;
   /** Opens "Post now" for a kept card already made: pick the platform, then it is uploaded at once. */
   openPostNow: (card: DeckCardData, platform?: BlitzPlatform) => void;
+  /** Opens "Post now" for a Rendered videos tile (no kept card needed). */
+  openPostNowForProject: (project: BlitzProjectDto, platform?: BlitzPlatform) => void;
   /** The calendar post made from this card, if any. */
   itemFor: (cardId: string) => BlitzScheduleDto | null;
   /** The live post of a rendered video (Library), so a posted video keeps its "Posted" date after a reload. */
@@ -25,6 +30,9 @@ type DeckScheduleValue = {
 
 const DeckScheduleContext = createContext<DeckScheduleValue | null>(null);
 
+/** The post key of a Rendered videos tile posted with no kept card. */
+export const projectPostKey = (projectId: string) => `project-${projectId}`;
+
 /** Null outside a workspace deck (the admin tab): no "Add to calendar" there. */
 export const useDeckSchedule = () => useContext(DeckScheduleContext);
 
@@ -32,10 +40,11 @@ export const useDeckSchedule = () => useContext(DeckScheduleContext);
 export function DeckScheduleProvider({ bodyFor, children }: { bodyFor: BodyFor; children: ReactNode }) {
   const schedule = useBlitzSchedule();
   const [card, setCard] = useState<DeckCardData | null>(null);
-  const [now, setNow] = useState<{ card: DeckCardData; platform?: BlitzPlatform } | null>(null);
+  const [now, setNow] = useState<{ target: PostTarget; platform?: BlitzPlatform } | null>(null);
   const value = useMemo<DeckScheduleValue>(() => ({
     open: setCard,
-    openPostNow: (nowCard, platform) => setNow({ card: nowCard, platform }),
+    openPostNow: (nowCard, platform) => nowCard.renderProjectId && setNow({ platform, target: { key: nowCard.id, title: titleOf(nowCard), projectId: nowCard.renderProjectId, variantId: nowCard.variantId, build: () => bodyFor(nowCard) } }),
+    openPostNowForProject: (project, platform) => setNow({ platform, target: { key: projectPostKey(project.id), title: project.captionText || 'Slideshow', projectId: project.id } }),
     itemFor: schedule.itemFor,
     postFor: (projectId) => [...schedule.items].reverse().find((i) => i.projectId === projectId && BLITZ_LIVE.includes(i.status)) ?? null,
     failedFor: (cardId) => (schedule.itemFor(cardId) ? null : [...schedule.items].reverse().find((i) => i.cardId === cardId && i.status === 'failed') ?? null),
@@ -52,7 +61,7 @@ export function DeckScheduleProvider({ bodyFor, children }: { bodyFor: BodyFor; 
     <DeckScheduleContext.Provider value={value}>
       {children}
       {card && <ScheduleSheet card={card} schedule={schedule} bodyFor={bodyFor} onClose={() => setCard(null)} />}
-      {now && <PostNowSheet card={now.card} platform={now.platform} schedule={schedule} bodyFor={bodyFor} onClose={() => setNow(null)} />}
+      {now && <PostNowSheet target={now.target} platform={now.platform} schedule={schedule} onClose={() => setNow(null)} />}
     </DeckScheduleContext.Provider>
   );
 }
