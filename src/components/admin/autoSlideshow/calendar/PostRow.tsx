@@ -24,7 +24,7 @@ export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (
     item.kind === 'blitz' ? { kind: 'blitz', id: item.blitz.id, enabled: blitzOpenable(item.blitz) } : { kind: 'show', id: item.show?.id, enabled: item.kind === 'ready' };
   const { attributes, listeners, setNodeRef, isDragging } = useDraggablePost('panel', drag.kind, drag.id, cover, drag.enabled, coverIsVideoOf(item));
   const { justDropped } = useSlideshowDrag();
-  // A Blitz video opens its approval until it starts, then its TikTok post once live.
+  // A Blitz video opens its approval until it starts, then its live post (TikTok or YouTube) once live.
   const link = item.kind === 'blitz' ? item.blitz.postUrl : null;
   const approvable = item.kind === 'blitz' && blitzOpenable(item.blitz);
   const open = () => {
@@ -55,7 +55,7 @@ export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (
         <span className="line-clamp-2 block text-sm leading-snug font-bold text-ink dark:text-zinc-100">{item.kind === 'blitz' ? item.blitz.title : item.show?.slides[0]?.title || titleOf(item)}</span>
         {item.kind === 'blitz' && (
           <span className={`flex items-center gap-1 text-[11px] ${item.blitz.error ? 'text-red-600 dark:text-red-400' : 'text-muted'}`}>
-            <PlatformIcon id="tiktok" className="h-3 w-3" />
+            <PlatformIcon id={item.blitz.platform} className="h-3 w-3" />
             {item.blitz.error ?? (item.blitz.status === 'planned' ? 'Video · tap to approve' : 'Video · made 1 hour before it posts')}
           </span>
         )}
