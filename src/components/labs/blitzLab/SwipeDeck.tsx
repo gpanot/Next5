@@ -30,6 +30,7 @@ import { KeptTabs, type KeptTab } from './KeptTabs';
 import { KeptSheet } from './KeptSheet';
 import { DeckControls, DoneScreen } from './SwipeDeckParts';
 import { useDeckSound } from './useDeckSound';
+import { useResumePostNow } from './schedule/useResumePostNow';
 import type { TextConfig } from '../../../remotion/types';
 import type { CopyCheckContext } from './deckApi';
 import type { SwipeCardTag, SwipeCardWhyPanel, ShotView } from './SwipeCard';
@@ -191,6 +192,8 @@ export function SwipeDeck({
   const visible = cards.filter((c) => filter === 'all' || c.lensId === filter);
   const queue = visible.filter((c) => c.status === 'new');
   const keptCards = cards.filter((c) => c.status === 'kept' || c.status === 'generated');
+  // Back from connecting an account in Post now: Library tab and Post now open again.
+  useResumePostNow(keptCards, setTab, Boolean(library));
 
   const lensCounts: Record<string, number> = {};
   cards.forEach((c) => {

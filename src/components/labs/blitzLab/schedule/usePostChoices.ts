@@ -25,12 +25,13 @@ export function useBlitzAccounts() {
 
 /**
  * Where a Blitz video posts and the choices for it: the platform (TikTok, or YouTube Shorts), TikTok's Direct Post
- * choices or YouTube's privacy. `check` says what is missing; `request` is what the server stores.
+ * choices or YouTube's privacy. `check` says what is missing; `request` is what the server stores. `initial`: the
+ * platform picked already (back from connecting it).
  */
-export function usePostChoices() {
+export function usePostChoices(initial?: BlitzPlatform) {
   const accounts = useBlitzAccounts();
   const creator = useTikTokCreator();
-  const [picked, setPicked] = useState<BlitzPlatform | null>(null);
+  const [picked, setPicked] = useState<BlitzPlatform | null>(initial ?? null);
   const [tiktok, setTikTok] = useState<TikTokChoices>(NO_TIKTOK);
   const [disclose, setDisclose] = useState(false);
   const [youtube, setYouTube] = useState<YouTubePrivacyChoice>('private');

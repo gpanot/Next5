@@ -9,9 +9,10 @@ const LABEL = { tiktok: 'TikTok', youtube: 'YouTube' } as const;
 
 /**
  * TikTok or YouTube not connected yet: connect it right here. Same sign-in as Settings → Accounts; the platform sends
- * the browser back to the workspace once approved. Only a workspace client can start it (it names the workspace).
+ * the browser back to this page once approved, with `resume` as its query (Post now uses it to open itself again).
+ * Only a workspace client can start it (it names the workspace).
  */
-export function ConnectTikTok({ provider = 'tiktok' }: { provider?: keyof typeof LABEL }) {
+export function ConnectTikTok({ provider = 'tiktok', resume }: { provider?: keyof typeof LABEL; resume?: string }) {
   const label = LABEL[provider];
   const client = useLabClient();
   const headers = client.authHeaders();
@@ -26,7 +27,7 @@ export function ConnectTikTok({ provider = 'tiktok' }: { provider?: keyof typeof
       const res = await fetch(`/api/app/integrations/${provider}`, {
         method: 'POST',
         headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspaceId, returnTo: 'slideshow' }),
+        body: JSON.stringify({ workspaceId, returnTo: 'slideshow', returnPath: `${window.location.pathname}${resume ? `?${resume}` : ''}` }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; message?: string };
       if (!res.ok || !data.url) throw new Error(data.message ?? `Could not open ${label}. Try again.`);

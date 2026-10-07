@@ -12,9 +12,9 @@ type Props = { token: string; me: SlideshowMeDto; onChanged: () => void };
 const LABEL: Record<SocialProviderDto, string> = { tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube' };
 const handle = (c: ConnectionDto) => (c.username ? ` as ${c.username.startsWith('@') ? c.username : `@${c.username}`}` : '');
 
-/** Sends the browser to the platform's sign-in; it comes back to the slideshow workspace once approved. */
+/** Sends the browser to the platform's sign-in; it comes back to the same workspace page once approved. */
 export const startConnect = async (token: string, workspace: string, provider: SocialProviderDto): Promise<void> => {
-  const { url } = await adminFetch<{ url: string }>(token, `/api/app/integrations/${provider}`, { method: 'POST', body: JSON.stringify({ workspaceId: workspace, returnTo: 'slideshow' }) });
+  const { url } = await adminFetch<{ url: string }>(token, `/api/app/integrations/${provider}`, { method: 'POST', body: JSON.stringify({ workspaceId: workspace, returnTo: 'slideshow', returnPath: window.location.pathname }) });
   window.location.href = url;
 };
 

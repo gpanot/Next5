@@ -2,32 +2,35 @@ import { NextResponse } from 'next/server';
 import { businessRoute } from '../../../../../../src/server/api';
 import { HttpError } from '../../../../../../src/server/http';
 import { PROVIDERS, saveConnection } from '../../../../../../src/server/social/connections';
-import { appBaseUrl, redirectUriFor, safeOrigin, verifyState, type ReturnTo } from '../../../../../../src/server/social/links';
+import { appBaseUrl, redirectUriFor, safeOrigin, safeReturnPath, verifyState, type ReturnTo } from '../../../../../../src/server/social/links';
 import { isSocialProvider } from '../../../../../../src/server/social/types';
 
 type Ctx = RouteContext<'/api/app/integrations/[provider]/callback'>;
 
 /** Where the flow started: the page (admin or a user's workspace) and the site (this one, or a local dev server). */
-type Origin = { returnTo?: ReturnTo; workspaceId: string | null; site: string };
+type Origin = { returnTo?: ReturnTo; workspaceId: string | null; returnPath?: string; site: string };
 
-/** The page the flow started on; a user's Auto Slideshow lands back in the workspace that connected. */
-const pageFor = ({ returnTo, workspaceId }: Origin): string =>
-  returnTo === 'admin' ? '/admin/auto-slideshow' : returnTo === 'slideshow' ? (workspaceId ? `/slideshow/${workspaceId}` : '/slideshow/login') : '/app/settings';
+/** The page the flow started on; a user's Auto Slideshow lands back on the workspace page that connected. */
+const pageFor = ({ returnTo, workspaceId, returnPath }: Origin): string =>
+  returnTo === 'admin' ? '/admin/auto-slideshow' : returnTo === 'slideshow' ? (workspaceId ? returnPath ?? `/slideshow/${workspaceId}` : '/slideshow/login') : '/app/settings';
 
 const back = (params: Record<string, string>, origin?: Origin) => {
   const site = origin?.site ?? appBaseUrl();
   const query = new URLSearchParams(params).toString();
-  return NextResponse.redirect(origin?.returnTo ? `${site}${pageFor(origin)}?${query}` : `${site}/app/settings?${query}#integrations`);
+  if (!origin?.returnTo) return NextResponse.redirect(`${site}/app/settings?${query}#integrations`);
+  const page = pageFor(origin);
+  return NextResponse.redirect(`${site}${page}${page.includes('?') ? '&' : '?'}${query}`);
 };
 
 /** Where the flow started, read without verifying (verification happens below; this only picks the page to land on). */
 const startedFrom = (state: string | null): Origin | undefined => {
   try {
-    const payload = JSON.parse(Buffer.from((state ?? '').split('.')[1] ?? '', 'base64url').toString('utf8')) as { returnTo?: unknown; workspaceId?: unknown; origin?: unknown };
+    const payload = JSON.parse(Buffer.from((state ?? '').split('.')[1] ?? '', 'base64url').toString('utf8')) as { returnTo?: unknown; workspaceId?: unknown; returnPath?: unknown; origin?: unknown };
     const returnTo = payload.returnTo === 'admin' || payload.returnTo === 'slideshow' ? payload.returnTo : undefined;
     const id = typeof payload.workspaceId === 'string' && /^[a-z0-9]+$/i.test(payload.workspaceId) ? payload.workspaceId : null;
     // Only this site or localhost: the state is not verified yet here, so it must not send the browser anywhere else.
-    return { returnTo, workspaceId: id, site: safeOrigin(payload.origin) ?? appBaseUrl() };
+    // The path is checked again here: only this workspace's own pages.
+    return { returnTo, workspaceId: id, returnPath: id ? safeReturnPath(payload.returnPath, id) : undefined, site: safeOrigin(payload.origin) ?? appBaseUrl() };
   } catch {
     return undefined;
   }

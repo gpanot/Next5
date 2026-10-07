@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { authedRoute } from '../../../../../src/server/api';
 import { HttpError, readJsonObject } from '../../../../../src/server/http';
 import { disconnect, PROVIDERS } from '../../../../../src/server/social/connections';
-import { redirectUriFor, signState } from '../../../../../src/server/social/links';
+import { redirectUriFor, safeReturnPath, signState } from '../../../../../src/server/social/links';
 import { isSocialProvider } from '../../../../../src/server/social/types';
 import { requireSlideshowWorkspace } from '../../../../../src/server/autoSlideshow/workspaces';
 import { isProductLine, requireWorkspace } from '../../../../../src/server/workspaces/workspaces';
@@ -19,13 +19,17 @@ const providerFrom = async (ctx: Ctx) => {
   return provider;
 };
 
-/** POST { product } or { workspaceId, returnTo: 'slideshow' } — the platform's sign-in URL for this workspace. The browser goes there next. */
+/**
+ * POST { product } or { workspaceId, returnTo: 'slideshow', returnPath? } — the platform's sign-in URL for this
+ * workspace. The browser goes there next. `returnPath`: the workspace page to land back on (default: its calendar).
+ */
 export const POST = authedRoute<Ctx>(async (req, session, ctx) => {
   const provider = await providerFrom(ctx);
   if (!PROVIDERS[provider].configured()) throw new HttpError(503, 'not_configured', 'This platform is not available yet.');
   const body = await readJsonObject(req);
   const ws = await workspaceFor(session.userId, body.workspaceId, body.product);
-  const state = signState({ workspaceId: ws.id, product: ws.product, provider, ...(body.returnTo === 'slideshow' ? { returnTo: 'slideshow' as const } : {}) });
+  const returnPath = body.returnTo === 'slideshow' ? safeReturnPath(body.returnPath, ws.id) : undefined;
+  const state = signState({ workspaceId: ws.id, product: ws.product, provider, ...(body.returnTo === 'slideshow' ? { returnTo: 'slideshow' as const, ...(returnPath ? { returnPath } : {}) } : {}) });
   const url = PROVIDERS[provider].authorizeUrl(state, redirectUriFor(provider));
   // What the platform receives, for "invalid app / redirect / scope" errors shown on its own page (they never reach us).
   const q = new URL(url).searchParams;

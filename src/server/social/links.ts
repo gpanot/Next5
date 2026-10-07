@@ -25,8 +25,15 @@ export const safeOrigin = (origin: unknown): string | null =>
 
 /** `returnTo: 'admin'` when an admin connected the account from Auto Slideshow → TikTok accounts; 'slideshow' from a user's Auto Slideshow settings. */
 export type ReturnTo = 'admin' | 'slideshow';
+/**
+ * The Auto Slideshow page a connection started on, so the callback lands back there (the Library tab of Content, with
+ * Post now open again) instead of the calendar. Only that workspace's own pages, with a short plain query.
+ */
+export const safeReturnPath = (path: unknown, workspaceId: string): string | undefined =>
+  typeof path === 'string' && path.length <= 200 && new RegExp(`^/slideshow/${workspaceId}(/(content|analytics))?(\\?[A-Za-z0-9=&_-]*)?$`).test(path) ? path : undefined;
+
 /** `origin`: the site that started the connection, so a local server gets the browser back after the live callback. */
-type StatePayload = { workspaceId: string; product: ProductLine; provider: SocialProvider; returnTo?: ReturnTo; origin?: string; type: 'social_state' };
+type StatePayload = { workspaceId: string; product: ProductLine; provider: SocialProvider; returnTo?: ReturnTo; returnPath?: string; origin?: string; type: 'social_state' };
 
 /** OAuth `state`: signed, 10 minutes. The callback has no session header, so this carries the workspace. */
 export const signState = (payload: Omit<StatePayload, 'type' | 'origin'>): string =>

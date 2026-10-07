@@ -1,22 +1,24 @@
 'use client';
 
 import { CheckCircle2, Loader2, X } from 'lucide-react';
-import { BLITZ_PLATFORM_LABELS } from '../../../../types/admin/blitzSchedule';
+import { BLITZ_PLATFORM_LABELS, type BlitzPlatform } from '../../../../types/admin/blitzSchedule';
 import { useEffect, useState } from 'react';
 import type { DeckCardData } from '../SwipeDeck';
 import { PostChoicesForm } from './PostChoicesForm';
 import { titleOf, type BodyFor } from './ScheduleSheet';
 import type { BlitzSchedule } from './useBlitzSchedule';
 import { usePostChoices } from './usePostChoices';
+import { postNowResume } from './useResumePostNow';
 
-type Props = { card: DeckCardData; schedule: BlitzSchedule; bodyFor: BodyFor; onClose: () => void };
+/** `platform`: preselected (back from connecting it). */
+type Props = { card: DeckCardData; platform?: BlitzPlatform; schedule: BlitzSchedule; bodyFor: BodyFor; onClose: () => void };
 
 /**
  * "Post now" for a kept Blitz video already made with Generate, the same choices as approving one on the calendar:
  * where it posts (TikTok or YouTube Shorts) and that platform's options. The made video is uploaded at once, free.
  */
-export function PostNowSheet({ card, schedule, bodyFor, onClose }: Props) {
-  const choices = usePostChoices();
+export function PostNowSheet({ card, platform, schedule, bodyFor, onClose }: Props) {
+  const choices = usePostChoices(platform);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
@@ -51,7 +53,7 @@ export function PostNowSheet({ card, schedule, bodyFor, onClose }: Props) {
         {started ? <Started platform={choices.platform} onDone={onClose} /> : (<>
         <div className="space-y-4 overflow-y-auto p-4">
           <p className="line-clamp-2 text-[14px] font-semibold text-[var(--ink,#000)] dark:text-neutral-100">{titleOf(card)}</p>
-          <PostChoicesForm choices={choices} />
+          <PostChoicesForm choices={choices} resumeFor={(p) => postNowResume(card.id, p)} />
           <p className="text-[12.5px] text-[var(--mute,#7c7d82)]">Posts the video you made, right now. No extra credit.</p>
           {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error}</p>}
         </div>
