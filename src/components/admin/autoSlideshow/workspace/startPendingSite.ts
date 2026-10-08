@@ -15,7 +15,7 @@ const hostOf = (site: string): string | null => {
 /** Starts a workspace's first run and returns the page to open. A run that cannot start (daily limit) still opens the workspace. */
 export const startFirstRun = async (token: string, ws: SlideshowWorkspaceDto, site: string): Promise<string> => {
   try {
-    const { runId } = await adminFetch<{ runId: string }>(token, '/api/admin/auto-slideshow/runs', { method: 'POST', body: JSON.stringify({ url: site, count: 1, workspaceId: ws.id }) });
+    const { runId } = await adminFetch<{ runId: string }>(token, '/api/admin/auto-slideshow/runs', { method: 'POST', body: JSON.stringify({ url: site, count: 1, workspaceId: ws.id, tzOffsetMin: new Date().getTimezoneOffset() }) });
     return `/slideshow/${ws.id}?run=${runId}`;
   } catch {
     return `/slideshow/${ws.id}`;

@@ -12,6 +12,7 @@
 //   4. generateShotImages AI images for story shots the library can't cover (parallel), saved to
 //      the library with categories so the next deck reuses them
 // Then music, interleave, caption Auto Fit on every shot (captionFit.tsx), persist.
+// Steps 1–2 can also come ready-made from the workspace's Blitz Script Bank (blitzBank.ts): deckFromScripts runs 3–4.
 
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
@@ -27,7 +28,7 @@ import { categoriesForAudience } from '../slideshow/core/audienceCategories';
 import { generateShotImages } from '../slideshow/core/generatedAssets';
 import { fitDeckCaptions } from '../slideshow/core/captionFit';
 import type { StudioProfileData } from '../studio/types';
-import type { HookArchetype } from '../slideshow/core/types';
+import type { HookArchetype, Tone } from '../slideshow/core/types';
 
 /** Card tint per brief, so audiences are easy to tell apart in the deck. */
 const BRIEF_HUES = [210, 28, 150, 280, 350];
@@ -43,16 +44,23 @@ export async function loadWebsiteSource(runId: string): Promise<WebsiteSource> {
   return { profile, sourceUrl: run.brandProfile.sourceUrl, workspaceId: run.workspaceId };
 }
 
-type BriefStory = {
-  brief: WebsiteBrief;
-  story: StoryTexts;
-  hooks: Array<{ archetype: HookArchetype; text: string }>;
+/** One audience's script: its story, CTA and hooks, ready for footage. Written now or taken from the Blitz Script Bank. */
+export type BriefScript = {
+  idc: string;
   /** Audience industries: story shots must come from these (asset categories). */
   categories: string[];
+  tone: Tone;
+  proofNote: string;
+  story: StoryTexts;
+  hooks: Array<{ archetype: HookArchetype; text: string }>;
+  /** The audience's place in the deck (card tint). */
+  slot: number;
+  /** Bank story this script comes from; saved on each card so the bank knows what was used. */
+  storyId?: string;
 };
 
 /** LLM half of a brief: story + hooks + audience industries. Runs in parallel across briefs. */
-async function writeBrief(brief: WebsiteBrief): Promise<BriefStory> {
+export async function writeBrief(brief: WebsiteBrief, slot: number): Promise<BriefScript> {
   const [{ levers, meat, cta }, categories] = await Promise.all([
     websiteEngine.writeMeat(brief),
     categoriesForAudience(brief.idc),
@@ -70,7 +78,7 @@ async function writeBrief(brief: WebsiteBrief): Promise<BriefStory> {
     rules: { ...baseRules, specifics: [...(baseRules.specifics ?? []), ...contentWords(levers.namedMechanism), ...contentWords(story.pain)] },
     levers,
   });
-  return { brief, story, hooks, categories };
+  return { idc: brief.idc, categories, tone: brief.tone, proofNote: proofNote(brief), story, hooks, slot };
 }
 
 function proofNote(brief: WebsiteBrief): string {
@@ -80,22 +88,22 @@ function proofNote(brief: WebsiteBrief): string {
     : 'No proof on the site, so the Proof shot shows the product doing the job (no numbers).';
 }
 
-function cardsFor(b: BriefStory, index: number, storyMedia: StoryMedia, media: WebsiteMedia, tracks: LibraryTrack[]): DeckItem[] {
-  const { brief } = b;
-  return buildBriefCards({
+function cardsFor(b: BriefScript, storyMedia: StoryMedia, media: WebsiteMedia, tracks: LibraryTrack[]): DeckItem[] {
+  const cards = buildBriefCards({
     engine: 'website',
-    lensId: brief.idc.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-    lensLabel: brief.idc.replace(/^\w/, (c) => c.toUpperCase()),
-    audienceLabel: brief.idc,
-    hue: BRIEF_HUES[index % BRIEF_HUES.length]!,
+    lensId: b.idc.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+    lensLabel: b.idc.replace(/^\w/, (c) => c.toUpperCase()),
+    audienceLabel: b.idc,
+    hue: BRIEF_HUES[b.slot % BRIEF_HUES.length]!,
     story: b.story,
     storyMedia,
     storyPerCard: media.perCard,
     hooks: b.hooks,
     hookMedia: media.hooks,
     tracks,
-    proofNote: proofNote(brief),
+    proofNote: b.proofNote,
   });
+  return b.storyId ? cards.map((c, i) => ({ ...c, script: { storyId: b.storyId!, archetype: b.hooks[i]!.archetype } })) : cards;
 }
 
 /** How far back a workspace's cards and posts count as "shown lately". */
@@ -119,10 +127,10 @@ async function recentClips(workspaceId: string | null | undefined): Promise<Set<
  * card's hook and story, fewer points for what the workspace used lately, no repeat in the deck while the library has
  * enough. A failure leaves the cards without music (picked in the editor).
  */
-async function cardTracks(written: BriefStory[], workspaceId: string | null): Promise<LibraryTrack[][]> {
+async function cardTracks(written: BriefScript[], workspaceId: string | null): Promise<LibraryTrack[][]> {
   const shows = written.flatMap((b) => b.hooks.map((h) => ({
     goal: null,
-    audience: b.brief.idc,
+    audience: b.idc,
     slides: [h.text, ...Object.values(b.story)].map((title) => ({ title, body: '' })),
   })));
   const picks = await matchTracks(shows, null, workspaceId).catch((err: unknown) => {
@@ -142,13 +150,20 @@ export async function generateWebsiteDeck(runId: string, opts: { contentDeck?: b
   const source = await loadWebsiteSource(runId);
   const briefs = websiteEngine.briefs(source);
 
-  const settled = await Promise.allSettled(briefs.map(writeBrief));
+  const settled = await Promise.allSettled(briefs.map((brief, i) => writeBrief(brief, i)));
   settled.forEach((r, i) => {
     if (r.status === 'rejected') console.error(`[WebsiteDeck] brief "${briefs[i]!.idc}" failed:`, r.reason);
   });
   const written = settled.flatMap((r) => (r.status === 'fulfilled' && r.value.hooks.length > 0 ? [r.value] : []));
   if (written.length === 0 && settled[0]?.status === 'rejected') throw settled[0].reason;
+  return deckFromScripts(source, written, opts.contentDeck ? runId : undefined);
+}
 
+/**
+ * Footage half of a deck: music, library search, AI images for the shots the library lacks, caption Auto Fit, saved.
+ * `deckRunId`: a Content-page batch of that run (workspaceDeck.ts).
+ */
+export async function deckFromScripts(source: WebsiteSource, written: BriefScript[], deckRunId?: string): Promise<DeckItem[]> {
   // Music in parallel with the footage: one track per card, picked like a slideshow's (shared matchTracks).
   const music = cardTracks(written, source.workspaceId).catch((): LibraryTrack[][] => written.map(() => []));
 
@@ -162,7 +177,7 @@ export async function generateWebsiteDeck(runId: string, opts: { contentDeck?: b
   const media: WebsiteMedia[] = [];
   for (const b of written) {
     media.push(await directWebsiteMedia({
-      idc: b.brief.idc, categories: b.categories, tone: b.brief.tone, story: b.story, hooks: b.hooks,
+      idc: b.idc, categories: b.categories, tone: b.tone, story: b.story, hooks: b.hooks,
       workspaceId: source.workspaceId, used, recent, products: source.profile.products?.value,
     }));
   }
@@ -170,13 +185,13 @@ export async function generateWebsiteDeck(runId: string, opts: { contentDeck?: b
   // AI images for the story shots the library could not cover, all audiences in parallel.
   // Each image is saved to the library (categories, description, embedding) for the next deck.
   const generated = await Promise.all(written.map((b, i) =>
-    generateShotImages(b.brief.idc, b.categories, media[i]!.needs, source.workspaceId)));
+    generateShotImages(b.idc, b.categories, media[i]!.needs, source.workspaceId)));
 
   const tracks = await music;
   const decks = await Promise.all(written.map(async (b, i) =>
-    cardsFor(b, i, await applyGenerated(media[i]!, b.brief.idc, generated[i]!), media[i]!, tracks[i]!)));
+    cardsFor(b, await applyGenerated(media[i]!, b.idc, generated[i]!), media[i]!, tracks[i]!)));
   // Quality first: every shot's caption is placed by the vision Auto Fit on its real frame (~$0.006 per unique shot),
   // so no card shows its caption over a face. A shot that cannot be fitted keeps its text-safe-zone position.
   const fitted = await fitDeckCaptions(interleave(decks));
-  return persistCards(fitted, { workspaceId: source.workspaceId, deckRunId: opts.contentDeck ? runId : undefined });
+  return persistCards(fitted, { workspaceId: source.workspaceId, deckRunId });
 }

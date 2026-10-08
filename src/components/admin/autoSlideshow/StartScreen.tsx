@@ -54,7 +54,7 @@ export function StartScreen({ token, onRun }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const { runId } = await adminFetch<{ runId: string }>(token, '/api/admin/auto-slideshow/runs', { method: 'POST', body: JSON.stringify({ url, count: FIRST_RUN_SLIDESHOWS, workspaceId: workspace?.id }) });
+      const { runId } = await adminFetch<{ runId: string }>(token, '/api/admin/auto-slideshow/runs', { method: 'POST', body: JSON.stringify({ url, count: FIRST_RUN_SLIDESHOWS, workspaceId: workspace?.id, tzOffsetMin: new Date().getTimezoneOffset() }) });
       onRun(runId);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start');

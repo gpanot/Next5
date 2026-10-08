@@ -256,6 +256,10 @@ model Workspace {
   brandExtractAt        DateTime?     @map("brand_extract_at")
   /// Share of slideshows (0-100) in a batch of calendar ideas; the rest are Blitz videos. Settings › Content.
   ideaSlideshowPct      Int           @default(10) @map("idea_slideshow_pct")
+  /// The browser's UTC offset (minutes, as Date.getTimezoneOffset): the server plans the first ideas batch on its days.
+  ideaTzOffsetMin       Int?          @map("idea_tz_offset_min")
+  /// Set while a batch of calendar ideas is being written (lock; stale after 5 min).
+  ideasBatchAt          DateTime?     @map("ideas_batch_at")
   /// Auto Slideshow only: deleted by the user, restorable until the daily cron purges it 30 days later
   deletedAt             DateTime?     @map("deleted_at")
   /// Set by "Delete forever": the workspace is purged at this time (2 minutes later, undoable until then)
@@ -2358,6 +2362,22 @@ model SlideshowBank {
   updatedAt  DateTime @updatedAt @map("updated_at")
 
   @@map("slideshow_banks")
+}
+
+/// One per site profile: Blitz scripts (audiences × stories × 6 hooks) written when a workspace's first run starts, so a
+/// batch of calendar ideas only finds footage and makes images. Its content shape is in src/server/labs/blitzBank.ts.
+model BlitzScriptBank {
+  id             String   @id @default(cuid())
+  brandProfileId String   @unique @map("brand_profile_id")
+  /// 'building' (a lock, stale after 5 min) | 'ready' | 'failed'
+  status         String   @default("building")
+  content        Json?
+  error          String?
+  costMicros     Int      @default(0) @map("cost_micros")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("blitz_script_banks")
 }
 
 model AutoSlideshowPost {

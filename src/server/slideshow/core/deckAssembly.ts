@@ -41,6 +41,8 @@ export type DeckItem = {
     proofNote: string;
     musicLabel: string;
   };
+  /** Blitz Script Bank story and hook the card was made from (calendar ideas): counts as used for that bank. */
+  script?: { storyId: string; archetype: HookArchetype };
 };
 
 export type StoryTexts = { pain: string; oldWay: string; mechanism: string; proof: string; inaction: string; cta: string };

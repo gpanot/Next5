@@ -1,6 +1,7 @@
 /**
  * GET  /api/admin/auto-slideshow/runs — recent runs (newest first, 20); a signed-in user passes ?workspace= and sees its runs
- * POST /api/admin/auto-slideshow/runs — { url, count (1-20), workspaceId (users) } → create a run and start the 6-step pipeline in the background
+ * POST /api/admin/auto-slideshow/runs — { url, count (1-20), workspaceId (users), tzOffsetMin? } → create a run and start the 6-step
+ *      pipeline in the background. `tzOffsetMin` (Date.getTimezoneOffset) plans the workspace's first ideas on the user's days.
  */
 import type { NextRequest } from 'next/server';
 import { waitUntil } from '@vercel/functions';
@@ -27,7 +28,7 @@ export const GET = slideshowRoute(async (req: NextRequest, _ctx: unknown, access
 });
 
 export const POST = slideshowRoute(async (req: NextRequest, _ctx: unknown, access) => {
-  const body = (await req.json().catch(() => ({}))) as { url?: unknown; count?: unknown; workspaceId?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { url?: unknown; count?: unknown; workspaceId?: unknown; tzOffsetMin?: unknown };
   let url: string;
   try {
     url = normalizeUrl(typeof body.url === 'string' ? body.url : '');
@@ -44,6 +45,8 @@ export const POST = slideshowRoute(async (req: NextRequest, _ctx: unknown, acces
     workspaceId = (await requireSlideshowWorkspace(user.userId, typeof body.workspaceId === 'string' ? body.workspaceId : '')).id;
     await requireCredits(user.userId, count);
     await enforceRateLimit(`slideshow-run:${user.userId}`, 10, 24 * 60 * 60);
+    const tz = body.tzOffsetMin;
+    if (typeof tz === 'number' && Number.isInteger(tz) && Math.abs(tz) <= 14 * 60) await prisma.workspace.update({ where: { id: workspaceId }, data: { ideaTzOffsetMin: tz } });
   }
   const run = await prisma.autoSlideshowRun.create({ data: { url, count, workspaceId } });
   waitUntil(runAutoPipeline(run.id, 1));

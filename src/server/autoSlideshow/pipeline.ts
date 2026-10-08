@@ -249,6 +249,31 @@ const handOff = async (runId: string): Promise<boolean> => {
   }
 };
 
+/**
+ * A workspace's first calendar ideas (labs/firstIdeas.ts): the Blitz Script Bank after step 1, the first batch once the
+ * run is done. On Vercel each gets its own invocation (internal route); locally it just runs alongside. Never throws.
+ * Dynamic import: labs/calendarIdeas imports this file.
+ */
+const kickIdeas = async (runId: string, phase: 'bank' | 'ideas'): Promise<void> => {
+  const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { workspaceId: true, ideaForRunId: true } }).catch(() => null);
+  if (!run?.workspaceId || run.ideaForRunId) return;
+  if (process.env.VERCEL !== '1') {
+    void import('../labs/firstIdeas').then((m) => m.prepareRunIdeas(runId, phase));
+    return;
+  }
+  try {
+    const res = await fetch(`${appBaseUrl()}/api/admin/auto-slideshow/runs/${runId}/ideas`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${signAdminToken()}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phase }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) console.warn(`[auto-slideshow] first ideas (${phase}) for run ${runId} refused (${res.status})`);
+  } catch (err) {
+    console.warn(`[auto-slideshow] first ideas (${phase}) for run ${runId} not started:`, err instanceof Error ? err.message : err);
+  }
+};
+
 const photosLeft = async (runId: string) => photosPending(((await loadRun(runId)).photos as AutoPhoto[] | null) ?? []);
 
 /** Runs steps `fromStep`…6. Never throws: a failure is saved on the run with its step.
@@ -263,6 +288,7 @@ export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, app
       const data = await STEPS[step](runId, meter, opts);
       await saveStep(runId, step, Date.now() - t0, meter.summary(), data);
       console.log(`[auto-slideshow] run ${runId} step ${step} OK in ${Date.now() - t0}ms, $${meter.summary().usdMicros / 1e6}`);
+      if (step === 1 && append === 0) await kickIdeas(runId, 'bank');
       if (step === 4 && (await handOff(runId))) return;
       if (step === 5 && (await photosLeft(runId)) && (await handOff(runId))) return;
     } catch (err) {
@@ -274,4 +300,5 @@ export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, app
     }
   }
   await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { status: 'COMPLETED', finishedAt: new Date() } });
+  if (append === 0) await kickIdeas(runId, 'ideas');
 };

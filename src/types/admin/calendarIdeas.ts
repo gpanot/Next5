@@ -34,8 +34,10 @@ export type IdeaDto = {
   requested?: boolean;
 };
 
-/** `reserve`: unused Blitz cards not on a day yet; a day's "+" (or a skipped idea) takes the next one. */
-export type IdeasListDto = { ideas: IdeaDto[]; slideshowPct: number; reserve: number };
+/** `reserve`: unused Blitz cards not on a day yet; a day's "+" (or a skipped idea) takes the next one.
+ *  `batchSince`: when the batch being written started (ISO), e.g. the first one the server writes after the first run;
+ *  null when none is. */
+export type IdeasListDto = { ideas: IdeaDto[]; slideshowPct: number; reserve: number; batchSince: string | null };
 
 /** POST /blitz/ideas/day: one more idea on a day ("+"), or the day's last idea back to the reserve ("−"). */
 export type IdeaDayRequest = { action: 'add' | 'remove'; day: string; tzOffsetMin?: number };

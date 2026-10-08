@@ -5,8 +5,9 @@ import { SLIDESHOW_AFTER, type IdeaAudio, type IdeaDto, type IdeaPatch, type Ide
 import { errorOf, type LabClient, type LabResponse } from '../../../labs/labClient';
 import { ideasApi } from './ideasApi';
 
-/** `generatingSince`: when the batch being written was asked for (ISO), for the countdown on the empty card. */
-type State = { ideas: IdeaDto[]; slideshowPct: number; reserve: number; loading: boolean; generating: boolean; generatingSince: string | null; error: string | null };
+/** `generatingSince`: when the batch being written was asked for (ISO), for the countdown on the empty card.
+ *  `batchSince`: a batch written elsewhere (the server's first one, after the first run), from the list. */
+type State = { ideas: IdeaDto[]; slideshowPct: number; reserve: number; loading: boolean; generating: boolean; generatingSince: string | null; batchSince: string | null; error: string | null };
 type SetState = (fn: (s: State) => State) => void;
 
 /** One swipe, so Undo can put the card back as it was. */
@@ -52,14 +53,15 @@ const useApply = (setState: SetState, made: MadeIds) =>
   useCallback((res: LabResponse<IdeasListDto> | null): IdeasListDto | null => {
     if (res?.ok) {
       const ideas = res.data.ideas.filter((i) => !made.current.has(i.id));
-      setState((s) => ({ ...s, ideas, slideshowPct: res.data.slideshowPct, reserve: res.data.reserve, error: null }));
+      setState((s) => ({ ...s, ideas, slideshowPct: res.data.slideshowPct, reserve: res.data.reserve, batchSince: res.data.batchSince, error: null }));
       return res.data;
     }
     setState((s) => ({ ...s, error: res ? errorOf(res) : OFFLINE }));
     return null;
   }, [setState, made]);
 
-/** First load; with no ideas yet and a finished run, the first batch is written on its own (free). */
+/** First load; with no ideas yet and a finished run, the first batch is written on its own (free). The server usually
+ *  writes it already: then the list says so (`batchSince`) and the batch is waited for instead. */
 const useLoad = (client: LabClient | null, runId: string, autoGenerate: boolean, setState: SetState, made: MadeIds) => {
   const apply = useApply(setState, made);
   const generatedFor = useRef<string | null>(null);
@@ -77,7 +79,7 @@ const useLoad = (client: LabClient | null, runId: string, autoGenerate: boolean,
       if (cancelled) return;
       const data = apply(res);
       setState((s) => ({ ...s, loading: false }));
-      if (data && autoGenerate && data.ideas.length === 0 && generatedFor.current !== runId) {
+      if (data && autoGenerate && data.ideas.length === 0 && !data.batchSince && generatedFor.current !== runId) {
         generatedFor.current = runId;
         void generate();
       }
@@ -89,13 +91,13 @@ const useLoad = (client: LabClient | null, runId: string, autoGenerate: boolean,
   return { apply, generate };
 };
 
-/** Re-reads the list while a slideshow idea is being made, so it joins the deck once ready. */
-const usePoll = (client: LabClient | null, making: number, apply: (res: LabResponse<IdeasListDto> | null) => unknown) => {
+/** Re-reads the list while a slideshow idea or a batch is being made, so they join the deck once ready. */
+const usePoll = (client: LabClient | null, busy: boolean, apply: (res: LabResponse<IdeasListDto> | null) => unknown) => {
   useEffect(() => {
-    if (!client || making === 0) return;
+    if (!client || !busy) return;
     const id = setInterval(() => void ideasApi.list(client).catch(() => null).then((res) => res?.ok && apply(res)), POLL_MS);
     return () => clearInterval(id);
-  }, [client, making, apply]);
+  }, [client, busy, apply]);
 };
 
 /** Keep, skip, undo, another first line, "+"/"−" on a day: saved as you go (a skipped day gets a fresh idea). */
@@ -146,13 +148,13 @@ const useActions = (client: LabClient | null, apply: (res: LabResponse<IdeasList
  * every action on them. `autoGenerate`: the run is finished, so the first batch can be written.
  */
 export function useIdeas(client: LabClient | null, runId: string, autoGenerate: boolean) {
-  const [state, setStateRaw] = useState<State>({ ideas: [], slideshowPct: 10, reserve: 0, loading: Boolean(client), generating: false, generatingSince: null, error: null });
+  const [state, setStateRaw] = useState<State>({ ideas: [], slideshowPct: 10, reserve: 0, loading: Boolean(client), generating: false, generatingSince: null, batchSince: null, error: null });
   const setState = useCallback<SetState>((fn) => setStateRaw(fn), []);
   const made = useRef(new Set<string>());
   const { apply, generate } = useLoad(client, runId, autoGenerate, setState, made);
   const actions = useActions(client, apply, setState);
   const lists = useMemo(() => splitIdeas(state.ideas), [state.ideas]);
-  usePoll(client, lists.making.length, apply);
+  usePoll(client, lists.making.length > 0 || Boolean(state.batchSince), apply);
   const current = lists.deck.find((i) => i.id === actions.focusId) ?? lists.deck[0] ?? null;
   const reviewSkipped = useCallback(() => lists.skipped.forEach((i) => void actions.patch(i.id, { status: 'proposed' })), [lists.skipped, actions]);
   /** Made into posts: off the deck and the day lists at once (they become calendar posts). */
@@ -171,7 +173,9 @@ export function useIdeas(client: LabClient | null, runId: string, autoGenerate: 
     apply(res);
     return null;
   }, [client, runId, apply]);
-  return { ...state, ...lists, ...actions, client, current, generate, reviewSkipped, reload, markMade, createSlideshows };
+  const generating = state.generating || Boolean(state.batchSince);
+  const generatingSince = state.generatingSince ?? state.batchSince;
+  return { ...state, generating, generatingSince, ...lists, ...actions, client, current, generate, reviewSkipped, reload, markMade, createSlideshows };
 }
 
 export type IdeasState = ReturnType<typeof useIdeas>;
