@@ -125,16 +125,30 @@ export function SlideshowCopyPanel({
   };
 
   const getSlideGenState = (i: number) => genState[i] ?? 'idle';
-  const getSlidePrompt = (i: number) => genPrompt[i] ?? (slides[i]?.bgPromptSuggestion ?? '');
+  /** Prompt behind the slide's current picture: its template suggestion, else the asset name (which encodes the prompt). */
+  const currentImagePrompt = (i: number) => {
+    const slide = slides[i];
+    if (!slide) return '';
+    if (slide.bgPromptSuggestion) return slide.bgPromptSuggestion;
+    const key = slide.backgroundKey;
+    if (!key) return '';
+    const label = assets.find((a) => a.r2Key === key)?.name
+      ?? [...(alternatives?.[i] ?? []), ...(generated[i] ?? [])].find((c) => c.assetKey === key)?.mediaLabel
+      ?? '';
+    return label.replace(/\s*\[AI\]$/, '').replace(/\.(png|jpe?g|webp)$/i, '').trim();
+  };
+
+  const getSlidePrompt = (i: number) => genPrompt[i] ?? currentImagePrompt(i);
 
   const toggleGenOpen = (i: number) => {
     const current = getSlideGenState(i);
     if (current === 'open') {
       setGenState((prev) => ({ ...prev, [i]: 'idle' }));
     } else {
-      // Pre-fill prompt with suggestion if available
-      if (!genPrompt[i] && slides[i]?.bgPromptSuggestion) {
-        setGenPrompt((prev) => ({ ...prev, [i]: slides[i].bgPromptSuggestion! }));
+      // Pre-fill prompt with the current picture's prompt
+      const prefill = currentImagePrompt(i);
+      if (!genPrompt[i] && prefill) {
+        setGenPrompt((prev) => ({ ...prev, [i]: prefill }));
       }
       setGenState((prev) => ({ ...prev, [i]: 'open' }));
     }
@@ -417,21 +431,24 @@ export function SlideshowCopyPanel({
                 {/* Inline AI generate row */}
                 {(isOpen || isGenerating || hasError) && (
                   <div className="flex flex-col gap-1 rounded-lg border border-orange-200 bg-orange-50/60 px-2 py-1.5">
-                    <div className="flex gap-1.5">
-                      <input
-                        type="text"
+                    <div className="flex flex-col gap-1.5">
+                      <textarea
+                        rows={3}
                         value={getSlidePrompt(i)}
                         onChange={(e) => setGenPrompt((prev) => ({ ...prev, [i]: e.target.value }))}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && !isGenerating) void handleGenerate(i); }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey && !isGenerating) { e.preventDefault(); void handleGenerate(i); }
+                        }}
                         placeholder="Background image prompt…"
+                        aria-label={`Background image prompt for slide ${i + 1}`}
                         disabled={isGenerating}
-                        className="min-w-0 flex-1 rounded-md border border-orange-200 bg-white px-2 py-1 text-[11px] text-ink placeholder:text-subtle focus:outline-none focus:ring-1 focus:ring-orange-400/40 disabled:opacity-60"
+                        className="w-full resize-none rounded-md border border-orange-200 bg-white px-2 py-1 text-[11px] leading-snug text-ink placeholder:text-subtle focus:outline-none focus:ring-1 focus:ring-orange-400/40 disabled:opacity-60 dark:border-orange-900/60 dark:bg-neutral-800"
                       />
                       <button
                         type="button"
                         onClick={() => void handleGenerate(i)}
                         disabled={isGenerating || !getSlidePrompt(i).trim()}
-                        className="shrink-0 inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-orange-500 px-3 py-1 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                        className="self-end inline-flex items-center gap-1 whitespace-nowrap rounded-md bg-orange-500 px-3 py-1 text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
                       >
                         {isGenerating ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                         {isGenerating ? 'Generating…' : 'Generate'}
@@ -441,7 +458,7 @@ export function SlideshowCopyPanel({
                       <p className="text-[10px] text-red-600">Generation failed — check your prompt and try again.</p>
                     )}
                     {isGenerating && (
-                      <p className="text-[10px] text-muted">Usually 10–30 seconds…</p>
+                      <p className="text-[10px] text-muted">Usually 30–40 seconds…</p>
                     )}
                   </div>
                 )}
