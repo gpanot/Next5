@@ -17,6 +17,7 @@
     "@remotion/media": "4.0.526",
     "@remotion/renderer": "4.0.526",
     "dotenv": "^16.0.0",
+    "onnxruntime-node": "^1.30.0",
     "prisma": "^6.19.3",
     "remotion": "4.0.526",
     "tsx": "^4.23.15",

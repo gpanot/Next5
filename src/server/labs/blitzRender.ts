@@ -13,6 +13,7 @@ import {
 } from '../../config/blitzLab';
 import { HttpError } from '../http';
 import { createPaidRender } from '../slideshowCredits/blitzCharge';
+import { withSlideCameras } from './blitzCamera';
 import type { LabAccess } from './labAccess';
 
 export type RenderBody = {
@@ -94,7 +95,7 @@ const reject = (status: number, message: string, log: string): never => {
   throw new HttpError(status, 'invalid_render', message);
 };
 
-/** Checks the request against its template. Returns the template type. */
+/** Checks the request against its template. Returns the template type and its caption height. */
 const checkRequest = async (body: RenderBody) => {
   if (!body.templateId) reject(400, 'templateId is required', 'missing templateId');
   if (!body.captionText?.trim()) reject(400, 'captionText is required', 'missing captionText');
@@ -103,8 +104,9 @@ const checkRequest = async (body: RenderBody) => {
   if (!template) return reject(404, 'Template not found', `template ${body.templateId} not found`);
   // overlayKey is required only for non-CAROUSEL templates
   if (template.type !== 'CAROUSEL' && !body.currentAssets.overlayKey) reject(400, 'overlayKey is required', 'missing overlayKey for non-CAROUSEL template');
-  if (!(template.textConfig as TextConfig | null)?.font) reject(422, 'Template has invalid textConfig', `template ${body.templateId} has no font`);
-  return template.type;
+  const textConfig = template.textConfig as TextConfig | null;
+  if (!textConfig?.font) reject(422, 'Template has invalid textConfig', `template ${body.templateId} has no font`);
+  return { templateType: template.type, captionY: body.textConfigOverride?.positionY ?? textConfig?.positionY ?? 0.5 };
 };
 
 /**
@@ -112,14 +114,16 @@ const checkRequest = async (body: RenderBody) => {
  * render for free, and `prepaid` (a scheduled video, paid when scheduled) is not charged again. Throws HttpError on a bad request.
  */
 export async function queueBlitzRender(access: LabAccess, body: RenderBody, prepaid = false): Promise<BlitzProject> {
-  const templateType = await checkRequest(body);
+  const { templateType, captionY } = await checkRequest(body);
   // Normalize slides early so we can validate per-slide backgroundKeys below
   const normalizedSlides = (body.slides ?? []).map((s) => (typeof s === 'string' ? { text: s } : cleanSlide(s)));
   const keys = [body.currentAssets.backgroundKey, body.currentAssets.overlayKey, body.currentAssets.audioKey, ...normalizedSlides.map((s) => s.backgroundKey)];
   if (keys.some((k) => k?.startsWith('local:'))) reject(400, 'Wait for uploads to finish', 'local: key still present');
 
   // For CAROUSEL: derive captionText from slides[0] if not already set
-  const nonEmptySlides = normalizedSlides.filter((s) => s.text.trim());
+  const textSlides = normalizedSlides.filter((s) => s.text.trim());
+  // Slideshow photos get a camera move (zoom/pan + depth parallax) so stills in a row do not feel like a slideshow.
+  const nonEmptySlides = templateType === 'CAROUSEL' ? await withSlideCameras(textSlides, captionY) : textSlides;
   const captionText = body.captionText.trim() || (nonEmptySlides[0]?.text ?? '');
   const set = cleanSet(body.set);
   const data: Prisma.BlitzProjectUncheckedCreateInput = {

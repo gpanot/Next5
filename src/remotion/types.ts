@@ -72,6 +72,36 @@ export type SlideshowSlide = {
   positionY?: number;
   /** 'contain': show the whole image (e.g. a 4:5 slide with its text drawn in) over a blurred fill. Default 'cover'. */
   fit?: 'cover' | 'contain';
+  /** Photo slides only: the camera move picked for this still (src/server/labs/blitzCamera.ts). Absent = static photo. */
+  camera?: SlideCamera;
+  /** Photo slides only: displacement maps from the worker's depth model. Absent = zoom/pan without parallax. */
+  depth?: SlideDepth;
+};
+
+export type CameraMove = 'push_in' | 'pull_out' | 'drift_left' | 'drift_right';
+
+/** How a still photo moves during its slide (see src/remotion/slideCamera.ts). */
+export type SlideCamera = {
+  move: CameraMove;
+  /** Point the zoom goes toward or away from, 0–1 fractions of the width and height. */
+  focusX: number;
+  focusY: number;
+  /** How much zoom. */
+  strength: 'subtle' | 'medium' | 'strong';
+  /** How much the depth map bends the photo. */
+  parallax: 'low' | 'medium' | 'high';
+  /** Optional slight sideways move on push_in / pull_out. */
+  pan: 'none' | 'left' | 'right';
+};
+
+/** Displacement maps made from one photo's depth map (blitz-worker/src/depth.ts). */
+export type SlideDepth = {
+  /** R,G = 0.5 + 0.5·depth·(x,y from centre): a depth-weighted zoom. */
+  radialUrl: string;
+  /** R = depth: near pixels slide against far ones. */
+  truckUrl: string;
+  /** 5th–95th percentile depth spread (0–1): a wide spread warps more, so it lowers the parallax. */
+  spread: number;
 };
 
 /** Props for the Slideshow (CAROUSEL) Remotion composition. */

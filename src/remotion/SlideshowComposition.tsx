@@ -5,8 +5,8 @@
  * or image. No chroma key, no overlay layer.
  *
  * Layer order (bottom → top):
- *   1. Background  — full-bleed image or video (loops if shorter than clip)
- *   2. Slide text  — one caption per slide, fades in over 4 frames
+ *   1. Background  — full-bleed image or video (loops if shorter than clip); photos with a camera move (CameraStill)
+ *   2. Slide text  — one caption per slide: word by word (plain style) or a 4-frame fade (boxed styles)
  *   3. Business    — optional pill, same as GreenScreenComposition
  *   4. Audio       — optional, loops if shorter than the video, volume fade at end
  */
@@ -23,10 +23,12 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+import { CameraStill } from './CameraStill';
 import { loadBlitzFonts } from './fontLoader';
 import { slideTextConfig } from './slideTextConfig';
 import { BusinessLayer, CaptionLayer } from './TextLayers';
 import type { SlideshowProps } from './types';
+import { WordPopCaption } from './WordPopCaption';
 
 /** Returns true if the URL looks like a static image (not a video). */
 const isImageUrl = (url: string) =>
@@ -78,7 +80,7 @@ const SLIDE_FADE_FRAMES = 4;
 loadBlitzFonts();
 
 /**
- * Per-slide text layer with its own fade-in.
+ * Per-slide text layer with its own entrance (word pop, or a fade for boxed captions).
  * Rendered inside a per-slide Sequence so useCurrentFrame() returns the offset
  * within the slide, not the global timeline position.
  */
@@ -98,6 +100,8 @@ function SlideTextLayer({
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
+  // Plain captions pop in word by word; boxed ones keep the fade so the box does not grow word by word.
+  if (!config.textBackground) return <WordPopCaption text={text} config={config} width={width} height={height} />;
   return (
     <AbsoluteFill style={{ opacity }}>
       <CaptionLayer text={text} config={config} width={width} height={height} />
@@ -183,7 +187,15 @@ export function SlideshowComposition({
           <Sequence key={i} from={from} durationInFrames={duration} layout="none">
             {/* Background */}
             <AbsoluteFill>
-              {bgIsImage && slide.fit === 'contain' ? (
+              {bgIsImage && slide.camera && slide.fit !== 'contain' ? (
+                <CameraStill
+                  src={bgUrl}
+                  camera={slide.camera}
+                  depth={slide.depth}
+                  durationInFrames={duration}
+                  filterId={`slide-camera-${i}`}
+                />
+              ) : bgIsImage && slide.fit === 'contain' ? (
                 <>
                   <AbsoluteFill style={{ overflow: 'hidden' }}><BackgroundImg src={bgUrl} blur /></AbsoluteFill>
                   <AbsoluteFill><BackgroundImg src={bgUrl} fit="contain" /></AbsoluteFill>
