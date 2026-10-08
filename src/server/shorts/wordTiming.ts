@@ -7,7 +7,7 @@ import type { CostMeter } from '../metaAds/cost';
 import type { WordTiming } from '../../types/admin/shorts';
 
 /** whisper-1: $0.006 per minute of audio. */
-const WHISPER_USD_PER_MIN = 0.006;
+export const WHISPER_USD_PER_MIN = 0.006;
 
 type Heard = { word: string; start: number; end: number };
 
@@ -15,7 +15,7 @@ type Heard = { word: string; start: number; end: number };
 const norm = (w: string) => w.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /** What Whisper heard, with word timestamps. `hint` (the script) steers names, numbers and prices. */
-async function transcribe(wav: Buffer, hint: string): Promise<Heard[]> {
+export async function transcribe(wav: Buffer, hint: string): Promise<Heard[]> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error('OPENAI_API_KEY not set');
   const form = new FormData();
@@ -105,4 +105,19 @@ export async function heardWordTimings(wav: Buffer, scriptWords: string[], audio
     console.warn('[shorts] word timing failed; keeping syllable timing:', err instanceof Error ? err.message : err);
     return null;
   }
+}
+
+const NUMBER_WORDS = /^(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|percent|dollars?|k)$/;
+
+/**
+ * Words the voice said that are not in the script: a delivery tag read out loud ("Confident, contact…") or the
+ * director's notes ("briskly and confidently") on 2026-10-08. Numbers (written "5", heard "five") and brand names split
+ * by Whisper ("Goji Berry" for "Gojiberry") are not counted.
+ */
+export function extraWords(scriptText: string, heard: Heard[]): string[] {
+  const scriptWords = scriptText.split(/\s+/).filter(Boolean).map(norm);
+  const heardWords = heard.map((h) => norm(h.word));
+  const matched = new Set(match(scriptWords, heardWords).values());
+  const joined = scriptWords.join('');
+  return heardWords.filter((w, j) => !matched.has(j) && w.length >= 3 && !/^\d+$/.test(w) && !NUMBER_WORDS.test(w) && !joined.includes(w));
 }

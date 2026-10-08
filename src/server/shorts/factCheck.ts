@@ -16,7 +16,10 @@ const SYSTEM = `You fact-check the voiceover of a short brand video against SOUR
 1. List every checkable claim in the narration: numbers, prices, names, product features, comparisons, "first/only/best",
    results, statistics, dates, studies. Skip opinions, advice, the brand's own slogans quoted from SOURCE, and plain
    explanations of general ideas any expert would agree with ("a company follow means they know you exist"): the short
-   teaches, so it explains things in its own words. Claims about the brand, its customers or any number are always checked.
+   teaches, so it explains things in its own words. Also skip the common belief the narration sets up only to contradict
+   it ("most founders chase every lead"), and the closing takeaway stated as a lesson or advice ("a ready lead leaves
+   signs before they reply"). Always check: claims about the brand, its customers or any number, and any cause given
+   for a named customer's result ("KubaLabs booked 5 demos BECAUSE of intent signals" needs SOURCE to say why).
 2. For each claim decide: "supported" if SOURCE states it (same meaning, numbers identical), else "unsupported".
    Common knowledge about the product category does not count: only SOURCE.
 

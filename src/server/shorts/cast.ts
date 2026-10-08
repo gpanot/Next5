@@ -20,7 +20,11 @@ For EACH beat give:
 
 RULES:
   - Every beat gets a DIFFERENT setting and a DIFFERENT person from all other beats. Vary ages, genders, ethnicities,
-    clothing, indoor/outdoor, home/work, big/small spaces. Never two near-identical offices in a row.
+    clothing, indoor/outdoor, home/work, big/small spaces.
+  - Use at least 3 KINDS of place across the short, e.g. at home (kitchen, sofa, home desk), out and about (café,
+    street, car, train, park bench), with others (client meeting, warehouse floor, shop counter, event). At most 2 beats
+    at a desk or in an office; never two office or desk beats in a row.
+  - BRAND LOOK below is only colors and mood, never the place.
   - Exception: the LAST beat (the payoff) may return to the first beat's setting and person to close the loop.
   - Everything fits the audience and the topic: places these people really work and live. Realistic, everyday, daylight.
   - No celebrities, no brand mascots, no text-bearing places (no billboards, no signs to read).
@@ -29,7 +33,7 @@ Return JSON with flat keys only: {"beat_0_setting": string, "beat_0_person": str
 
 const userPrompt = (beats: ShortBeat[], inputs: ShortInputs) => `BRAND: ${inputs.brandName} (${inputs.domain})
 AUDIENCE: ${inputs.audience}
-BRAND LOOK: ${inputs.photoStyle || 'none'}
+BRAND LOOK (colors and mood only): ${inputs.photoStyle || 'none'}
 
 BEATS:
 ${beats.map((b) => `  beat_${b.idx} (${b.role}): "${b.text}"`).join('\n')}`;

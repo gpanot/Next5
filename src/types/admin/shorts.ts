@@ -47,7 +47,9 @@ export type ShortScript = {
   payoffLine: string;
   /** The lesson's body structure (numbered_list, steps, …); absent on scripts written before 2026-10-08. */
   structure?: string;
-  /** Spoken text with up to 3 inline delivery tags ([curious], [emphasis], [confident]). */
+  /** On-screen call to action for the last scene ("Save this for later"); absent when the close has none. */
+  cta?: string;
+  /** Spoken text. Scripts before 2026-10-08 may hold inline tags ([curious], [confident]…): removed before speaking. */
   narration: string;
 };
 

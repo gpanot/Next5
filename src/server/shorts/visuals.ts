@@ -158,7 +158,7 @@ const PHOTO_STYLE =
 
 /** What the image model gets: the cleaned shot + the documentary look + the brand look. */
 export const photoPrompt = (beat: ShortBeat, inputs: ShortInputs): string =>
-  [`${(beat.imagePrompt ?? beat.text).replace(/\.$/, '')}.`, PHOTO_STYLE, inputs.photoStyle && `Brand look: ${inputs.photoStyle}`].filter(Boolean).join(' ');
+  [`${(beat.imagePrompt ?? beat.text).replace(/\.$/, '')}.`, PHOTO_STYLE, inputs.photoStyle && `Brand colors and mood only (the setting above stays): ${inputs.photoStyle}`].filter(Boolean).join(' ');
 
 const planBeat = async (beat: ShortBeat, narration: string, inputs: ShortInputs, cast: BeatCast | null, meter: CostMeter): Promise<ShortBeat> => {
   const raw = await creativeJson<RawVisual>(system(beat, inputs, cast), user(beat, narration), meter, 'Shot plan');

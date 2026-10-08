@@ -7,7 +7,7 @@
 import { Prisma, type ShortReel } from '@prisma/client';
 import { signAdminToken } from '../../lib/admin-auth';
 import { prisma } from '../../lib/db';
-import type { ShortAudio, ShortBeat, ShortInputs, ShortScriptAttempt, ShortStep, ShortVideoModel } from '../../types/admin/shorts';
+import type { ShortAudio, ShortBeat, ShortInputs, ShortScript, ShortScriptAttempt, ShortStep, ShortVideoModel } from '../../types/admin/shorts';
 import type { StepCost } from '../../types/admin/metaAds';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { clip as clipText } from '../metaAds/text';
@@ -20,7 +20,6 @@ import { downloadUrl } from './download';
 import { makeClip, makePhoto, type ClipSource } from './media';
 import { renderShort } from './render';
 import { writeScript } from './script';
-import { planAccents } from './accents';
 import { photoPrompt, planVisuals, videoPrompt } from './visuals';
 import { stripTags, synthesize } from './voice';
 import { pickVoice, planVoices, sampleVoices } from './voices';
@@ -89,16 +88,22 @@ const voiceStep: StepFn = async (short, meter) => {
   return { audio: json(audio), ...(beats ? { beats: json(beats) } : {}) };
 };
 
+/** On-screen text (no word captions since 2026-10-08): the hook on the first scene, the call to action on the last. */
+const onScreenText = (beat: ShortBeat, script: ShortScript, count: number): string | null => {
+  if (beat.idx === 0) return script.hook;
+  return beat.idx === count - 1 ? script.cta ?? null : null;
+};
+
 const photoStep: StepFn = async (short, meter) => {
   const audio = short.audio as unknown as ShortAudio;
   const inputs = short.inputs as unknown as ShortInputs;
   const script = lastScript(short);
   const timed = planBeats(script, audio.words, audio.durationS);
   const narration = stripTags(script.narration);
-  const [planned, accented] = await Promise.all([planVisuals(timed, narration, inputs, meter), planAccents(timed, inputs, meter)]);
+  const planned = await planVisuals(timed, narration, inputs, meter);
   const beats = await Promise.all(
-    planned.map(async (shot, i) => {
-      const beat = { ...shot, accent: accented[i]?.accent ?? null };
+    planned.map(async (shot) => {
+      const beat = { ...shot, accent: onScreenText(shot, script, planned.length) };
       const photo = await makePhoto(photoPrompt(beat, inputs), meter);
       const imageKey = keyFor(short.id, `frame-${beat.idx}.jpg`);
       await putObject(imageKey, photo, 'image/jpeg');
@@ -157,7 +162,7 @@ const renderStep: StepFn = async (short) => {
       return { beat, photo, clip: beat.clipKey ? await getObject(beat.clipKey) : null };
     }),
   );
-  const { video, poster } = await renderShort(parts, wav, audio.words);
+  const { video, poster } = await renderShort(parts, wav);
   const videoKey = keyFor(short.id, 'short.mp4');
   const posterKey = keyFor(short.id, 'poster.jpg');
   await Promise.all([putObject(videoKey, video, 'video/mp4'), putObject(posterKey, poster, 'image/jpeg')]);

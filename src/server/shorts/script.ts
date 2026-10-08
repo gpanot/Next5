@@ -1,5 +1,5 @@
 // server-only — never import from a 'use client' file.
-// The short's narration: a clear lesson hook → Proof/Promise/Plan → one body structure → a one-line takeaway.
+// The short's narration: a clear lesson hook → one named proof → one body structure → a closing line that echoes the hook.
 // Prompt ported from reels-af compose.py (github.com/Agent-Field/reels-af, general mode); since 2026-10-08 it follows the
 // Next5 content guidelines (guidelines.ts): every short teaches, never sells, and runs 20-40 s at reels-af's pace.
 
@@ -9,18 +9,10 @@ import { BANNED_PHRASES, BODY_STRUCTURES, educationBlock } from './guidelines';
 import { creativeJson, SCRIPT_MODEL } from './llm';
 import { stripTags } from './voice';
 
-const TAG_VOCAB = `  ALLOWED (use ≤3 total across the whole narration):
-    • [curious]   — at the cold open, ONCE
-    • [emphasis]  — on the single most surprising word, ONCE
-    • [confident] — at the takeaway, ONCE (optional)
-
-  BANNED — do NOT use any of these. They insert real silence and blow the engagement budget:
-    • [pause] [pause short] [pause long] [breath]
-    • [slow] [building] [thoughtful] [wonder] [skeptical]
-    • [serious] [warm] [whispers] [quiet] [intense] [hopeful]
-    • Any other tag that slows delivery
-
-  Trust the punctuation (commas, em-dashes, periods) for rhythm. Less is more.`;
+const STOPWORDS = new Set(['the', 'and', 'but', 'for', 'with', 'this', 'that', 'you', 'your', 'are', 'was', 'were', 'they', 'them', 'from', 'have', 'has', 'had', 'what', 'when', 'why', 'how', 'will', 'would', 'could', 'should', 'into', 'their', 'there', 'than', 'then', "here's", 'heres', 'does', 'just', 'most']);
+const clean = (w: string) => w.replace(/^[^\p{L}\p{N}$]+|[^\p{L}\p{N}%]+$/gu, '').toLowerCase();
+/** Hook words worth echoing in the close: 4+ letters, not stopwords. */
+const hookKeywords = (hook: string) => hook.split(/\s+/).map(clean).filter((w) => w.length >= 4 && !STOPWORDS.has(w));
 
 /** 60-95 words at ~170 wpm (pauses included) lands at ~21-34 s; the check allows a little slack. */
 const MIN_WORDS = 55;
@@ -37,8 +29,10 @@ The structure is FIXED. Do not deviate.
                      Each sentence is one shot downstream (one picture per sentence), so each must stand alone.
                      Names, numbers, specific things — not vibes. At most 2 numbers per sentence.
 
-  3. TAKEAWAY      — 1 closing sentence: the one insight restated, echoing a distinctive word from the HOOK (a noun,
-                     not a stopword) so the viewer loops back. An allowed call to action only if it still fits.
+  3. TAKEAWAY      — 1 closing sentence that wraps the video up: the one insight restated as a short, quotable line,
+                     echoing a distinctive word from the HOOK (a noun, not a stopword) so the viewer loops back.
+                     It is a conclusion, not one more instruction ("Contact the best lead first." is NOT a close;
+                     "A ready lead isn't just a fit, it's a fit showing a signal." is).
 
 REGISTER: talk like a friendly expert explaining to one person. Plain words a 9-year-old understands; second person.
 Short sentences, 8-16 words each. One idea per sentence.
@@ -47,9 +41,8 @@ TOTAL LENGTH: 60-95 words. The voice reads ~170 words a minute with a breath bet
 ~21-34 s. Do not pad: a 65-word lesson that is tight beats a 95-word one that drags. Numbers are read in full
 ("$135,500" is 7 spoken words): round them ("$135K").
 
-──── INLINE TTS TAGS — STRICTLY LIMITED ────
-The "narration" field is passed VERBATIM to a TTS engine. Tags go in [square brackets] BEFORE the clause they modify.
-${TAG_VOCAB}
+NO TAGS: the "narration" is read verbatim by a TTS engine. Never write [bracketed] delivery tags or stage directions;
+the engine reads them out loud. Rhythm comes from punctuation only.
 
 PUNCTUATION: end every sentence with a period, question mark or exclamation mark (each one is a short breath). Few
 commas inside a sentence.
@@ -65,8 +58,9 @@ commas inside a sentence.
   "hook"            : the literal first spoken words, punctuated.
   "mechanism_lines" : list of the 4-6 body sentences (opening lines first; no leading bullets or numbering marks).
   "payoff_line"     : the takeaway sentence.
-  "narration"       : hook + body + takeaway concatenated as ONE string, with inline [tags] inserted. Same words,
-                      same order, same punctuation as the structured fields — only tags added.`;
+  "narration"       : hook + body + takeaway concatenated as ONE string. Same words, order and punctuation.
+  "cta"             : on-screen text for the last scene, 2-6 words: "Save this for later", "Follow for part 2", or the
+                      comment question. "" when the close has no call to action. Never an offer.`;
 
 /** Null when the script is usable; otherwise what to fix. */
 export const scriptProblem = (s: ShortScript): string | null => {
@@ -74,15 +68,20 @@ export const scriptProblem = (s: ShortScript): string | null => {
   if (words.length < MIN_WORDS || words.length > MAX_WORDS) return `The narration has ${words.length} words; write 60-95.`;
   if (s.mechanismLines.length < 3 || s.mechanismLines.length > 6) return 'Write 4-6 body lines.';
   if (s.hook.split(/\s+/).filter(Boolean).length > 12) return 'The hook is over 12 words: cut it to what the viewer will learn.';
+  const keys = hookKeywords(s.hook);
+  const close = new Set(s.payoffLine.split(/\s+/).map(clean));
+  if (keys.length && !keys.some((w) => close.has(w))) {
+    return `The takeaway must wrap up the video and repeat one of these hook words: ${keys.join(', ')}.`;
+  }
   const banned = stripTags(s.narration).match(BANNED_PHRASES);
   if (banned) return `"${banned[0]}" makes it an ad. Remove it: the close is a takeaway, not an offer.`;
   return null;
 };
 
-type RawScript = { structure?: string; hook?: string; mechanism_lines?: string[]; payoff_line?: string; narration?: string };
+type RawScript = { structure?: string; cta?: string; hook?: string; mechanism_lines?: string[]; payoff_line?: string; narration?: string };
 
 /** Footnote marks copied from price lists ("$135,500*") would be read aloud and captioned. */
-const tidy = (t: string | undefined) => (t ?? '').replace(/\*/g, '').replace(/\s{2,}/g, ' ').trim();
+const tidy = (t: string | undefined) => stripTags((t ?? '').replace(/\*/g, ''));
 
 const toScript = (raw: RawScript): ShortScript => ({
   hook: tidy(raw.hook),
@@ -90,6 +89,7 @@ const toScript = (raw: RawScript): ShortScript => ({
   payoffLine: tidy(raw.payoff_line),
   narration: tidy(raw.narration),
   structure: raw.structure?.trim() || undefined,
+  cta: tidy(raw.cta) || undefined,
 });
 
 const userPrompt = (inputs: ShortInputs, feedback: string | null): string =>
@@ -113,7 +113,9 @@ the same topic (a clear outcome, or a question naming the viewer's pain).
 Only use facts from the essence and this SOURCE (site text):
 ${inputs.sourceText}`,
     educationBlock(inputs),
-    feedback ? `YOUR LAST DRAFT WAS REJECTED. Fix this and rewrite the whole script:\n${feedback}` : '',
+    feedback
+      ? `YOUR LAST DRAFT WAS REJECTED. Fix this and rewrite the whole script, keeping every rule above (one takeaway, a closing line that wraps up and echoes the hook):\n${feedback}`
+      : '',
   ]
     .filter(Boolean)
     .join('\n\n');

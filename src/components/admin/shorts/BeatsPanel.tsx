@@ -43,7 +43,7 @@ function BeatCard({ beat }: { beat: ShortBeatDto }) {
       </div>
       <p className="text-sm font-semibold text-app-ink">“{beat.text}”</p>
       {beat.visualAnchor && <p className="text-xs text-app-muted">Grounded on: <span className="text-app-ink">{beat.visualAnchor}</span></p>}
-      {beat.accent && <p className="text-xs text-app-muted">On-screen accent: <span className="font-bold text-app-ink uppercase">{beat.accent}</span></p>}
+      {beat.accent && <p className="text-xs text-app-muted">On-screen text: <span className="font-bold text-app-ink uppercase">{beat.accent}</span></p>}
       <BeatMedia beat={beat} />
       {beat.clipError && <p className="rounded-lg bg-app-accent-soft p-2 font-mono text-[11px] break-words text-app-danger">{beat.clipError}</p>}
       <div className="space-y-1.5">
