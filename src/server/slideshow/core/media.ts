@@ -44,11 +44,11 @@ export const AVOID_ON_PROBLEM = 'negative|stressful|problem';
 
 /** Hook media per archetype (spec 7.5). 'hero' = the engine's own hero visual leads (Result first). */
 export const HOOK_RULES: Record<HookArchetype, LibraryRule | 'hero'> = {
-  call_out: { slot: 'slot_hook', kinds: { hook: 0.2, meme: 0 }, minSlot: 0.65, intent: 'person talking to camera pointing, direct address' },
-  contrarian: { slot: 'slot_hook', kinds: { meme: 0.2, hook: 0.05 }, minSlot: 0.3, intent: 'skeptical, disagreeing, unimpressed reaction' },
+  call_out: { slot: 'slot_hook', kinds: { hook: 0.2 }, minSlot: 0.65, intent: 'person talking to camera pointing, direct address' },
+  contrarian: { slot: 'slot_hook', kinds: { hook: 0.2, background: 0.02 }, minSlot: 0.3, intent: 'skeptical, disagreeing, unimpressed reaction' },
   proof_result: 'hero',
-  fear_inaction: { slot: 'slot_problem', kinds: { meme: 0.15, hook: 0.1 }, minSlot: 0.5, intent: 'shocked, worried, sudden realization' },
-  curiosity: { slot: 'slot_hook', kinds: { hook: 0.2, meme: 0.05 }, minSlot: 0.65, intent: 'surprised reveal, wait for it, curious' },
+  fear_inaction: { slot: 'slot_problem', kinds: { hook: 0.1, background: 0.05 }, minSlot: 0.5, intent: 'shocked, worried, sudden realization' },
+  curiosity: { slot: 'slot_hook', kinds: { hook: 0.2 }, minSlot: 0.65, intent: 'surprised reveal, wait for it, curious' },
   action: { slot: 'slot_hook', kinds: { hook: 0.2 }, minSlot: 0.65, intent: 'pointing at viewer, talking to camera, share this' },
 };
 

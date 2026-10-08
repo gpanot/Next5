@@ -1,8 +1,8 @@
 // server-only — zillow engine media direction (spec 6.3, 7.5, 9).
 //
 // Who plays which shot:
-//   Hook        library clip chosen per archetype (talking head, reaction meme…); Result-first uses the hero photo
-//   Pain        library meme / reaction clip (Hormozi b-roll rule: problem → problem visual)
+//   Hook        library clip chosen per archetype (talking head, reaction…); Result-first uses the hero photo
+//   Pain        library reaction clip (Hormozi b-roll rule: problem → problem visual)
 //   Old way     library clip, same rule
 //   Mechanism   listing photo of the named feature   ┐
 //   Proof       listing photo of a room              ├ authentic media rule: the real home, never stock
@@ -31,8 +31,8 @@ export type ListingPhoto = { id: string; url: string; tag: string };
 // ── Rules ─────────────────────────────────────────────────────────────────────
 
 const MEAT_RULES: Record<'pain' | 'oldWay', LibraryRule> = {
-  pain: { slot: 'slot_problem', kinds: { meme: 0.15, hook: 0.05 }, minSlot: 0.5, avoidPattern: AVOID_ON_PROBLEM, intent: 'frustrated, annoyed reaction' },
-  oldWay: { slot: 'slot_problem', kinds: { meme: 0.1, hook: 0.05, background: 0.05 }, minSlot: 0.4, avoidPattern: AVOID_ON_PROBLEM, intent: 'tired, resigned, making do' },
+  pain: { slot: 'slot_problem', kinds: { hook: 0.1, background: 0.05 }, minSlot: 0.5, avoidPattern: AVOID_ON_PROBLEM, intent: 'frustrated, annoyed reaction' },
+  oldWay: { slot: 'slot_problem', kinds: { hook: 0.05, background: 0.05 }, minSlot: 0.4, avoidPattern: AVOID_ON_PROBLEM, intent: 'tired, resigned, making do' },
 };
 
 const CTA_ALTERNATIVES: LibraryRule = {

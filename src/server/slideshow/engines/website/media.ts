@@ -4,7 +4,7 @@
 // Story shots must come from the audience's industry (asset categories); when the library has no
 // good match there, the shot is flagged for an AI image (core/generatedAssets.ts), which is then
 // saved to the library for the next deck. Who plays which shot:
-//   Hook        clip per archetype (talking head, reaction meme…), industry boosted
+//   Hook        clip per archetype (talking head, reaction…), industry boosted
 //   Pain        industry footage of the problem            ┐ industry required,
 //   Old way     industry footage doing it the hard way     │ AI image when missing
 //   Mechanism   industry footage of the fix working         │ or weak
@@ -38,11 +38,11 @@ import type { HookArchetype, Tone } from '../../core/types';
 import { planProductShots, productShot, type ProductShotKey } from './productMedia';
 
 const STORY_RULES: Record<keyof StoryTexts, LibraryRule> = {
-  pain: { slot: 'slot_problem', kinds: { background: 0.1, meme: 0.1, hook: 0.05 }, minSlot: 0.4, avoidPattern: AVOID_ON_PROBLEM, intent: 'frustrated at work, stressed, annoyed' },
-  oldWay: { slot: 'slot_problem', kinds: { background: 0.12, meme: 0.05, hook: 0.05 }, minSlot: 0.3, avoidPattern: AVOID_ON_PROBLEM, intent: 'doing it the slow hard way, tired, manual work' },
+  pain: { slot: 'slot_problem', kinds: { background: 0.1, hook: 0.05 }, minSlot: 0.4, avoidPattern: AVOID_ON_PROBLEM, intent: 'frustrated at work, stressed, annoyed' },
+  oldWay: { slot: 'slot_problem', kinds: { background: 0.12, hook: 0.05 }, minSlot: 0.3, avoidPattern: AVOID_ON_PROBLEM, intent: 'doing it the slow hard way, tired, manual work' },
   mechanism: { slot: 'slot_payoff', kinds: { background: 0.15, hook: 0.05 }, minSlot: 0.35, intent: 'relief, easy, the fix working' },
   proof: { slot: 'slot_proof', kinds: { hook: 0.1, background: 0.1 }, minSlot: 0.35, intent: 'happy satisfied customer, success, confident smile' },
-  inaction: { slot: 'slot_problem', kinds: { meme: 0.1, background: 0.08, hook: 0.05 }, minSlot: 0.35, avoidPattern: AVOID_ON_PROBLEM, intent: 'worried, losing out, missed chance' },
+  inaction: { slot: 'slot_problem', kinds: { background: 0.08, hook: 0.05 }, minSlot: 0.35, avoidPattern: AVOID_ON_PROBLEM, intent: 'worried, losing out, missed chance' },
   cta: { slot: 'slot_cta', kinds: { hook: 0.2, background: 0.02 }, minSlot: 0.4, avoidPattern: 'calls? to action', intent: 'pointing at viewer, talking to camera, inviting' },
 };
 

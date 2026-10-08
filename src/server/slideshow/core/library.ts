@@ -1,9 +1,10 @@
 // server-only — never import from a 'use client' file.
-// Asset library retrieval over asset_descriptors: hook clips, memes, backgrounds, music.
+// Asset library retrieval over asset_descriptors: hook clips, backgrounds, music.
+// Memes (green-screen overlays) are never a slide's footage: decks use Hook videos, Videos and pictures only.
 //
 // Ranking blends what the descriptor pipeline measured for every asset:
 //   slot score (how well it plays this role) + niche fit + meaning match between the shot and the
-//   asset + energy fit + a per-kind boost the engine sets (e.g. memes for Pain) − a penalty when
+//   asset + energy fit + a per-kind boost the engine sets (e.g. hook clips for the CTA) − a penalty when
 //   the asset's own avoidFor matches the role.
 // Meaning match: cosine similarity on pgvector embeddings when the query was embedded
 // (embedQueries); otherwise Postgres full-text rank over retrievalText / meaning / bestUse.
@@ -17,7 +18,7 @@ import { toVectorLiteral } from '../../ai/embeddings';
 import { blitzBrowserUrl } from '../../admin/blitzStore';
 import { contentWords } from './copyGuards';
 
-export type LibraryKind = 'hook' | 'meme' | 'background';
+export type LibraryKind = 'hook' | 'background';
 
 export type SlotColumn = 'slot_hook' | 'slot_problem' | 'slot_proof' | 'slot_payoff' | 'slot_cta';
 
@@ -155,7 +156,7 @@ export async function searchLibrary(q: LibraryQuery): Promise<LibraryAsset[]> {
         + ${niche} * 0.2
         + ${meaningMatch}
         + (1 - abs(coalesce(d.energy_level, 0.5) - ${q.targetEnergy}::float)) * 0.1
-        + CASE d.kind WHEN 'hook' THEN ${boost('hook')}::float WHEN 'meme' THEN ${boost('meme')}::float ELSE ${boost('background')}::float END
+        + CASE d.kind WHEN 'hook' THEN ${boost('hook')}::float ELSE ${boost('background')}::float END
         - CASE WHEN ${q.avoidPattern ?? ''}::text <> '' AND array_to_string(d.avoid_for, ' ') ~* ${q.avoidPattern ?? ''}::text THEN 0.15 ELSE 0 END
         + random() * 0.06
       )::float AS score
@@ -214,7 +215,7 @@ export async function searchMusic(targetEnergy: number, limit = 3): Promise<Libr
 /** First clause of the asset's description, for card labels: "Meme · An elderly woman bursts into sobbing". */
 export function assetLabel(asset: LibraryAsset): string {
   const isImage = /\.(jpe?g|png|webp|avif)$/i.test(asset.r2Key);
-  const kindLabel = asset.kind === 'hook' ? 'Hook clip' : asset.kind === 'meme' ? 'Meme' : isImage ? 'Image' : 'B-roll';
+  const kindLabel = asset.kind === 'hook' ? 'Hook clip' : isImage ? 'Image' : 'B-roll';
   const first = asset.retrievalText.split(/(?<=\.)\s/)[0]?.replace(/\.$/, '') ?? asset.name;
   return `${kindLabel} · ${first.length > 90 ? `${first.slice(0, 87)}…` : first}`;
 }
