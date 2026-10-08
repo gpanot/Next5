@@ -70,3 +70,28 @@ export type BlitzCardCell = { lens: string; archetype: string; total: number; by
 export type BlitzCardMatrixDto = { lenses: string[]; archetypes: string[]; cells: BlitzCardCell[]; total: number };
 
 export type WorkspaceMatrixDto = { banks: WorkspaceBankMatrix[]; blitz: BlitzCardMatrixDto };
+
+/** One Blitz Script Bank story: its lines, its hooks, and how many idea cards the workspace got from it. */
+export type BlitzBankStoryDto = {
+  id: string;
+  lines: Array<{ label: string; text: string }>;
+  hooks: Array<{ archetype: string; text: string }>;
+  used: number;
+};
+
+export type BlitzBankAudienceDto = { idc: string; categories: string[]; tone: string; proofNote: string; stories: BlitzBankStoryDto[] };
+
+/** One site profile's Blitz Script Bank (audiences × stories × hooks), as the admin sees it. */
+export type BlitzBankDto = {
+  id: string;
+  sourceUrl: string;
+  /** 'building' | 'ready' | 'growing' | 'failed' */
+  status: string;
+  error: string | null;
+  costMicros: number;
+  createdAt: string;
+  updatedAt: string;
+  audiences: BlitzBankAudienceDto[];
+};
+
+export type BlitzBankMatrixDto = { banks: BlitzBankDto[] };

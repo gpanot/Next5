@@ -110,7 +110,7 @@ export async function prepareBlitzBank(workspaceId: string): Promise<void> {
 }
 
 /** Cards the workspace was given per bank story (calendar ideas save their card with its `script`). */
-async function storyUsage(workspaceId: string): Promise<Map<string, number>> {
+export async function storyUsage(workspaceId: string): Promise<Map<string, number>> {
   const rows = await prisma.$queryRaw<Array<{ story_id: string; n: bigint }>>(Prisma.sql`
     SELECT plan->'card'->'script'->>'storyId' AS story_id, COUNT(*) AS n FROM slideshow_variants
     WHERE workspace_id = ${workspaceId} AND engine = 'website' AND plan->'card'->'script'->>'storyId' IS NOT NULL

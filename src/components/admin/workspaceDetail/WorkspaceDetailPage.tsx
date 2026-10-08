@@ -4,19 +4,21 @@ import { useState } from 'react';
 import type { WorkspaceDetailDto } from '../../../types/admin/workspaceDetail';
 import { useAdminApi } from '../business/useAdminApi';
 import { AnalyticsPanel } from './AnalyticsPanel';
+import { BlitzMatrixPanel } from './BlitzMatrixPanel';
 import { BrandPanel } from './BrandPanel';
 import { MatrixPanel } from './MatrixPanel';
 import { OverviewPanel } from './OverviewPanel';
 import { PanelError, PanelSkeleton } from './PanelStates';
 import { useImpersonation } from './useImpersonation';
 
-type TabId = 'overview' | 'analytics' | 'brand' | 'matrix';
+type TabId = 'overview' | 'analytics' | 'brand' | 'matrix' | 'blitzMatrix';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'analytics', label: 'Analytics' },
   { id: 'brand', label: 'Brand extraction' },
   { id: 'matrix', label: 'Matrix' },
+  { id: 'blitzMatrix', label: 'Blitz Matrix' },
 ];
 
 function ExternalIcon() {
@@ -54,7 +56,7 @@ function Header({ detail, onOpen, openError }: { detail: WorkspaceDetailDto; onO
   );
 }
 
-/** Admin view of one workspace: header with "Open as user", then Overview, Analytics, Brand extraction and Matrix tabs. */
+/** Admin view of one workspace: header with "Open as user", then Overview, Analytics, Brand extraction, Matrix and Blitz Matrix tabs. */
 export function WorkspaceDetailPage({ token, workspaceId }: { token: string; workspaceId: string }) {
   const { data, error, refresh } = useAdminApi<WorkspaceDetailDto>(token, `/api/admin/workspaces/${workspaceId}`);
   const { openAsUser, error: openError } = useImpersonation(token, workspaceId);
@@ -79,6 +81,7 @@ export function WorkspaceDetailPage({ token, workspaceId }: { token: string; wor
         {tab === 'analytics' && <AnalyticsPanel token={token} workspaceId={workspaceId} product={data.workspace.product} />}
         {tab === 'brand' && <BrandPanel token={token} workspaceId={workspaceId} />}
         {tab === 'matrix' && <MatrixPanel token={token} workspaceId={workspaceId} onOpenRun={openRun} />}
+        {tab === 'blitzMatrix' && <BlitzMatrixPanel token={token} workspaceId={workspaceId} />}
       </div>
     </div>
   );
