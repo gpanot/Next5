@@ -2,7 +2,7 @@
 
 import type { LegalSection } from '../../components/marketing/legal/LegalPage';
 
-export const LEGAL_UPDATED = 'Sep 29, 2026';
+export const LEGAL_UPDATED = 'Oct 8, 2026';
 
 export const TERMS: readonly LegalSection[] = [
   { heading: 'The service', body: ['Next5 Brand and Next5 Shop create AI-generated photos from reference photos you provide (your selfies, or photos of your products) or from Next5 Studio models. Photos are delivered in your online workspace.', 'Next5 can also turn the public text of your website into photo slideshows for TikTok, with AI-generated background photos, and post them to your connected TikTok account.'] },
@@ -25,8 +25,9 @@ export const PRIVACY: readonly LegalSection[] = [
     heading: 'YouTube API Services',
     body: [
       'If you connect a YouTube channel, Next5 uses YouTube API Services. By connecting, you also agree to be bound by the YouTube Terms of Service (https://www.youtube.com/t/terms). Google’s Privacy Policy applies to data Google handles (https://policies.google.com/privacy).',
-      'We ask for two permissions: to upload videos to your channel (youtube.upload) and to read your channel’s name, picture and, later, the view and like counts of videos we posted (youtube.readonly). We store your channel ID, name and picture, and encrypted access tokens. We use them only to publish the videos you approve and show how they perform. We do not sell this data or use it for advertising.',
-      'You can disconnect at any time in Settings → Accounts: we then delete the stored tokens. You can also revoke Next5’s access at https://security.google.com/settings/security/permissions. Videos already published stay on YouTube until you delete them there.',
+      'We ask for two permissions. youtube.upload lets Next5 upload the Shorts you approve to your channel and set their thumbnail. youtube.readonly lets Next5 read your channel’s ID, name and picture once, when you connect, so we can show you which channel will receive your posts. We do not read your other videos, comments, subscribers, playlists or private data, and we never change or delete anything on your channel.',
+      'We store your channel ID, name and picture, and the access and refresh tokens Google gives us, encrypted. We use this data only to publish the videos you approve. We do not sell it, use it for advertising, share it with anyone except as needed to run the service, or use it to train AI models. Next5’s use of information received from Google APIs adheres to the Google API Services User Data Policy (https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.',
+      'You can disconnect at any time in Settings → Integrations: we then delete the stored tokens. You can also revoke Next5’s access at https://security.google.com/settings/security/permissions. Videos already published stay on YouTube until you delete them there.',
     ],
   },
   { heading: 'What we collect', body: ['Your email, name, business name and handle; the photos you upload (selfies, full-body photos, product photos); the photos we create; payment references and amounts; and basic technical data such as IP address for security and consent records.'] },
@@ -39,9 +40,19 @@ export const PRIVACY: readonly LegalSection[] = [
       'We keep your TikTok profile details and tokens until you disconnect. Disconnect in Settings → Integrations, or remove Next5 in the TikTok app (Settings and privacy → Security → Manage app permissions); we then delete the tokens. We keep a record of posts already sent (time, status and link) with your account history.',
     ],
   },
-  { heading: 'Who processes it', body: ['WaveSpeed and reAPI (image generation), OpenAI (captions and slideshow text), Exa (reading the public pages of your website), Cloudflare R2 (storage), Railway (database), Vercel (hosting), Maileroo (email), TikTok and Meta (only when you connect and post) and our payment provider. Each only receives what it needs for its task.'] },
-  { heading: 'How long we keep it', body: ['Selfies and full-body photos: until you delete them. Product photos: 12 months after last use. Created photos and slideshows: while your account is active and for 90 days after your plan ends. TikTok and Instagram tokens: until you disconnect.'] },
-  { heading: 'Your choices', body: ['Delete your face data anytime in Settings → Privacy. Disconnect TikTok or Instagram anytime in Settings → Integrations. Email us to receive a copy of your data or to delete your account; we respond within 7 days.'] },
+  {
+    heading: 'How we protect your data',
+    body: [
+      'Encryption in transit: every connection to Next5, and from Next5 to Google, TikTok, Meta and our providers, uses HTTPS (TLS 1.2 or higher).',
+      'Encryption at rest: access and refresh tokens for YouTube, TikTok and Instagram are encrypted with AES-256-GCM before they are saved, using a secret key kept outside the database. Our database (Railway) and file storage (Cloudflare R2) are also encrypted at rest by those providers.',
+      'Access control: tokens are only decrypted on our servers, at the moment a post you approved is sent. They are never sent to your browser, never written to logs and never shown to anyone, including Next5 staff. Only a small number of Next5 administrators can access production systems, using individual accounts with two-factor authentication.',
+      'Data minimisation: we only ask for the permissions a feature needs, and we only store the fields listed in this policy. When you disconnect an account, we delete its tokens right away.',
+      'Incidents: if we learn of a breach that affects your data, we will tell you by email without undue delay and tell the relevant platform (Google, TikTok or Meta) as their policies require.',
+    ],
+  },
+  { heading: 'Who processes it', body: ['WaveSpeed and reAPI (image generation), OpenAI (captions and slideshow text), Exa (reading the public pages of your website), Cloudflare R2 (storage), Railway (database), Vercel (hosting), Maileroo (email), Google/YouTube, TikTok and Meta (only when you connect and post) and our payment provider. Each only receives what it needs for its task. We never send your Google or YouTube data to image or AI providers.'] },
+  { heading: 'How long we keep it', body: ['Selfies and full-body photos: until you delete them. Product photos: 12 months after last use. Created photos and slideshows: while your account is active and for 90 days after your plan ends. YouTube, TikTok and Instagram tokens and profile details: until you disconnect, then deleted right away.'] },
+  { heading: 'Your choices', body: ['Delete your face data anytime in Settings → Privacy. Disconnect YouTube, TikTok or Instagram anytime in Settings → Integrations. Email us to receive a copy of your data or to delete your account; we respond within 7 days.'] },
 ];
 
 export const AI_AND_FACE_DATA: readonly LegalSection[] = [
