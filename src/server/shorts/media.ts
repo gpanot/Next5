@@ -1,8 +1,11 @@
 // server-only — never import from a 'use client' file.
-// Per-beat media: a 9:16 photo (Gemini 3.1 Flash Lite Image via treg), then a clip animated from it as the first frame:
+// Per-beat media: a 9:16 photo (GPT Image 2.5 on reAPI, as Auto Slideshow; Gemini 3.1 Flash Lite Image via treg when it
+// fails), then a clip animated from it as the first frame:
 // Veo 3.1 Lite via treg, or Seedance 2.0 Mini via reAPI direct (treg serves Seedance only with your own key;
 // reAPI is $0.036/s at 720p vs $0.076/s on OpenRouter, checked 2026-10-06).
 
+import { REAPI_MODELS } from '../../config/reapiModels';
+import { pollGeminiImage, submitReapiImage } from '../../lib/reapiImage';
 import type { CostMeter } from '../metaAds/cost';
 import { presignObject } from '../storage/objectStore';
 import type { ShortVideoModel } from '../../types/admin/shorts';
@@ -11,8 +14,42 @@ import { tregBytes, tregJson, withRetry } from './treg';
 
 type ImageResponse = { candidates?: { content?: { parts?: { inlineData?: { data?: string } }[] } }[] };
 
-/** Google's image API answers 500 INTERNAL in bursts (3 in a row on 2026-10-06): 5 tries over ~40 s. */
+const PHOTO_MODEL = 'reapi-gpt-image-2.5' as const;
+const PHOTO_TIMEOUT_MS = 180_000;
+const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * GPT Image 2.5 at 864×1536 (9:16), $0.023 a photo, ~30 s. The user found the Gemini Flash Lite photos poor and samey
+ * (2026-10-08); GPT Image 2.5 won Auto Slideshow's A/B test on natural people and sharpness (2026-10-02).
+ */
+const gptImagePhoto = async (prompt: string, meter: CostMeter): Promise<Buffer> => {
+  const { taskId, cost } = await withRetry(() => submitReapiImage({ model: PHOTO_MODEL, prompt, imageUrls: [], ratio: '9:16', highRes: false }));
+  const deadline = Date.now() + PHOTO_TIMEOUT_MS;
+  await sleepMs(8_000);
+  while (Date.now() < deadline) {
+    const result = await pollGeminiImage(taskId).catch(() => null);
+    if (result?.status === 'completed' && result.url) {
+      meter.add(`Photo · ${REAPI_MODELS[PHOTO_MODEL].label} (reAPI)`, cost);
+      return withRetry(() => downloadUrl(result.url as string));
+    }
+    if (result?.status === 'failed') throw new Error(result.error ?? 'Photo generation failed');
+    await sleepMs(3_000);
+  }
+  throw new Error('Photo generation timed out');
+};
+
+/** A beat's photo: GPT Image 2.5, or the Gemini photo when it fails (moderation, outage). */
 export const makePhoto = async (prompt: string, meter: CostMeter): Promise<Buffer> => {
+  try {
+    return await gptImagePhoto(prompt, meter);
+  } catch (err) {
+    console.warn('[shorts] GPT Image photo failed, using Gemini:', err instanceof Error ? err.message.slice(0, 160) : err);
+    return geminiPhoto(prompt, meter);
+  }
+};
+
+/** Google's image API answers 500 INTERNAL in bursts (3 in a row on 2026-10-06): 5 tries over ~40 s. */
+const geminiPhoto = async (prompt: string, meter: CostMeter): Promise<Buffer> => {
   const { data, costMicros } = await withRetry(() =>
     tregJson<ImageResponse>('google-ai.image-gen.gemini-3-1-flash-lite-image', {
       query: {

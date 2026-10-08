@@ -38,7 +38,7 @@ export const WorkspacesTab = ({ token }: { token: string }) => {
           <tbody>
             {(data?.workspaces ?? []).map((w) => (
               <tr key={w.id} className="border-t border-line">
-                <td className="px-4 py-3 font-medium text-ink">{w.name}</td>
+                <td className="px-4 py-3 font-medium text-ink"><a href={`/admin/workspaces/${w.id}`} target="_blank" rel="noopener noreferrer" className="hover:underline">{w.name} ↗</a></td>
                 <td className="px-4 py-3 text-muted">{w.email}</td>
                 <td className="px-4 py-3 capitalize">{w.product}</td>
                 <td className="px-4 py-3">{w.onboardingCompleted ? 'Done' : `Step ${w.onboardingStep + 1}`}{w.trialUsed ? ' · trial' : ''}</td>

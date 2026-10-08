@@ -18,12 +18,13 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Film, ImageIcon, Layers, Loader2, Music, Pause, Play, Plus, Search, Sparkles, Upload, Video, Volume2, VolumeX, X, Zap } from 'lucide-react';
+import { Film, ImageIcon, Layers, Loader2, Music, Pause, Play, Plus, Search, Sparkles, Upload, Video, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import type { BlitzAssetDto } from '../../labs/blitzLab/api';
 import type { UgcVideoDto } from '../../../types/admin/ugc';
 import { createAdminLabClient } from '../../labs/labClient';
 import { uploadBlitzAsset, BLITZ_ACCEPT } from '../../labs/blitzLab/upload';
 import { DescriptionPanel } from './AssetDescriptionPanel';
+import { AiPicturesSection } from './AiPicturesSection';
 import type { BlitzUploadType } from '../../labs/blitzLab/upload';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -349,55 +350,6 @@ function VideoCard({ asset, token }: { asset: BlitzAssetDto; token: string }) {
         <p className="truncate text-[11px] text-ink" title={asset.name}>{asset.name}</p>
       </div>
       <DescriptionPanel token={token} assetId={asset.id} />
-    </div>
-  );
-}
-
-/** Expandable prompt panel for AI-generated images (no AssetDescriptor — name IS the prompt). */
-function ImagePromptPanel({ asset }: { asset: BlitzAssetDto }) {
-  const [open, setOpen] = useState(false);
-  const isAi = asset.name.includes('[AI]') || asset.source === 'library';
-  const prompt = asset.name;
-
-  return (
-    <div className="border-t border-line/60">
-      <button
-        type="button"
-        onClick={() => setOpen(p => !p)}
-        className="flex w-full items-center justify-between gap-1 px-2 py-1.5 text-[11px] font-medium text-muted transition-colors hover:bg-surface-alt hover:text-ink"
-      >
-        <span>See Description</span>
-        {open ? <ChevronUp className="h-3 w-3 shrink-0" /> : <ChevronDown className="h-3 w-3 shrink-0" />}
-      </button>
-      {open && (
-        <div className="bg-surface-alt/60 px-2 pb-2.5 pt-1">
-          {isAi && (
-            <p className="mb-1 text-[9px] font-semibold uppercase tracking-wide text-subtle">Generation prompt</p>
-          )}
-          <p className="text-[10.5px] text-ink leading-relaxed">{prompt}</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Image asset card — with prompt description panel. */
-function ImageCard({ asset }: { asset: BlitzAssetDto }) {
-  return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-white shadow-sm">
-      <div className="relative aspect-[9/16] w-full overflow-hidden bg-neutral-100">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={asset.thumbnailUrl ?? asset.url}
-          alt=""
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
-      </div>
-      <div className="min-h-8 px-2 py-1.5">
-        <p className="truncate text-[11px] text-ink" title={asset.name}>{asset.name}</p>
-      </div>
-      <ImagePromptPanel asset={asset} />
     </div>
   );
 }
@@ -737,11 +689,15 @@ function SectionContent({
   data,
   token,
   onAssetUploaded,
+  onAiPicturesRemoved,
+  onAiPicturesMore,
 }: {
   section: Section;
   data: LibraryData;
   token: string;
   onAssetUploaded: (asset: BlitzAssetDto) => void;
+  onAiPicturesRemoved: (ids: string[]) => void;
+  onAiPicturesMore: (assets: BlitzAssetDto[]) => void;
 }) {
   const [q, setQ] = useState('');
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -816,10 +772,15 @@ function SectionContent({
             {filtered.map((a) => <AudioCard key={a.id} asset={a} token={token} />)}
           </div>
         ) : section === 'aiPictures' ? (
-          <div className={GRID_VIDEO}>
-            {canUpload && <AddAssetCard onClick={() => setUploadOpen(true)} />}
-            {filtered.map((a) => <ImageCard key={a.id} asset={a} />)}
-          </div>
+          <AiPicturesSection
+            assets={filtered}
+            loaded={data.aiPictures}
+            total={data.counts.aiPictures}
+            token={token}
+            addCard={canUpload && <AddAssetCard onClick={() => setUploadOpen(true)} />}
+            onRemoved={onAiPicturesRemoved}
+            onMore={onAiPicturesMore}
+          />
         ) : section === 'ugcVideos' ? (
           <div className={GRID_VIDEO}>
             {filteredUgc.map((v) => <UgcCard key={v.id} video={v} />)}
@@ -931,6 +892,26 @@ export function AssetsLibraryTab({ token }: { token: string }) {
     });
   }, []);
 
+  /** Drops deleted AI pictures from the grid and the count. */
+  const handleAiPicturesRemoved = useCallback((ids: string[]) => {
+    if (ids.length === 0) return;
+    const gone = new Set(ids);
+    setData((prev) => prev && {
+      ...prev,
+      aiPictures: prev.aiPictures.filter((a) => !gone.has(a.id)),
+      counts: { ...prev.counts, aiPictures: Math.max(0, prev.counts.aiPictures - ids.length) },
+    });
+  }, []);
+
+  /** Appends the next page of AI pictures, skipping any already shown. */
+  const handleAiPicturesMore = useCallback((assets: BlitzAssetDto[]) => {
+    setData((prev) => {
+      if (!prev) return prev;
+      const seen = new Set(prev.aiPictures.map((a) => a.id));
+      return { ...prev, aiPictures: [...prev.aiPictures, ...assets.filter((a) => !seen.has(a.id))] };
+    });
+  }, []);
+
   return (
     <div className="flex h-full flex-col gap-0 overflow-hidden -mx-4 -my-4 md:-mx-8 md:-my-8">
 
@@ -980,7 +961,14 @@ export function AssetsLibraryTab({ token }: { token: string }) {
         ) : loading && !data ? (
           <Skeleton />
         ) : data ? (
-          <SectionContent section={section} data={data} token={token} onAssetUploaded={handleAssetUploaded} />
+          <SectionContent
+            section={section}
+            data={data}
+            token={token}
+            onAssetUploaded={handleAssetUploaded}
+            onAiPicturesRemoved={handleAiPicturesRemoved}
+            onAiPicturesMore={handleAiPicturesMore}
+          />
         ) : null}
       </div>
     </div>

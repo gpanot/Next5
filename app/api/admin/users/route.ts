@@ -15,6 +15,10 @@ export async function GET(req: NextRequest) {
         take: 1,
         select: { createdAt: true, paymentStatus: true, routeTitle: true },
       },
+      workspaces: {
+        orderBy: { createdAt: 'asc' },
+        select: { id: true, name: true, product: true, websiteUrl: true, deletedAt: true, createdAt: true },
+      },
     },
   });
 
@@ -32,6 +36,14 @@ export async function GET(req: NextRequest) {
             created_at: u.bookings[0].createdAt.toISOString(),
           }
         : null,
+      workspaces: u.workspaces.map((w) => ({
+        id: w.id,
+        name: w.name,
+        product: w.product,
+        websiteUrl: w.websiteUrl,
+        deleted: Boolean(w.deletedAt),
+        createdAt: w.createdAt.toISOString(),
+      })),
     })),
   });
 }

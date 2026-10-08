@@ -49,7 +49,8 @@ const DEFAULTS: Record<VoiceGender, string[]> = { male: ['Achird', 'Puck', 'Char
 
 const catalog = Object.entries(GEMINI_VOICES).map(([name, v]) => `${name} (${v.gender}, ${v.style})`).join(', ');
 
-const SYSTEM = `You cast the narrator of a ~20-second vertical video ad (TikTok / Reels) for one brand.
+const SYSTEM = `You cast the narrator of a 20-40 second vertical educational short (TikTok / Reels) for one brand: the brand's expert
+teaching one useful lesson, never selling.
 Pick ${PER_GENDER} male and ${PER_GENDER} female voices from this list ONLY, best fit first within each gender:
 ${catalog}
 
@@ -114,7 +115,7 @@ export const pickVoice = async (
       ...o,
       jevScore: await jevScore(
         { brand: inputs.brandName, domain: inputs.domain, audience: inputs.audience, tone: inputs.tone, script: stripTags(script.narration), delivery: direction, voice: `${o.gender}, ${o.style.toLowerCase()} voice`, why: o.why },
-        'How well does this narrator voice fit this short video ad for this brand and audience?',
+        'How well does this narrator voice fit this short educational video for this brand and audience?',
         JEV_RUBRIC,
       ),
     })),

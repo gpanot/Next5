@@ -42,7 +42,8 @@ function CtaList({ ctas, uses, runId, onOpen }: { ctas: BankCta[]; uses: UseInde
   );
 }
 
-function Body({ matrix, runId, onOpen }: { matrix: BankMatrixDto; runId: string; onOpen: OpenUse }) {
+/** The matrix itself (stats, CTAs, topics and hooks); also shown on the admin workspace page. */
+export function MatrixBody({ matrix, runId, onOpen }: { matrix: BankMatrixDto; runId: string; onOpen: OpenUse }) {
   const [filter, setFilter] = useState<HookFilter>('all');
   const uses = useMemo(() => indexUses(matrix.used), [matrix.used]);
   const bank = matrix.bank;
@@ -100,7 +101,7 @@ export function MatrixDialog({ token, runId, onClose, onOpenSlideshow }: Props) 
           {loading && !data && !error && (
             <div className="space-y-3">{[0, 1, 2].map((i) => <div key={i} className="h-32 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />)}</div>
           )}
-          {data && <Body matrix={data.matrix} runId={runId} onOpen={open} />}
+          {data && <MatrixBody matrix={data.matrix} runId={runId} onOpen={open} />}
         </div>
       </div>
     </div>

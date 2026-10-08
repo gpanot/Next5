@@ -8,12 +8,15 @@ import type { ShortClaim, ShortInputs, ShortScript } from '../../types/admin/sho
 import { stripTags } from './voice';
 import { tregJson } from './treg';
 
-const MODEL = process.env.SHORTS_TEXT_MODEL ?? 'gpt-5.4-nano';
+/** gpt-5.4-nano was too literal (2026-10-08): it flagged the hook and plain explanations and burned every redraft. */
+const MODEL = process.env.SHORTS_TEXT_MODEL ?? 'gpt-5.4-mini';
 
 const SYSTEM = `You fact-check the voiceover of a short brand video against SOURCE.
 
 1. List every checkable claim in the narration: numbers, prices, names, product features, comparisons, "first/only/best",
-   results, statistics, dates. Skip opinions, advice and the brand's own slogans quoted from SOURCE.
+   results, statistics, dates, studies. Skip opinions, advice, the brand's own slogans quoted from SOURCE, and plain
+   explanations of general ideas any expert would agree with ("a company follow means they know you exist"): the short
+   teaches, so it explains things in its own words. Claims about the brand, its customers or any number are always checked.
 2. For each claim decide: "supported" if SOURCE states it (same meaning, numbers identical), else "unsupported".
    Common knowledge about the product category does not count: only SOURCE.
 
@@ -48,8 +51,8 @@ const webCheck = async (brand: string, claim: string, meter: CostMeter): Promise
 
 /** Every claim with its verdict. Claims SOURCE does not back are checked on the web, in parallel. */
 export const factCheck = async (script: ShortScript, inputs: ShortInputs, meter: CostMeter): Promise<ShortClaim[]> => {
-  // The hook is the brand's own tested opener from its bank: a promise, not a fact to verify.
-  const body = [...script.mechanismLines, script.payoffLine].join(' ');
+  // The hook is checked too: since 2026-10-08 the writer may rewrite the bank hook into a clear lesson hook.
+  const body = [script.hook, ...script.mechanismLines, script.payoffLine].join(' ');
   const judged = await metaAdsJson<Judged>(
     [
       { role: 'system', content: SYSTEM },

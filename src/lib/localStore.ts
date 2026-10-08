@@ -1,6 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { impersonationToken, isImpersonating, setImpersonationToken } from './impersonation';
 
 /**
  * A tiny localStorage-backed store for useSyncExternalStore.
@@ -40,10 +41,24 @@ export const createLocalStore = (key: string) => {
 
   const useValue = (): string | null | undefined => useSyncExternalStore(subscribe, get, () => undefined);
 
-  return { get, set, useValue };
+  return { get, set, subscribe, useValue };
 };
 
-export const sessionTokenStore = createLocalStore('studio_token');
+const studioTokenStore = createLocalStore('studio_token');
+
+/** The user's session token. A tab opened by an admin's "Open as user" uses its impersonated session instead. */
+export const sessionTokenStore = {
+  ...studioTokenStore,
+  get: (): string | null => (isImpersonating() ? impersonationToken() : studioTokenStore.get()),
+  set: (value: string | null) => {
+    if (!isImpersonating()) return studioTokenStore.set(value);
+    setImpersonationToken(value);
+    // Wakes the readers: they subscribe through studioTokenStore, and an unchanged localStorage notifies no one.
+    studioTokenStore.set(studioTokenStore.get());
+  },
+  useValue: (): string | null | undefined =>
+    useSyncExternalStore(studioTokenStore.subscribe, () => sessionTokenStore.get(), () => undefined),
+};
 export const productStore = createLocalStore('next5-product');
 export const onboardingModelStore = createLocalStore('next5-onboarding-model');
 /** Shop onboarding: the product picked for the free trial. */

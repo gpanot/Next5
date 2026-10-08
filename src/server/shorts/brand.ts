@@ -8,10 +8,6 @@ import type { BankHook, SlideshowBankContent } from '../../types/admin/slideshow
 import type { ShortInputs, ShortWorkspaceDto } from '../../types/admin/shorts';
 import { HttpError } from '../http';
 
-/** Next5 slideshow photo look (src/server/autoSlideshow/photos.ts): "cinematic" light made photos dark. */
-export const BRIGHT_STYLE =
-  'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, realistic candid photo with natural proportions, vertical framing.';
-
 type BrandRun = { url: string; profile: BrandProfile; levers: BrandLever[] };
 
 const latestBrandRun = async (workspaceId: string): Promise<BrandRun | null> => {

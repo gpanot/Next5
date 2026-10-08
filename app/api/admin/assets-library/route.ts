@@ -1,6 +1,7 @@
+import type { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import { adminRoute } from '../../../../src/server/admin/route';
-import { toAssetDto, blitzMediaKind } from '../../../../src/server/admin/blitzStore';
+import { toAssetDto, blitzImageKeyWhere } from '../../../../src/server/admin/blitzStore';
 import { toVideoDto } from '../../../../src/server/admin/ugcStore';
 import { prisma } from '../../../../src/lib/db';
 
@@ -11,13 +12,21 @@ import { prisma } from '../../../../src/lib/db';
  *   memes       — BlitzAsset type=OVERLAY (video clips used as meme overlays)
  *   videos      — BlitzAsset type=BACKGROUND where the file is a video (scraped, not AI)
  *   sounds      — BlitzAsset type=AUDIO
- *   aiPictures  — BlitzAsset type=BACKGROUND where the file is an image (jpg/png/webp)
+ *   aiPictures  — BlitzAsset type=BACKGROUND where the file is an image (jpg/png/webp), newest first
  *   ugcVideos   — UgcVideo rows (status=ready, workspaceId=null = Next5-owned)
  *   hookVideos  — BlitzAsset type=HOOK (scraped hook library + manually added hooks)
  *
- * Pagination: each section returns up to `limit` rows (default 60).
+ * Images and videos share type=BACKGROUND, so they are split in the query (by file extension), never after `take`.
+ *
+ * Pagination: each section returns up to `limit` rows (default 120).
  * Pass ?section=memes|videos|sounds|aiPictures|ugcVideos|hookVideos&cursor=<createdAt ISO>&limit=N for pagination.
  */
+/** Page size of the AI Pictures section (full load and each "Load more"). */
+const AI_PICTURES_PAGE = 120;
+
+const IMAGE_WHERE: Prisma.BlitzAssetWhereInput = { type: 'BACKGROUND', ...blitzImageKeyWhere };
+const VIDEO_WHERE: Prisma.BlitzAssetWhereInput = { type: 'BACKGROUND', NOT: blitzImageKeyWhere };
+
 export const GET = adminRoute(async (req) => {
   const { searchParams } = req.nextUrl;
   const section = searchParams.get('section') as string | null;
@@ -39,13 +48,21 @@ export const GET = adminRoute(async (req) => {
 
     // Full load (no section filter) — return all buckets
     const videoRows = await prisma.blitzAsset.findMany({
-      where: { type: 'BACKGROUND' },
+      where: { AND: [VIDEO_WHERE] },
       orderBy: { createdAt: 'asc' },
       take: 600,
     });
-    const allBg = await Promise.all(videoRows.map(toAssetDto));
-    const videos = allBg.filter((a) => a.mediaKind === 'video');
-    const aiPictures = allBg.filter((a) => a.mediaKind === 'image');
+    const videos = await Promise.all(videoRows.map(toAssetDto));
+    const imageRows = await prisma.blitzAsset.findMany({
+      where: { AND: [IMAGE_WHERE] },
+      orderBy: { createdAt: 'desc' },
+      take: AI_PICTURES_PAGE,
+    });
+    const aiPictures = await Promise.all(imageRows.map(toAssetDto));
+    const [videoTotal, imageTotal] = await Promise.all([
+      prisma.blitzAsset.count({ where: VIDEO_WHERE }),
+      prisma.blitzAsset.count({ where: IMAGE_WHERE }),
+    ]);
 
     const soundRows = await prisma.blitzAsset.findMany({
       where: { type: 'AUDIO' },
@@ -78,9 +95,9 @@ export const GET = adminRoute(async (req) => {
       hookVideos,
       counts: {
         memes: assets.length,
-        videos: videos.length,
+        videos: videoTotal,
         sounds: sounds.length,
-        aiPictures: aiPictures.length,
+        aiPictures: imageTotal,
         ugcVideos: ugcVideos.length,
         hookVideos: hookTotal,
       },
@@ -89,12 +106,11 @@ export const GET = adminRoute(async (req) => {
 
   if (section === 'videos') {
     const rows = await prisma.blitzAsset.findMany({
-      where: { type: 'BACKGROUND', ...nameFilter, ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}) },
+      where: { AND: [VIDEO_WHERE, nameFilter, cursorDate ? { createdAt: { gt: cursorDate } } : {}] },
       orderBy: { createdAt: 'asc' },
       take: limit,
     });
-    const all = await Promise.all(rows.map(toAssetDto));
-    const assets = all.filter((a) => a.mediaKind === 'video');
+    const assets = await Promise.all(rows.map(toAssetDto));
     return NextResponse.json({ assets });
   }
 
@@ -110,13 +126,12 @@ export const GET = adminRoute(async (req) => {
 
   if (section === 'aiPictures') {
     const rows = await prisma.blitzAsset.findMany({
-      where: { type: 'BACKGROUND', ...nameFilter, ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}) },
+      where: { AND: [IMAGE_WHERE, nameFilter, cursorDate ? { createdAt: { lt: cursorDate } } : {}] },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });
-    const all = await Promise.all(rows.map(toAssetDto));
-    const assets = all.filter((a) => a.mediaKind === 'image');
-    return NextResponse.json({ assets });
+    const assets = await Promise.all(rows.map(toAssetDto));
+    return NextResponse.json({ assets, total: await prisma.blitzAsset.count({ where: { AND: [IMAGE_WHERE, nameFilter] } }) });
   }
 
   if (section === 'ugcVideos') {

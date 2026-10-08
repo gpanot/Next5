@@ -1,7 +1,7 @@
 // server-only — never import from a 'use client' file.
 // Blitz Lab persistence: templates, assets, and projects in the database; files in R2 by key.
 
-import type { BlitzAsset, BlitzProject, BlitzTemplate } from '@prisma/client';
+import type { BlitzAsset, BlitzProject, BlitzTemplate, Prisma } from '@prisma/client';
 import { scopedKey, unscopedKey, type LabScope } from '../labs/scope';
 
 // ── R2 key conventions ────────────────────────────────────────────────────────
@@ -64,6 +64,13 @@ const KINDS_BY_TYPE: Record<BlitzUploadType, Array<'image' | 'video' | 'audio'>>
 export const blitzMediaKind = (fileName: string): 'image' | 'video' | 'audio' => {
   const contentType = blitzUploadFormat(fileName)?.contentType ?? 'video/';
   return contentType.startsWith('image/') ? 'image' : contentType.startsWith('audio/') ? 'audio' : 'video';
+};
+
+/** Database filter for assets whose file is a still image (by extension), so queries can page images on their own. */
+export const blitzImageKeyWhere: Prisma.BlitzAssetWhereInput = {
+  OR: Object.entries(CONTENT_TYPE_BY_EXT)
+    .filter(([, type]) => type.startsWith('image/'))
+    .map(([ext]) => ({ r2Key: { endsWith: `.${ext}`, mode: 'insensitive' as const } })),
 };
 
 /** True when a file of this name may be used on this layer. */

@@ -4,6 +4,7 @@ import { useEffect, type ReactNode } from 'react';
 import { useMagicToken } from '../../../hooks/useMagicToken';
 import { UNAUTHORIZED_EVENT } from '../../../lib/apiClient';
 import { sessionTokenStore } from '../../../lib/localStore';
+import { ImpersonationBanner } from '../../admin/shared/ImpersonationBanner';
 import { SkeletonText } from '../../ui/Skeleton';
 import { SignInScreen } from './SignInScreen';
 import { WorkspaceProvider } from './WorkspaceProvider';
@@ -25,5 +26,10 @@ export const AppGate = ({ children }: { children: ReactNode }) => {
   if (!token) {
     return <SignInScreen notice={failed ? 'That sign-in link has expired. Enter your email for a new one.' : undefined} />;
   }
-  return <WorkspaceProvider token={token}>{children}</WorkspaceProvider>;
+  return (
+    <WorkspaceProvider token={token}>
+      {children}
+      <ImpersonationBanner />
+    </WorkspaceProvider>
+  );
 };

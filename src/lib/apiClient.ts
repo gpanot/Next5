@@ -3,6 +3,8 @@
  * and turns error responses into typed ApiError instances.
  */
 
+import { impersonationToken, isImpersonating, setImpersonationToken } from './impersonation';
+
 export const STUDIO_TOKEN_KEY = 'studio_token';
 export const UNAUTHORIZED_EVENT = 'next5:unauthorized';
 
@@ -21,6 +23,7 @@ export class ApiError extends Error {
 }
 
 export const getStoredToken = (): string | null => {
+  if (isImpersonating()) return impersonationToken();
   try {
     return window.localStorage.getItem(STUDIO_TOKEN_KEY);
   } catch {
@@ -29,6 +32,7 @@ export const getStoredToken = (): string | null => {
 };
 
 export const storeToken = (token: string): void => {
+  if (isImpersonating()) return setImpersonationToken(token);
   try {
     window.localStorage.setItem(STUDIO_TOKEN_KEY, token);
   } catch {
@@ -37,6 +41,7 @@ export const storeToken = (token: string): void => {
 };
 
 export const clearToken = (): void => {
+  if (isImpersonating()) return setImpersonationToken(null);
   try {
     window.localStorage.removeItem(STUDIO_TOKEN_KEY);
   } catch {

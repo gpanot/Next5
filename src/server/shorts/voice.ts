@@ -1,6 +1,7 @@
 // server-only — never import from a 'use client' file.
 // Narration: one Gemini 3.8 Flash TTS call per sentence (treg). Each sentence: long pauses trimmed, re-recorded once if
-// Gemini drags it out, then sped up on its own to ~160 wpm (capped at 1.4×, where it still sounds natural), then joined.
+// Gemini drags it out. Then reels-af's pacing (the user's favourite, 2026-10-08): ONE speed-up for the whole narration
+// (brisk speech, ~190 wpm, capped at 1.35×) and a real breath between sentences, ~175 wpm overall.
 // Word timings come from Whisper listening to the final voice (wordTiming.ts); syllable spread is the fallback.
 // The voice is one of Gemini's prebuilt voices; `direction` goes with every sentence as director's notes. A plain
 // "Say in a warm tone:" prefix is read out loud by this model (checked 2026-10-06); the notes block is not.
@@ -9,18 +10,21 @@ import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import type { CostMeter } from '../metaAds/cost';
 import type { WordTiming } from '../../types/admin/shorts';
-import { ffmpeg, pcmSeconds, pcmToWav, wavToPcm, withTempDir } from './ffmpeg';
+import { ffmpeg, pcmSeconds, pcmToWav, SAMPLE_RATE, wavToPcm, withTempDir } from './ffmpeg';
 import { tregJson, withRetry } from './treg';
 import { heardWordTimings } from './wordTiming';
 
 /** The voice before per-short voice planning (and the fallback when planning fails). */
 export const VOICE = 'Kore';
 /**
- * Per-sentence speed-up so every sentence lands at the same pace: voices, delivery notes and even sentences of one take
- * read at very different speeds (one 2026-10-06 Porsche sentence ran 9 words in 12 s raw). 160 wpm keeps a 45-52 word
- * script at ~20 s. Above ~1.35× it sounds rushed (reels-af found 1.5× already too fast).
+ * Speech pace without the breaths. The reels-af gojiberry reel the user liked read 62 words in 18.3 s of speech (~200 wpm)
+ * plus 3.1 s of pauses. Per-sentence pacing to a flat 160 wpm with pauses cut to 0.25 s sounded rushed and breathless,
+ * so one tempo is now applied to every sentence (keeping the voice's own rhythm) and the breaths stay.
+ * Above ~1.35× it sounds rushed (reels-af found 1.5× already too fast).
  */
-const TARGET_WPM = 160;
+const TARGET_WPM = 190;
+/** Silence added after each sentence, on top of the ≤0.25 s its trim keeps: ~0.35 s breaths, like reels-af's reel. */
+const SENTENCE_GAP_S = 0.15;
 const MIN_TEMPO = 1.0;
 const MAX_TEMPO = 1.35;
 /** A sentence of 4+ words read slower than this (after pause trimming) is a dragged-out take: record it again once. */
@@ -126,17 +130,21 @@ const recordSentence = async (text: string, choice: VoiceChoice, meter: CostMete
   return wpmOf(words, second) > wpmOf(words, first) ? second : first;
 };
 
-/** The sentence at the target pace. */
-const paced = (pcm: Buffer, words: number, dir: string, idx: number): Promise<Buffer> => {
-  const tempo = tempoFor(words, pcmSeconds(pcm));
-  return tempo === 1 ? Promise.resolve(pcm) : filterPcm(pcm, `atempo=${tempo.toFixed(3)}`, dir, `s${idx}-paced`);
-};
+/** The sentence sped up by `tempo`. */
+const sped = (pcm: Buffer, tempo: number, dir: string, idx: number): Promise<Buffer> =>
+  tempo === 1 ? Promise.resolve(pcm) : filterPcm(pcm, `atempo=${tempo.toFixed(3)}`, dir, `s${idx}-paced`);
 
+/** A line on its own at the target pace (voice samples). */
+const paced = (pcm: Buffer, words: number, dir: string, idx: number): Promise<Buffer> => sped(pcm, tempoFor(words, pcmSeconds(pcm)), dir, idx);
+
+const silence = (seconds: number): Buffer => Buffer.alloc(Math.round(seconds * SAMPLE_RATE) * 2);
+
+/** Syllable-spread timings (the fallback when Whisper fails). `pcms` include each sentence's trailing gap. */
 const timeWords = (sentences: string[], pcms: Buffer[]): WordTiming[] => {
   const words: WordTiming[] = [];
   let cursor = 0;
   sentences.forEach((sentence, i) => {
-    const span = pcmSeconds(pcms[i]);
+    const span = Math.max(0.1, pcmSeconds(pcms[i]) - (i < pcms.length - 1 ? SENTENCE_GAP_S : 0));
     const spoken = stripTags(sentence).split(' ').filter(Boolean);
     const weights = spoken.map(syllables);
     const total = weights.reduce((a, b) => a + b, 0) || 1;
@@ -146,7 +154,7 @@ const timeWords = (sentences: string[], pcms: Buffer[]): WordTiming[] => {
       words.push({ word, startS: t, endS: t + d });
       t += d;
     });
-    cursor += span;
+    cursor += pcmSeconds(pcms[i]);
   });
   return words;
 };
@@ -158,8 +166,13 @@ export const synthesize = async (
   meter: CostMeter,
 ): Promise<{ wav: Buffer; durationS: number; words: WordTiming[]; sentences: number }> => {
   const sentences = splitSentences(narration);
-  const fast = await withTempDir((dir) => Promise.all(sentences.map(async (s, i) =>
-    paced(await recordSentence(s, choice, meter, dir, i), spokenCount(s), dir, i))));
+  const fast = await withTempDir(async (dir) => {
+    const raw = await Promise.all(sentences.map((s, i) => recordSentence(s, choice, meter, dir, i)));
+    const words = sentences.reduce((sum, s) => sum + spokenCount(s), 0);
+    const tempo = tempoFor(words, raw.reduce((sum, p) => sum + pcmSeconds(p), 0));
+    const out = await Promise.all(raw.map((p, i) => sped(p, tempo, dir, i)));
+    return out.map((p, i) => (i < out.length - 1 ? Buffer.concat([p, silence(SENTENCE_GAP_S)]) : p));
+  });
   const pcm = Buffer.concat(fast);
   const wav = pcmToWav(pcm);
   const durationS = pcmSeconds(pcm);

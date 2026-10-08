@@ -1,19 +1,35 @@
 // server-only — never import from a 'use client' file.
 // One planner call per beat: the photo prompt, the camera move and the evidence item it stands on.
-// Prompt ported from reels-af visual.py (the simpler images of the 2026-10-06 batch), with four changes:
+// Prompt ported from reels-af visual.py (the simpler images of the 2026-10-06 batch), with these changes:
 //  - the shot shows its evidence item's subject, never its number: prices drawn in photos clashed with the captions;
 //  - bright daylight only (Next5 slideshow look), whatever the mood guidance says;
 //  - the subject sits above our captions (lower third), not reels-af's empty top;
-//  - no forced "unexpected element": it added unrealistic props (a lime-green golf shaft) to every shot.
+//  - no forced "unexpected element": it added unrealistic props (a lime-green golf shaft) to every shot;
+//  - 2026-10-08: the content guidelines' documentary, teaching look (guidelines.ts), and each beat gets its own shot type
+//    (wide, close-up, hands, over-the-shoulder…): the user found the photos of one short all looked the same.
 // The prompt is then cleaned in code as a backstop: any clause that would put text in the image is dropped (only the
 // clause, not its sentence: dropping whole sentences removed the shot's subject on 2026-10-06).
 
 import type { CostMeter } from '../metaAds/cost';
 import type { MotionHint, ShortBeat, ShortInputs } from '../../types/admin/shorts';
-import { BRIGHT_STYLE } from './brand';
+import { planCast, type BeatCast } from './cast';
+import { VISUAL_RULES } from './guidelines';
 import { creativeJson } from './llm';
 
 const MOTIONS: MotionHint[] = ['static', 'slow_zoom_in', 'slow_zoom_out', 'pan_left', 'pan_right', 'ken_burns'];
+
+/** One framing per beat, in turn, so consecutive shots never look alike. */
+const SHOT_TYPES = [
+  'MEDIUM SHOT of a real person in their workplace, eye level, doing the thing the line is about',
+  'EXTREME CLOSE-UP of the key object or detail (hands, tool, material, document edge), shallow depth of field',
+  'OVER-THE-SHOULDER shot of someone working on the subject, their back and shoulder framing it',
+  'WIDE ESTABLISHING shot of the place where this happens, people small in the frame',
+  'TOP-DOWN overhead shot of a desk, table or surface with the real objects laid out',
+  'CANDID TWO-PERSON moment: one explaining or showing something to the other',
+  'LOW ANGLE or side profile of a person mid-action, natural window light',
+] as const;
+
+export const shotTypeFor = (idx: number): string => SHOT_TYPES[idx % SHOT_TYPES.length];
 
 const ROLE_BLOCK: Record<ShortBeat['role'], string> = {
   hook: 'ROLE: HOOK — this is the FIRST beat. It must be the most arresting visual in the reel — biggest stop-the-scroll energy. Strong subject, high contrast, one striking but REAL detail (an unusual angle, a tight close-up, a moment of action). Lean toward slow_zoom_in so the frame keeps revealing as the hook lands.',
@@ -21,21 +37,32 @@ const ROLE_BLOCK: Record<ShortBeat['role'], string> = {
   mechanism: 'ROLE: MECHANISM — this is a BODY beat. Illustrate concretely WHAT THIS NARRATIVE LINE SAYS. Not mood — the actual thing. Vary motion across body beats; pick the move that reveals what the line claims.',
 };
 
-const system = (beat: ShortBeat, inputs: ShortInputs) => `You are planning the visual for ONE beat of a ~25-second vertical reel.
+const castBlock = (cast: BeatCast | null) =>
+  cast
+    ? `SETTING AND PERSON FOR THIS BEAT (required; the other beats use different ones):\n  Setting: ${cast.setting}\n  Person: ${cast.person}`
+    : 'Use a different setting, person or object from the other beats unless this is the payoff calling back the hook.';
+
+const system = (beat: ShortBeat, inputs: ShortInputs, cast: BeatCast | null) => `You are planning the visual for ONE beat of a 20-40 second vertical reel.
 
 This is beat ${beat.idx} (~${beat.spanS.toFixed(1)}s of audio).
 
 ${ROLE_BLOCK[beat.role]}
 
-MODE: GENERAL (${inputs.domain}). Editorial imagery. The frame must convey ONE specific thing this reel is about — a named
-product, place, object, or moment — not a generic mood for the topic. No stock-photo handshakes. Pick a concrete scene
-grounded in the evidence list.
+MODE: EDUCATIONAL (${inputs.domain}). The reel teaches one lesson; this frame shows the concrete thing THIS line explains —
+a real object, place, action or moment — not a generic mood for the topic. No stock-photo handshakes, no people smiling
+at the camera. ${VISUAL_RULES}
+
+SHOT TYPE FOR THIS BEAT (required, so the shots of the reel look different from each other):
+  ${shotTypeFor(beat.idx)}
+
+${castBlock(cast)}
 
 COMPOSITION (non-negotiable):
 - 9:16 vertical frame. Subject centered or slightly above center.
 - Keep the LOWER THIRD calm and simple (floor, grass, table surface, soft background) — big burned captions sit there.
   Put faces, hands at work and key details higher. In image_prompt, say what fills the lower third (e.g. "open turf
   below"); never write layout rules like "no hands in the lower third" (the image model reads them literally).
+- Screens, phones and laptops: show them at an angle or from behind, so no interface text is readable.
 - Everything in the frame must be realistic and belong in the scene: real products in their real colors, real
   materials, nothing out of place. Never add a random prop or a recolored object to catch the eye.
 - No text, letters, captions, or watermarks IN the image — subtitles are added later in post.
@@ -52,7 +79,7 @@ MOTION HINT — pick what serves THIS beat:
 Default policy: hook → slow_zoom_in; payoff → static; mechanism → vary (zoom_out / pan / ken_burns).
 
 BRAND PHOTO RULES (override any mood guidance above): every image is a bright, well-exposed DAYLIGHT photo. Never night,
-dusk, dark, moody, neon, spotlight or 'cinematic' lighting. Brand look: ${inputs.photoStyle || 'clean, modern, true to the brand'}
+dusk, dark, moody, neon, glowing holograms, sparkles, spotlight or 'cinematic' lighting. Brand look: ${inputs.photoStyle || 'clean, modern, true to the brand'}
 
 REEL ESSENCE:
   core claim : ${inputs.coreClaim}
@@ -69,8 +96,9 @@ THIS IS THE NARRATIVE LINE FOR THIS BEAT — the visual MUST match:
 
 Beat meta: idx ${beat.idx} · role ${beat.role} · ${beat.spanS.toFixed(2)} s
 
-image_prompt — 9:16 vertical, subject centered or slightly above center, calm lower third for captions, the chosen
-evidence item's subject (never its figures), everything realistic. Specific subject, framing, lighting, palette.`;
+image_prompt — 40-80 words. Start with the shot type. 9:16 vertical, subject centered or slightly above center, calm
+lower third for captions, the concrete subject of this line (never its figures), everything realistic. Specific
+subject, setting, framing, light.`;
 
 type RawVisual = { image_prompt?: string; motion_hint?: string; visual_anchor?: string };
 
@@ -124,19 +152,26 @@ export const sanitizeImagePrompt = (prompt: string): string => {
     .trim();
 };
 
-/** What the image model gets: the cleaned shot + the Next5 bright look + the brand look (as in the test batch). */
-export const photoPrompt = (beat: ShortBeat, inputs: ShortInputs): string =>
-  `${(beat.imagePrompt ?? beat.text).replace(/\.$/, '')}. ${BRIGHT_STYLE} No text overlays, no watermarks. ${inputs.photoStyle}`.trim();
+/** Documentary photo look (content guidelines), bright (Auto Slideshow: "cinematic" light made photos dark). */
+const PHOTO_STYLE =
+  'Candid documentary photo taken on a phone, bright natural daylight, true-to-life colors, real place with slight everyday imperfection, natural proportions, vertical framing. Not an advertisement, not a commercial or studio shot. No text overlays, no watermarks, no readable screen text.';
 
-const planBeat = async (beat: ShortBeat, narration: string, inputs: ShortInputs, meter: CostMeter): Promise<ShortBeat> => {
-  const raw = await creativeJson<RawVisual>(system(beat, inputs), user(beat, narration), meter, 'Shot plan');
+/** What the image model gets: the cleaned shot + the documentary look + the brand look. */
+export const photoPrompt = (beat: ShortBeat, inputs: ShortInputs): string =>
+  [`${(beat.imagePrompt ?? beat.text).replace(/\.$/, '')}.`, PHOTO_STYLE, inputs.photoStyle && `Brand look: ${inputs.photoStyle}`].filter(Boolean).join(' ');
+
+const planBeat = async (beat: ShortBeat, narration: string, inputs: ShortInputs, cast: BeatCast | null, meter: CostMeter): Promise<ShortBeat> => {
+  const raw = await creativeJson<RawVisual>(system(beat, inputs, cast), user(beat, narration), meter, 'Shot plan');
   const rawPrompt = (raw.image_prompt ?? beat.text).trim();
   const motion = MOTIONS.includes(raw.motion_hint as MotionHint) ? (raw.motion_hint as MotionHint) : beat.role === 'payoff' ? 'static' : 'slow_zoom_in';
   return { ...beat, rawImagePrompt: rawPrompt, imagePrompt: sanitizeImagePrompt(rawPrompt), motionHint: motion, visualAnchor: raw.visual_anchor?.trim() };
 };
 
-export const planVisuals = (beats: ShortBeat[], narration: string, inputs: ShortInputs, meter: CostMeter): Promise<ShortBeat[]> =>
-  Promise.all(beats.map((b) => planBeat(b, narration, inputs, meter)));
+/** The cast and settings first (one call), then every beat's shot plan in parallel. */
+export const planVisuals = async (beats: ShortBeat[], narration: string, inputs: ShortInputs, meter: CostMeter): Promise<ShortBeat[]> => {
+  const cast = await planCast(beats, inputs, meter);
+  return Promise.all(beats.map((b, i) => planBeat(b, narration, inputs, cast[i] ?? null, meter)));
+};
 
 /** reels-af's video prompt: the shot plus one camera clause. */
 export const videoPrompt = (beat: ShortBeat): string => {

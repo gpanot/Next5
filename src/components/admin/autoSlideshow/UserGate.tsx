@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { SignInScreen } from '../../app/shell/SignInScreen';
+import { ImpersonationBanner } from '../shared/ImpersonationBanner';
 import { RotatingWord } from '../../motion/RotatingWord';
 import { SkeletonText } from '../../ui/Skeleton';
 import { useMagicToken } from '../../../hooks/useMagicToken';
@@ -26,5 +27,10 @@ export function UserGate({ children, fallback }: { children: (token: string) => 
   if (!token) {
     return <SignInScreen destination="slideshow" title={<>Log in to Auto <RotatingWord words={['Slideshows', 'Videos']} label="Slideshows and Videos" /></>} notice={failed ? 'That sign-in link has expired. Enter your email for a new one.' : undefined} />;
   }
-  return <>{children(token)}</>;
+  return (
+    <>
+      {children(token)}
+      <ImpersonationBanner />
+    </>
+  );
 }

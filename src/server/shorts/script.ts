@@ -1,17 +1,18 @@
 // server-only — never import from a 'use client' file.
-// The short's narration: bank hook → 2-4 "why" lines → payoff that repeats a hook word (so the video loops).
-// Prompt ported from reels-af compose.py (github.com/Agent-Field/reels-af, general mode), plus the brand block of the
-// 2026-10-06 test batch the user preferred: brand tone, the bank hook verbatim, brand facts only.
+// The short's narration: a clear lesson hook → Proof/Promise/Plan → one body structure → a one-line takeaway.
+// Prompt ported from reels-af compose.py (github.com/Agent-Field/reels-af, general mode); since 2026-10-08 it follows the
+// Next5 content guidelines (guidelines.ts): every short teaches, never sells, and runs 20-40 s at reels-af's pace.
 
 import type { CostMeter } from '../metaAds/cost';
 import type { ShortInputs, ShortScript } from '../../types/admin/shorts';
+import { BANNED_PHRASES, BODY_STRUCTURES, educationBlock } from './guidelines';
 import { creativeJson, SCRIPT_MODEL } from './llm';
 import { stripTags } from './voice';
 
 const TAG_VOCAB = `  ALLOWED (use ≤3 total across the whole narration):
     • [curious]   — at the cold open, ONCE
     • [emphasis]  — on the single most surprising word, ONCE
-    • [confident] — at the payoff, ONCE (optional)
+    • [confident] — at the takeaway, ONCE (optional)
 
   BANNED — do NOT use any of these. They insert real silence and blow the engagement budget:
     • [pause] [pause short] [pause long] [breath]
@@ -21,71 +22,64 @@ const TAG_VOCAB = `  ALLOWED (use ≤3 total across the whole narration):
 
   Trust the punctuation (commas, em-dashes, periods) for rhythm. Less is more.`;
 
-const SYSTEM = `You are writing a 25-second vertical reel narration.
+/** 60-95 words at ~170 wpm (pauses included) lands at ~21-34 s; the check allows a little slack. */
+const MIN_WORDS = 55;
+const MAX_WORDS = 100;
+
+const SYSTEM = `You are writing the narration of a 20-40 second vertical educational short (TikTok, Reels, Shorts).
 
 The structure is FIXED. Do not deviate.
 
-  1. HOOK            — 6-10 spoken words. Picks ONE variant from:
-                       shock_stat | contrarian | authority | curiosity_gap | listicle
-                       For general content prefer shock_stat, contrarian, or curiosity_gap.
+  1. HOOK          — under 12 spoken words. States exactly what the viewer will learn (see the rules below).
 
-  2. MECHANISM       — 2-4 sentences that explain the WHY behind the hook.
-                       Each sentence is a coherent visual beat downstream (one shot per sentence), so each must stand
-                       alone. Names, numbers, specific things — not vibes. At most 2 numbers or prices per
-                       sentence — a spoken list of prices is noise.
+  2. BODY LINES    — 4-6 sentences that build to ONE takeaway in ONE structure: ${BODY_STRUCTURES.join(' | ')}
+                     (default belief_then_reveal). Somewhere early, one real named proof from SOURCE.
+                     Each sentence is one shot downstream (one picture per sentence), so each must stand alone.
+                     Names, numbers, specific things — not vibes. At most 2 numbers per sentence.
 
-  3. PAYOFF + LOOP   — 1 closing sentence. The last 4-8 words MUST echo a distinctive word from your HOOK: a noun, a
-                       number, or a named entity — NOT a stopword (not "the", "and", "that", "this", "you"). This is
-                       how the viewer loops back to the start.
+  3. TAKEAWAY      — 1 closing sentence: the one insight restated, echoing a distinctive word from the HOOK (a noun,
+                     not a stopword) so the viewer loops back. An allowed call to action only if it still fits.
 
-REGISTER: CONVERSATIONAL register. Audience is general scrolling viewers. Plain language; second person where natural.
-No jargon without a one-clause translation. TIGHT sentences — no padding.
+REGISTER: talk like a friendly expert explaining to one person. Plain words a 9-year-old understands; second person.
+Short sentences, 8-16 words each. One idea per sentence.
 
-TOTAL LENGTH: 45-52 words. The voice reads ~160 words a minute, so the reel lands at ~18-21s. Tight, punchy lines —
-every pause is attention you've lost. Prices and big numbers are read in full ("$135,500" is 7 spoken words):
-round them ("$135K") or keep one per sentence, or the reel runs long.
+TOTAL LENGTH: 60-95 words. The voice reads ~170 words a minute with a breath between sentences, so the short lands at
+~21-34 s. Do not pad: a 65-word lesson that is tight beats a 95-word one that drags. Numbers are read in full
+("$135,500" is 7 spoken words): round them ("$135K").
 
 ──── INLINE TTS TAGS — STRICTLY LIMITED ────
 The "narration" field is passed VERBATIM to a TTS engine. Tags go in [square brackets] BEFORE the clause they modify.
 ${TAG_VOCAB}
 
-PUNCTUATION DISCIPLINE: each comma is ~200ms of silence, em-dash ~300ms, period ~400ms. More than ~5 commas means
-you're slowing it down on purpose. Tighten.
+PUNCTUATION: end every sentence with a period, question mark or exclamation mark (each one is a short breath). Few
+commas inside a sentence.
 
 ──── ANTI-PATTERNS — instant rejection ────
   • "Hey guys", "Did you know", "In this video", "Today we…"
   • "Thanks for watching", "Don't forget to like", "Smash that subscribe"
-  • Generic CTAs ("Follow for more", "Comment below").
-  • Fade-out closes that trail into nothing.
-  • Hedges in the close ("kind of", "sort of", "might be", "maybe").
-  • Padding the word count with filler — tight is better than long.
-  • Inventing facts, names, or numbers not in the essence below.
+  • Hedges ("kind of", "sort of", "might be", "maybe").
+  • Inventing facts, names, customers or numbers not in the SOURCE below.
 
 ──── OUTPUT (JSON, exactly these keys) ────
+  "structure"       : one of ${BODY_STRUCTURES.join(', ')}.
   "hook"            : the literal first spoken words, punctuated.
-  "mechanism_lines" : list of 2-4 sentences (no leading bullets).
-  "payoff_line"     : the closing sentence, with the loop-back keyword.
-  "narration"       : hook + mechanism + payoff concatenated as ONE string, with inline [tags] inserted. Same words,
+  "mechanism_lines" : list of the 4-6 body sentences (opening lines first; no leading bullets or numbering marks).
+  "payoff_line"     : the takeaway sentence.
+  "narration"       : hook + body + takeaway concatenated as ONE string, with inline [tags] inserted. Same words,
                       same order, same punctuation as the structured fields — only tags added.`;
-
-const STOPWORDS = new Set(['the', 'and', 'but', 'for', 'with', 'this', 'that', 'you', 'your', 'are', 'was', 'were', 'they', 'them', 'from', 'have', 'has', 'had', 'what', 'when', 'why', 'how', 'will', 'would', 'could', 'should', 'into', 'their', 'there', 'than', 'then', "here's", 'heres']);
-const clean = (w: string) => w.replace(/^[^\p{L}\p{N}$]+|[^\p{L}\p{N}%]+$/gu, '').toLowerCase();
 
 /** Null when the script is usable; otherwise what to fix. */
 export const scriptProblem = (s: ShortScript): string | null => {
   const words = stripTags(s.narration).split(' ').filter(Boolean);
-  // 45-52 at ~160 wpm ≈ 20 s (reels-af's 55-62 needed a rushed 175+ wpm read). A little slack before rejecting.
-  if (words.length < 40 || words.length > 56) return `The narration has ${words.length} words; write 45-52.`;
-  if (s.mechanismLines.length < 2 || s.mechanismLines.length > 4) return 'Write 2-4 mechanism lines.';
-  const hookWords = s.hook.split(/\s+/).map(clean).filter((w) => w.length >= 4 && !STOPWORDS.has(w));
-  const tail = new Set(words.slice(-12).map(clean));
-  if (hookWords.length && !hookWords.some((w) => tail.has(w))) {
-    return `Loop-back missing: the last 12 words must repeat one of these hook words: ${hookWords.join(', ')}.`;
-  }
+  if (words.length < MIN_WORDS || words.length > MAX_WORDS) return `The narration has ${words.length} words; write 60-95.`;
+  if (s.mechanismLines.length < 3 || s.mechanismLines.length > 6) return 'Write 4-6 body lines.';
+  if (s.hook.split(/\s+/).filter(Boolean).length > 12) return 'The hook is over 12 words: cut it to what the viewer will learn.';
+  const banned = stripTags(s.narration).match(BANNED_PHRASES);
+  if (banned) return `"${banned[0]}" makes it an ad. Remove it: the close is a takeaway, not an offer.`;
   return null;
 };
 
-type RawScript = { hook?: string; mechanism_lines?: string[]; payoff_line?: string; narration?: string };
+type RawScript = { structure?: string; hook?: string; mechanism_lines?: string[]; payoff_line?: string; narration?: string };
 
 /** Footnote marks copied from price lists ("$135,500*") would be read aloud and captioned. */
 const tidy = (t: string | undefined) => (t ?? '').replace(/\*/g, '').replace(/\s{2,}/g, ' ').trim();
@@ -95,6 +89,7 @@ const toScript = (raw: RawScript): ShortScript => ({
   mechanismLines: (raw.mechanism_lines ?? []).map(tidy).filter(Boolean),
   payoffLine: tidy(raw.payoff_line),
   narration: tidy(raw.narration),
+  structure: raw.structure?.trim() || undefined,
 });
 
 const userPrompt = (inputs: ShortInputs, feedback: string | null): string =>
@@ -107,12 +102,17 @@ const userPrompt = (inputs: ShortInputs, feedback: string | null): string =>
   evidence:
 ${(inputs.evidence ?? []).map((e, i) => `    ${i + 1}. ${e}`).join('\n')}
 
-Write the script now. The mechanism_lines unpack \`mechanism\` using the evidence above; the payoff_line lands on a word
-that callbacks the hook.`,
+Write the script now. Teach ONE lesson a future customer would search for, using the facts above as the
+expert's knowledge and proof.`,
     `BRAND: ${inputs.brandName}. Tone: ${inputs.tone}. Audience: ${inputs.audience}.
-OPEN WITH THIS HOOK (our proven bank hook; keep it verbatim, you may drop a trailing colon): "${inputs.hookText}"
-Only use facts from the essence and this site text:
+LESSON TOPIC: ${inputs.meatTopic || inputs.coreClaim}
+STARTING HOOK (from our hook bank): "${inputs.hookText}"
+Keep it verbatim only when it names the topic and the viewer can tell what they will learn from it alone. When it is a
+teaser that hides the topic ("Your next customer is already showing you the signs"), vague or an offer, rewrite it on
+the same topic (a clear outcome, or a question naming the viewer's pain).
+Only use facts from the essence and this SOURCE (site text):
 ${inputs.sourceText}`,
+    educationBlock(inputs),
     feedback ? `YOUR LAST DRAFT WAS REJECTED. Fix this and rewrite the whole script:\n${feedback}` : '',
   ]
     .filter(Boolean)

@@ -23,7 +23,11 @@ const LONG_MAGIC_LINK_TTL_S = 30 * 24 * 60 * 60;
 const SESSION_TTL_S = 30 * 24 * 60 * 60;
 
 export type MagicPayload = { email: string; type: 'magic' };
-export type SessionPayload = { userId: string; email: string; type: 'session' };
+/** `impersonated`: minted by an admin to view the app as this user (short-lived, never stored in localStorage). */
+export type SessionPayload = { userId: string; email: string; type: 'session'; impersonated?: boolean };
+
+/** 1 hour — admin "Open as user" session */
+const IMPERSONATION_TTL_S = 60 * 60;
 
 export function signMagicToken(email: string): string {
   return jwt.sign({ email, type: 'magic' } satisfies MagicPayload, JWT_SECRET, {
@@ -47,6 +51,13 @@ export function verifyMagicToken(token: string): MagicPayload {
 export function signSessionToken(userId: string, email: string): string {
   return jwt.sign({ userId, email, type: 'session' } satisfies SessionPayload, JWT_SECRET, {
     expiresIn: SESSION_TTL_S,
+  });
+}
+
+/** A short session for an admin viewing the app as this user. */
+export function signImpersonationToken(userId: string, email: string): string {
+  return jwt.sign({ userId, email, type: 'session', impersonated: true } satisfies SessionPayload, JWT_SECRET, {
+    expiresIn: IMPERSONATION_TTL_S,
   });
 }
 

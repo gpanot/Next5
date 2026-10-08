@@ -45,6 +45,8 @@ export type ShortScript = {
   hook: string;
   mechanismLines: string[];
   payoffLine: string;
+  /** The lesson's body structure (numbered_list, steps, …); absent on scripts written before 2026-10-08. */
+  structure?: string;
   /** Spoken text with up to 3 inline delivery tags ([curious], [emphasis], [confident]). */
   narration: string;
 };

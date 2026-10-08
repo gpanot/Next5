@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { fmtDate, PAYMENT_BADGE } from '../../lib/admin-format';
+import type { UserWorkspaceDto } from '../../types/admin/workspaceDetail';
 
 type AdminUser = {
   id: string;
@@ -10,7 +11,33 @@ type AdminUser = {
   booking_count: number;
   photo_count: number;
   last_booking: { route_title: string; payment_status: string; created_at: string } | null;
+  workspaces: UserWorkspaceDto[];
 };
+
+/** The user's workspaces; each opens the admin workspace page in a new tab. */
+function WorkspaceLinks({ workspaces }: { workspaces: UserWorkspaceDto[] }) {
+  if (workspaces.length === 0) return <p className="text-[12px] text-muted">No workspace yet.</p>;
+  return (
+    <ul className="flex flex-wrap gap-2">
+      {workspaces.map((w) => (
+        <li key={w.id}>
+          <a
+            href={`/admin/workspaces/${w.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex min-h-10 items-center gap-2 rounded-xl border border-line bg-white px-3 text-[12px] shadow-sm transition hover:border-ink/30 dark:border-zinc-800 dark:bg-zinc-900"
+          >
+            <span className="font-semibold text-ink dark:text-zinc-100">{w.name}</span>
+            <span className="capitalize text-muted">{w.product}</span>
+            {w.websiteUrl && <span className="hidden max-w-48 truncate text-muted sm:inline">{w.websiteUrl.replace(/^https?:\/\//, '')}</span>}
+            {w.deleted && <span className="text-red-600">deleted</span>}
+            <span aria-hidden className="text-muted">↗</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 function StatusBadge({ value, map }: { value: string; map: Record<string, { label: string; color: string }> }) {
   const cfg = map[value] ?? { label: value, color: 'bg-gray-100 text-gray-600' };
@@ -47,6 +74,7 @@ export const UsersTab = ({ token }: UsersTabProps) => {
   const [users, setUsers]     = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
+  const [openId, setOpenId]   = useState<string | null>(null);
 
   useEffect(() => {
     fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
@@ -71,6 +99,7 @@ export const UsersTab = ({ token }: UsersTabProps) => {
           <thead>
             <tr className="border-b border-line bg-surface text-left text-[10px] uppercase tracking-[0.12em] text-muted">
               <Th>Email</Th>
+              <Th>Workspaces</Th>
               <Th>Bookings</Th>
               <Th>Photos</Th>
               <Th>Last Shoot</Th>
@@ -80,18 +109,35 @@ export const UsersTab = ({ token }: UsersTabProps) => {
           </thead>
           <tbody>
             {users.map((u, i) => (
-              <tr key={u.id} className={`border-b border-line last:border-0 ${i % 2 === 1 ? 'bg-surface' : ''}`}>
-                <Td className="font-medium text-ink">{u.email}</Td>
-                <Td>{u.booking_count}</Td>
-                <Td>{u.photo_count}</Td>
-                <Td>{u.last_booking?.route_title ?? '—'}</Td>
-                <Td>
-                  {u.last_booking ? (
-                    <StatusBadge value={u.last_booking.payment_status} map={PAYMENT_BADGE} />
-                  ) : '—'}
-                </Td>
-                <Td className="text-muted">{fmtDate(u.created_at)}</Td>
-              </tr>
+              <Fragment key={u.id}>
+                <tr
+                  onClick={() => setOpenId(openId === u.id ? null : u.id)}
+                  aria-expanded={openId === u.id}
+                  className={`cursor-pointer border-b border-line transition-colors last:border-0 hover:bg-zinc-50 dark:hover:bg-zinc-800 ${i % 2 === 1 ? 'bg-surface' : ''}`}
+                >
+                  <Td className="font-medium text-ink">
+                    <span className="mr-2 inline-block w-3 text-muted">{openId === u.id ? '▾' : '▸'}</span>
+                    {u.email}
+                  </Td>
+                  <Td>{u.workspaces.length}</Td>
+                  <Td>{u.booking_count}</Td>
+                  <Td>{u.photo_count}</Td>
+                  <Td>{u.last_booking?.route_title ?? '—'}</Td>
+                  <Td>
+                    {u.last_booking ? (
+                      <StatusBadge value={u.last_booking.payment_status} map={PAYMENT_BADGE} />
+                    ) : '—'}
+                  </Td>
+                  <Td className="text-muted">{fmtDate(u.created_at)}</Td>
+                </tr>
+                {openId === u.id && (
+                  <tr className="border-b border-line bg-zinc-50 dark:bg-zinc-950">
+                    <td colSpan={7} className="px-4 py-3">
+                      <WorkspaceLinks workspaces={u.workspaces} />
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
           </tbody>
         </table>
