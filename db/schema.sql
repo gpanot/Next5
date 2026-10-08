@@ -815,6 +815,23 @@ CREATE TABLE public.blitz_scheduled_posts (
     sent_at timestamp with time zone,
     posted_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    platform text DEFAULT 'tiktok'::text NOT NULL
+);
+
+
+--
+-- Name: blitz_script_banks; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.blitz_script_banks (
+    id text NOT NULL,
+    brand_profile_id text NOT NULL,
+    status text DEFAULT 'building'::text NOT NULL,
+    content jsonb,
+    error text,
+    cost_micros integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
@@ -1623,6 +1640,31 @@ CREATE TABLE public.shop_connections (
 
 
 --
+-- Name: short_reels; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.short_reels (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    video_model text NOT NULL,
+    status text DEFAULT 'STEP_1_RUNNING'::text NOT NULL,
+    inputs jsonb,
+    attempts jsonb DEFAULT '[]'::jsonb NOT NULL,
+    audio jsonb,
+    beats jsonb DEFAULT '[]'::jsonb NOT NULL,
+    video_key text,
+    poster_key text,
+    step_timings jsonb DEFAULT '{}'::jsonb NOT NULL,
+    step_costs jsonb DEFAULT '{}'::jsonb NOT NULL,
+    failed_step integer,
+    error text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    finished_at timestamp with time zone
+);
+
+
+--
 -- Name: slideshow_banks; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1692,31 +1734,6 @@ CREATE TABLE public.slideshow_references (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT slideshow_references_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'reading'::text, 'ready'::text, 'failed'::text])))
-);
-
-
---
--- Name: short_reels; Type: TABLE; Schema: public; Owner: -
---
-
-CREATE TABLE public.short_reels (
-    id text NOT NULL,
-    workspace_id text NOT NULL,
-    video_model text NOT NULL,
-    status text DEFAULT 'STEP_1_RUNNING'::text NOT NULL,
-    inputs jsonb,
-    attempts jsonb DEFAULT '[]'::jsonb NOT NULL,
-    audio jsonb,
-    beats jsonb DEFAULT '[]'::jsonb NOT NULL,
-    video_key text,
-    poster_key text,
-    step_timings jsonb DEFAULT '{}'::jsonb NOT NULL,
-    step_costs jsonb DEFAULT '{}'::jsonb NOT NULL,
-    failed_step integer,
-    error text,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    finished_at timestamp with time zone
 );
 
 
@@ -1919,7 +1936,8 @@ CREATE TABLE public.studio_runs (
     research_cost_usd_micros bigint,
     created_by text DEFAULT 'admin'::text NOT NULL,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    updated_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    deck_refill_at timestamp(3) without time zone
 );
 
 
@@ -2171,7 +2189,9 @@ CREATE TABLE public.workspaces (
     brand_extract_at timestamp with time zone,
     deleted_at timestamp with time zone,
     purge_at timestamp with time zone,
-    idea_slideshow_pct integer DEFAULT 10 NOT NULL
+    idea_slideshow_pct integer DEFAULT 10 NOT NULL,
+    idea_tz_offset_min integer,
+    ideas_batch_at timestamp(3) without time zone
 );
 
 
@@ -2316,6 +2336,14 @@ ALTER TABLE ONLY public.blitz_projects
 
 ALTER TABLE ONLY public.blitz_scheduled_posts
     ADD CONSTRAINT blitz_scheduled_posts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: blitz_script_banks blitz_script_banks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_script_banks
+    ADD CONSTRAINT blitz_script_banks_pkey PRIMARY KEY (id);
 
 
 --
@@ -2631,6 +2659,14 @@ ALTER TABLE ONLY public.shop_connections
 
 
 --
+-- Name: short_reels short_reels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.short_reels
+    ADD CONSTRAINT short_reels_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: slideshow_banks slideshow_banks_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2676,14 +2712,6 @@ ALTER TABLE ONLY public.slideshow_references
 
 ALTER TABLE ONLY public.slideshow_references
     ADD CONSTRAINT slideshow_references_post_id_key UNIQUE (post_id);
-
-
---
--- Name: short_reels short_reels_pkey; Type: CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.short_reels
-    ADD CONSTRAINT short_reels_pkey PRIMARY KEY (id);
 
 
 --
@@ -3131,6 +3159,13 @@ CREATE INDEX blitz_scheduled_posts_workspace_idx ON public.blitz_scheduled_posts
 
 
 --
+-- Name: blitz_script_banks_brand_profile_id_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX blitz_script_banks_brand_profile_id_key ON public.blitz_script_banks USING btree (brand_profile_id);
+
+
+--
 -- Name: booking_regenerations_booking_id_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3551,6 +3586,20 @@ CREATE UNIQUE INDEX shop_connections_workspace_id_platform_key ON public.shop_co
 
 
 --
+-- Name: short_reels_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX short_reels_created_idx ON public.short_reels USING btree (created_at DESC);
+
+
+--
+-- Name: short_reels_workspace_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX short_reels_workspace_idx ON public.short_reels USING btree (workspace_id, created_at DESC);
+
+
+--
 -- Name: slideshow_credit_ledger_once_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3590,20 +3639,6 @@ CREATE INDEX slideshow_references_created_idx ON public.slideshow_references USI
 --
 
 CREATE INDEX slideshow_references_model_idx ON public.slideshow_references USING btree (model_id);
-
-
---
--- Name: short_reels_created_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX short_reels_created_idx ON public.short_reels USING btree (created_at DESC);
-
-
---
--- Name: short_reels_workspace_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX short_reels_workspace_idx ON public.short_reels USING btree (workspace_id, created_at DESC);
 
 
 --
@@ -4068,6 +4103,14 @@ ALTER TABLE ONLY public.blitz_projects
 
 ALTER TABLE ONLY public.blitz_scheduled_posts
     ADD CONSTRAINT blitz_scheduled_posts_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
+-- Name: blitz_script_banks blitz_script_banks_brand_profile_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.blitz_script_banks
+    ADD CONSTRAINT blitz_script_banks_brand_profile_id_fkey FOREIGN KEY (brand_profile_id) REFERENCES public.studio_brand_profiles(id) ON DELETE CASCADE;
 
 
 --
@@ -4783,4 +4826,7 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261110090000'),
     ('20261111090000'),
     ('20261112090000'),
-    ('20261113090000');
+    ('20261113090000'),
+    ('20261114090000'),
+    ('20261115090000'),
+    ('20261116090000');
