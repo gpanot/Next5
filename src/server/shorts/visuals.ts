@@ -32,7 +32,7 @@ const SHOT_TYPES = [
 export const shotTypeFor = (idx: number): string => SHOT_TYPES[idx % SHOT_TYPES.length];
 
 const ROLE_BLOCK: Record<ShortBeat['role'], string> = {
-  hook: 'ROLE: HOOK — this is the FIRST beat. It must be the most arresting visual in the reel — biggest stop-the-scroll energy. Strong subject, high contrast, one striking but REAL detail (an unusual angle, a tight close-up, a moment of action). Lean toward slow_zoom_in so the frame keeps revealing as the hook lands.',
+  hook: 'ROLE: HOOK — this is the FIRST beat. It must be the most arresting visual in the reel — biggest stop-the-scroll energy. Strong subject, high contrast, one striking but REAL detail (an unusual angle, a tight close-up, a moment of action). Lean toward slow_zoom_in (a short push in) so the frame keeps revealing as the hook lands.',
   payoff: 'ROLE: PAYOFF — this is the LAST beat. Visually CALLBACK the hook when possible: same subject reframed, same location after a moment, or the same object completed. Lean toward `static` so the final image holds and the viewer loops back to the top of the reel.',
   mechanism: 'ROLE: MECHANISM — this is a BODY beat. Illustrate concretely WHAT THIS NARRATIVE LINE SAYS. Not mood — the actual thing. Vary motion across body beats; pick the move that reveals what the line claims.',
 };
@@ -86,7 +86,14 @@ REEL ESSENCE:
   evidence   :
 ${(inputs.evidence ?? []).map((e, i) => `    ${i + 1}. ${e}`).join('\n')}
 
-Return JSON with exactly these keys: {"image_prompt": string, "motion_hint": string, "visual_anchor": string}`;
+MOTION ACTION — the photo becomes the first frame of a short video clip. In "motion_action", write ONE sentence (8-20
+words) of what visibly happens in the next few seconds at REAL-LIFE SPEED, as if filmed on a phone: ordinary, brisk,
+everyday movements (she types a line and glances up; he picks up the box and turns it over). Never "slowly", "gently",
+"gracefully", "in slow motion" or dreamy floating. A beat with no person: what moves naturally (steam, a hand, traffic).
+Use ONLY people and objects your image_prompt puts in the frame: never pick up, open or reveal something that is not in
+the photo (a phone that is not on the desk would pop out of nowhere).
+
+Return JSON with exactly these keys: {"image_prompt": string, "motion_hint": string, "motion_action": string, "visual_anchor": string}`;
 
 const user = (beat: ShortBeat, narration: string) => `FULL REEL NARRATION (for global context — pick a visual that fits the arc, distinct from other beats):
 ${narration}
@@ -100,7 +107,7 @@ image_prompt — 40-80 words. Start with the shot type. 9:16 vertical, subject c
 lower third for captions, the concrete subject of this line (never its figures), everything realistic. Specific
 subject, setting, framing, light.`;
 
-type RawVisual = { image_prompt?: string; motion_hint?: string; visual_anchor?: string };
+type RawVisual = { image_prompt?: string; motion_hint?: string; motion_action?: string; visual_anchor?: string };
 
 const TEXT_WORDS =
   /\b(text|texts|words?|writing|written|letters?|lettering|labels?|labell?ed|signs?|signage|price ?tags?|tags?|typography|captions?|banners?|posters?|billboards?|headlines?|numbers?|digits?|figures?|fonts?|logos?|readable|reads|says|watermarks?|board)\b/i;
@@ -164,7 +171,8 @@ const planBeat = async (beat: ShortBeat, narration: string, inputs: ShortInputs,
   const raw = await creativeJson<RawVisual>(system(beat, inputs, cast), user(beat, narration), meter, 'Shot plan');
   const rawPrompt = (raw.image_prompt ?? beat.text).trim();
   const motion = MOTIONS.includes(raw.motion_hint as MotionHint) ? (raw.motion_hint as MotionHint) : beat.role === 'payoff' ? 'static' : 'slow_zoom_in';
-  return { ...beat, rawImagePrompt: rawPrompt, imagePrompt: sanitizeImagePrompt(rawPrompt), motionHint: motion, visualAnchor: raw.visual_anchor?.trim() };
+  const action = raw.motion_action?.trim().replace(/\b(very )?(slowly|gently|gracefully|in slow motion|slow-motion)\b/gi, '').replace(/\s{2,}/g, ' ');
+  return { ...beat, rawImagePrompt: rawPrompt, imagePrompt: sanitizeImagePrompt(rawPrompt), motionHint: motion, motionAction: action || undefined, visualAnchor: raw.visual_anchor?.trim() };
 };
 
 /** The cast and settings first (one call), then every beat's shot plan in parallel. */
@@ -173,8 +181,30 @@ export const planVisuals = async (beats: ShortBeat[], narration: string, inputs:
   return Promise.all(beats.map((b, i) => planBeat(b, narration, inputs, cast[i] ?? null, meter)));
 };
 
-/** reels-af's video prompt: the shot plus one camera clause. */
-export const videoPrompt = (beat: ShortBeat): string => {
-  const hint = beat.motionHint ?? 'slow_zoom_in';
-  return `${(beat.imagePrompt ?? beat.text).replace(/\.$/, '')}. ${hint === 'static' ? 'Camera: static, no movement' : `Camera: ${hint.replace(/_/g, ' ')}`}.`;
+/**
+ * Camera moves as a phone camera operator does them. The planner's hints keep their stored names, but "slow zoom in" in
+ * the prompt made every clip look like 0.75-0.85× slow motion (user feedback 2026-10-08).
+ */
+const CAMERA: Record<MotionHint, string> = {
+  static: 'Camera: locked off on a tripod, no camera movement',
+  slow_zoom_in: 'Camera: handheld phone, a short push in',
+  slow_zoom_out: 'Camera: handheld phone, a short pull back',
+  pan_left: 'Camera: handheld phone, pans left',
+  pan_right: 'Camera: handheld phone, pans right',
+  ken_burns: 'Camera: handheld phone, natural small drift',
 };
+
+/** Always added: the clip plays at the speed of real life. */
+const REAL_TIME =
+  'Real-time speed: people and things move at normal everyday pace, like an unedited phone video of real life. No slow motion, no time-lapse, no dreamy floating movement.';
+
+/** The video prompt: the shot, what happens in it, the camera, and real-time speed. */
+export const videoPrompt = (beat: ShortBeat): string =>
+  [
+    `${(beat.imagePrompt ?? beat.text).replace(/\.$/, '')}.`,
+    beat.motionAction ? `Action: ${beat.motionAction.replace(/\.$/, '')}.` : '',
+    `${CAMERA[beat.motionHint ?? 'slow_zoom_in']}.`,
+    REAL_TIME,
+  ]
+    .filter(Boolean)
+    .join(' ');

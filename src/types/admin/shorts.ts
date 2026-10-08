@@ -3,14 +3,16 @@
 
 import type { StepCost } from './metaAds';
 
-export type ShortVideoModel = 'veo' | 'seedance';
+export type ShortVideoModel = 'veo' | 'seedance' | 'omni';
 
 export const SHORT_VIDEO_MODELS: Record<ShortVideoModel, { label: string; detail: string; usdPerSecond: number }> = {
   veo: { label: 'Veo 3.1 Lite', detail: 'Google · treg · 720p, 4/6/8 s clips', usdPerSecond: 0.03 },
   seedance: { label: 'Seedance 2.0 Mini', detail: 'ByteDance · reAPI · 720p, any 4-15 s', usdPerSecond: 0.036 },
+  // Billed per clip ($0.347 for 4 s; 360p is priced like 720p, checked 2026-10-08); ~$0.087/s since most beats are 4 s.
+  omni: { label: 'Gemini Omni 1.1', detail: 'Google · reAPI · 360p, 4/6/8/10 s clips', usdPerSecond: 0.087 },
 };
 
-export const isShortVideoModel = (v: unknown): v is ShortVideoModel => v === 'veo' || v === 'seedance';
+export const isShortVideoModel = (v: unknown): v is ShortVideoModel => typeof v === 'string' && v in SHORT_VIDEO_MODELS;
 
 /** A model no longer offered (Wan 3.0, dropped 2026-10-06 as too expensive) still shows on old shorts. */
 export const videoModelLabel = (m: string): string => SHORT_VIDEO_MODELS[m as ShortVideoModel]?.label ?? m;
@@ -58,7 +60,10 @@ export type ClaimVerdict = 'source' | 'web' | 'unsupported';
 export type ShortClaim = { claim: string; verdict: ClaimVerdict; evidence: string };
 
 /** One script draft and what the fact check found in it. The last attempt is the script that was used. */
-export type ShortScriptAttempt = { script: ShortScript; claims: ShortClaim[] };
+/** Jev's 0..1 ratings of one draft as a YouTube Short script (null when Jev did not answer). Added 2026-10-08. */
+export type ShortScriptJev = { overall: number | null; hook: number | null; lesson: number | null };
+
+export type ShortScriptAttempt = { script: ShortScript; claims: ShortClaim[]; jev?: ShortScriptJev };
 
 export type WordTiming = { word: string; startS: number; endS: number };
 
@@ -87,6 +92,10 @@ export type ShortAudio = {
   voice: string;
   words: WordTiming[];
   sentences: number;
+  /** Speed-up applied to every sentence (1 = as read); absent on voices made before 2026-10-08. */
+  tempo?: number;
+  /** The voice's own pace before the speed-up, spoken words a minute without breaths. */
+  rawWpm?: number;
   /** Delivery notes sent with every sentence (Gemini TTS director's notes), written from the brand and script. */
   direction?: string;
   options?: ShortVoiceOption[];
@@ -108,9 +117,19 @@ export type ShortBeat = {
   rawImagePrompt?: string;
   imagePrompt?: string;
   motionHint?: MotionHint;
+  /** What visibly happens during the clip at real-life speed (shot planner, since 2026-10-08). */
+  motionAction?: string;
   /** The evidence item the shot grounds on (its subject is shown, never its number). */
   visualAnchor?: string;
   accent?: string | null;
+  /** Hook only: top of the text in px on the 1080×1920 frame, chosen by Auto Fit at render (absent: default spot). */
+  accentTopY?: number;
+  /** Why Auto Fit put the hook there. */
+  accentFitReason?: string;
+  /** Hook only: the Blitz caption style Gemini picked ('tiktok-red' | 'white-box'); absent on older shorts (Montserrat). */
+  accentStyle?: string;
+  /** Why that style. */
+  accentStyleReason?: string;
   imageKey?: string;
   /** Seconds asked from the video model (≥ span; Veo rounds up to 4/6/8). */
   genS?: number;

@@ -7,6 +7,7 @@ import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import type { ShortBeat } from '../../types/admin/shorts';
 import { ffmpeg, fontDir, withTempDir } from './ffmpeg';
+import { HOOK_DEFAULT_TOP, HOOK_SIDE_MARGIN, HOOK_STYLES, hookText, type HookStyle } from './hookFit';
 
 const W = 1080;
 const H = 1920;
@@ -24,19 +25,47 @@ const assTime = (s: number): string => {
 
 const assText = (t: string) => t.replace(/[{}\\*]/g, '').trim();
 
-/** Each beat's on-screen text: the hook at the top of the first scene, the call to action low on the last. Montserrat Bold. */
+/** ASS style name of each hook look. */
+const HOOK_ASS_STYLE: Record<HookStyle, string> = { 'tiktok-red': 'HookRed', 'white-box': 'HookWhite' };
+
+/** A hook style as an ASS style: an opaque box (BorderStyle 3) behind each line, the outline width as padding. */
+const hookStyleLine = (style: HookStyle): string => {
+  const s = HOOK_STYLES[style];
+  return `Style: ${HOOK_ASS_STYLE[style]},${s.font},${s.sizePx},${s.text},${s.text},${s.box},${s.box},${s.bold ? -1 : 0},0,0,0,100,100,0,0,3,${s.padPx},0,8,${HOOK_SIDE_MARGIN},${HOOK_SIDE_MARGIN},${HOOK_DEFAULT_TOP},1`;
+};
+
+const isHookStyle = (v: unknown): v is HookStyle => typeof v === 'string' && v in HOOK_STYLES;
+
+/** The style and text of one beat's line: the hook in its picked Blitz style (Montserrat on older shorts), the CTA low. */
+const accentLook = (b: ShortBeat): { style: string; text: string } => {
+  const text = assText(b.accent ?? '');
+  if (b.role !== 'hook') return { style: 'AccentLow', text: text.toUpperCase() };
+  if (isHookStyle(b.accentStyle)) return { style: HOOK_ASS_STYLE[b.accentStyle], text: hookText(text, b.accentStyle) };
+  return { style: 'AccentTop', text: text.toUpperCase() };
+};
+
+/** Each beat's on-screen text: the hook at the top of the first scene, the call to action low on the last. */
 export const buildAss = (beats: ShortBeat[]): string => {
   const head = [
     '[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${W}`, `PlayResY: ${H}`, 'WrapStyle: 0', '',
     '[V4+ Styles]',
     'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-    `Style: AccentTop,Montserrat,96,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,7,0,8,70,70,${Math.round(0.16 * H)},1`,
+    `Style: AccentTop,Montserrat,96,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,7,0,8,70,70,${HOOK_DEFAULT_TOP},1`,
+    hookStyleLine('tiktok-red'),
+    hookStyleLine('white-box'),
     `Style: AccentLow,Montserrat,96,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,7,0,2,70,70,${Math.round(0.3 * H)},1`,
     '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
   ];
   const accentLines = beats
     .filter((b) => b.accent)
-    .map((b) => `Dialogue: 2,${assTime(b.startS)},${assTime(b.startS + b.spanS)},${b.role === 'hook' ? 'AccentTop' : 'AccentLow'},,0,0,0,,${assText(b.accent ?? '').toUpperCase()}`);
+    .map((b) => {
+      const { style, text } = accentLook(b);
+      // Auto Fit's spot for the hook: the margin from the top (alignment 8 = top centre), so line wrapping is kept.
+      // The opaque box grows by its padding above the text, so the text starts that much lower.
+      const pad = b.role === 'hook' && isHookStyle(b.accentStyle) ? HOOK_STYLES[b.accentStyle].padPx : 0;
+      const marginV = b.role === 'hook' && typeof b.accentTopY === 'number' ? b.accentTopY + pad : 0;
+      return `Dialogue: 2,${assTime(b.startS)},${assTime(b.startS + b.spanS)},${style},,0,0,${marginV},,${text}`;
+    });
   return [...head, ...accentLines, ''].join('\n');
 };
 
@@ -61,6 +90,19 @@ const cutBeat = async (rb: RenderBeat, dir: string): Promise<string> => {
 };
 
 const escapeFilterPath = (p: string) => p.replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/'/g, "\\'");
+
+/** One 1080×1920 JPEG of `photo` with `beat`'s on-screen text burned in where the render would put it (Auto Fit's input). */
+export const previewFrame = (photo: Buffer, beat: ShortBeat): Promise<Buffer> =>
+  withTempDir(async (dir) => {
+    const src = path.join(dir, 'photo.jpg');
+    const ass = path.join(dir, 'preview.ass');
+    const out = path.join(dir, 'preview.jpg');
+    await writeFile(src, photo);
+    await writeFile(ass, buildAss([{ ...beat, startS: 0, spanS: 5 }]));
+    const vf = `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},subtitles='${escapeFilterPath(ass)}':fontsdir='${escapeFilterPath(fontDir())}'`;
+    await ffmpeg(['-i', src, '-vf', vf, '-frames:v', '1', '-q:v', '3', out]);
+    return readFile(out);
+  });
 
 /** The finished short (mp4) and a poster frame (jpg). */
 export const renderShort = (beats: RenderBeat[], wav: Buffer): Promise<{ video: Buffer; poster: Buffer }> =>

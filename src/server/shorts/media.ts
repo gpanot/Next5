@@ -1,11 +1,10 @@
 // server-only — never import from a 'use client' file.
-// Per-beat media: a 9:16 photo (GPT Image 2.5 on reAPI, as Auto Slideshow; Gemini 3.1 Flash Lite Image via treg when it
+// Per-beat media: a 9:16 photo (FLUX.2 Pro on reAPI since 2026-10-08; Gemini 3.1 Flash Lite Image via treg when it
 // fails), then a clip animated from it as the first frame:
-// Veo 3.1 Lite via treg, or Seedance 2.0 Mini via reAPI direct (treg serves Seedance only with your own key;
+// Veo 3.1 Lite via treg, Gemini Omni 1.1 via reAPI direct (added 2026-10-08 for a test), or Seedance 2.0 Mini via reAPI
+// direct (treg serves Seedance only with your own key;
 // reAPI is $0.036/s at 720p vs $0.076/s on OpenRouter, checked 2026-10-06).
 
-import { REAPI_MODELS } from '../../config/reapiModels';
-import { pollGeminiImage, submitReapiImage } from '../../lib/reapiImage';
 import type { CostMeter } from '../metaAds/cost';
 import { presignObject } from '../storage/objectStore';
 import type { ShortVideoModel } from '../../types/admin/shorts';
@@ -14,36 +13,41 @@ import { tregBytes, tregJson, withRetry } from './treg';
 
 type ImageResponse = { candidates?: { content?: { parts?: { inlineData?: { data?: string } }[] } }[] };
 
-const PHOTO_MODEL = 'reapi-gpt-image-2.5' as const;
 const PHOTO_TIMEOUT_MS = 180_000;
+/** FLUX.2 Pro at 1K on reAPI: $0.028 a photo (reapi.ai/models/flux-2, checked 2026-10-08). */
+const FLUX_USD_MICROS = 28_000;
 const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * GPT Image 2.5 at 864×1536 (9:16), $0.023 a photo, ~30 s. The user found the Gemini Flash Lite photos poor and samey
- * (2026-10-08); GPT Image 2.5 won Auto Slideshow's A/B test on natural people and sharpness (2026-10-02).
+ * FLUX.2 (Pro) on reAPI at 1K, 9:16, the user's pick for Shorts photos (2026-10-08; before: GPT Image 2.5, $0.023).
+ * Async: submit, then poll the task until `output.image_urls` holds the photo.
  */
-const gptImagePhoto = async (prompt: string, meter: CostMeter): Promise<Buffer> => {
-  const { taskId, cost } = await withRetry(() => submitReapiImage({ model: PHOTO_MODEL, prompt, imageUrls: [], ratio: '9:16', highRes: false }));
+const fluxPhoto = async (prompt: string, meter: CostMeter): Promise<Buffer> => {
+  const body = { model: 'flux-2', prompt, aspect_ratio: '9:16', resolution: '1K', content_filter: true };
+  const task = await withRetry(() => reapi('/images/generations', body));
+  if (!task.id) throw new Error('FLUX.2 returned no task id');
   const deadline = Date.now() + PHOTO_TIMEOUT_MS;
-  await sleepMs(8_000);
+  await sleepMs(5_000);
   while (Date.now() < deadline) {
-    const result = await pollGeminiImage(taskId).catch(() => null);
-    if (result?.status === 'completed' && result.url) {
-      meter.add(`Photo · ${REAPI_MODELS[PHOTO_MODEL].label} (reAPI)`, cost);
-      return withRetry(() => downloadUrl(result.url as string));
+    const result = await reapi(`/tasks/${task.id}`).catch(() => null);
+    const status = (result?.status ?? '').toLowerCase();
+    const url = result?.output?.image_urls?.[0];
+    if (status === 'completed' && url) {
+      meter.add('Photo · FLUX.2 Pro (reAPI)', typeof result?.usage?.credits === 'number' ? result.usage.credits * 1_000 : FLUX_USD_MICROS);
+      return withRetry(() => downloadUrl(url));
     }
-    if (result?.status === 'failed') throw new Error(result.error ?? 'Photo generation failed');
+    if (FAILED.has(status)) throw new Error(`FLUX.2 failed: ${JSON.stringify(result?.error ?? status).slice(0, 300)}`);
     await sleepMs(3_000);
   }
-  throw new Error('Photo generation timed out');
+  throw new Error('FLUX.2 photo timed out');
 };
 
-/** A beat's photo: GPT Image 2.5, or the Gemini photo when it fails (moderation, outage). */
+/** A beat's photo: FLUX.2, or the Gemini photo when it fails (moderation, outage). */
 export const makePhoto = async (prompt: string, meter: CostMeter): Promise<Buffer> => {
   try {
-    return await gptImagePhoto(prompt, meter);
+    return await fluxPhoto(prompt, meter);
   } catch (err) {
-    console.warn('[shorts] GPT Image photo failed, using Gemini:', err instanceof Error ? err.message.slice(0, 160) : err);
+    console.warn('[shorts] FLUX.2 photo failed, using Gemini:', err instanceof Error ? err.message.slice(0, 160) : err);
     return geminiPhoto(prompt, meter);
   }
 };
@@ -70,7 +74,8 @@ const geminiPhoto = async (prompt: string, meter: CostMeter): Promise<Buffer> =>
 /** `onSource`: the provider task id (and the result URL when given) as soon as known, so a failed download is not paid twice. */
 export type ClipSource = { taskId?: string; url?: string };
 type ClipInput = { prompt: string; seconds: number; frame: Buffer; frameKey: string; onSource: (s: ClipSource) => void };
-type VideoTask = { id?: string; status?: string; error?: unknown; usage?: { cost?: number; credits?: number }; output?: { video_urls?: string[] } };
+/** A reAPI task (videos and images share the envelope). */
+type VideoTask = { id?: string; status?: string; error?: unknown; usage?: { cost?: number; credits?: number }; output?: { video_urls?: string[]; image_urls?: string[] } };
 
 const POLL_MS = 10_000;
 /** All clips run in parallel inside one function: on Vercel it must end before the 300 s limit. */
@@ -133,7 +138,26 @@ const seedanceClip = async ({ prompt, seconds, frameKey, onSource }: ClipInput, 
   return withRetry(() => downloadUrl(url));
 };
 
-const CLIP_MAKERS: Record<ShortVideoModel, (input: ClipInput, meter: CostMeter) => Promise<Buffer>> = { veo: veoClip, seedance: seedanceClip };
+/** Gemini Omni 1.1 on reAPI, billed per clip; 360p (the user's test setting) is priced like 720p (reapi.ai/docs/gemini-omni-1-1, 2026-10-08). */
+const OMNI_USD: Record<number, number> = { 4: 0.347, 6: 0.462, 8: 0.578, 10: 0.693 };
+
+/** Gemini Omni 1.1 on reAPI: the photo (a signed R2 URL; reAPI rejects data URIs) is pinned as the first frame. Silent clips. */
+const omniClip = async ({ prompt, seconds, frameKey, onSource }: ClipInput, meter: CostMeter): Promise<Buffer> => {
+  const firstFrame = await presignObject(frameKey, 60 * 60);
+  if (!firstFrame?.startsWith('https://')) throw new Error('Gemini Omni needs a public photo URL (R2 storage)');
+  const body = { model: 'gemini-omni-1-1', prompt: prompt.slice(0, 2_000), generation_type: 'frame', image_urls: [firstFrame], duration: seconds, resolution: '360p', aspect_ratio: '9:16' };
+  const task = await reapi('/videos/generations', body);
+  if (!task.id) throw new Error('Gemini Omni returned no task id');
+  onSource({ taskId: task.id });
+  const done = await pollUntilDone(() => reapi(`/tasks/${task.id}`), 'Gemini Omni');
+  const url = done.output?.video_urls?.[0];
+  meter.add('Clips · Gemini Omni 1.1 (reAPI)', typeof done.usage?.credits === 'number' ? done.usage.credits * 1_000 : Math.round((OMNI_USD[seconds] ?? 0.693) * 1e6));
+  if (!url) throw new Error('Gemini Omni returned no video URL');
+  onSource({ taskId: task.id, url });
+  return withRetry(() => downloadUrl(url));
+};
+
+const CLIP_MAKERS: Record<ShortVideoModel, (input: ClipInput, meter: CostMeter) => Promise<Buffer>> = { veo: veoClip, seedance: seedanceClip, omni: omniClip };
 
 /** One clip animated from the beat's photo. Returns the mp4 bytes; throws when the model fails. */
 export const makeClip = (model: ShortVideoModel, input: ClipInput, meter: CostMeter): Promise<Buffer> => {

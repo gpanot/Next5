@@ -18,7 +18,7 @@ export const GET = adminRoute(async () => json({ shorts: await listShorts() }));
 export const POST = adminRoute(async (req: NextRequest) => {
   const body = (await req.json().catch(() => ({}))) as { workspaceId?: unknown; videoModel?: unknown };
   if (typeof body.workspaceId !== 'string' || !body.workspaceId) return json({ error: 'Pick a workspace' }, { status: 400 });
-  if (!isShortVideoModel(body.videoModel)) return json({ error: 'Pick a video model: veo or seedance' }, { status: 400 });
+  if (!isShortVideoModel(body.videoModel)) return json({ error: 'Pick a video model: veo, seedance or omni' }, { status: 400 });
   const workspace = await prisma.workspace.findUnique({ where: { id: body.workspaceId }, select: { id: true } });
   if (!workspace) return json({ error: 'Workspace not found' }, { status: 404 });
   const short = await prisma.shortReel.create({ data: { workspaceId: workspace.id, videoModel: body.videoModel } });

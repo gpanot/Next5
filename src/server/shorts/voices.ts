@@ -58,9 +58,10 @@ Fit the voice to who the brand talks to and how the script sounds: a golf coach 
 luxury car a smooth confident voice, a kitchen app a warm relatable one. Avoid voices that would sound off for it.
 
 Also write "direction": one sentence of delivery notes for the narrator (persona, energy, warmth), e.g.
-"A friendly golf coach talking to a student at the range: confident, upbeat, brisk, never salesy." It is applied
-to every sentence, so describe a steady delivery, not one emotion. The pace is always brisk, like a fast social
-video: never "calm", "slow", "measured" or "relaxed".
+"A friendly golf coach talking to a student at the range: confident, warm, clear, never salesy." It is applied
+to every sentence, so describe a steady delivery, not one emotion. The pace is natural and conversational, like
+explaining something to a friend: clear, with room to breathe. Never "brisk", "fast", "rapid" or "urgent" (2026-10-08:
+"brisk" made the voice rush at ~180 wpm before any speed-up).
 
 Return JSON with exactly these flat keys:
 {"direction": string,

@@ -109,15 +109,24 @@ export async function heardWordTimings(wav: Buffer, scriptWords: string[], audio
 
 const NUMBER_WORDS = /^(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|percent|dollars?|k)$/;
 
+/** A word worth comparing: 3+ letters, not a number written one way and heard another ("5" / "five"). */
+const comparable = (w: string) => w.length >= 3 && !/^\d+$/.test(w) && !NUMBER_WORDS.test(w);
+
 /**
- * Words the voice said that are not in the script: a delivery tag read out loud ("Confident, contact…") or the
- * director's notes ("briskly and confidently") on 2026-10-08. Numbers (written "5", heard "five") and brand names split
- * by Whisper ("Goji Berry" for "Gojiberry") are not counted.
+ * How the voice strayed from the script. `extra`: words said that are not in it, a delivery tag read out loud
+ * ("Confident, contact…") or the director's notes ("briskly and confidently"). `missing`: script words never said
+ * (one 2026-10-08 take read "a B2B sales lead" for "a B2B lead ready to buy"). Brand names split by Whisper ("Goji
+ * Berry" for "Gojiberry") are not counted either way.
  */
-export function extraWords(scriptText: string, heard: Heard[]): string[] {
+export function misreadWords(scriptText: string, heard: Heard[]): { extra: string[]; missing: string[] } {
   const scriptWords = scriptText.split(/\s+/).filter(Boolean).map(norm);
   const heardWords = heard.map((h) => norm(h.word));
-  const matched = new Set(match(scriptWords, heardWords).values());
-  const joined = scriptWords.join('');
-  return heardWords.filter((w, j) => !matched.has(j) && w.length >= 3 && !/^\d+$/.test(w) && !NUMBER_WORDS.test(w) && !joined.includes(w));
+  const pairs = match(scriptWords, heardWords);
+  const heardMatched = new Set(pairs.values());
+  const scriptJoined = scriptWords.join('');
+  const heardJoined = heardWords.join('');
+  return {
+    extra: heardWords.filter((w, j) => !heardMatched.has(j) && comparable(w) && !scriptJoined.includes(w)),
+    missing: scriptWords.filter((w, i) => !pairs.has(i) && comparable(w) && !heardJoined.includes(w)),
+  };
 }

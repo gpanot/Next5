@@ -32,8 +32,9 @@ export const planBeats = (script: ShortScript, words: WordTiming[], audioS: numb
   });
 };
 
-/** Seconds to ask the video model for: at least the span. Veo only makes 4, 6 or 8 s; Seedance any 4-15 s. */
+/** Seconds to ask the video model for: at least the span. Veo makes 4, 6 or 8 s; Gemini Omni 4-10 s; Seedance any 4-15 s. */
 export const genSeconds = (model: ShortVideoModel, spanS: number): number => {
   if (model === 'veo') return [4, 6, 8].find((b) => b >= spanS) ?? 8;
+  if (model === 'omni') return [4, 6, 8, 10].find((b) => b >= spanS) ?? 10;
   return Math.min(15, Math.max(4, Math.ceil(spanS)));
 };

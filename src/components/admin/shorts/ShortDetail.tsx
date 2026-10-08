@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { SHORT_STEP_LABELS, videoModelLabel, type ShortDetailDto, type ShortStep } from '../../../types/admin/shorts';
 import { BeatsPanel } from './BeatsPanel';
+import { NarrationPanel } from './NarrationPanel';
 import { ScriptPanel } from './ScriptPanel';
 import { Section } from './Section';
 import { StatusPill } from './StatusPill';
@@ -100,6 +101,7 @@ export function ShortDetail({ token, id }: { token: string; id: string }) {
           </div>
           <div className="min-w-0 space-y-4">
             <StepsPanel short={short} />
+            <NarrationPanel short={short} />
             <ScriptPanel short={short} />
             <BeatsPanel short={short} />
           </div>

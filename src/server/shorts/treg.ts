@@ -47,7 +47,8 @@ export const withRetry = async <T>(fn: () => Promise<T>, tries = 3): Promise<T> 
       return await fn();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      const retryable = /HTTP (5\d\d|429)|timeout|aborted|fetch failed/i.test(message);
+      // A dropped connection shows up as aborted, terminated, ECONNRESET or socket hang up depending on the client.
+      const retryable = /HTTP (5\d\d|429)|timeout|aborted|terminated|ECONNRESET|socket hang up|fetch failed/i.test(message);
       if (!retryable || attempt >= tries) throw err;
       await new Promise((r) => setTimeout(r, 4_000 * attempt));
     }

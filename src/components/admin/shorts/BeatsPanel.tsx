@@ -4,6 +4,9 @@ import type { ShortBeatDto, ShortDetailDto } from '../../../types/admin/shorts';
 import { Disclosure, Section } from './Section';
 import { seconds } from './useShorts';
 
+/** The Blitz caption styles a hook can use (server/shorts/hookFit.ts). */
+const HOOK_STYLE_LABELS: Record<string, string> = { 'tiktok-red': 'TikTok Red', 'white-box': 'White box' };
+
 function BeatMedia({ beat }: { beat: ShortBeatDto }) {
   return (
     <div className="grid grid-cols-2 gap-2">
@@ -44,11 +47,19 @@ function BeatCard({ beat }: { beat: ShortBeatDto }) {
       <p className="text-sm font-semibold text-app-ink">“{beat.text}”</p>
       {beat.visualAnchor && <p className="text-xs text-app-muted">Grounded on: <span className="text-app-ink">{beat.visualAnchor}</span></p>}
       {beat.accent && <p className="text-xs text-app-muted">On-screen text: <span className="font-bold text-app-ink uppercase">{beat.accent}</span></p>}
+      {beat.role === 'hook' && beat.accent && (
+        <p className="text-xs text-app-muted">
+          Hook position: {typeof beat.accentTopY === 'number' ? `Auto Fit, top at ${beat.accentTopY} px of 1920${beat.accentFitReason ? ` · ${beat.accentFitReason}` : ''}` : 'default (Auto Fit not run or failed)'}
+          <br />
+          Hook style: {beat.accentStyle ? `${HOOK_STYLE_LABELS[beat.accentStyle] ?? beat.accentStyle}${beat.accentStyleReason ? ` · ${beat.accentStyleReason}` : ''}` : 'Montserrat (before styles)'}
+        </p>
+      )}
       <BeatMedia beat={beat} />
       {beat.clipError && <p className="rounded-lg bg-app-accent-soft p-2 font-mono text-[11px] break-words text-app-danger">{beat.clipError}</p>}
       <div className="space-y-1.5">
         {beat.imagePrompt && <Disclosure label="Image prompt (sent)" text={beat.imagePrompt} />}
         {changed && <Disclosure label="Image prompt as planned (before text/number stripping)" text={beat.rawImagePrompt ?? ''} />}
+        {beat.motionAction && <p className="text-xs text-app-muted">Motion: <span className="text-app-ink">{beat.motionAction}</span></p>}
         {beat.videoPrompt && <Disclosure label="Video prompt" text={beat.videoPrompt} />}
       </div>
     </li>

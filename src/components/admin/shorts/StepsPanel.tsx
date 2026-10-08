@@ -8,6 +8,8 @@ const STEPS: ShortStep[] = [1, 2, 3, 4, 5];
 
 const stepState = (short: ShortDetailDto, step: ShortStep): 'done' | 'running' | 'failed' | 'waiting' => {
   if (short.status === `STEP_${step}_RUNNING`) return 'running';
+  // Photos are made while the voice records (since 2026-10-08): step 3 runs during STEP_2 when it has no time yet.
+  if (step === 3 && short.status === 'STEP_2_RUNNING' && short.stepTimings[3] === undefined) return 'running';
   if (short.failedStep === step) return 'failed';
   return short.stepTimings[step] !== undefined ? 'done' : 'waiting';
 };

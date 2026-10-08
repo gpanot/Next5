@@ -14,9 +14,9 @@ const clean = (w: string) => w.replace(/^[^\p{L}\p{N}$]+|[^\p{L}\p{N}%]+$/gu, ''
 /** Hook words worth echoing in the close: 4+ letters, not stopwords. */
 const hookKeywords = (hook: string) => hook.split(/\s+/).map(clean).filter((w) => w.length >= 4 && !STOPWORDS.has(w));
 
-/** 60-95 words at ~170 wpm (pauses included) lands at ~21-34 s; the check allows a little slack. */
-const MIN_WORDS = 55;
-const MAX_WORDS = 100;
+/** 55-85 words at ~160 wpm (breaths included) lands at ~21-32 s; the check allows a little slack. */
+const MIN_WORDS = 50;
+const MAX_WORDS = 90;
 
 const SYSTEM = `You are writing the narration of a 20-40 second vertical educational short (TikTok, Reels, Shorts).
 
@@ -37,8 +37,8 @@ The structure is FIXED. Do not deviate.
 REGISTER: talk like a friendly expert explaining to one person. Plain words a 9-year-old understands; second person.
 Short sentences, 8-16 words each. One idea per sentence.
 
-TOTAL LENGTH: 60-95 words. The voice reads ~170 words a minute with a breath between sentences, so the short lands at
-~21-34 s. Do not pad: a 65-word lesson that is tight beats a 95-word one that drags. Numbers are read in full
+TOTAL LENGTH: 55-85 words. The voice reads ~160 words a minute with a breath between sentences, so the short lands at
+~21-32 s. Do not pad: a 60-word lesson that is tight beats an 85-word one that drags. Numbers are read in full
 ("$135,500" is 7 spoken words): round them ("$135K").
 
 NO TAGS: the "narration" is read verbatim by a TTS engine. Never write [bracketed] delivery tags or stage directions;
@@ -65,7 +65,7 @@ commas inside a sentence.
 /** Null when the script is usable; otherwise what to fix. */
 export const scriptProblem = (s: ShortScript): string | null => {
   const words = stripTags(s.narration).split(' ').filter(Boolean);
-  if (words.length < MIN_WORDS || words.length > MAX_WORDS) return `The narration has ${words.length} words; write 60-95.`;
+  if (words.length < MIN_WORDS || words.length > MAX_WORDS) return `The narration has ${words.length} words; write 55-85.`;
   if (s.mechanismLines.length < 3 || s.mechanismLines.length > 6) return 'Write 4-6 body lines.';
   if (s.hook.split(/\s+/).filter(Boolean).length > 12) return 'The hook is over 12 words: cut it to what the viewer will learn.';
   const keys = hookKeywords(s.hook);

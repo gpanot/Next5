@@ -1,8 +1,10 @@
 // server-only — never import from a 'use client' file.
-// Shorts pipeline: 1 script (+ fact check) → 2 voice → 3 shots + photos → 4 video clips → 5 render.
+// Shorts pipeline: 1 script (+ fact check) → 2 voice ∥ 3 shots + photos → 4 video clips → 5 render.
+// Photos need only the script, so since 2026-10-08 steps 2 and 3 run side by side (saving ~30 s), on an estimated timing;
+// once both are done the photos are re-timed onto the real voice. A re-run from 3 alone runs after the existing voice.
 // A voice swap runs only 2 and 5: the new narration is re-timed onto the existing photos and clips.
-// Each step saves its checkpoint, time and cost on the short. On Vercel (300 s per function) clips and render each
-// start in a fresh invocation via the continue route (photos too: the script step alone can take 2 min); locally the pipeline just keeps going.
+// Each step saves its checkpoint, time and cost on the short. On Vercel (300 s per function) voice + photos, clips and
+// render each start in a fresh invocation via the continue route; locally the pipeline just keeps going.
 
 import { Prisma, type ShortReel } from '@prisma/client';
 import { signAdminToken } from '../../lib/admin-auth';
@@ -12,22 +14,30 @@ import type { StepCost } from '../../types/admin/metaAds';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { clip as clipText } from '../metaAds/text';
 import { appBaseUrl } from '../social/links';
-import { getObject, putObject } from '../storage/objectStore';
+import { getObject as getStoredObject, putObject } from '../storage/objectStore';
 import { genSeconds, planBeats } from './beats';
 import { buildShortInputs } from './brand';
 import { factCheck, factFeedback } from './factCheck';
 import { downloadUrl } from './download';
 import { makeClip, makePhoto, type ClipSource } from './media';
-import { renderShort } from './render';
+import { fitHook } from './hookFit';
+import { previewFrame, renderShort, type RenderBeat } from './render';
 import { writeScript } from './script';
+import { rateScript } from './scriptJev';
 import { photoPrompt, planVisuals, videoPrompt } from './visuals';
 import { stripTags, synthesize } from './voice';
+import { withRetry } from './treg';
 import { pickVoice, planVoices, sampleVoices } from './voices';
 
 const MAX_DRAFTS = 3;
 const json = (v: unknown) => v as Prisma.InputJsonValue;
 const load = (id: string) => prisma.shortReel.findUniqueOrThrow({ where: { id } });
 const keyFor = (id: string, name: string) => `shorts/${id}/${name}`;
+/**
+ * A stored file, downloaded again when the transfer breaks: the render pulls the voice, every photo and every clip at
+ * once, and one R2 download cut mid-body failed a render with "aborted" (2026-10-08). 4 tries over ~24 s.
+ */
+const getObject = (key: string) => withRetry(() => getStoredObject(key), 4);
 
 type StepFn = (short: ShortReel, meter: CostMeter) => Promise<Prisma.ShortReelUpdateInput>;
 
@@ -44,8 +54,8 @@ const scriptStep: StepFn = async (short, meter) => {
   let feedback: string | null = null;
   for (let i = 0; i < MAX_DRAFTS; i++) {
     const script = await writeScript(inputs, meter, feedback);
-    const claims = await factCheck(script, inputs, meter);
-    attempts.push({ script, claims });
+    const [claims, jev] = await Promise.all([factCheck(script, inputs, meter), rateScript(script, inputs)]);
+    attempts.push({ script, claims, jev });
     feedback = factFeedback(claims);
     if (!feedback) break;
   }
@@ -78,27 +88,39 @@ const retimed = (short: ShortReel, audio: ShortAudio): ShortBeat[] | null => {
   return beats.map((b) => ({ ...b, startS: timing[b.idx]?.startS ?? b.startS, spanS: timing[b.idx]?.spanS ?? b.spanS }));
 };
 
-const voiceStep: StepFn = async (short, meter) => {
+/** The voice. `retime`: move existing photos onto it (a voice swap); off when the photos are being made alongside. */
+const makeVoiceStep = (retime: boolean): StepFn => async (short, meter) => {
   const cast = await voiceCast(short, meter);
-  const { wav, durationS, words, sentences } = await synthesize(lastScript(short).narration, { voice: cast.voice, direction: cast.direction }, meter);
+  const { wav, durationS, words, sentences, tempo, rawWpm } = await synthesize(lastScript(short).narration, { voice: cast.voice, direction: cast.direction }, meter);
   const key = keyFor(short.id, 'voice.wav');
   await putObject(key, wav, 'audio/wav');
-  const audio: ShortAudio = { ...cast, key, durationS, words, sentences };
-  const beats = retimed(short, audio);
+  const audio: ShortAudio = { ...cast, key, durationS, words, sentences, tempo, rawWpm };
+  const beats = retime ? retimed(short, audio) : null;
   return { audio: json(audio), ...(beats ? { beats: json(beats) } : {}) };
 };
 
 /** On-screen text (no word captions since 2026-10-08): the hook on the first scene, the call to action on the last. */
 const onScreenText = (beat: ShortBeat, script: ShortScript, count: number): string | null => {
-  if (beat.idx === 0) return script.hook;
+  if (beat.idx === 0) return script.hook.replace(/\.$/, '');
   return beat.idx === count - 1 ? script.cta ?? null : null;
 };
 
+/** Speaking pace used to time the shots while the voice is still recording (the real voice lands ~160-170 wpm). */
+const ESTIMATE_WPM = 165;
+
+/** The beats on the voice's timing, or on an estimate when the voice is not recorded yet (re-timed afterwards). */
+const beatTiming = (short: ShortReel): ShortBeat[] => {
+  const audio = short.audio as unknown as ShortAudio | null;
+  const script = lastScript(short);
+  if (audio?.words?.length) return planBeats(script, audio.words, audio.durationS);
+  const words = stripTags(script.narration).split(' ').filter(Boolean).length;
+  return planBeats(script, [], (words / ESTIMATE_WPM) * 60);
+};
+
 const photoStep: StepFn = async (short, meter) => {
-  const audio = short.audio as unknown as ShortAudio;
   const inputs = short.inputs as unknown as ShortInputs;
   const script = lastScript(short);
-  const timed = planBeats(script, audio.words, audio.durationS);
+  const timed = beatTiming(short);
   const narration = stripTags(script.narration);
   const planned = await planVisuals(timed, narration, inputs, meter);
   const beats = await Promise.all(
@@ -150,6 +172,22 @@ const clipStep: StepFn = async (short, meter) => {
   return { beats: json(done) };
 };
 
+/** The hook styled and placed by Auto Fit on the first photo (every render, so a new photo or hook gets a fresh look). */
+const placeHook = async (parts: RenderBeat[]): Promise<RenderBeat[]> => {
+  const first = parts[0];
+  if (!first?.beat.accent || first.beat.role !== 'hook') return parts;
+  // Previews at the default spot (an earlier render's style and position are dropped).
+  const beat: ShortBeat = { ...first.beat, accentTopY: undefined, accentFitReason: undefined, accentStyle: undefined, accentStyleReason: undefined };
+  const fit = await fitHook(first.photo, beat.accent ?? '', (style) => previewFrame(first.photo, { ...beat, accentStyle: style }));
+  const placedBeat: ShortBeat = {
+    ...beat,
+    accentStyle: fit.style,
+    accentStyleReason: fit.styleReason,
+    ...(fit.topY !== null ? { accentTopY: fit.topY, accentFitReason: fit.reason } : {}),
+  };
+  return [{ ...first, beat: placedBeat }, ...parts.slice(1)];
+};
+
 const renderStep: StepFn = async (short) => {
   const beats = short.beats as unknown as ShortBeat[];
   const audio = short.audio as unknown as ShortAudio;
@@ -162,29 +200,96 @@ const renderStep: StepFn = async (short) => {
       return { beat, photo, clip: beat.clipKey ? await getObject(beat.clipKey) : null };
     }),
   );
-  const { video, poster } = await renderShort(parts, wav);
+  const placed = await placeHook(parts);
+  const { video, poster } = await renderShort(placed, wav);
   const videoKey = keyFor(short.id, 'short.mp4');
   const posterKey = keyFor(short.id, 'poster.jpg');
   await Promise.all([putObject(videoKey, video, 'video/mp4'), putObject(posterKey, poster, 'image/jpeg')]);
-  return { videoKey, posterKey };
+  return { videoKey, posterKey, beats: json(placed.map((p) => p.beat)) };
 };
 
-const STEPS: Record<ShortStep, StepFn> = { 1: scriptStep, 2: voiceStep, 3: photoStep, 4: clipStep, 5: renderStep };
-/** Steps that start in their own invocation on Vercel. */
+const STEPS: Record<ShortStep, StepFn> = { 1: scriptStep, 2: makeVoiceStep(true), 3: photoStep, 4: clipStep, 5: renderStep };
+/** Steps that start in their own invocation on Vercel (2 when it runs with 3: voice and photos together). */
 const FRESH_INVOCATION = new Set<ShortStep>([3, 4, 5]);
+
+const locks = new Map<string, Promise<unknown>>();
+/** One write at a time per short: voice and photos run side by side and both read-modify-write its JSON columns. */
+const serialized = <T>(id: string, fn: () => Promise<T>): Promise<T> => {
+  const run = (locks.get(id) ?? Promise.resolve()).then(fn, fn);
+  const tail = run.catch(() => undefined);
+  locks.set(id, tail);
+  void tail.then(() => {
+    if (locks.get(id) === tail) locks.delete(id);
+  });
+  return run;
+};
 
 /** A re-run step keeps what earlier attempts spent as one line, so the total is what was really paid. */
 const withEarlier = (cost: StepCost, earlier: StepCost | undefined): StepCost =>
   earlier?.usdMicros ? { usdMicros: cost.usdMicros + earlier.usdMicros, items: [...cost.items, { label: 'Earlier attempts', usdMicros: earlier.usdMicros }] } : cost;
 
-const saveStep = async (id: string, step: ShortStep, ms: number, cost: StepCost, data: Prisma.ShortReelUpdateInput) => {
-  const short = await load(id);
-  const timings = short.stepTimings as Record<string, number>;
-  const costs = short.stepCosts as Record<string, StepCost>;
-  await prisma.shortReel.update({
-    where: { id },
-    data: { ...data, stepTimings: json({ ...timings, [step]: (timings[step] ?? 0) + ms }), stepCosts: json({ ...costs, [step]: withEarlier(cost, costs[step]) }) },
+const saveStep = (id: string, step: ShortStep, ms: number, cost: StepCost, data: Prisma.ShortReelUpdateInput) =>
+  serialized(id, async () => {
+    const short = await load(id);
+    const timings = short.stepTimings as Record<string, number>;
+    const costs = short.stepCosts as Record<string, StepCost>;
+    await prisma.shortReel.update({
+      where: { id },
+      data: { ...data, stepTimings: json({ ...timings, [step]: (timings[step] ?? 0) + ms }), stepCosts: json({ ...costs, [step]: withEarlier(cost, costs[step]) }) },
+    });
   });
+
+type Failure = { step: ShortStep; message: string };
+
+/** One step: runs it on the latest short and saves its checkpoint, time and cost. A failure is returned, not thrown. */
+const runStep = async (id: string, step: ShortStep, fn: StepFn = STEPS[step]): Promise<Failure | null> => {
+  const t0 = Date.now();
+  const meter = createMeter();
+  try {
+    const data = await fn(await load(id), meter);
+    await saveStep(id, step, Date.now() - t0, meter.summary(), data);
+    return null;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`[shorts] ${id} step ${step} FAILED:`, message);
+    await saveStep(id, step, Date.now() - t0, meter.summary(), {}).catch(() => undefined);
+    return { step, message };
+  }
+};
+
+const markRunning = (id: string, step: ShortStep) =>
+  prisma.shortReel.update({ where: { id }, data: { status: `STEP_${step}_RUNNING`, error: null, failedStep: null } });
+
+/** Runs `fn` and returns its result with how long it took. */
+const clocked = async <T>(fn: () => Promise<T>): Promise<[T, number]> => {
+  const t0 = Date.now();
+  return [await fn(), Date.now() - t0];
+};
+
+/**
+ * Steps 2 and 3 side by side, then the photos moved onto the real voice. The status shows 3 once the voice is done.
+ * Each step keeps its own time; the time they overlapped is saved as a negative `overlap` entry so the short's total
+ * time (the sum of its step times) stays the real elapsed time.
+ */
+const runVoiceAndPhotos = async (id: string): Promise<Failure | null> => {
+  await markRunning(id, 2);
+  const [[[voice, voiceMs], [photos, photoMs]], wallMs] = await clocked(() =>
+    Promise.all([
+      clocked(() => runStep(id, 2, makeVoiceStep(false))).then(async (r) => {
+        if (!r[0]) await prisma.shortReel.updateMany({ where: { id, status: 'STEP_2_RUNNING' }, data: { status: 'STEP_3_RUNNING' } });
+        return r;
+      }),
+      clocked(() => runStep(id, 3)),
+    ]),
+  );
+  await serialized(id, async () => {
+    const short = await load(id);
+    const timings = short.stepTimings as Record<string, number>;
+    const overlap = (timings.overlap ?? 0) - Math.max(0, voiceMs + photoMs - wallMs);
+    const beats = voice || photos ? null : retimed(short, short.audio as unknown as ShortAudio);
+    await prisma.shortReel.update({ where: { id }, data: { stepTimings: json({ ...timings, overlap }), ...(beats ? { beats: json(beats) } : {}) } });
+  });
+  return voice ?? photos;
 };
 
 /** True when a fresh invocation took over from `step`. */
@@ -212,20 +317,14 @@ export const VOICE_SWAP_STEPS: ShortStep[] = [2, 5];
 export const runShortPipeline = async (id: string, fromStep: ShortStep = 1, continued = false, steps: ShortStep[] = ALL_STEPS): Promise<void> => {
   for (let step = fromStep; step <= 5; step = (step + 1) as ShortStep) {
     if (!steps.includes(step)) continue;
-    if (FRESH_INVOCATION.has(step) && !(continued && step === fromStep) && (await handOff(id, step))) return;
-    const t0 = Date.now();
-    const meter = createMeter();
-    try {
-      await prisma.shortReel.update({ where: { id }, data: { status: `STEP_${step}_RUNNING`, error: null, failedStep: null } });
-      const data = await STEPS[step](await load(id), meter);
-      await saveStep(id, step, Date.now() - t0, meter.summary(), data);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(`[shorts] ${id} step ${step} FAILED:`, message);
-      await saveStep(id, step, Date.now() - t0, meter.summary(), {}).catch(() => undefined);
-      await prisma.shortReel.update({ where: { id }, data: { status: 'FAILED', failedStep: step, error: clipText(message, 1_000), finishedAt: new Date() } });
+    const together = step === 2 && steps.includes(3);
+    if ((together || FRESH_INVOCATION.has(step)) && !(continued && step === fromStep) && (await handOff(id, step))) return;
+    const failure = together ? await runVoiceAndPhotos(id) : await markRunning(id, step).then(() => runStep(id, step));
+    if (failure) {
+      await prisma.shortReel.update({ where: { id }, data: { status: 'FAILED', failedStep: failure.step, error: clipText(failure.message, 1_000), finishedAt: new Date() } });
       return;
     }
+    if (together) step = 3;
   }
   await prisma.shortReel.update({ where: { id }, data: { status: 'COMPLETED', finishedAt: new Date() } });
 };

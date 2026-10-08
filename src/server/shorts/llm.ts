@@ -1,15 +1,16 @@
 // server-only — never import from a 'use client' file.
 // Text models for the creative steps, at low reasoning, called directly on OpenAI (treg has no general text model).
-// Benchmarked 2026-10-06: the script is on gpt-5.5 (keeps the 2-numbers rule, fewer unsupported claims, ~$0.04 a
-// script); shot plans and accents on gpt-5.4-mini. DeepSeek V4 Pro was dropped (~70 s a script). If a call fails,
+// Benchmarked 2026-10-08 (2 runs each of DeepSeek V4 Pro, gpt-5.4, gpt-5.5, gpt-5.4-mini on the same brief, rated by Jev):
+// quality was a near tie, so the script moved to gpt-5.4-mini (~5 s and under $0.01 a script vs gpt-5.5's $0.02-0.08).
+// DeepSeek V4 Pro was 100-140 s a script and no better. Shot plans are on gpt-5.4-mini too. If a call fails,
 // gpt-5.4-nano takes over so a short never dies on a text step.
 
 import type { CostMeter } from '../metaAds/cost';
 import { metaAdsJson } from '../metaAds/llm';
 
 /** The script writer. */
-export const SCRIPT_MODEL = process.env.SHORTS_SCRIPT_MODEL ?? 'gpt-5.5';
-/** Shot plans and accents. */
+export const SCRIPT_MODEL = process.env.SHORTS_SCRIPT_MODEL ?? 'gpt-5.4-mini';
+/** Shot plans, cast and voice casting. */
 const CREATIVE_MODEL = process.env.SHORTS_CREATIVE_MODEL ?? 'gpt-5.4-mini';
 const FALLBACK_MODEL = 'gpt-5.4-nano';
 /** Reasoning effort: low is fast; medium thinks longer and was no better in the benchmark. */

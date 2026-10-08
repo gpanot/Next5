@@ -9,6 +9,7 @@ import type { ShortAudio, ShortBeat, ShortDetailDto, ShortDto, ShortInputs, Shor
 
 const sign = (key: string | null | undefined) => (key ? presignObject(key) : Promise.resolve(null));
 
+/** Cost and time of all steps. Time includes the negative `overlap` entry: voice and photos run at the same time. */
 const totals = (short: ShortReel) => {
   const costs = Object.values(short.stepCosts as Record<string, StepCost>);
   const timings = Object.values(short.stepTimings as Record<string, number>);
@@ -67,7 +68,7 @@ export const getShortDetail = async (id: string): Promise<ShortDetailDto | null>
     inputs: short.inputs as unknown as ShortInputs | null,
     attempts: short.attempts as unknown as ShortScriptAttempt[],
     audio: audio
-      ? { durationS: audio.durationS, voice: audio.voice, words: audio.words, sentences: audio.sentences, direction: audio.direction, pickedBy: audio.pickedBy, options, url: audioUrl }
+      ? { durationS: audio.durationS, voice: audio.voice, words: audio.words, sentences: audio.sentences, tempo: audio.tempo, rawWpm: audio.rawWpm, direction: audio.direction, pickedBy: audio.pickedBy, options, url: audioUrl }
       : null,
     beats: signedBeats,
     stepTimings: short.stepTimings as Partial<Record<ShortStep, number>>,
