@@ -76,7 +76,7 @@ export function CanvasTile({ day, entries, focused, onOpen }: Props) {
       aria-label={label}
       aria-pressed={focused}
       title={label}
-      className={`relative block aspect-[4/5] w-full rounded-[14px] text-left transition hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-default disabled:hover:translate-y-0${muted ? 'opacity-40' : ''} ${isOver ? 'ring-[3px] ring-blue-600' : edgeOf(entries, focused, day.past || !day.inMonth)} ${entries.some((e) => e.status === 'making') && !countdown ? 'animate-pulse' : ''}`}
+      className={`relative block aspect-[9/16] w-full rounded-[14px] text-left transition hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-default disabled:hover:translate-y-0 ${muted ? 'opacity-40' : ''} ${isOver ? 'ring-[3px] ring-blue-600' : edgeOf(entries, focused, day.past || !day.inMonth)} ${entries.some((e) => e.status === 'making') && !countdown ? 'animate-pulse' : ''}`}
     >
       <Cover entries={entries} />
       {countdown && <MakingCountdown since={countdown} />}
