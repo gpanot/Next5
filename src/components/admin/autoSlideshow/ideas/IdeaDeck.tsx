@@ -28,36 +28,49 @@ type Props = {
   plannedAt?: string;
   /** Asked before a keep (it uses a credit): false leaves the card where it is. */
   confirmKeep?: () => Promise<boolean>;
-  /** Pinned outside the card, top right (the deck's ⋯ menu). */
+  /** The deck's ⋯ menu: pinned outside the card, top right. */
   menu?: ReactNode;
 };
 
 export type DeckSize = 'panel' | 'day' | 'page';
 
-/** Card widths that keep ~48px free on each side for the sound buttons (36px + gap) while the card stays centered.
+/** Card sizes that keep ~48px free on each side for the sound buttons (36px + gap) while the card stays centered.
  *  Phone panel: the height left after the tight header (~4.5rem) and the controls + undo row (~7.5rem) goes to the card. */
-const CARD_WIDTH: Record<DeckSize, string> = {
-  panel: 'w-[min(calc(100vw-6rem),calc((100dvh-13rem)*0.5625),380px)] lg:w-[min(calc((100dvh-28rem)*0.5625),260px)]',
-  day: 'w-[min(calc(100vw-11.5rem),calc((100dvh-18rem)*0.5625),300px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
-  /** The Ideas page: every bit of height left after its header (title, chips) and the controls goes to the card. */
-  page: 'w-[min(calc(100vw-6rem),calc((100dvh-20rem)*0.5625),420px)] lg:w-[min(calc((100dvh-20rem)*0.5625),480px)]',
+const CARD_SIZE: Record<DeckSize, string> = {
+  panel: 'aspect-[9/16] w-[min(calc(100vw-6rem),calc((100dvh-13rem)*0.5625),380px)] lg:w-[min(calc((100dvh-28rem)*0.5625),260px)]',
+  day: 'aspect-[9/16] w-[min(calc(100vw-11.5rem),calc((100dvh-18rem)*0.5625),300px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
+  /** The Ideas page: every bit of height left after its compact header and the controls goes to the card, 9:16.
+   *  Phones: as wide as the screen allows, the buttons sit on the card. Desktop: the buttons beside it. */
+  page: 'aspect-[9/16] w-[min(calc(100vw-5rem),calc((100dvh-13.5rem)*0.5625))] lg:w-[min(calc((100dvh-20rem)*0.5625),480px)]',
 };
+
+/** Where the ⋯ menu and the sound buttons sit: beside the card, or (sound) on it on the Ideas page on phones. */
+const MENU_AT = { beside: 'top-0 left-full ml-1.5', on: 'top-0 left-full ml-0.5 lg:ml-1.5' };
+const SIDE_AT = { beside: 'bottom-0 left-full ml-1.5', on: 'bottom-14 right-3 lg:bottom-0 lg:right-auto lg:left-full lg:ml-1.5' };
 
 const round = 'flex items-center justify-center rounded-full border shadow-sm transition active:scale-90 disabled:opacity-30';
 
-/** The three buttons under the card: ✕ skip, pencil (another first line), ✓ keep. */
-function Controls({ idea, onSkip, onKeep, onEditHook }: { idea: IdeaDto; onSkip: () => void; onKeep: () => void; onEditHook: () => void }) {
+type ControlsProps = { idea: IdeaDto; onSkip: () => void; onKeep: () => void; onEditHook: () => void; undo?: ReactNode };
+
+/** The buttons under the card: ✕ skip, pencil (another first line), ✓ keep; `undo` left of ✕ (the Ideas page on phones).
+ *  The pencil stays under the card's middle whatever sits left of it. */
+function Controls({ idea, onSkip, onKeep, onEditHook, undo }: ControlsProps) {
   return (
-    <div className="flex items-center justify-center gap-5">
-      <button type="button" onClick={onSkip} aria-label="Skip this idea" className={`${round} h-14 w-14 border-line bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200`}>
-        <X aria-hidden className="h-6 w-6" />
-      </button>
+    <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-5">
+      <div className="flex items-center justify-end gap-5">
+        {undo}
+        <button type="button" onClick={onSkip} aria-label="Skip this idea" className={`${round} h-14 w-14 border-line bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200`}>
+          <X aria-hidden className="h-6 w-6" />
+        </button>
+      </div>
       <button type="button" onClick={onEditHook} disabled={idea.hooks.length === 0} aria-label="Pick another first line" className={`${round} h-11 w-11 border-line bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300`}>
         <Pencil aria-hidden className="h-4 w-4" />
       </button>
-      <button type="button" onClick={onKeep} aria-label="Keep this idea" className={`${round} h-14 w-14 border-app-cta bg-app-cta text-app-cta-ink hover:bg-app-cta/90`}>
-        <Check aria-hidden className="h-6 w-6" />
-      </button>
+      <div className="flex justify-start">
+        <button type="button" onClick={onKeep} aria-label="Keep this idea" className={`${round} h-14 w-14 border-app-cta bg-app-cta text-app-cta-ink hover:bg-app-cta/90`}>
+          <Check aria-hidden className="h-6 w-6" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -82,11 +95,12 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
       onDecide(idea, status);
     }, EXIT_MS);
   };
+  const at = size === 'page' ? 'on' : 'beside';
   const tags = [{ label: formatLabel(idea), variant: 'style' as const }, { label: card.lensValue, variant: 'audience' as const }];
   return (
     <div className="flex flex-col items-center gap-2 lg:gap-3">
       {/* Centered over ✕ / ✓; sized by the screen height (✕ and ✓ stay in view) and leaving room for the sound buttons. */}
-      <div className={`relative aspect-[9/16] ${CARD_WIDTH[size]}`} aria-live="polite">
+      <div className={`relative ${CARD_SIZE[size]}`} aria-live="polite">
         {back && next && <SwipeCard key={back.id} shots={back.shots} captionConfig={captionFor(next)} position="back1" hue={back.hue} onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} />}
         <SwipeCard
           key={card.id}
@@ -103,14 +117,25 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
           soundOn={soundOn}
           ariaLabel={`${formatLabel(idea)} idea: ${idea.hook}`}
         />
-        {menu && <div className="absolute top-0 left-full z-10 ml-1.5">{menu}</div>}
-        <div className="absolute bottom-0 left-full ml-1.5">
-          <DeckSide soundOn={soundOn} onToggleSound={toggleSound} onShuffle={onShuffle && idea.card ? () => onShuffle(idea) : null} trackLabel={card.audio?.label ?? null} />
+        {menu && <div className={`absolute z-10 ${MENU_AT[at]}`}>{menu}</div>}
+        <div className={`absolute z-10 ${SIDE_AT[at]}`}>
+          <DeckSide overlay={at === 'on'} soundOn={soundOn} onToggleSound={toggleSound} onShuffle={onShuffle && idea.card ? () => onShuffle(idea) : null} trackLabel={card.audio?.label ?? null} />
         </div>
       </div>
       <CardMusic url={card.audio?.url ?? null} startAt={card.audio?.startAt ?? 0} playing={soundOn && !exit} />
-      <Controls idea={idea} onSkip={() => void decide('discarded')} onKeep={() => void decide('kept')} onEditHook={() => onEditHook(idea)} />
-      <div className="-mt-1 flex items-center gap-3 text-xs text-muted lg:mt-0">
+      <Controls
+        idea={idea}
+        onSkip={() => void decide('discarded')}
+        onKeep={() => void decide('kept')}
+        onEditHook={() => onEditHook(idea)}
+        undo={at === 'on' && (
+          <button type="button" onClick={onUndo} disabled={!canUndo} aria-label="Undo" className={`${round} h-11 w-11 border-line bg-white text-zinc-600 hover:bg-zinc-50 lg:hidden dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300`}>
+            <Undo2 aria-hidden className="h-4 w-4" />
+          </button>
+        )}
+      />
+      {/* The Ideas page on phones: undo sits left of ✕ and the date is the page title. */}
+      <div className={`-mt-1 flex items-center gap-3 text-xs text-muted lg:mt-0 ${at === 'on' ? 'max-lg:hidden' : ''}`}>
         <button type="button" onClick={onUndo} disabled={!canUndo} className="flex min-h-10 lg:min-h-11 items-center gap-1 px-2 font-semibold transition hover:text-ink disabled:opacity-30 dark:hover:text-zinc-100">
           <Undo2 aria-hidden className="h-4 w-4" /> Undo
         </button>

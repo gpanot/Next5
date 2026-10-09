@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { IDEAS_PER_BATCH, REQUESTED_SLIDESHOWS, type IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { RotatingLine } from '../../shared/RotatingLine';
 import { MakingCountdown } from '../calendar/MakingCountdown';
@@ -9,6 +9,7 @@ import { IdeasEmpty, useMoreIdeas } from './IdeasEmpty';
 import { KeptIdeas } from './KeptIdeas';
 import { LiveDeck } from './LiveDeck';
 import { MakeStatus } from './MakeStatus';
+import { PostDateTitle } from './PostDateTitle';
 import type { IdeasState } from './useIdeas';
 
 export type Make = { making: boolean; errors: Record<string, string>; make: (kept: IdeaDto[], prepare?: () => Promise<boolean>) => Promise<void> };
@@ -33,24 +34,39 @@ const SLIDESHOW_LINES = [
 /** Writing a batch of ideas usually takes about three and a half minutes (14 stories, footage and images). */
 const TYPICAL_IDEAS_MS = 210_000;
 
-const deckBox = 'relative mx-auto aspect-[9/16] h-[min(853px,calc(100dvh-20rem))] max-w-full rounded-[26px] bg-app-sunken';
+const deckBox = 'relative mx-auto aspect-[9/16] w-[min(calc(100vw-5rem),calc((100dvh-13.5rem)*0.5625))] rounded-[26px] bg-app-sunken lg:w-auto lg:max-w-full lg:h-[min(853px,calc(100dvh-20rem))]';
 
-/** The title, "3 / 14" for the filter, a progress bar, and the All · Blitz · Slideshow chips. */
-function Header({ ideas }: { ideas: IdeasState }) {
+/**
+ * The title, "3 / 14" for the filter, a progress bar, and the All · Blitz · Slideshow chips. Compact on phones; while the
+ * deck shows there, the title is the day the idea will be posted and the chips move into its ⋯ menu.
+ */
+type HeaderProps = { ideas: IdeasState; placeOf: Placer; onPickDate: (idea: IdeaDto, at: string) => void };
+
+function Header({ ideas, placeOf, onPickDate }: HeaderProps) {
   const total = ideas.deck.length + ideas.kept.length + ideas.skipped.length;
   const decided = ideas.kept.length + ideas.skipped.length;
+  const shown = ideas.loading ? null : ideas.current;
   return (
-    <div className="space-y-2 lg:space-y-3">
+    <div className="space-y-1.5 lg:space-y-3">
       <header className="flex items-baseline gap-3">
-        <h1 className="min-w-0 flex-1 font-heading text-2xl font-normal text-app-ink lg:text-3xl">Your next 2 weeks</h1>
+        <h1 className="min-w-0 flex-1 font-heading text-xl leading-tight font-normal text-app-ink lg:text-3xl">
+          {shown ? (
+            <>
+              <span className="lg:hidden">
+                <PostDateTitle idea={shown} at={placeOf(shown) ?? shown.plannedAt} onChange={(at) => onPickDate(shown, at)} />
+              </span>
+              <span className="max-lg:hidden">Your next 2 weeks</span>
+            </>
+          ) : 'Your next 2 weeks'}
+        </h1>
         {total > 0 && <span className="text-[13px] font-medium text-app-muted tabular-nums">{Math.min(decided + 1, total)} / {total}</span>}
       </header>
       {total > 0 && (
-        <div className="h-1 overflow-hidden rounded-full bg-app-sunken" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={decided} aria-label="Ideas looked at">
+        <div className="h-0.5 overflow-hidden rounded-full bg-app-sunken lg:h-1" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={decided} aria-label="Ideas looked at">
           <div className="h-full rounded-full bg-app-accent transition-[width] duration-300" style={{ width: `${(decided / total) * 100}%` }} />
         </div>
       )}
-      <FormatChips ideas={ideas} />
+      <FormatChips ideas={ideas} className={shown ? 'hidden lg:flex' : ''} />
     </div>
   );
 }
@@ -112,9 +128,13 @@ function Body({ ideas, maker, placeOf }: Props): ReactNode {
  */
 export function IdeasPanel({ ideas, maker, placeOf }: Props) {
   const making = ideas.making.length;
+  // Dates picked from the title's pen (phones): shown there and used when the idea is kept.
+  const [picked, setPicked] = useState<Record<string, string>>({});
+  const placeWith: Placer = (idea) => picked[idea.id] ?? placeOf?.(idea);
+  const pickDate = (idea: IdeaDto, at: string) => setPicked((p) => ({ ...p, [idea.id]: at }));
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col gap-3 lg:gap-4">
-      <Header ideas={ideas} />
+    <div className="mx-auto flex w-full max-w-xl flex-col gap-2 lg:gap-4">
+      <Header ideas={ideas} placeOf={placeWith} onPickDate={pickDate} />
       {making > 0 && ideas.deck.length > 0 && (
         <p className="flex items-center gap-2 rounded-xl bg-app-sunken px-3 py-2 text-xs text-app-muted">
           <span aria-hidden className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-app-line border-t-app-accent" />
@@ -122,7 +142,7 @@ export function IdeasPanel({ ideas, maker, placeOf }: Props) {
         </p>
       )}
       {ideas.error && ideas.deck.length + ideas.kept.length > 0 && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{ideas.error}</p>}
-      <Body ideas={ideas} maker={maker} placeOf={placeOf} />
+      <Body ideas={ideas} maker={maker} placeOf={placeWith} />
       <MakeStatus kept={ideas.kept} maker={maker} />
     </div>
   );
