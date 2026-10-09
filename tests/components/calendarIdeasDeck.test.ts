@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deckOrder } from '../../src/components/admin/autoSlideshow/ideas/useIdeas';
+import { ListSync, deckOrder } from '../../src/components/admin/autoSlideshow/ideas/useIdeas';
 import { entriesOf, statusOf } from '../../src/components/admin/autoSlideshow/calendar/tileModel';
 import type { PlanDay } from '../../src/components/admin/autoSlideshow/calendar/monthPlan';
 import type { BlitzScheduleDto } from '../../src/types/admin/blitzSchedule';
@@ -49,5 +49,35 @@ describe('calendar tile statuses', () => {
     const ideas = [idea('b1', 'blitz', { plannedAt: '2026-10-12T09:00:00Z' }), idea('b2', 'blitz', { status: 'discarded' }), idea('b3', 'blitz', { status: 'kept', plannedAt: '2026-10-12T20:00:00Z' })];
     expect(entriesOf(day, ideas).map((e) => [e.id, e.status])).toEqual([['planned', 'ready'], ['b3', 'ready']]);
     expect(entriesOf({ ...day, past: true }, ideas).map((e) => e.id)).toEqual(['planned']);
+  });
+});
+
+describe('ListSync (fast swipes)', () => {
+  it('keeps a skip still being saved when an earlier answer comes back', () => {
+    const sync = new ListSync();
+    sync.hold('b1', 'discarded');
+    sync.take();
+    sync.hold('b2', 'discarded');
+    sync.take();
+    // Skip #1 answered: the server saw b1 skipped, not b2 yet.
+    sync.release('b1', 'discarded');
+    const shown = sync.overlay([idea('b1', 'blitz', { status: 'discarded' }), idea('b2', 'blitz')]);
+    expect(shown.map((i) => i.status)).toEqual(['discarded', 'discarded']);
+  });
+
+  it('drops an answer older than the one shown', () => {
+    const sync = new ListSync();
+    const first = sync.take();
+    const second = sync.take();
+    expect(sync.stale(second)).toBe(false);
+    expect(sync.stale(first)).toBe(true);
+  });
+
+  it('lets a later swipe on the same card win', () => {
+    const sync = new ListSync();
+    sync.hold('b1', 'discarded');
+    sync.hold('b1', 'proposed'); // undo
+    sync.release('b1', 'discarded');
+    expect(sync.overlay([idea('b1', 'blitz', { status: 'discarded' })])[0]!.status).toBe('proposed');
   });
 });
