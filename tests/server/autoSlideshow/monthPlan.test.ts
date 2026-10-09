@@ -17,18 +17,25 @@ const post = (slideshowId: string, scheduledAt: Date, status: AutoPostDto['statu
 const kinds = (days: PlanDay[]) => days.map((d) => d.slots.map((s) => s.item?.kind ?? 'empty'));
 
 const october = new Date(2026, 9, 1);
-type Extra = { pending?: number; working?: boolean; month?: Date; targets?: Targets; pins?: Pins };
+type Extra = { pending?: number; working?: boolean; month?: Date; targets?: Targets; pins?: Pins; now?: Date };
 const plan = (slideshows: AutoSlideshowDto[], extra: Extra = {}) =>
-  buildMonth({ slideshows, pending: extra.pending ?? 0, working: extra.working, month: extra.month ?? october, targets: extra.targets, pins: extra.pins, now });
+  buildMonth({ slideshows, pending: extra.pending ?? 0, working: extra.working, month: extra.month ?? october, targets: extra.targets, pins: extra.pins, now: extra.now ?? now });
 const dayOf = (days: PlanDay[], key: string) => days.find((d) => d.key === key)!;
 
 describe('buildMonth', () => {
-  it('shows whole Monday-Sunday weeks around the month', () => {
-    const { days } = plan([]);
-    expect(days[0]!.key).toBe('2026-09-28');
-    expect(days.at(-1)!.key).toBe('2026-11-01');
-    expect(days).toHaveLength(35);
-    expect(days.find((d) => d.today)!.key).toBe('2026-10-01');
+  it('starts the current month at today, in whole weeks', () => {
+    const { days } = plan([], { now: new Date(2026, 9, 9, 10, 0) });
+    expect(days[0]!.key).toBe('2026-10-09');
+    expect(days[0]!.today).toBe(true);
+    expect(days.at(-1)!.key).toBe('2026-11-05');
+    expect(days).toHaveLength(28);
+  });
+
+  it('shows whole Monday-Sunday weeks around another month', () => {
+    const { days } = plan([], { month: new Date(2026, 10, 1) });
+    expect(days[0]!.key).toBe('2026-10-26');
+    expect(days.at(-1)!.key).toBe('2026-12-06');
+    expect(days).toHaveLength(42);
   });
 
   it('with no day picked, waiting slideshows go one a day from tomorrow at 7 PM, and nothing is empty', () => {
@@ -63,7 +70,7 @@ describe('buildMonth', () => {
 
   it('shows past posts in their day', () => {
     const posted = show(0, 'ready', post('s0', new Date(2026, 8, 29, 19, 0), 'posted'));
-    const { days } = plan([posted]);
+    const { days } = plan([posted], { month: new Date(2026, 8, 1) });
     expect(dayOf(days, '2026-09-29').past).toBe(true);
     expect(kinds([dayOf(days, '2026-09-29')])[0]).toEqual(['post']);
   });

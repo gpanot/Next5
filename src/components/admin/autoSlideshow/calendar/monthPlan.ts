@@ -9,7 +9,7 @@ import { MAX_PER_DAY, POST_TIMES } from '../../../../lib/postTimes';
  *   in day order; empty ones are what "Generate" makes.
  * - Waiting slideshows left over (no target slot) go one a day at 7 PM on the next free days from tomorrow.
  * - Blitz videos put on the calendar from the Content page (`blitz`) sit at their own time, like live posts.
- * The page shows one calendar month (Monday to Sunday weeks); targets and pins in any month count.
+ * The page shows one calendar month (Monday to Sunday weeks; this month from today on); targets and pins in any month count.
  */
 
 export type DayItem =
@@ -44,10 +44,17 @@ const addDays = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), 
 export const monthOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 export const addMonths = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth() + n, 1);
 
-/** Monday on or before the 1st, through Sunday on or after the last day. */
-const gridOf = (month: Date) => {
+/**
+ * Monday on or before the 1st, through Sunday on or after the last day. The month holding today starts at today
+ * instead (past days are not shown), still in whole weeks of 7 days.
+ */
+const gridOf = (month: Date, today: Date) => {
   const first = monthOf(month);
   const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+  if (today >= first && today <= last) {
+    const weeks = Math.ceil((last.getDate() - today.getDate() + 1) / 7);
+    return { start: today, end: addDays(today, weeks * 7 - 1) };
+  }
   return { start: addDays(first, -((first.getDay() + 6) % 7)), end: addDays(last, (7 - last.getDay()) % 7) };
 };
 
@@ -144,7 +151,7 @@ export const buildMonth = (input: PlanInput): MonthPlan => {
   const byDay = postsByDay(input.slideshows);
   const videos = blitzByDay(input.blitz ?? []);
   const { queue, pinned } = waitingQueue(input.slideshows, input.pending, input.working ?? true, input.pins ?? {}, tomorrow);
-  const grid = gridOf(input.month);
+  const grid = gridOf(input.month, today);
   const from = grid.start < tomorrow ? grid.start : tomorrow;
   const lastKey = [...pinned.keys(), ...Object.keys(targets)].sort().at(-1);
   const lastDate = lastKey ? new Date(`${lastKey}T00:00`) : grid.end;

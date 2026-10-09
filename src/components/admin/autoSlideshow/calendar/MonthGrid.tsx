@@ -8,6 +8,12 @@ import type { TileEntry } from './tileModel';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+/** Column headers starting on the grid's first day (Monday, or today's weekday when the month starts at today). */
+const weekdaysFrom = (first: Date | undefined) => {
+  const offset = first ? (first.getDay() + 6) % 7 : 0;
+  return [...WEEKDAYS.slice(offset), ...WEEKDAYS.slice(0, offset)];
+};
+
 /** The day open below the grid (phones and tablets) before one is picked: today, else the month's first future day. */
 const firstPick = (days: PlanDay[]) => days.find((d) => d.today && d.inMonth) ?? days.find((d) => d.inMonth && !d.past) ?? days.find((d) => d.inMonth) ?? days[0];
 
@@ -32,7 +38,7 @@ export function MonthGrid({ days, entriesOf, selectedKey, focusKey, onSelect, de
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-7 gap-1 md:gap-x-2.5 md:gap-y-3">
-        {WEEKDAYS.map((d) => <p key={d} className="px-1 text-center text-[10px] font-bold tracking-wide text-zinc-500 uppercase md:text-left md:text-xs md:normal-case">{d}</p>)}
+        {weekdaysFrom(days[0]?.date).map((d) => <p key={d} className="px-1 text-center text-[10px] font-bold tracking-wide text-zinc-500 uppercase md:text-left md:text-xs md:normal-case">{d}</p>)}
         {days.map((day) => {
           const entries = entriesOf(day);
           const focused = day.key === selectedKey || day.key === focusKey;
