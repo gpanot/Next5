@@ -14,11 +14,11 @@ import { compressJpeg, PHOTO_SIZE } from './jpeg';
 
 export type PhotoGenConfig = { model: ReapiModelId; ratio: ReapiRatio; highRes: boolean };
 /**
- * GPT Image 2.5 at native 4:5 (1632x2048), $0.023 a photo, about 33 s. It beat Grok Imagine 2 ($0.017, 864x1152 at 3:4,
- * cropped) on the same 10 scenes (A/B test 2026-10-02): more natural people and scenes, sharper. Grok repeated one person
- * twice in a frame and refused a fitness photo in moderation. Back to Grok: model 'reapi-grok-imagine-2-official', '3:4', false.
+ * FLUX.2 at 2K ($0.039 a photo, about 90 s), the user's pick for every generated photo since 2026-10-09. FLUX.2 has no
+ * 4:5, so it is asked 3:4 and compressJpeg crops it to 4:5. Before: GPT Image 2.5 at native 4:5 ($0.023), which beat
+ * Grok Imagine 2 on the same 10 scenes (A/B test 2026-10-02). Back to it: model 'reapi-gpt-image-2.5', '4:5', true.
  */
-export const PHOTO_GEN: PhotoGenConfig = { model: 'reapi-gpt-image-2.5', ratio: '4:5', highRes: true };
+export const PHOTO_GEN: PhotoGenConfig = { model: 'reapi-flux-2', ratio: '3:4', highRes: true };
 /** reAPI allows 10 tasks in flight per account; 5 leaves room for Perfect Ads and retries. */
 const CONCURRENCY = 5;
 const FIRST_POLL_MS = 8_000;

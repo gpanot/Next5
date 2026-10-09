@@ -1,12 +1,13 @@
 // server-only — never import from a 'use client' file.
-// 9:16 image generation via reAPI GPT Image 2.5 (`gpt-image-2.5-flare`), the model the Auto Slideshow photos use.
+// 9:16 image generation via reAPI FLUX.2 (`flux-2`, 2K).
 // Used by the Blitz "Generate AI background" button and by the slideshow engines' image fallback.
 
-import type { ReapiModelId } from '../../config/reapiModels';
+import { REAPI_MODELS, type ReapiModelId } from '../../config/reapiModels';
 import { pollGeminiImage, submitReapiImage } from '../../lib/reapiImage';
 
-/** GPT Image 2.5: more natural people and scenes than Nano Banana 2 Lite, $0.023 flat at 2K (1152x2048 for 9:16). */
-const MODEL: ReapiModelId = 'reapi-gpt-image-2.5';
+/** FLUX.2 at 2K ($0.039 an image), replacing GPT Image 2.5 (2026-10-09). The model name is stored on the generated assets. */
+const MODEL: ReapiModelId = 'reapi-flux-2';
+export const VERTICAL_IMAGE_MODEL = REAPI_MODELS[MODEL].apiModel;
 const FIRST_POLL_MS = 8_000;
 const POLL_MS = 3_000;
 const MAX_WAIT_MS = 5 * 60_000;

@@ -11,6 +11,7 @@ export type ReapiModelId =
   | 'reapi-grok-imagine'
   | 'reapi-grok-imagine-2-official'
   | 'reapi-nano-banana-2'
+  | 'reapi-flux-2'
   | 'gemini-3-pro-image'
   | 'reapi-fallback-gpt-image-2.5'
   | 'reapi-fallback-nano-banana-2';
@@ -18,10 +19,11 @@ export type ReapiModelId =
 /**
  * How the model takes its output size:
  * - `aspect_ratio`: `aspect_ratio: "9:16"`, 1K only.
+ * - `aspect_resolution`: `aspect_ratio: "9:16"` plus `resolution: "1K" | "2K"`.
  * - `ratio`: `size: "9:16"` plus `resolution: "1K" | "2K"`.
  * - `pixels`: `size: "WIDTHxHEIGHT"`.
  */
-export type ReapiSizing = 'aspect_ratio' | 'ratio' | 'pixels';
+export type ReapiSizing = 'aspect_ratio' | 'aspect_resolution' | 'ratio' | 'pixels';
 
 export type ReapiModel = {
   id: ReapiModelId;
@@ -34,6 +36,8 @@ export type ReapiModel = {
   supports2k: boolean;
   priceUsdMicros: Readonly<Record<'1k' | '2k', number>>;
   extraBody?: Readonly<Record<string, string | number>>;
+  /** Field for the reference images. Default `image_urls`. */
+  imagesField?: 'image_urls' | 'input_urls';
 };
 
 const GPT_IMAGE_2_5: Omit<ReapiModel, 'id'> = {
@@ -115,6 +119,19 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     extraBody: { resolution: '1k', quality: 'low', n: 1 },
   },
   'reapi-nano-banana-2': { id: 'reapi-nano-banana-2', ...NANO_BANANA_2 },
+  'reapi-flux-2': {
+    id: 'reapi-flux-2',
+    // Black Forest Labs FLUX.2 (Pro tier): Blitz deck images and "Generate AI background" since 2026-10-09.
+    apiModel: 'flux-2',
+    label: 'FLUX.2',
+    note: 'Natural, photographic scenes.',
+    maxImages: 8,
+    sizing: 'aspect_resolution',
+    supports2k: true,
+    imagesField: 'input_urls',
+    // $0.028 at 1K, $0.039 at 2K. Checked 2026-10-09, reapi.ai/models/flux-2.
+    priceUsdMicros: { '1k': 28_000, '2k': 39_000 },
+  },
   'gemini-3-pro-image': {
     id: 'gemini-3-pro-image',
     apiModel: 'gemini-3-pro-image-preview',

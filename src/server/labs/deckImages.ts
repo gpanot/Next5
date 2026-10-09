@@ -7,7 +7,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '../../lib/db';
 import { deleteFromR2, uploadToR2 } from '../../lib/r2';
 import { blitzBrowserUrl, blitzKeys, blitzMediaKind } from '../admin/blitzStore';
-import { generateVerticalImage } from '../ai/imageGeneration';
+import { VERTICAL_IMAGE_MODEL, generateVerticalImage } from '../ai/imageGeneration';
 import { HttpError } from '../http';
 
 export type DeckImageDto = {
@@ -100,7 +100,7 @@ export async function regenerateDeckImage(id: string): Promise<DeckImageDto> {
   const r2Key = blitzKeys.asset(`${id}-${randomUUID().slice(0, 8)}`, image.ext);
   await uploadToR2(r2Key, image.buffer, image.contentType);
   const updated = await prisma.blitzAsset.update({ where: { id }, data: { r2Key }, include: withDescriptor });
-  await prisma.assetDescriptor.updateMany({ where: { blitzAssetId: id }, data: { model: 'gpt-image-2.5-flare' } });
+  await prisma.assetDescriptor.updateMany({ where: { blitzAssetId: id }, data: { model: VERTICAL_IMAGE_MODEL } });
   await deleteFromR2(asset.r2Key).catch((err) => console.warn('[deckImages] old file delete failed:', err));
   return toDto(updated);
 }

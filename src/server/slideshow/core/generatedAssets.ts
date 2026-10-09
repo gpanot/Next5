@@ -10,7 +10,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '../../../lib/db';
 import { uploadToR2 } from '../../../lib/r2';
 import { chatJson } from '../../ai/openai';
-import { generateVerticalImage } from '../../ai/imageGeneration';
+import { VERTICAL_IMAGE_MODEL, generateVerticalImage } from '../../ai/imageGeneration';
 import { blitzKeys } from '../../admin/blitzStore';
 import { embedDescriptorRows } from '../../labs/assetDescriptor/embedding';
 import { categoryLabel } from './categories';
@@ -97,7 +97,7 @@ async function createAsset(plan: ImagePlan, need: ImageNeed, categories: string[
       kind: 'background',
       source: 'ai_generated',
       status: 'done',
-      model: 'gpt-image-2.5-flare',
+      model: VERTICAL_IMAGE_MODEL,
       descriptor,
       retrievalText: `${plan.description} AI image for ${need.role} shots.`,
       rightsRisk: 'none',

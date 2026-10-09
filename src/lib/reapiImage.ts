@@ -68,6 +68,7 @@ export type SubmitReapiParams = {
 const sizeFields = (model: ReapiModelId, ratio: ReapiRatio, highRes: boolean): Record<string, string> => {
   const spec = REAPI_MODELS[model];
   if (spec.sizing === 'aspect_ratio') return { aspect_ratio: ratio };
+  if (spec.sizing === 'aspect_resolution') return { aspect_ratio: ratio, resolution: highRes && spec.supports2k ? '2K' : '1K' };
   if (spec.sizing === 'pixels') return { size: reapiPixelSize(ratio, highRes && spec.supports2k) };
   return { size: ratio, resolution: highRes && spec.supports2k ? '2K' : '1K' };
 };
@@ -80,7 +81,7 @@ export const submitReapiImage = async (params: SubmitReapiParams): Promise<{ tas
     prompt: params.prompt,
     ...sizeFields(params.model, params.ratio, params.highRes),
     ...spec.extraBody,
-    ...(params.imageUrls.length ? { image_urls: params.imageUrls.slice(0, spec.maxImages) } : {}),
+    ...(params.imageUrls.length ? { [spec.imagesField ?? 'image_urls']: params.imageUrls.slice(0, spec.maxImages) } : {}),
   });
   const id = res.id ?? res.task_id;
   if (!id) throw new Error('reAPI returned no task id');
