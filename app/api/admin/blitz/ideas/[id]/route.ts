@@ -6,6 +6,9 @@ import type { IdeaPatch } from '../../../../../../src/types/admin/calendarIdeas'
 
 type Ctx = { params: Promise<{ id: string }> };
 
+/** Another first line fits its caption again: two vision calls, up to ~75 s when the models are slow. */
+export const maxDuration = 120;
+
 const STATUSES: NonNullable<IdeaPatch['status']>[] = ['proposed', 'kept', 'discarded'];
 
 /** The patch, with only the fields it may carry. */

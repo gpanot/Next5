@@ -133,17 +133,17 @@ async function pool<T>(jobs: Array<() => Promise<T>>, limit: number): Promise<T[
 const shotKey = (s: DeckShot) => `${s.assetKey ?? ''}|${s.trimStart ?? 0}|${s.text.trim()}`;
 
 /**
- * Fits the caption of every shot of `cards`, in place of the text-safe-zone guess. Story shots shared by a brief's
- * cards (same clip, same line) are fitted once. Never throws: a failed shot keeps its zone position.
+ * Fitted caption heights for `shots` (same order), one attempt each; null where a shot cannot be fitted (it keeps its
+ * position). Shots with the same clip and line are fitted once. Never throws.
  */
-export async function fitDeckCaptions(cards: DeckItem[]): Promise<DeckItem[]> {
+export async function fitShotCaptions(shots: DeckShot[]): Promise<Array<number | null>> {
   const font = await loadFont();
   if (!font) {
-    console.warn('[caption-fit] Montserrat did not load; captions keep their text-safe zones');
-    return cards;
+    console.warn('[caption-fit] Montserrat did not load; captions keep their positions');
+    return shots.map(() => null);
   }
   const unique = new Map<string, DeckShot>();
-  for (const shot of cards.flatMap((c) => c.shots)) if (shot.assetKey && shot.text.trim()) unique.set(shotKey(shot), shot);
+  for (const shot of shots) if (shot.assetKey && shot.text.trim()) unique.set(shotKey(shot), shot);
   const keys = [...unique.keys()];
   const started = Date.now();
   const fitted = await pool(keys.map((k) => () => fitShot(unique.get(k)!, font).catch((err: unknown) => {
@@ -152,10 +152,20 @@ export async function fitDeckCaptions(cards: DeckItem[]): Promise<DeckItem[]> {
   })), CONCURRENCY);
   const byKey = new Map(keys.map((k, i) => [k, fitted[i]] as const));
   console.log(`[caption-fit] ${fitted.filter((y) => y != null).length}/${keys.length} shots fitted in ${Date.now() - started} ms`);
+  return shots.map((s) => byKey.get(shotKey(s)) ?? null);
+}
+
+/**
+ * Fits the caption of every shot of `cards`, in place of the text-safe-zone guess. Story shots shared by a brief's
+ * cards (same clip, same line) are fitted once. Never throws: a failed shot keeps its zone position.
+ */
+export async function fitDeckCaptions(cards: DeckItem[]): Promise<DeckItem[]> {
+  const ys = await fitShotCaptions(cards.flatMap((c) => c.shots));
+  let n = 0;
   return cards.map((c) => ({
     ...c,
     shots: c.shots.map((s) => {
-      const y = byKey.get(shotKey(s));
+      const y = ys[n++];
       return y == null ? s : { ...s, positionY: y };
     }),
   }));

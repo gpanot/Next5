@@ -228,7 +228,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
   const durationSeconds = deck.fixedDurationSeconds ?? freeFormSeconds;
   useMissingAssetRefresh(slides, assets, setAssets, !isLoading);
   const hookCta = useHookCtaStyle(text, () => setCurrentSlideIndex(0));
-  const captionFit = useSlideCaptionFit({ slides, setSlides, currentIndex: currentSlideIndex, assets, fallbackBackgroundKey: currentAssets.backgroundKey, textConfig: text.resolved, businessText: mentionBusiness ? businessText : undefined });
+  const captionFit = useSlideCaptionFit({ slides, setSlides, currentIndex: currentSlideIndex, assets, fallbackBackgroundKey: currentAssets.backgroundKey, textConfig: text.resolved, businessText: mentionBusiness ? businessText : undefined, autoRefitCardId: editingCardId });
   // ── load the carousel template + assets ────────────────────────────────
   useEffect(() => {
     Promise.all([blitzApi.listTemplates(client), blitzApi.listAssets(client)])
@@ -557,7 +557,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 flush={Boolean(workspaceRunId)}
                 captionConfig={text.resolved}
                 library={libraryGrid}
-                aside={(card, sound) => <DeckAside card={card} sound={sound} deckCards={deckCards} setDeckCards={setDeckCards} assets={assets} />}
+                aside={(card, sound) => <DeckAside card={card} sound={sound} deckCards={deckCards} setDeckCards={setDeckCards} assets={assets} captionConfig={text.resolved} />}
               />
             </div>
           <OpenPostError message={openPost.error} />

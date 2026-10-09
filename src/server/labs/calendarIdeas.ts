@@ -9,6 +9,7 @@ import type { Prisma, SlideshowVariant } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { BLITZ_LIVE } from '../../types/admin/blitzSchedule';
 import { IDEAS_PER_BATCH, IDEA_DAYS, REQUESTED_SLIDESHOWS, type IdeaDayRequest, type IdeaDto, type IdeaPatch, type IdeasListDto, type MadeSlideshow } from '../../types/admin/calendarIdeas';
+import { fitShotCaptions } from '../slideshow/core/captionFit';
 import { ARCHETYPE_LABELS, ARCHETYPE_WHY, type DeckItem } from '../slideshow/core/deckAssembly';
 import { logSwipe } from '../slideshow/core/variants';
 import { runAutoPipeline } from '../autoSlideshow/pipeline';
@@ -225,17 +226,23 @@ const refill = async (workspaceId: string, at: Date | null) => {
   if (next && at) await prisma.slideshowVariant.update({ where: { id: next.id }, data: { plannedAt: at } });
 };
 
-/** A bank card's other first line: the hook shot's text and the card's archetype change; the old hook becomes an option. */
+/**
+ * A bank card's other first line: the hook shot's text and the card's archetype change; the old hook becomes an option.
+ * The new line is longer or shorter than the old one, so its caption is fitted again (one attempt; on failure it keeps
+ * the old line's position).
+ */
 const swapOtherHook = async (row: SlideshowVariant, card: DeckItem, hookId: string) => {
   const others = card.script?.otherHooks ?? [];
   const next = others.find((h) => `${OTHER_HOOK}${h.archetype}` === hookId);
   if (!card.script || !next) throw new HttpError(404, 'hook_not_found', 'That hook is gone. Pick another.');
   const previous = { archetype: card.archetype, text: firstLine(card) };
+  const hookShot = card.shots[0] && { ...card.shots[0], text: next.text };
+  const [fittedY] = hookShot ? await fitShotCaptions([hookShot]) : [null];
   const swapped: DeckItem = {
     ...card,
     archetype: next.archetype,
     hookStyle: ARCHETYPE_LABELS[next.archetype],
-    shots: card.shots.map((shot, i) => (i === 0 ? { ...shot, text: next.text } : shot)),
+    shots: card.shots.map((shot, i) => (i === 0 ? { ...shot, text: next.text, ...(fittedY != null ? { positionY: fittedY } : {}) } : shot)),
     whyPanel: { ...card.whyPanel, hookStyle: ARCHETYPE_LABELS[next.archetype], hookStyleReason: ARCHETYPE_WHY[next.archetype] },
     script: { ...card.script, archetype: next.archetype, otherHooks: [...others.filter((h) => h !== next), previous] },
   };

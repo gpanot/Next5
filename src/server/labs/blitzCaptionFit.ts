@@ -30,6 +30,7 @@ export type CaptionFitResult = { captionPositionY: number; reason: string };
 const SYSTEM_PROMPT = [
   'You are a TikTok / Reels video editor. You place the caption on one 9:16 slide (canvas 1080×1920 px, origin top-left).',
   'Image 1 = the picture alone. Image 2 = the slide as it looks now, with the caption.',
+  'The images may be sent smaller than the canvas (often half size, 540×960). Every number you read or return is in canvas px (1080×1920): scale what you see in the images up to the canvas.',
   'Goal: the caption is easy to read and the picture still tells its story.',
   'CAPTION rules:',
   "- Never cover a person's head or face (boxes given below). Usually above the heads, or in the emptiest calm area (sky, wall, floor).",
@@ -97,11 +98,17 @@ async function layoutCall(input: CaptionFitInput, bg: BackgroundRegions): Promis
 
 /** One caption Auto Fit run. Null when the model fails or returns no usable height. */
 export async function autoFitCaption(input: CaptionFitInput): Promise<CaptionFitResult | null> {
-  const bg = await detectBackgroundRegions(input.backgroundJpeg)
-    .catch((): BackgroundRegions => ({ faces: [], subject: null }));
+  // One detection attempt: without heads the caption is placed by the layout call alone, so say so in the logs.
+  const bg = await detectBackgroundRegions(input.backgroundJpeg).catch((err: unknown): BackgroundRegions => {
+    console.warn('[caption-fit] head detection failed, placing without the head guard:', err instanceof Error ? err.message.split('\n')[0] : err);
+    return { faces: [], subject: null };
+  });
   const raw = await layoutCall(input, bg);
   const bottomY = (raw?.caption as Record<string, unknown> | undefined)?.bottomY;
-  if (typeof bottomY !== 'number' || !Number.isFinite(bottomY)) return null;
+  if (typeof bottomY !== 'number' || !Number.isFinite(bottomY)) {
+    console.warn(`[caption-fit] layout call gave no caption height for "${input.captionText.slice(0, 60)}"`);
+    return null;
+  }
   const { bottom, moved } = clearOfHeads(bottomY, input.layout.caption, bg.faces);
   const reason = typeof raw?.reason === 'string' ? raw.reason.trim().slice(0, 240) : '';
   return {

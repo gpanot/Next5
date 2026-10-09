@@ -43,7 +43,7 @@ function toBox(raw: unknown): Box | null {
   return { x: (xmin! / 1000) * W, y: (ymin! / 1000) * H, w: ((xmax! - xmin!) / 1000) * W, h: ((ymax! - ymin!) / 1000) * H };
 }
 
-/** Heads + main subject of the background frame, in canvas px. Empty on failure. */
+/** Heads + main subject of the background frame, in canvas px. Throws when the call fails or the reply is unreadable. */
 export async function detectBackgroundRegions(backgroundJpeg: string): Promise<BackgroundRegions> {
   const text = await openRouterChat(
     [{
@@ -57,6 +57,8 @@ export async function detectBackgroundRegions(backgroundJpeg: string): Promise<B
     { model: BLITZ_DETECT_MODEL, maxTokens: 3000, temperature: 0, timeoutMs: 30_000 },
   );
   const raw = parseJsonObject(text);
+  // Callers catch and go on without heads; an unreadable reply (cut off, no JSON) must reach their logs.
+  if (!raw) throw new Error('detection reply has no JSON');
   const faces = Array.isArray(raw?.faces) ? raw.faces.map(toBox).filter((b): b is Box => b !== null) : [];
   return { faces: faces.slice(0, 6), subject: toBox(raw?.subject) };
 }

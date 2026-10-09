@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, type Dispatch, type SetStateAction } from 'react';
-import { slideTextConfig } from '../../../../remotion/slideTextConfig';
 import type { TextConfig } from '../../../../remotion/types';
 import { useLabClient } from '../../LabClientProvider';
-import { blitzApi, type BlitzAssetDto } from '../api';
+import type { BlitzAssetDto } from '../api';
 import type { SlideData } from '../SlidePreview';
 import { isLocalKey } from '../useBlitzUploads';
-import { buildCaptionSnapshot } from './snapshot';
+import { fitSlideCaption } from './fitSlideCaption';
+import { useAutoCaptionRefit } from './useAutoCaptionRefit';
 
 type Options = {
   slides: SlideData[];
@@ -19,9 +19,9 @@ type Options = {
   fallbackBackgroundKey: string;
   textConfig: TextConfig;
   businessText?: string;
+  /** The deck card open in the editor: its slides are fitted again on their own when their picture or line changes. */
+  autoRefitCardId?: string | null;
 };
-
-const isImageKey = (key: string) => /\.(jpe?g|png|webp|gif|avif)$/i.test(key);
 
 /**
  * Slideshow "Auto Fit" (same CTA as the green-screen editor's): snapshot the current slide, let the vision model
@@ -29,6 +29,7 @@ const isImageKey = (key: string) => /\.(jpe?g|png|webp|gif|avif)$/i.test(key);
  */
 export function useSlideCaptionFit(o: Options) {
   const client = useLabClient();
+  useAutoCaptionRefit({ ...o, cardId: o.autoRefitCardId ?? null });
   const [busy, setBusy] = useState(false);
   // Error and reason belong to the slide they were made for.
   const [result, setResult] = useState<{ index: number; error: string | null; reason: string | null } | null>(null);
@@ -44,22 +45,16 @@ export function useSlideCaptionFit(o: Options) {
   const run = async () => {
     if (disabledReason || !slide) return;
     const index = o.currentIndex;
-    const asset = o.assets.find((a) => a.r2Key === key);
     setBusy(true);
     setResult(null);
     try {
-      const snap = await buildCaptionSnapshot({
-        backgroundUrl: asset?.url ?? `/api/admin/blitz/proxy?key=${encodeURIComponent(key)}`,
-        backgroundIsImage: asset ? asset.mediaKind === 'image' : isImageKey(key),
-        captionText: text,
-        textConfig: { ...slideTextConfig(o.textConfig, index, o.slides.length), ...(slide.positionY != null ? { positionY: slide.positionY } : {}) },
-        businessText: o.businessText,
+      const fit = await fitSlideCaption(client, {
+        backgroundKey: key, text, index, count: o.slides.length, positionY: slide.positionY,
+        textConfig: o.textConfig, assets: o.assets, businessText: o.businessText,
       });
-      const res = await blitzApi.autoFitCaption(client, { ...snap, captionText: text });
-      if (!res.ok) throw new Error(res.data.error ?? 'Auto Fit failed — try again');
-      const positionY = res.data.captionPositionY;
+      const positionY = fit.positionY;
       o.setSlides((prev) => prev.map((s, i) => (i === index ? { ...s, positionY } : s)));
-      setResult({ index, error: null, reason: res.data.reason });
+      setResult({ index, error: null, reason: fit.reason });
     } catch (err) {
       setResult({ index, error: err instanceof Error ? err.message : 'Auto Fit failed — try again', reason: null });
     } finally {

@@ -4,7 +4,9 @@
 
 import { Images } from 'lucide-react';
 import { useState, type Dispatch, type SetStateAction } from 'react';
+import type { TextConfig } from '../../../remotion/types';
 import type { BlitzAssetDto } from './api';
+import { useDeckShotRefit } from './autoFit/useDeckShotRefit';
 import { DeckAssetsModal } from './DeckAssetsModal';
 import { deckImageKeys, removeImageFromCards, replaceImageInCards } from './deckImageCards';
 import { DeckMusicPanel } from './DeckMusicPanel';
@@ -17,10 +19,13 @@ type Props = {
   deckCards: DeckCardData[];
   setDeckCards: Dispatch<SetStateAction<DeckCardData[]>>;
   assets: BlitzAssetDto[];
+  /** How the deck draws captions: a shot whose image changes is fitted again in this style. */
+  captionConfig: TextConfig;
 };
 
-export function DeckAside({ card, sound, deckCards, setDeckCards, assets }: Props) {
+export function DeckAside({ card, sound, deckCards, setDeckCards, assets, captionConfig }: Props) {
   const [assetsOpen, setAssetsOpen] = useState(false);
+  const changeImages = useDeckShotRefit({ deckCards, setDeckCards, assets, captionConfig });
   const keys = deckImageKeys(deckCards);
   const usage: Record<string, number> = {};
   deckCards.forEach((c) => c.shots.forEach((s) => {
@@ -48,8 +53,8 @@ export function DeckAside({ card, sound, deckCards, setDeckCards, assets }: Prop
         <DeckAssetsModal
           keys={keys}
           usage={usage}
-          onReplaced={(oldKey, next) => setDeckCards((prev) => replaceImageInCards(prev, oldKey, next))}
-          onRemoved={(key) => setDeckCards((prev) => removeImageFromCards(prev, key))}
+          onReplaced={(oldKey, next) => changeImages((prev) => replaceImageInCards(prev, oldKey, next))}
+          onRemoved={(key) => changeImages((prev) => removeImageFromCards(prev, key))}
           onClose={() => setAssetsOpen(false)}
         />
       )}
