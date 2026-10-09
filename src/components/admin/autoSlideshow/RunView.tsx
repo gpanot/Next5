@@ -90,7 +90,8 @@ function SideToggle({ open, onToggle }: { open: boolean; onToggle: () => void })
   );
 }
 
-function RunHeading({ run }: { run: AutoRunDto }) {
+/** `titleOnPhone` false (a workspace): the title only shows from lg up. */
+function RunHeading({ run, titleOnPhone = true }: { run: AutoRunDto; titleOnPhone?: boolean }) {
   const ready = run.slideshows.filter((s) => s.status === 'ready').length;
   const rendering = run.slideshows.filter((s) => s.status === 'rendering').length;
   const done = run.status === 'COMPLETED';
@@ -102,7 +103,9 @@ function RunHeading({ run }: { run: AutoRunDto }) {
   );
   return (
     <div className="space-y-2">
-      <RunTitle {...headerCopy(run)} tone={done ? 'done' : run.status === 'FAILED' ? 'failed' : 'running'} aside={aside} />
+      <div className={titleOnPhone ? '' : 'max-lg:hidden'}>
+        <RunTitle {...headerCopy(run)} tone={done ? 'done' : run.status === 'FAILED' ? 'failed' : 'running'} aside={aside} />
+      </div>
       {!isTerminalAutoStatus(run.status) && <RotatingLine key={run.status} lines={waitLines(run, currentAutoStep(run.status) as AutoStep)} />}
       {/* How the slideshows were planned: shown while they are made, not over the finished calendar. */}
       {!done && <PlanNote run={run} />}
@@ -181,7 +184,7 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
           {!workspace && <SideToggle open={sideOpen} onToggle={toggleSide} />}
           <section className="order-1 min-w-0 space-y-4 lg:order-3">
             {run.status === 'FAILED' && !ideasPage && <FailedBanner token={token} run={run} onResumed={refresh} />}
-            {!ideasPage && <RunHeading run={run} />}
+            {!ideasPage && <RunHeading run={run} titleOnPhone={!workspace} />}
             {(run.status !== 'FAILED' || run.slideshows.length > 0) && <PostingCalendar token={token} run={run} onOpen={setOpenId} onRunChanged={refresh} ideasEnabled={Boolean(workspace)} onRailOpen={() => setSideOpen(false)} />}
             {/* A workspace shows its brand on the Brand page; the agent log sits under the calendar. */}
             {workspace && !ideasPage && agentLog}

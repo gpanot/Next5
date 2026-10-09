@@ -127,7 +127,9 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   // The Ideas page is this same calendar (same ideas and day plan), showing only the deck.
   const ideasPage = pageOf(usePathname()) === 'ideas';
   const wide = useIsWide();
-  const [view, setView] = useCalendarView();
+  const [savedView, setView] = useCalendarView();
+  // Phones: the list by day only (the grid's tiles are too small to use there).
+  const view = wide ? savedView : 'list';
   const ideasOn = (day: PlanDay) => ui?.byDay.get(day.key) ?? [];
   const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day), run.startedAt);
   // A kept idea fills the soonest empty day (no slideshow, video or kept idea yet); only a full calendar stacks days.
@@ -152,7 +154,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
     <div className={dayOpen ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]' : ''}>
     <section className="space-y-4 rounded-[20px] border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
       <MonthHeader month={month} canPrev={canPrev} canNext={canNext} onMonth={step} subtitle={ui ? undefined : countsLine(counts) || 'Tap a day to plan it'} subtitleOnPhone={!ui}>
-        <StatusLegend view={view} onView={setView} />
+        <StatusLegend view={view} onView={wide ? setView : undefined} />
       </MonthHeader>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Accounts accounts={posting.accounts} />
