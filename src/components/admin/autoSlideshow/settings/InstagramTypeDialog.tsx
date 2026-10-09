@@ -23,7 +23,7 @@ export function InstagramTypeDialog({ onBusiness, onClose }: Props) {
           <div className="space-y-4">
             <p className="text-sm text-muted">Instagram lets apps post only to <span className="font-semibold text-ink dark:text-zinc-100">Business</span> or <span className="font-semibold text-ink dark:text-zinc-100">Creator</span> accounts. A personal account cannot be connected.</p>
             <p className="text-sm text-muted">Switching is free and takes a minute. Your posts and followers stay. In the Instagram app: Settings → Account type and tools → Switch to professional account.</p>
-            <a href={SWITCH_GUIDE_URL} target="_blank" rel="noreferrer" className="flex min-h-12 w-full items-center justify-center rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 dark:bg-blue-500">How to switch (Instagram help) ↗</a>
+            <a href={SWITCH_GUIDE_URL} target="_blank" rel="noreferrer" className="flex min-h-12 w-full items-center justify-center rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95">How to switch (Instagram help) ↗</a>
             <button onClick={() => setPersonal(false)} className="min-h-11 w-full text-sm font-semibold text-muted">I switched, go back</button>
           </div>
         ) : (

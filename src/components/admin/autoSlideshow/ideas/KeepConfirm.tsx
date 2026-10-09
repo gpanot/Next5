@@ -40,7 +40,7 @@ function KeepDialog({ credits, onAnswer }: { credits: number; onAnswer: (ok: boo
         </label>
         <div className="flex gap-2">
           <button type="button" onClick={() => onAnswer(false, false)} className={`${button} border border-line text-ink hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800`}>Cancel</button>
-          <button type="button" autoFocus onClick={() => onAnswer(true, dontShow)} className={`${button} bg-blue-600 text-white shadow-sm hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400`}>Got it</button>
+          <button type="button" autoFocus onClick={() => onAnswer(true, dontShow)} className={`${button} bg-app-cta text-app-cta-ink shadow-sm hover:bg-app-cta/90`}>Got it</button>
         </div>
       </div>
     </div>,

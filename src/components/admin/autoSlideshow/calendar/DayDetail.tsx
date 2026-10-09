@@ -102,7 +102,7 @@ export function DayDetail(p: DayDetailProps) {
           </button>
         )}
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-extrabold text-ink dark:text-zinc-100">{p.day.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</h2>
+          <h2 className="text-2xl font-heading font-normal text-ink dark:text-zinc-100">{p.day.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</h2>
           <p className="text-xs text-muted">Posts this day</p>
         </div>
         <AddMore busy={Boolean(ideas?.generating)} open={Boolean(ideas) && wanted} canAdd={ideas ? open : !p.day.past && count < MAX_PER_DAY} onAdd={plus} onClose={() => set(false)} />

@@ -7,6 +7,8 @@
   --font-display: var(--font-bricolage), 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-display);
   --font-sans: var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* Page and section titles: Inter by default; the workspace re-points it to the Newsreader serif. */
+  --font-heading: var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   /* Consumer /photos palette (Mulberry Atelier, D11). The business palette is the app-* block below. */
   --color-page: #faf7f8;
@@ -72,6 +74,86 @@
     --color-app-warning: #e0b25c;
     --color-app-danger: #f08a9a;
     --color-app-info: #9db7e0;
+  }
+}
+
+/* ── Workspace "soft studio" (2026-10) ──
+   Light, calm working surface for /slideshow/[workspaceId] only (marked by [data-workspace] in its layout).
+   Set on html via :has() so portaled menus and dialogs (rendered into body) get it too. It re-points the theme
+   variables the utilities read: a warm greige ground, warm neutrals for zinc, a muted slate blue for blue (calm, works for
+   men and women), warm near-black buttons (app-cta), serif titles and lighter weights. Marketing pages keep
+   the business surface above. */
+html:has([data-workspace]),
+html:has([data-workspace]) [data-surface='business'] {
+  --font-heading: var(--font-newsreader), 'Newsreader', Georgia, serif;
+
+  --color-page: #f4f2ee;
+  --color-ink: #231f20;
+  --color-muted: #6b6466;
+  --color-line: #e4dfd8;
+  --color-surface: #fbfaf8;
+  --color-app-bg: #f4f2ee;
+  --color-app-panel: #fbfaf8;
+  --color-app-sunken: #ebe8e2;
+  --color-app-ink: #231f20;
+  --color-app-muted: #6b6466;
+  --color-app-line: #e4dfd8;
+  --color-app-accent: #3b4a6b;
+  --color-app-accent-ink: #ffffff;
+  --color-app-accent-soft: #e8ecf3;
+  --color-app-cta: #231f20;
+  --color-app-cta-ink: #ffffff;
+
+  --color-zinc-50: #f7f5f1;
+  --color-zinc-100: #ebe8e2;
+  --color-zinc-200: #e0dcd5;
+  --color-zinc-300: #cdc8c0;
+  --color-zinc-400: #a09a95;
+  --color-zinc-500: #7a7370;
+  --color-zinc-600: #5e5856;
+  --color-zinc-700: #403b3c;
+  --color-zinc-800: #2b2728;
+  --color-zinc-900: #1d1a1b;
+  --color-zinc-950: #141213;
+
+  --color-blue-50: #f3f5f9;
+  --color-blue-100: #e6eaf2;
+  --color-blue-200: #cdd4e3;
+  --color-blue-300: #a7b3cc;
+  --color-blue-400: #7c8bad;
+  --color-blue-500: #5a6a8e;
+  --color-blue-600: #3b4a6b;
+  --color-blue-700: #303d5a;
+  --color-blue-800: #27314a;
+  --color-blue-900: #1f273b;
+  --color-blue-950: #141a28;
+
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
+  --font-weight-extrabold: 600;
+
+  background-color: var(--color-app-bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:has([data-workspace]),
+  html:has([data-workspace]) [data-surface='business'] {
+    --color-page: #141213;
+    --color-ink: #ede8e5;
+    --color-muted: #a39b9d;
+    --color-line: #2d2829;
+    --color-surface: #1c191a;
+    --color-app-bg: #141213;
+    --color-app-panel: #1c191a;
+    --color-app-sunken: #191617;
+    --color-app-ink: #ede8e5;
+    --color-app-muted: #a39b9d;
+    --color-app-line: #2d2829;
+    --color-app-accent: #a7b3cc;
+    --color-app-accent-ink: #141213;
+    --color-app-accent-soft: #1f273b;
+    --color-app-cta: #ede8e5;
+    --color-app-cta-ink: #141213;
   }
 }
 

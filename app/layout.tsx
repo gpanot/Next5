@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Bricolage_Grotesque, Inter } from 'next/font/google';
+import { Bricolage_Grotesque, Inter, Newsreader } from 'next/font/google';
 import './globals.css';
 import { SiteAnalytics } from '../src/components/analytics/SiteAnalytics';
 import { LocaleProvider } from '../src/i18n/LocaleContext';
@@ -16,6 +16,14 @@ const bricolage = Bricolage_Grotesque({
   variable: '--font-bricolage',
   subsets: ['latin', 'vietnamese'],
   display: 'swap',
+});
+
+// Serif headings of the workspace only (globals.css, [data-workspace]): not preloaded, so other pages never fetch it.
+const newsreader = Newsreader({
+  variable: '--font-newsreader',
+  subsets: ['latin'],
+  display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -39,7 +47,7 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: the motion pre-paint script sets data-motion on <html> before React hydrates
     // (src/components/motion/MotionPrepaint.tsx). It only silences this element's own attributes.
-    <html lang="en" className={`${inter.variable} ${bricolage.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${bricolage.variable} ${newsreader.variable}`} suppressHydrationWarning>
       <body className="min-h-full antialiased">
         <LocaleProvider>{children}</LocaleProvider>
         <SiteAnalytics />

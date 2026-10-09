@@ -12,8 +12,11 @@ export const metadata: Metadata = { robots: { index: false, follow: false } };
  */
 export default function PrivateSlideshowLayout({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<WorkspaceShellSkeleton />}>
-      <WorkspaceShell>{children}</WorkspaceShell>
-    </Suspense>
+    // data-workspace switches on the soft workspace theme (globals.css); `contents` keeps it out of the layout.
+    <div data-workspace className="contents">
+      <Suspense fallback={<WorkspaceShellSkeleton />}>
+        <WorkspaceShell>{children}</WorkspaceShell>
+      </Suspense>
+    </div>
   );
 }

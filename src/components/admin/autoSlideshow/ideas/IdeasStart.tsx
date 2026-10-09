@@ -10,7 +10,7 @@ import type { IdeasState } from './useIdeas';
 type Props = { ideas: IdeasState; maker: Make; onOpen: () => void };
 
 const box = 'flex flex-col gap-3.5 rounded-[20px] border border-blue-200 bg-blue-50 p-5 dark:border-blue-900 dark:bg-blue-950/40';
-const cta = 'flex min-h-12 items-center justify-center gap-2 rounded-full bg-blue-600 px-5 text-[15px] font-bold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500 dark:hover:bg-blue-400';
+const cta = 'flex min-h-12 items-center justify-center gap-2 rounded-full bg-app-cta px-5 text-[15px] font-bold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95 disabled:opacity-40';
 
 /** The words and the button: write ideas, see them, or look at what was kept. */
 function Pitch({ ideas, onOpen }: Omit<Props, 'maker'>) {
@@ -50,7 +50,7 @@ export function IdeasStart({ ideas, maker, onOpen }: Props) {
     <section className={box}>
       <div>
         <p className="text-xs font-bold tracking-wide text-blue-700 uppercase dark:text-blue-300">What&apos;s next</p>
-        <h2 className="mt-1 text-xl leading-tight font-extrabold text-ink dark:text-zinc-100">Your next 2 weeks</h2>
+        <h2 className="mt-1 font-heading text-2xl leading-tight font-normal text-ink dark:text-zinc-100">Your next 2 weeks</h2>
       </div>
       <Pitch ideas={ideas} onOpen={onOpen} />
       {ideas.making.length > 0 && <p className="text-xs text-zinc-600 dark:text-zinc-400">A photo slideshow is being made for you. It joins the ideas in 1 to 2 minutes.</p>}

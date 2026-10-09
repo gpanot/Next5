@@ -21,10 +21,9 @@ const block = 'animate-pulse rounded-full bg-app-line/60';
 export function WorkspaceShellSkeleton() {
   return (
     <div className="flex min-h-dvh bg-app-bg">
-      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-app-line bg-app-panel px-4 py-6 lg:flex">
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-app-line bg-app-bg px-4 py-6 lg:flex">
         <div className="px-2"><BusinessLogo href={SLIDESHOW_HOME} /></div>
-        <span aria-hidden className={`mt-6 h-10 w-full ${block}`} />
-        <div aria-hidden className="mt-6 flex flex-col gap-2">
+        <div aria-hidden className="mt-10 flex flex-col gap-2">
           {[0, 1, 2, 3].map((i) => <span key={i} className="h-11 animate-pulse rounded-xl bg-app-line/40" />)}
         </div>
       </aside>

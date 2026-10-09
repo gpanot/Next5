@@ -23,7 +23,7 @@ export function WhatWorks({ posts, medians }: { posts: AnalyticsPostDto[]; media
   return (
     <section className="rounded-xl border border-app-line bg-app-panel p-4 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-bold text-app-ink">What works</h2>
+        <h2 className="font-heading text-xl font-normal text-app-ink">What works</h2>
         <div role="tablist" className="flex rounded-full bg-app-sunken p-1">
           {TABS.map(([key, label]) => (
             <button key={key} role="tab" aria-selected={tab === key} onClick={() => setTab(key)} className="min-h-9 rounded-full px-3 text-sm font-semibold text-app-muted transition active:scale-95 aria-selected:bg-app-panel aria-selected:text-app-ink aria-selected:shadow-sm">

@@ -57,7 +57,7 @@ export function AnalyticsPage({ token, workspaceId }: { token: string; workspace
   return (
     <div className="mx-auto max-w-5xl space-y-4">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-extrabold text-app-ink">Analytics</h1>
+        <h1 className="font-heading text-3xl font-normal text-app-ink">Analytics</h1>
         <Link href={`/slideshow/${workspaceId}`} className="min-h-11 content-center rounded-full px-3 text-sm font-semibold text-app-muted transition hover:text-app-ink">Slideshows</Link>
       </div>
       <AnalyticsFilters value={filters} onChange={setFilters} />

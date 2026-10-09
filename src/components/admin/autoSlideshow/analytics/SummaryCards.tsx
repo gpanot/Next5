@@ -7,7 +7,7 @@ function Card({ label, value, hint }: { label: string; value: string; hint?: str
   return (
     <div className="min-w-0 rounded-xl border border-app-line bg-app-panel p-4 shadow-sm">
       <p className="text-xs font-semibold text-app-muted">{label}</p>
-      <p className="mt-1 truncate text-2xl font-extrabold text-app-ink tabular-nums">{value}</p>
+      <p className="mt-1 truncate text-2xl font-light text-app-ink tabular-nums">{value}</p>
       {hint && <p className="mt-0.5 truncate text-xs text-app-muted">{hint}</p>}
     </div>
   );

@@ -16,7 +16,7 @@ function Arrow({ dir, disabled, onClick }: { dir: -1 | 1; disabled: boolean; onC
 }
 
 /** `subtitleOnPhone` false: the line only shows from md up. */
-type HeaderProps = Props & { subtitle: string; subtitleOnPhone?: boolean; children?: ReactNode };
+type HeaderProps = Props & { subtitle?: string; subtitleOnPhone?: boolean; children?: ReactNode };
 
 /** As in the canvas: "October 2026" (arrows change the month), one line about it, and the legend on the right. */
 export function MonthHeader({ month, canPrev, canNext, onMonth, subtitle, subtitleOnPhone = true, children }: HeaderProps) {
@@ -25,8 +25,8 @@ export function MonthHeader({ month, canPrev, canNext, onMonth, subtitle, subtit
       <div className="flex items-center gap-1">
         <Arrow dir={-1} disabled={!canPrev} onClick={() => onMonth(-1)} />
         <div>
-          <h2 className="text-2xl font-extrabold tracking-tight text-ink dark:text-zinc-100" aria-live="polite">{month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2>
-          <p className={`text-[13px] text-muted ${subtitleOnPhone ? '' : 'hidden md:block'}`}>{subtitle}</p>
+          <h2 className="text-3xl font-heading font-normal text-ink dark:text-zinc-100" aria-live="polite">{month.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</h2>
+          {subtitle && <p className={`text-[13px] text-muted ${subtitleOnPhone ? '' : 'hidden md:block'}`}>{subtitle}</p>}
         </div>
         <Arrow dir={1} disabled={!canNext} onClick={() => onMonth(1)} />
       </div>

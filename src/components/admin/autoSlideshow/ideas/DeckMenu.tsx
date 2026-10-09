@@ -38,7 +38,7 @@ function CreateDialog({ onCreate, onClose }: { onCreate: Props['onCreate']; onCl
         {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
         <div className="flex gap-2">
           <button type="button" onClick={onClose} disabled={busy} className={`${button} border border-line text-ink hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800`}>Cancel</button>
-          <button type="button" autoFocus onClick={() => void create()} disabled={busy} className={`${button} bg-blue-600 text-white shadow-sm hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400`}>
+          <button type="button" autoFocus onClick={() => void create()} disabled={busy} className={`${button} bg-app-cta text-app-cta-ink shadow-sm hover:bg-app-cta/90`}>
             {busy ? 'Starting…' : `Create ${n}`}
           </button>
         </div>

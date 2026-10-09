@@ -70,7 +70,7 @@ export function TikTokAccounts({ token, onClose }: Props) {
       <div role="dialog" aria-modal="true" aria-label="TikTok accounts" onClick={(e) => e.stopPropagation()} className="flex max-h-[90dvh] w-full max-w-lg flex-col rounded-t-2xl bg-surface shadow-xl sm:rounded-2xl dark:bg-zinc-950">
         <header className="flex items-center gap-3 border-b border-line p-4 dark:border-zinc-800">
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-extrabold text-ink dark:text-zinc-100">TikTok accounts</h2>
+            <h2 className="font-heading text-xl font-normal text-ink dark:text-zinc-100">TikTok accounts</h2>
             <p className="text-xs text-muted">Log in to the right TikTok account in this browser, then Connect.</p>
           </div>
           <button onClick={onClose} aria-label="Close" className="flex h-10 w-10 items-center justify-center rounded-full text-muted hover:bg-zinc-100 dark:hover:bg-zinc-800">✕</button>

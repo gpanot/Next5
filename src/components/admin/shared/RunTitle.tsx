@@ -18,7 +18,7 @@ export function RunTitle({ tag, title, subtitle, tone, aside }: Props) {
             {tone === 'done' ? '✓ ' : ''}{tag}
           </p>
         )}
-        <h2 className="text-2xl font-bold tracking-tight text-ink md:text-3xl dark:text-zinc-100">{title}</h2>
+        <h2 className="font-heading text-2xl font-bold tracking-tight text-ink md:text-4xl dark:text-zinc-100">{title}</h2>
         {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
       </div>
       {aside}

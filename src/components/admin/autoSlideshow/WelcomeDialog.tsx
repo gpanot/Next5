@@ -37,7 +37,7 @@ function StatList() {
     <ul className="space-y-3">
       {STATS.map((s) => (
         <li key={s.value} className="flex items-start gap-3 rounded-xl border border-zinc-200 p-3 dark:border-zinc-800">
-          <span className="w-16 shrink-0 text-2xl font-bold tracking-tight text-blue-600 dark:text-blue-400">{s.value}</span>
+          <span className="w-16 shrink-0 text-2xl font-light tracking-tight text-blue-600 dark:text-blue-400">{s.value}</span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-ink dark:text-zinc-100">{s.body}</p>
             <p className="mt-0.5 text-xs text-muted">{s.source}</p>
@@ -76,7 +76,7 @@ export function WelcomeDialog({ workspaceId }: { workspaceId: string }) {
           <CalendarIcon />
         </div>
         <div className="space-y-1">
-          <h2 id="welcome-title" className="text-xl font-bold tracking-tight text-ink dark:text-zinc-100">Fill your next 30 days in one click</h2>
+          <h2 id="welcome-title" className="text-2xl font-heading font-normal text-ink dark:text-zinc-100">Fill your next 30 days in one click</h2>
           <p className="text-sm text-muted">Your slideshows are being made now. Here is why slideshows work.</p>
         </div>
         <StatList />
@@ -86,7 +86,7 @@ export function WelcomeDialog({ workspaceId }: { workspaceId: string }) {
         <p className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
           Your first slideshow is on us.
         </p>
-        <button onClick={close} autoFocus className="min-h-12 w-full rounded-full bg-blue-600 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95">
+        <button onClick={close} autoFocus className="min-h-12 w-full rounded-full bg-app-cta text-sm font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95">
           Got it, show me
         </button>
       </div>

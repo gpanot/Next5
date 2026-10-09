@@ -114,7 +114,7 @@ export function BrandPage({ token, workspaceId }: { token: string; workspaceId: 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <header className="space-y-1">
-        <h1 className="text-xl font-extrabold text-app-ink sm:text-2xl">Your brand</h1>
+        <h1 className="font-heading text-2xl font-normal text-app-ink sm:text-3xl">Your brand</h1>
         <p className="text-sm text-app-muted">What we read from your website, and your own photos.</p>
       </header>
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">

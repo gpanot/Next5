@@ -35,7 +35,7 @@ function Header({ ideas, onClose }: { ideas: IdeasState; onClose: () => void }) 
         <button type="button" onClick={onClose} aria-label="Close ideas" className="-ml-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-ink transition hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800">
           <X aria-hidden className="h-5 w-5" strokeWidth={2.4} />
         </button>
-        <h2 className="min-w-0 flex-1 text-base font-extrabold text-ink dark:text-zinc-100">Your next 2 weeks</h2>
+        <h2 className="min-w-0 flex-1 font-heading text-xl font-normal text-ink dark:text-zinc-100">Your next 2 weeks</h2>
         {total > 0 && <span className="text-[13px] font-bold text-zinc-600 tabular-nums dark:text-zinc-400">{Math.min(decided + 1, total)} / {total}</span>}
       </header>
       {total > 0 && (
@@ -66,7 +66,7 @@ function Empty({ onGenerate, error }: { onGenerate: () => void; error: string | 
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400"><Sparkles aria-hidden className="h-6 w-6" /></span>
       <p className="max-w-[30ch] text-sm text-muted">Get {IDEAS_PER_BATCH} post ideas. Each one you keep fills your next empty day. Skip the rest.</p>
       {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-      <button type="button" onClick={onGenerate} className="min-h-12 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 dark:bg-blue-500">
+      <button type="button" onClick={onGenerate} className="min-h-12 rounded-full bg-app-cta px-6 text-sm font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95">
         {error ? 'Try again' : `Get my ${IDEAS_PER_BATCH} ideas`}
       </button>
     </div>

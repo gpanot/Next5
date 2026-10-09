@@ -184,7 +184,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
     <SlideshowDnd onMove={move.onMove}>
     <div className={hasRail ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]' : ''}>
     <section className="space-y-4 rounded-[20px] border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
-      <MonthHeader month={month} canPrev={canPrev} canNext={canNext} onMonth={step} subtitle={ui ? 'Each idea you keep fills your next empty day' : countsLine(counts) || 'Tap a day to plan it'} subtitleOnPhone={!ui}>
+      <MonthHeader month={month} canPrev={canPrev} canNext={canNext} onMonth={step} subtitle={ui ? undefined : countsLine(counts) || 'Tap a day to plan it'} subtitleOnPhone={!ui}>
         <StatusLegend view={view} onView={setView} />
       </MonthHeader>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -206,7 +206,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
             {adding !== null ? 'Generating…' : `Generate ${fill} ${fill === 1 ? 'slideshow' : 'slideshows'} · ${money(PRICE_CENTS * fill)}`}
           </button>
         )}
-        <button onClick={() => setApproving(true)} disabled={toApproveCount === 0} className="min-h-12 flex-1 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500 dark:hover:bg-blue-400">
+        <button onClick={() => setApproving(true)} disabled={toApproveCount === 0} className="min-h-12 flex-1 rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95 disabled:opacity-40">
           {toApproveCount > 0 ? `Approve & Publish (${toApproveCount}) →` : 'Nothing to approve'}
         </button>
       </div>

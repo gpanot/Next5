@@ -41,7 +41,7 @@ function Cover({ entries }: { entries: TileEntry[] }) {
         {top.cover && <CoverMedia src={top.cover} video={top.coverIsVideo} />}
       </span>
       {top.captionOnCover && (
-        <span className="pointer-events-none absolute inset-x-1.5 top-[30%] z-[3] line-clamp-3 text-center text-[11px] leading-tight font-extrabold text-white [text-shadow:0_0_2px_#000,0_0_2px_#000]">{top.caption}</span>
+        <span className="pointer-events-none absolute inset-x-1.5 bottom-5 z-[3] line-clamp-3 text-center text-[11px] leading-tight font-extrabold text-white [text-shadow:0_0_2px_#000,0_0_2px_#000]">{top.caption}</span>
       )}
     </>
   );
@@ -85,8 +85,8 @@ export function CanvasTile({ day, entries, focused, onOpen }: Props) {
         <span className="absolute -top-2 -right-2 z-[4] flex h-[22px] min-w-[22px] items-center justify-center rounded-full border-2 border-white bg-zinc-900 px-1 text-[11px] font-extrabold text-white dark:border-zinc-900 dark:bg-white dark:text-zinc-900">{entries.length}</span>
       )}
       {entries.length > 0 && (
-        <span aria-hidden className="absolute bottom-1.5 left-1/2 z-[3] flex -translate-x-1/2 gap-[3px] rounded-full bg-zinc-900/60 px-[5px] py-[3px]">
-          {entries.slice(0, 5).map((e) => <span key={e.id} className={`h-[9px] w-[9px] rounded-full ${DOT[e.status]}`} />)}
+        <span aria-hidden className="absolute bottom-1.5 left-1/2 z-[3] flex -translate-x-1/2 gap-[2px] rounded-full bg-zinc-900/60 px-[3px] py-[2px]">
+          {entries.slice(0, 5).map((e) => <span key={e.id} className={`h-[4.5px] w-[4.5px] rounded-full ${DOT[e.status]}`} />)}
         </span>
       )}
       {entries.length === 0 && !day.past && day.inMonth && (

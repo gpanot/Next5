@@ -32,7 +32,7 @@ export function WorkspaceBottomTabs({ workspaceId }: { workspaceId: string }) {
             <Link
               href={href}
               aria-current={id === current ? 'page' : undefined}
-              className="flex h-full flex-col items-center justify-center gap-1 text-[11px] font-semibold text-app-muted transition-colors active:scale-95 aria-[current=page]:text-app-ink"
+              className="flex h-full flex-col items-center justify-center gap-1 text-[11px] font-medium text-app-muted transition-colors active:scale-95 aria-[current=page]:text-app-accent"
             >
               <Icon />
               {label}

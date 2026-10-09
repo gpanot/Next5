@@ -10,7 +10,7 @@ import { SLIDESHOW_HOME, useSlideshowWorkspace } from './WorkspaceContext';
 import { pageOf, workspaceNavItems } from './workspaceNav';
 
 const itemClass =
-  'flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-semibold text-app-muted transition-colors duration-200 hover:bg-app-sunken hover:text-app-ink aria-[current=page]:bg-app-line/60 aria-[current=page]:text-app-ink';
+  'flex min-h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-medium text-app-muted transition-colors duration-200 hover:bg-app-sunken/70 hover:text-app-ink aria-[current=page]:bg-app-accent-soft aria-[current=page]:text-app-accent';
 
 /** The workspace name; opens Settings › Workspaces to switch or add one. A grey block until the workspace loads. */
 export function WorkspaceSwitcher({ onOpen, className = '' }: { onOpen: () => void; className?: string }) {
@@ -29,14 +29,13 @@ export function WorkspaceSwitcher({ onOpen, className = '' }: { onOpen: () => vo
   );
 }
 
-/** Wide screens: the workspace menu on the left. Logo, workspace, pages, then credits and Settings at the bottom. */
+/** Wide screens: the workspace menu on the left. Logo, pages, then credits and Settings at the bottom (switch workspace in Settings). */
 export function WorkspaceSidebar({ token, workspaceId, settings }: { token: string; workspaceId: string; settings: WorkspaceSettings }) {
   const current = pageOf(usePathname());
   return (
-    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-app-line bg-app-panel px-4 py-6 lg:flex">
+    <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-app-line bg-app-bg px-4 py-6 lg:flex">
       <div className="px-2"><BusinessLogo href={SLIDESHOW_HOME} /></div>
-      <WorkspaceSwitcher onOpen={() => settings.open('workspaces')} className="mt-6 w-full justify-between" />
-      <nav aria-label="Workspace" className="mt-6 flex flex-col gap-1">
+      <nav aria-label="Workspace" className="mt-10 flex flex-col gap-1">
         {workspaceNavItems(workspaceId).map(({ id, href, label, Icon }) => (
           <Link key={id} href={href} aria-current={id === current ? 'page' : undefined} className={itemClass}>
             <Icon />

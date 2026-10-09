@@ -28,7 +28,7 @@ function NoTikTok({ items, platforms, busy, onApprove }: Omit<Props, 'token' | '
   return (
     <div className="space-y-3">
       {withYouTube && <YouTubeFields value={yt} onChange={setYt} />}
-      <button onClick={() => void onApprove({ items, platforms, tiktok: null, youtube: withYouTube ? { privacyLevel: yt } : null })} disabled={busy} className="min-h-12 w-full rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500">
+      <button onClick={() => void onApprove({ items, platforms, tiktok: null, youtube: withYouTube ? { privacyLevel: yt } : null })} disabled={busy} className="min-h-12 w-full rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95 disabled:opacity-40">
         {busy ? 'Scheduling…' : approveLabel(items.length, platforms)}
       </button>
     </div>
@@ -108,7 +108,7 @@ function TikTokApprove({ token, runId, items, platforms, busy, onApprove, total 
         <a className="underline" href="https://www.tiktok.com/legal/page/global/music-usage-confirmation/en" target="_blank" rel="noreferrer">Music Usage Confirmation</a>
       </Toggle>
       {platforms.includes('youtube') && <YouTubeFields value={yt} onChange={setYt} />}
-      <button onClick={submit} disabled={!ready || busy} className="min-h-12 w-full rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 disabled:opacity-40 dark:bg-blue-500">
+      <button onClick={submit} disabled={!ready || busy} className="min-h-12 w-full rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95 disabled:opacity-40">
         {busy ? 'Scheduling…' : approveLabel(total ?? items.length, platforms)}
       </button>
     </div>

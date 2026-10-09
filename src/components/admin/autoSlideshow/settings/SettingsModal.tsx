@@ -46,7 +46,7 @@ export function SettingsModal({ token, workspaceId, onClose, initialTab = 'works
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
       <div role="dialog" aria-modal="true" aria-label="Settings" onClick={(e) => e.stopPropagation()} className="flex h-[85dvh] w-full max-w-lg flex-col rounded-t-2xl bg-surface shadow-xl sm:h-[36rem] sm:rounded-2xl dark:bg-zinc-950">
         <header className="flex items-center gap-3 p-4 pb-2">
-          <h2 className="flex-1 text-base font-extrabold text-ink dark:text-zinc-100">Settings</h2>
+          <h2 className="flex-1 font-heading text-xl font-normal text-ink dark:text-zinc-100">Settings</h2>
           <button onClick={onClose} aria-label="Close" className="flex h-10 w-10 items-center justify-center rounded-full text-muted hover:bg-zinc-100 dark:hover:bg-zinc-800">✕</button>
         </header>
         <Tabs tab={tab} onChange={setTab} />

@@ -53,7 +53,7 @@ function Controls({ idea, onSkip, onKeep, onEditHook }: { idea: IdeaDto; onSkip:
       <button type="button" onClick={onEditHook} disabled={idea.hooks.length === 0} aria-label="Pick another first line" className={`${round} h-11 w-11 border-line bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300`}>
         <Pencil aria-hidden className="h-4 w-4" />
       </button>
-      <button type="button" onClick={onKeep} aria-label="Keep this idea" className={`${round} h-14 w-14 border-blue-600 bg-blue-600 text-white hover:bg-blue-700 dark:border-blue-500 dark:bg-blue-500`}>
+      <button type="button" onClick={onKeep} aria-label="Keep this idea" className={`${round} h-14 w-14 border-app-cta bg-app-cta text-app-cta-ink hover:bg-app-cta/90`}>
         <Check aria-hidden className="h-6 w-6" />
       </button>
     </div>

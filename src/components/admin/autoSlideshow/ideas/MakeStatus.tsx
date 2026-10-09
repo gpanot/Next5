@@ -20,7 +20,7 @@ export function MakeStatus({ kept, maker }: Props) {
       <p className="text-sm text-red-700 dark:text-red-300">
         {n === 1 ? '1 post' : `${n} posts`} could not be made.{reason ? ` ${reason}` : ''}
       </p>
-      <button type="button" onClick={() => void maker.make(kept)} className="min-h-11 w-full rounded-full bg-blue-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 dark:bg-blue-500 dark:hover:bg-blue-400">
+      <button type="button" onClick={() => void maker.make(kept)} className="min-h-11 w-full rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95">
         Try again
       </button>
     </div>
