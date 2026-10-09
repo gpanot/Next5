@@ -14,7 +14,7 @@ import type {
   Tone,
 } from '../../core/types';
 import { lineGuard, type WebsiteFacts } from './guardrails';
-import { buildWebsiteMeatPrompt, websiteHookExamples, type WebsiteBriefInput } from './prompts';
+import { buildWebsiteMeatPrompt, shortAudience, websiteHookExamples, type WebsiteBriefInput } from './prompts';
 
 /** Cap per deck: 3 audiences × 6 hooks = 18 cards (spec open question: 30 cards is too many). */
 export const MAX_WEBSITE_BRIEFS = 3;
@@ -94,10 +94,11 @@ export const websiteEngine: SlideshowEngine<WebsiteSource, WebsiteBrief> = {
     const rules: HookRules = {
       fewShots: websiteHookExamples(brief),
       extraInstruction:
-        `Build call_out and action hooks directly from "${brief.idc}". The hook speaks to ${brief.idc}, never about the company.`,
+        `Build call_out and action hooks from "${brief.idc}", calling them "${shortAudience(brief.idc)}" (never the full description). ` +
+        `The hook speaks to them, never about the company. A hook with a number restates a PROOF claim word for word and adds nothing to it.`,
       // Result-first needs real proof (spec 7.4); without it the slot is refilled from fear/curiosity.
       droppedArchetypes: brief.proofPoints.length === 0 ? ['proof_result'] : undefined,
-      specifics: [...contentWords(brief.idc), ...(brief.business.geography ? contentWords(brief.business.geography) : [])],
+      specifics: [...contentWords(shortAudience(brief.idc)), ...(brief.business.geography ? contentWords(brief.business.geography) : [])],
       guard: lineGuard(brief.facts),
     };
     return rules;

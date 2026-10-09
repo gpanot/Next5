@@ -57,8 +57,8 @@ export type IdeaAudio = { assetKey: string; url: string; startAt: number; label:
 
 export type IdeaPatch = { status?: Exclude<IdeaStatus, 'made'>; plannedAt?: string; hookId?: string; audio?: IdeaAudio };
 
-/** Ideas in one batch, over the next DAYS days. */
-export const IDEAS_PER_BATCH = 12;
+/** Ideas in one batch, over the next IDEA_DAYS days: one post a day. */
+export const IDEAS_PER_BATCH = 14;
 export const IDEA_DAYS = 14;
 /** Ideas planned on one day at most (the day keeps room for the user's own posts). */
 export const IDEAS_PER_DAY = 3;

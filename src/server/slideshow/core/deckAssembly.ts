@@ -42,7 +42,14 @@ export type DeckItem = {
     musicLabel: string;
   };
   /** Blitz Script Bank story and hook the card was made from (calendar ideas): counts as used for that bank. */
-  script?: { storyId: string; archetype: HookArchetype };
+  script?: {
+    storyId: string;
+    archetype: HookArchetype;
+    otherHooks?: Array<{ archetype: HookArchetype; text: string }>;
+    /** Campaign stage and story format of the bank story (labs/blitzFormats.ts). */
+    stage?: string;
+    format?: string;
+  };
 };
 
 export type StoryTexts = { pain: string; oldWay: string; mechanism: string; proof: string; inaction: string; cta: string };
@@ -59,7 +66,7 @@ export const ARCHETYPE_LABELS: Record<HookArchetype, string> = {
   action:        'Challenge',
 };
 
-const ARCHETYPE_WHY: Record<HookArchetype, string> = {
+export const ARCHETYPE_WHY: Record<HookArchetype, string> = {
   call_out:      'Names the audience in the first second so the right people stop.',
   contrarian:    'Flips a belief they hold, which makes them want the reason.',
   proof_result:  'Shows the result before anything else.',

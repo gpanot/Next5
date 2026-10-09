@@ -28,7 +28,8 @@ import { categoriesForAudience } from '../slideshow/core/audienceCategories';
 import { generateShotImages } from '../slideshow/core/generatedAssets';
 import { fitDeckCaptions } from '../slideshow/core/captionFit';
 import type { StudioProfileData } from '../studio/types';
-import type { HookArchetype, Tone } from '../slideshow/core/types';
+import type { HookArchetype, ProofPoint, Tone } from '../slideshow/core/types';
+import { FORMAT_DEFS, type Stage, type StoryFormat } from './blitzFormats';
 
 /** Card tint per brief, so audiences are easy to tell apart in the deck. */
 const BRIEF_HUES = [210, 28, 150, 280, 350];
@@ -57,7 +58,26 @@ export type BriefScript = {
   slot: number;
   /** Bank story this script comes from; saved on each card so the bank knows what was used. */
   storyId?: string;
+  /** The story's other hooks (bank scripts make one card): offered as the card's other first lines. */
+  otherHooks?: Array<{ archetype: HookArchetype; text: string }>;
+  /** Campaign stage and story format of a bank story (blitzFormats.ts). */
+  stage?: Stage;
+  format?: StoryFormat;
 };
+
+/** Share of a numbered hook's words that must come from one proof quote: the hook may restate proof, never add to it. */
+const PROOF_HOOK_OVERLAP = 0.6;
+
+/** False for a hook with a number that says more than a proof quote does ("500,000 users plan meals before dinner"). */
+export function hookClaimIsProven(text: string, proof: ProofPoint[]): boolean {
+  if (!/\d/.test(text)) return true;
+  const words = [...contentWords(text)].filter((w) => !/\d/.test(w));
+  if (words.length === 0) return true;
+  return proof.some((p) => {
+    const quoted = contentWords(`${p.claim} ${p.evidence}`);
+    return words.filter((w) => quoted.has(w)).length / words.length >= PROOF_HOOK_OVERLAP;
+  });
+}
 
 /** LLM half of a brief: story + hooks + audience industries. Runs in parallel across briefs. */
 export async function writeBrief(brief: WebsiteBrief, slot: number): Promise<BriefScript> {
@@ -78,7 +98,9 @@ export async function writeBrief(brief: WebsiteBrief, slot: number): Promise<Bri
     rules: { ...baseRules, specifics: [...(baseRules.specifics ?? []), ...contentWords(levers.namedMechanism), ...contentWords(story.pain)] },
     levers,
   });
-  return { idc: brief.idc, categories, tone: brief.tone, proofNote: proofNote(brief), story, hooks, slot };
+  const proven = hooks.filter((h) => hookClaimIsProven(h.text, brief.proofPoints));
+  if (proven.length < hooks.length) console.log(`[WebsiteDeck:${brief.idc}] dropped ${hooks.length - proven.length} hook(s) claiming more than the proof`);
+  return { idc: brief.idc, categories, tone: brief.tone, proofNote: proofNote(brief), story, hooks: proven, slot };
 }
 
 function proofNote(brief: WebsiteBrief): string {
@@ -103,7 +125,19 @@ function cardsFor(b: BriefScript, storyMedia: StoryMedia, media: WebsiteMedia, t
     tracks,
     proofNote: b.proofNote,
   });
-  return b.storyId ? cards.map((c, i) => ({ ...c, script: { storyId: b.storyId!, archetype: b.hooks[i]!.archetype } })) : cards;
+  if (!b.storyId) return cards;
+  const labels = b.format ? FORMAT_DEFS[b.format].labels : null;
+  return cards.map((c, i) => ({
+    ...c,
+    whyPanel: labels ? { ...c.whyPanel, storyLines: c.whyPanel.storyLines.map((l, n) => ({ ...l, label: Object.values(labels)[n] ?? l.label })) } : c.whyPanel,
+    script: {
+      storyId: b.storyId!,
+      archetype: b.hooks[i]!.archetype,
+      ...(b.otherHooks ? { otherHooks: b.otherHooks } : {}),
+      ...(b.stage ? { stage: b.stage } : {}),
+      ...(b.format ? { format: b.format } : {}),
+    },
+  }));
 }
 
 /** How far back a workspace's cards and posts count as "shown lately". */
@@ -179,6 +213,7 @@ export async function deckFromScripts(source: WebsiteSource, written: BriefScrip
     media.push(await directWebsiteMedia({
       idc: b.idc, categories: b.categories, tone: b.tone, story: b.story, hooks: b.hooks,
       workspaceId: source.workspaceId, used, recent, products: source.profile.products?.value,
+      beatIntents: b.format ? FORMAT_DEFS[b.format].intents : undefined,
     }));
   }
 

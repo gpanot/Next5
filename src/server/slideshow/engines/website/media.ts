@@ -85,6 +85,8 @@ export type WebsiteMediaInput = {
   recent?: Set<string>;
   /** The business's own photos, described (manual profiles). */
   products?: ProductPhoto[];
+  /** Footage wanted behind a story beat when the story's format gives it another meaning (Blitz formats). */
+  beatIntents?: Partial<Record<keyof StoryTexts, string>>;
 };
 
 export type WebsiteMedia = {
@@ -129,7 +131,7 @@ export async function directWebsiteMedia(input: WebsiteMediaInput): Promise<Webs
   const mode = () => 'boost' as const;
   // The IDC leads every query so matches come from their world, not generic stock.
   const ranked = await searchShots(ctx, [
-    ...STORY_KEYS.map((k) => ({ rule: STORY_RULES[k], text: `${input.idc}: ${input.story[k]}`, limit: STORY_POOL, categories: cats, categoryMode: mode() })),
+    ...STORY_KEYS.map((k) => ({ rule: { ...STORY_RULES[k], intent: input.beatIntents?.[k] ?? STORY_RULES[k].intent }, text: `${input.idc}: ${input.story[k]}`, limit: STORY_POOL, categories: cats, categoryMode: mode() })),
     ...input.hooks.map((h) => ({ rule: hookRule(h.archetype), text: `${input.idc}: ${h.text}`, limit: HOOK_POOL, categories: cats, categoryMode: 'boost' as const })),
   ]);
 

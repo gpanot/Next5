@@ -1,7 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { prisma } from '../../../src/lib/db';
-import { changeDay, listIdeas, patchIdea } from '../../../src/server/labs/calendarIdeas';
+import { changeDay, listIdeas, patchIdea, spreadSlideshows } from '../../../src/server/labs/calendarIdeas';
 import type { DeckItem } from '../../../src/server/slideshow/core/deckAssembly';
 import { createTestWorkspace, resetBusinessTables } from '../../helpers/db';
 
@@ -65,6 +65,30 @@ describe('calendar ideas', () => {
     expect(ideas.map((i) => i.id)).toEqual([sibling.id]);
     expect(ideas[0]!.plannedAt).toBe(TOMORROW.toISOString());
     expect((await prisma.slideshowVariant.findUniqueOrThrow({ where: { id: idea.id } })).plannedAt).toBeNull();
+  });
+
+  it('a bank card offers its story\'s other hooks and swaps its first line in place', async () => {
+    const ws = await createTestWorkspace('slideshow');
+    const bankCard = { ...card('Main hook'), script: { storyId: 's1', archetype: 'curiosity', otherHooks: [{ archetype: 'call_out', text: 'Moms, this is you' }] } };
+    const idea = await prisma.slideshowVariant.create({
+      data: { workspaceId: ws.id, engine: 'website', lens: 'busy-moms', archetype: 'curiosity', plannedAt: TOMORROW, plan: { card: bankCard } as unknown as Prisma.InputJsonValue },
+    });
+    await blitzRow(ws.id, 'Reserve card of another story', null);
+    const before = await listIdeas(ws.id);
+    expect(before.ideas[0]!.hooks).toEqual([{ id: 'hook:call_out', text: 'Moms, this is you' }]);
+    const { ideas } = await patchIdea(ws.id, idea.id, { hookId: 'hook:call_out' });
+    expect(ideas[0]).toMatchObject({ id: idea.id, hook: 'Moms, this is you', plannedAt: TOMORROW.toISOString() });
+    expect(ideas[0]!.hooks).toEqual([{ id: 'hook:curiosity', text: 'Main hook' }]);
+    expect(ideas[0]!.card!.script).toMatchObject({ storyId: 's1', archetype: 'call_out' });
+    expect((await prisma.slideshowVariant.findUniqueOrThrow({ where: { id: idea.id } })).archetype).toBe('call_out');
+  });
+
+  it('spreads a batch\'s slideshows among its Blitz days', () => {
+    const blitz = Array.from({ length: 13 }, (_, i) => `b${i}`);
+    expect(spreadSlideshows(blitz, ['s0']).indexOf('s0')).toBe(7);
+    const two = spreadSlideshows(blitz.slice(0, 12), ['s0', 's1']);
+    expect([two.indexOf('s0'), two.indexOf('s1')]).toEqual([4, 9]);
+    expect(spreadSlideshows(['b0'], [])).toEqual(['b0']);
   });
 
   it('keeps ideas inside their workspace', async () => {

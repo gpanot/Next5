@@ -2,6 +2,7 @@
 
 import { ArrowRight, Sparkles } from 'lucide-react';
 import { money, PRICE_CENTS } from '../pricing/pricing';
+import { IDEAS_PER_BATCH } from '../../../../types/admin/calendarIdeas';
 import type { Make } from './IdeasPanel';
 import { MakeStatus } from './MakeStatus';
 import type { IdeasState } from './useIdeas';
@@ -35,9 +36,9 @@ function Pitch({ ideas, onOpen }: Omit<Props, 'maker'>) {
   }
   return (
     <>
-      <p className="text-[15px] leading-normal text-zinc-700 dark:text-zinc-300">Get 12 post ideas to swipe. Each one you keep fills your next empty day. Skip the rest.</p>
+      <p className="text-[15px] leading-normal text-zinc-700 dark:text-zinc-300">Get {IDEAS_PER_BATCH} post ideas to swipe. Each one you keep fills your next empty day. Skip the rest.</p>
       {ideas.error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{ideas.error}</p>}
-      <button type="button" onClick={() => void ideas.generate()} className={cta}><Sparkles aria-hidden className="h-4 w-4" /> Get my 12 ideas</button>
+      <button type="button" onClick={() => void ideas.generate()} className={cta}><Sparkles aria-hidden className="h-4 w-4" /> Get my {IDEAS_PER_BATCH} ideas</button>
       <p className="text-center text-xs text-zinc-600 dark:text-zinc-400">Free to look. {money(PRICE_CENTS)} for each idea you keep.</p>
     </>
   );

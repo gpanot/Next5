@@ -22,7 +22,7 @@ const PARALLEL = 5;
 /** Shortest gap between two reads compared for weekly growth. */
 const GROWTH_GAP_HOURS = 6 * 24;
 
-type Read = { stats: PostStats; source: string };
+export type Read = { stats: PostStats; source: string };
 
 /** TikTok private posts have no public page (and no post id): there is nothing to read. */
 export const isReadable = (post: Pick<AutoSlideshowPost, 'platform' | 'privacyLevel' | 'tiktokPostId'>): boolean =>
@@ -34,8 +34,11 @@ const settled = <T>(result: PromiseSettledResult<T>, label: string): T | null =>
   return null;
 };
 
-/** Official numbers first; treg's public read fills saves, and stands in when the official read is missing. */
-const readTikTok = async (post: AutoSlideshowPost): Promise<Read | null> => {
+/**
+ * Official numbers first; treg's public read fills saves, and stands in when the official read is missing.
+ * Also reads Blitz videos' numbers (labs/blitzStats.ts).
+ */
+export const readTikTok = async (post: Pick<AutoSlideshowPost, 'workspaceId' | 'tiktokPostId' | 'postUrl'>): Promise<Read | null> => {
   const conn = await prisma.socialConnection.findUnique({ where: { workspaceId_provider: { workspaceId: post.workspaceId, provider: 'tiktok' } } });
   const official = conn && hasStatsScopes(conn.scopes) ? freshAccessToken(conn).then((t) => fetchTikTokStats(t, post.tiktokPostId!)) : Promise.resolve(null);
   const [api, pub] = await Promise.allSettled([official, fetchTikTokPublicStats(post.tiktokPostId!, post.postUrl)]);

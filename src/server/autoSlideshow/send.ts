@@ -17,6 +17,7 @@ import { getObject } from '../storage/objectStore';
 import { shortState, uploadShort, isYouTubePrivacy } from '../social/youtubeUpload';
 import { fetchPublishStatus, initCarousel, queryCreatorInfo } from '../social/tiktokCarousel';
 import { runBlitzScheduleTick } from '../labs/blitzScheduleTick';
+import { refreshBlitzIdeaStats } from '../labs/blitzStats';
 import { refreshDueStats } from './stats';
 import { videoForPost } from './video';
 import { firstStatsAt } from './statsSchedule';
@@ -225,7 +226,7 @@ export const runPostingTick = async (): Promise<{ sent: number; polled: number; 
   }
   const processing = await prisma.autoSlideshowPost.findMany({ where: { status: 'processing' }, orderBy: { sentAt: 'asc' }, take: POLLS_PER_TICK, select: { id: true } });
   for (const p of processing) await refreshPost(p.id);
-  return { sent, polled: processing.length, deferred, stats: await refreshDueStats(), blitz: await runBlitzScheduleTick() };
+  return { sent, polled: processing.length, deferred, stats: (await refreshDueStats()) + (await refreshBlitzIdeaStats()), blitz: await runBlitzScheduleTick() };
 };
 
 /** Smallest gap between two ticks started from page loads (the cron has its own schedule). */

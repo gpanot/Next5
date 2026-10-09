@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, RotateCcw, Sparkles } from 'lucide-react';
-import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
+import { IDEAS_PER_BATCH, type IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { CoverMedia } from '../../../labs/addToCalendar/CoverMedia';
 import { formatLabel, whenOf } from './ideaCards';
 import { ideaCover } from './ideaCover';
@@ -50,7 +50,7 @@ export function KeptIdeas({ kept, skipped, errors, generating, onReviewSkipped, 
           </button>
         )}
         <button type="button" onClick={onMore} disabled={generating} className="flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold text-blue-600 transition hover:bg-blue-50 active:scale-95 disabled:opacity-40 dark:text-blue-400 dark:hover:bg-blue-950">
-          <Sparkles aria-hidden className="h-4 w-4" /> {generating ? 'Writing new ideas…' : 'Get 12 more ideas (free)'}
+          <Sparkles aria-hidden className="h-4 w-4" /> {generating ? 'Writing new ideas…' : `Get ${IDEAS_PER_BATCH} more ideas (free)`}
         </button>
       </div>
     </div>

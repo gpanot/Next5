@@ -25,6 +25,14 @@ export type WebsiteBriefInput = {
   suggestedHooks: string[];
   /** Vision descriptions of the business's own product photos (manual profiles). */
   productPhotos: string[];
+  /** The problem this story is about, picked ahead so a bank's stories differ (Blitz Script Bank). */
+  problem?: string;
+  /** Blitz story format: what beats 1–5 say (one line each, keyed pain…inaction), replacing the default story. */
+  storyBeats?: string[];
+  /** What the CTA asks (by campaign stage). */
+  ctaRule?: string;
+  /** The proof quote this story restates, so a bank's stories rotate their proof. */
+  proofFocus?: string;
 };
 
 function profileBlock(b: WebsiteBriefInput): string {
@@ -44,13 +52,13 @@ function profileBlock(b: WebsiteBriefInput): string {
   ].filter(Boolean).join('\n');
 }
 
-function proofBlock(proof: ProofPoint[]): string {
+function proofBlock(proof: ProofPoint[], focus?: string): string {
   if (proof.length === 0) {
     return `PROOF: the site shows none. Use MECHANISM-AS-PROOF: show how little time or effort the fix takes,
 or describe the product doing the job ("Clients pick a slot, you get a text"). No numbers unless the profile above prints them.`;
   }
   return `PROOF (verified quotes from the site; the proof line must restate ONE of these, numbers exactly as written):
-${proof.map((p) => `- ${p.claim}  (quote: "${p.evidence}")`).join('\n')}`;
+${proof.map((p) => `- ${p.claim}  (quote: "${p.evidence}")`).join('\n')}${focus ? `\nUse this one: ${focus}` : ''}`;
 }
 
 // Examples use pool cleaners on purpose: few profiles are about them, so the model learns the
@@ -70,16 +78,11 @@ The business and product appear only in "mechanism" and "cta".
 PROFILE (the only facts you may use)
 ${profileBlock(b)}
 
-${proofBlock(b.proofPoints)}
+${proofBlock(b.proofPoints, b.proofFocus)}
 ${photoBlock(b.productPhotos)}
 STORY (write the lines in this order, each builds on the one before)
-1. Pick ONE concrete problem ${b.idc} have that this business solves. It must follow from the profile.
-2. pain: that problem in ${b.idc}'s own words, a moment from their workday.
-3. oldWay: how ${b.idc} cope with it today.
-4. mechanism: what the product does about it, named plainly.
-5. proof: see PROOF above.
-6. inaction: the cost of leaving it as is, then a short bridge ending with ":". Do not repeat the pain.
-7. cta: one action the business offers (book a demo, start a trial, call). Use "How customers buy" or the site's wording when the profile has it.
+${problemStep(b)}
+${storySteps(b)}
 
 RULES
 - Max 10 words per line. cta max 7 words.
@@ -97,6 +100,25 @@ OUTPUT: JSON only.
 }`;
 }
 
+function storySteps(b: WebsiteBriefInput): string {
+  const cta = b.ctaRule
+    ? `cta: ${b.ctaRule.replaceAll('{name}', b.business.name)}`
+    : 'cta: one action the business offers (book a demo, start a trial, call). Use "How customers buy" or the site\'s wording when the profile has it.';
+  const beats = b.storyBeats ?? [
+    `pain: that problem in ${b.idc}'s own words, a moment from their workday.`,
+    `oldWay: how ${b.idc} cope with it today.`,
+    'mechanism: what the product does about it, named plainly. Name the ONE thing that fixes this exact problem, never a list of everything it does.',
+    'proof: see PROOF above.',
+    'inaction: the cost of leaving THIS problem as it is, then a short bridge ending with ":". Do not repeat the pain.',
+  ];
+  return [...beats, cta].map((line, i) => `${i + 2}. ${line}`).join('\n');
+}
+
+function problemStep(b: WebsiteBriefInput): string {
+  if (b.problem) return `1. The story is about this, already chosen: "${b.problem}". Tell exactly this, not a nearby one.`;
+  return `1. Pick ONE concrete problem ${b.idc} have that this business solves. It must follow from the profile.`;
+}
+
 /** Real product photos: mechanism and proof are written to match one, so the photo plays behind the line. */
 function photoBlock(photos: string[]): string {
   if (photos.length === 0) return '';
@@ -106,9 +128,13 @@ Write "mechanism" and "proof" so each one describes something a photo above show
 Photos are facts about what they sell, not proof of numbers.\n`;
 }
 
+/** What a hook calls the audience: the IDC up to its first "and/who/looking…" ("Home cooks and families looking…" → "Home cooks"). */
+export const shortAudience = (idc: string): string =>
+  idc.replace(/[.\s]+$/, '').split(/\s+(?:and|who|that|looking|with|in|for|wanting|trying)\b/i)[0]!.trim() || idc;
+
 /** Brief-specific hook examples built from the IDC name and the profile's own hook ideas. */
 export function websiteHookExamples(b: WebsiteBriefInput): HookFewShot[] {
-  const idc = b.idc;
+  const idc = shortAudience(b.idc);
   const lower = idc.toLowerCase();
   const shots: HookFewShot[] = [
     { archetype: 'call_out', text: `${idc}, this one is for you` },

@@ -4,15 +4,11 @@ import { useState } from 'react';
 import type { BlitzBankAudienceDto, BlitzBankDto, BlitzBankMatrixDto, BlitzBankStoryDto } from '../../../types/admin/workspaceDetail';
 import { useAdminApi } from '../business/useAdminApi';
 import { PanelError, PanelSkeleton } from './PanelStates';
-
-const ARCHETYPE_LABELS: Record<string, string> = {
-  call_out: 'Call-out',
-  contrarian: 'Myth buster',
-  proof_result: 'Result first',
-  fear_inaction: 'Cost of waiting',
-  curiosity: 'Curiosity',
-  action: 'Challenge',
-};
+import { CampaignBlock } from './CampaignBlock';
+import { IdeaPlanTimeline } from './IdeaPlanTimeline';
+import { LearningPanel } from './LearningPanel';
+import { StageChip } from './StageChip';
+import { ARCHETYPE_LABELS, StoryBlitzCards } from './StoryBlitzCards';
 
 const STATUS_STYLES: Record<string, string> = {
   ready: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
@@ -28,9 +24,12 @@ function StoryCard({ story, index }: { story: BlitzBankStoryDto; index: number }
   return (
     <li className="rounded-xl border border-line bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
       <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-3 text-left transition active:scale-[0.99]">
-        <span className="min-w-0">
-          <span className="block text-xs font-semibold text-muted">Story {index + 1}</span>
+        <span className="min-w-0 space-y-0.5">
+          <span className="flex flex-wrap items-center gap-1.5 text-xs font-semibold text-muted">
+            Story {index + 1} <StageChip stage={story.stage} /> {story.format && <span className="font-normal">{story.format}</span>}
+          </span>
           <span className="block truncate text-sm font-semibold text-ink dark:text-zinc-100">{story.lines[0]?.text}</span>
+          {story.trigger && <span className="block truncate text-xs text-muted">About: {story.trigger}</span>}
         </span>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${story.used > 0 ? 'bg-zinc-100 text-muted dark:bg-zinc-800' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'}`}>
           {story.used > 0 ? `${story.used} cards` : 'unused'}
@@ -54,6 +53,10 @@ function StoryCard({ story, index }: { story: BlitzBankStoryDto; index: number }
               </li>
             ))}
           </ul>
+          <section className="space-y-2 md:col-span-2">
+            <h4 className="text-[11px] font-semibold uppercase tracking-wide text-muted">Blitzes made · {story.cards.length}</h4>
+            <StoryBlitzCards cards={story.cards} />
+          </section>
         </div>
       )}
     </li>
@@ -72,6 +75,7 @@ function AudienceSection({ audience }: { audience: BlitzBankAudienceDto }) {
         </p>
         {audience.proofNote && <p className="text-xs text-muted">{audience.proofNote}</p>}
       </div>
+      <CampaignBlock audience={audience} />
       <ul className="space-y-2">
         {audience.stories.map((s, i) => <StoryCard key={s.id} story={s} index={i} />)}
       </ul>
@@ -97,12 +101,12 @@ function BankBlock({ bank }: { bank: BlitzBankDto }) {
   );
 }
 
-/** Blitz Matrix tab: the workspace's Blitz Script Banks, the scripts its Blitz ideas are made from. */
+/** Blitz Matrix tab: the workspace's calendar plan, then its Blitz Script Banks (the scripts its Blitz ideas are made from). */
 export function BlitzMatrixPanel({ token, workspaceId }: { token: string; workspaceId: string }) {
   const { data, error, refresh } = useAdminApi<BlitzBankMatrixDto>(token, `/api/admin/workspaces/${workspaceId}/blitz-matrix`);
   if (error) return <PanelError message={error} onRetry={refresh} />;
   if (!data) return <PanelSkeleton rows={4} />;
-  if (data.banks.length === 0) {
+  if (data.banks.length === 0 && data.plan.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted dark:border-zinc-800">
         No Blitz Matrix yet. It is written when the workspace&apos;s first run starts, or with its first batch of ideas.
@@ -110,7 +114,9 @@ export function BlitzMatrixPanel({ token, workspaceId }: { token: string; worksp
     );
   }
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <IdeaPlanTimeline plan={data.plan} />
+      <LearningPanel learning={data.learning} />
       {data.banks.map((b) => <BankBlock key={b.id} bank={b} />)}
     </div>
   );

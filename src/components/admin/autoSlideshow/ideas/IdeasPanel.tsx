@@ -2,7 +2,7 @@
 
 import { Sparkles, X } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
+import { IDEAS_PER_BATCH, type IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { RotatingLine } from '../../shared/RotatingLine';
 import { MakingCountdown } from '../calendar/MakingCountdown';
 import { KeptIdeas } from './KeptIdeas';
@@ -22,10 +22,10 @@ const WRITING_LINES = [
   'Getting them ready to swipe…',
 ];
 
-/** Writing a batch of ideas usually takes about two minutes. */
-const TYPICAL_IDEAS_MS = 120_000;
+/** Writing a batch of ideas usually takes about three and a half minutes (14 stories, footage and images). */
+const TYPICAL_IDEAS_MS = 210_000;
 
-/** As in the canvas: ✕ (back to the start card), the title, "3 / 12", and a progress bar. */
+/** As in the canvas: ✕ (back to the start card), the title, "3 / 14", and a progress bar. */
 function Header({ ideas, onClose }: { ideas: IdeasState; onClose: () => void }) {
   const total = ideas.deck.length + ideas.kept.length + ideas.skipped.length;
   const decided = ideas.kept.length + ideas.skipped.length;
@@ -64,10 +64,10 @@ function Empty({ onGenerate, error }: { onGenerate: () => void; error: string | 
   return (
     <div className="flex flex-col items-center gap-3 py-8 text-center">
       <span className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400"><Sparkles aria-hidden className="h-6 w-6" /></span>
-      <p className="max-w-[30ch] text-sm text-muted">Get 12 post ideas. Each one you keep fills your next empty day. Skip the rest.</p>
+      <p className="max-w-[30ch] text-sm text-muted">Get {IDEAS_PER_BATCH} post ideas. Each one you keep fills your next empty day. Skip the rest.</p>
       {error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       <button type="button" onClick={onGenerate} className="min-h-12 rounded-full bg-blue-600 px-6 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 dark:bg-blue-500">
-        {error ? 'Try again' : 'Get my 12 ideas'}
+        {error ? 'Try again' : `Get my ${IDEAS_PER_BATCH} ideas`}
       </button>
     </div>
   );
