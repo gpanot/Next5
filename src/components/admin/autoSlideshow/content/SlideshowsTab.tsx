@@ -92,7 +92,7 @@ function NoSlideshows({ workspaceId }: { workspaceId: string }) {
   );
 }
 
-/** Content › Slideshows: every run of the workspace, newest first. The latest run is the one the Calendar places on days. */
+/** Library › Slideshows: every run of the workspace, newest first. The latest run is the one the Calendar places on days. */
 export function SlideshowsTab({ token, workspaceId }: { token: string; workspaceId: string }) {
   const runs = useAdminApi<{ runs: AutoRunSummary[] }>(token, `/api/admin/auto-slideshow/runs?workspace=${workspaceId}`);
   const [filter, setFilter] = useState<Filter>('all');

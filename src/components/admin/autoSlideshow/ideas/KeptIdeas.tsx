@@ -13,6 +13,8 @@ type Props = {
   generating: boolean;
   onReviewSkipped: () => void;
   onMore: () => void;
+  /** The "get more" button's words (the Ideas filter picks Blitz or slideshows). */
+  moreLabel?: string;
 };
 
 /** One kept idea: its cover, first line, format and day; the reason when Make failed for it. */
@@ -32,7 +34,7 @@ function KeptRow({ idea, error }: { idea: IdeaDto; error?: string }) {
 }
 
 /** End of the deck: what was kept, skipped ones to look at again, or a new batch. */
-export function KeptIdeas({ kept, skipped, errors, generating, onReviewSkipped, onMore }: Props) {
+export function KeptIdeas({ kept, skipped, errors, generating, onReviewSkipped, onMore, moreLabel = `Get ${IDEAS_PER_BATCH} more ideas (free)` }: Props) {
   return (
     <div className="space-y-4">
       <div className="flex flex-col items-center gap-2 py-2 text-center">
@@ -50,7 +52,7 @@ export function KeptIdeas({ kept, skipped, errors, generating, onReviewSkipped, 
           </button>
         )}
         <button type="button" onClick={onMore} disabled={generating} className="flex min-h-11 items-center justify-center gap-2 rounded-full text-sm font-semibold text-blue-600 transition hover:bg-blue-50 active:scale-95 disabled:opacity-40 dark:text-blue-400 dark:hover:bg-blue-950">
-          <Sparkles aria-hidden className="h-4 w-4" /> {generating ? 'Writing new ideas…' : `Get ${IDEAS_PER_BATCH} more ideas (free)`}
+          <Sparkles aria-hidden className="h-4 w-4" /> {generating ? 'Writing new ideas…' : moreLabel}
         </button>
       </div>
     </div>

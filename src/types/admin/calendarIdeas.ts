@@ -63,8 +63,3 @@ export const IDEA_DAYS = 14;
 /** Ideas planned on one day at most (the day keeps room for the user's own posts). */
 export const IDEAS_PER_DAY = 3;
 
-/** How many of `total` ideas are slideshows at `pct` percent. */
-export const slideshowShare = (total: number, pct: number): number => Math.round((total * Math.min(100, Math.max(0, pct))) / 100);
-
-export const clampPct = (v: unknown): number | null =>
-  typeof v === 'number' && Number.isFinite(v) ? Math.min(100, Math.max(0, Math.round(v))) : null;

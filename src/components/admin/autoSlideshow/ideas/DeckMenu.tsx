@@ -15,7 +15,7 @@ type Props = {
   making: number;
 };
 
-function CreateDialog({ onCreate, onClose }: { onCreate: Props['onCreate']; onClose: () => void }) {
+export function CreateDialog({ onCreate, onClose }: { onCreate: Props['onCreate']; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const create = async () => {

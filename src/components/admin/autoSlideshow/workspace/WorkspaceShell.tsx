@@ -9,7 +9,7 @@ import { SettingsModal } from '../settings/SettingsModal';
 import { UserGate } from '../UserGate';
 import { useWorkspaceSettings } from './useWorkspaceSettings';
 import { TopBarSlotProvider, useTopBarSlotRef } from './TopBarSlot';
-import { WorkspaceBottomTabs, WorkspaceMobileBar } from './WorkspacePhoneNav';
+import { WorkspaceBottomTabs } from './WorkspacePhoneNav';
 import { lastWorkspaceStore, SLIDESHOW_HOME, useSlideshowWorkspace, WorkspaceProvider } from './WorkspaceContext';
 import { WorkspacePages } from './WorkspacePages';
 import { WorkspaceContentSkeleton, WorkspaceShellSkeleton } from './WorkspaceShellSkeleton';
@@ -19,14 +19,15 @@ import { readCachedWorkspaces, writeCachedWorkspaces } from './workspacesCache';
 /** The data each workspace page loads first, fetched while the workspace list loads instead of after it. */
 const firstPageRequests = (pathname: string, workspaceId: string): string[] => {
   if (pathname.endsWith('/analytics')) return [`/api/slideshow/analytics?workspace=${workspaceId}`];
+  if (pathname.endsWith('/credits')) return ['/api/slideshow/credits'];
   if (pathname.endsWith('/content') || pathname.endsWith('/brand')) return [];
   return [`/api/admin/auto-slideshow/runs?workspace=${workspaceId}`];
 };
 
 /**
  * Shared layout of /slideshow/[workspaceId] and its sub pages (Calendar, Content, Brand, Analytics): sign-in, the
- * workspace, and one menu that stays mounted while the user moves between pages: a left sidebar on wide screens, a
- * slim top bar and bottom tabs on phones. The pages themselves render here (see
+ * workspace, and one menu that stays mounted while the user moves between pages: a left sidebar on wide screens,
+ * bottom tabs on phones. The pages themselves render here (see
  * WorkspacePages) and stay mounted once opened, so moving between them never reloads. The route files render nothing.
  * The menu and a content skeleton paint at once; the page fills in as its data lands.
  */
@@ -72,7 +73,7 @@ function SignedInShell({ token, children }: { token: string; children: ReactNode
 }
 
 /**
- * Sidebar (wide screens), phone top bar and bottom tabs around the page, plus the one Settings modal they open.
+ * Sidebar (wide screens) and bottom tabs (phones, Settings included) around the page, plus the one Settings modal they open.
  * `--bottom-nav-h` is the bottom tabs' height below lg (0 above), so bars pinned to the screen bottom sit above them.
  */
 function WorkspaceFrame({ token, workspaceId, children }: { token: string; workspaceId: string; children: ReactNode }) {
@@ -81,15 +82,15 @@ function WorkspaceFrame({ token, workspaceId, children }: { token: string; works
   const slotRef = useTopBarSlotRef();
   return (
     <div className="flex min-h-dvh bg-app-bg [--bottom-nav-h:calc(4rem+env(safe-area-inset-bottom))] lg:[--bottom-nav-h:0px]">
-      <WorkspaceSidebar token={token} workspaceId={workspaceId} settings={settings} />
+      <WorkspaceSidebar workspaceId={workspaceId} settings={settings} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-app-line bg-app-bg/90 backdrop-blur-md lg:border-0 lg:bg-transparent lg:backdrop-blur-none">
-          <WorkspaceMobileBar token={token} settings={settings} />
-          {slotRef && <div ref={slotRef} className="min-w-0 px-4 pb-2 empty:hidden lg:px-8 lg:pt-2" />}
+        {/* Phones have no top bar (Settings is a bottom tab); this only holds what a page puts in the slot. */}
+        <header className="sticky top-0 z-30">
+          {slotRef && <div ref={slotRef} className="min-w-0 bg-app-bg/90 px-4 py-2 backdrop-blur-md empty:hidden lg:bg-transparent lg:px-8 lg:backdrop-blur-none" />}
         </header>
-        <main className="flex-1 px-4 pt-4 pb-[calc(var(--bottom-nav-h)+1rem)] md:px-8 md:pt-8 lg:pb-8">{children}</main>
+        <main className="flex-1 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[calc(var(--bottom-nav-h)+1rem)] md:px-8 md:pt-8 lg:pb-8">{children}</main>
       </div>
-      <WorkspaceBottomTabs workspaceId={workspaceId} />
+      <WorkspaceBottomTabs workspaceId={workspaceId} settings={settings} />
       {/* Outside the sticky header: its backdrop blur would make it the containing block of the fixed modal. */}
       {workspace && settings.tab && <SettingsModal token={token} workspaceId={workspace.id} initialTab={settings.tab} onClose={settings.close} />}
     </div>

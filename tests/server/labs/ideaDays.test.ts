@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { atViewerTime, planIdeaTimes, viewerDay } from '../../../src/server/labs/ideaDays';
-import { IDEA_DAYS, IDEAS_PER_DAY, slideshowShare } from '../../../src/types/admin/calendarIdeas';
+import { IDEA_DAYS, IDEAS_PER_DAY } from '../../../src/types/admin/calendarIdeas';
 
 // New York in October: UTC-4, getTimezoneOffset() = 240.
 const NY = 240;
@@ -12,20 +12,6 @@ const countByDay = (times: Date[]) => {
   for (const t of times) map.set(viewerDay(t, NY), (map.get(viewerDay(t, NY)) ?? 0) + 1);
   return map;
 };
-
-describe('slideshowShare', () => {
-  it('splits a batch of 12 by the slideshow percent', () => {
-    expect(slideshowShare(12, 0)).toBe(0);
-    expect(slideshowShare(12, 10)).toBe(1);
-    expect(slideshowShare(12, 50)).toBe(6);
-    expect(slideshowShare(12, 100)).toBe(12);
-  });
-
-  it('clamps out-of-range percents', () => {
-    expect(slideshowShare(12, -20)).toBe(0);
-    expect(slideshowShare(12, 250)).toBe(12);
-  });
-});
 
 describe('planIdeaTimes', () => {
   it('starts tomorrow and stays within the ideas window', () => {

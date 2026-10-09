@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import type { CreditsDto } from '../../../../../types/admin/slideshowCredits';
 import { useAdminApi } from '../../../business/useAdminApi';
 import { AutoRechargeCard } from './AutoRechargeCard';
@@ -9,6 +10,7 @@ import { Notice } from './fields';
 import { HistoryList } from './HistoryList';
 import { TopUpCard } from './TopUpCard';
 import { useCheckoutReturn } from './useCheckoutReturn';
+import { CREDITS_CHANGED } from '../../creditsEvents';
 
 function CreditsSkeleton() {
   return (
@@ -22,6 +24,11 @@ function CreditsSkeleton() {
 export function CreditsSection({ token, workspaceId }: { token: string; workspaceId: string }) {
   const { data, error, loading, refresh } = useAdminApi<CreditsDto>(token, '/api/slideshow/credits');
   const returned = useCheckoutReturn(token, refresh);
+  // Spending or refunds elsewhere (keeping an idea, making slideshows): the balance re-reads at once.
+  useEffect(() => {
+    window.addEventListener(CREDITS_CHANGED, refresh);
+    return () => window.removeEventListener(CREDITS_CHANGED, refresh);
+  }, [refresh]);
 
   if (loading && !data) return <CreditsSkeleton />;
   if (error && !data) return <Notice tone="error">{error}</Notice>;

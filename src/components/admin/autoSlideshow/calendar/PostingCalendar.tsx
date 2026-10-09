@@ -1,7 +1,7 @@
 'use client';
 
-import { Sparkles } from 'lucide-react';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import type { AutoRunDto } from '../../../../types/admin/autoSlideshow';
 import { isTerminalAutoStatus, MAX_SLIDESHOWS } from '../../../../types/admin/autoSlideshow';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
@@ -9,13 +9,14 @@ import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { ApproveVideoSheet } from '../../../labs/blitzLab/schedule/ApproveVideoSheet';
 import { LabClientProvider } from '../../../labs/LabClientProvider';
 import { createWorkspaceLabClient } from '../../../labs/labClient';
+import { IdeasPanel } from '../ideas/IdeasPanel';
 import { useCalendarIdeas, type CalendarIdeasUi } from '../ideas/useCalendarIdeas';
 import { PostQueue } from '../PostQueue';
 import { PRICE_CENTS, money } from '../pricing/pricing';
 import { usePosting } from '../usePosting';
+import { pageOf } from '../workspace/workspaceNav';
 import { Accounts } from './Accounts';
 import { ApproveSheet } from './ApproveSheet';
-import { CalendarRail } from './CalendarRail';
 import { DayDetail } from './DayDetail';
 import { placeIdea, takenBy, uniqueTimes } from './ideaPlacement';
 import { MonthGrid } from './MonthGrid';
@@ -42,36 +43,6 @@ type Props = {
   onRailOpen?: () => void;
 };
 
-/** Phones: "Your next N post ideas" opens the ideas deck (wide screens have the start card on the right). */
-function IdeasButton({ ui, onOpen }: { ui: CalendarIdeasUi; onOpen: () => void }) {
-  const n = ui.ideas.deck.length;
-  return (
-    <button type="button" onClick={onOpen} className={`flex min-h-11 items-center gap-2 rounded-full bg-blue-50 px-4 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 active:scale-95 lg:hidden dark:bg-blue-950 dark:text-blue-300 dark:hover:bg-blue-900 ${n > 0 ? 'animate-nudge' : ''}`}>
-      <Sparkles aria-hidden className="h-4 w-4" />
-      {n > 0 ? (n === 1 ? 'Your next post idea' : `Your next ${n} post ideas`) : 'Post ideas'}
-    </button>
-  );
-}
-
-/**
- * New ideas just finished writing ("Get my 14 ideas", or the first batch after the run): the deck opens at once, with
- * no "Your next N post ideas" step in between. Not when a day is open (the user is looking at it).
- */
-const useDeckWhenWritten = (ui: CalendarIdeasUi | null, free: boolean, openDeck: () => void) => {
-  const generating = Boolean(ui?.ideas.generating);
-  const ready = (ui?.ideas.deck.length ?? 0) > 0;
-  const wasGenerating = useRef(generating);
-  const open = useRef(openDeck);
-  useEffect(() => {
-    open.current = openDeck;
-  });
-  useEffect(() => {
-    const finished = wasGenerating.current && !generating;
-    wasGenerating.current = generating;
-    if (finished && ready && free) open.current();
-  }, [generating, ready, free]);
-};
-
 /** Times of the live slideshow posts and Blitz videos, by day key (canceled and failed ones free their day). */
 const usePostTimes = (run: AutoRunDto, blitz: BlitzScheduleDto[]) => useMemo(() => {
   const map = new Map<string, Date[]>();
@@ -91,30 +62,24 @@ const useConfirmHeld = (ui: CalendarIdeasUi | null, all: PlanDay[]) => {
   useEffect(() => confirm?.(times), [confirm, times]);
 };
 
-/** Which day is open on the right (or below the grid), and whether the ideas deck is open (else the start card). */
-const useRail = (ui: CalendarIdeasUi | null, onRailOpen?: () => void) => {
+/** Which day is open on the right (or below the grid). An idea opened from a day shows on the Ideas page. */
+const useRail = (ui: CalendarIdeasUi | null, ideasHref: string, onRailOpen?: () => void) => {
+  const router = useRouter();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [deckOpen, setDeckOpen] = useState(false);
   const select = (key: string) => {
     setSelectedKey(key);
     onRailOpen?.();
   };
-  const openDeck = () => {
-    setSelectedKey(null);
-    setDeckOpen(true);
-    onRailOpen?.();
-  };
   const openIdea = (idea: IdeaDto) => {
+    ui?.ideas.setFilter('all');
     ui?.ideas.setFocusId(idea.id);
-    openDeck();
+    router.push(ideasHref);
   };
-  useDeckWhenWritten(ui, selectedKey === null, openDeck);
-  return { selectedKey, setSelectedKey, deckOpen, setDeckOpen, select, openDeck, openIdea };
+  return { selectedKey, setSelectedKey, select, openIdea };
 };
 
 /**
- * Autopilot view, one month at a time, as in the canvas: photo tiles, and the right side shows the ideas deck or the day
- * the user opened (posts and ideas, keep or skip, − N +). "Make" turns kept ideas into posts, "Generate" makes
+ * Autopilot view, one month at a time, as in the canvas: photo tiles, and the right side shows the day the user opened. On the Ideas page it shows only the ideas deck (posts and ideas, keep or skip, − N +). "Make" turns kept ideas into posts, "Generate" makes
  * slideshows for empty slots, slideshows can be dragged to another day, and one approval schedules them all.
  */
 export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled = false, onRailOpen }: Props) {
@@ -157,7 +122,10 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   };
   const ui = useCalendarIdeas({ token, run, enabled: ideasEnabled, pinSlideshows: (more) => setPins({ ...currentPins(all), ...more }), onMade: () => { reloadBlitz(); onRunChanged(); } });
   const move = useMoveOnCalendar({ token, workspaceId: run.workspaceId, blitz, ideas: ui?.ideas ?? null, moveShow, reloadBlitz });
-  const rail = useRail(ui, onRailOpen);
+  const ideasHref = `/slideshow/${run.workspaceId}/ideas`;
+  const rail = useRail(ui, ideasHref, onRailOpen);
+  // The Ideas page is this same calendar (same ideas and day plan), showing only the deck.
+  const ideasPage = pageOf(usePathname()) === 'ideas';
   const wide = useIsWide();
   const [view, setView] = useCalendarView();
   const ideasOn = (day: PlanDay) => ui?.byDay.get(day.key) ?? [];
@@ -169,32 +137,30 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const takenOn = (day: PlanDay, id = '') => uniqueTimes([...takenBy(entriesFor(day), id), ...(ui?.heldOn(day.key) ?? []), ...(postedOn.get(day.key) ?? [])]);
   const placeOf = (idea: IdeaDto) => placeIdea(idea.id, all, takenOn);
   useConfirmHeld(ui, all);
-  // The day the idea in the deck would fill if kept: ringed in blue.
-  const current = ui?.ideas.current && rail.deckOpen && !rail.selectedKey ? ui.ideas.current : null;
-  const focusKey = current ? dayKey(new Date(placeOf(current) ?? current.plannedAt)) : null;
   const detail = (day: PlanDay, onBack?: () => void) => (
     <DayDetail key={day.key} day={day} entries={entriesFor(day)} taken={takenOn(day)} ideas={ui?.ideas ?? null} maker={ui?.maker ?? null}
       onOpen={onOpen} onOpenBlitz={setOpenBlitz} onSetCount={onSetCount} onOpenIdea={rail.openIdea} onBack={onBack} />
   );
   const selected = all.concat(days).find((d) => d.key === rail.selectedKey) ?? null;
-  const hasRail = ui !== null || selected !== null;
+  // Wide screens: the day the user opened, on the right. Ideas live on the Ideas page, not beside the calendar.
+  const dayOpen = wide && selected !== null;
 
+  if (ui && ideasPage) return <IdeasPanel ideas={ui.ideas} maker={ui.maker} placeOf={placeOf} />;
   return (
     // One drag context for the grid and the day on the right, so a post in the day panel drops on any day of the grid.
     <SlideshowDnd onMove={move.onMove}>
-    <div className={hasRail ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]' : ''}>
+    <div className={dayOpen ? 'grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]' : ''}>
     <section className="space-y-4 rounded-[20px] border border-line bg-white p-4 shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
       <MonthHeader month={month} canPrev={canPrev} canNext={canNext} onMonth={step} subtitle={ui ? undefined : countsLine(counts) || 'Tap a day to plan it'} subtitleOnPhone={!ui}>
         <StatusLegend view={view} onView={setView} />
       </MonthHeader>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Accounts accounts={posting.accounts} />
-        {ui && <IdeasButton ui={ui} onOpen={rail.openDeck} />}
       </div>
       {view === 'list' ? (
-        <MonthList key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={focusKey} onSelect={rail.select} detail={(day) => (wide || rail.deckOpen ? null : detail(day))} />
+        <MonthList key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={null} onSelect={rail.select} detail={(day) => (wide ? null : detail(day))} />
       ) : (
-        <MonthGrid key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={focusKey} onSelect={rail.select} detail={(day) => (wide || rail.deckOpen ? null : detail(day))} />
+        <MonthGrid key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={null} onSelect={rail.select} detail={(day) => (wide ? null : detail(day))} />
       )}
       {view === 'grid' && <p className="hidden border-t border-zinc-100 pt-3 text-xs text-muted md:block dark:border-zinc-800">Click a day to see its posts. A stack means more than one post that day (up to {MAX_PER_DAY}).</p>}
       {(error || posting.error || move.error) && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error ?? posting.error ?? move.error}</p>}
@@ -226,16 +192,10 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
       )}
       {approving && <ApproveSheet token={token} run={run} items={approve} videos={plannedVideos} onVideosChanged={reloadBlitz} posting={posting} onClose={() => { setApproving(false); onRunChanged(); }} />}
     </section>
-    {hasRail && (
-      <CalendarRail
-        ideas={ui?.ideas ?? null}
-        maker={ui?.maker ?? null}
-        day={wide && selected ? detail(selected, ui ? () => rail.setSelectedKey(null) : undefined) : null}
-        deckOpen={rail.deckOpen}
-        onOpenDeck={rail.openDeck}
-        onCloseDeck={() => rail.setDeckOpen(false)}
-        placeOf={placeOf}
-      />
+    {dayOpen && selected && (
+      <aside aria-label="Day" className="hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
+        {detail(selected, ui ? () => rail.setSelectedKey(null) : undefined)}
+      </aside>
     )}
     </div>
     </SlideshowDnd>

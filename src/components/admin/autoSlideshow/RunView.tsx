@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { AUTO_STEP_LABELS, currentAutoStep, isTerminalAutoStatus, type AutoStep, type AutoRunDto } from '../../../types/admin/autoSlideshow';
 import { adminFetch } from '../business/useAdminApi';
@@ -25,6 +26,7 @@ import { useAutoRun } from './useAutoRun';
 import { useSidePanel } from './useSidePanel';
 import { useHasTopBarSlot } from './workspace/TopBarSlot';
 import { useSlideshowWorkspace } from './workspace/WorkspaceContext';
+import { pageOf } from './workspace/workspaceNav';
 
 /** Without `onBack` (a user's workspace) the top bar has no "New run" link. */
 type Props = { token: string; runId: string; onBack?: () => void; stickyTop?: string };
@@ -110,7 +112,7 @@ function RunHeading({ run }: { run: AutoRunDto }) {
 
 /**
  * "All slideshows" on the admin page: folded by default since the calendar shows the same slideshows; opens itself when
- * one failed. A workspace lists them on Content › Slideshows instead.
+ * one failed. A workspace lists them in its Library instead.
  */
 function AllSlideshows({ run, children }: { run: AutoRunDto; children: ReactNode }) {
   const [opened, setOpened] = useState<boolean | null>(null);
@@ -151,6 +153,9 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
   // A workspace shows progress only in the agent log; the admin page keeps a step bar under its header.
   const inTopBar = useHasTopBarSlot();
   const workspace = useSlideshowWorkspace();
+  // The workspace's Ideas page is this run's calendar showing only the deck: no run title or agent log there.
+  const pathname = usePathname();
+  const ideasPage = Boolean(workspace) && pageOf(pathname) === 'ideas';
   const agentLog = run && (
     <>
       <AgentLog lines={logLines(run)} error={null} clock={{ running: !isTerminalAutoStatus(run.status), startedAt: run.startedAt, finishedAt: run.finishedAt }} />
@@ -175,11 +180,11 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
           )}
           {!workspace && <SideToggle open={sideOpen} onToggle={toggleSide} />}
           <section className="order-1 min-w-0 space-y-4 lg:order-3">
-            {run.status === 'FAILED' && <FailedBanner token={token} run={run} onResumed={refresh} />}
-            <RunHeading run={run} />
+            {run.status === 'FAILED' && !ideasPage && <FailedBanner token={token} run={run} onResumed={refresh} />}
+            {!ideasPage && <RunHeading run={run} />}
             {(run.status !== 'FAILED' || run.slideshows.length > 0) && <PostingCalendar token={token} run={run} onOpen={setOpenId} onRunChanged={refresh} ideasEnabled={Boolean(workspace)} onRailOpen={() => setSideOpen(false)} />}
             {/* A workspace shows its brand on the Brand page; the agent log sits under the calendar. */}
-            {workspace && agentLog}
+            {workspace && !ideasPage && agentLog}
             {!workspace && (
               <AllSlideshows run={run}>
                 <SlideshowGrid

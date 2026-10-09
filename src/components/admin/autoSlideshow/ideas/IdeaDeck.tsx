@@ -32,13 +32,15 @@ type Props = {
   menu?: ReactNode;
 };
 
-export type DeckSize = 'panel' | 'day';
+export type DeckSize = 'panel' | 'day' | 'page';
 
 /** Card widths that keep ~48px free on each side for the sound buttons (36px + gap) while the card stays centered.
  *  Phone panel: the height left after the tight header (~4.5rem) and the controls + undo row (~7.5rem) goes to the card. */
 const CARD_WIDTH: Record<DeckSize, string> = {
   panel: 'w-[min(calc(100vw-6rem),calc((100dvh-13rem)*0.5625),380px)] lg:w-[min(calc((100dvh-28rem)*0.5625),260px)]',
   day: 'w-[min(calc(100vw-11.5rem),calc((100dvh-18rem)*0.5625),300px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
+  /** The Ideas page: every bit of height left after its header (title, chips) and the controls goes to the card. */
+  page: 'w-[min(calc(100vw-6rem),calc((100dvh-20rem)*0.5625),420px)] lg:w-[min(calc((100dvh-20rem)*0.5625),480px)]',
 };
 
 const round = 'flex items-center justify-center rounded-full border shadow-sm transition active:scale-90 disabled:opacity-30';

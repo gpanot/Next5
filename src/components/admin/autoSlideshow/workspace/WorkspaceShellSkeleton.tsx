@@ -11,11 +11,9 @@ export function WorkspaceContentSkeleton() {
   );
 }
 
-const block = 'animate-pulse rounded-full bg-app-line/60';
-
 /**
- * The workspace page before sign-in is known: same frame as WorkspaceShell (sidebar on wide screens; slim top bar and
- * bottom tabs on phones), then the content skeleton. In the server HTML too, so the frame paints at once and nothing
+ * The workspace page before sign-in is known: same frame as WorkspaceShell (sidebar on wide screens; bottom tabs on
+ * phones), then the content skeleton. In the server HTML too, so the frame paints at once and nothing
  * jumps when the real menu replaces it.
  */
 export function WorkspaceShellSkeleton() {
@@ -28,14 +26,7 @@ export function WorkspaceShellSkeleton() {
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-app-line bg-app-bg/90 backdrop-blur-md lg:hidden">
-          <div aria-hidden className="flex min-h-14 items-center gap-2 px-4 py-2">
-            <span className={`mr-auto h-10 w-32 ${block}`} />
-            <span className={`h-10 w-28 ${block}`} />
-            <span className={`h-10 w-10 ${block}`} />
-          </div>
-        </header>
-        <main className="flex-1 px-4 pt-4 pb-24 md:px-8 md:pt-8 lg:pb-8">
+        <main className="flex-1 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-24 md:px-8 md:pt-8 lg:pb-8">
           <WorkspaceContentSkeleton />
         </main>
       </div>

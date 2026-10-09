@@ -9,8 +9,8 @@ type Props = {
 };
 
 /**
- * A day with nothing to swipe and no idea left: one tap writes a new batch, the same as the ideas panel's (videos and
- * photo slideshows mixed as set in Settings › Content). Its ideas land on the next 2 weeks; an empty day takes a spare one.
+ * A day with nothing to swipe and no idea left: one tap writes a new batch of Blitz ideas, the same as the Ideas page's
+ * "Get more". Its ideas land on the next 2 weeks; an empty day takes a spare one.
  */
 export function DayGenerate({ writing, onGenerate }: Props) {
   if (writing) {

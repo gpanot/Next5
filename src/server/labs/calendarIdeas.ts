@@ -8,7 +8,7 @@
 import type { Prisma, SlideshowVariant } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { BLITZ_LIVE } from '../../types/admin/blitzSchedule';
-import { IDEAS_PER_BATCH, IDEA_DAYS, REQUESTED_SLIDESHOWS, slideshowShare, type IdeaDayRequest, type IdeaDto, type IdeaPatch, type IdeasListDto, type MadeSlideshow } from '../../types/admin/calendarIdeas';
+import { IDEAS_PER_BATCH, IDEA_DAYS, REQUESTED_SLIDESHOWS, type IdeaDayRequest, type IdeaDto, type IdeaPatch, type IdeasListDto, type MadeSlideshow } from '../../types/admin/calendarIdeas';
 import { ARCHETYPE_LABELS, ARCHETYPE_WHY, type DeckItem } from '../slideshow/core/deckAssembly';
 import { logSwipe } from '../slideshow/core/variants';
 import { runAutoPipeline } from '../autoSlideshow/pipeline';
@@ -152,33 +152,26 @@ const validOffset = (v: unknown): number | null => (typeof v === 'number' && Num
 export const hasIdeas = async (workspaceId: string): Promise<boolean> =>
   (await prisma.slideshowVariant.count({ where: { workspaceId, plannedAt: { not: null }, engine: { in: ['website', 'bank'] } } })) > 0;
 
-/** The batch in day order: the Blitz cards (one story each, audiences alternating) with the slideshows spread among them. */
-export const spreadSlideshows = (blitz: string[], slides: string[]): string[] => {
-  const out = [...blitz];
-  slides.forEach((id, i) => out.splice(Math.round(((i + 1) * blitz.length) / (slides.length + 1)) + i, 0, id));
-  return out;
-};
-
-/** The batch itself, under the workspace's lock. Returns the work to run after the response. */
-async function writeBatch(workspaceId: string, runId: string, tzOffsetMin: unknown): Promise<() => Promise<void>> {
-  const ws = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ideaSlideshowPct: true } });
-  const slides = await startSlideshows(workspaceId, runId, slideshowShare(IDEAS_PER_BATCH, ws?.ideaSlideshowPct ?? 10));
+/**
+ * The batch itself, under the workspace's lock: Blitz ideas only. Slideshow ideas have their own job
+ * (createSlideshowIdeas), started from the Ideas page's Slideshow filter. Returns the work to run after the response.
+ */
+async function writeBatch(workspaceId: string, tzOffsetMin: unknown): Promise<() => Promise<void>> {
   const tomorrow = new Date(Date.now() + 86_400_000);
-  const quotas = batchQuotas(campaignWeek(tomorrow, await campaignStart(workspaceId, tomorrow)), slides.goals);
+  const quotas = batchQuotas(campaignWeek(tomorrow, await campaignStart(workspaceId, tomorrow)), []);
   const blitz = await blitzCards(workspaceId, quotas).catch((err: unknown) => {
     console.error('[calendar-ideas] Blitz deck failed:', err instanceof Error ? err.message : err);
     return { ids: [] as string[], grow: noWork };
   });
-  const planned = spreadSlideshows(blitz.ids.slice(0, IDEAS_PER_BATCH - slides.ids.length), slides.ids);
+  const planned = blitz.ids.slice(0, IDEAS_PER_BATCH);
   if (planned.length === 0) throw new HttpError(502, 'no_ideas', 'Could not write ideas right now. Try again.');
   await planOnDays(workspaceId, planned, tzOffsetMin);
-  return () => Promise.all([slides.work(), blitz.grow()]).then(() => undefined);
+  return blitz.grow;
 }
 
 /**
- * A new batch of IDEAS_PER_BATCH ideas after what is on the calendar. The slideshows (Settings › Content share, from
- * the Slideshow Bank of `runId`) are created first and made in the background (`work`, run after the response) while
- * the user swipes the Blitz cards, which fill the rest. Slideshows take the batch's later days.
+ * A new batch of IDEAS_PER_BATCH Blitz ideas after what is on the calendar (`work`, run after the response, grows the
+ * script bank). `runId` is kept for the route's contract; slideshow ideas come from createSlideshowIdeas.
  * One batch at a time: while another is being written, this waits for it and returns it instead.
  * `firstOnly`: only when the workspace has never had ideas (the server's first batch). `tzOffsetMin` defaults to the
  * offset the browser last sent.
@@ -194,7 +187,7 @@ export async function generateIdeas(workspaceId: string, runId: string, tzOffset
   try {
     if (!opts.firstOnly || !(await hasIdeas(workspaceId))) {
       const saved = offset ?? (await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ideaTzOffsetMin: true } }))?.ideaTzOffsetMin;
-      work = await writeBatch(workspaceId, runId, saved ?? 0);
+      work = await writeBatch(workspaceId, saved ?? 0);
     }
   } finally {
     await releaseIdeasBatch(workspaceId);
