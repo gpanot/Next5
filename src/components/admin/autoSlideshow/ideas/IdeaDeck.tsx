@@ -38,13 +38,14 @@ export type DeckSize = 'panel' | 'day' | 'page';
  *  Phone panel: the height left after the tight header (~4.5rem) and the controls + undo row (~7.5rem) goes to the card. */
 const CARD_SIZE: Record<DeckSize, string> = {
   panel: 'aspect-[9/16] w-[min(calc(100vw-6rem),calc((100dvh-13rem)*0.5625),380px)] lg:w-[min(calc((100dvh-28rem)*0.5625),260px)]',
-  day: 'aspect-[9/16] w-[min(calc(100vw-11.5rem),calc((100dvh-18rem)*0.5625),300px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
+  /** Phones: as on the Ideas page, sound buttons on the card and bare ⋯ beside it, so the card takes almost all the width. */
+  day: 'aspect-[9/16] w-[min(calc((100vw-7.5rem)*1.1),calc((100dvh-10rem)*0.5625),460px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
   /** The Ideas page: every bit of height left after its compact header and the controls goes to the card, 9:16.
    *  Phones: as wide as the screen allows, the buttons sit on the card. Desktop: the buttons beside it. */
   page: 'aspect-[9/16] w-[min(calc(100vw-5rem),calc((100dvh-13.5rem)*0.5625))] lg:w-[min(calc((100dvh-20rem)*0.5625),480px)]',
 };
 
-/** Where the ⋯ menu and the sound buttons sit: beside the card, or (sound) on it on the Ideas page on phones. */
+/** Where the ⋯ menu and the sound buttons sit: beside the card, or (sound) on it on phones (Ideas page and a day). */
 const MENU_AT = { beside: 'top-0 left-full ml-1.5', on: 'top-0 left-full ml-0.5 lg:ml-1.5' };
 const SIDE_AT = { beside: 'bottom-0 left-full ml-1.5', on: 'bottom-14 right-3 lg:bottom-0 lg:right-auto lg:left-full lg:ml-1.5' };
 
@@ -95,7 +96,9 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
       onDecide(idea, status);
     }, EXIT_MS);
   };
-  const at = size === 'page' ? 'on' : 'beside';
+  const at = size === 'page' || size === 'day' ? 'on' : 'beside';
+  // Phones, on the Ideas page and in a day: undo left of ✕, and the date shows in the title above, not under the card.
+  const compact = size !== 'panel';
   const tags = [{ label: formatLabel(idea), variant: 'style' as const }, { label: card.lensValue, variant: 'audience' as const }];
   return (
     <div className="flex flex-col items-center gap-2 lg:gap-3">
@@ -128,14 +131,13 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
         onSkip={() => void decide('discarded')}
         onKeep={() => void decide('kept')}
         onEditHook={() => onEditHook(idea)}
-        undo={at === 'on' && (
+        undo={compact && (
           <button type="button" onClick={onUndo} disabled={!canUndo} aria-label="Undo" className={`${round} h-11 w-11 border-line bg-white text-zinc-600 hover:bg-zinc-50 lg:hidden dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300`}>
             <Undo2 aria-hidden className="h-4 w-4" />
           </button>
         )}
       />
-      {/* The Ideas page on phones: undo sits left of ✕ and the date is the page title. */}
-      <div className={`-mt-1 flex items-center gap-3 text-xs text-muted lg:mt-0 ${at === 'on' ? 'max-lg:hidden' : ''}`}>
+      <div className={`-mt-1 flex items-center gap-3 text-xs text-muted lg:mt-0 ${compact ? 'max-lg:hidden' : ''}`}>
         <button type="button" onClick={onUndo} disabled={!canUndo} className="flex min-h-10 lg:min-h-11 items-center gap-1 px-2 font-semibold transition hover:text-ink disabled:opacity-30 dark:hover:text-zinc-100">
           <Undo2 aria-hidden className="h-4 w-4" /> Undo
         </button>

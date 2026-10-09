@@ -11,7 +11,9 @@ import { DayDeck } from './DayDeck';
 import { IdeaRow } from './IdeaRow';
 import { MAX_PER_DAY, type PlanDay } from './monthPlan';
 import { DayGenerate } from './DayGenerate';
+import { keepTimeOn } from './ideaPlacement';
 import { PostRow } from './PostRow';
+import { timeOf } from './slotBadge';
 import { openSlots, type TileEntry } from './tileModel';
 
 export type DayDetailProps = {
@@ -93,8 +95,11 @@ export function DayDetail(p: DayDetailProps) {
   const plus = () => (ideas ? set(true) : p.onSetCount(p.day.key, p.day.slots.length + 1));
   const dropSlot = () => p.onSetCount(p.day.key, p.day.slots.length - 1);
   const shown = count + (wanted ? 1 : 0);
+  // Phones: the deck's post time sits in the header (the deck drops its "Will be posted" line there).
+  const deckAt = ideas && showing ? keepTimeOn(p.day, p.taken) : undefined;
   return (
-    <section className="flex flex-col gap-3 rounded-[20px] border border-line bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+    // Phones: no frame (it only cost margin); a line above sets the day apart from the month.
+    <section className="flex flex-col gap-3 border-t border-line pt-4 md:rounded-[20px] md:border md:bg-white md:p-4 dark:border-zinc-800 md:dark:bg-zinc-900">
       <header className="flex items-center gap-2.5">
         {p.onBack && (
           <button type="button" onClick={p.onBack} aria-label="Back to ideas" className="flex h-11 w-11 items-center justify-center rounded-full text-ink transition hover:bg-zinc-100 dark:text-zinc-100 dark:hover:bg-zinc-800">
@@ -103,7 +108,10 @@ export function DayDetail(p: DayDetailProps) {
         )}
         <div className="min-w-0 flex-1">
           <h2 className="text-2xl font-heading font-normal text-ink dark:text-zinc-100">{p.day.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</h2>
-          <p className="text-xs text-muted">Posts this day</p>
+          <p className="text-xs text-muted">
+            Posts this day
+            {deckAt && <span className="font-semibold text-ink lg:hidden dark:text-zinc-100"> · {timeOf(new Date(deckAt))}</span>}
+          </p>
         </div>
         <AddMore busy={Boolean(ideas?.generating)} open={Boolean(ideas) && wanted} canAdd={ideas ? open : !p.day.past && count < MAX_PER_DAY} onAdd={plus} onClose={() => set(false)} />
       </header>

@@ -41,7 +41,7 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   };
   return (
     <>
-      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onShuffle={music.canShuffle ? shuffle : null} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1) : undefined} menu={<DeckMenu onCreate={ideas.createSlideshows} making={asked} filters={size === 'page' ? ideas : undefined} bareOnPhone={size === 'page'} />} />
+      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onShuffle={music.canShuffle ? shuffle : null} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1) : undefined} menu={<DeckMenu onCreate={ideas.createSlideshows} making={asked} filters={size === 'page' ? ideas : undefined} bareOnPhone={size === 'page' || size === 'day'} />} />
       {hookFor && <HookPicker idea={hookFor} onPick={(id) => ideas.pickHook(hookFor, id)} onClose={() => setHookFor(null)} />}
       {dialog}
     </>

@@ -101,8 +101,10 @@ function RunHeading({ run, titleOnPhone = true }: { run: AutoRunDto; titleOnPhon
       <RunCounter done={ready} total={run.count} label="slideshows ready" note={run.slideshows.length === 0 ? 'Waiting for scripts' : `${rendering} rendering in parallel`} />
     </div>
   );
+  // Phones in a workspace, once done: nothing left to show, so no empty block (and its gap) above the calendar.
+  const hideOnPhone = !titleOnPhone && done;
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${hideOnPhone ? 'max-lg:hidden' : ''}`}>
       <div className={titleOnPhone ? '' : 'max-lg:hidden'}>
         <RunTitle {...headerCopy(run)} tone={done ? 'done' : run.status === 'FAILED' ? 'failed' : 'running'} aside={aside} />
       </div>
