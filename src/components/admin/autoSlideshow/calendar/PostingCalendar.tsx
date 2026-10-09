@@ -54,7 +54,7 @@ function IdeasButton({ ui, onOpen }: { ui: CalendarIdeasUi; onOpen: () => void }
 }
 
 /**
- * New ideas just finished writing ("Get my 12 ideas", or the first batch after the run): the deck opens at once, with
+ * New ideas just finished writing ("Get my 14 ideas", or the first batch after the run): the deck opens at once, with
  * no "Your next N post ideas" step in between. Not when a day is open (the user is looking at it).
  */
 const useDeckWhenWritten = (ui: CalendarIdeasUi | null, free: boolean, openDeck: () => void) => {
@@ -199,7 +199,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
       {view === 'grid' && <p className="hidden border-t border-zinc-100 pt-3 text-xs text-muted md:block dark:border-zinc-800">Click a day to see its posts. A stack means more than one post that day (up to {MAX_PER_DAY}).</p>}
       {(error || posting.error || move.error) && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{error ?? posting.error ?? move.error}</p>}
       {/* Pinned to the screen bottom while the plan is on screen: users don't always scroll down to find them. */}
-      <div className="sticky bottom-0 z-20 -mx-4 flex flex-col gap-2 border-t border-line bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:flex-row md:-mx-5 md:px-5 dark:border-zinc-800 dark:bg-zinc-900/95">
+      <div className="sticky bottom-[var(--bottom-nav-h,0px)] z-20 -mx-4 flex flex-col gap-2 border-t border-line bg-white/95 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:flex-row md:-mx-5 md:px-5 dark:border-zinc-800 dark:bg-zinc-900/95">
         {/* Only when empty slots wait (ideas fill days by swiping, so there is no "plan a day" step to point to). */}
         {(fill > 0 || adding !== null) && (
           <button onClick={() => void add(fill)} disabled={!idle || fill === 0 || tooMany} className="min-h-12 flex-1 rounded-full border-2 border-blue-600 px-5 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 active:scale-95 disabled:opacity-40 dark:border-blue-400 dark:text-blue-300 dark:hover:bg-blue-950">

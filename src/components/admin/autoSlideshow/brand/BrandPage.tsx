@@ -4,6 +4,7 @@ import { ImagePlus, X } from 'lucide-react';
 import { useMemo, useRef, type ChangeEvent } from 'react';
 import type { BrandPhotoDto } from '../../../../types/admin/brandContent';
 import { createWorkspaceLabClient } from '../../../labs/labClient';
+import { BrandWebsite } from './BrandWebsite';
 import { useBrandPhotos, type PendingPhoto } from './useBrandPhotos';
 
 const errorClass = 'rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300';
@@ -66,8 +67,8 @@ function EmptyState({ onAdd }: { onAdd: () => void }) {
   );
 }
 
-/** Content › Your Brand Content: the user's own photos, uploaded to reuse later. Nothing uses them yet. */
-export function BrandContentTab({ token, workspaceId }: { token: string; workspaceId: string }) {
+/** The Brand page's photo grid: the user's own photos, uploaded to reuse later. Nothing uses them yet. */
+function BrandPhotos({ token, workspaceId }: { token: string; workspaceId: string }) {
   const client = useMemo(() => createWorkspaceLabClient(token, workspaceId), [token, workspaceId]);
   const { photos, loadError, pending, load, upload, dismiss, remove } = useBrandPhotos(client);
   const input = useRef<HTMLInputElement>(null);
@@ -104,6 +105,27 @@ export function BrandContentTab({ token, workspaceId }: { token: string; workspa
         {pending.map((item) => <PendingTile key={item.key} item={item} onDismiss={() => dismiss(item.key)} />)}
         {photos.map((photo) => <PhotoTile key={photo.id} photo={photo} onRemove={() => void remove(photo)} />)}
       </ul>
+    </div>
+  );
+}
+
+/** /slideshow/[workspaceId]/brand: the brand card read from the website, and the brand's own photos. */
+export function BrandPage({ token, workspaceId }: { token: string; workspaceId: string }) {
+  return (
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+      <header className="space-y-1">
+        <h1 className="text-xl font-extrabold text-app-ink sm:text-2xl">Your brand</h1>
+        <p className="text-sm text-app-muted">What we read from your website, and your own photos.</p>
+      </header>
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
+        <section aria-label="Your website" className="space-y-3">
+          <h2 className="text-sm font-bold text-app-ink">From your website</h2>
+          <BrandWebsite token={token} workspaceId={workspaceId} />
+        </section>
+        <section aria-label="Your photos">
+          <BrandPhotos token={token} workspaceId={workspaceId} />
+        </section>
+      </div>
     </div>
   );
 }

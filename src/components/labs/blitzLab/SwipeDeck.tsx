@@ -497,7 +497,7 @@ export function SwipeDeck({
       <div
         role="status"
         className={[
-          'fixed bottom-[calc(20px+env(safe-area-inset-bottom,0px))] left-1/2 z-30 w-[calc(100%-28px)] max-w-[460px] -translate-x-1/2 rounded-[18px] bg-[var(--ink,#000)] px-[14px] py-3 shadow-[0_18px_40px_-18px_rgba(0,0,0,.6)] transition-[transform,visibility] duration-[250ms]',
+          'fixed bottom-[calc(20px+var(--bottom-nav-h,env(safe-area-inset-bottom,0px)))] left-1/2 z-30 w-[calc(100%-28px)] max-w-[460px] -translate-x-1/2 rounded-[18px] bg-[var(--ink,#000)] px-[14px] py-3 shadow-[0_18px_40px_-18px_rgba(0,0,0,.6)] transition-[transform,visibility] duration-[250ms]',
           toast ? 'translate-y-0 visible' : 'translate-y-[calc(100%+60px)] invisible',
         ].join(' ')}
       >

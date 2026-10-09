@@ -16,7 +16,7 @@ export default function AutoSlideshowPricingPage() {
 
   return (
     <div className="min-h-dvh bg-app-bg">
-      <AppTopBar token={token} page="pricing" />
+      <AppTopBar page="pricing" />
       <main className="px-4 py-4 md:px-8 md:py-8">
         <PricingPage />
       </main>

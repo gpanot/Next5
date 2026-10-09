@@ -3,20 +3,15 @@
 import { usePathname } from 'next/navigation';
 import { Activity, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { AnalyticsPage } from '../analytics/AnalyticsPage';
+import { BrandPage } from '../brand/BrandPage';
 import { ContentPage } from '../content/ContentPage';
 import { WorkspaceApp } from './WorkspaceApp';
-
-type PageId = 'calendar' | 'content' | 'analytics';
-
-const pageOf = (pathname: string): PageId => {
-  if (pathname.endsWith('/analytics')) return 'analytics';
-  if (pathname.endsWith('/content')) return 'content';
-  return 'calendar';
-};
+import { pageOf, type WorkspacePageId as PageId } from './workspaceNav';
 
 const renderPage = (page: PageId, token: string, workspaceId: string): ReactNode => {
   if (page === 'analytics') return <AnalyticsPage token={token} workspaceId={workspaceId} />;
   if (page === 'content') return <ContentPage token={token} workspaceId={workspaceId} />;
+  if (page === 'brand') return <BrandPage token={token} workspaceId={workspaceId} />;
   return <WorkspaceApp token={token} workspaceId={workspaceId} />;
 };
 
@@ -31,7 +26,7 @@ function PauseMediaWhenHidden({ children }: { children: ReactNode }) {
 }
 
 /**
- * Calendar, Content and Analytics of one workspace. A page opened once stays mounted, hidden (React Activity) while
+ * Calendar, Content, Brand and Analytics of one workspace. A page opened once stays mounted, hidden (React Activity) while
  * another shows, so going back is instant: same data, scroll, tabs and deck, no reload. Hidden pages stop their
  * effects (polling, timers) and resume them, refreshing in the background, when shown again.
  */

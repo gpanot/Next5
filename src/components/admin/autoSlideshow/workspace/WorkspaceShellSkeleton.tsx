@@ -11,29 +11,36 @@ export function WorkspaceContentSkeleton() {
   );
 }
 
+const block = 'animate-pulse rounded-full bg-app-line/60';
+
 /**
- * The workspace page before sign-in is known: same top bar height and layout as AppTopBar, then the content skeleton.
- * In the server HTML too, so the page frame paints at once and nothing jumps when the real bar replaces it.
+ * The workspace page before sign-in is known: same frame as WorkspaceShell (sidebar on wide screens; slim top bar and
+ * bottom tabs on phones), then the content skeleton. In the server HTML too, so the frame paints at once and nothing
+ * jumps when the real menu replaces it.
  */
 export function WorkspaceShellSkeleton() {
   return (
-    <div className="min-h-dvh bg-app-bg">
-      <header className="sticky top-0 z-30 border-b border-app-line bg-app-bg/90 backdrop-blur-md">
-        <div className="flex min-h-16 items-center gap-x-3 px-5 py-2 sm:gap-x-4 sm:px-8">
-          <span className="hidden sm:block"><BusinessLogo href={SLIDESHOW_HOME} /></span>
-          <span aria-hidden className="hidden h-10 w-32 animate-pulse rounded-full bg-app-line/60 sm:block" />
-          <div aria-hidden className="ml-auto flex items-center gap-1 sm:gap-2">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className="h-10 w-10 animate-pulse rounded-full bg-app-line/60 sm:w-24" />
-            ))}
-            <span className="h-10 w-28 animate-pulse rounded-full bg-app-line/60" />
-            <span className="h-10 w-10 animate-pulse rounded-full bg-app-line/60" />
-          </div>
+    <div className="flex min-h-dvh bg-app-bg">
+      <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r border-app-line bg-app-panel px-4 py-6 lg:flex">
+        <div className="px-2"><BusinessLogo href={SLIDESHOW_HOME} /></div>
+        <span aria-hidden className={`mt-6 h-10 w-full ${block}`} />
+        <div aria-hidden className="mt-6 flex flex-col gap-2">
+          {[0, 1, 2, 3].map((i) => <span key={i} className="h-11 animate-pulse rounded-xl bg-app-line/40" />)}
         </div>
-      </header>
-      <main className="px-4 py-4 md:px-8 md:py-8">
-        <WorkspaceContentSkeleton />
-      </main>
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 border-b border-app-line bg-app-bg/90 backdrop-blur-md lg:hidden">
+          <div aria-hidden className="flex min-h-14 items-center gap-2 px-4 py-2">
+            <span className={`mr-auto h-10 w-32 ${block}`} />
+            <span className={`h-10 w-28 ${block}`} />
+            <span className={`h-10 w-10 ${block}`} />
+          </div>
+        </header>
+        <main className="flex-1 px-4 pt-4 pb-24 md:px-8 md:pt-8 lg:pb-8">
+          <WorkspaceContentSkeleton />
+        </main>
+      </div>
+      <div aria-hidden className="fixed inset-x-0 bottom-0 z-30 h-[calc(4rem+env(safe-area-inset-bottom))] border-t border-app-line bg-app-bg/95 lg:hidden" />
     </div>
   );
 }

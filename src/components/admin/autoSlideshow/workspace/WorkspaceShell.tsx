@@ -5,26 +5,30 @@ import { useParams, usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { SlideshowWorkspaceDto } from '../../../../types/admin/autoSlideshow';
 import { prefetchAdminApi, useAdminApi } from '../../business/useAdminApi';
-import { AppTopBar } from '../AppTopBar';
+import { SettingsModal } from '../settings/SettingsModal';
 import { UserGate } from '../UserGate';
-import { TopBarSlotProvider } from './TopBarSlot';
-import { lastWorkspaceStore, SLIDESHOW_HOME, WorkspaceProvider } from './WorkspaceContext';
+import { useWorkspaceSettings } from './useWorkspaceSettings';
+import { TopBarSlotProvider, useTopBarSlotRef } from './TopBarSlot';
+import { WorkspaceBottomTabs, WorkspaceMobileBar } from './WorkspacePhoneNav';
+import { lastWorkspaceStore, SLIDESHOW_HOME, useSlideshowWorkspace, WorkspaceProvider } from './WorkspaceContext';
 import { WorkspacePages } from './WorkspacePages';
 import { WorkspaceContentSkeleton, WorkspaceShellSkeleton } from './WorkspaceShellSkeleton';
+import { WorkspaceSidebar } from './WorkspaceSidebar';
 import { readCachedWorkspaces, writeCachedWorkspaces } from './workspacesCache';
 
 /** The data each workspace page loads first, fetched while the workspace list loads instead of after it. */
 const firstPageRequests = (pathname: string, workspaceId: string): string[] => {
   if (pathname.endsWith('/analytics')) return [`/api/slideshow/analytics?workspace=${workspaceId}`];
-  if (pathname.endsWith('/content')) return [];
+  if (pathname.endsWith('/content') || pathname.endsWith('/brand')) return [];
   return [`/api/admin/auto-slideshow/runs?workspace=${workspaceId}`];
 };
 
 /**
- * Shared layout of /slideshow/[workspaceId] and its sub pages (Calendar, Content, Analytics): sign-in, the workspace,
- * and one top bar that stays mounted while the user moves between pages. The pages themselves render here (see
+ * Shared layout of /slideshow/[workspaceId] and its sub pages (Calendar, Content, Brand, Analytics): sign-in, the
+ * workspace, and one menu that stays mounted while the user moves between pages: a left sidebar on wide screens, a
+ * slim top bar and bottom tabs on phones. The pages themselves render here (see
  * WorkspacePages) and stay mounted once opened, so moving between them never reloads. The route files render nothing.
- * The bar and a content skeleton paint at once; the page fills in as its data lands.
+ * The menu and a content skeleton paint at once; the page fills in as its data lands.
  */
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   return <UserGate fallback={<WorkspaceShellSkeleton />}>{(token) => <SignedInShell token={token}>{children}</SignedInShell>}</UserGate>;
@@ -56,18 +60,39 @@ function SignedInShell({ token, children }: { token: string; children: ReactNode
     if (workspace) lastWorkspaceStore.set(workspace.id);
   }, [workspace]);
 
+  const content = workspace ? <WorkspacePages key={workspaceId} token={token} workspaceId={workspaceId} /> : error ? <ShellError message={error} /> : checked ? <WorkspaceNotFound /> : <WorkspaceContentSkeleton />;
   return (
     <WorkspaceProvider workspace={workspace}>
       <TopBarSlotProvider>
-        <div className="min-h-dvh bg-app-bg">
-          <AppTopBar token={token} user workspaceId={workspaceId} />
-          <main className="px-4 py-4 md:px-8 md:py-8">
-            {workspace ? <WorkspacePages key={workspaceId} token={token} workspaceId={workspaceId} /> : error ? <ShellError message={error} /> : checked ? <WorkspaceNotFound /> : <WorkspaceContentSkeleton />}
-          </main>
-          {children}
-        </div>
+        <WorkspaceFrame token={token} workspaceId={workspaceId}>{content}</WorkspaceFrame>
+        {children}
       </TopBarSlotProvider>
     </WorkspaceProvider>
+  );
+}
+
+/**
+ * Sidebar (wide screens), phone top bar and bottom tabs around the page, plus the one Settings modal they open.
+ * `--bottom-nav-h` is the bottom tabs' height below lg (0 above), so bars pinned to the screen bottom sit above them.
+ */
+function WorkspaceFrame({ token, workspaceId, children }: { token: string; workspaceId: string; children: ReactNode }) {
+  const workspace = useSlideshowWorkspace();
+  const settings = useWorkspaceSettings();
+  const slotRef = useTopBarSlotRef();
+  return (
+    <div className="flex min-h-dvh bg-app-bg [--bottom-nav-h:calc(4rem+env(safe-area-inset-bottom))] lg:[--bottom-nav-h:0px]">
+      <WorkspaceSidebar token={token} workspaceId={workspaceId} settings={settings} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 border-b border-app-line bg-app-bg/90 backdrop-blur-md lg:border-0 lg:bg-transparent lg:backdrop-blur-none">
+          <WorkspaceMobileBar token={token} settings={settings} />
+          {slotRef && <div ref={slotRef} className="min-w-0 px-4 pb-2 empty:hidden lg:px-8 lg:pt-2" />}
+        </header>
+        <main className="flex-1 px-4 pt-4 pb-[calc(var(--bottom-nav-h)+1rem)] md:px-8 md:pt-8 lg:pb-8">{children}</main>
+      </div>
+      <WorkspaceBottomTabs workspaceId={workspaceId} />
+      {/* Outside the sticky header: its backdrop blur would make it the containing block of the fixed modal. */}
+      {workspace && settings.tab && <SettingsModal token={token} workspaceId={workspace.id} initialTab={settings.tab} onClose={settings.close} />}
+    </div>
   );
 }
 

@@ -3,15 +3,13 @@
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { BlitzSlideTab } from './BlitzSlideTab';
-import { BrandContentTab } from './BrandContentTab';
 import { SlideshowsTab } from './SlideshowsTab';
 
-type ContentTab = 'blitz' | 'slideshow' | 'brand';
+type ContentTab = 'blitz' | 'slideshow';
 
 const TABS: { id: ContentTab; label: string }[] = [
   { id: 'blitz', label: 'Blitz Slide' },
   { id: 'slideshow', label: 'Slideshows' },
-  { id: 'brand', label: 'Your Brand Content' },
 ];
 
 const tabClass = (active: boolean) =>
@@ -46,9 +44,6 @@ export function ContentPage({ token, workspaceId }: { token: string; workspaceId
       </div>
       <div role="tabpanel" hidden={tab !== 'slideshow'}>
         <SlideshowsTab token={token} workspaceId={workspaceId} />
-      </div>
-      <div role="tabpanel" hidden={tab !== 'brand'}>
-        <BrandContentTab token={token} workspaceId={workspaceId} />
       </div>
     </div>
   );

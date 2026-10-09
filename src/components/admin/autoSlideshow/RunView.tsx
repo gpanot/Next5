@@ -129,7 +129,10 @@ function AllSlideshows({ run, children }: { run: AutoRunDto; children: ReactNode
   );
 }
 
-/** One run: calendar and slideshows first; brand and agent log on a side panel that folds away (below on phones). */
+/**
+ * One run: calendar and slideshows first. Admin page: brand and agent log on a side panel that folds away (below on
+ * phones). Workspace: agent log under the calendar; the brand lives on the Brand page.
+ */
 export function RunView({ token, runId, onBack, stickyTop }: Props) {
   const { run, error, refresh } = useAutoRun(token, runId);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -148,6 +151,12 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
   // A workspace shows progress only in the agent log; the admin page keeps a step bar under its header.
   const inTopBar = useHasTopBarSlot();
   const workspace = useSlideshowWorkspace();
+  const agentLog = run && (
+    <>
+      <AgentLog lines={logLines(run)} error={null} clock={{ running: !isTerminalAutoStatus(run.status), startedAt: run.startedAt, finishedAt: run.finishedAt }} />
+      {SHOW_MATRIX && <button onClick={() => setMatrixOpen(true)} className="min-h-11 px-1 text-sm font-semibold text-blue-600 underline-offset-4 transition hover:underline dark:text-blue-400">Matrix</button>}
+    </>
+  );
   const pipeline = run && <PipelineNav items={navItems(run)} running={!isTerminalAutoStatus(run.status)} startedAt={run.startedAt} finishedAt={run.finishedAt} clock={false} />;
 
   return (
@@ -157,19 +166,20 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
       {!run ? (
         error ? <p className={errorClass}>{error}</p> : <div className="h-80 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />
       ) : (
-        <div className={`grid gap-4 lg:gap-4 ${sideOpen ? 'lg:grid-cols-[320px_auto_1fr]' : 'lg:grid-cols-[auto_1fr]'}`}>
-          {sideOpen && (
+        <div className={workspace ? '' : `grid gap-4 lg:gap-4 ${sideOpen ? 'lg:grid-cols-[320px_auto_1fr]' : 'lg:grid-cols-[auto_1fr]'}`}>
+          {!workspace && sideOpen && (
             <aside className="order-3 space-y-4 lg:order-1">
               <BrandCard url={run.url} profile={run.profile} />
-              <AgentLog lines={logLines(run)} error={null} clock={{ running: !isTerminalAutoStatus(run.status), startedAt: run.startedAt, finishedAt: run.finishedAt }} />
-              {SHOW_MATRIX && <button onClick={() => setMatrixOpen(true)} className="min-h-11 px-1 text-sm font-semibold text-blue-600 underline-offset-4 transition hover:underline dark:text-blue-400">Matrix</button>}
+              {agentLog}
             </aside>
           )}
-          <SideToggle open={sideOpen} onToggle={toggleSide} />
+          {!workspace && <SideToggle open={sideOpen} onToggle={toggleSide} />}
           <section className="order-1 min-w-0 space-y-4 lg:order-3">
             {run.status === 'FAILED' && <FailedBanner token={token} run={run} onResumed={refresh} />}
             <RunHeading run={run} />
             {(run.status !== 'FAILED' || run.slideshows.length > 0) && <PostingCalendar token={token} run={run} onOpen={setOpenId} onRunChanged={refresh} ideasEnabled={Boolean(workspace)} onRailOpen={() => setSideOpen(false)} />}
+            {/* A workspace shows its brand on the Brand page; the agent log sits under the calendar. */}
+            {workspace && agentLog}
             {!workspace && (
               <AllSlideshows run={run}>
                 <SlideshowGrid
