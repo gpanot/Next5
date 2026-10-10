@@ -2,15 +2,20 @@
 
 import type { CampaignCredit } from '../../../../types/admin/slideshowCampaign';
 
-type Props = { url: string | null; number?: number; credit: CampaignCredit | null; onRemove?: () => void };
+type Props = { url: string | null; number?: number; credit: CampaignCredit | null; onRemove?: () => void; loading?: boolean };
 
 /** One attached photo, 9:16, with its rotation number, its Unsplash credit and a remove button. */
-export function PhotoThumb({ url, number, credit, onRemove }: Props) {
+export function PhotoThumb({ url, number, credit, onRemove, loading }: Props) {
   return (
     <div className="relative h-28 w-16 shrink-0 overflow-hidden rounded-lg bg-white/10">
       {url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+      )}
+      {loading && (
+        <span className="absolute inset-0 flex items-center justify-center bg-black/40" aria-label="Adding photo">
+          <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+        </span>
       )}
       {number !== undefined && <span className="absolute top-1 left-1 rounded bg-black/70 px-1 text-[10px] font-bold text-white">{number}</span>}
       {onRemove && (

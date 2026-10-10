@@ -21,7 +21,7 @@ import {
   type CampaignSummaryDto,
 } from '../../../types/admin/slideshowCampaign';
 import { HttpError } from '../../http';
-import { presignObject } from '../../storage/objectStore';
+import { thumbUrl } from '../../storage/thumbs';
 import type { UserAccess } from '../access';
 import { SHOW_INCLUDE, toSlideshowDto } from '../store';
 import { requireSlideshowWorkspace } from '../workspaces';
@@ -67,7 +67,7 @@ export const listCampaigns = async (workspaceId: string): Promise<CampaignSummar
     take: 50,
     select: { id: true, name: true, campaign: true, photos: true, createdAt: true, updatedAt: true, slideshows: { select: { slides: true } }, _count: { select: { posts: { where: { status: { in: LIVE_POSTS } } } } } },
   });
-  return Promise.all(runs.map(async (r): Promise<CampaignSummaryDto> => {
+  return runs.map((r): CampaignSummaryDto => {
     const draft = draftOf(r);
     const firstSlide = (r.slideshows[0]?.slides as unknown as AutoSlide[] | undefined)?.[0];
     const firstPhoto = draft.hookPhotos[0] !== undefined ? photosOf(r)[draft.hookPhotos[0]]?.imageKey : null;
@@ -78,21 +78,17 @@ export const listCampaigns = async (workspaceId: string): Promise<CampaignSummar
       hookCount: draft.hooks.length,
       slideshowCount: r.slideshows.length,
       scheduledCount: r._count.posts,
-      coverUrl: coverKey ? await presignObject(coverKey) : null,
+      coverUrl: coverKey ? thumbUrl(coverKey) : null,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     };
-  }));
+  });
 };
 
 export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
   const run = await prisma.autoSlideshowRun.findUniqueOrThrow({ where: { id }, include: { slideshows: { orderBy: { position: 'asc' }, include: SHOW_INCLUDE } } });
-  const photos = await Promise.all(photosOf(run).map(async (p, index): Promise<CampaignPhotoDto> => ({
-    index,
-    url: p.imageKey ? await presignObject(p.imageKey) : null,
-    source: p.source ?? 'generated',
-    credit: p.credit ?? null,
-  })));
+  // Thumbs: the editor shows photos at most 176 px wide.
+  const photos = photosOf(run).map((p, index): CampaignPhotoDto => ({ index, url: p.imageKey ? thumbUrl(p.imageKey) : null, source: p.source ?? 'generated', credit: p.credit ?? null }));
   return {
     id: run.id,
     workspaceId: run.workspaceId ?? '',

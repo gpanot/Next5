@@ -1,11 +1,23 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CampaignDraft, CampaignDto, CampaignPhotoRef, CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
+import type { CampaignDraft, CampaignDto, CampaignPhotoDto, CampaignPhotoTarget, PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
 
 /** Typing settles this long before the draft is saved. */
 const SAVE_DELAY_MS = 700;
+/** Photos copied into the campaign at once. */
+const IMPORT_PARALLEL = 4;
+
+/** A pick being copied in: shown at once from the picker's thumb, on the slide it is for. */
+export type PendingPhoto = { key: string; thumbUrl: string; target: CampaignPhotoTarget };
+
+/** The campaign's photos with new ones set at their index (imports can land in any order). */
+const withPhotos = (photos: CampaignPhotoDto[], added: CampaignPhotoDto[]): CampaignPhotoDto[] => {
+  const next = [...photos];
+  for (const p of added) next[p.index] = p;
+  return Array.from({ length: next.length }, (_, i) => next[i] ?? { index: i, url: null, source: 'generated', credit: null });
+};
 
 /** Puts imported photos on their slide: hook photos join the rotation, a card's photo is replaced by the last one. */
 const placePhotos = (draft: CampaignDraft, target: CampaignPhotoTarget, indexes: number[]): CampaignDraft => {
@@ -26,8 +38,9 @@ export const useCampaign = (token: string, id: string) => {
   const [busy, setBusy] = useState<'import' | 'generate' | null>(null);
   const [saving, setSaving] = useState(false);
   const [stale, setStale] = useState(false);
+  const [pending, setPending] = useState<PendingPhoto[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pending = useRef<CampaignDraft | null>(null);
+  const unsaved = useRef<CampaignDraft | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -42,9 +55,9 @@ export const useCampaign = (token: string, id: string) => {
   const flush = useCallback(async () => {
     if (timer.current) clearTimeout(timer.current);
     timer.current = null;
-    const draft = pending.current;
+    const draft = unsaved.current;
     if (!draft) return;
-    pending.current = null;
+    unsaved.current = null;
     setSaving(true);
     try {
       await adminFetch(token, base, { method: 'PATCH', body: JSON.stringify({ draft }) });
@@ -62,7 +75,7 @@ export const useCampaign = (token: string, id: string) => {
     setCampaign((c) => {
       if (!c) return c;
       const draft = update(c.draft);
-      pending.current = draft;
+      unsaved.current = draft;
       return { ...c, draft };
     });
     setStale(true);
@@ -75,21 +88,34 @@ export const useCampaign = (token: string, id: string) => {
     await adminFetch(token, base, { method: 'PATCH', body: JSON.stringify({ name }) }).catch((err: Error) => setError(err.message));
   }, [token, base]);
 
-  /** Imports the picks in order; stops at the first failure and keeps the ones already in. */
-  const importPhotos = useCallback(async (refs: CampaignPhotoRef[], target: CampaignPhotoTarget) => {
+  /**
+   * Copies the picks in, a few at a time, showing each at once from its picker thumb. They are put on the slide in
+   * pick order once all are in (that order is the hook rotation); a failed pick is left out and its error shown.
+   */
+  const importPhotos = useCallback(async (picks: PhotoOptionDto[], target: CampaignPhotoTarget) => {
     setBusy('import');
     setError(null);
-    try {
-      for (const ref of refs) {
-        const res = await adminFetch<{ index: number; campaign: CampaignDto }>(token, `${base}/photos`, { method: 'POST', body: JSON.stringify({ ref }) });
-        setCampaign((c) => (c ? { ...c, photos: res.campaign.photos } : c));
-        setDraft((d) => placePhotos(d, target, [res.index]));
+    setPending((p) => [...p, ...picks.map((o) => ({ key: o.key, thumbUrl: o.thumbUrl, target }))]);
+    const results: Array<CampaignPhotoDto | null> = new Array(picks.length).fill(null);
+    let failure: string | null = null;
+    let next = 0;
+    const worker = async () => {
+      while (next < picks.length) {
+        const i = next++;
+        try {
+          results[i] = (await adminFetch<{ photo: CampaignPhotoDto }>(token, `${base}/photos`, { method: 'POST', body: JSON.stringify({ ref: picks[i]!.ref }) })).photo;
+        } catch (err) {
+          failure ??= err instanceof Error ? err.message : 'Could not add that photo';
+        }
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not add that photo');
-    } finally {
-      setBusy(null);
-    }
+    };
+    await Promise.all(Array.from({ length: Math.min(IMPORT_PARALLEL, picks.length) }, worker));
+    const added = results.filter((r): r is CampaignPhotoDto => r !== null);
+    setCampaign((c) => (c ? { ...c, photos: withPhotos(c.photos, added) } : c));
+    setDraft((d) => placePhotos(d, target, added.map((p) => p.index)));
+    setPending((p) => p.filter((x) => !picks.some((o) => o.key === x.key)));
+    if (failure) setError(failure);
+    setBusy(null);
   }, [token, base, setDraft]);
 
   const generate = useCallback(async (): Promise<boolean> => {
@@ -109,7 +135,7 @@ export const useCampaign = (token: string, id: string) => {
     }
   }, [token, base, flush]);
 
-  return { campaign, error, busy, saving, stale, setDraft, rename, importPhotos, generate, clearError: () => setError(null) };
+  return { campaign, error, busy, saving, stale, pending, setDraft, rename, importPhotos, generate, clearError: () => setError(null) };
 };
 
 export type CampaignState = ReturnType<typeof useCampaign>;

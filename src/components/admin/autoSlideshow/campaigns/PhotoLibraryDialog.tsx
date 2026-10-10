@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { createPortal } from 'react-dom';
-import type { CampaignPhotoRef, PhotoOptionDto, PhotoTab } from '../../../../types/admin/slideshowCampaign';
+import type { PhotoOptionDto, PhotoTab } from '../../../../types/admin/slideshowCampaign';
 import { createWorkspaceLabClient, errorOf } from '../../../labs/labClient';
 import { MAX_RAW_BYTES, shrinkPhoto } from '../brand/shrinkPhoto';
 import { PhotoOptionGrid } from './PhotoOptionGrid';
@@ -15,7 +15,7 @@ type Props = {
   /** Hook: many photos (they rotate). A card: one. */
   multiple: boolean;
   title: string;
-  onDone: (refs: CampaignPhotoRef[]) => void;
+  onDone: (picks: PhotoOptionDto[]) => void;
   onClose: () => void;
 };
 
@@ -143,7 +143,7 @@ export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, t
             ))}
             {picked.length === 0 && <li className="self-center text-sm text-white/40">{multiple ? 'Pick one or more photos' : 'Pick a photo'}</li>}
           </ul>
-          <button type="button" onClick={() => onDone(picked.map((p) => p.ref))} disabled={picked.length === 0} className="min-h-11 shrink-0 rounded-full bg-emerald-400 px-5 text-sm font-semibold text-zinc-950 shadow-sm transition active:scale-95 disabled:opacity-40">
+          <button type="button" onClick={() => onDone(picked)} disabled={picked.length === 0} className="min-h-11 shrink-0 rounded-full bg-emerald-400 px-5 text-sm font-semibold text-zinc-950 shadow-sm transition active:scale-95 disabled:opacity-40">
             {picked.length > 1 ? `Add ${picked.length}` : 'Done'}
           </button>
         </footer>

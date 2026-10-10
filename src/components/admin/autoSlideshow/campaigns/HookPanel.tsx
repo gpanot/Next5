@@ -3,11 +3,13 @@
 import { useState, type FormEvent } from 'react';
 import { MAX_CAMPAIGN_HOOK_PHOTOS, MAX_CAMPAIGN_HOOKS, MAX_HOOK_CHARS, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import { PhotoThumb } from './PhotoThumb';
+import type { PendingPhoto } from './useCampaign';
 
 type Props = {
   draft: CampaignDraft;
   photos: CampaignPhotoDto[];
-  importing: boolean;
+  /** Picks still being copied in, shown at once. */
+  pending: PendingPhoto[];
   onChange: (update: (d: CampaignDraft) => CampaignDraft) => void;
   onAddPhotos: () => void;
 };
@@ -48,9 +50,9 @@ function HookInput({ disabled, onAdd }: { disabled: boolean; onAdd: (line: strin
 }
 
 /** The hook slide: hook lines (one slideshow each) and the photos they rotate on. */
-export function HookPanel({ draft, photos, importing, onChange, onAddPhotos }: Props) {
+export function HookPanel({ draft, photos, pending, onChange, onAddPhotos }: Props) {
   const fullHooks = draft.hooks.length >= MAX_CAMPAIGN_HOOKS;
-  const fullPhotos = draft.hookPhotos.length >= MAX_CAMPAIGN_HOOK_PHOTOS;
+  const fullPhotos = draft.hookPhotos.length + pending.length >= MAX_CAMPAIGN_HOOK_PHOTOS;
   const addHook = (line: string) => onChange((d) => (d.hooks.includes(line) ? d : { ...d, hooks: [...d.hooks, line] }));
   const removeHook = (i: number) => onChange((d) => ({ ...d, hooks: d.hooks.filter((_, j) => j !== i) }));
   const removePhoto = (i: number) => onChange((d) => ({ ...d, hookPhotos: d.hookPhotos.filter((_, j) => j !== i) }));
@@ -78,14 +80,19 @@ export function HookPanel({ draft, photos, importing, onChange, onAddPhotos }: P
         <p className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Hook photos · rotate in order</p>
         <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
           <li>
-            <button type="button" onClick={onAddPhotos} disabled={importing || fullPhotos} className="flex h-28 w-16 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-white/30 text-[11px] font-semibold text-white/80 transition active:scale-95 disabled:opacity-40">
-              {importing ? <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> : <span className="text-lg leading-none">+</span>}
-              {importing ? 'Adding…' : 'Add'}
+            <button type="button" onClick={onAddPhotos} disabled={fullPhotos} className="flex h-28 w-16 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-white/30 text-[11px] font-semibold text-white/80 transition active:scale-95 disabled:opacity-40">
+              <span className="text-lg leading-none">+</span>
+              Add
             </button>
           </li>
           {draft.hookPhotos.map((p, i) => (
             <li key={`${p}-${i}`}>
               <PhotoThumb url={photos[p]?.url ?? null} number={i + 1} credit={photos[p]?.credit ?? null} onRemove={() => removePhoto(i)} />
+            </li>
+          ))}
+          {pending.map((p) => (
+            <li key={p.key}>
+              <PhotoThumb url={p.thumbUrl} credit={null} loading />
             </li>
           ))}
         </ul>

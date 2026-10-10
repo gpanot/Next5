@@ -2,6 +2,7 @@
 
 import { MAX_CARD_BODY_CHARS, MAX_CARD_TITLE_CHARS, MIN_CAMPAIGN_CONTENT, type CampaignCard, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import { PhotoThumb } from './PhotoThumb';
+import type { PendingPhoto } from './useCampaign';
 
 type Props = {
   card: CampaignCard;
@@ -9,7 +10,8 @@ type Props = {
   position: number;
   contentCount: number;
   photos: CampaignPhotoDto[];
-  importing: boolean;
+  /** The pick being copied in for this card, shown at once. */
+  pending: PendingPhoto | null;
   onChange: (patch: Partial<CampaignCard>) => void;
   onPickPhoto: () => void;
   onRemove: () => void;
@@ -19,16 +21,16 @@ const field = 'w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 t
 const label = 'text-[11px] font-semibold tracking-widest text-white/50 uppercase';
 
 /** A content or CTA card: its headline, one line under it and its one photo, the same in every slideshow. */
-export function CardPanel({ card, position, contentCount, photos, importing, onChange, onPickPhoto, onRemove }: Props) {
+export function CardPanel({ card, position, contentCount, photos, pending, onChange, onPickPhoto, onRemove }: Props) {
   const isCta = card.role === 'cta';
   const photo = card.photo === null ? null : photos[card.photo];
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row">
         <div className="flex shrink-0 items-end gap-2">
-          {photo ? <PhotoThumb url={photo.url} credit={photo.credit} /> : <div className="h-28 w-16 rounded-lg border border-dashed border-white/20 bg-white/5" />}
-          <button type="button" onClick={onPickPhoto} disabled={importing} className="min-h-11 rounded-full border border-white/15 px-4 text-sm font-semibold text-white/85 transition active:scale-95 disabled:opacity-40">
-            {importing ? 'Adding…' : photo ? 'Change photo' : 'Choose photo'}
+          {pending ? <PhotoThumb url={pending.thumbUrl} credit={null} loading /> : photo ? <PhotoThumb url={photo.url} credit={photo.credit} /> : <div className="h-28 w-16 rounded-lg border border-dashed border-white/20 bg-white/5" />}
+          <button type="button" onClick={onPickPhoto} disabled={pending !== null} className="min-h-11 rounded-full border border-white/15 px-4 text-sm font-semibold text-white/85 transition active:scale-95 disabled:opacity-40">
+            {pending ? 'Adding…' : photo ? 'Change photo' : 'Choose photo'}
           </button>
         </div>
         <div className="min-w-0 flex-1 space-y-3">

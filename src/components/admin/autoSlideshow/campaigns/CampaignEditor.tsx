@@ -123,14 +123,14 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                 </p>
               )}
               {at === 0 ? (
-                <HookPanel draft={draft} photos={campaign.photos} importing={state.busy === 'import'} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
+                <HookPanel draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
               ) : (
                 <CardPanel
                   card={draft.cards[at - 1]!}
                   position={at - 1}
                   contentCount={draft.cards.length - 1}
                   photos={campaign.photos}
-                  importing={state.busy === 'import'}
+                  pending={state.pending.find((p) => p.target.slot === 'card' && p.target.card === at - 1) ?? null}
                   onChange={(p) => patchCard(at - 1, p)}
                   onPickPhoto={() => setPicker({ slot: 'card', card: at - 1 })}
                   onRemove={() => removeCard(at - 1)}
@@ -156,9 +156,9 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           multiple={picker.slot === 'hook'}
           title={picker.slot === 'hook' ? 'Hook photos' : 'Slide photo'}
           onClose={() => setPicker(null)}
-          onDone={(refs) => {
+          onDone={(picks) => {
             setPicker(null);
-            void state.importPhotos(refs, picker);
+            void state.importPhotos(picks, picker);
           }}
         />
       )}

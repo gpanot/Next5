@@ -51,9 +51,11 @@ export const searchUnsplash = async (query: string, page: number): Promise<{ opt
 export const fetchUnsplashPhoto = async (id: string): Promise<{ bytes: Buffer; label: string; credit: { name: string; url: string } }> => {
   if (!/^[\w-]{1,40}$/.test(id)) throw new HttpError(400, 'bad_photo', 'Unknown photo.');
   const photo = await call<UnsplashPhoto>(`/photos/${id}`);
-  // The download report: the location is an api.unsplash.com URL that needs the key.
-  await fetch(photo.links.download_location, { headers: { Authorization: `Client-ID ${accessKey()}` } }).catch(() => undefined);
-  const res = await fetch(`${photo.urls.raw}&w=1440&h=2560&fit=crop&crop=entropy&fm=jpg&q=90`);
+  // The download report (an api.unsplash.com URL that needs the key) goes out alongside the image download.
+  const [, res] = await Promise.all([
+    fetch(photo.links.download_location, { headers: { Authorization: `Client-ID ${accessKey()}` } }).catch(() => undefined),
+    fetch(`${photo.urls.raw}&w=1440&h=2560&fit=crop&crop=entropy&fm=jpg&q=85`),
+  ]);
   if (!res.ok) throw new HttpError(502, 'unsplash_failed', 'Could not download that photo. Pick another one.');
   return { bytes: Buffer.from(await res.arrayBuffer()), label: photo.alt_description ?? 'Unsplash photo', credit: creditOf(photo) };
 };
