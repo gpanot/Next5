@@ -44,7 +44,8 @@ export type CampaignPhotoSource = 'generated' | 'brand' | 'shared' | 'unsplash';
 
 export type CampaignCredit = { name: string; url: string };
 
-export type CampaignPhotoDto = { index: number; url: string | null; source: CampaignPhotoSource; credit: CampaignCredit | null };
+/** `url`: small thumb for strips and pickers; `fullUrl`: the photo itself, for the preview. */
+export type CampaignPhotoDto = { index: number; url: string | null; fullUrl: string | null; source: CampaignPhotoSource; credit: CampaignCredit | null };
 
 /** What to import into the campaign: a photo the workspace already has, a shared library photo, or an Unsplash photo. */
 export type CampaignPhotoRef =

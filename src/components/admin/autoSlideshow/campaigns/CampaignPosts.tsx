@@ -60,9 +60,9 @@ export function CampaignPosts({ token, run, onChanged }: Props) {
 
   if (shows.length === 0) return null;
   return (
-    <section aria-label="Post" className="space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold text-white">{shows.length} slideshows ready</h2>
+        <p className="text-sm font-medium text-white/70">{shows.length} {shows.length === 1 ? 'slideshow' : 'slideshows'} ready</p>
         {open.length < shows.length && <span className="text-xs text-white/50">{shows.length - open.length} scheduled</span>}
       </div>
       {open.length > 0 && (
@@ -92,6 +92,6 @@ export function CampaignPosts({ token, run, onChanged }: Props) {
       )}
       <RunSlideshowEditor token={token} run={run} openId={openId} onOpen={setOpenId} onChanged={onChanged} />
       {approving && <ApproveSheet token={token} run={run} items={items} videos={[]} onVideosChanged={() => undefined} posting={posting} onClose={() => { setApproving(false); onChanged(); }} />}
-    </section>
+    </div>
   );
 }

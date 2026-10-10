@@ -16,7 +16,7 @@ export type PendingPhoto = { key: string; thumbUrl: string; target: CampaignPhot
 const withPhotos = (photos: CampaignPhotoDto[], added: CampaignPhotoDto[]): CampaignPhotoDto[] => {
   const next = [...photos];
   for (const p of added) next[p.index] = p;
-  return Array.from({ length: next.length }, (_, i) => next[i] ?? { index: i, url: null, source: 'generated', credit: null });
+  return Array.from({ length: next.length }, (_, i) => next[i] ?? { index: i, url: null, fullUrl: null, source: 'generated', credit: null });
 };
 
 /** Puts imported photos on their slide: hook photos join the rotation, a card's photo is replaced by the last one. */

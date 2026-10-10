@@ -9,7 +9,7 @@ import { prisma } from '../../../lib/db';
 import type { CampaignPhotoDto, CampaignPhotoRef, PhotoOptionDto, PhotoTab } from '../../../types/admin/slideshowCampaign';
 import { blitzImageKeyWhere } from '../../admin/blitzStore';
 import { HttpError } from '../../http';
-import { getObject, putObject } from '../../storage/objectStore';
+import { getObject, presignObject, putObject } from '../../storage/objectStore';
 import { storeThumb, thumbUrl } from '../../storage/thumbs';
 import { detectHeads } from '../heads';
 import { compressJpeg, MAX_JPEG_BYTES, PHOTO_SIZE } from '../jpeg';
@@ -125,7 +125,7 @@ export const importPhoto = async (runId: string, workspaceId: string, ref: Campa
   const count = rows[0]?.count;
   if (count === undefined) throw new HttpError(404, 'campaign_not_found', 'Campaign not found.');
   const index = Number(count) - 1;
-  return { photo: { index, url: thumbUrl(imageKey), source: ref.source, credit: pick.credit ?? null }, detect: () => storeHeads(runId, index, jpeg) };
+  return { photo: { index, url: thumbUrl(imageKey), fullUrl: await presignObject(imageKey), source: ref.source, credit: pick.credit ?? null }, detect: () => storeHeads(runId, index, jpeg) };
 };
 
 /**

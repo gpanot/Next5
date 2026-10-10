@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 import { MAX_CAMPAIGN_CONTENT, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
+import type { PreviewSlide } from './previewSlides';
+import { PreviewSlideView } from './PreviewSlideView';
 
 type Props = {
   draft: CampaignDraft;
@@ -11,17 +13,23 @@ type Props = {
   onAdd: () => void;
 };
 
-type Card = { label: string; text: string; placeholder: string; photoUrl: string | null; badge: string | null };
+type Card = { label: string; slide: PreviewSlide; badge: string | null };
 
-const PLACEHOLDERS = { hook: 'Your hook line', item: 'Your point, plus the one detail that makes it land', cta: 'What to do next' };
-
-/** Slide 0 is the hook (its first line on its first photo); then the content cards and the CTA. */
+/**
+ * Slide 0 is the hook (its first line on its first photo); then the content cards and the CTA. Each card is drawn as
+ * the Preview draws it (thumb photo, text in the picked look), so the strip shows the slide as it will post.
+ */
 const cardsOf = (draft: CampaignDraft, photos: CampaignPhotoDto[]): Card[] => {
   const url = (i: number | null | undefined) => (i === null || i === undefined ? null : photos[i]?.url ?? null);
   const rotating = draft.hooks.length;
+  const hook: PreviewSlide = { kind: 'draft', photoUrl: url(draft.hookPhotos[0]), role: 'hook', title: draft.hooks[0] ?? '', body: '', look: draft.look };
   return [
-    { label: rotating > 1 ? `Hook · ${rotating} rotating` : 'Hook', text: draft.hooks[0] ?? '', placeholder: PLACEHOLDERS.hook, photoUrl: url(draft.hookPhotos[0]), badge: draft.hookPhotos.length > 1 ? `${draft.hookPhotos.length} photos` : null },
-    ...draft.cards.map((c) => ({ label: c.role === 'cta' ? 'CTA' : 'Content', text: c.title, placeholder: PLACEHOLDERS[c.role], photoUrl: url(c.photo), badge: null })),
+    { label: rotating > 1 ? `Hook · ${rotating} rotating` : 'Hook', slide: hook, badge: draft.hookPhotos.length > 1 ? `${draft.hookPhotos.length} photos` : null },
+    ...draft.cards.map((c): Card => ({
+      label: c.role === 'cta' ? 'CTA' : 'Content',
+      slide: { kind: 'draft', photoUrl: url(c.photo), role: c.role, title: c.title, body: c.body, look: draft.look },
+      badge: null,
+    })),
   ];
 };
 
@@ -60,13 +68,7 @@ export function CampaignStrip({ draft, photos, index, onPick, onAdd }: Props) {
               className={`relative flex w-32 flex-col overflow-hidden rounded-xl border-2 bg-zinc-900 transition active:scale-[0.98] sm:w-44 ${on ? 'border-emerald-400 shadow-sm shadow-emerald-500/20' : 'border-white/10 hover:border-white/30'}`}
             >
               <span className="relative block aspect-[9/16] w-full bg-white/5">
-                {c.photoUrl && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={c.photoUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-                )}
-                <span className="absolute inset-x-2 top-[38%] text-center text-[10px] leading-tight font-bold text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.9)] sm:text-xs">
-                  {c.text || <span className="font-medium text-white/40 [text-shadow:none]">{c.placeholder}</span>}
-                </span>
+                <span className="absolute inset-0"><PreviewSlideView slide={c.slide} /></span>
                 <span className="absolute top-2 left-2 flex h-6 min-w-6 items-center justify-center rounded-md bg-black/70 px-1 text-[11px] font-bold text-white">{i + 1}</span>
                 <span className="absolute top-2 right-2 flex h-6 items-center gap-1 rounded-md bg-black/60 px-1.5 text-[10px] font-semibold text-white/80">
                   <PhotoIcon />

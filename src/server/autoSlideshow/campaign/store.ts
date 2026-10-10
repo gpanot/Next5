@@ -21,6 +21,7 @@ import {
   type CampaignSummaryDto,
 } from '../../../types/admin/slideshowCampaign';
 import { HttpError } from '../../http';
+import { presignObject } from '../../storage/objectStore';
 import { thumbUrl } from '../../storage/thumbs';
 import type { UserAccess } from '../access';
 import { SHOW_INCLUDE, toSlideshowDto } from '../store';
@@ -88,7 +89,13 @@ export const listCampaigns = async (workspaceId: string): Promise<CampaignSummar
 export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
   const run = await prisma.autoSlideshowRun.findUniqueOrThrow({ where: { id }, include: { slideshows: { orderBy: { position: 'asc' }, include: SHOW_INCLUDE } } });
   // Thumbs: the editor shows photos at most 176 px wide.
-  const photos = photosOf(run).map((p, index): CampaignPhotoDto => ({ index, url: p.imageKey ? thumbUrl(p.imageKey) : null, source: p.source ?? 'generated', credit: p.credit ?? null }));
+  const photos = await Promise.all(photosOf(run).map(async (p, index): Promise<CampaignPhotoDto> => ({
+    index,
+    url: p.imageKey ? thumbUrl(p.imageKey) : null,
+    fullUrl: p.imageKey ? await presignObject(p.imageKey) : null,
+    source: p.source ?? 'generated',
+    credit: p.credit ?? null,
+  })));
   return {
     id: run.id,
     workspaceId: run.workspaceId ?? '',
