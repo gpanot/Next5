@@ -1,12 +1,16 @@
 // server-only — never import from a 'use client' file.
 // Writes the Brand Cast's people from the brand's audience (ICP) and Visual Bible: real-looking customers, not models,
-// each clearly different from the others. Flat keys: the small models skip fields nested in an object.
+// each clearly different from the others. Written by GPT-6.1 Sol (the user's pick, 2026-10-10). Flat keys: the small
+// models skip fields nested in an object.
 
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import type { VisualBible } from '../../types/admin/visualBible';
 import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { creativeJson } from '../shorts/llm';
+
+/** The cast writer (the user's pick, 2026-10-10); gpt-5.4-nano answers when it fails. */
+const CAST_MODEL = 'gpt-6.1-sol';
 
 export type Persona = { name: string; look: string };
 
@@ -49,7 +53,7 @@ const toPersonas = (raw: Record<string, unknown>, count: number): Persona[] =>
  */
 export const writePersonas = async (profile: BrandProfile, bible: VisualBible | null, count: number, avoid: Persona[], meter: CostMeter): Promise<Persona[]> => {
   const others = avoid.length ? `\n\nALREADY IN THE CAST (each new person must look clearly different from all of them, and have another name):\n${avoid.map((p) => `- ${p.name}: ${p.look}`).join('\n')}` : '';
-  const raw = await creativeJson<Record<string, unknown>>(SYSTEM.replace('{COUNT}', String(count)), `${brandText(profile, bible)}${others}\n\nWrite ${count} ${count === 1 ? 'person' : 'people'}.`, meter, 'Brand cast');
+  const raw = await creativeJson<Record<string, unknown>>(SYSTEM.replace('{COUNT}', String(count)), `${brandText(profile, bible)}${others}\n\nWrite ${count} ${count === 1 ? 'person' : 'people'}.`, meter, 'Brand cast', CAST_MODEL);
   const personas = toPersonas(raw, count);
   if (personas.length < count) throw new Error(`The cast writer gave ${personas.length} of ${count} people`);
   return personas;

@@ -1,11 +1,9 @@
 // server-only — never import from a 'use client' file.
-// A Brand Cast member's intro video (~6 s): "Hi, I'm Maya! … See you on your feed!". The line and the voice are cast in
-// one small call; the voice is the Shorts voice step (Gemini TTS, synthesize); the picture is Veo 3.1 Lite animating the
-// anchor photo (slow push-in to the face, a smile and a wave, mouth closed: Veo cannot lip-sync our own voice, the user
-// chose a voiceover over Veo's own speech on 2026-10-10). ffmpeg puts the voice on the clip.
+// A Brand Cast member's intro video (6 s): "Hi, I'm Maya! … See you on your feed!". One small call writes the line and
+// describes the voice; Veo 3.1 Lite (treg) then makes the whole clip from the anchor photo as its first frame: a slow
+// push-in to the face, a wave, and the person really speaking the line with Veo's own voice and lip sync. Picked by the
+// user on 2026-10-10 over Seedance 2.0 (with and without our Gemini voice) and over a silent clip with a voiceover.
 
-import { readFile, writeFile } from 'fs/promises';
-import path from 'path';
 import sharp from 'sharp';
 import type { BrandCastMember } from '@prisma/client';
 import { prisma } from '../../lib/db';
@@ -13,54 +11,51 @@ import type { BrandProfile } from '../../types/admin/companyIntel';
 import { HttpError } from '../http';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
-import { ffmpeg, withTempDir } from '../shorts/ffmpeg';
 import { creativeJson } from '../shorts/llm';
-import { makeClip } from '../shorts/media';
-import { synthesize } from '../shorts/voice';
-import { defaultVoice, VOICE_CATALOG, voiceGender } from '../shorts/voices';
+import { tregBytes, tregJson, withRetry } from '../shorts/treg';
 import { deleteObject, getObject, putObject } from '../storage/objectStore';
 
-/** Veo makes 4, 6 or 8 s clips; the intro is read in about 4.5-5.5 s, so it fits 6 s (8 s when the read runs long). */
-const VEO_SECONDS = [4, 6, 8] as const;
-/** The voice starts after this, so the first frame is a smile, not a word. */
-const VOICE_DELAY_S = 0.3;
-/** Silence kept after the last word before the clip ends. */
-const TAIL_S = 0.2;
+/** 6 s fits the 11-14 word line; Veo makes 4, 6 or 8 s clips. */
+const SECONDS = 6;
+/** Veo 3.1 Lite at 720p with audio: $0.05 a second (treg rate card), used when treg does not report the charge. */
+const USD_PER_SECOND = 0.05;
+const POLL_MS = 10_000;
+/** Veo answers in about a minute; on Vercel the whole intro must end before the 300 s limit. */
+const DEADLINE_MS = process.env.VERCEL === '1' ? 250_000 : 6 * 60_000;
+const FAILED = new Set(['failed', 'cancelled', 'expired', 'error']);
 /** An intro still "pending" after this was cut off (a killed function). */
 export const INTRO_STALE_MS = 8 * 60_000;
 
 const SYSTEM = `You write the 5-second intro video of a brand's recurring social media person: they say hello to the
 brand's audience, as a friendly creator, not an ad. Simple words a 10-year-old can read.
-- "script": 11-14 words (it must be read in under 5 seconds), 2-3 short sentences: "Hi, I'm <first name>!", then 1 or 2 things they will share on the feed
-  (useful tips the audience wants, from the brand's world), then "See you on your feed!". The brand name at most once.
-  No prices, no claims, no numbers.
-- "voice": one voice from this list ONLY, the same gender as the person, fitting their age and energy:
-  ${VOICE_CATALOG}
-- "direction": one sentence of delivery notes: warm, friendly, natural, smiling, like talking to a friend.
-Return JSON with flat keys only: {"script": string, "voice": string, "direction": string}`;
+- "script": 11-14 words (it must be said in under 5 seconds), 2-3 short sentences: "Hi, I'm <first name>!", then 1 or 2
+  things they will share on the feed (useful tips the audience wants, from the brand's world), then "See you on your
+  feed!". The brand name at most once. No prices, no claims, no numbers.
+- "voice": 6-12 words describing their speaking voice from their age and gender, e.g. "warm, friendly American young
+  woman in her mid twenties".
+Return JSON with flat keys only: {"script": string, "voice": string}`;
 
-type Casting = { script: string; voice: string; direction: string };
+type Casting = { script: string; voice: string };
+type Task = { id?: string; status?: string; error?: unknown; usage?: { cost?: number } };
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? clip(v.replace(/\s+/g, ' ').trim(), max) : '');
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const firstName = (m: BrandCastMember) => m.name.split(',')[0]!.trim();
 
-/** "Woman" / "Man" from the member's look, so a bad voice answer falls back to the right gender. */
-const lookGender = (look: string): 'female' | 'male' => (/\b(man|male|guy)\b/i.test(look) && !/\bwoman\b/i.test(look) ? 'male' : 'female');
+/** "Woman" / "Man" from the member's look, for the fallback voice. */
+const isMan = (look: string) => /\b(man|male|guy)\b/i.test(look) && !/\bwoman\b/i.test(look);
 
 const castIntro = async (member: BrandCastMember, profile: BrandProfile, meter: CostMeter): Promise<Casting> => {
   const user = `BRAND: ${profile.brandName}. SELLS: ${profile.valueProp}\nAUDIENCE: ${profile.audience}\nPERSON: ${member.name}. ${member.look}`;
   const raw = await creativeJson<Record<string, unknown>>(SYSTEM, user, meter, 'Cast intro');
-  const gender = lookGender(member.look);
-  const asked = str(raw.voice, 30);
-  const voice = voiceGender(asked) === gender ? asked : defaultVoice(gender);
-  const firstName = member.name.split(',')[0]!.trim();
-  const script = str(raw.script, 160) || `Hi, I'm ${firstName}! I'll share easy tips you can use every day. See you on your feed!`;
-  return { script, voice, direction: str(raw.direction, 200) || 'Warm, friendly and natural, smiling, like talking to a friend.' };
+  const script = str(raw.script, 160) || `Hi, I'm ${firstName(member)}! I'll share easy tips you can use every day. See you on your feed!`;
+  return { script, voice: str(raw.voice, 120) || `warm, friendly American ${isMan(member.look) ? 'man' : 'woman'}` };
 };
 
-/** Veo's direction: a push-in to the face, a smile, a wave and a nod, the mouth closed (the voice is laid over it). */
-const veoPrompt = (member: BrandCastMember): string => {
-  const [they, their] = lookGender(member.look) === 'male' ? ['he', 'his'] : ['she', 'her'];
-  return `Vertical 9:16 video made from this photo of ${member.name.split(',')[0]}. Over the whole clip the camera slowly and smoothly pushes in from the full body to a close-up of ${their} face. ${they[0]!.toUpperCase()}${they.slice(1)} looks into the camera, smiles warmly, gives a small friendly wave and a slight nod, blinking naturally. ${their[0]!.toUpperCase()}${their.slice(1)} mouth stays closed in a gentle smile: ${they} is not talking. Same person, same clothes, same plain bright background. Realistic, natural skin, soft even daylight, steady camera, no text.`;
+/** The tested setting (2026-10-10): one continuous push-in from the photo, a wave, then the line spoken on camera. */
+const veoPrompt = (member: BrandCastMember, casting: Casting): string => {
+  const name = firstName(member);
+  return `Vertical 9:16 selfie-style intro video starting exactly from this photo of ${name}. One continuous shot: over the whole clip the camera slowly pushes in from the full body to a close-up of the face. ${name} looks into the camera, smiles, gives a small wave at the start and speaks naturally with clear lip movement, in a ${casting.voice} voice: "${casting.script}" Same person, same clothes, same plain bright background. Realistic, soft daylight, no music, no text, no subtitles.`;
 };
 
 /** The anchor photo as a 720x1280 first frame (Veo animates 9:16; the anchor is 3:4, so its sides are cropped). */
@@ -70,15 +65,26 @@ const firstFrame = async (anchorKey: string): Promise<Buffer> => {
   return sharp(anchor).resize(720, 1280, { fit: 'cover', position: 'centre' }).jpeg({ quality: 92 }).toBuffer();
 };
 
-/** The clip with the voice on it: delayed a little, padded with silence to the clip's length. */
-const mux = (video: Buffer, wav: Buffer, seconds: number): Promise<Buffer> =>
-  withTempDir(async (dir) => {
-    const [v, a, out] = ['clip.mp4', 'voice.wav', 'intro.mp4'].map((f) => path.join(dir, f)) as [string, string, string];
-    await Promise.all([writeFile(v, video), writeFile(a, wav)]);
-    const delayMs = Math.round(VOICE_DELAY_S * 1000);
-    await ffmpeg(['-i', v, '-i', a, '-filter_complex', `[1:a]adelay=${delayMs}|${delayMs},apad[a]`, '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k', '-t', String(seconds), '-movflags', '+faststart', out]);
-    return readFile(out);
-  });
+/** Veo 3.1 Lite with its own audio (speech and lip sync), from the first frame. Returns the mp4. */
+const veoTalk = async (prompt: string, frame: Buffer, meter: CostMeter): Promise<Buffer> => {
+  const frameImages = [{ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${frame.toString('base64')}` }, frame_type: 'first_frame' }];
+  const body = { model: 'google/veo-3.1-lite', prompt, duration: SECONDS, resolution: '720p', aspect_ratio: '9:16', generate_audio: true, frame_images: frameImages };
+  const { data } = await withRetry(() => tregJson<Task>('openrouter.x.google-veo-3-1-lite', { body, timeoutMs: 90_000 }));
+  const id = data.id;
+  if (!id) throw new Error('Veo returned no task id');
+  const until = Date.now() + DEADLINE_MS;
+  while (Date.now() < until) {
+    await sleep(POLL_MS);
+    const task = await tregJson<Task>('openrouter.video-gen.task.status', { query: { id }, timeoutMs: 20_000 }).then((r) => r.data).catch(() => null);
+    const status = (task?.status ?? '').toLowerCase();
+    if (task && FAILED.has(status)) throw new Error(`Veo failed: ${JSON.stringify(task.error ?? status).slice(0, 300)}`);
+    if (task && status === 'completed') {
+      meter.add('Intro video · Veo 3.1 Lite with audio (treg)', Math.round((task.usage?.cost ?? SECONDS * USD_PER_SECOND) * 1e6));
+      return withRetry(() => tregBytes('openrouter.video-gen.result.retrieve', { query: { id }, timeoutMs: 120_000 }));
+    }
+  }
+  throw new Error(`Veo timed out after ${Math.round(DEADLINE_MS / 1000)} s`);
+};
 
 const introKey = (member: BrandCastMember) => `brand-cast/${member.workspaceId}/${member.id}-intro-${Date.now()}.mp4`;
 
@@ -86,15 +92,13 @@ const introKey = (member: BrandCastMember) => `brand-cast/${member.workspaceId}/
 const makeIntro = async (member: BrandCastMember, profile: BrandProfile, meter: CostMeter): Promise<void> => {
   try {
     if (!member.imageKey) throw new Error('This person has no photo yet');
-    const casting = await castIntro(member, profile, meter);
-    const [voice, frame] = await Promise.all([synthesize(casting.script, { voice: casting.voice, direction: casting.direction }, meter), firstFrame(member.imageKey)]);
-    const seconds = VEO_SECONDS.find((s) => s >= voice.durationS + VOICE_DELAY_S + TAIL_S) ?? 8;
-    const video = await makeClip('veo', { prompt: veoPrompt(member), seconds, frame, frameKey: member.imageKey, onSource: () => undefined }, meter);
+    const [casting, frame] = await Promise.all([castIntro(member, profile, meter), firstFrame(member.imageKey)]);
+    const video = await veoTalk(veoPrompt(member, casting), frame, meter);
     const key = introKey(member);
-    await putObject(key, await mux(video, voice.wav, seconds), 'video/mp4');
+    await putObject(key, video, 'video/mp4');
     await prisma.brandCastMember.update({ where: { id: member.id }, data: { voice: casting.voice, introScript: casting.script, introVideoKey: key, introStatus: 'ready', introError: null } });
     if (member.introVideoKey) await deleteObject(member.introVideoKey).catch(() => undefined);
-    console.log(`[brand-cast] intro for ${member.id} (${seconds} s, ${casting.voice}): $${meter.summary().usdMicros / 1e6}`);
+    console.log(`[brand-cast] intro for ${member.id}: $${meter.summary().usdMicros / 1e6}`);
   } catch (err) {
     const message = clip(err instanceof Error ? err.message : String(err), 300);
     console.warn(`[brand-cast] intro for ${member.id} failed:`, message);

@@ -27,6 +27,8 @@ type CardProps = { member: BrandCastMemberDto; busy: boolean; detailed: boolean;
 
 function MemberCard({ member, busy, detailed, onAct }: CardProps) {
   const failed = member.status === 'failed';
+  // A made (or failed) intro can be made again; a first one comes from the "Make intro videos" button.
+  const canRedo = member.status === 'ready' && (member.introStatus === 'ready' || member.introStatus === 'failed');
   return (
     <li className="flex min-w-0 flex-col gap-2">
       <CastMemberMedia member={member} />
@@ -36,10 +38,17 @@ function MemberCard({ member, busy, detailed, onAct }: CardProps) {
         {detailed && member.introScript && <p className="mt-1 text-xs text-app-ink">Intro: “{member.introScript}”</p>}
         {detailed && member.introStatus === 'failed' && member.introError && <p className="mt-1 text-xs text-app-danger">{member.introError}</p>}
       </div>
-      <button type="button" onClick={() => onAct(failed ? 'retry' : 'swap')} disabled={busy || member.status === 'pending'} className={`${smallButton} mt-auto`}>
-        <RefreshCw aria-hidden className={`h-3.5 w-3.5 ${busy ? 'animate-spin' : ''}`} />
-        {failed ? 'Try again' : 'New face'}
-      </button>
+      <div className="mt-auto flex flex-col gap-1.5">
+        <button type="button" onClick={() => onAct(failed ? 'retry' : 'swap')} disabled={busy || member.status === 'pending'} className={smallButton}>
+          <RefreshCw aria-hidden className={`h-3.5 w-3.5 ${busy ? 'animate-spin' : ''}`} />
+          {failed ? 'Try again' : 'New face'}
+        </button>
+        {canRedo && (
+          <button type="button" onClick={() => onAct('intro')} disabled={busy} className={smallButton}>
+            <Clapperboard aria-hidden className="h-3.5 w-3.5" /> Redo intro
+          </button>
+        )}
+      </div>
     </li>
   );
 }
@@ -63,7 +72,7 @@ const needIntro = (members: BrandCastMemberDto[]) => members.filter((m) => m.sta
 function IntroCta({ count, busy, onMake }: { count: number; busy: boolean; onMake: () => void }) {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-app-line bg-app-panel p-3 shadow-sm">
-      <p className="min-w-[12rem] flex-1 text-sm text-app-muted">A 6-second hello from {count === 1 ? 'this person' : 'each person'}, in their own voice. About a minute.</p>
+      <p className="min-w-[12rem] flex-1 text-sm text-app-muted">A 6-second hello from {count === 1 ? 'this person' : 'each person'}, talking to your followers. About a minute.</p>
       <button type="button" onClick={onMake} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95 disabled:opacity-50">
         <Clapperboard aria-hidden className="h-4 w-4" /> {busy ? 'Starting…' : count === 1 ? 'Make intro video' : 'Make intro videos'}
       </button>

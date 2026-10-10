@@ -355,7 +355,7 @@ model BrandCastMember {
   error       String?
   /// Slideshows that used this member: the next slideshow takes the least used
   uses        Int      @default(0)
-  /// Gemini TTS prebuilt voice of the intro video (src/server/shorts/voices.ts)
+  /// How the intro video's voice sounds, as Veo was asked ("warm, friendly American woman in her mid twenties")
   voice         String?
   /// The intro video's spoken line ("Hi, I'm Maya…")
   introScript   String?   @map("intro_script")

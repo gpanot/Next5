@@ -146,12 +146,3 @@ export const sampleVoices = (
   );
 
 export const isKnownVoice = (name: string): boolean => name in GEMINI_VOICES;
-
-/** Every prebuilt voice as "Name (gender, Style)", for other casting prompts (Brand Cast intro videos). */
-export const VOICE_CATALOG = catalog;
-
-/** The voice's gender, or null when it is not one of Gemini's prebuilt voices. */
-export const voiceGender = (name: string): VoiceGender | null => GEMINI_VOICES[name]?.gender ?? null;
-
-/** The default voice of one gender (when a casting answer gives no valid voice). */
-export const defaultVoice = (gender: VoiceGender): string => DEFAULTS[gender][0]!;
