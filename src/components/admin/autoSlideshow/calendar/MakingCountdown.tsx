@@ -2,8 +2,11 @@
 
 import { formatElapsed, useNow } from '../../shared/runClock';
 
-/** A slideshow usually takes about three minutes to make. */
-export const TYPICAL_MAKE_MS = 180_000;
+/** How long `count` slideshows take: about 30 s to plan, 40 s per wave of 10 photos (8 per slideshow), 15 s to render. */
+export const makeEstimateMs = (count: number): number => 30_000 + Math.ceil((Math.max(1, count) * 8) / 10) * 40_000 + 15_000;
+
+/** A first post on the calendar: one slideshow, plus a little for the site read on a new run. */
+export const TYPICAL_MAKE_MS = 120_000;
 
 /** Three slides fanning in and out, one after the other: the slideshow being put together. */
 function Shuffle({ small }: { small: boolean }) {
@@ -25,7 +28,7 @@ function Shuffle({ small }: { small: boolean }) {
 type Props = { since: string; small?: boolean; totalMs?: number; label?: string };
 
 /**
- * On a tile whose slideshow is being made: a small animation and a "3:00" countdown from when the work began, so the
+ * On a tile whose slideshow is being made: a small animation and a "2:00" countdown from when the work began, so the
  * wait never looks stuck. `small`: the phone's month cell (no words, just the clock). `totalMs`/`label`: other waits
  * (the ideas deck: 2:00).
  */

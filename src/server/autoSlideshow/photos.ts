@@ -19,8 +19,9 @@ export type PhotoGenConfig = { model: ReapiModelId; ratio: ReapiRatio; highRes: 
  * ($0.028, asked 3:4 and cropped; back to it: 'reapi-flux-2', '3:4', false), and GPT Image 2.5 before that.
  */
 export const PHOTO_GEN: PhotoGenConfig = { model: 'reapi-nano-banana-2.1', ratio: '4:5', highRes: false };
-/** reAPI allows 10 tasks in flight per account; 5 leaves room for Perfect Ads and retries. */
-const CONCURRENCY = 5;
+/** reAPI allows 10 tasks in flight per account. A slideshow needs 5-9 photos: at 5 they came in two waves (~80 s instead
+ *  of ~40 s, run timings 2026-10-10). A busy reply (429) waits and retries, so a burst from other features only slows. */
+const CONCURRENCY = 10;
 const FIRST_POLL_MS = 8_000;
 const POLL_MS = 3_000;
 const TIMEOUT_MS = 180_000;
@@ -85,17 +86,18 @@ const refLinks = async (keys: string[] | undefined): Promise<string[]> => {
   return urls.filter((u): u is string => Boolean(u?.startsWith('https://')));
 };
 
-type MadePhoto = { key: string; heads: HeadBox[] | null; gen: PhotoGen };
+/** `heads`: still being found when the photo is stored, so the next photo can start meanwhile. */
+type MadePhoto = { key: string; heads: Promise<HeadBox[] | null>; gen: PhotoGen };
 
-const storePhoto = async (runId: string, index: number, image: Buffer): Promise<{ key: string; heads: HeadBox[] | null }> => {
+const storePhoto = async (runId: string, index: number, image: Buffer): Promise<{ key: string; heads: Promise<HeadBox[] | null> }> => {
   const jpeg = await compressJpeg(image, PHOTO_SIZE);
   const key = photoKey(runId, index);
   await putObject(key, jpeg, 'image/jpeg');
-  return { key, heads: await detectHeads(`data:image/jpeg;base64,${jpeg.toString('base64')}`) };
+  return { key, heads: detectHeads(`data:image/jpeg;base64,${jpeg.toString('base64')}`) };
 };
 
-/** One photo, generated (or a brand photo copied) and stored as a 1440x1800 JPEG under 1 MB, with its heads found so
- *  step 6 keeps text off them. */
+/** One photo, generated (or a brand photo copied) and stored as a 1440x1800 JPEG under 1 MB, with its heads being found
+ *  so step 6 keeps text off them. */
 const makePhoto = async (runId: string, index: number, spec: PhotoSpec, look: string | undefined, meter: CostMeter, config: PhotoGenConfig = PHOTO_GEN): Promise<MadePhoto> => {
   const createdAt = new Date().toISOString();
   if (spec.brandPhotoKey) {
@@ -127,19 +129,23 @@ export const makePhotos = async (runId: string, specs: (string | PhotoSpec)[], e
     const prior = existing?.[i];
     if (prior?.prompt !== spec.prompt) return { prompt: spec.prompt, imageKey: null, error: null, ...extra };
     if (prior.imageKey || prior.deleted || (options.skipFailed && prior.error)) return prior;
-    const { kind, owner } = prior;
-    return { prompt: spec.prompt, imageKey: null, error: null, ...(kind ? { kind } : {}), ...(owner ? { owner } : {}), ...extra };
+    const { kind, owner, altFor } = prior;
+    return { prompt: spec.prompt, imageKey: null, error: null, ...(kind ? { kind } : {}), ...(owner ? { owner } : {}), ...(altFor ? { altFor } : {}), ...extra };
   });
   const todo = photos.map((p, i) => ({ p, i })).filter(({ p }) => !p.imageKey && !p.deleted && !p.error);
+  // Head detection (a vision call) runs outside the pool: a slot frees as soon as its photo is stored.
+  const finding: Promise<void>[] = [];
   await runPool(todo, CONCURRENCY, async ({ p, i }) => {
     if (options.deadline && Date.now() > options.deadline) return;
     try {
       const { key, heads, gen } = await makePhoto(runId, i, p, options.look, meter);
+      photos[i] = { ...p, imageKey: key, error: null, gen };
       // Unknown heads (detection failed) stay unset, so step 6 tries again.
-      photos[i] = { ...p, imageKey: key, error: null, gen, ...(heads ? { heads } : {}) };
+      finding.push(heads.then((found) => { if (found) photos[i] = { ...photos[i]!, heads: found }; }));
     } catch (err) {
       photos[i] = { ...p, imageKey: null, error: clip(err instanceof Error ? err.message : String(err), 300) };
     }
   });
+  await Promise.all(finding);
   return photos;
 };
