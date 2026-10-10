@@ -1,6 +1,6 @@
 // server-only — never import from a 'use client' file.
-// A Brand Cast member's intro video (6 s): "Hi, I'm Maya! … See you on your feed!". One small call writes the line and
-// describes the voice; Veo 3.1 Lite (treg) then makes the whole clip from the anchor photo as its first frame: a slow
+// A Brand Cast member's intro video (6 s): "Hi, I'm Maya! … See you on your feed!". One small call writes the line; the
+// voice is described from the member's age and gender; Veo 3.1 Lite (treg) then makes the whole clip from the anchor photo as its first frame: a slow
 // push-in to the face, a wave, and the person really speaking the line with Veo's own voice and lip sync. Picked by the
 // user on 2026-10-10 over Seedance 2.0 (with and without our Gemini voice) and over a silent clip with a voiceover.
 
@@ -31,9 +31,7 @@ brand's audience, as a friendly creator, not an ad. Simple words a 10-year-old c
 - "script": 11-14 words (it must be said in under 5 seconds), 2-3 short sentences: "Hi, I'm <first name>!", then 1 or 2
   things they will share on the feed (useful tips the audience wants, from the brand's world), then "See you on your
   feed!". The brand name at most once. No prices, no claims, no numbers.
-- "voice": 6-12 words describing their speaking voice from their age and gender, e.g. "warm, friendly American young
-  woman in her mid twenties".
-Return JSON with flat keys only: {"script": string, "voice": string}`;
+Return JSON with flat keys only: {"script": string}`;
 
 type Casting = { script: string; voice: string };
 type Task = { id?: string; status?: string; error?: unknown; usage?: { cost?: number } };
@@ -42,20 +40,30 @@ const str = (v: unknown, max: number) => (typeof v === 'string' ? clip(v.replace
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const firstName = (m: BrandCastMember) => m.name.split(',')[0]!.trim();
 
-/** "Woman" / "Man" from the member's look, for the fallback voice. */
+/** "Woman" / "Man" from the member's look. */
 const isMan = (look: string) => /\b(man|male|guy)\b/i.test(look) && !/\bwoman\b/i.test(look);
+
+/** The voice as the best test clip asked for it (2026-10-10): "warm, friendly American young woman in her early twenties". */
+const voiceOf = (member: BrandCastMember): string => {
+  const age = Number(member.name.split(',')[1]?.trim()) || 25;
+  const decade = ['twenties', 'thirties', 'forties', 'fifties', 'sixties'][Math.min(4, Math.max(0, Math.floor(age / 10) - 2))];
+  const part = age % 10 < 4 ? 'early' : age % 10 < 7 ? 'mid' : 'late';
+  const [who, their] = isMan(member.look) ? ['man', 'his'] : ['woman', 'her'];
+  return `warm, friendly American ${age < 30 ? `young ${who}` : who} in ${their} ${part} ${decade}`;
+};
 
 const castIntro = async (member: BrandCastMember, profile: BrandProfile, meter: CostMeter): Promise<Casting> => {
   const user = `BRAND: ${profile.brandName}. SELLS: ${profile.valueProp}\nAUDIENCE: ${profile.audience}\nPERSON: ${member.name}. ${member.look}`;
   const raw = await creativeJson<Record<string, unknown>>(SYSTEM, user, meter, 'Cast intro');
   const script = str(raw.script, 160) || `Hi, I'm ${firstName(member)}! I'll share easy tips you can use every day. See you on your feed!`;
-  return { script, voice: str(raw.voice, 120) || `warm, friendly American ${isMan(member.look) ? 'man' : 'woman'}` };
+  return { script, voice: voiceOf(member) };
 };
 
-/** The tested setting (2026-10-10): one continuous push-in from the photo, a wave, then the line spoken on camera. */
+/** The prompt of the best test clip (lip_veo_Jordan, 2026-10-10), word for word, with a stronger "no music": Veo makes
+ *  all the audio, so the prompt is the only way to keep music out. */
 const veoPrompt = (member: BrandCastMember, casting: Casting): string => {
   const name = firstName(member);
-  return `Vertical 9:16 selfie-style intro video starting exactly from this photo of ${name}. One continuous shot: over the whole clip the camera slowly pushes in from the full body to a close-up of the face. ${name} looks into the camera, smiles, gives a small wave at the start and speaks naturally with clear lip movement, in a ${casting.voice} voice: "${casting.script}" Same person, same clothes, same plain bright background. Realistic, soft daylight, no music, no text, no subtitles.`;
+  return `Vertical 9:16 selfie-style intro video starting exactly from this photo of ${name}. Over the whole clip the camera slowly pushes in from the full body to a close-up of the face. ${name} looks into the camera, smiles, gives a small wave at the start and speaks naturally with clear lip movement, in a ${casting.voice} voice: "${casting.script}" Same person, same clothes, same plain bright background. Realistic, soft daylight. Audio: only ${name}'s voice, no background music, no sound effects. No text, no subtitles.`;
 };
 
 /** The anchor photo as a 720x1280 first frame (Veo animates 9:16; the anchor is 3:4, so its sides are cropped). */

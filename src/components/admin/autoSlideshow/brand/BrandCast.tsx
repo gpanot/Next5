@@ -3,7 +3,9 @@
 import { Clapperboard, RefreshCw, UserRound, Users } from 'lucide-react';
 import { CAST_SIZE, type BrandCastMemberDto } from '../../../../types/admin/brandCast';
 import type { LabClient } from '../../../labs/labClient';
+import { useState } from 'react';
 import { CastMemberMedia, photoBox } from './CastMemberMedia';
+import { NewFaceDialog, type NewFaceRequest } from './NewFaceDialog';
 import { useBrandCast, type CastAction } from './useBrandCast';
 
 const errorClass = 'rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300';
@@ -23,9 +25,9 @@ function CastSkeleton() {
   );
 }
 
-type CardProps = { member: BrandCastMemberDto; busy: boolean; detailed: boolean; onAct: (action: CastAction) => void };
+type CardProps = { member: BrandCastMemberDto; busy: boolean; detailed: boolean; onAct: (action: CastAction) => void; onNewFace: () => void };
 
-function MemberCard({ member, busy, detailed, onAct }: CardProps) {
+function MemberCard({ member, busy, detailed, onAct, onNewFace }: CardProps) {
   const failed = member.status === 'failed';
   // A made (or failed) intro can be made again; a first one comes from the "Make intro videos" button.
   const canRedo = member.status === 'ready' && (member.introStatus === 'ready' || member.introStatus === 'failed');
@@ -38,8 +40,8 @@ function MemberCard({ member, busy, detailed, onAct }: CardProps) {
         {detailed && member.introScript && <p className="mt-1 text-xs text-app-ink">Intro: “{member.introScript}”</p>}
         {detailed && member.introStatus === 'failed' && member.introError && <p className="mt-1 text-xs text-app-danger">{member.introError}</p>}
       </div>
-      <div className="mt-auto flex flex-col gap-1.5">
-        <button type="button" onClick={() => onAct(failed ? 'retry' : 'swap')} disabled={busy || member.status === 'pending'} className={smallButton}>
+      <div className="flex flex-col gap-1.5">
+        <button type="button" onClick={() => (failed ? onAct('retry') : onNewFace())} disabled={busy || member.status === 'pending'} className={smallButton}>
           <RefreshCw aria-hidden className={`h-3.5 w-3.5 ${busy ? 'animate-spin' : ''}`} />
           {failed ? 'Try again' : 'New face'}
         </button>
@@ -90,7 +92,11 @@ type BrandCastProps = {
 
 /** The Brand Cast: the recurring people of the brand's slideshows, each with "New face" to swap them and an intro video. */
 export function BrandCast({ client, path, detailed = false }: BrandCastProps) {
-  const { members, loadError, busy, actionError, build, act, makeIntros, reload } = useBrandCast(client, path);
+  const { members, loadError, busy, actionError, build, act, swap, makeIntros, reload } = useBrandCast(client, path);
+  const [editing, setEditing] = useState<BrandCastMemberDto | null>(null);
+  const submitNewFace = async (request: NewFaceRequest) => {
+    if (editing && (await swap(editing.id, request))) setEditing(null);
+  };
   if (loadError) {
     return (
       <div className={`${errorClass} flex flex-wrap items-center gap-3`}>
@@ -102,12 +108,12 @@ export function BrandCast({ client, path, detailed = false }: BrandCastProps) {
   if (!members) return <CastSkeleton />;
   const missing = members.length < CAST_SIZE;
   return (
-    <div className={`space-y-3 ${detailed ? 'max-w-3xl' : ''}`}>
+    <div className="max-w-2xl space-y-3">
       {members.length === 0 ? (
         <EmptyCast busy={busy === 'build'} onBuild={() => void build()} />
       ) : (
         <ul className={grid}>
-          {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} onAct={(a) => void act(m.id, a)} />)}
+          {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} onAct={(a) => void act(m.id, a)} onNewFace={() => setEditing(m)} />)}
         </ul>
       )}
       {needIntro(members).length > 0 && <IntroCta count={needIntro(members).length} busy={busy === 'intros'} onMake={() => void makeIntros(needIntro(members).map((m) => m.id))} />}
@@ -116,7 +122,8 @@ export function BrandCast({ client, path, detailed = false }: BrandCastProps) {
           Add {CAST_SIZE - members.length} more
         </button>
       )}
-      {actionError && <p role="alert" className="text-sm text-app-danger">{actionError}</p>}
+      {actionError && !editing && <p role="alert" className="text-sm text-app-danger">{actionError}</p>}
+      <NewFaceDialog key={editing?.id ?? 'closed'} member={editing} busy={editing !== null && busy === editing.id} error={editing ? actionError : null} onClose={() => setEditing(null)} onSubmit={(r) => void submitNewFace(r)} />
     </div>
   );
 }

@@ -121,7 +121,7 @@ const planToSlide = (slide: Omit<AutoSlide, 'imageKey'>, plan: SlidePlan, all: P
     ...(productRef ? [`Image ${main ? 2 : 1} is the brand's product (${productRef.productName || 'the product'}): ${PRODUCT_NOTE}.`] : []),
   ];
   // The member's own everyday style is for the anchor photo; in a slideshow they wear the planned clothes.
-  const look = all.wardrobe ? cast?.look.replace(/\s*Everyday style:.*$/, '') : cast?.look;
+  const look = all.wardrobe ? cast?.look.replace(/\s*(Everyday style|Outfit):.*$/, '') : cast?.look;
   const scene = main ? `${plan.scene} The main person: ${look} Wearing ${all.wardrobe || 'everyday clothes'}.` : plan.scene;
   const product = plan.product && !productRef ? ` The product shown: ${plan.product.productName || plan.product.description}.` : '';
   return {

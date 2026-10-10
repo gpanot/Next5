@@ -4,7 +4,8 @@ import { Play } from 'lucide-react';
 import { useState } from 'react';
 import type { BrandCastMemberDto } from '../../../../types/admin/brandCast';
 
-export const photoBox = 'relative aspect-[3/4] overflow-hidden rounded-xl bg-app-sunken';
+// 9:16 like the intro video, cropped the same way (cover, centered), so playing it looks like the photo coming alive.
+export const photoBox = 'relative aspect-[9/16] overflow-hidden rounded-xl bg-app-sunken';
 const badge = 'absolute inset-x-1.5 bottom-1.5 flex items-center justify-center gap-1 whitespace-nowrap rounded-full bg-black/60 px-1.5 py-1 text-[10px] font-semibold text-white sm:gap-1.5 sm:text-xs';
 
 function Spinner({ light = false }: { light?: boolean }) {
