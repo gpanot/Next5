@@ -20,6 +20,7 @@ import { readCachedWorkspaces, writeCachedWorkspaces } from './workspacesCache';
 const firstPageRequests = (pathname: string, workspaceId: string): string[] => {
   if (pathname.endsWith('/analytics')) return [`/api/slideshow/analytics?workspace=${workspaceId}`];
   if (pathname.endsWith('/credits')) return ['/api/slideshow/credits'];
+  if (pathname.endsWith('/campaigns')) return [`/api/slideshow/campaigns?workspace=${workspaceId}`];
   if (pathname.endsWith('/content') || pathname.endsWith('/brand')) return [];
   return [`/api/admin/auto-slideshow/runs?workspace=${workspaceId}`];
 };

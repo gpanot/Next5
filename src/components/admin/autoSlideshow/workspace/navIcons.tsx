@@ -69,3 +69,14 @@ export function GearIcon() {
     </Svg>
   );
 }
+
+/** A stack of slides fanned out: one campaign, many slideshows. */
+export function CampaignIcon() {
+  return (
+    <Svg>
+      <rect x="8" y="3" width="11" height="16" rx="2" />
+      <path d="M5 6.5v13A1.5 1.5 0 0 0 6.5 21H15" />
+      <path d="M11.5 9.5h4M11.5 12.5h4" />
+    </Svg>
+  );
+}

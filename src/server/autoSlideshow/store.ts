@@ -22,7 +22,7 @@ const LIVE = ['scheduled', 'sending', 'processing', 'posted'];
 const primaryPost = (posts: AutoSlideshowPost[]): AutoSlideshowPost | null =>
   posts.find((p) => LIVE.includes(p.status)) ?? [...posts].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0] ?? null;
 
-const toSlideshowDto = async (s: ShowRow): Promise<AutoSlideshowDto> => ({
+export const toSlideshowDto = async (s: ShowRow): Promise<AutoSlideshowDto> => ({
   id: s.id,
   position: s.position,
   modelId: s.modelId,
@@ -86,7 +86,8 @@ export const listPhotoDtos = async (runId: string): Promise<AutoPhotoDto[]> => {
 /** Recent runs; `workspaceId` limits them to one workspace's (a signed-in user's own). */
 export const listRuns = async (workspaceId?: string): Promise<AutoRunSummary[]> => {
   const runs = await prisma.autoSlideshowRun.findMany({
-    where: workspaceId ? { workspaceId } : { ideaForRunId: null },
+    // Campaign runs live on the Campaigns page: the Calendar and Library read the latest auto run from this list.
+    where: workspaceId ? { workspaceId, kind: 'auto' } : { ideaForRunId: null, kind: 'auto' },
     orderBy: { createdAt: 'desc' },
     take: 20,
     include: { _count: { select: { slideshows: { where: { status: 'ready' } } } } },

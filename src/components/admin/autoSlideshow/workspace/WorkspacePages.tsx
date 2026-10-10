@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { Activity, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { AnalyticsPage } from '../analytics/AnalyticsPage';
 import { BrandPage } from '../brand/BrandPage';
+import { CampaignsPage } from '../campaigns/CampaignsPage';
 import { ContentPage } from '../content/ContentPage';
 import { CreditsPage } from '../settings/credits/CreditsPage';
 import { WorkspaceApp } from './WorkspaceApp';
@@ -16,6 +17,7 @@ const slotOf = (page: PageId): Slot => (page === 'ideas' ? 'calendar' : page);
 const renderPage = (page: Slot, token: string, workspaceId: string): ReactNode => {
   if (page === 'analytics') return <AnalyticsPage token={token} workspaceId={workspaceId} />;
   if (page === 'content') return <ContentPage token={token} workspaceId={workspaceId} />;
+  if (page === 'campaigns') return <CampaignsPage token={token} workspaceId={workspaceId} />;
   if (page === 'brand') return <BrandPage token={token} workspaceId={workspaceId} />;
   if (page === 'credits') return <CreditsPage token={token} workspaceId={workspaceId} />;
   return <WorkspaceApp token={token} workspaceId={workspaceId} />;

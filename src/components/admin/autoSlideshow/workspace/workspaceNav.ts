@@ -1,8 +1,8 @@
 import type { ComponentType } from 'react';
-import { BrandIcon, CalendarIcon, ChartIcon, ContentIcon, CreditsIcon, IdeasIcon } from './navIcons';
+import { BrandIcon, CalendarIcon, CampaignIcon, ChartIcon, ContentIcon, CreditsIcon, IdeasIcon } from './navIcons';
 
 /** Every workspace page. Brand and Credits: sidebar only (phones reach them from Settings). */
-export type WorkspacePageId = 'ideas' | 'calendar' | 'content' | 'brand' | 'analytics' | 'credits';
+export type WorkspacePageId = 'ideas' | 'calendar' | 'campaigns' | 'content' | 'brand' | 'analytics' | 'credits';
 
 export type WorkspaceNavItem = { id: WorkspacePageId; href: string; label: string; Icon: ComponentType };
 
@@ -12,6 +12,7 @@ export const workspaceNavItems = (workspaceId: string): WorkspaceNavItem[] => {
   return [
     { id: 'ideas', href: `${base}/ideas`, label: 'Ideas', Icon: IdeasIcon },
     { id: 'calendar', href: base, label: 'Calendar', Icon: CalendarIcon },
+    { id: 'campaigns', href: `${base}/campaigns`, label: 'Campaigns', Icon: CampaignIcon },
     { id: 'content', href: `${base}/content`, label: 'Library', Icon: ContentIcon },
     { id: 'analytics', href: `${base}/analytics`, label: 'Analytics', Icon: ChartIcon },
   ];
@@ -27,6 +28,7 @@ export const creditsNavItem = (workspaceId: string): WorkspaceNavItem => ({ id: 
 export const pageOf = (pathname: string): WorkspacePageId => {
   if (pathname.endsWith('/ideas')) return 'ideas';
   if (pathname.endsWith('/analytics')) return 'analytics';
+  if (pathname.endsWith('/campaigns')) return 'campaigns';
   if (pathname.endsWith('/content')) return 'content';
   if (pathname.endsWith('/brand')) return 'brand';
   if (pathname.endsWith('/credits')) return 'credits';

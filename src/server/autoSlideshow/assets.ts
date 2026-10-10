@@ -19,8 +19,9 @@ const usageOf = (shows: Array<{ slides: Prisma.JsonValue }>): Map<number, number
 };
 
 export const listAssets = async (workspaceId: string): Promise<AssetDto[]> => {
+  // Campaign runs hold copies of photos picked elsewhere (generated, brand, Unsplash): listing them would show doubles.
   const runs = await prisma.autoSlideshowRun.findMany({
-    where: { workspaceId },
+    where: { workspaceId, kind: 'auto' },
     orderBy: { createdAt: 'desc' },
     take: RUN_LIMIT,
     select: { id: true, profile: true, photos: true, createdAt: true, slideshows: { select: { slides: true } } },
@@ -57,7 +58,7 @@ export const deleteAssets = async (workspaceId: string, refs: AssetRef[]): Promi
   for (const { runId, index } of refs) byRun.set(runId, (byRun.get(runId) ?? new Set()).add(index));
   let removed = 0;
   for (const [runId, indexes] of byRun) {
-    const run = await prisma.autoSlideshowRun.findFirst({ where: { id: runId, workspaceId }, select: { photos: true } });
+    const run = await prisma.autoSlideshowRun.findFirst({ where: { id: runId, workspaceId, kind: 'auto' }, select: { photos: true } });
     if (!run) continue;
     const photos = photosOf(run.photos);
     for (const index of indexes) {

@@ -2297,6 +2297,12 @@ model AutoSlideshowRun {
   brandProfileId String?   @map("brand_profile_id")
   /// Hidden run making one calendar slideshow idea (no workspace, never charged); the workspace run it belongs to
   ideaForRunId   String?   @map("idea_for_run_id")
+  /// 'auto' (the 6-step pipeline) | 'campaign' (built by hand in the campaign editor; never on the Calendar's run list)
+  kind           String    @default("auto")
+  /// Campaign runs: the name the person gave it
+  name           String?
+  /// Campaign runs: CampaignDraft (src/types/admin/slideshowCampaign.ts)
+  campaign       Json?
   /// Step 2: BrandLever[]
   levers         Json?
   /// Step 3: AutoPlan
@@ -2318,6 +2324,7 @@ model AutoSlideshowRun {
 
   @@index([createdAt(sort: Desc)])
   @@index([ideaForRunId])
+  @@index([workspaceId, kind, createdAt(sort: Desc)], map: "auto_slideshow_runs_workspace_kind_idx")
   @@map("auto_slideshow_runs")
 }
 
