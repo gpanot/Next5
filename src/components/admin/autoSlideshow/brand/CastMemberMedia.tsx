@@ -1,8 +1,9 @@
 'use client';
 
 import { Play } from 'lucide-react';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { BrandCastMemberDto } from '../../../../types/admin/brandCast';
+import { ExpandedIntroVideo } from './ExpandedIntroVideo';
 
 // 9:16 like the intro video, cropped the same way (cover, centered), so playing it looks like the photo coming alive.
 export const photoBox = 'relative aspect-[9/16] overflow-hidden rounded-xl bg-app-sunken';
@@ -28,9 +29,12 @@ function IntroOverlay({ member, onPlay }: { member: BrandCastMemberDto; onPlay: 
   return null;
 }
 
-/** A cast member's photo (or its making / failed state), and their intro video playing in its place once tapped. */
+/** A cast member's photo (or its making / failed state); tapping play lifts the intro video out into a big player. */
 export function CastMemberMedia({ member }: { member: BrandCastMemberDto }) {
-  const [playing, setPlaying] = useState(false);
+  // Where the photo was when play was tapped: the video grows out of there.
+  const [playingFrom, setPlayingFrom] = useState<DOMRect | null>(null);
+  const playing = playingFrom !== null;
+  const photoRef = useRef<HTMLDivElement>(null);
   if (member.status === 'pending') {
     return (
       <div className={`${photoBox} flex flex-col items-center justify-center gap-2`} aria-label={`Making ${member.name}'s photo`}>
@@ -46,18 +50,21 @@ export function CastMemberMedia({ member }: { member: BrandCastMemberDto }) {
       </div>
     );
   }
-  if (playing && member.introUrl) {
-    return (
-      <div className={`${photoBox} bg-black`}>
-        <video src={member.introUrl} autoPlay playsInline controls onEnded={() => setPlaying(false)} aria-label={`${member.name}'s intro video`} className="h-full w-full object-cover" />
-      </div>
-    );
-  }
   return (
-    <div className={photoBox}>
+    <div ref={photoRef} className={photoBox}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={member.imageUrl} alt={`${member.name}, from your brand cast`} loading="lazy" className="h-full w-full object-cover" />
-      <IntroOverlay member={member} onPlay={() => setPlaying(true)} />
+      <img src={member.imageUrl} alt={`${member.name}, from your brand cast`} loading="lazy" className={`h-full w-full object-cover ${playing ? 'opacity-0' : ''}`} />
+      {!playing && <IntroOverlay member={member} onPlay={() => photoRef.current && setPlayingFrom(photoRef.current.getBoundingClientRect())} />}
+      {playingFrom && member.introUrl && (
+        <ExpandedIntroVideo
+          src={member.introUrl}
+          poster={member.imageUrl}
+          label={`${member.name}'s intro video`}
+          sourceRef={photoRef}
+          sourceRect={playingFrom}
+          onClosed={() => setPlayingFrom(null)}
+        />
+      )}
     </div>
   );
 }
