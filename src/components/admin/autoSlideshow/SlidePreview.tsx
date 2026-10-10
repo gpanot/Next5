@@ -10,8 +10,11 @@ const SLIDE_MS = 3_000;
 
 const round = 'flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition hover:bg-black/75 active:scale-95 disabled:opacity-30';
 
-/** ‹ › beside the slide, never on it. */
-const side = 'flex h-11 w-9 shrink-0 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 hover:text-white active:scale-95 sm:w-11';
+/** ‹ › on the slide's edges, so the slide gets the column's full width. */
+const side = 'absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/70 active:scale-95';
+
+/** As tall as the screen allows under the editor's top bar, the controls and the music, never wider than its column. */
+const FIT_HEIGHT = { maxWidth: 'calc((100dvh - 15rem) * 9 / 16)' };
 
 function Arrow({ dir }: { dir: 'left' | 'right' }) {
   return (
@@ -37,9 +40,10 @@ function SoundIcon({ muted }: { muted: boolean }) {
 export function SlidePreview({ show, index, onIndex, working }: Props) {
   const strip = useRef<HTMLDivElement>(null);
   const audio = useRef<HTMLAudioElement>(null);
-  // Opening a slideshow plays it, like TikTok; the music may wait for a tap if the browser blocks it.
-  const [playing, setPlaying] = useState(true);
-  const [muted, setMuted] = useState(false);
+  // Nothing plays on open: the play button starts the slides (and the music, once unmuted).
+  const [playing, setPlaying] = useState(false);
+  // Music starts muted: the slides play, the sound waits for a tap on the speaker.
+  const [muted, setMuted] = useState(true);
   const count = show.slides.length;
 
   const go = (i: number) => {
@@ -48,6 +52,13 @@ export function SlidePreview({ show, index, onIndex, working }: Props) {
     if (el) el.scrollTo({ left: next * el.clientWidth, behavior: 'smooth' });
     onIndex(next);
   };
+
+  // The editor picked another slide (its strip or tabs): bring it on screen.
+  useEffect(() => {
+    const el = strip.current;
+    // Instant, no slide: a tapped card shows at once.
+    if (el && Math.round(el.scrollLeft / el.clientWidth) !== index) el.scrollTo({ left: index * el.clientWidth, behavior: 'instant' });
+  }, [index]);
 
   useEffect(() => {
     if (!playing) return;
@@ -82,9 +93,10 @@ export function SlidePreview({ show, index, onIndex, working }: Props) {
   });
 
   return (
-    <div className="mx-auto flex w-full max-w-lg items-center gap-2">
-      <button onClick={() => go(index - 1)} aria-label="Previous slide" className={side}><Arrow dir="left" /></button>
-      <div className="relative aspect-[4/5] min-w-0 flex-1">
+    <div className="mx-auto w-full md:min-w-[200px]" style={FIT_HEIGHT}>
+      <div className="relative aspect-[9/16] w-full">
+        <button onClick={() => go(index - 1)} aria-label="Previous slide" className={`${side} left-2`}><Arrow dir="left" /></button>
+        <button onClick={() => go(index + 1)} aria-label="Next slide" className={`${side} right-2`}><Arrow dir="right" /></button>
         <div
           ref={strip}
           onScroll={() => strip.current && onIndex(Math.round(strip.current.scrollLeft / strip.current.clientWidth))}
@@ -114,7 +126,6 @@ export function SlidePreview({ show, index, onIndex, working }: Props) {
         {show.audio && <audio ref={audio} src={show.audio.url} loop muted={muted} preload="none" />}
         {working && <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/40"><span className="h-8 w-8 animate-spin rounded-full border-4 border-white border-t-transparent" /></div>}
       </div>
-      <button onClick={() => go(index + 1)} aria-label="Next slide" className={side}><Arrow dir="right" /></button>
     </div>
   );
 }

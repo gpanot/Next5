@@ -1,5 +1,5 @@
 // server-only — never import from a 'use client' file.
-// Step 6: burn each slide's text onto its photo, 1080x1350 JPEG, in TikTok's native look (what the proven slideshows use):
+// Step 6: burn each slide's text onto its photo, 1080x1920 (9:16) JPEG, in TikTok's native look (what the proven slideshows use):
 // hook = big white outlined text; meat and CTA = headline in a box (white, or the brand's box color), one plain line of
 // white text under it.
 
@@ -9,7 +9,7 @@ import type { SlideshowStyle } from '../../types/admin/companyIntel';
 import { DEFAULT_BOX } from '../companyIntel/slideshowStyle';
 import { getObject } from '../storage/objectStore';
 import { compressJpeg } from './jpeg';
-import { BOX_TEXT, HOOK_TEXT, SLIDE_SIZE, textTop } from './textPlacement';
+import { BOLD_CHAR, BOX_TEXT, HOOK_TEXT, isBig, lookOf, RED_TEXT, SLIDE_SIZE, textTop, wrapLines } from './textPlacement';
 
 const FONT_CSS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@600;800';
 type Font = { name: string; data: ArrayBuffer; weight: 600 | 800; style: 'normal' };
@@ -61,21 +61,45 @@ const BoxedText = ({ title, body, big, look, top }: { title: string; body: strin
   </div>
 );
 
+/** The White box look: dark text in a white box, whatever the brand's box colors. */
+const WHITE_BOX: BoxLook = { boxColor: '#ffffff', boxTextColor: '#111111' };
+
+/** TikTok Red: white text on a red highlight behind each line (lines wrapped here, as Satori cannot box each line). */
+const RedText = ({ title, body, top }: { title: string; body: string; top: number }) => (
+  <div style={{ position: 'absolute', top, left: RED_TEXT.side, right: RED_TEXT.side, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: BOX_TEXT.gap }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+      {wrapLines(title, RED_TEXT.fontSize, BOLD_CHAR, SLIDE_SIZE.width - (RED_TEXT.side + RED_TEXT.padX) * 2).map((line, i) => (
+        <div key={i} style={{ display: 'flex', background: RED_TEXT.color, color: '#ffffff', fontSize: RED_TEXT.fontSize, fontWeight: 800, lineHeight: RED_TEXT.lineHeight, padding: `0 ${RED_TEXT.padX}px`, borderRadius: 10 }}>{line.text}</div>
+      ))}
+    </div>
+    {body && <div style={{ display: 'flex', color: '#ffffff', fontSize: BOX_TEXT.bodySize, fontWeight: 600, lineHeight: BOX_TEXT.bodyLineHeight, textAlign: 'center', textShadow: SOFT }}>{body}</div>}
+  </div>
+);
+
+/** The slide's text in its look: the hook's outlined text or a box by default, else the picked hook / CTA look. */
+const SlideText = ({ slide, look, top }: { slide: Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'>; look: BoxLook; top: number }) => {
+  const picked = lookOf(slide);
+  if (picked === 'tiktok-red') return <RedText title={slide.title} body={slide.body} top={top} />;
+  if (picked === 'white-box') return <BoxedText title={slide.title} body={slide.body} big look={WHITE_BOX} top={top} />;
+  if (slide.role === 'hook') return <HookText title={slide.title} top={top} />;
+  return <BoxedText title={slide.title} body={slide.body} big={isBig(slide)} look={look} top={top} />;
+};
+
 /**
  * One rendered slide as a JPEG. `look`: the brand's box colors (white box, dark text when the profile has no style).
  * `heads`: the photo's heads (heads.ts); the text moves off them, and keeps its usual spot when they are unknown.
  */
-export const renderSlide = async (slide: Pick<AutoSlide, 'role' | 'title' | 'body'>, photoKeyForSlide: string, cache: PhotoCache, look: BoxLook = DEFAULT_BOX, heads?: HeadBox[] | null): Promise<Buffer> => {
+export const renderSlide = async (slide: Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'>, photoKeyForSlide: string, cache: PhotoCache, look: BoxLook = DEFAULT_BOX, heads?: HeadBox[] | null): Promise<Buffer> => {
   const [photo, fonts] = await Promise.all([photoUri(photoKeyForSlide, cache), loadFonts()]);
   const top = textTop(slide, heads);
   const response = new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', fontFamily: 'Inter' }}>
         {/* eslint-disable-next-line @next/next/no-img-element -- Satori renders plain img only */}
-        <img src={photo} width={SLIDE_SIZE.width} height={SLIDE_SIZE.height} alt="" style={{ position: 'absolute', top: 0, left: 0 }} />
+        <img src={photo} width={SLIDE_SIZE.width} height={SLIDE_SIZE.height} alt="" style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
         {/* Light wash (8%, was 14%): keeps white text readable on bright skies without darkening the photo */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.08)' }} />
-        {slide.role === 'hook' ? <HookText title={slide.title} top={top} /> : <BoxedText title={slide.title} body={slide.body} big={slide.role === 'cta'} look={look} top={top} />}
+        <SlideText slide={slide} look={look} top={top} />
       </div>
     ),
     { ...SLIDE_SIZE, fonts: fonts.length ? fonts : undefined },

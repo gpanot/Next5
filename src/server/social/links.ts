@@ -72,14 +72,16 @@ export const mediaUrlFor = (itemId: string, ttlSec = 24 * 60 * 60, ext: 'jpg' | 
 
 /**
  * Public JPEG link for one Auto Slideshow slide, same signed scheme as `mediaUrlFor`. The id carries no dot, because
- * the signed body is "<id>.<expiry>".
+ * the signed body is "<id>.<expiry>". `crop45`: cut to 4:5 around the middle, for Instagram (carousels take 4:5 at the
+ * tallest; slides are 9:16 and keep their text inside that crop).
  */
-export const slideMediaUrl = (slideshowId: string, index: number, ttlSec = 3 * 24 * 60 * 60): string => mediaUrlFor(`slide-${slideshowId}-${index}`, ttlSec);
+export const slideMediaUrl = (slideshowId: string, index: number, ttlSec = 3 * 24 * 60 * 60, crop45 = false): string =>
+  mediaUrlFor(`slide-${slideshowId}-${index}${crop45 ? '-45' : ''}`, ttlSec);
 
 /** The slideshow and slide a media id points to, or null for a batch item id. */
-export const parseSlideMediaId = (id: string): { slideshowId: string; index: number } | null => {
-  const m = id.match(/^slide-([a-z0-9]+)-(\d+)$/);
-  return m ? { slideshowId: m[1]!, index: Number(m[2]) } : null;
+export const parseSlideMediaId = (id: string): { slideshowId: string; index: number; crop45: boolean } | null => {
+  const m = id.match(/^slide-([a-z0-9]+)-(\d+)(-45)?$/);
+  return m ? { slideshowId: m[1]!, index: Number(m[2]), crop45: Boolean(m[3]) } : null;
 };
 
 /** Public MP4 link for a rendered Blitz video (a scheduled post), same signed scheme, valid for a day. */

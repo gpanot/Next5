@@ -18,7 +18,7 @@ type Props = {
   since?: string;
 };
 
-const frame = 'relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-zinc-100 shadow-sm dark:bg-zinc-800';
+const frame = 'relative aspect-[9/16] w-full overflow-hidden rounded-xl bg-zinc-100 shadow-sm dark:bg-zinc-800';
 
 /** Ready: a button that opens the editor. Failed: its reason and a Retry. Otherwise: what it is waiting for. */
 type CardProps = { show: AutoSlideshowDto; onOpen: () => void; onRetry?: () => void; retrying: boolean; since?: string; totalMs?: number };
@@ -65,7 +65,7 @@ function Card(props: CardProps) {
   );
 }
 
-/** Slideshows as 4:5 covers; skeletons stand in for the ones not written yet. */
+/** Slideshows as 9:16 covers; skeletons stand in for the ones not written yet. */
 export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since }: Props) {
   const missing = writing ? Math.max(0, expected - slideshows.length) : 0;
   const totalMs = makeEstimateMs(missing + slideshows.filter((s) => s.status === 'written' || s.status === 'rendering').length);
@@ -80,7 +80,7 @@ export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen,
         </li>
       ))}
       {Array.from({ length: missing }, (_, i) => (
-        <li key={`s${i}`}>{since ? <div className={frame}><MakingCountdown since={since} totalMs={totalMs} /></div> : <div className="aspect-[4/5] animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />}</li>
+        <li key={`s${i}`}>{since ? <div className={frame}><MakingCountdown since={since} totalMs={totalMs} /></div> : <div className="aspect-[9/16] animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />}</li>
       ))}
       {more && <li>{more}</li>}
     </ul>

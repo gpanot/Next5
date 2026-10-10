@@ -3,7 +3,16 @@
 import { useRef, useState } from 'react';
 import type { AutoSlideshowDto, AutoTrackDto } from '../../../types/admin/autoSlideshow';
 
-type Props = { show: AutoSlideshowDto; tracks: AutoTrackDto[] | null; busy: string | null; onPick: (assetId: string | null) => void };
+type Props = {
+  show: AutoSlideshowDto;
+  tracks: AutoTrackDto[] | null;
+  busy: string | null;
+  onPick: (assetId: string | null) => void;
+  /** One row under the preview: no title, the note in a tooltip. */
+  compact?: boolean;
+};
+
+const NOTE = 'For the preview and the ZIP only. When we post, TikTok picks the music itself, often a trending sound that gets more views.';
 
 const field = 'min-h-11 w-full rounded-lg border border-white/15 bg-white/10 px-3 text-base text-white focus:border-white/50 focus:outline-none';
 
@@ -11,7 +20,7 @@ const field = 'min-h-11 w-full rounded-lg border border-white/15 bg-white/10 px-
  * Background music from the Assets Library. Plays in the preview and goes in the ZIP. TikTok's photo API cannot attach
  * it: posts sent from here get TikTok's own sound.
  */
-export function MusicPicker({ show, tracks, busy, onPick }: Props) {
+export function MusicPicker({ show, tracks, busy, onPick, compact = false }: Props) {
   const audio = useRef<HTMLAudioElement>(null);
   const [listening, setListening] = useState<string | null>(null);
 
@@ -36,8 +45,8 @@ export function MusicPicker({ show, tracks, busy, onPick }: Props) {
 
   return (
     <div className="space-y-2">
-      <p className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Music · for reference</p>
-      <div className="flex gap-2">
+      {!compact && <p className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Music · for reference</p>}
+      <div className="flex gap-2" title={compact ? NOTE : undefined}>
         <select
           aria-label="Background music"
           value={show.audio?.assetId ?? ''}
@@ -67,7 +76,7 @@ export function MusicPicker({ show, tracks, busy, onPick }: Props) {
           Use recommended: {recommended.name}
         </button>
       )}
-      <p className="text-[11px] text-white/40">For the preview and the ZIP only. When we post, TikTok picks the music itself, often a trending sound that gets more views.</p>
+      {!compact && <p className="text-[11px] text-white/40">{NOTE}</p>}
       <audio ref={audio} onEnded={() => setListening(null)} />
     </div>
   );

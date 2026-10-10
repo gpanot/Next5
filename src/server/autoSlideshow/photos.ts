@@ -1,5 +1,5 @@
 // server-only — never import from a 'use client' file.
-// Step 5: the run's photos, on reAPI (model in PHOTO_GEN, cropped to 4:5). Each photo is copied to the object store right
+// Step 5: the run's photos, on reAPI (model in PHOTO_GEN, 9:16 like the slides). Each photo is copied to the object store right
 // away: reAPI result links expire, and step 6 renders from our copy. Each photo keeps how it was made (`gen`) for replays.
 
 import { REAPI_MODELS, type ReapiModelId } from '../../config/reapiModels';
@@ -14,11 +14,11 @@ import { compressJpeg, PHOTO_SIZE } from './jpeg';
 
 export type PhotoGenConfig = { model: ReapiModelId; ratio: ReapiRatio; highRes: boolean };
 /**
- * Nano Banana 2.1 at native 4:5 (928x1152, $0.03 a photo), the user's pick for every generated photo since 2026-10-10:
+ * Nano Banana 2.1 at native 9:16 ($0.03 a photo; 4:5 until 2026-10-10), the user's pick for every generated photo since 2026-10-10:
  * it keeps the brand cast's face and the brand's real product the same from reference images. Before: FLUX.2 at 1K
  * ($0.028, asked 3:4 and cropped; back to it: 'reapi-flux-2', '3:4', false), and GPT Image 2.5 before that.
  */
-export const PHOTO_GEN: PhotoGenConfig = { model: 'reapi-nano-banana-2.1', ratio: '4:5', highRes: false };
+export const PHOTO_GEN: PhotoGenConfig = { model: 'reapi-nano-banana-2.1', ratio: '9:16', highRes: false };
 /** reAPI allows 10 tasks in flight per account. A slideshow needs 5-9 photos: at 5 they came in two waves (~80 s instead
  *  of ~40 s, run timings 2026-10-10). A busy reply (429) waits and retries, so a burst from other features only slows. */
 const CONCURRENCY = 10;
@@ -103,7 +103,7 @@ const makePhoto = async (runId: string, index: number, spec: PhotoSpec, look: st
   if (spec.brandPhotoKey) {
     const original = await getObject(spec.brandPhotoKey);
     if (!original) throw new Error('The brand photo is no longer in storage');
-    const gen: PhotoGen = { sentPrompt: '(the brand\'s own photo, used as it is)', model: 'brand-photo', ratio: '4:5', highRes: false, taskId: '', styleVersion: STYLE_VERSION, createdAt };
+    const gen: PhotoGen = { sentPrompt: '(the brand\'s own photo, used as it is)', model: 'brand-photo', ratio: '9:16', highRes: false, taskId: '', styleVersion: STYLE_VERSION, createdAt };
     return { ...(await storePhoto(runId, index, original)), gen };
   }
   const refUrls = await refLinks(spec.refs);

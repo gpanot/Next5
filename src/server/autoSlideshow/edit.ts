@@ -5,6 +5,7 @@
 import type { AutoSlideshow, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import type { AutoPhoto, AutoPlan, AutoSlide, AutoStep } from '../../types/admin/autoSlideshow';
+import { isHookStyleId } from '../../types/hookStyle';
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import type { SlideshowBankContent } from '../../types/admin/slideshowBank';
@@ -116,6 +117,24 @@ export const newPhotoForSlide = async (runId: string, showId: string, index: num
   }
 };
 
+/** True for the slides a hook / CTA look applies to. */
+const takesLook = (slide: Pick<AutoSlide, 'role'>) => slide.role === 'hook' || slide.role === 'cta';
+
+/** The hook and CTA slides' look (types/hookStyle.ts); only those slides render again. */
+export const setHookStyle = async (runId: string, showId: string, look: unknown): Promise<void> => {
+  if (!isHookStyleId(look)) throw new HttpError(400, 'bad_hook_style', 'Pick one of the hook styles.');
+  const show = await loadShow(runId, showId);
+  const slides = show.slides as unknown as AutoSlide[];
+  const photos = photosOf(show.run);
+  const cache: PhotoCache = new Map();
+  for (const [i, slide] of slides.entries()) {
+    if (!takesLook(slide) || (slide.look ?? 'default') === look) continue;
+    // Default: no look stored (undefined drops out of the saved JSON).
+    slides[i] = await renderInto(runId, showId, i, { ...slide, look: look === 'default' ? undefined : look }, photos, cache, styleOf(show.run));
+  }
+  await saveSlides(show, slides);
+};
+
 export type ShowPatch = { caption?: unknown; hashtags?: unknown; audioAssetId?: unknown };
 
 /** Caption, hashtags and background music (null removes the music). */
@@ -181,12 +200,15 @@ export const rewriteSlideshow = async (runId: string, showId: string): Promise<v
     const pick = { modelId: model.id, modelName: show.modelName, hookPattern: show.hookPattern, topic: show.topic };
     const written = await writeSlideshow({ pick, pattern: model.pattern as unknown as SlideshowPattern, profile, levers }, meter);
     const old = show.slides as unknown as AutoSlide[];
+    // The picked hook / CTA look stays on the rewritten hook and CTA.
+    const look = old.find(takesLook)?.look;
     const cache: PhotoCache = new Map();
     const slides: AutoSlide[] = [];
     for (const [i, s] of written.slides.entries()) {
       // Same photo per position when there is one, the next photos of the set for extra slides.
       const photoIndex = old[i]?.photoIndex ?? available[(show.position * 3 + i) % available.length]!;
-      slides.push(await renderInto(runId, showId, i, { ...s, photoIndex, imageKey: old[i]?.imageKey ?? null }, photos, cache, styleOf(show.run)));
+      const next = { ...s, photoIndex, imageKey: old[i]?.imageKey ?? null, ...(look && takesLook(s) ? { look } : {}) };
+      slides.push(await renderInto(runId, showId, i, next, photos, cache, styleOf(show.run)));
     }
     for (const extra of old.slice(slides.length)) if (extra.imageKey) await deleteObject(extra.imageKey).catch(() => undefined);
     await prisma.autoSlideshow.update({ where: { id: showId }, data: { slides: json(slides), caption: written.caption, hashtags: written.hashtags, status: 'ready', error: null } });

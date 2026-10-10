@@ -5,13 +5,19 @@
 
 import type { AutoSlide, HeadBox } from '../../types/admin/autoSlideshow';
 
-export const SLIDE_SIZE = { width: 1080, height: 1350 };
+/** 9:16, TikTok's full screen (4:5, 1080x1350, until 2026-10-10). */
+export const SLIDE_SIZE = { width: 1080, height: 1920 };
+/**
+ * The old 4:5 slide sat in the middle of TikTok's 9:16 screen, 285 px down. Every height below is the 4:5 one plus this,
+ * so the text stays where it showed on screen, and inside a 4:5 center crop (Instagram, see media route).
+ */
+const TALL_SHIFT = 285;
 
 /** Hook: big white outlined text. */
-export const HOOK_TEXT = { top: 360, side: 70, lineHeight: 1.08, fontSize: (title: string) => (title.length > 40 ? 76 : 90) };
+export const HOOK_TEXT = { top: 360 + TALL_SHIFT, side: 70, lineHeight: 1.08, fontSize: (title: string) => (title.length > 40 ? 76 : 90) };
 /** Meat and CTA: headline in a box, one plain line under it. `big` is the CTA. */
 export const BOX_TEXT = {
-  top: (big: boolean) => (big ? 300 : 330),
+  top: (big: boolean) => (big ? 300 : 330) + TALL_SHIFT,
   side: 80,
   gap: 36,
   titleSize: (big: boolean) => (big ? 62 : 54),
@@ -22,47 +28,78 @@ export const BOX_TEXT = {
   bodyLineHeight: 1.2,
 };
 
+/** Hook / CTA in the TikTok Red look: white text on a red highlight behind each line. */
+export const RED_TEXT = { side: 80, fontSize: 60, lineHeight: 1.3, padX: 18, color: '#E8453C' };
+
 /** Below TikTok's top tabs ("Following | For You"). */
-const TOP_MIN = 110;
+const TOP_MIN = 110 + TALL_SHIFT;
 /** Above TikTok's caption, username and music line. */
-const BOTTOM_MAX = 1050;
+const BOTTOM_MAX = 1050 + TALL_SHIFT;
 /** Gap kept between the text and a head. */
 const HEAD_MARGIN = 28;
 const SCAN_STEP = 10;
 /** Average glyph width as a share of the font size (Inter ExtraBold / SemiBold), rounded up. */
-const BOLD_CHAR = 0.6;
+export const BOLD_CHAR = 0.6;
 const SEMI_CHAR = 0.54;
 
 type Rect = { x: number; y: number; w: number; h: number };
-type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body'>;
+type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'>;
 
-/** Greedy word wrap on estimated widths: the px width of each line. */
-export const lineWidths = (text: string, fontSize: number, charShare: number, maxWidth: number): number[] => {
+/** Greedy word wrap on estimated widths: each line's words and px width. */
+export const wrapLines = (text: string, fontSize: number, charShare: number, maxWidth: number): { text: string; width: number }[] => {
   const perChar = fontSize * charShare;
-  const lines: number[] = [];
+  const lines: { text: string; width: number }[] = [];
+  let words: string[] = [];
   let current = 0;
   for (const word of text.split(/\s+/).filter(Boolean)) {
     const width = word.length * perChar;
     const next = current === 0 ? width : current + perChar + width;
     if (current > 0 && next > maxWidth) {
-      lines.push(current);
+      lines.push({ text: words.join(' '), width: current });
+      words = [word];
       current = width;
-    } else current = next;
+    } else {
+      words.push(word);
+      current = next;
+    }
   }
-  if (current > 0) lines.push(current);
-  return lines.map((w) => Math.min(w, maxWidth));
+  if (current > 0) lines.push({ text: words.join(' '), width: current });
+  return lines.map((l) => ({ ...l, width: Math.min(l.width, maxWidth) }));
+};
+
+/** Greedy word wrap on estimated widths: the px width of each line. */
+export const lineWidths = (text: string, fontSize: number, charShare: number, maxWidth: number): number[] =>
+  wrapLines(text, fontSize, charShare, maxWidth).map((l) => l.width);
+
+/** Hook and CTA get the big box (a hook only when boxed, in the White box look). */
+export const isBig = (slide: SlideText) => slide.role === 'hook' || slide.role === 'cta';
+
+/** The look a slide is drawn in: hook and CTA may have a picked one; every other slide keeps the default. */
+export const lookOf = (slide: SlideText) => (slide.role === 'hook' || slide.role === 'cta' ? slide.look ?? 'default' : 'default');
+
+/** The red highlight lines' widths (text plus padding) and height. */
+const redRects = (slide: SlideText): Rect[] => {
+  const lines = lineWidths(slide.title, RED_TEXT.fontSize, BOLD_CHAR, SLIDE_SIZE.width - (RED_TEXT.side + RED_TEXT.padX) * 2);
+  const rects = [centered(Math.max(0, ...lines) + RED_TEXT.padX * 2, 0, lines.length * RED_TEXT.fontSize * RED_TEXT.lineHeight)];
+  if (slide.body) {
+    const bodyLines = lineWidths(slide.body, BOX_TEXT.bodySize, SEMI_CHAR, SLIDE_SIZE.width - BOX_TEXT.side * 2);
+    rects.push(centered(Math.max(0, ...bodyLines), rects[0]!.h + BOX_TEXT.gap, bodyLines.length * BOX_TEXT.bodySize * BOX_TEXT.bodyLineHeight));
+  }
+  return rects;
 };
 
 const centered = (w: number, y: number, h: number): Rect => ({ x: (SLIDE_SIZE.width - w) / 2, y, w, h });
 
 /** The text's boxes, with y measured from the top of the text block. */
 export const textRects = (slide: SlideText): Rect[] => {
-  if (slide.role === 'hook') {
+  const look = lookOf(slide);
+  if (look === 'tiktok-red') return redRects(slide);
+  if (slide.role === 'hook' && look === 'default') {
     const size = HOOK_TEXT.fontSize(slide.title);
     const lines = lineWidths(slide.title, size, BOLD_CHAR, SLIDE_SIZE.width - HOOK_TEXT.side * 2);
     return [centered(Math.max(0, ...lines), 0, lines.length * size * HOOK_TEXT.lineHeight)];
   }
-  const big = slide.role === 'cta';
+  const big = isBig(slide);
   const inner = SLIDE_SIZE.width - BOX_TEXT.side * 2;
   const titleSize = BOX_TEXT.titleSize(big);
   const titleLines = lineWidths(slide.title, titleSize, BOLD_CHAR, inner - BOX_TEXT.padX * 2);
@@ -75,7 +112,7 @@ export const textRects = (slide: SlideText): Rect[] => {
   return rects;
 };
 
-const homeTop = (role: SlideText['role']) => (role === 'hook' ? HOOK_TEXT.top : BOX_TEXT.top(role === 'cta'));
+const homeTop = (slide: SlideText) => (slide.role === 'hook' && lookOf(slide) === 'default' ? HOOK_TEXT.top : BOX_TEXT.top(isBig(slide)));
 
 /** A head in slide px, grown by the margin. */
 const headRect = (h: HeadBox): Rect => ({
@@ -93,7 +130,7 @@ const overlap = (a: Rect, b: Rect) =>
  * it between TikTok's top tabs and bottom caption; when no spot is clear (heads everywhere), the one that covers the least.
  */
 export const textTop = (slide: SlideText, heads?: HeadBox[] | null): number => {
-  const home = homeTop(slide.role);
+  const home = homeTop(slide);
   if (!heads?.length) return home;
   const rects = textRects(slide);
   const height = Math.max(...rects.map((r) => r.y + r.h));

@@ -39,7 +39,7 @@ function Preview({ items, videos }: Pick<Props, 'items' | 'videos'>) {
     <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
       {thumbsOf(items, videos).map((t) => (
         <li key={t.id} className="w-20 shrink-0">
-          <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
+          <div className="relative aspect-[9/16] overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-800">
             {t.cover && <CoverMedia src={t.cover} video={t.coverIsVideo} alt={t.title} />}
             {t.video && (
               <span aria-label="Video" className="absolute right-1 bottom-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white">

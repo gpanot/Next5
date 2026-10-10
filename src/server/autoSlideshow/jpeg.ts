@@ -5,10 +5,10 @@ import sharp from 'sharp';
 /** Hard cap per stored photo and slide: small enough to render, edit and let TikTok pull fast. */
 export const MAX_JPEG_BYTES = 1_000_000;
 /**
- * Stored photos: 4:5 above slide size, so they stay sharp under the text and land in the 600 KB-1 MB range the team
- * wants (1080x1350 tops out near 500 KB even at q95).
+ * Stored photos: 9:16 above slide size (1080x1920), so they stay sharp under the text. Lowering the quality keeps them
+ * under MAX_JPEG_BYTES.
  */
-export const PHOTO_SIZE = { width: 1440, height: 1800 };
+export const PHOTO_SIZE = { width: 1440, height: 2560 };
 const START_QUALITY = 95;
 const MIN_QUALITY = 80;
 const QUALITY_STEP = 3;

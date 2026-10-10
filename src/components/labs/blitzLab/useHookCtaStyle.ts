@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { pickHookCtaStyle, slideTextConfig } from '../../../remotion/slideTextConfig';
 import type { TextConfig } from '../../../remotion/types';
+import { hookCtaOf, hookStyleIdOf, type HookStyleId } from './hookStyles';
 
 type TextLayout = { resolved: TextConfig; patch: (p: Partial<TextConfig>) => void };
 
@@ -12,6 +13,9 @@ export type HookCtaScope = {
   onChange: (hookCta: boolean) => void;
   /** Hook & CTA back to the look of the other slides. Absent when they already share it. */
   onClear?: () => void;
+  /** The hook / CTA look in use (same picks as the Ideas deck's Hook button); null when tuned by hand. */
+  styleId: HookStyleId | null;
+  onPickStyle: (id: HookStyleId) => void;
 };
 
 /**
@@ -36,6 +40,9 @@ export function useHookCtaStyle(text: TextLayout, onShowHook: () => void) {
       if (on) onShowHook();
     },
     onClear: own && Object.keys(own).length > 0 ? () => text.patch({ hookCtaStyle: undefined }) : undefined,
+    styleId: hookStyleIdOf(own),
+    // A pick replaces the whole look, so nothing of the last one stays behind.
+    onPickStyle: (id) => text.patch({ hookCtaStyle: hookCtaOf(id) }),
   };
   return { textConfig, onTextConfigChange, scope };
 }

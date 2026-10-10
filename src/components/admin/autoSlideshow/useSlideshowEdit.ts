@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import type { AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
+import type { HookStyleId } from '../../../types/hookStyle';
 import { adminFetch } from '../business/useAdminApi';
 
 type Response = { slideshow: AutoSlideshowDto };
@@ -44,6 +45,7 @@ export const useSlideshowEdit = (token: string, runId: string, initial: AutoSlid
     newPhoto: (index: number) => call(`photo-${index}`, `/slides/${index}/photo`, 'POST'),
     saveCaption: (caption: string, hashtags: string[]) => call('caption', '', 'PATCH', { caption, hashtags }),
     setMusic: (audioAssetId: string | null) => call('music', '', 'PATCH', { audioAssetId }),
+    setHookStyle: (hookStyle: HookStyleId) => call('hook-style', '', 'PATCH', { hookStyle }),
     regenerate: () => call('regenerate', '/regenerate', 'POST'),
     remove: async () => {
       setBusy('delete');

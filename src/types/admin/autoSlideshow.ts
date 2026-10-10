@@ -7,6 +7,7 @@
 import type { ConnectionDto, SocialProviderDto } from '../business/integrations';
 import type { BrandProfile } from './companyIntel';
 import type { ContentGoal } from './contentGoals';
+import type { HookStyleId } from '../hookStyle';
 import type { BrandLever, StepCost } from './metaAds';
 import type { BankCombo } from './slideshowBank';
 import type { SlideRole } from './slideshowKnowledge';
@@ -103,7 +104,9 @@ export type AutoSlide = {
   photoRefNote?: string;
   brandPhotoKey?: string;
   castId?: string;
-  /** Rendered 1080x1350 JPEG, once step 6 ran. */
+  /** Hook and CTA slides: their look, picked in the editor (types/hookStyle.ts). Unset = default. */
+  look?: HookStyleId;
+  /** Rendered 1080x1920 JPEG (1080x1350 before 2026-10-10), once step 6 ran. */
   imageKey: string | null;
 };
 

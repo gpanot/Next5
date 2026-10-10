@@ -20,6 +20,7 @@ import type { TextConfig } from '../../../remotion/types';
 import type { BlitzLayer } from './canvasHitTest';
 import type { HookCtaScope } from './useHookCtaStyle';
 import { CAPTION_STYLES, StyleThumb, type CaptionStyleDef } from './captionStyles';
+import { HookStyleOptions } from './HookStyleOptions';
 
 const FONT_WEIGHTS: { label: string; value: number }[] = [
   { label: 'Thin', value: 100 },
@@ -283,11 +284,14 @@ export function ContextPanel({
         {activeLayer === 'TEXT' && (
           <>
             {scope && <ScopeSwitch scope={scope} />}
-            {/* ── Caption style presets ──────────────────────────────── */}
+            {/* ── Caption style presets (Hook & CTA: the Ideas deck's hook looks) ── */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-semibold tracking-widest text-muted/70 uppercase">
-                Caption Style Mix
+                {scope?.hookCta ? 'Hook + CTA style' : 'Caption Style Mix'}
               </span>
+              {scope?.hookCta ? (
+                <HookStyleOptions activeId={scope.styleId} onPick={scope.onPickStyle} />
+              ) : (
               <div className="flex flex-col gap-0.5">
                 {styles.map((style) => (
                   <button
@@ -309,6 +313,7 @@ export function ContextPanel({
                   </button>
                 ))}
               </div>
+              )}
             </div>
 
             <div className="-mx-4 border-t border-line" />

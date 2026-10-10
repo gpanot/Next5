@@ -63,7 +63,8 @@ const explain = (message: string): string => {
 
 const captionOf = (caption: string, hashtags: string[]) => [caption.trim(), hashtags.map((h) => `#${h}`).join(' ')].filter(Boolean).join('\n\n');
 
-const photoUrls = (post: PostWithShow) => (post.slideshow.slides as AutoSlide[]).map((_, i) => slideMediaUrl(post.slideshowId, i));
+/** `crop45`: Instagram's 4:5 cut of the 9:16 slides. */
+const photoUrls = (post: PostWithShow, crop45 = false) => (post.slideshow.slides as AutoSlide[]).map((_, i) => slideMediaUrl(post.slideshowId, i, undefined, crop45));
 
 const sendTikTok = async (post: PostWithShow): Promise<void> => {
   const token = await freshAccessToken(await connection(post));
@@ -102,7 +103,7 @@ const finishInstagram = async (post: AutoSlideshowPost, token: string, igUserId:
 const sendInstagram = async (post: PostWithShow): Promise<void> => {
   const conn = await connection(post);
   const token = await freshAccessToken(conn);
-  const containerId = await createCarousel(token, conn.externalId, photoUrls(post), instagramCaption(post.slideshow.caption, post.slideshow.hashtags));
+  const containerId = await createCarousel(token, conn.externalId, photoUrls(post, true), instagramCaption(post.slideshow.caption, post.slideshow.hashtags));
   await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'processing', publishId: containerId, error: null } });
   await finishInstagram(post, token, conn.externalId, containerId, IG_WAIT_MS);
 };

@@ -1,30 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { pickHookCtaStyle } from '../../../../remotion/slideTextConfig';
-import type { HookCtaStyle } from '../../../../remotion/types';
-import { CAPTION_STYLES, type CaptionStyleDef } from '../../../labs/blitzLab/captionStyles';
+import { hookCtaOf, isHookStyleId, type HookStyleId } from '../../../labs/blitzLab/hookStyles';
 
 const KEY = 'next5.ideas.hookStyle';
-
-/** The looks the deck's Hook button offers, in this order. "Default": the hook looks like the other slides. */
-const HOOK_STYLE_IDS = ['default', 'white-box', 'tiktok-red'] as const;
-export type HookStyleId = (typeof HOOK_STYLE_IDS)[number];
-
-const LABELS: Record<HookStyleId, string> = { default: 'Default', 'white-box': 'White box', 'tiktok-red': 'TikTok Red' };
-
-export const HOOK_STYLES: Array<CaptionStyleDef & { id: HookStyleId }> = HOOK_STYLE_IDS.map((id) => {
-  const style = CAPTION_STYLES.find((s) => s.id === id)!;
-  return { ...style, id, label: LABELS[id] };
-});
-
-const isHookStyleId = (v: string | null): v is HookStyleId => HOOK_STYLE_IDS.some((id) => id === v);
-
-/** The hook / CTA look sent with the caption: none for "Default", so they match the other slides. */
-export const hookCtaOf = (id: HookStyleId): HookCtaStyle | undefined => {
-  if (id === 'default') return undefined;
-  return pickHookCtaStyle(HOOK_STYLES.find((s) => s.id === id)!.patch);
-};
 
 /** How long the card shows "loading" after a pick, so the change is seen (an instant swap is missed). */
 const APPLY_MS = 1500;

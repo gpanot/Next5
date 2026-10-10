@@ -59,7 +59,13 @@ describe('slide media links', () => {
     const url = slideMediaUrl('cmumb9ixt0000vuu5q2ynb0cq', 7);
     expect(url).toMatch(/\/api\/media\/[^/]+\.jpg$/);
     const id = readMediaToken(url.split('/api/media/')[1]!);
-    expect(parseSlideMediaId(id!)).toEqual({ slideshowId: 'cmumb9ixt0000vuu5q2ynb0cq', index: 7 });
+    expect(parseSlideMediaId(id!)).toEqual({ slideshowId: 'cmumb9ixt0000vuu5q2ynb0cq', index: 7, crop45: false });
+  });
+
+  it('marks the Instagram link to be cut to 4:5', () => {
+    const url = slideMediaUrl('cmumb9ixt0000vuu5q2ynb0cq', 2, undefined, true);
+    const id = readMediaToken(url.split('/api/media/')[1]!);
+    expect(parseSlideMediaId(id!)).toEqual({ slideshowId: 'cmumb9ixt0000vuu5q2ynb0cq', index: 2, crop45: true });
   });
 
   it('leaves batch item ids alone', () => {

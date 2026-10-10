@@ -2,7 +2,7 @@
 // Instagram API with Instagram Login: carousel posts and their numbers. Docs:
 //   developers.facebook.com/docs/instagram-platform/content-publishing (carousel: item containers → parent → publish)
 //   developers.facebook.com/docs/instagram-platform/reference/instagram-media/insights
-// Photos are pulled by Meta from our public JPEG links; 4:5 fits Instagram's allowed ratios (4:5 to 1.91:1).
+// Photos are pulled by Meta from our public JPEG links, cut to 4:5 (Instagram allows 4:5 to 1.91:1; slides are 9:16).
 
 import type { PostStats } from '../../types/admin/autoSlideshow';
 import { form, providerFetch } from './http';

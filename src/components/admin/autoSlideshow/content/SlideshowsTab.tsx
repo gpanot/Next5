@@ -31,7 +31,7 @@ function GridSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-busy="true" aria-label="Loading your slideshows">
       {Array.from({ length: 5 }, (_, i) => (
-        <div key={i} className="aspect-[4/5] animate-pulse rounded-xl bg-app-sunken" />
+        <div key={i} className="aspect-[9/16] animate-pulse rounded-xl bg-app-sunken" />
       ))}
     </div>
   );

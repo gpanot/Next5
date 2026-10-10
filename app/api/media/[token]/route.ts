@@ -18,6 +18,15 @@ const sourceKey = async (id: string): Promise<string | null> => {
   return item?.r2Key ?? null;
 };
 
+/** As JPEG; `crop45` cuts an image taller than 4:5 to 4:5 around its middle (Instagram's tallest carousel shape). */
+const toJpeg = async (original: Buffer, crop45: boolean): Promise<Buffer> => {
+  const image = sharp(original).rotate();
+  const { width = 0, height = 0 } = await image.metadata();
+  const cropHeight = Math.round((width * 5) / 4);
+  const cut = crop45 && height > cropHeight ? image.extract({ left: 0, top: Math.round((height - cropHeight) / 2), width, height: cropHeight }) : image;
+  return cut.jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+};
+
 /** A rendered Blitz video (scheduled post), as stored. */
 const blitzVideo = async (projectId: string): Promise<Response> => {
   const project = await prisma.blitzProject.findUnique({ where: { id: projectId }, select: { renderedVideoKey: true } });
@@ -39,6 +48,6 @@ export const GET = businessRoute<Ctx>(async (_req, ctx) => {
   if (blitzId) return blitzVideo(blitzId);
   const original = await sourceKey(itemId).then((key) => (key ? getObject(key) : null));
   if (!original) throw new HttpError(404, 'not_found', 'Not found.');
-  const jpeg = await sharp(original).rotate().jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+  const jpeg = await toJpeg(original, parseSlideMediaId(itemId)?.crop45 ?? false);
   return new Response(new Uint8Array(jpeg), { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=3600' } });
 });
