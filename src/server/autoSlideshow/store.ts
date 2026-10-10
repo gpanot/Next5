@@ -75,7 +75,12 @@ export const getSlideshowDto = async (runId: string, slideshowId: string): Promi
 export const listPhotoDtos = async (runId: string): Promise<AutoPhotoDto[]> => {
   const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { photos: true } });
   const photos = (run?.photos as unknown as AutoPhoto[] | null) ?? [];
-  return Promise.all(photos.map(async (p, index) => ({ index, prompt: p.prompt, url: p.imageKey ? await presignObject(p.imageKey) : null })));
+  return Promise.all(photos.map(async (p, index) => ({
+    index,
+    prompt: p.prompt,
+    url: p.imageKey ? await presignObject(p.imageKey) : null,
+    showId: p.altFor ?? p.owner?.split(':')[0] ?? null,
+  })));
 };
 
 /** Recent runs; `workspaceId` limits them to one workspace's (a signed-in user's own). */

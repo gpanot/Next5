@@ -71,6 +71,8 @@ export type AutoPhoto = {
   error: string | null;
   kind?: 'hook' | 'slide';
   owner?: string;
+  /** Slideshow whose "New" photo button made this one, so its picker keeps it as an alternative. */
+  altFor?: string;
   deleted?: true;
   heads?: HeadBox[];
   gen?: PhotoGen;
@@ -105,8 +107,9 @@ export type AutoSlide = {
   imageKey: string | null;
 };
 
-/** One photo of the run's set, for the editor's picker (url null when that photo failed). */
-export type AutoPhotoDto = { index: number; prompt: string; url: string | null };
+/** One photo of the run's set, for the editor's picker (url null when that photo failed). `showId`: the slideshow it
+ *  was made for (its slide photo or a "New" one); null for the run's shared pool. */
+export type AutoPhotoDto = { index: number; prompt: string; url: string | null; showId: string | null };
 
 export type AutoSlideshowStatus = 'written' | 'rendering' | 'ready' | 'failed';
 

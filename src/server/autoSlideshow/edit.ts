@@ -104,7 +104,8 @@ export const newPhotoForSlide = async (runId: string, showId: string, index: num
     const spec = { prompt, ...(refs?.length ? { refs, refNote: slide.photoRefNote ?? prior?.refNote } : {}) };
     const all = await makePhotos(runId, [...photos.map((p) => p.prompt), spec], photos, meter, { look: brandLook(show.run.profile as unknown as BrandProfile | null) });
     // On bank runs the new photo belongs to this slide, not to the shared pool other slides fall back on.
-    const made = show.bankHookId ? { ...all[all.length - 1]!, kind: 'slide' as const } : all[all.length - 1]!;
+    const fresh = { ...all[all.length - 1]!, altFor: showId };
+    const made = show.bankHookId ? { ...fresh, kind: 'slide' as const } : fresh;
     all[all.length - 1] = made;
     if (!made.imageKey) throw new HttpError(502, 'photo_failed', made.error ?? 'The new photo failed.');
     await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { photos: json(all) } });

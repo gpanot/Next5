@@ -7,7 +7,7 @@ import type { OrderedPhoto } from './photoOrder';
 type Props = {
   slide: AutoSlideDto;
   index: number;
-  /** This slideshow's photos first, in slide order (photoOrder.ts), then the run's others. */
+  /** This slideshow's photos, in slide order, then its other "New" photos (photoOrder.ts). */
   photos: OrderedPhoto[] | null;
   busy: string | null;
   title: string;

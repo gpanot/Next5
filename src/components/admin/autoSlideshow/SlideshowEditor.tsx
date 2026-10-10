@@ -136,7 +136,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
             <SlideEditPanel
               slide={current}
               index={slide}
-              photos={photos && photosInSlideOrder(show.slides, photos)}
+              photos={photos && photosInSlideOrder(show.id, show.slides, photos)}
               busy={busy}
               title={drafts.title}
               body={drafts.body}
