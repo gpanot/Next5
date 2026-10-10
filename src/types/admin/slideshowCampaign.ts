@@ -16,6 +16,7 @@ export const MAX_CAMPAIGN_CONTENT = 10;
 export const MAX_HOOK_CHARS = 120;
 export const MAX_CARD_TITLE_CHARS = 120;
 export const MAX_CARD_BODY_CHARS = 220;
+export const MAX_CAPTION_CHARS = 2_000;
 
 /** A content or CTA card: the same text and photo in every slideshow. `photo`: index into the run's photos. */
 export type CampaignCard = { role: 'item' | 'cta'; title: string; body: string; photo: number | null };
@@ -27,7 +28,12 @@ export type CampaignDraft = {
   /** Content cards, then the CTA card last. */
   cards: CampaignCard[];
   look: HookStyleId;
+  /** The post caption every slideshow of the campaign gets (hashtags written in it). */
+  caption: string;
 };
+
+/** What the rendered slides depend on (the caption is not drawn): equal keys mean the made slideshows are current. */
+export const renderKeyOf = (d: CampaignDraft): string => JSON.stringify({ hooks: d.hooks, hookPhotos: d.hookPhotos, cards: d.cards, look: d.look });
 
 export const emptyCampaignDraft = (): CampaignDraft => ({
   hooks: [],
@@ -37,6 +43,7 @@ export const emptyCampaignDraft = (): CampaignDraft => ({
     { role: 'cta', title: '', body: '', photo: null },
   ],
   look: 'default',
+  caption: '',
 });
 
 /** Where an attached photo came from. Unsplash photos keep their credit (Unsplash's attribution rule). */
@@ -75,6 +82,8 @@ export type CampaignDto = {
   draft: CampaignDraft;
   photos: CampaignPhotoDto[];
   slideshows: AutoSlideshowDto[];
+  /** True when the slideshows were made from the draft as it is now (Schedule then skips rendering). */
+  rendered: boolean;
   createdAt: string;
 };
 

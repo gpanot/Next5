@@ -6,14 +6,14 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/db';
 import type { AutoSlide } from '../../../types/admin/autoSlideshow';
-import { campaignProblems, hookPhotoFor, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
+import { campaignProblems, hookPhotoFor, renderKeyOf, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
 import { DEFAULT_BOX } from '../../companyIntel/slideshowStyle';
 import { HttpError } from '../../http';
 import { deleteObject, putObject } from '../../storage/objectStore';
 import type { UserAccess } from '../access';
 import { headsFor, withDetectedHeads, type HeadsCache } from '../heads';
 import { renderSlide, type PhotoCache } from '../render';
-import { draftOf, json, loadCampaign, photosOf, type CampaignPhoto } from './store';
+import { draftOf, isRendered, json, loadCampaign, photosOf, storeDraft, type CampaignPhoto } from './store';
 
 const LIVE_POSTS = ['scheduled', 'sending', 'processing', 'posted'];
 /** Slides rendered at once: Satori renders are memory hungry. */
@@ -66,16 +66,23 @@ const buildShows = (runId: string, plan: ReturnType<typeof plannedSlides>, hookJ
 };
 
 /**
- * Renders the draft into slideshows, replacing the ones made before. Refused while any of them is scheduled or posted
- * (cancel those first), so a post never loses its slideshow. Returns how many slideshows were made.
+ * Makes the campaign's slideshows, for Schedule. When they were already made from this draft, only the caption is
+ * copied onto them (no render). Otherwise renders the draft, replacing the ones made before; refused while any of them
+ * is scheduled or posted (cancel those first), so a post never loses its slideshow. Returns how many slideshows exist.
  */
 export const generateCampaign = async (access: UserAccess, id: string): Promise<number> => {
   const run = await loadCampaign(access, id);
   const draft = draftOf(run);
   const problems = campaignProblems(draft);
   if (problems.length > 0) throw new HttpError(409, 'campaign_incomplete', problems[0]!);
+  const existing = await prisma.autoSlideshow.count({ where: { runId: id } });
+  const caption = draft.caption.trim();
+  if (isRendered(run, existing)) {
+    await prisma.autoSlideshow.updateMany({ where: { runId: id }, data: { caption, hashtags: [] } });
+    return existing;
+  }
   const live = await prisma.autoSlideshowPost.count({ where: { runId: id, status: { in: LIVE_POSTS } } });
-  if (live > 0) throw new HttpError(409, 'campaign_scheduled', 'Some slideshows are scheduled or posted. Cancel those posts before generating again.');
+  if (live > 0) throw new HttpError(409, 'campaign_scheduled', 'Some slideshows are already scheduled or posted. Cancel those posts in the Calendar to change this campaign.');
 
   const photos = photosOf(run);
   const plan = plannedSlides(draft);
@@ -90,9 +97,9 @@ export const generateCampaign = async (access: UserAccess, id: string): Promise<
   await prisma.$transaction([
     prisma.autoSlideshow.deleteMany({ where: { runId: id } }),
     prisma.autoSlideshow.createMany({
-      data: shows.map((s, position) => ({ runId: id, position, modelName: name, hookPattern: s.hook, topic: s.hook, slides: s.slides as unknown as Prisma.InputJsonValue, status: 'ready' })),
+      data: shows.map((s, position) => ({ runId: id, position, modelName: name, hookPattern: s.hook, topic: s.hook, caption, slides: s.slides as unknown as Prisma.InputJsonValue, status: 'ready' })),
     }),
-    prisma.autoSlideshowRun.update({ where: { id }, data: { count: shows.length, finishedAt: new Date(), ...(withHeads ? { photos: json(withHeads) } : {}) } }),
+    prisma.autoSlideshowRun.update({ where: { id }, data: { count: shows.length, finishedAt: new Date(), campaign: storeDraft(run, draft, renderKeyOf(draft)), ...(withHeads ? { photos: json(withHeads) } : {}) } }),
   ]);
   const oldKeys = old.flatMap((show) => (show.slides as unknown as AutoSlide[]).flatMap((s) => (s.imageKey ? [s.imageKey] : [])));
   await inBatches(oldKeys, 8, (key) => deleteObject(key).catch(() => undefined));

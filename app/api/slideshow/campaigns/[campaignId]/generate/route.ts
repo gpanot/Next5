@@ -1,6 +1,7 @@
 /**
- * POST /api/slideshow/campaigns/[campaignId]/generate — renders one slideshow per hook line (replacing the earlier
- *      ones, unless any is scheduled or posted) → { count, campaign }. Free: no AI writing, no credits.
+ * POST /api/slideshow/campaigns/[campaignId]/generate — called by Schedule: makes one slideshow per hook line when the
+ *      draft changed since the last make (replacing the earlier ones, unless any is scheduled or posted), else only
+ *      copies the caption onto them → { count, campaign }. Free: no AI writing, no credits.
  */
 import { NextResponse } from 'next/server';
 import { requireUser } from '../../../../../../src/server/autoSlideshow/access';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CampaignDraft, CampaignDto, CampaignPhotoDto, CampaignPhotoTarget, PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
+import { renderKeyOf, type CampaignDraft, type CampaignDto, type CampaignPhotoDto, type CampaignPhotoTarget, type PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
 
 /** Typing settles this long before the draft is saved. */
@@ -28,8 +28,8 @@ const placePhotos = (draft: CampaignDraft, target: CampaignPhotoTarget, indexes:
 
 /**
  * One campaign in the editor: loaded once, then the draft lives here and is saved (debounced) as it changes. Photo
- * imports run one at a time; each lands on its slide as soon as it is in. `stale`: the draft changed after the
- * slideshows were generated.
+ * imports show at once and land on their slide when copied in. `stale`: the slides changed since the slideshows were
+ * made (or none were made), so Schedule renders them first.
  */
 export const useCampaign = (token: string, id: string) => {
   const base = `/api/slideshow/campaigns/${id}`;
@@ -37,7 +37,8 @@ export const useCampaign = (token: string, id: string) => {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<'import' | 'generate' | null>(null);
   const [saving, setSaving] = useState(false);
-  const [stale, setStale] = useState(false);
+  /** Render key of the draft the slideshows were made from; null when none are current. */
+  const [madeKey, setMadeKey] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingPhoto[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unsaved = useRef<CampaignDraft | null>(null);
@@ -45,7 +46,11 @@ export const useCampaign = (token: string, id: string) => {
   useEffect(() => {
     let live = true;
     adminFetch<{ campaign: CampaignDto }>(token, base)
-      .then((res) => live && setCampaign(res.campaign))
+      .then((res) => {
+        if (!live) return;
+        setCampaign(res.campaign);
+        setMadeKey(res.campaign.rendered ? renderKeyOf(res.campaign.draft) : null);
+      })
       .catch((err: Error) => live && setError(err.message || 'Could not open this campaign'));
     return () => {
       live = false;
@@ -78,7 +83,6 @@ export const useCampaign = (token: string, id: string) => {
       unsaved.current = draft;
       return { ...c, draft };
     });
-    setStale(true);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => void flush(), SAVE_DELAY_MS);
   }, [flush]);
@@ -118,24 +122,33 @@ export const useCampaign = (token: string, id: string) => {
     setBusy(null);
   }, [token, base, setDraft]);
 
-  const generate = useCallback(async (): Promise<boolean> => {
+  /** Schedule's first step: the slideshows made from the draft as it is (rendered only when it changed). */
+  const prepare = useCallback(async (): Promise<CampaignDto | null> => {
     await flush();
     setBusy('generate');
     setError(null);
     try {
       const res = await adminFetch<{ campaign: CampaignDto }>(token, `${base}/generate`, { method: 'POST', body: '{}' });
-      setCampaign(res.campaign);
-      setStale(false);
-      return true;
+      setCampaign((c) => (c ? { ...res.campaign, draft: c.draft } : res.campaign));
+      setMadeKey(renderKeyOf(res.campaign.draft));
+      return res.campaign;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not make the slideshows');
-      return false;
+      return null;
     } finally {
       setBusy(null);
     }
   }, [token, base, flush]);
 
-  return { campaign, error, busy, saving, stale, pending, setDraft, rename, importPhotos, generate, clearError: () => setError(null) };
+  /** Reads the campaign again (its slideshows' posts), keeping the draft being edited. */
+  const reload = useCallback(async () => {
+    const res = await adminFetch<{ campaign: CampaignDto }>(token, base).catch(() => null);
+    if (res) setCampaign((c) => (c ? { ...res.campaign, draft: c.draft } : res.campaign));
+  }, [token, base]);
+
+  const stale = !campaign || madeKey === null || renderKeyOf(campaign.draft) !== madeKey;
+
+  return { campaign, error, busy, saving, stale, pending, setDraft, rename, importPhotos, prepare, reload, clearError: () => setError(null) };
 };
 
 export type CampaignState = ReturnType<typeof useCampaign>;

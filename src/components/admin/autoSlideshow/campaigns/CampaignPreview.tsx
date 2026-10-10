@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import type { PreviewShow } from './previewSlides';
 import { PreviewSlideView } from './PreviewSlideView';
 
-type Props = { shows: PreviewShow[]; rendered: boolean; startShow?: number; onClose: () => void; makeButton: React.ReactNode };
+type Props = { shows: PreviewShow[]; rendered: boolean; startShow?: number; onClose: () => void };
 
 const arrow = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 active:scale-95 disabled:opacity-25 max-sm:hidden';
 
@@ -64,9 +64,9 @@ function SlidePlayer({ show }: { show: PreviewShow }) {
 
 /**
  * Plays the campaign's slideshows as they will post: pick a slideshow (one per hook) at the top, swipe its slides.
- * Before "Make" (or after a change) it shows the draft drawn in the browser, with a note and the Make button.
+ * Until Schedule makes them (or after a change) it shows the draft drawn in the browser.
  */
-export function CampaignPreview({ shows, rendered, startShow = 0, onClose, makeButton }: Props) {
+export function CampaignPreview({ shows, rendered, startShow = 0, onClose }: Props) {
   const [showAt, setShowAt] = useState(Math.min(startShow, shows.length - 1));
   const show = shows[showAt]!;
 
@@ -99,12 +99,7 @@ export function CampaignPreview({ shows, rendered, startShow = 0, onClose, makeB
         <SlidePlayer key={showAt} show={show} />
       </div>
       <footer className="flex shrink-0 flex-wrap items-center justify-center gap-3 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        {rendered ? <p className="text-sm text-white/50">As it will post</p> : (
-          <>
-            <p className="text-sm text-white/60">Draft preview. Make the slideshows to see the final render.</p>
-            {makeButton}
-          </>
-        )}
+        <p className="text-sm text-white/50">{rendered ? 'As it will post' : 'Preview. The final slides are made when you schedule.'}</p>
       </footer>
     </div>,
     document.body,

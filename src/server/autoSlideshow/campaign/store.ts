@@ -8,12 +8,14 @@ import { isHookStyleId } from '../../../types/hookStyle';
 import {
   emptyCampaignDraft,
   MAX_CAMPAIGN_CONTENT,
+  MAX_CAPTION_CHARS,
   MAX_CAMPAIGN_HOOK_PHOTOS,
   MAX_CAMPAIGN_HOOKS,
   MAX_CARD_BODY_CHARS,
   MAX_CARD_TITLE_CHARS,
   MAX_HOOK_CHARS,
   MIN_CAMPAIGN_CONTENT,
+  renderKeyOf,
   type CampaignCard,
   type CampaignDraft,
   type CampaignDto,
@@ -38,7 +40,26 @@ export const json = (value: unknown) => value as Prisma.InputJsonValue;
 export type CampaignPhoto = AutoPhoto & { source?: CampaignPhotoDto['source']; credit?: CampaignPhotoDto['credit'] };
 
 export const photosOf = (run: { photos: Prisma.JsonValue }): CampaignPhoto[] => (run.photos as unknown as CampaignPhoto[] | null) ?? [];
-export const draftOf = (run: { campaign: Prisma.JsonValue }): CampaignDraft => (run.campaign as unknown as CampaignDraft | null) ?? emptyCampaignDraft();
+/** The stored campaign: the draft, plus the render key of the draft the slideshows were last made from. */
+type StoredCampaign = CampaignDraft & { renderedKey?: string };
+
+const storedOf = (run: { campaign: Prisma.JsonValue }): StoredCampaign => ({ ...emptyCampaignDraft(), ...((run.campaign as unknown as StoredCampaign | null) ?? {}) });
+
+export const draftOf = (run: { campaign: Prisma.JsonValue }): CampaignDraft => {
+  const stored: Partial<StoredCampaign> = storedOf(run);
+  delete stored.renderedKey;
+  return stored as CampaignDraft;
+};
+
+/** True when the run's slideshows were made from its current draft. */
+export const isRendered = (run: { campaign: Prisma.JsonValue }, slideshowCount: number): boolean => {
+  const stored = storedOf(run);
+  return slideshowCount > 0 && stored.renderedKey === renderKeyOf(stored);
+};
+
+/** Stores the draft, keeping the render key unless `renderedKey` is given. */
+export const storeDraft = (run: { campaign: Prisma.JsonValue }, draft: CampaignDraft, renderedKey?: string) =>
+  json({ ...draft, renderedKey: renderedKey ?? storedOf(run).renderedKey });
 
 /** The campaign run, when the signed-in user owns its workspace; 404 otherwise (no hint that it exists). */
 export const loadCampaign = async (access: UserAccess, id: string) => {
@@ -103,6 +124,7 @@ export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
     draft: draftOf(run),
     photos,
     slideshows: await Promise.all(run.slideshows.map(toSlideshowDto)),
+    rendered: isRendered(run, run.slideshows.length),
     createdAt: run.createdAt.toISOString(),
   };
 };
@@ -131,6 +153,7 @@ export const parseDraft = (value: unknown, photoCount: number): CampaignDraft =>
     hookPhotos: [...new Set(hookPhotos)].slice(0, MAX_CAMPAIGN_HOOK_PHOTOS),
     cards: parseCards(d.cards, photoCount),
     look: isHookStyleId(d.look) ? d.look : 'default',
+    caption: str(d.caption, MAX_CAPTION_CHARS),
   };
 };
 
@@ -140,6 +163,6 @@ export const saveCampaign = async (access: UserAccess, id: string, patch: Campai
   const run = await loadCampaign(access, id);
   const data: Prisma.AutoSlideshowRunUpdateInput = {};
   if (patch.name !== undefined) data.name = cleanName(patch.name);
-  if (patch.draft !== undefined) data.campaign = json(parseDraft(patch.draft, photosOf(run).length));
+  if (patch.draft !== undefined) data.campaign = storeDraft(run, parseDraft(patch.draft, photosOf(run).length));
   await prisma.autoSlideshowRun.update({ where: { id }, data });
 };

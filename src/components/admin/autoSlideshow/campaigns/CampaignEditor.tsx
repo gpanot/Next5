@@ -8,7 +8,7 @@ import { CampaignPosts } from './CampaignPosts';
 import { CampaignPreview } from './CampaignPreview';
 import { CampaignStrip } from './CampaignStrip';
 import { CardPanel } from './CardPanel';
-import { Checklist, DeleteCampaign, GenerateButton, NameInput } from './EditorParts';
+import { Checklist, DeleteCampaign, NameInput } from './EditorParts';
 import { HookPanel } from './HookPanel';
 import { PhotoLibraryDialog } from './PhotoLibraryDialog';
 import { previewShows } from './previewSlides';
@@ -25,19 +25,20 @@ const roleTab = (draft: CampaignDraft, slide: number) => (slide === 0 ? 'hook' :
 
 /**
  * The campaign editor, full screen and phone first: the name in the top bar, every slide as a card, then the selected
- * slide's panel (hook lines and rotating photos, or one card's text and photo). "Make" renders one slideshow per hook;
- * they then get their post times below.
+ * slide's panel (hook lines and rotating photos, or one card's text and photo), with Post and Schedule beside it.
+ * Scheduling makes the slideshows (one per hook) when the slides changed since they were last made.
  */
 export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Props) {
   const state = useCampaign(token, campaignId);
   const run = useAutoRun(token, campaignId);
   const [slide, setSlide] = useState(0);
   const [picker, setPicker] = useState<CampaignPhotoTarget | null>(null);
-  const [previewing, setPreviewing] = useState(false);
+  /** The slideshow the preview opens on; null when closed. */
+  const [previewing, setPreviewing] = useState<number | null>(null);
   const { campaign, setDraft } = state;
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !picker && !previewing && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !picker && previewing === null && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, picker, previewing]);
@@ -55,8 +56,6 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
     setSlide((s) => Math.max(1, s - 1));
   };
 
-  const make = <GenerateButton state={state} onDone={run.refresh} />;
-
   // On <body>: the workspace page's own layers must never cover the editor or its top bar.
   return createPortal(
     <div className="fixed inset-0 z-[60] flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={campaign?.name ?? 'Campaign'}>
@@ -67,12 +66,11 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
         <div className="min-w-0 flex-1">{campaign ? <NameInput value={campaign.name} onSave={(n) => void state.rename(n)} /> : <div className="h-11 max-w-xs animate-pulse rounded-xl bg-white/10" />}</div>
         <span className="hidden text-xs text-white/40 sm:block" aria-live="polite">{state.saving ? 'Saving…' : campaign ? 'Saved' : ''}</span>
         {campaign && (
-          <button type="button" onClick={() => setPreviewing(true)} aria-label="Preview" className="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-white/15 px-3 text-sm font-semibold text-white/85 transition hover:bg-white/5 active:scale-95 sm:px-4">
+          <button type="button" onClick={() => setPreviewing(0)} aria-label="Preview" className="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-white/15 px-3 text-sm font-semibold text-white/85 transition hover:bg-white/5 active:scale-95 sm:px-4">
             <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
             <span className="max-sm:hidden">Preview</span>
           </button>
         )}
-        {make}
       </header>
 
       {!campaign || !draft ? (
@@ -116,23 +114,14 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                 )}
               </section>
               <Checklist draft={draft} />
-              {campaign.slideshows.length > 0 && state.stale && (
-                <div className="flex flex-wrap items-center gap-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4">
-                  <p className="min-w-0 flex-1 text-sm text-amber-200">You changed the campaign. Make the slideshows again to update them.</p>
-                  {make}
-                </div>
-              )}
-              {campaign.slideshows.length === 0 && <GenerateButton state={state} onDone={run.refresh} wide />}
               <DeleteCampaign token={token} campaignId={campaignId} onDeleted={onClose} />
             </div>
             {/* Right of the slide panel on wide screens, below it on phones. */}
             <aside aria-label="Post and Schedule" className={`${card} lg:sticky lg:top-4`}>
               <h2 className="text-base font-semibold text-white">Post and Schedule</h2>
-              {run.run && run.run.slideshows.some((s) => s.status === 'ready') ? (
-                <div className="mt-3"><CampaignPosts token={token} run={run.run} onChanged={run.refresh} /></div>
-              ) : (
-                <p className="mt-2 text-sm text-white/50">Make the slideshows first. Then pick when each one posts.</p>
-              )}
+              <div className="mt-3">
+                {run.run ? <CampaignPosts token={token} run={run.run} state={state} onPreview={setPreviewing} /> : <div className="h-40 animate-pulse rounded-xl bg-white/5" />}
+              </div>
             </aside>
           </div>
         </div>
@@ -151,8 +140,8 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           }}
         />
       )}
-      {previewing && campaign && draft && (
-        <CampaignPreview {...previewShows(draft, campaign.photos, campaign.slideshows, state.stale)} onClose={() => setPreviewing(false)} makeButton={make} />
+      {previewing !== null && campaign && draft && (
+        <CampaignPreview {...previewShows(draft, campaign.photos, campaign.slideshows, state.stale)} startShow={previewing} onClose={() => setPreviewing(null)} />
       )}
     </div>,
     document.body,

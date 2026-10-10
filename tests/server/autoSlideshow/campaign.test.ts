@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { planTimes } from '../../../src/components/admin/autoSlideshow/campaigns/scheduleTimes';
 import { parseDraft } from '../../../src/server/autoSlideshow/campaign/store';
-import { campaignProblems, emptyCampaignDraft, hookPhotoFor, type CampaignDraft } from '../../../src/types/admin/slideshowCampaign';
+import { campaignProblems, emptyCampaignDraft, hookPhotoFor, renderKeyOf, type CampaignDraft } from '../../../src/types/admin/slideshowCampaign';
 
 const ready = (): CampaignDraft => ({
   hooks: ['6 ways to get better at golf', '6 crazy ways to get better at golf'],
@@ -11,6 +11,7 @@ const ready = (): CampaignDraft => ({
     { role: 'cta', title: 'Follow for more', body: 'New tips every day', photo: 4 },
   ],
   look: 'default',
+  caption: 'Golf tips #golf',
 });
 
 describe('emptyCampaignDraft', () => {
@@ -77,5 +78,13 @@ describe('planTimes', () => {
   it('posts all on the first day, two hours apart', () => {
     const times = planTimes(3, 'sameDay', '2026-10-11', '09:30', now);
     expect(times.map((t) => [t.getDate(), t.getHours(), t.getMinutes()])).toEqual([[11, 9, 30], [11, 11, 30], [11, 13, 30]]);
+  });
+});
+
+describe('renderKeyOf', () => {
+  it('ignores the caption (not drawn) and changes with anything on the slides', () => {
+    expect(renderKeyOf({ ...ready(), caption: 'other' })).toBe(renderKeyOf(ready()));
+    expect(renderKeyOf({ ...ready(), look: 'tiktok-red' })).not.toBe(renderKeyOf(ready()));
+    expect(renderKeyOf({ ...ready(), hooks: ['new hook'] })).not.toBe(renderKeyOf(ready()));
   });
 });
