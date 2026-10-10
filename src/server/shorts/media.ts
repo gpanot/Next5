@@ -1,31 +1,47 @@
 // server-only — never import from a 'use client' file.
-// Per-beat media: a 9:16 photo (FLUX.2 Pro on reAPI since 2026-10-08; Gemini 3.1 Flash Lite Image via treg when it
-// fails), then a clip animated from it as the first frame:
+// Per-beat media: a 9:16 photo (the model picked at the photo stop on reAPI, FLUX.2 Pro by default; Gemini 3.1 Flash
+// Lite Image via treg when it fails), then a clip animated from it as the first frame:
 // Veo 3.1 Lite via treg, Gemini Omni 1.1 via reAPI direct (added 2026-10-08 for a test), or Seedance 2.0 Mini via reAPI
 // direct (treg serves Seedance only with your own key;
 // reAPI is $0.036/s at 720p vs $0.076/s on OpenRouter, checked 2026-10-06).
 
 import type { CostMeter } from '../metaAds/cost';
 import { presignObject } from '../storage/objectStore';
-import type { ShortVideoModel } from '../../types/admin/shorts';
+import { DEFAULT_PHOTO_MODEL, SHORT_PHOTO_MODELS, type ShortPhotoModel, type ShortVideoModel } from '../../types/admin/shorts';
 import { downloadUrl } from './download';
 import { tregBytes, tregJson, withRetry } from './treg';
 
 type ImageResponse = { candidates?: { content?: { parts?: { inlineData?: { data?: string } }[] } }[] };
 
 const PHOTO_TIMEOUT_MS = 180_000;
-/** FLUX.2 Pro at 1K on reAPI: $0.028 a photo (reapi.ai/models/flux-2, checked 2026-10-08). */
-const FLUX_USD_MICROS = 28_000;
 const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Each reAPI photo model's request (1K, 9:16, references) and its price when reAPI reports none (reapi.ai, 2026-10-10). */
+const PHOTO_REQUESTS: Record<ShortPhotoModel, { body: (prompt: string, refs: string[]) => Record<string, unknown>; usdMicros: number }> = {
+  'flux-2': {
+    body: (prompt, refs) => ({ prompt, aspect_ratio: '9:16', resolution: '1K', content_filter: true, ...(refs.length ? { input_urls: refs.slice(0, 8) } : {}) }),
+    usdMicros: 28_000,
+  },
+  'nano-banana-2.1': {
+    body: (prompt, refs) => ({ prompt, aspect_ratio: '9:16', resolution: '1k', ...(refs.length ? { image_urls: refs.slice(0, 14) } : {}) }),
+    usdMicros: 30_000,
+  },
+  'gemini-2.5-flash-image-preview': {
+    body: (prompt, refs) => ({ prompt, size: '9:16', ...(refs.length ? { image_urls: refs.slice(0, 14) } : {}) }),
+    usdMicros: 14_400,
+  },
+};
+
 /**
- * FLUX.2 (Pro) on reAPI at 1K, 9:16, the user's pick for Shorts photos (2026-10-08; before: GPT Image 2.5, $0.023).
- * Async: submit, then poll the task until `output.image_urls` holds the photo.
+ * One photo on reAPI (FLUX.2 Pro was the user's pick on 2026-10-08; Nano Banana 2.1 and Gemini 2.5 Flash Image added
+ * 2026-10-10 as choices at the photo stop). Async: submit, then poll the task until `output.image_urls` holds the photo.
+ * `refs`: reference images (public HTTPS) that keep the person and product the same across a short's photos.
  */
-const fluxPhoto = async (prompt: string, meter: CostMeter): Promise<Buffer> => {
-  const body = { model: 'flux-2', prompt, aspect_ratio: '9:16', resolution: '1K', content_filter: true };
-  const task = await withRetry(() => reapi('/images/generations', body));
-  if (!task.id) throw new Error('FLUX.2 returned no task id');
+const reapiPhoto = async (model: ShortPhotoModel, prompt: string, meter: CostMeter, refs: string[] = []): Promise<Buffer> => {
+  const request = PHOTO_REQUESTS[model];
+  const label = SHORT_PHOTO_MODELS[model].label;
+  const task = await withRetry(() => reapi('/images/generations', { model, ...request.body(prompt, refs) }));
+  if (!task.id) throw new Error(`${label} returned no task id`);
   const deadline = Date.now() + PHOTO_TIMEOUT_MS;
   await sleepMs(5_000);
   while (Date.now() < deadline) {
@@ -33,21 +49,28 @@ const fluxPhoto = async (prompt: string, meter: CostMeter): Promise<Buffer> => {
     const status = (result?.status ?? '').toLowerCase();
     const url = result?.output?.image_urls?.[0];
     if (status === 'completed' && url) {
-      meter.add('Photo · FLUX.2 Pro (reAPI)', typeof result?.usage?.credits === 'number' ? result.usage.credits * 1_000 : FLUX_USD_MICROS);
+      meter.add(`Photo · ${label} (reAPI)`, typeof result?.usage?.credits === 'number' ? result.usage.credits * 1_000 : request.usdMicros);
       return withRetry(() => downloadUrl(url));
     }
-    if (FAILED.has(status)) throw new Error(`FLUX.2 failed: ${JSON.stringify(result?.error ?? status).slice(0, 300)}`);
+    if (FAILED.has(status)) throw new Error(`${label} failed: ${JSON.stringify(result?.error ?? status).slice(0, 300)}`);
     await sleepMs(3_000);
   }
-  throw new Error('FLUX.2 photo timed out');
+  throw new Error(`${label} photo timed out`);
 };
 
-/** A beat's photo: FLUX.2, or the Gemini photo when it fails (moderation, outage). */
-export const makePhoto = async (prompt: string, meter: CostMeter): Promise<Buffer> => {
+/**
+ * A beat's photo on the picked reAPI model, or the Gemini photo (treg) when it fails (moderation, outage). reAPI's
+ * content filter flags a harmless prompt now and then (seen 2026-10-09), so a flagged prompt gets one more try first.
+ * The treg fallback ignores `refs`.
+ */
+export const makePhoto = async (prompt: string, meter: CostMeter, refs: string[] = [], model: ShortPhotoModel = DEFAULT_PHOTO_MODEL): Promise<Buffer> => {
   try {
-    return await fluxPhoto(prompt, meter);
+    return await reapiPhoto(model, prompt, meter, refs).catch((err: unknown) => {
+      if (err instanceof Error && /flagged|content polic/i.test(err.message)) return reapiPhoto(model, prompt, meter, refs);
+      throw err;
+    });
   } catch (err) {
-    console.warn('[shorts] FLUX.2 photo failed, using Gemini:', err instanceof Error ? err.message.slice(0, 160) : err);
+    console.warn(`[shorts] ${model} photo failed, using Gemini (treg):`, err instanceof Error ? err.message.slice(0, 160) : err);
     return geminiPhoto(prompt, meter);
   }
 };

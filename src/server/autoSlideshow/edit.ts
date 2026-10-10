@@ -17,6 +17,7 @@ import { loadUsage } from './bank/build';
 import { assembleCombo, swapCombo } from './bank/pick';
 import { headsFor } from './heads';
 import { isTrack } from './music';
+import { brandLook } from './photoPlan';
 import { makePhotos } from './photos';
 import { renderSlide, type BoxLook, type PhotoCache } from './render';
 import { writeSlideshow } from './write';
@@ -97,7 +98,11 @@ export const newPhotoForSlide = async (runId: string, showId: string, index: num
   const prompt = `${base} Another moment of the same scene: different angle and framing.`;
   const meter = createMeter();
   try {
-    const all = await makePhotos(runId, [...photos.map((p) => p.prompt), prompt], photos, meter, { look: styleOf(show.run)?.photoStyle });
+    // Same reference images (brand cast member, product) as the photo it replaces, so the person and product stay.
+    const prior = photos[slide.photoIndex];
+    const refs = slide.photoRefs ?? prior?.refs;
+    const spec = { prompt, ...(refs?.length ? { refs, refNote: slide.photoRefNote ?? prior?.refNote } : {}) };
+    const all = await makePhotos(runId, [...photos.map((p) => p.prompt), spec], photos, meter, { look: brandLook(show.run.profile as unknown as BrandProfile | null) });
     // On bank runs the new photo belongs to this slide, not to the shared pool other slides fall back on.
     const made = show.bankHookId ? { ...all[all.length - 1]!, kind: 'slide' as const } : all[all.length - 1]!;
     all[all.length - 1] = made;

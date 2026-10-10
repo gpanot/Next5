@@ -6,7 +6,7 @@
 import type { CostMeter } from '../metaAds/cost';
 import { jevScore } from '../ai/jev';
 import type { ShortInputs, ShortScript, ShortVoiceOption, VoiceGender, VoicePicker } from '../../types/admin/shorts';
-import { creativeJson } from './llm';
+import { creativeJson, smartModel } from './llm';
 import { sampleLine, stripTags, VOICE } from './voice';
 
 /** Gemini TTS prebuilt voices with Google's descriptor (ai.google.dev/gemini-api/docs/speech-generation). */
@@ -91,7 +91,7 @@ const castGender = (raw: RawCast, gender: VoiceGender): ShortVoiceOption[] => {
 
 /** The 6 candidates and the delivery direction for this brand and script. */
 export const planVoices = async (inputs: ShortInputs, script: ShortScript, meter: CostMeter): Promise<{ direction: string; options: ShortVoiceOption[] }> => {
-  const raw = await creativeJson<RawCast>(SYSTEM, userPrompt(inputs, script), meter, 'Voice casting').catch(() => ({}) as RawCast);
+  const raw = await creativeJson<RawCast>(SYSTEM, userPrompt(inputs, script), meter, 'Voice casting', smartModel()).catch(() => ({}) as RawCast);
   const direction = raw.direction?.replace(/\s+/g, ' ').trim() || `A friendly, confident narrator speaking to ${inputs.audience || 'the viewer'}: clear, upbeat, natural.`;
   return { direction, options: [...castGender(raw, 'female'), ...castGender(raw, 'male')] };
 };
@@ -146,3 +146,12 @@ export const sampleVoices = (
   );
 
 export const isKnownVoice = (name: string): boolean => name in GEMINI_VOICES;
+
+/** Every prebuilt voice as "Name (gender, Style)", for other casting prompts (Brand Cast intro videos). */
+export const VOICE_CATALOG = catalog;
+
+/** The voice's gender, or null when it is not one of Gemini's prebuilt voices. */
+export const voiceGender = (name: string): VoiceGender | null => GEMINI_VOICES[name]?.gender ?? null;
+
+/** The default voice of one gender (when a casting answer gives no valid voice). */
+export const defaultVoice = (gender: VoiceGender): string => DEFAULTS[gender][0]!;

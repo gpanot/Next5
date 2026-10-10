@@ -19,10 +19,15 @@ import { appBaseUrl } from '../social/links';
 import { chargeSlideshow } from '../slideshowCredits/charge';
 import { profileForSite } from '../studio/siteProfile';
 import { putObject } from '../storage/objectStore';
+import type { VisualBible } from '../../types/admin/visualBible';
+import { castForShows } from '../brandCast/cast';
+import { brandPhotoFacts, productLooks } from '../brandContent/productPhotos';
+import { ensureVisualBible } from '../shorts/visualBible';
 import { bankForSite, loadUsage } from './bank/build';
 import { assembleCombo, pickCombos } from './bank/pick';
 import { headsFor, withDetectedHeads, type HeadsCache } from './heads';
 import { matchTracks } from './music';
+import { brandLook, planSlidePhotos } from './photoPlan';
 import { makePhotos } from './photos';
 import { renderSlide, slidePhotoIndexes, type PhotoCache } from './render';
 import { ownPhotoEntries, photosPending, withOwnPhotos } from './slidePhotos';
@@ -88,7 +93,9 @@ const bankModelName = (goal: ContentGoal) => `Bank · ${GOAL_LABELS[goal]}`;
 const planStep: StepFn = async (runId, meter, { append }) => {
   const run = await loadRun(runId);
   const [profile, levers] = [checkpoint<BrandProfile>(run.profile, 1), checkpoint<BrandLever[]>(run.levers, 2)];
-  const bank = await bankForSite(run.url, profile, levers, meter);
+  const workspaceId = await contentWorkspaceId(run);
+  const looks = workspaceId ? productLooks(await brandPhotoFacts(workspaceId)) : [];
+  const bank = await bankForSite(run.url, profile, levers, meter, looks);
   const before = append > 0 ? checkpoint<AutoPlan>(run.plan, 3) : null;
   // A full re-plan replaces this run's slideshows, so they do not count as used.
   const usage = await loadUsage(run.url, append > 0 ? undefined : runId);
@@ -117,9 +124,39 @@ const loadBank = async (plan: AutoPlan): Promise<SlideshowBankContent> => {
   return row.content as unknown as SlideshowBankContent;
 };
 
+/** The brand's Visual Bible for this run, built for the workspace when it has none yet and copied onto the run's profile
+ *  so step 5 and later edits read the same look. Null when it cannot be made. */
+const runBible = async (runId: string, profile: BrandProfile | null, workspaceId: string | null, meter: CostMeter): Promise<VisualBible | null> => {
+  if (!profile || profile.visualBible) return profile?.visualBible ?? null;
+  const bible = workspaceId ? await ensureVisualBible(workspaceId, meter).catch(() => null) : null;
+  if (bible) await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { profile: json({ ...profile, visualBible: bible }) } });
+  return bible;
+};
+
+type Assembled = ReturnType<typeof assembleCombo>;
+
+/** Each assembled slideshow's slides with their photo plan (photoPlan.ts): a brand cast member per slideshow, taking
+ *  turns, the Visual Bible and the brand's own photos. Slideshows that failed to assemble stay as they are. */
+const planPhotos = async (runId: string, shows: (Assembled | Error)[], picks: SlideshowPick[], meter: CostMeter): Promise<(Assembled | Error)[]> => {
+  const run = await loadRun(runId);
+  const profile = run.profile as unknown as BrandProfile | null;
+  const workspaceId = await contentWorkspaceId(run);
+  if (!profile || !workspaceId) return shows;
+  const bible = await runBible(runId, profile, workspaceId, meter);
+  const ok = shows.flatMap((s, i) => (s instanceof Error ? [] : [i]));
+  const [photos, cast] = await Promise.all([brandPhotoFacts(workspaceId), castForShows(workspaceId, ok.length, meter)]);
+  const planned = [...shows];
+  await runPool(ok.map((i, k) => ({ i, k })), 4, async ({ i, k }) => {
+    const show = shows[i] as Assembled;
+    const slides = await planSlidePhotos({ slides: show.slides, goal: picks[i]?.goal ?? null, profile, bible, cast: cast[k] ?? null, photos }, meter);
+    planned[i] = { ...show, slides };
+  });
+  return planned;
+};
+
 /** Replaces the run's slideshows with the planned bank combos (on "Get more", adds only the new picks after the existing
- *  slideshows). No model call: the text comes from the bank. */
-const writeStep: StepFn = async (runId, _meter, { append }) => {
+ *  slideshows). The text comes from the bank; one call per slideshow plans its photos. */
+const writeStep: StepFn = async (runId, meter, { append }) => {
   const run = await loadRun(runId);
   const plan = checkpoint<AutoPlan>(run.plan, 3);
   const bank = await loadBank(plan);
@@ -129,7 +166,7 @@ const writeStep: StepFn = async (runId, _meter, { append }) => {
   const start = append > 0 ? (last?._max.position ?? -1) + 1 : 0;
   if (append === 0) await prisma.autoSlideshow.deleteMany({ where: { runId } });
   const picks = append > 0 ? plan.picks.slice(-append) : plan.picks;
-  const shows = picks.map((pick) => {
+  const assembled = picks.map((pick) => {
     try {
       if (!pick.bank) throw new Error('Planned before the Slideshow Bank: re-run from step 3');
       return assembleCombo(bank, pick.bank);
@@ -137,6 +174,7 @@ const writeStep: StepFn = async (runId, _meter, { append }) => {
       return err instanceof Error ? err : new Error(String(err));
     }
   });
+  const shows = await planPhotos(runId, assembled, picks, meter);
   // Same music pick as Blitz cards: Jev fit, not what the workspace used lately, no repeat in the run; changeable in the editor.
   const tracks = await matchTracks(
     shows.map((show, i) => (show instanceof Error ? { goal: null, slides: [] } : { goal: picks[i]!.goal ?? null, slides: show.slides })),
@@ -176,8 +214,8 @@ const photoStep: StepFn = async (runId, meter, { continued }) => {
   const shows = rows.map((r) => ({ id: r.id, status: r.status, slides: r.slides as unknown as AutoSlide[], bank: r.bankHookId !== null }));
   const entries = ownPhotoEntries(pool, existing, shows);
   const deadline = process.env.VERCEL === '1' ? Date.now() + PHOTO_BUDGET_MS : undefined;
-  const look = (run.profile as unknown as BrandProfile | null)?.slideshowStyle?.photoStyle;
-  const made = await makePhotos(runId, [...plan.photoPrompts, ...entries.map((e) => e.prompt)], existing, meter, { deadline, skipFailed: continued, look });
+  const look = brandLook(run.profile as unknown as BrandProfile | null);
+  const made = await makePhotos(runId, [...plan.photoPrompts, ...entries], existing, meter, { deadline, skipFailed: continued, look });
   const photos = made.map((p, i) => (i >= pool ? { ...p, ...entries[i - pool] } : p));
   const poolMade = photos.slice(0, pool).filter((p) => p.imageKey).length;
   if (pool > 0 && poolMade < 3) throw new Error(`Only ${poolMade} of ${pool} photos were made: ${photos.find((p) => p.error)?.error ?? 'unknown error'}`);

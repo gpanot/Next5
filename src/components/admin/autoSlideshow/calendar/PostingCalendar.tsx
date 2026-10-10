@@ -6,7 +6,7 @@ import type { AutoRunDto } from '../../../../types/admin/autoSlideshow';
 import { isTerminalAutoStatus, MAX_SLIDESHOWS } from '../../../../types/admin/autoSlideshow';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
-import { ApproveVideoSheet } from '../../../labs/blitzLab/schedule/ApproveVideoSheet';
+import { VideoSheet } from '../../../labs/blitzLab/schedule/VideoSheet';
 import { LabClientProvider } from '../../../labs/LabClientProvider';
 import { createWorkspaceLabClient } from '../../../labs/labClient';
 import { IdeasPanel } from '../ideas/IdeasPanel';
@@ -187,7 +187,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
       )}
       {openBlitz && labClient && (
         <LabClientProvider client={labClient}>
-          <ApproveVideoSheet item={openBlitz} onClose={() => setOpenBlitz(null)} onChanged={reloadBlitz} editHref={`/slideshow/${run.workspaceId}/content?editPost=${openBlitz.id}`} />
+          <VideoSheet item={openBlitz} onClose={() => setOpenBlitz(null)} onChanged={reloadBlitz} editHref={`/slideshow/${run.workspaceId}/content?editPost=${openBlitz.id}`} />
         </LabClientProvider>
       )}
       {approving && <ApproveSheet token={token} run={run} items={approve} videos={plannedVideos} onVideosChanged={reloadBlitz} posting={posting} onClose={() => { setApproving(false); onRunChanged(); }} />}

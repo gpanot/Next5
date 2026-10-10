@@ -1,6 +1,8 @@
 // server-only — never import from a 'use client' file.
 // Describes a Your Brand Content photo with a vision model (Gemini Flash Lite through OpenRouter), in the background
 // after the upload answers. The description and tags are stored on the user_uploads row, to pick photos later.
+// Version 2 (2026-10-10) adds what the slideshow photo plan needs (photoPlan.ts): what kind of photo it is, the exact
+// product, and whether it can go on a slide as it is or only serve as a reference for the product's look.
 
 import type { Prisma } from '@prisma/client';
 import sharp from 'sharp';
@@ -9,6 +11,9 @@ import { openRouterChat, parseJsonObject } from '../ai/openrouter';
 
 /** Cheap and fast, sees photos well; same model the asset descriptor falls back to. */
 export const PHOTO_DESCRIBE_MODEL = 'google/gemini-3.1-flash-lite';
+
+/** Bump when PROMPT changes; scripts/describe-brand-photos.ts --all re-describes older photos. */
+export const DESCRIBE_VERSION = 2;
 
 /** Longest side sent to the model: enough to read the scene, fewer image tokens than the stored 2048 px. */
 const MODEL_SIDE = 1024;
@@ -26,9 +31,19 @@ const PROMPT = [
   '  "shows_product": true | false,',
   '  "mood": "one or two words",',
   '  "text_in_photo": "any readable text in the photo, or empty",',
-  '  "text_safe_zone": "top" | "bottom" | "center" | "none"',
+  '  "text_safe_zone": "top" | "bottom" | "center" | "none",',
+  '  "photo_type": "product_only" | "product_on_person" | "product_in_use" | "screen_ui" | "lifestyle" | "place" | "person" | "team" | "other",',
+  '  "product_name": "the exact product shown, 4-12 words: kind, color, material, model (e.g. \'red high-waisted leggings and matching sports bra\'), or empty",',
+  '  "looks_like_ad": true | false,',
+  '  "usable_as_background": true | false,',
+  '  "usable_as_reference": true | false',
   '}',
   '"text_safe_zone": the calmest area where slide text could sit without covering faces or the main subject.',
+  '"photo_type": product_only = the product alone (packshot, flat lay); product_on_person = worn or held, posed;',
+  'product_in_use = someone really using it; screen_ui = an app or website screen.',
+  '"looks_like_ad": true for a polished advert: studio packshot, price, promo text, logo overlay, banner layout.',
+  '"usable_as_background": true when it could be a TikTok slide photo as it is: sharp, real-looking, little or no text.',
+  '"usable_as_reference": true when one product is clearly and fully visible, so an image model could copy its exact look.',
 ].join('\n');
 
 type Described = { description: string; tags: string[]; descriptor: Record<string, unknown> };
@@ -61,7 +76,7 @@ export async function describeBrandPhoto(uploadId: string, jpeg: Buffer): Promis
       where: { id: uploadId },
       data: {
         describeStatus: 'done', description: result.description, tags: result.tags,
-        descriptor: { ...result.descriptor, model: PHOTO_DESCRIBE_MODEL } as Prisma.InputJsonValue, describeError: null, describedAt: new Date(),
+        descriptor: { ...result.descriptor, model: PHOTO_DESCRIBE_MODEL, version: DESCRIBE_VERSION } as Prisma.InputJsonValue, describeError: null, describedAt: new Date(),
       },
     });
   } catch (err) {

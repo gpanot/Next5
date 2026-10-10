@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import type { BlitzScheduleDto, BlitzScheduleStatus } from '../../../../types/admin/blitzSchedule';
 import { CoverMedia } from '../../../labs/addToCalendar/CoverMedia';
+import { VideoSheet } from '../../../labs/blitzLab/schedule/VideoSheet';
+import { LabClientProvider } from '../../../labs/LabClientProvider';
+import { createWorkspaceLabClient } from '../../../labs/labClient';
 import { useBlitzOnCalendar } from '../calendar/useBlitzOnCalendar';
 
 const STATUS: Record<Exclude<BlitzScheduleStatus, 'canceled'>, { label: string; tone: string }> = {
@@ -25,24 +29,27 @@ function VideosSkeleton() {
   );
 }
 
-/** One Blitz video: its cover, first line, day and status. Tap: opens it in the Blitz editor. */
-function VideoTile({ item, href }: { item: BlitzScheduleDto; href: string }) {
+/** One Blitz video: its cover, first line, day and status. Tap: opens its sheet (preview, approve, edit, change day). */
+function VideoTile({ item, onOpen }: { item: BlitzScheduleDto; onOpen: () => void }) {
   const status = STATUS[item.status as keyof typeof STATUS];
   return (
-    <Link href={href} className="group flex min-w-0 flex-col gap-2">
+    <button type="button" onClick={onOpen} aria-label={`${item.title}, ${day(item.scheduledAt)}`} className="group flex min-w-0 flex-col gap-2 text-left">
       <span className="relative block aspect-[9/16] overflow-hidden rounded-xl bg-app-sunken shadow-sm transition group-hover:-translate-y-0.5">
         {item.coverUrl && <CoverMedia src={item.coverUrl} video={item.coverIsVideo} alt={item.title} />}
         {status && <span className={`absolute top-2 left-2 rounded-full px-2 py-0.5 text-xs font-medium ${status.tone}`}>{status.label}</span>}
       </span>
       <span className="line-clamp-2 text-sm leading-snug text-app-ink">{item.title}</span>
       <span className="text-xs text-app-muted">{day(item.scheduledAt)}</span>
-    </Link>
+    </button>
   );
 }
 
 /** Library › Blitz: the workspace's Blitz videos, soonest day last (newest plans first). */
 export function BlitzVideos({ token, workspaceId }: { token: string; workspaceId: string }) {
-  const { items, loaded } = useBlitzOnCalendar(token, workspaceId);
+  const { items, loaded, reload } = useBlitzOnCalendar(token, workspaceId);
+  const client = useMemo(() => createWorkspaceLabClient(token, workspaceId), [token, workspaceId]);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const open = items.find((i) => i.id === openId) ?? null;
   if (!loaded) return <VideosSkeleton />;
   const shown = items.filter((i) => i.status !== 'canceled').sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt));
   if (shown.length === 0) {
@@ -57,8 +64,15 @@ export function BlitzVideos({ token, workspaceId }: { token: string; workspaceId
     );
   }
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5">
-      {shown.map((item) => <VideoTile key={item.id} item={item} href={`/slideshow/${workspaceId}/content?editPost=${item.id}`} />)}
-    </div>
+    <>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-3 lg:grid-cols-5">
+        {shown.map((item) => <VideoTile key={item.id} item={item} onOpen={() => setOpenId(item.id)} />)}
+      </div>
+      {open && (
+        <LabClientProvider client={client}>
+          <VideoSheet key={open.id} item={open} onClose={() => setOpenId(null)} onChanged={reload} editHref={`/slideshow/${workspaceId}/content?editPost=${open.id}`} />
+        </LabClientProvider>
+      )}
+    </>
   );
 }

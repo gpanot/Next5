@@ -8,6 +8,7 @@
 
 import { openRouterChat, parseJsonObject } from '../ai/openrouter';
 import { BLITZ_AUTOFIT_MODEL, type Rect } from './blitzAutoFit';
+import { hedged } from '../ai/hedge';
 import { detectBackgroundRegions, type BackgroundRegions } from './blitzAutoFitGeometry';
 
 const H = 1920;
@@ -25,7 +26,13 @@ export type CaptionFitInput = {
   layout: { caption: Rect; business: Rect | null };
 };
 
-export type CaptionFitResult = { captionPositionY: number; reason: string };
+export type CaptionFitResult = {
+  captionPositionY: number;
+  reason: string;
+  /** The heads and subject found on the picture (callers may keep them: they do not depend on the caption). Null when
+   *  detection failed (not "no heads"). */
+  regions: BackgroundRegions | null;
+};
 
 const SYSTEM_PROMPT = [
   'You are a TikTok / Reels video editor. You place the caption on one 9:16 slide (canvas 1080×1920 px, origin top-left).',
@@ -44,11 +51,16 @@ const SYSTEM_PROMPT = [
 
 const fmt = (r: Rect) => `x ${Math.round(r.x)}, y ${Math.round(r.y)}, w ${Math.round(r.w)}, h ${Math.round(r.h)}`;
 
-function userText(input: CaptionFitInput, bg: BackgroundRegions): string {
+/** `bg` null: the heads are being found at the same time (the guard applies them after), so the model looks itself. */
+function userText(input: CaptionFitInput, bg: BackgroundRegions | null): string {
   const { caption, business } = input.layout;
   return [
-    bg.faces.length ? `Heads (do not cover): ${bg.faces.map(fmt).join(' ; ')}.` : 'No heads found.',
-    bg.subject ? `Main subject (keep mostly visible): ${fmt(bg.subject)}.` : 'No clear main subject.',
+    ...(bg
+      ? [
+        bg.faces.length ? `Heads (do not cover): ${bg.faces.map(fmt).join(' ; ')}.` : 'No heads found.',
+        bg.subject ? `Main subject (keep mostly visible): ${fmt(bg.subject)}.` : 'No clear main subject.',
+      ]
+      : ['Heads and main subject: find them in image 1 yourself; never cover a face.']),
     `Caption text: "${input.captionText}"`,
     `Caption box now: ${fmt(caption)}. Its height stays ${Math.round(caption.h)} px.`,
     business ? `Business pill (fixed): ${fmt(business)}.` : 'No business pill.',
@@ -76,7 +88,7 @@ export function clearOfHeads(wanted: number, caption: Rect, faces: Rect[]): { bo
   return { bottom: best.bottom, moved: best.bottom !== start };
 }
 
-async function layoutCall(input: CaptionFitInput, bg: BackgroundRegions): Promise<Record<string, unknown> | null> {
+async function layoutCall(input: CaptionFitInput, bg: BackgroundRegions | null): Promise<Record<string, unknown> | null> {
   const text = await openRouterChat(
     [
       { role: 'system', content: SYSTEM_PROMPT },
@@ -96,23 +108,53 @@ async function layoutCall(input: CaptionFitInput, bg: BackgroundRegions): Promis
   return parseJsonObject(text);
 }
 
-/** One caption Auto Fit run. Null when the model fails or returns no usable height. */
-export async function autoFitCaption(input: CaptionFitInput): Promise<CaptionFitResult | null> {
-  // One detection attempt: without heads the caption is placed by the layout call alone, so say so in the logs.
-  const bg = await detectBackgroundRegions(input.backgroundJpeg).catch((err: unknown): BackgroundRegions => {
-    console.warn('[caption-fit] head detection failed, placing without the head guard:', err instanceof Error ? err.message.split('\n')[0] : err);
-    return { faces: [], subject: null };
-  });
-  const raw = await layoutCall(input, bg);
+const NO_REGIONS: BackgroundRegions = { faces: [], subject: null };
+/** Parallel runs (decks): a model call with no answer after this is sent again (hedge.ts). */
+const HEDGE_MS = 6_000;
+
+const detect = (jpeg: string) => detectBackgroundRegions(jpeg).catch((err: unknown): null => {
+  console.warn('[caption-fit] head detection failed, placing without the head guard:', err instanceof Error ? err.message.split('\n')[0] : err);
+  return null;
+});
+
+/** The caption bottom the layout call returned, or null. */
+const heightOf = (raw: Record<string, unknown> | null): number | null => {
   const bottomY = (raw?.caption as Record<string, unknown> | undefined)?.bottomY;
-  if (typeof bottomY !== 'number' || !Number.isFinite(bottomY)) {
+  return typeof bottomY === 'number' && Number.isFinite(bottomY) ? bottomY : null;
+};
+
+/** Layout reply with a usable height, else null (so a hedged call tries again). */
+const usableLayout = async (input: CaptionFitInput, bg: BackgroundRegions | null) => {
+  const raw = await layoutCall(input, bg);
+  return heightOf(raw) === null ? null : raw;
+};
+
+/**
+ * One caption Auto Fit run. Null when the model fails or returns no usable height. One detection attempt (none when
+ * the caller knows the regions); without heads the caption is placed by the layout call alone. `parallel` (decks):
+ * detection and layout run at once, each re-sent when slow (the layout call looks for heads itself, the head guard
+ * still applies the detected ones after). Otherwise the layout call is told where the heads are.
+ */
+export async function autoFitCaption(input: CaptionFitInput, known?: BackgroundRegions, opts: { parallel?: boolean } = {}): Promise<CaptionFitResult | null> {
+  const [bg, raw] = opts.parallel
+    ? await Promise.all([
+      known ?? hedged(() => detectBackgroundRegions(input.backgroundJpeg), HEDGE_MS),
+      hedged(() => usableLayout(input, known ?? null), HEDGE_MS),
+    ])
+    : await (async () => {
+      const regions = known ?? await detect(input.backgroundJpeg);
+      return [regions, await layoutCall(input, regions ?? NO_REGIONS)] as const;
+    })();
+  const bottomY = heightOf(raw);
+  if (bottomY === null) {
     console.warn(`[caption-fit] layout call gave no caption height for "${input.captionText.slice(0, 60)}"`);
     return null;
   }
-  const { bottom, moved } = clearOfHeads(bottomY, input.layout.caption, bg.faces);
+  const { bottom, moved } = clearOfHeads(bottomY, input.layout.caption, bg?.faces ?? []);
   const reason = typeof raw?.reason === 'string' ? raw.reason.trim().slice(0, 240) : '';
   return {
     captionPositionY: Number((bottom / H).toFixed(4)),
     reason: moved ? `${reason} Moved the caption so it stays off faces.`.trim() : reason,
+    regions: bg,
   };
 }

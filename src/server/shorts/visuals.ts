@@ -14,9 +14,9 @@ import type { CostMeter } from '../metaAds/cost';
 import type { MotionHint, ShortBeat, ShortInputs } from '../../types/admin/shorts';
 import { planCast, type BeatCast } from './cast';
 import { VISUAL_RULES } from './guidelines';
-import { creativeJson } from './llm';
+import { creativeJson, smartModel } from './llm';
 
-const MOTIONS: MotionHint[] = ['static', 'slow_zoom_in', 'slow_zoom_out', 'pan_left', 'pan_right', 'ken_burns'];
+export const MOTIONS: MotionHint[] = ['static', 'slow_zoom_in', 'slow_zoom_out', 'pan_left', 'pan_right', 'ken_burns'];
 
 /** One framing per beat, in turn, so consecutive shots never look alike. */
 const SHOT_TYPES = [
@@ -168,7 +168,7 @@ export const photoPrompt = (beat: ShortBeat, inputs: ShortInputs): string =>
   [`${(beat.imagePrompt ?? beat.text).replace(/\.$/, '')}.`, PHOTO_STYLE, inputs.photoStyle && `Brand colors and mood only (the setting above stays): ${inputs.photoStyle}`].filter(Boolean).join(' ');
 
 const planBeat = async (beat: ShortBeat, narration: string, inputs: ShortInputs, cast: BeatCast | null, meter: CostMeter): Promise<ShortBeat> => {
-  const raw = await creativeJson<RawVisual>(system(beat, inputs, cast), user(beat, narration), meter, 'Shot plan');
+  const raw = await creativeJson<RawVisual>(system(beat, inputs, cast), user(beat, narration), meter, 'Shot plan', smartModel());
   const rawPrompt = (raw.image_prompt ?? beat.text).trim();
   const motion = MOTIONS.includes(raw.motion_hint as MotionHint) ? (raw.motion_hint as MotionHint) : beat.role === 'payoff' ? 'static' : 'slow_zoom_in';
   const action = raw.motion_action?.trim().replace(/\b(very )?(slowly|gently|gracefully|in slow motion|slow-motion)\b/gi, '').replace(/\s{2,}/g, ' ');

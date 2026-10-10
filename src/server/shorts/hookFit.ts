@@ -97,7 +97,10 @@ export const fitHook = async (photo: Buffer, hook: string, previewFor: (style: H
       layout: { caption, business: null },
     });
     if (!fit) return { style, styleReason, topY: null, reason: '' };
-    return { style, styleReason, topY: Math.max(0, Math.round(fit.captionPositionY * H - caption.h)), reason: fit.reason };
+    // The hook box must end above the caption words (bottom margin 26% of the frame + one 170 px word line).
+    const lowestTop = Math.max(0, H - Math.round(0.26 * H) - 200 - caption.h);
+    const topY = Math.min(lowestTop, Math.max(0, Math.round(fit.captionPositionY * H - caption.h)));
+    return { style, styleReason, topY, reason: fit.reason };
   } catch (err) {
     console.warn('[shorts] hook Auto Fit failed; keeping the default position:', err instanceof Error ? err.message : err);
     return { style, styleReason, topY: null, reason: '' };

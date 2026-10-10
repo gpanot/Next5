@@ -2,6 +2,8 @@
 
 import { Shuffle, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { HookStyleButton } from './HookStyleButton';
+import type { HookStyleState } from './useHookStyle';
 
 const round = 'flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-ink shadow-sm transition hover:bg-zinc-50 active:scale-90 disabled:opacity-30 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800';
 
@@ -16,13 +18,16 @@ type Props = {
   trackLabel: string | null;
   /** Drawn on the card instead of beside it (phones only). */
   overlay?: boolean;
+  /** Blitz ideas: "Hook" above the sound button, to pick the hook's look. */
+  hook?: HookStyleState;
 };
 
-/** Beside the card (small, so the card stays centered), as in the Blitz deck: sound on/off, and another track at random. */
-export function DeckSide({ soundOn, onToggleSound, onShuffle, trackLabel, overlay = false }: Props) {
+/** Beside the card (small, so the card stays centered), as in the Blitz deck: the hook's look, sound on/off, and another track at random. */
+export function DeckSide({ soundOn, onToggleSound, onShuffle, trackLabel, overlay = false, hook }: Props) {
   const cls = overlay ? `${round} ${ON_CARD}` : round;
   return (
     <div className="flex flex-col gap-1.5">
+      {hook && <HookStyleButton hook={hook} className={cls} />}
       <button type="button" onClick={onToggleSound} aria-pressed={soundOn} aria-label={soundOn ? 'Mute sound' : 'Turn sound on'} title={soundOn ? 'Sound on' : 'Sound off'} className={cls}>
         {soundOn ? <Volume2 aria-hidden className="h-4 w-4" /> : <VolumeX aria-hidden className="h-4 w-4" />}
       </button>

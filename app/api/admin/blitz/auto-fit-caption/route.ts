@@ -46,5 +46,5 @@ export const POST = labRoute(async (req: NextRequest) => {
     layout: { caption: l.caption, business: isRect(l.business) ? l.business : null },
   });
   if (!result) return NextResponse.json({ error: 'Auto Fit failed — try again' }, { status: 502 });
-  return NextResponse.json(result);
+  return NextResponse.json({ captionPositionY: result.captionPositionY, reason: result.reason });
 });

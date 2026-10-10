@@ -11,7 +11,7 @@ type GenerateBody = { prompt?: string };
  * POST /api/admin/blitz/generate-background
  * Body: { prompt: string }
  *
- * Generates a 9:16 background image via reAPI FLUX.2 (flux-2, 2K),
+ * Generates a 9:16 background image via reAPI Nano Banana 2.1 (nano-banana-2.1, 1K),
  * uploads the result to R2 as a BACKGROUND asset, and returns the asset DTO.
  *
  * The image is tagged as AI-generated via the name field ("… [AI]") for future

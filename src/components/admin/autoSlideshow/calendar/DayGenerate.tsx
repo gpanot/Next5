@@ -18,7 +18,7 @@ export function DayGenerate({ writing, onGenerate }: Props) {
       <div className="flex flex-col items-center gap-3 py-1" aria-busy="true" aria-label="Writing new ideas">
         <div className="aspect-[9/16] w-[min(calc(100vw-11.5rem),calc((100dvh-18rem)*0.5625),300px)] animate-pulse rounded-[26px] bg-zinc-100 lg:w-[min(calc((100dvh-22rem)*0.5625),260px)] dark:bg-zinc-800" />
         <p className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
-          <span aria-hidden className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" /> Writing new ideas… 1 to 3 minutes.
+          <span aria-hidden className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" /> Writing new ideas… about 90 seconds.
         </p>
       </div>
     );

@@ -145,7 +145,8 @@ const useLoad = (client: LabClient | null, runId: string, autoGenerate: boolean,
   return { generate };
 };
 
-/** Re-reads the list while a slideshow idea or a batch is being made, so they join the deck once ready. */
+/** Re-reads the list while a slideshow idea or a batch is being made, so they join the deck once ready, and while a
+ *  batch's cards are being finished (their AI images and caption heights land). */
 const usePoll = (client: LabClient | null, busy: boolean, request: ListRequest) => {
   useEffect(() => {
     if (!client || !busy) return;
@@ -225,7 +226,8 @@ export function useIdeas(client: LabClient | null, runId: string, autoGenerate: 
     const blitz = everyList.deck.filter((i) => i.format === 'blitz').length;
     return { all: everyList.deck.length, blitz, slideshow: everyList.deck.length - blitz };
   }, [everyList.deck]);
-  usePoll(client, everyList.making.length > 0 || Boolean(state.batchSince), request);
+  const finishing = everyList.deck.some((i) => i.card?.finishing);
+  usePoll(client, everyList.making.length > 0 || Boolean(state.batchSince) || finishing, request);
   const current = lists.deck.find((i) => i.id === actions.focusId) ?? lists.deck[0] ?? null;
   const reviewSkipped = useCallback(() => lists.skipped.forEach((i) => void actions.patch(i.id, { status: 'proposed' })), [lists.skipped, actions]);
   /** Made into posts: off the deck and the day lists at once (they become calendar posts). */

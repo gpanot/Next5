@@ -1,26 +1,31 @@
 // server-only — never import from a 'use client' file.
 //
 // AI image fallback for story shots. When the library has no clip in the audience's industry
-// that matches the shot well enough, the engine writes an image prompt, generates a 9:16 image,
-// and saves it as a normal library asset: categories on the descriptor and the tags, a
-// description, slot scores for its role, and an embedding. The next deck for the same
-// industry finds it by search — the library grows where it was thin.
+// that matches the shot well enough, a 9:16 image is made from the shot's photo prompt (written
+// with its story and the brand's look: shotPhotos.ts) and saved as a normal library asset:
+// categories on the descriptor and the tags, a description, slot scores for its role, and an
+// embedding. The next deck for the same industry finds it by search — the library grows where it was thin.
 
 import { randomUUID } from 'node:crypto';
 import { prisma } from '../../../lib/db';
 import { uploadToR2 } from '../../../lib/r2';
-import { chatJson } from '../../ai/openai';
 import { VERTICAL_IMAGE_MODEL, generateVerticalImage } from '../../ai/imageGeneration';
+import { photoPrompt } from '../../autoSlideshow/photos';
 import { blitzKeys } from '../../admin/blitzStore';
 import { embedDescriptorRows } from '../../labs/assetDescriptor/embedding';
 import { categoryLabel } from './categories';
 import type { LibraryAsset } from './library';
+import { writeShotPhotos, type PhotoBrand, type PhotoStory, type ShotPhoto } from './shotPhotos';
 
 export type ImageNeed = {
   /** Stable key back to the shot, e.g. "electricians:pain". */
   key: string;
   role: 'pain' | 'oldWay' | 'mechanism' | 'proof' | 'inaction';
   text: string;
+  /** The shot's photo prompt, written with its story (bank stories); absent = written here. */
+  photo?: ShotPhoto;
+  /** The story the shot belongs to, so prompts written here share its character and place. */
+  story?: { id: string; lines: string; label: string; intent?: string };
 };
 
 type ImagePlan = { key: string; prompt: string; description: string };
@@ -34,43 +39,25 @@ const SLOTS: Record<ImageNeed['role'], { hook: number; problem: number; proof: n
   inaction:  { hook: 0.2, problem: 0.75, proof: 0.1, payoff: 0.1, cta: 0.1 },
 };
 
-const PROMPT_WRITER = `You write image prompts for 9:16 vertical backgrounds of a short social video.
-Each image sits behind one line of on-screen text and must SHOW that line's moment for the audience.
-
-Rules for every prompt:
-- Realistic candid phone photo, natural light, real workplace of the audience. Not glossy stock.
-- One clear subject and action. Show the audience's world (tools, place, clothes) so it is obvious who it is for.
-- People: ordinary adults, not celebrities, faces fine but not the focus.
-- No text, letters, logos, screens with readable words, or watermarks.
-- Keep the top third calm and uncluttered: captions go there.
-- Max 60 words.
-
-Also write "description": one plain sentence of what the image shows (for search).
-Return JSON only, one item per input line, "key" copied exactly (s0, s1…):
-{ "items": [ { "key": "s0", "prompt": "...", "description": "..." } ] }`;
-
-/** One LLM call writes the prompts for every shot that needs an image. */
-async function planImages(audience: string, categories: string[], needs: ImageNeed[]): Promise<ImagePlan[]> {
-  // Short ids ("s0") survive the round trip; free-text keys came back reworded.
-  const result = await chatJson<{ items?: Array<{ key?: string; prompt?: string; description?: string }> }>(
-    [
-      { role: 'system', content: PROMPT_WRITER },
-      {
-        role: 'user',
-        content: `Audience: ${audience} (industries: ${categories.map(categoryLabel).join(', ') || 'general'})\n`
-          + needs.map((n, i) => `s${i} | ${n.role} shot | on-screen line: "${n.text}"`).join('\n'),
-      },
-    ],
-    { maxTokens: 1_500, temperature: 0.5 },
-  );
-  return (result?.items ?? []).flatMap((p) => {
-    const need = needs[Number(p.key?.replace(/^s/, ''))];
-    return need && p.prompt ? [{ key: need.key, prompt: p.prompt, description: p.description || need.text }] : [];
+/** The needs' prompts: their own when written with the story, else one call for the rest, grouped by story. */
+async function planImages(audience: string, categories: string[], needs: ImageNeed[], brand: PhotoBrand): Promise<ImagePlan[]> {
+  const missing = needs.filter((n) => !n.photo);
+  const stories = new Map<string, PhotoStory>();
+  missing.forEach((n) => {
+    const id = n.story?.id ?? n.key;
+    const story = stories.get(id) ?? { id, lines: n.story?.lines ?? n.text, shots: [] };
+    story.shots.push({ id: n.key, role: n.role, label: n.story?.label ?? n.role, text: n.text, intent: n.story?.intent });
+    stories.set(id, story);
+  });
+  const written = missing.length ? await writeShotPhotos(brand, audience, categories, [...stories.values()]) : new Map<string, ShotPhoto>();
+  return needs.flatMap((n) => {
+    const photo = n.photo ?? written.get(`${n.story?.id ?? n.key}:${n.key}`);
+    return photo ? [{ key: n.key, prompt: photoPrompt(photo.prompt, brand.look ?? undefined), description: photo.description }] : [];
   });
 }
 
 /** Generates, stores and describes one image. Returns it as a library asset. */
-async function createAsset(plan: ImagePlan, need: ImageNeed, categories: string[], workspaceId: string | null): Promise<LibraryAsset> {
+async function createAsset(plan: ImagePlan, need: ImageNeed, audience: string, categories: string[], workspaceId: string | null): Promise<LibraryAsset> {
   const image = await generateVerticalImage(plan.prompt);
   const id = randomUUID().replace(/-/g, '');
   const r2Key = blitzKeys.asset(id, image.ext);
@@ -99,7 +86,9 @@ async function createAsset(plan: ImagePlan, need: ImageNeed, categories: string[
       status: 'done',
       model: VERTICAL_IMAGE_MODEL,
       descriptor,
-      retrievalText: `${plan.description} AI image for ${need.role} shots.`,
+      // The line it shows and its audience too: the next deck searches with "audience: line", and the bare
+      // description alone often fell under the match threshold, so the same moment was drawn again.
+      retrievalText: `${plan.description} Shows: ${need.text} For ${audience} (${categories.map(categoryLabel).join(', ')}). AI image for ${need.role} shots.`,
       rightsRisk: 'none',
       identifiablePerson: false,
       publicFigureLikely: false,
@@ -133,11 +122,12 @@ export async function generateShotImages(
   categories: string[],
   needs: ImageNeed[],
   workspaceId: string | null,
+  brand: PhotoBrand,
 ): Promise<Map<string, LibraryAsset>> {
   const out = new Map<string, LibraryAsset>();
   if (needs.length === 0) return out;
-  const plans = await planImages(audience, categories, needs);
-  const results = await Promise.allSettled(plans.map((p) => createAsset(p, needs.find((n) => n.key === p.key)!, categories, workspaceId)));
+  const plans = await planImages(audience, categories, needs, brand);
+  const results = await Promise.allSettled(plans.map((p) => createAsset(p, needs.find((n) => n.key === p.key)!, audience, categories, workspaceId)));
   results.forEach((r, i) => {
     if (r.status === 'fulfilled') out.set(plans[i]!.key, r.value);
     else console.error(`[generatedAssets] image for ${plans[i]!.key} failed:`, r.reason);

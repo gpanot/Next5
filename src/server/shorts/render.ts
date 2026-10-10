@@ -1,11 +1,12 @@
 // server-only — never import from a 'use client' file.
 // Final 1080×1920 assembly: each beat's clip cut to its narration span (a slow zoom of its photo when the clip failed),
-// the on-screen text burned with libass, and the narration muxed in one ffmpeg pass. Since 2026-10-08 there are no word
-// captions (TikTok and YouTube add their own): only the hook on the first scene and the call to action on the last.
+// the on-screen text burned with libass, and the narration muxed in one ffmpeg pass: one-word-at-a-time captions in the
+// bottom third (removed 2026-10-08, back by user request 2026-10-10), the hook on the first scene and the call to action
+// on the last, above the caption words.
 
 import { readFile, writeFile } from 'fs/promises';
 import path from 'path';
-import type { ShortBeat } from '../../types/admin/shorts';
+import type { ShortBeat, WordTiming } from '../../types/admin/shorts';
 import { ffmpeg, fontDir, withTempDir } from './ffmpeg';
 import { HOOK_DEFAULT_TOP, HOOK_SIDE_MARGIN, HOOK_STYLES, hookText, type HookStyle } from './hookFit';
 
@@ -24,6 +25,15 @@ const assTime = (s: number): string => {
 };
 
 const assText = (t: string) => t.replace(/[{}\\*]/g, '').trim();
+/** One caption word: no brackets, quotes or end punctuation (a lone "(without" or "seats," reads as noise). */
+const burstWord = (w: string) => assText(w).replace(/^[("“'‘]+|[)"”'’.,!?;:]+$/g, '');
+
+/** The spoken words, one at a time, while each is said. */
+const wordLines = (words: WordTiming[]): string[] =>
+  words
+    .map((w) => ({ ...w, text: burstWord(w.word) }))
+    .filter((w) => w.text && w.endS > w.startS)
+    .map((w) => `Dialogue: 0,${assTime(w.startS)},${assTime(w.endS)},Word,,0,0,0,,${w.text}`);
 
 /** ASS style name of each hook look. */
 const HOOK_ASS_STYLE: Record<HookStyle, string> = { 'tiktok-red': 'HookRed', 'white-box': 'HookWhite' };
@@ -44,8 +54,8 @@ const accentLook = (b: ShortBeat): { style: string; text: string } => {
   return { style: 'AccentTop', text: text.toUpperCase() };
 };
 
-/** Each beat's on-screen text: the hook at the top of the first scene, the call to action low on the last. */
-export const buildAss = (beats: ShortBeat[]): string => {
+/** The caption words, and each beat's on-screen text: the hook at the top of the first scene, the call to action on the last. */
+export const buildAss = (beats: ShortBeat[], words: WordTiming[] = []): string => {
   const head = [
     '[Script Info]', 'ScriptType: v4.00+', `PlayResX: ${W}`, `PlayResY: ${H}`, 'WrapStyle: 0', '',
     '[V4+ Styles]',
@@ -53,7 +63,9 @@ export const buildAss = (beats: ShortBeat[]): string => {
     `Style: AccentTop,Montserrat,96,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,7,0,8,70,70,${HOOK_DEFAULT_TOP},1`,
     hookStyleLine('tiktok-red'),
     hookStyleLine('white-box'),
-    `Style: AccentLow,Montserrat,96,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,7,0,2,70,70,${Math.round(0.3 * H)},1`,
+    `Style: Word,Montserrat,170,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,10,0,2,40,40,${Math.round(0.26 * H)},1`,
+    // Above the caption words (bottom margin 26% + one 170 px word line).
+    `Style: AccentLow,Montserrat,96,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,-1,0,0,0,100,100,0,0,1,7,0,2,70,70,${Math.round(0.38 * H)},1`,
     '', '[Events]', 'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text',
   ];
   const accentLines = beats
@@ -66,7 +78,7 @@ export const buildAss = (beats: ShortBeat[]): string => {
       const marginV = b.role === 'hook' && typeof b.accentTopY === 'number' ? b.accentTopY + pad : 0;
       return `Dialogue: 2,${assTime(b.startS)},${assTime(b.startS + b.spanS)},${style},,0,0,${marginV},,${text}`;
     });
-  return [...head, ...accentLines, ''].join('\n');
+  return [...head, ...wordLines(words), ...accentLines, ''].join('\n');
 };
 
 /** One silent 1080×1920 clip exactly `beat.spanS` long. A short source holds its last frame. */
@@ -104,8 +116,8 @@ export const previewFrame = (photo: Buffer, beat: ShortBeat): Promise<Buffer> =>
     return readFile(out);
   });
 
-/** The finished short (mp4) and a poster frame (jpg). */
-export const renderShort = (beats: RenderBeat[], wav: Buffer): Promise<{ video: Buffer; poster: Buffer }> =>
+/** The finished short (mp4) and a poster frame (jpg). `words`: the narration's word timings, burned one at a time. */
+export const renderShort = (beats: RenderBeat[], wav: Buffer, words: WordTiming[] = []): Promise<{ video: Buffer; poster: Buffer }> =>
   withTempDir(async (dir) => {
     const cuts = await Promise.all(beats.map((b) => cutBeat(b, dir)));
     const audio = path.join(dir, 'voice.wav');
@@ -113,7 +125,7 @@ export const renderShort = (beats: RenderBeat[], wav: Buffer): Promise<{ video: 
     const out = path.join(dir, 'short.mp4');
     const poster = path.join(dir, 'poster.jpg');
     await writeFile(audio, wav);
-    await writeFile(ass, buildAss(beats.map((b) => b.beat)));
+    await writeFile(ass, buildAss(beats.map((b) => b.beat), words));
     const total = beats.reduce((s, b) => s + b.beat.spanS, 0).toFixed(3);
     const n = cuts.length;
     const graph = `${cuts.map((_, i) => `[${i}:v]`).join('')}concat=n=${n}:v=1:a=0[cat];[cat]subtitles='${escapeFilterPath(ass)}':fontsdir='${escapeFilterPath(fontDir())}'[v];[${n}:a]apad[a]`;

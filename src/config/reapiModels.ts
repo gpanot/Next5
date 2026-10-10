@@ -12,6 +12,7 @@ export type ReapiModelId =
   | 'reapi-grok-imagine-2-official'
   | 'reapi-nano-banana-2'
   | 'reapi-flux-2'
+  | 'reapi-nano-banana-2.1'
   | 'gemini-3-pro-image'
   | 'reapi-fallback-gpt-image-2.5'
   | 'reapi-fallback-nano-banana-2';
@@ -131,6 +132,20 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     imagesField: 'input_urls',
     // $0.028 at 1K, $0.039 at 2K. Checked 2026-10-09, reapi.ai/models/flux-2.
     priceUsdMicros: { '1k': 28_000, '2k': 39_000 },
+  },
+  'reapi-nano-banana-2.1': {
+    id: 'reapi-nano-banana-2.1',
+    // Google Nano Banana 2.1: every generated photo since 2026-10-10 (slideshows, Blitz, Shorts). Keeps a person and a
+    // product the same across reference images.
+    apiModel: 'nano-banana-2.1',
+    label: 'Nano Banana 2.1',
+    note: 'Keeps people and products the same.',
+    maxImages: 14,
+    sizing: 'aspect_ratio',
+    supports2k: false,
+    // $0.03 at 1K. Checked 2026-10-10, reapi.ai. reAPI wants lowercase "1k" here.
+    priceUsdMicros: { '1k': 30_000, '2k': 30_000 },
+    extraBody: { resolution: '1k' },
   },
   'gemini-3-pro-image': {
     id: 'gemini-3-pro-image',

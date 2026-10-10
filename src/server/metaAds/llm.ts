@@ -10,7 +10,8 @@ import { wellFormed } from './text';
  */
 export const META_ADS_MODEL = process.env.META_ADS_MODEL ?? 'gpt-5.4-nano';
 
-const isReasoningModel = (model: string): boolean => /^(gpt-5|o\d)/.test(model);
+/** GPT-5 and later (gpt-6.1-sol since 2026-10-10) and the o-series. */
+const isReasoningModel = (model: string): boolean => /^(gpt-([5-9]|\d{2})|o\d)/.test(model);
 
 type Usage = { promptTokens: number; completionTokens: number };
 

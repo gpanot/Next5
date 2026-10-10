@@ -8,6 +8,7 @@ import { IdeaDeck, type DeckSize } from './IdeaDeck';
 import type { Make } from './IdeasPanel';
 import { useKeepConfirm } from './KeepConfirm';
 import type { IdeasState } from './useIdeas';
+import { useHookStyle } from './useHookStyle';
 import { useIdeaMusic } from './useIdeaMusic';
 
 type Props = {
@@ -23,11 +24,12 @@ type Props = {
 
 /**
  * The ideas deck wired to the ideas: swipe right asks once (it uses a credit), keeps the idea on its day (or where
- * `placeOf` says) and makes it right away; swipe left skips; undo, another first line (pencil), another track (shuffle); ⋯ creates 3 slideshows.
+ * `placeOf` says) and makes it right away; swipe left skips; undo, another first line (pencil), the hook's look (Hook), another track (shuffle); ⋯ creates 3 slideshows.
  */
 export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   const [hookFor, setHookFor] = useState<IdeaDto | null>(null);
   const music = useIdeaMusic(ideas.client);
+  const hookStyle = useHookStyle();
   const { confirm, dialog } = useKeepConfirm();
   const asked = ideas.making.filter((i) => i.requested).length;
   const shuffle = (target: IdeaDto) => {
@@ -37,11 +39,11 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   const decide = (target: IdeaDto, status: 'kept' | 'discarded') => {
     if (status === 'discarded' || !maker) return ideas.decide(target, status);
     const at = placeOf?.(target);
-    void maker.make([{ ...target, status: 'kept', plannedAt: at ?? target.plannedAt }], () => ideas.keepNow(target, at));
+    void maker.make([{ ...target, status: 'kept', plannedAt: at ?? target.plannedAt, hookCta: hookStyle.hookCta }], () => ideas.keepNow(target, at));
   };
   return (
     <>
-      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onShuffle={music.canShuffle ? shuffle : null} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1) : undefined} menu={<DeckMenu onCreate={ideas.createSlideshows} making={asked} filters={size === 'page' ? ideas : undefined} bareOnPhone={size === 'page' || size === 'day'} />} />
+      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onShuffle={music.canShuffle ? shuffle : null} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1) : undefined} menu={<DeckMenu onCreate={ideas.createSlideshows} making={asked} filters={size === 'page' ? ideas : undefined} bareOnPhone={size === 'page' || size === 'day'} />} hookStyle={hookStyle} />
       {hookFor && <HookPicker idea={hookFor} onPick={(id) => ideas.pickHook(hookFor, id)} onClose={() => setHookFor(null)} />}
       {dialog}
     </>

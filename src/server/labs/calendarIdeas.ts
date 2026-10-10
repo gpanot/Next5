@@ -30,6 +30,8 @@ import { workspaceRunId } from './workspaceRun';
 type BlitzIdeaPlan = { card?: DeckItem };
 const LISTED = ['proposed', 'kept', 'discarded'];
 const SINCE_MS = 12 * 60 * 60 * 1000;
+/** How long a batch's cards may be finishing (AI images, caption Auto Fit) after the answer: ideaFinish.ts. */
+const FINISH_MS = 10 * 60 * 1000;
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 
 const firstLine = (card: DeckItem) => card.shots[0]?.text ?? card.hookStyle;
@@ -50,9 +52,11 @@ const blitzDto = (row: SlideshowVariant, reserve: SlideshowVariant[]): IdeaDto |
     : reserve.filter((r) => r.lens === row.lens).map((r) => ({ id: r.id, text: firstLine((r.plan as BlitzIdeaPlan).card!) }));
   // The calendar shows photos only: the first shot that is a photo.
   const coverUrl = card.shots.find((shot) => shot.mediaKind === 'image' && shot.mediaUrl)?.mediaUrl ?? null;
+  // A finish that died (process stopped) must not keep the deck re-reading.
+  const finishing = card.finishing === true && Date.now() - row.createdAt.getTime() < FINISH_MS;
   return {
     id: row.id, status: row.status as IdeaDto['status'], plannedAt: row.plannedAt!.toISOString(), format: 'blitz', hook: firstLine(card),
-    card: { ...card, id: row.id, variantId: row.id }, goal: null, coverUrl, outline: [], hooks: hooks.slice(0, 5), slideshow: null,
+    card: { ...card, id: row.id, variantId: row.id, finishing }, goal: null, coverUrl, outline: [], hooks: hooks.slice(0, 5), slideshow: null,
   };
 };
 
@@ -109,7 +113,7 @@ const blitzDeck = async (workspaceId: string, quotas: Array<Record<Stage, number
 
 /** Blitz deck cards for the workspace, each saved with its full card (the deck saves only the shots). */
 const blitzCards = async (workspaceId: string, quotas: Array<Record<Stage, number>>): Promise<{ ids: string[]; grow: () => Promise<void> }> => {
-  // deckFromScripts already placed every caption with the vision Auto Fit.
+  // deckFromScripts placed every caption (bank decks: from saved fits; `grow` refits them after the response).
   const { cards, grow } = await blitzDeck(workspaceId, quotas);
   const saved = cards.filter((c) => c.variantId);
   await prisma.$transaction(saved.map((c) => prisma.slideshowVariant.update({
@@ -158,15 +162,20 @@ export const hasIdeas = async (workspaceId: string): Promise<boolean> =>
  * (createSlideshowIdeas), started from the Ideas page's Slideshow filter. Returns the work to run after the response.
  */
 async function writeBatch(workspaceId: string, tzOffsetMin: unknown): Promise<() => Promise<void>> {
+  const started = Date.now();
+  const secs = (from: number) => ((Date.now() - from) / 1000).toFixed(1);
   const tomorrow = new Date(Date.now() + 86_400_000);
   const quotas = batchQuotas(campaignWeek(tomorrow, await campaignStart(workspaceId, tomorrow)), []);
+  const deckAt = Date.now();
   const blitz = await blitzCards(workspaceId, quotas).catch((err: unknown) => {
     console.error('[calendar-ideas] Blitz deck failed:', err instanceof Error ? err.message : err);
     return { ids: [] as string[], grow: noWork };
   });
   const planned = blitz.ids.slice(0, IDEAS_PER_BATCH);
   if (planned.length === 0) throw new HttpError(502, 'no_ideas', 'Could not write ideas right now. Try again.');
+  const planAt = Date.now();
   await planOnDays(workspaceId, planned, tzOffsetMin);
+  console.log(`[calendar-ideas] batch for ${workspaceId}: start ${((deckAt - started) / 1000).toFixed(1)}s, deck ${((planAt - deckAt) / 1000).toFixed(1)}s, days ${secs(planAt)}s, total ${secs(started)}s`);
   return blitz.grow;
 }
 

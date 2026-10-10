@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
-import { CalendarIcon, ChartIcon, ContentIcon, CreditsIcon, IdeasIcon } from './navIcons';
+import { BrandIcon, CalendarIcon, ChartIcon, ContentIcon, CreditsIcon, IdeasIcon } from './navIcons';
 
-/** Every workspace page. Brand is not in the menu: it opens from Settings › Brand. Credits: sidebar only. */
+/** Every workspace page. Brand and Credits: sidebar only (phones reach them from Settings). */
 export type WorkspacePageId = 'ideas' | 'calendar' | 'content' | 'brand' | 'analytics' | 'credits';
 
 export type WorkspaceNavItem = { id: WorkspacePageId; href: string; label: string; Icon: ComponentType };
@@ -16,6 +16,9 @@ export const workspaceNavItems = (workspaceId: string): WorkspaceNavItem[] => {
     { id: 'analytics', href: `${base}/analytics`, label: 'Analytics', Icon: ChartIcon },
   ];
 };
+
+/** Wide screens' sidebar only: phones reach the brand from Settings › Brand. */
+export const brandNavItem = (workspaceId: string): WorkspaceNavItem => ({ id: 'brand', href: `/slideshow/${workspaceId}/brand`, label: 'Brand', Icon: BrandIcon });
 
 /** Wide screens' sidebar only: phones reach credits from Settings › Credits. */
 export const creditsNavItem = (workspaceId: string): WorkspaceNavItem => ({ id: 'credits', href: `/slideshow/${workspaceId}/credits`, label: 'Credits', Icon: CreditsIcon });

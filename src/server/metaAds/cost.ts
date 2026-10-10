@@ -8,6 +8,8 @@ const OPENAI_PRICES: Record<string, { input: number; output: number }> = {
   'gpt-5.4-nano': { input: 0.2, output: 1.25 },
   'gpt-5.4-mini': { input: 0.75, output: 4.5 },
   'gpt-5.5': { input: 5, output: 30 },
+  /** Checked 2026-10-10 (developers.openai.com/api/docs/models/gpt-6.1-sol). */
+  'gpt-6.1-sol': { input: 2, output: 10 },
   'gpt-4o-mini': { input: 0.15, output: 0.6 },
 };
 

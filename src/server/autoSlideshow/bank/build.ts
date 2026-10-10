@@ -7,14 +7,29 @@ import type { BrandProfile } from '../../../types/admin/companyIntel';
 import type { BrandLever } from '../../../types/admin/metaAds';
 import type { SlideshowBankContent } from '../../../types/admin/slideshowBank';
 import type { CostMeter } from '../../metaAds/cost';
+import { noEmDash } from '../../slideshow/core/copyGuards';
 import { writeCtas } from './ctas';
 import { writeHooks } from './hooks';
 import { writeMeats } from './meats';
 import type { BankUsage } from './pick';
 import { businessBrief } from './prompts';
 
-export const buildBank = async (profile: BrandProfile, levers: BrandLever[], meter: CostMeter): Promise<SlideshowBankContent> => {
-  const brief = businessBrief(profile, levers);
+/** The bank's on-screen and post text without em dashes (AI tell); photo prompts are never shown, so they stay. */
+const withoutEmDashes = ({ meats, hooks, ctas }: SlideshowBankContent): SlideshowBankContent => ({
+  meats: meats.map((m) => ({
+    ...m,
+    topic: noEmDash(m.topic),
+    promise: noEmDash(m.promise),
+    caption: noEmDash(m.caption),
+    items: m.items.map((it) => ({ ...it, title: noEmDash(it.title), body: noEmDash(it.body) })),
+  })),
+  hooks: hooks.map((h) => ({ ...h, text: noEmDash(h.text) })),
+  ctas: ctas.map((c) => ({ ...c, title: noEmDash(c.title), body: noEmDash(c.body) })),
+});
+
+/** `productLooks`: the brand's products as its own photos show them, so the slides talk about what it really sells. */
+export const buildBank = async (profile: BrandProfile, levers: BrandLever[], meter: CostMeter, productLooks: string[] = []): Promise<SlideshowBankContent> => {
+  const brief = businessBrief(profile, levers, productLooks);
   const brand = profile.brandName;
   const [meats, ctas] = await Promise.all([writeMeats(brief, brand, meter), writeCtas(brief, profile, levers, meter)]);
   const hooks = (
@@ -29,15 +44,15 @@ export const buildBank = async (profile: BrandProfile, levers: BrandLever[], met
   ).flat();
   const withHooks = meats.filter((m) => hooks.some((h) => h.meatId === m.id));
   if (withHooks.length === 0) throw new Error('No hook passed the checks for any meat set');
-  return { meats: withHooks, hooks, ctas };
+  return withoutEmDashes({ meats: withHooks, hooks, ctas });
 };
 
 /** The bank for `url`, built and saved on first use. Returns whether it was built now (its cost is on `meter`). */
-export const bankForSite = async (url: string, profile: BrandProfile, levers: BrandLever[], meter: CostMeter): Promise<{ id: string; content: SlideshowBankContent; built: boolean }> => {
+export const bankForSite = async (url: string, profile: BrandProfile, levers: BrandLever[], meter: CostMeter, productLooks: string[] = []): Promise<{ id: string; content: SlideshowBankContent; built: boolean }> => {
   const existing = await prisma.slideshowBank.findUnique({ where: { url } });
   if (existing) return { id: existing.id, content: existing.content as unknown as SlideshowBankContent, built: false };
   const before = meter.summary().usdMicros;
-  const content = await buildBank(profile, levers, meter);
+  const content = await buildBank(profile, levers, meter, productLooks);
   const costMicros = meter.summary().usdMicros - before;
   const data = { content: content as unknown as object, costMicros };
   const row = await prisma.slideshowBank.upsert({ where: { url }, create: { url, ...data }, update: data });

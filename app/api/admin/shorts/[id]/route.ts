@@ -1,6 +1,7 @@
 /**
  * GET  /api/admin/shorts/[id] — one short with every step's output, prompts, photos, clips, costs and timings
  * POST /api/admin/shorts/[id] — { fromStep } → run the pipeline again from that step (a failed short: its failed step)
+ *                               { fromStep: 3, photoModel } → make the photos with that model (the photo stop's pick)
  *                               { voice }    → swap the narrator for one of the short's voice options: new narration,
  *                                              then a new render on the same photos and clips
  */
@@ -11,7 +12,7 @@ import { adminRoute, json } from '../../../../../src/server/admin/route';
 import { prisma } from '../../../../../src/lib/db';
 import { runShortPipeline, VOICE_SWAP_STEPS } from '../../../../../src/server/shorts/pipeline';
 import { getShortDetail } from '../../../../../src/server/shorts/store';
-import type { ShortAudio, ShortStep } from '../../../../../src/types/admin/shorts';
+import { isShortPhotoModel, type ShortAudio, type ShortInputs, type ShortStep } from '../../../../../src/types/admin/shorts';
 
 export const maxDuration = 300;
 
@@ -31,8 +32,8 @@ const voiceSwap = (audio: ShortAudio | null, voice: string, hasVideo: boolean): 
 
 export const POST = adminRoute(async (req: NextRequest, ctx: Ctx) => {
   const { id } = await ctx.params;
-  const body = (await req.json().catch(() => ({}))) as { fromStep?: unknown; voice?: unknown };
-  const short = await prisma.shortReel.findUnique({ where: { id }, select: { status: true, failedStep: true, audio: true, videoKey: true } });
+  const body = (await req.json().catch(() => ({}))) as { fromStep?: unknown; voice?: unknown; photoModel?: unknown };
+  const short = await prisma.shortReel.findUnique({ where: { id }, select: { status: true, failedStep: true, audio: true, videoKey: true, inputs: true } });
   if (!short) return json({ error: 'Short not found' }, { status: 404 });
   if (short.status.endsWith('_RUNNING')) return json({ error: 'This short is still running' }, { status: 409 });
   if (typeof body.voice === 'string') {
@@ -44,7 +45,10 @@ export const POST = adminRoute(async (req: NextRequest, ctx: Ctx) => {
   }
   const fromStep = (typeof body.fromStep === 'number' ? body.fromStep : short.failedStep ?? 1) as ShortStep;
   if (![1, 2, 3, 4, 5].includes(fromStep)) return json({ error: 'fromStep must be 1 to 5' }, { status: 400 });
-  await prisma.shortReel.update({ where: { id }, data: { status: `STEP_${fromStep}_RUNNING`, error: null, failedStep: null, finishedAt: null } });
+  if (body.photoModel !== undefined && !isShortPhotoModel(body.photoModel)) return json({ error: 'Unknown photo model' }, { status: 400 });
+  const inputs = short.inputs as unknown as ShortInputs | null;
+  const photoModel = isShortPhotoModel(body.photoModel) && inputs ? { inputs: { ...inputs, photoModel: body.photoModel } as unknown as Prisma.InputJsonValue } : {};
+  await prisma.shortReel.update({ where: { id }, data: { status: `STEP_${fromStep}_RUNNING`, error: null, failedStep: null, finishedAt: null, ...photoModel } });
   waitUntil(runShortPipeline(id, fromStep));
   return json({ ok: true }, { status: 202 });
 });

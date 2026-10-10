@@ -895,6 +895,32 @@ CREATE TABLE public.bookings (
 
 
 --
+-- Name: brand_cast_members; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.brand_cast_members (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    slot integer NOT NULL,
+    name text NOT NULL,
+    look text NOT NULL,
+    prompt text NOT NULL,
+    image_key text,
+    status text DEFAULT 'pending'::text NOT NULL,
+    error text,
+    uses integer DEFAULT 0 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    voice text,
+    intro_script text,
+    intro_video_key text,
+    intro_status text DEFAULT 'none'::text NOT NULL,
+    intro_error text,
+    intro_at timestamp with time zone
+);
+
+
+--
 -- Name: campaign_posts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2371,6 +2397,14 @@ ALTER TABLE ONLY public.bookings
 
 
 --
+-- Name: brand_cast_members brand_cast_members_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.brand_cast_members
+    ADD CONSTRAINT brand_cast_members_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: campaign_posts campaign_posts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3170,6 +3204,13 @@ CREATE UNIQUE INDEX blitz_script_banks_brand_profile_id_key ON public.blitz_scri
 --
 
 CREATE INDEX booking_regenerations_booking_id_idx ON public.booking_regenerations USING btree (booking_id);
+
+
+--
+-- Name: brand_cast_members_workspace_id_slot_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX brand_cast_members_workspace_id_slot_key ON public.brand_cast_members USING btree (workspace_id, slot);
 
 
 --
@@ -4130,6 +4171,14 @@ ALTER TABLE ONLY public.bookings
 
 
 --
+-- Name: brand_cast_members brand_cast_members_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.brand_cast_members
+    ADD CONSTRAINT brand_cast_members_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
 -- Name: campaign_posts campaign_posts_campaign_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4829,4 +4878,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261113090000'),
     ('20261114090000'),
     ('20261115090000'),
-    ('20261116090000');
+    ('20261116090000'),
+    ('20261117090000'),
+    ('20261118090000');

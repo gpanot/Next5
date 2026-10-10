@@ -6,7 +6,7 @@
 import type { CostMeter } from '../metaAds/cost';
 import type { ShortInputs, ShortScript } from '../../types/admin/shorts';
 import { BANNED_PHRASES, BODY_STRUCTURES, educationBlock } from './guidelines';
-import { creativeJson, SCRIPT_MODEL } from './llm';
+import { creativeJson, smartModel } from './llm';
 import { stripTags } from './voice';
 
 const STOPWORDS = new Set(['the', 'and', 'but', 'for', 'with', 'this', 'that', 'you', 'your', 'are', 'was', 'were', 'they', 'them', 'from', 'have', 'has', 'had', 'what', 'when', 'why', 'how', 'will', 'would', 'could', 'should', 'into', 'their', 'there', 'than', 'then', "here's", 'heres', 'does', 'just', 'most']);
@@ -121,7 +121,7 @@ ${inputs.sourceText}`,
     .join('\n\n');
 
 /** One draft, retried up to 3 times until its shape passes `scriptProblem`. `feedback`: what the fact check rejected. */
-export const writeScript = async (inputs: ShortInputs, meter: CostMeter, feedback: string | null = null, model = SCRIPT_MODEL): Promise<ShortScript> => {
+export const writeScript = async (inputs: ShortInputs, meter: CostMeter, feedback: string | null = null, model = smartModel()): Promise<ShortScript> => {
   let note = feedback;
   let last: ShortScript | null = null;
   for (let attempt = 0; attempt < 3; attempt++) {

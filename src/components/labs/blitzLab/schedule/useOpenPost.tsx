@@ -9,8 +9,8 @@ import { scheduleApi } from './scheduleApi';
 
 /**
  * Opens a calendar video in the editor (Content page `?editPost=<id>`, from the calendar's "Edit"): its saved render
- * request re-opens like a Remix, keeping its card id so "Save changes" updates that post. Once saved, back to the
- * calendar.
+ * request re-opens like a Remix, keeping its card id so "Save changes" updates that post. `exit` goes back to where it
+ * was opened (the Library or the calendar).
  */
 export function useOpenPost(postId: string | null, ready: boolean, remix: (source: RemixSource) => void) {
   const client = useLabClient();
@@ -27,7 +27,7 @@ export function useOpenPost(postId: string | null, ready: boolean, remix: (sourc
       remix({ id: postId, currentAssets: res.data.assets, cardId: res.data.item.cardId });
     });
   }, [postId, ready, client, remix]);
-  return { error, onSaved: postId ? () => router.back() : undefined };
+  return { error, exit: () => router.back() };
 }
 
 /** Why a calendar video could not be opened in the editor. */

@@ -4,6 +4,7 @@
 
 import { SHOTS } from './format';
 import type { LibraryTrack } from './library';
+import type { ImageNeed } from './generatedAssets';
 import type { ShotMedia } from './media';
 import type { HookArchetype, ShotRole } from './types';
 import { createVariants } from './variants';
@@ -50,6 +51,10 @@ export type DeckItem = {
     stage?: string;
     format?: string;
   };
+  /** Calendar ideas: still being finished after the batch answered (AI images, caption Auto Fit). The deck re-reads. */
+  finishing?: boolean;
+  /** Story shots showing a weak library match until their AI image is made (labs/ideaFinish.ts). */
+  pendingImages?: { audience: string; categories: string[]; needs: ImageNeed[] };
 };
 
 export type StoryTexts = { pain: string; oldWay: string; mechanism: string; proof: string; inaction: string; cta: string };

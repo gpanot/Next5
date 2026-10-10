@@ -13,7 +13,10 @@ vi.mock('../../../src/server/labs/websiteDeck', () => ({
   writeBrief: mocks.writeBrief,
   deckFromScripts: mocks.deckFromScripts,
   loadWebsiteSource: async () => ({ profile: {}, sourceUrl: 'https://example.com', workspaceId: null }),
+  photoBrand: () => ({ business: 'Shop', sells: 'meals', look: null, productAsSubject: false }),
 }));
+vi.mock('../../../src/server/labs/blitzStoryPhotos', () => ({ writeStoryPhotos: async () => new Map() }));
+vi.mock('../../../src/server/labs/ideaFinish', () => ({ finishIdeaCards: async () => undefined }));
 vi.mock('../../../src/server/slideshow/engines/website/engine', () => ({
   websiteEngine: { briefs: () => [{ idc: 'Busy moms', tone: 'casual', proofPoints: [] }] },
 }));
@@ -59,6 +62,8 @@ const useCards = async (workspaceId: string, cards: DeckItem[]) => {
 };
 
 const TARGET = Object.values(STAGE_TARGET).reduce((n, v) => n + v, 0);
+/** The top-up after a batch keeps 2 more per stage (GROW_MARGIN). */
+const GROWN = TARGET + 2 * Object.keys(STAGE_TARGET).length;
 const WEEKS = [WEEK_MIX[0]!, WEEK_MIX[1]!];
 const MIX_TOTAL = WEEKS.reduce((n, w) => n + Object.values(w).reduce((m, v) => m + v, 0), 0);
 type StoredStory = { id: string; stage?: string; format?: string; trigger?: string };
@@ -100,7 +105,7 @@ describe('Blitz Script Bank', { timeout: 20_000 }, () => {
     const bank = await prisma.blitzScriptBank.findFirstOrThrow();
     expect(bank.status).toBe('ready');
     const unused = storiesOf(bank.content).filter((s) => !firstIds.includes(s.id));
-    expect(unused).toHaveLength(TARGET);
+    expect(unused).toHaveLength(GROWN);
     const second = await bankDeck(workspaceId, [WEEK_MIX[2]!, WEEK_MIX[3]!]);
     expect(second.cards.map((c) => c.script!.storyId).filter((id) => firstIds.includes(id))).toEqual([]);
   });

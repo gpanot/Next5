@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SHORT_VIDEO_MODELS, type ShortVideoModel, type ShortWorkspaceDto } from '../../../types/admin/shorts';
+import { DEFAULT_TEXT_MODEL, SHORT_TEXT_MODELS, SHORT_VIDEO_MODELS, type ShortTextModel, type ShortVideoModel, type ShortWorkspaceDto } from '../../../types/admin/shorts';
 import { createShort, useShortWorkspaces } from './useShorts';
 
 type Props = { token: string; onClose: () => void; onCreated: (id: string) => void };
@@ -55,11 +55,28 @@ function ModelPicker({ value, onChange }: { value: ShortVideoModel; onChange: (m
   );
 }
 
-/** Pick a workspace (brand already built) and a video model, then start a short. */
+/** Text model of the script, fact check, Visual Bible, storyboard, shot plans, photo check and voice casting. */
+function TextModelPicker({ value, onChange }: { value: ShortTextModel; onChange: (m: ShortTextModel) => void }) {
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      {(Object.keys(SHORT_TEXT_MODELS) as ShortTextModel[]).map((m) => (
+        <button key={m} type="button" onClick={() => onChange(m)} className={optionClass(value === m)} aria-pressed={value === m}>
+          <div>
+            <p className="text-sm font-bold text-app-ink">{SHORT_TEXT_MODELS[m].label}</p>
+            <p className="text-[11px] text-app-muted">{SHORT_TEXT_MODELS[m].detail}</p>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Pick a workspace (brand already built), a video model and a text model, then start a short. */
 export function CreateShortPanel({ token, onClose, onCreated }: Props) {
   const { workspaces, error } = useShortWorkspaces(token, true);
   const [workspaceId, setWorkspaceId] = useState<string | null>(null);
   const [model, setModel] = useState<ShortVideoModel>('veo');
+  const [textModel, setTextModel] = useState<ShortTextModel>(DEFAULT_TEXT_MODEL);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
 
@@ -68,7 +85,7 @@ export function CreateShortPanel({ token, onClose, onCreated }: Props) {
     setBusy(true);
     setFailure(null);
     try {
-      onCreated((await createShort(token, workspaceId, model)).id);
+      onCreated((await createShort(token, workspaceId, model, textModel)).id);
     } catch (err) {
       setFailure(err instanceof Error ? err.message : 'Could not start the short');
       setBusy(false);
@@ -92,6 +109,11 @@ export function CreateShortPanel({ token, onClose, onCreated }: Props) {
         <section className="space-y-2">
           <h3 className="text-xs font-bold tracking-wide text-app-muted uppercase">2 · Video model</h3>
           <ModelPicker value={model} onChange={setModel} />
+        </section>
+        <section className="space-y-2">
+          <h3 className="text-xs font-bold tracking-wide text-app-muted uppercase">3 · Text model</h3>
+          <p className="text-xs text-app-muted">Script, fact check, Visual Bible, storyboard, shot plans, photo check and voice casting.</p>
+          <TextModelPicker value={textModel} onChange={setTextModel} />
         </section>
         {failure && <p className="rounded-xl bg-app-accent-soft p-3 text-sm text-app-danger">{failure}</p>}
         <button

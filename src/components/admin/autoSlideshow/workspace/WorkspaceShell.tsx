@@ -82,7 +82,7 @@ function WorkspaceFrame({ token, workspaceId, children }: { token: string; works
   const slotRef = useTopBarSlotRef();
   return (
     <div className="flex min-h-dvh bg-app-bg [--bottom-nav-h:calc(4rem+env(safe-area-inset-bottom))] lg:[--bottom-nav-h:0px]">
-      <WorkspaceSidebar workspaceId={workspaceId} settings={settings} />
+      <WorkspaceSidebar token={token} workspaceId={workspaceId} settings={settings} />
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Phones have no top bar (Settings is a bottom tab); this only holds what a page puts in the slot. */}
         <header className="sticky top-0 z-30">

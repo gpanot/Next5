@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-/** Settings › Brand: the brand is set once, so it lives here instead of the menu. Opens the Brand page. */
+/** Settings › Brand (phones only; wide screens use the sidebar): the brand is set once, so it is not in the phone menu. Opens the Brand page. */
 export function BrandSection({ workspaceId, onClose }: { workspaceId: string; onClose: () => void }) {
   return (
     <div className="space-y-4">

@@ -2,6 +2,7 @@
 // Shared by the API routes and the admin pages.
 
 import type { StepCost } from './metaAds';
+import type { VisualBible } from './visualBible';
 
 export type ShortVideoModel = 'veo' | 'seedance' | 'omni';
 
@@ -21,7 +22,44 @@ export const videoModelLabel = (m: string): string => SHORT_VIDEO_MODELS[m as Sh
 export type ShortStep = 1 | 2 | 3 | 4 | 5;
 export const SHORT_STEP_LABELS: Record<ShortStep, string> = { 1: 'Script', 2: 'Voice', 3: 'Photos', 4: 'Video clips', 5: 'Render' };
 
-export type ShortStatus = `STEP_${ShortStep}_RUNNING` | 'COMPLETED' | 'FAILED';
+/**
+ * AWAITING_PHOTOS: stopped after the voice so the admin picks the photo model (since 2026-10-10).
+ * AWAITING_CLIPS: stopped after the photos (since 2026-10-10) so script and photos are checked before paying for clips.
+ */
+export type ShortStatus = `STEP_${ShortStep}_RUNNING` | 'AWAITING_PHOTOS' | 'AWAITING_CLIPS' | 'COMPLETED' | 'FAILED';
+
+/** Photo models on reAPI, all at 1K, 9:16. Prices checked on reapi.ai 2026-10-10. */
+export type ShortPhotoModel = 'flux-2' | 'nano-banana-2.1' | 'gemini-2.5-flash-image-preview';
+
+export const SHORT_PHOTO_MODELS: Record<ShortPhotoModel, { label: string; detail: string; usdPerPhoto: number }> = {
+  'flux-2': { label: 'FLUX.2 Pro', detail: 'Black Forest Labs', usdPerPhoto: 0.028 },
+  'nano-banana-2.1': { label: 'Nano Banana 2.1', detail: 'Google · up to 14 references · default', usdPerPhoto: 0.03 },
+  'gemini-2.5-flash-image-preview': { label: 'Gemini 2.5 Flash Image', detail: 'Google · cheapest', usdPerPhoto: 0.0144 },
+};
+
+/** Nano Banana 2.1 for every generated photo since 2026-10-10 (user's pick). */
+export const DEFAULT_PHOTO_MODEL: ShortPhotoModel = 'nano-banana-2.1';
+
+export const isShortPhotoModel = (v: unknown): v is ShortPhotoModel => typeof v === 'string' && v in SHORT_PHOTO_MODELS;
+
+/** Text model of the script, fact check, Visual Bible, storyboard, shot plans, photo check and voice casting, picked per short. */
+export type ShortTextModel = 'gpt-6.1-sol' | 'gpt-5.4-mini';
+
+export const SHORT_TEXT_MODELS: Record<ShortTextModel, { label: string; detail: string }> = {
+  'gpt-6.1-sol': { label: 'GPT-6.1 Sol', detail: '$2 / $10 per 1M tokens · default' },
+  'gpt-5.4-mini': { label: 'GPT-5.4 mini', detail: '$0.75 / $4.50 per 1M tokens · faster' },
+};
+
+export const DEFAULT_TEXT_MODEL: ShortTextModel = 'gpt-6.1-sol';
+
+export const isShortTextModel = (v: unknown): v is ShortTextModel => typeof v === 'string' && v in SHORT_TEXT_MODELS;
+
+/** Seconds to ask the video model for: at least the span. Veo makes 4, 6 or 8 s; Gemini Omni 4-10 s; Seedance any 4-15 s. */
+export const genSeconds = (model: ShortVideoModel, spanS: number): number => {
+  if (model === 'veo') return [4, 6, 8].find((b) => b >= spanS) ?? 8;
+  if (model === 'omni') return [4, 6, 8, 10].find((b) => b >= spanS) ?? 10;
+  return Math.min(15, Math.max(4, Math.ceil(spanS)));
+};
 
 /** What the script was built from: the brand facts and the bank hook. */
 export type ShortInputs = {
@@ -41,7 +79,22 @@ export type ShortInputs = {
   domain: string;
   /** Every fact the script may use. The fact check verifies claims against it. */
   sourceText: string;
+  /** Text model picked when the short was created (absent: the server default). Set before step 1 writes the rest. */
+  textModel?: ShortTextModel;
+  /** The photo model the admin picked at the photo stop (absent: FLUX.2). */
+  photoModel?: ShortPhotoModel;
+  /** The brand's Visual Bible as the photo step used it (absent: the classic photo prompts were used). */
+  visualBible?: VisualBible;
+  /** The anchor photo (main character + hero product) every shot's photo was made from as a reference. */
+  anchorKey?: string;
+  anchorPrompt?: string;
 };
+
+/** One row of the storyboard: what a beat's photo shows. */
+export type ShotBoard = { shot: string; setting: string; person: string; product: string };
+
+/** The photo check after generation (vision model), and whether the photo was made again because of it. */
+export type ShotQa = { ok: boolean; problem?: string; retried: boolean; firstProblem?: string; fix?: string };
 
 export type ShortScript = {
   hook: string;
@@ -131,6 +184,9 @@ export type ShortBeat = {
   /** Why that style. */
   accentStyleReason?: string;
   imageKey?: string;
+  /** Storyboard row the photo was planned from (Visual Bible shorts). */
+  board?: ShotBoard;
+  qa?: ShotQa;
   /** Seconds asked from the video model (≥ span; Veo rounds up to 4/6/8). */
   genS?: number;
   clipKey?: string;
@@ -162,10 +218,13 @@ export type ShortDto = {
   finishedAt: string | null;
 };
 
-export type ShortBeatDto = ShortBeat & { imageUrl: string | null; clipUrl: string | null };
+/** `imageDownloadUrl`: the photo as a file download (Content-Disposition: attachment). */
+export type ShortBeatDto = ShortBeat & { imageUrl: string | null; imageDownloadUrl: string | null; clipUrl: string | null };
 
 export type ShortDetailDto = ShortDto & {
   inputs: ShortInputs | null;
+  textModel: ShortTextModel | null;
+  anchorUrl: string | null;
   attempts: ShortScriptAttempt[];
   audio: (Omit<ShortAudio, 'key' | 'options'> & { url: string | null; options: ShortVoiceOptionDto[] }) | null;
   beats: ShortBeatDto[];

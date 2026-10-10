@@ -13,7 +13,12 @@ export async function GET(req: Request): Promise<Response> {
 
   const body = await getObject(key);
   if (!body) return new Response('Not found', { status: 404 });
+  const download = params.get('download')?.replace(/"/g, '');
   return new Response(new Uint8Array(body), {
-    headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'private, max-age=3600' },
+    headers: {
+      'Content-Type': 'image/jpeg',
+      'Cache-Control': 'private, max-age=3600',
+      ...(download ? { 'Content-Disposition': `attachment; filename="${download}"` } : {}),
+    },
   });
 }

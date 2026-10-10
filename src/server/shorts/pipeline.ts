@@ -1,15 +1,20 @@
 // server-only — never import from a 'use client' file.
-// Shorts pipeline: 1 script (+ fact check) → 2 voice ∥ 3 shots + photos → 4 video clips → 5 render.
-// Photos need only the script, so since 2026-10-08 steps 2 and 3 run side by side (saving ~30 s), on an estimated timing;
-// once both are done the photos are re-timed onto the real voice. A re-run from 3 alone runs after the existing voice.
+// Shorts pipeline: 1 script (+ fact check) → 2 voice → (stop: pick the photo model) → 3 shots + photos
+// → (stop: check the photos) → 4 video clips → 5 render.
+// Step 1 builds the brand's Visual Bible when it has none; step 3 uses it (biblePhotos.ts: one main character, anchor
+// reference, photo check); otherwise the classic per-beat prompts (visuals.ts).
+// A run from step 1 or 2 stops before the photos (AWAITING_PHOTOS, since 2026-10-10): the admin picks the photo model
+// and resumes from step 3. A run that makes new photos stops before the clips (AWAITING_CLIPS): the admin checks the
+// script and photos, then resumes from step 4, so video credits are not spent on a weak short. The photos are planned
+// on the recorded voice's timing (steps 2 and 3 ran side by side before the photo stop existed).
 // A voice swap runs only 2 and 5: the new narration is re-timed onto the existing photos and clips.
-// Each step saves its checkpoint, time and cost on the short. On Vercel (300 s per function) voice + photos, clips and
-// render each start in a fresh invocation via the continue route; locally the pipeline just keeps going.
+// Each step saves its checkpoint, time and cost on the short. On Vercel (300 s per function) photos, clips and render
+// each start in a fresh invocation via the continue route; locally the pipeline just keeps going.
 
 import { Prisma, type ShortReel } from '@prisma/client';
 import { signAdminToken } from '../../lib/admin-auth';
 import { prisma } from '../../lib/db';
-import type { ShortAudio, ShortBeat, ShortInputs, ShortScript, ShortScriptAttempt, ShortStep, ShortVideoModel } from '../../types/admin/shorts';
+import { DEFAULT_PHOTO_MODEL, type ShortAudio, type ShortBeat, type ShortInputs, type ShortScript, type ShortScriptAttempt, type ShortStep, type ShortVideoModel } from '../../types/admin/shorts';
 import type { StepCost } from '../../types/admin/metaAds';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { clip as clipText } from '../metaAds/text';
@@ -19,12 +24,15 @@ import { genSeconds, planBeats } from './beats';
 import { buildShortInputs } from './brand';
 import { factCheck, factFeedback } from './factCheck';
 import { downloadUrl } from './download';
+import { makeBiblePhotos } from './biblePhotos';
 import { makeClip, makePhoto, type ClipSource } from './media';
 import { fitHook } from './hookFit';
 import { previewFrame, renderShort, type RenderBeat } from './render';
 import { writeScript } from './script';
 import { rateScript } from './scriptJev';
+import { withTextModel } from './llm';
 import { photoPrompt, planVisuals, videoPrompt } from './visuals';
+import { ensureVisualBible } from './visualBible';
 import { stripTags, synthesize } from './voice';
 import { withRetry } from './treg';
 import { pickVoice, planVoices, sampleVoices } from './voices';
@@ -49,7 +57,11 @@ const lastScript = (short: ShortReel) => {
 };
 
 const scriptStep: StepFn = async (short, meter) => {
-  const inputs = await buildShortInputs(short.workspaceId);
+  const picked = (short.inputs as unknown as ShortInputs | null)?.textModel;
+  const inputs: ShortInputs = { ...(await buildShortInputs(short.workspaceId)), ...(picked ? { textModel: picked } : {}) };
+  // The brand's Visual Bible is built alongside the script on a brand's first short, so it is ready (and visible in the
+  // admin) before the photos, and step 3 does not wait for it. A failure here is retried by step 3.
+  const bible = ensureVisualBible(short.workspaceId, meter).catch(() => null);
   const attempts: ShortScriptAttempt[] = [];
   let feedback: string | null = null;
   for (let i = 0; i < MAX_DRAFTS; i++) {
@@ -59,8 +71,9 @@ const scriptStep: StepFn = async (short, meter) => {
     feedback = factFeedback(claims);
     if (!feedback) break;
   }
-  // A new script gets a new voice cast (the samples read the old hook).
-  return { inputs: json(inputs), attempts: json(attempts), audio: Prisma.DbNull };
+  await bible;
+  // A new script gets a new voice cast (the samples read the old hook) and new shots (the old ones show other lines).
+  return { inputs: json(inputs), attempts: json(attempts), audio: Prisma.DbNull, beats: json([]) };
 };
 
 /** The voice options: kept from an earlier run (a swap or a re-run), else cast, sampled and picked by Jev. */
@@ -88,14 +101,14 @@ const retimed = (short: ShortReel, audio: ShortAudio): ShortBeat[] | null => {
   return beats.map((b) => ({ ...b, startS: timing[b.idx]?.startS ?? b.startS, spanS: timing[b.idx]?.spanS ?? b.spanS }));
 };
 
-/** The voice. `retime`: move existing photos onto it (a voice swap); off when the photos are being made alongside. */
-const makeVoiceStep = (retime: boolean): StepFn => async (short, meter) => {
+/** The voice; existing photos (a voice swap, a re-run from 2) are moved onto its timing. */
+const voiceStep: StepFn = async (short, meter) => {
   const cast = await voiceCast(short, meter);
   const { wav, durationS, words, sentences, tempo, rawWpm } = await synthesize(lastScript(short).narration, { voice: cast.voice, direction: cast.direction }, meter);
   const key = keyFor(short.id, 'voice.wav');
   await putObject(key, wav, 'audio/wav');
   const audio: ShortAudio = { ...cast, key, durationS, words, sentences, tempo, rawWpm };
-  const beats = retime ? retimed(short, audio) : null;
+  const beats = retimed(short, audio);
   return { audio: json(audio), ...(beats ? { beats: json(beats) } : {}) };
 };
 
@@ -122,17 +135,35 @@ const photoStep: StepFn = async (short, meter) => {
   const script = lastScript(short);
   const timed = beatTiming(short);
   const narration = stripTags(script.narration);
+  // A new key on every run: reAPI serves a cached first frame for a reused R2 path, so a re-run's clips animated the
+  // previous run's photos (A/B test 2026-10-09).
+  const runTag = Date.now().toString(36);
+  // Brands with a Visual Bible (built on the first short): storyboard, anchor photo as a reference, photo check.
+  const model = inputs.photoModel ?? DEFAULT_PHOTO_MODEL;
+  const bible = await ensureVisualBible(short.workspaceId, meter);
+  if (bible) {
+    const save = async (name: string, photo: Buffer) => {
+      const key = keyFor(short.id, `${name}-${runTag}.jpg`);
+      await putObject(key, photo, 'image/jpeg');
+      return key;
+    };
+    const withText = timed.map((b) => ({ ...b, accent: onScreenText(b, script, timed.length) }));
+    const made = await makeBiblePhotos(withText, narration, inputs, bible, model, save, meter);
+    const used: ShortInputs = { ...inputs, visualBible: bible, anchorKey: made.anchorKey, anchorPrompt: made.anchorPrompt };
+    return { beats: json(made.beats), inputs: json(used) };
+  }
   const planned = await planVisuals(timed, narration, inputs, meter);
   const beats = await Promise.all(
     planned.map(async (shot) => {
       const beat = { ...shot, accent: onScreenText(shot, script, planned.length) };
-      const photo = await makePhoto(photoPrompt(beat, inputs), meter);
-      const imageKey = keyFor(short.id, `frame-${beat.idx}.jpg`);
+      const photo = await makePhoto(photoPrompt(beat, inputs), meter, [], model);
+      const imageKey = keyFor(short.id, `frame-${beat.idx}-${runTag}.jpg`);
       await putObject(imageKey, photo, 'image/jpeg');
       return { ...beat, imageKey };
     }),
   );
-  return { beats: json(beats) };
+  const classic: ShortInputs = { ...inputs, visualBible: undefined, anchorKey: undefined, anchorPrompt: undefined };
+  return { beats: json(beats), inputs: json(classic) };
 };
 
 /** A clip already paid for (a re-run after a failed download): fetch it again instead of generating a new one. */
@@ -201,14 +232,14 @@ const renderStep: StepFn = async (short) => {
     }),
   );
   const placed = await placeHook(parts);
-  const { video, poster } = await renderShort(placed, wav);
+  const { video, poster } = await renderShort(placed, wav, audio.words);
   const videoKey = keyFor(short.id, 'short.mp4');
   const posterKey = keyFor(short.id, 'poster.jpg');
   await Promise.all([putObject(videoKey, video, 'video/mp4'), putObject(posterKey, poster, 'image/jpeg')]);
   return { videoKey, posterKey, beats: json(placed.map((p) => p.beat)) };
 };
 
-const STEPS: Record<ShortStep, StepFn> = { 1: scriptStep, 2: makeVoiceStep(true), 3: photoStep, 4: clipStep, 5: renderStep };
+const STEPS: Record<ShortStep, StepFn> = { 1: scriptStep, 2: voiceStep, 3: photoStep, 4: clipStep, 5: renderStep };
 /** Steps that start in their own invocation on Vercel (2 when it runs with 3: voice and photos together). */
 const FRESH_INVOCATION = new Set<ShortStep>([3, 4, 5]);
 
@@ -246,7 +277,8 @@ const runStep = async (id: string, step: ShortStep, fn: StepFn = STEPS[step]): P
   const t0 = Date.now();
   const meter = createMeter();
   try {
-    const data = await fn(await load(id), meter);
+    const short = await load(id);
+    const data = await withTextModel((short.inputs as unknown as ShortInputs | null)?.textModel, () => fn(short, meter));
     await saveStep(id, step, Date.now() - t0, meter.summary(), data);
     return null;
   } catch (err) {
@@ -259,38 +291,6 @@ const runStep = async (id: string, step: ShortStep, fn: StepFn = STEPS[step]): P
 
 const markRunning = (id: string, step: ShortStep) =>
   prisma.shortReel.update({ where: { id }, data: { status: `STEP_${step}_RUNNING`, error: null, failedStep: null } });
-
-/** Runs `fn` and returns its result with how long it took. */
-const clocked = async <T>(fn: () => Promise<T>): Promise<[T, number]> => {
-  const t0 = Date.now();
-  return [await fn(), Date.now() - t0];
-};
-
-/**
- * Steps 2 and 3 side by side, then the photos moved onto the real voice. The status shows 3 once the voice is done.
- * Each step keeps its own time; the time they overlapped is saved as a negative `overlap` entry so the short's total
- * time (the sum of its step times) stays the real elapsed time.
- */
-const runVoiceAndPhotos = async (id: string): Promise<Failure | null> => {
-  await markRunning(id, 2);
-  const [[[voice, voiceMs], [photos, photoMs]], wallMs] = await clocked(() =>
-    Promise.all([
-      clocked(() => runStep(id, 2, makeVoiceStep(false))).then(async (r) => {
-        if (!r[0]) await prisma.shortReel.updateMany({ where: { id, status: 'STEP_2_RUNNING' }, data: { status: 'STEP_3_RUNNING' } });
-        return r;
-      }),
-      clocked(() => runStep(id, 3)),
-    ]),
-  );
-  await serialized(id, async () => {
-    const short = await load(id);
-    const timings = short.stepTimings as Record<string, number>;
-    const overlap = (timings.overlap ?? 0) - Math.max(0, voiceMs + photoMs - wallMs);
-    const beats = voice || photos ? null : retimed(short, short.audio as unknown as ShortAudio);
-    await prisma.shortReel.update({ where: { id }, data: { stepTimings: json({ ...timings, overlap }), ...(beats ? { beats: json(beats) } : {}) } });
-  });
-  return voice ?? photos;
-};
 
 /** True when a fresh invocation took over from `step`. */
 const handOff = async (id: string, step: ShortStep): Promise<boolean> => {
@@ -317,14 +317,18 @@ export const VOICE_SWAP_STEPS: ShortStep[] = [2, 5];
 export const runShortPipeline = async (id: string, fromStep: ShortStep = 1, continued = false, steps: ShortStep[] = ALL_STEPS): Promise<void> => {
   for (let step = fromStep; step <= 5; step = (step + 1) as ShortStep) {
     if (!steps.includes(step)) continue;
-    const together = step === 2 && steps.includes(3);
-    if ((together || FRESH_INVOCATION.has(step)) && !(continued && step === fromStep) && (await handOff(id, step))) return;
-    const failure = together ? await runVoiceAndPhotos(id) : await markRunning(id, step).then(() => runStep(id, step));
+    // Two stops for the admin: before the photos (pick the photo model) and before the paid clips (check the photos).
+    const stop = step === 3 && fromStep < 3 ? 'AWAITING_PHOTOS' : step === 4 && fromStep < 4 ? 'AWAITING_CLIPS' : null;
+    if (stop) {
+      await prisma.shortReel.update({ where: { id }, data: { status: stop } });
+      return;
+    }
+    if (FRESH_INVOCATION.has(step) && !(continued && step === fromStep) && (await handOff(id, step))) return;
+    const failure = await markRunning(id, step).then(() => runStep(id, step));
     if (failure) {
       await prisma.shortReel.update({ where: { id }, data: { status: 'FAILED', failedStep: failure.step, error: clipText(failure.message, 1_000), finishedAt: new Date() } });
       return;
     }
-    if (together) step = 3;
   }
   await prisma.shortReel.update({ where: { id }, data: { status: 'COMPLETED', finishedAt: new Date() } });
 };

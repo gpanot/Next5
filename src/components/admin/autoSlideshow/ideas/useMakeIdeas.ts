@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import type { HookCtaStyle } from '../../../../remotion/types';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { deckRenderBody, type RenderBodyContext } from '../../../labs/blitzLab/deckRenderBody';
 import { scheduleApi } from '../../../labs/blitzLab/schedule/scheduleApi';
@@ -10,6 +11,9 @@ import { announceCreditsChanged } from '../creditsEvents';
 import { ideaCard } from './ideaCards';
 import { ideasApi } from './ideasApi';
 import { loadRenderContext } from './renderContext';
+
+/** A kept idea, with the hook look picked on the deck (Blitz; none = the Default look). */
+export type KeptIdea = IdeaDto & { hookCta?: HookCtaStyle };
 
 type Options = {
   client: LabClient | null;
@@ -21,9 +25,10 @@ type Options = {
 };
 
 /** A kept Blitz idea on the calendar as a planned video (1 credit now, refunded if not approved in time). */
-const scheduleBlitz = async (client: LabClient, ctx: RenderBodyContext, idea: IdeaDto): Promise<string | null> => {
+const scheduleBlitz = async (client: LabClient, ctx: RenderBodyContext, idea: KeptIdea): Promise<string | null> => {
   const card = ideaCard(idea);
-  const built = await deckRenderBody(client, card, card.shots.map(toSlide), ctx);
+  const textOverride = idea.hookCta ? { ...ctx.textOverride, hookCtaStyle: idea.hookCta } : ctx.textOverride;
+  const built = await deckRenderBody(client, card, card.shots.map(toSlide), { ...ctx, textOverride });
   if ('error' in built) return built.error;
   const at = new Date(idea.plannedAt);
   const res = await scheduleApi.create(client, {
@@ -56,7 +61,7 @@ const renderContextOf = (client: LabClient, cache: ContextCache): Promise<Render
 };
 
 /** Makes one batch of kept ideas; returns the reason for each one that failed. Slideshows and videos go side by side. */
-const makeBatch = async (client: LabClient, o: Options, kept: IdeaDto[], cache: ContextCache): Promise<Record<string, string>> => {
+const makeBatch = async (client: LabClient, o: Options, kept: KeptIdea[], cache: ContextCache): Promise<Record<string, string>> => {
   const videos = kept.filter((i) => i.format === 'blitz');
   const scheduleVideos = async (): Promise<Record<string, string>> => {
     if (videos.length === 0) return {};
@@ -82,12 +87,12 @@ const makeBatch = async (client: LabClient, o: Options, kept: IdeaDto[], cache: 
 export function useMakeIdeas(o: Options) {
   const [making, setMaking] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const queue = useRef<IdeaDto[]>([]);
+  const queue = useRef<KeptIdea[]>([]);
   const running = useRef(false);
   const context = useRef<Promise<RenderBodyContext> | null>(null);
 
   /** `prepare` runs first (saving the keep and its day), with "making" already shown; false stops there. */
-  const make = async (kept: IdeaDto[], prepare?: () => Promise<boolean>) => {
+  const make = async (kept: KeptIdea[], prepare?: () => Promise<boolean>) => {
     if (!o.client || kept.length === 0) return;
     setMaking(true);
     if (prepare && !(await prepare())) {

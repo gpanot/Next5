@@ -16,7 +16,7 @@ function ShortCard({ short: s }: { short: ShortDto }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={s.posterUrl} alt="" loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
         ) : (
-          <div className="flex h-full items-center justify-center p-4 text-center text-xs text-app-muted">{s.status === 'FAILED' ? 'No video' : 'Making…'}</div>
+          <div className="flex h-full items-center justify-center p-4 text-center text-xs text-app-muted">{s.status === 'FAILED' ? 'No video' : s.status === 'AWAITING_CLIPS' ? 'Photos ready: check them' : s.status === 'AWAITING_PHOTOS' ? 'Voice ready: pick the photo model' : 'Making…'}</div>
         )}
         <div className="absolute top-2 left-2">
           <StatusPill status={s.status} failedStep={s.failedStep} />

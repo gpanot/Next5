@@ -11,8 +11,9 @@ import { LiveDeck } from './LiveDeck';
 import { MakeStatus } from './MakeStatus';
 import { PostDateTitle } from './PostDateTitle';
 import type { IdeasState } from './useIdeas';
+import type { KeptIdea } from './useMakeIdeas';
 
-export type Make = { making: boolean; errors: Record<string, string>; make: (kept: IdeaDto[], prepare?: () => Promise<boolean>) => Promise<void> };
+export type Make = { making: boolean; errors: Record<string, string>; make: (kept: KeptIdea[], prepare?: () => Promise<boolean>) => Promise<void> };
 /** `placeOf`: where a kept idea goes when its own day is already filled (empty days first). */
 type Placer = (idea: IdeaDto) => string | undefined;
 type Props = { ideas: IdeasState; maker: Make; placeOf?: Placer };
@@ -31,8 +32,9 @@ const SLIDESHOW_LINES = [
   'Getting them ready to swipe…',
 ];
 
-/** Writing a batch of ideas usually takes about three and a half minutes (14 stories, footage and images). */
-const TYPICAL_IDEAS_MS = 210_000;
+/** Writing a batch of ideas takes about a minute and a half at most (stories come from the bank; AI images and caption
+ *  fitting finish after the deck shows). */
+const TYPICAL_IDEAS_MS = 90_000;
 
 const deckBox = 'relative mx-auto aspect-[9/16] w-[min(calc(100vw-5rem),calc((100dvh-13.5rem)*0.5625))] rounded-[26px] bg-app-sunken lg:w-auto lg:max-w-full lg:h-[min(853px,calc(100dvh-20rem))]';
 
@@ -109,7 +111,7 @@ function Body({ ideas, maker, placeOf }: Props): ReactNode {
   if (ideas.loading) return <div className={`${deckBox} animate-pulse`} />;
   const writingBlitz = ideas.generating && ideas.filter !== 'slideshow';
   if (ideas.deck.length === 0 && writingBlitz) {
-    return <Writing since={ideas.generatingSince} lines={WRITING_LINES} note="This takes 1 to 3 minutes. You can keep using the calendar." />;
+    return <Writing since={ideas.generatingSince} lines={WRITING_LINES} note="This takes about 90 seconds. You can keep using the calendar." />;
   }
   if (ideas.deck.length === 0 && ideas.making.length > 0 && ideas.filter === 'slideshow') {
     return <Writing since={null} lines={SLIDESHOW_LINES} note="Your slideshows join the deck in about 2 minutes." />;

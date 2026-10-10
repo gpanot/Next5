@@ -12,8 +12,6 @@ type Props = {
   current: () => DeckCardData | null;
   /** Closes the editor, keeping the edits on the card. */
   finish: () => unknown;
-  /** After a save (opened from the calendar: back there). */
-  onSaved?: () => void;
 };
 
 /** The card's post on the calendar, while its edits can still be saved onto it (planned or scheduled). */
@@ -26,7 +24,7 @@ const usePostOnCalendar = (cardId: string | undefined) => {
 /** The deck card editor's "Save changes" (users do not render themselves). For a card already on the calendar it saves
  *  the edits onto that post (same day, no new credit); otherwise it keeps them on the card and goes back to the deck.
  *  Never renders: a post renders when its day comes. */
-export function SaveToCalendar({ card, current, finish, onSaved }: Props) {
+export function SaveToCalendar({ card, current, finish }: Props) {
   const post = usePostOnCalendar(card.id);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +37,6 @@ export function SaveToCalendar({ card, current, finish, onSaved }: Props) {
     setBusy(false);
     if (failure) return setError(failure);
     finish();
-    onSaved?.();
   };
   return (
     <div className="flex flex-col items-end gap-1">

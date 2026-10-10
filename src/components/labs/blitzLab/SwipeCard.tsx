@@ -241,6 +241,9 @@ export function SwipeCard({
   // ── Shot player state ──────────────────────────────────────────────────────
   const [shotIdx, setShotIdx] = useState(0);
   const [paused, setPaused] = useState(false);
+  // The player waits for the first shot's picture or clip, so a card never runs on a blank frame.
+  const [ready, setReady] = useState(false);
+  const markReady = useCallback(() => setReady(true), []);
   const rafRef = useRef<number>(0);
   const elapsedRef = useRef(0);
   const lastTsRef = useRef(0);
@@ -278,7 +281,7 @@ export function SwipeCard({
       lastTsRef.current = now;
 
       const isDrawerOpen = whyOpenRef.current;
-      if (!paused && !externalPause && !isDrawerOpen) {
+      if (ready && !paused && !externalPause && !isDrawerOpen) {
         elapsedRef.current += dt;
         const dur = SHOT_DURATIONS[shotIdxRef.current] ?? 4;
         if (elapsedRef.current >= dur) {
@@ -296,7 +299,7 @@ export function SwipeCard({
     rafRef.current = requestAnimationFrame(tick);
     return () => { cancelAnimationFrame(rafRef.current); lastTsRef.current = 0; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTop, paused, externalPause]);
+  }, [isTop, paused, externalPause, ready]);
 
   function jumpShot(delta: number) {
     const next = Math.max(0, Math.min(shots.length - 1, shotIdxRef.current + delta));
@@ -437,7 +440,15 @@ export function SwipeCard({
           playing={isTop}
           muted={!soundOn || !isTop || paused || externalPause}
           fallback={(i) => tint(hue, i)}
+          onFirstReady={markReady}
         />
+
+        {/* ── Loading: the first shot is not on screen yet ─────────────────── */}
+        {isTop && !ready && (
+          <div role="status" aria-label="Loading video" className="pointer-events-none absolute inset-0 z-[3] grid place-items-center bg-black/25">
+            <span aria-hidden className="h-8 w-8 animate-spin rounded-full border-[3px] border-white/30 border-t-white" />
+          </div>
+        )}
 
         {/* ── Progress bars ───────────────────────────────────────────────── */}
         {isTop && (

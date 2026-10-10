@@ -6,17 +6,19 @@ import { useAdminApi } from '../business/useAdminApi';
 import { AnalyticsPanel } from './AnalyticsPanel';
 import { BlitzMatrixPanel } from './BlitzMatrixPanel';
 import { BrandPanel } from './BrandPanel';
+import { CastPanel } from './CastPanel';
 import { MatrixPanel } from './MatrixPanel';
 import { OverviewPanel } from './OverviewPanel';
 import { PanelError, PanelSkeleton } from './PanelStates';
 import { useImpersonation } from './useImpersonation';
 
-type TabId = 'overview' | 'analytics' | 'brand' | 'matrix' | 'blitzMatrix';
+type TabId = 'overview' | 'analytics' | 'brand' | 'cast' | 'matrix' | 'blitzMatrix';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'analytics', label: 'Analytics' },
   { id: 'brand', label: 'Brand extraction' },
+  { id: 'cast', label: 'Cast' },
   { id: 'matrix', label: 'Matrix' },
   { id: 'blitzMatrix', label: 'Blitz Matrix' },
 ];
@@ -56,7 +58,7 @@ function Header({ detail, onOpen, openError }: { detail: WorkspaceDetailDto; onO
   );
 }
 
-/** Admin view of one workspace: header with "Open as user", then Overview, Analytics, Brand extraction, Matrix and Blitz Matrix tabs. */
+/** Admin view of one workspace: header with "Open as user", then Overview, Analytics, Brand extraction, Cast, Matrix and Blitz Matrix tabs. */
 export function WorkspaceDetailPage({ token, workspaceId }: { token: string; workspaceId: string }) {
   const { data, error, refresh } = useAdminApi<WorkspaceDetailDto>(token, `/api/admin/workspaces/${workspaceId}`);
   const { openAsUser, error: openError } = useImpersonation(token, workspaceId);
@@ -80,6 +82,7 @@ export function WorkspaceDetailPage({ token, workspaceId }: { token: string; wor
         {tab === 'overview' && <OverviewPanel detail={data} onOpenRun={openRun} />}
         {tab === 'analytics' && <AnalyticsPanel token={token} workspaceId={workspaceId} product={data.workspace.product} />}
         {tab === 'brand' && <BrandPanel token={token} workspaceId={workspaceId} />}
+        {tab === 'cast' && <CastPanel token={token} workspaceId={workspaceId} />}
         {tab === 'matrix' && <MatrixPanel token={token} workspaceId={workspaceId} onOpenRun={openRun} />}
         {tab === 'blitzMatrix' && <BlitzMatrixPanel token={token} workspaceId={workspaceId} />}
       </div>

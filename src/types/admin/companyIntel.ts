@@ -1,5 +1,7 @@
 // Company data read from a website: shared by Perfect Ads and Auto Slideshow.
 
+import type { VisualBible } from './visualBible';
+
 /** How a brand's slideshows look, so a Porsche deck does not look like a budget car's. */
 export type SlideshowStyle = {
   /** Who and what the photos show, where, and how they are framed, in the brand's own world. Never lighting: photos stay bright. */
@@ -30,4 +32,6 @@ export type BrandProfile = {
   pageExcerpt: string;
   /** Missing on profiles made before 2026-10-02: slideshows then use the default look. */
   slideshowStyle?: SlideshowStyle;
+  /** Shorts photo rules read from the site's photos; built on the first short (since 2026-10-10). */
+  visualBible?: VisualBible;
 };

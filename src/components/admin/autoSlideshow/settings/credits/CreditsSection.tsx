@@ -10,7 +10,7 @@ import { Notice } from './fields';
 import { HistoryList } from './HistoryList';
 import { TopUpCard } from './TopUpCard';
 import { useCheckoutReturn } from './useCheckoutReturn';
-import { CREDITS_CHANGED } from '../../creditsEvents';
+import { announceCreditsChanged, CREDITS_CHANGED } from '../../creditsEvents';
 
 function CreditsSkeleton() {
   return (
@@ -23,7 +23,8 @@ function CreditsSkeleton() {
 /** Settings → Credits: balance, top up by card, auto top up and saved cards. $1.99 per slideshow. */
 export function CreditsSection({ token, workspaceId }: { token: string; workspaceId: string }) {
   const { data, error, loading, refresh } = useAdminApi<CreditsDto>(token, '/api/slideshow/credits');
-  const returned = useCheckoutReturn(token, refresh);
+  // A Stripe return tells every balance reader (this page and the sidebar), not just this one.
+  const returned = useCheckoutReturn(token, announceCreditsChanged);
   // Spending or refunds elsewhere (keeping an idea, making slideshows): the balance re-reads at once.
   useEffect(() => {
     window.addEventListener(CREDITS_CHANGED, refresh);

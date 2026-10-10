@@ -43,11 +43,20 @@ export function ContentIcon() {
   );
 }
 
-/** A tag: the brand's own material. */
 export function ChartIcon() {
   return (
     <Svg>
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </Svg>
+  );
+}
+
+/** A tag: the brand's own material. */
+export function BrandIcon() {
+  return (
+    <Svg>
+      <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" />
+      <circle cx="8" cy="8" r="1.5" />
     </Svg>
   );
 }

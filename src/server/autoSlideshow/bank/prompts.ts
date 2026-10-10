@@ -77,10 +77,12 @@ export const CTA_SYSTEM = `You write 3 CTA slides (last slide) for TikTok slides
 - photo: the CTA slide's background: someone in the audience enjoying the result. ${PHOTO_RULES}
 Return JSON: {"ctas":[{"angle","title","body","photo"}]}`;
 
-export const businessBrief = (profile: BrandProfile, levers: BrandLever[]): string =>
+/** `productLooks`: the products as the brand's own photos show them (Brand page uploads), one short line each. */
+export const businessBrief = (profile: BrandProfile, levers: BrandLever[], productLooks: string[] = []): string =>
   [
     `BUSINESS: ${profile.brandName} (${profile.domain})`,
     `Sells: ${profile.valueProp}`,
+    ...(productLooks.length ? [`Products (from the brand's own photos): ${productLooks.join('; ')}`] : []),
     `Audience: ${profile.audience}`,
     `Tone: ${profile.tone}`,
     `Proven claims: ${levers.map((l) => `"${l.claim}"`).join(' · ') || 'none'}`,

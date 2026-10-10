@@ -299,6 +299,7 @@ model Workspace {
   studioRuns          StudioRun[]
   assetDescriptors    AssetDescriptor[]
   userUploads         UserUpload[]
+  brandCast           BrandCastMember[]
 
   // One Brand and one Shop studio per user: a partial unique index in SQL (db/migrations, *_slideshow_workspaces.sql)
   // that skips 'slideshow' workspaces. Prisma cannot express it, so it is not declared here.
@@ -333,6 +334,44 @@ model UserUpload {
   @@index([workspaceId])
   @@index([workspaceId, createdAt(sort: Desc)])
   @@map("user_uploads")
+}
+
+/// One recurring person of a workspace's Brand Cast (src/server/brandCast): made from the brand's audience and Visual
+/// Bible, with an anchor photo that slideshow photos use as a reference so the same faces come back.
+model BrandCastMember {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  /// 1-3, the member's place on the Brand page
+  slot        Int
+  /// First name and age, e.g. "Maya, 28"
+  name        String
+  /// 15-30 words: face, hair, build, skin tone, style. Goes into every photo prompt the member is in.
+  look        String
+  /// The anchor photo's full prompt
+  prompt      String
+  imageKey    String?  @map("image_key")
+  /// "pending" | "ready" | "failed"
+  status      String   @default("pending")
+  error       String?
+  /// Slideshows that used this member: the next slideshow takes the least used
+  uses        Int      @default(0)
+  /// Gemini TTS prebuilt voice of the intro video (src/server/shorts/voices.ts)
+  voice         String?
+  /// The intro video's spoken line ("Hi, I'm Maya…")
+  introScript   String?   @map("intro_script")
+  introVideoKey String?   @map("intro_video_key")
+  /// "none" | "pending" | "ready" | "failed"
+  introStatus   String    @default("none") @map("intro_status")
+  introError    String?   @map("intro_error")
+  /// When the intro was last started (a "pending" intro older than 8 minutes was cut off)
+  introAt       DateTime? @map("intro_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, slot])
+  @@map("brand_cast_members")
 }
 
 /// A content angle (customer pain point) used to generate blitz card text overlays.

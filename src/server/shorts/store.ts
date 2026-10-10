@@ -57,15 +57,27 @@ export const getShortDetail = async (id: string): Promise<ShortDetailDto | null>
   const names = await workspaceNames([short.workspaceId]);
   const audio = short.audio as unknown as ShortAudio | null;
   const beats = short.beats as unknown as ShortBeat[];
-  const [base, audioUrl, signedBeats, options] = await Promise.all([
+  const inputs = short.inputs as unknown as ShortInputs | null;
+  const [base, audioUrl, signedBeats, options, anchorUrl] = await Promise.all([
     toDto(short, names.get(short.workspaceId) ?? ''),
     sign(audio?.key),
-    Promise.all(beats.map(async (b) => ({ ...b, imageUrl: await sign(b.imageKey), clipUrl: await sign(b.clipKey) }))),
+    Promise.all(
+      beats.map(async (b) => ({
+        ...b,
+        imageUrl: await sign(b.imageKey),
+        imageDownloadUrl: b.imageKey ? await presignObject(b.imageKey, undefined, `short-${short.id}-shot-${b.idx + 1}.jpg`) : null,
+        clipUrl: await sign(b.clipKey),
+      })),
+    ),
     Promise.all((audio?.options ?? []).map(async (o) => ({ ...o, sampleUrl: await sign(o.sampleKey) }))),
+    sign(inputs?.anchorKey),
   ]);
   return {
     ...base,
-    inputs: short.inputs as unknown as ShortInputs | null,
+    // Before step 1 the inputs hold only the text model.
+    inputs: inputs?.brandName ? inputs : null,
+    textModel: inputs?.textModel ?? null,
+    anchorUrl,
     attempts: short.attempts as unknown as ShortScriptAttempt[],
     audio: audio
       ? { durationS: audio.durationS, voice: audio.voice, words: audio.words, sentences: audio.sentences, tempo: audio.tempo, rawWpm: audio.rawWpm, direction: audio.direction, pickedBy: audio.pickedBy, options, url: audioUrl }

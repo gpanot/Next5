@@ -63,11 +63,26 @@ export type AutoPlan = {
 /** `hook`: made for one slideshow's first slide (older runs). `slide`: made for one slide, named by `owner`
  *  ("slideshowId:slideIndex"), so two slideshows on the same bank meat get different images. Other photos are the run's
  *  shared pool. `deleted`: the owner removed this photo from Settings; a re-run keeps it removed instead of making it again. */
-export type AutoPhoto = { prompt: string; imageKey: string | null; error: string | null; kind?: 'hook' | 'slide'; owner?: string; deleted?: true; heads?: HeadBox[]; gen?: PhotoGen };
+/** `refs`: storage keys of the reference images it is made from (brand cast member first, then the product), `refNote`
+ *  what they are; `brandPhotoKey`: a brand photo used as it is instead of a generated one (photo plan, since 2026-10-10). */
+export type AutoPhoto = {
+  prompt: string;
+  imageKey: string | null;
+  error: string | null;
+  kind?: 'hook' | 'slide';
+  owner?: string;
+  deleted?: true;
+  heads?: HeadBox[];
+  gen?: PhotoGen;
+  refs?: string[];
+  refNote?: string;
+  brandPhotoKey?: string;
+};
 
 /** How a photo was made, kept so it can be made again for a test. `prompt` above is only the scene; `sentPrompt` is the
  *  full text the model got (scene + brand look + style). Missing on photos made before 2026-10-02. */
-export type PhotoGen = { sentPrompt: string; model: string; ratio: string; highRes: boolean; taskId: string; styleVersion: string; createdAt: string };
+/** `refs`: how many reference images went with the prompt. */
+export type PhotoGen = { sentPrompt: string; model: string; ratio: string; highRes: boolean; taskId: string; styleVersion: string; createdAt: string; refs?: number };
 
 /** One human head in a photo, as shares (0-1) of its width and height. Step 6 keeps the slide text off these. */
 export type HeadBox = { top: number; left: number; bottom: number; right: number };
@@ -80,6 +95,12 @@ export type AutoSlide = {
   photoIndex: number;
   /** Scene made as this slide's own photo in step 5 (every slide on bank runs; the hook slide only on older runs). */
   photoPrompt?: string;
+  /** Photo plan (step 4, since 2026-10-10): reference images for this slide's photo (storage keys), what they are, a
+   *  brand photo used as it is, and the brand cast member it shows. */
+  photoRefs?: string[];
+  photoRefNote?: string;
+  brandPhotoKey?: string;
+  castId?: string;
   /** Rendered 1080x1350 JPEG, once step 6 ran. */
   imageKey: string | null;
 };

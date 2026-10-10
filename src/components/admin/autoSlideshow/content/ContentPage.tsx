@@ -1,7 +1,5 @@
 'use client';
 
-import { ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { BlitzSlideTab } from './BlitzSlideTab';
@@ -31,21 +29,18 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** `?editPost=`: one Blitz video open in the Blitz editor, with the way back to the Library. */
+/** `?editPost=`: one Blitz video open on its own in the Blitz editor (no deck); its edit bar holds the way back. */
 function BlitzEdit({ token, workspaceId, postId }: { token: string; workspaceId: string; postId: string }) {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-      <Link href={`/slideshow/${workspaceId}/content`} className="flex min-h-11 w-fit items-center gap-2 rounded-full px-3 text-sm font-medium text-app-muted transition hover:bg-app-sunken hover:text-app-ink">
-        <ArrowLeft aria-hidden className="h-4 w-4" /> Library
-      </Link>
       <BlitzSlideTab key={postId} token={token} workspaceId={workspaceId} editPostId={postId} />
     </div>
   );
 }
 
 /**
- * One workspace's Library: everything made, Blitz videos and slideshows, filtered by format. A Blitz video opens in the
- * Blitz editor (`?editPost=`, also used by the calendar's "Edit"); a slideshow opens in the slideshow editor.
+ * One workspace's Library: everything made, Blitz videos and slideshows, filtered by format. A Blitz video opens in its
+ * sheet (as on the calendar); its Edit opens the Blitz editor (`?editPost=`); a slideshow opens in the slideshow editor.
  */
 export function ContentPage({ token, workspaceId }: { token: string; workspaceId: string }) {
   const [filter, setFilter] = useState<LibraryFilter>('all');

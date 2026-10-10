@@ -21,7 +21,8 @@
  * Without a linked run the editor is a free-form slideshow.
  *
  * Workspace flow (Content page): `workspaceRunId` is the run built from the workspace's own site profile, so there is
- * no Profile step; the editor opens on the Videos deck.
+ * no Profile step; the editor opens on the Videos deck. With `editPostId` (Library or calendar "Edit") the deck is not
+ * shown: only that video opens, with one way back and "Save changes".
  *
  * B2B No Website flow: Profile → Videos. Same website engine, but the profile is typed by hand
  * and carries product photos (read by a vision model) that play behind the product shots.
@@ -58,7 +59,7 @@ import { SlidePreview, type SlideData } from './SlidePreview';
 import { SlideshowCopyPanel } from './SlideshowCopyPanel';
 import { ZillowScrapeStep, type ZillowData } from './ZillowScrapeStep';
 import { resolveSlideshowMode } from './useSlideshowMode';
-import { blitzApi, type BlitzProjectDto, type BlitzTemplateDto } from './api';
+import { blitzApi, type BlitzTemplateDto } from './api';
 import type { BlitzUploadType } from './upload';
 import { isLocalKey } from './useBlitzUploads';
 import { useBlitzWorkspace } from './useBlitzWorkspace';
@@ -72,55 +73,12 @@ import { MaybeSchedule } from './schedule/MaybeSchedule';
 import { useCachedDeckCards, useResumeDeckRenders } from './useDeckCache';
 import { useDeckMusicMatch } from './useDeckMusicMatch';
 import { useSetRemix } from './useSetRemix';
-import { OpenPostError, SaveToCalendar, useOpenPost } from './schedule/editPost';
+import { OpenPostError, PostEditBar, SaveToCalendar, useOpenPost } from './schedule/editPost';
 import { PlayItButton, usePlayThrough } from './PlayIt';
 import { buildSet } from './slideshowSet';
 import { useTextLayout } from './useTextLayout';
 import type { BlitzLayer } from './canvasHitTest';
-
-const DEFAULT_SLIDES: SlideData[] = [
-  { text: "Here's the #1 mistake people make…" },
-  { text: "Here's what actually works." },
-  { text: 'Save this if you found it helpful!' },
-];
-
-type Step = 'profile' | 'research' | 'deck' | 'editor';
-/** 'research' is the Angle step of the Zillow flow. */
-
-/** Numbered steps — varies by flow type and whether linked to Campaign Studio. */
-const buildSteps = (withProfile: boolean, flowType: FlowType | null): { id: Step; label: string }[] => {
-  if (flowType === 'real_estate') {
-    return [
-      { id: 'profile',  label: '1 · Zillow' },
-      { id: 'research', label: '2 · Angle' },
-      { id: 'deck',     label: '3 · Videos' },
-    ];
-  }
-  // Linked to a Campaign Studio run, or a hand-typed profile: the website engine builds the deck.
-  if (withProfile || flowType === 'b2b_manual') {
-    return [
-      { id: 'profile', label: '1 · Profile' },
-      { id: 'deck',    label: '2 · Videos' },
-    ];
-  }
-  return [{ id: 'editor', label: '1 · Slideshow' }];
-};
-
-/** A render belongs to this editor when its assets carry slides. */
-const isSlideshowProject = (project: BlitzProjectDto): boolean => {
-  const assets = project.currentAssets as { slides?: unknown } | null;
-  return Boolean(assets && 'slides' in assets);
-};
-
-function EditorSkeleton() {
-  return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr_220px]" aria-busy="true">
-      <div className="h-72 animate-pulse rounded-2xl bg-surface-alt" />
-      <div className="mx-auto w-full max-w-[340px] animate-pulse rounded-2xl bg-surface-alt" style={{ aspectRatio: '9/16' }} />
-      <div className="h-48 animate-pulse rounded-2xl bg-surface-alt" />
-    </div>
-  );
-}
+import { buildSteps, DEFAULT_SLIDES, EditorSkeleton, isSlideshowProject, type Step } from './slideshowEditorParts';
 
 type EditorProps = {
   initialFlowType?: FlowType;
@@ -541,6 +499,8 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
         <>
           {/* Workspace decks can put kept videos on the calendar. */}
           <MaybeSchedule on={Boolean(workspaceRunId)} bodyFor={cardRender.bodyFor}>
+            {/* One calendar video open on its own (`?editPost=`): no deck, nothing to swipe. */}
+            {!editPostId && (
             <div className={editingCard ? 'hidden' : undefined}>
               <SlideshowDeckStep
                 key={deckSource.kind === 'zillow' ? `zillow-${deckSource.angle}` : `website-${deckSource.runId}`}
@@ -560,8 +520,15 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 aside={(card, sound) => <DeckAside card={card} sound={sound} deckCards={deckCards} setDeckCards={setDeckCards} assets={assets} captionConfig={text.resolved} />}
               />
             </div>
+            )}
           <OpenPostError message={openPost.error} />
-          {editingCard && (
+          {editingCard && editPostId && (
+            <>
+              <PostEditBar onBack={openPost.exit} actions={<SaveToCalendar card={editingCard} current={deck.cardWithEdits} finish={openPost.exit} />} />
+              {editorView}
+            </>
+          )}
+          {editingCard && !editPostId && (
             <>
               <DeckEditBar
                 lensLabel={editingCard.lensValue}
@@ -569,11 +536,12 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 position={deckCards.indexOf(editingCard) + 1}
                 total={deckCards.length}
                 onBack={deck.backToDeck}
-                actions={<SaveToCalendar card={editingCard} current={deck.cardWithEdits} finish={deck.backToDeck} onSaved={openPost.onSaved} />}
+                actions={<SaveToCalendar card={editingCard} current={deck.cardWithEdits} finish={deck.backToDeck} />}
               />
               {editorView}
             </>
           )}
+          {!editingCard && editPostId && !openPost.error && <EditorSkeleton />}
           </MaybeSchedule>
         </>
       )}

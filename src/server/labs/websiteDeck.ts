@@ -7,25 +7,28 @@
 //   1. writeMeat          1 LLM call (+ retries): levers, 5 story lines, CTA, checked against the site
 //   2. generateHooks      1 LLM call: 18 hooks → 6 (Result-first only with real proof)
 //      (1–2 run in parallel across briefs)
-//   3. directWebsiteMedia semantic search over the described library, IDC-led queries; story shots
-//      must match the audience's industry (sequential across briefs: no clip twice in a deck)
-//   4. generateShotImages AI images for story shots the library can't cover (parallel), saved to
-//      the library with categories so the next deck reuses them
+//   3. searchWebsiteMedia semantic search over the described library, IDC-led queries (parallel across briefs);
+//      pickWebsiteMedia then picks, brief after brief: story shots must match the audience's industry, no clip
+//      twice in a deck
+//   4. generateShotImages AI images for story shots the library can't cover (parallel, one per moment of the
+//      deck), saved to the library with categories so the next deck reuses them
 // Then music, interleave, caption Auto Fit on every shot (captionFit.tsx), persist.
 // Steps 1–2 can also come ready-made from the workspace's Blitz Script Bank (blitzBank.ts): deckFromScripts runs 3–4.
 
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
-import { contentWords } from '../slideshow/core/copyGuards';
+import { contentWords, noEmDash } from '../slideshow/core/copyGuards';
 import { buildBriefCards, interleave, persistCards, type DeckItem, type StoryMedia, type StoryTexts } from '../slideshow/core/deckAssembly';
 import { generateHooks } from '../slideshow/core/hooks';
-import { clipKey, type LibraryTrack } from '../slideshow/core/library';
+import { clipKey, type LibraryAsset, type LibraryTrack } from '../slideshow/core/library';
 import { matchTracks } from '../autoSlideshow/music';
 import { blitzBrowserUrl } from '../admin/blitzStore';
 import { websiteEngine, type WebsiteBrief, type WebsiteSource } from '../slideshow/engines/website/engine';
-import { applyGenerated, directWebsiteMedia, type WebsiteMedia } from '../slideshow/engines/website/media';
+import { applyGenerated, pickWebsiteMedia, searchWebsiteMedia, type WebsiteMedia, type WebsiteMediaInput } from '../slideshow/engines/website/media';
 import { categoriesForAudience } from '../slideshow/core/audienceCategories';
-import { generateShotImages } from '../slideshow/core/generatedAssets';
+import type { ImageNeed } from '../slideshow/core/generatedAssets';
+import { makeBatchImages, type BatchNeed } from '../slideshow/core/imageNeeds';
+import type { PhotoBrand, ShotPhoto } from '../slideshow/core/shotPhotos';
 import { fitDeckCaptions } from '../slideshow/core/captionFit';
 import type { StudioProfileData } from '../studio/types';
 import type { HookArchetype, ProofPoint, Tone } from '../slideshow/core/types';
@@ -63,6 +66,19 @@ export type BriefScript = {
   /** Campaign stage and story format of a bank story (blitzFormats.ts). */
   stage?: Stage;
   format?: StoryFormat;
+  /** Photo prompts written with the bank story, by shot. */
+  photos?: Partial<Record<ImageNeed['role'], ShotPhoto>>;
+};
+
+/** What the deck's AI images must feel like: the business and its visual style (Settings › brand). */
+export const photoBrand = (source: WebsiteSource): PhotoBrand => {
+  const style = source.profile.visual?.slideshowStyle?.value ?? null;
+  return {
+    business: source.profile.identity.businessName.value,
+    sells: source.profile.positioning.promoting.value,
+    look: style?.photoStyle ?? null,
+    productAsSubject: style?.productAsSubject ?? false,
+  };
 };
 
 /** Share of a numbered hook's words that must come from one proof quote: the hook may restate proof, never add to it. */
@@ -85,7 +101,8 @@ export async function writeBrief(brief: WebsiteBrief, slot: number): Promise<Bri
     websiteEngine.writeMeat(brief),
     categoriesForAudience(brief.idc),
   ]);
-  const story: StoryTexts = { ...meat, cta };
+  // No em dash on screen: it reads as AI copy.
+  const story = Object.fromEntries(Object.entries({ ...meat, cta }).map(([k, v]) => [k, noEmDash(v)])) as StoryTexts;
   console.log(`[WebsiteDeck:${brief.idc}] industries=${categories.join(',') || '-'} story: ${Object.values(story).join(' | ')}`);
   const baseRules = websiteEngine.hookRules(brief);
   const { kept: hooks } = await generateHooks({
@@ -98,7 +115,7 @@ export async function writeBrief(brief: WebsiteBrief, slot: number): Promise<Bri
     rules: { ...baseRules, specifics: [...(baseRules.specifics ?? []), ...contentWords(levers.namedMechanism), ...contentWords(story.pain)] },
     levers,
   });
-  const proven = hooks.filter((h) => hookClaimIsProven(h.text, brief.proofPoints));
+  const proven = hooks.filter((h) => hookClaimIsProven(h.text, brief.proofPoints)).map((h) => ({ ...h, text: noEmDash(h.text) }));
   if (proven.length < hooks.length) console.log(`[WebsiteDeck:${brief.idc}] dropped ${hooks.length - proven.length} hook(s) claiming more than the proof`);
   return { idc: brief.idc, categories, tone: brief.tone, proofNote: proofNote(brief), story, hooks: proven, slot };
 }
@@ -195,38 +212,62 @@ export async function generateWebsiteDeck(runId: string, opts: { contentDeck?: b
 
 /**
  * Footage half of a deck: music, library search, AI images for the shots the library lacks, caption Auto Fit, saved.
- * `deckRunId`: a Content-page batch of that run (workspaceDeck.ts).
+ * `deckRunId`: a Content-page batch of that run (workspaceDeck.ts). `later`: no model call before the response — shots
+ * the library lacks keep their best library match (the card lists them in `pendingImages`) and captions are placed from
+ * saved fits; the caller runs finishIdeaCards after the response.
  */
-export async function deckFromScripts(source: WebsiteSource, written: BriefScript[], deckRunId?: string): Promise<DeckItem[]> {
+export async function deckFromScripts(source: WebsiteSource, written: BriefScript[], deckRunId?: string, opts: { later?: boolean } = {}): Promise<DeckItem[]> {
+  const started = Date.now();
+  const laps: string[] = [];
+  const lap = (step: string) => laps.push(`${step} ${((Date.now() - started) / 1000).toFixed(1)}s`);
   // Music in parallel with the footage: one track per card, picked like a slideshow's (shared matchTracks).
   const music = cardTracks(written, source.workspaceId).catch((): LibraryTrack[][] => written.map(() => []));
 
-  // Library search: sequential, one used-file set, so no clip appears twice in the deck; files the workspace showed
-  // lately go last, so a new batch does not repeat the last one.
+  // Library search: every brief in parallel (one embeddings call each); then the picks, brief after brief, with one
+  // used-file set, so no clip appears twice in the deck; files the workspace showed lately go last, so a new batch
+  // does not repeat the last one. Bank decks (one card a day) may show a fix or proof file again a few days later.
   const used = new Set<string>();
-  const recent = await recentClips(source.workspaceId).catch((err: unknown) => {
-    console.warn('[WebsiteDeck] recent clips unreadable:', err instanceof Error ? err.message : err);
-    return new Set<string>();
-  });
+  const spacedAt = written.every((b) => b.storyId) ? new Map<string, number>() : null;
+  const inputs: WebsiteMediaInput[] = written.map((b) => ({
+    idc: b.idc, categories: b.categories, tone: b.tone, story: b.story, hooks: b.hooks,
+    workspaceId: source.workspaceId, used, products: source.profile.products?.value,
+    beatIntents: b.format ? FORMAT_DEFS[b.format].intents : undefined,
+    photos: b.photos, storyId: b.storyId, beatLabels: b.format ? FORMAT_DEFS[b.format].labels : undefined,
+  }));
+  const [recent, searches] = await Promise.all([
+    recentClips(source.workspaceId).catch((err: unknown) => {
+      console.warn('[WebsiteDeck] recent clips unreadable:', err instanceof Error ? err.message : err);
+      return new Set<string>();
+    }),
+    Promise.all(inputs.map(searchWebsiteMedia)),
+  ]);
+  lap('search');
   const media: WebsiteMedia[] = [];
-  for (const b of written) {
-    media.push(await directWebsiteMedia({
-      idc: b.idc, categories: b.categories, tone: b.tone, story: b.story, hooks: b.hooks,
-      workspaceId: source.workspaceId, used, recent, products: source.profile.products?.value,
-      beatIntents: b.format ? FORMAT_DEFS[b.format].intents : undefined,
-    }));
+  for (let i = 0; i < written.length; i++) {
+    const spaced = spacedAt ? { at: spacedAt, position: i } : undefined;
+    media.push(await pickWebsiteMedia({ ...inputs[i]!, recent, spaced }, searches[i]!));
   }
+  lap('pick');
 
-  // AI images for the story shots the library could not cover, all audiences in parallel.
-  // Each image is saved to the library (categories, description, embedding) for the next deck.
-  const generated = await Promise.all(written.map((b, i) =>
-    generateShotImages(b.idc, b.categories, media[i]!.needs, source.workspaceId)));
+  // AI images for the story shots the library could not cover, one per moment of the batch (makeBatchImages).
+  // `later`: none now, the cards keep their library match and list what they still need.
+  const needs: BatchNeed[] = media.flatMap((m, i) => m.needs.map((need) => ({ script: i, audience: written[i]!.idc, categories: written[i]!.categories, need })));
+  const generated = opts.later ? written.map(() => new Map<string, LibraryAsset>()) : await makeBatchImages(needs, written.length, source.workspaceId, photoBrand(source));
+  lap('images');
 
   const tracks = await music;
-  const decks = await Promise.all(written.map(async (b, i) =>
-    cardsFor(b, await applyGenerated(media[i]!, b.idc, generated[i]!), media[i]!, tracks[i]!)));
+  const decks = await Promise.all(written.map(async (b, i) => {
+    const cards = cardsFor(b, await applyGenerated(media[i]!, b.idc, generated[i]!), media[i]!, tracks[i]!);
+    const pending = media[i]!.needs;
+    return opts.later ? cards.map((c) => ({ ...c, finishing: true, ...(pending.length ? { pendingImages: { audience: b.idc, categories: b.categories, needs: pending } } : {}) })) : cards;
+  }));
   // Quality first: every shot's caption is placed by the vision Auto Fit on its real frame (~$0.006 per unique shot),
   // so no card shows its caption over a face. A shot that cannot be fitted keeps its text-safe-zone position.
-  const fitted = await fitDeckCaptions(interleave(decks));
-  return persistCards(fitted, { workspaceId: source.workspaceId, deckRunId });
+  // `later`: saved fits and known heads only, the Auto Fit runs after the response.
+  const fitted = await fitDeckCaptions(interleave(decks), { models: !opts.later });
+  lap('captions');
+  const saved = await persistCards(fitted, { workspaceId: source.workspaceId, deckRunId });
+  lap('saved');
+  console.log(`[WebsiteDeck] ${written.length} script(s), ${saved.length} card(s): ${laps.join(', ')}`);
+  return saved;
 }

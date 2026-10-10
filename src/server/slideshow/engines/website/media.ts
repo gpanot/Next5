@@ -12,14 +12,16 @@
 //   Cost/bridge worried / losing-out clip, industry boosted
 //   CTA         person pointing / talking to camera, industry boosted
 // No video file appears twice in a deck, and each card gets its own story footage (same lines, other clips), so a
-// batch of cards does not look like one video six times. Files the workspace showed recently go last.
+// batch of cards does not look like one video six times (in batch decks, a fix or proof file may come back a few
+// cards later). Files the workspace showed recently go last, but a strong recent match still beats a new AI image.
 // Every shot carries up to 4 swaps.
 // With product photos (manual profiles), Mechanism / Proof / CTA and Result-first hooks show
 // the business's own photos instead (productMedia.ts); no AI image is made for those shots.
 
 import type { ProductPhoto } from '../../../../lib/manualProfile';
 import type { ImageNeed } from '../../core/generatedAssets';
-import type { LibraryAsset } from '../../core/library';
+import type { ShotPhoto } from '../../core/shotPhotos';
+import { clipKey, type LibraryAsset } from '../../core/library';
 import {
   AVOID_ON_PROBLEM,
   claim,
@@ -71,6 +73,35 @@ const HOOK_POOL = 30;
 const strongMatch = (a: LibraryAsset | undefined, cats: string[]): a is LibraryAsset =>
   Boolean(a) && (!cats.length || a!.categories.some((c) => cats.includes(c))) && !(a!.similarity > 0 && a!.similarity < MIN_SHOT_SIMILARITY);
 
+/**
+ * Strong matches first (in their order), then the rest. The ranking blends slot, energy and a random nudge, so the
+ * top asset can be weak while a strong one sits a few places lower: that one is shown instead of making an image.
+ * A strong file the workspace showed lately also beats a new image.
+ */
+const strongFirst = (pool: LibraryAsset[], cats: string[]): LibraryAsset[] =>
+  [...pool.filter((a) => strongMatch(a, cats)), ...pool.filter((a) => !strongMatch(a, cats))];
+
+/**
+ * Story shots whose lines repeat across a batch's stories (the product fix, the same proof quote): in batch decks a
+ * file may come back REUSE_GAP cards (days) later. New images for them looked the same anyway.
+ */
+const SPACED_SHOTS: ReadonlySet<keyof StoryTexts> = new Set(['mechanism', 'proof']);
+const REUSE_GAP = 4;
+
+/** Files a shot may not take: the deck's used ones, and spaced files shown fewer than REUSE_GAP cards ago (or any, when the shot is not spaced). */
+const takenFor = (key: keyof StoryTexts, used: Set<string>, spaced: WebsiteMediaInput['spaced']): Set<string> => {
+  if (!spaced?.at.size) return used;
+  const canReuse = SPACED_SHOTS.has(key);
+  const near = [...spaced.at].filter(([, at]) => !canReuse || spaced.position - at < REUSE_GAP).map(([file]) => file);
+  return new Set([...used, ...near]);
+};
+
+/** Claims a story shot's file: spaced shots of batch decks remember their position, the rest join `used`. */
+const claimStory = (key: keyof StoryTexts, shot: ShotMedia, used: Set<string>, spaced: WebsiteMediaInput['spaced']) => {
+  if (spaced && SPACED_SHOTS.has(key) && shot.assetKey) spaced.at.set(clipKey(shot.assetKey), spaced.position);
+  else claim(used, shot);
+};
+
 export type WebsiteMediaInput = {
   idc: string;
   /** Audience industries (core/audienceCategories.ts). */
@@ -87,6 +118,16 @@ export type WebsiteMediaInput = {
   products?: ProductPhoto[];
   /** Footage wanted behind a story beat when the story's format gives it another meaning (Blitz formats). */
   beatIntents?: Partial<Record<keyof StoryTexts, string>>;
+  /**
+   * Batch decks (one card per script, one card a day): files of SPACED_SHOTS (clipKey → card position last shown) and
+   * this card's position. Those shots may reuse a file REUSE_GAP cards later instead of asking for a new image.
+   */
+  spaced?: { at: Map<string, number>; position: number };
+  /** Photo prompts written with the story (bank stories), by shot: an AI image for that shot uses its own. */
+  photos?: Partial<Record<ImageNeed['role'], ShotPhoto>>;
+  /** The story's id and what each beat is in its format ("Myth", "Step 1"), for prompts written later. */
+  storyId?: string;
+  beatLabels?: Partial<Record<keyof StoryTexts, string>>;
 };
 
 export type WebsiteMedia = {
@@ -122,29 +163,44 @@ async function storyPerCard(ranked: LibraryAsset[][], cards: number, cats: strin
   return perCard;
 }
 
-/** Chooses media for one brief: the first card's story (with image needs), other footage per card, a hook per card. */
-export async function directWebsiteMedia(input: WebsiteMediaInput): Promise<WebsiteMedia> {
+/** A brief's library rankings (story shots, then hooks) and product-photo plan: no deck state, so briefs run in parallel. */
+export type WebsiteSearch = { ranked: LibraryAsset[][]; products: Awaited<ReturnType<typeof planProductShots>> };
+
+/** Searches the library for one brief's shots. */
+export async function searchWebsiteMedia(input: WebsiteMediaInput): Promise<WebsiteSearch> {
   const ctx = { targetEnergy: TONE_ENERGY[input.tone] ?? 0.5, niche: null, workspaceId: input.workspaceId };
   const cats = input.categories;
   // Boost, not require: industry assets rank first, and a generic clip still stands in if the AI
-  // image fails. The industry check happens on the result (see `weak` below).
-  const mode = () => 'boost' as const;
+  // image fails. The industry check happens on the result (see `weak` in pickWebsiteMedia).
   // The IDC leads every query so matches come from their world, not generic stock.
-  const ranked = await searchShots(ctx, [
-    ...STORY_KEYS.map((k) => ({ rule: { ...STORY_RULES[k], intent: input.beatIntents?.[k] ?? STORY_RULES[k].intent }, text: `${input.idc}: ${input.story[k]}`, limit: STORY_POOL, categories: cats, categoryMode: mode() })),
-    ...input.hooks.map((h) => ({ rule: hookRule(h.archetype), text: `${input.idc}: ${h.text}`, limit: HOOK_POOL, categories: cats, categoryMode: 'boost' as const })),
+  const [ranked, products] = await Promise.all([
+    searchShots(ctx, [
+      ...STORY_KEYS.map((k) => ({ rule: { ...STORY_RULES[k], intent: input.beatIntents?.[k] ?? STORY_RULES[k].intent }, text: `${input.idc}: ${input.story[k]}`, limit: STORY_POOL, categories: cats, categoryMode: 'boost' as const })),
+      ...input.hooks.map((h) => ({ rule: hookRule(h.archetype), text: `${input.idc}: ${h.text}`, limit: HOOK_POOL, categories: cats, categoryMode: 'boost' as const })),
+    ]),
+    planProductShots(input.story, input.products ?? []),
   ]);
+  return { ranked, products };
+}
 
-  const products = await planProductShots(input.story, input.products ?? []);
+/**
+ * Chooses media for one brief from its search: the first card's story (with image needs), other footage per card, a
+ * hook per card. Runs brief after brief (it claims files in `used`).
+ */
+export async function pickWebsiteMedia(input: WebsiteMediaInput, { ranked, products }: WebsiteSearch): Promise<WebsiteMedia> {
+  const cats = input.categories;
   const used = input.used ?? new Set<string>();
   const recent = input.recent;
   const story = {} as StoryMedia;
   const shared = new Set<keyof StoryTexts>();
   const needs: ImageNeed[] = [];
   const runnerUps: WebsiteMedia['runnerUps'] = {};
+  // Best library match per industry shot (similarity), one log line per brief; "→ AI" = an AI image is needed.
+  const matches: string[] = [];
   for (let i = 0; i < STORY_KEYS.length; i++) {
     const key = STORY_KEYS[i]!;
-    const pool = freshFirst(ranked[i] ?? [], used, recent);
+    const fresh = freshFirst(ranked[i] ?? [], takenFor(key, used, input.spaced), recent);
+    const pool = INDUSTRY_SHOTS.has(key) ? strongFirst(fresh, cats) : fresh;
     const photos = products.shots[key as ProductShotKey];
     if (photos) {
       shared.add(key);
@@ -154,16 +210,19 @@ export async function directWebsiteMedia(input: WebsiteMediaInput): Promise<Webs
     }
     const best = pool[0];
     const weak = !strongMatch(best, cats);
-    if (INDUSTRY_SHOTS.has(key)) {
-      console.log(`[WebsiteMedia] ${input.idc}/${key}: ${best ? `best sim ${best.similarity.toFixed(2)} (${best.categories.join(',')})` : 'no match'}${weak ? ' → AI image' : ''}`);
-    }
+    if (INDUSTRY_SHOTS.has(key)) matches.push(`${key} ${best ? best.similarity.toFixed(2) : '-'}${weak ? ' → AI' : ''}`);
     if (INDUSTRY_SHOTS.has(key) && weak) {
-      needs.push({ key: `${input.idc}:${key}`, role: key as ImageNeed['role'], text: input.story[key] });
+      const role = key as ImageNeed['role'];
+      needs.push({
+        key: `${input.idc}:${key}`, role, text: input.story[key], photo: input.photos?.[role],
+        story: { id: input.storyId ?? input.idc, lines: Object.values(input.story).join(' / '), label: input.beatLabels?.[key] ?? key, intent: input.beatIntents?.[key] },
+      });
       runnerUps[key] = pool;
     }
     story[key] = (await libraryShot(pool)) ?? emptyShot();
-    claim(used, story[key]);
+    claimStory(key, story[key], used, input.spaced);
   }
+  console.log(`[WebsiteMedia] ${input.idc.slice(0, 40)}: ${matches.join(', ')}`);
   // Result-first leads with the most striking product photo; without photos, with a clip.
   const hero = products.hero ? await productShot([products.hero], []) : null;
   const hooks = await directHooks(

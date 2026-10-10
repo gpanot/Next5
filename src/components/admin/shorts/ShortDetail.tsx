@@ -2,13 +2,18 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { SHORT_STEP_LABELS, videoModelLabel, type ShortDetailDto, type ShortStep } from '../../../types/admin/shorts';
+import { DownloadIcon } from '../../ui/Icons';
+import { DEFAULT_PHOTO_MODEL, SHORT_PHOTO_MODELS, SHORT_STEP_LABELS, SHORT_TEXT_MODELS, videoModelLabel, type ShortDetailDto, type ShortStep } from '../../../types/admin/shorts';
 import { BeatsPanel } from './BeatsPanel';
+import { ClipsGatePanel } from './ClipsGatePanel';
+import { PhotosGatePanel } from './PhotosGatePanel';
 import { NarrationPanel } from './NarrationPanel';
 import { ScriptPanel } from './ScriptPanel';
+import { downloadShortSpec } from './shortSpec';
 import { Section } from './Section';
 import { StatusPill } from './StatusPill';
 import { StepsPanel } from './StepsPanel';
+import { VisualBiblePanel } from './VisualBiblePanel';
 import { VoicesPanel } from './VoicesPanel';
 import { isRunning, rerunShort, seconds, usd, useShortDetail } from './useShorts';
 
@@ -20,7 +25,13 @@ function Player({ short }: { short: ShortDetailDto }) {
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center text-sm text-zinc-300">
           {isRunning(short.status) && <span className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-600 border-t-white" aria-hidden />}
-          {short.status === 'FAILED' ? 'No video: the short failed.' : 'The video appears here when it is ready.'}
+          {short.status === 'FAILED'
+            ? 'No video: the short failed.'
+            : short.status === 'AWAITING_CLIPS'
+              ? 'Paused before the video clips. Check the script and photos.'
+              : short.status === 'AWAITING_PHOTOS'
+                ? 'Paused before the photos. Pick the photo model.'
+              : 'The video appears here when it is ready.'}
         </div>
       )}
     </div>
@@ -38,6 +49,8 @@ function Summary({ short, token, onRerun }: { short: ShortDetailDto; token: stri
   };
   const stats = [
     ['Model', videoModelLabel(short.videoModel)],
+    ['Photo model', SHORT_PHOTO_MODELS[short.inputs?.photoModel ?? DEFAULT_PHOTO_MODEL].label],
+    ['Text model', short.textModel ? SHORT_TEXT_MODELS[short.textModel].label : 'Server default'],
     ['Workspace', short.workspaceName],
     ['Video length', short.durationS ? `${short.durationS.toFixed(1)} s` : '—'],
     ['Total cost', usd(short.totalUsdMicros)],
@@ -88,6 +101,16 @@ export function ShortDetail({ token, id }: { token: string; id: string }) {
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-extrabold tracking-tight text-app-ink md:text-2xl">{short?.hook ?? 'Short'}</h1>
           {short && <StatusPill status={short.status} failedStep={short.failedStep} />}
+          {short && (
+            <button
+              type="button"
+              onClick={() => downloadShortSpec(short)}
+              className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg border border-app-line bg-app-panel px-4 text-sm font-bold text-app-ink shadow-sm transition hover:bg-app-sunken active:scale-[0.98]"
+            >
+              <DownloadIcon className="h-4 w-4" />
+              Download Spec
+            </button>
+          )}
         </div>
       </div>
       {error && !short && <p className="rounded-xl bg-app-accent-soft p-4 text-sm text-app-danger">{error}</p>}
@@ -100,10 +123,13 @@ export function ShortDetail({ token, id }: { token: string; id: string }) {
             <VoicesPanel short={short} token={token} onSwap={refresh} />
           </div>
           <div className="min-w-0 space-y-4">
+            <PhotosGatePanel short={short} token={token} onContinue={refresh} />
+            <ClipsGatePanel short={short} token={token} onContinue={refresh} />
             <StepsPanel short={short} />
             <NarrationPanel short={short} />
             <ScriptPanel short={short} />
             <BeatsPanel short={short} />
+            <VisualBiblePanel short={short} token={token} />
           </div>
         </div>
       )}

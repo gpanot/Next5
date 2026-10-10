@@ -4,12 +4,12 @@
 
 import type { CostMeter } from '../metaAds/cost';
 import { metaAdsJson } from '../metaAds/llm';
+import { smartModel } from './llm';
 import type { ShortClaim, ShortInputs, ShortScript } from '../../types/admin/shorts';
 import { stripTags } from './voice';
 import { tregJson } from './treg';
 
 /** gpt-5.4-nano was too literal (2026-10-08): it flagged the hook and plain explanations and burned every redraft. */
-const MODEL = process.env.SHORTS_TEXT_MODEL ?? 'gpt-5.4-mini';
 
 const SYSTEM = `You fact-check the voiceover of a short brand video against SOURCE.
 
@@ -56,12 +56,13 @@ const webCheck = async (brand: string, claim: string, meter: CostMeter): Promise
 export const factCheck = async (script: ShortScript, inputs: ShortInputs, meter: CostMeter): Promise<ShortClaim[]> => {
   // The hook is checked too: since 2026-10-08 the writer may rewrite the bank hook into a clear lesson hook.
   const body = [script.hook, ...script.mechanismLines, script.payoffLine].join(' ');
+  const model = smartModel();
   const judged = await metaAdsJson<Judged>(
     [
       { role: 'system', content: SYSTEM },
       { role: 'user', content: `SOURCE:\n${inputs.sourceText}\n\nNARRATION:\n${stripTags(body)}` },
     ],
-    { maxTokens: 4_000, model: MODEL, reasoningEffort: 'medium', meter, label: `Fact check (${MODEL})` },
+    { maxTokens: 4_000, model, reasoningEffort: 'medium', meter, label: `Fact check (${model})` },
   );
   const claims = (judged.claims ?? []).filter((c) => c.claim?.trim());
   return Promise.all(

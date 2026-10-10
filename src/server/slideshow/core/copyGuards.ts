@@ -50,6 +50,16 @@ export const findSlopPhrase = (text: string): string | null => {
   return SLOP_PHRASES.find((p) => lower.includes(p)) ?? null;
 };
 
+/**
+ * Removes the em dash ("—"), the typical tell of AI copy. Between words it becomes a comma ("Old way — new way" ->
+ * "Old way, new way"); at the start or end of a line it is dropped.
+ */
+export const noEmDash = (text: string): string =>
+  text
+    .replace(/^[\s—]+|[\s—]+$/g, '')
+    .replace(/\s*—+\s*/g, ', ')
+    .replace(/,\s*([,.!?;:])/g, '$1');
+
 const STOP_WORDS = new Set([
   'a', 'an', 'the', 'and', 'or', 'but', 'to', 'of', 'in', 'on', 'for', 'with', 'at', 'by',
   'is', 'are', 'was', 'be', 'it', 'this', 'that', 'you', 'your', 'i', 'me', 'my', 'we', 'our',

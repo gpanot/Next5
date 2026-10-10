@@ -12,10 +12,11 @@ import { WorkspacesSection } from './WorkspacesSection';
 
 export type SettingsTab = 'workspaces' | 'accounts' | 'brand' | 'photos' | 'credits' | 'profile';
 type Tab = SettingsTab;
-const TABS: { id: Tab; label: string }[] = [
+/** phoneOnly: wide screens reach it from the sidebar instead. */
+const TABS: { id: Tab; label: string; phoneOnly?: boolean }[] = [
   { id: 'workspaces', label: 'Workspaces' },
   { id: 'accounts', label: 'Accounts' },
-  { id: 'brand', label: 'Brand' },
+  { id: 'brand', label: 'Brand', phoneOnly: true },
   { id: 'photos', label: 'Photos' },
   { id: 'credits', label: 'Credits' },
   { id: 'profile', label: 'Profile' },
@@ -25,7 +26,7 @@ function Tabs({ tab, onChange }: { tab: Tab; onChange: (t: Tab) => void }) {
   return (
     <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-line px-4 dark:border-zinc-800">
       {TABS.map((t) => (
-        <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => onChange(t.id)} className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold transition ${tab === t.id ? 'border-blue-600 text-ink dark:text-zinc-100' : 'border-transparent text-muted hover:text-ink'}`}>
+        <button key={t.id} role="tab" aria-selected={tab === t.id} onClick={() => onChange(t.id)} className={`min-h-11 shrink-0 border-b-2 px-3 text-sm font-semibold transition ${t.phoneOnly ? 'lg:hidden' : ''} ${tab === t.id ? 'border-blue-600 text-ink dark:text-zinc-100' : 'border-transparent text-muted hover:text-ink'}`}>
           {t.label}
         </button>
       ))}

@@ -6,7 +6,7 @@
 import type { AutoPhoto, AutoSlide } from '../../types/admin/autoSlideshow';
 
 type Show = { id: string; slides: AutoSlide[]; bank: boolean };
-type Entry = Pick<AutoPhoto, 'prompt' | 'kind' | 'owner'>;
+type Entry = Pick<AutoPhoto, 'prompt' | 'kind' | 'owner' | 'refs' | 'refNote' | 'brandPhotoKey'>;
 
 export const slideOwner = (showId: string, index: number) => `${showId}:${index}`;
 
@@ -14,14 +14,20 @@ export const slideOwner = (showId: string, index: number) => `${showId}:${index}
 const isFor = (photo: Entry, show: Show, index: number, prompt: string) =>
   show.bank ? photo.owner === slideOwner(show.id, index) : photo.kind === 'hook' && photo.prompt === prompt;
 
+/** A slide's reference images and brand photo, as photo fields (only the ones set). */
+const specOf = (s: Pick<AutoSlide, 'photoRefs' | 'photoRefNote' | 'brandPhotoKey'>): Pick<Entry, 'refs' | 'refNote' | 'brandPhotoKey'> => ({
+  ...(s.photoRefs?.length ? { refs: s.photoRefs, ...(s.photoRefNote ? { refNote: s.photoRefNote } : {}) } : {}),
+  ...(s.brandPhotoKey ? { brandPhotoKey: s.brandPhotoKey } : {}),
+});
+
 /** The photos to make after the pool, keeping the ones already listed in their places (so made images stay matched). */
 export const ownPhotoEntries = (pool: number, existing: AutoPhoto[], shows: Show[]): Entry[] => {
-  const entries: Entry[] = existing.slice(pool).filter((p) => p.kind).map(({ prompt, kind, owner }) => ({ prompt, kind, ...(owner ? { owner } : {}) }));
+  const entries: Entry[] = existing.slice(pool).filter((p) => p.kind).map(({ prompt, kind, owner, refs, refNote, brandPhotoKey }) => ({ prompt, kind, ...(owner ? { owner } : {}), ...specOf({ photoRefs: refs, photoRefNote: refNote, brandPhotoKey }) }));
   for (const show of shows) {
     show.slides.forEach((slide, i) => {
       const prompt = slide.photoPrompt;
       if (!prompt || (!show.bank && i > 0) || entries.some((e) => isFor(e, show, i, prompt))) return;
-      entries.push(show.bank ? { prompt, kind: 'slide', owner: slideOwner(show.id, i) } : { prompt, kind: 'hook' });
+      entries.push(show.bank ? { prompt, kind: 'slide', owner: slideOwner(show.id, i), ...specOf(slide) } : { prompt, kind: 'hook' });
     });
   }
   return entries;
