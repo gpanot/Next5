@@ -8,15 +8,16 @@ import { HttpError } from '../http';
 import { maybeAutoRecharge } from './autoRecharge';
 import { addEntry, ensureWallet } from './wallet';
 
-/** Throws 402 unless the balance covers `count` slideshows. Tries an auto recharge first when the balance is short. */
-export const requireCredits = async (userId: string, count: number): Promise<void> => {
+/** Throws 402 unless the balance covers `count` credits (one slideshow each, or `unit`). Tries an auto recharge first
+ *  when the balance is short. */
+export const requireCredits = async (userId: string, count: number, unit = 'slideshow'): Promise<void> => {
   const needed = count * SLIDESHOW_PRICE_CENTS;
   let wallet = await ensureWallet(userId);
   if (wallet.balanceCents >= needed) return;
   if (await maybeAutoRecharge(userId)) wallet = await ensureWallet(userId);
   if (wallet.balanceCents >= needed) return;
   const s = count === 1 ? '' : 's';
-  throw new HttpError(402, 'no_credits', `${count} slideshow${s} cost ${usd(needed)}. You have ${usd(wallet.balanceCents)}. Add credits in Settings → Credits.`, {
+  throw new HttpError(402, 'no_credits', `${count} ${unit}${s} cost ${usd(needed)}. You have ${usd(wallet.balanceCents)}. Add credits in Settings → Credits.`, {
     balanceCents: wallet.balanceCents,
     neededCents: needed,
   });
@@ -42,3 +43,15 @@ export const chargeSlideshow = async (runId: string, slideshowId: string): Promi
     console.error(`[slideshow-credits] could not charge slideshow ${slideshowId}:`, err instanceof Error ? err.message : err);
   }
 };
+
+/**
+ * Charges `count` credits (one slideshow's price each) for work just done, e.g. Auto content slides of a campaign:
+ * 1 slide = 1 credit. Throws 402 when the balance no longer covers it. `ref` makes the charge apply once.
+ */
+export const chargeCredits = async (userId: string, count: number, ref: string, note: string): Promise<void> => {
+  await addEntry({ userId, deltaCents: -count * SLIDESHOW_PRICE_CENTS, reason: 'slideshow_charge', ref, note }, true);
+  await maybeAutoRecharge(userId).catch((err: unknown) => console.error('[slideshow-credits] auto recharge failed:', err));
+};
+
+/** How many credits the balance covers now. */
+export const affordableCredits = async (userId: string): Promise<number> => Math.floor((await ensureWallet(userId)).balanceCents / SLIDESHOW_PRICE_CENTS);

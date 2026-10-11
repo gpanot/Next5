@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { planTimes } from '../../../src/components/admin/autoSlideshow/campaigns/scheduleTimes';
 import { parseDraft } from '../../../src/server/autoSlideshow/campaign/store';
-import { campaignProblems, emptyCampaignDraft, hookPhotoFor, renderKeyOf, type CampaignDraft } from '../../../src/types/admin/slideshowCampaign';
+import { autoSlideCount, campaignProblems, emptyCampaignDraft, hookNumber, hookPhotoFor, renderKeyOf, type CampaignDraft } from '../../../src/types/admin/slideshowCampaign';
 
 const ready = (): CampaignDraft => ({
   hooks: ['6 ways to get better at golf', '6 crazy ways to get better at golf'],
@@ -10,7 +10,7 @@ const ready = (): CampaignDraft => ({
     { role: 'item', title: 'Grip lighter', body: '', photo: 3 },
     { role: 'cta', title: 'Follow for more', body: 'New tips every day', photo: 4 },
   ],
-  look: 'default',
+  looks: { hook: 'default', content: 'default', cta: 'default' },
   caption: 'Golf tips #golf',
 });
 
@@ -56,10 +56,16 @@ describe('parseDraft', () => {
   });
 
   it('makes the last card the CTA and keeps an unknown look as default', () => {
-    const d = parseDraft({ ...ready(), cards: [{ title: 'x', photo: 99 }, { title: 'y', photo: 1 }], look: 'neon' }, 5);
+    const d = parseDraft({ ...ready(), cards: [{ title: 'x', photo: 99 }, { title: 'y', photo: 1 }], looks: { hook: 'neon', content: 'white-box', cta: 'tiktok-red' } }, 5);
     expect(d.cards.map((c) => c.role)).toEqual(['item', 'cta']);
     expect(d.cards[0]!.photo).toBeNull();
-    expect(d.look).toBe('default');
+    expect(d.looks).toEqual({ hook: 'default', content: 'white-box', cta: 'tiktok-red' });
+  });
+
+  it('turns an old single look into the hook and CTA looks', () => {
+    const old: Partial<CampaignDraft> & { look: string } = { ...ready(), look: 'white-box' };
+    delete old.looks;
+    expect(parseDraft(old, 5).looks).toEqual({ hook: 'white-box', content: 'default', cta: 'white-box' });
   });
 
   it('refuses a draft without a content card', () => {
@@ -84,7 +90,24 @@ describe('planTimes', () => {
 describe('renderKeyOf', () => {
   it('ignores the caption (not drawn) and changes with anything on the slides', () => {
     expect(renderKeyOf({ ...ready(), caption: 'other' })).toBe(renderKeyOf(ready()));
-    expect(renderKeyOf({ ...ready(), look: 'tiktok-red' })).not.toBe(renderKeyOf(ready()));
+    expect(renderKeyOf({ ...ready(), looks: { ...ready().looks, content: 'tiktok-red' } })).not.toBe(renderKeyOf(ready()));
     expect(renderKeyOf({ ...ready(), hooks: ['new hook'] })).not.toBe(renderKeyOf(ready()));
+  });
+});
+
+describe('hookNumber', () => {
+  it('reads the count a hook promises, within the content slide limits', () => {
+    expect(hookNumber('7 ways to fix your slice')).toBe(7);
+    expect(hookNumber('Fix your slice')).toBeNull();
+    expect(hookNumber('100 golf tips')).toBeNull();
+  });
+});
+
+describe('autoSlideCount', () => {
+  it('takes the first hook number from 3 to 15, else lets the writer decide', () => {
+    expect(autoSlideCount(['6 unconventional way to choose your gym outfit'])).toBe(6);
+    expect(autoSlideCount(['2 gym outfit rules'])).toBeNull();
+    expect(autoSlideCount(['How to choose your gym outfit'])).toBeNull();
+    expect(autoSlideCount([])).toBeNull();
   });
 });

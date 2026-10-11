@@ -11,7 +11,7 @@ function DraftText({ slide }: { slide: Extract<PreviewSlide, { kind: 'draft' }> 
   const placeholder = slide.role === 'hook' ? 'Your hook line' : 'Your headline';
   const title = slide.title || placeholder;
   const dim = slide.title ? '' : 'opacity-50';
-  const look = slide.role === 'item' ? 'default' : slide.look;
+  const look = slide.look;
   if (slide.role === 'hook' && look === 'default') {
     return <p className={`text-center text-[length:7.5cqw] leading-[1.15] font-extrabold text-white ${OUTLINE} ${dim}`}>{title}</p>;
   }
@@ -28,7 +28,7 @@ function DraftText({ slide }: { slide: Extract<PreviewSlide, { kind: 'draft' }> 
   }
   return (
     <div className="flex flex-col items-center">
-      <p className={`rounded-[1.7cqw] bg-white px-[3cqw] py-[1.5cqw] text-center text-[length:6cqw] leading-tight font-extrabold text-zinc-900 ${dim}`}>{title}</p>
+      <p className={`rounded-[1.7cqw] bg-white px-[3cqw] py-[1.5cqw] text-center ${slide.role === 'item' ? 'text-[length:5.2cqw]' : 'text-[length:6cqw]'} leading-tight font-extrabold text-zinc-900 ${dim}`}>{title}</p>
       {body}
     </div>
   );

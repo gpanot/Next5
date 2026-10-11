@@ -1,6 +1,6 @@
 'use client';
 
-import { MAX_CARD_BODY_CHARS, MAX_CARD_TITLE_CHARS, MIN_CAMPAIGN_CONTENT, type CampaignCard, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
+import { MAX_CARD_TITLE_CHARS, MIN_CAMPAIGN_CONTENT, type CampaignCard, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import { PhotoThumb } from './PhotoThumb';
 import type { PendingPhoto } from './useCampaign';
 
@@ -20,7 +20,8 @@ type Props = {
 const field = 'w-full rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-base text-white placeholder:text-white/40 focus:border-emerald-400 focus:outline-none';
 const label = 'text-[11px] font-semibold tracking-widest text-white/50 uppercase';
 
-/** A content or CTA card: its headline, one line under it and its one photo, the same in every slideshow. */
+/** A content or CTA card: its headline and its one photo, the same in every slideshow. (The line under the headline is
+ *  hidden for now, see SHOW_CARD_BODY.) */
 export function CardPanel({ card, position, contentCount, photos, pending, onChange, onPickPhoto, onRemove }: Props) {
   const isCta = card.role === 'cta';
   const photo = card.photo === null ? null : photos[card.photo];
@@ -37,10 +38,6 @@ export function CardPanel({ card, position, contentCount, photos, pending, onCha
           <label className="block space-y-1.5">
             <span className={label}>Headline</span>
             <input value={card.title} maxLength={MAX_CARD_TITLE_CHARS} onChange={(e) => onChange({ title: e.target.value })} placeholder={isCta ? 'Follow for more golf tips' : 'Your point, in a few words'} className={`${field} min-h-11`} />
-          </label>
-          <label className="block space-y-1.5">
-            <span className={label}>Text under it <span className="normal-case tracking-normal text-white/30">(optional)</span></span>
-            <textarea value={card.body} maxLength={MAX_CARD_BODY_CHARS} rows={2} onChange={(e) => onChange({ body: e.target.value })} placeholder="The one detail that makes it land" className={`${field} resize-none`} />
           </label>
         </div>
       </div>

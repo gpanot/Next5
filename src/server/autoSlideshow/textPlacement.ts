@@ -74,8 +74,9 @@ export const lineWidths = (text: string, fontSize: number, charShare: number, ma
 /** Hook and CTA get the big box (a hook only when boxed, in the White box look). */
 export const isBig = (slide: SlideText) => slide.role === 'hook' || slide.role === 'cta';
 
-/** The look a slide is drawn in: hook and CTA may have a picked one; every other slide keeps the default. */
-export const lookOf = (slide: SlideText) => (slide.role === 'hook' || slide.role === 'cta' ? slide.look ?? 'default' : 'default');
+/** The look a slide is drawn in: its picked one, else the default. Only hook and CTA slides get one, except in campaigns,
+ *  where content slides have their own. */
+export const lookOf = (slide: SlideText) => slide.look ?? 'default';
 
 /** The red highlight lines' widths (text plus padding) and height. */
 const redRects = (slide: SlideText): Rect[] => {

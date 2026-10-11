@@ -76,11 +76,11 @@ const RedText = ({ title, body, top }: { title: string; body: string; top: numbe
   </div>
 );
 
-/** The slide's text in its look: the hook's outlined text or a box by default, else the picked hook / CTA look. */
+/** The slide's text in its look: the hook's outlined text or a box by default, else the picked look. */
 const SlideText = ({ slide, look, top }: { slide: Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'>; look: BoxLook; top: number }) => {
   const picked = lookOf(slide);
   if (picked === 'tiktok-red') return <RedText title={slide.title} body={slide.body} top={top} />;
-  if (picked === 'white-box') return <BoxedText title={slide.title} body={slide.body} big look={WHITE_BOX} top={top} />;
+  if (picked === 'white-box') return <BoxedText title={slide.title} body={slide.body} big={isBig(slide)} look={WHITE_BOX} top={top} />;
   if (slide.role === 'hook') return <HookText title={slide.title} top={top} />;
   return <BoxedText title={slide.title} body={slide.body} big={isBig(slide)} look={look} top={top} />;
 };

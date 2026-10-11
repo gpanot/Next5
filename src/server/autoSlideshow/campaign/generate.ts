@@ -6,7 +6,7 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/db';
 import type { AutoSlide } from '../../../types/admin/autoSlideshow';
-import { campaignProblems, hookPhotoFor, renderKeyOf, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
+import { campaignProblems, hookPhotoFor, lookOfRole, renderKeyOf, shownBody, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
 import { DEFAULT_BOX } from '../../companyIntel/slideshowStyle';
 import { HttpError } from '../../http';
 import { deleteObject, putObject } from '../../storage/objectStore';
@@ -28,12 +28,15 @@ const inBatches = async <T, R>(items: T[], size: number, work: (item: T) => Prom
   return out;
 };
 
-/** The hook and CTA slides take the picked look; Default stores none. */
-const lookFor = (draft: CampaignDraft, role: AutoSlide['role']) => (draft.look !== 'default' && (role === 'hook' || role === 'cta') ? { look: draft.look } : {});
+/** Each slide takes the look picked for its kind (hook, content, CTA); Default stores none. */
+const lookFor = (draft: CampaignDraft, role: 'hook' | 'item' | 'cta') => {
+  const look = lookOfRole(draft.looks, role);
+  return look === 'default' ? {} : { look };
+};
 
 const plannedSlides = (draft: CampaignDraft) => ({
   hooks: draft.hooks.map((title, i): SlideText => ({ role: 'hook', title, body: '', photoIndex: hookPhotoFor(draft, i)!, ...lookFor(draft, 'hook') })),
-  cards: draft.cards.map((c): SlideText => ({ role: c.role, title: c.title.trim(), body: c.body.trim(), photoIndex: c.photo!, ...lookFor(draft, c.role) })),
+  cards: draft.cards.map((c): SlideText => ({ role: c.role, title: c.title.trim(), body: shownBody(c).trim(), photoIndex: c.photo!, ...lookFor(draft, c.role) })),
 });
 
 const renderAll = async (slides: SlideText[], photos: CampaignPhoto[], heads: HeadsCache): Promise<Buffer[]> => {

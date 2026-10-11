@@ -2,17 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { CampaignCard, CampaignDraft, CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
+import { targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
 import { useAutoRun } from '../useAutoRun';
 import { CampaignPosts } from './CampaignPosts';
 import { CampaignPreview } from './CampaignPreview';
+import { AutoContentPanel } from './AutoContentPanel';
 import { CampaignStrip } from './CampaignStrip';
 import { CardPanel } from './CardPanel';
-import { Checklist, DeleteCampaign, NameInput } from './EditorParts';
+import { Checklist, ContentModeTabs, DeleteCampaign, NameInput, type ContentMode } from './EditorParts';
 import { HookPanel } from './HookPanel';
 import { PhotoLibraryDialog } from './PhotoLibraryDialog';
 import { previewShows } from './previewSlides';
 import { TextStyleMenu } from './TextStyleMenu';
+import { useAutoContent } from './useAutoContent';
 import { useCampaign } from './useCampaign';
 
 type Props = { token: string; workspaceId: string; campaignId: string; onClose: () => void };
@@ -21,7 +23,13 @@ const card = 'rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-sm';
 const tabClass = (on: boolean) => `min-h-10 rounded-lg px-4 text-sm font-semibold transition active:scale-95 ${on ? 'bg-emerald-400 text-zinc-950' : 'text-white/60 hover:text-white'}`;
 
 /** Slide 0 is the hook; slide i >= 1 is card i - 1 (the CTA last). */
-const roleTab = (draft: CampaignDraft, slide: number) => (slide === 0 ? 'hook' : slide === draft.cards.length ? 'cta' : 'content');
+const roleTab = (draft: CampaignDraft, slide: number): CampaignLookRole => (slide === 0 ? 'hook' : slide === draft.cards.length ? 'cta' : 'content');
+
+/** Whom the open tab's text style applies to. */
+const STYLE_SCOPE: Record<CampaignLookRole, string> = { hook: 'Hook', content: 'Every content slide', cta: 'CTA' };
+
+/** Auto first while no content slide has a headline; Slide by slide once there is something to edit. */
+const startMode = (draft: CampaignDraft | undefined): ContentMode => (draft?.cards.some((c) => c.role === 'item' && c.title.trim()) ? 'slides' : 'auto');
 
 /**
  * The campaign editor, full screen and phone first: the name in the top bar, every slide as a card, then the selected
@@ -36,6 +44,8 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   /** The slideshow the preview opens on; null when closed. */
   const [previewing, setPreviewing] = useState<number | null>(null);
   const { campaign, setDraft } = state;
+  const [mode, setMode] = useState<ContentMode | null>(null);
+  const auto = useAutoContent(token, campaignId, state);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !picker && previewing === null && onClose();
@@ -46,6 +56,20 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   const draft = campaign?.draft;
   const at = draft ? Math.min(slide, draft.cards.length) : 0;
   const tab = draft ? roleTab(draft, at) : 'hook';
+  const contentMode = mode ?? startMode(draft);
+  /** A slide picked in the strip opens it; a content slide opens in Slide by slide. */
+  const pickSlide = (i: number) => {
+    setSlide(i);
+    if (draft && roleTab(draft, i) === 'content') setMode('slides');
+  };
+  const runAuto = async () => {
+    const replacing = draft?.cards.some((c) => c.role === 'item' && (c.title.trim() || c.photo !== null));
+    if (replacing && !window.confirm('Replace your content slides with new ones?')) return;
+    if (await auto.run()) {
+      setSlide(1);
+      setMode('slides');
+    }
+  };
   const patchCard = (i: number, patch: Partial<CampaignCard>) => setDraft((d) => ({ ...d, cards: d.cards.map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
   const addCard = () => {
     setDraft((d) => ({ ...d, cards: [...d.cards.slice(0, -1), { role: 'item', title: '', body: '', photo: null }, d.cards[d.cards.length - 1]!] }));
@@ -78,7 +102,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
       ) : (
         <div className="min-h-0 flex-1 overflow-y-auto">
           <div className="border-b border-white/10 bg-black/20 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:16px_16px]">
-            <CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={setSlide} onAdd={addCard} />
+            <CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} />
           </div>
           <div className="mx-auto grid max-w-7xl gap-4 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:items-start">
             <div className="min-w-0 space-y-4">
@@ -89,8 +113,8 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                     <button type="button" role="tab" aria-selected={tab === 'content'} onClick={() => setSlide(1)} className={tabClass(tab === 'content')}>Content</button>
                     <button type="button" role="tab" aria-selected={tab === 'cta'} onClick={() => setSlide(draft.cards.length)} className={tabClass(tab === 'cta')}>CTA</button>
                   </div>
-                  {tab === 'content' && <span className="text-xs text-white/40">Slide {at + 1}</span>}
-                  <TextStyleMenu value={draft.look} onPick={(look) => setDraft((d) => ({ ...d, look }))} />
+                  {tab === 'content' && contentMode === 'slides' && <span className="text-xs text-white/40">Slide {at + 1}</span>}
+                  <TextStyleMenu value={draft.looks[tab]} appliesTo={STYLE_SCOPE[tab]} onPick={(look) => setDraft((d) => ({ ...d, looks: { ...d.looks, [tab]: look } }))} />
                 </div>
                 {state.error && (
                   <p role="alert" className="mb-4 flex items-start gap-2 rounded-lg bg-red-500/15 p-3 text-sm text-red-300">
@@ -98,7 +122,17 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                     <button type="button" onClick={state.clearError} aria-label="Dismiss" className="text-red-200">✕</button>
                   </p>
                 )}
-                {at === 0 ? (
+                {tab === 'content' && <ContentModeTabs mode={contentMode} onPick={setMode} />}
+                {tab === 'content' && contentMode === 'auto' ? (
+                  <AutoContentPanel
+                    draft={draft}
+                    settings={auto.settings}
+                    writing={auto.writing}
+                    photosPending={state.pending.filter((p) => p.key.startsWith('auto-')).length}
+                    onChange={auto.update}
+                    onRun={() => void runAuto()}
+                  />
+                ) : at === 0 ? (
                   <HookPanel draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
                 ) : (
                   <CardPanel
@@ -106,7 +140,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                     position={at - 1}
                     contentCount={draft.cards.length - 1}
                     photos={campaign.photos}
-                    pending={state.pending.find((p) => p.target.slot === 'card' && p.target.card === at - 1) ?? null}
+                    pending={state.pending.find((p) => targetsCard(p.target, at - 1)) ?? null}
                     onChange={(p) => patchCard(at - 1, p)}
                     onPickPhoto={() => setPicker({ slot: 'card', card: at - 1 })}
                     onRemove={() => removeCard(at - 1)}

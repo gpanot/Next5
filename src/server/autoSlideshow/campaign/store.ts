@@ -4,7 +4,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/db';
 import type { AutoPhoto, AutoSlide } from '../../../types/admin/autoSlideshow';
-import { isHookStyleId } from '../../../types/hookStyle';
 import {
   emptyCampaignDraft,
   MAX_CAMPAIGN_CONTENT,
@@ -15,6 +14,7 @@ import {
   MAX_CARD_TITLE_CHARS,
   MAX_HOOK_CHARS,
   MIN_CAMPAIGN_CONTENT,
+  looksOf,
   renderKeyOf,
   type CampaignCard,
   type CampaignDraft,
@@ -43,7 +43,13 @@ export const photosOf = (run: { photos: Prisma.JsonValue }): CampaignPhoto[] => 
 /** The stored campaign: the draft, plus the render key of the draft the slideshows were last made from. */
 type StoredCampaign = CampaignDraft & { renderedKey?: string };
 
-const storedOf = (run: { campaign: Prisma.JsonValue }): StoredCampaign => ({ ...emptyCampaignDraft(), ...((run.campaign as unknown as StoredCampaign | null) ?? {}) });
+/** Drafts saved before 2026-10-11 hold one `look`; it becomes the hook and CTA looks. */
+const storedOf = (run: { campaign: Prisma.JsonValue }): StoredCampaign => {
+  const raw = (run.campaign as unknown as (Partial<StoredCampaign> & { look?: unknown }) | null) ?? {};
+  const merged: StoredCampaign & { look?: unknown } = { ...emptyCampaignDraft(), ...raw, looks: looksOf(raw) };
+  delete merged.look;
+  return merged;
+};
 
 export const draftOf = (run: { campaign: Prisma.JsonValue }): CampaignDraft => {
   const stored: Partial<StoredCampaign> = storedOf(run);
@@ -152,7 +158,7 @@ export const parseDraft = (value: unknown, photoCount: number): CampaignDraft =>
     hooks: [...new Set(hooks)].slice(0, MAX_CAMPAIGN_HOOKS),
     hookPhotos: [...new Set(hookPhotos)].slice(0, MAX_CAMPAIGN_HOOK_PHOTOS),
     cards: parseCards(d.cards, photoCount),
-    look: isHookStyleId(d.look) ? d.look : 'default',
+    looks: looksOf(d),
     caption: str(d.caption, MAX_CAPTION_CHARS),
   };
 };

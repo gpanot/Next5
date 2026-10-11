@@ -5,10 +5,15 @@ import type { HookStyleId } from '../../../../types/hookStyle';
 import { HookStyleOptions } from '../../../labs/blitzLab/HookStyleOptions';
 import { HOOK_STYLES } from '../../../labs/blitzLab/hookStyles';
 
-type Props = { value: HookStyleId; onPick: (id: HookStyleId) => void };
+type Props = {
+  value: HookStyleId;
+  /** Which slides the pick applies to, shown above the looks ("Hook", "Every content slide", "CTA"). */
+  appliesTo: string;
+  onPick: (id: HookStyleId) => void;
+};
 
-/** "Text style" next to the Hook / Content / CTA tabs: opens the hook + CTA looks; a pick closes it. */
-export function TextStyleMenu({ value, onPick }: Props) {
+/** "Text style" next to the Hook / Content / CTA tabs: the looks of the open tab's slides; a pick closes it. */
+export function TextStyleMenu({ value, appliesTo, onPick }: Props) {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   const name = HOOK_STYLES.find((s) => s.id === value)?.label ?? 'Default';
@@ -45,7 +50,7 @@ export function TextStyleMenu({ value, onPick }: Props) {
       </button>
       {open && (
         <div className="absolute top-full right-0 z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] space-y-2 rounded-xl border border-white/10 bg-zinc-900 p-3 shadow-xl">
-          <p className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Hook + CTA style</p>
+          <p className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Style for: {appliesTo}</p>
           <HookStyleOptions tone="dark" activeId={value} onPick={(id) => { onPick(id); setOpen(false); }} />
         </div>
       )}

@@ -4,7 +4,7 @@
  * CTA cards are the same in every slideshow. "Generate" renders them; posting reuses the run's posting flow.
  */
 
-import type { HookStyleId } from '../hookStyle';
+import { isHookStyleId, type HookStyleId } from '../hookStyle';
 import type { AutoSlideshowDto } from './autoSlideshow';
 
 /** Slides a new campaign starts with: 1 hook, 5 content, 1 CTA. */
@@ -12,11 +12,14 @@ export const CAMPAIGN_START_SLIDES = 7;
 export const MAX_CAMPAIGN_HOOKS = 10;
 export const MAX_CAMPAIGN_HOOK_PHOTOS = 10;
 export const MIN_CAMPAIGN_CONTENT = 1;
-export const MAX_CAMPAIGN_CONTENT = 10;
+export const MAX_CAMPAIGN_CONTENT = 15;
 export const MAX_HOOK_CHARS = 120;
 export const MAX_CARD_TITLE_CHARS = 120;
 export const MAX_CARD_BODY_CHARS = 220;
 export const MAX_CAPTION_CHARS = 2_000;
+
+/** The line under a card's headline: hidden from the editor for now (2026-10-11), so it is neither drawn nor rendered. */
+export const SHOW_CARD_BODY = false;
 
 /** A content or CTA card: the same text and photo in every slideshow. `photo`: index into the run's photos. */
 export type CampaignCard = { role: 'item' | 'cta'; title: string; body: string; photo: number | null };
@@ -27,13 +30,32 @@ export type CampaignDraft = {
   hookPhotos: number[];
   /** Content cards, then the CTA card last. */
   cards: CampaignCard[];
-  look: HookStyleId;
+  /** The text style of each kind of slide: the hook, every content slide (one style for all), the CTA. */
+  looks: CampaignLooks;
   /** The post caption every slideshow of the campaign gets (hashtags written in it). */
   caption: string;
 };
 
+/** Which kind of slide a text style applies to. */
+export type CampaignLookRole = 'hook' | 'content' | 'cta';
+export type CampaignLooks = Record<CampaignLookRole, HookStyleId>;
+
+/** The looks of a stored draft. Drafts saved before 2026-10-11 had one `look` for the hook and the CTA. */
+export const looksOf = (d: { looks?: unknown; look?: unknown }): CampaignLooks => {
+  const raw = (d.looks ?? {}) as Record<string, unknown>;
+  const legacy = isHookStyleId(d.look) ? d.look : 'default';
+  const pick = (v: unknown, fallback: HookStyleId) => (isHookStyleId(v) ? v : fallback);
+  return { hook: pick(raw.hook, legacy), content: pick(raw.content, 'default'), cta: pick(raw.cta, legacy) };
+};
+
+/** The look a slide of this role is drawn in. */
+export const lookOfRole = (looks: CampaignLooks, role: 'hook' | 'item' | 'cta'): HookStyleId => looks[role === 'item' ? 'content' : role];
+
+/** The line under a card's headline as it is drawn: none while the field is hidden. */
+export const shownBody = (card: Pick<CampaignCard, 'body'>): string => (SHOW_CARD_BODY ? card.body : '');
+
 /** What the rendered slides depend on (the caption is not drawn): equal keys mean the made slideshows are current. */
-export const renderKeyOf = (d: CampaignDraft): string => JSON.stringify({ hooks: d.hooks, hookPhotos: d.hookPhotos, cards: d.cards, look: d.look });
+export const renderKeyOf = (d: CampaignDraft): string => JSON.stringify({ hooks: d.hooks, hookPhotos: d.hookPhotos, cards: d.cards, looks: d.looks });
 
 export const emptyCampaignDraft = (): CampaignDraft => ({
   hooks: [],
@@ -42,7 +64,7 @@ export const emptyCampaignDraft = (): CampaignDraft => ({
     ...Array.from({ length: CAMPAIGN_START_SLIDES - 2 }, (): CampaignCard => ({ role: 'item', title: '', body: '', photo: null })),
     { role: 'cta', title: '', body: '', photo: null },
   ],
-  look: 'default',
+  looks: { hook: 'default', content: 'default', cta: 'default' },
   caption: '',
 });
 
@@ -61,8 +83,12 @@ export type CampaignPhotoRef =
   | { source: 'shared'; id: string }
   | { source: 'unsplash'; id: string };
 
-/** Which slide the import is for: the hook (adds to the rotation) or one card (replaces its photo). */
-export type CampaignPhotoTarget = { slot: 'hook' } | { slot: 'card'; card: number };
+/** Which slide the import is for: the hook (adds to the rotation), one card or several cards (replaces their photo). */
+export type CampaignPhotoTarget = { slot: 'hook' } | { slot: 'card'; card: number } | { slot: 'cards'; cards: number[] };
+
+/** True when the import is for card `card`. */
+export const targetsCard = (target: CampaignPhotoTarget, card: number): boolean =>
+  (target.slot === 'card' && target.card === card) || (target.slot === 'cards' && target.cards.includes(card));
 
 export type CampaignSummaryDto = {
   id: string;
@@ -107,4 +133,63 @@ export const campaignProblems = (draft: CampaignDraft): string[] => {
     if (!c.title.trim()) problems.push(`${name} needs a headline.`);
   });
   return problems;
+};
+
+/** Auto content: the Content tab's "Auto" settings. */
+export const AUTO_FORMATS = ['numbered', 'steps', 'plain'] as const;
+export const AUTO_LENGTHS = ['short', 'medium', 'long'] as const;
+export const AUTO_TONES = ['plain', 'punchy', 'expert', 'warm'] as const;
+export type AutoFormat = (typeof AUTO_FORMATS)[number];
+export type AutoLength = (typeof AUTO_LENGTHS)[number];
+export type AutoTone = (typeof AUTO_TONES)[number];
+export type AutoPhotoSource = 'ai' | 'stock';
+export const MAX_AUTO_PROMPT_CHARS = 1_500;
+
+/** Words per headline for each length. */
+export const AUTO_LENGTH_WORDS: Record<AutoLength, [number, number]> = { short: [5, 7], medium: [10, 12], long: [15, 20] };
+
+/** How many content slides Auto writes: the number the hook promises, else as many as the topic needs, in this range. */
+export const AUTO_MIN_SLIDES = 3;
+export const AUTO_MAX_SLIDES = 15;
+
+/** The slide count the first hook fixes ("6 ways…" → 6), when it is in Auto's range; null lets the writer decide. */
+export const autoSlideCount = (hooks: string[]): number | null => {
+  const n = hooks[0] ? hookNumber(hooks[0]) : null;
+  return n !== null && n >= AUTO_MIN_SLIDES && n <= AUTO_MAX_SLIDES ? n : null;
+};
+
+export type AutoContentRequest = {
+  prompt: string;
+  format: AutoFormat;
+  length: AutoLength;
+  tone: AutoTone;
+  research: boolean;
+  /** One photo for every content slide, or one each. */
+  samePhoto: boolean;
+  /** AI photos, or stock photos (the workspace's brand and shared library first, then Unsplash). */
+  photoSource: AutoPhotoSource;
+};
+
+/**
+ * The written content slides: headlines, then per slide a photo scene (AI photos) and a stock search query. `cover*`: one
+ * photo for the whole set, used when every slide shares it. `libraryRefs` (stock photos only): per slide, a brand or
+ * shared library photo that matches its query, or null (then Unsplash); `coverRef` the same for the shared photo.
+ */
+export type AutoContentDto = {
+  titles: string[];
+  scenes: string[];
+  queries: string[];
+  coverScene: string;
+  coverQuery: string;
+  libraryRefs: (CampaignPhotoRef | null)[];
+  coverRef: CampaignPhotoRef | null;
+};
+
+/** One photo for the auto content: an AI photo of a scene, or the `nth` stock result of a search. */
+export type AutoPhotoRequest = { source: 'ai'; scene: string } | { source: 'stock'; query: string; nth: number };
+
+/** The number a hook line promises ("5 ways to…"), or null. */
+export const hookNumber = (hook: string): number | null => {
+  const n = Number(hook.match(/\d+/)?.[0]);
+  return Number.isInteger(n) && n >= MIN_CAMPAIGN_CONTENT && n <= MAX_CAMPAIGN_CONTENT ? n : null;
 };

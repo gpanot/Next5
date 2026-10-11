@@ -1,27 +1,29 @@
 // server-only — never import from a 'use client' file.
 // The campaign photo picker: what each tab offers (the workspace's generated photos, its brand photos, the shared
 // library, Unsplash), and importing a pick into the campaign as its own JPEG copy, so deleting the original never
-// breaks the campaign and every source renders the same way.
+// breaks the campaign and every source renders the same way. Also the Auto content's photos (made or found per slide).
 
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { prisma } from '../../../lib/db';
-import type { CampaignPhotoDto, CampaignPhotoRef, PhotoOptionDto, PhotoTab } from '../../../types/admin/slideshowCampaign';
+import type { AutoPhotoRequest, CampaignPhotoDto, CampaignPhotoRef, PhotoOptionDto, PhotoTab } from '../../../types/admin/slideshowCampaign';
 import { blitzImageKeyWhere } from '../../admin/blitzStore';
 import { HttpError } from '../../http';
+import { createMeter } from '../../metaAds/cost';
 import { getObject, presignObject, putObject } from '../../storage/objectStore';
 import { storeThumb, thumbUrl } from '../../storage/thumbs';
 import { detectHeads } from '../heads';
 import { compressJpeg, MAX_JPEG_BYTES, PHOTO_SIZE } from '../jpeg';
+import { generatePhoto, photoPrompt } from '../photos';
 import type { CampaignPhoto } from './store';
-import { fetchUnsplashPhoto, searchUnsplash } from './unsplash';
+import { fetchUnsplashPhoto, searchedUnsplashPhoto, searchUnsplash } from './unsplash';
 
 const SHARED_LIMIT = 120;
 const BRAND_LIMIT = 200;
 /** Recent auto runs whose photos the Generated tab offers. */
 const GENERATED_RUNS = 30;
 
-const sharedOptions = async (workspaceId: string): Promise<PhotoOptionDto[]> => {
+export const sharedOptions = async (workspaceId: string): Promise<PhotoOptionDto[]> => {
   const rows = await prisma.blitzAsset.findMany({
     where: { type: 'BACKGROUND', OR: [{ workspaceId: null }, { workspaceId }], AND: [blitzImageKeyWhere] },
     orderBy: { createdAt: 'desc' },
@@ -31,7 +33,7 @@ const sharedOptions = async (workspaceId: string): Promise<PhotoOptionDto[]> => 
   return rows.map((r) => ({ key: `shared:${r.id}`, thumbUrl: thumbUrl(r.thumbnailKey ?? r.r2Key), ref: { source: 'shared' as const, id: r.id }, label: r.name, credit: null }));
 };
 
-const brandOptions = async (workspaceId: string): Promise<PhotoOptionDto[]> => {
+export const brandOptions = async (workspaceId: string): Promise<PhotoOptionDto[]> => {
   const rows = await prisma.userUpload.findMany({
     where: { workspaceId, kind: 'photo', archivedAt: null },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -109,14 +111,30 @@ const toCampaignJpeg = async (bytes: Buffer): Promise<Buffer> => {
  * Copies the pick into the campaign (with its thumb) and appends it to the run's photos in one statement, so imports
  * running at once never drop each other. Returns the new photo, and its head detection to run after the response.
  */
-export const importPhoto = async (runId: string, workspaceId: string, ref: CampaignPhotoRef): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> => {
-  const pick = await fetchPick(workspaceId, ref);
+export const importPhoto = async (runId: string, workspaceId: string, ref: CampaignPhotoRef): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> =>
+  storeCampaignPhoto(runId, await fetchPick(workspaceId, ref), ref.source);
+
+/**
+ * One photo for the Content tab's "Auto": an AI photo of the scene (on the photo model the auto slideshows use, bright
+ * style), or the `nth` portrait result of a stock search. Stored like a picked photo.
+ */
+export const autoPhoto = async (runId: string, req: AutoPhotoRequest): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> => {
+  if (req.source === 'stock') {
+    return storeCampaignPhoto(runId, await searchedUnsplashPhoto(req.query, req.nth), 'unsplash');
+  }
+  const { buffer } = await generatePhoto(photoPrompt(req.scene), [], createMeter()).catch((err: unknown) => {
+    throw new HttpError(502, 'photo_failed', err instanceof Error ? `Photo failed: ${err.message.slice(0, 120)}` : 'Photo failed. Try again.');
+  });
+  return storeCampaignPhoto(runId, { bytes: buffer, label: req.scene }, 'generated');
+};
+
+const storeCampaignPhoto = async (runId: string, pick: Fetched, source: CampaignPhotoDto['source']): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> => {
   const jpeg = await toCampaignJpeg(pick.bytes).catch(() => {
     throw new HttpError(422, 'bad_image', 'That file is not a photo we can use. Pick another one.');
   });
   const imageKey = `admin/auto-slideshow/${runId}/campaign-${randomUUID()}.jpg`;
   await Promise.all([putObject(imageKey, jpeg, 'image/jpeg'), storeThumb(imageKey, jpeg)]);
-  const photo: CampaignPhoto = { prompt: pick.label.slice(0, 300), imageKey, error: null, source: ref.source, ...(pick.credit ? { credit: pick.credit } : {}) };
+  const photo: CampaignPhoto = { prompt: pick.label.slice(0, 300), imageKey, error: null, source, ...(pick.credit ? { credit: pick.credit } : {}) };
   const rows = await prisma.$queryRaw<Array<{ count: number }>>`
     UPDATE public.auto_slideshow_runs
     SET photos = COALESCE(photos, '[]'::jsonb) || jsonb_build_array(${JSON.stringify(photo)}::jsonb), updated_at = now()
@@ -125,7 +143,16 @@ export const importPhoto = async (runId: string, workspaceId: string, ref: Campa
   const count = rows[0]?.count;
   if (count === undefined) throw new HttpError(404, 'campaign_not_found', 'Campaign not found.');
   const index = Number(count) - 1;
-  return { photo: { index, url: thumbUrl(imageKey), fullUrl: await presignObject(imageKey), source: ref.source, credit: pick.credit ?? null }, detect: () => storeHeads(runId, index, jpeg) };
+  return { photo: { index, url: thumbUrl(imageKey), fullUrl: await presignObject(imageKey), source, credit: pick.credit ?? null }, detect: () => storeHeads(runId, index, jpeg) };
+};
+
+/** The photo request a client sent, cleaned. */
+export const parseAutoPhoto = (v: unknown): AutoPhotoRequest => {
+  const r = (v ?? {}) as Record<string, unknown>;
+  const text = (x: unknown, max: number) => (typeof x === 'string' ? x.replace(/\s+/g, ' ').trim().slice(0, max) : '');
+  if (r.source === 'stock' && text(r.query, 80)) return { source: 'stock', query: text(r.query, 80), nth: Number.isInteger(r.nth) ? Math.max(0, r.nth as number) : 0 };
+  if (r.source === 'ai' && text(r.scene, 400)) return { source: 'ai', scene: text(r.scene, 400) };
+  throw new HttpError(400, 'bad_auto_photo', 'Say what the photo shows.');
 };
 
 /**

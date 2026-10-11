@@ -1,5 +1,5 @@
 import type { AutoSlideshowDto } from '../../../../types/admin/autoSlideshow';
-import { hookPhotoFor, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
+import { hookPhotoFor, lookOfRole, shownBody, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import type { HookStyleId } from '../../../../types/hookStyle';
 
 /** One slide as the preview shows it: the rendered image once made, else the photo with the draft's text on top. */
@@ -12,9 +12,9 @@ export type PreviewShow = { hook: string; slides: PreviewSlide[] };
 /** The draft's slideshows, one per hook (a single placeholder one before any hook is written). */
 const draftShows = (draft: CampaignDraft, photos: CampaignPhotoDto[]): PreviewShow[] => {
   const photo = (i: number | null) => (i === null ? null : photos[i]?.fullUrl ?? photos[i]?.url ?? null);
-  const cards = draft.cards.map((c): PreviewSlide => ({ kind: 'draft', photoUrl: photo(c.photo), role: c.role, title: c.title, body: c.body, look: draft.look }));
+  const cards = draft.cards.map((c): PreviewSlide => ({ kind: 'draft', photoUrl: photo(c.photo), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role) }));
   const hooks = draft.hooks.length > 0 ? draft.hooks : [''];
-  return hooks.map((hook, i) => ({ hook, slides: [{ kind: 'draft', photoUrl: photo(hookPhotoFor(draft, i)), role: 'hook', title: hook, body: '', look: draft.look }, ...cards] }));
+  return hooks.map((hook, i) => ({ hook, slides: [{ kind: 'draft', photoUrl: photo(hookPhotoFor(draft, i)), role: 'hook', title: hook, body: '', look: draft.looks.hook }, ...cards] }));
 };
 
 /**

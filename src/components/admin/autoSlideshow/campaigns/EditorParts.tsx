@@ -54,3 +54,26 @@ export function DeleteCampaign({ token, campaignId, onDeleted }: { token: string
     </button>
   );
 }
+
+/** The Content tab's two ways to work: write every slide from one prompt, or edit each slide by hand. */
+export type ContentMode = 'auto' | 'slides';
+
+export function ContentModeTabs({ mode, onPick }: { mode: ContentMode; onPick: (m: ContentMode) => void }) {
+  const tab = (m: ContentMode, text: string) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={mode === m}
+      onClick={() => onPick(m)}
+      className={`min-h-11 flex-1 border-b-2 px-4 text-sm font-semibold transition sm:flex-none ${mode === m ? 'border-emerald-400 text-white' : 'border-transparent text-white/50 hover:text-white/80'}`}
+    >
+      {text}
+    </button>
+  );
+  return (
+    <div role="tablist" aria-label="Content mode" className="-mt-2 mb-5 flex border-b border-white/10">
+      {tab('auto', 'Auto')}
+      {tab('slides', 'Slide by slide')}
+    </div>
+  );
+}
