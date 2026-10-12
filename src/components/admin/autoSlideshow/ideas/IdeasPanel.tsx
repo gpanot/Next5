@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { IDEAS_PER_BATCH, REQUESTED_SLIDESHOWS, type IdeaDto } from '../../../../types/admin/calendarIdeas';
+import { TYPICAL_RUN_MS } from '../RunEta';
 import { RotatingLine } from '../../shared/RotatingLine';
 import { MakingCountdown } from '../calendar/MakingCountdown';
 import { FormatChips } from './FormatChips';
@@ -36,7 +37,7 @@ const SLIDESHOW_LINES = [
  *  fitting finish after the deck shows). */
 const TYPICAL_IDEAS_MS = 90_000;
 
-const deckBox = 'relative mx-auto aspect-[9/16] w-[min(calc(100vw-5rem),calc((100dvh-13.5rem)*0.5625))] rounded-[26px] bg-app-sunken lg:w-auto lg:max-w-full lg:h-[min(853px,calc(100dvh-20rem))]';
+const deckBox = 'relative mx-auto aspect-[9/16] w-[min(calc(100vw-5rem),calc((100lvh-13.5rem)*0.5625))] rounded-[26px] bg-app-sunken lg:w-auto lg:max-w-full lg:h-[min(853px,calc(100dvh-20rem))]';
 
 /**
  * The title, "3 / 14" for the filter, a progress bar, and the All · Blitz · Slideshow chips. Compact on phones; while the
@@ -68,17 +69,19 @@ function Header({ ideas, placeOf, onPickDate }: HeaderProps) {
           <div className="h-full rounded-full bg-app-accent transition-[width] duration-300" style={{ width: `${(decided / total) * 100}%` }} />
         </div>
       )}
-      <FormatChips ideas={ideas} className={shown ? 'hidden lg:flex' : ''} />
+      {!ideas.firstDeck && <FormatChips ideas={ideas} className={shown ? 'hidden lg:flex' : ''} />}
     </div>
   );
 }
 
 /** The empty card while ideas are written: the slide animation and a countdown, so the wait never looks stuck. */
-function Writing({ since, lines, note }: { since: string | null; lines: string[]; note: string }) {
+type WritingProps = { since: string | null; lines: string[]; note: string; totalMs?: number };
+
+function Writing({ since, lines, note, totalMs = TYPICAL_IDEAS_MS }: WritingProps) {
   return (
     <div className="space-y-3" aria-busy="true" aria-label="Writing your ideas">
       <div className={`${deckBox} ${since ? '' : 'animate-pulse'}`}>
-        {since && <MakingCountdown since={since} totalMs={TYPICAL_IDEAS_MS} label="Writing your ideas" />}
+        {since && <MakingCountdown since={since} totalMs={totalMs} label="Writing your ideas" />}
       </div>
       <RotatingLine lines={lines} />
       <p className="text-center text-xs text-app-muted">{note}</p>
@@ -109,6 +112,11 @@ function Kept({ ideas, maker }: { ideas: IdeasState; maker: Make }) {
 /** What the page shows for the filter: writing, empty (get more), the deck, or the kept list once all were looked at. */
 function Body({ ideas, maker, placeOf }: Props): ReactNode {
   if (ideas.loading) return <div className={`${deckBox} animate-pulse`} />;
+  if (ideas.firstDeck) {
+    // First setup: the profile, then the first deck, are built on their own. Nothing to click.
+    const totalMs = ideas.building ? TYPICAL_RUN_MS + TYPICAL_IDEAS_MS : TYPICAL_IDEAS_MS;
+    return <Writing since={ideas.generatingSince} lines={WRITING_LINES} totalMs={totalMs} note="We're building your first ideas. They show up here on their own." />;
+  }
   const writingBlitz = ideas.generating && ideas.filter !== 'slideshow';
   if (ideas.deck.length === 0 && writingBlitz) {
     return <Writing since={ideas.generatingSince} lines={WRITING_LINES} note="This takes about 90 seconds. You can keep using the calendar." />;

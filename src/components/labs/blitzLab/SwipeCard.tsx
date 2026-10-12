@@ -105,6 +105,8 @@ export type SwipeCardProps = {
    * at each shot's own position. Absent = the card's own readable style (calendar, marketing).
    */
   captionConfig?: TextConfig;
+  /** The top card's first shot can show: the deck may start loading the next card. */
+  onReady?: () => void;
 };
 
 // ── Gradient tint (fallback when no media URL) ────────────────────────────────
@@ -227,6 +229,7 @@ export function SwipeCard({
   soundOn = false,
   ariaLabel = 'Video card',
   captionConfig,
+  onReady,
 }: SwipeCardProps) {
   const isTop = position === 'top';
 
@@ -235,7 +238,12 @@ export function SwipeCard({
   const [paused, setPaused] = useState(false);
   // The player waits for the first shot's picture or clip, so a card never runs on a blank frame.
   const [ready, setReady] = useState(false);
-  const markReady = useCallback(() => setReady(true), []);
+  const onReadyRef = useRef(onReady);
+  useEffect(() => { onReadyRef.current = onReady; }, [onReady]);
+  const markReady = useCallback(() => {
+    setReady(true);
+    onReadyRef.current?.();
+  }, []);
   const rafRef = useRef<number>(0);
   const elapsedRef = useRef(0);
   const lastTsRef = useRef(0);
@@ -428,7 +436,8 @@ export function SwipeCard({
         <ShotLayers
           shots={shots}
           index={displayedShotIdx}
-          loadAll={position !== 'back2'}
+          // The top card loads its first shot alone, so it is not slowed by the other clips.
+          loadAll={position === 'back1' || (isTop && ready)}
           playing={isTop}
           muted={!soundOn || !isTop || paused || externalPause}
           fallback={(i) => tint(hue, i)}

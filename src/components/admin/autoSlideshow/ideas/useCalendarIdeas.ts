@@ -47,7 +47,8 @@ function useHeldTimes() {
 /** The calendar's ideas, "Make", and the ideas by day. Null when ideas are off. */
 export function useCalendarIdeas({ token, run, enabled, pinSlideshows, onMade }: Options) {
   const client = useMemo(() => (enabled && run.workspaceId ? createWorkspaceLabClient(token, run.workspaceId) : null), [enabled, token, run.workspaceId]);
-  const ideas = useIdeas(client, run.id, run.status === 'COMPLETED');
+  const building = run.status.startsWith('STEP_') ? run.startedAt : null;
+  const ideas = useIdeas(client, run.id, run.status === 'COMPLETED', building);
   const held = useHeldTimes();
   const rawMaker = useMakeIdeas({
     client,

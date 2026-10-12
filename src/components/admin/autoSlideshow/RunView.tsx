@@ -15,11 +15,11 @@ import { PostingCalendar } from './calendar/PostingCalendar';
 import { RunEta } from './RunEta';
 import { RunSlideshowEditor } from './RunSlideshowEditor';
 import { MatrixDialog } from './matrix/MatrixDialog';
+import { OnboardingFlow } from './onboarding/OnboardingFlow';
 
 /** The Matrix view (the site's Slideshow Bank) is a local dev tool: hidden in production builds. */
 const SHOW_MATRIX = process.env.NODE_ENV !== 'production';
 import { VideoRendersNote } from './VideoRendersNote';
-import { WelcomeDialog } from './WelcomeDialog';
 import { headerCopy, logLines, navItems } from './runCopy';
 import { waitLines } from './waitCopy';
 import { useAutoRun } from './useAutoRun';
@@ -206,7 +206,8 @@ export function RunView({ token, runId, onBack, stickyTop }: Props) {
         </div>
       )}
 
-      {workspace && run && !isTerminalAutoStatus(run.status) && <WelcomeDialog workspaceId={workspace.id} />}
+      {/* A new workspace's first run: the onboarding flow covers the build. The server decides who gets it. */}
+      {workspace && run && <OnboardingFlow key={workspace.id} token={token} workspaceId={workspace.id} run={run} onRunChanged={refresh} />}
 
       {!openId && <VideoRendersNote />}
       {SHOW_MATRIX && matrixOpen && <MatrixDialog token={token} runId={runId} onClose={() => setMatrixOpen(false)} onOpenSlideshow={setOpenId} />}

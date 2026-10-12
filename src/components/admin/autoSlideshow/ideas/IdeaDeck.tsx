@@ -47,7 +47,7 @@ const CARD_SIZE: Record<DeckSize, string> = {
   day: 'aspect-[9/16] w-[min(calc((100vw-7.5rem)*1.1),calc((100dvh-10rem)*0.5625),460px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
   /** The Ideas page: every bit of height left after its compact header and the controls goes to the card, 9:16.
    *  Phones: as wide as the screen allows, the buttons sit on the card. Desktop: the buttons beside it. */
-  page: 'aspect-[9/16] w-[min(calc(100vw-5rem),calc((100dvh-13.5rem)*0.5625))] lg:w-[min(calc((100dvh-20rem)*0.5625),480px)]',
+  page: 'aspect-[9/16] w-[min(calc(100vw-5rem),calc((100lvh-13.5rem)*0.5625))] lg:w-[min(calc((100dvh-20rem)*0.5625),480px)]',
 };
 
 /** Where the ⋯ menu and the sound buttons sit: beside the card, or (sound) on it on phones (Ideas page and a day). */
@@ -90,6 +90,8 @@ const captionFor = (idea: IdeaDto, hookCtaStyle?: HookCtaStyle) => (idea.card ? 
 export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onVoice, size = 'panel', plannedAt, confirmKeep, menu, hookStyle }: Props) {
   const { soundOn, toggleSound } = useDeckSound();
   const [exit, setExit] = useState<{ id: string; dir: 'keep' | 'discard' } | null>(null);
+  // The next card loads once the top card can play, so its clips don't slow the first one down.
+  const [readyId, setReadyId] = useState<string | null>(null);
   const card = useMemo(() => ideaCard(idea), [idea]);
   const back = useMemo(() => (next ? ideaCard(next) : null), [next]);
   const decide = async (status: 'kept' | 'discarded') => {
@@ -109,7 +111,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
     <div className="flex flex-col items-center gap-2 lg:gap-3">
       {/* Centered over ✕ / ✓; sized by the screen height (✕ and ✓ stay in view) and leaving room for the sound buttons. */}
       <div className={`relative ${CARD_SIZE[size]}`} aria-live="polite">
-        {back && next && <SwipeCard key={back.id} shots={back.shots} captionConfig={captionFor(next, hookStyle?.hookCta)} position="back1" hue={back.hue} onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} />}
+        {back && next && readyId === idea.id && <SwipeCard key={back.id} shots={back.shots} captionConfig={captionFor(next, hookStyle?.hookCta)} position="back1" hue={back.hue} onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} />}
         <SwipeCard
           key={`${card.id}-${hookStyle?.version ?? 0}`}
           shots={card.shots}
@@ -123,6 +125,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
           onDiscard={() => void decide('discarded')}
           onOpen={() => {}}
           soundOn={soundOn}
+          onReady={() => setReadyId(idea.id)}
           ariaLabel={`${formatLabel(idea)} idea: ${idea.hook}`}
         />
         {idea.card && hookStyle?.pending && (

@@ -1,7 +1,8 @@
 // server-only — never import from a 'use client' file.
 // The workspace's Brand Cast (types/admin/brandCast.ts): people written from the brand's audience and Visual Bible
 // (personas.ts), each with an anchor photo on Nano Banana 2.1. Made on the brand's first slideshow photo plan, or from
-// the Brand page; a face can be swapped there. Slideshows take the least used member (photoPlan.ts).
+// the Brand page; a face can be swapped there (the old one is parked: archive.ts). Slideshows take the least used
+// active member (photoPlan.ts).
 
 import type { BrandCastMember } from '@prisma/client';
 import { prisma } from '../../lib/db';
@@ -16,14 +17,10 @@ import { clip } from '../metaAds/text';
 import { ensureVisualBible } from '../shorts/visualBible';
 import { deleteObject, presignObject, putObject } from '../storage/objectStore';
 import { INTRO_STALE_MS } from './intro';
+import { dropFiles, expiresAt, isStale, tidyArchive, vacate } from './archive';
 import { anchorPrompt, writePersonas, type Persona } from './personas';
 import { brandPhotoFacts, productLooks, type BrandPhotoFacts } from '../brandContent/productPhotos';
 import { compressBrandPhoto } from '../brandContent/compressPhoto';
-
-/** A member still "pending" after this was cut off (a killed function): shown as failed, and can be made again. */
-const STALE_MS = 5 * 60_000;
-
-const isStale = (m: BrandCastMember) => m.status === 'pending' && Date.now() - m.updatedAt.getTime() > STALE_MS;
 
 const toDto = async (m: BrandCastMember): Promise<BrandCastMemberDto> => ({
   id: m.id,
@@ -36,6 +33,8 @@ const toDto = async (m: BrandCastMember): Promise<BrandCastMemberDto> => ({
   uses: m.uses,
   updatedAt: m.updatedAt.toISOString(),
   ...(await introOf(m)),
+  archivedAt: m.archivedAt?.toISOString() ?? null,
+  expiresAt: expiresAt(m)?.toISOString() ?? null,
 });
 
 /** The intro video's fields; a "pending" intro past its time shows as failed. */
@@ -49,9 +48,18 @@ const introOf = async (m: BrandCastMember): Promise<Pick<BrandCastMemberDto, 'in
   };
 };
 
-const members = (workspaceId: string) => prisma.brandCastMember.findMany({ where: { workspaceId }, orderBy: { slot: 'asc' } });
+/** The active cast, by slot. */
+const members = (workspaceId: string) => prisma.brandCastMember.findMany({ where: { workspaceId, archivedAt: null }, orderBy: { slot: 'asc' } });
 
-export const listCast = async (workspaceId: string): Promise<BrandCastDto> => ({ members: await Promise.all((await members(workspaceId)).map(toDto)) });
+/** The active cast and the archive (newest first), after deleting parked people past their time. */
+export const listCast = async (workspaceId: string): Promise<BrandCastDto> => {
+  await tidyArchive(workspaceId);
+  const [active, parked] = await Promise.all([
+    members(workspaceId),
+    prisma.brandCastMember.findMany({ where: { workspaceId, archivedAt: { not: null } }, orderBy: { archivedAt: 'desc' } }),
+  ]);
+  return { members: await Promise.all(active.map(toDto)), archived: await Promise.all(parked.map(toDto)) };
+};
 
 /** The brand as its latest Auto Slideshow run read it, with its Visual Bible (built now when missing) and the product
  *  photos the cast may wear (clothing brands only). */
@@ -137,30 +145,33 @@ export const startCast = async (workspaceId: string, meter: CostMeter = createMe
 export type SwapRequest = { note?: string; photoKey?: string };
 
 /**
- * Swaps one member for a new person, kept in the same slot. With a note or a photo, the new person follows them (and may
- * keep the face when only the outfit should change); without, it is a different person. The job makes the new photo
- * and then deletes the owner's uploaded photo.
+ * Swaps one member for a new person in the same slot; the old one is parked in the archive (or deleted when it has no
+ * photo). With a note or a photo, the new person follows them (and may keep the face when only the outfit should
+ * change); without, it is a different person from everyone, parked ones too. The job makes the new photo and then
+ * deletes the owner's uploaded photo.
  */
 export const startSwap = async (workspaceId: string, memberId: string, request: SwapRequest = {}, meter: CostMeter = createMeter()): Promise<() => Promise<void>> => {
-  const all = await members(workspaceId);
-  const member = all.find((m) => m.id === memberId);
+  const all = await prisma.brandCastMember.findMany({ where: { workspaceId } });
+  const active = all.filter((m) => !m.archivedAt);
+  const member = active.find((m) => m.id === memberId);
   if (!member) throw new HttpError(404, 'not_found', 'This person is not in your cast.');
   if (member.status === 'pending' && !isStale(member)) throw new HttpError(409, 'busy', 'This face is still being made.');
   const ctx = await brandContext(workspaceId, meter);
   const guided = Boolean(request.note || request.photoKey);
   const photoUrl = request.photoKey ? ((await presignObject(request.photoKey, 60 * 60)) ?? undefined) : undefined;
   const guide = guided ? { note: request.note, photoUrl, current: asPersona(member) } : undefined;
-  const avoid = (guided ? all.filter((m) => m.id !== member.id) : all).map(asPersona);
+  const avoid = (guided ? active.filter((m) => m.id !== member.id) : all).map(asPersona);
   const [persona] = await writePersonas(briefOf(ctx), 1, avoid, meter, guide);
   const anchor = anchorFor(persona!, outfitFor(ctx, persona!, member.slot), request.photoKey);
-  const updated = await prisma.brandCastMember.update({
-    where: { id: member.id },
-    // A new look: the old intro video (another face or outfit) goes too.
-    data: { name: persona!.name, look: persona!.look, prompt: anchor.prompt, status: 'pending', error: null, uses: 0, voice: null, introScript: null, introVideoKey: null, introStatus: 'none', introError: null },
+  const { fresh, dropped } = await prisma.$transaction(async (tx) => {
+    const gone = await vacate(tx, member);
+    const created = await tx.brandCastMember.create({ data: { workspaceId, slot: member.slot, name: persona!.name, look: persona!.look, prompt: anchor.prompt } });
+    return { fresh: created, dropped: gone };
   });
-  if (member.introVideoKey) await deleteObject(member.introVideoKey).catch(() => undefined);
+  if (dropped) await dropFiles([dropped]);
+  await tidyArchive(workspaceId);
   return async () => {
-    await makeAnchor(updated, anchor.refs, meter);
+    await makeAnchor(fresh, anchor.refs, meter);
     if (request.photoKey) await deleteObject(request.photoKey).catch(() => undefined);
   };
 };
@@ -168,7 +179,7 @@ export const startSwap = async (workspaceId: string, memberId: string, request: 
 /** Makes one failed member's photo again, same person and same prompt: the outfit photo is the one its prompt names
  *  (an uploaded photo of the person was already deleted). */
 export const startRetry = async (workspaceId: string, memberId: string, meter: CostMeter = createMeter()): Promise<() => Promise<void>> => {
-  const member = await prisma.brandCastMember.findFirst({ where: { id: memberId, workspaceId } });
+  const member = await prisma.brandCastMember.findFirst({ where: { id: memberId, workspaceId, archivedAt: null } });
   if (!member) throw new HttpError(404, 'not_found', 'This person is not in your cast.');
   const ctx = await brandContext(workspaceId, meter);
   const outfit = ctx.outfits.find((o) => o.productName && member.prompt.includes(o.productName)) ?? null;
@@ -195,7 +206,7 @@ const takeLeastUsed = async (workspaceId: string): Promise<CastPick | null> => {
     UPDATE brand_cast_members SET uses = uses + 1
     WHERE id = (
       SELECT id FROM brand_cast_members
-      WHERE workspace_id = ${workspaceId} AND status = 'ready' AND image_key IS NOT NULL
+      WHERE workspace_id = ${workspaceId} AND archived_at IS NULL AND status = 'ready' AND image_key IS NOT NULL
       ORDER BY uses ASC, slot ASC LIMIT 1 FOR UPDATE SKIP LOCKED
     )
     RETURNING id, name, look, image_key`;
@@ -210,7 +221,7 @@ const takeLeastUsed = async (workspaceId: string): Promise<CastPick | null> => {
  */
 export const castForShows = async (workspaceId: string, count: number, meter: CostMeter): Promise<CastPick[]> => {
   if (count === 0) return [];
-  if ((await prisma.brandCastMember.count({ where: { workspaceId } })) === 0) {
+  if ((await prisma.brandCastMember.count({ where: { workspaceId, archivedAt: null } })) === 0) {
     const job = await startCast(workspaceId, meter).catch((err: unknown) => {
       console.warn(`[brand-cast] ${workspaceId}: cast not made:`, err instanceof Error ? err.message : err);
       return null;

@@ -2,7 +2,7 @@
 
 import { ImagePlus, Sparkles, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import type { BrandCastMemberDto } from '../../../../types/admin/brandCast';
+import { ARCHIVE_DAYS, FACE_SECONDS, type BrandCastMemberDto } from '../../../../types/admin/brandCast';
 import { Dialog } from '../../../ui/Dialog';
 
 const MAX_NOTE = 300;
@@ -11,6 +11,8 @@ export type NewFaceRequest = { note: string; file: File | null };
 
 type Props = {
   member: BrandCastMemberDto | null;
+  /** The archive holds its maximum: the new face deletes the oldest parked one. */
+  archiveFull: boolean;
   busy: boolean;
   error: string | null;
   onClose: () => void;
@@ -52,7 +54,7 @@ function PhotoPick({ file, onPick, onClear }: { file: File | null; onPick: (f: F
 
 /** "New face": what to change (face or outfit), or a reference photo; "Surprise me" for a different person. Mount it
  *  with `key={member.id}` so each opening starts empty. */
-export function NewFaceDialog({ member, busy, error, onClose, onSubmit }: Props) {
+export function NewFaceDialog({ member, archiveFull, busy, error, onClose, onSubmit }: Props) {
   const [note, setNote] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const firstName = member?.name.split(',')[0] ?? '';
@@ -77,6 +79,11 @@ export function NewFaceDialog({ member, busy, error, onClose, onSubmit }: Props)
           <p className="text-sm font-semibold text-app-ink">Or upload a photo reference</p>
           <PhotoPick file={file} onPick={setFile} onClear={() => setFile(null)} />
         </div>
+        {member?.status === 'ready' && (
+          <p className="rounded-xl bg-app-sunken px-3 py-2 text-xs text-app-muted">
+            {firstName} goes to your archive for {ARCHIVE_DAYS} days. You can bring {firstName} back.{archiveFull ? ' Your archive is full, so the oldest face there is deleted.' : ''} The new face takes about {FACE_SECONDS} seconds.
+          </p>
+        )}
         {error && <p role="alert" className="text-sm text-app-danger">{error}</p>}
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
           <button type="button" onClick={() => onSubmit({ note: '', file: null })} disabled={busy} className="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold text-app-muted transition hover:bg-app-sunken hover:text-app-ink active:scale-95 disabled:opacity-40">

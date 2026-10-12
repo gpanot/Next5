@@ -4,6 +4,7 @@ import { Play } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { BrandCastMemberDto } from '../../../../types/admin/brandCast';
 import { ExpandedIntroVideo } from './ExpandedIntroVideo';
+import { FaceTimer } from './FaceTimer';
 
 // 9:16 like the intro video, cropped the same way (cover, centered), so playing it looks like the photo coming alive.
 export const photoBox = 'relative aspect-[9/16] overflow-hidden rounded-xl bg-app-sunken';
@@ -37,9 +38,8 @@ export function CastMemberMedia({ member }: { member: BrandCastMemberDto }) {
   const photoRef = useRef<HTMLDivElement>(null);
   if (member.status === 'pending') {
     return (
-      <div className={`${photoBox} flex flex-col items-center justify-center gap-2`} aria-label={`Making ${member.name}'s photo`}>
-        <Spinner />
-        <span className="text-xs text-app-muted">Making…</span>
+      <div className={`${photoBox} flex flex-col items-center justify-center`} aria-label={`Making ${member.name}'s photo`}>
+        <FaceTimer startedAt={member.updatedAt} />
       </div>
     );
   }

@@ -1,6 +1,6 @@
 /**
- * POST /api/admin/workspaces/[workspaceId]/cast/[memberId] — "swap" gives the slot a new person (multipart with the
- * "New face" dialog's note and photo, or JSON);
+ * POST /api/admin/workspaces/[workspaceId]/cast/[memberId] — "swap" gives the slot a new person and parks the old one
+ * (multipart with the "New face" dialog's note and photo, or JSON); "edit", "restore" and "delete" as on the user route;
  * { action: "retry" } makes the same person's photo again; { action: "intro" } makes their intro video.
  * The work follows in the background.
  */

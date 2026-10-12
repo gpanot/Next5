@@ -2,6 +2,7 @@
 
 import { useCallback, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { CalendarDays } from 'lucide-react';
 
 /** Set once the user ticks "Don't show me again": later swipes right keep without asking. */
 const SKIP_KEY = 'next5:keep-confirm-off';
@@ -24,16 +25,22 @@ const rememberSkip = () => {
 
 const button = 'min-h-12 flex-1 rounded-full px-5 text-sm font-semibold transition active:scale-95';
 
-function KeepDialog({ credits, onAnswer }: { credits: number; onAnswer: (ok: boolean, dontShow: boolean) => void }) {
+type Ask = { credits: number; when: string };
+
+function KeepDialog({ credits, when, onAnswer }: Ask & { onAnswer: (ok: boolean, dontShow: boolean) => void }) {
   const [dontShow, setDontShow] = useState(false);
   // On <body>: the deck sits in the calendar's sticky rail, whose stacking context would put the calendar tiles on top.
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 sm:items-center" onClick={() => onAnswer(false, false)}>
       <div role="dialog" aria-modal="true" aria-labelledby="keep-confirm-title" onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-4 rounded-t-2xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl dark:bg-zinc-950">
-        <h3 id="keep-confirm-title" className="text-lg font-extrabold text-ink dark:text-zinc-100">You are about to use {credits} {credits === 1 ? 'credit' : 'credits'}</h3>
-        <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-          You can still edit the video before it gets posted on your social media. Deleting a video or a slideshow gives the credit back.
+        <h3 id="keep-confirm-title" className="text-lg font-extrabold text-ink dark:text-zinc-100">This uses {credits} {credits === 1 ? 'credit' : 'credits'}</h3>
+        <p className="flex items-center gap-3 rounded-xl bg-app-sunken p-3 text-sm text-ink dark:text-zinc-100">
+          <CalendarDays aria-hidden className="h-5 w-5 shrink-0 text-app-accent" />
+          <span>
+            Goes on your calendar for <strong className="font-bold">{when}</strong>
+          </span>
         </p>
+        <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">You can edit it before it posts. Delete it to get your credit back.</p>
         <label className="flex min-h-11 cursor-pointer items-center gap-2.5 text-sm text-zinc-700 dark:text-zinc-300">
           <input type="checkbox" checked={dontShow} onChange={(e) => setDontShow(e.target.checked)} className="h-5 w-5 rounded accent-blue-600" />
           Don&apos;t show me again
@@ -49,15 +56,15 @@ function KeepDialog({ credits, onAnswer }: { credits: number; onAnswer: (ok: boo
 }
 
 /**
- * Asks before a swipe right uses a credit (until "Don't show me again"). `confirm` resolves true to go on; `dialog`
+ * Asks before a swipe right uses a credit and says the day it goes on the calendar (until "Don't show me again"). `confirm` resolves true to go on; `dialog`
  * is rendered by the caller.
  */
-export function useKeepConfirm(): { confirm: (credits: number) => Promise<boolean>; dialog: ReactNode } {
-  const [asking, setAsking] = useState<number | null>(null);
+export function useKeepConfirm(): { confirm: (credits: number, when: string) => Promise<boolean>; dialog: ReactNode } {
+  const [asking, setAsking] = useState<Ask | null>(null);
   const resolver = useRef<((ok: boolean) => void) | null>(null);
-  const confirm = useCallback((credits: number) => {
+  const confirm = useCallback((credits: number, when: string) => {
     if (skipped()) return Promise.resolve(true);
-    setAsking(credits);
+    setAsking({ credits, when });
     return new Promise<boolean>((resolve) => {
       resolver.current = resolve;
     });
@@ -68,5 +75,5 @@ export function useKeepConfirm(): { confirm: (credits: number) => Promise<boolea
     resolver.current?.(ok);
     resolver.current = null;
   };
-  return { confirm, dialog: asking === null ? null : <KeepDialog credits={asking} onAnswer={answer} /> };
+  return { confirm, dialog: asking === null ? null : <KeepDialog {...asking} onAnswer={answer} /> };
 }

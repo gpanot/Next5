@@ -5,6 +5,15 @@
  */
 
 export const CAST_SIZE = 3;
+/** "New face" parks the old person here; they can be brought back or deleted. */
+export const ARCHIVE_MAX = 7;
+export const ARCHIVE_DAYS = 14;
+/** About how long a new face's photo takes: the countdown on the card. */
+export const FACE_SECONDS = 45;
+/** Ages the owner can set on the "Edit name and age" dialog. */
+export const MIN_AGE = 18;
+export const MAX_AGE = 90;
+export const MAX_NAME = 30;
 
 export type BrandCastStatus = 'pending' | 'ready' | 'failed';
 
@@ -27,9 +36,12 @@ export type BrandCastMemberDto = {
   introUrl: string | null;
   introScript: string | null;
   introError: string | null;
+  /** When "New face" parked this person, and when they are deleted for good; null for the active cast. */
+  archivedAt: string | null;
+  expiresAt: string | null;
 };
 
 export type IntroStatus = 'none' | 'pending' | 'ready' | 'failed';
 
-/** GET /brand-cast. `members` is empty before the cast is made. */
-export type BrandCastDto = { members: BrandCastMemberDto[] };
+/** GET /brand-cast. `members`: the active cast, empty before it is made. `archived`: parked people, newest first. */
+export type BrandCastDto = { members: BrandCastMemberDto[]; archived: BrandCastMemberDto[] };

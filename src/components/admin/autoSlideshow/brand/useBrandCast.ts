@@ -12,24 +12,37 @@ const POLL_MS = 4_000;
 
 export type CastAction = 'swap' | 'retry' | 'intro';
 
+/** What the owner can do to an archived face, or to a name and age: done when the request answers. */
+export type ArchiveRequest =
+  | { action: 'restore'; replace?: string }
+  | { action: 'delete' }
+  | { action: 'edit'; name: string; age: number };
+
 /**
  * The Brand Cast at `path` (the user's '/brand-cast', or the admin's '/workspaces/[id]/cast'): load, make it, swap or
- * retry a face, make intro videos. Polls while a photo or a video is being made.
+ * retry a face, make intro videos, and the archive (bring back, delete) and name edits. Polls while a photo or a video
+ * is being made.
  */
 export function useBrandCast(client: LabClient, path: string) {
   const [members, setMembers] = useState<BrandCastMemberDto[] | null>(null);
+  const [archived, setArchived] = useState<BrandCastMemberDto[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  const apply = useCallback((dto: BrandCastDto) => {
+    setMembers(dto.members);
+    setArchived(dto.archived ?? []);
+  }, []);
+
   const fetchList = useCallback(
     () => client.request<BrandCastDto>(path).catch(() => null).then((res) => {
       if (res?.ok) {
-        setMembers(res.data.members);
+        apply(res.data);
         setLoadError(null);
       } else setLoadError(res ? errorOf(res) : OFFLINE);
     }),
-    [client, path],
+    [client, path, apply],
   );
 
   useEffect(() => {
@@ -43,31 +56,34 @@ export function useBrandCast(client: LabClient, path: string) {
     return () => clearTimeout(timer);
   }, [pending, members, fetchList]);
 
-  const send = useCallback(async (key: string, url: string, json: unknown) => {
+  /** True when it worked. */
+  const send = useCallback(async (key: string, url: string, json: unknown): Promise<boolean> => {
     setBusy(key);
     setActionError(null);
     const res = await client.request<BrandCastDto>(url, { method: 'POST', json }).catch(() => null);
-    if (res?.ok) setMembers(res.data.members);
+    if (res?.ok) apply(res.data);
     else setActionError(res ? errorOf(res) : OFFLINE);
     setBusy(null);
-  }, [client]);
+    return Boolean(res?.ok);
+  }, [client, apply]);
 
   const build = useCallback(() => send('build', path, {}), [send, path]);
   const act = useCallback((id: string, action: CastAction) => send(id, `${path}/${id}`, { action }), [send, path]);
+  const manage = useCallback((id: string, request: ArchiveRequest) => send(id, `${path}/${id}`, request), [send, path]);
   /** Starts the intro video of each member, one request at a time (each answers at once; the videos are made in parallel). */
   const makeIntros = useCallback(async (ids: string[]) => {
     setBusy('intros');
     setActionError(null);
     for (const id of ids) {
       const res = await client.request<BrandCastDto>(`${path}/${id}`, { method: 'POST', json: { action: 'intro' } }).catch(() => null);
-      if (res?.ok) setMembers(res.data.members);
+      if (res?.ok) apply(res.data);
       else {
         setActionError(res ? errorOf(res) : OFFLINE);
         break;
       }
     }
     setBusy(null);
-  }, [client, path]);
+  }, [client, path, apply]);
   /** "New face" from the dialog: the note and the photo (made small first) go as a form. True when it started. */
   const swap = useCallback(async (id: string, { note, file }: NewFaceRequest): Promise<boolean> => {
     setBusy(id);
@@ -83,15 +99,17 @@ export function useBrandCast(client: LabClient, path: string) {
     }
     if (small) form.append('file', small);
     const res = await client.request<BrandCastDto>(`${path}/${id}`, { form }).catch(() => null);
-    if (res?.ok) setMembers(res.data.members);
+    if (res?.ok) apply(res.data);
     else setActionError(res ? errorOf(res) : OFFLINE);
     setBusy(null);
     return Boolean(res?.ok);
-  }, [client, path]);
+  }, [client, path, apply]);
   const reload = useCallback(() => {
     setLoadError(null);
     void fetchList();
   }, [fetchList]);
 
-  return { members, loadError, busy, actionError, build, act, swap, makeIntros, reload };
+  const clearError = useCallback(() => setActionError(null), []);
+
+  return { members, archived, loadError, busy, actionError, build, act, manage, swap, makeIntros, reload, clearError };
 }

@@ -253,6 +253,36 @@ body {
   animation: sheet-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* Slideshow onboarding: 200ms slide left going forward, right going back; a fade only with reduced motion. */
+@keyframes onb-forward {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+@keyframes onb-back {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+@utility animate-onb-forward {
+  animation: onb-forward 0.2s ease-out both;
+}
+
+@utility animate-onb-back {
+  animation: onb-back 0.2s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-onb-forward,
+  .animate-onb-back {
+    animation: fade-in 0.2s ease-out both;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in,
   .animate-sheet-in,

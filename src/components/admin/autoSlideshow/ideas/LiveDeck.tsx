@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { DeckMenu } from './DeckMenu';
 import { HookPicker } from './HookPicker';
+import { whenOf } from './ideaCards';
 import { IdeaDeck, type DeckSize } from './IdeaDeck';
 import type { Make } from './IdeasPanel';
 import { useKeepConfirm } from './KeepConfirm';
@@ -45,7 +46,7 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   };
   return (
     <>
-      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={changeVoice} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1) : undefined} menu={<DeckMenu onCreate={ideas.createSlideshows} making={asked} filters={size === 'page' ? ideas : undefined} bareOnPhone={size === 'page' || size === 'day'} />} hookStyle={hookStyle} />
+      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={changeVoice} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1, whenOf(idea, placeOf?.(idea))) : undefined} menu={<DeckMenu onCreate={ideas.createSlideshows} making={asked} filters={size === 'page' ? ideas : undefined} bareOnPhone={size === 'page' || size === 'day'} />} hookStyle={hookStyle} />
       {hookFor && <HookPicker idea={hookFor} onPick={(id) => ideas.pickHook(hookFor, id)} onClose={() => setHookFor(null)} />}
       {dialog}
     </>

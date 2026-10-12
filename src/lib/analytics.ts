@@ -10,7 +10,9 @@ export type AnalyticsEvent =
   | 'landing_viewed' | 'cta_clicked' | 'onboarding_step_completed' | 'trial_generated' | 'checkout_opened'
   | 'plan_requested' | 'payment_paid' | 'batch_created' | 'batch_completed' | 'item_redo' | 'item_downloaded'
   | 'zip_downloaded' | 'topup_purchased' | 'renewal_reminder_clicked' | 'post_kit_created' | 'promise_claimed' | 'store_connected' | 'listing_pack_downloaded' | 'more_photos_created'
-  | 'post_marked' | 'post_published' | 'calendar_planned';
+  | 'post_marked' | 'post_published' | 'calendar_planned'
+  | 'onboarding_step_viewed' | 'onboarding_step_answered' | 'onboarding_step_skipped' | 'onboarding_jump_to_calendar'
+  | 'onboarding_build_ready' | 'onboarding_completed' | 'onboarding_build_failed';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 

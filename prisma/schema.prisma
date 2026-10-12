@@ -300,6 +300,7 @@ model Workspace {
   assetDescriptors    AssetDescriptor[]
   userUploads         UserUpload[]
   brandCast           BrandCastMember[]
+  onboardingProfile   OnboardingProfile?
 
   // One Brand and one Shop studio per user: a partial unique index in SQL (db/migrations, *_slideshow_workspaces.sql)
   // that skips 'slideshow' workspaces. Prisma cannot express it, so it is not declared here.
@@ -336,25 +337,50 @@ model UserUpload {
   @@map("user_uploads")
 }
 
+/// Slideshow workspace onboarding answers, given while the first run builds. Stats only: generation never reads them.
+model OnboardingProfile {
+  workspaceId  String    @id @map("workspace_id")
+  /// Option keys: leads | sales | trust | followers | consistency
+  goals        String[]  @default([])
+  goalsOther   String?   @map("goals_other") @db.VarChar(140)
+  /// Option keys: no_time | no_ideas | camera_shy | low_views | editing
+  pains        String[]  @default([])
+  painsOther   String?   @map("pains_other") @db.VarChar(140)
+  /// "autopilot" | "approve_first" | "ideas_only"
+  postingMode  String    @default("approve_first") @map("posting_mode")
+  /// "none" | "under_200" | "from_200_to_1000" | "over_1000"; null when not answered
+  monthlySpend String?   @map("monthly_spend")
+  /// The screen to resume on (0-6)
+  lastStep     Int       @default(0) @map("last_step")
+  skippedSteps Int[]     @default([]) @map("skipped_steps")
+  completedAt  DateTime? @map("completed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("onboarding_profiles")
+}
+
 /// One recurring person of a workspace's Brand Cast (src/server/brandCast): made from the brand's audience and Visual
 /// Bible, with an anchor photo that slideshow photos use as a reference so the same faces come back.
 model BrandCastMember {
-  id          String   @id @default(cuid())
-  workspaceId String   @map("workspace_id")
-  /// 1-3, the member's place on the Brand page
-  slot        Int
+  id            String    @id @default(cuid())
+  workspaceId   String    @map("workspace_id")
+  /// 1-3, the member's place on the Brand page (an archived member keeps its last slot)
+  slot          Int
   /// First name and age, e.g. "Maya, 28"
-  name        String
+  name          String
   /// 15-30 words: face, hair, build, skin tone, style. Goes into every photo prompt the member is in.
-  look        String
+  look          String
   /// The anchor photo's full prompt
-  prompt      String
-  imageKey    String?  @map("image_key")
+  prompt        String
+  imageKey      String?   @map("image_key")
   /// "pending" | "ready" | "failed"
-  status      String   @default("pending")
-  error       String?
+  status        String    @default("pending")
+  error         String?
   /// Slideshows that used this member: the next slideshow takes the least used
-  uses        Int      @default(0)
+  uses          Int       @default(0)
   /// How the intro video's voice sounds, as Veo was asked ("warm, friendly American woman in her mid twenties")
   voice         String?
   /// The intro video's spoken line ("Hi, I'm Maya…")
@@ -365,12 +391,15 @@ model BrandCastMember {
   introError    String?   @map("intro_error")
   /// When the intro was last started (a "pending" intro older than 8 minutes was cut off)
   introAt       DateTime? @map("intro_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  /// Set when "New face" parked this member: kept 14 days (7 at most), then deleted. Null for the active cast.
+  archivedAt    DateTime? @map("archived_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
-  @@unique([workspaceId, slot])
+  // One active member per slot: a partial unique index in SQL (db/migrations, *_brand_cast_archive.sql) that skips
+  // archived members. Prisma cannot express it, so it is not declared here.
   @@map("brand_cast_members")
 }
 

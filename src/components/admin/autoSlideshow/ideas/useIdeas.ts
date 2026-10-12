@@ -210,8 +210,10 @@ const useActions = (client: LabClient | null, request: ListRequest, setState: Se
 /**
  * The workspace's ideas: the deck (Blitz cards first, real slideshows joining once made), kept and skipped ones, and
  * every action on them. `filter` narrows every list to one format (the Ideas page's chips); `counts` stay unfiltered. `autoGenerate`: the run is finished, so the first batch can be written.
+ * `buildingSince`: the profile is still being built (first setup), since then; with no ideas yet, the deck counts as
+ * being written, so the page shows it building instead of "Get more" buttons.
  */
-export function useIdeas(client: LabClient | null, runId: string, autoGenerate: boolean) {
+export function useIdeas(client: LabClient | null, runId: string, autoGenerate: boolean, buildingSince: string | null = null) {
   const [state, setStateRaw] = useState<State>({ ideas: [], slideshowPct: 10, reserve: 0, loading: Boolean(client), generating: false, generatingSince: null, batchSince: null, error: null });
   const setState = useCallback<SetState>((fn) => setStateRaw(fn), []);
   const made = useRef(new Set<string>());
@@ -250,9 +252,12 @@ export function useIdeas(client: LabClient | null, runId: string, autoGenerate: 
     }, true);
     return list ? null : (failed ?? OFFLINE);
   }, [client, runId, request]);
-  const generating = state.generating || Boolean(state.batchSince);
-  const generatingSince = state.generatingSince ?? state.batchSince;
-  return { ...state, generating, generatingSince, ...lists, ...actions, filter, setFilter, counts, client, current, generate, reviewSkipped, reload, markMade, createSlideshows };
+  const building = Boolean(buildingSince) && state.ideas.length === 0;
+  const generating = state.generating || Boolean(state.batchSince) || building;
+  const generatingSince = state.generatingSince ?? state.batchSince ?? (building ? buildingSince : null);
+  /** The very first deck is being written (no idea yet): nothing to pick, the page only shows it building. */
+  const firstDeck = generating && state.ideas.length === 0;
+  return { ...state, generating, generatingSince, building, firstDeck, ...lists, ...actions, filter, setFilter, counts, client, current, generate, reviewSkipped, reload, markMade, createSlideshows };
 }
 
 export type IdeasState = ReturnType<typeof useIdeas>;
