@@ -22,6 +22,7 @@ import {
   type CampaignPhotoDto,
   type CampaignSummaryDto,
 } from '../../../types/admin/slideshowCampaign';
+import { parseTextAt, type TextAt } from '../../../types/slideText';
 import { HttpError } from '../../http';
 import { presignObject } from '../../storage/objectStore';
 import { thumbUrl } from '../../storage/thumbs';
@@ -141,15 +142,21 @@ export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
 const str = (v: unknown, max: number): string => (typeof v === 'string' ? v.slice(0, max) : '');
 const photoIndex = (v: unknown, photoCount: number): number | null => (Number.isInteger(v) && (v as number) >= 0 && (v as number) < photoCount ? (v as number) : null);
 
+/** A text position kept only when it is one (unmoved text stores none, so older drafts keep their render key). */
+const movedTo = (v: unknown): { textAt?: TextAt } => {
+  const at = parseTextAt(v);
+  return at ? { textAt: at } : {};
+};
+
 const parseCards = (value: unknown, photoCount: number): CampaignCard[] => {
   if (!Array.isArray(value)) throw new HttpError(400, 'bad_cards', 'The cards are missing.');
   const raw = value as Array<Record<string, unknown>>;
-  const items = raw.slice(0, -1).map((c): CampaignCard => ({ role: 'item', title: str(c?.title, MAX_CARD_TITLE_CHARS), body: str(c?.body, MAX_CARD_BODY_CHARS), photo: photoIndex(c?.photo, photoCount) }));
+  const items = raw.slice(0, -1).map((c): CampaignCard => ({ role: 'item', title: str(c?.title, MAX_CARD_TITLE_CHARS), body: str(c?.body, MAX_CARD_BODY_CHARS), photo: photoIndex(c?.photo, photoCount), ...movedTo(c?.textAt) }));
   const last = raw[raw.length - 1];
   if (items.length < MIN_CAMPAIGN_CONTENT || items.length > MAX_CAMPAIGN_CONTENT || !last) {
     throw new HttpError(400, 'bad_cards', `A campaign has ${MIN_CAMPAIGN_CONTENT} to ${MAX_CAMPAIGN_CONTENT} content cards and one CTA card.`);
   }
-  return [...items, { role: 'cta', title: str(last.title, MAX_CARD_TITLE_CHARS), body: str(last.body, MAX_CARD_BODY_CHARS), photo: photoIndex(last.photo, photoCount) }];
+  return [...items, { role: 'cta', title: str(last.title, MAX_CARD_TITLE_CHARS), body: str(last.body, MAX_CARD_BODY_CHARS), photo: photoIndex(last.photo, photoCount), ...movedTo(last.textAt) }];
 };
 
 /** The draft a client sent, cleaned: text trimmed to its limits, photo indexes that exist, no repeated hook. */
@@ -162,6 +169,7 @@ export const parseDraft = (value: unknown, photoCount: number): CampaignDraft =>
     hookPhotos: [...new Set(hookPhotos)].slice(0, MAX_CAMPAIGN_HOOK_PHOTOS),
     cards: parseCards(d.cards, photoCount),
     looks: looksOf(d),
+    ...(parseTextAt(d.hookTextAt) ? { hookTextAt: parseTextAt(d.hookTextAt) } : {}),
     caption: str(d.caption, MAX_CAPTION_CHARS),
   };
 };

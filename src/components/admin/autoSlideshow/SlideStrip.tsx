@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import type { AutoSlideDto } from '../../../types/admin/autoSlideshow';
 
-type Props = { slides: AutoSlideDto[]; index: number; busy: string | null; onPick: (i: number) => void };
+/** `textLayer`: drawn over slide i's image (the ringed card's draggable text, and live edits not rendered yet). */
+type Props = { slides: AutoSlideDto[]; index: number; busy: string | null; onPick: (i: number) => void; textLayer?: (i: number) => ReactNode };
 
 /** Hook, CTA, or Content for every other slide: the three groups the editor's tabs use. */
 export const roleGroup = (role: AutoSlideDto['role']) => (role === 'hook' ? 'Hook' : role === 'cta' ? 'CTA' : 'Content');
 
 /** Every slide as a numbered 9:16 card, big enough to read its text, with its role; the one being edited is ringed. Tapping a card edits it. */
-export function SlideStrip({ slides, index, busy, onPick }: Props) {
+export function SlideStrip({ slides, index, busy, onPick, textLayer }: Props) {
   const list = useRef<HTMLOListElement>(null);
   const selected = useRef<HTMLButtonElement>(null);
   // Keeps the edited card in view, sideways only (the page itself never scrolls), with no animation.
@@ -39,8 +40,9 @@ export function SlideStrip({ slides, index, busy, onPick }: Props) {
               <span className="relative block aspect-[9/16] w-full bg-white/5">
                 {s.imageUrl && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={s.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  <img src={s.imageUrl} alt="" loading="lazy" className="h-full w-full object-cover" draggable={false} />
                 )}
+                {s.imageUrl && textLayer?.(i)}
                 <span className="absolute top-2 left-2 flex h-6 min-w-6 items-center justify-center rounded-md bg-black/70 px-1 text-[11px] font-bold text-white">{i + 1}</span>
                 {working && (
                   <span className="absolute inset-0 flex items-center justify-center bg-black/50">

@@ -3,21 +3,25 @@
 import { useEffect, useState } from 'react';
 import type { AutoPhotoDto, AutoSlideshowDto, AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { CaptionPanel } from './CaptionPanel';
-import { HookStylePanel } from './HookStylePanel';
 import { PostDialog, SaveCaptionButton } from './PostDialog';
 import { MusicPicker } from './MusicPicker';
 import { PostPanel } from './posting/PostPanel';
+import { PlayerControls } from './SlidePlayer';
 import { SlidePreview } from './SlidePreview';
 import { photosInSlideOrder } from './photoOrder';
 import { PhotoPicker } from './PhotoPicker';
 import { RoleTabs } from './RoleTabs';
 import { SlideEditPanel } from './SlideEditPanel';
 import { SlideStrip } from './SlideStrip';
+import { TextStyleMenu } from './TextStyleMenu';
+import { RenderedTextOverlay } from './slideText/RenderedTextOverlay';
+import type { SlideTextProps } from './slideText/SlideTextView';
 import { SlideshowMenu } from './SlideshowMenu';
 import { VideoButton } from './VideoButton';
 import { parseTags, useSlideshowDrafts } from './useSlideshowDrafts';
 import { useSlideshowEdit } from './useSlideshowEdit';
 import { useSlideshowVideo } from './useSlideshowVideo';
+import { useLiveEdits } from './useLiveEdits';
 
 type Props = {
   token: string;
@@ -30,6 +34,8 @@ type Props = {
   onClose: () => void;
   onPrev?: () => void;
   onNext?: () => void;
+  /** The brand's headline box colors, so text dragged on a slide looks as it will render. */
+  box?: SlideTextProps['box'];
 };
 
 /** The slide editor and Settings boxes. */
@@ -40,7 +46,7 @@ const ghostButton = 'min-h-11 rounded-full px-3 text-sm text-white/80 transition
  * Full-screen editor, phone first: preview and music on top (left on desktop), every slide as a card, the on-screen
  * slide's text, photo and style. Caption and posting open from "Send to TikTok/Instagram" in the top bar.
  */
-export function SlideshowEditor({ token, runId, initial, photos, tracks, onChanged, onPhotosChanged, onClose, onPrev, onNext }: Props) {
+export function SlideshowEditor({ token, runId, initial, photos, tracks, onChanged, onPhotosChanged, onClose, onPrev, onNext, box }: Props) {
   const edit = useSlideshowEdit(token, runId, initial, onChanged);
   const { show, busy } = edit;
   const [slide, setSlide] = useState(0);
@@ -85,6 +91,24 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
     }
   };
 
+  /** Dropped text and new text styles: shown on the slides at once, while they render again in the background. */
+  const live = useLiveEdits(show.slides, edit);
+  const textLayer = (i: number) => {
+    const s = live.slideAt(i);
+    const pending = live.edits[i] ?? null;
+    if (!s || (!pending && (i !== slide || busy !== null))) return null;
+    return (
+      <RenderedTextOverlay
+        slide={s}
+        photoUrl={photos?.find((p) => p.index === s.photoIndex)?.url ?? null}
+        box={box}
+        live={pending}
+        movable={i === slide}
+        onMove={(at) => live.move(i, at)}
+      />
+    );
+  };
+
   const remove = async () => {
     if (!window.confirm('Delete this slideshow? This cannot be undone.')) return;
     if (await edit.remove()) onClose();
@@ -125,11 +149,8 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
         <div className="shrink-0 p-4 md:flex md:w-[30%] md:flex-col md:justify-center md:overflow-y-auto lg:w-[27%]">
-          <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} />
-          <div className="mt-3 flex items-center justify-center gap-3">
-            <div className="flex gap-1.5">
-              {show.slides.map((_, i) => <span key={i} className={`h-1.5 rounded-full transition-all ${i === slide ? 'w-5 bg-white' : 'w-1.5 bg-white/30'}`} />)}
-            </div>
+          <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={textLayer} />
+          <PlayerControls count={show.slides.length} index={slide}>
             <VideoButton
               rendering={video.rendering}
               startedAt={video.startedAt}
@@ -137,6 +158,16 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
               disabled={busy !== null || show.slides.some((s) => !s.imageUrl)}
               onClick={() => void video.download()}
             />
+            {current?.textAt && (
+              <button
+                onClick={() => void edit.saveSlide(slide, { textAt: null })}
+                disabled={busy !== null}
+                title="Put the text back on its usual spot"
+                className="min-h-10 rounded-full px-3 text-xs text-white/60 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30"
+              >
+                Reset text
+              </button>
+            )}
             <button
               onClick={() => void removeSlide()}
               disabled={busy !== null || show.slides.length <= 2}
@@ -152,7 +183,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
                 </svg>
               )}
             </button>
-          </div>
+          </PlayerControls>
           <div className="mx-auto mt-3 w-full max-w-[calc((100dvh-15rem)*9/16)]">
             <MusicPicker compact show={show} tracks={tracks} busy={busy} onPick={(id) => void edit.setMusic(id)} />
           </div>
@@ -160,7 +191,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
 
         <div className="min-w-0 md:flex-1 md:overflow-y-auto md:border-l md:border-white/10">
           <div className="border-y border-white/10 bg-black/20 md:border-t-0">
-            <SlideStrip slides={show.slides} index={slide} busy={busy} onPick={setSlide} />
+            <SlideStrip slides={show.slides} index={slide} busy={busy} onPick={setSlide} textLayer={textLayer} />
           </div>
           <div className="p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <section aria-label="Slide" className={card}>
@@ -185,7 +216,8 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
                       onNewPhoto={() => void edit.newPhoto(slide).then((ok) => ok && onPhotosChanged())}
                     />
                   }
-                  stylePicker={<HookStylePanel slides={show.slides} busy={busy} onPick={(id) => void edit.setHookStyle(id)} />}
+                  titleStyle={<TextStyleMenu slide={live.slideAt(slide) ?? current} part="look" onPick={live.style} />}
+                  bodyStyle={<TextStyleMenu slide={live.slideAt(slide) ?? current} part="bodyLook" onPick={live.style} />}
                 />
               )}
             </section>

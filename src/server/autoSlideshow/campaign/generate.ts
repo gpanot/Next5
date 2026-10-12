@@ -6,20 +6,21 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/db';
 import type { AutoSlide } from '../../../types/admin/autoSlideshow';
+import type { TextAt } from '../../../types/slideText';
 import { campaignProblems, hookPhotoFor, lookOfRole, renderKeyOf, shownBody, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
 import { DEFAULT_BOX } from '../../companyIntel/slideshowStyle';
 import { HttpError } from '../../http';
 import { deleteObject, putObject } from '../../storage/objectStore';
 import type { UserAccess } from '../access';
 import { headsFor, withDetectedHeads, type HeadsCache } from '../heads';
-import { renderSlide, type PhotoCache } from '../render';
+import { renderSlide, type PhotoCache, type RenderedSlide } from '../render';
 import { draftOf, isRendered, json, loadCampaign, photosOf, storeDraft, type CampaignPhoto } from './store';
 
 const LIVE_POSTS = ['scheduled', 'sending', 'processing', 'posted'];
 /** Slides rendered at once: Satori renders are memory hungry. */
 const RENDER_BATCH = 4;
 
-type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'> & { photoIndex: number };
+type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look' | 'textAt'> & { photoIndex: number };
 
 /** Runs `work` over `items`, `size` at a time, keeping their order. */
 const inBatches = async <T, R>(items: T[], size: number, work: (item: T) => Promise<R>): Promise<R[]> => {
@@ -34,12 +35,15 @@ const lookFor = (draft: CampaignDraft, role: 'hook' | 'item' | 'cta') => {
   return look === 'default' ? {} : { look };
 };
 
+/** Text moved in the editor keeps its spot; unmoved text stores none. */
+const movedTo = (at: TextAt | undefined) => (at ? { textAt: at } : {});
+
 const plannedSlides = (draft: CampaignDraft) => ({
-  hooks: draft.hooks.map((title, i): SlideText => ({ role: 'hook', title, body: '', photoIndex: hookPhotoFor(draft, i)!, ...lookFor(draft, 'hook') })),
-  cards: draft.cards.map((c): SlideText => ({ role: c.role, title: c.title.trim(), body: shownBody(c).trim(), photoIndex: c.photo!, ...lookFor(draft, c.role) })),
+  hooks: draft.hooks.map((title, i): SlideText => ({ role: 'hook', title, body: '', photoIndex: hookPhotoFor(draft, i)!, ...lookFor(draft, 'hook'), ...movedTo(draft.hookTextAt) })),
+  cards: draft.cards.map((c): SlideText => ({ role: c.role, title: c.title.trim(), body: shownBody(c).trim(), photoIndex: c.photo!, ...lookFor(draft, c.role), ...movedTo(c.textAt) })),
 });
 
-const renderAll = async (slides: SlideText[], photos: CampaignPhoto[], heads: HeadsCache): Promise<Buffer[]> => {
+const renderAll = async (slides: SlideText[], photos: CampaignPhoto[], heads: HeadsCache): Promise<RenderedSlide[]> => {
   const cache: PhotoCache = new Map();
   // Photos imported before head detection finished: detect them all at once, not one per render batch.
   await Promise.all([...new Set(slides.map((s) => s.photoIndex))].map((i) => (photos[i] ? headsFor(photos[i], cache, heads) : null)));
@@ -53,15 +57,16 @@ const renderAll = async (slides: SlideText[], photos: CampaignPhoto[], heads: He
 type Upload = { key: string; jpeg: Buffer };
 
 /** Every slideshow's slides with their image keys, and the files to store. */
-const buildShows = (runId: string, plan: ReturnType<typeof plannedSlides>, hookJpegs: Buffer[], cardJpegs: Buffer[]) => {
+const buildShows = (runId: string, plan: ReturnType<typeof plannedSlides>, hookJpegs: RenderedSlide[], cardJpegs: RenderedSlide[]) => {
   const batch = Date.now().toString(36);
   const uploads: Upload[] = [];
   const shows = plan.hooks.map((hook, i) => {
     const slides = [hook, ...plan.cards].map((s, j): AutoSlide => {
       const key = `admin/auto-slideshow/${runId}/campaign-${batch}/${i}-${j}.jpg`;
-      uploads.push({ key, jpeg: j === 0 ? hookJpegs[i]! : cardJpegs[j - 1]! });
+      const { jpeg, at } = j === 0 ? hookJpegs[i]! : cardJpegs[j - 1]!;
+      uploads.push({ key, jpeg });
       const { photoIndex, ...text } = s;
-      return { ...text, photoIndex, imageKey: key };
+      return { ...text, photoIndex, imageKey: key, placedAt: at };
     });
     return { hook: hook.title, slides };
   });

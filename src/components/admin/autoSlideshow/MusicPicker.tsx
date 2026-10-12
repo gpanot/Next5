@@ -1,6 +1,5 @@
 'use client';
 
-import { useRef, useState } from 'react';
 import type { AutoSlideshowDto, AutoTrackDto } from '../../../types/admin/autoSlideshow';
 
 type Props = {
@@ -17,27 +16,10 @@ const NOTE = 'For the preview and the ZIP only. When we post, TikTok picks the m
 const field = 'min-h-11 w-full rounded-lg border border-white/15 bg-white/10 px-3 text-base text-white focus:border-white/50 focus:outline-none';
 
 /**
- * Background music from the Assets Library. Plays in the preview and goes in the ZIP. TikTok's photo API cannot attach
+ * Background music from the Assets Library. Plays with the preview (its play button) and goes in the ZIP. TikTok's photo API cannot attach
  * it: posts sent from here get TikTok's own sound.
  */
 export function MusicPicker({ show, tracks, busy, onPick, compact = false }: Props) {
-  const audio = useRef<HTMLAudioElement>(null);
-  const [listening, setListening] = useState<string | null>(null);
-
-  const listen = (track: AutoTrackDto | undefined) => {
-    const a = audio.current;
-    if (!a || !track) return;
-    if (listening === track.assetId) {
-      a.pause();
-      setListening(null);
-      return;
-    }
-    a.src = track.url;
-    a.currentTime = track.startAt;
-    void a.play().catch(() => undefined);
-    setListening(track.assetId);
-  };
-
   const current = tracks?.find((t) => t.assetId === show.audio?.assetId);
   // Jev's match goes first in the list, tagged, so it is easy to get back to after trying others.
   const recommended = tracks?.find((t) => t.assetId === show.recommendedAudioId);
@@ -58,14 +40,6 @@ export function MusicPicker({ show, tracks, busy, onPick, compact = false }: Pro
           {recommended && <option value={recommended.assetId}>Recommended · {recommended.name}</option>}
           {others?.map((t) => <option key={t.assetId} value={t.assetId}>{t.name}</option>)}
         </select>
-        <button
-          onClick={() => listen(current)}
-          disabled={!current}
-          aria-label={listening ? 'Stop' : 'Listen'}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-white/15 text-white transition active:scale-95 disabled:opacity-30"
-        >
-          {listening ? '■' : '▶'}
-        </button>
       </div>
       {recommended && current?.assetId !== recommended.assetId && (
         <button
@@ -77,7 +51,6 @@ export function MusicPicker({ show, tracks, busy, onPick, compact = false }: Pro
         </button>
       )}
       {!compact && <p className="text-[11px] text-white/40">{NOTE}</p>}
-      <audio ref={audio} onEnded={() => setListening(null)} />
     </div>
   );
 }

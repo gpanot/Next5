@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { titlePick, type TextAt } from '../../../../types/slideText';
 import { targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
+import { LookMenu } from '../LookMenu';
 import { useAutoRun } from '../useAutoRun';
+import { CampaignPlayer } from './CampaignPlayer';
 import { CampaignPosts } from './CampaignPosts';
 import { CampaignPreview } from './CampaignPreview';
 import { AutoContentPanel } from './AutoContentPanel';
@@ -13,7 +16,6 @@ import { Checklist, ContentModeTabs, DeleteCampaign, NameInput, type ContentMode
 import { HookPanel } from './HookPanel';
 import { PhotoLibraryDialog } from './PhotoLibraryDialog';
 import { previewShows } from './previewSlides';
-import { TextStyleMenu } from './TextStyleMenu';
 import { useAutoContent } from './useAutoContent';
 import { useCampaign } from './useCampaign';
 
@@ -25,6 +27,9 @@ const tabClass = (on: boolean) => `min-h-10 rounded-lg px-4 text-sm font-semibol
 /** Slide 0 is the hook; slide i >= 1 is card i - 1 (the CTA last). */
 const roleTab = (draft: CampaignDraft, slide: number): CampaignLookRole => (slide === 0 ? 'hook' : slide === draft.cards.length ? 'cta' : 'content');
 
+/** The slide role a tab's text style is drawn for. */
+const TAB_ROLE: Record<CampaignLookRole, 'hook' | 'item' | 'cta'> = { hook: 'hook', content: 'item', cta: 'cta' };
+
 /** Whom the open tab's text style applies to. */
 const STYLE_SCOPE: Record<CampaignLookRole, string> = { hook: 'Hook', content: 'Every content slide', cta: 'CTA' };
 
@@ -32,9 +37,10 @@ const STYLE_SCOPE: Record<CampaignLookRole, string> = { hook: 'Hook', content: '
 const startMode = (draft: CampaignDraft | undefined): ContentMode => (draft?.cards.some((c) => c.role === 'item' && c.title.trim()) ? 'slides' : 'auto');
 
 /**
- * The campaign editor, full screen and phone first: the name in the top bar, every slide as a card, then the selected
- * slide's panel (hook lines and rotating photos, or one card's text and photo), with Post and Schedule beside it.
- * Scheduling makes the slideshows (one per hook) when the slides changed since they were last made.
+ * The campaign editor, full screen and phone first: the name in the top bar, the slideshow editor's player (left on wide
+ * screens), every slide as a card, then the selected slide's panel (hook lines and rotating photos, or one card's text
+ * and photo), with Post and Schedule beside it. Scheduling makes the slideshows (one per hook) when the slides changed
+ * since they were last made.
  */
 export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Props) {
   const state = useCampaign(token, campaignId);
@@ -75,6 +81,9 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
     setDraft((d) => ({ ...d, cards: [...d.cards.slice(0, -1), { role: 'item', title: '', body: '', photo: null }, d.cards[d.cards.length - 1]!] }));
     setSlide(draft ? draft.cards.length : 1);
   };
+  /** Slide i's text dragged to `at` (undefined: back to its usual spot). Slide 0 is the hook, on every hook photo. */
+  const moveText = (i: number, at: TextAt | undefined) =>
+    setDraft((d) => (i === 0 ? { ...d, hookTextAt: at } : { ...d, cards: d.cards.map((c, j) => (j === i - 1 ? { ...c, textAt: at } : c)) }));
   const removeCard = (i: number) => {
     setDraft((d) => ({ ...d, cards: d.cards.filter((_, j) => j !== i) }));
     setSlide((s) => Math.max(1, s - 1));
@@ -100,63 +109,77 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
       {!campaign || !draft ? (
         state.error ? <p className="m-4 rounded-lg bg-red-500/15 p-3 text-sm text-red-300">{state.error}</p> : <div className="m-4 h-72 animate-pulse rounded-xl bg-white/5" />
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="border-b border-white/10 bg-black/20 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:16px_16px]">
-            <CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} />
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
+          {/* The slideshow editor's player: left on wide screens, on top on phones. */}
+          <div className="shrink-0 p-4 md:flex md:w-[30%] md:flex-col md:justify-center md:overflow-y-auto lg:w-[27%]">
+            <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onRemoveCard={removeCard} />
           </div>
-          <div className="mx-auto grid max-w-7xl gap-4 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] lg:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] lg:items-start">
-            <div className="min-w-0 space-y-4">
-              <section aria-label="Slide" className={card}>
-                <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
-                  <div role="tablist" className="flex rounded-xl bg-white/5 p-1">
-                    <button type="button" role="tab" aria-selected={tab === 'hook'} onClick={() => setSlide(0)} className={tabClass(tab === 'hook')}>Hook</button>
-                    <button type="button" role="tab" aria-selected={tab === 'content'} onClick={() => setSlide(1)} className={tabClass(tab === 'content')}>Content</button>
-                    <button type="button" role="tab" aria-selected={tab === 'cta'} onClick={() => setSlide(draft.cards.length)} className={tabClass(tab === 'cta')}>CTA</button>
-                  </div>
-                  {tab === 'content' && contentMode === 'slides' && <span className="text-xs text-white/40">Slide {at + 1}</span>}
-                  <TextStyleMenu value={draft.looks[tab]} appliesTo={STYLE_SCOPE[tab]} onPick={(look) => setDraft((d) => ({ ...d, looks: { ...d.looks, [tab]: look } }))} />
-                </div>
-                {state.error && (
-                  <p role="alert" className="mb-4 flex items-start gap-2 rounded-lg bg-red-500/15 p-3 text-sm text-red-300">
-                    <span className="flex-1">{state.error}</span>
-                    <button type="button" onClick={state.clearError} aria-label="Dismiss" className="text-red-200">✕</button>
-                  </p>
-                )}
-                {tab === 'content' && <ContentModeTabs mode={contentMode} onPick={setMode} />}
-                {tab === 'content' && contentMode === 'auto' ? (
-                  <AutoContentPanel
-                    draft={draft}
-                    settings={auto.settings}
-                    writing={auto.writing}
-                    photosPending={state.pending.filter((p) => p.key.startsWith('auto-')).length}
-                    onChange={auto.update}
-                    onRun={() => void runAuto()}
-                  />
-                ) : at === 0 ? (
-                  <HookPanel draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
-                ) : (
-                  <CardPanel
-                    card={draft.cards[at - 1]!}
-                    position={at - 1}
-                    contentCount={draft.cards.length - 1}
-                    photos={campaign.photos}
-                    pending={state.pending.find((p) => targetsCard(p.target, at - 1)) ?? null}
-                    onChange={(p) => patchCard(at - 1, p)}
-                    onPickPhoto={() => setPicker({ slot: 'card', card: at - 1 })}
-                    onRemove={() => removeCard(at - 1)}
-                  />
-                )}
-              </section>
-              <Checklist draft={draft} />
-              <DeleteCampaign token={token} campaignId={campaignId} onDeleted={onClose} />
+          <div className="min-w-0 md:flex-1 md:overflow-y-auto md:border-l md:border-white/10">
+            <div className="border-b border-white/10 bg-black/20 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:16px_16px]">
+              <CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} />
             </div>
-            {/* Right of the slide panel on wide screens, below it on phones. */}
-            <aside aria-label="Post and Schedule" className={`${card} lg:sticky lg:top-4`}>
-              <h2 className="text-base font-semibold text-white">Post and Schedule</h2>
-              <div className="mt-3">
-                {run.run ? <CampaignPosts token={token} run={run.run} state={state} onPreview={setPreviewing} /> : <div className="h-40 animate-pulse rounded-xl bg-white/5" />}
+            <div className="mx-auto grid max-w-7xl gap-4 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] xl:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] xl:items-start">
+              <div className="min-w-0 space-y-4">
+                <section aria-label="Slide" className={card}>
+                  <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
+                    <div role="tablist" className="flex rounded-xl bg-white/5 p-1">
+                      <button type="button" role="tab" aria-selected={tab === 'hook'} onClick={() => setSlide(0)} className={tabClass(tab === 'hook')}>Hook</button>
+                      <button type="button" role="tab" aria-selected={tab === 'content'} onClick={() => setSlide(1)} className={tabClass(tab === 'content')}>Content</button>
+                      <button type="button" role="tab" aria-selected={tab === 'cta'} onClick={() => setSlide(draft.cards.length)} className={tabClass(tab === 'cta')}>CTA</button>
+                    </div>
+                    {tab === 'content' && contentMode === 'slides' && <span className="text-xs text-white/40">Slide {at + 1}</span>}
+                    <div className="ml-auto">
+                      <LookMenu
+                        label="Title style"
+                        scope={STYLE_SCOPE[tab]}
+                        align="right"
+                        active={titlePick(TAB_ROLE[tab], draft.looks[tab])}
+                        onPick={(look) => setDraft((d) => ({ ...d, looks: { ...d.looks, [tab]: look } }))}
+                      />
+                    </div>
+                  </div>
+                  {state.error && (
+                    <p role="alert" className="mb-4 flex items-start gap-2 rounded-lg bg-red-500/15 p-3 text-sm text-red-300">
+                      <span className="flex-1">{state.error}</span>
+                      <button type="button" onClick={state.clearError} aria-label="Dismiss" className="text-red-200">✕</button>
+                    </p>
+                  )}
+                  {tab === 'content' && <ContentModeTabs mode={contentMode} onPick={setMode} />}
+                  {tab === 'content' && contentMode === 'auto' ? (
+                    <AutoContentPanel
+                      draft={draft}
+                      settings={auto.settings}
+                      writing={auto.writing}
+                      photosPending={state.pending.filter((p) => p.key.startsWith('auto-')).length}
+                      onChange={auto.update}
+                      onRun={() => void runAuto()}
+                    />
+                  ) : at === 0 ? (
+                    <HookPanel draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
+                  ) : (
+                    <CardPanel
+                      card={draft.cards[at - 1]!}
+                      position={at - 1}
+                      contentCount={draft.cards.length - 1}
+                      photos={campaign.photos}
+                      pending={state.pending.find((p) => targetsCard(p.target, at - 1)) ?? null}
+                      onChange={(p) => patchCard(at - 1, p)}
+                      onPickPhoto={() => setPicker({ slot: 'card', card: at - 1 })}
+                      onRemove={() => removeCard(at - 1)}
+                    />
+                  )}
+                </section>
+                <Checklist draft={draft} />
+                <DeleteCampaign token={token} campaignId={campaignId} onDeleted={onClose} />
               </div>
-            </aside>
+              {/* Right of the slide panel on wide screens, below it on phones. */}
+              <aside aria-label="Post and Schedule" className={`${card} xl:sticky xl:top-4`}>
+                <h2 className="text-base font-semibold text-white">Post and Schedule</h2>
+                <div className="mt-3">
+                  {run.run ? <CampaignPosts token={token} run={run.run} state={state} onPreview={setPreviewing} /> : <div className="h-40 animate-pulse rounded-xl bg-white/5" />}
+                </div>
+              </aside>
+            </div>
           </div>
         </div>
       )}

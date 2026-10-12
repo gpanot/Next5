@@ -8,6 +8,7 @@ import type { ConnectionDto, SocialProviderDto } from '../business/integrations'
 import type { BrandProfile } from './companyIntel';
 import type { ContentGoal } from './contentGoals';
 import type { HookStyleId } from '../hookStyle';
+import type { TextAt, TextLook } from '../slideText';
 import type { BrandLever, StepCost } from './metaAds';
 import type { BankCombo } from './slideshowBank';
 import type { SlideRole } from './slideshowKnowledge';
@@ -105,7 +106,13 @@ export type AutoSlide = {
   brandPhotoKey?: string;
   castId?: string;
   /** Hook and CTA slides: their look, picked in the editor (types/hookStyle.ts). Unset = default. */
-  look?: HookStyleId;
+  look?: TextLook;
+  /** Where the text was moved to by hand (the editors' drag); unset = its usual spot, off the photo's heads. */
+  textAt?: TextAt;
+  /** The line under the headline's own look, picked apart from the headline's (`look`). Unset = plain white text. */
+  bodyLook?: TextLook;
+  /** Where the last render put the text, so the editor drags it from there. Unset on slides rendered before 2026-10-12. */
+  placedAt?: TextAt;
   /** Rendered 1080x1920 JPEG (1080x1350 before 2026-10-10), once step 6 ran. */
   imageKey: string | null;
 };

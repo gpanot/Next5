@@ -29,6 +29,7 @@ export function RunSlideshowEditor({ token, run, openId, onOpen, onChanged }: Pr
       onPhotosChanged={photos.refresh}
       onChanged={onChanged}
       onClose={() => onOpen(null)}
+      box={run.profile?.slideshowStyle}
       onPrev={at > 0 ? () => onOpen(ready[at - 1]!.id) : undefined}
       onNext={at < ready.length - 1 ? () => onOpen(ready[at + 1]!.id) : undefined}
     />

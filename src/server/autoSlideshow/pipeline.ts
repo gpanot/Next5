@@ -249,8 +249,9 @@ const renderStep: StepFn = async (runId, _meter, { rerender }) => {
       for (const [i, slide] of slides.entries()) {
         const key = slideKey(runId, show.id, i);
         const photo = photos[indexes[i]!]!;
-        await putObject(key, await renderSlide(slide, photo.imageKey!, cache, look, await headsFor(photo, cache, heads)), 'image/jpeg');
-        rendered.push({ ...slide, photoIndex: indexes[i]!, imageKey: key });
+        const { jpeg, at } = await renderSlide(slide, photo.imageKey!, cache, look, await headsFor(photo, cache, heads));
+        await putObject(key, jpeg, 'image/jpeg');
+        rendered.push({ ...slide, photoIndex: indexes[i]!, imageKey: key, placedAt: at });
       }
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(rendered), status: 'ready' } });
       await chargeSlideshow(runId, show.id);

@@ -9,21 +9,30 @@ import type { SlideshowStyle } from '../../types/admin/companyIntel';
 import { DEFAULT_BOX } from '../companyIntel/slideshowStyle';
 import { getObject } from '../storage/objectStore';
 import { compressJpeg } from './jpeg';
-import { BOLD_CHAR, BOX_TEXT, HOOK_TEXT, isBig, lookOf, RED_TEXT, SLIDE_SIZE, textTop, wrapLines } from './textPlacement';
+import { bodyKind, type TextAt } from '../../types/slideText';
+import { BODY_LOOK, BOLD_CHAR, BOX_TEXT, CAPS_TEXT, HOOK_TEXT, isBig, outlineSize, placeText, RED_TEXT, SEMI_CHAR, SLIDE_SIZE, titleKindOf, wrapLines } from './textPlacement';
 
-const FONT_CSS_URL = 'https://fonts.googleapis.com/css2?family=Inter:wght@600;800';
-type Font = { name: string; data: ArrayBuffer; weight: 600 | 800; style: 'normal' };
+/** Inter SemiBold + ExtraBold for every look; Montserrat ExtraBold Italic for All caps. */
+const FONT_CSS = [
+  { name: 'Inter', style: 'normal', url: 'https://fonts.googleapis.com/css2?family=Inter:wght@600;800' },
+  { name: 'Montserrat', style: 'italic', url: 'https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@1,800' },
+] as const;
+type Font = { name: string; data: ArrayBuffer; weight: 600 | 800; style: 'normal' | 'italic' };
 let fontsPromise: Promise<Font[]> | null = null;
 
-/** Inter SemiBold + ExtraBold, fetched once per instance. Without a user agent Google serves TTF, which Satori reads. */
-const loadFonts = (): Promise<Font[]> => {
-  fontsPromise ??= fetch(FONT_CSS_URL)
+/** One family's files. Without a user agent Google serves TTF, which Satori reads. */
+const loadFamily = ({ name, style, url }: (typeof FONT_CSS)[number]): Promise<Font[]> =>
+  fetch(url)
     .then((res) => res.text())
     .then((css) => {
       const blocks = [...css.matchAll(/font-weight:\s*(\d+);[\s\S]*?src: url\((.+?)\)/g)];
-      return Promise.all(blocks.map(async ([, weight, url]) => ({ name: 'Inter', data: await fetch(url!).then((r) => r.arrayBuffer()), weight: Number(weight) as 600 | 800, style: 'normal' as const })));
+      return Promise.all(blocks.map(async ([, weight, file]) => ({ name, data: await fetch(file!).then((r) => r.arrayBuffer()), weight: Number(weight) as 600 | 800, style })));
     })
     .catch(() => []);
+
+/** Every font, fetched once per instance. */
+const loadFonts = (): Promise<Font[]> => {
+  fontsPromise ??= Promise.all(FONT_CSS.map(loadFamily)).then((families) => families.flat());
   return fontsPromise;
 };
 
@@ -45,53 +54,102 @@ export const photoUri = (key: string, cache: PhotoCache): Promise<string> => {
 const OUTLINE = '3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0 4px 18px rgba(0,0,0,0.55)';
 const SOFT = '0 2px 4px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.6)';
 
-const HookText = ({ title, top }: { title: string; top: number }) => (
-  <div style={{ position: 'absolute', top, left: HOOK_TEXT.side, right: HOOK_TEXT.side, display: 'flex', justifyContent: 'center' }}>
-    <div style={{ display: 'flex', color: '#ffffff', fontSize: HOOK_TEXT.fontSize(title), fontWeight: 800, lineHeight: HOOK_TEXT.lineHeight, textAlign: 'center', textShadow: OUTLINE }}>{title}</div>
+/** Where the text block sits: its top and its sideways shift from center, in px. */
+type Spot = { top: number; dx: number };
+
+const spotOf = (at: TextAt): Spot => ({ top: Math.round(at.y * SLIDE_SIZE.height), dx: Math.round((at.x - 0.5) * SLIDE_SIZE.width) });
+
+/** TikTok default: big white outlined headline, the line under it in its own look. */
+const OutlinedText = ({ slide, spot }: { slide: RenderedText; spot: Spot }) => (
+  <div style={{ position: 'absolute', top: spot.top, left: HOOK_TEXT.side + spot.dx, right: HOOK_TEXT.side - spot.dx, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: BOX_TEXT.gap }}>
+    <div style={{ display: 'flex', color: '#ffffff', fontSize: outlineSize(slide), fontWeight: 800, lineHeight: HOOK_TEXT.lineHeight, textAlign: 'center', textShadow: OUTLINE }}>{slide.title}</div>
+    {slide.body && <BodyLine body={slide.body} look={slide.bodyLook} />}
+  </div>
+);
+
+/** All caps: white Montserrat ExtraBold Italic capitals with a soft shadow, the line under it in its own look. */
+const CapsText = ({ slide, spot }: { slide: RenderedText; spot: Spot }) => (
+  <div style={{ position: 'absolute', top: spot.top, left: CAPS_TEXT.side + spot.dx, right: CAPS_TEXT.side - spot.dx, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: BOX_TEXT.gap }}>
+    <div style={{ display: 'flex', fontFamily: 'Montserrat', fontStyle: 'italic', color: '#ffffff', fontSize: CAPS_TEXT.fontSize(slide.role, slide.title), fontWeight: 800, lineHeight: CAPS_TEXT.lineHeight, textAlign: 'center', textShadow: SOFT }}>{slide.title.toUpperCase()}</div>
+    {slide.body && <BodyLine body={slide.body} look={slide.bodyLook} />}
   </div>
 );
 
 /** The headline box colors of the brand's style. */
 export type BoxLook = Pick<SlideshowStyle, 'boxColor' | 'boxTextColor'>;
 
-const BoxedText = ({ title, body, big, look, top }: { title: string; body: string; big: boolean; look: BoxLook; top: number }) => (
-  <div style={{ position: 'absolute', top, left: BOX_TEXT.side, right: BOX_TEXT.side, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: BOX_TEXT.gap }}>
+const BoxedText = ({ title, body, bodyLook, big, look, spot }: { title: string; body: string; bodyLook: BodyLook; big: boolean; look: BoxLook; spot: Spot }) => (
+  <div style={{ position: 'absolute', top: spot.top, left: BOX_TEXT.side + spot.dx, right: BOX_TEXT.side - spot.dx, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: BOX_TEXT.gap }}>
     <div style={{ display: 'flex', background: look.boxColor, color: look.boxTextColor, fontSize: BOX_TEXT.titleSize(big), fontWeight: 800, lineHeight: BOX_TEXT.titleLineHeight, padding: `${BOX_TEXT.padY}px ${BOX_TEXT.padX}px`, borderRadius: 18, textAlign: 'center' }}>{title}</div>
-    {body && <div style={{ display: 'flex', color: '#ffffff', fontSize: BOX_TEXT.bodySize, fontWeight: 600, lineHeight: BOX_TEXT.bodyLineHeight, textAlign: 'center', textShadow: SOFT }}>{body}</div>}
+    {body && <BodyLine body={body} look={bodyLook} />}
   </div>
 );
 
-/** The White box look: dark text in a white box, whatever the brand's box colors. */
+type BodyLook = AutoSlide['bodyLook'];
+
+/** The line under the headline in its own look: TikTok's plain white text, a black or white box, or red behind each line. */
+const BodyLine = ({ body, look }: { body: string; look: BodyLook }) => {
+  const text = { fontSize: BOX_TEXT.bodySize, fontWeight: 600 } as const;
+  const kind = bodyKind(look);
+  if (kind === 'all-caps') {
+    return <div style={{ display: 'flex', fontFamily: 'Montserrat', fontStyle: 'italic', fontSize: CAPS_TEXT.bodySize, fontWeight: 800, color: '#ffffff', lineHeight: CAPS_TEXT.bodyLineHeight, textAlign: 'center', textShadow: SOFT }}>{body.toUpperCase()}</div>;
+  }
+  if (kind === 'black-box' || kind === 'white-box') {
+    const colors = kind === 'black-box' ? BLACK_BOX : WHITE_BOX;
+    return <div style={{ ...text, display: 'flex', background: colors.boxColor, color: colors.boxTextColor, lineHeight: BOX_TEXT.bodyLineHeight, padding: `${BODY_LOOK.boxPadY}px ${BODY_LOOK.boxPadX}px`, borderRadius: BODY_LOOK.radius, textAlign: 'center' }}>{body}</div>;
+  }
+  if (kind === 'tiktok-red') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        {wrapLines(body, BOX_TEXT.bodySize, SEMI_CHAR, SLIDE_SIZE.width - (BOX_TEXT.side + BODY_LOOK.redPadX) * 2).map((line, i) => (
+          <div key={i} style={{ ...text, display: 'flex', background: RED_TEXT.color, color: '#ffffff', lineHeight: BODY_LOOK.redLineHeight, padding: `0 ${BODY_LOOK.redPadX}px`, borderRadius: 8 }}>{line.text}</div>
+        ))}
+      </div>
+    );
+  }
+  return <div style={{ ...text, display: 'flex', color: '#ffffff', lineHeight: BOX_TEXT.bodyLineHeight, textAlign: 'center', textShadow: SOFT }}>{body}</div>;
+};
+
+/** The White box and Black box looks, whatever the brand's box colors. */
 const WHITE_BOX: BoxLook = { boxColor: '#ffffff', boxTextColor: '#111111' };
+const BLACK_BOX: BoxLook = { boxColor: '#111111', boxTextColor: '#ffffff' };
 
 /** TikTok Red: white text on a red highlight behind each line (lines wrapped here, as Satori cannot box each line). */
-const RedText = ({ title, body, top }: { title: string; body: string; top: number }) => (
-  <div style={{ position: 'absolute', top, left: RED_TEXT.side, right: RED_TEXT.side, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: BOX_TEXT.gap }}>
+const RedText = ({ title, body, bodyLook, spot }: { title: string; body: string; bodyLook: BodyLook; spot: Spot }) => (
+  <div style={{ position: 'absolute', top: spot.top, left: RED_TEXT.side + spot.dx, right: RED_TEXT.side - spot.dx, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: BOX_TEXT.gap }}>
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       {wrapLines(title, RED_TEXT.fontSize, BOLD_CHAR, SLIDE_SIZE.width - (RED_TEXT.side + RED_TEXT.padX) * 2).map((line, i) => (
         <div key={i} style={{ display: 'flex', background: RED_TEXT.color, color: '#ffffff', fontSize: RED_TEXT.fontSize, fontWeight: 800, lineHeight: RED_TEXT.lineHeight, padding: `0 ${RED_TEXT.padX}px`, borderRadius: 10 }}>{line.text}</div>
       ))}
     </div>
-    {body && <div style={{ display: 'flex', color: '#ffffff', fontSize: BOX_TEXT.bodySize, fontWeight: 600, lineHeight: BOX_TEXT.bodyLineHeight, textAlign: 'center', textShadow: SOFT }}>{body}</div>}
+    {body && <BodyLine body={body} look={bodyLook} />}
   </div>
 );
 
-/** The slide's text in its look: the hook's outlined text or a box by default, else the picked look. */
-const SlideText = ({ slide, look, top }: { slide: Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'>; look: BoxLook; top: number }) => {
-  const picked = lookOf(slide);
-  if (picked === 'tiktok-red') return <RedText title={slide.title} body={slide.body} top={top} />;
-  if (picked === 'white-box') return <BoxedText title={slide.title} body={slide.body} big={isBig(slide)} look={WHITE_BOX} top={top} />;
-  if (slide.role === 'hook') return <HookText title={slide.title} top={top} />;
-  return <BoxedText title={slide.title} body={slide.body} big={isBig(slide)} look={look} top={top} />;
+/** The slide's text in its headline's look (types/slideText.ts): outlined, a box (brand, black, white) or TikTok Red. */
+const SlideText = ({ slide, look, spot }: { slide: RenderedText; look: BoxLook; spot: Spot }) => {
+  const kind = titleKindOf(slide);
+  if (kind === 'tiktok-red') return <RedText title={slide.title} body={slide.body} bodyLook={slide.bodyLook} spot={spot} />;
+  if (kind === 'outline') return <OutlinedText slide={slide} spot={spot} />;
+  if (kind === 'all-caps') return <CapsText slide={slide} spot={spot} />;
+  const colors = kind === 'white-box' ? WHITE_BOX : kind === 'black-box' ? BLACK_BOX : look;
+  return <BoxedText title={slide.title} body={slide.body} bodyLook={slide.bodyLook} big={isBig(slide)} look={colors} spot={spot} />;
 };
+
+/** What a render draws: the slide's text, its look, and where it was moved to (if it was). */
+type RenderedText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look' | 'textAt' | 'bodyLook'>;
+
+/** A rendered slide and where its text went (stored as the slide's `placedAt`, so the editor can drag it from there). */
+export type RenderedSlide = { jpeg: Buffer; at: TextAt };
 
 /**
  * One rendered slide as a JPEG. `look`: the brand's box colors (white box, dark text when the profile has no style).
- * `heads`: the photo's heads (heads.ts); the text moves off them, and keeps its usual spot when they are unknown.
+ * `heads`: the photo's heads (heads.ts); the text moves off them, and keeps its usual spot when they are unknown. Text
+ * moved by hand (`textAt`) stays where it was put.
  */
-export const renderSlide = async (slide: Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'>, photoKeyForSlide: string, cache: PhotoCache, look: BoxLook = DEFAULT_BOX, heads?: HeadBox[] | null): Promise<Buffer> => {
+export const renderSlide = async (slide: RenderedText, photoKeyForSlide: string, cache: PhotoCache, look: BoxLook = DEFAULT_BOX, heads?: HeadBox[] | null): Promise<RenderedSlide> => {
   const [photo, fonts] = await Promise.all([photoUri(photoKeyForSlide, cache), loadFonts()]);
-  const top = textTop(slide, heads);
+  const at = placeText(slide, heads);
   const response = new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', fontFamily: 'Inter' }}>
@@ -99,12 +157,12 @@ export const renderSlide = async (slide: Pick<AutoSlide, 'role' | 'title' | 'bod
         <img src={photo} width={SLIDE_SIZE.width} height={SLIDE_SIZE.height} alt="" style={{ position: 'absolute', top: 0, left: 0, objectFit: 'cover' }} />
         {/* Light wash (8%, was 14%): keeps white text readable on bright skies without darkening the photo */}
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.08)' }} />
-        <SlideText slide={slide} look={look} top={top} />
+        <SlideText slide={slide} look={look} spot={spotOf(at)} />
       </div>
     ),
     { ...SLIDE_SIZE, fonts: fonts.length ? fonts : undefined },
   );
-  return compressJpeg(Buffer.from(await response.arrayBuffer()));
+  return { jpeg: await compressJpeg(Buffer.from(await response.arrayBuffer())), at };
 };
 
 /**

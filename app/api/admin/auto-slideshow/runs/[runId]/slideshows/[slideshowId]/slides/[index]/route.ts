@@ -1,5 +1,5 @@
 /**
- * PATCH /api/admin/auto-slideshow/runs/[runId]/slideshows/[slideshowId]/slides/[index] — { title?, body?, photoIndex? }
+ * PATCH /api/admin/auto-slideshow/runs/[runId]/slideshows/[slideshowId]/slides/[index] — { title?, body?, photoIndex?, textAt? }
  * Saves the edit and re-renders that slide only.
  * DELETE — removes that slide (a slideshow keeps at least 2).
  */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lineWidths, textRects, textTop } from '../../../src/server/autoSlideshow/textPlacement';
+import { lineWidths, placeText, textRects, textTop } from '../../../src/server/autoSlideshow/textPlacement';
 
 const meat = { role: 'item' as const, title: 'Check Charging, Not Just Range', body: 'Plan where you’ll charge, so trips feel easy.' };
 const hook = { role: 'hook' as const, title: '5 Things EV Owners Wish They Knew', body: '' };
@@ -42,5 +42,38 @@ describe('textTop', () => {
   it('stays between the top tabs and the bottom caption when heads are everywhere', () => {
     const top = textTop(meat, [head(-SHIFT, 1350 + SHIFT, 0, 1)]);
     expect(top).toBe(330 + SHIFT);
+  });
+});
+
+describe('placeText', () => {
+  it('is centered at the usual spot, off heads, when the text was never moved', () => {
+    expect(placeText(meat)).toEqual({ x: 0.5, y: (330 + SHIFT) / 1920 });
+    const heads = [head(430, 560)];
+    expect(placeText(meat, heads).y).toBe(textTop(meat, heads) / 1920);
+  });
+
+  it('keeps moved text where it was put, heads ignored', () => {
+    expect(placeText({ ...hook, title: 'Stop', textAt: { x: 0.4, y: 0.6 } }, [head(1100, 1300)])).toEqual({ x: 0.4, y: 0.6 });
+  });
+
+  it('keeps moved text inside the slide', () => {
+    const at = placeText({ ...meat, textAt: { x: 1, y: 1 } });
+    const width = Math.max(...textRects(meat).map((r) => r.w)) / 1080;
+    const height = Math.max(...textRects(meat).map((r) => r.y + r.h)) / 1920;
+    expect(at.x).toBeCloseTo(1 - width / 2);
+    expect(at.y).toBeCloseTo(1 - height);
+  });
+});
+
+describe('text looks', () => {
+  it('places a hook by its headline look: outlined at the hook spot, boxed at the box spot', () => {
+    expect(textTop({ ...hook, look: 'tiktok-default' })).toBe(360 + SHIFT);
+    expect(textTop({ ...hook, look: 'black-box' })).toBe(300 + SHIFT);
+  });
+
+  it('makes a boxed subtitle taller than plain text', () => {
+    const plain = textRects(meat)[1]!;
+    const boxed = textRects({ ...meat, bodyLook: 'black-box' })[1]!;
+    expect(boxed.h).toBeGreaterThan(plain.h);
   });
 });

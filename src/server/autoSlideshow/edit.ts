@@ -6,6 +6,7 @@ import type { AutoSlideshow, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import type { AutoPhoto, AutoPlan, AutoSlide, AutoStep } from '../../types/admin/autoSlideshow';
 import { isHookStyleId } from '../../types/hookStyle';
+import { isSlideLook, parseTextAt, type SlideLook, type TextAt } from '../../types/slideText';
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import type { SlideshowBankContent } from '../../types/admin/slideshowBank';
@@ -54,17 +55,33 @@ const renderInto = async (runId: string, showId: string, index: number, slide: A
   const photo = photos[slide.photoIndex];
   if (!photo?.imageKey) throw new HttpError(409, 'photo_missing', 'That photo was not generated. Pick another one.');
   const key = editedKey(runId, showId, index);
-  await putObject(key, await renderSlide(slide, photo.imageKey, cache, look, await headsFor(photo, cache, new Map())), 'image/jpeg');
+  const { jpeg, at } = await renderSlide(slide, photo.imageKey, cache, look, await headsFor(photo, cache, new Map()));
+  await putObject(key, jpeg, 'image/jpeg');
   if (slide.imageKey) await deleteObject(slide.imageKey).catch(() => undefined);
-  return { ...slide, imageKey: key };
+  return { ...slide, imageKey: key, placedAt: at };
 };
 
 const saveSlides = (show: AutoSlideshow, slides: AutoSlide[]) =>
   prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(slides), status: 'ready', error: null } });
 
-export type SlidePatch = { title?: unknown; body?: unknown; photoIndex?: unknown };
+/** `textAt`: where the text (headline and the line under it) was dragged to; null puts it back on its usual spot. */
+export type SlidePatch = { title?: unknown; body?: unknown; photoIndex?: unknown; textAt?: unknown; };
 
-/** New text and/or photo for one slide, then that slide alone is re-rendered. */
+/** A dragged text position; null (back to the usual spot) is undefined, which drops out of the saved JSON. */
+const spotOf = (value: unknown): TextAt | undefined => {
+  if (value === null) return undefined;
+  const at = parseTextAt(value);
+  if (!at) throw new HttpError(400, 'bad_text_at', 'The text position must be inside the slide.');
+  return at;
+};
+
+/** A picked text style (types/slideText.ts). */
+const pickedStyle = (value: unknown): SlideLook => {
+  if (!isSlideLook(value)) throw new HttpError(400, 'bad_text_style', 'Pick one of the text styles.');
+  return value;
+};
+
+/** New text, photo and/or text position for one slide, then that slide alone is re-rendered. */
 export const updateSlide = async (runId: string, showId: string, index: number, patch: SlidePatch): Promise<void> => {
   const show = await loadShow(runId, showId);
   const slides = show.slides as unknown as AutoSlide[];
@@ -84,6 +101,7 @@ export const updateSlide = async (runId: string, showId: string, index: number, 
     if (!Number.isInteger(patch.photoIndex) || !photos[patch.photoIndex as number]?.imageKey) throw new HttpError(400, 'bad_photo', 'Pick one of the run\'s photos.');
     next.photoIndex = patch.photoIndex as number;
   }
+  if (patch.textAt !== undefined) next.textAt = spotOf(patch.textAt);
   slides[index] = await renderInto(runId, showId, index, next, photos, new Map(), styleOf(show.run));
   await saveSlides(show, slides);
 };
@@ -131,6 +149,31 @@ export const setHookStyle = async (runId: string, showId: string, look: unknown)
     if (!takesLook(slide) || (slide.look ?? 'default') === look) continue;
     // Default: no look stored (undefined drops out of the saved JSON).
     slides[i] = await renderInto(runId, showId, i, { ...slide, look: look === 'default' ? undefined : look }, photos, cache, styleOf(show.run));
+  }
+  await saveSlides(show, slides);
+};
+
+/** The kinds of slide a text style applies to, as the editor's tabs group them: every content slide shares one. */
+export const TEXT_STYLE_GROUPS = ['hook', 'content', 'cta'] as const;
+export type TextStyleGroup = (typeof TEXT_STYLE_GROUPS)[number];
+const groupOf = (slide: Pick<AutoSlide, 'role'>): TextStyleGroup => (slide.role === 'hook' || slide.role === 'cta' ? slide.role : 'content');
+
+/** `part`: the headline (`look`) or the line under it (`bodyLook`). */
+export type TextStylePatch = { group?: unknown; part?: unknown; look?: unknown };
+
+/** One text style (headline or the line under it) on every slide of a kind; only the slides it changes render again. */
+export const setTextStyle = async (runId: string, showId: string, patch: TextStylePatch): Promise<void> => {
+  const group = TEXT_STYLE_GROUPS.find((g) => g === patch.group);
+  const part = patch.part === 'look' || patch.part === 'bodyLook' ? patch.part : null;
+  if (!group || !part) throw new HttpError(400, 'bad_text_style', 'Pick the slides and the text to style.');
+  const style = pickedStyle(patch.look);
+  const show = await loadShow(runId, showId);
+  const slides = show.slides as unknown as AutoSlide[];
+  const photos = photosOf(show.run);
+  const cache: PhotoCache = new Map();
+  for (const [i, slide] of slides.entries()) {
+    if (groupOf(slide) !== group || slide[part] === style) continue;
+    slides[i] = await renderInto(runId, showId, i, { ...slide, [part]: style }, photos, cache, styleOf(show.run));
   }
   await saveSlides(show, slides);
 };
