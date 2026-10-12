@@ -37,7 +37,8 @@ const LIVE_POSTS = ['scheduled', 'sending', 'processing', 'posted'];
 export const json = (value: unknown) => value as Prisma.InputJsonValue;
 
 /** A campaign photo: the run's AutoPhoto plus where it came from (`prompt` holds the label). */
-export type CampaignPhoto = AutoPhoto & { source?: CampaignPhotoDto['source']; credit?: CampaignPhotoDto['credit'] };
+/** `hotlink`: an Unsplash photo's own URLs, shown in the app instead of our copy (`imageKey`, kept for the render). */
+export type CampaignPhoto = AutoPhoto & { source?: CampaignPhotoDto['source']; credit?: CampaignPhotoDto['credit']; hotlink?: { thumb: string; full: string } };
 
 export const photosOf = (run: { photos: Prisma.JsonValue }): CampaignPhoto[] => (run.photos as unknown as CampaignPhoto[] | null) ?? [];
 /** The stored campaign: the draft, plus the render key of the draft the slideshows were last made from. */
@@ -98,15 +99,17 @@ export const listCampaigns = async (workspaceId: string): Promise<CampaignSummar
   return runs.map((r): CampaignSummaryDto => {
     const draft = draftOf(r);
     const firstSlide = (r.slideshows[0]?.slides as unknown as AutoSlide[] | undefined)?.[0];
-    const firstPhoto = draft.hookPhotos[0] !== undefined ? photosOf(r)[draft.hookPhotos[0]]?.imageKey : null;
-    const coverKey = firstSlide?.imageKey ?? firstPhoto ?? null;
+    const firstPhoto = draft.hookPhotos[0] !== undefined ? photosOf(r)[draft.hookPhotos[0]] : undefined;
+    // A rendered slide is our own image; before rendering, an Unsplash hook photo shows from Unsplash (hotlinked).
+    const coverKey = firstSlide?.imageKey ?? firstPhoto?.imageKey ?? null;
+    const coverUrl = firstSlide?.imageKey ? thumbUrl(firstSlide.imageKey) : (firstPhoto?.hotlink?.thumb ?? (coverKey ? thumbUrl(coverKey) : null));
     return {
       id: r.id,
       name: r.name ?? DEFAULT_NAME,
       hookCount: draft.hooks.length,
       slideshowCount: r.slideshows.length,
       scheduledCount: r._count.posts,
-      coverUrl: coverKey ? thumbUrl(coverKey) : null,
+      coverUrl,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     };
@@ -118,8 +121,8 @@ export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
   // Thumbs: the editor shows photos at most 176 px wide.
   const photos = await Promise.all(photosOf(run).map(async (p, index): Promise<CampaignPhotoDto> => ({
     index,
-    url: p.imageKey ? thumbUrl(p.imageKey) : null,
-    fullUrl: p.imageKey ? await presignObject(p.imageKey) : null,
+    url: p.hotlink?.thumb ?? (p.imageKey ? thumbUrl(p.imageKey) : null),
+    fullUrl: p.hotlink?.full ?? (p.imageKey ? await presignObject(p.imageKey) : null),
     source: p.source ?? 'generated',
     credit: p.credit ?? null,
   })));

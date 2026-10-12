@@ -70,7 +70,7 @@ export const photoOptions = async (workspaceId: string, tab: PhotoTab, query: st
   return { options: await generatedOptions(workspaceId), hasMore: false };
 };
 
-type Fetched = { bytes: Buffer; label: string; credit?: { name: string; url: string } };
+type Fetched = { bytes: Buffer; label: string; credit?: { name: string; url: string }; hotlink?: { thumb: string; full: string } };
 
 const stored = async (key: string | null | undefined): Promise<Buffer> => {
   const bytes = key ? await getObject(key) : null;
@@ -134,7 +134,7 @@ const storeCampaignPhoto = async (runId: string, pick: Fetched, source: Campaign
   });
   const imageKey = `admin/auto-slideshow/${runId}/campaign-${randomUUID()}.jpg`;
   await Promise.all([putObject(imageKey, jpeg, 'image/jpeg'), storeThumb(imageKey, jpeg)]);
-  const photo: CampaignPhoto = { prompt: pick.label.slice(0, 300), imageKey, error: null, source, ...(pick.credit ? { credit: pick.credit } : {}) };
+  const photo: CampaignPhoto = { prompt: pick.label.slice(0, 300), imageKey, error: null, source, ...(pick.credit ? { credit: pick.credit } : {}), ...(pick.hotlink ? { hotlink: pick.hotlink } : {}) };
   const rows = await prisma.$queryRaw<Array<{ count: number }>>`
     UPDATE public.auto_slideshow_runs
     SET photos = COALESCE(photos, '[]'::jsonb) || jsonb_build_array(${JSON.stringify(photo)}::jsonb), updated_at = now()
@@ -143,7 +143,9 @@ const storeCampaignPhoto = async (runId: string, pick: Fetched, source: Campaign
   const count = rows[0]?.count;
   if (count === undefined) throw new HttpError(404, 'campaign_not_found', 'Campaign not found.');
   const index = Number(count) - 1;
-  return { photo: { index, url: thumbUrl(imageKey), fullUrl: await presignObject(imageKey), source, credit: pick.credit ?? null }, detect: () => storeHeads(runId, index, jpeg) };
+  const url = pick.hotlink?.thumb ?? thumbUrl(imageKey);
+  const fullUrl = pick.hotlink?.full ?? (await presignObject(imageKey));
+  return { photo: { index, url, fullUrl, source, credit: pick.credit ?? null }, detect: () => storeHeads(runId, index, jpeg) };
 };
 
 /** The photo request a client sent, cleaned. */

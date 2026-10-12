@@ -1,6 +1,7 @@
 'use client';
 
 import type { PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
+import { UnsplashCredit } from './UnsplashCredit';
 
 type Props = {
   options: PhotoOptionDto[] | null;
@@ -50,9 +51,7 @@ export function PhotoOptionGrid({ options, loading, selected, onToggle, empty }:
               </span>
             </button>
             {o.credit && (
-              <a href={o.credit.url} target="_blank" rel="noreferrer" className="absolute inset-x-0 bottom-0 truncate rounded-b-lg bg-gradient-to-t from-black/80 to-transparent px-1.5 pt-4 pb-1 text-[10px] text-white/90 hover:underline">
-                {o.credit.name}
-              </a>
+              <UnsplashCredit credit={o.credit} className="absolute inset-x-0 bottom-0 line-clamp-2 rounded-b-lg bg-gradient-to-t from-black/85 to-transparent px-1.5 pt-5 pb-1 text-[10px] leading-snug text-white/90" />
             )}
           </li>
         );

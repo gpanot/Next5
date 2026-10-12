@@ -3,7 +3,7 @@
 // A batch of calendar ideas answers with no model call (blitzBank.ts → deckFromScripts `later`): shots the library
 // lacks show their best library match, captions sit where saved fits put them. After the response this finishes the
 // cards, both at once: the vision caption Auto Fit of every shot without a saved fit (saved for the next batches), and
-// the AI images, one per moment of the batch, swapped onto their shots (the library match becomes the first swap; the
+// the images (AI once the workspace has paid, stock photos before), one per moment of the batch, swapped onto their shots (the library match becomes the first swap; the
 // new shots get their own fit). Then the cards lose `finishing` and the deck stops re-reading. A shot the user changed meanwhile and ideas already made are left alone.
 
 import type { Prisma } from '@prisma/client';
@@ -11,7 +11,7 @@ import { prisma } from '../../lib/db';
 import { fitShotCaptions } from '../slideshow/core/captionFit';
 import type { DeckItem, DeckShot } from '../slideshow/core/deckAssembly';
 import type { ImageNeed } from '../slideshow/core/generatedAssets';
-import { makeBatchImages, type BatchNeed } from '../slideshow/core/imageNeeds';
+import { batchShotImages, type BatchNeed } from '../slideshow/core/imageNeeds';
 import type { LibraryAsset } from '../slideshow/core/library';
 import { libraryShot, type MediaOption } from '../slideshow/core/media';
 import type { PhotoBrand } from '../slideshow/core/shotPhotos';
@@ -68,11 +68,11 @@ async function saveCard(id: string, finish: (card: DeckItem) => Promise<DeckItem
   return true;
 }
 
-/** The AI images every card lists, one per moment of the batch (no write). Per card index: need key → image. */
+/** The images every card lists, one per moment of the batch (no write): AI when paid, else stock. Per card index: need key → image. */
 async function makeImages(cards: Snapshot[], workspaceId: string | null, brand: PhotoBrand): Promise<Array<Map<string, LibraryAsset>>> {
   const needs: BatchNeed[] = cards.flatMap((c, script) => (c.pending ? c.pending.needs.map((need) => ({ script, audience: c.pending!.audience, categories: c.pending!.categories, need })) : []));
   if (needs.length === 0) return cards.map(() => new Map());
-  return makeBatchImages(needs, cards.length, workspaceId, brand);
+  return batchShotImages(needs, cards.length, workspaceId, brand);
 }
 
 /** How long the first caption pass waits for a shot; slower ones land in a second write. */

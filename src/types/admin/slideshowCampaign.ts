@@ -71,9 +71,14 @@ export const emptyCampaignDraft = (): CampaignDraft => ({
 /** Where an attached photo came from. Unsplash photos keep their credit (Unsplash's attribution rule). */
 export type CampaignPhotoSource = 'generated' | 'brand' | 'shared' | 'unsplash';
 
+/** An Unsplash photographer: their name and profile link (with Unsplash's UTM tags). */
 export type CampaignCredit = { name: string; url: string };
 
-/** `url`: small thumb for strips and pickers; `fullUrl`: the photo itself, for the preview. */
+/** Where "on Unsplash" links in every photo credit, with the UTM tags Unsplash asks for. */
+export const UNSPLASH_HOME_URL = 'https://unsplash.com/?utm_source=next5&utm_medium=referral';
+
+/** `url`: small thumb for strips and pickers; `fullUrl`: the photo itself, for the preview. Unsplash photos show from
+ *  Unsplash's own URLs (hotlinked, as its API rules ask); our copy is only for the render. */
 export type CampaignPhotoDto = { index: number; url: string | null; fullUrl: string | null; source: CampaignPhotoSource; credit: CampaignCredit | null };
 
 /** What to import into the campaign: a photo the workspace already has, a shared library photo, or an Unsplash photo. */

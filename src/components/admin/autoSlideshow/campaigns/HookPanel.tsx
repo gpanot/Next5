@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from 'react';
 import { MAX_CAMPAIGN_HOOK_PHOTOS, MAX_CAMPAIGN_HOOKS, MAX_HOOK_CHARS, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import { PhotoThumb } from './PhotoThumb';
+import { HookPhotoCredits } from './UnsplashCredit';
 import type { PendingPhoto } from './useCampaign';
 
 type Props = {
@@ -87,15 +88,16 @@ export function HookPanel({ draft, photos, pending, onChange, onAddPhotos }: Pro
           </li>
           {draft.hookPhotos.map((p, i) => (
             <li key={`${p}-${i}`}>
-              <PhotoThumb url={photos[p]?.url ?? null} number={i + 1} credit={photos[p]?.credit ?? null} onRemove={() => removePhoto(i)} />
+              <PhotoThumb url={photos[p]?.url ?? null} number={i + 1} onRemove={() => removePhoto(i)} />
             </li>
           ))}
           {pending.map((p) => (
             <li key={p.key}>
-              <PhotoThumb url={p.thumbUrl} credit={null} loading />
+              <PhotoThumb url={p.thumbUrl} loading />
             </li>
           ))}
         </ul>
+        <HookPhotoCredits photoIndexes={draft.hookPhotos} photos={photos} />
       </section>
     </div>
   );

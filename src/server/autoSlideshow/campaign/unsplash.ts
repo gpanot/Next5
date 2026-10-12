@@ -2,8 +2,9 @@
 // Unsplash stock photos for the campaign photo picker and Auto content (Pexels closed its API). Needs UNSPLASH_API_KEY
 // (the app's Access Key; UNSPLASH_ACCESS_KEY also works). The app is limited to 50 API calls an hour, so searches are
 // kept for 10 minutes and Auto uses a search result as it is (no second call for the photo).
-// Unsplash's API rules this follows: hotlinked thumbnails in the picker, the photographer credited, and the photo's
-// download_location called when a photo is used (https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines).
+// Unsplash's API rules this follows: photos shown from Unsplash's URLs (the picker, and attached photos: `hotlink`; our
+// copy only feeds the render), "Photo by <name> on Unsplash" with both links, and the photo's download_location called
+// when a photo is used (https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines).
 
 import type { PhotoOptionDto } from '../../../types/admin/slideshowCampaign';
 import { HttpError } from '../../http';
@@ -16,7 +17,7 @@ const UTM = 'utm_source=next5&utm_medium=referral';
 type UnsplashPhoto = {
   id: string;
   alt_description: string | null;
-  urls: { raw: string; small: string };
+  urls: { raw: string; small: string; regular: string };
   links: { download_location: string };
   user: { name: string; links: { html: string } };
 };
@@ -62,7 +63,8 @@ export const searchUnsplash = async (query: string, page: number): Promise<{ opt
   };
 };
 
-type Downloaded = { bytes: Buffer; label: string; credit: { name: string; url: string } };
+/** `hotlink`: Unsplash's own URLs, which the app shows instead of our copy (its API rules: photos are hotlinked). */
+type Downloaded = { bytes: Buffer; label: string; credit: { name: string; url: string }; hotlink: { thumb: string; full: string } };
 
 /** The photo's bytes at slide-photo size (cropped 9:16 by Unsplash's image CDN), reporting the download to Unsplash
  *  alongside, as its rules require for every photo used. */
@@ -72,7 +74,12 @@ const download = async (photo: UnsplashPhoto): Promise<Downloaded> => {
     fetch(`${photo.urls.raw}&w=1440&h=2560&fit=crop&crop=entropy&fm=jpg&q=85`),
   ]);
   if (!res.ok) throw new HttpError(502, 'unsplash_failed', 'Could not download that photo. Pick another one.');
-  return { bytes: Buffer.from(await res.arrayBuffer()), label: photo.alt_description ?? 'Unsplash photo', credit: creditOf(photo) };
+  return {
+    bytes: Buffer.from(await res.arrayBuffer()),
+    label: photo.alt_description ?? 'Unsplash photo',
+    credit: creditOf(photo),
+    hotlink: { thumb: photo.urls.small, full: photo.urls.regular },
+  };
 };
 
 /** A photo picked in the picker, by id. */

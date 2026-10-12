@@ -3,11 +3,14 @@
 // One AI image per moment in a batch. A deck's stories often repeat a line on the same shot ("More than 500,000
 // satisfied users", "KitchenPal tracks your pantry"): each asked for its own image, and the images came back alike.
 // Needs of one audience, on the same shot, with nearly the same line, now share one image.
+// Only paid workspaces get AI images; the others get stock photos (stockImages.ts): batchShotImages picks.
 
+import { workspaceHasPaid } from '../../slideshowCredits/paid';
 import { wordOverlap } from './copyGuards';
 import { generateShotImages, type ImageNeed } from './generatedAssets';
 import type { LibraryAsset } from './library';
 import type { PhotoBrand } from './shotPhotos';
+import { newStockUsed, stockShotImages } from './stockImages';
 
 /** Shared words (Jaccard) from which two lines show the same moment. */
 export const SAME_MOMENT_OVERLAP = 0.6;
@@ -33,23 +36,46 @@ export function groupNeeds(needs: BatchNeed[]): NeedGroup[] {
   return groups;
 }
 
-/**
- * AI images for a batch's needs, all audiences in parallel, one per moment (groupNeeds). Each image is saved to the
- * library (categories, description, embedding) for the next deck. Returns, per script (0…scripts-1), need key → image.
- */
-export async function makeBatchImages(needs: BatchNeed[], scripts: number, workspaceId: string | null, brand: PhotoBrand): Promise<Array<Map<string, LibraryAsset>>> {
+/** Images for one audience's moments (their lead needs). Returns lead key → image. */
+type MakeImages = (audience: string, categories: string[], leads: ImageNeed[]) => Promise<Map<string, LibraryAsset>>;
+
+/** One image per moment (groupNeeds), all audiences in parallel. Returns, per script (0…scripts-1), need key → image. */
+async function makeBatch(needs: BatchNeed[], scripts: number, make: MakeImages, what: string): Promise<Array<Map<string, LibraryAsset>>> {
   const out = Array.from({ length: scripts }, () => new Map<string, LibraryAsset>());
   const groups = groupNeeds(needs);
   const audiences = [...new Set(groups.map((g) => g.audience))];
   const made = await Promise.all(audiences.map((audience) => {
     const mine = groups.filter((g) => g.audience === audience);
-    return generateShotImages(audience, mine[0]!.categories, mine.map((g) => g.lead), workspaceId, brand);
+    return make(audience, mine[0]!.categories, mine.map((g) => g.lead));
   }));
   const images = new Map(made.flatMap((m) => [...m]));
   for (const g of groups) {
     const image = images.get(g.lead.key);
     if (image) g.members.forEach((n) => out[n.script]!.set(n.need.key, image));
   }
-  if (needs.length > 0) console.log(`[imageNeeds] ${needs.length} shot(s) needed an image: ${groups.length} moment(s), ${images.size} made`);
+  if (needs.length > 0) console.log(`[imageNeeds] ${needs.length} shot(s) needed an image: ${groups.length} moment(s), ${images.size} ${what}`);
   return out;
 }
+
+/**
+ * AI images for a batch's needs, one per moment. Each image is saved to the library (categories, description,
+ * embedding) for the next deck. Returns, per script (0…scripts-1), need key → image.
+ */
+export const makeBatchImages = (needs: BatchNeed[], scripts: number, workspaceId: string | null, brand: PhotoBrand) =>
+  makeBatch(needs, scripts, (audience, categories, leads) => generateShotImages(audience, categories, leads, workspaceId, brand), 'made');
+
+/** Stock photos instead (stockImages.ts), one per moment, never the same photo twice in the batch. Saved to the library too. */
+export const makeBatchStock = (needs: BatchNeed[], scripts: number, workspaceId: string | null) => {
+  const used = newStockUsed();
+  return makeBatch(needs, scripts, (audience, categories, leads) => stockShotImages(audience, categories, leads, workspaceId, used), 'stock found');
+};
+
+/** The batch's images by plan: AI images once the workspace's owner has paid, stock photos before. */
+export const batchShotImages = async (needs: BatchNeed[], scripts: number, workspaceId: string | null, brand: PhotoBrand) => {
+  if (needs.length === 0) return Array.from({ length: scripts }, () => new Map<string, LibraryAsset>());
+  const paid = await workspaceHasPaid(workspaceId).catch((err: unknown) => {
+    console.warn('[imageNeeds] paid check failed, using stock:', err instanceof Error ? err.message : err);
+    return false;
+  });
+  return paid ? makeBatchImages(needs, scripts, workspaceId, brand) : makeBatchStock(needs, scripts, workspaceId);
+};

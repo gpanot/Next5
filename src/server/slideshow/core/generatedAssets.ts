@@ -56,24 +56,38 @@ async function planImages(audience: string, categories: string[], needs: ImageNe
   });
 }
 
-/** Generates, stores and describes one image. Returns it as a library asset. */
-async function createAsset(plan: ImagePlan, need: ImageNeed, audience: string, categories: string[], workspaceId: string | null): Promise<LibraryAsset> {
-  const image = await generateVerticalImage(plan.prompt);
-  const id = randomUUID().replace(/-/g, '');
-  const r2Key = blitzKeys.asset(id, image.ext);
-  await uploadToR2(r2Key, image.buffer, image.contentType);
+/** An image file ready to join the library, with where it came from. */
+export type ShotImageFile = {
+  buffer: Buffer;
+  ext: string;
+  contentType: string;
+  description: string;
+  /** 'ai_generated' (made here) or 'scraped' (stock photo). */
+  source: 'ai_generated' | 'scraped';
+  /** The image model, or the stock site's name. */
+  model: string;
+  aiPrompt?: string;
+};
 
-  const tags = [...categories.map(categoryLabel), 'AI'];
+/** Stores one image for a shot and describes it as a normal library asset (searchable by the next deck). */
+export async function storeShotAsset(file: ShotImageFile, need: ImageNeed, audience: string, categories: string[], workspaceId: string | null): Promise<LibraryAsset> {
+  const id = randomUUID().replace(/-/g, '');
+  const r2Key = blitzKeys.asset(id, file.ext);
+  await uploadToR2(r2Key, file.buffer, file.contentType);
+
+  const isAi = file.source === 'ai_generated';
+  const mark = isAi ? 'AI' : 'Stock';
+  const tags = [...categories.map(categoryLabel), mark];
   await prisma.blitzAsset.create({
-    data: { id, type: 'BACKGROUND', r2Key, name: `${plan.description.slice(0, 90)} [AI]`, tags, source: 'library', workspaceId },
+    data: { id, type: 'BACKGROUND', r2Key, name: `${file.description.slice(0, 90)} [${mark}]`, tags, source: 'library', workspaceId },
   });
   const slots = SLOTS[need.role];
   const descriptor = {
-    subject: plan.description,
+    subject: file.description,
     meaning: `Shows: ${need.text}`,
     bestUse: `${need.role} shot for ${categories.map(categoryLabel).join(', ')} videos`,
     categories,
-    aiPrompt: plan.prompt,
+    ...(file.aiPrompt ? { aiPrompt: file.aiPrompt } : {}),
     textSafeZone: 'top_third',
   };
   const row = await prisma.assetDescriptor.create({
@@ -82,13 +96,13 @@ async function createAsset(plan: ImagePlan, need: ImageNeed, audience: string, c
       blitzAssetId: id,
       workspaceId,
       kind: 'background',
-      source: 'ai_generated',
+      source: file.source,
       status: 'done',
-      model: VERTICAL_IMAGE_MODEL,
+      model: file.model,
       descriptor,
       // The line it shows and its audience too: the next deck searches with "audience: line", and the bare
       // description alone often fell under the match threshold, so the same moment was drawn again.
-      retrievalText: `${plan.description} Shows: ${need.text} For ${audience} (${categories.map(categoryLabel).join(', ')}). AI image for ${need.role} shots.`,
+      retrievalText: `${file.description} Shows: ${need.text} For ${audience} (${categories.map(categoryLabel).join(', ')}). ${mark} image for ${need.role} shots.`,
       rightsRisk: 'none',
       identifiablePerson: false,
       publicFigureLikely: false,
@@ -107,10 +121,17 @@ async function createAsset(plan: ImagePlan, need: ImageNeed, audience: string, c
   await embedDescriptorRows([{ id: row.id, kind: 'background', retrieval_text: row.retrievalText, descriptor }]);
 
   return {
-    assetId: id, kind: 'background', r2Key, name: plan.description,
-    trimStart: 0, trimEnd: 0, textSafeZone: 'top_third', retrievalText: plan.description,
+    assetId: id, kind: 'background', r2Key, name: file.description,
+    trimStart: 0, trimEnd: 0, textSafeZone: 'top_third', retrievalText: file.description,
     score: 1, similarity: 1, categories,
   };
+}
+
+/** Generates, stores and describes one image. Returns it as a library asset. */
+async function createAsset(plan: ImagePlan, need: ImageNeed, audience: string, categories: string[], workspaceId: string | null): Promise<LibraryAsset> {
+  const image = await generateVerticalImage(plan.prompt);
+  const file: ShotImageFile = { ...image, description: plan.description, source: 'ai_generated', model: VERTICAL_IMAGE_MODEL, aiPrompt: plan.prompt };
+  return storeShotAsset(file, need, audience, categories, workspaceId);
 }
 
 /**

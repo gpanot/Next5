@@ -10,8 +10,8 @@
 //   3. searchWebsiteMedia semantic search over the described library, IDC-led queries (parallel across briefs);
 //      pickWebsiteMedia then picks, brief after brief: story shots must match the audience's industry, no clip
 //      twice in a deck
-//   4. generateShotImages AI images for story shots the library can't cover (parallel, one per moment of the
-//      deck), saved to the library with categories so the next deck reuses them
+//   4. batchShotImages: images for story shots the library can't cover (parallel, one per moment of the deck), AI
+//      once the workspace has paid, stock photos before, saved to the library with categories so the next deck reuses them
 // Then interleave (no music since 2026-10-12: the videos are narrated, blitzVoice.ts), caption Auto Fit on every shot (captionFit.tsx), persist.
 // Steps 1–2 can also come ready-made from the workspace's Blitz Script Bank (blitzBank.ts): deckFromScripts runs 3–4.
 
@@ -25,7 +25,7 @@ import { websiteEngine, type WebsiteBrief, type WebsiteSource } from '../slidesh
 import { applyGenerated, pickWebsiteMedia, searchWebsiteMedia, type WebsiteMedia, type WebsiteMediaInput } from '../slideshow/engines/website/media';
 import { categoriesForAudience } from '../slideshow/core/audienceCategories';
 import type { ImageNeed } from '../slideshow/core/generatedAssets';
-import { makeBatchImages, type BatchNeed } from '../slideshow/core/imageNeeds';
+import { batchShotImages, type BatchNeed } from '../slideshow/core/imageNeeds';
 import type { PhotoBrand, ShotPhoto } from '../slideshow/core/shotPhotos';
 import { fitDeckCaptions } from '../slideshow/core/captionFit';
 import type { StudioProfileData } from '../studio/types';
@@ -223,10 +223,11 @@ export async function deckFromScripts(source: WebsiteSource, written: BriefScrip
   }
   lap('pick');
 
-  // AI images for the story shots the library could not cover, one per moment of the batch (makeBatchImages).
+  // Images for the story shots the library could not cover, one per moment of the batch (batchShotImages: AI when
+  // the workspace has paid, stock photos before).
   // `later`: none now, the cards keep their library match and list what they still need.
   const needs: BatchNeed[] = media.flatMap((m, i) => m.needs.map((need) => ({ script: i, audience: written[i]!.idc, categories: written[i]!.categories, need })));
-  const generated = opts.later ? written.map(() => new Map<string, LibraryAsset>()) : await makeBatchImages(needs, written.length, source.workspaceId, photoBrand(source));
+  const generated = opts.later ? written.map(() => new Map<string, LibraryAsset>()) : await batchShotImages(needs, written.length, source.workspaceId, photoBrand(source));
   lap('images');
 
   const decks = await Promise.all(written.map(async (b, i) => {

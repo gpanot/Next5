@@ -1,0 +1,69 @@
+// server-only — never import from a 'use client' file.
+//
+// Stock photo fallback for story shots, for workspaces that have not paid yet (shotImages.ts): no AI image, the shot
+// the library could not cover gets a Pexels stock photo (scraped: campaign/pexels.ts) searched with words from its photo
+// description. Each photo is saved as a normal library asset (generatedAssets.ts storeShotAsset), so the next deck finds
+// it by search like any other. Not Unsplash: its API rules ask for hotlinked photos and a visible credit wherever one
+// shows, which a shared library copy cannot give; Unsplash stays in the campaign photo picker.
+
+import { downloadPexels, searchPexels } from '../../autoSlideshow/campaign/pexels';
+import { storeShotAsset, type ImageNeed, type ShotImageFile } from './generatedAssets';
+import type { LibraryAsset } from './library';
+
+/** Words of a photo description that say little about what a stock search should find. */
+const STOP = new Set([
+  'a', 'an', 'the', 'and', 'or', 'of', 'in', 'on', 'at', 'to', 'for', 'with', 'from', 'by', 'into', 'over', 'near', 'while',
+  'is', 'are', 'their', 'her', 'his', 'its', 'they', 'she', 'he', 'who', 'that', 'this', 'looking', 'photo', 'image', 'shot',
+  'close', 'up', 'closeup', 'vertical', 'natural', 'light', 'bright', 'soft', 'warm', 'scene', 'background', 'one', 'two',
+]);
+const QUERY_WORDS = 4;
+
+/** A short stock search from the shot's photo description (or its line): the first few telling words. */
+export const stockQuery = (need: ImageNeed): string =>
+  (need.photo?.description ?? need.text)
+    .toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((w) => w.length > 2 && !STOP.has(w))
+    .slice(0, QUERY_WORDS)
+    .join(' ');
+
+/** Photos already given in this batch, so two shots never get the same stock photo. */
+export type StockUsed = { pexels: Set<string> };
+
+export const newStockUsed = (): StockUsed => ({ pexels: new Set() });
+
+const fromPexels = async (query: string, used: StockUsed): Promise<ShotImageFile> => {
+  const photo = (await searchPexels(query)).find((p) => !used.pexels.has(p.id));
+  if (!photo) throw new Error(`no Pexels photo for "${query}"`);
+  used.pexels.add(photo.id);
+  return { buffer: await downloadPexels(photo.id), ext: 'jpg', contentType: 'image/jpeg', description: photo.label, source: 'scraped', model: 'pexels' };
+};
+
+/** One shot's stock photo. Throws when Pexels has none. */
+const stockFile = async (need: ImageNeed, used: StockUsed): Promise<ShotImageFile> => {
+  const query = stockQuery(need);
+  if (!query) throw new Error(`no search words for ${need.key}`);
+  return fromPexels(query, used);
+};
+
+/**
+ * Stock photos for the shots the library could not cover, in parallel. A shot with no photo found keeps its best
+ * library match. `used`: shared by a batch's audiences. Returns key → asset.
+ */
+export async function stockShotImages(
+  audience: string,
+  categories: string[],
+  needs: ImageNeed[],
+  workspaceId: string | null,
+  used: StockUsed = newStockUsed(),
+): Promise<Map<string, LibraryAsset>> {
+  const out = new Map<string, LibraryAsset>();
+  if (needs.length === 0) return out;
+  const results = await Promise.allSettled(needs.map(async (need) => storeShotAsset(await stockFile(need, used), need, audience, categories, workspaceId)));
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') out.set(needs[i]!.key, r.value);
+    else console.error(`[stockImages] stock photo for ${needs[i]!.key} failed:`, r.reason instanceof Error ? r.reason.message : r.reason);
+  });
+  console.log(`[stockImages] ${audience}: ${out.size}/${needs.length} stock photo(s)`);
+  return out;
+}
