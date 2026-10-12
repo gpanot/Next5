@@ -12,7 +12,7 @@
 //      twice in a deck
 //   4. generateShotImages AI images for story shots the library can't cover (parallel, one per moment of the
 //      deck), saved to the library with categories so the next deck reuses them
-// Then music, interleave, caption Auto Fit on every shot (captionFit.tsx), persist.
+// Then interleave (no music since 2026-10-12: the videos are narrated, blitzVoice.ts), caption Auto Fit on every shot (captionFit.tsx), persist.
 // Steps 1–2 can also come ready-made from the workspace's Blitz Script Bank (blitzBank.ts): deckFromScripts runs 3–4.
 
 import { prisma } from '../../lib/db';
@@ -20,9 +20,7 @@ import { HttpError } from '../http';
 import { contentWords, noEmDash } from '../slideshow/core/copyGuards';
 import { buildBriefCards, interleave, persistCards, type DeckItem, type StoryMedia, type StoryTexts } from '../slideshow/core/deckAssembly';
 import { generateHooks } from '../slideshow/core/hooks';
-import { clipKey, type LibraryAsset, type LibraryTrack } from '../slideshow/core/library';
-import { matchTracks } from '../autoSlideshow/music';
-import { blitzBrowserUrl } from '../admin/blitzStore';
+import { clipKey, type LibraryAsset } from '../slideshow/core/library';
 import { websiteEngine, type WebsiteBrief, type WebsiteSource } from '../slideshow/engines/website/engine';
 import { applyGenerated, pickWebsiteMedia, searchWebsiteMedia, type WebsiteMedia, type WebsiteMediaInput } from '../slideshow/engines/website/media';
 import { categoriesForAudience } from '../slideshow/core/audienceCategories';
@@ -127,7 +125,7 @@ function proofNote(brief: WebsiteBrief): string {
     : 'No proof on the site, so the Proof shot shows the product doing the job (no numbers).';
 }
 
-function cardsFor(b: BriefScript, storyMedia: StoryMedia, media: WebsiteMedia, tracks: LibraryTrack[]): DeckItem[] {
+function cardsFor(b: BriefScript, storyMedia: StoryMedia, media: WebsiteMedia): DeckItem[] {
   const cards = buildBriefCards({
     engine: 'website',
     lensId: b.idc.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
@@ -139,7 +137,6 @@ function cardsFor(b: BriefScript, storyMedia: StoryMedia, media: WebsiteMedia, t
     storyPerCard: media.perCard,
     hooks: b.hooks,
     hookMedia: media.hooks,
-    tracks,
     proofNote: b.proofNote,
   });
   if (!b.storyId) return cards;
@@ -174,26 +171,6 @@ async function recentClips(workspaceId: string | null | undefined): Promise<Set<
 }
 
 /**
- * One track per card, in card order (per brief, one per hook), from the same picker as slideshows: Jev fit for the
- * card's hook and story, fewer points for what the workspace used lately, no repeat in the deck while the library has
- * enough. A failure leaves the cards without music (picked in the editor).
- */
-async function cardTracks(written: BriefScript[], workspaceId: string | null): Promise<LibraryTrack[][]> {
-  const shows = written.flatMap((b) => b.hooks.map((h) => ({
-    goal: null,
-    audience: b.idc,
-    slides: [h.text, ...Object.values(b.story)].map((title) => ({ title, body: '' })),
-  })));
-  const picks = await matchTracks(shows, null, workspaceId).catch((err: unknown) => {
-    console.error('[WebsiteDeck] music pick failed:', err instanceof Error ? err.message : err);
-    return [];
-  });
-  const tracks = await Promise.all(picks.map(async (p): Promise<LibraryTrack> => ({ assetId: p.assetId, r2Key: p.r2Key, url: await blitzBrowserUrl(p.r2Key), name: p.name, startAt: p.startAt })));
-  let next = 0;
-  return written.map((b) => b.hooks.map(() => tracks[next++]).filter((t): t is LibraryTrack => Boolean(t)));
-}
-
-/**
  * Generates the whole deck for a Campaign Studio run. A brief that fails is skipped, not fatal.
  * `contentDeck`: a Content-page batch, saved so its cards come back on the next visit (workspaceDeck.ts).
  */
@@ -211,7 +188,7 @@ export async function generateWebsiteDeck(runId: string, opts: { contentDeck?: b
 }
 
 /**
- * Footage half of a deck: music, library search, AI images for the shots the library lacks, caption Auto Fit, saved.
+ * Footage half of a deck: library search, AI images for the shots the library lacks, caption Auto Fit, saved.
  * `deckRunId`: a Content-page batch of that run (workspaceDeck.ts). `later`: no model call before the response — shots
  * the library lacks keep their best library match (the card lists them in `pendingImages`) and captions are placed from
  * saved fits; the caller runs finishIdeaCards after the response.
@@ -220,9 +197,6 @@ export async function deckFromScripts(source: WebsiteSource, written: BriefScrip
   const started = Date.now();
   const laps: string[] = [];
   const lap = (step: string) => laps.push(`${step} ${((Date.now() - started) / 1000).toFixed(1)}s`);
-  // Music in parallel with the footage: one track per card, picked like a slideshow's (shared matchTracks).
-  const music = cardTracks(written, source.workspaceId).catch((): LibraryTrack[][] => written.map(() => []));
-
   // Library search: every brief in parallel (one embeddings call each); then the picks, brief after brief, with one
   // used-file set, so no clip appears twice in the deck; files the workspace showed lately go last, so a new batch
   // does not repeat the last one. Bank decks (one card a day) may show a fix or proof file again a few days later.
@@ -255,9 +229,8 @@ export async function deckFromScripts(source: WebsiteSource, written: BriefScrip
   const generated = opts.later ? written.map(() => new Map<string, LibraryAsset>()) : await makeBatchImages(needs, written.length, source.workspaceId, photoBrand(source));
   lap('images');
 
-  const tracks = await music;
   const decks = await Promise.all(written.map(async (b, i) => {
-    const cards = cardsFor(b, await applyGenerated(media[i]!, b.idc, generated[i]!), media[i]!, tracks[i]!);
+    const cards = cardsFor(b, await applyGenerated(media[i]!, b.idc, generated[i]!), media[i]!);
     const pending = media[i]!.needs;
     return opts.later ? cards.map((c) => ({ ...c, finishing: true, ...(pending.length ? { pendingImages: { audience: b.idc, categories: b.categories, needs: pending } } : {}) })) : cards;
   }));

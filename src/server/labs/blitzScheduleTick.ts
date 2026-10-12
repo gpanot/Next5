@@ -138,7 +138,8 @@ export async function runBlitzScheduleTick(): Promise<{ rendering: number; follo
     const now = Date.now();
     await expireUnapproved(now);
     const due = await prisma.blitzScheduledPost.findMany({ where: { status: 'scheduled', scheduledAt: { lte: new Date(now + BLITZ_RENDER_LEAD_MS) } }, orderBy: { scheduledAt: 'asc' }, take: PER_TICK });
-    for (const post of due) await startRender(post);
+    // Side by side: a narrated video spends ~20-40 s on its voiceover before its render is queued.
+    await Promise.all(due.map(startRender));
     const rendering = await prisma.blitzScheduledPost.findMany({ where: { status: 'rendering' }, orderBy: { scheduledAt: 'asc' }, take: PER_TICK });
     for (const post of rendering) await followRender(post, now);
     const processing = await prisma.blitzScheduledPost.findMany({ where: { status: 'processing', publishId: { not: null } }, orderBy: { sentAt: 'asc' }, take: PER_TICK });

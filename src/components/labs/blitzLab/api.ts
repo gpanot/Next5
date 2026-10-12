@@ -107,6 +107,8 @@ export const blitzApi = {
       slides?: Array<{ text: string; backgroundKey?: string; durationSec?: number; trimStart?: number; positionY?: number }>;
       /** Remix data saved with the render (see slideshowSet.ts). */
       set?: object;
+      /** Narrate the slideshow in this voice (replaces music; the server times the slides to the voiceover). */
+      voice?: string;
     },
   ) =>
     client.request<{ projectId: string; status: string; project: BlitzProjectDto }>(`${BASE}/render`,

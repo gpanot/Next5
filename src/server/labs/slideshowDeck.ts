@@ -6,7 +6,7 @@
 //   1. writeMeat         1 LLM call (+ retries): levers, 5 story lines, CTA, all guardrail-checked
 //   2. generateHooks     1 LLM call: 18 hooks → 6 (one per archetype)
 //   3. directBriefMedia  semantic search over the described asset library + listing photos
-//   4. music             described, rights-safe tracks rotated across cards
+//   4. (no music since 2026-10-12: the videos are narrated, blitzVoice.ts)
 //   5. persist           one slideshow_variants row per card (swipes are logged against it)
 
 import type { ListingFacts, ReAngle } from './slideshowCopy';
@@ -14,11 +14,10 @@ import { generateHooks } from '../slideshow/core/hooks';
 import type { HookGenerationInput } from '../slideshow/core/hooks';
 import { contentWords } from '../slideshow/core/copyGuards';
 import { buildBriefCards, persistCards, type DeckItem, type StoryTexts } from '../slideshow/core/deckAssembly';
-import { searchMusic, type LibraryTrack } from '../slideshow/core/library';
 import { zillowEngine } from '../slideshow/engines/zillow/engine';
 import type { ZillowBrief } from '../slideshow/engines/zillow/engine';
 import { angleFact, usd } from '../slideshow/engines/zillow/guardrails';
-import { ANGLE_ENERGY, directBriefMedia } from '../slideshow/engines/zillow/media';
+import { directBriefMedia } from '../slideshow/engines/zillow/media';
 
 export type { DeckItem };
 
@@ -112,13 +111,8 @@ export async function generateZillowDeck(input: GenerateDeckInput): Promise<Deck
   const story: StoryTexts = { ...meat, cta };
   console.log(`[ZillowDeck] story: ${Object.values(story).join(' | ')}`);
 
-  const [{ kept: hooks }, tracks] = await Promise.all([
-    generateHooks(hookInputFor(brief, facts, story, levers)),
-    searchMusic(ANGLE_ENERGY[angle]).catch((err): LibraryTrack[] => {
-      console.error('[ZillowDeck] music search failed:', err);
-      return [];
-    }),
-  ]);
+  // No music since 2026-10-12: the videos are narrated when rendered (blitzVoice.ts).
+  const { kept: hooks } = await generateHooks(hookInputFor(brief, facts, story, levers));
   if (hooks.length === 0) return [];
 
   const media = await directBriefMedia({
@@ -140,7 +134,6 @@ export async function generateZillowDeck(input: GenerateDeckInput): Promise<Deck
     storyMedia: media.meat,
     hooks,
     hookMedia: media.hooks,
-    tracks,
     proofNote: line ? `Every number from the listing: ${line}.` : 'Numbers come from the listing only.',
   });
   return persistCards(cards, { listingRunId: input.listingRunId });

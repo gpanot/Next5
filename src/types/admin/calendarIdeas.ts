@@ -3,6 +3,7 @@
 
 import type { DeckItem } from '../../server/slideshow/core/deckAssembly';
 import type { ContentGoal } from './contentGoals';
+import type { BlitzVoiceName } from './blitzVoice';
 
 /** `blitz`: a Blitz video (quick to make). `slideshow`: a real Auto Slideshow from the Slideshow Bank, made in the
  *  background while the user swipes (1-2 minutes). */
@@ -21,7 +22,7 @@ export type IdeaDto = {
   status: IdeaStatus;
   plannedAt: string;
   hook: string;
-  /** Blitz: the deck card (shots, audio, why panel). Null for slideshows. */
+  /** Blitz: the deck card (shots, voice, why panel). Null for slideshows. */
   card: DeckItem | null;
   /** Slideshow: goal, cover photo, slide titles. Blitz: other first lines (reserve cards of the same audience). */
   goal: ContentGoal | null;
@@ -51,11 +52,8 @@ export const REQUESTED_SLIDESHOWS = 3;
 /** Blitz ideas shown before the first slideshow idea, so it has time to be made (about 1-2 minutes). */
 export const SLIDESHOW_AFTER = 8;
 
-/** PATCH /blitz/ideas/[id] */
-/** A Blitz idea's music (a library track; `url` plays in the browser). */
-export type IdeaAudio = { assetKey: string; url: string; startAt: number; label: string };
-
-export type IdeaPatch = { status?: Exclude<IdeaStatus, 'made'>; plannedAt?: string; hookId?: string; audio?: IdeaAudio };
+/** PATCH /blitz/ideas/[id]. `voice`: a Blitz idea's narrator (BLITZ_VOICES name). */
+export type IdeaPatch = { status?: Exclude<IdeaStatus, 'made'>; plannedAt?: string; hookId?: string; voice?: BlitzVoiceName };
 
 /** Ideas in one batch, over the next IDEA_DAYS days: one post a day. */
 export const IDEAS_PER_BATCH = 14;

@@ -1,6 +1,7 @@
 'use client';
 
 import type { TextConfig } from '../../../remotion/types';
+import { DEFAULT_BLITZ_VOICE } from '../../../types/admin/blitzVoice';
 import type { blitzApi, BlitzAssetDto, BlitzTemplateDto, LabClient } from './api';
 import { checkDeckCopy, type CopyCheckContext } from './deckApi';
 import { SHOT_FORMAT } from './shotFormat';
@@ -28,11 +29,12 @@ export async function deckRenderBody(client: LabClient, card: DeckCardData, slid
   const context = card.check ?? ctx.checkContext;
   const problems = context ? await checkDeckCopy(client, context, slides.map((s) => s.text)) : [];
   if (problems.length > 0) return { error: `Fix before rendering: ${problems.join(' ')}` };
-  const audioKey = card.audio?.assetKey ?? ctx.assets.find((a) => a.type === 'AUDIO')?.r2Key;
   return {
     body: {
       templateId: ctx.template.id,
-      currentAssets: { backgroundKey: slides[0]!.backgroundKey!, ...(audioKey ? { audioKey } : {}) },
+      // No music (since 2026-10-12): the server narrates the video in the card's voice and times the slides to it.
+      currentAssets: { backgroundKey: slides[0]!.backgroundKey! },
+      voice: card.voice ?? DEFAULT_BLITZ_VOICE,
       overlayZoom: 1.0,
       overlayOffsetX: 0,
       overlayOffsetY: 0,

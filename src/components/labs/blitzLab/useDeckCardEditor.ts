@@ -74,9 +74,8 @@ export function useDeckCardEditor(o: Options) {
     setSlides(card.shots.map(toSlide));
     o.setCurrentSlideIndex(0);
     setCopyProblems([]);
-    // Engine track first; otherwise the first library track, as before.
-    const audioKey = card.audio?.assetKey ?? o.assets.find((a) => a.type === 'AUDIO')?.r2Key;
-    if (audioKey) setCurrentAssets((prev) => ({ ...prev, audioKey }));
+    // No music on a deck video (since 2026-10-12): it is narrated in the card's voice when rendered.
+    setCurrentAssets((prev) => ({ ...prev, audioKey: undefined }));
     // Only listing-photo shots need importing; library clips are already in R2.
     importListingPhotos(card.shots.map((s) => s.photoTag ?? 'other'));
     logDeckAction(client, card.variantId, 'open');

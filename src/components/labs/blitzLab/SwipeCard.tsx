@@ -77,7 +77,6 @@ export type SwipeCardWhyPanel = {
   /** 5 meat story lines (pain, old way, mechanism, proof, inaction). */
   storyLines: Array<{ label: string; text: string }>;
   proofNote?: string;
-  musicLabel?: string;
 };
 
 export type SwipeCardPosition = 'top' | 'back1' | 'back2';
@@ -202,13 +201,6 @@ function WhyDrawer({ data, open, onClose }: { data: SwipeCardWhyPanel; open: boo
           </>
         )}
 
-        {/* Music */}
-        {data.musicLabel && (
-          <>
-            <dt className="text-[var(--mute,#7c7d82)]">Music</dt>
-            <dd className="m-0 text-[var(--ink,#000)]">{data.musicLabel}</dd>
-          </>
-        )}
 
         {/* Length */}
         <dt className="text-[var(--mute,#7c7d82)]">Length</dt>

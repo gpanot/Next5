@@ -99,6 +99,7 @@ export function toDeckCard(item: DeckItem, batch: number, check: CopyCheckContex
     id:         `${item.id}-b${batch}`,
     variantId:  item.variantId ?? undefined,
     audio:      item.audio,
+    voice:      item.voice,
     lensValue:  item.lensLabel,
     lensId:     item.lensId,
     hookStyle:  item.hookStyle,
@@ -205,8 +206,6 @@ export type SlideshowDeckStepProps = {
   onEditCard: (card: DeckCardData) => void;
   /** True while the editor is open over the deck. */
   paused?: boolean;
-  /** Music for cards without an engine track. */
-  fallbackAudioUrl?: string;
   /** Renders a kept card in the background, without opening the editor. */
   onGenerateCard?: (card: DeckCardData) => void;
   /** Background render state per kept card. */
@@ -231,7 +230,6 @@ export function SlideshowDeckStep({
   onCardsChange,
   onEditCard,
   paused = false,
-  fallbackAudioUrl,
   onGenerateCard,
   renderFor,
   aside,
@@ -343,7 +341,6 @@ export function SlideshowDeckStep({
       }}
       onMakeMore={() => void fetchDeck(cards)}
       paused={paused}
-      fallbackAudioUrl={fallbackAudioUrl}
       onGenerate={onGenerateCard && ((cardId) => {
         const card = cards.find((c) => c.id === cardId);
         if (card) onGenerateCard(card);

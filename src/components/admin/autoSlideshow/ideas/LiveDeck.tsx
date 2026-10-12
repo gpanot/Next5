@@ -9,7 +9,8 @@ import type { Make } from './IdeasPanel';
 import { useKeepConfirm } from './KeepConfirm';
 import type { IdeasState } from './useIdeas';
 import { useHookStyle } from './useHookStyle';
-import { useIdeaMusic } from './useIdeaMusic';
+import { DEFAULT_BLITZ_VOICE, nextBlitzVoice } from '../../../../types/admin/blitzVoice';
+import { useBlitzVoices } from '../../../labs/blitzLab/useBlitzVoices';
 
 type Props = {
   ideas: IdeasState;
@@ -24,17 +25,18 @@ type Props = {
 
 /**
  * The ideas deck wired to the ideas: swipe right asks once (it uses a credit), keeps the idea on its day (or where
- * `placeOf` says) and makes it right away; swipe left skips; undo, another first line (pencil), the hook's look (Hook), another track (shuffle); ⋯ creates 3 slideshows.
+ * `placeOf` says) and makes it right away; swipe left skips; undo, another first line (pencil), the hook's look (Hook), another narrator voice (mic, plays its sample); ⋯ creates 3 slideshows.
  */
 export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   const [hookFor, setHookFor] = useState<IdeaDto | null>(null);
-  const music = useIdeaMusic(ideas.client);
+  const voices = useBlitzVoices(ideas.client);
   const hookStyle = useHookStyle();
   const { confirm, dialog } = useKeepConfirm();
   const asked = ideas.making.filter((i) => i.requested).length;
-  const shuffle = (target: IdeaDto) => {
-    const track = music.randomOther(target.card?.audio?.assetKey);
-    if (track) ideas.setMusic(target, track);
+  const changeVoice = (target: IdeaDto) => {
+    const voice = nextBlitzVoice(target.card?.voice ?? DEFAULT_BLITZ_VOICE);
+    ideas.setVoice(target, voice);
+    voices.play(voice);
   };
   const decide = (target: IdeaDto, status: 'kept' | 'discarded') => {
     if (status === 'discarded' || !maker) return ideas.decide(target, status);
@@ -43,7 +45,7 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   };
   return (
     <>
-      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onShuffle={music.canShuffle ? shuffle : null} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1) : undefined} menu={<DeckMenu onCreate={ideas.createSlideshows} making={asked} filters={size === 'page' ? ideas : undefined} bareOnPhone={size === 'page' || size === 'day'} />} hookStyle={hookStyle} />
+      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={changeVoice} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1) : undefined} menu={<DeckMenu onCreate={ideas.createSlideshows} making={asked} filters={size === 'page' ? ideas : undefined} bareOnPhone={size === 'page' || size === 'day'} />} hookStyle={hookStyle} />
       {hookFor && <HookPicker idea={hookFor} onPick={(id) => ideas.pickHook(hookFor, id)} onClose={() => setHookFor(null)} />}
       {dialog}
     </>

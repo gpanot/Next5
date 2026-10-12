@@ -5,10 +5,11 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS } from '../../../../config/blitzLab';
 import type { HookCtaStyle } from '../../../../remotion/types';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
+import { blitzVoiceLabel } from '../../../../types/admin/blitzVoice';
 import { SwipeCard } from '../../../labs/blitzLab/SwipeCard';
 import { mergeTextConfig } from '../../../labs/blitzLab/useTextLayout';
 import { useDeckSound } from '../../../labs/blitzLab/useDeckSound';
-import { CardMusic, DeckSide } from './DeckSide';
+import { DeckSide } from './DeckSide';
 import { formatLabel, ideaCard, whenOf } from './ideaCards';
 import type { HookStyleState } from './useHookStyle';
 
@@ -22,8 +23,8 @@ type Props = {
   onDecide: (idea: IdeaDto, status: 'kept' | 'discarded') => void;
   onUndo: () => void;
   onEditHook: (idea: IdeaDto) => void;
-  /** Another track at random for this idea; null when it takes no other music. */
-  onShuffle: ((idea: IdeaDto) => void) | null;
+  /** The next narrator voice for this Blitz idea (plays its sample); null when it takes no voice. */
+  onVoice: ((idea: IdeaDto) => void) | null;
   /** "panel": the ideas panel (or phone sheet). "day": inside a day's card, with less room around it. */
   size?: DeckSize;
   /** When it will be posted if kept, when not its own day (a day's deck reusing an idea of another day). */
@@ -86,7 +87,7 @@ const VIDEO_CAPTION = mergeTextConfig(BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW
 const captionFor = (idea: IdeaDto, hookCtaStyle?: HookCtaStyle) => (idea.card ? { ...VIDEO_CAPTION, hookCtaStyle } : undefined);
 
 /** One idea at a time: swipe or tap ✓ / ✕. The day it will be posted shows under the card. */
-export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onShuffle, size = 'panel', plannedAt, confirmKeep, menu, hookStyle }: Props) {
+export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onVoice, size = 'panel', plannedAt, confirmKeep, menu, hookStyle }: Props) {
   const { soundOn, toggleSound } = useDeckSound();
   const [exit, setExit] = useState<{ id: string; dir: 'keep' | 'discard' } | null>(null);
   const card = useMemo(() => ideaCard(idea), [idea]);
@@ -134,10 +135,9 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
         )}
         {menu && <div className={`absolute z-10 ${MENU_AT[at]}`}>{menu}</div>}
         <div className={`absolute z-10 ${SIDE_AT[at]}`}>
-          <DeckSide overlay={at === 'on'} soundOn={soundOn} onToggleSound={toggleSound} onShuffle={onShuffle && idea.card ? () => onShuffle(idea) : null} trackLabel={card.audio?.label ?? null} hook={idea.card ? hookStyle : undefined} />
+          <DeckSide overlay={at === 'on'} soundOn={soundOn} onToggleSound={toggleSound} onVoice={onVoice && idea.card ? () => onVoice(idea) : null} voiceLabel={blitzVoiceLabel(card.voice)} hook={idea.card ? hookStyle : undefined} />
         </div>
       </div>
-      <CardMusic url={card.audio?.url ?? null} startAt={card.audio?.startAt ?? 0} playing={soundOn && !exit} />
       <Controls
         idea={idea}
         onSkip={() => void decide('discarded')}

@@ -34,6 +34,7 @@ import { useResumePostNow } from './schedule/useResumePostNow';
 import type { TextConfig } from '../../../remotion/types';
 import type { CopyCheckContext } from './deckApi';
 import type { SwipeCardTag, SwipeCardWhyPanel, ShotView } from './SwipeCard';
+import type { BlitzVoiceName } from '../../../types/admin/blitzVoice';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -65,19 +66,17 @@ export type DeckCardData = {
   edited?: boolean;
   /** Saved card id (slideshow_variants). Absent = swipes on this card are not logged. */
   variantId?: string;
-  /** Track the engine picked for this card (`url` plays in the deck). */
+  /** Music of cards made before 2026-10-12; no longer played or rendered (Blitz videos are narrated: `voice`). */
   audio?: { assetKey: string; url?: string; startAt: number; label: string } | null;
+  /** Narrator of the video (BLITZ_VOICES name); absent = the default voice. */
+  voice?: BlitzVoiceName;
   /** What edited copy is checked against before render (listing facts or the brand profile). */
   check?: CopyCheckContext;
   /** The BlitzProject rendering (or rendered) this card. */
   renderProjectId?: string;
-  /** Track Jev rated the best fit for this card (R2 key). Shown with a green dot in the music list. */
-  jevAudioKey?: string;
-  /** True once the Jev music pass ran for this card (hit or miss), so it runs once. */
-  musicMatched?: boolean;
 };
 
-/** Deck sound (clip audio + music), on by default, remembered per browser. */
+/** Deck sound (the clips' own audio), on by default, remembered per browser. */
 export type DeckSound = { on: boolean; toggle: () => void };
 
 /** One entry in the undo history. */
@@ -109,8 +108,6 @@ export type SwipeDeckProps = {
   onCardsChange?: Dispatch<SetStateAction<DeckCardData[]>>;
   /** Pauses the top card and keyboard shortcuts, e.g. while the editor is open over the deck. */
   paused?: boolean;
-  /** Music for cards without their own track (e.g. the editor's default library track). */
-  fallbackAudioUrl?: string;
   /** Every deck action, for logging: keep, discard (reason arrives in a second call), undo. */
   onSwipe?: (card: DeckCardData, action: 'keep' | 'discard' | 'undo', reason?: string) => void;
   /** Renders a kept card in the background. Absent = no Generate button. */
@@ -154,7 +151,6 @@ export function SwipeDeck({
   onCardsChange,
   paused: pausedProp = false,
   onSwipe,
-  fallbackAudioUrl,
   onGenerate,
   renderFor,
   aside,
@@ -175,7 +171,6 @@ export function SwipeDeck({
   /** Kept card shown again in the card slot. Swipes and shortcuts are off while it shows. */
   const [previewId, setPreviewId] = useState<string | null>(null);
   const { soundOn, toggleSound } = useDeckSound();
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   // Sync incoming cards changes (e.g. edits saved by the parent editor). Adjusted during render, not in an effect.
   const [syncedCards, setSyncedCards] = useState(initialCards);
@@ -208,16 +203,7 @@ export function SwipeDeck({
   const keptActions: KeptActions = { onEdit: (cardId) => onEdit?.(cardId), onPreview: setPreviewId, onGenerate, renderFor };
   const current = previewCard ? null : (queue[0] ?? null);
 
-  // ── Music for the top card (or the previewed one) ─────────────────────────
   const playing = previewCard ?? current;
-  const trackUrl = playing?.audio?.url ?? fallbackAudioUrl;
-  const trackStart = playing?.audio?.startAt ?? 0;
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (soundOn && !paused && trackUrl && playing) audio.play().catch(() => undefined); // autoplay may be blocked until a tap
-    else audio.pause();
-  }, [soundOn, paused, trackUrl, playing]);
   const next1 = current ? (queue[1] ?? null) : null;
   const next2 = current ? (queue[2] ?? null) : null;
 
@@ -548,22 +534,6 @@ export function SwipeDeck({
           </>
         )}
       </div>
-
-      {/* Hidden music player: restarts at the track's best moment on every new card */}
-      {trackUrl && (
-        <audio
-          key={`${playing?.id ?? 'none'}-${trackUrl}`}
-          ref={audioRef}
-          src={trackUrl}
-          loop
-          preload="auto"
-          onLoadedMetadata={(e) => {
-            e.currentTarget.volume = 0.5;
-            e.currentTarget.currentTime = trackStart;
-          }}
-          className="hidden"
-        />
-      )}
 
       {/* Drift animation for video shimmer */}
       <style>{`@keyframes drift{to{background-position:120px 0}}.scrollbar-hide::-webkit-scrollbar{display:none}.scrollbar-hide{scrollbar-width:none}`}</style>

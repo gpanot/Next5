@@ -275,7 +275,7 @@ const swapBlitzHook = async (workspaceId: string, row: SlideshowVariant, hookId:
 
 const SWIPE: Record<NonNullable<IdeaPatch['status']>, 'keep' | 'discard' | 'undo'> = { kept: 'keep', discarded: 'discard', proposed: 'undo' };
 
-/** Keep, skip or bring back an idea (logged like a deck swipe), move it, or give a Blitz idea another first line or music. */
+/** Keep, skip or bring back an idea (logged like a deck swipe), move it, or give a Blitz idea another first line or voice. */
 export async function patchIdea(workspaceId: string, id: string, patch: IdeaPatch): Promise<IdeasListDto> {
   const row = await ownIdea(workspaceId, id);
   if (row.status === 'made') throw new HttpError(409, 'made', 'This idea is already made.');
@@ -283,10 +283,10 @@ export async function patchIdea(workspaceId: string, id: string, patch: IdeaPatc
     if (row.engine !== 'website') throw new HttpError(400, 'no_hooks', 'This slideshow is already made with its first line.');
     await swapBlitzHook(workspaceId, row, patch.hookId);
   }
-  if (patch.audio) {
+  if (patch.voice) {
     const card = (row.plan as BlitzIdeaPlan).card;
-    if (row.engine !== 'website' || !card) throw new HttpError(400, 'no_music', 'Only videos take music here.');
-    await prisma.slideshowVariant.update({ where: { id }, data: { plan: asJson({ ...(row.plan as object), audio: patch.audio, card: { ...card, audio: patch.audio } }) } });
+    if (row.engine !== 'website' || !card) throw new HttpError(400, 'no_voice', 'Only videos take a voice here.');
+    await prisma.slideshowVariant.update({ where: { id }, data: { plan: asJson({ ...(row.plan as object), card: { ...card, voice: patch.voice } }) } });
   }
   if (patch.plannedAt) {
     const at = new Date(patch.plannedAt);

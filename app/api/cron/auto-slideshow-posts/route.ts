@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { runPostingTick } from '../../../../src/server/autoSlideshow/send';
 
-export const maxDuration = 60;
+// Blitz videos due soon are narrated before their render is queued (~20-40 s each, side by side).
+export const maxDuration = 300;
 
 /**
  * GET /api/cron/auto-slideshow-posts — sends approved Auto Slideshow posts that are due (TikTok, Instagram), polls sent

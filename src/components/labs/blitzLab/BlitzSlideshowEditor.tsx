@@ -71,7 +71,6 @@ import { useSlideCaptionFit } from './autoFit/useSlideCaptionFit';
 import { useHookCtaStyle } from './useHookCtaStyle';
 import { MaybeSchedule } from './schedule/MaybeSchedule';
 import { useCachedDeckCards, useResumeDeckRenders } from './useDeckCache';
-import { useDeckMusicMatch } from './useDeckMusicMatch';
 import { useSetRemix } from './useSetRemix';
 import { OpenPostError, PostEditBar, SaveToCalendar, useOpenPost } from './schedule/editPost';
 import { PlayItButton, usePlayThrough } from './PlayIt';
@@ -79,6 +78,7 @@ import { buildSet } from './slideshowSet';
 import { useTextLayout } from './useTextLayout';
 import type { BlitzLayer } from './canvasHitTest';
 import { buildSteps, DEFAULT_SLIDES, EditorSkeleton, isSlideshowProject, type Step } from './slideshowEditorParts';
+import { DEFAULT_BLITZ_VOICE } from '../../../types/admin/blitzVoice';
 
 type EditorProps = {
   initialFlowType?: FlowType;
@@ -176,7 +176,6 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
   });
   const { editingCard } = deck;
   // Jev picks each new card's music, as in the Auto Slideshow.
-  useDeckMusicMatch(deckCards, setDeckCards);
   // Kept cards render straight from the deck (Generate → Download), no editor round trip.
   const cardRender = useDeckCardRender({
     template: carouselTemplate, zillowData, checkContext, assets, addAsset, library,
@@ -235,8 +234,10 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
       templateId: carouselTemplate.id,
       currentAssets: {
         backgroundKey: currentAssets.backgroundKey || (nonEmptySlides.find((s) => s.backgroundKey)?.backgroundKey ?? ''),
-        ...(currentAssets.audioKey ? { audioKey: currentAssets.audioKey } : {}),
+        // A deck video has no music: it is narrated in the card's voice (since 2026-10-12).
+        ...(currentAssets.audioKey && !editingCard ? { audioKey: currentAssets.audioKey } : {}),
       },
+      ...(editingCard ? { voice: editingCard.voice ?? DEFAULT_BLITZ_VOICE } : {}),
       overlayZoom: 1.0,
       overlayOffsetX: 0,
       overlayOffsetY: 0,
@@ -509,7 +510,6 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
                 onCardsChange={setDeckCards}
                 onEditCard={deck.openCard}
                 paused={Boolean(editingCard)}
-                fallbackAudioUrl={assets.find((a) => a.type === 'AUDIO')?.url}
                 onGenerateCard={(card) => void cardRender.generate(card)}
                 renderFor={cardRender.renderFor}
                 labels={!workspaceRunId}

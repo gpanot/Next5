@@ -3,6 +3,7 @@ import { HttpError } from '../../../../../../src/server/http';
 import { patchIdea } from '../../../../../../src/server/labs/calendarIdeas';
 import { labRoute } from '../../../../../../src/server/labs/labAccess';
 import type { IdeaPatch } from '../../../../../../src/types/admin/calendarIdeas';
+import { isBlitzVoice } from '../../../../../../src/types/admin/blitzVoice';
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -21,14 +22,14 @@ const patchOf = (raw: unknown): IdeaPatch => {
   }
   if (typeof b.plannedAt === 'string') patch.plannedAt = b.plannedAt;
   if (typeof b.hookId === 'string') patch.hookId = b.hookId;
-  const a = b.audio as Record<string, unknown> | undefined;
-  if (a && typeof a.assetKey === 'string' && typeof a.url === 'string' && typeof a.label === 'string') {
-    patch.audio = { assetKey: a.assetKey, url: a.url, label: a.label.slice(0, 200), startAt: typeof a.startAt === 'number' && a.startAt >= 0 ? a.startAt : 0 };
+  if (b.voice !== undefined) {
+    if (!isBlitzVoice(b.voice)) throw new HttpError(400, 'invalid_voice', 'Unknown voice.');
+    patch.voice = b.voice;
   }
   return patch;
 };
 
-/** PATCH /api/admin/blitz/ideas/[id] — { status?, plannedAt?, hookId?, audio? } → the updated ideas list. */
+/** PATCH /api/admin/blitz/ideas/[id] — { status?, plannedAt?, hookId?, voice? } → the updated ideas list. */
 export const PATCH = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
   if (access.admin) throw new HttpError(400, 'user_only', 'Ideas belong to a workspace.');
   const { id } = await ctx.params;

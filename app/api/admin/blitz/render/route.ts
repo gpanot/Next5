@@ -3,6 +3,9 @@ import { labRoute } from '../../../../../src/server/labs/labAccess';
 import { toProjectDto } from '../../../../../src/server/admin/blitzStore';
 import { queueBlitzRender, type RenderBody } from '../../../../../src/server/labs/blitzRender';
 
+/** A narrated slideshow records its voiceover first (~20-40 s). */
+export const maxDuration = 120;
+
 /**
  * POST /api/admin/blitz/render
  *

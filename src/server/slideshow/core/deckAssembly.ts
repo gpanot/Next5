@@ -3,11 +3,11 @@
 // interleaves briefs, and saves the cards so swipes can be logged against them.
 
 import { SHOTS } from './format';
-import type { LibraryTrack } from './library';
 import type { ImageNeed } from './generatedAssets';
 import type { ShotMedia } from './media';
 import type { HookArchetype, ShotRole } from './types';
 import { createVariants } from './variants';
+import type { BlitzVoiceName } from '../../../types/admin/blitzVoice';
 
 // ── Types (JSON-safe, sent to the client) ────────────────────────────────────
 
@@ -32,15 +32,18 @@ export type DeckItem = {
   hookStyle: string;
   shots: DeckShot[];
   hue: number;
-  /** Track for this card, when the library has a described, rights-safe one. `url` plays in the deck. */
+  /** Music of cards made before 2026-10-12. New cards have none: Blitz videos are narrated instead (`voice`). */
   audio: { assetKey: string; url: string; startAt: number; label: string } | null;
+  /** Narrator of the video (BLITZ_VOICES name); absent = the default voice. */
+  voice?: BlitzVoiceName;
   whyPanel: {
     audience: string;
     hookStyle: string;
     hookStyleReason: string;
     storyLines: Array<{ label: string; text: string }>;
     proofNote: string;
-    musicLabel: string;
+    /** Cards made before 2026-10-12 (music). */
+    musicLabel?: string;
   };
   /** Blitz Script Bank story and hook the card was made from (calendar ideas): counts as used for that bank. */
   script?: {
@@ -112,7 +115,6 @@ export type BriefCardsInput = {
   storyPerCard?: Array<Partial<StoryMedia>>;
   hooks: Array<{ archetype: HookArchetype; text: string }>;
   hookMedia: ShotMedia[];
-  tracks: LibraryTrack[];
   proofNote: string;
 };
 
@@ -122,7 +124,6 @@ export function buildBriefCards(input: BriefCardsInput): DeckItem[] {
   return input.hooks.map((hook, i) => {
     const media = { ...input.storyMedia, ...(i > 0 ? input.storyPerCard?.[i - 1] : undefined) };
     const storyShots = STORY_ORDER.map(([key, role], n) => shot(role, input.story[key], media[key], n + 1));
-    const track = input.tracks.length ? input.tracks[i % input.tracks.length]! : null;
     return {
       id:        `${input.engine}-${input.lensId}-${hook.archetype}-${i}`,
       variantId: null,
@@ -133,14 +134,13 @@ export function buildBriefCards(input: BriefCardsInput): DeckItem[] {
       hookStyle: ARCHETYPE_LABELS[hook.archetype],
       shots:     [shot('hook', hook.text, input.hookMedia[i]!, 0), ...storyShots],
       hue:       input.hue,
-      audio:     track ? { assetKey: track.r2Key, url: track.url, startAt: track.startAt, label: track.name } : null,
+      audio:     null,
       whyPanel: {
         audience:        input.audienceLabel,
         hookStyle:       ARCHETYPE_LABELS[hook.archetype],
         hookStyleReason: ARCHETYPE_WHY[hook.archetype],
         storyLines,
         proofNote:       input.proofNote,
-        musicLabel:      track ? track.name : 'No rights-safe track described yet. Pick one in the editor.',
       },
     };
   });

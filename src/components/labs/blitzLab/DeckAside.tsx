@@ -1,6 +1,6 @@
 'use client';
 
-// Right column of the deck: music for the card on screen, and the deck's images (Assets modal).
+// Right column of the deck: the narrator voice for the card on screen, and the deck's images (Assets modal).
 
 import { Images } from 'lucide-react';
 import { useState, type Dispatch, type SetStateAction } from 'react';
@@ -9,7 +9,7 @@ import type { BlitzAssetDto } from './api';
 import { useDeckShotRefit } from './autoFit/useDeckShotRefit';
 import { DeckAssetsModal } from './DeckAssetsModal';
 import { deckImageKeys, removeImageFromCards, replaceImageInCards } from './deckImageCards';
-import { DeckMusicPanel } from './DeckMusicPanel';
+import { DeckVoicePanel } from './DeckVoicePanel';
 import type { DeckCardData, DeckSound } from './SwipeDeck';
 
 type Props = {
@@ -35,11 +35,10 @@ export function DeckAside({ card, sound, deckCards, setDeckCards, assets, captio
 
   return (
     <div className="flex flex-col gap-3">
-      <DeckMusicPanel
+      <DeckVoicePanel
         card={card}
         sound={sound}
-        assets={assets}
-        onChange={(cardId, audio) => setDeckCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, audio } : c)))}
+        onChange={(cardId, voice) => setDeckCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, voice } : c)))}
       />
       <button
         type="button"

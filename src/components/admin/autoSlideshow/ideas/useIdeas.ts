@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SLIDESHOW_AFTER, type IdeaAudio, type IdeaDto, type IdeaFormat, type IdeaPatch, type IdeasListDto } from '../../../../types/admin/calendarIdeas';
+import { SLIDESHOW_AFTER, type IdeaDto, type IdeaFormat, type IdeaPatch, type IdeasListDto } from '../../../../types/admin/calendarIdeas';
 import { errorOf, type LabClient, type LabResponse } from '../../../labs/labClient';
 import { ideasApi } from './ideasApi';
+import type { BlitzVoiceName } from '../../../../types/admin/blitzVoice';
 
 /** `generatingSince`: when the batch being written was asked for (ISO), for the countdown on the empty card.
  *  `batchSince`: a batch written elsewhere (the server's first one, after the first run), from the list. */
@@ -193,17 +194,17 @@ const useActions = (client: LabClient | null, request: ListRequest, setState: Se
   const pickHook = useCallback(async (idea: IdeaDto, hookId: string) => {
     if (await patch(idea.id, { hookId })) setFocusId(hookId);
   }, [patch]);
-  /** Another track for a Blitz idea: plays at once, saved for when it is made. */
-  const setMusic = useCallback((idea: IdeaDto, audio: IdeaAudio) => {
-    setState((s) => ({ ...s, ideas: s.ideas.map((i) => (i.id === idea.id && i.card ? { ...i, card: { ...i.card, audio } } : i)) }));
-    void patch(idea.id, { audio });
+  /** Another narrator for a Blitz idea: saved for when it is made. */
+  const setVoice = useCallback((idea: IdeaDto, voice: BlitzVoiceName) => {
+    setState((s) => ({ ...s, ideas: s.ideas.map((i) => (i.id === idea.id && i.card ? { ...i, card: { ...i.card, voice } } : i)) }));
+    void patch(idea.id, { voice });
   }, [patch, setState]);
   const changeDay = useCallback(async (action: 'add' | 'remove', day: string) => {
     if (!client) return;
     setState((s) => ({ ...s, error: null }));
     await request(() => ideasApi.day(client, action, day));
   }, [client, request, setState]);
-  return { focusId, setFocusId, canUndo: history.length > 0, patch, decide, keepNow, undo, pickHook, setMusic, changeDay };
+  return { focusId, setFocusId, canUndo: history.length > 0, patch, decide, keepNow, undo, pickHook, setVoice, changeDay };
 };
 
 /**

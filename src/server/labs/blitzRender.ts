@@ -13,7 +13,9 @@ import {
 } from '../../config/blitzLab';
 import { HttpError } from '../http';
 import { createPaidRender } from '../slideshowCredits/blitzCharge';
+import { requireCredits } from '../slideshowCredits/charge';
 import { withSlideCameras } from './blitzCamera';
+import { narrateSlides } from './blitzVoice';
 import type { LabAccess } from './labAccess';
 
 export type RenderBody = {
@@ -43,6 +45,11 @@ export type RenderBody = {
   slides?: Array<string | SlideBody>;
   /** Everything needed to re-open this render in the editor (Remix). Stored as-is, size-capped. */
   set?: unknown;
+  /**
+   * Slideshow (CAROUSEL) only: narrate it in this voice (blitzVoice.ts). The voiceover replaces any music, sets each
+   * slide's length and mutes the clips' own sound.
+   */
+  voice?: string;
 };
 
 /** Max stored Set size: a 7-shot deck Set with swaps is ~15 KB. */
@@ -121,7 +128,16 @@ export async function queueBlitzRender(access: LabAccess, body: RenderBody, prep
   if (keys.some((k) => k?.startsWith('local:'))) reject(400, 'Wait for uploads to finish', 'local: key still present');
 
   // For CAROUSEL: derive captionText from slides[0] if not already set
-  const textSlides = normalizedSlides.filter((s) => s.text.trim());
+  const captioned = normalizedSlides.filter((s) => s.text.trim());
+  // A narrated slideshow: the voiceover is its sound and sets each slide's length.
+  const narrate = templateType === 'CAROUSEL' && !!body.voice && captioned.length > 0;
+  // The voiceover costs money: a user short of credits gets the 402 before it is recorded.
+  if (narrate && !access.admin && !prepaid) await requireCredits(access.userId, 1);
+  const narration = narrate ? await narrateSlides(captioned, body.voice, access.workspaceId) : null;
+  if (narration) {
+    body = { ...body, currentAssets: { ...body.currentAssets, audioKey: narration.audioKey }, durationSeconds: narration.durationSeconds, muteVideoAudio: true };
+  }
+  const textSlides = narration?.slides ?? captioned;
   // Slideshow photos get a camera move (zoom/pan + depth parallax) so stills in a row do not feel like a slideshow.
   const nonEmptySlides = templateType === 'CAROUSEL' ? await withSlideCameras(textSlides, captionY) : textSlides;
   const captionText = body.captionText.trim() || (nonEmptySlides[0]?.text ?? '');
@@ -137,6 +153,8 @@ export async function queueBlitzRender(access: LabAccess, body: RenderBody, prep
       ...(nonEmptySlides.length > 0 ? { slides: nonEmptySlides } : {}),
       // Set: provenance + swaps so the render can be remixed later (the worker ignores it).
       ...(set ? { set } : {}),
+      // What the narrator said, for the admin (the worker ignores it).
+      ...(narration ? { narration: { voice: narration.voice, lines: narration.lines } } : {}),
       // A still-image slideshow has no footage to follow, so it may run longer than the footage cap.
       ...renderSettings(body, templateType === 'CAROUSEL' ? BLITZ_SLIDESHOW_MAX_DURATION_S : BLITZ_MAX_DURATION_S),
     },
