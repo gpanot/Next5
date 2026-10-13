@@ -40,7 +40,10 @@ export const tregBytes = async (endpointId: string, options: CallOptions = {}): 
   return Buffer.from(await res.arrayBuffer());
 };
 
-/** Retries a call that failed for a reason worth retrying (a timeout, a 5xx, a 429), waiting 4 s, 8 s, 12 s… between tries. */
+/**
+ * Retries a call that failed for a reason worth retrying (a timeout, a 5xx, a 429), waiting 4 s, 8 s, 12 s… between
+ * tries, plus up to 2 s at random so calls that failed together (treg's "pool is saturated" 503) do not retry together.
+ */
 export const withRetry = async <T>(fn: () => Promise<T>, tries = 3): Promise<T> => {
   for (let attempt = 1; ; attempt++) {
     try {
@@ -50,7 +53,7 @@ export const withRetry = async <T>(fn: () => Promise<T>, tries = 3): Promise<T> 
       // A dropped connection shows up as aborted, terminated, ECONNRESET or socket hang up depending on the client.
       const retryable = /HTTP (5\d\d|429)|timeout|aborted|terminated|ECONNRESET|socket hang up|fetch failed/i.test(message);
       if (!retryable || attempt >= tries) throw err;
-      await new Promise((r) => setTimeout(r, 4_000 * attempt));
+      await new Promise((r) => setTimeout(r, 4_000 * attempt + Math.random() * 2_000));
     }
   }
 };

@@ -23,6 +23,7 @@ import type { TextConfig } from '../../../remotion/types';
 import { ShotLayers } from './ShotLayers';
 import { SlideCaption } from './SlideCaption';
 import type { ShotEditData } from './shotFormat';
+import { useNarrationAudio, type CardNarration } from './useNarrationAudio';
 import {
   useCallback,
   useEffect,
@@ -107,6 +108,8 @@ export type SwipeCardProps = {
   captionConfig?: TextConfig;
   /** The top card's first shot can show: the deck may start loading the next card. */
   onReady?: () => void;
+  /** The card's recorded voiceover: it plays instead of the clips' sound and sets each shot's length. */
+  narration?: CardNarration | null;
 };
 
 // ── Gradient tint (fallback when no media URL) ────────────────────────────────
@@ -230,8 +233,13 @@ export function SwipeCard({
   ariaLabel = 'Video card',
   captionConfig,
   onReady,
+  narration,
 }: SwipeCardProps) {
   const isTop = position === 'top';
+  const voiced = narration && narration.durations.length === shots.length ? narration : null;
+  const durations: readonly number[] = voiced?.durations ?? SHOT_DURATIONS;
+  const durationsRef = useRef(durations);
+  useEffect(() => { durationsRef.current = durations; }, [durations]);
 
   // ── Shot player state ──────────────────────────────────────────────────────
   const [shotIdx, setShotIdx] = useState(0);
@@ -265,7 +273,7 @@ export function SwipeCard({
       } else if (i > shotIdxRef.current) {
         b.style.width = '0%';
       } else {
-        const dur = SHOT_DURATIONS[i] ?? 4;
+        const dur = durationsRef.current[i] ?? 4;
         b.style.width = Math.min(100, (elapsedRef.current / dur) * 100) + '%';
       }
     });
@@ -283,7 +291,7 @@ export function SwipeCard({
       const isDrawerOpen = whyOpenRef.current;
       if (ready && !paused && !externalPause && !isDrawerOpen) {
         elapsedRef.current += dt;
-        const dur = SHOT_DURATIONS[shotIdxRef.current] ?? 4;
+        const dur = durationsRef.current[shotIdxRef.current] ?? 4;
         if (elapsedRef.current >= dur) {
           elapsedRef.current = 0;
           const next = (shotIdxRef.current + 1) % shots.length;
@@ -311,6 +319,19 @@ export function SwipeCard({
   // ── "Why this?" drawer ────────────────────────────────────────────────────
   const [whyOpen, setWhyOpen] = useState(false);
   const whyOpenRef = useRef(false);
+
+  // ── Voiceover: a new one starts the card over, so the hook line plays on the hook ──
+  const voiceUrl = voiced?.url;
+  const [startedFor, setStartedFor] = useState(voiceUrl);
+  if (startedFor !== voiceUrl) {
+    setStartedFor(voiceUrl);
+    setShotIdx(0);
+  }
+  useEffect(() => {
+    elapsedRef.current = 0;
+    shotIdxRef.current = 0;
+  }, [voiceUrl]);
+  useNarrationAudio({ narration: voiced, shotIdx, elapsedRef, playing: isTop && ready && !paused && !externalPause && !whyOpen, muted: !soundOn });
 
   function toggleWhy() {
     setWhyOpen((o) => {
@@ -439,7 +460,7 @@ export function SwipeCard({
           // The top card loads its first shot alone, so it is not slowed by the other clips.
           loadAll={position === 'back1' || (isTop && ready)}
           playing={isTop}
-          muted={!soundOn || !isTop || paused || externalPause}
+          muted={!soundOn || !isTop || paused || externalPause || Boolean(voiced)}
           fallback={(i) => tint(hue, i)}
           onFirstReady={markReady}
         />
@@ -458,7 +479,7 @@ export function SwipeCard({
             className="absolute left-3 right-3 top-3 z-[3] flex gap-1"
             aria-hidden
           >
-            {SHOT_DURATIONS.map((dur, i) => (
+            {durations.map((dur, i) => (
               <i
                 key={i}
                 className="relative h-[3px] flex-none overflow-hidden rounded-full bg-white/35"

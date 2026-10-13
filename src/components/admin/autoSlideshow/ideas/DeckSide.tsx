@@ -1,6 +1,7 @@
 'use client';
 
 import { Mic, Volume2, VolumeX } from 'lucide-react';
+import type { VoicePreviewState } from './useVoicePreview';
 import { HookStyleButton } from './HookStyleButton';
 import type { HookStyleState } from './useHookStyle';
 
@@ -14,8 +15,10 @@ type Props = {
   onToggleSound: () => void;
   /** The next narrator voice (Blitz ideas). Null: this idea takes no voice (a photo slideshow). */
   onVoice: (() => void) | null;
-  /** The idea's voice now: "Warm"… */
+  /** The idea's voice now: "woman" or "man". */
   voiceLabel: string;
+  /** Its voiceover: null before it starts recording, loading while it records. */
+  voiceState?: VoicePreviewState['status'] | null;
   /** Drawn on the card instead of beside it (phones only). */
   overlay?: boolean;
   /** Blitz ideas: "Hook" above the sound button, to pick the hook's look. */
@@ -23,8 +26,9 @@ type Props = {
 };
 
 /** Beside the card (small, so the card stays centered), as in the Blitz deck: the hook's look, sound on/off, and the narrator voice. */
-export function DeckSide({ soundOn, onToggleSound, onVoice, voiceLabel, overlay = false, hook }: Props) {
+export function DeckSide({ soundOn, onToggleSound, onVoice, voiceLabel, voiceState = null, overlay = false, hook }: Props) {
   const cls = overlay ? `${round} ${ON_CARD}` : round;
+  const voiceHint = voiceState === 'loading' ? `Recording the ${voiceLabel}'s voice…` : `Voice: ${voiceLabel}. Tap to switch.`;
   return (
     <div className="flex flex-col gap-1.5">
       {hook && <HookStyleButton hook={hook} className={cls} />}
@@ -32,8 +36,10 @@ export function DeckSide({ soundOn, onToggleSound, onVoice, voiceLabel, overlay 
         {soundOn ? <Volume2 aria-hidden className="h-4 w-4" /> : <VolumeX aria-hidden className="h-4 w-4" />}
       </button>
       {onVoice && (
-        <button type="button" onClick={onVoice} aria-label={`Voice: ${voiceLabel}. Tap for another voice.`} title={`Voice: ${voiceLabel}. Tap for another.`} className={cls}>
-          <Mic aria-hidden className="h-4 w-4" />
+        <button type="button" onClick={onVoice} disabled={voiceState === 'loading'} aria-busy={voiceState === 'loading'} aria-label={voiceHint} title={voiceHint} className={cls}>
+          {voiceState === 'loading'
+            ? <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            : <Mic aria-hidden className="h-4 w-4" />}
         </button>
       )}
     </div>

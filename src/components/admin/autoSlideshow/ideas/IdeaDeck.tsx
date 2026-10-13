@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, Pencil, Undo2, X } from 'lucide-react';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS } from '../../../../config/blitzLab';
 import type { HookCtaStyle } from '../../../../remotion/types';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
@@ -10,6 +10,7 @@ import { SwipeCard } from '../../../labs/blitzLab/SwipeCard';
 import { mergeTextConfig } from '../../../labs/blitzLab/useTextLayout';
 import { useDeckSound } from '../../../labs/blitzLab/useDeckSound';
 import { DeckSide } from './DeckSide';
+import type { VoicePreviewState } from './useVoicePreview';
 import { formatLabel, ideaCard, whenOf } from './ideaCards';
 import type { HookStyleState } from './useHookStyle';
 
@@ -23,8 +24,10 @@ type Props = {
   onDecide: (idea: IdeaDto, status: 'kept' | 'discarded') => void;
   onUndo: () => void;
   onEditHook: (idea: IdeaDto) => void;
-  /** The next narrator voice for this Blitz idea (plays its sample); null when it takes no voice. */
+  /** The mic on a Blitz idea: swaps to the other voice (woman / man). Null when it takes no voice. */
   onVoice: ((idea: IdeaDto) => void) | null;
+  /** This idea's voiceover in its voice: loading, ready (plays on the card) or failed. */
+  voice?: VoicePreviewState | null;
   /** "panel": the ideas panel (or phone sheet). "day": inside a day's card, with less room around it. */
   size?: DeckSize;
   /** When it will be posted if kept, when not its own day (a day's deck reusing an idea of another day). */
@@ -86,8 +89,23 @@ function Controls({ idea, onSkip, onKeep, onEditHook, undo }: ControlsProps) {
 const VIDEO_CAPTION = mergeTextConfig(BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS);
 const captionFor = (idea: IdeaDto, hookCtaStyle?: HookCtaStyle) => (idea.card ? { ...VIDEO_CAPTION, hookCtaStyle } : undefined);
 
+/** Why the voiceover did not play, over the top of the card for a few seconds. */
+function VoiceNote({ message }: { message: string }) {
+  const [shown, setShown] = useState(true);
+  useEffect(() => {
+    const timer = setTimeout(() => setShown(false), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+  if (!shown) return null;
+  return (
+    <p role="status" className="absolute inset-x-3 top-8 z-[6] rounded-xl bg-black/70 px-3 py-2 text-center text-[13px] font-semibold text-white backdrop-blur-sm transition-opacity">
+      {message}
+    </p>
+  );
+}
+
 /** One idea at a time: swipe or tap ✓ / ✕. The day it will be posted shows under the card. */
-export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onVoice, size = 'panel', plannedAt, confirmKeep, menu, hookStyle }: Props) {
+export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onVoice, voice, size = 'panel', plannedAt, confirmKeep, menu, hookStyle }: Props) {
   const { soundOn, toggleSound } = useDeckSound();
   const [exit, setExit] = useState<{ id: string; dir: 'keep' | 'discard' } | null>(null);
   // The next card loads once the top card can play, so its clips don't slow the first one down.
@@ -126,6 +144,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
           onOpen={() => {}}
           soundOn={soundOn}
           onReady={() => setReadyId(idea.id)}
+          narration={voice?.status === 'ready' ? voice.narration : null}
           ariaLabel={`${formatLabel(idea)} idea: ${idea.hook}`}
         />
         {idea.card && hookStyle?.pending && (
@@ -136,9 +155,10 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
             </span>
           </div>
         )}
+        {voice?.status === 'error' && <VoiceNote key={voice.message} message={voice.message} />}
         {menu && <div className={`absolute z-10 ${MENU_AT[at]}`}>{menu}</div>}
         <div className={`absolute z-10 ${SIDE_AT[at]}`}>
-          <DeckSide overlay={at === 'on'} soundOn={soundOn} onToggleSound={toggleSound} onVoice={onVoice && idea.card ? () => onVoice(idea) : null} voiceLabel={blitzVoiceLabel(card.voice)} hook={idea.card ? hookStyle : undefined} />
+          <DeckSide overlay={at === 'on'} soundOn={soundOn} onToggleSound={toggleSound} onVoice={onVoice && idea.card ? () => onVoice(idea) : null} voiceLabel={blitzVoiceLabel(card.voice)} voiceState={voice?.status ?? null} hook={idea.card ? hookStyle : undefined} />
         </div>
       </div>
       <Controls

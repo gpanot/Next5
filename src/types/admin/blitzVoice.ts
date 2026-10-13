@@ -2,7 +2,8 @@
 // The voice is one of a few Gemini prebuilt voices, picked per card; the narration itself is written and recorded
 // when the video is rendered (src/server/labs/blitzVoice.ts).
 
-export type BlitzVoiceName = 'Sulafat' | 'Achird' | 'Kore';
+/** Two narrators since 2026-10-13: one woman, one man; the mic swaps between them. */
+export type BlitzVoiceName = 'Sulafat' | 'Achird';
 
 export type BlitzVoiceOption = {
   name: BlitzVoiceName;
@@ -17,7 +18,6 @@ export type BlitzVoiceOption = {
 export const BLITZ_VOICES: ReadonlyArray<Omit<BlitzVoiceOption, 'sampleUrl'>> = [
   { name: 'Sulafat', label: 'Warm', gender: 'female' },
   { name: 'Achird', label: 'Friendly', gender: 'male' },
-  { name: 'Kore', label: 'Confident', gender: 'female' },
 ];
 
 export const DEFAULT_BLITZ_VOICE: BlitzVoiceName = 'Sulafat';
@@ -30,5 +30,8 @@ export const nextBlitzVoice = (current: string | undefined): BlitzVoiceName => {
   return BLITZ_VOICES[(i + 1) % BLITZ_VOICES.length]!.name;
 };
 
-export const blitzVoiceLabel = (name: string | undefined): string =>
-  BLITZ_VOICES.find((o) => o.name === (name ?? DEFAULT_BLITZ_VOICE))?.label ?? 'Voice';
+/** "woman" / "man": what the mic says it is on (a voice no longer offered reads as the default). */
+export const blitzVoiceLabel = (name: string | undefined): string => {
+  const voice = BLITZ_VOICES.find((o) => o.name === name) ?? BLITZ_VOICES.find((o) => o.name === DEFAULT_BLITZ_VOICE)!;
+  return voice.gender === 'female' ? 'woman' : 'man';
+};

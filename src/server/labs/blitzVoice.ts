@@ -3,8 +3,9 @@
 // (the hook opens a loop, middle lines explain what the caption only states, the last line says the CTA), recorded with
 // the Shorts voice step (Gemini 3.8 Flash TTS on treg, Whisper read-back retakes). Each slide then lasts as long as its
 // line. Tested on 2026-10-12 (scripts/tmp/blitz-voice): the user rated it "much better" than music. ~$0.02 a video.
+// Since 2026-10-13 each recording is cached by its text and voice: the Ideas deck previews it, the render reuses it.
 
-import { randomUUID } from 'crypto';
+import { createHash } from 'crypto';
 import { prisma } from '../../lib/db';
 import { BLITZ_VOICES, DEFAULT_BLITZ_VOICE, isBlitzVoice, type BlitzVoiceOption } from '../../types/admin/blitzVoice';
 import { createMeter } from '../metaAds/cost';
@@ -13,6 +14,23 @@ import { creativeJson } from '../shorts/llm';
 import { sampleLine, synthesize } from '../shorts/voice';
 import { blitzBrowserUrl } from '../admin/blitzStore';
 import { getObject, putObject } from '../storage/objectStore';
+
+/** Lines recorded at once: all 7 together overloaded treg (503 "pool is saturated", 2026-10-13). */
+const RECORD_AT_ONCE = 3;
+
+/** `fn` over `items`, at most `limit` running at a time, results in order. */
+const mapLimited = async <T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
+  const out: R[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i]!);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+  return out;
+};
 
 /** Breath after each slide's line before the next slide's line starts. */
 const SLIDE_GAP_S = 0.35;
@@ -50,6 +68,27 @@ export type Narration<S> = {
   lines: string[];
 };
 
+/** A voiceover is kept by what it says and how: the deck preview and the later render of the same card share one recording. */
+const cacheBase = (voice: string, workspaceId: string | null, texts: string[]): string => {
+  const hash = createHash('sha256').update(JSON.stringify([SYSTEM, DIRECTION, voice, workspaceId, texts.map((t) => t.trim())])).digest('hex').slice(0, 32);
+  return `blitz/voiceovers/cache/${hash}`;
+};
+
+type CachedNarration = { audioKey: string; durations: number[]; lines: string[]; voice: string };
+
+/** The recorded voiceover of these slides in this voice, if one was made before (a preview or a render). */
+export async function cachedNarration(slideTexts: string[], voiceName: string | undefined, workspaceId: string | null): Promise<CachedNarration | null> {
+  const voice = isBlitzVoice(voiceName) ? voiceName : DEFAULT_BLITZ_VOICE;
+  const raw = await getObject(`${cacheBase(voice, workspaceId, slideTexts)}.json`).catch(() => null);
+  if (!raw) return null;
+  try {
+    const hit = JSON.parse(raw.toString('utf8')) as CachedNarration;
+    return hit.durations?.length === slideTexts.length ? hit : null;
+  } catch {
+    return null;
+  }
+}
+
 const silence = (seconds: number): Buffer => Buffer.alloc(Math.max(0, Math.round(seconds * SAMPLE_RATE)) * 2);
 
 /** What the brand is, for the voiceover writer. */
@@ -71,11 +110,18 @@ const writeLines = async (slides: NarratedSlide[], workspaceId: string | null, m
  * back timed to their line (the render's per-slide durations). Throws when a line cannot be recorded.
  */
 export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceName: string | undefined, workspaceId: string | null): Promise<Narration<S>> {
+  const voice = isBlitzVoice(voiceName) ? voiceName : DEFAULT_BLITZ_VOICE;
+  const texts = slides.map((s) => s.text);
+  const hit = await cachedNarration(texts, voice, workspaceId);
+  if (hit) {
+    const timed = slides.map((slide, i) => ({ ...slide, durationSec: hit.durations[i]! }));
+    const durationSeconds = Math.round(hit.durations.reduce((sum, d) => sum + d, 0) * 100) / 100;
+    return { slides: timed, audioKey: hit.audioKey, durationSeconds, voice, lines: hit.lines };
+  }
   const started = Date.now();
   const meter = createMeter();
-  const voice = isBlitzVoice(voiceName) ? voiceName : DEFAULT_BLITZ_VOICE;
   const lines = await writeLines(slides, workspaceId, meter);
-  const takes = await Promise.all(lines.map((line) => synthesize(line, { voice, direction: DIRECTION }, meter)));
+  const takes = await mapLimited(lines, RECORD_AT_ONCE, (line) => synthesize(line, { voice, direction: DIRECTION }, meter));
   const pcms: Buffer[] = [];
   const timed = slides.map((slide, i) => {
     const pcm = wavToPcm(takes[i]!.wav);
@@ -85,8 +131,11 @@ export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceN
     pcms.push(Buffer.concat([fitted, silence(seconds - pcmSeconds(fitted))]));
     return { ...slide, durationSec: Math.round(seconds * 100) / 100 };
   });
-  const audioKey = `blitz/voiceovers/${randomUUID()}.wav`;
+  const base = cacheBase(voice, workspaceId, texts);
+  const audioKey = `${base}.wav`;
   await putObject(audioKey, pcmToWav(Buffer.concat(pcms)), 'audio/wav');
+  const manifest: CachedNarration = { audioKey, durations: timed.map((s) => s.durationSec), lines, voice };
+  await putObject(`${base}.json`, Buffer.from(JSON.stringify(manifest)), 'application/json');
   const durationSeconds = Math.round(timed.reduce((sum, s) => sum + s.durationSec, 0) * 100) / 100;
   const cost = meter.summary();
   console.log(`[blitz/voice] ${voice}, ${slides.length} lines, ${durationSeconds.toFixed(1)} s in ${((Date.now() - started) / 1000).toFixed(1)} s, $${(cost.usdMicros / 1e6).toFixed(4)}`);
