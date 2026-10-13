@@ -100,6 +100,48 @@ OUTPUT: JSON only.
 }`;
 }
 
+/** One story of a batch: what its problem is (or the one already chosen), its five beats in order and its CTA rule. */
+export type StoryPromptSlot = { problemKind: string; problem?: string; beats: string[]; cta: string };
+
+/**
+ * Many stories for one audience in one call (Blitz Script Bank): same profile, proof and rules as one story, each
+ * story on its own slot (format beats, stage CTA). `avoid`: problems the bank already tells.
+ */
+export function buildWebsiteStoriesPrompt(b: WebsiteBriefInput, slots: StoryPromptSlot[], avoid: string[]): string {
+  const slotLines = slots.map((s, i) => {
+    const problem = s.problem ? `problem already chosen, tell exactly this: "${s.problem}"` : `problem: ${s.problemKind}`;
+    return `${i + 1}. ${problem} | ${s.beats.join(' | ')} | cta: ${s.cta.replaceAll('{name}', b.business.name)}`;
+  });
+  return `You write the story lines of ${slots.length} different 26-second vertical videos for ${b.idc}.
+Each speaks TO ${b.idc} about THEIR day, not about the software or company.
+The business and product appear only in "mechanism" and "cta".
+
+PROFILE (the only facts you may use)
+${profileBlock(b)}
+
+${proofBlock(b.proofPoints)}
+${b.proofPoints.length > 1 ? 'Rotate the proof quotes across the stories.\n' : ''}${photoBlock(b.productPhotos)}
+STORIES: one per slot below. Each is about its own concrete problem: a different real moment of their day.
+No two stories share a problem, a setting or a punchline.
+${avoid.length ? `Already told, do not repeat: ${avoid.slice(0, 40).map((p) => `"${p}"`).join(', ')}\n` : ''}For each slot write "problem" (the moment, one line), then the lines pain, oldWay, mechanism, proof and inaction
+as its beats say (in that order, each builds on the one before), then "cta" as it says. Values are the line text only, no labels.
+
+SLOTS
+${slotLines.join('\n')}
+
+RULES
+- Max 10 words per line. cta max 7 words.
+- Plain words a 9-year-old reads out loud. No hype: innovative, seamless, game-changer, unlock, elevate.
+- No number that is not printed in the profile or proof quotes. No "guaranteed", "#1", "best", "leading".
+- Never name a city, country, school, person or brand the profile does not name.
+- Never name a competitor. No "!" and no emojis.
+
+${EXAMPLES}
+
+OUTPUT: JSON only, flat keys, "slot" = the slot number.
+{"stories":[{"slot":1,"problem":"...","pain":"...","oldWay":"...","mechanism":"...","proof":"...","inaction":"...","cta":"..."}]}`;
+}
+
 function storySteps(b: WebsiteBriefInput): string {
   const cta = b.ctaRule
     ? `cta: ${b.ctaRule.replaceAll('{name}', b.business.name)}`

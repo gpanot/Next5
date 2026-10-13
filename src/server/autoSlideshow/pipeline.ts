@@ -1,7 +1,8 @@
 // server-only — never import from a 'use client' file.
 // Auto Slideshow pipeline: 1 profile → 2 levers → 3 plan (picks from the site's Slideshow Bank, built on its first run)
 // → 4 write → 5 photos (a fresh one per slide) → 6 render. Each step saves its checkpoint
-// with its time and cost, so any step can be inspected and a run can resume from any step.
+// with its time and cost, so any step can be inspected and a run can resume from any step. The Visual Bible and the
+// brand cast step 4 needs start right after step 1 and run alongside steps 2-3.
 
 import type { Prisma } from '@prisma/client';
 import { signAdminToken } from '../../lib/admin-auth';
@@ -20,7 +21,7 @@ import { chargeSlideshow } from '../slideshowCredits/charge';
 import { profileForSite } from '../studio/siteProfile';
 import { putObject } from '../storage/objectStore';
 import type { VisualBible } from '../../types/admin/visualBible';
-import { castForShows } from '../brandCast/cast';
+import { castForShows, prepareCast } from '../brandCast/cast';
 import { brandPhotoFacts, productLooks } from '../brandContent/productPhotos';
 import { ensureVisualBible } from '../shorts/visualBible';
 import { bankForSite, loadUsage } from './bank/build';
@@ -133,11 +134,43 @@ const runBible = async (runId: string, profile: BrandProfile | null, workspaceId
   return bible;
 };
 
+/**
+ * The Visual Bible and the brand cast need only the profile. On a run's first pass they start once step 1 is done and
+ * run alongside steps 2-3 (about a minute), so step 4 finds them ready. Keyed by run; a step 4 with no warm-up (a
+ * resumed run, "Get more") makes them itself. Resolves to what the warm-up spent; never rejects.
+ */
+const warmUps = new Map<string, Promise<StepCost>>();
+
+const startWarmUp = (runId: string) => {
+  const meter = createMeter();
+  const job = (async () => {
+    const run = await loadRun(runId);
+    const profile = run.profile as unknown as BrandProfile | null;
+    const workspaceId = await contentWorkspaceId(run);
+    if (!profile || !workspaceId) return;
+    // The cast reads the Visual Bible, so it comes second.
+    await runBible(runId, profile, workspaceId, meter);
+    await prepareCast(workspaceId, run.count, meter);
+  })()
+    .catch((err: unknown) => console.warn(`[auto-slideshow] run ${runId}: warm-up failed (${err instanceof Error ? err.message : err})`))
+    .then(() => meter.summary());
+  warmUps.set(runId, job);
+};
+
+/** Waits for the run's warm-up, if one was started, and puts its cost on this step. */
+const awaitWarmUp = async (runId: string, meter: CostMeter) => {
+  const job = warmUps.get(runId);
+  if (!job) return;
+  warmUps.delete(runId);
+  for (const item of (await job).items) meter.add(item.label, item.usdMicros);
+};
+
 type Assembled = ReturnType<typeof assembleCombo>;
 
 /** Each assembled slideshow's slides with their photo plan (photoPlan.ts): a brand cast member per slideshow, taking
  *  turns, the Visual Bible and the brand's own photos. Slideshows that failed to assemble stay as they are. */
 const planPhotos = async (runId: string, shows: (Assembled | Error)[], picks: SlideshowPick[], meter: CostMeter): Promise<(Assembled | Error)[]> => {
+  await awaitWarmUp(runId, meter);
   const run = await loadRun(runId);
   const profile = run.profile as unknown as BrandProfile | null;
   const workspaceId = await contentWorkspaceId(run);
@@ -245,14 +278,16 @@ const renderStep: StepFn = async (runId, _meter, { rerender }) => {
       const slides = show.slides as unknown as AutoSlide[];
       const indexes = slidePhotoIndexes(slides, show.position, photos);
       if (indexes.some((i) => i === null)) throw new Error('No photo was made for this slideshow');
-      const rendered: AutoSlide[] = [];
-      for (const [i, slide] of slides.entries()) {
-        const key = slideKey(runId, show.id, i);
-        const photo = photos[indexes[i]!]!;
-        const { jpeg, at } = await renderSlide(slide, photo.imageKey!, cache, look, await headsFor(photo, cache, heads));
-        await putObject(key, jpeg, 'image/jpeg');
-        rendered.push({ ...slide, photoIndex: indexes[i]!, imageKey: key, placedAt: at });
-      }
+      // A slideshow's slides render together: each waits on its own photo, heads and upload.
+      const rendered: AutoSlide[] = await Promise.all(
+        slides.map(async (slide, i) => {
+          const key = slideKey(runId, show.id, i);
+          const photo = photos[indexes[i]!]!;
+          const { jpeg, at } = await renderSlide(slide, photo.imageKey!, cache, look, await headsFor(photo, cache, heads));
+          await putObject(key, jpeg, 'image/jpeg');
+          return { ...slide, photoIndex: indexes[i]!, imageKey: key, placedAt: at };
+        }),
+      );
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(rendered), status: 'ready' } });
       await chargeSlideshow(runId, show.id);
     } catch (err) {
@@ -289,28 +324,13 @@ const handOff = async (runId: string): Promise<boolean> => {
 };
 
 /**
- * A workspace's first calendar ideas (labs/firstIdeas.ts): the Blitz Script Bank after step 1, the first batch once the
- * run is done. On Vercel each gets its own invocation (internal route); locally it just runs alongside. Never throws.
+ * A workspace's first calendar ideas (labs/firstIdeas.ts): the Blitz Script Bank after step 1 (it starts the first batch
+ * once ready), and the batch again once the run is done, as a fallback. Never throws.
  * Dynamic import: labs/calendarIdeas imports this file.
  */
 const kickIdeas = async (runId: string, phase: 'bank' | 'ideas'): Promise<void> => {
-  const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { workspaceId: true, ideaForRunId: true } }).catch(() => null);
-  if (!run?.workspaceId || run.ideaForRunId) return;
-  if (process.env.VERCEL !== '1') {
-    void import('../labs/firstIdeas').then((m) => m.prepareRunIdeas(runId, phase));
-    return;
-  }
-  try {
-    const res = await fetch(`${appBaseUrl()}/api/admin/auto-slideshow/runs/${runId}/ideas`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${signAdminToken()}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phase }),
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!res.ok) console.warn(`[auto-slideshow] first ideas (${phase}) for run ${runId} refused (${res.status})`);
-  } catch (err) {
-    console.warn(`[auto-slideshow] first ideas (${phase}) for run ${runId} not started:`, err instanceof Error ? err.message : err);
-  }
+  const { kickRunIdeas } = await import('../labs/firstIdeas');
+  await kickRunIdeas(runId, phase);
 };
 
 const photosLeft = async (runId: string) => photosPending(((await loadRun(runId)).photos as AutoPhoto[] | null) ?? []);
@@ -327,12 +347,16 @@ export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, app
       const data = await STEPS[step](runId, meter, opts);
       await saveStep(runId, step, Date.now() - t0, meter.summary(), data);
       console.log(`[auto-slideshow] run ${runId} step ${step} OK in ${Date.now() - t0}ms, $${meter.summary().usdMicros / 1e6}`);
-      if (step === 1 && append === 0) await kickIdeas(runId, 'bank');
+      if (step === 1 && append === 0) {
+        startWarmUp(runId);
+        await kickIdeas(runId, 'bank');
+      }
       if (step === 4 && (await handOff(runId))) return;
       if (step === 5 && (await photosLeft(runId)) && (await handOff(runId))) return;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[auto-slideshow] run ${runId} step ${step} FAILED:`, message);
+      warmUps.delete(runId);
       await saveStep(runId, step, Date.now() - t0, meter.summary(), {}).catch(() => undefined);
       await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { status: 'FAILED', failedStep: step, error: clip(message, 1_000), finishedAt: new Date() } });
       return;

@@ -14,7 +14,7 @@ type PhotoReady = { id: string; story: StoryTexts; format?: StoryFormat };
 
 const SHOTS: Array<ImageNeed['role']> = ['pain', 'oldWay', 'mechanism', 'proof', 'inaction'];
 /** Stories per call: 5 prompts each keeps a reply well under the token cap. */
-const PER_CALL = 4;
+const PER_CALL = 5;
 
 const photoStory = (s: PhotoReady): PhotoStory => {
   const def = FORMAT_DEFS[s.format ?? 'problem_fix'];

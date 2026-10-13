@@ -1,7 +1,7 @@
 /**
  * POST /api/admin/auto-slideshow/runs/[runId]/ideas — { phase: 'bank' | 'ideas' }
  * Internal: the pipeline calls this so a workspace's first calendar ideas get their own function time budget.
- * 'bank' (after step 1) writes the Blitz Script Bank; 'ideas' (once the run is done) writes the first batch.
+ * 'bank' (after step 1) writes the Blitz Script Bank; 'ideas' (once that bank is ready) writes the first batch.
  * See src/server/labs/firstIdeas.ts.
  */
 import type { NextRequest } from 'next/server';
@@ -9,7 +9,8 @@ import { waitUntil } from '@vercel/functions';
 import { adminRoute, json } from '../../../../../../../src/server/admin/route';
 import { isIdeasPhase, prepareRunIdeas } from '../../../../../../../src/server/labs/firstIdeas';
 
-// Bank: about 30-60 s. Ideas: waits for the bank if needed, then footage, AI images and caption fit (1-3 min).
+// Bank: about 2-4 min (measured 230 s), then it starts 'ideas' in a fresh invocation. Ideas: footage, AI images and
+// caption fit (1-3 min).
 export const maxDuration = 300;
 
 type Ctx = { params: Promise<{ runId: string }> };

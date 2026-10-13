@@ -12,21 +12,23 @@
 // (blitzLearning.ts: swipes, views) steers it: better formats get more stories and go first, better hook types lead,
 // and a story whose video won gets follow-ups in the later stages (its trigger, told again as how-to, before → after…).
 //
-// status 'building' is the build lock (stale after LOCK_STALE_MS, a job that died); 'growing' keeps the content
+// status 'building' is the build lock (stale after LOCK_STALE_MS, a job that died); each story is saved as it is
+// written, so a first batch can use a bank being built once it has a week of stories. 'growing' keeps the content
 // readable while stories are added.
 
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { websiteEngine, type WebsiteBrief, type WebsiteSource } from '../slideshow/engines/website/engine';
+import { websiteEngine, type WebsiteSource } from '../slideshow/engines/website/engine';
 import type { HookArchetype, Tone } from '../slideshow/core/types';
 import type { StoryTexts } from '../slideshow/core/deckAssembly';
 import { clip } from '../metaAds/text';
 import { contentWords, wordOverlap } from '../slideshow/core/copyGuards';
-import { FORMAT_DEFS, STAGES, STAGE_CTA, STAGE_FORMATS, STAGE_HOOKS, STAGE_TARGET, orderByStage, totalQuota, type Stage, type StoryFormat } from './blitzFormats';
-import { writeTriggers } from './blitzTriggers';
+import { STAGES, STAGE_FORMATS, STAGE_HOOKS, STAGE_TARGET, orderByStage, totalQuota, type Stage, type StoryFormat } from './blitzFormats';
 import { writeTriggerBank, type CampaignGoal, type TriggerBank } from './blitzCampaign';
 import { NO_LEARNING, loadLearning, scoreOf, type BlitzLearning } from './blitzLearning';
-import { deckFromScripts, loadWebsiteSource, photoBrand, writeBrief, type BriefScript } from './websiteDeck';
+import { briefProofNote, deckFromScripts, loadWebsiteSource, photoBrand, type BriefScript } from './websiteDeck';
+import { writeStories } from './blitzStoryWriter';
+import { categoriesForAudience } from '../slideshow/core/audienceCategories';
 import type { DeckItem } from '../slideshow/core/deckAssembly';
 import { workspaceRunId } from './workspaceRun';
 import { writeStoryPhotos, type StoryPhotos } from './blitzStoryPhotos';
@@ -95,43 +97,43 @@ function storySlots(missing: Record<Stage, number>, audiences: number, have: Ban
   }));
 }
 
+/** Called with every audience that has stories each time a story is added (the build saves them as it goes). */
+type OnStory = (audiences: BankAudience[]) => void;
+
 /**
- * The missing stories of every audience of the site, written in parallel, each from its own trigger (picked first, so
- * they differ) in its slot's format and stage. A story that fails or repeats one is left out.
+ * The missing stories of every audience of the site, audiences in parallel, each audience's stories in a few calls
+ * (blitzStoryWriter.ts). A story joins its audience as soon as its hooks and photo prompts are written (`onStory`), so
+ * the first ones are usable while the rest are still being written. A story that repeats one is left out. The trigger
+ * bank (the campaign goal and the Blitz Matrix lists) is written alongside; new stories pick their own problem.
  */
-async function writeAudiences(source: WebsiteSource, missing: Record<Stage, number>, have?: BlitzBankContent, learning = NO_LEARNING): Promise<BankAudience[]> {
+async function writeAudiences(source: WebsiteSource, missing: Record<Stage, number>, have?: BlitzBankContent, learning = NO_LEARNING, onStory?: OnStory): Promise<BankAudience[]> {
   const briefs = websiteEngine.briefs(source);
+  const live: BankAudience[] = [];
   return Promise.all(briefs.map(async (brief, slot): Promise<BankAudience> => {
     const known = have?.audiences.find((a) => a.idc === brief.idc);
     const stories = [...(known?.stories ?? [])];
     const slots = withFollowUps(storySlots(missing, briefs.length, stories, learning), stories, learning);
-    const campaign = known?.triggers ? { goal: known.goal ?? { objective: '', action: '' }, triggers: known.triggers } : await writeTriggerBank(brief);
-    const triggers = await slotTriggers(brief, slots, stories, campaign.triggers);
-    const proofs = brief.proofPoints;
-    const settled = await Promise.allSettled(slots.map((s, i) => writeBrief({
-      ...brief,
-      problem: triggers[i] || undefined,
-      storyBeats: Object.values(FORMAT_DEFS[s.format].beats),
-      ctaRule: STAGE_CTA[s.stage],
-      proofFocus: proofs.length ? proofs[(stories.length + i) % proofs.length]!.claim : undefined,
-    }, slot)));
-    settled.forEach((r) => r.status === 'rejected' && console.error(`[BlitzBank] story for "${brief.idc}" failed:`, r.reason));
-    let first: BriefScript | undefined;
-    settled.forEach((r, i) => {
-      if (r.status !== 'fulfilled' || r.value.hooks.length === 0) return;
-      first ??= r.value;
-      if (stories.some((s) => wordOverlap(s.story.pain, r.value.story.pain) >= SAME_PAIN_OVERLAP)) return;
-      const { stage, format, followUpOf } = slots[i]!;
-      stories.push({ id: storyId(slot, stories.length), story: r.value.story, hooks: r.value.hooks, stage, format, trigger: triggers[i] || undefined, ...(followUpOf ? { followUpOf } : {}) });
-    });
-    const categories = first?.categories ?? known?.categories ?? [];
-    const fresh = stories.filter((s) => !s.photos && !known?.stories.includes(s));
-    const photos = await writeStoryPhotos(photoBrand(source), brief.idc, categories, fresh);
-    fresh.forEach((s) => { s.photos = photos.get(s.id); });
-    return {
-      idc: brief.idc, categories, tone: brief.tone, proofNote: first?.proofNote ?? known?.proofNote ?? '', slot, stories,
-      goal: campaign.goal, triggers: campaign.triggers,
-    };
+    const campaign = known?.triggers ? Promise.resolve({ goal: known.goal ?? { objective: '', action: '' }, triggers: known.triggers }) : writeTriggerBank(brief);
+    const categories = known?.categories.length ? known.categories : await categoriesForAudience(brief.idc);
+    const audience: BankAudience = { idc: brief.idc, categories, tone: brief.tone, proofNote: known?.proofNote || briefProofNote(brief), slot, stories, goal: known?.goal, triggers: known?.triggers };
+    live.push(audience);
+    const pains = stories.map((s) => s.story.pain);
+    let next = stories.length;
+    // A follow-up tells its winner's trigger again, in a later stage.
+    const followed = (id?: string) => stories.find((s) => s.id === id);
+    await writeStories({
+      brief, source, categories, avoid: [...pains],
+      slots: slots.map((s) => ({ ...s, problem: followed(s.followUpOf)?.trigger ?? followed(s.followUpOf)?.story.pain })),
+      onReady: (w) => {
+        if (pains.some((pain) => wordOverlap(pain, w.story.pain) >= SAME_PAIN_OVERLAP)) return;
+        pains.push(w.story.pain);
+        const { stage, format, followUpOf } = w.slot;
+        stories.push({ id: storyId(slot, next++), story: w.story, hooks: w.hooks, stage, format, trigger: w.problem || undefined, photos: w.photos, ...(followUpOf ? { followUpOf } : {}) });
+        onStory?.(live.filter((a) => a.stories.length > 0));
+      },
+    }).catch((err: unknown) => console.error(`[BlitzBank] stories for "${brief.idc}" failed:`, err instanceof Error ? err.message : err));
+    const { goal, triggers } = await campaign;
+    return { ...audience, goal, triggers };
   }));
 }
 
@@ -161,27 +163,6 @@ function withFollowUps(slots: StorySlot[], stories: BankStory[], learning: Blitz
   return out;
 }
 
-/**
- * Each slot's trigger: a follow-up's winner trigger, else the next line of its format's list no story is about yet;
- * lines for the rest are written.
- */
-async function slotTriggers(brief: WebsiteBrief, slots: StorySlot[], stories: BankStory[], bank: TriggerBank): Promise<string[]> {
-  const used = new Set(stories.map((s) => (s.trigger ?? '').toLowerCase()).filter(Boolean));
-  const out = slots.map((slot) => {
-    const won = slot.followUpOf ? stories.find((s) => s.id === slot.followUpOf) : undefined;
-    if (won) return won.trigger ?? won.story.pain;
-    // Banks written before a list existed lack it: those slots get a written trigger.
-    const next = (bank[FORMAT_DEFS[slot.format].kind] ?? []).find((t) => !used.has(t.toLowerCase()));
-    if (next) used.add(next.toLowerCase());
-    return next ?? '';
-  });
-  const open = out.flatMap((t, i) => (t ? [] : [i]));
-  if (open.length === 0) return out;
-  const written = await writeTriggers(brief, open.map((i) => slots[i]!.format), [...used, ...stories.map((s) => s.story.pain)]);
-  open.forEach((slotIndex, n) => { out[slotIndex] = written[n] ?? ''; });
-  return out;
-}
-
 /** Takes the build lock for the profile: a new row, or a failed or stale one. False when it is ready or being built. */
 async function claimBuild(brandProfileId: string): Promise<boolean> {
   try {
@@ -197,10 +178,30 @@ async function claimBuild(brandProfileId: string): Promise<boolean> {
   return count === 1;
 }
 
-async function build(brandProfileId: string, source: WebsiteSource): Promise<BlitzBankContent> {
+/** Stories in one campaign week (one a day): a bank being built is usable once it has this many. */
+export const EARLY_STORIES = 7;
+
+const storyCount = (content: BlitzBankContent) => content.audiences.reduce((n, a) => n + a.stories.length, 0);
+
+/** `onEnough`: called once the stories saved so far fill a week (EARLY_STORIES), while the rest are still written. */
+async function build(brandProfileId: string, source: WebsiteSource, onEnough?: () => void): Promise<BlitzBankContent> {
   const t0 = Date.now();
+  // Each new story is saved at once (status stays 'building'); saves run one after another, the last one wins.
+  let saving: Promise<unknown> = Promise.resolve();
+  let enough = false;
+  const progress: OnStory = (audiences) => {
+    const content: BlitzBankContent = { audiences: audiences.map((a) => ({ ...a, stories: [...a.stories] })) };
+    saving = saving
+      .then(() => prisma.blitzScriptBank.update({ where: { brandProfileId }, data: { content: content as unknown as Prisma.InputJsonValue } }))
+      .catch((err: unknown) => console.warn(`[BlitzBank] progress not saved for profile ${brandProfileId}:`, err instanceof Error ? err.message : err));
+    if (enough || storyCount(content) < EARLY_STORIES) return;
+    enough = true;
+    console.log(`[BlitzBank] profile ${brandProfileId}: ${EARLY_STORIES} stories in ${Date.now() - t0}ms`);
+    void saving.then(() => onEnough?.());
+  };
   try {
-    const audiences = (await writeAudiences(source, STAGE_TARGET)).filter((a) => a.stories.length > 0);
+    const audiences = (await writeAudiences(source, STAGE_TARGET, undefined, NO_LEARNING, progress)).filter((a) => a.stories.length > 0);
+    await saving;
     if (audiences.length === 0) throw new Error('No Blitz story could be written for this site');
     const content: BlitzBankContent = { audiences };
     await prisma.blitzScriptBank.update({ where: { brandProfileId }, data: { status: 'ready', content: content as unknown as Prisma.InputJsonValue } });
@@ -216,23 +217,36 @@ async function build(brandProfileId: string, source: WebsiteSource): Promise<Bli
 const brandProfileOf = async (studioRunId: string): Promise<string> =>
   (await prisma.studioRun.findUniqueOrThrow({ where: { id: studioRunId }, select: { brandProfileId: true } })).brandProfileId;
 
+/** `partialFrom`: a bank still being built is returned as it is once it has this many stories. `onEnough`: passed to the
+ *  build when this call starts one. */
+type EnsureOpts = { partialFrom?: number; onEnough?: () => void };
+
 /** The bank of the Campaign Studio run's profile: read when ready, built when missing, waited for while being built. */
-export async function ensureBlitzBank(studioRunId: string): Promise<BlitzBankContent> {
+export async function ensureBlitzBank(studioRunId: string, opts: EnsureOpts = {}): Promise<BlitzBankContent> {
   const brandProfileId = await brandProfileOf(studioRunId);
   const deadline = Date.now() + MAX_WAIT_MS;
   for (;;) {
     const row = await prisma.blitzScriptBank.findUnique({ where: { brandProfileId } });
-    if (row?.content && READABLE.includes(row.status)) return row.content as unknown as BlitzBankContent;
-    if (await claimBuild(brandProfileId)) return build(brandProfileId, await loadWebsiteSource(studioRunId));
+    const content = row?.content as unknown as BlitzBankContent | null | undefined;
+    if (content && row && READABLE.includes(row.status)) return content;
+    if (content && row?.status === 'building' && opts.partialFrom && storyCount(content) >= opts.partialFrom) return content;
+    if (await claimBuild(brandProfileId)) return build(brandProfileId, await loadWebsiteSource(studioRunId), opts.onEnough);
     if (Date.now() > deadline) throw new Error('The Blitz Script Bank is still being written');
     await sleep(WAIT_POLL_MS);
   }
 }
 
-/** Builds the workspace's bank ahead of its first ideas. Never throws (it runs in the background). */
-export async function prepareBlitzBank(workspaceId: string): Promise<void> {
+/** True once the workspace's bank is written (not while its first stories are still coming in). */
+export async function blitzBankReady(workspaceId: string): Promise<boolean> {
+  const brandProfileId = await brandProfileOf(await workspaceRunId(workspaceId));
+  const row = await prisma.blitzScriptBank.findUnique({ where: { brandProfileId }, select: { status: true } });
+  return Boolean(row && READABLE.includes(row.status));
+}
+
+/** Builds the workspace's bank ahead of its first ideas (`onEnough`: see build). Never throws (it runs in the background). */
+export async function prepareBlitzBank(workspaceId: string, onEnough?: () => void): Promise<void> {
   try {
-    await ensureBlitzBank(await workspaceRunId(workspaceId));
+    await ensureBlitzBank(await workspaceRunId(workspaceId), { onEnough });
   } catch (err) {
     console.error(`[BlitzBank] not prepared for workspace ${workspaceId}:`, err instanceof Error ? err.message : err);
   }
@@ -378,20 +392,23 @@ async function backfillPhotos(studioRunId: string, workspaceId: string, source: 
  * A Blitz deck for the workspace's calendar ideas from its bank: one card per story, each week's `quotas` stories per
  * stage, in day order. A stage short of unused stories gets them written first. No model call before the answer: library
  * footage, captions from saved fits. `grow` (run after the response) makes the AI images and the caption Auto Fit
- * (ideaFinish.ts) and writes the stories the next batch will need.
+ * (ideaFinish.ts) and writes the stories the next batch will need. `topUp: false` (a workspace's first batch) skips that
+ * writing: the bank was just built, and a user who never comes back would not use it.
  */
-export async function bankDeck(workspaceId: string, quotas: Array<Record<Stage, number>>): Promise<{ cards: DeckItem[]; grow: () => Promise<void> }> {
+export async function bankDeck(workspaceId: string, quotas: Array<Record<Stage, number>>, opts: { topUp?: boolean } = {}): Promise<{ cards: DeckItem[]; grow: () => Promise<void> }> {
   const started = Date.now();
   const studioRunId = await workspaceRunId(workspaceId);
   const quota = totalQuota(quotas);
-  let [content, usage] = await Promise.all([ensureBlitzBank(studioRunId), storyUsage(workspaceId)]);
+  // A bank still being built is used once it fills a week: the first batch does not wait for every story.
+  const read = () => ensureBlitzBank(studioRunId, { partialFrom: EARLY_STORIES });
+  let [content, usage] = await Promise.all([read(), storyUsage(workspaceId)]);
   // Normally the top-up after the last batch already wrote these. A stage short of stories is filled from the others
   // (pickScripts), so the user waits for writing only when the bank lacks stories for the whole batch.
   const unused = unusedByStage(content, usage);
   const short = STAGES.reduce((n, s) => n + unused[s], 0) < STAGES.reduce((n, s) => n + quota[s], 0);
   if (short) {
     await growIfSpent(studioRunId, workspaceId, quota);
-    [content, usage] = await Promise.all([ensureBlitzBank(studioRunId), storyUsage(workspaceId)]);
+    [content, usage] = await Promise.all([read(), storyUsage(workspaceId)]);
   }
   const [learning, source] = await Promise.all([loadLearning(workspaceId), loadWebsiteSource(studioRunId)]);
   const scripts = pickScripts(content, usage, quotas, learning);
@@ -404,7 +421,7 @@ export async function bankDeck(workspaceId: string, quotas: Array<Record<Stage, 
   const grow = async () => {
     await Promise.all([
       finishIdeaCards(ids, workspaceId, photoBrand(source)),
-      growIfSpent(studioRunId, workspaceId).then(() => backfillPhotos(studioRunId, workspaceId, source)),
+      opts.topUp === false ? Promise.resolve() : growIfSpent(studioRunId, workspaceId).then(() => backfillPhotos(studioRunId, workspaceId, source)),
     ]);
   };
   return { cards, grow };

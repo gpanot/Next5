@@ -1,10 +1,11 @@
 // server-only — never import from a 'use client' file.
 // The workspace's Brand Cast (types/admin/brandCast.ts): people written from the brand's audience and Visual Bible
-// (personas.ts), each with an anchor photo on Nano Banana 2.1. Made on the brand's first slideshow photo plan, or from
+// (personas.ts), each with an anchor photo on Nano Banana 2.1. Made right after the brand's first profile (prepareCast), or from
 // the Brand page; a face can be swapped there (the old one is parked: archive.ts). Slideshows take the least used
 // active member (photoPlan.ts).
 
 import type { BrandCastMember } from '@prisma/client';
+import { waitUntil } from '@vercel/functions';
 import { prisma } from '../../lib/db';
 import { CAST_SIZE, type BrandCastDto, type BrandCastMemberDto, type IntroStatus } from '../../types/admin/brandCast';
 import type { BrandProfile } from '../../types/admin/companyIntel';
@@ -102,28 +103,29 @@ const castKey = (workspaceId: string, memberId: string) => `brand-cast/${workspa
 const refLinks = async (keys: string[]): Promise<string[]> =>
   (await Promise.all(keys.map((k) => presignObject(k, 60 * 60).catch(() => null)))).filter((u): u is string => Boolean(u?.startsWith('https://')));
 
-/** Makes one member's anchor photo and marks it ready (or failed). Never throws. Replaces the old photo when there was one. */
-const makeAnchor = async (member: BrandCastMember, refs: string[], meter: CostMeter): Promise<void> => {
+/** Makes one member's anchor photo and marks it ready (or failed). Never throws; true when the photo is ready.
+ *  Replaces the old photo when there was one. */
+const makeAnchor = async (member: BrandCastMember, refs: string[], meter: CostMeter): Promise<boolean> => {
   try {
     const { buffer } = await generatePhoto(member.prompt, await refLinks(refs), meter, { ...PHOTO_GEN, ratio: '3:4' });
     const key = castKey(member.workspaceId, member.id);
     await putObject(key, await compressJpeg(buffer), 'image/jpeg');
     await prisma.brandCastMember.update({ where: { id: member.id }, data: { imageKey: key, status: 'ready', error: null } });
     if (member.imageKey) await deleteObject(member.imageKey).catch(() => undefined);
+    return true;
   } catch (err) {
     const message = clip(err instanceof Error ? err.message : String(err), 300);
     console.warn(`[brand-cast] anchor for ${member.id} failed:`, message);
     await prisma.brandCastMember.update({ where: { id: member.id }, data: { status: 'failed', error: message } }).catch(() => undefined);
+    return false;
   }
 };
 
 const asPersona = (m: BrandCastMember): Persona => ({ name: m.name, look: m.look });
 
-/**
- * Writes the people for the empty slots and creates them as "pending", so the caller can answer at once. The returned
- * job makes their photos (about 30-60 s). Null when the cast is already full.
- */
-export const startCast = async (workspaceId: string, meter: CostMeter = createMeter()): Promise<(() => Promise<void>) | null> => {
+/** Writes the people for the empty slots and creates them as "pending". Returns one photo job per new member, or null
+ *  when the cast is already full. */
+const castJobs = async (workspaceId: string, meter: CostMeter): Promise<(() => Promise<boolean>)[] | null> => {
   const current = await members(workspaceId);
   const free = Array.from({ length: CAST_SIZE }, (_, i) => i + 1).filter((slot) => !current.some((m) => m.slot === slot));
   if (free.length === 0) return null;
@@ -135,10 +137,50 @@ export const startCast = async (workspaceId: string, meter: CostMeter = createMe
     skipDuplicates: true,
   });
   const created = (await members(workspaceId)).filter((m) => free.includes(m.slot) && m.status === 'pending' && !m.imageKey);
+  return created.map((m) => () => makeAnchor(m, anchors[free.indexOf(m.slot)]?.refs ?? [], meter));
+};
+
+/**
+ * Writes the people for the empty slots and creates them as "pending", so the caller can answer at once. The returned
+ * job makes their photos (about 30-60 s). Null when the cast is already full.
+ */
+export const startCast = async (workspaceId: string, meter: CostMeter = createMeter()): Promise<(() => Promise<void>) | null> => {
+  const jobs = await castJobs(workspaceId, meter);
+  if (!jobs) return null;
   return async () => {
-    await Promise.all(created.map((m) => makeAnchor(m, anchors[free.indexOf(m.slot)]?.refs ?? [], meter)));
-    console.log(`[brand-cast] ${workspaceId}: ${created.length} people made, $${meter.summary().usdMicros / 1e6}`);
+    await Promise.all(jobs.map((job) => job()));
+    console.log(`[brand-cast] ${workspaceId}: ${jobs.length} people made, $${meter.summary().usdMicros / 1e6}`);
   };
+};
+
+/** Resolves once `need` of the photos are ready, or all of them are done. */
+const enoughReady = (running: Promise<boolean>[], need: number): Promise<void> =>
+  new Promise((resolve) => {
+    let ready = 0;
+    let settled = 0;
+    for (const photo of running) {
+      void photo.then((ok) => {
+        ready += ok ? 1 : 0;
+        settled += 1;
+        if (ready >= need || settled === running.length) resolve();
+      });
+    }
+  });
+
+/**
+ * The brand's first cast, made when it has none. Returns once `need` faces are ready (or every photo is done), so a
+ * first slideshow waits for one face, not three; the other photos finish in the background. Never throws.
+ */
+export const prepareCast = async (workspaceId: string, need: number, meter: CostMeter): Promise<void> => {
+  if ((await prisma.brandCastMember.count({ where: { workspaceId, archivedAt: null } })) > 0) return;
+  const jobs = await castJobs(workspaceId, meter).catch((err: unknown) => {
+    console.warn(`[brand-cast] ${workspaceId}: cast not made:`, err instanceof Error ? err.message : err);
+    return null;
+  });
+  if (!jobs?.length) return;
+  const running = jobs.map((job) => job());
+  waitUntil(Promise.all(running).then(() => console.log(`[brand-cast] ${workspaceId}: ${jobs.length} people made`)));
+  await enoughReady(running, Math.max(1, need));
 };
 
 /** What the owner asked for in the "New face" dialog: what to change, and/or a stored photo of the person to use. */
@@ -185,7 +227,9 @@ export const startRetry = async (workspaceId: string, memberId: string, meter: C
   const outfit = ctx.outfits.find((o) => o.productName && member.prompt.includes(o.productName)) ?? null;
   const anchor = anchorFor(asPersona(member), outfit);
   const updated = await prisma.brandCastMember.update({ where: { id: member.id }, data: { status: 'pending', error: null, prompt: anchor.prompt } });
-  return () => makeAnchor(updated, anchor.refs, meter);
+  return async () => {
+    await makeAnchor(updated, anchor.refs, meter);
+  };
 };
 
 /** Stores a reference photo from the "New face" dialog (checked, made small, metadata stripped) and returns its key. */
@@ -216,18 +260,12 @@ const takeLeastUsed = async (workspaceId: string): Promise<CastPick | null> => {
 
 /**
  * One cast member per slideshow of a batch, least used first, each counted at once so the faces take turns. On the
- * brand's first slideshows the cast is made here and waited for. Empty when there is none (the photos then go
- * without a reference).
+ * brand's first slideshows the cast is made here (prepareCast). Fewer picks than `count` while the other faces are
+ * still being made; empty when there is none (the photos then go without a reference).
  */
 export const castForShows = async (workspaceId: string, count: number, meter: CostMeter): Promise<CastPick[]> => {
   if (count === 0) return [];
-  if ((await prisma.brandCastMember.count({ where: { workspaceId, archivedAt: null } })) === 0) {
-    const job = await startCast(workspaceId, meter).catch((err: unknown) => {
-      console.warn(`[brand-cast] ${workspaceId}: cast not made:`, err instanceof Error ? err.message : err);
-      return null;
-    });
-    await job?.();
-  }
+  await prepareCast(workspaceId, count, meter);
   const picks: CastPick[] = [];
   for (let i = 0; i < count; i += 1) {
     const pick = await takeLeastUsed(workspaceId);

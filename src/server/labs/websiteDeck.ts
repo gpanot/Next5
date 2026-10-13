@@ -115,10 +115,11 @@ export async function writeBrief(brief: WebsiteBrief, slot: number): Promise<Bri
   });
   const proven = hooks.filter((h) => hookClaimIsProven(h.text, brief.proofPoints)).map((h) => ({ ...h, text: noEmDash(h.text) }));
   if (proven.length < hooks.length) console.log(`[WebsiteDeck:${brief.idc}] dropped ${hooks.length - proven.length} hook(s) claiming more than the proof`);
-  return { idc: brief.idc, categories, tone: brief.tone, proofNote: proofNote(brief), story, hooks: proven, slot };
+  return { idc: brief.idc, categories, tone: brief.tone, proofNote: briefProofNote(brief), story, hooks: proven, slot };
 }
 
-function proofNote(brief: WebsiteBrief): string {
+/** What the Proof shot shows for this brief (a bank audience's proof note). */
+export function briefProofNote(brief: WebsiteBrief): string {
   if (brief.proofPoints.length) return `Proof quoted from the profile: "${brief.proofPoints[0]!.evidence}".`;
   return brief.productPhotos.length
     ? 'No proof in the profile, so the Proof shot shows your own product photo doing the job (no numbers).'

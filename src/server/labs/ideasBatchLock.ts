@@ -1,7 +1,7 @@
 // server-only — never import from a 'use client' file.
 // One batch of calendar ideas at a time per workspace: Workspace.ideasBatchAt is the lock (stale after LOCK_STALE_MS,
-// a job that died). The server writes the first batch when the first run is done; a browser asking at the same time
-// waits for that batch instead of writing a second one.
+// a job that died). The server writes the first batch while the Blitz bank is built (labs/firstIdeas.ts); a browser
+// asking at the same time waits for that batch instead of writing a second one.
 
 import { prisma } from '../../lib/db';
 

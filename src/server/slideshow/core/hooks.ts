@@ -1,11 +1,11 @@
 // server-only — never import from a 'use client' file.
-// Hook generation: one LLM call produces 18 hooks per brief; a filter keeps the best 1 per archetype → 6 hooks.
-// "Best" = highest Jev stop-scroll score (hookScorer.ts), with the specificity heuristic as tie-break and fallback.
+// Hook generation: one LLM call produces 18 hooks per brief (or per story, for a batch of stories: generateStoryHooks);
+// a filter keeps the best 1 per archetype → 6 hooks. "Best" = the most specific valid hook, in the writer's order.
+// Jev ranking was dropped on 2026-10-13: on a blind test its picks did no better than the writer's own order.
 
 import { chatJsonWithMeta } from '../../ai/openai';
 import { contentWords, findSlopPhrase, wordCount, wordOverlap } from './copyGuards';
 import { libraryFewShots } from './hookLibrary';
-import { scoreHooksWithJev } from './hookScorer';
 import { HOOK_ARCHETYPES } from './types';
 import type { HookArchetype, HookRules, Issue, ValueLevers } from './types';
 
@@ -33,7 +33,7 @@ export type HookGenerationResult = {
   kept: HookCandidate[];       // 6 (fewer only when nothing valid exists at all)
   all: HookCandidate[];        // all 18 generated
   fallbackApplied: boolean;
-  /** Jev stop-scroll score (0..1) per valid hook text; null when Jev was unavailable. */
+  /** Kept for older callers: hooks are no longer scored (always null). */
   scores: Record<string, number> | null;
 };
 
@@ -53,11 +53,9 @@ const ARCHETYPE_DESCRIPTIONS: Record<HookArchetype, string> = {
   action:        'Ask for one action: send, save, or comment. Tie it to the audience or place.',
 };
 
-function buildSystemPrompt(input: HookGenerationInput): string {
-  const { audience, pain, dreamOutcome, proofLine, lensLine, rules, levers } = input;
+function archetypeText(rules: HookRules): string {
   const fewShots = [...libraryFewShots(), ...rules.fewShots];
-
-  const archetypeBlocks = HOOK_ARCHETYPES
+  return HOOK_ARCHETYPES
     .filter((a) => !rules.droppedArchetypes?.includes(a))
     .map((a) => {
       const patterns = fewShots.filter((f) => f.archetype === a && f.context === 'pattern').map((f) => `"${f.text}"`);
@@ -70,6 +68,18 @@ function buildSystemPrompt(input: HookGenerationInput): string {
       ].filter(Boolean).join('\n');
     })
     .join('\n\n');
+}
+
+/** Hard rules 1-5 (shared by one brief and a batch of stories). */
+const HOOK_RULES = `1. Max ${HOOK_MAX_WORDS} words. Count them.
+2. No "!" and no emojis.
+3. Specific: name the audience, the place, a real number from PROOF, or the concrete feature. Generic hooks fail.
+4. Only facts from the brief. No invented numbers, dates, deadlines or claims.
+5. Plain words a 9-year-old reads out loud. No hype words: stunning, dream, hidden gem, must-see, won't last.`;
+
+function buildSystemPrompt(input: HookGenerationInput): string {
+  const { audience, pain, dreamOutcome, proofLine, lensLine, rules, levers } = input;
+  const archetypeBlocks = archetypeText(rules);
 
   return `You write scroll-stopping hooks for short vertical videos. Write 3 hooks per archetype.
 
@@ -81,11 +91,7 @@ ${lensLine ? `- Lens: ${lensLine}\n` : ''}- Pain: ${pain}
 - Proof: ${proofLine ?? 'none. Do not invent any.'}
 
 HARD RULES (a hook that breaks one is thrown away):
-1. Max ${HOOK_MAX_WORDS} words. Count them.
-2. No "!" and no emojis.
-3. Specific: name the audience, the place, a real number from PROOF, or the concrete feature. Generic hooks fail.
-4. Only facts from the brief. No invented numbers, dates, deadlines or claims.
-5. Plain words a 9-year-old reads out loud. No hype words: stunning, dream, hidden gem, must-see, won't last.
+${HOOK_RULES}
 6. The 3 hooks of one archetype must say different things, not the same line reworded.
 ${rules.extraInstruction ? `7. ${rules.extraInstruction}\n` : ''}
 ARCHETYPES
@@ -138,7 +144,7 @@ function validHooks(candidates: HookCandidate[], audience: string, rules: HookRu
 
 /**
  * Keep the best valid hook per archetype; fill empty or dropped slots from fear/curiosity (spec 7.4).
- * Ranking: Jev score first (unscored hooks last), then specificity.
+ * Ranking: `scores` first when given (unscored hooks last), then specificity, then the writer's order.
  */
 function filterHooks(
   valid: HookCandidate[], audience: string, rules: HookRules, scores: Map<string, number> | null,
@@ -171,6 +177,12 @@ function filterHooks(
   return { kept, fallbackApplied: missing.length > 0 };
 }
 
+const asCandidate = (h: { archetype?: unknown; text?: unknown }): HookCandidate => ({
+  // The LLM sometimes echoes archetype ids in uppercase.
+  archetype: (typeof h?.archetype === 'string' ? h.archetype.toLowerCase() : '') as HookArchetype,
+  text: typeof h?.text === 'string' ? h.text.trim() : '',
+});
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
@@ -192,33 +204,57 @@ export async function generateHooks(input: HookGenerationInput): Promise<HookGen
   if (!Array.isArray(result?.hooks) || result.hooks.length === 0) ({ result } = await ask());
 
   const all: HookCandidate[] = (result?.hooks ?? [])
-    .map((h) => ({
-      // The LLM sometimes echoes archetype ids in uppercase.
-      archetype: (typeof h?.archetype === 'string' ? h.archetype.toLowerCase() : '') as HookArchetype,
-      text: typeof h?.text === 'string' ? h.text.trim() : '',
-    }))
+    .map(asCandidate)
     .filter((h) => h.text.length > 0 && HOOK_ARCHETYPES.includes(h.archetype));
 
   console.log(`   LLM returned ${all.length} hooks`);
   if (all.length === 0) console.warn(`[HookGen] unusable model output: ${JSON.stringify(result).slice(0, 300)}`);
   const valid = validHooks(all, input.audience, input.rules);
-  const scores = await scoreHooksWithJev({
-    audience: input.audience,
-    lensLine: input.lensLine,
-    pain: input.pain,
-    dreamOutcome: input.dreamOutcome,
-    mechanism: input.levers.namedMechanism,
-    proof: input.proofLine,
-  }, valid.map((h) => h.text));
-  if (!scores) console.warn('[HookGen] Jev scoring unavailable, ranking by specificity only');
-  const { kept, fallbackApplied } = filterHooks(valid, input.audience, input.rules, scores);
-  console.log(`   → kept ${kept.length}${fallbackApplied ? ' (fallback applied)' : ''}:`);
-  kept.forEach((h) => {
-    const s = scores?.get(h.text);
-    console.log(`     ✅ [${h.archetype}]${s === undefined ? '' : ` ${s.toFixed(2)}`} "${h.text}"`);
-  });
+  const { kept, fallbackApplied } = filterHooks(valid, input.audience, input.rules, null);
+  console.log(`   → kept ${kept.length}${fallbackApplied ? ' (fallback applied)' : ''}: ${kept.map((h) => `[${h.archetype}] "${h.text}"`).join(', ')}`);
+  return { kept, all, fallbackApplied, scores: null };
+}
 
-  return { kept, all, fallbackApplied, scores: scores ? Object.fromEntries(scores) : null };
+/** One story of a batch: its id, its lines (for the writer), and the words that make a hook specific to it. */
+export type HookStory = { id: string; lines: string; specifics: string[] };
+
+type BatchHookInput = Pick<HookGenerationInput, 'audience' | 'proofLine' | 'lensLine' | 'rules'>;
+
+/**
+ * 18 hooks for each of several stories of one audience in one call, filtered like generateHooks to at most 6 per
+ * story. Stories the writer skipped come back with none. Never throws.
+ */
+export async function generateStoryHooks(input: BatchHookInput, stories: HookStory[]): Promise<Map<string, HookCandidate[]>> {
+  const out = new Map<string, HookCandidate[]>();
+  if (stories.length === 0) return out;
+  const system = `You write scroll-stopping hooks for short vertical videos: for EACH story below, 3 hooks per archetype.
+
+AUDIENCE: ${input.audience}
+${input.lensLine ? `LENS: ${input.lensLine}\n` : ''}PROOF: ${input.proofLine ?? 'none. Do not invent any.'}
+
+HARD RULES (a hook that breaks one is thrown away):
+${HOOK_RULES}
+6. Each hook fits its own story. The 3 hooks of one archetype say different things.
+${input.rules.extraInstruction ? `7. ${input.rules.extraInstruction}\n` : ''}
+ARCHETYPES
+${archetypeText(input.rules)}
+
+OUTPUT: JSON only, one entry per story, "story" = the STORY number:
+{ "stories": [ { "story": 1, "hooks": [ { "archetype": "<archetype id>", "text": "<hook>" } ] } ] }`;
+  const user = stories.map((s, i) => `STORY ${i + 1}: ${s.lines}`).join('\n');
+  type Reply = { stories?: Array<{ story?: unknown; hooks?: Array<{ archetype?: unknown; text?: unknown }> }> };
+  const ask = () => chatJsonWithMeta<Reply>([{ role: 'system', content: system }, { role: 'user', content: user }],
+    { maxTokens: 4_000 + stories.length * 800, model: 'gpt-5.5', reasoningEffort: 'low', timeoutMs: 120_000 });
+  let { result } = await ask();
+  if (!Array.isArray(result?.stories) || result.stories.length === 0) ({ result } = await ask());
+  for (const entry of result?.stories ?? []) {
+    const story = stories[Number(String(entry.story ?? '').replace(/\D/g, '')) - 1];
+    if (!story) continue;
+    const all = (entry.hooks ?? []).map(asCandidate).filter((h) => h.text.length > 0 && HOOK_ARCHETYPES.includes(h.archetype));
+    const rules = { ...input.rules, specifics: [...(input.rules.specifics ?? []), ...story.specifics] };
+    out.set(story.id, filterHooks(validHooks(all, input.audience, rules), input.audience, rules, null).kept);
+  }
+  return out;
 }
 
 // ── Validation issues from hook step ─────────────────────────────────────────

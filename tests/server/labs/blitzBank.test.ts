@@ -6,11 +6,12 @@ import type { BriefScript } from '../../../src/server/labs/websiteDeck';
 import type { DeckItem } from '../../../src/server/slideshow/core/deckAssembly';
 import { createTestWorkspace, resetBusinessTables } from '../../helpers/db';
 
-const mocks = vi.hoisted(() => ({ writeBrief: vi.fn(), deckFromScripts: vi.fn(), writeTriggers: vi.fn(), writeTriggerBank: vi.fn(), runId: { current: '' } }));
+const mocks = vi.hoisted(() => ({ writeStories: vi.fn(), deckFromScripts: vi.fn(), writeTriggerBank: vi.fn(), runId: { current: '' } }));
 vi.mock('../../../src/server/labs/blitzCampaign', () => ({ writeTriggerBank: mocks.writeTriggerBank }));
-vi.mock('../../../src/server/labs/blitzTriggers', () => ({ writeTriggers: mocks.writeTriggers }));
+vi.mock('../../../src/server/labs/blitzStoryWriter', () => ({ writeStories: mocks.writeStories }));
+vi.mock('../../../src/server/slideshow/core/audienceCategories', () => ({ categoriesForAudience: async () => ['family'] }));
 vi.mock('../../../src/server/labs/websiteDeck', () => ({
-  writeBrief: mocks.writeBrief,
+  briefProofNote: () => '',
   deckFromScripts: mocks.deckFromScripts,
   loadWebsiteSource: async () => ({ profile: {}, sourceUrl: 'https://example.com', workspaceId: null }),
   photoBrand: () => ({ business: 'Shop', sells: 'meals', look: null, productAsSubject: false }),
@@ -32,17 +33,26 @@ const script = (): BriefScript => {
   };
 };
 
+type Slot = { stage: string; format: string; problem?: string; followUpOf?: string };
+type WriteArgs = { slots: Slot[]; onReady: (w: { slot: Slot; problem: string; story: BriefScript['story']; hooks: BriefScript['hooks'] }) => void };
+/** The story writer: one story per slot, its problem the follow-up's when given. */
+const writeAll = async ({ slots, onReady }: WriteArgs) => {
+  for (const slot of slots) {
+    const s = script();
+    onReady({ slot, problem: slot.problem ?? `problem ${written}`, story: s.story, hooks: s.hooks });
+  }
+};
+
 beforeEach(async () => {
   await resetBusinessTables();
   await prisma.slideshowVariant.deleteMany({});
   await prisma.blitzScriptBank.deleteMany({});
   written = 0;
-  mocks.writeBrief.mockReset().mockImplementation(async () => script());
+  mocks.writeStories.mockReset().mockImplementation(writeAll);
   mocks.writeTriggerBank.mockReset().mockResolvedValue({
     goal: { objective: 'More trials', action: 'Start a free trial' },
     triggers: { pains: ['pain a', 'pain b'], desires: ['desire a'], questions: [], objections: ['doubt a'], myths: ['myth a'], reasons: [] },
   });
-  mocks.writeTriggers.mockReset().mockImplementation(async (_brief: unknown, formats: string[]) => formats.map((f, i) => `${f} trigger ${i}`));
   mocks.deckFromScripts.mockReset().mockImplementation(async (_source: unknown, scripts: BriefScript[]) =>
     scripts.map((s): DeckItem => ({ id: 'x', variantId: null, script: { storyId: s.storyId!, archetype: 'curiosity' } } as unknown as DeckItem)));
 });
@@ -71,21 +81,18 @@ const storiesOf = (content: unknown) => (content as { audiences: Array<{ stories
 
 // These write a full bank (20 stories) through the test database: slower than the default 5 s under a full run.
 describe('Blitz Script Bank', { timeout: 20_000 }, () => {
-  it('is written once, each stage\'s stories in its formats from their own triggers, even when asked for twice', async () => {
+  it('is written once, each stage\'s stories in its formats with their own problem, even when asked for twice', async () => {
     const { runId } = await setup();
     const [a, b] = await Promise.all([ensureBlitzBank(runId), ensureBlitzBank(runId)]);
     expect(mocks.writeTriggerBank).toHaveBeenCalledTimes(1);
-    expect(mocks.writeBrief).toHaveBeenCalledTimes(TARGET);
+    expect(mocks.writeStories).toHaveBeenCalledTimes(1);
+    expect((mocks.writeStories.mock.calls[0]![0] as WriteArgs).slots).toHaveLength(TARGET);
     const stories = storiesOf(a);
     expect(stories).toHaveLength(TARGET);
     expect(stories.filter((s) => s.stage === 'trust').map((s) => s.format).sort()).toEqual(['how_to', 'how_to', 'how_to', 'signs', 'signs']);
     expect(stories.filter((s) => s.stage === 'conversion').map((s) => s.format).sort()).toEqual(['objection', 'objection', 'offer', 'offer']);
-    const briefs = mocks.writeBrief.mock.calls.map((c) => c[0] as { problem?: string; ctaRule?: string; storyBeats?: string[] });
-    expect(briefs.map((x) => x.problem)).toEqual(expect.arrayContaining(['pain a', 'pain b', 'myth a', 'desire a', 'doubt a']));
-    expect(briefs.filter((x) => x.problem === 'pain a')).toHaveLength(1);
-    expect(mocks.writeTriggers.mock.calls[0]![2]).toEqual(expect.arrayContaining(['pain a', 'myth a']));
-    expect(a.audiences[0]).toMatchObject({ goal: { action: 'Start a free trial' } });
-    expect(briefs.every((x) => x.ctaRule && x.storyBeats?.length === 5)).toBe(true);
+    expect(new Set(stories.map((s) => s.trigger)).size).toBe(TARGET);
+    expect(a.audiences[0]).toMatchObject({ goal: { action: 'Start a free trial' }, triggers: { pains: ['pain a', 'pain b'] } });
     expect(b).toEqual(a);
     expect((await prisma.blitzScriptBank.findFirstOrThrow()).status).toBe('ready');
   });
@@ -128,7 +135,7 @@ describe('Blitz Script Bank', { timeout: 20_000 }, () => {
       const card = { id: 'x', variantId: null, script: { storyId: s.id, archetype: 'curiosity', format: s.format, stage: s.stage } };
       await prisma.slideshowVariant.create({ data: { workspaceId, engine: 'website', lens: 'busy-moms', archetype: 'curiosity', status: 'made', plan: { card, stats: { views: [9000, 1000, 900][i], readAt: new Date().toISOString() } } as object } });
     }
-    mocks.writeBrief.mockClear();
+    mocks.writeStories.mockClear();
     const deck = await bankDeck(workspaceId, [WEEK_MIX[2]!, WEEK_MIX[3]!]);
     await deck.grow();
     const winner = posted[0]!;
@@ -139,10 +146,10 @@ describe('Blitz Script Bank', { timeout: 20_000 }, () => {
 
   it('marks a failed build so the next call writes it again', async () => {
     const { runId } = await setup();
-    mocks.writeBrief.mockRejectedValue(new Error('LLM down'));
+    mocks.writeStories.mockRejectedValue(new Error('LLM down'));
     await expect(ensureBlitzBank(runId)).rejects.toThrow('No Blitz story');
     expect((await prisma.blitzScriptBank.findFirstOrThrow()).status).toBe('failed');
-    mocks.writeBrief.mockImplementation(async () => script());
+    mocks.writeStories.mockImplementation(writeAll);
     expect(storiesOf(await ensureBlitzBank(runId))).toHaveLength(TARGET);
   });
 });
