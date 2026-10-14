@@ -11,14 +11,14 @@ const tabClass =
 
 /**
  * Phones and tablets: the workspace pages and Settings as tabs at the bottom, in thumb reach. Settings holds the
- * workspace switcher, credits and accounts, so there is no top bar. Its height is `--bottom-nav-h` (set by the shell).
+ * workspace switcher, Library, Brand, credits and accounts, so there is no top bar. Its height is `--bottom-nav-h` (set by the shell).
  */
 export function WorkspaceBottomTabs({ workspaceId, settings }: { workspaceId: string; settings: WorkspaceSettings }) {
   const current = pageOf(usePathname());
   return (
     <nav aria-label="Workspace" className="fixed inset-x-0 bottom-0 z-30 border-t border-app-line bg-app-bg/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
-      <ul className="mx-auto grid h-16 max-w-xl grid-cols-6">
-        {workspaceNavItems(workspaceId).map(({ id, href, label, Icon }) => (
+      <ul className="mx-auto grid h-16 max-w-xl grid-cols-5">
+        {workspaceNavItems(workspaceId).filter((item) => !item.wideOnly).map(({ id, href, label, Icon }) => (
           <li key={id}>
             <Link href={href} aria-current={id === current ? 'page' : undefined} className={tabClass}>
               <Icon />

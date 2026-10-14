@@ -6,10 +6,9 @@ import { BlitzSlideTab } from './BlitzSlideTab';
 import { BlitzVideos } from './BlitzVideos';
 import { SlideshowsTab } from './SlideshowsTab';
 
-type LibraryFilter = 'all' | 'blitz' | 'slideshow';
+type LibraryFilter = 'blitz' | 'slideshow';
 
 const FILTERS: { id: LibraryFilter; label: string }[] = [
-  { id: 'all', label: 'All' },
   { id: 'blitz', label: 'Blitz' },
   { id: 'slideshow', label: 'Slideshow' },
 ];
@@ -39,11 +38,11 @@ function BlitzEdit({ token, workspaceId, postId }: { token: string; workspaceId:
 }
 
 /**
- * One workspace's Library: everything made, Blitz videos and slideshows, filtered by format. A Blitz video opens in its
+ * One workspace's Library: everything made, Blitz videos and slideshows, one format at a time. A Blitz video opens in its
  * sheet (as on the calendar); its Edit opens the Blitz editor (`?editPost=`); a slideshow opens in the slideshow editor.
  */
 export function ContentPage({ token, workspaceId }: { token: string; workspaceId: string }) {
-  const [filter, setFilter] = useState<LibraryFilter>('all');
+  const [filter, setFilter] = useState<LibraryFilter>('blitz');
   const editPostId = useSearchParams().get('editPost');
   if (editPostId) return <BlitzEdit token={token} workspaceId={workspaceId} postId={editPostId} />;
   return (

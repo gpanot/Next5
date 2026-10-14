@@ -6,16 +6,18 @@ import { useAdminApi } from '../../business/useAdminApi';
 import { AccountsSection } from './AccountsSection';
 import { AssetsSection } from './AssetsSection';
 import { BrandSection } from './BrandSection';
+import { LibrarySection } from './LibrarySection';
 import { CreditsSection } from './credits/CreditsSection';
 import { ProfileSection } from './ProfileSection';
 import { WorkspacesSection } from './WorkspacesSection';
 
-export type SettingsTab = 'workspaces' | 'accounts' | 'brand' | 'photos' | 'credits' | 'profile';
+export type SettingsTab = 'workspaces' | 'accounts' | 'library' | 'brand' | 'photos' | 'credits' | 'profile';
 type Tab = SettingsTab;
 /** phoneOnly: wide screens reach it from the sidebar instead. */
 const TABS: { id: Tab; label: string; phoneOnly?: boolean }[] = [
   { id: 'workspaces', label: 'Workspaces' },
   { id: 'accounts', label: 'Accounts' },
+  { id: 'library', label: 'Library', phoneOnly: true },
   { id: 'brand', label: 'Brand', phoneOnly: true },
   { id: 'photos', label: 'Photos' },
   { id: 'credits', label: 'Credits' },
@@ -38,7 +40,7 @@ type Props = { token: string; workspaceId: string; onClose: () => void; initialT
 
 /**
  * Settings for a signed-in user: their workspaces (switch or add one), the current workspace's TikTok / Instagram
- * accounts, the brand (a link to its page), photos (delete broken ones), credits (balance, top up, auto top up, cards), and the profile with log out.
+ * accounts, the library and the brand (links to their pages), photos (delete broken ones), credits (balance, top up, auto top up, cards), and the profile with log out.
  */
 export function SettingsModal({ token, workspaceId, onClose, initialTab = 'workspaces' }: Props) {
   const [tab, setTab] = useState<Tab>(initialTab);
@@ -54,6 +56,7 @@ export function SettingsModal({ token, workspaceId, onClose, initialTab = 'works
         <div className="flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           {error && (tab === 'accounts' || tab === 'profile') && <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error}</p>}
           {tab === 'workspaces' && <WorkspacesSection token={token} currentId={workspaceId} onClose={onClose} />}
+          {tab === 'library' && <LibrarySection workspaceId={workspaceId} onClose={onClose} />}
           {tab === 'brand' && <BrandSection workspaceId={workspaceId} onClose={onClose} />}
           {tab === 'photos' && <AssetsSection token={token} workspaceId={workspaceId} />}
           {tab === 'credits' && <CreditsSection token={token} workspaceId={workspaceId} />}
