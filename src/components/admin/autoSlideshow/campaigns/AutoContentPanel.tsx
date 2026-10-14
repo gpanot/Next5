@@ -37,7 +37,9 @@ function Chips<T extends string | boolean>({ title, options, value, onPick }: { 
 
 /** How many slides Auto writes, as the person reads it: the hook's number, or the AI's pick. */
 const countNote = (fixed: number | null): string =>
-  fixed !== null ? `${fixed} slides, as your hook says. 1 slide = 1 credit.` : `The AI picks ${AUTO_MIN_SLIDES}-${AUTO_MAX_SLIDES} slides. 1 slide = 1 credit.`;
+  fixed !== null
+    ? `${fixed} slides, then your CTA as number ${fixed + 1}, as your hook says. 1 slide = 1 credit.`
+    : `The AI picks ${AUTO_MIN_SLIDES}-${AUTO_MAX_SLIDES} slides. 1 slide = 1 credit.`;
 
 /** What the slides are written from (the hook, so the person knows the prompt adds to it), with the button beside it. */
 function HookContext({ hooks, fixed, children }: { hooks: string[]; fixed: number | null; children: ReactNode }) {

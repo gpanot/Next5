@@ -1,5 +1,5 @@
 // server-only — never import from a 'use client' file.
-// The campaign photo picker: what each tab offers (the workspace's generated photos, its brand photos, the shared
+// The campaign photo picker: what each tab offers (the workspace's App shots and generated photos, its brand photos, the shared
 // library, Unsplash), and importing a pick into the campaign as its own JPEG copy, so deleting the original never
 // breaks the campaign and every source renders the same way. Also the Auto content's photos (made or found per slide).
 
@@ -16,6 +16,7 @@ import { detectHeads } from '../heads';
 import { compressJpeg, MAX_JPEG_BYTES, PHOTO_SIZE } from '../jpeg';
 import { generatePhoto, photoPrompt } from '../photos';
 import type { CampaignPhoto } from './store';
+import { appShotOptions, fetchAppShot } from './appShot/store';
 import { fetchUnsplashPhoto, searchedUnsplashPhoto, searchUnsplash } from './unsplash';
 
 const SHARED_LIMIT = 120;
@@ -67,7 +68,8 @@ export const photoOptions = async (workspaceId: string, tab: PhotoTab, query: st
   if (tab === 'search') return query.trim() ? searchUnsplash(query, page) : { options: [], hasMore: false };
   if (tab === 'shared') return { options: await sharedOptions(workspaceId), hasMore: false };
   if (tab === 'brand') return { options: await brandOptions(workspaceId), hasMore: false };
-  return { options: await generatedOptions(workspaceId), hasMore: false };
+  const [shots, generated] = await Promise.all([appShotOptions(workspaceId), generatedOptions(workspaceId)]);
+  return { options: [...shots, ...generated], hasMore: false };
 };
 
 type Fetched = { bytes: Buffer; label: string; credit?: { name: string; url: string }; hotlink?: { thumb: string; full: string } };
@@ -81,6 +83,7 @@ const stored = async (key: string | null | undefined): Promise<Buffer> => {
 /** The picked photo's bytes, checked to belong to this workspace (or the shared library). */
 const fetchPick = async (workspaceId: string, ref: CampaignPhotoRef): Promise<Fetched> => {
   if (ref.source === 'unsplash') return fetchUnsplashPhoto(ref.id);
+  if (ref.source === 'app_shot') return fetchAppShot(workspaceId, ref.id);
   if (ref.source === 'brand') {
     const row = await prisma.userUpload.findFirst({ where: { id: ref.id, workspaceId, kind: 'photo', archivedAt: null } });
     return { bytes: await stored(row?.r2Key), label: row?.description ?? row?.filename ?? 'Brand photo' };
@@ -97,7 +100,7 @@ const fetchPick = async (workspaceId: string, ref: CampaignPhotoRef): Promise<Fe
 export const parsePhotoRef = (v: unknown): CampaignPhotoRef => {
   const r = (v ?? {}) as Record<string, unknown>;
   if (r.source === 'generated' && typeof r.runId === 'string' && Number.isInteger(r.index)) return { source: 'generated', runId: r.runId, index: r.index as number };
-  if ((r.source === 'brand' || r.source === 'shared' || r.source === 'unsplash') && typeof r.id === 'string') return { source: r.source, id: r.id };
+  if ((r.source === 'brand' || r.source === 'shared' || r.source === 'unsplash' || r.source === 'app_shot') && typeof r.id === 'string') return { source: r.source, id: r.id };
   throw new HttpError(400, 'bad_photo', 'Pick a photo.');
 };
 
@@ -112,17 +115,31 @@ const toCampaignJpeg = async (bytes: Buffer): Promise<Buffer> => {
  * running at once never drop each other. Returns the new photo, and its head detection to run after the response.
  */
 export const importPhoto = async (runId: string, workspaceId: string, ref: CampaignPhotoRef): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> =>
-  storeCampaignPhoto(runId, await fetchPick(workspaceId, ref), ref.source);
+  storeCampaignPhoto(runId, await fetchPick(workspaceId, ref), ref.source === 'app_shot' ? 'generated' : ref.source);
+
+/** Tells the photo model the reference only sets the look, so the content slides match the hook photo's tone. */
+const TONE_NOTE =
+  'The reference image only sets the look: match its color grade, light, contrast and mood (black and white if it is), over the style above. Do not copy its subject, objects, people or layout.';
+
+/** A signed link to campaign photo `index` (the first hook photo), or null when it has none. */
+const tonePhotoUrl = async (runId: string, index: number): Promise<string | null> => {
+  const run = await prisma.autoSlideshowRun.findFirst({ where: { id: runId }, select: { photos: true } });
+  const key = (run?.photos as unknown as CampaignPhoto[] | null)?.[index]?.imageKey;
+  return key ? presignObject(key) : null;
+};
 
 /**
  * One photo for the Content tab's "Auto": an AI photo of the scene (on the photo model the auto slideshows use, bright
- * style), or the `nth` portrait result of a stock search. Stored like a picked photo.
+ * style, in the tone of the first hook photo when sent), or the `nth` portrait result of a stock search. Stored like a
+ * picked photo.
  */
 export const autoPhoto = async (runId: string, req: AutoPhotoRequest): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> => {
   if (req.source === 'stock') {
     return storeCampaignPhoto(runId, await searchedUnsplashPhoto(req.query, req.nth), 'unsplash');
   }
-  const { buffer } = await generatePhoto(photoPrompt(req.scene), [], createMeter()).catch((err: unknown) => {
+  const tone = req.tonePhoto === undefined ? null : await tonePhotoUrl(runId, req.tonePhoto);
+  const prompt = photoPrompt(req.scene, undefined, tone ? TONE_NOTE : undefined);
+  const { buffer } = await generatePhoto(prompt, tone ? [tone] : [], createMeter()).catch((err: unknown) => {
     throw new HttpError(502, 'photo_failed', err instanceof Error ? `Photo failed: ${err.message.slice(0, 120)}` : 'Photo failed. Try again.');
   });
   return storeCampaignPhoto(runId, { bytes: buffer, label: req.scene }, 'generated');
@@ -153,7 +170,10 @@ export const parseAutoPhoto = (v: unknown): AutoPhotoRequest => {
   const r = (v ?? {}) as Record<string, unknown>;
   const text = (x: unknown, max: number) => (typeof x === 'string' ? x.replace(/\s+/g, ' ').trim().slice(0, max) : '');
   if (r.source === 'stock' && text(r.query, 80)) return { source: 'stock', query: text(r.query, 80), nth: Number.isInteger(r.nth) ? Math.max(0, r.nth as number) : 0 };
-  if (r.source === 'ai' && text(r.scene, 400)) return { source: 'ai', scene: text(r.scene, 400) };
+  if (r.source === 'ai' && text(r.scene, 400)) {
+    const tone = Number.isInteger(r.tonePhoto) && (r.tonePhoto as number) >= 0 ? (r.tonePhoto as number) : undefined;
+    return { source: 'ai', scene: text(r.scene, 400), ...(tone === undefined ? {} : { tonePhoto: tone }) };
+  }
   throw new HttpError(400, 'bad_auto_photo', 'Say what the photo shows.');
 };
 

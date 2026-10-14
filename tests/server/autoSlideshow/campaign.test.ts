@@ -104,8 +104,8 @@ describe('hookNumber', () => {
 });
 
 describe('autoSlideCount', () => {
-  it('takes the first hook number from 3 to 15, else lets the writer decide', () => {
-    expect(autoSlideCount(['6 unconventional way to choose your gym outfit'])).toBe(6);
+  it('takes one less than the first hook number (the CTA is the last), else lets the writer decide', () => {
+    expect(autoSlideCount(['6 unconventional way to choose your gym outfit'])).toBe(5);
     expect(autoSlideCount(['2 gym outfit rules'])).toBeNull();
     expect(autoSlideCount(['How to choose your gym outfit'])).toBeNull();
     expect(autoSlideCount([])).toBeNull();

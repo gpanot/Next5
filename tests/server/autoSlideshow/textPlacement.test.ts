@@ -58,9 +58,9 @@ describe('placeText', () => {
 
   it('keeps moved text inside the slide', () => {
     const at = placeText({ ...meat, textAt: { x: 1, y: 1 } });
-    const width = Math.max(...textRects(meat).map((r) => r.w)) / 1080;
-    const height = Math.max(...textRects(meat).map((r) => r.y + r.h)) / 1920;
-    expect(at.x).toBeCloseTo(1 - width / 2);
+    // Pushed to the right edge it wraps in the narrowest box (40% of the width), 3% from the edge.
+    const height = Math.max(...textRects(meat, 0.4 * 1080).map((r) => r.y + r.h)) / 1920;
+    expect(at.x).toBeCloseTo(0.77);
     expect(at.y).toBeCloseTo(1 - height);
   });
 });

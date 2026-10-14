@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { PlayIcon, round, SLIDE_MS } from '../SlidePlayer';
 import type { PreviewShow } from './previewSlides';
 import { PreviewSlideView } from './PreviewSlideView';
 
@@ -17,10 +18,12 @@ function Chevron({ left }: { left?: boolean }) {
   );
 }
 
-/** One slideshow's slides in a phone-sized frame: swipe on phones, arrows or keys on wide screens. */
+/** One slideshow's slides in a phone-sized frame: swipe on phones, arrows or keys on wide screens, or Play (space),
+ *  which moves on every few seconds and loops, as the editor's player does. */
 function SlidePlayer({ show }: { show: PreviewShow }) {
   const track = useRef<HTMLOListElement>(null);
   const [at, setAt] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const go = (i: number) => {
     const box = track.current;
     if (box) box.scrollTo({ left: i * box.clientWidth, behavior: 'smooth' });
@@ -31,9 +34,22 @@ function SlidePlayer({ show }: { show: PreviewShow }) {
   };
 
   useEffect(() => {
+    if (!playing) return;
+    const timer = setInterval(() => {
+      const box = track.current;
+      if (box) go((Math.round(box.scrollLeft / Math.max(1, box.clientWidth)) + 1) % show.slides.length);
+    }, SLIDE_MS);
+    return () => clearInterval(timer);
+  }, [playing, show.slides.length]);
+
+  useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') go(Math.min(at + 1, show.slides.length - 1));
       if (e.key === 'ArrowLeft') go(Math.max(at - 1, 0));
+      if (e.key === ' ') {
+        e.preventDefault();
+        setPlaying((p) => !p);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -52,6 +68,9 @@ function SlidePlayer({ show }: { show: PreviewShow }) {
             ))}
           </ol>
           <span className="absolute top-3 right-3 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">{at + 1}/{show.slides.length}</span>
+          <button type="button" onClick={() => setPlaying((p) => !p)} aria-label={playing ? 'Pause' : 'Play'} aria-pressed={playing} className={`${round} absolute right-3 bottom-3`}>
+            <PlayIcon playing={playing} />
+          </button>
         </div>
         <button type="button" onClick={() => go(at + 1)} disabled={at >= show.slides.length - 1} aria-label="Next slide" className={arrow}><Chevron /></button>
       </div>

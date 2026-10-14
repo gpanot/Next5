@@ -13,6 +13,8 @@ type Props = {
   onIndex: (i: number) => void;
   /** Slide i's text dragged to `at`; undefined puts it back on its usual spot. */
   onMoveText: (i: number, at: TextAt | undefined) => void;
+  /** Slide i's badge row dragged to `y`; undefined puts it back on its usual spot. */
+  onMoveBadges: (i: number, y: number | undefined) => void;
   /** Removes content card `card` (slide card + 1). */
   onRemoveCard: (card: number) => void;
 };
@@ -23,11 +25,16 @@ const action = 'flex h-10 items-center justify-center rounded-full text-white/60
  * The campaign's first slideshow in the slideshow editor's player, drawn live from the draft (photo plus text layers):
  * swipe, autoplay, drag the on-screen slide's text. Under it: the dots, "Reset text" and delete for content slides.
  */
-export function CampaignPlayer({ draft, photos, index, onIndex, onMoveText, onRemoveCard }: Props) {
+export function CampaignPlayer({ draft, photos, index, onIndex, onMoveText, onMoveBadges, onRemoveCard }: Props) {
   const slides = draftShows(draft, photos)[0]!.slides;
   const card = index - 1;
   const isContent = index > 0 && draft.cards[card]?.role === 'item';
   const moved = index === 0 ? draft.hookTextAt : draft.cards[card]?.textAt;
+  const badgesMoved = index > 0 && draft.cards[card]?.badgesAt !== undefined;
+  const reset = () => {
+    onMoveText(index, undefined);
+    if (badgesMoved) onMoveBadges(index, undefined);
+  };
   const contentCount = draft.cards.length - 1;
   return (
     <>
@@ -36,11 +43,11 @@ export function CampaignPlayer({ draft, photos, index, onIndex, onMoveText, onRe
         slideKey={(i) => String(i)}
         index={index}
         onIndex={onIndex}
-        renderSlide={(i) => <PreviewSlideView slide={slides[i]!} movable={i === index} onMoveText={(at) => onMoveText(i, at)} />}
+        renderSlide={(i) => <PreviewSlideView slide={slides[i]!} movable={i === index} onMoveText={(at) => onMoveText(i, at)} onMoveBadges={(y) => onMoveBadges(i, y)} />}
       />
       <PlayerControls count={slides.length} index={index}>
-        {moved && (
-          <button type="button" onClick={() => onMoveText(index, undefined)} title="Put the text back on its usual spot" className={`${action} px-3 text-xs`}>
+        {(moved || badgesMoved) && (
+          <button type="button" onClick={reset} title="Put the text and badges back on their usual spot" className={`${action} px-3 text-xs`}>
             Reset text
           </button>
         )}

@@ -17,7 +17,7 @@ type Tab = SettingsTab;
 const TABS: { id: Tab; label: string; phoneOnly?: boolean }[] = [
   { id: 'workspaces', label: 'Workspaces' },
   { id: 'accounts', label: 'Accounts' },
-  { id: 'library', label: 'Library', phoneOnly: true },
+  { id: 'library', label: 'Editor', phoneOnly: true },
   { id: 'brand', label: 'Brand', phoneOnly: true },
   { id: 'photos', label: 'Photos' },
   { id: 'credits', label: 'Credits' },

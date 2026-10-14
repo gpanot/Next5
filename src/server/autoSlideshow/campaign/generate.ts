@@ -7,7 +7,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/db';
 import type { AutoSlide } from '../../../types/admin/autoSlideshow';
 import type { TextAt } from '../../../types/slideText';
-import { campaignProblems, hookPhotoFor, lookOfRole, renderKeyOf, shownBody, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
+import { campaignProblems, hookPhotoFor, lookOfRole, renderKeyOf, shownBody, type CampaignCard, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
 import { DEFAULT_BOX } from '../../companyIntel/slideshowStyle';
 import { HttpError } from '../../http';
 import { deleteObject, putObject } from '../../storage/objectStore';
@@ -20,7 +20,7 @@ const LIVE_POSTS = ['scheduled', 'sending', 'processing', 'posted'];
 /** Slides rendered at once: Satori renders are memory hungry. */
 const RENDER_BATCH = 4;
 
-type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look' | 'textAt'> & { photoIndex: number };
+type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look' | 'textAt' | 'badges' | 'badgesAt'> & { photoIndex: number };
 
 /** Runs `work` over `items`, `size` at a time, keeping their order. */
 const inBatches = async <T, R>(items: T[], size: number, work: (item: T) => Promise<R>): Promise<R[]> => {
@@ -35,12 +35,16 @@ const lookFor = (draft: CampaignDraft, role: 'hook' | 'item' | 'cta') => {
   return look === 'default' ? {} : { look };
 };
 
-/** Text moved in the editor keeps its spot; unmoved text stores none. */
-const movedTo = (at: TextAt | undefined) => (at ? { textAt: at } : {});
+/** Text moved in the editor keeps its height, always centered (even on drafts saved before campaign text moved only up and down); unmoved text stores none. */
+const movedTo = (at: TextAt | undefined) => (at ? { textAt: { x: 0.5, y: at.y } } : {});
+
+/** The CTA's store badges and where their row was moved to; nothing on other cards. */
+const badgesFor = (c: CampaignCard) =>
+  c.role === 'cta' && c.badges?.length ? { badges: c.badges, ...(c.badgesAt === undefined ? {} : { badgesAt: c.badgesAt }) } : {};
 
 const plannedSlides = (draft: CampaignDraft) => ({
   hooks: draft.hooks.map((title, i): SlideText => ({ role: 'hook', title, body: '', photoIndex: hookPhotoFor(draft, i)!, ...lookFor(draft, 'hook'), ...movedTo(draft.hookTextAt) })),
-  cards: draft.cards.map((c): SlideText => ({ role: c.role, title: c.title.trim(), body: shownBody(c).trim(), photoIndex: c.photo!, ...lookFor(draft, c.role), ...movedTo(c.textAt) })),
+  cards: draft.cards.map((c): SlideText => ({ role: c.role, title: c.title.trim(), body: shownBody(c).trim(), photoIndex: c.photo!, ...lookFor(draft, c.role), ...movedTo(c.textAt), ...badgesFor(c) })),
 });
 
 const renderAll = async (slides: SlideText[], photos: CampaignPhoto[], heads: HeadsCache): Promise<RenderedSlide[]> => {

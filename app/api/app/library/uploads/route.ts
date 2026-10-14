@@ -111,7 +111,8 @@ export const GET = authedRoute(async (req, session) => {
     where: {
       workspaceId: ws.id,
       archivedAt: null,
-      ...(kind === 'photo' || kind === 'video' ? { kind } : {}),
+      // The App shot builder's files (app_screen, app_scene, app_shot) live in the same table but are not media.
+      kind: kind === 'photo' || kind === 'video' ? kind : { in: ['photo', 'video'] },
     },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: take + 1,

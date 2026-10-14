@@ -1,10 +1,10 @@
 // server-only — never import from a 'use client' file.
-// Where a slide's text sits so it never covers a face. The text keeps its usual spot when that spot is clear of every head;
+// Where a slide's text sits so it never covers a face (or where it was moved by hand, wrapped narrower near a side). The text keeps its usual spot when that spot is clear of every head;
 // otherwise it moves up or down to the nearest clear spot. Satori cannot measure text before it renders, so the text's
 // boxes are estimated from character counts, on the wide side. render.tsx draws with the same sizes.
 
 import type { AutoSlide, HeadBox } from '../../types/admin/autoSlideshow';
-import { bodyKind, titleKind, type TextAt } from '../../types/slideText';
+import { bodyKind, clampTextX, textSpan, titleKind, type TextAt } from '../../types/slideText';
 
 /** 9:16, TikTok's full screen (4:5, 1080x1350, until 2026-10-10). */
 export const SLIDE_SIZE = { width: 1080, height: 1920 };
@@ -39,8 +39,8 @@ export const RED_TEXT = { side: 80, fontSize: 60, lineHeight: 1.3, padX: 18, col
 export const BODY_LOOK = { boxPadY: 12, boxPadX: 22, radius: 14, redLineHeight: 1.3, redPadX: 14 };
 
 /** The line under the headline: its width and height in px, in its look. */
-export const bodySize = (body: string, look: AutoSlide['bodyLook']): { w: number; h: number } => {
-  const inner = SLIDE_SIZE.width - BOX_TEXT.side * 2;
+export const bodySize = (body: string, look: AutoSlide['bodyLook'], wrap?: number): { w: number; h: number } => {
+  const inner = wrap ?? SLIDE_SIZE.width - BOX_TEXT.side * 2;
   const kind = bodyKind(look);
   if (kind === 'all-caps') {
     const lines = lineWidths(body.toUpperCase(), CAPS_TEXT.bodySize, CAPS_TEXT.char, inner);
@@ -107,11 +107,11 @@ export const titleKindOf = (slide: SlideText) => titleKind(slide.role, slide.loo
 export const outlineSize = (slide: SlideText) => (slide.role === 'hook' ? HOOK_TEXT.fontSize(slide.title) : isBig(slide) ? 68 : 60);
 
 /** The red highlight lines' widths (text plus padding) and height. */
-const redRects = (slide: SlideText): Rect[] => {
-  const lines = lineWidths(slide.title, RED_TEXT.fontSize, BOLD_CHAR, SLIDE_SIZE.width - (RED_TEXT.side + RED_TEXT.padX) * 2);
+const redRects = (slide: SlideText, wrap?: number): Rect[] => {
+  const lines = lineWidths(slide.title, RED_TEXT.fontSize, BOLD_CHAR, (wrap ?? SLIDE_SIZE.width - RED_TEXT.side * 2) - RED_TEXT.padX * 2);
   const rects = [centered(Math.max(0, ...lines) + RED_TEXT.padX * 2, 0, lines.length * RED_TEXT.fontSize * RED_TEXT.lineHeight)];
   if (slide.body) {
-    const body = bodySize(slide.body, slide.bodyLook);
+    const body = bodySize(slide.body, slide.bodyLook, wrap);
     rects.push(centered(body.w, rects[0]!.h + BOX_TEXT.gap, body.h));
   }
   return rects;
@@ -119,37 +119,38 @@ const redRects = (slide: SlideText): Rect[] => {
 
 const centered = (w: number, y: number, h: number): Rect => ({ x: (SLIDE_SIZE.width - w) / 2, y, w, h });
 
-/** The text's boxes, with y measured from the top of the text block. */
-export const textRects = (slide: SlideText): Rect[] => {
+/** The text's boxes, with y measured from the top of the text block. `wrap`: the block's width in px when it was moved
+ *  toward a side (textSpan); its look's full width otherwise. */
+export const textRects = (slide: SlideText, wrap?: number): Rect[] => {
   const kind = titleKindOf(slide);
-  if (kind === 'tiktok-red') return redRects(slide);
-  const title = kind === 'outline' ? outlineRect(slide) : kind === 'all-caps' ? capsRect(slide) : boxRect(slide);
+  if (kind === 'tiktok-red') return redRects(slide, wrap);
+  const title = kind === 'outline' ? outlineRect(slide, wrap) : kind === 'all-caps' ? capsRect(slide, wrap) : boxRect(slide, wrap);
   const rects = [title];
   if (slide.body) {
-    const body = bodySize(slide.body, slide.bodyLook);
+    const body = bodySize(slide.body, slide.bodyLook, wrap);
     rects.push(centered(body.w, title.h + BOX_TEXT.gap, body.h));
   }
   return rects;
 };
 
 /** The outlined headline (TikTok default). */
-const outlineRect = (slide: SlideText): Rect => {
+const outlineRect = (slide: SlideText, wrap?: number): Rect => {
   const size = outlineSize(slide);
-  const lines = lineWidths(slide.title, size, BOLD_CHAR, SLIDE_SIZE.width - HOOK_TEXT.side * 2);
+  const lines = lineWidths(slide.title, size, BOLD_CHAR, wrap ?? SLIDE_SIZE.width - HOOK_TEXT.side * 2);
   return centered(Math.max(0, ...lines), 0, lines.length * size * HOOK_TEXT.lineHeight);
 };
 
 /** The All caps headline. */
-const capsRect = (slide: SlideText): Rect => {
+const capsRect = (slide: SlideText, wrap?: number): Rect => {
   const size = CAPS_TEXT.fontSize(slide.role, slide.title);
-  const lines = lineWidths(slide.title.toUpperCase(), size, CAPS_TEXT.char, SLIDE_SIZE.width - CAPS_TEXT.side * 2);
+  const lines = lineWidths(slide.title.toUpperCase(), size, CAPS_TEXT.char, wrap ?? SLIDE_SIZE.width - CAPS_TEXT.side * 2);
   return centered(Math.max(0, ...lines), 0, lines.length * size * CAPS_TEXT.lineHeight);
 };
 
 /** The boxed headline (brand, black or white box). */
-const boxRect = (slide: SlideText): Rect => {
+const boxRect = (slide: SlideText, wrap?: number): Rect => {
   const titleSize = BOX_TEXT.titleSize(isBig(slide));
-  const titleLines = lineWidths(slide.title, titleSize, BOLD_CHAR, SLIDE_SIZE.width - BOX_TEXT.side * 2 - BOX_TEXT.padX * 2);
+  const titleLines = lineWidths(slide.title, titleSize, BOLD_CHAR, (wrap ?? SLIDE_SIZE.width - BOX_TEXT.side * 2) - BOX_TEXT.padX * 2);
   return centered(Math.max(0, ...titleLines) + BOX_TEXT.padX * 2, 0, titleLines.length * titleSize * BOX_TEXT.titleLineHeight + BOX_TEXT.padY * 2);
 };
 
@@ -195,8 +196,15 @@ const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min)
  */
 export const placeText = (slide: SlideText, heads?: HeadBox[] | null): TextAt => {
   if (!slide.textAt) return { x: 0.5, y: textTop(slide, heads) / SLIDE_SIZE.height };
-  const rects = textRects(slide);
+  const x = clampTextX(slide.textAt.x);
+  const span = textSpan(x, sideOf(slide) / SLIDE_SIZE.width);
+  const rects = textRects(slide, (1 - span.left - span.right) * SLIDE_SIZE.width);
   const height = Math.max(0, ...rects.map((r) => r.y + r.h)) / SLIDE_SIZE.height;
-  const half = Math.max(0, ...rects.map((r) => r.w)) / 2 / SLIDE_SIZE.width;
-  return { x: clamp(slide.textAt.x, half, 1 - half), y: clamp(slide.textAt.y, 0, 1 - height) };
+  return { x, y: clamp(slide.textAt.y, 0, 1 - height) };
+};
+
+/** The side margin (px) of the slide's text look, as render.tsx draws it. */
+const sideOf = (slide: SlideText): number => {
+  const kind = titleKindOf(slide);
+  return kind === 'outline' ? HOOK_TEXT.side : kind === 'all-caps' ? CAPS_TEXT.side : kind === 'tiktok-red' ? RED_TEXT.side : BOX_TEXT.side;
 };

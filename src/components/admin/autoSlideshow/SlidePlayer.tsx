@@ -17,9 +17,9 @@ type Props = {
 };
 
 /** Seconds per slide in autoplay: long enough to read one tip, like a TikTok carousel on auto-advance. */
-const SLIDE_MS = 3_000;
+export const SLIDE_MS = 3_000;
 
-const round = 'flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition hover:bg-black/75 active:scale-95 disabled:opacity-30';
+export const round = 'flex h-11 w-11 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition hover:bg-black/75 active:scale-95 disabled:opacity-30';
 
 /** ‹ › on the slide's edges, so the slide gets the column's full width. */
 const side = 'absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur transition hover:bg-black/70 active:scale-95';
@@ -44,7 +44,7 @@ function SoundIcon({ muted }: { muted: boolean }) {
   );
 }
 
-function PlayIcon({ playing }: { playing: boolean }) {
+export function PlayIcon({ playing }: { playing: boolean }) {
   return playing ? (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
   ) : (

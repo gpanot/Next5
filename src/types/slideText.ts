@@ -12,6 +12,25 @@ export const isTextAt = (v: unknown): v is TextAt => typeof v === 'object' && v 
 export const parseTextAt = (v: unknown): TextAt | undefined =>
   isTextAt(v) ? { x: Math.round(v.x * 1000) / 1000, y: Math.round(v.y * 1000) / 1000 } : undefined;
 
+/** Narrowest the text block wraps when moved toward a side, as a share of the slide's width. */
+const MIN_TEXT_WIDTH = 0.4;
+/** Margin kept between a moved text block and the slide's side edge, as a share of its width. */
+const TEXT_EDGE = 0.03;
+
+/** A text block's center x, kept where the block can still be MIN_TEXT_WIDTH wide. */
+export const clampTextX = (x: number): number => Math.min(Math.max(x, MIN_TEXT_WIDTH / 2 + TEXT_EDGE), 1 - MIN_TEXT_WIDTH / 2 - TEXT_EDGE);
+
+/**
+ * The box a text block wraps in for center `x`: its left and right margins, shares of the slide's width. Centered, it is
+ * the full width less `side` on each side; moved toward a side it narrows (the text rewraps), so it never leaves the
+ * slide. The editors and the render both place text with it.
+ */
+export const textSpan = (x: number, side: number): { left: number; right: number } => {
+  const cx = clampTextX(x);
+  const half = Math.min(0.5 - side, Math.min(cx, 1 - cx) - TEXT_EDGE);
+  return { left: cx - half, right: 1 - cx - half };
+};
+
 /** The drafts' usual spot before the text is moved: centered, a third of the way down (the render's home, roughly). */
 export const HOME_TEXT_AT: TextAt = { x: 0.5, y: 0.33 };
 

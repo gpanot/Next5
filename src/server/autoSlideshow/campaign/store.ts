@@ -19,10 +19,12 @@ import {
   type CampaignCard,
   type CampaignDraft,
   type CampaignDto,
+  type CampaignPlanItem,
   type CampaignPhotoDto,
   type CampaignSummaryDto,
 } from '../../../types/admin/slideshowCampaign';
 import { parseTextAt, type TextAt } from '../../../types/slideText';
+import { parseBadgesAt, parseStoreBadges } from '../../../types/storeBadges';
 import { HttpError } from '../../http';
 import { presignObject } from '../../storage/objectStore';
 import { thumbUrl } from '../../storage/thumbs';
@@ -42,8 +44,9 @@ export const json = (value: unknown) => value as Prisma.InputJsonValue;
 export type CampaignPhoto = AutoPhoto & { source?: CampaignPhotoDto['source']; credit?: CampaignPhotoDto['credit']; hotlink?: { thumb: string; full: string } };
 
 export const photosOf = (run: { photos: Prisma.JsonValue }): CampaignPhoto[] => (run.photos as unknown as CampaignPhoto[] | null) ?? [];
-/** The stored campaign: the draft, plus the render key of the draft the slideshows were last made from. */
-type StoredCampaign = CampaignDraft & { renderedKey?: string };
+/** The stored campaign: the draft, the render key of the draft the slideshows were last made from, and the posts put on
+ *  the Calendar (by slideshow position, so they survive a remake). */
+type StoredCampaign = CampaignDraft & { renderedKey?: string; plan?: CampaignPlanItem[] };
 
 /** Drafts saved before 2026-10-11 hold one `look`; it becomes the hook and CTA looks. */
 const storedOf = (run: { campaign: Prisma.JsonValue }): StoredCampaign => {
@@ -56,8 +59,16 @@ const storedOf = (run: { campaign: Prisma.JsonValue }): StoredCampaign => {
 export const draftOf = (run: { campaign: Prisma.JsonValue }): CampaignDraft => {
   const stored: Partial<StoredCampaign> = storedOf(run);
   delete stored.renderedKey;
+  delete stored.plan;
   return stored as CampaignDraft;
 };
+
+/** The campaign's posts on the Calendar whose time is still to come, by position. */
+export const planOf = (run: { campaign: Prisma.JsonValue }, now = new Date()): CampaignPlanItem[] =>
+  (storedOf(run).plan ?? []).filter((p) => new Date(p.at) > now);
+
+/** The stored campaign with its Calendar plan replaced. */
+export const storePlan = (run: { campaign: Prisma.JsonValue }, plan: CampaignPlanItem[]) => json({ ...storedOf(run), plan });
 
 /** True when the run's slideshows were made from its current draft. */
 export const isRendered = (run: { campaign: Prisma.JsonValue }, slideshowCount: number): boolean => {
@@ -66,8 +77,10 @@ export const isRendered = (run: { campaign: Prisma.JsonValue }, slideshowCount: 
 };
 
 /** Stores the draft, keeping the render key unless `renderedKey` is given. */
-export const storeDraft = (run: { campaign: Prisma.JsonValue }, draft: CampaignDraft, renderedKey?: string) =>
-  json({ ...draft, renderedKey: renderedKey ?? storedOf(run).renderedKey });
+export const storeDraft = (run: { campaign: Prisma.JsonValue }, draft: CampaignDraft, renderedKey?: string) => {
+  const stored = storedOf(run);
+  return json({ ...draft, renderedKey: renderedKey ?? stored.renderedKey, ...(stored.plan ? { plan: stored.plan } : {}) });
+};
 
 /** The campaign run, when the signed-in user owns its workspace; 404 otherwise (no hint that it exists). */
 export const loadCampaign = async (access: UserAccess, id: string) => {
@@ -135,6 +148,7 @@ export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
     photos,
     slideshows: await Promise.all(run.slideshows.map(toSlideshowDto)),
     rendered: isRendered(run, run.slideshows.length),
+    plan: planOf(run),
     createdAt: run.createdAt.toISOString(),
   };
 };
@@ -148,6 +162,13 @@ const movedTo = (v: unknown): { textAt?: TextAt } => {
   return at ? { textAt: at } : {};
 };
 
+/** The CTA's store badges, kept only when some are on (older drafts keep their render key). */
+const badgesOf = (v: unknown, at: unknown): Pick<CampaignCard, 'badges' | 'badgesAt'> => {
+  const badges = parseStoreBadges(v);
+  const badgesAt = parseBadgesAt(at);
+  return badges ? { badges, ...(badgesAt === undefined ? {} : { badgesAt }) } : {};
+};
+
 const parseCards = (value: unknown, photoCount: number): CampaignCard[] => {
   if (!Array.isArray(value)) throw new HttpError(400, 'bad_cards', 'The cards are missing.');
   const raw = value as Array<Record<string, unknown>>;
@@ -156,7 +177,7 @@ const parseCards = (value: unknown, photoCount: number): CampaignCard[] => {
   if (items.length < MIN_CAMPAIGN_CONTENT || items.length > MAX_CAMPAIGN_CONTENT || !last) {
     throw new HttpError(400, 'bad_cards', `A campaign has ${MIN_CAMPAIGN_CONTENT} to ${MAX_CAMPAIGN_CONTENT} content cards and one CTA card.`);
   }
-  return [...items, { role: 'cta', title: str(last.title, MAX_CARD_TITLE_CHARS), body: str(last.body, MAX_CARD_BODY_CHARS), photo: photoIndex(last.photo, photoCount), ...movedTo(last.textAt) }];
+  return [...items, { role: 'cta', title: str(last.title, MAX_CARD_TITLE_CHARS), body: str(last.body, MAX_CARD_BODY_CHARS), photo: photoIndex(last.photo, photoCount), ...movedTo(last.textAt), ...badgesOf(last.badges, last.badgesAt) }];
 };
 
 /** The draft a client sent, cleaned: text trimmed to its limits, photo indexes that exist, no repeated hook. */

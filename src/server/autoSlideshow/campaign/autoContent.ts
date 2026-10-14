@@ -103,12 +103,13 @@ const brief = (req: AutoContentRequest, hooks: string[], notes: string) =>
 /** The count rule for the prompt: the hook's number, else the writer picks within the range (and what the balance covers). */
 const countRule = (fixed: number | null, max: number): string =>
   fixed !== null
-    ? `Write exactly ${fixed} slides: the hook promises ${fixed}.`
+    ? `Write exactly ${fixed} slides: the hook promises ${fixed + 1}, and the last one is the call to action slide, written apart.`
     : `Decide how many slides the topic needs, between ${AUTO_MIN_SLIDES} and ${max}: enough to deliver the hook, no filler.`;
 
 /**
- * Writes the content slides. Their count: the number the first hook promises (3-15), else the writer's pick between 3
- * and `maxSlides` (15, or fewer when the balance covers fewer). A count outside the rule is retried with the reason.
+ * Writes the content slides. Their count: one less than the number the first hook promises (the CTA is the last),
+ * else the writer's pick between 3 and `maxSlides` (15, or fewer when the balance covers fewer). A count outside the
+ * rule is retried with the reason.
  */
 export const writeAutoContent = async (req: AutoContentRequest, hooks: string[], maxSlides = AUTO_MAX_SLIDES): Promise<WrittenContent> => {
   if (!req.prompt && hooks.length === 0) throw new HttpError(400, 'auto_empty', 'Say what the slides are about, or add a hook first.');

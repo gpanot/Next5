@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import type { PhotoOptionDto, PhotoTab } from '../../../../types/admin/slideshowCampaign';
 import { createWorkspaceLabClient, errorOf } from '../../../labs/labClient';
 import { MAX_RAW_BYTES, shrinkPhoto } from '../brand/shrinkPhoto';
+import { AppShotPanel } from './appShot/AppShotPanel';
 import { PhotoOptionGrid } from './PhotoOptionGrid';
 import { usePhotoOptions } from './usePhotoOptions';
 
@@ -15,15 +16,21 @@ type Props = {
   /** Hook: many photos (they rotate). A card: one. */
   multiple: boolean;
   title: string;
+  /** The tab it opens on (App shot for the CTA). */
+  startTab?: PickerTab;
   onDone: (picks: PhotoOptionDto[]) => void;
   onClose: () => void;
 };
 
-const TABS: { id: PhotoTab; label: string }[] = [
+/** The photo tabs, plus App shot (a builder, not a list). */
+export type PickerTab = PhotoTab | 'appshot';
+
+const TABS: { id: PickerTab; label: string }[] = [
   { id: 'search', label: 'Search' },
   { id: 'generated', label: 'Generated' },
   { id: 'brand', label: 'Your photos' },
   { id: 'shared', label: 'Library' },
+  { id: 'appshot', label: 'App shot' },
 ];
 
 const EMPTY: Record<PhotoTab, string> = {
@@ -78,16 +85,17 @@ function UploadButton({ onFiles, busy }: { onFiles: (files: File[]) => void; bus
 }
 
 /**
- * The photo library: stock photos (Unsplash), the workspace's generated photos, its own photos (with upload) and the
- * shared library, as tabs. Picks keep their order across tabs; Done hands them over for import.
+ * The photo library: stock photos (Unsplash), the workspace's generated photos, its own photos (with upload), the
+ * shared library and the App shot builder (the app on a hand-held phone), as tabs. Picks keep their order across tabs; Done hands them over for import.
  */
-export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, title, onDone, onClose }: Props) {
-  const [tab, setTab] = useState<PhotoTab>('search');
+export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, title, startTab = 'search', onDone, onClose }: Props) {
+  const [tab, setTab] = useState<PickerTab>(startTab);
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<PhotoOptionDto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const list = usePhotoOptions(token, campaignId, tab, query);
+  // App shot lists nothing: an idle search tab.
+  const list = usePhotoOptions(token, campaignId, tab === 'appshot' ? 'search' : tab, tab === 'appshot' ? '' : query);
   const keys = useMemo(() => picked.map((p) => p.key), [picked]);
 
   useEffect(() => {
@@ -126,8 +134,9 @@ export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, t
             {tab === 'search' && <SearchBar onSearch={setQuery} />}
             {tab === 'search' && <p className="text-xs text-white/40">Free photos from <a href="https://unsplash.com/?utm_source=next5&utm_medium=referral" target="_blank" rel="noreferrer" className="underline">Unsplash</a>.</p>}
             {tab === 'brand' && <UploadButton onFiles={(f) => void upload(f)} busy={uploading} />}
+            {tab === 'appshot' && <AppShotPanel token={token} campaignId={campaignId} onBuilt={(o) => setPicked((p) => (multiple ? [...p, o] : [o]))} selected={keys} onToggle={toggle} />}
             {(list.error ?? uploadError) && <p role="alert" className="rounded-lg bg-red-500/15 p-3 text-sm text-red-300">{list.error ?? uploadError}</p>}
-            <PhotoOptionGrid options={list.options} loading={list.loading} selected={keys} onToggle={toggle} empty={EMPTY[tab]} />
+            {tab !== 'appshot' && <PhotoOptionGrid options={list.options} loading={list.loading} selected={keys} onToggle={toggle} empty={EMPTY[tab]} />}
             {list.hasMore && (
               <button type="button" onClick={() => void list.more()} disabled={list.loading} className="min-h-11 w-full rounded-xl border border-white/15 text-sm font-semibold text-white/80 transition active:scale-[0.98] disabled:opacity-50">
                 {list.loading ? 'Loading…' : 'More photos'}

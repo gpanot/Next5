@@ -38,7 +38,7 @@ function BlitzEdit({ token, workspaceId, postId }: { token: string; workspaceId:
 }
 
 /**
- * One workspace's Library: everything made, Blitz videos and slideshows, one format at a time. A Blitz video opens in its
+ * One workspace's Editor: everything made, Blitz videos and slideshows, one format at a time. A Blitz video opens in its
  * sheet (as on the calendar); its Edit opens the Blitz editor (`?editPost=`); a slideshow opens in the slideshow editor.
  */
 export function ContentPage({ token, workspaceId }: { token: string; workspaceId: string }) {
@@ -48,7 +48,7 @@ export function ContentPage({ token, workspaceId }: { token: string; workspaceId
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
       <div className="space-y-4">
-        <h1 className="font-heading text-3xl font-normal text-app-ink">Library</h1>
+        <h1 className="font-heading text-3xl font-normal text-app-ink">Editor</h1>
         <div role="radiogroup" aria-label="Show" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {FILTERS.map((f) => (
             <button key={f.id} type="button" role="radio" aria-checked={filter === f.id} onClick={() => setFilter(f.id)} className={chipClass(filter === f.id)}>

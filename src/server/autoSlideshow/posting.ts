@@ -78,6 +78,8 @@ export type ScheduleInput = {
 };
 
 const LIVE = ['scheduled', 'sending', 'processing', 'posted'];
+/** campaign/store's CAMPAIGN_KIND (importing it here would loop: campaign/store → store → posting). */
+const CAMPAIGN_KIND = 'campaign';
 
 /** Checks TikTok's rules for this batch; returns what each TikTok post stores. */
 const tiktokFields = async (workspaceId: string, choices: TikTokChoices | null) => {
@@ -98,7 +100,8 @@ const youtubeFields = (choices: YouTubeChoices | null | undefined) => {
 const INSTAGRAM_FIELDS = { privacyLevel: 'PUBLIC', allowComments: true, brandOrganic: false, brandContent: false };
 
 /**
- * Approves and schedules slideshows on the run's workspace, one post per chosen platform. Re-scheduling a failed or
+ * Approves and schedules slideshows on the run's workspace, one post per chosen platform. The Calendar's approval also
+ * takes the workspace's campaign slideshows put on it (each post stays on its own campaign run). Re-scheduling a failed or
  * canceled post replaces it; a platform where the slideshow is already scheduled or posted is refused.
  */
 export const schedulePosts = async (runId: string, input: ScheduleInput): Promise<AutoPostDto[]> => {
@@ -110,7 +113,10 @@ export const schedulePosts = async (runId: string, input: ScheduleInput): Promis
     await connectionFor(run.workspaceId, platform);
     fields[platform] = platform === 'tiktok' ? await tiktokFields(run.workspaceId, input.tiktok) : platform === 'youtube' ? youtubeFields(input.youtube) : INSTAGRAM_FIELDS;
   }
-  const shows = await prisma.autoSlideshow.findMany({ where: { runId, id: { in: input.items.map((i) => i.slideshowId) } }, include: { posts: true } });
+  const shows = await prisma.autoSlideshow.findMany({
+    where: { id: { in: input.items.map((i) => i.slideshowId) }, OR: [{ runId }, { run: { workspaceId: run.workspaceId, kind: CAMPAIGN_KIND } }] },
+    include: { posts: true },
+  });
   const now = new Date();
   for (const item of input.items) {
     const show = shows.find((s) => s.id === item.slideshowId);
@@ -121,7 +127,7 @@ export const schedulePosts = async (runId: string, input: ScheduleInput): Promis
       const existing = show.posts.find((p) => p.platform === platform);
       if (existing && LIVE.includes(existing.status)) throw new HttpError(409, 'already_scheduled', `"${show.topic}" is already scheduled or posted on ${PLATFORM_LABELS[platform]}.`);
       const data = {
-        runId, workspaceId: run.workspaceId, status: 'scheduled', scheduledAt: at < now ? now : at, ...fields[platform]!,
+        runId: show.runId, workspaceId: run.workspaceId, status: 'scheduled', scheduledAt: at < now ? now : at, ...fields[platform]!,
         consentAt: now, publishId: null, tiktokPostId: null, postUrl: null, attempts: 0, error: null, sentAt: null, postedAt: null, stats: undefined, statsAt: null,
       };
       await prisma.autoSlideshowPost.upsert({ where: { slideshowId_platform: { slideshowId: show.id, platform } }, create: { slideshowId: show.id, platform, ...data }, update: data });

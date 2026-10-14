@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 import { BrandIcon, CalendarIcon, CampaignIcon, ChartIcon, ContentIcon, CreditsIcon, IdeasIcon } from './navIcons';
 
-/** Every workspace page. Library, Brand and Credits: sidebar only (phones reach them from Settings). */
+/** Every workspace page. Editor, Brand and Credits: sidebar only (phones reach them from Settings). */
 export type WorkspacePageId = 'ideas' | 'calendar' | 'campaigns' | 'content' | 'brand' | 'analytics' | 'credits';
 
 /** wideOnly: in the sidebar but not the phones' bottom tabs (phones reach it from Settings). */
@@ -14,7 +14,7 @@ export const workspaceNavItems = (workspaceId: string): WorkspaceNavItem[] => {
     { id: 'ideas', href: `${base}/ideas`, label: 'Ideas', Icon: IdeasIcon },
     { id: 'calendar', href: base, label: 'Calendar', Icon: CalendarIcon },
     { id: 'campaigns', href: `${base}/campaigns`, label: 'Campaigns', Icon: CampaignIcon },
-    { id: 'content', href: `${base}/content`, label: 'Library', Icon: ContentIcon, wideOnly: true },
+    { id: 'content', href: `${base}/content`, label: 'Editor', Icon: ContentIcon, wideOnly: true },
     { id: 'analytics', href: `${base}/analytics`, label: 'Analytics', Icon: ChartIcon },
   ];
 };

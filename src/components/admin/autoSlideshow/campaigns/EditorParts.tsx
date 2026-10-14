@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { campaignProblems, type CampaignDraft } from '../../../../types/admin/slideshowCampaign';
-import { adminFetch } from '../../business/useAdminApi';
 
 export function NameInput({ value, onSave }: { value: string; onSave: (name: string) => void }) {
   const [text, setText] = useState(value);
@@ -32,26 +31,6 @@ export function Checklist({ draft }: { draft: CampaignDraft }) {
         {problems.length > 5 && <li>· and {problems.length - 5} more</li>}
       </ul>
     </section>
-  );
-}
-
-/** Deletes the campaign with its slideshows; their scheduled posts are canceled with them. */
-export function DeleteCampaign({ token, campaignId, onDeleted }: { token: string; campaignId: string; onDeleted: () => void }) {
-  const [busy, setBusy] = useState(false);
-  const remove = async () => {
-    if (!window.confirm('Delete this campaign? Its slideshows and scheduled posts go too. This cannot be undone.')) return;
-    setBusy(true);
-    try {
-      await adminFetch(token, `/api/slideshow/campaigns/${campaignId}`, { method: 'DELETE' });
-      onDeleted();
-    } catch {
-      setBusy(false);
-    }
-  };
-  return (
-    <button type="button" onClick={() => void remove()} disabled={busy} className="min-h-11 rounded-full px-4 text-sm font-medium text-red-300 transition hover:bg-red-500/10 active:scale-95 disabled:opacity-40">
-      {busy ? 'Deleting…' : 'Delete campaign'}
-    </button>
   );
 }
 

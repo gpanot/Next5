@@ -44,7 +44,7 @@ function VideoTile({ item, onOpen }: { item: BlitzScheduleDto; onOpen: () => voi
   );
 }
 
-/** Library › Blitz: the workspace's Blitz videos, soonest day last (newest plans first). */
+/** Editor › Blitz: the workspace's Blitz videos, soonest day last (newest plans first). */
 export function BlitzVideos({ token, workspaceId }: { token: string; workspaceId: string }) {
   const { items, loaded, reload } = useBlitzOnCalendar(token, workspaceId);
   const client = useMemo(() => createWorkspaceLabClient(token, workspaceId), [token, workspaceId]);

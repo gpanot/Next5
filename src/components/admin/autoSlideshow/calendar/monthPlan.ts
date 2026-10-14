@@ -9,6 +9,7 @@ import { MAX_PER_DAY, POST_TIMES } from '../../../../lib/postTimes';
  *   in day order; empty ones are what "Generate" makes.
  * - Waiting slideshows left over (no target slot) go one a day at 7 PM on the next free days from tomorrow.
  * - Blitz videos put on the calendar from the Content page (`blitz`) sit at their own time, like live posts.
+ * - Campaign slideshows put on the calendar (`planned`) sit at their planned time, waiting for approval like ready ones.
  * The page shows one calendar month (Monday to Sunday weeks; this month from today on); targets and pins in any month count.
  */
 
@@ -72,15 +73,18 @@ export type Pins = Record<string, string>;
 type Waiting = { queue: DayItem[]; pinned: Map<string, PlanSlot[]> };
 
 /** Slideshows waiting for a slot, in the order they were made; `pending` = slideshows not written yet. Pinned ones
- *  (from tomorrow on) go to their own day instead. When the run is not working, half-made slideshows are left out. */
-const waitingQueue = (slideshows: AutoSlideshowDto[], pending: number, working: boolean, pins: Pins, tomorrow: Date): Waiting => {
+ *  (from tomorrow on) go to their own day instead; a campaign's planned ones (`planned`) keep their time, even later
+ *  today. When the run is not working, half-made slideshows are left out. */
+const waitingQueue = (slideshows: AutoSlideshowDto[], pending: number, working: boolean, pins: Pins, tomorrow: Date, planned: Pins = {}, now = new Date()): Waiting => {
   const queue: DayItem[] = [];
   const pinned = new Map<string, PlanSlot[]>();
   for (const show of [...slideshows].sort((a, b) => a.position - b.position)) {
     if (isLive(show) || show.status === 'failed' || (!working && show.status !== 'ready')) continue;
     const item: DayItem = show.status === 'ready' ? { kind: 'ready', show } : { kind: 'making', show };
-    const pin = pins[show.id] ? new Date(pins[show.id]!) : null;
-    if (pin && !Number.isNaN(pin.getTime()) && pin >= tomorrow) pinned.set(dayKey(pin), [...(pinned.get(dayKey(pin)) ?? []), { at: pin, item }]);
+    const raw = pins[show.id] ?? planned[show.id];
+    const pin = raw ? new Date(raw) : null;
+    const keeps = pin !== null && !Number.isNaN(pin.getTime()) && (pin >= tomorrow || (planned[show.id] !== undefined && pin > now));
+    if (pin && keeps) pinned.set(dayKey(pin), [...(pinned.get(dayKey(pin)) ?? []), { at: pin, item }]);
     else queue.push(item);
   }
   for (let i = 0; i < pending; i += 1) queue.push({ kind: 'making', show: null });
@@ -130,7 +134,7 @@ const placeQueue = (drafts: Draft[], queue: DayItem[], tomorrow: Date) => {
   }
 };
 
-type PlanInput = { slideshows: AutoSlideshowDto[]; pending: number; month: Date; targets?: Targets; pins?: Pins; working?: boolean; now?: Date; blitz?: BlitzScheduleDto[] };
+type PlanInput = { slideshows: AutoSlideshowDto[]; pending: number; month: Date; targets?: Targets; pins?: Pins; working?: boolean; now?: Date; blitz?: BlitzScheduleDto[]; planned?: Pins };
 
 /** Blitz videos as fixed slots, by day key. */
 const blitzByDay = (items: BlitzScheduleDto[]) => {
@@ -150,7 +154,7 @@ export const buildMonth = (input: PlanInput): MonthPlan => {
   const targets = input.targets ?? {};
   const byDay = postsByDay(input.slideshows);
   const videos = blitzByDay(input.blitz ?? []);
-  const { queue, pinned } = waitingQueue(input.slideshows, input.pending, input.working ?? true, input.pins ?? {}, tomorrow);
+  const { queue, pinned } = waitingQueue(input.slideshows, input.pending, input.working ?? true, input.pins ?? {}, tomorrow, input.planned, now);
   const grid = gridOf(input.month, today);
   const from = grid.start < tomorrow ? grid.start : tomorrow;
   const lastKey = [...pinned.keys(), ...Object.keys(targets)].sort().at(-1);

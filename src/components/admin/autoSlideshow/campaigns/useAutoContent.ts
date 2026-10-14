@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { type AutoContentDto, type AutoContentRequest, type AutoPhotoRequest, type AutoPhotoSource, type CampaignCard, type CampaignPhotoRef, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
+import { numberCards, stripNumber } from '../../../../types/admin/campaignNumbering';
+import { autoSlideCount, CTA_PREFILL, type AutoContentDto, type AutoContentRequest, type AutoPhotoRequest, type AutoPhotoSource, type CampaignCard, type CampaignPhotoRef, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
 import type { CampaignState, PhotoJob } from './useCampaign';
 
@@ -21,11 +22,12 @@ const START_SETTINGS: AutoSettings = {
 /** The library photo matched to slide `i` (or to the shared photo), when stock photos found one. */
 const libraryRef = (written: AutoContentDto, i: number | null): CampaignPhotoRef | null => (i === null ? written.coverRef : written.libraryRefs[i] ?? null);
 
-/** The photo request of content slide `i` (or the shared photo when `i` is null). */
-const photoRequest = (written: AutoContentDto, source: AutoPhotoSource, i: number | null): AutoPhotoRequest =>
+/** The photo request of content slide `i` (or the shared photo when `i` is null). AI photos take the tone of campaign
+ *  photo `tonePhoto` (the first hook photo) when there is one. */
+const photoRequest = (written: AutoContentDto, source: AutoPhotoSource, i: number | null, tonePhoto: number | undefined): AutoPhotoRequest =>
   source === 'stock'
     ? { source: 'stock', query: i === null ? written.coverQuery : written.queries[i]!, nth: i ?? 0 }
-    : { source: 'ai', scene: i === null ? written.coverScene : written.scenes[i]! };
+    : { source: 'ai', scene: i === null ? written.coverScene : written.scenes[i]!, ...(tonePhoto === undefined ? {} : { tonePhoto }) };
 
 /**
  * The Content tab's "Auto": writes the content slides from the prompt (in the hook lines' context), replaces the
@@ -33,18 +35,25 @@ const photoRequest = (written: AutoContentDto, source: AutoPhotoSource, i: numbe
  */
 export const useAutoContent = (token: string, campaignId: string, state: CampaignState) => {
   const draft = state.campaign?.draft;
-  const [settings, setSettings] = useState<AutoSettings>(START_SETTINGS);
+  const [picked, setPicked] = useState<AutoSettings>(START_SETTINGS);
+  /** Until the person picks a format, a hook with a number ("6 ways…") makes the slides Numbered. */
+  const [formatPicked, setFormatPicked] = useState(false);
+  const settings: AutoSettings = formatPicked || !draft || autoSlideCount(draft.hooks) === null ? picked : { ...picked, format: 'numbered' };
+  const tonePhoto = draft?.hookPhotos[0];
   const [writing, setWriting] = useState(false);
   const base = `/api/slideshow/campaigns/${campaignId}`;
 
-  const update = useCallback((patch: Partial<AutoSettings>) => setSettings((s) => ({ ...s, ...patch })), []);
+  const update = useCallback((patch: Partial<AutoSettings>) => {
+    if (patch.format) setFormatPicked(true);
+    setPicked((s) => ({ ...s, ...patch }));
+  }, []);
 
   const photoJobs = useCallback((written: AutoContentDto, s: AutoSettings): PhotoJob[] => {
     const post = async (path: string, body: unknown) => (await adminFetch<{ photo: CampaignPhotoDto }>(token, `${base}/${path}`, { method: 'POST', body: JSON.stringify(body) })).photo;
     // A matched brand or shared photo is imported like a pick; otherwise the photo is made (AI) or found on Unsplash.
     const load = (i: number | null) => {
       const ref = s.photoSource === 'stock' ? libraryRef(written, i) : null;
-      return ref ? () => post('photos', { ref }) : () => post('auto-photo', photoRequest(written, s.photoSource, i));
+      return ref ? () => post('photos', { ref }) : () => post('auto-photo', photoRequest(written, s.photoSource, i, tonePhoto));
     };
     const stamp = Date.now().toString(36);
     if (s.samePhoto) {
@@ -52,7 +61,7 @@ export const useAutoContent = (token: string, campaignId: string, state: Campaig
       return [{ key: `auto-${stamp}-all`, thumbUrl: null, target: { slot: 'cards', cards }, load: load(null) }];
     }
     return written.titles.map((_, i) => ({ key: `auto-${stamp}-${i}`, thumbUrl: null, target: { slot: 'card', card: i }, load: load(i) }));
-  }, [token, base]);
+  }, [token, base, tonePhoto]);
 
   /** Writes and places the slides; resolves true once the text is on the cards (photos keep coming in). */
   const run = useCallback(async (): Promise<boolean> => {
@@ -61,10 +70,14 @@ export const useAutoContent = (token: string, campaignId: string, state: Campaig
     state.setError(null);
     try {
       const written = await adminFetch<AutoContentDto>(token, `${base}/auto`, { method: 'POST', body: JSON.stringify({ ...settings, hooks: draft.hooks }) });
-      state.setDraft((d) => ({
-        ...d,
-        cards: [...written.titles.map((title): CampaignCard => ({ role: 'item', title, body: '', photo: null })), d.cards[d.cards.length - 1]!],
-      }));
+      state.setDraft((d) => {
+        const cta = d.cards[d.cards.length - 1]!;
+        // "6 ways…": an empty CTA is the 6th slide, so it gets text to edit (numbered "6. " below when Numbered).
+        const prefill = autoSlideCount(d.hooks) !== null && !stripNumber(cta.title).trim();
+        const cards = [...written.titles.map((title): CampaignCard => ({ role: 'item', title, body: '', photo: null })), prefill ? { ...cta, title: CTA_PREFILL } : cta];
+        // Numbered: the CTA takes the hook's last number too ("6 ways…": slides 1-5, then the CTA as 6).
+        return { ...d, cards: settings.format === 'numbered' ? numberCards({ hooks: d.hooks, cards }, true) : cards };
+      });
       void state.addPhotos(photoJobs(written, settings));
       return true;
     } catch (err) {

@@ -6,6 +6,7 @@
 
 import { isHookStyleId } from '../hookStyle';
 import { isSlideLook, type TextAt, type TextLook } from '../slideText';
+import type { StoreBadge } from '../storeBadges';
 import type { AutoSlideshowDto } from './autoSlideshow';
 
 /** Slides a new campaign starts with: 1 hook, 5 content, 1 CTA. */
@@ -24,7 +25,9 @@ export const SHOW_CARD_BODY = false;
 
 /** A content or CTA card: the same text and photo in every slideshow. `photo`: index into the run's photos. `textAt`:
  *  where its text was dragged to (unset = the usual spot). */
-export type CampaignCard = { role: 'item' | 'cta'; title: string; body: string; photo: number | null; textAt?: TextAt };
+/** `badges`: the CTA's app store badges; unset = none. `badgesAt`: their row's top (share of the height), moved apart from
+ *  the text; unset = HOME_BADGES_Y. */
+export type CampaignCard = { role: 'item' | 'cta'; title: string; body: string; photo: number | null; textAt?: TextAt; badges?: StoreBadge[]; badgesAt?: number };
 
 /** The editor's state, stored on the run. `hookPhotos`: indexes into the run's photos, in rotation order. */
 export type CampaignDraft = {
@@ -91,7 +94,8 @@ export type CampaignPhotoRef =
   | { source: 'generated'; runId: string; index: number }
   | { source: 'brand'; id: string }
   | { source: 'shared'; id: string }
-  | { source: 'unsplash'; id: string };
+  | { source: 'unsplash'; id: string }
+  | { source: 'app_shot'; id: string };
 
 /** Which slide the import is for: the hook (adds to the rotation), one card or several cards (replaces their photo). */
 export type CampaignPhotoTarget = { slot: 'hook' } | { slot: 'card'; card: number } | { slot: 'cards'; cards: number[] };
@@ -120,19 +124,42 @@ export type CampaignDto = {
   slideshows: AutoSlideshowDto[];
   /** True when the slideshows were made from the draft as it is now (Schedule then skips rendering). */
   rendered: boolean;
+  /** Posts put on the Calendar, waiting for approval there (times still to come). */
+  plan: CampaignPlanItem[];
   createdAt: string;
 };
+
+/** A campaign post on the Calendar, waiting for approval there: slideshow `position` (hook i) at `at` (ISO). */
+export type CampaignPlanItem = { position: number; at: string };
+
+/** The workspace's campaign posts for the Calendar: slideshows planned there (`planned`: id → ISO time) or scheduled.
+ *  `campaignOf`: slideshow id → its campaign, so a tap opens the campaign. */
+export type CampaignCalendarDto = { slideshows: AutoSlideshowDto[]; planned: Record<string, string>; campaignOf: Record<string, string> };
 
 /** One photo of a picker tab (generated, brand, shared, Unsplash), with what importing it needs. */
 export type PhotoOptionDto = { key: string; thumbUrl: string; ref: CampaignPhotoRef; label: string; credit: CampaignCredit | null };
 
 export type PhotoTab = 'search' | 'generated' | 'brand' | 'shared';
 
+/** A file the App shot builder keeps (an app screenshot or a background), with its thumb. */
+export type AppShotAssetDto = { id: string; url: string };
+
+/** The App shot's background: a scene uploaded or generated, an Unsplash pick, or null (the top stock photo for the text). */
+export type AppShotBackground = { source: 'scene'; id: string } | { source: 'unsplash'; id: string } | null;
+
+/** What the App shot builder sends: the pose, the app screenshot, the scene text and the background. */
+export type AppShotRequest = { pose: string; screenId: string; scene: string; background: AppShotBackground };
+
 /** Hook line i opens slideshow i; photo i goes with it, and photos loop when there are fewer photos than hooks. */
 export const hookPhotoFor = (draft: Pick<CampaignDraft, 'hookPhotos'>, hookIndex: number): number | null =>
   draft.hookPhotos.length === 0 ? null : draft.hookPhotos[hookIndex % draft.hookPhotos.length]!;
 
 /** What still blocks Generate, in the order a person fixes it; empty when the draft is ready. */
+/** What Auto writes on an empty CTA when the hook promises a number ("6 ways…": the CTA is the 6th), for the person to
+ *  replace. Schedule waits until it is replaced. */
+export const CTA_PREFILL = 'Edit your CTA here';
+export const isCtaPrefill = (title: string): boolean => /^\s*(?:\d+[.)]\s*)?edit your cta here\s*$/i.test(title);
+
 export const campaignProblems = (draft: CampaignDraft): string[] => {
   const problems: string[] = [];
   if (draft.hooks.length === 0) problems.push('Add at least one hook.');
@@ -141,6 +168,7 @@ export const campaignProblems = (draft: CampaignDraft): string[] => {
     const name = c.role === 'cta' ? 'The CTA card' : `Content card ${i + 1}`;
     if (c.photo === null) problems.push(`${name} needs a photo.`);
     if (!c.title.trim()) problems.push(`${name} needs a headline.`);
+    else if (c.role === 'cta' && isCtaPrefill(c.title)) problems.push('Write your CTA: it still says "Edit your CTA here".');
   });
   return problems;
 };
@@ -162,10 +190,13 @@ export const AUTO_LENGTH_WORDS: Record<AutoLength, [number, number]> = { short: 
 export const AUTO_MIN_SLIDES = 3;
 export const AUTO_MAX_SLIDES = 15;
 
-/** The slide count the first hook fixes ("6 ways…" → 6), when it is in Auto's range; null lets the writer decide. */
+/**
+ * The content slide count the first hook fixes: one less than its number, the CTA being the last one ("6 ways…" → 5
+ * content slides, then the CTA as the 6th). Null lets the writer decide.
+ */
 export const autoSlideCount = (hooks: string[]): number | null => {
   const n = hooks[0] ? hookNumber(hooks[0]) : null;
-  return n !== null && n >= AUTO_MIN_SLIDES && n <= AUTO_MAX_SLIDES ? n : null;
+  return n !== null && n - 1 >= 2 && n - 1 <= AUTO_MAX_SLIDES ? n - 1 : null;
 };
 
 export type AutoContentRequest = {
@@ -195,8 +226,9 @@ export type AutoContentDto = {
   coverRef: CampaignPhotoRef | null;
 };
 
-/** One photo for the auto content: an AI photo of a scene, or the `nth` stock result of a search. */
-export type AutoPhotoRequest = { source: 'ai'; scene: string } | { source: 'stock'; query: string; nth: number };
+/** One photo for the auto content: an AI photo of a scene (matching the color and light of campaign photo `tonePhoto`,
+ *  the first hook photo, when set), or the `nth` stock result of a search. */
+export type AutoPhotoRequest = { source: 'ai'; scene: string; tonePhoto?: number } | { source: 'stock'; query: string; nth: number };
 
 /** The number a hook line promises ("5 ways to…"), or null. */
 export const hookNumber = (hook: string): number | null => {

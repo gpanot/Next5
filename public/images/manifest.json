@@ -4568,5 +4568,37 @@
     "bytes": 42461,
     "alt": "TikTok slide: \"The clarity glow-up: your slideshow finally reads like chapters.\"",
     "generatedAt": "2026-10-04T09:54:17.833Z"
+  },
+  "public/images/app-shot/pose-held-up-raw.png": {
+    "prompt": "Photorealistic studio photo: a person's right hand holding a modern black smartphone upright in portrait orientation, phone facing the camera straight on, centered in the frame, filling about 45 percent of the frame height. The phone display is one flat uniform pure chroma key green color (#00FF00) covering the entire screen edge to edge, no reflections, no interface. The whole background is one flat uniform pure chroma key blue color (#0000FF), evenly lit, no shadows on the background. The wrist enters from the bottom edge of the frame. Thumb rests on the side of the phone, fingers wrap behind it. Soft even daylight, sharp focus, natural skin tone.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1088x1920",
+    "outputSize": "1088x1920",
+    "bytes": 1181914,
+    "alt": "Hand holding a phone with a green screen on a blue backdrop",
+    "generatedAt": "2026-10-14T02:58:49.461Z"
+  },
+  "public/images/app-shot/pose-over-shoulder-raw.png": {
+    "prompt": "Photorealistic studio photo taken from just behind a person's right shoulder, point of view over the shoulder: the back of the shoulder in a plain grey t-shirt and part of the neck fill the bottom right corner of the frame, the person's right hand holds a modern black smartphone upright in portrait orientation in front of them, phone slightly tilted, screen facing the camera, phone centered in the frame and filling about 45 percent of the frame height. The phone display is one flat uniform pure chroma key green color (#00FF00) covering the entire screen edge to edge, no reflections, no interface. The whole background is one flat uniform pure chroma key blue color (#0000FF), evenly lit, no shadows on the background. Soft even daylight, sharp focus, natural skin tone.",
+    "model": "black-forest-labs/FLUX-2-klein-9b",
+    "size": "1088x1920",
+    "outputSize": "1088x1920",
+    "bytes": 1475065,
+    "alt": "Over-the-shoulder view of a hand holding a phone with a green screen on a blue backdrop",
+    "generatedAt": "2026-10-14T02:59:01.003Z"
+  },
+  "public/images/store-badges/app-store.svg": {
+    "prompt": "Not generated: Apple official badge artwork (Download on the App Store, black, US/UK), via Wikimedia Commons",
+    "size": "135x40",
+    "bytes": 12353,
+    "alt": "Download on the App Store",
+    "addedAt": "2026-10-14T05:12:07.495Z"
+  },
+  "public/images/store-badges/google-play.svg": {
+    "prompt": "Not generated: Google official badge artwork (Get it on Google Play, English), via Wikimedia Commons",
+    "size": "180x53",
+    "bytes": 7145,
+    "alt": "Get it on Google Play",
+    "addedAt": "2026-10-14T05:12:07.495Z"
   }
 }

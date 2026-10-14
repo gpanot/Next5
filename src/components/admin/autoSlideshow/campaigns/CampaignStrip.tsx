@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { lookOfRole, MAX_CAMPAIGN_CONTENT, shownBody, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import type { TextAt } from '../../../../types/slideText';
-import type { PreviewSlide } from './previewSlides';
+import { badgesOf, type PreviewSlide } from './previewSlides';
 import { PreviewSlideView } from './PreviewSlideView';
 
 type Props = {
@@ -14,6 +14,8 @@ type Props = {
   onAdd: () => void;
   /** The ringed slide's text was dragged: slide i's text now sits at `at`. */
   onMoveText: (i: number, at: TextAt) => void;
+  /** The ringed CTA's badge row was dragged: its top now sits at `y`. */
+  onMoveBadges: (i: number, y: number) => void;
 };
 
 type Card = { label: string; slide: PreviewSlide };
@@ -30,14 +32,14 @@ const cardsOf = (draft: CampaignDraft, photos: CampaignPhotoDto[]): Card[] => {
     { label: rotating > 1 ? `Hook · ${rotating} rotating` : 'Hook', slide: hook },
     ...draft.cards.map((c): Card => ({
       label: c.role === 'cta' ? 'CTA' : 'Content',
-      slide: { kind: 'draft', photoUrl: url(c.photo), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role), textAt: c.textAt },
+      slide: { kind: 'draft', photoUrl: url(c.photo), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role), textAt: c.textAt, ...badgesOf(c) },
     })),
   ];
 };
 
 /** Every slide of the campaign as a numbered 9:16 card; the one being edited is ringed and its text can be dragged.
  *  A last tile adds a content slide. */
-export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText }: Props) {
+export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText, onMoveBadges }: Props) {
   const list = useRef<HTMLOListElement>(null);
   const cards = cardsOf(draft, photos);
   const contentCount = draft.cards.length - 1;
@@ -61,7 +63,7 @@ export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText 
               className={`relative flex w-[141px] flex-col overflow-hidden rounded-xl border-2 bg-zinc-900 transition active:scale-[0.98] sm:w-[194px] ${on ? 'border-emerald-400 shadow-sm shadow-emerald-500/20' : 'border-white/10 hover:border-white/30'}`}
             >
               <span className="relative block aspect-[9/16] w-full bg-white/5">
-                <span className="absolute inset-0"><PreviewSlideView slide={c.slide} movable={on} onMoveText={(at) => onMoveText(i, at)} /></span>
+                <span className="absolute inset-0"><PreviewSlideView slide={c.slide} movable={on} onMoveText={(at) => onMoveText(i, at)} onMoveBadges={(y) => onMoveBadges(i, y)} /></span>
                 <span className="absolute top-2 left-2 flex h-6 min-w-6 items-center justify-center rounded-md bg-black/70 px-1 text-[11px] font-bold text-white">{i + 1}</span>
               </span>
               <span className={`truncate px-3 py-2 text-left text-sm font-medium ${on ? 'text-white' : 'text-white/60'}`}>{c.label}</span>

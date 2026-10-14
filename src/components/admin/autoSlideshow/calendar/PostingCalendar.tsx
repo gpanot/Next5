@@ -28,6 +28,7 @@ import { SlideshowDnd } from './SlideshowDnd';
 import { StatusLegend } from './StatusLegend';
 import { entriesOf } from './tileModel';
 import { useBlitzOnCalendar } from './useBlitzOnCalendar';
+import { useCampaignsOnCalendar } from './useCampaignsOnCalendar';
 import { useCalendarView, usePins, useTargets } from './useCalendarStore';
 import { useIsWide } from './useIsWide';
 import { useMoveOnCalendar } from './useMoveOnCalendar';
@@ -44,16 +45,16 @@ type Props = {
 };
 
 /** Times of the live slideshow posts and Blitz videos, by day key (canceled and failed ones free their day). */
-const usePostTimes = (run: AutoRunDto, blitz: BlitzScheduleDto[]) => useMemo(() => {
+const usePostTimes = (slideshows: AutoRunDto['slideshows'], blitz: BlitzScheduleDto[]) => useMemo(() => {
   const map = new Map<string, Date[]>();
   const add = (iso: string) => {
     const at = new Date(iso);
     map.set(dayKey(at), [...(map.get(dayKey(at)) ?? []), at]);
   };
   blitz.filter((b) => b.status !== 'canceled' && b.status !== 'failed').forEach((b) => add(b.scheduledAt));
-  run.slideshows.forEach((s) => s.post && s.post.status !== 'canceled' && s.post.status !== 'failed' && add(s.post.scheduledAt));
+  slideshows.forEach((s) => s.post && s.post.status !== 'canceled' && s.post.status !== 'failed' && add(s.post.scheduledAt));
   return map;
-}, [run.slideshows, blitz]);
+}, [slideshows, blitz]);
 
 /** Keeps now on the calendar (a post or kept idea at that time) stop being held. */
 const useConfirmHeld = (ui: CalendarIdeasUi | null, all: PlanDay[]) => {
@@ -91,6 +92,16 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const { adding, error, add } = useAdd(token, run.id, onRunChanged);
   const { month, step, canPrev, canNext } = useMonth(run);
   const { items: blitz, reload: reloadBlitz } = useBlitzOnCalendar(token, run.workspaceId);
+  // Campaign posts: planned ones wait for the approval below like ready slideshows; scheduled ones show as posts.
+  const campaigns = useCampaignsOnCalendar(token, run.workspaceId);
+  const slideshows = useMemo(() => [...run.slideshows, ...campaigns.slideshows], [run.slideshows, campaigns.slideshows]);
+  const router = useRouter();
+  // A campaign's slideshow opens its campaign (edited there), the others open in the slideshow editor.
+  const openShow = (id: string) => {
+    const campaignId = campaigns.campaignOf[id];
+    if (campaignId) router.push(`/slideshow/${run.workspaceId}/campaigns?campaign=${campaignId}`);
+    else onOpen(id);
+  };
   const [openBlitz, setOpenBlitz] = useState<BlitzScheduleDto | null>(null);
   // The Calendar stays mounted while another workspace page shows (its "Edit" leads to Content): close the video sheet
   // when it is hidden, so coming back shows the calendar, not a sheet for a video that may have changed.
@@ -99,7 +110,10 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   // Only a working run has slideshows still to come; a finished one shows what it has.
   const working = !isTerminalAutoStatus(run.status);
   const pending = working ? Math.max(0, run.count - run.slideshows.length) : 0;
-  const { days, all } = useMemo(() => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins, blitz }), [run.slideshows, pending, working, month, targets, pins, blitz]);
+  const { days, all } = useMemo(
+    () => buildMonth({ slideshows, pending, working, month, targets, pins, blitz, planned: campaigns.planned }),
+    [slideshows, pending, working, month, targets, pins, blitz, campaigns.planned],
+  );
   const counts = monthCounts(days);
   const approve = toApprove(all);
   // Planned Blitz videos wait for the same approval (TikTok). Ones whose time passed are expired by the server.
@@ -133,13 +147,13 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   // A kept idea fills the soonest empty day (no slideshow, video or kept idea yet); only a full calendar stacks days.
   // Times on a day: its posts and kept ideas, plus keeps still being saved (so fast swipes never share a time).
   // Live posts by day, any month: the days past the built ones have no slots, so their posts are counted from here.
-  const postedOn = usePostTimes(run, blitz);
+  const postedOn = usePostTimes(slideshows, blitz);
   const takenOn = (day: PlanDay, id = '') => uniqueTimes([...takenBy(entriesFor(day), id), ...(ui?.heldOn(day.key) ?? []), ...(postedOn.get(day.key) ?? [])]);
   const placeOf = (idea: IdeaDto) => placeIdea(idea.id, all, takenOn);
   useConfirmHeld(ui, all);
   const detail = (day: PlanDay, onBack?: () => void) => (
     <DayDetail key={day.key} day={day} entries={entriesFor(day)} taken={takenOn(day)} ideas={ui?.ideas ?? null} maker={ui?.maker ?? null}
-      onOpen={onOpen} onOpenBlitz={setOpenBlitz} onSetCount={onSetCount} onOpenIdea={rail.openIdea} onBack={onBack} />
+      onOpen={openShow} onOpenBlitz={setOpenBlitz} onSetCount={onSetCount} onOpenIdea={rail.openIdea} onBack={onBack} />
   );
   const selected = all.concat(days).find((d) => d.key === rail.selectedKey) ?? null;
   // Wide screens: the day the user opened, on the right. Ideas live on the Ideas page, not beside the calendar.
@@ -182,7 +196,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
       {posting.posts && posting.posts.length > 0 && (
         <details className="border-t border-line pt-3 dark:border-zinc-800">
           <summary className="cursor-pointer py-2 text-xs font-bold tracking-wider text-muted uppercase">Post history ({posting.posts.length})</summary>
-          <PostQueue posts={posting.posts} slideshows={run.slideshows} busy={posting.busy} onAction={(id, a) => void posting.act(id, a).then(onRunChanged)} />
+          <PostQueue posts={posting.posts} slideshows={slideshows} busy={posting.busy} onAction={(id, a) => void posting.act(id, a).then(onRunChanged)} />
         </details>
       )}
       {openBlitz && labClient && (
@@ -190,7 +204,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
           <VideoSheet item={openBlitz} onClose={() => setOpenBlitz(null)} onChanged={reloadBlitz} editHref={`/slideshow/${run.workspaceId}/content?editPost=${openBlitz.id}`} />
         </LabClientProvider>
       )}
-      {approving && <ApproveSheet token={token} run={run} items={approve} videos={plannedVideos} onVideosChanged={reloadBlitz} posting={posting} onClose={() => { setApproving(false); onRunChanged(); }} />}
+      {approving && <ApproveSheet token={token} run={run} items={approve} videos={plannedVideos} onVideosChanged={reloadBlitz} posting={posting} onClose={() => { setApproving(false); onRunChanged(); campaigns.reload(); }} />}
     </section>
     {dayOpen && selected && (
       <aside aria-label="Day" className="hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">
