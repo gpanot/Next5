@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import type { ApproveBlitzRequest, BlitzAccountsDto, BlitzPlatform, TikTokChoices } from '../../../../types/admin/blitzSchedule';
-import type { YouTubePrivacyChoice } from '../../../../types/admin/autoSlideshow';
+import { DISCLOSE_MISSING, type YouTubePrivacyChoice } from '../../../../types/admin/autoSlideshow';
 import { useLabClient } from '../../LabClientProvider';
 import { scheduleApi } from './scheduleApi';
-import { choicesReady, useTikTokCreator } from './TikTokFields';
+import { choicesProblem, useTikTokCreator } from './TikTokFields';
 
-const NO_TIKTOK: TikTokChoices = { privacyLevel: '', allowComments: true, brandOrganic: false, brandContent: false, consent: false };
+const NO_TIKTOK: TikTokChoices = { privacyLevel: '', allowComments: false, allowDuet: false, allowStitch: false, brandOrganic: false, brandContent: false, consent: false };
 
 /** The workspace's connected platforms; null while loading. */
 export function useBlitzAccounts() {
@@ -42,13 +42,15 @@ export function usePostChoices(initial?: BlitzPlatform) {
     if (!accounts || (platform === 'tiktok' && creator.status === 'loading')) return 'One moment, loading your accounts.';
     if (!accounts.accounts[platform] && !(platform === 'tiktok' && creator.status === 'ready')) return platform === 'tiktok' ? 'Connect at least one social media account.' : 'Connect your YouTube channel first.';
     if (platform === 'tiktok' && creator.status === 'error') return creator.message;
-    if (platform === 'tiktok' && !choicesReady(tiktok, disclose)) return 'Pick who can see it on TikTok and tick the box to agree.';
+    if (platform === 'tiktok') return choicesProblem(tiktok, disclose);
     return null;
   };
+  // TikTok's rule: Post stays disabled while disclosure is on and no box is ticked.
+  const blocked = platform === 'tiktok' && creator.status === 'ready' && choicesProblem(tiktok, disclose) === DISCLOSE_MISSING ? DISCLOSE_MISSING : null;
   const request = (): ApproveBlitzRequest => platform === 'youtube'
     ? { platform, youtube: { privacyLevel: youtube } }
     : { platform, tiktok: { ...tiktok, brandOrganic: disclose && tiktok.brandOrganic, brandContent: disclose && tiktok.brandContent } };
-  return { accounts, creator, platform, setPlatform: setPicked, tiktok, setTikTok, disclose, setDisclose, youtube, setYouTube, check, request };
+  return { accounts, creator, platform, setPlatform: setPicked, tiktok, setTikTok, disclose, setDisclose, youtube, setYouTube, check, blocked, request };
 }
 
 export type PostChoices = ReturnType<typeof usePostChoices>;

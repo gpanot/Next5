@@ -19,8 +19,6 @@ const FILTERS: { id: Filter; label: string }[] = [
 
 const errorClass = 'rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300';
 
-const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-
 function GridSkeleton() {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-busy="true" aria-label="Loading your slideshows">
@@ -31,47 +29,44 @@ function GridSkeleton() {
   );
 }
 
+type AutoRunState = ReturnType<typeof useAutoRun>;
+
 /** One run's slideshows: tap a ready one to edit it; a failed one offers Retry once the run is done. */
-function RunSection({ token, summary, latest, calendarOnly }: { token: string; summary: AutoRunSummary; latest: boolean; calendarOnly: boolean }) {
-  const { run, error, refresh } = useAutoRun(token, summary.id);
+function RunSlideshows({ token, auto, calendarOnly }: { token: string; auto: AutoRunState; calendarOnly: boolean }) {
+  const { run, error, refresh } = auto;
   const [openId, setOpenId] = useState<string | null>(null);
   const [retrying, setRetrying] = useState<string | null>(null);
   const done = run ? isTerminalAutoStatus(run.status) : false;
   const shows = run ? (calendarOnly ? run.slideshows.filter((s) => s.status !== 'failed') : run.slideshows) : [];
 
   const retry = async (slideshowId: string) => {
+    if (!run) return;
     setRetrying(slideshowId);
-    await adminFetch(token, `/api/admin/auto-slideshow/runs/${summary.id}/slideshows/${slideshowId}/regenerate`, { method: 'POST', body: '{}' }).catch(() => undefined);
+    await adminFetch(token, `/api/admin/auto-slideshow/runs/${run.id}/slideshows/${slideshowId}/regenerate`, { method: 'POST', body: '{}' }).catch(() => undefined);
     setRetrying(null);
     refresh();
   };
+  if (!run) return error ? <p className={errorClass}>{error}</p> : <GridSkeleton />;
   return (
-    <section className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <h2 className="flex flex-wrap items-center gap-2 text-sm font-bold text-app-ink">
-          {when(summary.createdAt)}
-          <span className="font-normal text-app-muted">· {run ? shows.length : summary.count} slideshows</span>
-          {latest && <span className="rounded-full bg-app-sunken px-2 py-0.5 text-xs font-semibold text-app-muted">On calendar</span>}
-        </h2>
-        {/* New slideshows join the latest run, the one the Calendar places on days. */}
-        {latest && run && <CreateSlideshowsButton token={token} runId={run.id} ready={run.status === 'COMPLETED'} working={!done} onCreated={refresh} />}
-      </div>
-      {!run ? (
-        error ? <p className={errorClass}>{error}</p> : <GridSkeleton />
-      ) : (
-        <SlideshowGrid
-          slideshows={shows}
-          expected={calendarOnly && done ? shows.length : run.count}
-          writing={!done}
-          since={done ? undefined : run.startedAt}
-          retrying={retrying}
-          onOpen={(i) => setOpenId(shows[i]!.id)}
-          onRetry={done ? (id) => void retry(id) : undefined}
-        />
-      )}
-      {run && <RunSlideshowEditor token={token} run={run} openId={openId} onOpen={setOpenId} onChanged={refresh} />}
+    <section>
+      <SlideshowGrid
+        slideshows={shows}
+        expected={calendarOnly && done ? shows.length : run.count}
+        writing={!done}
+        since={done ? undefined : run.startedAt}
+        retrying={retrying}
+        onOpen={(i) => setOpenId(shows[i]!.id)}
+        onRetry={done ? (id) => void retry(id) : undefined}
+      />
+      <RunSlideshowEditor token={token} run={run} openId={openId} onOpen={setOpenId} onChanged={refresh} />
     </section>
   );
+}
+
+/** An older run: polls itself. */
+function OlderRun({ token, runId }: { token: string; runId: string }) {
+  const auto = useAutoRun(token, runId);
+  return <RunSlideshows token={token} auto={auto} calendarOnly={false} />;
 }
 
 function NoSlideshows({ workspaceId }: { workspaceId: string }) {
@@ -107,37 +102,46 @@ function FilterSelect({ value, onChange }: { value: Filter; onChange: (f: Filter
   );
 }
 
-/** The "Slideshows" title, with the filter on its right once there is something to filter. */
+/** The "Slideshows" title, with the filter and Create on its right. */
 function Header({ children }: { children?: ReactNode }) {
   return (
-    <div className="flex min-h-10 items-center justify-between gap-3">
-      <h2 className="font-heading text-xl font-normal text-app-ink">Slideshows</h2>
+    <div className="flex min-h-11 items-center gap-3">
+      <h2 className="mr-auto font-heading text-xl font-normal text-app-ink">Slideshows</h2>
       {children}
     </div>
   );
 }
 
-function Body({ token, workspaceId, runs, filter }: { token: string; workspaceId: string; runs: AutoRunSummary[]; filter: Filter }) {
-  if (runs.length === 0) return <NoSlideshows workspaceId={workspaceId} />;
-  const shown = filter === 'calendar' ? runs.slice(0, 1) : runs;
+/** Every run, newest first. The latest run is polled here so its Create button can sit in the header. */
+function Runs({ token, runs }: { token: string; runs: AutoRunSummary[] }) {
+  const [filter, setFilter] = useState<Filter>('all');
+  const latest = useAutoRun(token, runs[0]!.id);
+  const { run, refresh } = latest;
+  const calendarOnly = filter === 'calendar';
   return (
-    <div className="space-y-6">
-      {shown.map((summary, i) => (
-        <RunSection key={summary.id} token={token} summary={summary} latest={i === 0} calendarOnly={filter === 'calendar'} />
-      ))}
-    </div>
+    <>
+      <Header>
+        <FilterSelect value={filter} onChange={setFilter} />
+        {/* New slideshows join the latest run, the one the Calendar places on days. */}
+        {run && <CreateSlideshowsButton token={token} runId={run.id} ready={run.status === 'COMPLETED'} working={!isTerminalAutoStatus(run.status)} onCreated={refresh} />}
+      </Header>
+      <div className="space-y-6">
+        <RunSlideshows token={token} auto={latest} calendarOnly={calendarOnly} />
+        {!calendarOnly && runs.slice(1).map((summary) => <OlderRun key={summary.id} token={token} runId={summary.id} />)}
+      </div>
+    </>
   );
 }
 
 /** Editor › Slideshows: every run of the workspace, newest first. The latest run is the one the Calendar places on days. */
 export function SlideshowsTab({ token, workspaceId }: { token: string; workspaceId: string }) {
   const runs = useAdminApi<{ runs: AutoRunSummary[] }>(token, `/api/admin/auto-slideshow/runs?workspace=${workspaceId}`);
-  const [filter, setFilter] = useState<Filter>('all');
   const all = runs.data?.runs;
+  if (all && all.length > 0) return <section className="space-y-4"><Runs token={token} runs={all} /></section>;
   return (
     <section className="space-y-4">
-      <Header>{all && all.length > 0 && <FilterSelect value={filter} onChange={setFilter} />}</Header>
-      {runs.error ? <p className={errorClass}>{runs.error}</p> : !all ? <GridSkeleton /> : <Body token={token} workspaceId={workspaceId} runs={all} filter={filter} />}
+      <Header />
+      {runs.error ? <p className={errorClass}>{runs.error}</p> : !all ? <GridSkeleton /> : <NoSlideshows workspaceId={workspaceId} />}
     </section>
   );
 }

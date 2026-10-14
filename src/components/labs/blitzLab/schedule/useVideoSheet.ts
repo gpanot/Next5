@@ -23,6 +23,7 @@ export function useVideoSheet({ item, onClose, onChanged }: Options, choices: Po
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
   const [scheduledAt, setScheduledAt] = useState(item.scheduledAt);
+  const [postNow, setPostNow] = useState(false);
 
   const send = async <T,>(how: Exclude<Busy, null>, call: () => Promise<LabResponse<T>>): Promise<T | null> => {
     setBusy(how);
@@ -41,7 +42,7 @@ export function useVideoSheet({ item, onClose, onChanged }: Options, choices: Po
   const approve = async () => {
     const missing = choices.check();
     if (missing) return setError(missing);
-    if (await send('approve', () => scheduleApi.approve(client, item.id, choices.request()))) onClose();
+    if (await send('approve', () => scheduleApi.approve(client, item.id, postNow ? { ...choices.request(), postNow, tzOffsetMin: new Date().getTimezoneOffset() } : choices.request()))) onClose();
   };
 
   const remove = async () => {
@@ -54,7 +55,7 @@ export function useVideoSheet({ item, onClose, onChanged }: Options, choices: Po
     if (data) setScheduledAt(data.item.scheduledAt);
   };
 
-  return { busy, error, setError, scheduledAt, approve, remove, move };
+  return { busy, error, setError, scheduledAt, postNow, setPostNow, approve, remove, move };
 }
 
 export type VideoSheetActions = ReturnType<typeof useVideoSheet>;

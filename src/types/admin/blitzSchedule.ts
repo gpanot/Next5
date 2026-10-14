@@ -51,6 +51,9 @@ export type CalendarBusyDto = { scheduledAt: string; title: string; coverUrl: st
 export type TikTokChoices = {
   privacyLevel: string;
   allowComments: boolean;
+  /** Videos: chosen by a person, off by default. */
+  allowDuet?: boolean;
+  allowStitch?: boolean;
   brandOrganic: boolean;
   brandContent: boolean;
   consent: boolean;
@@ -70,7 +73,14 @@ export type ScheduleBlitzRequest = {
 };
 
 /** The approval on the calendar: the platform and its choices (TikTok's Direct Post choices, or YouTube's privacy). */
-export type ApproveBlitzRequest = { platform?: BlitzPlatform; tiktok?: TikTokChoices; youtube?: { privacyLevel: string } };
+export type ApproveBlitzRequest = {
+  platform?: BlitzPlatform;
+  tiktok?: TikTokChoices;
+  youtube?: { privacyLevel: string };
+  /** Calendar approve only: post it now instead of on its day (the viewer's `getTimezoneOffset()` for the day limit). */
+  postNow?: boolean;
+  tzOffsetMin?: number;
+};
 
 /**
  * "Post now": schedule the kept card for now, already approved. With `projectId` (a video already made with Generate)

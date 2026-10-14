@@ -68,7 +68,7 @@ export function PostNowSheet({ target, platform, schedule, onClose }: Props) {
           {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error}</p>}
         </div>
         <footer className="border-t border-[var(--line,#e8e5e1)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-neutral-800">
-          <button type="button" onClick={() => void send()} disabled={busy} className="flex min-h-12 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--ready,#1e8049)] px-4 text-[14px] font-semibold text-white shadow-sm transition active:scale-95 disabled:opacity-40">
+          <button type="button" onClick={() => void send()} disabled={busy || choices.blocked !== null} title={choices.blocked ?? undefined} className="flex min-h-12 w-full items-center justify-center gap-1.5 rounded-full bg-[var(--ready,#1e8049)] px-4 text-[14px] font-semibold text-white shadow-sm transition active:scale-95 disabled:opacity-40">
             {busy && <Loader2 aria-hidden className="h-4 w-4 animate-spin" />} Post now
           </button>
         </footer>
@@ -86,7 +86,7 @@ function Started({ platform, onDone }: { platform: 'tiktok' | 'youtube'; onDone:
       <div className="space-y-3 p-6 text-center">
         <CheckCircle2 aria-hidden className="mx-auto h-10 w-10 text-[var(--ready,#1e8049)]" />
         <p className="text-[16px] font-bold text-[var(--ink,#000)] dark:text-neutral-100">Your video is on its way</p>
-        <p className="text-[13.5px] text-[var(--mute,#7c7d82)]">Posting it to <b className="text-[var(--ink,#000)] dark:text-neutral-100">{where}</b> now. It usually takes a minute or two.</p>
+        <p className="text-[13.5px] text-[var(--mute,#7c7d82)]">Posting it to <b className="text-[var(--ink,#000)] dark:text-neutral-100">{where}</b> now. It may take a few minutes to process and show on your profile.</p>
         <p className="text-[13px] text-[var(--mute,#7c7d82)]">Follow it in the Library tab. Once live, the video shows &ldquo;Posted&rdquo; with the date and time.</p>
       </div>
       <footer className="border-t border-[var(--line,#e8e5e1)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-neutral-800">

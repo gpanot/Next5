@@ -8,6 +8,12 @@ describe('TikTok video Direct Post body', () => {
     expect(body.post_info).toMatchObject({ title: 'Hook', privacy_level: 'SELF_ONLY', disable_comment: true, brand_organic_toggle: true, is_aigc: true });
   });
 
+  it('keeps Duet and Stitch off unless the person turned them on', () => {
+    const base = { videoUrl: 'u', title: 'T', privacyLevel: 'PUBLIC_TO_EVERYONE', allowComments: false, brandOrganic: false, brandContent: false };
+    expect(videoBody(base).post_info).toMatchObject({ disable_duet: true, disable_stitch: true });
+    expect(videoBody({ ...base, allowDuet: true, allowStitch: true }).post_info).toMatchObject({ disable_duet: false, disable_stitch: false });
+  });
+
   it('clips the caption to 2,200 characters', () => {
     const body = videoBody({ videoUrl: 'u', title: 'a'.repeat(3000), privacyLevel: 'PUBLIC_TO_EVERYONE', allowComments: true, brandOrganic: false, brandContent: false });
     expect(body.post_info.title).toHaveLength(2200);

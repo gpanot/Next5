@@ -28,6 +28,9 @@ export type CreatorInfo = {
   /** Unaudited apps get only SELF_ONLY here. */
   privacyOptions: string[];
   commentDisabled: boolean;
+  /** Turned off in the creator's TikTok settings: grey out those choices. */
+  duetDisabled: boolean;
+  stitchDisabled: boolean;
 };
 
 export const queryCreatorInfo = async (token: string): Promise<CreatorInfo> => {
@@ -39,6 +42,8 @@ export const queryCreatorInfo = async (token: string): Promise<CreatorInfo> => {
     avatarUrl: typeof d.creator_avatar_url === 'string' ? d.creator_avatar_url : null,
     privacyOptions: Array.isArray(d.privacy_level_options) ? d.privacy_level_options.map(String) : [],
     commentDisabled: d.comment_disabled === true,
+    duetDisabled: d.duet_disabled === true,
+    stitchDisabled: d.stitch_disabled === true,
   };
 };
 

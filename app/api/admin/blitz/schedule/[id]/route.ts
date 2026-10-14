@@ -1,7 +1,8 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { after, NextResponse, type NextRequest } from 'next/server';
 import { HttpError } from '../../../../../../src/server/http';
 import { labRoute } from '../../../../../../src/server/labs/labAccess';
 import { approveBlitz, cancelBlitz, getBlitzEdit, moveBlitz } from '../../../../../../src/server/labs/blitzSchedule';
+import { runBlitzScheduleTick } from '../../../../../../src/server/labs/blitzScheduleTick';
 import type { ApproveBlitzRequest, MoveBlitzRequest } from '../../../../../../src/types/admin/blitzSchedule';
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -27,7 +28,10 @@ export const DELETE = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
 export const POST = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
   if (access.admin) throw new HttpError(400, 'user_only', 'Approve from a workspace.');
   const { id } = await ctx.params;
-  const item = await approveBlitz(access.workspaceId, id, (await req.json()) as ApproveBlitzRequest);
+  const body = (await req.json()) as ApproveBlitzRequest;
+  const item = await approveBlitz(access.workspaceId, id, body);
+  // "Post now": start it after the response instead of waiting for the next tick.
+  if (body.postNow) after(() => runBlitzScheduleTick());
   return NextResponse.json({ item });
 });
 

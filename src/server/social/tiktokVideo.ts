@@ -14,6 +14,9 @@ export type VideoInput = {
   title: string;
   privacyLevel: string;
   allowComments: boolean;
+  /** Chosen by a person, off by default (TikTok's Direct Post rules). */
+  allowDuet?: boolean;
+  allowStitch?: boolean;
   brandOrganic: boolean;
   brandContent: boolean;
   /** To the creator's drafts (inbox upload, needs video.upload): caption, privacy and sound are set in the app. */
@@ -28,8 +31,8 @@ export const videoBody = (input: VideoInput) => ({
     title: clip(input.title, TITLE_MAX),
     privacy_level: input.privacyLevel,
     disable_comment: !input.allowComments,
-    disable_duet: false,
-    disable_stitch: false,
+    disable_duet: !input.allowDuet,
+    disable_stitch: !input.allowStitch,
     brand_organic_toggle: input.brandOrganic,
     brand_content_toggle: input.brandContent,
     // Our slides are AI-made: TikTok asks for the AI-generated label.

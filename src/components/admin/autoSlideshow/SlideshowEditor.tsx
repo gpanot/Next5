@@ -234,8 +234,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
       </div>
       {posting && (
         <PostDialog onClose={() => setPosting(false)}>
-          {/* Every setting in one place, as the old Settings panel: music, caption, post. */}
-          <MusicPicker show={show} tracks={tracks} busy={busy} onPick={(id) => void edit.setMusic(id)} />
+          {/* Caption, then the post form. TikTok picks the music itself, so there is no music choice here. */}
           <div className="space-y-3">
             <CaptionPanel caption={drafts.caption} tags={drafts.tags} onCaption={drafts.setCaption} onTags={drafts.setTags} />
             {drafts.captionDirty && <SaveCaptionButton saving={busy === 'caption'} onSave={() => void saveCaption()} />}

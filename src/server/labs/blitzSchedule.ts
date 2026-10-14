@@ -199,7 +199,7 @@ const approvalOf = (req: ApproveBlitzRequest) => {
   }
   if (req.tiktok?.asDraft) return { platform: 'tiktok' as const, ...DRAFT_FIELDS };
   const t = checkTikTok(req.tiktok);
-  return { platform: 'tiktok' as const, privacyLevel: t.privacyLevel, allowComments: t.allowComments, brandOrganic: t.brandOrganic, brandContent: t.brandContent };
+  return { platform: 'tiktok' as const, privacyLevel: t.privacyLevel, allowComments: t.allowComments, allowDuet: t.allowDuet === true, allowStitch: t.allowStitch === true, brandOrganic: t.brandOrganic, brandContent: t.brandContent };
 };
 
 /** The approval, once its account is connected (and, for drafts, granted video.upload). */
@@ -213,9 +213,12 @@ const connectedApproval = async (workspaceId: string, req: ApproveBlitzRequest) 
 /** The approval on the calendar: the platform's choices and consent. Needs that account connected. Can be redone. */
 export async function approveBlitz(workspaceId: string, id: string, req: ApproveBlitzRequest): Promise<BlitzScheduleDto> {
   const approval = await connectedApproval(workspaceId, req);
+  const now = new Date();
+  // "Post now": due at once, so the tick makes it (if not made yet) and posts it right after.
+  if (req.postNow) await checkDayRoom(workspaceId, now, req.tzOffsetMin, id);
   const done = await prisma.blitzScheduledPost.updateMany({
     where: { id, workspaceId, status: { in: MOVABLE } },
-    data: { status: 'scheduled', ...approval, consentAt: new Date(), error: null },
+    data: { status: 'scheduled', ...approval, consentAt: now, error: null, ...(req.postNow ? { scheduledAt: now } : {}) },
   });
   if (done.count === 0) throw new HttpError(409, 'started', 'This video is already being made or posted.');
   return toScheduleDto(await prisma.blitzScheduledPost.findUniqueOrThrow({ where: { id } }));

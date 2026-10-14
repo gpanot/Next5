@@ -245,10 +245,14 @@ export type TikTokAccountDto = {
 
 /** What TikTok says about the creator right now; shown to the approver before posting (TikTok UX rule). */
 /** `canDraft`: the account granted video.upload, so posts can go to its TikTok drafts (inbox) instead of the profile. */
-export type CreatorInfoDto = { nickname: string; username: string; avatarUrl: string | null; privacyOptions: string[]; commentDisabled: boolean; canDraft: boolean };
+export type CreatorInfoDto = { nickname: string; username: string; avatarUrl: string | null; privacyOptions: string[]; commentDisabled: boolean; duetDisabled: boolean; stitchDisabled: boolean; canDraft: boolean };
 
 /** Stored as a TikTok post's privacy when it goes to the creator's drafts: they pick privacy and post it in the app. */
 export const TIKTOK_DRAFT = 'DRAFT';
+
+/** TikTok's wording when disclosure is on and no box is ticked: Post stays disabled until one is. */
+export const DISCLOSE_MISSING = 'You need to indicate if your content promotes yourself, a third party, or both.';
+export const BRANDED_PRIVATE = 'Branded content visibility cannot be set to private.';
 
 export const PRIVACY_LABELS: Record<string, string> = {
   PUBLIC_TO_EVERYONE: 'Everyone',

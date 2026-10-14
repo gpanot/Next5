@@ -79,6 +79,8 @@ const sendVideo = async (post: BlitzScheduledPost): Promise<void> => {
       title: post.title,
       privacyLevel: post.privacyLevel,
       allowComments: post.allowComments && !creator.commentDisabled,
+      allowDuet: post.allowDuet && !creator.duetDisabled,
+      allowStitch: post.allowStitch && !creator.stitchDisabled,
       brandOrganic: post.brandOrganic,
       brandContent: post.brandContent,
       asDraft,

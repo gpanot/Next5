@@ -52,12 +52,16 @@ function Details({ item, editable, editHref, f }: { item: BlitzScheduleDto; edit
     <div className="space-y-3">
       <div className="min-w-0">
         <p className="line-clamp-2 text-[14px] font-semibold text-[var(--ink,#000)] dark:text-neutral-100">{item.title}</p>
-        <p className="text-[13px] text-[var(--mute,#7c7d82)]">{whenLabel(new Date(f.scheduledAt))}</p>
+        <p className="text-[13px] text-[var(--mute,#7c7d82)]">{f.postNow ? 'Now' : whenLabel(new Date(f.scheduledAt))}</p>
       </div>
       {editable && (
         <div className="flex flex-wrap gap-2">
           {editHref && <Link href={editHref} className={pill}><Pencil aria-hidden className="h-4 w-4" /> Edit</Link>}
-          <ChangeDay scheduledAt={f.scheduledAt} busy={f.busy === 'move'} onMove={(at) => void f.move(at)} />
+          {!f.postNow && <ChangeDay scheduledAt={f.scheduledAt} busy={f.busy === 'move'} onMove={(at) => void f.move(at)} />}
+          <label className={`${pill} cursor-pointer ${f.postNow ? 'border-[var(--ready,#1e8049)] dark:border-[var(--ready,#1e8049)]' : ''}`}>
+            <input type="checkbox" checked={f.postNow} onChange={(e) => f.setPostNow(e.target.checked)} className="h-4 w-4 accent-[var(--ready,#1e8049)]" />
+            Post now
+          </label>
         </div>
       )}
       {item.status === 'posted' && item.postUrl && (
@@ -69,7 +73,7 @@ function Details({ item, editable, editHref, f }: { item: BlitzScheduleDto; edit
 }
 
 /** Remove (planned, approved or failed) and Approve / Save (not made yet); Close for a video on its way or posted. */
-function Footer({ item, editable, f, onClose }: { item: BlitzScheduleDto; editable: boolean; f: VideoSheetActions; onClose: () => void }) {
+function Footer({ item, editable, f, blocked, onClose }: { item: BlitzScheduleDto; editable: boolean; f: VideoSheetActions; blocked: string | null; onClose: () => void }) {
   const removable = editable || item.status === 'failed';
   return (
     <footer className="flex gap-2 border-t border-[var(--line,#e8e5e1)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-neutral-800">
@@ -79,9 +83,9 @@ function Footer({ item, editable, f, onClose }: { item: BlitzScheduleDto; editab
         </button>
       )}
       {editable ? (
-        <button type="button" onClick={() => void f.approve()} disabled={f.busy !== null} className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ready,#1e8049)] px-4 text-[14px] font-semibold text-white shadow-sm transition active:scale-95 disabled:opacity-40">
+        <button type="button" onClick={() => void f.approve()} disabled={f.busy !== null || blocked !== null} title={blocked ?? undefined} className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ready,#1e8049)] px-4 text-[14px] font-semibold text-white shadow-sm transition active:scale-95 disabled:opacity-40">
           {f.busy === 'approve' && <Loader2 aria-hidden className="h-4 w-4 animate-spin" />}
-          {item.status === 'scheduled' ? 'Save' : 'Approve & post'}
+          {f.postNow ? 'Post now' : item.status === 'scheduled' ? 'Save' : 'Approve & post'}
         </button>
       ) : (
         <button type="button" onClick={onClose} className="flex min-h-12 flex-1 items-center justify-center rounded-full border border-[var(--line,#e8e5e1)] px-4 text-[14px] font-semibold text-[var(--ink,#000)] transition active:scale-95 dark:border-neutral-700 dark:text-neutral-100">
@@ -119,7 +123,7 @@ export function VideoSheet(props: Props) {
           {editable && <PostChoicesForm choices={choices} />}
           {f.error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{f.error}</p>}
         </div>
-        <Footer item={item} editable={editable} f={f} onClose={onClose} />
+        <Footer item={item} editable={editable} f={f} blocked={choices.platform === 'tiktok' ? choices.blocked : null} onClose={onClose} />
       </div>
     </div>
   );

@@ -37,6 +37,7 @@ export function PostStatusRow({ token, runId, post, onChange }: Props) {
       </p>
       {post.status === 'posted' && <PostStatsLine stats={post.stats} className="text-white/80" />}
       {post.status === 'posted' && <p className="text-[11px] text-white/40">{post.statsAt ? `Numbers updated ${ago(post.statsAt)}` : 'Numbers come in within a few hours.'}</p>}
+      {(post.status === 'sending' || post.status === 'processing') && <p className="text-[11px] text-white/40">It may take a few minutes to process and show on the profile.</p>}
       {post.error && <p className="text-xs text-red-300">{post.error}</p>}
       <div className="flex gap-2">
         {canCheck && (

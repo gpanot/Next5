@@ -9,7 +9,7 @@ import { TikTokAccounts } from '../TikTokAccounts';
 import { useSlideshowWorkspace } from '../workspace/WorkspaceContext';
 import { defaultPlatforms, PlatformPicker } from './PlatformPicker';
 import { PostStatusRow } from './PostStatusRow';
-import { TikTokFields, type TikTokFieldValues } from './TikTokFields';
+import { NO_TIKTOK_FIELDS, tikTokProblem, TikTokFields, type TikTokFieldValues } from './TikTokFields';
 import { YouTubeFields } from './YouTubeFields';
 
 type Props = { token: string; runId: string; show: AutoSlideshowDto; onPosted: () => void };
@@ -37,7 +37,7 @@ type FormProps = { token: string; runId: string; show: AutoSlideshowDto; account
 /** Platforms, TikTok's choices when TikTok is picked, then "Post now". */
 function PostNowForm({ token, runId, show, accounts, live, onSent }: FormProps) {
   const [platforms, setPlatforms] = useState<PostPlatform[]>(() => defaultPlatforms(accounts, live));
-  const [tt, setTt] = useState<TikTokFieldValues>({ privacy: '', comments: true, brandOrganic: false, consent: false });
+  const [tt, setTt] = useState<TikTokFieldValues>(NO_TIKTOK_FIELDS);
   const [yt, setYt] = useState<YouTubePrivacyChoice>('private');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,13 +45,14 @@ function PostNowForm({ token, runId, show, accounts, live, onSent }: FormProps) 
   const withYouTube = platforms.includes('youtube');
   const creator = useAdminApi<{ creator: CreatorInfoDto }>(token, withTikTok ? `/api/admin/auto-slideshow/runs/${runId}/tiktok?workspaceId=${accounts.workspaceId}` : null);
   const c = creator.data?.creator;
-  const ready = platforms.length > 0 && (!withTikTok || (c && tt.privacy && tt.consent));
+  const problem = withTikTok && c ? tikTokProblem(tt) : null;
+  const ready = platforms.length > 0 && (!withTikTok || (c && !problem));
 
   const send = async () => {
     setSending(true);
     setError(null);
     try {
-      const tiktok = withTikTok ? { privacyLevel: tt.privacy, allowComments: tt.comments && !c?.commentDisabled, brandOrganic: tt.brandOrganic, brandContent: false, consent: tt.consent } : null;
+      const tiktok = withTikTok ? { privacyLevel: tt.privacy, allowComments: tt.comments && !c?.commentDisabled, brandOrganic: tt.disclose && tt.brandOrganic, brandContent: tt.disclose && tt.brandContent, consent: tt.consent } : null;
       const res = await adminFetch<{ posts: AutoPostDto[] }>(token, `/api/admin/auto-slideshow/runs/${runId}/slideshows/${show.id}/post`, { method: 'POST', body: JSON.stringify({ workspaceId: accounts.workspaceId, platforms, tiktok, youtube: withYouTube ? { privacyLevel: yt } : null }) });
       onSent(res.posts);
     } catch (err) {
@@ -67,9 +68,10 @@ function PostNowForm({ token, runId, show, accounts, live, onSent }: FormProps) 
       {withTikTok && (c ? <TikTokFields creator={c} value={tt} onChange={setTt} /> : creator.error ? <p className="text-sm text-red-300">{creator.error}</p> : <div className="h-24 animate-pulse rounded-xl bg-white/10" />)}
       {withYouTube && <YouTubeFields value={yt} onChange={setYt} tone="dark" />}
       {error && <p className="text-sm text-red-300">{error}</p>}
-      <button onClick={() => void send()} disabled={!ready || sending} className="min-h-12 w-full rounded-full bg-[#fe2c55] text-sm font-semibold text-white transition active:scale-95 disabled:opacity-40">
+      <button onClick={() => void send()} disabled={!ready || sending} title={problem ?? undefined} className="min-h-12 w-full rounded-full bg-[#fe2c55] text-sm font-semibold text-white transition active:scale-95 disabled:opacity-40">
         {sending ? 'Posting…' : 'Post now'}
       </button>
+      {problem && <p className="text-center text-xs text-white/50">{problem}</p>}
     </div>
   );
 }

@@ -25,6 +25,7 @@ import { countsLine, MonthHeader } from './MonthHeader';
 import { buildMonth, currentPins, dayKey, dropPins, emptySlots, MAX_PER_DAY, monthCounts, toApprove, type PlanDay } from './monthPlan';
 import { useAdd, useMonth, useWatchPosts } from './postingHooks';
 import { SlideshowDnd } from './SlideshowDnd';
+import { SlideshowSheet } from './SlideshowSheet';
 import { StatusLegend } from './StatusLegend';
 import { entriesOf } from './tileModel';
 import { useBlitzOnCalendar } from './useBlitzOnCalendar';
@@ -97,7 +98,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const slideshows = useMemo(() => [...run.slideshows, ...campaigns.slideshows], [run.slideshows, campaigns.slideshows]);
   const router = useRouter();
   // A campaign's slideshow opens its campaign (edited there), the others open in the slideshow editor.
-  const openShow = (id: string) => {
+  const editShow = (id: string) => {
     const campaignId = campaigns.campaignOf[id];
     if (campaignId) router.push(`/slideshow/${run.workspaceId}/campaigns?campaign=${campaignId}`);
     else onOpen(id);
@@ -116,6 +117,10 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   );
   const counts = monthCounts(days);
   const approve = toApprove(all);
+  // A ready slideshow opens its approval, like a Blitz video; the others (scheduled, posted) open where they are edited.
+  const [openReadyId, setOpenReadyId] = useState<string | null>(null);
+  const openReady = approve.find((a) => a.show.id === openReadyId) ?? null;
+  const openShow = (id: string) => (approve.some((a) => a.show.id === id) ? setOpenReadyId(id) : editShow(id));
   // Planned Blitz videos wait for the same approval (TikTok). Ones whose time passed are expired by the server.
   const plannedVideos = useMemo(() => blitz.filter((b) => b.status === 'planned'), [blitz]);
   const toApproveCount = approve.length + plannedVideos.length;
@@ -203,6 +208,13 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
         <LabClientProvider client={labClient}>
           <VideoSheet item={openBlitz} onClose={() => setOpenBlitz(null)} onChanged={reloadBlitz} editHref={`/slideshow/${run.workspaceId}/content?editPost=${openBlitz.id}`} />
         </LabClientProvider>
+      )}
+      {openReady && (
+        <SlideshowSheet token={token} runId={run.id} show={openReady.show} at={openReady.at} posting={posting}
+          onEdit={() => { setOpenReadyId(null); editShow(openReady.show.id); }}
+          onMove={(at) => moveShow(openReady.show.id, dayKey(at))}
+          onDone={() => { onRunChanged(); campaigns.reload(); }}
+          onClose={() => setOpenReadyId(null)} />
       )}
       {approving && <ApproveSheet token={token} run={run} items={approve} videos={plannedVideos} onVideosChanged={reloadBlitz} posting={posting} onClose={() => { setApproving(false); onRunChanged(); campaigns.reload(); }} />}
     </section>

@@ -88,7 +88,7 @@ export function CreateSlideshowsButton({ token, runId, ready, working, onCreated
         type="button"
         onClick={() => setOpen(true)}
         disabled={!ready}
-        className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-full bg-app-cta px-4 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95 disabled:opacity-40"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-app-cta px-4 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95 disabled:opacity-40"
       >
         <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <path d="M10 4v12M4 10h12" />
