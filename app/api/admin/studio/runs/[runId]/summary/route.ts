@@ -14,7 +14,7 @@ import { adminRoute } from '../../../../../../../src/server/admin/route';
 import { studioJson } from '../../../../../../../src/server/studio/studioJson';
 import { prisma } from '../../../../../../../src/lib/db';
 
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 type Ctx = { params: Promise<{ runId: string }> };
 

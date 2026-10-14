@@ -7,7 +7,7 @@ import { normalizeUpload, readForm } from '../../../../../src/server/storage/ima
 import { portraitPreviewKey } from '../../../../../src/server/sets/portrait';
 import { enforceRateLimit } from '../../../../../src/server/rateLimit';
 
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 /**
  * POST /api/app/influencers/upload-portrait

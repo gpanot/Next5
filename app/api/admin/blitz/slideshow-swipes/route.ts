@@ -6,7 +6,7 @@ import { refillAfterSwipe } from '../../../../../src/server/labs/workspaceDeck';
 import { SWIPE_ACTIONS, logSwipe, type ShotEdit, type SwipeAction } from '../../../../../src/server/slideshow/core/variants';
 
 // A keep or skip that leaves few cards on a workspace deck builds the next batch after the response (30–90 s).
-export const maxDuration = 300;
+export const maxDuration = 280;
 
 /** Actions that take a card off the deck. */
 const LEAVES_DECK: ReadonlySet<SwipeAction> = new Set(['keep', 'discard']);

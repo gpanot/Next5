@@ -6,7 +6,7 @@ import { nextDeckBatch, refillIfLow, savedDeck } from '../../../../../../src/ser
 
 // Up to 3 briefs in parallel (2–4 LLM calls each), library search, and AI images for shots the
 // library can't cover (10–60 s each, in parallel). The GET's background top-up runs under the same limit.
-export const maxDuration = 300;
+export const maxDuration = 280;
 
 /**
  * GET /api/admin/blitz/slideshow-deck/website?runId=

@@ -14,7 +14,7 @@ import { loadCampaign } from '../../../../../../src/server/autoSlideshow/campaig
 import { slideshowRoute } from '../../../../../../src/server/autoSlideshow/route';
 import { enforceRateLimit } from '../../../../../../src/server/rateLimit';
 
-export const maxDuration = 300;
+export const maxDuration = 240;
 
 type Ctx = { params: Promise<{ campaignId: string }> };
 

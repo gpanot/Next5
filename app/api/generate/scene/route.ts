@@ -36,7 +36,7 @@ export type SceneResponseBody = {
 };
 
 // 150 s: main handler (~10 s) + after() background work (~120 s WaveSpeed + R2 + DB)
-export const maxDuration = 300;
+export const maxDuration = 150;
 
 export async function POST(req: NextRequest) {
   try {

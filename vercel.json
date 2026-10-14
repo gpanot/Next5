@@ -8,7 +8,7 @@
       "maxDuration": 60
     },
     "app/api/generate/scene/route.ts": {
-      "maxDuration": 300
+      "maxDuration": 120
     },
     "app/api/generate/route.ts": {
       "maxDuration": 120

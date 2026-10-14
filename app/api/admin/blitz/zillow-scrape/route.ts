@@ -9,7 +9,7 @@ import { eligibleAngles, type ListingFacts } from '../../../../../src/server/lab
 import { prisma } from '../../../../../src/lib/db';
 
 // The Apify Zillow actor can take up to 90 s; give ourselves margin.
-export const maxDuration = 300;
+export const maxDuration = 130;
 
 const POLL_INTERVAL_MS = 4_000;
 const MAX_WAIT_MS = 120_000;

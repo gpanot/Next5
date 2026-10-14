@@ -10,7 +10,7 @@ import { newPhotoForSlide } from '../../../../../../../../../../../src/server/au
 import { getSlideshowDto } from '../../../../../../../../../../../src/server/autoSlideshow/store';
 
 // One image (about 35 s, up to 3 min when reAPI is busy) and one render.
-export const maxDuration = 300;
+export const maxDuration = 240;
 
 type Ctx = { params: Promise<{ runId: string; slideshowId: string; index: string }> };
 

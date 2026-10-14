@@ -5,7 +5,7 @@ import { toDetailDto } from '../../../../../src/server/generation/dto';
 import { advanceBatch } from '../../../../../src/server/generation/poll';
 import { prisma } from '../../../../../src/lib/db';
 
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 type Ctx = RouteContext<'/api/app/batches/[batchId]'>;
 
