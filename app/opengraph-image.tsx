@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { OG_SIZE } from '../src/components/marketing/shared/ogImage';
 import { THEME } from '../src/config/theme';
+import { SLIDESHOW_PRICE_LABEL } from '../src/types/admin/slideshowCredits';
 
 export const size = OG_SIZE;
 export const contentType = 'image/png';
@@ -56,7 +57,7 @@ export default function Image() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <span style={{ fontSize: 20, letterSpacing: 4, color: THEME.accent }}>AUTO SLIDESHOW</span>
             <span style={{ fontSize: 46, lineHeight: 1.05, color: THEME.ink, fontWeight: 700, letterSpacing: -1 }}>Slideshows that bring you customers.</span>
-            <span style={{ fontSize: 26, color: THEME.muted }}>$1.99 a post. No filming.</span>
+            <span style={{ fontSize: 26, color: THEME.muted }}>{SLIDESHOW_PRICE_LABEL} a post. No filming.</span>
           </div>
           <div style={{ display: 'flex', height: 8, width: 140, background: THEME.accent, borderRadius: 8 }} />
         </div>

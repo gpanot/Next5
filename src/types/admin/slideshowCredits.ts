@@ -1,6 +1,7 @@
 /** Auto Slideshow credits: shared by the API and the Settings → Credits tab. All money in cents (USD). */
 
-export const SLIDESHOW_PRICE_CENTS = 199;
+/** Price of one post (slideshow or Blitz video). Change it here only: every page, charge and Stripe line reads it. */
+export const SLIDESHOW_PRICE_CENTS = 299;
 /** New users get one slideshow free. */
 export const FREE_GRANT_CENTS = SLIDESHOW_PRICE_CENTS;
 export const MIN_TOPUP_CENTS = 1_000;
@@ -50,6 +51,8 @@ export const dollarsToCents = (text: string): number | null => {
 };
 
 export const usd = (cents: number): string => `${cents < 0 ? '-' : ''}$${(Math.abs(cents) / 100).toFixed(2)}`;
+/** "$2.99": the price of one post, for copy. */
+export const SLIDESHOW_PRICE_LABEL = usd(SLIDESHOW_PRICE_CENTS);
 
 /** Admin → Users → Credits: one row per slideshow user. `balanceCents` null = no wallet yet. */
 export type AdminCreditUserDto = {

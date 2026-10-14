@@ -4,7 +4,7 @@
 
 import Stripe from 'stripe';
 import { prisma } from '../../lib/db';
-import type { CardDto } from '../../types/admin/slideshowCredits';
+import { SLIDESHOW_PRICE_LABEL, type CardDto } from '../../types/admin/slideshowCredits';
 import { HttpError } from '../http';
 import { appBaseUrl } from '../social/links';
 import { ensureWallet } from './wallet';
@@ -59,7 +59,7 @@ export const topUpCheckout = async ({ userId, email, workspaceId }: CheckoutInpu
   return openCheckout({
     mode: 'payment',
     customer,
-    line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: amountCents, product_data: { name: 'Auto Slideshow credits', description: '$1.99 per slideshow' } } }],
+    line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: amountCents, product_data: { name: 'Auto Slideshow credits', description: `${SLIDESHOW_PRICE_LABEL} per slideshow` } } }],
     payment_intent_data: { setup_future_usage: 'off_session', metadata: { userId, kind: 'topup' } },
     metadata: { userId, kind: 'topup', amountCents: String(amountCents) },
     success_url: returnUrl(workspaceId, 'paid'),

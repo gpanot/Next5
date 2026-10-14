@@ -20,7 +20,7 @@ function CreditsSkeleton() {
   );
 }
 
-/** Settings → Credits: balance, top up by card, auto top up and saved cards. $1.99 per slideshow. */
+/** Settings → Credits: balance, top up by card, auto top up and saved cards. SLIDESHOW_PRICE_CENTS per slideshow. */
 export function CreditsSection({ token, workspaceId }: { token: string; workspaceId: string }) {
   const { data, error, loading, refresh } = useAdminApi<CreditsDto>(token, '/api/slideshow/credits');
   // A Stripe return tells every balance reader (this page and the sidebar), not just this one.

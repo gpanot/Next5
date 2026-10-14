@@ -1,6 +1,6 @@
-import { SLIDESHOW_PRICE_CENTS } from '../../../../types/admin/slideshowCredits';
+import { SLIDESHOW_PRICE_CENTS, SLIDESHOW_PRICE_LABEL } from '../../../../types/admin/slideshowCredits';
 
-/** Auto Slideshow pricing: pay as you go, $1.99 per slideshow, $10 minimum top-up. All money in cents. */
+/** Auto Slideshow pricing: pay as you go, one price per slideshow (SLIDESHOW_PRICE_CENTS), $10 minimum top-up. All money in cents. */
 
 export const PRICE_CENTS = SLIDESHOW_PRICE_CENTS;
 export const MIN_DEPOSIT_CENTS = 1_000;
@@ -9,8 +9,8 @@ export const MAX_PER_DAY = 10;
 export const DAYS_PER_MONTH = 30;
 
 export const money = (cents: number): string => `$${(cents / 100).toFixed(2)}`;
-/** "$1.99": the price of one slideshow, for copy. */
-export const PRICE_LABEL = money(PRICE_CENTS);
+/** "$2.99": the price of one slideshow, for copy. */
+export const PRICE_LABEL = SLIDESHOW_PRICE_LABEL;
 /** "$10" for whole dollars, "$29.70" otherwise. */
 export const shortMoney = (cents: number): string => (cents % 100 === 0 ? `$${cents / 100}` : money(cents));
 
