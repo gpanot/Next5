@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Images, MoreHorizontal } from 'lucide-react';
+import { Check, MoreHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { REQUESTED_SLIDESHOWS } from '../../../../types/admin/calendarIdeas';
@@ -13,22 +13,19 @@ const bare = 'max-lg:w-7 max-lg:border-0 max-lg:bg-transparent max-lg:text-zinc-
 const button = 'min-h-12 flex-1 rounded-full px-5 text-sm font-semibold transition active:scale-95 disabled:opacity-40';
 
 type Props = {
-  /** Starts the slideshows: null once started, else the reason to show. */
-  onCreate: () => Promise<string | null>;
-  /** Slideshows asked for and still being made: the menu shows they are on their way. */
-  making: number;
-  /** The Ideas page: All · Blitz · Slideshow in the menu on phones, where the chips are hidden. */
-  filters?: IdeasState;
-  /** Just the three dots on phones, no circle. */
-  bareOnPhone?: boolean;
+  /** The Ideas page: All · Blitz · Slideshow, on phones, where the chips are hidden. */
+  filters: IdeasState;
 };
+
+/** Starts the slideshows: null once started, else the reason to show. */
+type OnCreate = () => Promise<string | null>;
 
 const item = 'flex min-h-11 w-full items-center gap-2.5 px-4 text-left text-sm font-semibold text-ink transition hover:bg-zinc-50 disabled:opacity-50 dark:text-zinc-100 dark:hover:bg-zinc-800';
 
 /** Phones only: which ideas the deck shows, with the ideas left in each. */
 function FilterItems({ ideas, onPick }: { ideas: IdeasState; onPick: () => void }) {
   return (
-    <div role="group" aria-label="Show ideas" className="border-b border-line pb-1 mb-1 lg:hidden dark:border-zinc-700">
+    <div role="group" aria-label="Show ideas">
       <p className="px-4 pt-2 pb-1 text-[11px] font-semibold tracking-wider text-zinc-500 uppercase dark:text-zinc-400">Show</p>
       {FORMAT_CHIPS.map((c) => {
         const active = ideas.filter === c.id;
@@ -44,7 +41,7 @@ function FilterItems({ ideas, onPick }: { ideas: IdeasState; onPick: () => void 
   );
 }
 
-export function CreateDialog({ onCreate, onClose }: { onCreate: Props['onCreate']; onClose: () => void }) {
+export function CreateDialog({ onCreate, onClose }: { onCreate: OnCreate; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const create = async () => {
@@ -77,10 +74,9 @@ export function CreateDialog({ onCreate, onClose }: { onCreate: Props['onCreate'
   );
 }
 
-/** ⋯ beside the deck's card: the filter on phones, and "Create 3 slideshows" (asks first: what keeping them costs). */
-export function DeckMenu({ onCreate, making, filters, bareOnPhone = false }: Props) {
+/** ⋯ beside the deck's card on phones (the Ideas page): which ideas the deck shows. Wide screens show the chips instead. */
+export function DeckMenu({ filters }: Props) {
   const [open, setOpen] = useState(false);
-  const [asking, setAsking] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
@@ -89,29 +85,15 @@ export function DeckMenu({ onCreate, making, filters, bareOnPhone = false }: Pro
     return () => window.removeEventListener('pointerdown', onDown);
   }, [open]);
   return (
-    <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="More" aria-haspopup="menu" aria-expanded={open} className={bareOnPhone ? `${round} ${bare}` : round}>
-        {making > 0 ? <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-blue-200 border-t-blue-600" /> : <MoreHorizontal aria-hidden className={bareOnPhone ? 'h-5 w-5 lg:h-4 lg:w-4' : 'h-4 w-4'} />}
+    <div ref={ref} className="relative lg:hidden">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-label="More" aria-haspopup="menu" aria-expanded={open} className={`${round} ${bare}`}>
+        <MoreHorizontal aria-hidden className="h-5 w-5" />
       </button>
       {open && (
         <div role="menu" className="absolute top-full right-0 z-20 mt-1 w-60 overflow-hidden rounded-xl border border-line bg-white py-1 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-          {filters && <FilterItems ideas={filters} onPick={() => setOpen(false)} />}
-          <button
-            type="button"
-            role="menuitem"
-            disabled={making > 0}
-            onClick={() => {
-              setOpen(false);
-              setAsking(true);
-            }}
-            className={item}
-          >
-            <Images aria-hidden className="h-4 w-4 shrink-0" />
-            {making > 0 ? `Making ${making} slideshows…` : `Create ${REQUESTED_SLIDESHOWS} slideshows`}
-          </button>
+          <FilterItems ideas={filters} onPick={() => setOpen(false)} />
         </div>
       )}
-      {asking && <CreateDialog onCreate={onCreate} onClose={() => setAsking(false)} />}
     </div>
   );
 }

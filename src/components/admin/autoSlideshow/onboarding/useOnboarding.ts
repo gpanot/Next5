@@ -7,10 +7,10 @@ import { adminFetch } from '../../business/useAdminApi';
 export type Direction = 'forward' | 'back';
 type Phase = 'loading' | 'hidden' | 'active';
 
-/** Saves in the background: the UI never waits. A failed write is retried once. */
-const send = (token: string, path: string, method: 'PATCH' | 'POST', body: object): void => {
+/** Saves in the background: the UI never waits. A failed write is retried once. Resolves once saved (or given up). */
+const send = (token: string, path: string, method: 'PATCH' | 'POST', body: object): Promise<void> => {
   const attempt = () => adminFetch(token, path, { method, body: JSON.stringify(body) });
-  void attempt().catch(() => attempt().catch(() => undefined));
+  return attempt().then(() => undefined, () => attempt().then(() => undefined, () => undefined));
 };
 
 const clampStep = (n: number) => Math.min(Math.max(n, 0), ONBOARDING_LAST_STEP);
@@ -46,7 +46,7 @@ export const useOnboarding = (token: string, workspaceId: string) => {
   const goTo = useCallback((to: number, direction: Direction, patch: OnboardingPatch) => {
     setDir(direction);
     setStep(clampStep(to));
-    send(token, base, 'PATCH', { ...patch, lastStep: clampStep(to) });
+    void send(token, base, 'PATCH', { ...patch, lastStep: clampStep(to) });
   }, [token, base]);
 
   /** Continue: saves this screen's answers and moves on. */
@@ -65,9 +65,10 @@ export const useOnboarding = (token: string, workspaceId: string) => {
   const back = useCallback(() => goTo(step - 1, 'back', {}), [goTo, step]);
 
   /** Ends the flow. `skippedSteps`: screens passed over by "Jump to my calendar". */
-  const complete = useCallback((skippedSteps: number[] = []) => {
-    send(token, `${base}/complete`, 'POST', { skippedSteps, lastStep: step });
+  /** Hides the flow at once; the promise settles when the server knows, so another page does not show it again. */
+  const complete = useCallback((skippedSteps: number[] = []): Promise<void> => {
     setPhase('hidden');
+    return send(token, `${base}/complete`, 'POST', { skippedSteps, lastStep: step });
   }, [token, base, step]);
 
   return { phase, profile, step, dir, flowStartedAt, next, skip, back, complete };

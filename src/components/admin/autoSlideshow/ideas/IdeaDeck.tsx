@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Pencil, Undo2, X } from 'lucide-react';
+import { Check, Undo2, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS } from '../../../../config/blitzLab';
 import type { HookCtaStyle } from '../../../../remotion/types';
@@ -9,7 +9,8 @@ import { blitzVoiceLabel } from '../../../../types/admin/blitzVoice';
 import { SwipeCard } from '../../../labs/blitzLab/SwipeCard';
 import { mergeTextConfig } from '../../../labs/blitzLab/useTextLayout';
 import { useDeckSound } from '../../../labs/blitzLab/useDeckSound';
-import { DeckSide } from './DeckSide';
+import { nextClipOf } from '../../../../types/admin/ideaMedia';
+import { DeckSide, type ShotSwap } from './DeckSide';
 import type { VoicePreviewState } from './useVoicePreview';
 import { formatLabel, ideaCard, whenOf } from './ideaCards';
 import type { HookStyleState } from './useHookStyle';
@@ -36,33 +37,42 @@ type Props = {
   confirmKeep?: () => Promise<boolean>;
   /** The deck's ⋯ menu: pinned outside the card, top right. */
   menu?: ReactNode;
-  /** The hook's look on Blitz ideas (the "Hook" button). Absent: no button, the Default look. */
+  /** The hook's look on Blitz ideas (picked in the Hook sheet). Absent: the Default look. */
   hookStyle?: HookStyleState;
+  /** Blitz ideas, while paused: another clip for the shot on screen, and back to the one before. */
+  clips?: DeckClips;
+};
+
+export type DeckClips = {
+  swap: (idea: IdeaDto, shot: number, assetKey: string) => void;
+  /** Null: nothing to undo on this idea. */
+  undoOf: (idea: IdeaDto) => (() => void) | null;
 };
 
 export type DeckSize = 'panel' | 'day' | 'page';
 
-/** Card sizes that keep ~48px free on each side for the sound buttons (36px + gap) while the card stays centered.
+/** Card sizes that keep ~48px free on each side for the side buttons (36px + gap) while the card stays centered.
  *  Phone panel: the height left after the tight header (~4.5rem) and the controls + undo row (~7.5rem) goes to the card. */
 const CARD_SIZE: Record<DeckSize, string> = {
   panel: 'aspect-[9/16] w-[min(calc(100vw-6rem),calc((100dvh-13rem)*0.5625),380px)] lg:w-[min(calc((100dvh-28rem)*0.5625),260px)]',
-  /** Phones: as on the Ideas page, sound buttons on the card and bare ⋯ beside it, so the card takes almost all the width. */
-  day: 'aspect-[9/16] w-[min(calc((100vw-7.5rem)*1.1),calc((100dvh-10rem)*0.5625),460px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
+  /** Phones: the buttons beside the card too (outside it, in the screen gutter), so the card leaves them room. */
+  day: 'aspect-[9/16] w-[min(calc(100vw-7.5rem),calc((100dvh-10rem)*0.5625),460px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
   /** The Ideas page: every bit of height left after its compact header and the controls goes to the card, 9:16.
-   *  Phones: as wide as the screen allows, the buttons sit on the card. Desktop: the buttons beside it. */
-  page: 'aspect-[9/16] w-[min(calc(100vw-5rem),calc((100lvh-13.5rem)*0.5625))] lg:w-[min(calc((100dvh-20rem)*0.5625),480px)]',
+   *  Phones: as wide as the screen allows with the buttons beside it. */
+  page: 'aspect-[9/16] w-[min(calc(100vw-7.5rem),calc((100lvh-13.5rem)*0.5625))] lg:w-[min(calc((100dvh-20rem)*0.5625),480px)]',
 };
 
-/** Where the ⋯ menu and the sound buttons sit: beside the card, or (sound) on it on phones (Ideas page and a day). */
+/** Where the ⋯ menu and the side buttons sit: beside the card, closer to it on phones (Ideas page and a day). Only
+ *  "Why this?" sits on the card. */
 const MENU_AT = { beside: 'top-0 left-full ml-1.5', on: 'top-0 left-full ml-0.5 lg:ml-1.5' };
-const SIDE_AT = { beside: 'bottom-0 left-full ml-1.5', on: 'bottom-14 right-3 lg:bottom-0 lg:right-auto lg:left-full lg:ml-1.5' };
+const SIDE_AT = { beside: 'bottom-0 left-full ml-1.5', on: 'bottom-0 left-full ml-1 lg:ml-1.5' };
 
 const round = 'flex items-center justify-center rounded-full border shadow-sm transition active:scale-90 disabled:opacity-30';
 
 type ControlsProps = { idea: IdeaDto; onSkip: () => void; onKeep: () => void; onEditHook: () => void; undo?: ReactNode };
 
-/** The buttons under the card: ✕ skip, pencil (another first line), ✓ keep; `undo` left of ✕ (the Ideas page on phones).
- *  The pencil stays under the card's middle whatever sits left of it. */
+/** The buttons under the card: ✕ skip, Hook (another first line, and the hook's look), ✓ keep; `undo` left of ✕ (the Ideas page on phones).
+ *  Hook stays under the card's middle whatever sits left of it. */
 function Controls({ idea, onSkip, onKeep, onEditHook, undo }: ControlsProps) {
   return (
     <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center gap-5">
@@ -72,8 +82,8 @@ function Controls({ idea, onSkip, onKeep, onEditHook, undo }: ControlsProps) {
           <X aria-hidden className="h-6 w-6" />
         </button>
       </div>
-      <button type="button" onClick={onEditHook} disabled={idea.hooks.length === 0} aria-label="Pick another first line" className={`${round} h-11 w-11 border-line bg-white text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300`}>
-        <Pencil aria-hidden className="h-4 w-4" />
+      <button type="button" onClick={onEditHook} disabled={idea.hooks.length === 0 && !idea.card} aria-label="Edit the hook" className={`${round} h-11 min-w-11 border-line bg-white px-4 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200`}>
+        Hook
       </button>
       <div className="flex justify-start">
         <button type="button" onClick={onKeep} aria-label="Keep this idea" className={`${round} h-14 w-14 border-app-cta bg-app-cta text-app-cta-ink hover:bg-app-cta/90`}>
@@ -104,14 +114,27 @@ function VoiceNote({ message }: { message: string }) {
   );
 }
 
+/** The swap buttons for the shot on screen (Blitz ideas with `clips`). */
+const shotSwapOf = (idea: IdeaDto, shot: number, clips?: DeckClips): ShotSwap | undefined => {
+  if (!idea.card || !clips) return undefined;
+  const next = nextClipOf(idea.card.shots[shot]);
+  return { onSwap: next ? () => clips.swap(idea, shot, next) : null, onUndo: clips.undoOf(idea) };
+};
+
 /** One idea at a time: swipe or tap ✓ / ✕. The day it will be posted shows under the card. */
-export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onVoice, voice, size = 'panel', plannedAt, confirmKeep, menu, hookStyle }: Props) {
+export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onVoice, voice, size = 'panel', plannedAt, confirmKeep, menu, hookStyle, clips }: Props) {
   const { soundOn, toggleSound } = useDeckSound();
   const [exit, setExit] = useState<{ id: string; dir: 'keep' | 'discard' } | null>(null);
   // The next card loads once the top card can play, so its clips don't slow the first one down.
   const [readyId, setReadyId] = useState<string | null>(null);
   const card = useMemo(() => ideaCard(idea), [idea]);
   const back = useMemo(() => (next ? ideaCard(next) : null), [next]);
+  // Paused for this idea only: the next card plays. `shot`: the one on screen, for the swap.
+  const [pausedFor, setPausedFor] = useState<string | null>(null);
+  const paused = pausedFor === idea.id;
+  const setPaused = (p: boolean) => setPausedFor(p ? idea.id : null);
+  const [shot, setShot] = useState(0);
+  const swap = shotSwapOf(idea, shot, clips);
   const decide = async (status: 'kept' | 'discarded') => {
     if (exit) return;
     if (status === 'kept' && confirmKeep && !(await confirmKeep())) return; // the card slides back
@@ -146,6 +169,9 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
           onReady={() => setReadyId(idea.id)}
           narration={voice?.status === 'ready' ? voice.narration : null}
           ariaLabel={`${formatLabel(idea)} idea: ${idea.hook}`}
+          paused={paused}
+          onPausedChange={setPaused}
+          onShotChange={setShot}
         />
         {idea.card && hookStyle?.pending && (
           <div role="status" className="absolute inset-0 z-[6] grid place-items-center rounded-[26px] bg-black/45 backdrop-blur-[2px] transition-opacity">
@@ -158,7 +184,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
         {voice?.status === 'error' && <VoiceNote key={voice.message} message={voice.message} />}
         {menu && <div className={`absolute z-10 ${MENU_AT[at]}`}>{menu}</div>}
         <div className={`absolute z-10 ${SIDE_AT[at]}`}>
-          <DeckSide overlay={at === 'on'} soundOn={soundOn} onToggleSound={toggleSound} onVoice={onVoice && idea.card ? () => onVoice(idea) : null} voiceLabel={blitzVoiceLabel(card.voice)} voiceState={voice?.status ?? null} hook={idea.card ? hookStyle : undefined} />
+          <DeckSide soundOn={soundOn} onToggleSound={toggleSound} paused={paused} onTogglePause={() => setPaused(!paused)} swap={swap} onVoice={onVoice && idea.card ? () => onVoice(idea) : null} voiceLabel={blitzVoiceLabel(card.voice)} voiceState={voice?.status ?? null} />
         </div>
       </div>
       <Controls

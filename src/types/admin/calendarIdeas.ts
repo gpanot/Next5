@@ -52,8 +52,9 @@ export const REQUESTED_SLIDESHOWS = 3;
 /** Blitz ideas shown before the first slideshow idea, so it has time to be made (about 1-2 minutes). */
 export const SLIDESHOW_AFTER = 8;
 
-/** PATCH /blitz/ideas/[id]. `voice`: a Blitz idea's narrator (BLITZ_VOICES name). */
-export type IdeaPatch = { status?: Exclude<IdeaStatus, 'made'>; plannedAt?: string; hookId?: string; voice?: BlitzVoiceName };
+/** PATCH /blitz/ideas/[id]. `voice`: a Blitz idea's narrator (BLITZ_VOICES name). `media`: shot `shot` of a Blitz
+ *  idea shows its alternative clip `assetKey` (the deck's swap button and its undo). */
+export type IdeaPatch = { status?: Exclude<IdeaStatus, 'made'>; plannedAt?: string; hookId?: string; voice?: BlitzVoiceName; media?: { shot: number; assetKey: string } };
 
 /** Ideas in one batch, over the next IDEA_DAYS days: one post a day. */
 export const IDEAS_PER_BATCH = 14;

@@ -110,6 +110,11 @@ export type SwipeCardProps = {
   onReady?: () => void;
   /** The card's recorded voiceover: it plays instead of the clips' sound and sets each shot's length. */
   narration?: CardNarration | null;
+  /** Paused by the deck (its play / pause button). Set: the deck owns the pause, a center tap asks it through onPausedChange. */
+  paused?: boolean;
+  onPausedChange?: (paused: boolean) => void;
+  /** The shot on screen changed (top card). */
+  onShotChange?: (index: number) => void;
 };
 
 // ── Gradient tint (fallback when no media URL) ────────────────────────────────
@@ -234,6 +239,9 @@ export function SwipeCard({
   captionConfig,
   onReady,
   narration,
+  paused: pausedProp,
+  onPausedChange,
+  onShotChange,
 }: SwipeCardProps) {
   const isTop = position === 'top';
   const voiced = narration && narration.durations.length === shots.length ? narration : null;
@@ -243,7 +251,16 @@ export function SwipeCard({
 
   // ── Shot player state ──────────────────────────────────────────────────────
   const [shotIdx, setShotIdx] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [pausedOwn, setPausedOwn] = useState(false);
+  const paused = pausedProp ?? pausedOwn;
+  // The tap handler is memoized: it reads the latest pause through this ref.
+  const togglePauseRef = useRef(() => {});
+  useEffect(() => {
+    togglePauseRef.current = () => {
+      if (pausedProp === undefined) setPausedOwn(!paused);
+      onPausedChange?.(!paused);
+    };
+  });
   // The player waits for the first shot's picture or clip, so a card never runs on a blank frame.
   const [ready, setReady] = useState(false);
   const onReadyRef = useRef(onReady);
@@ -259,6 +276,9 @@ export function SwipeCard({
 
   // Keep ref in sync with state (RAF closure reads ref, not state)
   useEffect(() => { shotIdxRef.current = shotIdx; }, [shotIdx]);
+  const onShotChangeRef = useRef(onShotChange);
+  useEffect(() => { onShotChangeRef.current = onShotChange; }, [onShotChange]);
+  useEffect(() => { if (isTop) onShotChangeRef.current?.(shotIdx); }, [isTop, shotIdx]);
 
   // ── Segmented progress bar via DOM refs (avoid re-render on every frame) ───
   const barsRef = useRef<HTMLDivElement>(null);
@@ -386,7 +406,7 @@ export function SwipeCard({
       if (xRatio < 0.3) { jumpShot(-1); return; }
       if (xRatio > 0.7) { jumpShot(1); return; }
       // Center tap: toggle pause (or open editor if dragging was not involved)
-      setPaused((p) => !p);
+      togglePauseRef.current();
       return;
     }
 

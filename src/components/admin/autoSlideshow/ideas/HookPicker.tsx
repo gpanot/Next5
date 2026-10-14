@@ -3,11 +3,19 @@
 import { Check, Loader2, X } from 'lucide-react';
 import { useState } from 'react';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
+import { HookStyleOptions } from '../../../labs/blitzLab/HookStyleOptions';
+import type { HookStyleState } from './useHookStyle';
 
-type Props = { idea: IdeaDto; onPick: (hookId: string) => Promise<void>; onClose: () => void };
+type Props = {
+  idea: IdeaDto;
+  onPick: (hookId: string) => Promise<void>;
+  onClose: () => void;
+  /** Blitz ideas: the hook + CTA look (Default, White box, TikTok Red), under the first lines. */
+  style?: HookStyleState;
+};
 
-/** "Pick the first line": same idea, another hook. A bottom sheet on phones, a dialog on wider screens. */
-export function HookPicker({ idea, onPick, onClose }: Props) {
+/** "Hook" under the card: same idea, another first line, and (Blitz) the hook + CTA look. A bottom sheet on phones, a dialog on wider screens. */
+export function HookPicker({ idea, onPick, onClose, style }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const pick = async (id: string) => {
     setBusy(id);
@@ -17,7 +25,7 @@ export function HookPicker({ idea, onPick, onClose }: Props) {
   };
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Pick the first line" onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-3 rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl dark:bg-zinc-950">
+      <div role="dialog" aria-modal="true" aria-label="Pick the first line" onClick={(e) => e.stopPropagation()} className="max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-2xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl dark:bg-zinc-950">
         <header className="flex items-start gap-3">
           <div className="flex-1">
             <h3 className="text-base font-extrabold text-ink dark:text-zinc-100">Pick the first line</h3>
@@ -40,6 +48,12 @@ export function HookPicker({ idea, onPick, onClose }: Props) {
             </li>
           ))}
         </ul>
+        {style && (
+          <section className="space-y-1.5 border-t border-line pt-3 dark:border-zinc-800">
+            <h4 className="text-[10px] font-semibold tracking-widest text-zinc-500 uppercase dark:text-zinc-400">Hook + CTA style</h4>
+            <HookStyleOptions activeId={style.id} onPick={style.set} />
+          </section>
+        )}
       </div>
     </div>
   );

@@ -22,6 +22,7 @@ import { bankDeck, EARLY_STORIES } from './blitzBank';
 import { batchQuotas, type Stage } from './blitzFormats';
 import { campaignStart, campaignWeek } from './blitzCampaign';
 import type { ContentGoal } from '../../types/admin/contentGoals';
+import { swapShotMedia } from '../../types/admin/ideaMedia';
 import { adoptIdeaSlideshow, createIdeaRun, ideaSlideshowState } from './ideaSlideshowRun';
 import { claimIdeasBatch, ideasBatchSince, releaseIdeasBatch, waitForIdeasBatch } from './ideasBatchLock';
 import { generateWebsiteDeck } from './websiteDeck';
@@ -282,6 +283,14 @@ const swapBlitzHook = async (workspaceId: string, row: SlideshowVariant, hookId:
   ]);
 };
 
+/** Another clip on one shot of a Blitz idea (one of the shot's runner-ups). */
+const swapMedia = async (row: SlideshowVariant, media: NonNullable<IdeaPatch['media']>) => {
+  const card = (row.plan as BlitzIdeaPlan).card;
+  const swapped = card && row.engine === 'website' ? swapShotMedia(card, media.shot, media.assetKey) : null;
+  if (!swapped) throw new HttpError(400, 'no_clip', 'That clip is gone. Try another.');
+  await prisma.slideshowVariant.update({ where: { id: row.id }, data: { plan: asJson({ ...(row.plan as object), card: swapped }) } });
+};
+
 const SWIPE: Record<NonNullable<IdeaPatch['status']>, 'keep' | 'discard' | 'undo'> = { kept: 'keep', discarded: 'discard', proposed: 'undo' };
 
 /** Keep, skip or bring back an idea (logged like a deck swipe), move it, or give a Blitz idea another first line or voice. */
@@ -297,6 +306,7 @@ export async function patchIdea(workspaceId: string, id: string, patch: IdeaPatc
     if (row.engine !== 'website' || !card) throw new HttpError(400, 'no_voice', 'Only videos take a voice here.');
     await prisma.slideshowVariant.update({ where: { id }, data: { plan: asJson({ ...(row.plan as object), card: { ...card, voice: patch.voice } }) } });
   }
+  if (patch.media) await swapMedia(row, patch.media);
   if (patch.plannedAt) {
     const at = new Date(patch.plannedAt);
     if (Number.isNaN(at.getTime()) || at.getTime() < Date.now()) throw new HttpError(400, 'invalid_date', 'Pick a day from tomorrow on.');

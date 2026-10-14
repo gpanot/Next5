@@ -27,7 +27,7 @@ const TONES = {
   },
 } as const;
 
-/** The hook / CTA looks (Default, White box, TikTok Red) as picks: the Ideas deck's Hook menu and both editors. */
+/** The hook / CTA looks (Default, White box, TikTok Red) as picks: the Ideas deck's Hook sheet and both editors. */
 export function HookStyleOptions({ activeId, onPick, disabled = false, tone = 'auto' }: Props) {
   const colors = TONES[tone];
   return (

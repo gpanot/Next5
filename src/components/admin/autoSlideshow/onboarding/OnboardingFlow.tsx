@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import type { AutoRunDto } from '../../../../types/admin/autoSlideshow';
 import { LAST_COUNTED_STEP, ONBOARDING_LAST_STEP, type OnboardingProfileDto } from '../../../../types/admin/onboarding';
@@ -56,6 +57,7 @@ const useBuildMoments = (ctx: TrackContext | null, build: ReturnType<typeof useB
 /** The onboarding shown while a new workspace's first run builds. Answers are saved for stats only. */
 export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props) {
   const flow = useOnboarding(token, workspaceId);
+  const router = useRouter();
   const build = useBuildStatus(run);
   const [retrying, setRetrying] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -87,11 +89,12 @@ export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props)
   const jump = () => {
     trackOnboarding('onboarding_jump_to_calendar', ctx, { fromStep: flow.step });
     const remaining = Array.from({ length: LAST_COUNTED_STEP }, (_, i) => i + 1).filter((s) => s >= flow.step);
-    flow.complete(remaining);
+    void flow.complete(remaining);
   };
   const finish = () => {
     trackOnboarding('onboarding_completed', ctx, { totalMs: Date.now() - flow.flowStartedAt, waitedOnReadyMs: waitedOnReadyMs() });
-    flow.complete();
+    // The Blitz cards are ready before the first slideshow: land on the Ideas deck, once the server knows it is done.
+    void flow.complete().then(() => router.push(`/slideshow/${workspaceId}/ideas`));
   };
   const retry = async () => {
     setRetrying(true);

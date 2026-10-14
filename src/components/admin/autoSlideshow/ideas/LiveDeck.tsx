@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { DeckMenu } from './DeckMenu';
 import { HookPicker } from './HookPicker';
 import { whenOf } from './ideaCards';
-import { IdeaDeck, type DeckSize } from './IdeaDeck';
+import { IdeaDeck, type DeckClips, type DeckSize } from './IdeaDeck';
 import type { Make } from './IdeasPanel';
 import { useKeepConfirm } from './KeepConfirm';
 import type { IdeasState } from './useIdeas';
@@ -13,6 +13,28 @@ import { useHookStyle } from './useHookStyle';
 import { useVoicePreview, voiceOf } from './useVoicePreview';
 import { nextBlitzVoice } from '../../../../types/admin/blitzVoice';
 import { useBlitzVoices } from '../../../labs/blitzLab/useBlitzVoices';
+
+/** Swapped clips, last first per idea (the shot, and the clip it had), so each swap can be undone. */
+const useClipSwaps = (ideas: IdeasState): DeckClips => {
+  const [undos, setUndos] = useState<Record<string, Array<{ shot: number; assetKey: string }>>>({});
+  const { swapMedia } = ideas;
+  return useMemo<DeckClips>(() => ({
+    swap: (idea, shot, assetKey) => {
+      const before = idea.card?.shots[shot]?.assetKey;
+      if (!before) return;
+      setUndos((u) => ({ ...u, [idea.id]: [...(u[idea.id] ?? []), { shot, assetKey: before }] }));
+      swapMedia(idea, shot, assetKey);
+    },
+    undoOf: (idea) => {
+      const last = undos[idea.id]?.at(-1);
+      if (!last) return null;
+      return () => {
+        setUndos((u) => ({ ...u, [idea.id]: (u[idea.id] ?? []).slice(0, -1) }));
+        swapMedia(idea, last.shot, last.assetKey);
+      };
+    },
+  }), [undos, swapMedia]);
+};
 
 type Props = {
   ideas: IdeasState;
@@ -27,14 +49,14 @@ type Props = {
 
 /**
  * The ideas deck wired to the ideas: swipe right asks once (it uses a credit), keeps the idea on its day (or where
- * `placeOf` says) and makes it right away; swipe left skips; undo, another first line (pencil), the hook's look (Hook), the voiceover (recorded for the top and next card; the mic swaps woman / man voice); ⋯ creates 3 slideshows.
+ * `placeOf` says) and makes it right away; swipe left skips; undo, another first line and the hook's look (Hook, under the card), the voiceover (recorded for the top and next card; the mic swaps woman / man voice); paused, the shot's clip swaps (with undo); ⋯ (Ideas page, phones) filters the deck.
  */
 export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   const [hookFor, setHookFor] = useState<IdeaDto | null>(null);
+  const clips = useClipSwaps(ideas);
   const voices = useBlitzVoices(ideas.client);
   const hookStyle = useHookStyle();
   const { confirm, dialog } = useKeepConfirm();
-  const asked = ideas.making.filter((i) => i.requested).length;
   const preview = useVoicePreview(ideas.client);
   const { load } = preview;
   // The top card's voiceover is recorded as soon as it is on top, then the next card's (2026-10-14), so a swipe usually
@@ -64,8 +86,8 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   };
   return (
     <>
-      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={(target) => void changeVoice(target)} voice={preview.stateOf(idea)} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1, whenOf(idea, placeOf?.(idea))) : undefined} menu={<DeckMenu onCreate={ideas.createSlideshows} making={asked} filters={size === 'page' ? ideas : undefined} bareOnPhone={size === 'page' || size === 'day'} />} hookStyle={hookStyle} />
-      {hookFor && <HookPicker idea={hookFor} onPick={(id) => ideas.pickHook(hookFor, id)} onClose={() => setHookFor(null)} />}
+      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={(target) => void changeVoice(target)} voice={preview.stateOf(idea)} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1, whenOf(idea, placeOf?.(idea))) : undefined} menu={size === 'page' ? <DeckMenu filters={ideas} /> : undefined} hookStyle={hookStyle} clips={clips} />
+      {hookFor && <HookPicker idea={hookFor} onPick={(id) => ideas.pickHook(hookFor, id)} onClose={() => setHookFor(null)} style={hookFor.card ? hookStyle : undefined} />}
       {dialog}
     </>
   );

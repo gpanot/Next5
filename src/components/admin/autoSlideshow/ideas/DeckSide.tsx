@@ -1,45 +1,66 @@
 'use client';
 
-import { Mic, Volume2, VolumeX } from 'lucide-react';
+import { Mic, Pause, Play, Shuffle, Undo2, Volume2, VolumeX } from 'lucide-react';
 import type { VoicePreviewState } from './useVoicePreview';
-import { HookStyleButton } from './HookStyleButton';
-import type { HookStyleState } from './useHookStyle';
+import { VOICE_READY_S, VoiceCountdown } from './VoiceCountdown';
 
 const round = 'flex h-9 w-9 items-center justify-center rounded-full border border-line bg-white text-ink shadow-sm transition hover:bg-zinc-50 active:scale-90 disabled:opacity-30 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800';
 
-/** On the card (the Ideas page on phones): dark glass over the picture. */
-const ON_CARD = 'max-lg:border-transparent max-lg:bg-black/45 max-lg:text-white max-lg:backdrop-blur-sm max-lg:dark:border-transparent max-lg:dark:bg-black/45 max-lg:dark:text-white';
+/** While paused: another clip for the shot on screen, and back to the one before. */
+export type ShotSwap = {
+  /** Null: this shot has no other clip. */
+  onSwap: (() => void) | null;
+  /** Null: nothing swapped on this card yet. */
+  onUndo: (() => void) | null;
+};
 
 type Props = {
   soundOn: boolean;
   onToggleSound: () => void;
+  paused: boolean;
+  onTogglePause: () => void;
+  /** Blitz ideas: shown while paused. */
+  swap?: ShotSwap;
   /** The next narrator voice (Blitz ideas). Null: this idea takes no voice (a photo slideshow). */
   onVoice: (() => void) | null;
   /** The idea's voice now: "woman" or "man". */
   voiceLabel: string;
   /** Its voiceover: null before it starts recording, loading while it records. */
   voiceState?: VoicePreviewState['status'] | null;
-  /** Drawn on the card instead of beside it (phones only). */
-  overlay?: boolean;
-  /** Blitz ideas: "Hook" above the sound button, to pick the hook's look. */
-  hook?: HookStyleState;
 };
 
-/** Beside the card (small, so the card stays centered), as in the Blitz deck: the hook's look, sound on/off, and the narrator voice. */
-export function DeckSide({ soundOn, onToggleSound, onVoice, voiceLabel, voiceState = null, overlay = false, hook }: Props) {
-  const cls = overlay ? `${round} ${ON_CARD}` : round;
-  const voiceHint = voiceState === 'loading' ? `Recording the ${voiceLabel}'s voice…` : `Voice: ${voiceLabel}. Tap to switch.`;
+/** Paused: undo a swap, then swap the shot's clip, above play / pause. */
+function SwapButtons({ swap }: { swap: ShotSwap }) {
+  return (
+    <>
+      {swap.onUndo && (
+        <button type="button" onClick={swap.onUndo} aria-label="Undo the clip swap" title="Back to the clip before" className={round}>
+          <Undo2 aria-hidden className="h-4 w-4" />
+        </button>
+      )}
+      <button type="button" onClick={swap.onSwap ?? undefined} disabled={!swap.onSwap} aria-label="Swap this clip" title={swap.onSwap ? 'Swap this clip' : 'No other clip for this shot'} className={round}>
+        <Shuffle aria-hidden className="h-4 w-4" />
+      </button>
+    </>
+  );
+}
+
+/** Beside the card (small, so the card stays centered), as in the Blitz deck: swap (paused), play / pause, sound on/off, and the narrator voice. */
+export function DeckSide({ soundOn, onToggleSound, paused, onTogglePause, swap, onVoice, voiceLabel, voiceState = null }: Props) {
+  const recording = voiceState === 'loading';
+  const voiceHint = recording ? `Recording the ${voiceLabel}'s voice. Ready in about ${VOICE_READY_S} seconds.` : `Voice: ${voiceLabel}. Tap to switch.`;
   return (
     <div className="flex flex-col gap-1.5">
-      {hook && <HookStyleButton hook={hook} className={cls} />}
-      <button type="button" onClick={onToggleSound} aria-pressed={soundOn} aria-label={soundOn ? 'Mute sound' : 'Turn sound on'} title={soundOn ? 'Sound on' : 'Sound off'} className={cls}>
+      {paused && swap && <SwapButtons swap={swap} />}
+      <button type="button" onClick={onTogglePause} aria-pressed={paused} aria-label={paused ? 'Play' : 'Pause'} title={paused ? 'Play' : 'Pause'} className={round}>
+        {paused ? <Play aria-hidden className="h-4 w-4" /> : <Pause aria-hidden className="h-4 w-4" />}
+      </button>
+      <button type="button" onClick={onToggleSound} aria-pressed={soundOn} aria-label={soundOn ? 'Mute sound' : 'Turn sound on'} title={soundOn ? 'Sound on' : 'Sound off'} className={round}>
         {soundOn ? <Volume2 aria-hidden className="h-4 w-4" /> : <VolumeX aria-hidden className="h-4 w-4" />}
       </button>
       {onVoice && (
-        <button type="button" onClick={onVoice} disabled={voiceState === 'loading'} aria-busy={voiceState === 'loading'} aria-label={voiceHint} title={voiceHint} className={cls}>
-          {voiceState === 'loading'
-            ? <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            : <Mic aria-hidden className="h-4 w-4" />}
+        <button type="button" onClick={recording ? undefined : onVoice} aria-disabled={recording} aria-busy={recording} aria-label={voiceHint} title={voiceHint} className={`${round} ${recording ? 'cursor-wait' : ''}`}>
+          {recording ? <VoiceCountdown /> : <Mic aria-hidden className="h-4 w-4" />}
         </button>
       )}
     </div>

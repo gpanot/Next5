@@ -5,6 +5,7 @@ import { SLIDESHOW_AFTER, type IdeaDto, type IdeaFormat, type IdeaPatch, type Id
 import { errorOf, type LabClient, type LabResponse } from '../../../labs/labClient';
 import { ideasApi } from './ideasApi';
 import type { BlitzVoiceName } from '../../../../types/admin/blitzVoice';
+import { swapShotMedia } from '../../../../types/admin/ideaMedia';
 
 /** `generatingSince`: when the batch being written was asked for (ISO), for the countdown on the empty card.
  *  `batchSince`: a batch written elsewhere (the server's first one, after the first run), from the list. */
@@ -199,12 +200,19 @@ const useActions = (client: LabClient | null, request: ListRequest, setState: Se
     setState((s) => ({ ...s, ideas: s.ideas.map((i) => (i.id === idea.id && i.card ? { ...i, card: { ...i.card, voice } } : i)) }));
     void patch(idea.id, { voice });
   }, [patch, setState]);
+  /** Shot `shot` of a Blitz idea shows another of its clips: shown at once, saved for when it is made. */
+  const swapMedia = useCallback((idea: IdeaDto, shot: number, assetKey: string) => {
+    const card = idea.card && swapShotMedia(idea.card, shot, assetKey);
+    if (!card) return;
+    setState((s) => ({ ...s, ideas: s.ideas.map((i) => (i.id === idea.id ? { ...i, card } : i)) }));
+    void patch(idea.id, { media: { shot, assetKey } });
+  }, [patch, setState]);
   const changeDay = useCallback(async (action: 'add' | 'remove', day: string) => {
     if (!client) return;
     setState((s) => ({ ...s, error: null }));
     await request(() => ideasApi.day(client, action, day));
   }, [client, request, setState]);
-  return { focusId, setFocusId, canUndo: history.length > 0, patch, decide, keepNow, undo, pickHook, setVoice, changeDay };
+  return { focusId, setFocusId, canUndo: history.length > 0, patch, decide, keepNow, undo, pickHook, setVoice, swapMedia, changeDay };
 };
 
 /**

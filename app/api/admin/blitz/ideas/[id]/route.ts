@@ -26,10 +26,15 @@ const patchOf = (raw: unknown): IdeaPatch => {
     if (!isBlitzVoice(b.voice)) throw new HttpError(400, 'invalid_voice', 'Unknown voice.');
     patch.voice = b.voice;
   }
+  if (b.media !== undefined) {
+    const m = (b.media ?? {}) as Record<string, unknown>;
+    if (!Number.isInteger(m.shot) || typeof m.assetKey !== 'string') throw new HttpError(400, 'invalid_media', 'Pick a clip.');
+    patch.media = { shot: m.shot as number, assetKey: m.assetKey };
+  }
   return patch;
 };
 
-/** PATCH /api/admin/blitz/ideas/[id] — { status?, plannedAt?, hookId?, voice? } → the updated ideas list. */
+/** PATCH /api/admin/blitz/ideas/[id] — { status?, plannedAt?, hookId?, voice?, media? } → the updated ideas list. */
 export const PATCH = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
   if (access.admin) throw new HttpError(400, 'user_only', 'Ideas belong to a workspace.');
   const { id } = await ctx.params;
