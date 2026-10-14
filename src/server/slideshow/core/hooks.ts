@@ -1,5 +1,5 @@
 // server-only — never import from a 'use client' file.
-// Hook generation: one LLM call produces 18 hooks per brief (or per story, for a batch of stories: generateStoryHooks);
+// Hook generation: one LLM call produces 18 hooks per brief (12 per story for a batch of stories: generateStoryHooks);
 // a filter keeps the best 1 per archetype → 6 hooks. "Best" = the most specific valid hook, in the writer's order.
 // Jev ranking was dropped on 2026-10-13: on a blind test its picks did no better than the writer's own order.
 
@@ -220,21 +220,27 @@ export type HookStory = { id: string; lines: string; specifics: string[] };
 
 type BatchHookInput = Pick<HookGenerationInput, 'audience' | 'proofLine' | 'lensLine' | 'rules'>;
 
+/** Hooks per archetype per story in a batch: 2, not 3, so the reply (and the wait) is a third shorter. */
+const STORY_HOOKS_PER_ARCHETYPE = 2;
+/** Batch hooks run on mini: on a 2026-10-14 bank test it was about 5× cheaper than gpt-5.5 and faster; the filter
+ *  below drops its generic hooks. Stories stay on gpt-5.5 (mini broke the line-length rule). */
+const STORY_HOOKS_MODEL = 'gpt-5.4-mini';
+
 /**
- * 18 hooks for each of several stories of one audience in one call, filtered like generateHooks to at most 6 per
- * story. Stories the writer skipped come back with none. Never throws.
+ * 12 hooks for each of several stories of one audience in one call (STORY_HOOKS_PER_ARCHETYPE per archetype),
+ * filtered like generateHooks to at most 6 per story. Stories the writer skipped come back with none. Never throws.
  */
 export async function generateStoryHooks(input: BatchHookInput, stories: HookStory[]): Promise<Map<string, HookCandidate[]>> {
   const out = new Map<string, HookCandidate[]>();
   if (stories.length === 0) return out;
-  const system = `You write scroll-stopping hooks for short vertical videos: for EACH story below, 3 hooks per archetype.
+  const system = `You write scroll-stopping hooks for short vertical videos: for EACH story below, ${STORY_HOOKS_PER_ARCHETYPE} hooks per archetype.
 
 AUDIENCE: ${input.audience}
 ${input.lensLine ? `LENS: ${input.lensLine}\n` : ''}PROOF: ${input.proofLine ?? 'none. Do not invent any.'}
 
 HARD RULES (a hook that breaks one is thrown away):
 ${HOOK_RULES}
-6. Each hook fits its own story. The 3 hooks of one archetype say different things.
+6. Each hook fits its own story. The ${STORY_HOOKS_PER_ARCHETYPE} hooks of one archetype say different things.
 ${input.rules.extraInstruction ? `7. ${input.rules.extraInstruction}\n` : ''}
 ARCHETYPES
 ${archetypeText(input.rules)}
@@ -244,7 +250,7 @@ OUTPUT: JSON only, one entry per story, "story" = the STORY number:
   const user = stories.map((s, i) => `STORY ${i + 1}: ${s.lines}`).join('\n');
   type Reply = { stories?: Array<{ story?: unknown; hooks?: Array<{ archetype?: unknown; text?: unknown }> }> };
   const ask = () => chatJsonWithMeta<Reply>([{ role: 'system', content: system }, { role: 'user', content: user }],
-    { maxTokens: 4_000 + stories.length * 800, model: 'gpt-5.5', reasoningEffort: 'low', timeoutMs: 120_000 });
+    { maxTokens: 4_000 + stories.length * 550, model: STORY_HOOKS_MODEL, reasoningEffort: 'low', timeoutMs: 120_000 });
   let { result } = await ask();
   if (!Array.isArray(result?.stories) || result.stories.length === 0) ({ result } = await ask());
   for (const entry of result?.stories ?? []) {

@@ -150,7 +150,7 @@ const startWarmUp = (runId: string) => {
     if (!profile || !workspaceId) return;
     // The cast reads the Visual Bible, so it comes second.
     await runBible(runId, profile, workspaceId, meter);
-    await prepareCast(workspaceId, run.count, meter);
+    await prepareCast(workspaceId, meter);
   })()
     .catch((err: unknown) => console.warn(`[auto-slideshow] run ${runId}: warm-up failed (${err instanceof Error ? err.message : err})`))
     .then(() => meter.summary());

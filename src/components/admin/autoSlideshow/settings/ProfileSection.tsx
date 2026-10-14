@@ -4,9 +4,12 @@ import { useRouter } from 'next/navigation';
 import { sessionTokenStore } from '../../../../lib/localStore';
 import { lastWorkspaceStore, SLIDESHOW_HOME } from '../workspace/WorkspaceContext';
 import type { SlideshowMeDto } from '../../../../types/admin/autoSlideshow';
+import { StockImagesToggle } from './StockImagesToggle';
 
-/** Who is signed in, and the log out button. */
-export function ProfileSection({ me, onClose }: { me: SlideshowMeDto; onClose: () => void }) {
+type Props = { token: string; me: SlideshowMeDto; onClose: () => void; onChanged: () => void };
+
+/** Who is signed in, the testing switch (testing accounts only), and the log out button. */
+export function ProfileSection({ token, me, onClose, onChanged }: Props) {
   const name = me.displayName || me.email.split('@')[0] || me.email;
   const router = useRouter();
   /** Ends only the user session (an admin token in this browser is left alone), back to the public home. */
@@ -26,6 +29,7 @@ export function ProfileSection({ me, onClose }: { me: SlideshowMeDto; onClose: (
           <p className="truncate text-xs text-muted">Workspace: {me.workspace.name}</p>
         </div>
       </div>
+      {me.stockImagesOnly !== null && <StockImagesToggle token={token} on={me.stockImagesOnly} onChanged={onChanged} />}
       <button onClick={logout} className="min-h-11 w-full rounded-full border border-line px-5 text-sm font-semibold text-ink transition hover:bg-zinc-50 active:scale-95 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-900">
         Log out
       </button>

@@ -5,7 +5,7 @@
 // Needs of one audience, on the same shot, with nearly the same line, now share one image.
 // Only paid workspaces get AI images; the others get stock photos (stockImages.ts): batchShotImages picks.
 
-import { workspaceHasPaid } from '../../slideshowCredits/paid';
+import { workspaceGetsAiImages } from '../../slideshowCredits/paid';
 import { wordOverlap } from './copyGuards';
 import { generateShotImages, type ImageNeed } from './generatedAssets';
 import type { LibraryAsset } from './library';
@@ -70,10 +70,10 @@ export const makeBatchStock = (needs: BatchNeed[], scripts: number, workspaceId:
   return makeBatch(needs, scripts, (audience, categories, leads) => stockShotImages(audience, categories, leads, workspaceId, used), 'stock found');
 };
 
-/** The batch's images by plan: AI images once the workspace's owner has paid, stock photos before. */
+/** The batch's images by plan: AI images once the workspace's owner has paid (unless they test as free), stock photos before. */
 export const batchShotImages = async (needs: BatchNeed[], scripts: number, workspaceId: string | null, brand: PhotoBrand) => {
   if (needs.length === 0) return Array.from({ length: scripts }, () => new Map<string, LibraryAsset>());
-  const paid = await workspaceHasPaid(workspaceId).catch((err: unknown) => {
+  const paid = await workspaceGetsAiImages(workspaceId).catch((err: unknown) => {
     console.warn('[imageNeeds] paid check failed, using stock:', err instanceof Error ? err.message : err);
     return false;
   });

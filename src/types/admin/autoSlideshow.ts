@@ -273,6 +273,8 @@ export type SlideshowMeDto = {
   connections: ConnectionDto[];
   /** Platforms whose developer keys are set on our side. */
   available: SocialProviderDto[];
+  /** Testing switch: Ideas-page Blitz cards get stock photos even when paid. Null when this user may not see it. */
+  stockImagesOnly: boolean | null;
 };
 
 /** One generated photo of a user's runs, as listed in Settings → Photos. */

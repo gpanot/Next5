@@ -23,7 +23,7 @@ import type { HookArchetype, Tone } from '../slideshow/core/types';
 import type { StoryTexts } from '../slideshow/core/deckAssembly';
 import { clip } from '../metaAds/text';
 import { contentWords, wordOverlap } from '../slideshow/core/copyGuards';
-import { STAGES, STAGE_FORMATS, STAGE_HOOKS, STAGE_TARGET, orderByStage, totalQuota, type Stage, type StoryFormat } from './blitzFormats';
+import { STAGES, STAGE_FORMATS, STAGE_HOOKS, STAGE_TARGET, WEEK_MIX, orderByStage, totalQuota, type Stage, type StoryFormat } from './blitzFormats';
 import { writeTriggerBank, type CampaignGoal, type TriggerBank } from './blitzCampaign';
 import { NO_LEARNING, loadLearning, scoreOf, type BlitzLearning } from './blitzLearning';
 import { briefProofNote, deckFromScripts, loadWebsiteSource, photoBrand, type BriefScript } from './websiteDeck';
@@ -39,7 +39,7 @@ type BankStory = {
   id: string; story: StoryTexts; hooks: BankHook[]; stage?: Stage; format?: StoryFormat; trigger?: string;
   /** A winner story this one follows up (same trigger, a later stage). */
   followUpOf?: string;
-  /** Photo prompts of its shots (blitzStoryPhotos.ts); absent on stories written before them (backfilled). */
+  /** Photo prompts of its shots (blitzStoryPhotos.ts); absent until backfilled (backfillPhotos) or written when an AI image needs one. */
   photos?: StoryPhotos;
 };
 type BankAudience = {
@@ -102,7 +102,7 @@ type OnStory = (audiences: BankAudience[]) => void;
 
 /**
  * The missing stories of every audience of the site, audiences in parallel, each audience's stories in a few calls
- * (blitzStoryWriter.ts). A story joins its audience as soon as its hooks and photo prompts are written (`onStory`), so
+ * (blitzStoryWriter.ts). A story joins its audience as soon as its hooks are written (`onStory`), so
  * the first ones are usable while the rest are still being written. A story that repeats one is left out. The trigger
  * bank (the campaign goal and the Blitz Matrix lists) is written alongside; new stories pick their own problem.
  */
@@ -122,13 +122,13 @@ async function writeAudiences(source: WebsiteSource, missing: Record<Stage, numb
     // A follow-up tells its winner's trigger again, in a later stage.
     const followed = (id?: string) => stories.find((s) => s.id === id);
     await writeStories({
-      brief, source, categories, avoid: [...pains],
+      brief, avoid: [...pains],
       slots: slots.map((s) => ({ ...s, problem: followed(s.followUpOf)?.trigger ?? followed(s.followUpOf)?.story.pain })),
       onReady: (w) => {
         if (pains.some((pain) => wordOverlap(pain, w.story.pain) >= SAME_PAIN_OVERLAP)) return;
         pains.push(w.story.pain);
         const { stage, format, followUpOf } = w.slot;
-        stories.push({ id: storyId(slot, next++), story: w.story, hooks: w.hooks, stage, format, trigger: w.problem || undefined, photos: w.photos, ...(followUpOf ? { followUpOf } : {}) });
+        stories.push({ id: storyId(slot, next++), story: w.story, hooks: w.hooks, stage, format, trigger: w.problem || undefined, ...(followUpOf ? { followUpOf } : {}) });
         onStory?.(live.filter((a) => a.stories.length > 0));
       },
     }).catch((err: unknown) => console.error(`[BlitzBank] stories for "${brief.idc}" failed:`, err instanceof Error ? err.message : err));
@@ -183,7 +183,18 @@ export const EARLY_STORIES = 7;
 
 const storyCount = (content: BlitzBankContent) => content.audiences.reduce((n, a) => n + a.stories.length, 0);
 
-/** `onEnough`: called once the stories saved so far fill a week (EARLY_STORIES), while the rest are still written. */
+/** The first week's audiences with the stories written since (`later`); an audience `later` lacks keeps its first-week stories. */
+const merged = (first: BankAudience[], later: BankAudience[]): BankAudience[] => [
+  ...first.map((a) => later.find((b) => b.idc === a.idc) ?? a),
+  ...later.filter((b) => !first.some((a) => a.idc === b.idc)),
+];
+
+/**
+ * Two rounds, so the first batch does not wait for the whole bank: the first campaign week's stories (WEEK_MIX[0],
+ * smaller calls that answer sooner), then the rest up to STAGE_TARGET. Stories have no photo prompts yet (see
+ * blitzStoryWriter.ts). `onEnough`: called once the stories saved so far fill a week (EARLY_STORIES), while the rest are
+ * still written.
+ */
 async function build(brandProfileId: string, source: WebsiteSource, onEnough?: () => void): Promise<BlitzBankContent> {
   const t0 = Date.now();
   // Each new story is saved at once (status stays 'building'); saves run one after another, the last one wins.
@@ -200,7 +211,11 @@ async function build(brandProfileId: string, source: WebsiteSource, onEnough?: (
     void saving.then(() => onEnough?.());
   };
   try {
-    const audiences = (await writeAudiences(source, STAGE_TARGET, undefined, NO_LEARNING, progress)).filter((a) => a.stories.length > 0);
+    const week = (await writeAudiences(source, WEEK_MIX[0]!, undefined, NO_LEARNING, progress)).filter((a) => a.stories.length > 0);
+    console.log(`[BlitzBank] profile ${brandProfileId}: first week (${storyCount({ audiences: week })} stories) in ${Date.now() - t0}ms`);
+    const rest = missingByStage({ audiences: week }, new Map(), STAGE_TARGET);
+    const later = await writeAudiences(source, rest, { audiences: week }, NO_LEARNING, (audiences) => progress(merged(week, audiences)));
+    const audiences = merged(week, later).filter((a) => a.stories.length > 0);
     await saving;
     if (audiences.length === 0) throw new Error('No Blitz story could be written for this site');
     const content: BlitzBankContent = { audiences };
@@ -355,7 +370,7 @@ async function growIfSpent(studioRunId: string, workspaceId: string, target: Rec
   }
 }
 
-/** Unused stories given photo prompts per run, when the bank has stories written before prompts existed. */
+/** Unused stories given photo prompts per run (new stories are written without them). */
 const PHOTO_BACKFILL = 60;
 
 /** Photo prompts for the next unused stories that lack them (so batches only render images). Never throws. */

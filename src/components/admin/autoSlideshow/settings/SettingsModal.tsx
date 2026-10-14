@@ -61,7 +61,7 @@ export function SettingsModal({ token, workspaceId, onClose, initialTab = 'works
           {tab === 'photos' && <AssetsSection token={token} workspaceId={workspaceId} />}
           {tab === 'credits' && <CreditsSection token={token} workspaceId={workspaceId} />}
           {(tab === 'accounts' || tab === 'profile') && loading && !me && <div className="h-28 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />}
-          {tab === 'profile' && me && <ProfileSection me={me} onClose={onClose} />}
+          {tab === 'profile' && me && <ProfileSection token={token} me={me} onClose={onClose} onChanged={refresh} />}
           {tab === 'accounts' && me && <AccountsSection token={token} me={me} onChanged={refresh} />}
         </div>
       </div>

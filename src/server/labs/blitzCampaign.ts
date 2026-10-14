@@ -31,7 +31,8 @@ const KIND_ASK: Record<TriggerKind, string> = {
 const strings = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).map((x) => x.trim()) : [];
 
-/** One call: the audience's goal, action and trigger bank. Lists come back empty when the call fails. */
+/** One call (gpt-5.4-mini: short lists, cheaper and faster than gpt-5.5): the audience's goal, action and trigger bank.
+ *  Lists come back empty when the call fails. */
 export async function writeTriggerBank(brief: WebsiteBrief): Promise<{ goal: CampaignGoal; triggers: TriggerBank }> {
   const b = brief.business;
   const prompt = `You plan a 28-day short-video campaign that turns strangers among ${brief.idc} into customers of the business below.
@@ -55,7 +56,7 @@ RULES
 OUTPUT: JSON only, flat. {"objective": "...", "action": "...", ${TRIGGER_KINDS.map((k) => `"${k}": ["..."]`).join(', ')}}`;
   const { result } = await chatJsonWithMeta<Record<string, unknown>>(
     [{ role: 'system', content: prompt }, { role: 'user', content: 'Write the JSON now.' }],
-    { maxTokens: 6000, temperature: 0.7, model: 'gpt-5.5', reasoningEffort: 'low', timeoutMs: 60_000 },
+    { maxTokens: 6000, temperature: 0.7, model: 'gpt-5.4-mini', reasoningEffort: 'low', timeoutMs: 60_000 },
   ).catch((err: unknown) => {
     console.error(`[BlitzCampaign:${brief.idc}] trigger bank failed:`, err instanceof Error ? err.message : err);
     return { result: null };
