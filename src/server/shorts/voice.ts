@@ -75,18 +75,45 @@ export type VoiceChoice = { voice: string; direction?: string };
 const withNotes = (text: string, direction?: string): string =>
   direction ? `### DIRECTOR'S NOTES\nStyle: ${direction}\n### TRANSCRIPT\n${text}` : text;
 
+/**
+ * A call that has not answered after HEDGE_AFTER_MS is sent once more, and the first answer wins. Most TTS calls take
+ * ~4 s, but about 1 in 14 hung for ~24 s with no error (2026-10-14), and a voiceover waits for its slowest line.
+ */
+const HEDGE_AFTER_MS = 8_000;
+
+const hedged = <T>(call: () => Promise<T>): Promise<T> =>
+  new Promise((resolve, reject) => {
+    let failures = 0;
+    let started = 1;
+    const run = () => call().then(resolve, (err: unknown) => {
+      if (++failures === started) reject(err);
+    });
+    run();
+    setTimeout(() => {
+      if (failures === 0) {
+        started = 2;
+        run();
+      }
+    }, HEDGE_AFTER_MS);
+  });
+
 const speak = async (text: string, { voice, direction }: VoiceChoice, meter: CostMeter): Promise<Buffer> => {
-  const { data, costMicros } = await withRetry(() =>
-    tregJson<TtsResponse>('google-ai.voice-gen.gemini-3-8-flash-tts', {
-      query: { model: 'gemini-3.8-flash-tts' },
-      body: {
-        contents: [{ parts: [{ text: withNotes(stripTags(text), direction) }] }],
-        generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } },
-      },
-      timeoutMs: 90_000,
+  // Each call is metered when it answers, so a hedge's losing call is paid for too.
+  const data = await hedged(() =>
+    withRetry(() =>
+      tregJson<TtsResponse>('google-ai.voice-gen.gemini-3-8-flash-tts', {
+        query: { model: 'gemini-3.8-flash-tts' },
+        body: {
+          contents: [{ parts: [{ text: withNotes(stripTags(text), direction) }] }],
+          generationConfig: { responseModalities: ['AUDIO'], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } },
+        },
+        timeoutMs: 90_000,
+      }),
+    ).then(({ data: answer, costMicros }) => {
+      meter.add('Gemini 3.8 Flash TTS (treg)', costMicros);
+      return answer;
     }),
   );
-  meter.add('Gemini 3.8 Flash TTS (treg)', costMicros);
   const b64 = data.candidates?.[0]?.content?.parts?.find((p) => p.inlineData?.data)?.inlineData?.data;
   if (!b64) throw new Error('TTS returned no audio');
   return wavToPcm(Buffer.from(b64, 'base64'));
@@ -143,7 +170,7 @@ const RETAKES = 2;
  * One sentence recorded, its pauses trimmed; recorded once more when Gemini dragged it out (the faster take wins), and
  * up to twice more when the voice added or skipped words (the take with the fewest misread words wins).
  */
-const recordSentence = async (text: string, choice: VoiceChoice, meter: CostMeter, dir: string, idx: number): Promise<Buffer> => {
+const recordSentence = async (text: string, choice: VoiceChoice, meter: CostMeter, dir: string, idx: number, readBack: boolean): Promise<Buffer> => {
   const words = spokenCount(text);
   const take = async (n: number) => filterPcm(await speak(text, choice, meter), TRIM_PAUSES, dir, `s${idx}-t${n}`);
   let best = await take(1);
@@ -151,6 +178,7 @@ const recordSentence = async (text: string, choice: VoiceChoice, meter: CostMete
     const second = await take(2);
     if (wpmOf(words, second) > wpmOf(words, best)) best = second;
   }
+  if (!readBack) return best;
   let errors = await misread(text, best, meter);
   for (let n = 0; n < RETAKES && errors.length; n++) {
     console.warn(`[shorts] sentence ${idx} was misread (${errors.join(' ')}); recording it again`);
@@ -201,12 +229,18 @@ export type Narration = {
   rawWpm: number;
 };
 
+/**
+ * Whisper passes, each ~3 s a call. `readBack`: retake misread sentences. `wordTimings`: heard word timings (syllable
+ * spread without). Blitz turns both off (2026-10-14): it never shows word timings, and the check doubled its wait.
+ */
+export type SynthOptions = { readBack?: boolean; wordTimings?: boolean };
+
 /** The whole narration as one WAV, its length, per-word timings and how much it was sped up. */
-export const synthesize = async (narration: string, choice: VoiceChoice, meter: CostMeter): Promise<Narration> => {
+export const synthesize = async (narration: string, choice: VoiceChoice, meter: CostMeter, { readBack = true, wordTimings = true }: SynthOptions = {}): Promise<Narration> => {
   const sentences = splitSentences(narration);
   const pace = { tempo: 1, rawWpm: 0 };
   const fast = await withTempDir(async (dir) => {
-    const raw = await Promise.all(sentences.map((s, i) => recordSentence(s, choice, meter, dir, i)));
+    const raw = await Promise.all(sentences.map((s, i) => recordSentence(s, choice, meter, dir, i, readBack)));
     const words = sentences.reduce((sum, s) => sum + spokenCount(s), 0);
     const rawSeconds = raw.reduce((sum, p) => sum + pcmSeconds(p), 0);
     pace.tempo = tempoFor(words, rawSeconds);
@@ -217,7 +251,7 @@ export const synthesize = async (narration: string, choice: VoiceChoice, meter: 
   const pcm = Buffer.concat(fast);
   const wav = pcmToWav(pcm);
   const durationS = pcmSeconds(pcm);
-  const heard = await heardWordTimings(wav, stripTags(narration).split(' ').filter(Boolean), durationS, meter);
+  const heard = wordTimings ? await heardWordTimings(wav, stripTags(narration).split(' ').filter(Boolean), durationS, meter) : null;
   return { wav, durationS, words: heard ?? timeWords(sentences, fast), sentences: sentences.length, ...pace };
 };
 

@@ -19,7 +19,8 @@ export const voiceOf = (idea: IdeaDto): BlitzVoiceName => (isBlitzVoice(idea.car
 
 /**
  * The real voiceover of Blitz ideas on the deck, kept per idea, voice and caption text, so replays are free. A changed
- * hook is a new voiceover. The deck loads the top card's voice once it stays on screen, and the other voice on a mic tap.
+ * hook is a new voiceover. The deck loads the top card's voice and the next card's (`ahead`), and the other voice on a
+ * mic tap. A failed `ahead` load is forgotten, so the card asks again once it is on top and shows that error.
  */
 export function useVoicePreview(client: LabClient | null) {
   const [byKey, setByKey] = useState<Record<string, VoicePreviewState>>({});
@@ -28,7 +29,7 @@ export function useVoicePreview(client: LabClient | null) {
 
   const stateOf = useCallback((idea: IdeaDto): VoicePreviewState | null => byKey[keyOf(idea, voiceOf(idea))] ?? null, [byKey]);
 
-  const load = useCallback(async (idea: IdeaDto, voice: BlitzVoiceName): Promise<VoicePreviewState> => {
+  const load = useCallback(async (idea: IdeaDto, voice: BlitzVoiceName, ahead = false): Promise<VoicePreviewState> => {
     const key = keyOf(idea, voice);
     const known = byKeyRef.current[key];
     if (known?.status === 'ready' || known?.status === 'loading') return known;
@@ -40,7 +41,12 @@ export function useVoicePreview(client: LabClient | null) {
     const next: VoicePreviewState = res?.ok
       ? { status: 'ready', narration: { url: res.data.url, durations: res.data.durations } }
       : { status: 'error', message: res ? errorOf(res) : 'Could not reach the server. Check your connection.', limit: res?.status === 429 };
-    setByKey((m) => ({ ...m, [key]: next }));
+    setByKey((m) => {
+      if (next.status === 'ready' || !ahead) return { ...m, [key]: next };
+      const rest = { ...m };
+      delete rest[key];
+      return rest;
+    });
     return next;
   }, [client]);
 

@@ -14,9 +14,6 @@ import { useVoicePreview, voiceOf } from './useVoicePreview';
 import { nextBlitzVoice } from '../../../../types/admin/blitzVoice';
 import { useBlitzVoices } from '../../../labs/blitzLab/useBlitzVoices';
 
-/** How long a card stays on top before its voiceover is recorded. */
-const VOICE_AFTER_MS = 1000;
-
 type Props = {
   ideas: IdeasState;
   /** Swipe right makes the idea right away (1 credit). Null: keep only (ideas off). */
@@ -30,7 +27,7 @@ type Props = {
 
 /**
  * The ideas deck wired to the ideas: swipe right asks once (it uses a credit), keeps the idea on its day (or where
- * `placeOf` says) and makes it right away; swipe left skips; undo, another first line (pencil), the hook's look (Hook), the voiceover (recorded once the card stays on screen; the mic swaps woman / man voice); ⋯ creates 3 slideshows.
+ * `placeOf` says) and makes it right away; swipe left skips; undo, another first line (pencil), the hook's look (Hook), the voiceover (recorded for the top and next card; the mic swaps woman / man voice); ⋯ creates 3 slideshows.
  */
 export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   const [hookFor, setHookFor] = useState<IdeaDto | null>(null);
@@ -40,13 +37,19 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   const asked = ideas.making.filter((i) => i.requested).length;
   const preview = useVoicePreview(ideas.client);
   const { load } = preview;
-  // The top card's voiceover is recorded once it stays on screen a moment (a fast skip costs nothing).
-  const needsVoice = Boolean(idea.card) && preview.stateOf(idea) === null;
+  // The top card's voiceover is recorded as soon as it is on top, then the next card's (2026-10-14), so a swipe usually
+  // lands on a voice already recorded. The next waits for the top: both at once slowed the top one from ~9 s to ~12 s.
+  // A skipped card's recording is never heard (~$0.009).
+  const topState = preview.stateOf(idea);
+  const needsVoice = Boolean(idea.card) && topState === null;
+  const topSettled = !idea.card || (topState !== null && topState.status !== 'loading');
+  const nextNeedsVoice = topSettled && Boolean(next?.card) && next !== null && preview.stateOf(next) === null;
   useEffect(() => {
-    if (!needsVoice) return;
-    const timer = setTimeout(() => void load(idea, voiceOf(idea)), VOICE_AFTER_MS);
-    return () => clearTimeout(timer);
+    if (needsVoice) void load(idea, voiceOf(idea));
   }, [needsVoice, idea, load]);
+  useEffect(() => {
+    if (nextNeedsVoice && next) void load(next, voiceOf(next), true);
+  }, [nextNeedsVoice, next, load]);
   // The mic swaps to the other voice and plays it. Past the free day's limit the voice still swaps and its sample plays.
   const changeVoice = async (target: IdeaDto) => {
     const voice = nextBlitzVoice(voiceOf(target));

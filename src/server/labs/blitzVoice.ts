@@ -1,7 +1,7 @@
 // server-only — never import from a 'use client' file.
 // Blitz voiceover (2026-10-12, replaces music on Blitz cards): one spoken line per slide, written like a short explainer
 // (the hook opens a loop, middle lines explain what the caption only states, the last line says the CTA), recorded with
-// the Shorts voice step (Gemini 3.8 Flash TTS on treg, Whisper read-back retakes). Each slide then lasts as long as its
+// the Shorts voice step (Gemini 3.8 Flash TTS on treg; no Whisper passes since 2026-10-14, they took ~6 s a line). Each slide then lasts as long as its
 // line. Tested on 2026-10-12 (scripts/tmp/blitz-voice): the user rated it "much better" than music. ~$0.02 a video.
 // Since 2026-10-13 each recording is cached by its text and voice: the Ideas deck previews it, the render reuses it.
 
@@ -15,8 +15,11 @@ import { sampleLine, synthesize } from '../shorts/voice';
 import { blitzBrowserUrl } from '../admin/blitzStore';
 import { getObject, putObject } from '../storage/objectStore';
 
-/** Lines recorded at once: all 7 together overloaded treg (503 "pool is saturated", 2026-10-13). */
-const RECORD_AT_ONCE = 3;
+/**
+ * Lines recorded at once. 3 after a 503 "pool is saturated" on 7 (2026-10-13), but that cost 3 rounds of ~5 s each.
+ * 7 at once passed on 2026-10-14 (5.5 s wall), and withRetry backs off on a 503, so every line goes at once again.
+ */
+const RECORD_AT_ONCE = 10;
 
 /** `fn` over `items`, at most `limit` running at a time, results in order. */
 const mapLimited = async <T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
@@ -121,7 +124,7 @@ export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceN
   const started = Date.now();
   const meter = createMeter();
   const lines = await writeLines(slides, workspaceId, meter);
-  const takes = await mapLimited(lines, RECORD_AT_ONCE, (line) => synthesize(line, { voice, direction: DIRECTION }, meter));
+  const takes = await mapLimited(lines, RECORD_AT_ONCE, (line) => synthesize(line, { voice, direction: DIRECTION }, meter, { readBack: false, wordTimings: false }));
   const pcms: Buffer[] = [];
   const timed = slides.map((slide, i) => {
     const pcm = wavToPcm(takes[i]!.wav);
