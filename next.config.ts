@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
     '/api/admin/blitz/schedule': ['./node_modules/ffmpeg-static/ffmpeg'],
     '/api/admin/auto-slideshow/**': ['./node_modules/ffmpeg-static/ffmpeg'],
     '/api/cron/**': ['./node_modules/ffmpeg-static/ffmpeg'],
+    // Slide renders read the store badge SVGs from public/ at runtime.
+    '/api/**': ['./public/images/store-badges/**'],
   },
   // Auto Slideshow is the site root; the realtor/TikTok Shop home moved to /TTZillow. Old links keep working.
   async redirects() {

@@ -160,7 +160,7 @@ const badgeUris = new Map<string, Promise<string>>();
 const badgeUri = (src: string): Promise<string> => {
   const cached = badgeUris.get(src);
   if (cached) return cached;
-  const next = readFile(path.join(process.cwd(), 'public', src)).then((svg) => `data:image/svg+xml;base64,${svg.toString('base64')}`);
+  const next = readFile(path.join(/*turbopackIgnore: true*/ process.cwd(), 'public', src)).then((svg) => `data:image/svg+xml;base64,${svg.toString('base64')}`);
   badgeUris.set(src, next);
   return next;
 };
