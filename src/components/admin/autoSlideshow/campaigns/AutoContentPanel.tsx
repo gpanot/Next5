@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { AUTO_MAX_SLIDES, AUTO_MIN_SLIDES, autoSlideCount, MAX_AUTO_PROMPT_CHARS, type CampaignDraft } from '../../../../types/admin/slideshowCampaign';
+import { autoCreditCost, AUTO_MAX_SLIDES, AUTO_MIN_SLIDES, autoSlideCount, MAX_AUTO_PROMPT_CHARS, type CampaignDraft } from '../../../../types/admin/slideshowCampaign';
 import type { AutoSettings } from './useAutoContent';
 
 type Props = {
@@ -35,11 +35,11 @@ function Chips<T extends string | boolean>({ title, options, value, onPick }: { 
   );
 }
 
-/** How many slides Auto writes, as the person reads it: the hook's number, or the AI's pick. */
-const countNote = (fixed: number | null): string =>
-  fixed !== null
-    ? `${fixed} slides, then your CTA as number ${fixed + 1}, as your hook says. 1 slide = 1 credit.`
-    : `The AI picks ${AUTO_MIN_SLIDES}-${AUTO_MAX_SLIDES} slides. 1 slide = 1 credit.`;
+/** How many slides Auto writes (the hook's number, or the AI's pick) and its price: 1 credit per post, one post per hook. */
+const countNote = (fixed: number | null, posts: number): string => {
+  const slides = fixed !== null ? `${fixed} slides, then your CTA as number ${fixed + 1}, as your hook says.` : `The AI picks ${AUTO_MIN_SLIDES}-${AUTO_MAX_SLIDES} slides.`;
+  return `${slides} 1 post = 1 credit: ${posts} ${posts === 1 ? 'hook' : 'hooks'}, ${posts} ${posts === 1 ? 'post' : 'posts'}.`;
+};
 
 /** What the slides are written from (the hook, so the person knows the prompt adds to it), with the button beside it. */
 function HookContext({ hooks, fixed, children }: { hooks: string[]; fixed: number | null; children: ReactNode }) {
@@ -51,7 +51,7 @@ function HookContext({ hooks, fixed, children }: { hooks: string[]; fixed: numbe
         ) : (
           <p className="truncate">Follows your hook: <span className="text-white/75">{hooks[0]}</span>{hooks.length > 1 && ` (+${hooks.length - 1} more)`}</p>
         )}
-        <p>{countNote(fixed)}</p>
+        <p>{countNote(fixed, autoCreditCost(hooks))}</p>
       </div>
       {children}
     </div>
@@ -62,7 +62,9 @@ function HookContext({ hooks, fixed, children }: { hooks: string[]; fixed: numbe
 export function AutoContentPanel({ draft, settings, writing, photosPending, onChange, onRun }: Props) {
   const busy = writing || photosPending > 0;
   const fixed = autoSlideCount(draft.hooks);
-  const action = writing ? 'Writing slides…' : photosPending > 0 ? `Adding photos… ${photosPending} left` : fixed !== null ? `Write ${fixed} slides · ${fixed} credits` : 'Write slides';
+  const cost = autoCreditCost(draft.hooks);
+  const credits = `${cost} ${cost === 1 ? 'credit' : 'credits'}`;
+  const action = writing ? 'Writing slides…' : photosPending > 0 ? `Adding photos… ${photosPending} left` : fixed !== null ? `Write ${fixed} slides · ${credits}` : `Write slides · ${credits}`;
   return (
     <div className="space-y-5">
       <label className="block space-y-2">

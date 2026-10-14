@@ -5,6 +5,7 @@ import { useState } from 'react';
 import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch, useAdminApi } from '../../business/useAdminApi';
 import { CampaignEditor } from './CampaignEditor';
+import { PreviewSlideView } from './PreviewSlideView';
 
 type Props = { token: string; workspaceId: string };
 
@@ -29,7 +30,12 @@ function CampaignTile({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () => void
     <li>
       <button type="button" onClick={onOpen} className="group block w-full text-left transition active:scale-[0.98]">
         <span className="relative block aspect-[9/16] overflow-hidden rounded-xl border border-app-line bg-app-sunken shadow-sm transition group-hover:shadow-md">
-          {c.coverUrl && (
+          {c.coverUrl && c.coverHook && (
+            <span className="absolute inset-0">
+              <PreviewSlideView slide={{ kind: 'draft', photoUrl: c.coverUrl, role: 'hook', body: '', ...c.coverHook }} />
+            </span>
+          )}
+          {c.coverUrl && !c.coverHook && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={c.coverUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
           )}

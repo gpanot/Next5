@@ -21,7 +21,7 @@ import { HookPanel } from './HookPanel';
 import { PhotoLibraryDialog } from './PhotoLibraryDialog';
 import { previewShows } from './previewSlides';
 import { useAutoContent } from './useAutoContent';
-import { useCampaign } from './useCampaign';
+import { useCampaign, type PendingPhoto } from './useCampaign';
 import { useCampaignVideo } from './useCampaignVideo';
 import { ScheduleButton } from './ScheduleButton';
 import { useCampaignSchedule } from './useCampaignSchedule';
@@ -30,6 +30,18 @@ type Props = { token: string; workspaceId: string; campaignId: string; onClose: 
 
 const card = 'rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-sm';
 const tabClass = (on: boolean) => `min-h-10 rounded-lg px-4 text-sm font-semibold transition active:scale-95 ${on ? 'bg-emerald-400 text-zinc-950' : 'text-white/60 hover:text-white'}`;
+
+/** The slides (0 = hook, i = card i - 1) whose shown photo is on its way: a card's photo being replaced, or the first
+ *  photo of an empty hook or card. Photos added to a rotation behind a shown one change nothing on screen. */
+const loadingSlides = (pending: PendingPhoto[], draft: CampaignDraft | undefined): Set<number> =>
+  new Set(
+    pending.flatMap(({ target: t }) => {
+      if (t.slot === 'hook') return draft?.hookPhotos.length ? [] : [0];
+      if (t.slot === 'cards') return t.cards.map((c) => c + 1);
+      if (t.slot === 'cardRotation' && draft?.cards[t.card]?.photo != null) return [];
+      return [t.card + 1];
+    }),
+  );
 
 /** Slide 0 is the hook; slide i >= 1 is card i - 1 (the CTA last). */
 const roleTab = (draft: CampaignDraft, slide: number): CampaignLookRole => (slide === 0 ? 'hook' : slide === draft.cards.length ? 'cta' : 'content');
@@ -71,6 +83,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   }, [onClose, picker, previewing]);
 
   const draft = campaign?.draft;
+  const loading = loadingSlides(state.pending, draft);
   const at = draft ? Math.min(slide, draft.cards.length) : 0;
   const tab = draft ? roleTab(draft, at) : 'hook';
   const contentMode = mode ?? startMode(draft);
@@ -134,7 +147,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
           {/* The slideshow editor's player: left on wide screens, on top on phones. */}
           <div className="shrink-0 p-4 md:flex md:w-[30%] md:flex-col md:justify-center md:overflow-y-auto lg:w-[27%]">
-            <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} onRemoveCard={removeCard} safeZone={safeZone.on} />
+            <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} onRemoveCard={removeCard} safeZone={safeZone.on} loading={loading} />
             {admin && (
               <GenerateVideoButton
                 rendering={video.rendering}
@@ -148,7 +161,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           </div>
           <div className="min-w-0 md:flex-1 md:overflow-y-auto md:border-l md:border-white/10">
             <div className="border-b border-white/10 bg-black/20 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:16px_16px]">
-              <CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} onMoveBadges={moveBadges} />
+              <CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} onMoveBadges={moveBadges} loading={loading} />
             </div>
             <div className="mx-auto grid max-w-7xl gap-4 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] xl:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] xl:items-start">
               <div className="min-w-0 space-y-4">

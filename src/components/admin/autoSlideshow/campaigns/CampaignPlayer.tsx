@@ -19,6 +19,8 @@ type Props = {
   onRemoveCard: (card: number) => void;
   /** TikTok's covered bands drawn over the slide on screen. */
   safeZone?: boolean;
+  /** Slides whose photo is being made or copied in. */
+  loading: ReadonlySet<number>;
 };
 
 const action = 'flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30';
@@ -27,7 +29,7 @@ const action = 'flex h-10 w-10 items-center justify-center rounded-full text-whi
  * The campaign's first slideshow in the slideshow editor's player, drawn live from the draft (photo plus text layers):
  * swipe, autoplay, drag the on-screen slide's text. Under it: the dots and delete for content slides.
  */
-export function CampaignPlayer({ draft, photos, index, onIndex, onMoveText, onMoveBadges, onRemoveCard, safeZone }: Props) {
+export function CampaignPlayer({ draft, photos, index, onIndex, onMoveText, onMoveBadges, onRemoveCard, safeZone, loading }: Props) {
   const slides = draftShows(draft, photos)[0]!.slides;
   const card = index - 1;
   const isContent = index > 0 && draft.cards[card]?.role === 'item';
@@ -40,7 +42,7 @@ export function CampaignPlayer({ draft, photos, index, onIndex, onMoveText, onMo
         index={index}
         onIndex={onIndex}
         safeZone={safeZone}
-        renderSlide={(i) => <PreviewSlideView slide={slides[i]!} movable={i === index} onMoveText={(at) => onMoveText(i, at)} onMoveBadges={(y) => onMoveBadges(i, y)} />}
+        renderSlide={(i) => <PreviewSlideView slide={slides[i]!} movable={i === index} loading={loading.has(i)} onMoveText={(at) => onMoveText(i, at)} onMoveBadges={(y) => onMoveBadges(i, y)} />}
       />
       <PlayerControls count={slides.length} index={index}>
         {isContent && (

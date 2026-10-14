@@ -127,6 +127,8 @@ export const listCampaigns = async (workspaceId: string): Promise<CampaignSummar
       slideshowCount: r.slideshows.length,
       scheduledCount: r._count.posts,
       coverUrl,
+      // A made slide already shows the hook; a bare photo gets the first hook drawn on it, as the editor does.
+      coverHook: !firstSlide?.imageKey && draft.hooks[0] ? { title: draft.hooks[0], look: draft.looks.hook, ...(draft.hookTextAt ? { textAt: draft.hookTextAt } : {}) } : null,
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     };

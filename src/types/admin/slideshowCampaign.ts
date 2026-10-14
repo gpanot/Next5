@@ -133,6 +133,9 @@ export type CampaignSummaryDto = {
   slideshowCount: number;
   scheduledCount: number;
   coverUrl: string | null;
+  /** The first hook drawn over a cover that is a bare photo (no slideshow made yet); null when the cover is a made
+   *  slide (the hook is already on it) or there is no hook. */
+  coverHook: { title: string; look: TextLook; textAt?: TextAt } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -216,6 +219,9 @@ export const AUTO_MAX_SLIDES = 15;
  * The content slide count the first hook fixes: one less than its number, the CTA being the last one ("6 ways…" → 5
  * content slides, then the CTA as the 6th). Null lets the writer decide.
  */
+/** Auto's price: 1 credit per post, and each hook is one post (whatever the slide count). At least 1 before any hook. */
+export const autoCreditCost = (hooks: string[]): number => Math.max(1, hooks.length);
+
 export const autoSlideCount = (hooks: string[]): number | null => {
   const n = hooks[0] ? hookNumber(hooks[0]) : null;
   return n !== null && n - 1 >= 2 && n - 1 <= AUTO_MAX_SLIDES ? n - 1 : null;
