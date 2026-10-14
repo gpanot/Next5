@@ -23,6 +23,17 @@ const plan = (slideshows: AutoSlideshowDto[], extra: Extra = {}) =>
 const dayOf = (days: PlanDay[], key: string) => days.find((d) => d.key === key)!;
 
 describe('buildMonth', () => {
+  it('puts a campaign post on top of its day: the slideshow already there stays, nothing moves', () => {
+    const campaignShow = { ...show(9), id: 'c9' };
+    const before = plan([show(0), show(1)]);
+    const { all } = buildMonth({ slideshows: [show(0), show(1)], pending: 0, month: october, now, campaign: { slideshows: [campaignShow], planned: { c9: new Date(2026, 9, 2, 18).toISOString() } } });
+    const where = (days: PlanDay[], id: string) => days.find((d) => d.slots.some((x) => x.item?.show?.id === id))?.key;
+    expect(where(all, 's0')).toBe(where(before.all, 's0'));
+    expect(where(all, 's1')).toBe(where(before.all, 's1'));
+    expect(where(all, 'c9')).toBe('2026-10-02');
+    expect(toApprove(all).map((x) => x.show.id).sort()).toEqual(['c9', 's0', 's1']);
+  });
+
   it('starts the current month at today, in whole weeks', () => {
     const { days } = plan([], { now: new Date(2026, 9, 9, 10, 0) });
     expect(days[0]!.key).toBe('2026-10-09');

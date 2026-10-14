@@ -7,6 +7,7 @@ import type { TextConfig } from '../../../../remotion/types';
 import type { BlitzEditDto } from '../../../../types/admin/blitzSchedule';
 import { useLabClient } from '../../LabClientProvider';
 import { SwipeCard, type ShotView } from '../SwipeCard';
+import type { CardNarration } from '../useNarrationAudio';
 import { useDeckSound } from '../useDeckSound';
 import { mergeTextConfig } from '../useTextLayout';
 import { scheduleApi } from './scheduleApi';
@@ -53,13 +54,24 @@ function SoundButton({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   );
 }
 
-/** A planned video, played like a deck card with its music (it is only rendered about an hour before its time). */
+/** A narrated video's voiceover, as the render will use it (recorded once per text and voice, then replayed from the
+ *  cache); null when it cannot be had (the free daily limit, a busy voice): the preview then plays silent. */
+const loadNarration = async (client: ReturnType<typeof useLabClient>, edit: BlitzEditDto): Promise<CardNarration | null> => {
+  if (!edit.voice) return null;
+  const texts = edit.assets.slides.map((s) => s.text).filter((t) => t.trim());
+  const res = await client.request<{ url: string; durations: number[] }>('/blitz/voice-preview', { json: { texts, voice: edit.voice } }).catch(() => null);
+  return res?.ok ? { url: res.data.url, durations: res.data.durations } : null;
+};
+
+/** A planned video, played like a deck card with its voiceover (or, on older videos, its music). It is only rendered
+ *  about an hour before its time. */
 export function VideoPreview({ id, title }: { id: string; title: string }) {
   const client = useLabClient();
   const { soundOn, toggleSound } = useDeckSound();
   const [shots, setShots] = useState<ShotView[] | null>(null);
   const [caption, setCaption] = useState<TextConfig | undefined>(undefined);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [narration, setNarration] = useState<CardNarration | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +80,9 @@ export function VideoPreview({ id, title }: { id: string; title: string }) {
       if (!res?.ok) return setFailed(true);
       setShots(previewShots(res.data));
       setCaption(previewCaption(res.data));
-      setAudioUrl(res.data.audioUrl);
+      // A narrated video plays its voice, never the music it may still carry.
+      if (!res.data.voice) setAudioUrl(res.data.audioUrl);
+      else void loadNarration(client, res.data).then((n) => !cancelled && setNarration(n));
     });
     return () => {
       cancelled = true;
@@ -79,7 +93,7 @@ export function VideoPreview({ id, title }: { id: string; title: string }) {
     <div className="relative mx-auto aspect-[9/16] w-[min(56vw,220px)]">
       {shots ? (
         <>
-          <SwipeCard shots={shots} captionConfig={caption} position="top" onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} soundOn={soundOn} ariaLabel={`Preview: ${title}`} />
+          <SwipeCard key={narration?.url ?? 'silent'} shots={shots} captionConfig={caption} position="top" onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} soundOn={soundOn} narration={narration} ariaLabel={`Preview: ${title}`} />
           <SoundButton on={soundOn} onToggle={toggleSound} />
           {audioUrl && <PreviewMusic url={audioUrl} playing={soundOn} />}
         </>

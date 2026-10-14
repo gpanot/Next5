@@ -9,7 +9,19 @@ type Props = {
   selected: string[];
   onToggle: (option: PhotoOptionDto) => void;
   empty: string;
+  /** Hides the photographer credit on the tiles (the App shot list: the credit shows once the photo is on a slide). */
+  hideCredits?: boolean;
+  /** Shows a trash button on each tile. */
+  onDelete?: (option: PhotoOptionDto) => void;
 };
+
+function TrashIcon() {
+  return (
+    <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+    </svg>
+  );
+}
 
 function Check() {
   return (
@@ -20,7 +32,7 @@ function Check() {
 }
 
 /** Photos of one picker tab as 9:16 tiles; a tap adds or removes it. Picked tiles show their order (the hook rotation). */
-export function PhotoOptionGrid({ options, loading, selected, onToggle, empty }: Props) {
+export function PhotoOptionGrid({ options, loading, selected, onToggle, empty, hideCredits = false, onDelete }: Props) {
   if (options === null) {
     if (!loading) return <p className="py-10 text-center text-sm text-white/50">{empty}</p>;
     return (
@@ -50,7 +62,17 @@ export function PhotoOptionGrid({ options, loading, selected, onToggle, empty }:
                 {on ? (selected.length > 1 ? order + 1 : <Check />) : ''}
               </span>
             </button>
-            {o.credit && (
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(o)}
+                aria-label={`Delete ${o.label}`}
+                className="absolute top-1 left-1 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white/85 backdrop-blur transition hover:bg-red-500/80 hover:text-white active:scale-95"
+              >
+                <TrashIcon />
+              </button>
+            )}
+            {o.credit && !hideCredits && (
               <UnsplashCredit credit={o.credit} className="absolute inset-x-0 bottom-0 line-clamp-2 rounded-b-lg bg-gradient-to-t from-black/85 to-transparent px-1.5 pt-5 pb-1 text-[10px] leading-snug text-white/90" />
             )}
           </li>

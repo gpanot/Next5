@@ -19,6 +19,7 @@ import { requireCredits } from '../slideshowCredits/charge';
 import { SLIDESHOW_PRICE_CENTS } from '../../types/admin/slideshowCredits';
 import { applyEntry } from '../slideshowCredits/wallet';
 import type { RenderBody } from './blitzRender';
+import { isBlitzVoice } from '../../types/admin/blitzVoice';
 
 /** A post must be at least this far ahead, so the render has time to start. */
 const MIN_AHEAD_MS = 10 * 60 * 1000;
@@ -69,6 +70,7 @@ export async function getBlitzEdit(workspaceId: string, id: string): Promise<Bli
     assets: { slides, audioKey, textConfigOverride: body.textConfigOverride, businessText: body.mentionBusiness ? body.businessText : undefined, muteVideoAudio: body.muteVideoAudio, set: body.set },
     media: await Promise.all(slides.map((s) => mediaOf(s.backgroundKey))),
     audioUrl: audioKey ? await blitzBrowserUrl(audioKey) : null,
+    voice: isBlitzVoice(body.voice) ? body.voice : null,
   };
 }
 

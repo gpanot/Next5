@@ -111,8 +111,8 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const working = !isTerminalAutoStatus(run.status);
   const pending = working ? Math.max(0, run.count - run.slideshows.length) : 0;
   const { days, all } = useMemo(
-    () => buildMonth({ slideshows, pending, working, month, targets, pins, blitz, planned: campaigns.planned }),
-    [slideshows, pending, working, month, targets, pins, blitz, campaigns.planned],
+    () => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins, blitz, campaign: { slideshows: campaigns.slideshows, planned: campaigns.planned } }),
+    [run.slideshows, pending, working, month, targets, pins, blitz, campaigns.slideshows, campaigns.planned],
   );
   const counts = monthCounts(days);
   const approve = toApprove(all);

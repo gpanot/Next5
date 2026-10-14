@@ -10,7 +10,7 @@ import { MAX_RAW_BYTES, shrinkPhoto } from '../../brand/shrinkPhoto';
 export type PickedBackground = { bg: NonNullable<AppShotBackground>; thumbUrl: string; how: 'upload' | 'generated' | 'search' };
 
 /** What is running: an upload, a scene being generated, or the build. */
-export type AppShotBusy = 'screen' | 'scene-upload' | 'scene-generate' | 'build' | null;
+export type AppShotBusy = 'screen' | 'scene-upload' | 'scene-generate' | 'build' | 'delete' | null;
 
 /** Multipart POST (adminFetch sends JSON only). */
 const uploadAsset = async (token: string, path: string, file: File, kind: 'screen' | 'scene'): Promise<AppShotAssetDto> => {
@@ -87,6 +87,19 @@ export const useAppShot = (token: string, campaignId: string) => {
     if (o.ref.source === 'unsplash') setBackground({ bg: { source: 'unsplash', id: o.ref.id }, thumbUrl: o.thumbUrl, how: 'search' });
   };
 
+  /** Removes an earlier App shot (after a confirm, then `onConfirmed`); it leaves the list at once and comes back if the
+   *  server refuses. */
+  const deleteShot = async (o: PhotoOptionDto, onConfirmed?: () => void) => {
+    if (o.ref.source !== 'app_shot' || !window.confirm('Delete this App shot?')) return;
+    onConfirmed?.();
+    const id = o.ref.id;
+    const before = shots;
+    setShots((s) => s?.filter((x) => x.key !== o.key) ?? null);
+    if (built?.key === o.key) setBuilt(null);
+    const ok = await step('delete', () => adminFetch(token, `${base}?shot=${encodeURIComponent(id)}`, { method: 'DELETE' }));
+    if (ok === null) setShots(before);
+  };
+
   const build = async (): Promise<PhotoOptionDto | null> => {
     if (!screen) return null;
     const body = { pose, screenId: screen.id, scene: scene.trim(), background: background?.bg ?? null };
@@ -101,7 +114,7 @@ export const useAppShot = (token: string, campaignId: string) => {
   return {
     pose, setPose, screen, clearScreen: () => setScreen(null), uploadScreen,
     scene, setScene, background, clearBackground: () => setBackground(null), uploadScene, generateScene, pickStock,
-    busy, error, built, build, buildAnother: () => setBuilt(null), shots,
+    busy, error, built, build, buildAnother: () => setBuilt(null), shots, deleteShot,
     ready: screen !== null && (background !== null || scene.trim() !== ''),
   };
 };

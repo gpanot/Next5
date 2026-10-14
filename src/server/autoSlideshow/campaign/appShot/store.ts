@@ -116,6 +116,12 @@ export const appShotOptions = async (workspaceId: string): Promise<PhotoOptionDt
   return rows.map(shotOption);
 };
 
+/** Removes an App shot from the workspace's lists (archived; slides it is already on keep their own copy). */
+export const archiveAppShot = async (workspaceId: string, id: string): Promise<void> => {
+  const { count } = await prisma.userUpload.updateMany({ where: { id, workspaceId, kind: SHOT_KIND, archivedAt: null }, data: { archivedAt: new Date() } });
+  if (count === 0) throw new HttpError(404, 'photo_missing', 'That App shot is already gone.');
+};
+
 /** An App shot picked for import: its bytes and its background's Unsplash credit, if any. */
 export const fetchAppShot = async (workspaceId: string, id: string): Promise<{ bytes: Buffer; label: string; credit?: CampaignCredit }> => {
   const row = await prisma.userUpload.findFirst({ where: { id, workspaceId, kind: SHOT_KIND, archivedAt: null } });

@@ -4,10 +4,11 @@
  * POST /api/slideshow/campaigns/[campaignId]/app-shot — { pose, screenId, scene, background } → the hand-held phone
  *      showing the app on the background, then relit for the scene by Nano Banana 2 Lite ($0.015) → { option } (a
  *      picker option, imported on Done).
+ * DELETE /api/slideshow/campaigns/[campaignId]/app-shot?shot= — removes an App shot from the lists → { ok }.
  */
 import { NextResponse } from 'next/server';
 import { requireUser } from '../../../../../../src/server/autoSlideshow/access';
-import { appShotOptions, buildAppShot, latestAppScreen } from '../../../../../../src/server/autoSlideshow/campaign/appShot/store';
+import { appShotOptions, archiveAppShot, buildAppShot, latestAppScreen } from '../../../../../../src/server/autoSlideshow/campaign/appShot/store';
 import { parseAppShot, poseLoader } from '../../../../../../src/server/autoSlideshow/campaign/appShot/request';
 import { loadCampaign } from '../../../../../../src/server/autoSlideshow/campaign/store';
 import { slideshowRoute } from '../../../../../../src/server/autoSlideshow/route';
@@ -31,4 +32,13 @@ export const POST = slideshowRoute(async (req, ctx: Ctx, access) => {
   await enforceRateLimit(`campaign-app-shot:${user.userId}`, 120, 3600);
   const option = await buildAppShot(run.workspaceId!, parseAppShot(await req.json().catch(() => ({}))), poseLoader(new URL(req.url).origin));
   return NextResponse.json({ option });
+});
+
+export const DELETE = slideshowRoute(async (req, ctx: Ctx, access) => {
+  const { campaignId } = await ctx.params;
+  const run = await loadCampaign(requireUser(access), campaignId);
+  const shot = new URL(req.url).searchParams.get('shot');
+  if (!shot) return NextResponse.json({ message: 'Pick an App shot.' }, { status: 400 });
+  await archiveAppShot(run.workspaceId!, shot);
+  return NextResponse.json({ ok: true });
 });

@@ -1,5 +1,7 @@
 // Blitz videos on the calendar: shared by the server (src/server/labs/blitzSchedule.ts) and the browser.
 
+import type { BlitzVoiceName } from './blitzVoice';
+
 /** `planned`: on the calendar, waiting for the user's TikTok approval there. `scheduled`: approved. */
 export type BlitzScheduleStatus = 'planned' | 'scheduled' | 'rendering' | 'sending' | 'processing' | 'posted' | 'failed' | 'canceled';
 
@@ -19,6 +21,8 @@ export type BlitzEditDto = {
   assets: { slides: Array<{ text: string; backgroundKey?: string; durationSec?: number; trimStart?: number; positionY?: number }>; audioKey?: string; textConfigOverride?: unknown; businessText?: string; muteVideoAudio?: boolean; set?: unknown };
   media: Array<{ url: string; video: boolean } | null>;
   audioUrl: string | null;
+  /** The narrator (BLITZ_VOICES name) when the video is narrated (deck videos since 2026-10-12); null = music video. */
+  voice: BlitzVoiceName | null;
 };
 
 export type BlitzScheduleDto = {

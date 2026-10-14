@@ -1,5 +1,6 @@
 'use client';
 
+import type { BlitzVoiceName } from '../../../types/admin/blitzVoice';
 import type { Dispatch, SetStateAction } from 'react';
 import type { TextConfig } from '../../../remotion/types';
 import type { BlitzProjectDto } from './api';
@@ -24,7 +25,8 @@ type Options = {
 };
 
 /** What Remix re-opens: a render, or a calendar video (`cardId` keeps its card, so saving updates the post). */
-export type RemixSource = Pick<BlitzProjectDto, 'id'> & { currentAssets: unknown; cardId?: string };
+/** `voice`: a calendar video's narrator, kept so saving it does not reset the voice. */
+export type RemixSource = Pick<BlitzProjectDto, 'id'> & { currentAssets: unknown; cardId?: string; voice?: BlitzVoiceName };
 
 /**
  * Remix: re-open a rendered slideshow with everything it was made of (slides, clips, trims,
@@ -43,7 +45,7 @@ export function useSetRemix(o: Options) {
     o.setMuteVideoAudio(data.muteVideoAudio);
 
     if (data.set.kind === 'deck') {
-      o.openRemix(cardFromSet(project.id, data.set, project.cardId), data.slides);
+      o.openRemix({ ...cardFromSet(project.id, data.set, project.cardId), ...(project.voice ? { voice: project.voice } : {}) }, data.slides);
     } else {
       o.setEditingCardId(null);
       o.setSlides(data.slides);

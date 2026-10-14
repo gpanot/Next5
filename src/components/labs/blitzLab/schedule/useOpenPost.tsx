@@ -24,7 +24,7 @@ export function useOpenPost(postId: string | null, ready: boolean, remix: (sourc
     opened.current = postId;
     void scheduleApi.get(client, postId).catch(() => null).then((res) => {
       if (!res?.ok) return setError(res ? errorOf(res) : 'Could not reach the server. Check your connection.');
-      remix({ id: postId, currentAssets: res.data.assets, cardId: res.data.item.cardId });
+      remix({ id: postId, currentAssets: res.data.assets, cardId: res.data.item.cardId, voice: res.data.voice ?? undefined });
     });
   }, [postId, ready, client, remix]);
   return { error, exit: () => router.back() };

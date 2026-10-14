@@ -22,12 +22,12 @@ type Props = {
 };
 
 /** The App shots made before, newest first: tap one to pick it again instead of building a new one. */
-function PastShots({ shots, selected, onToggle }: { shots: PhotoOptionDto[] | null; selected: string[]; onToggle: Props['onToggle'] }) {
+function PastShots({ shots, selected, onToggle, onDelete }: { shots: PhotoOptionDto[] | null; selected: string[]; onToggle: Props['onToggle']; onDelete: (o: PhotoOptionDto) => void }) {
   if (shots !== null && shots.length === 0) return null;
   return (
     <section className="space-y-2 border-t border-white/10 pt-4">
       <h4 className="text-[11px] font-semibold tracking-widest text-white/50 uppercase">Your App shots</h4>
-      <PhotoOptionGrid options={shots} loading={shots === null} selected={selected} onToggle={onToggle} empty="" />
+      <PhotoOptionGrid options={shots} loading={shots === null} selected={selected} onToggle={onToggle} empty="" hideCredits onDelete={onDelete} />
     </section>
   );
 }
@@ -80,7 +80,7 @@ export function AppShotPanel({ token, campaignId, onBuilt, selected, onToggle }:
   const [searchFor, setSearchFor] = useState<string | null>(null);
   const left = useBuildCountdown(s.busy === 'build');
 
-  const past = <PastShots shots={s.shots?.filter((o) => o.key !== s.built?.key) ?? null} selected={selected} onToggle={onToggle} />;
+  const past = <PastShots shots={s.shots?.filter((o) => o.key !== s.built?.key) ?? null} selected={selected} onToggle={onToggle} onDelete={(o) => void s.deleteShot(o, () => selected.includes(o.key) && onToggle(o))} />;
   if (s.built) return <div className="space-y-4"><Result option={s.built} onAnother={s.buildAnother} />{past}</div>;
 
   const build = async () => {

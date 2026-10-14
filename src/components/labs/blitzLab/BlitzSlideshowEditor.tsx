@@ -78,7 +78,8 @@ import { buildSet } from './slideshowSet';
 import { useTextLayout } from './useTextLayout';
 import type { BlitzLayer } from './canvasHitTest';
 import { buildSteps, DEFAULT_SLIDES, EditorSkeleton, isSlideshowProject, type Step } from './slideshowEditorParts';
-import { DEFAULT_BLITZ_VOICE } from '../../../types/admin/blitzVoice';
+import { DEFAULT_BLITZ_VOICE, type BlitzVoiceName } from '../../../types/admin/blitzVoice';
+import { fetchNarration, VoiceToggle } from './VoiceToggle';
 
 type EditorProps = {
   initialFlowType?: FlowType;
@@ -175,6 +176,8 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
     assets, addAsset, setCurrentAssets,
   });
   const { editingCard } = deck;
+  /** The narrator of the card being edited; saved with it ("Save changes" keeps it on the calendar post). */
+  const setCardVoice = (cardId: string, voice: BlitzVoiceName) => setDeckCards((prev) => prev.map((c) => (c.id === cardId ? { ...c, voice } : c)));
   // Jev picks each new card's music, as in the Auto Slideshow.
   // Kept cards render straight from the deck (Generate → Download), no editor round trip.
   const cardRender = useDeckCardRender({
@@ -307,7 +310,11 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
   const libraryGrid = <LibraryGrid projects={library} isLoading={libraryLoading} onDelete={removeLibraryProject} onVideoPlay={() => undefined} onRemix={remix} />;
 
   /** The 3-panel editor + library. Shared by the free-form Slideshow step and the deck's edit view. */
-  const play = usePlayThrough({ slides, index: currentSlideIndex, setIndex: setCurrentSlideIndex, secondsPerSlide });
+  // A deck video plays with its voiceover, in the voice picked under the preview (the one it is rendered with).
+  const play = usePlayThrough({
+    slides, index: currentSlideIndex, setIndex: setCurrentSlideIndex, secondsPerSlide,
+    loadNarration: editingCard ? () => fetchNarration(client, slides.map((s) => s.text), editingCard.voice) : undefined,
+  });
   const editorView = (
     <>
       {loadError && (
@@ -346,7 +353,8 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
               shotFormat={editingCard ? SHOT_FORMAT : undefined}
               alternatives={deck.alternatives}
             />
-            {/* Audio only — the Background layer is hidden because slides own their own. */}
+            {/* Music: free-form slideshows only. Deck videos are narrated (since 2026-10-12): Voice sits under the preview. */}
+            {!editingCard && (
             <AssetsPanel
               assets={assets}
               currentAssets={currentAssets}
@@ -359,6 +367,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
               durationSeconds={durationSeconds}
               hideLayers={['OVERLAY', 'BACKGROUND']}
             />
+            )}
           </div>
 
           {/* Center: slide preview + render */}
@@ -373,10 +382,11 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
               textConfig={text.resolved}
               onDragCaption={editingCard ? deck.dragSlideCaption : text.dragCaption}
               onDragBusiness={text.dragBusiness}
-              corner={<PlayItButton playing={play.playing} onToggle={play.toggle} />}
+              corner={<PlayItButton playing={play.playing} loading={play.loading} onToggle={play.toggle} />}
             />
+            {editingCard && <VoiceToggle voice={editingCard.voice} onChange={(voice) => { play.stop(); setCardVoice(editingCard.id, voice); }} />}
             {/* Hidden auto-playing audio — loops as long as a track is selected. */}
-            {audioAsset && !muteVideoAudio && (
+            {audioAsset && !muteVideoAudio && !editingCard && (
               <audio key={audioAsset.r2Key} autoPlay loop src={audioAsset.url} preload="auto" style={{ display: 'none' }} />
             )}
             {deck.copyProblems.length > 0 && (
