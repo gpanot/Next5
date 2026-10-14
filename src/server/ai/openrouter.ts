@@ -1,5 +1,6 @@
 // server-only — never import from a 'use client' file.
 // Minimal OpenRouter chat client (OpenAI-compatible endpoint) for multi-turn vision + JSON calls.
+// Gemini 3.6 Flash runs on the Flex tier of Google AI Studio (half price, a bit slower), with the standard tier as fallback.
 
 type Part = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
 
@@ -8,17 +9,73 @@ export type OpenRouterMessage = {
   content: string | Part[];
 };
 
+/** How long Gemini thinks before it answers. Thinking tokens count in maxTokens. Omit for the model default. */
+export type ReasoningEffort = 'minimal' | 'low' | 'medium' | 'high';
+
 export type OpenRouterOptions = {
   model: string;
   maxTokens: number;
   temperature?: number;
   seed?: number;
   timeoutMs?: number;
+  reasoning?: ReasoningEffort;
 };
 
-type OpenRouterResponse = {
+/** The one Gemini Flash we use for vision + JSON calls. */
+export const GEMINI_FLASH = 'google/gemini-3.6-flash';
+
+/**
+ * Flex tier for Gemini 3.6 Flash, pinned to Google AI Studio: half the standard price. Tested 2026-10-14 on our real
+ * calls: 4.6 s a call vs 3.3 s on standard; Vertex Flex took 9 s. OpenRouter never falls back from flex by itself.
+ */
+const FLEX_ROUTING = { service_tier: 'flex', provider: { only: ['google-ai-studio'], allow_fallbacks: false } };
+
+/** Share of the call's timeout given to the flex try. Portrait clone (50 s budget) takes about 27 s on flex. */
+const FLEX_TIME_SHARE = 0.6;
+
+type ChatResponse = {
   choices?: { message?: { content?: string | null }; finish_reason?: string }[];
   error?: { message?: string };
+};
+
+const requestBody = (messages: OpenRouterMessage[], options: OpenRouterOptions, flex: boolean) => ({
+  model: options.model,
+  max_tokens: options.maxTokens,
+  temperature: options.temperature ?? 0.2,
+  ...(options.seed !== undefined ? { seed: options.seed } : {}),
+  ...(options.reasoning ? { reasoning: { effort: options.reasoning } } : {}),
+  ...(flex ? FLEX_ROUTING : {}),
+  response_format: { type: 'json_object' },
+  messages,
+});
+
+/** One POST. Returns the reply text, or null on any failure (logged). */
+const post = async (key: string, body: ReturnType<typeof requestBody>, timeoutMs: number): Promise<string | null> => {
+  const tag = `[openrouter] ${body.model}${'service_tier' in body ? ' (flex)' : ''}`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'X-Title': 'Next5' },
+      body: JSON.stringify(body),
+    });
+    const data = (await res.json().catch(() => ({}))) as ChatResponse;
+    if (!res.ok) {
+      console.error(`${tag} returned ${res.status}: ${data.error?.message ?? 'no message'}`);
+      return null;
+    }
+    const choice = data.choices?.[0];
+    const text = choice?.message?.content;
+    if (!text) console.error(`${tag} empty reply, finish_reason=${choice?.finish_reason ?? 'unknown'}`);
+    return text || null;
+  } catch (err) {
+    console.error(`${tag} failed:`, err instanceof Error ? err.message : err);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 };
 
 /** One chat completion. Returns the reply text, or null on any failure (logged). */
@@ -28,37 +85,13 @@ export const openRouterChat = async (messages: OpenRouterMessage[], options: Ope
     console.error('[openrouter] OPENROUTER_API_KEY is not set');
     return null;
   }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 60_000);
-  try {
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      signal: controller.signal,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'X-Title': 'Next5' },
-      body: JSON.stringify({
-        model: options.model,
-        max_tokens: options.maxTokens,
-        temperature: options.temperature ?? 0.2,
-        ...(options.seed !== undefined ? { seed: options.seed } : {}),
-        response_format: { type: 'json_object' },
-        messages,
-      }),
-    });
-    const data = (await res.json().catch(() => ({}))) as OpenRouterResponse;
-    if (!res.ok) {
-      console.error(`[openrouter] ${options.model} returned ${res.status}: ${data.error?.message ?? 'no message'}`);
-      return null;
-    }
-    const choice = data.choices?.[0];
-    const text = choice?.message?.content;
-    if (!text) console.error(`[openrouter] ${options.model} empty reply, finish_reason=${choice?.finish_reason ?? 'unknown'}`);
-    return text || null;
-  } catch (err) {
-    console.error(`[openrouter] ${options.model} failed:`, err instanceof Error ? err.message : err);
-    return null;
-  } finally {
-    clearTimeout(timer);
+  const timeoutMs = options.timeoutMs ?? 60_000;
+  if (options.model === GEMINI_FLASH) {
+    // Flex gets part of the time budget, so a stuck flex call still leaves room for the standard retry.
+    const text = await post(key, requestBody(messages, options, true), Math.round(timeoutMs * FLEX_TIME_SHARE));
+    if (text) return text;
   }
+  return post(key, requestBody(messages, options, false), timeoutMs);
 };
 
 /** Parses a JSON object from a reply, tolerating a ```json fence around it. */

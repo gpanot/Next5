@@ -5,10 +5,10 @@
 // layers, plus random picks (blitzRemixCandidates.ts) — and picks a new combination around
 // the locked layers that is more likely to be viral or engaging.
 
-import { openRouterChat, parseJsonObject } from '../ai/openrouter';
+import { GEMINI_FLASH, openRouterChat, parseJsonObject } from '../ai/openrouter';
 import { clip, loadCandidates, type AssetType, type Candidate } from './blitzRemixCandidates';
 
-export const BLITZ_REMIX_MODEL = 'google/gemini-3.5-flash-lite';
+export const BLITZ_REMIX_MODEL = GEMINI_FLASH;
 
 export const REMIX_LAYERS = ['caption', 'overlay', 'background', 'audio'] as const;
 export type RemixLayer = (typeof REMIX_LAYERS)[number];
@@ -101,7 +101,7 @@ export async function remixBlitz(input: RemixInput): Promise<RemixResult | null>
       { role: 'system', content: SYSTEM_PROMPT },
       { role: 'user', content: buildUserPrompt(input, cands) },
     ],
-    { model: BLITZ_REMIX_MODEL, maxTokens: 400, temperature: 1, timeoutMs: 30_000 },
+    { model: BLITZ_REMIX_MODEL, maxTokens: 400, temperature: 1, timeoutMs: 30_000, reasoning: 'minimal' },
   );
   const raw = parseJsonObject(text);
   if (!raw) return null;

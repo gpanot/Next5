@@ -71,7 +71,7 @@ const STYLE_PROMPT = [
 const pickHookStyle = async (photoUri: string, hook: string): Promise<{ style: HookStyle; reason: string }> => {
   const text = await openRouterChat(
     [{ role: 'user', content: [{ type: 'image_url', image_url: { url: photoUri } }, { type: 'text', text: `${STYLE_PROMPT}\n\nHook: "${hook}"` }] }],
-    { model: BLITZ_AUTOFIT_MODEL, maxTokens: 200, temperature: 0.2, timeoutMs: 30_000 },
+    { model: BLITZ_AUTOFIT_MODEL, maxTokens: 200, temperature: 0.2, timeoutMs: 30_000, reasoning: 'minimal' },
   ).catch(() => null);
   const raw = parseJsonObject(text);
   if (!isHookStyle(raw?.style)) return { style: DEFAULT_HOOK_STYLE, reason: 'Default style (no recommendation).' };

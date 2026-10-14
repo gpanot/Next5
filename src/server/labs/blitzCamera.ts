@@ -51,7 +51,7 @@ async function askModel(photos: Photo[]): Promise<Array<SlideCamera | null> | nu
   ]);
   const reply = await openRouterChat(
     [{ role: 'system', content: SYSTEM_PROMPT }, { role: 'user', content }],
-    { model: BLITZ_AUTOFIT_MODEL, maxTokens: 1200, temperature: 0.2, timeoutMs: 30_000 },
+    { model: BLITZ_AUTOFIT_MODEL, maxTokens: 1200, temperature: 0.2, timeoutMs: 30_000, reasoning: 'minimal' },
   );
   const shots = parseJsonObject(reply)?.shots;
   return Array.isArray(shots) ? photos.map((_, i) => parseSlideCamera(shots[i])) : null;

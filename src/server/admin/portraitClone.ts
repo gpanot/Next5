@@ -2,12 +2,12 @@
 // Portrait Clone: turns a character image into one exhaustively locked JSON prompt.
 // System prompt is the full skill; a code check then enforces its self-check and asks for one repair.
 
-import { openRouterChat, parseJsonObject, type OpenRouterMessage } from '../ai/openrouter';
+import { GEMINI_FLASH, openRouterChat, parseJsonObject, type OpenRouterMessage } from '../ai/openrouter';
 import { checkPortraitJson } from './portraitCloneCheck';
 import { PORTRAIT_CLONE_SKILL } from './portraitCloneSkill';
 
 /** Vision model via OpenRouter. */
-export const PORTRAIT_CLONE_MODEL = 'google/gemini-3.5-flash-lite';
+export const PORTRAIT_CLONE_MODEL = GEMINI_FLASH;
 const MAX_TOKENS = 16_000;
 /** Fixed seed and low temperature: the same image should give the same JSON. */
 const SEED = 20260911;
@@ -30,7 +30,7 @@ export type PortraitCloneResult = {
 const ask = async (messages: OpenRouterMessage[]) =>
   parseJsonObject(
     await openRouterChat(messages, {
-      model: PORTRAIT_CLONE_MODEL, maxTokens: MAX_TOKENS, temperature: TEMPERATURE, seed: SEED, timeoutMs: CALL_TIMEOUT_MS,
+      model: PORTRAIT_CLONE_MODEL, maxTokens: MAX_TOKENS, temperature: TEMPERATURE, seed: SEED, timeoutMs: CALL_TIMEOUT_MS, reasoning: 'low',
     }),
   );
 

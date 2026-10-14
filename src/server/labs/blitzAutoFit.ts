@@ -2,15 +2,15 @@
 //
 // The editor sends the first frame (background alone + the full composite) and the layout
 // boxes. Three steps:
-//   1. Gemini 3.5 Flash detects the background's heads and main subject (blitzAutoFitGeometry.ts),
-//   2. the layout call (Gemini 3.5 Flash Lite) returns where the meme person and the caption should sit, in boxes,
+//   1. Gemini 3.6 Flash detects the background's heads and main subject (blitzAutoFitGeometry.ts),
+//   2. the layout call (Gemini 3.6 Flash, minimal reasoning) returns where the meme person and the caption should sit, in boxes,
 //   3. a geometric guard moves / shrinks the meme until it clears every background head.
 // Boxes are then converted to the composition's overlay zoom/offset and caption positionY/offsetX.
 
-import { openRouterChat, parseJsonObject } from '../ai/openrouter';
+import { GEMINI_FLASH, openRouterChat, parseJsonObject } from '../ai/openrouter';
 import { clearBackground, detectBackgroundRegions, type BackgroundRegions, type MemeTarget } from './blitzAutoFitGeometry';
 
-export const BLITZ_AUTOFIT_MODEL = 'google/gemini-3.5-flash-lite';
+export const BLITZ_AUTOFIT_MODEL = GEMINI_FLASH;
 
 const W = 1080;
 const H = 1920;
@@ -134,7 +134,7 @@ async function layoutCall(input: AutoFitInput, bg: BackgroundRegions): Promise<R
         ],
       },
     ],
-    { model: BLITZ_AUTOFIT_MODEL, maxTokens: 300, temperature: 0.2, timeoutMs: 45_000 },
+    { model: BLITZ_AUTOFIT_MODEL, maxTokens: 300, temperature: 0.2, timeoutMs: 45_000, reasoning: 'minimal' },
   );
   return parseJsonObject(text);
 }

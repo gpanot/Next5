@@ -1,6 +1,6 @@
 // server-only — never import from a 'use client' file.
 // The heads in a slide photo, so step 6 keeps the text off faces (textPlacement.ts). Same detector as Blitz Auto Fit:
-// Gemini 3.5 Flash, because Flash Lite returned whole-frame boxes for close-up faces there.
+// Gemini Flash (now 3.6), because Flash Lite returned whole-frame boxes for close-up faces there.
 
 import type { AutoPhoto, HeadBox } from '../../types/admin/autoSlideshow';
 import { openRouterChat, parseJsonObject } from '../ai/openrouter';
@@ -22,17 +22,31 @@ const toHead = (raw: unknown): HeadBox | null => {
   return bottom! > top! && right! > left! ? { top: top!, left: left!, bottom: bottom!, right: right! } : null;
 };
 
+/** The `heads` list of the reply. Flash sometimes returns the bare list instead of { "heads": [...] }. */
+const headList = (text: string | null): unknown[] | null => {
+  const raw = parseJsonObject(text);
+  if (Array.isArray(raw?.heads)) return raw.heads;
+  const trimmed = text?.trim() ?? '';
+  if (!trimmed.startsWith('[')) return null;
+  try {
+    const value: unknown = JSON.parse(trimmed.slice(0, trimmed.lastIndexOf(']') + 1));
+    return Array.isArray(value) ? value : null;
+  } catch {
+    return null;
+  }
+};
+
 /** Heads in the photo (a data URI). [] when nobody is in it; null when detection failed, so the text keeps its usual spot. */
 export const detectHeads = async (imageUri: string): Promise<HeadBox[] | null> => {
   try {
     const text = await openRouterChat(
       [{ role: 'user', content: [{ type: 'image_url', image_url: { url: imageUri } }, { type: 'text', text: PROMPT }] }],
       // Flash thinks before answering: give it room, or the reply is cut off.
-      { model: BLITZ_DETECT_MODEL, maxTokens: 3000, temperature: 0, timeoutMs: 30_000 },
+      { model: BLITZ_DETECT_MODEL, maxTokens: 3000, temperature: 0, timeoutMs: 30_000, reasoning: 'low' },
     );
-    const raw = parseJsonObject(text);
-    if (!raw || !Array.isArray(raw.heads)) return null;
-    return raw.heads.map(toHead).filter((h): h is HeadBox => h !== null).slice(0, 8);
+    const heads = headList(text);
+    if (!heads) return null;
+    return heads.map(toHead).filter((h): h is HeadBox => h !== null).slice(0, 8);
   } catch (err) {
     console.warn('[auto-slideshow] head detection failed:', err instanceof Error ? err.message : err);
     return null;

@@ -1,8 +1,8 @@
 // server-only — "Auto Fit" for slideshow slides: the caption alone, no meme (see blitzAutoFit.ts for the green-screen one).
 //
 // Same steps as the green-screen Auto Fit, without the meme:
-//   1. Gemini 3.5 Flash detects the picture's heads and main subject (blitzAutoFitGeometry.ts),
-//   2. the layout call (Gemini 3.5 Flash Lite) says where the caption reads best on this picture,
+//   1. Gemini 3.6 Flash detects the picture's heads and main subject (blitzAutoFitGeometry.ts),
+//   2. the layout call (Gemini 3.6 Flash, minimal reasoning) says where the caption reads best on this picture,
 //   3. a geometric guard moves the caption up or down to the nearest spot clear of every head.
 // The caption stays centred: slides store only its height (positionY).
 
@@ -103,7 +103,7 @@ async function layoutCall(input: CaptionFitInput, bg: BackgroundRegions | null):
         ],
       },
     ],
-    { model: BLITZ_AUTOFIT_MODEL, maxTokens: 200, temperature: 0.2, timeoutMs: 45_000 },
+    { model: BLITZ_AUTOFIT_MODEL, maxTokens: 200, temperature: 0.2, timeoutMs: 45_000, reasoning: 'minimal' },
   );
   return parseJsonObject(text);
 }

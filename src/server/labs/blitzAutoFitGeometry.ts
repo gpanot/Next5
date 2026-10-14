@@ -5,12 +5,12 @@
 // in a dedicated call, using Gemini's native box format, and (2) move / shrink the meme box
 // until it clears every head, preferring the smallest change.
 //
-// Detection runs on Gemini 3.5 Flash, not Flash Lite: Flash Lite returned whole-frame boxes
-// for a close-up face in testing, Flash returned tight, stable head boxes.
+// Detection runs on Gemini Flash, not Flash Lite: Flash Lite returned whole-frame boxes
+// for a close-up face in testing, Flash returned tight, stable head boxes. Now Gemini 3.6 Flash.
 
-export const BLITZ_DETECT_MODEL = 'google/gemini-3.5-flash';
+export const BLITZ_DETECT_MODEL = GEMINI_FLASH;
 
-import { openRouterChat, parseJsonObject } from '../ai/openrouter';
+import { GEMINI_FLASH, openRouterChat, parseJsonObject } from '../ai/openrouter';
 
 export type Box = { x: number; y: number; w: number; h: number };
 export type BackgroundRegions = { faces: Box[]; subject: Box | null };
@@ -54,7 +54,7 @@ export async function detectBackgroundRegions(backgroundJpeg: string): Promise<B
       ],
     }],
     // Flash thinks before answering: give it room, or the reply is cut off.
-    { model: BLITZ_DETECT_MODEL, maxTokens: 3000, temperature: 0, timeoutMs: 30_000 },
+    { model: BLITZ_DETECT_MODEL, maxTokens: 3000, temperature: 0, timeoutMs: 30_000, reasoning: 'low' },
   );
   const raw = parseJsonObject(text);
   // Callers catch and go on without heads; an unreadable reply (cut off, no JSON) must reach their logs.
