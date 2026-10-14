@@ -11,7 +11,8 @@ import { HttpError, toErrorResponse } from '../http';
 
 export const LAB_WORKSPACE_HEADER = 'x-workspace-id';
 
-export type LabAccess = { admin: true; workspaceId: null } | { admin: false; userId: string; workspaceId: string };
+/** `impersonated`: an admin in an "Open as user" tab; renders there are free, the user is never charged. */
+export type LabAccess = { admin: true; workspaceId: null } | { admin: false; userId: string; workspaceId: string; impersonated: boolean };
 
 export const resolveLabAccess = async (req: Request): Promise<LabAccess> => {
   const access = await resolveAccess(req);
@@ -19,7 +20,7 @@ export const resolveLabAccess = async (req: Request): Promise<LabAccess> => {
   const id = req.headers.get(LAB_WORKSPACE_HEADER);
   if (!id) throw new HttpError(400, 'no_workspace', 'Pick a workspace.');
   const ws = await requireSlideshowWorkspace(access.userId, id);
-  return { admin: false, userId: access.userId, workspaceId: ws.id };
+  return { admin: false, userId: access.userId, workspaceId: ws.id, impersonated: access.impersonated };
 };
 
 type Handler<Ctx> = (req: NextRequest, ctx: Ctx, access: LabAccess) => Promise<Response>;

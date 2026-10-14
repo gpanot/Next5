@@ -1344,6 +1344,8 @@ model BlitzScheduledPost {
   workspaceId   String    @map("workspace_id")
   /// Who scheduled it: pays the render credit
   userId        String    @map("user_id")
+  /// Put on the calendar by an admin in an "Open as user" tab: free, never charged (not at scheduling, not at render)
+  adminFree     Boolean   @default(false) @map("admin_free")
   cardId        String    @map("card_id")
   variantId     String?   @map("variant_id")
   title         String

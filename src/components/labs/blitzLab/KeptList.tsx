@@ -31,7 +31,7 @@ export type KeptActions = {
  * Saves the MP4. A cross-origin link ignores `download`, so fetch it as a blob first;
  * when CORS blocks that, open the file in a new tab instead.
  */
-async function saveVideo(url: string, name: string) {
+export async function saveVideo(url: string, name: string) {
   try {
     const res = await fetch(url);
     if (!res.ok) throw new Error(String(res.status));

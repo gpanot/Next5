@@ -2,7 +2,7 @@
 // What a Blitz video costs on the Content page: Generate = 1 credit (one slideshow's price). The render row and its
 // charge are written in one transaction, so a short balance queues nothing. A render that fails is refunded once.
 // A scheduled video is charged when it is scheduled (ref = the post), refunded when canceled or when its render fails.
-// Admin renders (the admin tab) are free and never come through here.
+// Admin renders (the admin tab or an "Open as user" tab) are free and never come through here.
 
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';

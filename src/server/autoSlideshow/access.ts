@@ -8,7 +8,8 @@ import { requireSession } from '../auth/session';
 import { HttpError } from '../http';
 import { requireSlideshowWorkspace } from './workspaces';
 
-export type UserAccess = { admin: false; userId: string; email: string };
+/** `impersonated`: an admin in an "Open as user" tab, acting as this user. */
+export type UserAccess = { admin: false; userId: string; email: string; impersonated: boolean };
 export type Access = { admin: true } | UserAccess;
 
 const bearer = (req: Request): string | null => {
@@ -30,7 +31,7 @@ const isAdminRequest = (req: Request): boolean => {
 export const resolveAccess = async (req: Request): Promise<Access> => {
   if (isAdminRequest(req)) return { admin: true };
   const session = requireSession(req);
-  return { admin: false, userId: session.userId, email: session.email };
+  return { admin: false, userId: session.userId, email: session.email, impersonated: session.impersonated };
 };
 
 /**

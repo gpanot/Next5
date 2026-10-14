@@ -5,7 +5,9 @@ import { createPortal } from 'react-dom';
 import { isNumbered, numberCards } from '../../../../types/admin/campaignNumbering';
 import { titlePick, type TextAt } from '../../../../types/slideText';
 import { targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
+import { isAdminView } from '../../../../lib/adminToken';
 import { LookMenu } from '../LookMenu';
+import { GenerateVideoButton } from '../VideoButton';
 import { CampaignPlayer } from './CampaignPlayer';
 import { CampaignPosts } from './CampaignPosts';
 import { CampaignPreview } from './CampaignPreview';
@@ -19,6 +21,7 @@ import { PhotoLibraryDialog } from './PhotoLibraryDialog';
 import { previewShows } from './previewSlides';
 import { useAutoContent } from './useAutoContent';
 import { useCampaign } from './useCampaign';
+import { useCampaignVideo } from './useCampaignVideo';
 
 type Props = { token: string; workspaceId: string; campaignId: string; onClose: () => void };
 
@@ -52,6 +55,9 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   const { campaign, setDraft } = state;
   const [mode, setMode] = useState<ContentMode | null>(null);
   const auto = useAutoContent(token, campaignId, state);
+  const video = useCampaignVideo(token, campaignId, state);
+  /** Video render is admin-only: the admin token, or an "Open as user" tab. */
+  const admin = isAdminView(token);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !picker && previewing === null && onClose();
@@ -122,6 +128,16 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           {/* The slideshow editor's player: left on wide screens, on top on phones. */}
           <div className="shrink-0 p-4 md:flex md:w-[30%] md:flex-col md:justify-center md:overflow-y-auto lg:w-[27%]">
             <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} onRemoveCard={removeCard} />
+            {admin && (
+              <GenerateVideoButton
+                rendering={video.rendering}
+                startedAt={video.startedAt}
+                lastMs={video.lastMs}
+                error={video.error}
+                disabled={state.busy !== null}
+                onClick={() => void video.generate()}
+              />
+            )}
           </div>
           <div className="min-w-0 md:flex-1 md:overflow-y-auto md:border-l md:border-white/10">
             <div className="border-b border-white/10 bg-black/20 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:16px_16px]">

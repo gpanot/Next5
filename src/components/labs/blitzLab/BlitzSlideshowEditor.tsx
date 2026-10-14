@@ -41,6 +41,7 @@ import { useLabClient } from '../LabClientProvider';
 import { StepPills } from '../shared/StepPills';
 import { RunProfileStep } from '../studio/runs/RunProfileStep';
 import { useStudioRunContext } from '../studio/runs/StudioRunContext';
+import { AdminVideoCta, isAdminLab } from './AdminVideoButton';
 import { AssetLibraryModal } from './AssetLibraryModal';
 import { AssetsPanel, keyForLayer, type CurrentAssets } from './AssetsPanel';
 import { ContextPanel } from './ContextPanel';
@@ -228,10 +229,11 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
     : null;
 
   // ── submit render ─────────────────────────────────────────────────────
-  const handleDoneEditing = async () => {
-    if (!carouselTemplate || blockedReason) return;
+  /** Queues the render; resolves to its project id, or null when it did not start. */
+  const handleDoneEditing = async (): Promise<string | null> => {
+    if (!carouselTemplate || blockedReason) return null;
     // Deck videos: same guardrails as generation, on the server, before anything renders.
-    if (!(await deck.checkBeforeRender())) return;
+    if (!(await deck.checkBeforeRender())) return null;
     const nonEmptySlides = slides.filter((s) => s.text.trim());
     const projectId = await render.submit({
       templateId: carouselTemplate.id,
@@ -255,6 +257,7 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
       set: buildSet(editingCard, slides),
     });
     deck.markRendered(projectId);
+    return projectId;
   };
 
   // ── picker handlers ───────────────────────────────────────────────────
@@ -385,6 +388,18 @@ export function BlitzSlideshowEditor({ initialFlowType, workspaceRunId, editPost
               corner={<PlayItButton playing={play.playing} loading={play.loading} onToggle={play.toggle} />}
             />
             {editingCard && <VoiceToggle voice={editingCard.voice} onChange={(voice) => { play.stop(); setCardVoice(editingCard.id, voice); }} />}
+            {/* Admin only: render the deck video (voiceover, no music) and download it. Users save to the calendar instead. */}
+            {editingCard && isAdminLab(client) && (
+              <AdminVideoCta
+                key={editingCard.id}
+                generate={handleDoneEditing}
+                library={library}
+                queue={render.queue}
+                stalled={render.stalled}
+                blockedReason={blockedReason}
+                error={render.state.phase === 'error' ? render.state.message : null}
+              />
+            )}
             {/* Hidden auto-playing audio — loops as long as a track is selected. */}
             {audioAsset && !muteVideoAudio && !editingCard && (
               <audio key={audioAsset.r2Key} autoPlay loop src={audioAsset.url} preload="auto" style={{ display: 'none' }} />

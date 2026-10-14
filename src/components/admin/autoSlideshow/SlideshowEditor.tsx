@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { isAdminView } from '../../../lib/adminToken';
 import type { AutoPhotoDto, AutoSlideshowDto, AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { CaptionPanel } from './CaptionPanel';
 import { PostDialog, SaveCaptionButton } from './PostDialog';
@@ -17,7 +18,7 @@ import { TextStyleMenu } from './TextStyleMenu';
 import { RenderedTextOverlay } from './slideText/RenderedTextOverlay';
 import type { SlideTextProps } from './slideText/SlideTextView';
 import { SlideshowMenu } from './SlideshowMenu';
-import { VideoButton } from './VideoButton';
+import { GenerateVideoButton } from './VideoButton';
 import { parseTags, useSlideshowDrafts } from './useSlideshowDrafts';
 import { useSlideshowEdit } from './useSlideshowEdit';
 import { useSlideshowVideo } from './useSlideshowVideo';
@@ -55,6 +56,8 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
   const drafts = useSlideshowDrafts(show, slide);
   const saving = busy === 'caption' || busy === `slide-${slide}`;
   const [posting, setPosting] = useState(false);
+  /** Video render is admin-only: the admin token, or an "Open as user" tab. */
+  const admin = isAdminView(token);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -151,13 +154,6 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
         <div className="shrink-0 p-4 md:flex md:w-[30%] md:flex-col md:justify-center md:overflow-y-auto lg:w-[27%]">
           <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={textLayer} />
           <PlayerControls count={show.slides.length} index={slide}>
-            <VideoButton
-              rendering={video.rendering}
-              startedAt={video.startedAt}
-              lastMs={video.lastMs}
-              disabled={busy !== null || show.slides.some((s) => !s.imageUrl)}
-              onClick={() => void video.download()}
-            />
             {current?.textAt && (
               <button
                 onClick={() => void edit.saveSlide(slide, { textAt: null })}
@@ -184,6 +180,15 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
               )}
             </button>
           </PlayerControls>
+          {admin && (
+            <GenerateVideoButton
+              rendering={video.rendering}
+              startedAt={video.startedAt}
+              lastMs={video.lastMs}
+              disabled={busy !== null || show.slides.some((s) => !s.imageUrl)}
+              onClick={() => void video.download()}
+            />
+          )}
           <div className="mx-auto mt-3 w-full max-w-[calc((100dvh-15rem)*9/16)]">
             <MusicPicker compact show={show} tracks={tracks} busy={busy} onPick={(id) => void edit.setMusic(id)} />
           </div>

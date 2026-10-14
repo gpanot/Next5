@@ -62,7 +62,7 @@ export function ContentPage({ token, workspaceId }: { token: string; workspaceId
         <Section title="Blitz videos"><BlitzVideos token={token} workspaceId={workspaceId} /></Section>
       </div>
       <div hidden={filter === 'blitz'}>
-        <Section title="Slideshows"><SlideshowsTab token={token} workspaceId={workspaceId} /></Section>
+        <SlideshowsTab token={token} workspaceId={workspaceId} />
       </div>
     </div>
   );

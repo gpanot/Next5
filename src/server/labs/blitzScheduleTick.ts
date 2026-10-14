@@ -33,8 +33,9 @@ const startRender = async (post: BlitzScheduledPost): Promise<void> => {
   const claimed = await prisma.blitzScheduledPost.updateMany({ where: { id: post.id, status: 'scheduled' }, data: { status: 'rendering', attempts: { increment: 1 } } });
   if (claimed.count === 0) return;
   try {
-    const prepaid = await isPrepaid(post.id);
-    const project = await queueBlitzRender({ admin: false, userId: post.userId, workspaceId: post.workspaceId }, post.renderBody as unknown as RenderBody, prepaid);
+    // An admin's free post ("Open as user") renders free too.
+    const prepaid = post.adminFree || (await isPrepaid(post.id));
+    const project = await queueBlitzRender({ admin: false, userId: post.userId, workspaceId: post.workspaceId, impersonated: false }, post.renderBody as unknown as RenderBody, prepaid);
     await prisma.blitzScheduledPost.update({ where: { id: post.id }, data: { projectId: project.id, error: null } });
   } catch (err) {
     await refundBlitzCharge(post.id, 'Scheduled Blitz video failed');

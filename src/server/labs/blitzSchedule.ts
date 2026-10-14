@@ -160,9 +160,10 @@ const MOVABLE = ['planned', 'scheduled'];
 /**
  * Puts a kept card on the calendar as `planned` and charges 1 credit now (refunded when canceled, when it is not
  * approved in time, or when the video cannot be made). It is approved on the calendar, like the slideshows. A card
- * already on the calendar moves to the new day, free, and keeps its approval.
+ * already on the calendar moves to the new day, free, and keeps its approval. `adminFree`: an admin in an "Open as
+ * user" tab, never charged.
  */
-export async function scheduleBlitz(workspaceId: string, userId: string, req: ScheduleBlitzRequest): Promise<BlitzScheduleDto> {
+export async function scheduleBlitz(workspaceId: string, userId: string, req: ScheduleBlitzRequest, adminFree = false): Promise<BlitzScheduleDto> {
   const scheduledAt = scheduledAtOf(req.scheduledAt);
   const renderBody = renderBodyOf(req.renderBody);
   if (!req.cardId) throw new HttpError(400, 'no_card', 'Missing card.');
@@ -177,10 +178,13 @@ export async function scheduleBlitz(workspaceId: string, userId: string, req: Sc
   const existing = await prisma.blitzScheduledPost.findFirst({ where: { workspaceId, cardId: req.cardId, status: { in: BLITZ_LIVE } } });
   if (existing && !MOVABLE.includes(existing.status)) throw new HttpError(409, 'started', 'This video is already being made or posted.');
   await checkDayRoom(workspaceId, scheduledAt, req.tzOffsetMin, existing?.id);
-  if (!existing) await requireCredits(userId, 1);
+  if (!existing && !adminFree) await requireCredits(userId, 1);
+  const created = { ...data, workspaceId, cardId: req.cardId, status: 'planned' };
   const row = existing
     ? await prisma.blitzScheduledPost.update({ where: { id: existing.id }, data })
-    : await createPaidPost(userId, { ...data, workspaceId, cardId: req.cardId, status: 'planned' });
+    : adminFree
+      ? await prisma.blitzScheduledPost.create({ data: { ...created, adminFree } })
+      : await createPaidPost(userId, created);
   // A calendar idea made into a post leaves the ideas list.
   if (req.variantId) await prisma.slideshowVariant.updateMany({ where: { id: req.variantId, workspaceId, plannedAt: { not: null } }, data: { status: 'made' } });
   return toScheduleDto(row);
@@ -233,9 +237,9 @@ const checkNotPosted = async (workspaceId: string, projectId: string, platform: 
  * "Post now" from the kept list, approved at once and due now. With a `projectId` (made with Generate, already paid)
  * the tick uploads that video right away, free. Without one it costs 1 credit and the tick renders it first (about
  * 5 minutes). A card already on the calendar (not started) is replaced by this post; its credit is kept, or refunded
- * when the post uses a video already made.
+ * when the post uses a video already made. `adminFree`: an admin in an "Open as user" tab, never charged.
  */
-export async function postBlitzNow(workspaceId: string, userId: string, req: PostNowBlitzRequest): Promise<BlitzScheduleDto> {
+export async function postBlitzNow(workspaceId: string, userId: string, req: PostNowBlitzRequest, adminFree = false): Promise<BlitzScheduleDto> {
   const approval = approvalOf(req);
   await connectionFor(workspaceId, approval.platform);
   if (!req.cardId) throw new HttpError(400, 'no_card', 'Missing card.');
@@ -262,11 +266,11 @@ export async function postBlitzNow(workspaceId: string, userId: string, req: Pos
   const existing = await prisma.blitzScheduledPost.findFirst({ where: { workspaceId, cardId: req.cardId, status: { in: BLITZ_LIVE } } });
   if (existing && !MOVABLE.includes(existing.status)) throw new HttpError(409, 'started', 'This video is already being made or posted.');
   await checkDayRoom(workspaceId, scheduledAt, req.tzOffsetMin, existing?.id);
-  if (!existing && !projectId) await requireCredits(userId, 1);
+  if (!existing && !projectId && !adminFree) await requireCredits(userId, 1);
   const row = existing
     ? await prisma.blitzScheduledPost.update({ where: { id: existing.id }, data })
-    : projectId
-      ? await prisma.blitzScheduledPost.create({ data: { ...data, workspaceId, cardId: req.cardId } })
+    : projectId || adminFree
+      ? await prisma.blitzScheduledPost.create({ data: { ...data, workspaceId, cardId: req.cardId, adminFree } })
       : await createPaidPost(userId, { ...data, workspaceId, cardId: req.cardId });
   if (existing && projectId) await refundBlitzCharge(existing.id, 'Posted a video already made');
   if (req.variantId) await prisma.slideshowVariant.updateMany({ where: { id: req.variantId, workspaceId, plannedAt: { not: null } }, data: { status: 'made' } });

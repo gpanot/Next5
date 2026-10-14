@@ -118,10 +118,11 @@ const checkRequest = async (body: RenderBody) => {
 
 /**
  * Creates the PENDING render. Workspace users pay 1 credit per video (402 and nothing queued when short); admins
- * render for free, and `prepaid` (a scheduled video, paid when scheduled) is not charged again. Throws HttpError on a bad request.
+ * (the admin tab or an "Open as user" tab) render for free, and `prepaid` (a scheduled video, paid when scheduled) is not charged again. Throws HttpError on a bad request.
  */
 export async function queueBlitzRender(access: LabAccess, body: RenderBody, prepaid = false): Promise<BlitzProject> {
   const { templateType, captionY } = await checkRequest(body);
+  const free = access.admin || access.impersonated || prepaid;
   // Normalize slides early so we can validate per-slide backgroundKeys below
   const normalizedSlides = (body.slides ?? []).map((s) => (typeof s === 'string' ? { text: s } : cleanSlide(s)));
   const keys = [body.currentAssets.backgroundKey, body.currentAssets.overlayKey, body.currentAssets.audioKey, ...normalizedSlides.map((s) => s.backgroundKey)];
@@ -132,7 +133,7 @@ export async function queueBlitzRender(access: LabAccess, body: RenderBody, prep
   // A narrated slideshow: the voiceover is its sound and sets each slide's length.
   const narrate = templateType === 'CAROUSEL' && !!body.voice && captioned.length > 0;
   // The voiceover costs money: a user short of credits gets the 402 before it is recorded.
-  if (narrate && !access.admin && !prepaid) await requireCredits(access.userId, 1);
+  if (narrate && !free) await requireCredits(access.userId, 1);
   const narration = narrate ? await narrateSlides(captioned, body.voice, access.workspaceId) : null;
   if (narration) {
     body = { ...body, currentAssets: { ...body.currentAssets, audioKey: narration.audioKey }, durationSeconds: narration.durationSeconds, muteVideoAudio: true };
@@ -167,7 +168,7 @@ export async function queueBlitzRender(access: LabAccess, body: RenderBody, prep
     renderStatus: 'PENDING',
     isIdentifiablePerson: body.isIdentifiablePerson ?? false,
   };
-  const project = access.admin || prepaid ? await prisma.blitzProject.create({ data }) : await createPaidRender(access.userId, data);
+  const project = free ? await prisma.blitzProject.create({ data }) : await createPaidRender(access.userId, data);
   console.log(`[blitz/render] BlitzProject created: id=${project.id} status=PENDING template.type=${templateType}`);
   return project;
 }

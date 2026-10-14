@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { isTerminalAutoStatus, type AutoRunSummary } from '../../../../types/admin/autoSlideshow';
 import { adminFetch, useAdminApi } from '../../business/useAdminApi';
 import { CreateSlideshowsButton } from './CreateSlideshows';
@@ -18,12 +18,6 @@ const FILTERS: { id: Filter; label: string }[] = [
 ];
 
 const errorClass = 'rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300';
-
-const chipClass = (active: boolean) =>
-  [
-    'min-h-11 shrink-0 whitespace-nowrap rounded-full border px-4 text-sm font-semibold transition active:scale-95',
-    active ? 'border-app-cta bg-app-cta text-app-cta-ink' : 'border-app-line text-app-muted hover:text-app-ink',
-  ].join(' ');
 
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
@@ -92,27 +86,58 @@ function NoSlideshows({ workspaceId }: { workspaceId: string }) {
   );
 }
 
-/** Editor › Slideshows: every run of the workspace, newest first. The latest run is the one the Calendar places on days. */
-export function SlideshowsTab({ token, workspaceId }: { token: string; workspaceId: string }) {
-  const runs = useAdminApi<{ runs: AutoRunSummary[] }>(token, `/api/admin/auto-slideshow/runs?workspace=${workspaceId}`);
-  const [filter, setFilter] = useState<Filter>('all');
-  if (runs.error) return <p className={errorClass}>{runs.error}</p>;
-  if (!runs.data) return <GridSkeleton />;
-  const all = runs.data.runs;
-  if (all.length === 0) return <NoSlideshows workspaceId={workspaceId} />;
-  const shown = filter === 'calendar' ? all.slice(0, 1) : all;
+/** Compact filter, right of the Slideshows title: a native select, so phones get their own picker. */
+function FilterSelect({ value, onChange }: { value: Filter; onChange: (f: Filter) => void }) {
+  return (
+    <div className="relative shrink-0">
+      <select
+        aria-label="Filter slideshows"
+        value={value}
+        onChange={(e) => onChange(e.target.value as Filter)}
+        className="min-h-10 cursor-pointer appearance-none rounded-full border border-app-line bg-app-panel py-1.5 pr-9 pl-4 text-sm font-medium text-app-ink shadow-sm transition hover:border-app-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-app-cta"
+      >
+        {FILTERS.map((f) => (
+          <option key={f.id} value={f.id}>{f.label}</option>
+        ))}
+      </select>
+      <svg className="pointer-events-none absolute top-1/2 right-3.5 -translate-y-1/2 text-app-muted" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="m6 9 6 6 6-6" />
+      </svg>
+    </div>
+  );
+}
+
+/** The "Slideshows" title, with the filter on its right once there is something to filter. */
+function Header({ children }: { children?: ReactNode }) {
+  return (
+    <div className="flex min-h-10 items-center justify-between gap-3">
+      <h2 className="font-heading text-xl font-normal text-app-ink">Slideshows</h2>
+      {children}
+    </div>
+  );
+}
+
+function Body({ token, workspaceId, runs, filter }: { token: string; workspaceId: string; runs: AutoRunSummary[]; filter: Filter }) {
+  if (runs.length === 0) return <NoSlideshows workspaceId={workspaceId} />;
+  const shown = filter === 'calendar' ? runs.slice(0, 1) : runs;
   return (
     <div className="space-y-6">
-      <div role="group" aria-label="Filter slideshows" className="flex gap-2 overflow-x-auto pb-1">
-        {FILTERS.map((f) => (
-          <button key={f.id} type="button" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)} className={chipClass(filter === f.id)}>
-            {f.label}
-          </button>
-        ))}
-      </div>
       {shown.map((summary, i) => (
         <RunSection key={summary.id} token={token} summary={summary} latest={i === 0} calendarOnly={filter === 'calendar'} />
       ))}
     </div>
+  );
+}
+
+/** Editor › Slideshows: every run of the workspace, newest first. The latest run is the one the Calendar places on days. */
+export function SlideshowsTab({ token, workspaceId }: { token: string; workspaceId: string }) {
+  const runs = useAdminApi<{ runs: AutoRunSummary[] }>(token, `/api/admin/auto-slideshow/runs?workspace=${workspaceId}`);
+  const [filter, setFilter] = useState<Filter>('all');
+  const all = runs.data?.runs;
+  return (
+    <section className="space-y-4">
+      <Header>{all && all.length > 0 && <FilterSelect value={filter} onChange={setFilter} />}</Header>
+      {runs.error ? <p className={errorClass}>{runs.error}</p> : !all ? <GridSkeleton /> : <Body token={token} workspaceId={workspaceId} runs={all} filter={filter} />}
+    </section>
   );
 }
