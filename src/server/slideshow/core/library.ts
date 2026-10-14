@@ -48,6 +48,8 @@ export type LibraryQuery = {
    */
   categories?: string[];
   categoryMode?: 'require' | 'boost';
+  /** Only photos or only clips (by file type). Absent = both. */
+  media?: 'image' | 'video';
 };
 
 export type LibraryAsset = {
@@ -126,6 +128,9 @@ const oncePerFile = (assets: LibraryAsset[]): LibraryAsset[] => {
   return assets.filter((a) => !seen.has(clipKey(a.r2Key)) && Boolean(seen.add(clipKey(a.r2Key))));
 };
 
+/** Photo files (anything else in the library is a clip). */
+const IMAGE_FILE = '\\.(jpe?g|png|webp|avif)$';
+
 /** Ranked library assets for one shot. Empty when nothing passes the rights / safety filters. */
 export async function searchLibrary(q: LibraryQuery): Promise<LibraryAsset[]> {
   const kinds = Object.keys(q.kinds) as LibraryKind[];
@@ -144,6 +149,9 @@ export async function searchLibrary(q: LibraryQuery): Promise<LibraryAsset[]> {
   const categoryFilter = cats.length && q.categoryMode === 'require'
     ? Prisma.sql`AND d.categories && ${cats}::text[]`
     : Prisma.empty;
+  const mediaFilter = q.media === 'image'
+    ? Prisma.sql`AND a.r2_key ~* ${IMAGE_FILE}`
+    : q.media === 'video' ? Prisma.sql`AND a.r2_key !~* ${IMAGE_FILE}` : Prisma.empty;
 
   const rows = await prisma.$queryRaw<Row[]>`
     SELECT a.id AS asset_id, d.kind, a.r2_key, a.name,
@@ -173,6 +181,7 @@ export async function searchLibrary(q: LibraryQuery): Promise<LibraryAsset[]> {
       AND NOT ((coalesce(d.retrieval_text,'') || ' ' || coalesce(d.descriptor->>'transcript','')) ~* ${UNSAFE_CONTENT})
       AND NOT (a.id = ANY(${q.excludeIds ?? []}::text[]))
       ${categoryFilter}
+      ${mediaFilter}
     ORDER BY score DESC
     LIMIT ${q.limit ?? 5}`;
 

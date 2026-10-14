@@ -28,8 +28,8 @@ const patchOf = (raw: unknown): IdeaPatch => {
   }
   if (b.media !== undefined) {
     const m = (b.media ?? {}) as Record<string, unknown>;
-    if (!Number.isInteger(m.shot) || typeof m.assetKey !== 'string') throw new HttpError(400, 'invalid_media', 'Pick a clip.');
-    patch.media = { shot: m.shot as number, assetKey: m.assetKey };
+    if (!Number.isInteger(m.shot) || (m.assetKey !== undefined && typeof m.assetKey !== 'string')) throw new HttpError(400, 'invalid_media', 'Pick a clip.');
+    patch.media = { shot: m.shot as number, ...(typeof m.assetKey === 'string' ? { assetKey: m.assetKey } : {}) };
   }
   return patch;
 };

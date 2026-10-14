@@ -17,21 +17,32 @@ const optionOf = (shot: Shot): MediaOption => ({
   positionY: shot.positionY,
 });
 
-/** The library clips the shot can swap to: each once, never its current one. Only a library shot swaps (a listing
- *  photo has no key, so it could not be swapped back). */
-export const swappableOf = (shot: Shot | undefined): MediaOption[] => {
-  if (!shot?.assetKey || shot.source !== 'library') return [];
-  const seen = new Set<string>([shot.assetKey]);
-  return shot.alternatives.filter((a) => a.assetKey && !seen.has(a.assetKey) && seen.add(a.assetKey));
+/** A library shot can swap (a listing photo has no key, so it could not be swapped back). */
+export const canSwap = (shot: Shot | undefined): boolean => Boolean(shot?.assetKey && shot.source === 'library');
+
+/** The library media shot `index` can swap to: of its own kind (a photo for a photo, a clip for a clip), each once,
+ *  none the card already shows on any step (the engine's runner-ups often include another step's clip, which would
+ *  then show on two steps). */
+export const swappableOf = (card: DeckItem, index: number): MediaOption[] => {
+  const shot = card.shots[index];
+  if (!shot || !canSwap(shot)) return [];
+  const seen = new Set<string>(card.shots.flatMap((s) => (s.assetKey ? [s.assetKey] : [])));
+  return shot.alternatives.filter((a) => a.mediaKind === shot.mediaKind && a.assetKey && !seen.has(a.assetKey) && seen.add(a.assetKey));
 };
 
+/** The card with `more` added to shot `index`'s alternatives (found in the library when its own ran out). */
+export const withMoreOptions = (card: DeckItem, index: number, more: MediaOption[]): DeckItem => ({
+  ...card,
+  shots: card.shots.map((s, i) => (i === index ? { ...s, alternatives: [...s.alternatives, ...more] } : s)),
+});
+
 /** The next clip to try: the first runner-up. The swapped-out clip goes last, so pressing again cycles through all. */
-export const nextClipOf = (shot: Shot | undefined): string | null => swappableOf(shot)[0]?.assetKey ?? null;
+export const nextClipOf = (card: DeckItem, index: number): string | null => swappableOf(card, index)[0]?.assetKey ?? null;
 
 /** The card with shot `index` showing the alternative `assetKey`; null when the shot has no such alternative. */
 export const swapShotMedia = (card: DeckItem, index: number, assetKey: string): DeckItem | null => {
   const shot = card.shots[index];
-  const pick = swappableOf(shot).find((a) => a.assetKey === assetKey);
+  const pick = swappableOf(card, index).find((a) => a.assetKey === assetKey);
   if (!shot || !pick) return null;
   // The engine may list the current clip among its runner-ups: only its own copy (with its trim) goes back, last.
   const rest = shot.alternatives.filter((a) => a.assetKey !== assetKey && a.assetKey !== shot.assetKey);

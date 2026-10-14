@@ -19,18 +19,18 @@ const useClipSwaps = (ideas: IdeasState): DeckClips => {
   const [undos, setUndos] = useState<Record<string, Array<{ shot: number; assetKey: string }>>>({});
   const { swapMedia } = ideas;
   return useMemo<DeckClips>(() => ({
-    swap: (idea, shot, assetKey) => {
+    swap: async (idea, shot, assetKey) => {
       const before = idea.card?.shots[shot]?.assetKey;
       if (!before) return;
+      await swapMedia(idea, shot, assetKey);
       setUndos((u) => ({ ...u, [idea.id]: [...(u[idea.id] ?? []), { shot, assetKey: before }] }));
-      swapMedia(idea, shot, assetKey);
     },
     undoOf: (idea) => {
       const last = undos[idea.id]?.at(-1);
       if (!last) return null;
       return () => {
         setUndos((u) => ({ ...u, [idea.id]: (u[idea.id] ?? []).slice(0, -1) }));
-        swapMedia(idea, last.shot, last.assetKey);
+        void swapMedia(idea, last.shot, last.assetKey);
       };
     },
   }), [undos, swapMedia]);

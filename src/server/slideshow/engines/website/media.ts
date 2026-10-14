@@ -39,7 +39,7 @@ import type { StoryMedia, StoryTexts } from '../../core/deckAssembly';
 import type { HookArchetype, Tone } from '../../core/types';
 import { planProductShots, productShot, type ProductShotKey } from './productMedia';
 
-const STORY_RULES: Record<keyof StoryTexts, LibraryRule> = {
+export const STORY_RULES: Record<keyof StoryTexts, LibraryRule> = {
   pain: { slot: 'slot_problem', kinds: { background: 0.1, hook: 0.05 }, minSlot: 0.4, avoidPattern: AVOID_ON_PROBLEM, intent: 'frustrated at work, stressed, annoyed' },
   oldWay: { slot: 'slot_problem', kinds: { background: 0.12, hook: 0.05 }, minSlot: 0.3, avoidPattern: AVOID_ON_PROBLEM, intent: 'doing it the slow hard way, tired, manual work' },
   mechanism: { slot: 'slot_payoff', kinds: { background: 0.15, hook: 0.05 }, minSlot: 0.35, intent: 'relief, easy, the fix working' },

@@ -1,6 +1,6 @@
 'use client';
 
-import { Mic, Pause, Play, Shuffle, Undo2, Volume2, VolumeX } from 'lucide-react';
+import { Loader2, Mic, Pause, Play, Shuffle, Undo2, Volume2, VolumeX } from 'lucide-react';
 import type { VoicePreviewState } from './useVoicePreview';
 import { VOICE_READY_S, VoiceCountdown } from './VoiceCountdown';
 
@@ -8,10 +8,14 @@ const round = 'flex h-9 w-9 items-center justify-center rounded-full border bord
 
 /** While paused: another clip for the shot on screen, and back to the one before. */
 export type ShotSwap = {
-  /** Null: this shot has no other clip. */
+  /** Null: this shot cannot swap. */
   onSwap: (() => void) | null;
   /** Null: nothing swapped on this card yet. */
   onUndo: (() => void) | null;
+  /** Looking for the next one. */
+  busy: boolean;
+  /** What the shot shows: a photo swaps for a photo, a clip for a clip. */
+  kind: 'photo' | 'clip';
 };
 
 type Props = {
@@ -34,12 +38,12 @@ function SwapButtons({ swap }: { swap: ShotSwap }) {
   return (
     <>
       {swap.onUndo && (
-        <button type="button" onClick={swap.onUndo} aria-label="Undo the clip swap" title="Back to the clip before" className={round}>
+        <button type="button" onClick={swap.onUndo} aria-label={`Undo the ${swap.kind} swap`} title={`Back to the ${swap.kind} before`} className={round}>
           <Undo2 aria-hidden className="h-4 w-4" />
         </button>
       )}
-      <button type="button" onClick={swap.onSwap ?? undefined} disabled={!swap.onSwap} aria-label="Swap this clip" title={swap.onSwap ? 'Swap this clip' : 'No other clip for this shot'} className={round}>
-        <Shuffle aria-hidden className="h-4 w-4" />
+      <button type="button" onClick={swap.busy ? undefined : (swap.onSwap ?? undefined)} disabled={!swap.onSwap} aria-busy={swap.busy} aria-label={`Swap this ${swap.kind}`} title={swap.onSwap ? `Another ${swap.kind}` : `This ${swap.kind} cannot be swapped`} className={`${round} ${swap.busy ? 'cursor-wait' : ''}`}>
+        {swap.busy ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <Shuffle aria-hidden className="h-4 w-4" />}
       </button>
     </>
   );

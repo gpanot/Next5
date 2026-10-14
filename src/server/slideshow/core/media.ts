@@ -68,6 +68,8 @@ export type ShotQuery = {
   /** Audience industries; see LibraryQuery.categoryMode. */
   categories?: string[];
   categoryMode?: 'require' | 'boost';
+  /** Only photos or only clips. */
+  media?: LibraryQuery['media'];
 };
 export type SearchContext = Pick<LibraryQuery, 'targetEnergy' | 'niche' | 'workspaceId'>;
 
@@ -99,6 +101,7 @@ export async function searchShots(ctx: SearchContext, queries: ShotQuery[]): Pro
     excludeIds: q.excludeIds,
     categories: q.categories,
     categoryMode: q.categoryMode,
+    media: q.media,
   })));
 }
 

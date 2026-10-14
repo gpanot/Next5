@@ -53,8 +53,9 @@ export const REQUESTED_SLIDESHOWS = 3;
 export const SLIDESHOW_AFTER = 8;
 
 /** PATCH /blitz/ideas/[id]. `voice`: a Blitz idea's narrator (BLITZ_VOICES name). `media`: shot `shot` of a Blitz
- *  idea shows its alternative clip `assetKey` (the deck's swap button and its undo). */
-export type IdeaPatch = { status?: Exclude<IdeaStatus, 'made'>; plannedAt?: string; hookId?: string; voice?: BlitzVoiceName; media?: { shot: number; assetKey: string } };
+ *  idea shows its alternative `assetKey` (the deck's swap button and its undo); without `assetKey`, the server picks
+ *  the next one of the same kind, from the library when the shot's own ran out. */
+export type IdeaPatch = { status?: Exclude<IdeaStatus, 'made'>; plannedAt?: string; hookId?: string; voice?: BlitzVoiceName; media?: { shot: number; assetKey?: string } };
 
 /** Ideas in one batch, over the next IDEA_DAYS days: one post a day. */
 export const IDEAS_PER_BATCH = 14;

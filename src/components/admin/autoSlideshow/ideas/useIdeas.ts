@@ -200,12 +200,14 @@ const useActions = (client: LabClient | null, request: ListRequest, setState: Se
     setState((s) => ({ ...s, ideas: s.ideas.map((i) => (i.id === idea.id && i.card ? { ...i, card: { ...i.card, voice } } : i)) }));
     void patch(idea.id, { voice });
   }, [patch, setState]);
-  /** Shot `shot` of a Blitz idea shows another of its clips: shown at once, saved for when it is made. */
-  const swapMedia = useCallback((idea: IdeaDto, shot: number, assetKey: string) => {
+  /** Shot `shot` of a Blitz idea shows another photo or clip, saved for when it is made. A known one (`assetKey`)
+   *  shows at once; null asks the server for the next of the same kind (from the library when the shot ran out). */
+  const swapMedia = useCallback(async (idea: IdeaDto, shot: number, assetKey: string | null) => {
+    if (!assetKey) return void (await patch(idea.id, { media: { shot } }));
     const card = idea.card && swapShotMedia(idea.card, shot, assetKey);
     if (!card) return;
     setState((s) => ({ ...s, ideas: s.ideas.map((i) => (i.id === idea.id ? { ...i, card } : i)) }));
-    void patch(idea.id, { media: { shot, assetKey } });
+    await patch(idea.id, { media: { shot, assetKey } });
   }, [patch, setState]);
   const changeDay = useCallback(async (action: 'add' | 'remove', day: string) => {
     if (!client) return;

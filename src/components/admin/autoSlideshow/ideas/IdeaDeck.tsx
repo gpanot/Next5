@@ -9,7 +9,7 @@ import { blitzVoiceLabel } from '../../../../types/admin/blitzVoice';
 import { SwipeCard } from '../../../labs/blitzLab/SwipeCard';
 import { mergeTextConfig } from '../../../labs/blitzLab/useTextLayout';
 import { useDeckSound } from '../../../labs/blitzLab/useDeckSound';
-import { nextClipOf } from '../../../../types/admin/ideaMedia';
+import { canSwap, nextClipOf } from '../../../../types/admin/ideaMedia';
 import { DeckSide, type ShotSwap } from './DeckSide';
 import type { VoicePreviewState } from './useVoicePreview';
 import { formatLabel, ideaCard, whenOf } from './ideaCards';
@@ -44,7 +44,8 @@ type Props = {
 };
 
 export type DeckClips = {
-  swap: (idea: IdeaDto, shot: number, assetKey: string) => void;
+  /** `assetKey` null: the server finds the next one of the same kind. Settles once shown. */
+  swap: (idea: IdeaDto, shot: number, assetKey: string | null) => Promise<void>;
   /** Null: nothing to undo on this idea. */
   undoOf: (idea: IdeaDto) => (() => void) | null;
 };
@@ -114,11 +115,17 @@ function VoiceNote({ message }: { message: string }) {
   );
 }
 
-/** The swap buttons for the shot on screen (Blitz ideas with `clips`). */
-const shotSwapOf = (idea: IdeaDto, shot: number, clips?: DeckClips): ShotSwap | undefined => {
+/** The swap buttons for the shot on screen (Blitz ideas with `clips`): a photo swaps for a photo, a clip for a clip.
+ *  The card's own runner-ups show at once; past them the server searches the library (`busy` meanwhile). */
+const useShotSwap = (idea: IdeaDto, shot: number, clips?: DeckClips): ShotSwap | undefined => {
+  const [busy, setBusy] = useState(false);
   if (!idea.card || !clips) return undefined;
-  const next = nextClipOf(idea.card.shots[shot]);
-  return { onSwap: next ? () => clips.swap(idea, shot, next) : null, onUndo: clips.undoOf(idea) };
+  const swap = async () => {
+    setBusy(true);
+    await clips.swap(idea, shot, nextClipOf(idea.card!, shot));
+    setBusy(false);
+  };
+  return { onSwap: canSwap(idea.card.shots[shot]) ? () => void swap() : null, onUndo: clips.undoOf(idea), busy, kind: idea.card.shots[shot]?.mediaKind === 'image' ? 'photo' : 'clip' };
 };
 
 /** One idea at a time: swipe or tap ✓ / ✕. The day it will be posted shows under the card. */
@@ -134,7 +141,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
   const paused = pausedFor === idea.id;
   const setPaused = (p: boolean) => setPausedFor(p ? idea.id : null);
   const [shot, setShot] = useState(0);
-  const swap = shotSwapOf(idea, shot, clips);
+  const swap = useShotSwap(idea, shot, clips);
   const decide = async (status: 'kept' | 'discarded') => {
     if (exit) return;
     if (status === 'kept' && confirmKeep && !(await confirmKeep())) return; // the card slides back

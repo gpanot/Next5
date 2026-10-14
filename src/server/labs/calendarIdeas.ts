@@ -22,7 +22,8 @@ import { bankDeck, EARLY_STORIES } from './blitzBank';
 import { batchQuotas, type Stage } from './blitzFormats';
 import { campaignStart, campaignWeek } from './blitzCampaign';
 import type { ContentGoal } from '../../types/admin/contentGoals';
-import { swapShotMedia } from '../../types/admin/ideaMedia';
+import { canSwap, nextClipOf, swapShotMedia, withMoreOptions } from '../../types/admin/ideaMedia';
+import { moreOptions } from './ideaClips';
 import { adoptIdeaSlideshow, createIdeaRun, ideaSlideshowState } from './ideaSlideshowRun';
 import { claimIdeasBatch, ideasBatchSince, releaseIdeasBatch, waitForIdeasBatch } from './ideasBatchLock';
 import { generateWebsiteDeck } from './websiteDeck';
@@ -283,11 +284,27 @@ const swapBlitzHook = async (workspaceId: string, row: SlideshowVariant, hookId:
   ]);
 };
 
-/** Another clip on one shot of a Blitz idea (one of the shot's runner-ups). */
-const swapMedia = async (row: SlideshowVariant, media: NonNullable<IdeaPatch['media']>) => {
-  const card = (row.plan as BlitzIdeaPlan).card;
-  const swapped = card && row.engine === 'website' ? swapShotMedia(card, media.shot, media.assetKey) : null;
-  if (!swapped) throw new HttpError(400, 'no_clip', 'That clip is gone. Try another.');
+/** The card with shot `index`'s next same-kind media found: its own runner-ups first, then the library. */
+const nextOf = async (workspaceId: string, card: DeckItem, index: number): Promise<{ card: DeckItem; key: string } | null> => {
+  const own = nextClipOf(card, index);
+  if (own) return { card, key: own };
+  if (!canSwap(card.shots[index])) return null;
+  const more = await moreOptions(card, index, workspaceId);
+  const grown = withMoreOptions(card, index, more);
+  const key = nextClipOf(grown, index);
+  return key ? { card: grown, key } : null;
+};
+
+/** Another photo or clip on one shot of a Blitz idea: the one asked for, or (none named) the next of the same kind. */
+const swapMedia = async (workspaceId: string, row: SlideshowVariant, media: NonNullable<IdeaPatch['media']>) => {
+  const card = row.engine === 'website' ? (row.plan as BlitzIdeaPlan).card : undefined;
+  if (!card) throw new HttpError(400, 'no_clip', 'Only videos swap their pictures.');
+  const next = media.assetKey ? { card, key: media.assetKey } : await nextOf(workspaceId, card, media.shot);
+  const swapped = next && swapShotMedia(next.card, media.shot, next.key);
+  if (!swapped) {
+    const kind = card.shots[media.shot]?.mediaKind === 'image' ? 'photo' : 'clip';
+    throw new HttpError(409, 'no_clip', media.assetKey ? 'That clip is gone. Try another.' : `No other ${kind} for this step yet.`);
+  }
   await prisma.slideshowVariant.update({ where: { id: row.id }, data: { plan: asJson({ ...(row.plan as object), card: swapped }) } });
 };
 
@@ -306,7 +323,7 @@ export async function patchIdea(workspaceId: string, id: string, patch: IdeaPatc
     if (row.engine !== 'website' || !card) throw new HttpError(400, 'no_voice', 'Only videos take a voice here.');
     await prisma.slideshowVariant.update({ where: { id }, data: { plan: asJson({ ...(row.plan as object), card: { ...card, voice: patch.voice } }) } });
   }
-  if (patch.media) await swapMedia(row, patch.media);
+  if (patch.media) await swapMedia(workspaceId, row, patch.media);
   if (patch.plannedAt) {
     const at = new Date(patch.plannedAt);
     if (Number.isNaN(at.getTime()) || at.getTime() < Date.now()) throw new HttpError(400, 'invalid_date', 'Pick a day from tomorrow on.');
