@@ -12,6 +12,7 @@ import { SlidePreview } from './SlidePreview';
 import { photosInSlideOrder } from './photoOrder';
 import { PhotoPicker } from './PhotoPicker';
 import { RoleTabs } from './RoleTabs';
+import { SafeZoneButton, useSafeZone } from './SafeZone';
 import { SlideEditPanel } from './SlideEditPanel';
 import { SlideStrip } from './SlideStrip';
 import { TextStyleMenu } from './TextStyleMenu';
@@ -58,6 +59,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
   const [posting, setPosting] = useState(false);
   /** Video render is admin-only: the admin token, or an "Open as user" tab. */
   const admin = isAdminView(token);
+  const safeZone = useSafeZone();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -127,6 +129,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
           <p className="truncate text-sm font-semibold">{show.topic}</p>
           <p className="truncate text-[11px] text-white/50">{show.modelName} · {slide + 1}/{show.slides.length}</p>
         </div>
+        <SafeZoneButton on={safeZone.on} onToggle={safeZone.toggle} />
         <button
           type="button"
           onClick={() => setPosting(true)}
@@ -152,7 +155,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
         <div className="shrink-0 p-4 md:flex md:w-[30%] md:flex-col md:justify-center md:overflow-y-auto lg:w-[27%]">
-          <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={textLayer} />
+          <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={textLayer} safeZone={safeZone.on} />
           <PlayerControls count={show.slides.length} index={slide}>
             {current?.textAt && (
               <button

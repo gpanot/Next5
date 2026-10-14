@@ -140,11 +140,11 @@ const castJobs = async (workspaceId: string, meter: CostMeter, max = CAST_SIZE):
 };
 
 /**
- * Writes the people for the empty slots and creates them as "pending", so the caller can answer at once. The returned
- * job makes their photos (about 30-60 s). Null when the cast is already full.
+ * Writes the people for the empty slots (at most `max`) and creates them as "pending", so the caller can answer at
+ * once. The returned job makes their photos (about 30-60 s). Null when the cast is already full.
  */
-export const startCast = async (workspaceId: string, meter: CostMeter = createMeter()): Promise<(() => Promise<void>) | null> => {
-  const jobs = await castJobs(workspaceId, meter);
+export const startCast = async (workspaceId: string, meter: CostMeter = createMeter(), max = CAST_SIZE): Promise<(() => Promise<void>) | null> => {
+  const jobs = await castJobs(workspaceId, meter, max);
   if (!jobs) return null;
   return async () => {
     await Promise.all(jobs.map((job) => job()));

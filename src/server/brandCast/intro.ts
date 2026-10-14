@@ -4,6 +4,7 @@
 // push-in to the face, a wave, and the person really speaking the line with Veo's own voice and lip sync. Picked by the
 // user on 2026-10-10 over Seedance 2.0 (with and without our Gemini voice) and over a silent clip with a voiceover.
 
+import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import type { BrandCastMember } from '@prisma/client';
 import { prisma } from '../../lib/db';
@@ -11,6 +12,7 @@ import type { BrandProfile } from '../../types/admin/companyIntel';
 import { HttpError } from '../http';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
+import { chargeCredits, requireCredits } from '../slideshowCredits/charge';
 import { creativeJson } from '../shorts/llm';
 import { tregBytes, tregJson, withRetry } from '../shorts/treg';
 import { deleteObject, getObject, putObject } from '../storage/objectStore';
@@ -96,8 +98,23 @@ const veoTalk = async (prompt: string, frame: Buffer, meter: CostMeter): Promise
 
 const introKey = (member: BrandCastMember) => `brand-cast/${member.workspaceId}/${member.id}-intro-${Date.now()}.mp4`;
 
+/** Who pays for an intro click, and the charge's ref: 1 credit per click, whether it makes 1, 2 or 3 videos. Every
+ *  video of the click carries the same ref, so the first one ready charges it and the others are free. */
+export type IntroCharge = { userId: string; ref: string };
+
+/** Throws 402 unless the payer has the 1 credit an intro click costs. */
+export const requireIntroCredit = (charge: IntroCharge | null) => (charge ? requireCredits(charge.userId, 1, 'intro video') : Promise.resolve());
+
+/** Charges the click once its first video is ready. Never throws: the video is already made. */
+const chargeIntro = async (charge: IntroCharge): Promise<void> => {
+  await chargeCredits(charge.userId, 1, charge.ref, 'Brand avatar intro video').catch((err: unknown) => {
+    if (err instanceof HttpError && err.status === 402) return;
+    console.error(`[brand-cast] could not charge intro ${charge.ref}:`, err instanceof Error ? err.message : err);
+  });
+};
+
 /** Makes the intro and marks it ready (or failed). Never throws. Replaces the old video when there was one. */
-const makeIntro = async (member: BrandCastMember, profile: BrandProfile, meter: CostMeter): Promise<void> => {
+const makeIntro = async (member: BrandCastMember, profile: BrandProfile, meter: CostMeter, charge: IntroCharge | null): Promise<void> => {
   try {
     if (!member.imageKey) throw new Error('This person has no photo yet');
     const [casting, frame] = await Promise.all([castIntro(member, profile, meter), firstFrame(member.imageKey)]);
@@ -106,6 +123,7 @@ const makeIntro = async (member: BrandCastMember, profile: BrandProfile, meter: 
     await putObject(key, video, 'video/mp4');
     await prisma.brandCastMember.update({ where: { id: member.id }, data: { voice: casting.voice, introScript: casting.script, introVideoKey: key, introStatus: 'ready', introError: null } });
     if (member.introVideoKey) await deleteObject(member.introVideoKey).catch(() => undefined);
+    if (charge) await chargeIntro(charge);
     console.log(`[brand-cast] intro for ${member.id}: $${meter.summary().usdMicros / 1e6}`);
   } catch (err) {
     const message = clip(err instanceof Error ? err.message : String(err), 300);
@@ -116,8 +134,31 @@ const makeIntro = async (member: BrandCastMember, profile: BrandProfile, meter: 
 
 const isPending = (m: BrandCastMember) => m.introStatus === 'pending' && Date.now() - (m.introAt?.getTime() ?? 0) < INTRO_STALE_MS;
 
-/** Marks the member's intro "pending" and returns the job that makes it (1-3 minutes). */
-export const startIntro = async (workspaceId: string, memberId: string, meter: CostMeter = createMeter()): Promise<() => Promise<void>> => {
+/** The charge of one intro click in a user's workspace: its owner pays. Null in an "Open as user" tab (free). */
+export const introChargeFor = async (workspaceId: string, impersonated: boolean): Promise<IntroCharge | null> => {
+  if (impersonated) return null;
+  const ws = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ownerUserId: true } });
+  return ws ? { userId: ws.ownerUserId, ref: `cast-intro:${workspaceId}:${randomUUID()}` } : null;
+};
+
+/** Starts the intro videos of several members as one click (1 credit in all). Returns the job that makes them. */
+export const startIntros = async (workspaceId: string, memberIds: string[], charge: IntroCharge | null): Promise<() => Promise<void>> => {
+  await requireIntroCredit(charge);
+  const jobs: (() => Promise<void>)[] = [];
+  let firstError: unknown = null;
+  for (const id of memberIds) {
+    // One person who can't start (no photo yet, still busy) must not strand the others as "pending".
+    await startIntro(workspaceId, id, charge).then((job) => jobs.push(job), (err: unknown) => (firstError ??= err));
+  }
+  if (jobs.length === 0) throw firstError ?? new HttpError(400, 'no_people', 'Pick who gets an intro video.');
+  return async () => {
+    await Promise.all(jobs.map((job) => job()));
+  };
+};
+
+/** Marks the member's intro "pending" and returns the job that makes it (1-3 minutes). `charge`: who pays (null for
+ *  admins and "Open as user" tabs); the caller checks the credit first (requireIntroCredit). */
+export const startIntro = async (workspaceId: string, memberId: string, charge: IntroCharge | null = null, meter: CostMeter = createMeter()): Promise<() => Promise<void>> => {
   const member = await prisma.brandCastMember.findFirst({ where: { id: memberId, workspaceId } });
   if (!member) throw new HttpError(404, 'not_found', 'This person is not in your cast.');
   if (member.status !== 'ready' || !member.imageKey) throw new HttpError(409, 'no_photo', 'Wait for this person\'s photo first.');
@@ -125,5 +166,5 @@ export const startIntro = async (workspaceId: string, memberId: string, meter: C
   const run = await prisma.autoSlideshowRun.findFirst({ where: { workspaceId, profile: { not: { equals: null } } }, orderBy: { createdAt: 'desc' }, select: { profile: true } });
   if (!run) throw new HttpError(409, 'no_brand', 'Add your website first. We read your brand from it.');
   const updated = await prisma.brandCastMember.update({ where: { id: member.id }, data: { introStatus: 'pending', introError: null, introAt: new Date() } });
-  return () => makeIntro(updated, run.profile as unknown as BrandProfile, meter);
+  return () => makeIntro(updated, run.profile as unknown as BrandProfile, meter, charge);
 };

@@ -8,6 +8,7 @@
 
 import type { BlitzScheduledPost } from '@prisma/client';
 import { prisma } from '../../lib/db';
+import { TIKTOK_DRAFT } from '../../types/admin/autoSlideshow';
 import { BLITZ_RENDER_LEAD_MS } from '../../types/admin/blitzSchedule';
 import { connectionFor } from '../autoSlideshow/posting';
 import { clip } from '../metaAds/text';
@@ -71,7 +72,8 @@ const sendVideo = async (post: BlitzScheduledPost): Promise<void> => {
     const token = await freshAccessToken(await connectionFor(post.workspaceId, 'tiktok'));
     const creator = await queryCreatorInfo(token);
     if (!post.privacyLevel || !post.consentAt) throw new Error('This video was never approved.');
-    if (!creator.privacyOptions.includes(post.privacyLevel)) throw new Error(`The account no longer allows "${post.privacyLevel}". Schedule it again with another privacy.`);
+    const asDraft = post.privacyLevel === TIKTOK_DRAFT;
+    if (!asDraft && !creator.privacyOptions.includes(post.privacyLevel)) throw new Error(`The account no longer allows "${post.privacyLevel}". Schedule it again with another privacy.`);
     const publishId = await initVideo(token, {
       videoUrl: blitzVideoMediaUrl(post.projectId!),
       title: post.title,
@@ -79,6 +81,7 @@ const sendVideo = async (post: BlitzScheduledPost): Promise<void> => {
       allowComments: post.allowComments && !creator.commentDisabled,
       brandOrganic: post.brandOrganic,
       brandContent: post.brandContent,
+      asDraft,
     });
     const profile = creator.username ? `https://www.tiktok.com/@${creator.username}` : null;
     await prisma.blitzScheduledPost.update({ where: { id: post.id }, data: { status: 'processing', publishId, postUrl: profile, error: null } });
@@ -116,6 +119,9 @@ const followPublish = async (post: BlitzScheduledPost): Promise<void> => {
     if (state.state === 'posted') {
       const postUrl = state.postId && post.postUrl ? `${post.postUrl}/video/${state.postId}` : post.postUrl;
       await prisma.blitzScheduledPost.update({ where: { id: post.id }, data: { status: 'posted', tiktokPostId: state.postId, postUrl, postedAt: new Date(), error: null } });
+    } else if (state.state === 'drafted') {
+      // In the creator's TikTok drafts: they post it from the app. No public post yet, so no link.
+      await prisma.blitzScheduledPost.update({ where: { id: post.id }, data: { status: 'posted', postUrl: null, postedAt: new Date(), error: null } });
     } else if (state.state === 'failed') {
       await fail(post.id, clip(`TikTok: ${state.reason}`, 500));
     }

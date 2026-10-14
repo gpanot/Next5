@@ -7,6 +7,7 @@ import { titlePick, type TextAt } from '../../../../types/slideText';
 import { targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
 import { isAdminView } from '../../../../lib/adminToken';
 import { LookMenu } from '../LookMenu';
+import { SafeZoneButton, useSafeZone } from '../SafeZone';
 import { GenerateVideoButton } from '../VideoButton';
 import { CampaignPlayer } from './CampaignPlayer';
 import { CampaignPosts } from './CampaignPosts';
@@ -22,6 +23,8 @@ import { previewShows } from './previewSlides';
 import { useAutoContent } from './useAutoContent';
 import { useCampaign } from './useCampaign';
 import { useCampaignVideo } from './useCampaignVideo';
+import { ScheduleButton } from './ScheduleButton';
+import { useCampaignSchedule } from './useCampaignSchedule';
 
 type Props = { token: string; workspaceId: string; campaignId: string; onClose: () => void };
 
@@ -43,7 +46,7 @@ const startMode = (draft: CampaignDraft | undefined): ContentMode => (draft?.car
 /**
  * The campaign editor, full screen and phone first: the name in the top bar, the slideshow editor's player (left on wide
  * screens), every slide as a card, then the selected slide's panel (hook lines and rotating photos, or one card's text
- * and photo), with Post and Schedule beside it. Scheduling makes the slideshows (one per hook) when the slides changed
+ * and photo), with Post and Schedule beside it; the Schedule button sits in the top bar. Scheduling makes the slideshows (one per hook) when the slides changed
  * since they were last made.
  */
 export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Props) {
@@ -56,8 +59,10 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   const [mode, setMode] = useState<ContentMode | null>(null);
   const auto = useAutoContent(token, campaignId, state);
   const video = useCampaignVideo(token, campaignId, state);
+  const plan = useCampaignSchedule(token, state);
   /** Video render is admin-only: the admin token, or an "Open as user" tab. */
   const admin = isAdminView(token);
+  const safeZone = useSafeZone();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !picker && previewing === null && onClose();
@@ -113,12 +118,14 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           {campaign && <CampaignMenu token={token} campaignId={campaignId} onDeleted={onClose} />}
         </div>
         <span className="hidden text-xs text-white/40 sm:block" aria-live="polite">{state.saving ? 'Saving…' : campaign ? 'Saved' : ''}</span>
+        {campaign && <SafeZoneButton on={safeZone.on} onToggle={safeZone.toggle} />}
         {campaign && (
           <button type="button" onClick={() => setPreviewing(0)} aria-label="Preview" className="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-white/15 px-3 text-sm font-semibold text-white/85 transition hover:bg-white/5 active:scale-95 sm:px-4">
             <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
             <span className="max-sm:hidden">Preview</span>
           </button>
         )}
+        {draft && <ScheduleButton plan={plan} />}
       </header>
 
       {!campaign || !draft ? (
@@ -127,7 +134,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
           {/* The slideshow editor's player: left on wide screens, on top on phones. */}
           <div className="shrink-0 p-4 md:flex md:w-[30%] md:flex-col md:justify-center md:overflow-y-auto lg:w-[27%]">
-            <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} onRemoveCard={removeCard} />
+            <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} onRemoveCard={removeCard} safeZone={safeZone.on} />
             {admin && (
               <GenerateVideoButton
                 rendering={video.rendering}
@@ -180,7 +187,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                       onRun={() => void runAuto()}
                     />
                   ) : at === 0 ? (
-                    <HookPanel draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
+                    <HookPanel token={token} campaignId={campaignId} draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
                   ) : (
                     <CardPanel
                       card={draft.cards[at - 1]!}
@@ -188,6 +195,9 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                       contentCount={draft.cards.length - 1}
                       photos={campaign.photos}
                       pending={state.pending.find((p) => targetsCard(p.target, at - 1)) ?? null}
+                      rotationPending={state.pending.filter((p) => p.target.slot === 'cardRotation' && p.target.card === at - 1)}
+                      hookCount={draft.hooks.length}
+                      onAddPhotos={() => setPicker({ slot: 'cardRotation', card: at - 1 })}
                       onChange={(p) => patchCard(at - 1, p)}
                       numbered={isNumbered(draft.cards)}
                       onNumbered={(on) => setDraft((d) => ({ ...d, cards: numberCards(d, on) }))}
@@ -202,7 +212,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
               <aside aria-label="Post and Schedule" className={`${card} xl:sticky xl:top-4`}>
                 <h2 className="text-base font-semibold text-white">Post and Schedule</h2>
                 <div className="mt-3">
-                  <CampaignPosts token={token} state={state} onPreview={setPreviewing} />
+                  <CampaignPosts state={state} plan={plan} onPreview={setPreviewing} />
                 </div>
               </aside>
             </div>
@@ -214,8 +224,8 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           token={token}
           workspaceId={workspaceId}
           campaignId={campaignId}
-          multiple={picker.slot === 'hook'}
-          title={picker.slot === 'hook' ? 'Hook photos' : 'Slide photo'}
+          multiple={picker.slot === 'hook' || picker.slot === 'cardRotation'}
+          title={picker.slot === 'hook' ? 'Hook photos' : picker.slot === 'cardRotation' ? 'Slide photos' : 'Slide photo'}
           startTab={picker.slot === 'card' && draft?.cards[picker.card]?.role === 'cta' ? 'appshot' : 'search'}
           onClose={() => setPicker(null)}
           onDone={(picks) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Clapperboard, RefreshCw, UserRound, Users } from 'lucide-react';
+import { Clapperboard, Plus, RefreshCw } from 'lucide-react';
 import { ARCHIVE_MAX, CAST_SIZE, type BrandCastMemberDto } from '../../../../types/admin/brandCast';
 import type { LabClient } from '../../../labs/labClient';
 import { useState } from 'react';
@@ -53,7 +53,7 @@ function MemberCard({ member, busy, detailed, onAct, onNewFace, onEdit }: CardPr
         </button>
         {canRedo && (
           <button type="button" onClick={() => onAct('intro')} disabled={busy} className={smallButton}>
-            <Clapperboard aria-hidden className="h-3.5 w-3.5" /> Redo intro
+            <Clapperboard aria-hidden className="h-3.5 w-3.5" /> Redo intro{detailed ? '' : ' · 1 credit'}
           </button>
         )}
       </div>
@@ -61,28 +61,27 @@ function MemberCard({ member, busy, detailed, onAct, onNewFace, onEdit }: CardPr
   );
 }
 
-function EmptyCast({ busy, onBuild }: { busy: boolean; onBuild: () => void }) {
+/** An empty slot: makes one new avatar in it. `creating`: this card's avatar is being written. */
+function CreateAvatarCard({ creating, disabled, onCreate }: { creating: boolean; disabled: boolean; onCreate: () => void }) {
   return (
-    <div className="rounded-xl border border-dashed border-app-line p-6 text-center">
-      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-app-sunken text-app-ink"><Users aria-hidden className="h-6 w-6" /></span>
-      <p className="mt-3 text-base font-semibold text-app-ink">Meet your brand cast</p>
-      <p className="mx-auto mt-1 max-w-[36ch] text-sm text-app-muted">3 people who look like your customers. The same faces come back in your slideshows.</p>
-      <button type="button" onClick={onBuild} disabled={busy} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95 disabled:opacity-50">
-        <UserRound aria-hidden className="h-4 w-4" /> {busy ? 'Casting…' : 'Make my cast'}
+    <li className="flex min-w-0 flex-col">
+      <button type="button" onClick={onCreate} disabled={disabled} aria-busy={creating} className={`${photoBox} flex flex-col items-center justify-center gap-2 border-2 border-dashed border-app-line bg-transparent p-2 text-center text-app-ink transition hover:bg-app-sunken active:scale-[0.98] disabled:opacity-50`}>
+        <span className="flex h-10 w-10 items-center justify-center rounded-full bg-app-sunken"><Plus aria-hidden className={`h-5 w-5 ${creating ? 'animate-spin' : ''}`} /></span>
+        <span className="text-xs font-semibold sm:text-sm">{creating ? 'Creating…' : 'Create Avatar'}</span>
       </button>
-    </div>
+    </li>
   );
 }
 
 /** Members whose intro video can be made now: photo ready, no video yet (or it failed). */
 const needIntro = (members: BrandCastMemberDto[]) => members.filter((m) => m.status === 'ready' && (m.introStatus === 'none' || m.introStatus === 'failed'));
 
-function IntroCta({ count, busy, onMake }: { count: number; busy: boolean; onMake: () => void }) {
+function IntroCta({ count, busy, free, onMake }: { count: number; busy: boolean; free: boolean; onMake: () => void }) {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-app-line bg-app-panel p-3 shadow-sm">
       <p className="min-w-[12rem] flex-1 text-sm text-app-muted">A 6-second hello from {count === 1 ? 'this person' : 'each person'}, talking to your followers. About a minute.</p>
       <button type="button" onClick={onMake} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95 disabled:opacity-50">
-        <Clapperboard aria-hidden className="h-4 w-4" /> {busy ? 'Starting…' : count === 1 ? 'Make intro video' : 'Make intro videos'}
+        <Clapperboard aria-hidden className="h-4 w-4" /> {busy ? 'Starting…' : count === 1 ? 'Make intro video' : 'Make intro videos'}{busy || free ? '' : ' · 1 credit'}
       </button>
     </div>
   );
@@ -96,8 +95,9 @@ type BrandCastProps = {
   detailed?: boolean;
 };
 
-/** The Brand Cast: the recurring people of the brand's slideshows, each with "New face" to swap them (the old face goes
- *  to the archive), ⋮ to edit their name and age, and an intro video. */
+/** The Brand Cast: the recurring people (avatars) of the brand's slideshows, each with "New face" to swap them (the old
+ *  face goes to the archive), ⋮ to edit their name and age, and an intro video (1 credit a click, whatever the count).
+ *  Each empty slot shows a "+ Create Avatar" card. */
 export function BrandCast({ client, path, detailed = false }: BrandCastProps) {
   const { members, archived, loadError, busy, actionError, build, act, manage, swap, makeIntros, reload, clearError } = useBrandCast(client, path);
   const [editing, setEditing] = useState<BrandCastMemberDto | null>(null);
@@ -121,22 +121,17 @@ export function BrandCast({ client, path, detailed = false }: BrandCastProps) {
     );
   }
   if (!members) return <CastSkeleton />;
-  const missing = members.length < CAST_SIZE;
+  const empty = CAST_SIZE - members.length;
+  const intros = needIntro(members);
   return (
     <div className="max-w-2xl space-y-3">
-      {members.length === 0 ? (
-        <EmptyCast busy={busy === 'build'} onBuild={() => void build()} />
-      ) : (
-        <ul className={grid}>
-          {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} onAct={(a) => void act(m.id, a)} onNewFace={() => setEditing(m)} onEdit={() => setRenaming(m)} />)}
-        </ul>
-      )}
-      {needIntro(members).length > 0 && <IntroCta count={needIntro(members).length} busy={busy === 'intros'} onMake={() => void makeIntros(needIntro(members).map((m) => m.id))} />}
-      {members.length > 0 && missing && (
-        <button type="button" onClick={() => void build()} disabled={busy !== null} className="min-h-11 rounded-full border border-app-line px-4 text-sm font-semibold text-app-ink transition hover:bg-app-sunken active:scale-95 disabled:opacity-40">
-          Add {CAST_SIZE - members.length} more
-        </button>
-      )}
+      <ul className={grid}>
+        {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} onAct={(a) => void act(m.id, a)} onNewFace={() => setEditing(m)} onEdit={() => setRenaming(m)} />)}
+        {Array.from({ length: empty }, (_, i) => (
+          <CreateAvatarCard key={`empty-${i}`} creating={busy === 'build' && i === 0} disabled={busy !== null} onCreate={() => void build(true)} />
+        ))}
+      </ul>
+      {intros.length > 0 && <IntroCta count={intros.length} busy={busy === 'intros'} free={detailed} onMake={() => void makeIntros(intros.map((m) => m.id))} />}
       {actionError && !editing && !renaming && <p role="alert" className="text-sm text-app-danger">{actionError}</p>}
       <ArchivedFaces archived={archived} active={members} busy={busy} error={actionError} onManage={manage} onClearError={clearError} />
       <NewFaceDialog key={editing?.id ?? 'closed'} member={editing} archiveFull={archived.length >= ARCHIVE_MAX} busy={editing !== null && busy === editing.id} error={editing ? actionError : null} onClose={() => setEditing(null)} onSubmit={(r) => void submitNewFace(r)} />

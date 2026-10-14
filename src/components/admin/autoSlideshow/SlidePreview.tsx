@@ -5,10 +5,10 @@ import type { AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
 import { SlidePlayer } from './SlidePlayer';
 
 /** `textLayer`: drawn over slide i's image (the slide on screen's draggable text, and live edits not rendered yet). */
-type Props = { show: AutoSlideshowDto; index: number; onIndex: (i: number) => void; working: boolean; textLayer?: (i: number) => ReactNode };
+type Props = { show: AutoSlideshowDto; index: number; onIndex: (i: number) => void; working: boolean; textLayer?: (i: number) => ReactNode; safeZone?: boolean };
 
 /** A made slideshow in the player: its rendered slides, its music. */
-export function SlidePreview({ show, index, onIndex, working, textLayer }: Props) {
+export function SlidePreview({ show, index, onIndex, working, textLayer, safeZone }: Props) {
   return (
     <SlidePlayer
       count={show.slides.length}
@@ -17,6 +17,7 @@ export function SlidePreview({ show, index, onIndex, working, textLayer }: Props
       onIndex={onIndex}
       working={working}
       audio={show.audio}
+      safeZone={safeZone}
       renderSlide={(i) => {
         const s = show.slides[i]!;
         if (!s.imageUrl) return null;

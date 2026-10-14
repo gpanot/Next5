@@ -67,23 +67,12 @@ export function useBrandCast(client: LabClient, path: string) {
     return Boolean(res?.ok);
   }, [client, apply]);
 
-  const build = useCallback(() => send('build', path, {}), [send, path]);
+  /** Makes the people of the empty slots, or only one of them (a "+ Create Avatar" card). */
+  const build = useCallback((one = false) => send('build', path, one ? { count: 1 } : {}), [send, path]);
   const act = useCallback((id: string, action: CastAction) => send(id, `${path}/${id}`, { action }), [send, path]);
   const manage = useCallback((id: string, request: ArchiveRequest) => send(id, `${path}/${id}`, request), [send, path]);
-  /** Starts the intro video of each member, one request at a time (each answers at once; the videos are made in parallel). */
-  const makeIntros = useCallback(async (ids: string[]) => {
-    setBusy('intros');
-    setActionError(null);
-    for (const id of ids) {
-      const res = await client.request<BrandCastDto>(`${path}/${id}`, { method: 'POST', json: { action: 'intro' } }).catch(() => null);
-      if (res?.ok) apply(res.data);
-      else {
-        setActionError(res ? errorOf(res) : OFFLINE);
-        break;
-      }
-    }
-    setBusy(null);
-  }, [client, path, apply]);
+  /** Starts the intro videos of these members as one click (1 credit in all; the videos are made in parallel). */
+  const makeIntros = useCallback((ids: string[]) => send('intros', path, { action: 'intros', ids }), [send, path]);
   /** "New face" from the dialog: the note and the photo (made small first) go as a form. True when it started. */
   const swap = useCallback(async (id: string, { note, file }: NewFaceRequest): Promise<boolean> => {
     setBusy(id);

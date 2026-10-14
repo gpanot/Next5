@@ -5,7 +5,7 @@ import type { AutoPostDto, PostPlatform, RunAccountsDto, TikTokWorkspaceDto } fr
 import { adminFetch, useAdminApi } from '../business/useAdminApi';
 
 /** TikTok's required choices; sent only when TikTok is one of the platforms. */
-export type TikTokChoices = { privacyLevel: string; allowComments: boolean; brandOrganic: boolean; brandContent: boolean; consent: boolean };
+export type TikTokChoices = { privacyLevel: string; allowComments: boolean; brandOrganic: boolean; brandContent: boolean; consent: boolean; asDraft?: boolean };
 
 export type ScheduleRequest = {
   items: Array<{ slideshowId: string; scheduledAt: string }>;

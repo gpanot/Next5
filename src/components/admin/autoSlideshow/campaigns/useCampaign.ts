@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { renderKeyOf, targetsCard, type CampaignDraft, type CampaignDto, type CampaignPhotoDto, type CampaignPhotoTarget, type PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
+import { cardPhotos, renderKeyOf, targetsCard, withCardPhotos, type CampaignDraft, type CampaignDto, type CampaignPhotoDto, type CampaignPhotoTarget, type PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
 
 /** Typing settles this long before the draft is saved. */
@@ -22,10 +22,15 @@ const withPhotos = (photos: CampaignPhotoDto[], added: CampaignPhotoDto[]): Camp
   return Array.from({ length: next.length }, (_, i) => next[i] ?? { index: i, url: null, fullUrl: null, source: 'generated', credit: null });
 };
 
-/** Puts imported photos on their slide: hook photos join the rotation, a card's photo is replaced by the last one. */
+/** Imports that join a rotation: they land together, in pick order, once all are in. */
+const isRotation = (target: CampaignPhotoTarget) => target.slot === 'hook' || target.slot === 'cardRotation';
+
+/** Puts imported photos on their slide: hook photos and a card's rotation photos join the rotation, a card's photo is
+ *  replaced by the last one. */
 const placePhotos = (draft: CampaignDraft, target: CampaignPhotoTarget, indexes: number[]): CampaignDraft => {
   if (indexes.length === 0) return draft;
   if (target.slot === 'hook') return { ...draft, hookPhotos: [...draft.hookPhotos, ...indexes] };
+  if (target.slot === 'cardRotation') return { ...draft, cards: draft.cards.map((c, i) => (i === target.card ? withCardPhotos(c, [...cardPhotos(c), ...indexes]) : c)) };
   return { ...draft, cards: draft.cards.map((c, i) => (targetsCard(target, i) ? { ...c, photo: indexes[indexes.length - 1]! } : c)) };
 };
 
@@ -118,18 +123,20 @@ export const useCampaign = (token: string, id: string) => {
         const job = jobs[i]!;
         try {
           results[i] = await job.load();
-          if (job.target.slot !== 'hook') land(job, results[i]!);
+          if (!isRotation(job.target)) land(job, results[i]!);
         } catch (err) {
           failure ??= err instanceof Error ? err.message : 'Could not add that photo';
         }
       }
     };
     await Promise.all(Array.from({ length: Math.min(IMPORT_PARALLEL, jobs.length) }, worker));
-    const hookJobs = jobs.map((job, i) => ({ job, photo: results[i] })).filter((x) => x.job.target.slot === 'hook');
-    const added = hookJobs.flatMap((x) => (x.photo ? [x.photo] : []));
-    if (hookJobs.length > 0) {
+    // One picker set shares one target: its rotation photos land together, in pick order.
+    const rotationJobs = jobs.map((job, i) => ({ job, photo: results[i] })).filter((x) => isRotation(x.job.target));
+    const added = rotationJobs.flatMap((x) => (x.photo ? [x.photo] : []));
+    if (rotationJobs.length > 0) {
+      const target = rotationJobs[0]!.job.target;
       setCampaign((c) => (c ? { ...c, photos: withPhotos(c.photos, added) } : c));
-      setDraft((d) => placePhotos(d, { slot: 'hook' }, added.map((p) => p.index)));
+      setDraft((d) => placePhotos(d, target, added.map((p) => p.index)));
     }
     setPending((p) => p.filter((x) => !jobs.some((j) => j.key === x.key)));
     if (failure) setError(failure);

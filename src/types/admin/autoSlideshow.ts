@@ -244,13 +244,18 @@ export type TikTokAccountDto = {
 };
 
 /** What TikTok says about the creator right now; shown to the approver before posting (TikTok UX rule). */
-export type CreatorInfoDto = { nickname: string; username: string; avatarUrl: string | null; privacyOptions: string[]; commentDisabled: boolean };
+/** `canDraft`: the account granted video.upload, so posts can go to its TikTok drafts (inbox) instead of the profile. */
+export type CreatorInfoDto = { nickname: string; username: string; avatarUrl: string | null; privacyOptions: string[]; commentDisabled: boolean; canDraft: boolean };
+
+/** Stored as a TikTok post's privacy when it goes to the creator's drafts: they pick privacy and post it in the app. */
+export const TIKTOK_DRAFT = 'DRAFT';
 
 export const PRIVACY_LABELS: Record<string, string> = {
   PUBLIC_TO_EVERYONE: 'Everyone',
   MUTUAL_FOLLOW_FRIENDS: 'Friends',
   FOLLOWER_OF_CREATOR: 'Followers',
   SELF_ONLY: 'Only me',
+  DRAFT: 'Sent to drafts',
 };
 
 export const isTerminalAutoStatus = (s: AutoRunStatus) => s === 'COMPLETED' || s === 'FAILED';

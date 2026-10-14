@@ -2,11 +2,14 @@
 
 import { useState, type FormEvent } from 'react';
 import { MAX_CAMPAIGN_HOOK_PHOTOS, MAX_CAMPAIGN_HOOKS, MAX_HOOK_CHARS, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
+import { GenerateHooksDialog } from './GenerateHooksDialog';
 import { PhotoThumb } from './PhotoThumb';
 import { HookPhotoCredits } from './UnsplashCredit';
 import type { PendingPhoto } from './useCampaign';
 
 type Props = {
+  token: string;
+  campaignId: string;
   draft: CampaignDraft;
   photos: CampaignPhotoDto[];
   /** Picks still being copied in, shown at once. */
@@ -51,9 +54,21 @@ function HookInput({ disabled, onAdd }: { disabled: boolean; onAdd: (line: strin
 }
 
 /** The hook slide: hook lines (one slideshow each) and the photos they rotate on. */
-export function HookPanel({ draft, photos, pending, onChange, onAddPhotos }: Props) {
+function GenerateButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="flex min-h-11 items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-4 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-400/20 active:scale-95">
+      <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" /><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" /></svg>
+      Generate For Me
+    </button>
+  );
+}
+
+export function HookPanel({ token, campaignId, draft, photos, pending, onChange, onAddPhotos }: Props) {
+  const [generating, setGenerating] = useState(false);
   const fullHooks = draft.hooks.length >= MAX_CAMPAIGN_HOOKS;
   const fullPhotos = draft.hookPhotos.length + pending.length >= MAX_CAMPAIGN_HOOK_PHOTOS;
+  /** One photo per hook keeps every post looking new; fewer photos repeat in turn. */
+  const missingPhotos = Math.max(0, draft.hooks.length - draft.hookPhotos.length - pending.length);
   const addHook = (line: string) => onChange((d) => (d.hooks.includes(line) ? d : { ...d, hooks: [...d.hooks, line] }));
   const removeHook = (i: number) => onChange((d) => ({ ...d, hooks: d.hooks.filter((_, j) => j !== i) }));
   const removePhoto = (i: number) => onChange((d) => ({ ...d, hookPhotos: d.hookPhotos.filter((_, j) => j !== i) }));
@@ -62,6 +77,7 @@ export function HookPanel({ draft, photos, pending, onChange, onAddPhotos }: Pro
     <div className="space-y-5">
       <section className="space-y-2">
         <HookInput disabled={fullHooks} onAdd={addHook} />
+        <GenerateButton onClick={() => setGenerating(true)} />
         <p className="text-sm text-white/55">{rotationNote(draft.hooks.length, draft.hookPhotos.length)}</p>
         {draft.hooks.length > 0 && (
           <ul className="flex flex-wrap gap-2">
@@ -74,7 +90,7 @@ export function HookPanel({ draft, photos, pending, onChange, onAddPhotos }: Pro
             ))}
           </ul>
         )}
-        {draft.hooks.length === 0 && <p className="text-sm text-amber-300">The hook slide needs at least one line. Type one above.</p>}
+        {draft.hooks.length === 0 && <p className="text-sm text-amber-300">The hook slide needs at least one line. Type one above, or tap Generate For Me.</p>}
       </section>
 
       <section className="space-y-2">
@@ -98,7 +114,26 @@ export function HookPanel({ draft, photos, pending, onChange, onAddPhotos }: Pro
           ))}
         </ul>
         <HookPhotoCredits photoIndexes={draft.hookPhotos} photos={photos} />
+        {missingPhotos > 0 && !fullPhotos && (
+          <button type="button" onClick={onAddPhotos} className="flex min-h-11 w-full items-center gap-2 rounded-xl border border-amber-300/30 bg-amber-300/10 px-3 text-left text-sm font-semibold text-amber-300 transition hover:bg-amber-300/15 active:scale-[0.99]">
+            <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
+            Add {missingPhotos} more {missingPhotos === 1 ? 'picture' : 'pictures'} (Recommended)
+          </button>
+        )}
       </section>
+      {generating && (
+        <GenerateHooksDialog
+          token={token}
+          campaignId={campaignId}
+          cards={draft.cards}
+          current={draft.hooks.length}
+          onClose={() => setGenerating(false)}
+          onDone={(hooks) => {
+            setGenerating(false);
+            onChange((d) => ({ ...d, hooks }));
+          }}
+        />
+      )}
     </div>
   );
 }

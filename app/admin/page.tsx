@@ -20,7 +20,7 @@ import { BlitzSlideshowTab } from '../../src/components/admin/business/BlitzSlid
 import { GalleryFacesTab } from '../../src/components/admin/business/GalleryFacesTab';
 import { ContentTemplatesTab } from '../../src/components/admin/business/templates/ContentTemplatesTab';
 import { CampaignStudioTab } from '../../src/components/admin/business/CampaignStudioTab';
-import { HooksTab } from '../../src/components/admin/business/HooksTab';
+import { HooksPage } from '../../src/components/admin/hooks/HooksPage';
 import { AssetsLibraryTab } from '../../src/components/admin/business/AssetsLibraryTab';
 import { MetaAdsTab } from '../../src/components/admin/metaAds/MetaAdsTab';
 import { SlideshowKnowledgeTab } from '../../src/components/admin/slideshowKnowledge/SlideshowKnowledgeTab';
@@ -252,7 +252,7 @@ export default function AdminPage() {
           {tab === 'gallery-faces'    && <GalleryFacesTab      token={token} />}
           {tab === 'templates'        && <ContentTemplatesTab  token={token} />}
           {tab === 'studio'           && <CampaignStudioTab    token={token} />}
-          {tab === 'hooks'            && <HooksTab             token={token} />}
+          {tab === 'hooks'            && <HooksPage            token={token} />}
           {tab === 'meta-ads'         && <MetaAdsTab           token={token} />}
           {tab === 'slideshow-knowledge' && <SlideshowKnowledgeTab token={token} />}
           {tab === 'auto-slideshow'   && <AutoSlideshowTab     token={token} />}

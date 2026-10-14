@@ -7,7 +7,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/db';
 import type { AutoSlide } from '../../../types/admin/autoSlideshow';
 import type { TextAt } from '../../../types/slideText';
-import { campaignProblems, hookPhotoFor, lookOfRole, renderKeyOf, shownBody, type CampaignCard, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
+import { campaignProblems, cardPhotoFor, hookPhotoFor, lookOfRole, renderKeyOf, shownBody, type CampaignCard, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
 import { DEFAULT_BOX } from '../../companyIntel/slideshowStyle';
 import { HttpError } from '../../http';
 import { deleteObject, putObject } from '../../storage/objectStore';
@@ -42,10 +42,26 @@ const movedTo = (at: TextAt | undefined) => (at ? { textAt: { x: 0.5, y: at.y } 
 const badgesFor = (c: CampaignCard) =>
   c.role === 'cta' && c.badges?.length ? { badges: c.badges, ...(c.badgesAt === undefined ? {} : { badgesAt: c.badgesAt }) } : {};
 
+const cardSlide = (draft: CampaignDraft, c: CampaignCard, photoIndex: number): SlideText =>
+  ({ role: c.role, title: c.title.trim(), body: shownBody(c).trim(), photoIndex, ...lookFor(draft, c.role), ...movedTo(c.textAt), ...badgesFor(c) });
+
+/** Slideshow i: hook i on its photo, then every card with the same text; a content card with several photos shows
+ *  photo i of its rotation (looping), like the hook. */
 const plannedSlides = (draft: CampaignDraft) => ({
   hooks: draft.hooks.map((title, i): SlideText => ({ role: 'hook', title, body: '', photoIndex: hookPhotoFor(draft, i)!, ...lookFor(draft, 'hook'), ...movedTo(draft.hookTextAt) })),
-  cards: draft.cards.map((c): SlideText => ({ role: c.role, title: c.title.trim(), body: shownBody(c).trim(), photoIndex: c.photo!, ...lookFor(draft, c.role), ...movedTo(c.textAt), ...badgesFor(c) })),
+  cards: draft.hooks.map((_, i) => draft.cards.map((c) => cardSlide(draft, c, cardPhotoFor(c, i)!))),
 });
+
+/** Card j on photo p: rendered once, shared by every slideshow showing it. */
+const variantKey = (card: number, photoIndex: number) => `${card}:${photoIndex}`;
+
+/** Each distinct card slide (card and photo) rendered once, by variantKey. */
+const renderCards = async (cards: SlideText[][], photos: CampaignPhoto[], heads: HeadsCache): Promise<Map<string, RenderedSlide>> => {
+  const unique = new Map<string, SlideText>();
+  for (const show of cards) show.forEach((slide, j) => unique.set(variantKey(j, slide.photoIndex), slide));
+  const rendered = await renderAll([...unique.values()], photos, heads);
+  return new Map([...unique.keys()].map((key, i) => [key, rendered[i]!]));
+};
 
 const renderAll = async (slides: SlideText[], photos: CampaignPhoto[], heads: HeadsCache): Promise<RenderedSlide[]> => {
   const cache: PhotoCache = new Map();
@@ -61,13 +77,13 @@ const renderAll = async (slides: SlideText[], photos: CampaignPhoto[], heads: He
 type Upload = { key: string; jpeg: Buffer };
 
 /** Every slideshow's slides with their image keys, and the files to store. */
-const buildShows = (runId: string, plan: ReturnType<typeof plannedSlides>, hookJpegs: RenderedSlide[], cardJpegs: RenderedSlide[]) => {
+const buildShows = (runId: string, plan: ReturnType<typeof plannedSlides>, hookJpegs: RenderedSlide[], cardJpegs: Map<string, RenderedSlide>) => {
   const batch = Date.now().toString(36);
   const uploads: Upload[] = [];
   const shows = plan.hooks.map((hook, i) => {
-    const slides = [hook, ...plan.cards].map((s, j): AutoSlide => {
+    const slides = [hook, ...plan.cards[i]!].map((s, j): AutoSlide => {
       const key = `admin/auto-slideshow/${runId}/campaign-${batch}/${i}-${j}.jpg`;
-      const { jpeg, at } = j === 0 ? hookJpegs[i]! : cardJpegs[j - 1]!;
+      const { jpeg, at } = j === 0 ? hookJpegs[i]! : cardJpegs.get(variantKey(j - 1, s.photoIndex))!;
       uploads.push({ key, jpeg });
       const { photoIndex, ...text } = s;
       return { ...text, photoIndex, imageKey: key, placedAt: at };
@@ -99,7 +115,7 @@ export const generateCampaign = async (access: UserAccess, id: string): Promise<
   const photos = photosOf(run);
   const plan = plannedSlides(draft);
   const heads: HeadsCache = new Map();
-  const [hookJpegs, cardJpegs] = [await renderAll(plan.hooks, photos, heads), await renderAll(plan.cards, photos, heads)];
+  const [hookJpegs, cardJpegs] = [await renderAll(plan.hooks, photos, heads), await renderCards(plan.cards, photos, heads)];
   const { shows, uploads } = buildShows(id, plan, hookJpegs, cardJpegs);
   await inBatches(uploads, 8, (u) => putObject(u.key, u.jpeg, 'image/jpeg'));
 

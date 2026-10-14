@@ -1,5 +1,5 @@
 import type { AutoSlideshowDto } from '../../../../types/admin/autoSlideshow';
-import { hookPhotoFor, lookOfRole, shownBody, type CampaignCard, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
+import { cardPhotoFor, hookPhotoFor, lookOfRole, shownBody, type CampaignCard, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import type { TextAt, TextLook } from '../../../../types/slideText';
 import type { StoreBadge } from '../../../../types/storeBadges';
 
@@ -16,9 +16,10 @@ export const badgesOf = (c: CampaignCard): { badges?: StoreBadge[]; badgesAt?: n
 /** The draft's slideshows, one per hook (a single placeholder one before any hook is written). */
 export const draftShows = (draft: CampaignDraft, photos: CampaignPhotoDto[]): PreviewShow[] => {
   const photo = (i: number | null) => (i === null ? null : photos[i]?.fullUrl ?? photos[i]?.url ?? null);
-  const cards = draft.cards.map((c): PreviewSlide => ({ kind: 'draft', photoUrl: photo(c.photo), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role), textAt: c.textAt, ...badgesOf(c) }));
+  // Content cards with several photos show the one that goes with hook i.
+  const cards = (i: number) => draft.cards.map((c): PreviewSlide => ({ kind: 'draft', photoUrl: photo(cardPhotoFor(c, i)), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role), textAt: c.textAt, ...badgesOf(c) }));
   const hooks = draft.hooks.length > 0 ? draft.hooks : [''];
-  return hooks.map((hook, i) => ({ hook, slides: [{ kind: 'draft', photoUrl: photo(hookPhotoFor(draft, i)), role: 'hook', title: hook, body: '', look: draft.looks.hook, textAt: draft.hookTextAt }, ...cards] }));
+  return hooks.map((hook, i) => ({ hook, slides: [{ kind: 'draft', photoUrl: photo(hookPhotoFor(draft, i)), role: 'hook', title: hook, body: '', look: draft.looks.hook, textAt: draft.hookTextAt }, ...cards(i)] }));
 };
 
 /**

@@ -18,7 +18,7 @@ const TABS: { id: Tab; label: string; phoneOnly?: boolean }[] = [
   { id: 'workspaces', label: 'Workspaces' },
   { id: 'accounts', label: 'Accounts' },
   { id: 'library', label: 'Editor', phoneOnly: true },
-  { id: 'brand', label: 'Brand', phoneOnly: true },
+  { id: 'brand', label: 'Brand Avatar', phoneOnly: true },
   { id: 'photos', label: 'Photos' },
   { id: 'credits', label: 'Credits' },
   { id: 'profile', label: 'Profile' },

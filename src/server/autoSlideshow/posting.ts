@@ -5,11 +5,11 @@
 
 import type { AutoSlideshowPost } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { isPostPlatform, PLATFORM_LABELS, type AutoPostDto, type AutoPostStatus, type PostPlatform, type PostStats, type RunAccountsDto, type TikTokWorkspaceDto } from '../../types/admin/autoSlideshow';
+import { isPostPlatform, PLATFORM_LABELS, TIKTOK_DRAFT, type AutoPostDto, type AutoPostStatus, type PostPlatform, type PostStats, type RunAccountsDto, type TikTokWorkspaceDto } from '../../types/admin/autoSlideshow';
 import { HttpError } from '../http';
 import { freshAccessToken } from '../social/connections';
 import { instagram } from '../social/instagram';
-import { tiktok } from '../social/tiktok';
+import { tiktok, UPLOAD_SCOPE, uploadScopeOn } from '../social/tiktok';
 import { youtube } from '../social/youtube';
 import { isYouTubePrivacy } from '../social/youtubeUpload';
 import { queryCreatorInfo, type CreatorInfo } from '../social/tiktokCarousel';
@@ -41,10 +41,18 @@ export const setRunWorkspace = async (runId: string, workspaceId: string | null)
 };
 
 /** Live creator info (TikTok requires it before every post, and the approver must see it). */
-export const creatorInfoFor = async (workspaceId: string): Promise<CreatorInfo> => {
+export const creatorInfoFor = async (workspaceId: string): Promise<CreatorInfo & { canDraft: boolean }> => {
   if (!tiktok.configured()) throw new HttpError(503, 'tiktok_not_configured', 'TikTok is not set up on this server: add TIKTOK_CLIENT_KEY and TIKTOK_CLIENT_SECRET.');
-  return queryCreatorInfo(await freshAccessToken(await connectionFor(workspaceId, 'tiktok')));
+  const conn = await connectionFor(workspaceId, 'tiktok');
+  const creator = await queryCreatorInfo(await freshAccessToken(conn));
+  return { ...creator, canDraft: canDraftWith(conn.scopes) };
 };
+
+/** True when posts can go to this account's TikTok drafts: the server asks for video.upload and the account granted it. */
+export const canDraftWith = (granted: string[]): boolean => uploadScopeOn() && granted.includes(UPLOAD_SCOPE);
+
+/** What a TikTok post sent to drafts stores: privacy, comments and disclosure are picked in the TikTok app. */
+export const DRAFT_FIELDS = { privacyLevel: TIKTOK_DRAFT, allowComments: true, brandOrganic: false, brandContent: false };
 
 export const toPostDto = (p: AutoSlideshowPost): AutoPostDto => ({
   id: p.id,
@@ -65,7 +73,7 @@ export const listPosts = async (runId: string): Promise<AutoPostDto[]> =>
   (await prisma.autoSlideshowPost.findMany({ where: { runId }, orderBy: { scheduledAt: 'asc' } })).map(toPostDto);
 
 /** TikTok's choices; required only when TikTok is one of the platforms. */
-export type TikTokChoices = { privacyLevel: string; allowComments: boolean; brandOrganic: boolean; brandContent: boolean; consent: boolean };
+export type TikTokChoices = { privacyLevel: string; allowComments: boolean; brandOrganic: boolean; brandContent: boolean; consent: boolean; asDraft?: boolean };
 
 /** YouTube's one choice: who can see the Short. */
 export type YouTubeChoices = { privacyLevel: string };
@@ -84,6 +92,10 @@ const CAMPAIGN_KIND = 'campaign';
 /** Checks TikTok's rules for this batch; returns what each TikTok post stores. */
 const tiktokFields = async (workspaceId: string, choices: TikTokChoices | null) => {
   if (!choices) throw new HttpError(400, 'no_tiktok_choices', 'Pick who can see the TikTok posts.');
+  if (choices.asDraft) {
+    if (!canDraftWith((await connectionFor(workspaceId, 'tiktok')).scopes)) throw new HttpError(409, 'no_draft_scope', 'Reconnect TikTok to allow drafts.');
+    return DRAFT_FIELDS;
+  }
   if (choices.consent !== true) throw new HttpError(400, 'no_consent', 'Accept TikTok\'s Music Usage Confirmation first.');
   const creator = await creatorInfoFor(workspaceId);
   if (!creator.privacyOptions.includes(choices.privacyLevel)) throw new HttpError(400, 'bad_privacy', `Pick who can see the post: ${creator.privacyOptions.join(', ')}.`);

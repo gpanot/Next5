@@ -152,7 +152,7 @@ export function ApproveSheet({ token, run, items, videos, onVideosChanged, posti
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Approve posts" onClick={(e) => e.stopPropagation()} className="flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl dark:bg-zinc-950">
+      <div role="dialog" aria-modal="true" aria-label="Approve posts" onClick={(e) => e.stopPropagation()} className="flex max-h-[92dvh] w-full max-w-[41.6rem] flex-col rounded-t-2xl bg-white shadow-xl sm:rounded-2xl dark:bg-zinc-950">
         <header className="flex items-center gap-3 border-b border-line p-4 dark:border-zinc-800">
           <div className="min-w-0 flex-1">
             <h3 className="text-base font-extrabold text-ink dark:text-zinc-100">Approve {total} {total === 1 ? 'post' : 'posts'}</h3>

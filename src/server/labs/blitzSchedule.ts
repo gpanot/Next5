@@ -6,7 +6,7 @@ import type { BlitzProject, BlitzScheduledPost, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { BLITZ_LIVE, MAX_POSTS_PER_DAY, type BlitzAccountsDto, type BlitzEditDto, type BlitzPlatform, type BlitzScheduleDto, type PostNowBlitzRequest, type BlitzScheduleStatus, type ApproveBlitzRequest, type CalendarBusyDto, type MoveBlitzRequest, type ScheduleBlitzRequest } from '../../types/admin/blitzSchedule';
 import { blitzBrowserUrl } from '../admin/blitzStore';
-import { connectionFor } from '../autoSlideshow/posting';
+import { canDraftWith, connectionFor, DRAFT_FIELDS } from '../autoSlideshow/posting';
 import { isYouTubePrivacy } from '../social/youtubeUpload';
 import { listConnections } from '../social/connections';
 import { tiktok } from '../social/tiktok';
@@ -197,14 +197,22 @@ const approvalOf = (req: ApproveBlitzRequest) => {
     if (!isYouTubePrivacy(privacy)) throw new HttpError(400, 'bad_privacy', 'Pick who can see the Short: private, unlisted or public.');
     return { platform: 'youtube' as const, privacyLevel: privacy, allowComments: true, brandOrganic: false, brandContent: false };
   }
+  if (req.tiktok?.asDraft) return { platform: 'tiktok' as const, ...DRAFT_FIELDS };
   const t = checkTikTok(req.tiktok);
   return { platform: 'tiktok' as const, privacyLevel: t.privacyLevel, allowComments: t.allowComments, brandOrganic: t.brandOrganic, brandContent: t.brandContent };
 };
 
+/** The approval, once its account is connected (and, for drafts, granted video.upload). */
+const connectedApproval = async (workspaceId: string, req: ApproveBlitzRequest) => {
+  const approval = approvalOf(req);
+  const conn = await connectionFor(workspaceId, approval.platform);
+  if (req.platform !== 'youtube' && req.tiktok?.asDraft && !canDraftWith(conn.scopes)) throw new HttpError(409, 'no_draft_scope', 'Reconnect TikTok to allow drafts.');
+  return approval;
+};
+
 /** The approval on the calendar: the platform's choices and consent. Needs that account connected. Can be redone. */
 export async function approveBlitz(workspaceId: string, id: string, req: ApproveBlitzRequest): Promise<BlitzScheduleDto> {
-  const approval = approvalOf(req);
-  await connectionFor(workspaceId, approval.platform);
+  const approval = await connectedApproval(workspaceId, req);
   const done = await prisma.blitzScheduledPost.updateMany({
     where: { id, workspaceId, status: { in: MOVABLE } },
     data: { status: 'scheduled', ...approval, consentAt: new Date(), error: null },
@@ -240,8 +248,7 @@ const checkNotPosted = async (workspaceId: string, projectId: string, platform: 
  * when the post uses a video already made. `adminFree`: an admin in an "Open as user" tab, never charged.
  */
 export async function postBlitzNow(workspaceId: string, userId: string, req: PostNowBlitzRequest, adminFree = false): Promise<BlitzScheduleDto> {
-  const approval = approvalOf(req);
-  await connectionFor(workspaceId, approval.platform);
+  const approval = await connectedApproval(workspaceId, req);
   if (!req.cardId) throw new HttpError(400, 'no_card', 'Missing card.');
   const project = req.projectId ? await readyVideoOf(workspaceId, req.projectId) : null;
   const projectId = project?.id ?? null;

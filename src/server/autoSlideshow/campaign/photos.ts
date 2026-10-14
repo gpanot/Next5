@@ -15,7 +15,7 @@ import { storeThumb, thumbUrl } from '../../storage/thumbs';
 import { detectHeads } from '../heads';
 import { compressJpeg, MAX_JPEG_BYTES, PHOTO_SIZE } from '../jpeg';
 import { generatePhoto, photoPrompt } from '../photos';
-import type { CampaignPhoto } from './store';
+import { CAMPAIGN_KIND, type CampaignPhoto } from './store';
 import { appShotOptions, fetchAppShot } from './appShot/store';
 import { fetchUnsplashPhoto, searchedUnsplashPhoto, searchUnsplash } from './unsplash';
 
@@ -44,22 +44,44 @@ export const brandOptions = async (workspaceId: string): Promise<PhotoOptionDto[
   return rows.map((r) => ({ key: `brand:${r.id}`, thumbUrl: thumbUrl(r.r2Key), ref: { source: 'brand' as const, id: r.id }, label: r.description ?? r.filename, credit: null }));
 };
 
-/** The workspace's generated photos, newest run first. SQL reads only each photo's key and a short label: the stored
- *  photo lists also hold long prompts and settings, which made this tab slow. */
-const generatedOptions = async (workspaceId: string): Promise<PhotoOptionDto[]> => {
-  const rows = await prisma.$queryRaw<Array<{ run_id: string; idx: bigint; image_key: string; label: string | null }>>`
-    SELECT r.id AS run_id, p.ord - 1 AS idx, p.elem->>'imageKey' AS image_key, left(p.elem->>'prompt', 120) AS label
+/** Recent campaigns whose AI photos the Generated tab offers. */
+const GENERATED_CAMPAIGNS = 30;
+/** How much of a label is compared to spot an older campaign copy of a photo already listed. */
+const LABEL_MATCH = 120;
+
+type GeneratedRow = { run_id: string; idx: bigint; image_key: string; label: string | null; kind: string; origin: string | null };
+
+/**
+ * The workspace's generated photos, newest run first: the auto slideshows' photos and the AI photos made in its
+ * campaigns. A campaign also keeps copies of photos picked from this tab or from App shots; those are skipped (by
+ * `origin`, or by label on photos stored before it). SQL reads only each photo's key and a short label: the stored
+ * photo lists also hold long prompts and settings, which made this tab slow.
+ */
+const generatedOptions = async (workspaceId: string, shotLabels: string[]): Promise<PhotoOptionDto[]> => {
+  const rows = await prisma.$queryRaw<GeneratedRow[]>`
+    SELECT r.id AS run_id, r.kind, p.ord - 1 AS idx, p.elem->>'imageKey' AS image_key, left(p.elem->>'prompt', ${LABEL_MATCH}::int) AS label, p.elem->>'origin' AS origin
     FROM (
-      SELECT id, photos, created_at FROM public.auto_slideshow_runs
-      WHERE workspace_id = ${workspaceId} AND kind = 'auto' AND photos IS NOT NULL
-      ORDER BY created_at DESC LIMIT ${GENERATED_RUNS}
+      (SELECT id, kind, photos, created_at FROM public.auto_slideshow_runs
+       WHERE workspace_id = ${workspaceId} AND kind = 'auto' AND photos IS NOT NULL
+       ORDER BY created_at DESC LIMIT ${GENERATED_RUNS})
+      UNION ALL
+      (SELECT id, kind, photos, created_at FROM public.auto_slideshow_runs
+       WHERE workspace_id = ${workspaceId} AND kind = ${CAMPAIGN_KIND} AND photos IS NOT NULL
+       ORDER BY created_at DESC LIMIT ${GENERATED_CAMPAIGNS})
     ) r
     CROSS JOIN LATERAL jsonb_array_elements(r.photos) WITH ORDINALITY AS p(elem, ord)
     WHERE p.elem->>'imageKey' IS NOT NULL AND p.elem->'deleted' IS NULL
+      AND (r.kind = 'auto' OR (COALESCE(p.elem->>'source', 'generated') = 'generated' AND COALESCE(p.elem->>'origin', 'ai') = 'ai'))
     ORDER BY r.created_at DESC, p.ord`;
-  return rows.map((r) => {
+  const known = new Set([...shotLabels.map((l) => l.slice(0, LABEL_MATCH)), ...rows.filter((r) => r.kind === 'auto' && r.label).map((r) => r.label!)]);
+  const seen = new Set<string>();
+  // Older campaign photos have no origin: a label already listed (an auto photo or an App shot) is a copy.
+  const fresh = rows.filter((r) => r.kind === 'auto' || r.origin === 'ai' || !r.label || !known.has(r.label));
+  return fresh.flatMap((r) => {
+    if (seen.has(r.image_key)) return [];
+    seen.add(r.image_key);
     const index = Number(r.idx);
-    return { key: `generated:${r.run_id}:${index}`, thumbUrl: thumbUrl(r.image_key), ref: { source: 'generated' as const, runId: r.run_id, index }, label: r.label ?? 'Generated photo', credit: null };
+    return [{ key: `generated:${r.run_id}:${index}`, thumbUrl: thumbUrl(r.image_key), ref: { source: 'generated' as const, runId: r.run_id, index }, label: r.label ?? 'Generated photo', credit: null }];
   });
 };
 
@@ -68,8 +90,8 @@ export const photoOptions = async (workspaceId: string, tab: PhotoTab, query: st
   if (tab === 'search') return query.trim() ? searchUnsplash(query, page) : { options: [], hasMore: false };
   if (tab === 'shared') return { options: await sharedOptions(workspaceId), hasMore: false };
   if (tab === 'brand') return { options: await brandOptions(workspaceId), hasMore: false };
-  const [shots, generated] = await Promise.all([appShotOptions(workspaceId), generatedOptions(workspaceId)]);
-  return { options: [...shots, ...generated], hasMore: false };
+  const shots = await appShotOptions(workspaceId);
+  return { options: [...shots, ...(await generatedOptions(workspaceId, shots.map((s) => s.label)))], hasMore: false };
 };
 
 type Fetched = { bytes: Buffer; label: string; credit?: { name: string; url: string }; hotlink?: { thumb: string; full: string } };
@@ -115,7 +137,7 @@ const toCampaignJpeg = async (bytes: Buffer): Promise<Buffer> => {
  * running at once never drop each other. Returns the new photo, and its head detection to run after the response.
  */
 export const importPhoto = async (runId: string, workspaceId: string, ref: CampaignPhotoRef): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> =>
-  storeCampaignPhoto(runId, await fetchPick(workspaceId, ref), ref.source === 'app_shot' ? 'generated' : ref.source);
+  storeCampaignPhoto(runId, await fetchPick(workspaceId, ref), ref.source === 'app_shot' ? 'generated' : ref.source, ref.source === 'app_shot' || ref.source === 'generated' ? 'copy' : undefined);
 
 /** Tells the photo model the reference only sets the look, so the content slides match the hook photo's tone. */
 const TONE_NOTE =
@@ -142,16 +164,16 @@ export const autoPhoto = async (runId: string, req: AutoPhotoRequest): Promise<{
   const { buffer } = await generatePhoto(prompt, tone ? [tone] : [], createMeter()).catch((err: unknown) => {
     throw new HttpError(502, 'photo_failed', err instanceof Error ? `Photo failed: ${err.message.slice(0, 120)}` : 'Photo failed. Try again.');
   });
-  return storeCampaignPhoto(runId, { bytes: buffer, label: req.scene }, 'generated');
+  return storeCampaignPhoto(runId, { bytes: buffer, label: req.scene }, 'generated', 'ai');
 };
 
-const storeCampaignPhoto = async (runId: string, pick: Fetched, source: CampaignPhotoDto['source']): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> => {
+const storeCampaignPhoto = async (runId: string, pick: Fetched, source: CampaignPhotoDto['source'], origin?: CampaignPhoto['origin']): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> => {
   const jpeg = await toCampaignJpeg(pick.bytes).catch(() => {
     throw new HttpError(422, 'bad_image', 'That file is not a photo we can use. Pick another one.');
   });
   const imageKey = `admin/auto-slideshow/${runId}/campaign-${randomUUID()}.jpg`;
   await Promise.all([putObject(imageKey, jpeg, 'image/jpeg'), storeThumb(imageKey, jpeg)]);
-  const photo: CampaignPhoto = { prompt: pick.label.slice(0, 300), imageKey, error: null, source, ...(pick.credit ? { credit: pick.credit } : {}), ...(pick.hotlink ? { hotlink: pick.hotlink } : {}) };
+  const photo: CampaignPhoto = { prompt: pick.label.slice(0, 300), imageKey, error: null, source, ...(origin ? { origin } : {}), ...(pick.credit ? { credit: pick.credit } : {}), ...(pick.hotlink ? { hotlink: pick.hotlink } : {}) };
   const rows = await prisma.$queryRaw<Array<{ count: number }>>`
     UPDATE public.auto_slideshow_runs
     SET photos = COALESCE(photos, '[]'::jsonb) || jsonb_build_array(${JSON.stringify(photo)}::jsonb), updated_at = now()

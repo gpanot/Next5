@@ -16,6 +16,7 @@ import {
   MIN_CAMPAIGN_CONTENT,
   looksOf,
   renderKeyOf,
+  MAX_CARD_PHOTOS,
   type CampaignCard,
   type CampaignDraft,
   type CampaignDto,
@@ -41,7 +42,9 @@ export const json = (value: unknown) => value as Prisma.InputJsonValue;
 
 /** A campaign photo: the run's AutoPhoto plus where it came from (`prompt` holds the label). */
 /** `hotlink`: an Unsplash photo's own URLs, shown in the app instead of our copy (`imageKey`, kept for the render). */
-export type CampaignPhoto = AutoPhoto & { source?: CampaignPhotoDto['source']; credit?: CampaignPhotoDto['credit']; hotlink?: { thumb: string; full: string } };
+/** `origin` (since 2026-10-14): 'ai' when made for this campaign, 'copy' when copied from another generated photo or an
+ *  App shot, so the Generated tab lists each AI photo once. Missing on older photos. */
+export type CampaignPhoto = AutoPhoto & { source?: CampaignPhotoDto['source']; origin?: 'ai' | 'copy'; credit?: CampaignPhotoDto['credit']; hotlink?: { thumb: string; full: string } };
 
 export const photosOf = (run: { photos: Prisma.JsonValue }): CampaignPhoto[] => (run.photos as unknown as CampaignPhoto[] | null) ?? [];
 /** The stored campaign: the draft, the render key of the draft the slideshows were last made from, and the posts put on
@@ -156,6 +159,12 @@ export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
 const str = (v: unknown, max: number): string => (typeof v === 'string' ? v.slice(0, max) : '');
 const photoIndex = (v: unknown, photoCount: number): number | null => (Number.isInteger(v) && (v as number) >= 0 && (v as number) < photoCount ? (v as number) : null);
 
+/** A content card's rotation photos after the first, kept only when there are some (older drafts keep their render key). */
+const morePhotosOf = (v: unknown, photoCount: number): Pick<CampaignCard, 'morePhotos'> => {
+  const list = Array.isArray(v) ? v.map((x) => photoIndex(x, photoCount)).filter((x): x is number => x !== null).slice(0, MAX_CARD_PHOTOS - 1) : [];
+  return list.length > 0 ? { morePhotos: list } : {};
+};
+
 /** A text position kept only when it is one (unmoved text stores none, so older drafts keep their render key). */
 const movedTo = (v: unknown): { textAt?: TextAt } => {
   const at = parseTextAt(v);
@@ -172,7 +181,7 @@ const badgesOf = (v: unknown, at: unknown): Pick<CampaignCard, 'badges' | 'badge
 const parseCards = (value: unknown, photoCount: number): CampaignCard[] => {
   if (!Array.isArray(value)) throw new HttpError(400, 'bad_cards', 'The cards are missing.');
   const raw = value as Array<Record<string, unknown>>;
-  const items = raw.slice(0, -1).map((c): CampaignCard => ({ role: 'item', title: str(c?.title, MAX_CARD_TITLE_CHARS), body: str(c?.body, MAX_CARD_BODY_CHARS), photo: photoIndex(c?.photo, photoCount), ...movedTo(c?.textAt) }));
+  const items = raw.slice(0, -1).map((c): CampaignCard => ({ role: 'item', title: str(c?.title, MAX_CARD_TITLE_CHARS), body: str(c?.body, MAX_CARD_BODY_CHARS), photo: photoIndex(c?.photo, photoCount), ...morePhotosOf(c?.morePhotos, photoCount), ...movedTo(c?.textAt) }));
   const last = raw[raw.length - 1];
   if (items.length < MIN_CAMPAIGN_CONTENT || items.length > MAX_CAMPAIGN_CONTENT || !last) {
     throw new HttpError(400, 'bad_cards', `A campaign has ${MIN_CAMPAIGN_CONTENT} to ${MAX_CAMPAIGN_CONTENT} content cards and one CTA card.`);

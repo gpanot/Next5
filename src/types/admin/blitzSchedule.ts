@@ -54,6 +54,8 @@ export type TikTokChoices = {
   brandOrganic: boolean;
   brandContent: boolean;
   consent: boolean;
+  /** To the creator's TikTok drafts instead of the profile: privacy and consent are then given in the app. */
+  asDraft?: boolean;
 };
 
 export type ScheduleBlitzRequest = {

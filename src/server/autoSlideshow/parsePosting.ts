@@ -14,6 +14,8 @@ export const parsePlatforms = (body: Record<string, unknown>): Parsed => {
   const youtube = platforms.includes('youtube') ? { privacyLevel: typeof y.privacyLevel === 'string' ? y.privacyLevel : 'private' } : null;
   if (!platforms.includes('tiktok')) return { platforms, tiktok: null, youtube };
   const t = (body.tiktok ?? {}) as Record<string, unknown>;
+  // Drafts: privacy and consent are given in the TikTok app.
+  if (t.asDraft === true) return { platforms, youtube, tiktok: { privacyLevel: '', allowComments: true, brandOrganic: false, brandContent: false, consent: false, asDraft: true } };
   if (typeof t.privacyLevel !== 'string' || !t.privacyLevel) throw new HttpError(400, 'bad_privacy', 'Pick who can see the TikTok posts.');
   return {
     platforms,

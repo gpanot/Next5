@@ -50,12 +50,22 @@ export type CarouselInput = {
   allowComments: boolean;
   brandOrganic: boolean;
   brandContent: boolean;
+  /** To the creator's drafts (MEDIA_UPLOAD, needs video.upload): they pick privacy and post it in the app. */
+  asDraft?: boolean;
 };
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
 
-/** Request body for one Direct Post photo carousel. Exported for tests. */
-export const carouselBody = (input: CarouselInput) => ({
+/** Request body for a carousel sent to the creator's drafts: privacy, comments and disclosure are set in the app. */
+const draftBody = (input: CarouselInput) => ({
+  media_type: 'PHOTO',
+  post_mode: 'MEDIA_UPLOAD',
+  post_info: { title: clip(input.title, TITLE_MAX), description: clip(input.description, DESCRIPTION_MAX) },
+  source_info: { source: 'PULL_FROM_URL', photo_cover_index: 0, photo_images: input.photoUrls.slice(0, MAX_PHOTOS) },
+});
+
+/** Request body for one photo carousel: Direct Post, or to drafts with `asDraft`. Exported for tests. */
+export const carouselBody = (input: CarouselInput) => (input.asDraft ? draftBody(input) : {
   media_type: 'PHOTO',
   post_mode: 'DIRECT_POST',
   post_info: {
@@ -83,6 +93,8 @@ export const initCarousel = async (token: string, input: CarouselInput): Promise
 export type PublishState =
   | { state: 'processing' }
   | { state: 'posted'; postId: string | null }
+  /** Sent to drafts (MEDIA_UPLOAD): the creator posts it from the TikTok app. */
+  | { state: 'drafted' }
   | { state: 'failed'; reason: string };
 
 /**
@@ -101,6 +113,7 @@ export const fetchPublishStatus = async (token: string, publishId: string): Prom
     onRawText: (text) => { raw = text; },
   });
   const d = (body.data ?? {}) as { status?: string; fail_reason?: string };
+  if (d.status === 'SEND_TO_USER_INBOX') return { state: 'drafted' };
   if (d.status === 'PUBLISH_COMPLETE') return { state: 'posted', postId: postIdFromRaw(raw) };
   if (d.status === 'FAILED') return { state: 'failed', reason: d.fail_reason ?? 'TikTok did not say why' };
   return { state: 'processing' };

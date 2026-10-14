@@ -23,11 +23,32 @@ export const MAX_CAPTION_CHARS = 2_000;
 /** The line under a card's headline: hidden from the editor for now (2026-10-11), so it is neither drawn nor rendered. */
 export const SHOW_CARD_BODY = false;
 
-/** A content or CTA card: the same text and photo in every slideshow. `photo`: index into the run's photos. `textAt`:
- *  where its text was dragged to (unset = the usual spot). */
+/** A content or CTA card: the same text in every slideshow. `photo`: index into the run's photos. `morePhotos` (content
+ *  cards only): more photos that rotate with the hooks, like the hook photos (slideshow i shows photo i, looping); unset =
+ *  the one photo everywhere. `textAt`: where its text was dragged to (unset = the usual spot). */
 /** `badges`: the CTA's app store badges; unset = none. `badgesAt`: their row's top (share of the height), moved apart from
  *  the text; unset = HOME_BADGES_Y. */
-export type CampaignCard = { role: 'item' | 'cta'; title: string; body: string; photo: number | null; textAt?: TextAt; badges?: StoreBadge[]; badgesAt?: number };
+export type CampaignCard = { role: 'item' | 'cta'; title: string; body: string; photo: number | null; morePhotos?: number[]; textAt?: TextAt; badges?: StoreBadge[]; badgesAt?: number };
+
+/** Photos one content card rotates through, the first included. */
+export const MAX_CARD_PHOTOS = 10;
+
+/** A card's photos in rotation order: `photo` first, then `morePhotos`. Empty when it has none. */
+export const cardPhotos = (card: Pick<CampaignCard, 'photo' | 'morePhotos'>): number[] => (card.photo === null ? [] : [card.photo, ...(card.morePhotos ?? [])]);
+
+/** The card's photo in slideshow `hookIndex`: its photos loop with the hooks, like the hook photos. */
+export const cardPhotoFor = (card: Pick<CampaignCard, 'photo' | 'morePhotos'>, hookIndex: number): number | null => {
+  const list = cardPhotos(card);
+  return list.length === 0 ? null : list[hookIndex % list.length]!;
+};
+
+/** The card with `photos` as its rotation (the first becomes `photo`); `morePhotos` stays unset with one photo. */
+export const withCardPhotos = <C extends Pick<CampaignCard, 'photo' | 'morePhotos'>>(card: C, photos: number[]): C => {
+  const list = photos.slice(0, MAX_CARD_PHOTOS);
+  const next: C = { ...card, photo: list[0] ?? null, morePhotos: list.slice(1) };
+  if (list.length <= 1) delete next.morePhotos;
+  return next;
+};
 
 /** The editor's state, stored on the run. `hookPhotos`: indexes into the run's photos, in rotation order. */
 export type CampaignDraft = {
@@ -97,8 +118,9 @@ export type CampaignPhotoRef =
   | { source: 'unsplash'; id: string }
   | { source: 'app_shot'; id: string };
 
-/** Which slide the import is for: the hook (adds to the rotation), one card or several cards (replaces their photo). */
-export type CampaignPhotoTarget = { slot: 'hook' } | { slot: 'card'; card: number } | { slot: 'cards'; cards: number[] };
+/** Which slide the import is for: the hook (adds to the rotation), one card or several cards (replaces their photo), or
+ *  one content card's rotation (adds to it). */
+export type CampaignPhotoTarget = { slot: 'hook' } | { slot: 'card'; card: number } | { slot: 'cards'; cards: number[] } | { slot: 'cardRotation'; card: number };
 
 /** True when the import is for card `card`. */
 export const targetsCard = (target: CampaignPhotoTarget, card: number): boolean =>

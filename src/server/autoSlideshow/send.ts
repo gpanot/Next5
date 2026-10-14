@@ -7,7 +7,7 @@
 
 import type { AutoSlideshowPost } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { PLATFORM_LABELS, type AutoSlide, type PostPlatform } from '../../types/admin/autoSlideshow';
+import { PLATFORM_LABELS, TIKTOK_DRAFT, type AutoSlide, type PostPlatform } from '../../types/admin/autoSlideshow';
 import { HttpError } from '../http';
 import { clip } from '../metaAds/text';
 import { freshAccessToken } from '../social/connections';
@@ -69,7 +69,8 @@ const photoUrls = (post: PostWithShow, crop45 = false) => (post.slideshow.slides
 const sendTikTok = async (post: PostWithShow): Promise<void> => {
   const token = await freshAccessToken(await connection(post));
   const creator = await queryCreatorInfo(token);
-  if (!creator.privacyOptions.includes(post.privacyLevel)) throw new Error(`The account no longer allows "${post.privacyLevel}". Schedule it again with another privacy.`);
+  const asDraft = post.privacyLevel === TIKTOK_DRAFT;
+  if (!asDraft && !creator.privacyOptions.includes(post.privacyLevel)) throw new Error(`The account no longer allows "${post.privacyLevel}". Schedule it again with another privacy.`);
   const slides = post.slideshow.slides as AutoSlide[];
   const publishId = await initCarousel(token, {
     photoUrls: photoUrls(post),
@@ -79,6 +80,7 @@ const sendTikTok = async (post: PostWithShow): Promise<void> => {
     allowComments: post.allowComments && !creator.commentDisabled,
     brandOrganic: post.brandOrganic,
     brandContent: post.brandContent,
+    asDraft,
   });
   // The creator's handle (the connection only stores the display name) links the post once it is live.
   const profile = creator.username ? `https://www.tiktok.com/@${creator.username}` : null;
@@ -172,6 +174,9 @@ const refreshTikTok = async (post: AutoSlideshowPost): Promise<void> => {
     // Private posts have no public numbers: they are never scheduled for a read.
     const nextStatsAt = state.postId && post.privacyLevel !== 'SELF_ONLY' ? firstStatsAt(postedAt) : null;
     await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'posted', tiktokPostId: state.postId, postUrl, postedAt, nextStatsAt, error: null } });
+  } else if (state.state === 'drafted') {
+    // In the creator's TikTok drafts: done on our side. No public post yet, so no link and no numbers.
+    await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'posted', postUrl: null, postedAt: new Date(), nextStatsAt: null, error: null } });
   } else if (state.state === 'failed') {
     await prisma.autoSlideshowPost.update({ where: { id: post.id }, data: { status: 'failed', error: clip(`TikTok: ${state.reason}`, 500) } });
   }

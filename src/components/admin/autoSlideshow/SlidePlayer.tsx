@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { SafeZoneOverlay } from './SafeZone';
 
 type Props = {
   count: number;
@@ -14,6 +15,8 @@ type Props = {
   working?: boolean;
   /** Background music, played with the slides from its best start. */
   audio?: { url: string; startAt: number } | null;
+  /** TikTok's covered bands drawn over the slide on screen. */
+  safeZone?: boolean;
 };
 
 /** Seconds per slide in autoplay: long enough to read one tip, like a TikTok carousel on auto-advance. */
@@ -97,7 +100,7 @@ const usePlayback = (count: number, strip: React.RefObject<HTMLDivElement | null
  * Slides as TikTok shows them: swipe, tap ‹ › (or arrow keys), or autoplay, which also plays the music from its best
  * start. The index is controlled so the editor follows the slide on screen. Used by the slideshow and campaign editors.
  */
-export function SlidePlayer({ count, slideKey, renderSlide, index, onIndex, working = false, audio = null }: Props) {
+export function SlidePlayer({ count, slideKey, renderSlide, index, onIndex, working = false, audio = null, safeZone = false }: Props) {
   const strip = useRef<HTMLDivElement>(null);
   const go = (i: number) => {
     const el = strip.current;
@@ -127,6 +130,7 @@ export function SlidePlayer({ count, slideKey, renderSlide, index, onIndex, work
             <div key={slideKey(i)} className="relative h-full w-full shrink-0 snap-center bg-white/5">{renderSlide(i)}</div>
           ))}
         </div>
+        {safeZone && <SafeZoneOverlay />}
         {audio && (
           <button onClick={() => setMuted((m) => !m)} aria-label={muted ? 'Sound on' : 'Sound off'} aria-pressed={!muted} className={`${round} absolute right-15 bottom-2`}>
             <SoundIcon muted={muted} />

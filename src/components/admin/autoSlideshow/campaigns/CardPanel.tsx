@@ -1,6 +1,7 @@
 'use client';
 
 import { MAX_CARD_TITLE_CHARS, MIN_CAMPAIGN_CONTENT, type CampaignCard, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
+import { CardPhotoRotation } from './CardPhotoRotation';
 import { PhotoThumb } from './PhotoThumb';
 import { StoreBadgePicker } from './StoreBadgePicker';
 import { UnsplashCredit } from './UnsplashCredit';
@@ -14,11 +15,16 @@ type Props = {
   photos: CampaignPhotoDto[];
   /** The pick being copied in for this card, shown at once. */
   pending: PendingPhoto | null;
+  /** Picks being added to a content card's rotation. */
+  rotationPending: PendingPhoto[];
+  hookCount: number;
   onChange: (patch: Partial<CampaignCard>) => void;
   /** Whether the content headlines carry numbers ("1. …"); the switch adds or removes them on every content slide. */
   numbered: boolean;
   onNumbered: (on: boolean) => void;
   onPickPhoto: () => void;
+  /** Adds photos to a content card's rotation. */
+  onAddPhotos: () => void;
   onRemove: () => void;
 };
 
@@ -40,20 +46,27 @@ function NumberedSwitch({ numbered, onPick }: { numbered: boolean; onPick: (on: 
   );
 }
 
-/** A content or CTA card: its headline and its one photo, the same in every slideshow. (The line under the headline is
- *  hidden for now, see SHOW_CARD_BODY.) */
-export function CardPanel({ card, position, contentCount, photos, pending, onChange, numbered, onNumbered, onPickPhoto, onRemove }: Props) {
+/** The CTA's one photo, the same in every slideshow. */
+function CtaPhoto({ photo, pending, onPickPhoto }: { photo: CampaignPhotoDto | null; pending: PendingPhoto | null; onPickPhoto: () => void }) {
+  return (
+    <div className="flex shrink-0 items-end gap-2">
+      {pending ? <PhotoThumb url={pending.thumbUrl} loading /> : photo ? <PhotoThumb url={photo.url} /> : <div className="h-28 w-16 rounded-lg border border-dashed border-white/20 bg-white/5" />}
+      <button type="button" onClick={onPickPhoto} disabled={pending !== null} className="min-h-11 rounded-full border border-white/15 px-4 text-sm font-semibold text-white/85 transition active:scale-95 disabled:opacity-40">
+        {pending ? 'Adding…' : photo ? 'Change photo' : 'Choose photo'}
+      </button>
+    </div>
+  );
+}
+
+/** A content or CTA card: its headline (the same in every slideshow) and its photos: a content card's backgrounds rotate
+ *  with the hooks, the CTA keeps one. (The line under the headline is hidden for now, see SHOW_CARD_BODY.) */
+export function CardPanel({ card, position, contentCount, photos, pending, rotationPending, hookCount, onChange, numbered, onNumbered, onPickPhoto, onAddPhotos, onRemove }: Props) {
   const isCta = card.role === 'cta';
-  const photo = card.photo === null ? null : photos[card.photo];
+  const photo = card.photo === null ? null : photos[card.photo] ?? null;
   return (
     <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="flex shrink-0 items-end gap-2">
-          {pending ? <PhotoThumb url={pending.thumbUrl} loading /> : photo ? <PhotoThumb url={photo.url} /> : <div className="h-28 w-16 rounded-lg border border-dashed border-white/20 bg-white/5" />}
-          <button type="button" onClick={onPickPhoto} disabled={pending !== null} className="min-h-11 rounded-full border border-white/15 px-4 text-sm font-semibold text-white/85 transition active:scale-95 disabled:opacity-40">
-            {pending ? 'Adding…' : photo ? 'Change photo' : 'Choose photo'}
-          </button>
-        </div>
+        {isCta && <CtaPhoto photo={photo} pending={pending} onPickPhoto={onPickPhoto} />}
         <div className="min-w-0 flex-1 space-y-3">
           <label className="block space-y-1.5">
             <span className={label}>Headline</span>
@@ -62,8 +75,14 @@ export function CardPanel({ card, position, contentCount, photos, pending, onCha
           {isCta ? <StoreBadgePicker badges={card.badges} onChange={(badges) => onChange({ badges })} /> : <NumberedSwitch numbered={numbered} onPick={onNumbered} />}
         </div>
       </div>
-      {!pending && photo?.credit && <UnsplashCredit credit={photo.credit} className="block text-xs text-white/60" />}
-      <p className="text-sm text-white/45">One photo, no rotation: every slideshow of this campaign shows this slide the same way.</p>
+      {isCta ? (
+        <>
+          {!pending && photo?.credit && <UnsplashCredit credit={photo.credit} className="block text-xs text-white/60" />}
+          <p className="text-sm text-white/45">One photo, no rotation: every slideshow of this campaign ends on this slide.</p>
+        </>
+      ) : (
+        <CardPhotoRotation card={card} photos={photos} pending={[...(pending ? [pending] : []), ...rotationPending]} hookCount={hookCount} onChange={onChange} onAddPhotos={onAddPhotos} />
+      )}
       {!isCta && (
         <button type="button" onClick={onRemove} disabled={contentCount <= MIN_CAMPAIGN_CONTENT} className="min-h-11 rounded-full px-4 text-sm font-medium text-red-300 transition hover:bg-red-500/10 active:scale-95 disabled:opacity-30">
           Delete content slide {position + 1}

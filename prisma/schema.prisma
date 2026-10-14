@@ -2594,3 +2594,18 @@ model ShortReel {
   @@index([workspaceId, createdAt(sort: Desc)])
   @@map("short_reels")
 }
+
+/// Hook Knowledge (admin → Hooks): notes and .md/.txt files on what makes slideshow hooks work, fed to the campaign
+/// editor's "Generate for me". Shared by every workspace.
+model HookKnowledge {
+  id        String   @id @default(cuid())
+  title     String
+  /// The note, or the file's text
+  body      String
+  /// Set when the entry came from an uploaded file
+  fileName  String?  @map("file_name")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("hook_knowledge")
+}

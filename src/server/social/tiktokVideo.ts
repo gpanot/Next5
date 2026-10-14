@@ -16,6 +16,8 @@ export type VideoInput = {
   allowComments: boolean;
   brandOrganic: boolean;
   brandContent: boolean;
+  /** To the creator's drafts (inbox upload, needs video.upload): caption, privacy and sound are set in the app. */
+  asDraft?: boolean;
 };
 
 const clip = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1)}…` : text);
@@ -36,10 +38,13 @@ export const videoBody = (input: VideoInput) => ({
   source_info: { source: 'PULL_FROM_URL', video_url: input.videoUrl },
 });
 
-/** Starts the post; TikTok then downloads the MP4 and publishes. Returns the publish id to poll. */
+/** Starts the post; TikTok then downloads the MP4 and publishes it (or drops it in drafts). Returns the publish id to poll. */
 export const initVideo = async (token: string, input: VideoInput): Promise<string> => {
   if (input.brandContent && input.privacyLevel === 'SELF_ONLY') throw new Error('Branded content cannot be private on TikTok');
-  const body = await post(token, '/post/publish/video/init/', videoBody(input));
+  // The inbox endpoint takes the video only: TikTok's draft has no caption field.
+  const body = input.asDraft
+    ? await post(token, '/post/publish/inbox/video/init/', { source_info: { source: 'PULL_FROM_URL', video_url: input.videoUrl } })
+    : await post(token, '/post/publish/video/init/', videoBody(input));
   const id = (body.data as { publish_id?: string } | undefined)?.publish_id;
   if (!id) throw new Error('TikTok returned no publish id');
   return id;

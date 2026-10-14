@@ -16,7 +16,14 @@ export const STATS_SCOPES = ['video.list', 'user.info.stats'] as const;
 export const statsScopesOn = (): boolean => process.env.TIKTOK_STATS_SCOPE?.trim().toLowerCase() === 'true';
 /** True when this connection's token was granted every analytics scope. */
 export const hasStatsScopes = (granted: string[]): boolean => STATS_SCOPES.every((s) => granted.includes(s));
-const scopes = (): string[] => ['user.info.basic', 'video.publish', ...(statsScopesOn() ? STATS_SCOPES : [])];
+/**
+ * Drafts: video.upload sends a post to the creator's TikTok inbox instead of the profile (they finish and post it in the
+ * app, which warms up a new account). Same rule as the stats scopes: asked only with TIKTOK_UPLOAD_SCOPE=true, once
+ * video.upload is approved on the app. Accounts connected before then reconnect to get drafts.
+ */
+export const UPLOAD_SCOPE = 'video.upload';
+export const uploadScopeOn = (): boolean => process.env.TIKTOK_UPLOAD_SCOPE?.trim().toLowerCase() === 'true';
+const scopes = (): string[] => ['user.info.basic', 'video.publish', ...(uploadScopeOn() ? [UPLOAD_SCOPE] : []), ...(statsScopesOn() ? STATS_SCOPES : [])];
 
 const clientKey = (): string => process.env.TIKTOK_CLIENT_KEY ?? '';
 const clientSecret = (): string => process.env.TIKTOK_CLIENT_SECRET ?? '';

@@ -20,7 +20,7 @@ export const workspaceNavItems = (workspaceId: string): WorkspaceNavItem[] => {
 };
 
 /** Wide screens' sidebar only: phones reach the brand from Settings › Brand. */
-export const brandNavItem = (workspaceId: string): WorkspaceNavItem => ({ id: 'brand', href: `/slideshow/${workspaceId}/brand`, label: 'Brand', Icon: BrandIcon });
+export const brandNavItem = (workspaceId: string): WorkspaceNavItem => ({ id: 'brand', href: `/slideshow/${workspaceId}/brand`, label: 'Brand Avatar', Icon: BrandIcon });
 
 /** Wide screens' sidebar only: phones reach credits from Settings › Credits. */
 export const creditsNavItem = (workspaceId: string): WorkspaceNavItem => ({ id: 'credits', href: `/slideshow/${workspaceId}/credits`, label: 'Credits', Icon: CreditsIcon });
