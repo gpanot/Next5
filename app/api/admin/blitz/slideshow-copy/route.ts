@@ -7,7 +7,7 @@ import { generateSlideshowCopy, type ListingFacts, type ReAngle } from '../../..
 type Body = { facts?: ListingFacts; angle?: ReAngle; photoTags?: (PhotoTag | 'other')[] };
 
 // LLM call + possible retry can take up to ~60 s.
-export const maxDuration = 70;
+export const maxDuration = 120;
 
 const RE_ANGLES: ReAngle[] = ['just_listed', 'price_reduction', 'open_house', 'feature_highlight', 'sold', 'neighborhood'];
 

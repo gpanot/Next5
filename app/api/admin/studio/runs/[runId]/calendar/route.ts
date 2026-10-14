@@ -11,7 +11,7 @@ import { studioJson } from '../../../../../../../src/server/studio/studioJson';
 import { slotDates, type Cadence } from '../../../../../../../src/server/studio/assignSlots';
 import { prisma } from '../../../../../../../src/lib/db';
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 type Ctx = { params: Promise<{ runId: string }> };
 

@@ -3,7 +3,7 @@ import { adminRoute } from '../../../../../../src/server/admin/route';
 import { tregCall } from '../../../../../../src/server/admin/ugcLab';
 import { createCloneJob } from '../../../../../../src/server/admin/cloneVideos';
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 // --------------------------------------------------------------------------
 // Two Seedance modes via reapi.video-gen.seedance-2-5.unrestricted

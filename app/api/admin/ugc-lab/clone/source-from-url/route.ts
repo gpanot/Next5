@@ -5,7 +5,7 @@ import { browserUrl, putFile, uniqueStamp, vendorUrl } from '../../../../../../s
 import { cloneKeys, trimVideo, extractFirstFrame } from '../../../../../../src/server/admin/cloneUtils';
 
 // Download + trim can take a while on a slow CDN — cap at 3 minutes
-export const maxDuration = 180;
+export const maxDuration = 300;
 
 // ── Treg response shape ────────────────────────────────────────────────────────
 

@@ -20,7 +20,7 @@ const VALID_ANGLES: ReAngle[] = [
 ];
 
 // 2–3 LLM calls (writeMeat + retry, generateHooks) plus library search.
-export const maxDuration = 130;
+export const maxDuration = 300;
 
 /**
  * POST /api/admin/blitz/slideshow-deck
