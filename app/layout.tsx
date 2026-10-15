@@ -47,7 +47,7 @@ export default function RootLayout({
   return (
     // suppressHydrationWarning: the motion pre-paint script sets data-motion on <html> before React hydrates
     // (src/components/motion/MotionPrepaint.tsx). It only silences this element's own attributes.
-    <html lang="en" className={`${inter.variable} ${bricolage.variable} ${newsreader.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${inter.variable} ${bricolage.variable} ${newsreader.variable}`} data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className="min-h-full antialiased">
         <LocaleProvider>{children}</LocaleProvider>
         <SiteAnalytics />

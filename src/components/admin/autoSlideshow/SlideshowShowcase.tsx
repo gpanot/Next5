@@ -89,6 +89,7 @@ function SlideStack({ show, index, sizes }: { show: ShowcaseSlideshow; index: nu
           src={`/images/auto-slideshow/${show.slug}/${i + 1}.jpg`}
           alt={i === 0 ? `TikTok slideshow: "${show.alt}"` : ''}
           sizes={sizes}
+          eager={i === 0}
           className={`transition-opacity duration-500 ${i === index ? 'opacity-100' : 'opacity-0'}`}
         />
       ))}

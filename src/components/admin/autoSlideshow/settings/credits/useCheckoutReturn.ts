@@ -8,8 +8,18 @@ export type CheckoutReturn = { tone: 'ok' | 'info'; text: string } | null;
 /** URL that Stripe Checkout sends the browser back to: `?credits=paid|card|cancel&session_id=cs_…`. */
 export const CREDITS_PARAM = 'credits';
 
-/** True when the page was opened by a Stripe return, so the Settings → Credits tab should open. */
-export const isCheckoutReturn = (): boolean => typeof window !== 'undefined' && new URL(window.location.href).searchParams.has(CREDITS_PARAM);
+/** The page Stripe Checkout should send the browser back to: this one. */
+export const here = (): string => window.location.pathname + window.location.search;
+
+/**
+ * True when the page was opened by a Stripe return, so the Settings → Credits tab should open. Not with a campaign
+ * open (`?campaign=`): checkout started in the editor, which confirms the payment itself.
+ */
+export const isCheckoutReturn = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  const params = new URL(window.location.href).searchParams;
+  return params.has(CREDITS_PARAM) && !params.has('campaign');
+};
 
 type Pending = { state: string; sessionId: string | null } | null;
 

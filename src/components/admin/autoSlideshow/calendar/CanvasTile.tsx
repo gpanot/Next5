@@ -2,9 +2,9 @@
 
 import { CoverMedia } from '../../../labs/addToCalendar/CoverMedia';
 import type { PlanDay } from './monthPlan';
-import { MakingCountdown } from './MakingCountdown';
 import { useDroppableDay } from './SlideshowDnd';
-import type { TileEntry, TileStatus } from './tileModel';
+import type { PostCountdown, TileEntry, TileStatus } from './tileModel';
+import { MakingCountdown, TYPICAL_MAKE_MS } from './MakingCountdown';
 
 /** One dot per post, by status (the legend's colors). */
 export const DOT: Record<TileStatus, string> = {
@@ -18,10 +18,15 @@ export const DOT: Record<TileStatus, string> = {
 
 type Props = { day: PlanDay; entries: TileEntry[]; focused: boolean; onOpen: () => void };
 
-/** The first post is being made and has no photo yet: the tile shows a countdown instead of a grey box. */
-export const countdownOf = (entries: TileEntry[]): string | null => {
+/**
+ * The tile's countdown: the first post being made with no photo yet (instead of a grey box), or any post of the day
+ * going out now (a video being made and posted, a slideshow being posted).
+ */
+export const countdownOf = (entries: TileEntry[]): (PostCountdown & { overCover: boolean }) | null => {
   const top = entries[0];
-  return top?.status === 'making' && !top.cover && top.makingSince ? top.makingSince : null;
+  if (top?.status === 'making' && !top.cover && top.makingSince) return { since: top.makingSince, totalMs: TYPICAL_MAKE_MS, label: 'Making your slideshow', overCover: false };
+  const posting = entries.find((e) => e.countdown);
+  return posting?.countdown ? { ...posting.countdown, overCover: Boolean(top?.cover) } : null;
 };
 
 const dayName = (d: Date) => d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
@@ -79,7 +84,7 @@ export function CanvasTile({ day, entries, focused, onOpen }: Props) {
       className={`relative block aspect-[9/16] w-full rounded-[14px] text-left transition hover:-translate-y-0.5 active:scale-[0.98] disabled:cursor-default disabled:hover:translate-y-0 ${muted ? 'opacity-40' : ''} ${isOver ? 'ring-[3px] ring-blue-600' : edgeOf(entries, focused, day.past || !day.inMonth)} ${entries.some((e) => e.status === 'making') && !countdown ? 'animate-pulse' : ''}`}
     >
       <Cover entries={entries} />
-      {countdown && <MakingCountdown since={countdown} />}
+      {countdown && <MakingCountdown since={countdown.since} totalMs={countdown.totalMs} label={countdown.label} overCover={countdown.overCover} />}
       <span className={`absolute top-1.5 left-1.5 z-[3] rounded-full px-1.5 py-1 text-xs leading-none font-extrabold ${entries.length > 0 ? 'bg-zinc-900/55 text-white' : day.today ? 'bg-blue-600 text-white' : 'text-ink dark:text-zinc-100'}`}>{day.date.getDate()}</span>
       {entries.length > 1 && (
         <span className="absolute -top-2 -right-2 z-[4] flex h-[22px] min-w-[22px] items-center justify-center rounded-full border-2 border-white bg-zinc-900 px-1 text-[11px] font-extrabold text-white dark:border-zinc-900 dark:bg-white dark:text-zinc-900">{entries.length}</span>

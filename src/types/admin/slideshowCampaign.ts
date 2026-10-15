@@ -151,8 +151,22 @@ export type CampaignDto = {
   rendered: boolean;
   /** Posts put on the Calendar, waiting for approval there (times still to come). */
   plan: CampaignPlanItem[];
+  /** Content "Auto" photos the server is making (or made) in the background, not yet put on their cards. */
+  photoJobs: CampaignPhotoJobDto[];
   createdAt: string;
 };
+
+/**
+ * A Content "Auto" photo made on the server, for content cards `cards`. Running until `photo` (its campaign photo
+ * index) lands or it fails; the editor then puts it on the cards and clears the job.
+ */
+export type CampaignPhotoJobDto = { key: string; cards: number[]; status: 'running' | 'done' | 'failed'; photo: number | null; error: string | null };
+
+/** How a background photo is got: made or found (AI or stock), or a matched library photo copied in. */
+export type CampaignPhotoJobSource = { auto: AutoPhotoRequest } | { ref: CampaignPhotoRef };
+
+/** One background photo the editor asks for. */
+export type CampaignPhotoJobRequest = { key: string; cards: number[] } & CampaignPhotoJobSource;
 
 /** A campaign post on the Calendar, waiting for approval there: slideshow `position` (hook i) at `at` (ISO). */
 export type CampaignPlanItem = { position: number; at: string };

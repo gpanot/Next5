@@ -1,13 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { cardPhotos, renderKeyOf, targetsCard, withCardPhotos, type CampaignDraft, type CampaignDto, type CampaignPhotoDto, type CampaignPhotoTarget, type PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
+import { cardPhotos, renderKeyOf, targetsCard, withCardPhotos, type CampaignDraft, type CampaignDto, type CampaignPhotoDto, type CampaignPhotoJobDto, type CampaignPhotoJobRequest, type CampaignPhotoTarget, type PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
 
 /** Typing settles this long before the draft is saved. */
 const SAVE_DELAY_MS = 700;
 /** Photos copied into the campaign at once. */
 const IMPORT_PARALLEL = 4;
+/** How often the editor reads the campaign while the server makes Auto photos. */
+const JOB_POLL_MS = 3000;
+
+/** A background Auto photo still being made, shown on its slides like an import. */
+const jobPending = (job: CampaignPhotoJobDto): PendingPhoto => ({ key: job.key, thumbUrl: null, target: { slot: 'cards', cards: job.cards } });
 
 /** A pick being copied in: shown at once from the picker's thumb (none for a photo still being made), on its slide. */
 export type PendingPhoto = { key: string; thumbUrl: string | null; target: CampaignPhotoTarget };
@@ -50,6 +55,8 @@ export const useCampaign = (token: string, id: string) => {
   const [pending, setPending] = useState<PendingPhoto[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const unsaved = useRef<CampaignDraft | null>(null);
+  /** Background jobs already put on their cards (or shown as failed), so each lands once. */
+  const appliedJobs = useRef(new Set<string>());
 
   useEffect(() => {
     let live = true;
@@ -143,6 +150,44 @@ export const useCampaign = (token: string, id: string) => {
     setBusy(null);
   }, [setDraft]);
 
+  /** Asks the server to make Auto photos in the background: they keep coming when the editor is closed. */
+  const startPhotoJobs = useCallback(async (jobs: CampaignPhotoJobRequest[]) => {
+    try {
+      await adminFetch(token, `${base}/auto-photos`, { method: 'POST', body: JSON.stringify({ jobs }) });
+      const running = jobs.map(({ key, cards }): CampaignPhotoJobDto => ({ key, cards, status: 'running', photo: null, error: null }));
+      setCampaign((c) => (c ? { ...c, photoJobs: [...c.photoJobs, ...running] } : c));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not start the photos');
+    }
+  }, [token, base]);
+
+  const jobs = campaign?.photoJobs;
+  // Finished jobs (now, or while the editor was closed) land on their cards once, then are cleared on the server.
+  useEffect(() => {
+    const finished = (jobs ?? []).filter((j) => j.status !== 'running' && !appliedJobs.current.has(j.key));
+    if (finished.length === 0) return;
+    for (const job of finished) {
+      appliedJobs.current.add(job.key);
+      if (job.status === 'done' && job.photo !== null) setDraft((d) => placePhotos(d, { slot: 'cards', cards: job.cards.filter((i) => i < d.cards.length) }, [job.photo!]));
+      else setError(job.error ?? 'Could not add that photo');
+    }
+    const keys = new Set(finished.map((j) => j.key));
+    setCampaign((c) => (c ? { ...c, photoJobs: c.photoJobs.filter((j) => !keys.has(j.key)) } : c));
+    void adminFetch(token, `${base}/auto-photos?keys=${encodeURIComponent([...keys].join(','))}`, { method: 'DELETE' }).catch(() => undefined);
+  }, [jobs, setDraft, token, base]);
+
+  const running = (jobs ?? []).some((j) => j.status === 'running');
+  // While photos are made, read the campaign now and then: its photos and jobs, keeping the draft being edited.
+  useEffect(() => {
+    if (!running) return;
+    const tick = setInterval(() => {
+      void adminFetch<{ campaign: CampaignDto }>(token, base)
+        .then((res) => setCampaign((c) => (c ? { ...res.campaign, draft: c.draft } : res.campaign)))
+        .catch(() => undefined);
+    }, JOB_POLL_MS);
+    return () => clearInterval(tick);
+  }, [running, token, base]);
+
   /** Copies picker picks in (see addPhotos). */
   const importPhotos = useCallback((picks: PhotoOptionDto[], target: CampaignPhotoTarget) =>
     addPhotos(picks.map((o) => ({
@@ -178,7 +223,9 @@ export const useCampaign = (token: string, id: string) => {
 
   const stale = !campaign || madeKey === null || renderKeyOf(campaign.draft) !== madeKey;
 
-  return { campaign, error, busy, saving, stale, pending, setDraft, setError, rename, addPhotos, importPhotos, prepare, reload, clearError: () => setError(null) };
+  const shown = [...pending, ...(jobs ?? []).filter((j) => j.status === 'running').map(jobPending)];
+
+  return { campaign, error, busy, saving, stale, pending: shown, setDraft, startPhotoJobs, setError, rename, addPhotos, importPhotos, prepare, reload, clearError: () => setError(null) };
 };
 
 export type CampaignState = ReturnType<typeof useCampaign>;

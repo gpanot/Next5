@@ -28,7 +28,7 @@ export function MiniDay({ day, entries, selected, focused = false, onSelect }: P
       className={`relative aspect-[4/5] w-full overflow-hidden rounded-lg border transition active:scale-95 ${selected || isOver || focused ? 'border-blue-600 ring-2 ring-blue-600' : idea ? 'border-dashed border-blue-600 dark:border-blue-400' : !day.past && entries.length === 0 ? 'border-dashed border-zinc-300 dark:border-zinc-700' : 'border-line dark:border-zinc-800'} ${!day.inMonth ? 'opacity-40' : ''} ${top?.status === 'making' && !countdown ? 'animate-pulse bg-zinc-100 dark:bg-zinc-800' : 'bg-white dark:bg-zinc-900'}`}
     >
       {top?.cover && <span className={`absolute inset-0 ${top.status === 'idea' || day.past ? 'opacity-60' : ''}`}><CoverMedia src={top.cover} video={top.coverIsVideo} /></span>}
-      {countdown && <MakingCountdown since={countdown} small />}
+      {countdown && <MakingCountdown since={countdown.since} totalMs={countdown.totalMs} overCover={countdown.overCover} small />}
       <span className={`absolute top-0.5 left-0.5 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px] font-bold ${day.today ? 'bg-blue-600 text-white' : top?.cover ? 'bg-black/50 text-white' : 'text-ink dark:text-zinc-100'}`}>{day.date.getDate()}</span>
       {entries.length > 0 && (
         <span aria-hidden className="absolute inset-x-0 bottom-0.5 flex justify-center">

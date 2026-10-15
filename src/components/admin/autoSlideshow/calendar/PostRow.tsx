@@ -9,7 +9,8 @@ import { goalStyle } from './goalStyle';
 import { blitzOpenable } from './monthPlan';
 import { badgeOf, coverIsVideoOf, coverOf, timeOf, titleOf } from './slotBadge';
 import { NO_LONG_PRESS_MENU, useDraggablePost, useSlideshowDrag, type DragKind } from './SlideshowDnd';
-import type { Filled } from './tileModel';
+import { CountdownText } from './MakingCountdown';
+import { countdownOfItem, type Filled } from './tileModel';
 
 /** One post of the chosen day: photo, goal, status, time, platforms and views. Tap: open it (edit, approve, or see it
  *  live); slideshows and videos not started yet can be dragged to another day. */
@@ -27,6 +28,7 @@ export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (
   // A Blitz video opens its approval until it starts, then its live post (TikTok or YouTube) once live.
   const link = item.kind === 'blitz' ? item.blitz.postUrl : null;
   const approvable = item.kind === 'blitz' && blitzOpenable(item.blitz);
+  const countdown = countdownOfItem(item);
   const open = () => {
     if (justDropped()) return;
     if (item.kind === 'blitz' && approvable) onOpenBlitz(item.blitz);
@@ -56,9 +58,10 @@ export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (
         {item.kind === 'blitz' && (
           <span className={`flex items-center gap-1 text-[11px] ${item.blitz.error ? 'text-red-600 dark:text-red-400' : 'text-muted'}`}>
             <PlatformIcon id={item.blitz.platform} className="h-3 w-3" />
-            {item.blitz.error ?? (item.blitz.status === 'planned' ? 'Video · tap to approve' : 'Video · made 1 hour before it posts')}
+            {item.blitz.error ?? (countdown ? <CountdownText {...countdown} /> : item.blitz.status === 'planned' ? 'Video · tap to approve' : 'Video · made 1 hour before it posts')}
           </span>
         )}
+        {item.kind === 'post' && countdown && <span className="block text-[11px] text-muted"><CountdownText {...countdown} /></span>}
         {live.length > 0 && (
           <span className="flex items-center gap-1 text-[11px] text-muted">
             {live.map((p) => <PlatformIcon key={p.platform} id={p.platform} className="h-3 w-3" />)}

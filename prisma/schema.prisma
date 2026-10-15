@@ -2346,6 +2346,8 @@ model AutoSlideshowRun {
   plan           Json?
   /// Step 5: AutoPhoto[]
   photos         Json?
+  /// Campaign runs: Content "Auto" photos made in the background (CampaignPhotoJob[], src/server/autoSlideshow/campaign/photoJobs.ts)
+  photoJobs      Json?     @map("photo_jobs")
   stepTimings    Json      @default("{}") @map("step_timings")
   stepCosts      Json      @default("{}") @map("step_costs")
   failedStep     Int?      @map("failed_step")

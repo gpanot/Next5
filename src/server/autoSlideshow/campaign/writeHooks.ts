@@ -12,11 +12,14 @@ import { metaAdsJson } from '../../metaAds/llm';
 import { clip } from '../../metaAds/text';
 
 const SYSTEM = `You write hook lines for TikTok photo slideshows. The hook is the text on the first slide: it decides if
-people stop scrolling. Each hook opens its own slideshow; every slideshow shares the same content slides after it.
-- Write exactly {COUNT} hooks, each a different angle or formula. No two may start the same way.
-- Follow the formulas and examples in the hook knowledge: they are what works on TikTok now.
+people stop scrolling. Each hook opens its own slideshow; every slideshow shares the same content slides and the same
+closing slide after it. So the hooks are NOT different ideas: they are near-copies of one hook, to A/B test the wording.
+- Write exactly {COUNT} hooks. First pick ONE hook that promises what the content slides deliver, on the brand's topic.
+  Every other hook repeats it word for word and changes only one or two words: add a power word before the noun
+  ("N crazy ways to…", "N unconventional ways to…") or a short tag at the end ("… (easy)"). No two hooks may be identical.
+- Follow the formulas and examples in the hook knowledge for that one hook: they are what works on TikTok now.
 - {NUMBER}
-- Every hook must promise what the content slides deliver, and fit the brand's audience. Never name the brand.
+- Every hook must fit the brand's audience and the content slides. Never name the brand.
 - Simple words a 10-year-old can read. At most 12 words. No emoji, no hashtags, no quotes around the line.
 - Sentence case. Never invent facts or numbers the slides do not back.
 Return JSON: {"hooks":[string]}`;

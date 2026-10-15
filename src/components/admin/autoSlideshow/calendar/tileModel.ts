@@ -25,6 +25,28 @@ export type TileEntry = {
   idea?: IdeaDto;
   /** Making: when the work began (the run's start), for the countdown on the tile. */
   makingSince?: string;
+  /** Posting now: a countdown from when it was due (a video is made, then posted; a slideshow is only posted). */
+  countdown?: PostCountdown;
+};
+
+export type PostCountdown = { since: string; totalMs: number; label: string };
+
+/** A Blitz video made and posted right away: about 10 minutes. A slideshow (or campaign slideshow) posts in about 3. */
+export const VIDEO_POST_MS = 10 * 60_000;
+export const SLIDESHOW_POST_MS = 3 * 60_000;
+const BLITZ_WORKING = ['rendering', 'sending', 'processing'];
+
+/**
+ * The countdown of a post going out now, or undefined. A video made ahead of its day (an hour before) shows none: it
+ * waits for its time. Counted from its time, which "Post now" sets to the moment it was approved.
+ */
+export const countdownOfItem = (item: DayItem, now = Date.now()): PostCountdown | undefined => {
+  if (item.kind === 'blitz') {
+    const due = new Date(item.blitz.scheduledAt).getTime() <= now + 60_000;
+    return BLITZ_WORKING.includes(item.blitz.status) && due ? { since: item.blitz.scheduledAt, totalMs: VIDEO_POST_MS, label: 'Making and posting' } : undefined;
+  }
+  if (item.kind === 'post' && (item.post.status === 'sending' || item.post.status === 'processing')) return { since: item.post.scheduledAt, totalMs: SLIDESHOW_POST_MS, label: 'Posting' };
+  return undefined;
 };
 
 /** Legend order and labels. */
@@ -47,7 +69,7 @@ export const entriesOf = (day: PlanDay, ideas: IdeaDto[], makingSince?: string):
     const status = slot.item ? statusOf(slot.item) : null;
     if (!slot.item || !status) return [];
     const id = slot.item.kind === 'blitz' ? slot.item.blitz.id : slot.item.show?.id ?? `making-${slot.at.toISOString()}`;
-    return [{ id, status, at: slot.at, cover: coverOf(slot.item), coverIsVideo: coverIsVideoOf(slot.item), caption: titleOf(slot.item), captionOnCover: slot.item.kind === 'blitz', slot: slot as Filled, ...(status === 'making' && makingSince ? { makingSince } : {}) }];
+    return [{ id, status, at: slot.at, cover: coverOf(slot.item), coverIsVideo: coverIsVideoOf(slot.item), caption: titleOf(slot.item), captionOnCover: slot.item.kind === 'blitz', slot: slot as Filled, ...(status === 'making' && makingSince ? { makingSince } : {}), countdown: countdownOfItem(slot.item) }];
   });
   const planned = day.past ? [] : ideas.filter((i) => i.status === 'kept').map((idea): TileEntry => ({
     // A kept idea is already finished (videos render near their time, slideshows were made while swiping): it reads

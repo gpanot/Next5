@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { MAX_TOPUP_CENTS, MIN_TOPUP_CENTS, TOPUP_PRESETS_CENTS, dollarsToCents, usd } from '../../../../../types/admin/slideshowCredits';
 import { adminFetch } from '../../../business/useAdminApi';
+import { here } from './useCheckoutReturn';
 import { postsLabel } from './BalanceCard';
 import { cardClass, MoneyInput, primaryButton, SectionTitle } from './fields';
 
@@ -22,7 +23,7 @@ export function TopUpCard({ token, workspaceId, priceCents, disabled }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const { url } = await adminFetch<{ url: string }>(token, '/api/slideshow/credits/checkout', { method: 'POST', body: JSON.stringify({ amountCents: valid, workspaceId }) });
+      const { url } = await adminFetch<{ url: string }>(token, '/api/slideshow/credits/checkout', { method: 'POST', body: JSON.stringify({ amountCents: valid, workspaceId, returnPath: here() }) });
       window.location.assign(url);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not open checkout');

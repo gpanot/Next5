@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { CardDto } from '../../../../../types/admin/slideshowCredits';
 import { adminFetch } from '../../../business/useAdminApi';
+import { here } from './useCheckoutReturn';
 import { cardClass, SectionTitle, secondaryButton } from './fields';
 
 type Props = { token: string; workspaceId: string; cards: CardDto[]; autoCardId: string | null; disabled: boolean; onChanged: () => void };
@@ -36,7 +37,7 @@ export function CardsCard({ token, workspaceId, cards, autoCardId, disabled, onC
   };
   const add = () =>
     run('add', async () => {
-      const { url } = await adminFetch<{ url: string }>(token, '/api/slideshow/credits/cards', { method: 'POST', body: JSON.stringify({ workspaceId }) });
+      const { url } = await adminFetch<{ url: string }>(token, '/api/slideshow/credits/cards', { method: 'POST', body: JSON.stringify({ workspaceId, returnPath: here() }) });
       window.location.assign(url);
     });
   const remove = (card: CardDto) => {

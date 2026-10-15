@@ -29,11 +29,23 @@ export const ensureCustomer = async (userId: string, email: string): Promise<str
   return customer.id;
 };
 
-/** Back to the workspace with the Credits tab open; the tab confirms the session (in case the webhook is late). */
-const returnUrl = (workspaceId: string, state: 'paid' | 'card' | 'cancel') =>
-  `${appBaseUrl()}/slideshow/${encodeURIComponent(workspaceId)}?credits=${state}${state === 'cancel' ? '' : '&session_id={CHECKOUT_SESSION_ID}'}`;
+/** The page checkout was opened from, when it is a slideshow page on this site (never another host); else null. */
+export const returnPathOf = (raw: unknown): string | null =>
+  typeof raw === 'string' && raw.startsWith('/slideshow/') && !/[\\]|\/\//.test(raw) && raw.length <= 500 ? raw : null;
 
-type CheckoutInput = { userId: string; email: string; workspaceId: string };
+/**
+ * Back to the page checkout was opened from (the workspace when unknown), which confirms the session in case the
+ * webhook is late: the Credits tab, or the campaign editor when checkout started there.
+ */
+const returnUrl = (workspaceId: string, state: 'paid' | 'card' | 'cancel', returnPath: string | null = null) => {
+  const url = new URL(returnPath ?? `/slideshow/${encodeURIComponent(workspaceId)}`, appBaseUrl());
+  url.searchParams.delete('session_id');
+  url.searchParams.set('credits', state);
+  // Stripe fills the placeholder; URLSearchParams would encode its braces.
+  return state === 'cancel' ? url.toString() : `${url.toString()}&session_id={CHECKOUT_SESSION_ID}`;
+};
+
+type CheckoutInput = { userId: string; email: string; workspaceId: string; returnPath?: string | null };
 
 /**
  * Stripe Managed Payments (on by default for new accounts) does not allow setup mode and needs a tax code per product.
@@ -54,7 +66,7 @@ const openCheckout = async (params: Stripe.Checkout.SessionCreateParams): Promis
 };
 
 /** Hosted Checkout for a one-time top up. The card is saved for auto recharge. */
-export const topUpCheckout = async ({ userId, email, workspaceId }: CheckoutInput, amountCents: number): Promise<string> => {
+export const topUpCheckout = async ({ userId, email, workspaceId, returnPath }: CheckoutInput, amountCents: number): Promise<string> => {
   const customer = await ensureCustomer(userId, email);
   return openCheckout({
     mode: 'payment',
@@ -62,21 +74,21 @@ export const topUpCheckout = async ({ userId, email, workspaceId }: CheckoutInpu
     line_items: [{ quantity: 1, price_data: { currency: 'usd', unit_amount: amountCents, product_data: { name: 'Auto Slideshow credits', description: `${SLIDESHOW_PRICE_LABEL} per slideshow` } } }],
     payment_intent_data: { setup_future_usage: 'off_session', metadata: { userId, kind: 'topup' } },
     metadata: { userId, kind: 'topup', amountCents: String(amountCents) },
-    success_url: returnUrl(workspaceId, 'paid'),
-    cancel_url: returnUrl(workspaceId, 'cancel'),
+    success_url: returnUrl(workspaceId, 'paid', returnPath),
+    cancel_url: returnUrl(workspaceId, 'cancel', returnPath),
   });
 };
 
 /** Hosted Checkout that only saves a card (no charge). */
-export const addCardCheckout = async ({ userId, email, workspaceId }: CheckoutInput): Promise<string> => {
+export const addCardCheckout = async ({ userId, email, workspaceId, returnPath }: CheckoutInput): Promise<string> => {
   const customer = await ensureCustomer(userId, email);
   return openCheckout({
     mode: 'setup',
     customer,
     currency: 'usd',
     metadata: { userId, kind: 'card' },
-    success_url: returnUrl(workspaceId, 'card'),
-    cancel_url: returnUrl(workspaceId, 'cancel'),
+    success_url: returnUrl(workspaceId, 'card', returnPath),
+    cancel_url: returnUrl(workspaceId, 'cancel', returnPath),
   });
 };
 

@@ -2,9 +2,9 @@
 
 import { useCallback, useState } from 'react';
 import { numberCards, stripNumber } from '../../../../types/admin/campaignNumbering';
-import { autoSlideCount, CTA_PREFILL, type AutoContentDto, type AutoContentRequest, type AutoPhotoRequest, type AutoPhotoSource, type CampaignCard, type CampaignPhotoRef, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
+import { autoSlideCount, CTA_PREFILL, type AutoContentDto, type AutoContentRequest, type AutoPhotoRequest, type AutoPhotoSource, type CampaignCard, type CampaignPhotoJobRequest, type CampaignPhotoJobSource, type CampaignPhotoRef } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
-import type { CampaignState, PhotoJob } from './useCampaign';
+import type { CampaignState } from './useCampaign';
 
 export type AutoSettings = AutoContentRequest;
 
@@ -48,20 +48,17 @@ export const useAutoContent = (token: string, campaignId: string, state: Campaig
     setPicked((s) => ({ ...s, ...patch }));
   }, []);
 
-  const photoJobs = useCallback((written: AutoContentDto, s: AutoSettings): PhotoJob[] => {
-    const post = async (path: string, body: unknown) => (await adminFetch<{ photo: CampaignPhotoDto }>(token, `${base}/${path}`, { method: 'POST', body: JSON.stringify(body) })).photo;
-    // A matched brand or shared photo is imported like a pick; otherwise the photo is made (AI) or found on Unsplash.
-    const load = (i: number | null) => {
+  /** The photos to make on the server (they keep coming when the editor is closed). */
+  const photoJobs = useCallback((written: AutoContentDto, s: AutoSettings): CampaignPhotoJobRequest[] => {
+    // A matched brand or shared photo is copied in like a pick; otherwise the photo is made (AI) or found on Unsplash.
+    const source = (i: number | null): CampaignPhotoJobSource => {
       const ref = s.photoSource === 'stock' ? libraryRef(written, i) : null;
-      return ref ? () => post('photos', { ref }) : () => post('auto-photo', photoRequest(written, s.photoSource, i, tonePhoto));
+      return ref ? { ref } : { auto: photoRequest(written, s.photoSource, i, tonePhoto) };
     };
     const stamp = Date.now().toString(36);
-    if (s.samePhoto) {
-      const cards = written.titles.map((_, i) => i);
-      return [{ key: `auto-${stamp}-all`, thumbUrl: null, target: { slot: 'cards', cards }, load: load(null) }];
-    }
-    return written.titles.map((_, i) => ({ key: `auto-${stamp}-${i}`, thumbUrl: null, target: { slot: 'card', card: i }, load: load(i) }));
-  }, [token, base, tonePhoto]);
+    if (s.samePhoto) return [{ key: `auto-${stamp}-all`, cards: written.titles.map((_, i) => i), ...source(null) }];
+    return written.titles.map((_, i) => ({ key: `auto-${stamp}-${i}`, cards: [i], ...source(i) }));
+  }, [tonePhoto]);
 
   /** Writes and places the slides; resolves true once the text is on the cards (photos keep coming in). */
   const run = useCallback(async (): Promise<boolean> => {
@@ -78,7 +75,7 @@ export const useAutoContent = (token: string, campaignId: string, state: Campaig
         // Numbered: the CTA takes the hook's last number too ("6 ways…": slides 1-5, then the CTA as 6).
         return { ...d, cards: settings.format === 'numbered' ? numberCards({ hooks: d.hooks, cards }, true) : cards };
       });
-      void state.addPhotos(photoJobs(written, settings));
+      void state.startPhotoJobs(photoJobs(written, settings));
       return true;
     } catch (err) {
       state.setError(err instanceof Error ? err.message : 'Could not write the slides');

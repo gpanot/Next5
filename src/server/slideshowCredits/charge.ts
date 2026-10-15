@@ -3,7 +3,7 @@
 // is first ready. Failed slideshows cost nothing, and edits or re-renders of a ready one are free.
 
 import { prisma } from '../../lib/db';
-import { SLIDESHOW_PRICE_CENTS, usd } from '../../types/admin/slideshowCredits';
+import { SLIDESHOW_PRICE_CENTS } from '../../types/admin/slideshowCredits';
 import { HttpError } from '../http';
 import { maybeAutoRecharge } from './autoRecharge';
 import { addEntry, ensureWallet } from './wallet';
@@ -17,7 +17,8 @@ export const requireCredits = async (userId: string, count: number, unit = 'slid
   if (await maybeAutoRecharge(userId)) wallet = await ensureWallet(userId);
   if (wallet.balanceCents >= needed) return;
   const s = count === 1 ? '' : 's';
-  throw new HttpError(402, 'no_credits', `${count} ${unit}${s} cost ${usd(needed)}. You have ${usd(wallet.balanceCents)}. Add credits in Settings → Credits.`, {
+  const left = Math.max(0, Math.floor(wallet.balanceCents / SLIDESHOW_PRICE_CENTS));
+  throw new HttpError(402, 'no_credits', `You need ${count} ${unit} credit${s} but only have ${left} left. Add credits in Settings → Credits.`, {
     balanceCents: wallet.balanceCents,
     neededCents: needed,
   });

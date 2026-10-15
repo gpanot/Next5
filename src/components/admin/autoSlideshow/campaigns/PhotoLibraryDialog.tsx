@@ -18,6 +18,8 @@ type Props = {
   title: string;
   /** The tab it opens on (App shot for the CTA). */
   startTab?: PickerTab;
+  /** Photos still missing for one per hook: a warning counts down as photos are picked. */
+  recommended?: number;
   onDone: (picks: PhotoOptionDto[]) => void;
   onClose: () => void;
 };
@@ -88,7 +90,7 @@ function UploadButton({ onFiles, busy }: { onFiles: (files: File[]) => void; bus
  * The photo library: stock photos (Unsplash), the workspace's generated photos, its own photos (with upload), the
  * shared library and the App shot builder (the app on a hand-held phone), as tabs. Picks keep their order across tabs; Done hands them over for import.
  */
-export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, title, startTab = 'search', onDone, onClose }: Props) {
+export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, title, startTab = 'search', recommended = 0, onDone, onClose }: Props) {
   const [tab, setTab] = useState<PickerTab>(startTab);
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState<PhotoOptionDto[]>([]);
@@ -97,6 +99,7 @@ export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, t
   // App shot lists nothing: an idle search tab.
   const list = usePhotoOptions(token, campaignId, tab === 'appshot' ? 'search' : tab, tab === 'appshot' ? '' : query);
   const keys = useMemo(() => picked.map((p) => p.key), [picked]);
+  const missing = Math.max(0, recommended - picked.length);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -144,6 +147,12 @@ export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, t
             )}
           </div>
         </div>
+        {missing > 0 && (
+          <p role="status" className="flex shrink-0 items-center gap-2 border-t border-amber-300/30 bg-amber-300/10 px-4 py-2.5 text-sm font-semibold text-amber-300">
+            <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /></svg>
+            Add {missing} more {missing === 1 ? 'picture' : 'pictures'}. Recommended
+          </p>
+        )}
         <footer className="flex shrink-0 items-center gap-3 border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
           <ul className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto" aria-label="Picked photos">
             {picked.map((p) => (
