@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { AutoSlideDto } from '../../../types/admin/autoSlideshow';
 import { roleGroup } from './SlideStrip';
 
@@ -11,11 +11,8 @@ type Props = {
   body: string;
   onTitle: (value: string) => void;
   onBody: (value: string) => void;
-  /** Hook · Content · CTA, at the start of the top row. */
-  tabs: ReactNode;
-  /** Rendered at the end of the top row. */
-  menu?: ReactNode;
-  /** Opened by the "Photo" button, under the top row. */
+  /** Shown while the "Photo" button (in the editor's top row) is on. */
+  photoOpen: boolean;
   photoPicker: ReactNode;
   /** Text style dropdowns, in front of the headline and of the line under it. */
   titleStyle: ReactNode;
@@ -40,6 +37,11 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
+/** "Photo": opens and closes the slide's photo picker. In the editor's top row, beside the slide tools. */
+export function PhotoToggle({ open, onClick }: { open: boolean; onClick: () => void }) {
+  return <ToolButton label="Photo" icon={<ImageIcon />} open={open} onClick={onClick} />;
+}
+
 function ToolButton({ label, icon, open, onClick }: { label: string; icon: ReactNode; open: boolean; onClick: () => void }) {
   return (
     <button
@@ -56,22 +58,12 @@ function ToolButton({ label, icon, open, onClick }: { label: string; icon: React
 }
 
 /**
- * The on-screen slide: Hook · Content · CTA tabs, the "Photo" picker behind its button, and its text, each field with
- * its text style dropdown in front. Text is saved by the editor's Save button and re-renders that slide only.
+ * The on-screen slide: its photo picker (while "Photo" is on), and its text, each field with its text style dropdown in
+ * front. Text is saved by the editor's Save button and re-renders that slide only.
  */
-export function SlideEditPanel({ slide, index, title, body, onTitle, onBody, tabs, menu, photoPicker, titleStyle, bodyStyle }: Props) {
-  const [photoOpen, setPhotoOpen] = useState(false);
-
+export function SlideEditPanel({ slide, index, title, body, onTitle, onBody, photoOpen, photoPicker, titleStyle, bodyStyle }: Props) {
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        {tabs}
-        <div className="ml-auto flex items-center gap-2">
-          <ToolButton label="Photo" icon={<ImageIcon />} open={photoOpen} onClick={() => setPhotoOpen((o) => !o)} />
-          {menu}
-        </div>
-      </div>
-
       {photoOpen && <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">{photoPicker}</div>}
 
       <div className="space-y-2">

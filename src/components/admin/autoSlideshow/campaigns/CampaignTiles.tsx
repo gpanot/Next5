@@ -1,0 +1,97 @@
+'use client';
+
+import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampaign';
+import { PreviewSlideView } from './PreviewSlideView';
+
+const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+const statusOf = (c: CampaignSummaryDto): string => {
+  if (c.scheduledCount > 0) return `${c.scheduledCount} scheduled`;
+  if (c.slideshowCount > 0) return `${c.slideshowCount} slideshows ready`;
+  return c.hookCount > 0 ? `Draft · ${c.hookCount} ${c.hookCount === 1 ? 'hook' : 'hooks'}` : 'Draft';
+};
+
+export function CampaignTilesSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-busy="true" aria-label="Loading campaigns">
+      {Array.from({ length: 5 }, (_, i) => <div key={i} className="aspect-[9/16] animate-pulse rounded-xl bg-app-sunken" />)}
+    </div>
+  );
+}
+
+/** One campaign as its 9:16 cover (the first hook on its first photo), its name and where it stands. */
+export function CampaignTile({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () => void }) {
+  return (
+    <li>
+      <button type="button" onClick={onOpen} className="group block w-full text-left transition active:scale-[0.98]">
+        <span className="relative block aspect-[9/16] overflow-hidden rounded-xl border border-app-line bg-app-sunken shadow-sm transition group-hover:shadow-md">
+          {c.coverUrl && c.coverHook && (
+            <span className="absolute inset-0">
+              <PreviewSlideView slide={{ kind: 'draft', photoUrl: c.coverUrl, role: 'hook', body: '', ...c.coverHook }} />
+            </span>
+          )}
+          {c.coverUrl && !c.coverHook && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={c.coverUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+          )}
+          {!c.coverUrl && <span className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-app-muted">No photos yet</span>}
+        </span>
+        <span className="mt-2 block truncate text-sm font-semibold text-app-ink">{c.name}</span>
+        <span className="block truncate text-xs text-app-muted">{statusOf(c)} · {when(c.updatedAt)}</span>
+      </button>
+    </li>
+  );
+}
+
+/** A small 9:16 cover for list rows: the first photo, or a blank. */
+export function RowThumb({ url }: { url: string | null }) {
+  return (
+    <span className="relative block aspect-[9/16] w-12 shrink-0 overflow-hidden rounded-lg border border-app-line bg-app-sunken">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {url && <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+    </span>
+  );
+}
+
+/** A list row's look: thumb, two lines of text, a chevron. */
+export const rowClass = 'flex w-full items-center gap-3 rounded-xl border border-app-line bg-app-panel p-2 pr-3 text-left shadow-sm transition hover:border-app-muted active:scale-[0.99]';
+
+export const RowChevron = () => (
+  <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-app-muted">
+    <path d="m9 6 6 6-6 6" />
+  </svg>
+);
+
+/** One campaign as a list row: its cover, name, where it stands and when it last changed. */
+export function CampaignRow({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () => void }) {
+  return (
+    <li>
+      <button type="button" onClick={onOpen} className={rowClass}>
+        <RowThumb url={c.coverUrl} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-app-ink">{c.name}</span>
+          <span className="block truncate text-xs text-app-muted">{statusOf(c)} · {when(c.updatedAt)}</span>
+        </span>
+        <RowChevron />
+      </button>
+    </li>
+  );
+}
+
+type CollectionProps = { campaigns: CampaignSummaryDto[]; calendarOnly: boolean; view: 'cards' | 'list'; onOpen: (id: string) => void };
+
+/** The campaigns as cards or rows; "On calendar" keeps those with posts scheduled. */
+export function CampaignCollection({ campaigns, calendarOnly, view, onOpen }: CollectionProps) {
+  const shown = calendarOnly ? campaigns.filter((c) => c.scheduledCount > 0) : campaigns;
+  if (shown.length === 0) {
+    return <p className="rounded-xl border border-dashed border-app-line p-8 text-center text-sm text-app-muted">No campaign has posts on the calendar yet.</p>;
+  }
+  if (view === 'list') {
+    return <ul className="space-y-2">{shown.map((c) => <CampaignRow key={c.id} c={c} onOpen={() => onOpen(c.id)} />)}</ul>;
+  }
+  return (
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {shown.map((c) => <CampaignTile key={c.id} c={c} onOpen={() => onOpen(c.id)} />)}
+    </ul>
+  );
+}

@@ -14,3 +14,18 @@ export function CaptionPanel({ caption, tags, onCaption, onTags }: Props) {
     </div>
   );
 }
+
+/** Under the caption while it has unsaved edits: stores them, so the post goes out with them. */
+export function SaveCaptionButton({ saving, onSave }: { saving: boolean; onSave: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onSave}
+      disabled={saving}
+      className="flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-emerald-500 text-sm font-semibold text-white transition hover:bg-emerald-400 active:scale-95 disabled:opacity-50"
+    >
+      {saving && <span aria-hidden className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
+      {saving ? 'Saving…' : 'Save caption'}
+    </button>
+  );
+}

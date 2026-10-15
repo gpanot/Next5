@@ -1,14 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { isNumbered, numberCards } from '../../../../types/admin/campaignNumbering';
 import { titlePick, type TextAt } from '../../../../types/slideText';
 import { targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
 import { isAdminView } from '../../../../lib/adminToken';
 import { LookMenu } from '../LookMenu';
+import { announceCreditsChanged } from '../creditsEvents';
+import { SettingsModal } from '../settings/SettingsModal';
+import { useCheckoutReturn } from '../settings/credits/useCheckoutReturn';
 import { SafeZoneButton, useSafeZone } from '../SafeZone';
 import { GenerateVideoButton } from '../VideoButton';
+import { EditorAlert, EditorAside, EditorBody, EditorFrame, EditorPlaceholder, editorCard, topBarButton } from '../editor/EditorShell';
+import { RoleTabBar } from '../editor/RoleTabBar';
 import { CampaignPlayer } from './CampaignPlayer';
 import { CampaignPosts } from './CampaignPosts';
 import { CampaignPreview } from './CampaignPreview';
@@ -28,8 +32,8 @@ import { useCampaignSchedule } from './useCampaignSchedule';
 
 type Props = { token: string; workspaceId: string; campaignId: string; onClose: () => void };
 
-const card = 'rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-sm';
-const tabClass = (on: boolean) => `min-h-10 rounded-lg px-4 text-sm font-semibold transition active:scale-95 ${on ? 'bg-emerald-400 text-zinc-950' : 'text-white/60 hover:text-white'}`;
+/** The server's "not enough credits" line ends with this; the banner swaps it for an Add Credit button. */
+const CREDITS_HINT = ' Add credits in Settings → Credits.';
 
 /** The slides (0 = hook, i = card i - 1) whose shown photo is on its way: a card's photo being replaced, or the first
  *  photo of an empty hook or card. Photos added to a rotation behind a shown one change nothing on screen. */
@@ -75,12 +79,20 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   /** Video render is admin-only: the admin token, or an "Open as user" tab. */
   const admin = isAdminView(token);
   const safeZone = useSafeZone();
+  const [addingCredit, setAddingCredit] = useState(false);
+  const needsCredit = state.error?.endsWith(CREDITS_HINT) ?? false;
+  /** Back from Stripe (checkout opened from Add Credit): confirms the payment here, no Settings popup. */
+  const paid = useCheckoutReturn(token, () => {
+    announceCreditsChanged();
+    state.clearError();
+  });
+  const [paidSeen, setPaidSeen] = useState(false);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !picker && previewing === null && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !picker && previewing === null && !addingCredit && onClose();
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, picker, previewing]);
+  }, [onClose, picker, previewing, addingCredit]);
 
   const draft = campaign?.draft;
   const loading = loadingSlides(state.pending, draft);
@@ -119,118 +131,124 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
     setSlide((s) => Math.max(1, s - 1));
   };
 
-  // On <body>: the workspace page's own layers must never cover the editor or its top bar.
-  return createPortal(
-    <div className="fixed inset-0 z-[60] flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={campaign?.name ?? 'Campaign'}>
-      <header className="flex min-h-16 shrink-0 items-center gap-2 border-b border-white/10 px-2 sm:px-4">
-        <button onClick={onClose} aria-label="Back to campaigns" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-white/10">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+  const header = (
+    <>
+      <span className="hidden text-xs text-white/40 sm:block" aria-live="polite">{state.saving ? 'Saving…' : campaign ? 'Saved' : ''}</span>
+      {campaign && <SafeZoneButton on={safeZone.on} onToggle={safeZone.toggle} />}
+      {campaign && (
+        <button type="button" onClick={() => setPreviewing(0)} aria-label="Preview" className={topBarButton}>
+          <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+          <span className="max-sm:hidden">Preview</span>
         </button>
-        <div className="flex min-w-0 flex-1 items-center gap-1">
+      )}
+      {draft && <ScheduleButton plan={plan} />}
+    </>
+  );
+
+  return (
+    <EditorFrame
+      label={campaign?.name ?? 'Campaign'}
+      backLabel="Back to campaigns"
+      onBack={onClose}
+      title={
+        <>
           {campaign ? <NameInput value={campaign.name} onSave={(n) => void state.rename(n)} /> : <div className="h-11 w-full max-w-xs animate-pulse rounded-xl bg-white/10" />}
           {campaign && <CampaignMenu token={token} campaignId={campaignId} onDeleted={onClose} />}
-        </div>
-        <span className="hidden text-xs text-white/40 sm:block" aria-live="polite">{state.saving ? 'Saving…' : campaign ? 'Saved' : ''}</span>
-        {campaign && <SafeZoneButton on={safeZone.on} onToggle={safeZone.toggle} />}
-        {campaign && (
-          <button type="button" onClick={() => setPreviewing(0)} aria-label="Preview" className="flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-white/15 px-3 text-sm font-semibold text-white/85 transition hover:bg-white/5 active:scale-95 sm:px-4">
-            <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
-            <span className="max-sm:hidden">Preview</span>
-          </button>
-        )}
-        {draft && <ScheduleButton plan={plan} />}
-      </header>
-
+        </>
+      }
+      actions={header}
+    >
       {!campaign || !draft ? (
-        state.error ? <p className="m-4 rounded-lg bg-red-500/15 p-3 text-sm text-red-300">{state.error}</p> : <div className="m-4 h-72 animate-pulse rounded-xl bg-white/5" />
+        <EditorPlaceholder error={state.error} />
       ) : (
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
-          {/* The slideshow editor's player: left on wide screens, on top on phones. */}
-          <div className="shrink-0 p-4 md:flex md:w-[30%] md:flex-col md:justify-center md:overflow-y-auto lg:w-[27%]">
-            <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} onRemoveCard={removeCard} safeZone={safeZone.on} loading={loading} />
-            {admin && (
-              <GenerateVideoButton
-                rendering={video.rendering}
-                startedAt={video.startedAt}
-                lastMs={video.lastMs}
-                error={video.error}
-                disabled={state.busy !== null}
-                onClick={() => void video.generate()}
-              />
-            )}
-          </div>
-          <div className="min-w-0 md:flex-1 md:overflow-y-auto md:border-l md:border-white/10">
-            <div className="border-b border-white/10 bg-black/20 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:16px_16px]">
-              <CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} onMoveBadges={moveBadges} loading={loading} />
-            </div>
-            <div className="mx-auto grid max-w-7xl gap-4 p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] xl:grid-cols-[minmax(0,1fr)_minmax(320px,400px)] xl:items-start">
-              <div className="min-w-0 space-y-4">
-                <section aria-label="Slide" className={card}>
-                  <div className="mb-4 flex flex-wrap items-center gap-2 border-b border-white/10 pb-4">
-                    <div role="tablist" className="flex rounded-xl bg-white/5 p-1">
-                      <button type="button" role="tab" aria-selected={tab === 'hook'} onClick={() => setSlide(0)} className={tabClass(tab === 'hook')}>Hook</button>
-                      <button type="button" role="tab" aria-selected={tab === 'content'} onClick={() => setSlide(1)} className={tabClass(tab === 'content')}>Content</button>
-                      <button type="button" role="tab" aria-selected={tab === 'cta'} onClick={() => setSlide(draft.cards.length)} className={tabClass(tab === 'cta')}>CTA</button>
-                    </div>
-                    {tab === 'content' && contentMode === 'slides' && <span className="text-xs text-white/40">Slide {at + 1}</span>}
-                    <div className="ml-auto">
-                      <LookMenu
-                        label="Title style"
-                        scope={STYLE_SCOPE[tab]}
-                        align="right"
-                        active={titlePick(TAB_ROLE[tab], draft.looks[tab])}
-                        onPick={(look) => setDraft((d) => ({ ...d, looks: { ...d.looks, [tab]: look } }))}
-                      />
-                    </div>
-                  </div>
-                  {state.error && (
-                    <p role="alert" className="mb-4 flex items-start gap-2 rounded-lg bg-red-500/15 p-3 text-sm text-red-300">
-                      <span className="flex-1">{state.error}</span>
-                      <button type="button" onClick={state.clearError} aria-label="Dismiss" className="text-red-200">✕</button>
-                    </p>
-                  )}
-                  {tab === 'content' && <ContentModeTabs mode={contentMode} onPick={setMode} />}
-                  {tab === 'content' && contentMode === 'auto' ? (
-                    <AutoContentPanel
-                      draft={draft}
-                      settings={auto.settings}
-                      writing={auto.writing}
-                      photosPending={state.pending.filter((p) => p.key.startsWith('auto-')).length}
-                      onChange={auto.update}
-                      onRun={() => void runAuto()}
+        <EditorBody
+          player={
+            <>
+              <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} onRemoveCard={removeCard} safeZone={safeZone.on} loading={loading} />
+              {admin && (
+                <GenerateVideoButton
+                  rendering={video.rendering}
+                  startedAt={video.startedAt}
+                  lastMs={video.lastMs}
+                  error={video.error}
+                  disabled={state.busy !== null}
+                  onClick={() => void video.generate()}
+                />
+              )}
+            </>
+          }
+          strip={<CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} onMoveBadges={moveBadges} loading={loading} />}
+          main={
+            <>
+              <section aria-label="Slide" className={editorCard}>
+                <RoleTabBar
+                  active={tab}
+                  onPick={(role) => setSlide(role === 'hook' ? 0 : role === 'content' ? 1 : draft.cards.length)}
+                  after={tab === 'content' && contentMode === 'slides' && <span className="text-xs text-white/40">Slide {at + 1}</span>}
+                  end={
+                    <LookMenu
+                      label="Title style"
+                      scope={STYLE_SCOPE[tab]}
+                      align="right"
+                      active={titlePick(TAB_ROLE[tab], draft.looks[tab])}
+                      onPick={(look) => setDraft((d) => ({ ...d, looks: { ...d.looks, [tab]: look } }))}
                     />
-                  ) : at === 0 ? (
-                    <HookPanel token={token} campaignId={campaignId} draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
-                  ) : (
-                    <CardPanel
-                      card={draft.cards[at - 1]!}
-                      position={at - 1}
-                      contentCount={draft.cards.length - 1}
-                      photos={campaign.photos}
-                      pending={state.pending.find((p) => targetsCard(p.target, at - 1)) ?? null}
-                      rotationPending={state.pending.filter((p) => p.target.slot === 'cardRotation' && p.target.card === at - 1)}
-                      hookCount={draft.hooks.length}
-                      onAddPhotos={() => setPicker({ slot: 'cardRotation', card: at - 1 })}
-                      onChange={(p) => patchCard(at - 1, p)}
-                      numbered={isNumbered(draft.cards)}
-                      onNumbered={(on) => setDraft((d) => ({ ...d, cards: numberCards(d, on) }))}
-                      onPickPhoto={() => setPicker({ slot: 'card', card: at - 1 })}
-                      onRemove={() => removeCard(at - 1)}
-                    />
-                  )}
-                </section>
-                <Checklist draft={draft} />
-              </div>
-              {/* Right of the slide panel on wide screens, below it on phones. */}
-              <aside aria-label="Post and Schedule" className={`${card} xl:sticky xl:top-4`}>
-                <h2 className="text-base font-semibold text-white">Post and Schedule</h2>
-                <div className="mt-3">
-                  <CampaignPosts state={state} plan={plan} onPreview={setPreviewing} />
-                </div>
-              </aside>
-            </div>
-          </div>
-        </div>
+                  }
+                />
+                {paid && !paidSeen && !state.error && (
+                  <p role="status" className={`mb-4 flex items-start gap-2 rounded-lg p-3 text-sm ${paid.tone === 'ok' ? 'bg-emerald-400/15 text-emerald-300' : 'bg-white/5 text-white/70'}`}>
+                    <span className="flex-1">{paid.text}</span>
+                    <button type="button" onClick={() => setPaidSeen(true)} aria-label="Dismiss">✕</button>
+                  </p>
+                )}
+                {state.error && (
+                  <EditorAlert
+                    message={needsCredit ? state.error.slice(0, -CREDITS_HINT.length) : state.error}
+                    onDismiss={state.clearError}
+                    action={needsCredit && (
+                      <button type="button" onClick={() => setAddingCredit(true)} className="min-h-9 shrink-0 rounded-full bg-emerald-400 px-4 text-sm font-semibold text-zinc-950 shadow-sm transition active:scale-95">Add Credit</button>
+                    )}
+                  />
+                )}
+                {tab === 'content' && <ContentModeTabs mode={contentMode} onPick={setMode} />}
+                {tab === 'content' && contentMode === 'auto' ? (
+                  <AutoContentPanel
+                    draft={draft}
+                    settings={auto.settings}
+                    writing={auto.writing}
+                    photosPending={state.pending.filter((p) => p.key.startsWith('auto-')).length}
+                    onChange={auto.update}
+                    onRun={() => void runAuto()}
+                  />
+                ) : at === 0 ? (
+                  <HookPanel token={token} campaignId={campaignId} draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
+                ) : (
+                  <CardPanel
+                    card={draft.cards[at - 1]!}
+                    position={at - 1}
+                    contentCount={draft.cards.length - 1}
+                    photos={campaign.photos}
+                    pending={state.pending.find((p) => targetsCard(p.target, at - 1)) ?? null}
+                    rotationPending={state.pending.filter((p) => p.target.slot === 'cardRotation' && p.target.card === at - 1)}
+                    hookCount={draft.hooks.length}
+                    onAddPhotos={() => setPicker({ slot: 'cardRotation', card: at - 1 })}
+                    onChange={(p) => patchCard(at - 1, p)}
+                    numbered={isNumbered(draft.cards)}
+                    onNumbered={(on) => setDraft((d) => ({ ...d, cards: numberCards(d, on) }))}
+                    onPickPhoto={() => setPicker({ slot: 'card', card: at - 1 })}
+                    onRemove={() => removeCard(at - 1)}
+                  />
+                )}
+              </section>
+              <Checklist draft={draft} />
+            </>
+          }
+          aside={
+            <EditorAside title="Post and Schedule">
+              <CampaignPosts state={state} plan={plan} onPreview={setPreviewing} />
+            </EditorAside>
+          }
+        />
       )}
       {picker && campaign && (
         <PhotoLibraryDialog
@@ -239,6 +257,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           campaignId={campaignId}
           multiple={picker.slot === 'hook' || picker.slot === 'cardRotation'}
           title={picker.slot === 'hook' ? 'Hook photos' : picker.slot === 'cardRotation' ? 'Slide photos' : 'Slide photo'}
+          recommended={picker.slot === 'hook' && draft ? draft.hooks.length - draft.hookPhotos.length - state.pending.filter((p) => p.target.slot === 'hook').length : 0}
           startTab={picker.slot === 'card' && draft?.cards[picker.card]?.role === 'cta' ? 'appshot' : 'search'}
           onClose={() => setPicker(null)}
           onDone={(picks) => {
@@ -247,10 +266,10 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           }}
         />
       )}
+      {addingCredit && <SettingsModal token={token} workspaceId={workspaceId} initialTab="credits" onClose={() => setAddingCredit(false)} />}
       {previewing !== null && campaign && draft && (
         <CampaignPreview {...previewShows(draft, campaign.photos, campaign.slideshows, state.stale)} startShow={previewing} onClose={() => setPreviewing(null)} />
       )}
-    </div>,
-    document.body,
+    </EditorFrame>
   );
 }

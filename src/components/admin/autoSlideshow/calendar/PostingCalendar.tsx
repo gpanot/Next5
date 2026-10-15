@@ -73,7 +73,6 @@ const useRail = (ui: CalendarIdeasUi | null, ideasHref: string, onRailOpen?: () 
     onRailOpen?.();
   };
   const openIdea = (idea: IdeaDto) => {
-    ui?.ideas.setFilter('all');
     ui?.ideas.setFocusId(idea.id);
     router.push(ideasHref);
   };

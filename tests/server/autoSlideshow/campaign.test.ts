@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { planTimes } from '../../../src/components/admin/autoSlideshow/campaigns/scheduleTimes';
-import { parseDraft } from '../../../src/server/autoSlideshow/campaign/store';
+import { isBlankCampaign, parseDraft } from '../../../src/server/autoSlideshow/campaign/store';
 import { autoSlideCount, campaignProblems, emptyCampaignDraft, hookNumber, hookPhotoFor, renderKeyOf, type CampaignDraft } from '../../../src/types/admin/slideshowCampaign';
 
 const ready = (): CampaignDraft => ({
@@ -109,5 +109,25 @@ describe('autoSlideCount', () => {
     expect(autoSlideCount(['2 gym outfit rules'])).toBeNull();
     expect(autoSlideCount(['How to choose your gym outfit'])).toBeNull();
     expect(autoSlideCount([])).toBeNull();
+  });
+});
+
+describe('isBlankCampaign', () => {
+  const blank = () => ({ name: null, campaign: emptyCampaignDraft() as never, photos: [], photoJobs: null, slideshowCount: 0 });
+
+  it('is blank when opened and left untouched, even with text looks changed', () => {
+    expect(isBlankCampaign(blank())).toBe(true);
+    expect(isBlankCampaign({ ...blank(), campaign: { ...emptyCampaignDraft(), looks: { hook: 'box', content: 'default', cta: 'default' } } as never })).toBe(true);
+  });
+
+  it('is not blank once anything is added', () => {
+    const draft = emptyCampaignDraft();
+    expect(isBlankCampaign({ ...blank(), name: 'Golf tips' })).toBe(false);
+    expect(isBlankCampaign({ ...blank(), campaign: { ...draft, hooks: ['6 ways to golf'] } as never })).toBe(false);
+    expect(isBlankCampaign({ ...blank(), campaign: { ...draft, caption: 'Golf' } as never })).toBe(false);
+    expect(isBlankCampaign({ ...blank(), campaign: { ...draft, cards: draft.cards.map((c, i) => (i === 0 ? { ...c, title: 'Grip' } : c)) } as never })).toBe(false);
+    expect(isBlankCampaign({ ...blank(), photos: [{ imageKey: 'k' }] as never })).toBe(false);
+    expect(isBlankCampaign({ ...blank(), photoJobs: [{ status: 'running' }] as never })).toBe(false);
+    expect(isBlankCampaign({ ...blank(), slideshowCount: 1 })).toBe(false);
   });
 });

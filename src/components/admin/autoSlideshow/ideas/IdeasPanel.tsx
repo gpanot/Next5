@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { IDEAS_PER_BATCH, REQUESTED_SLIDESHOWS, type IdeaDto } from '../../../../types/admin/calendarIdeas';
+import { IDEAS_PER_BATCH, type IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { TYPICAL_RUN_MS } from '../RunEta';
 import { RotatingLine } from '../../shared/RotatingLine';
 import { MakingCountdown } from '../calendar/MakingCountdown';
-import { FormatChips } from './FormatChips';
-import { IdeasEmpty, useMoreIdeas } from './IdeasEmpty';
+import { CampaignsHint, IdeasEmpty } from './IdeasEmpty';
 import { KeptIdeas } from './KeptIdeas';
 import { LiveDeck } from './LiveDeck';
 import { MakeStatus } from './MakeStatus';
@@ -26,13 +25,6 @@ const WRITING_LINES = [
   'Getting them ready to swipe…',
 ];
 
-const SLIDESHOW_LINES = [
-  'Picking formats that already get views…',
-  'Writing each slide…',
-  'Making the photos…',
-  'Getting them ready to swipe…',
-];
-
 /** Writing a batch of ideas takes about a minute and a half at most (stories come from the bank; AI images and caption
  *  fitting finish after the deck shows). */
 const TYPICAL_IDEAS_MS = 90_000;
@@ -40,8 +32,8 @@ const TYPICAL_IDEAS_MS = 90_000;
 const deckBox = 'relative mx-auto aspect-[9/16] w-[min(calc(100vw-5rem),calc((100lvh-13.5rem)*0.5625))] rounded-[26px] bg-app-sunken lg:w-auto lg:max-w-full lg:h-[min(853px,calc(100dvh-20rem))]';
 
 /**
- * The title, "3 / 14" for the filter, a progress bar, and the All · Blitz · Slideshow chips. Compact on phones; while the
- * deck shows there, the title is the day the idea will be posted and the chips move into its ⋯ menu.
+ * The title, "3 / 14", and a progress bar. Compact on phones; while the deck shows there, the title is the day the idea
+ * will be posted.
  */
 type HeaderProps = { ideas: IdeasState; placeOf: Placer; onPickDate: (idea: IdeaDto, at: string) => void };
 
@@ -69,7 +61,6 @@ function Header({ ideas, placeOf, onPickDate }: HeaderProps) {
           <div className="h-full rounded-full bg-app-accent transition-[width] duration-300" style={{ width: `${(decided / total) * 100}%` }} />
         </div>
       )}
-      {!ideas.firstDeck && <FormatChips ideas={ideas} className={shown ? 'hidden lg:flex' : ''} />}
     </div>
   );
 }
@@ -89,23 +80,18 @@ function Writing({ since, lines, note, totalMs = TYPICAL_IDEAS_MS }: WritingProp
   );
 }
 
-/** "Get more" once every idea of the filter was looked at: a Blitz batch, or slideshows (asked first). */
+/** "Get more" once every idea was looked at: a new free Blitz batch. */
 function Kept({ ideas, maker }: { ideas: IdeasState; maker: Make }) {
-  const more = useMoreIdeas(ideas);
-  const slides = ideas.filter === 'slideshow';
   return (
-    <>
-      <KeptIdeas
-        kept={ideas.kept}
-        skipped={ideas.skipped.length}
-        errors={maker.errors}
-        generating={!slides && ideas.generating}
-        onReviewSkipped={ideas.reviewSkipped}
-        onMore={slides ? more.slideshows : more.blitz}
-        moreLabel={slides ? `Get ${REQUESTED_SLIDESHOWS} slideshow ideas` : `Get ${IDEAS_PER_BATCH} more Blitz ideas (free)`}
-      />
-      {more.dialog}
-    </>
+    <KeptIdeas
+      kept={ideas.kept}
+      skipped={ideas.skipped.length}
+      errors={maker.errors}
+      generating={ideas.generating}
+      onReviewSkipped={ideas.reviewSkipped}
+      onMore={() => void ideas.generate()}
+      moreLabel={`Get ${IDEAS_PER_BATCH} more Blitz ideas (free)`}
+    />
   );
 }
 
@@ -117,12 +103,8 @@ function Body({ ideas, maker, placeOf }: Props): ReactNode {
     const totalMs = ideas.building ? TYPICAL_RUN_MS + TYPICAL_IDEAS_MS : TYPICAL_IDEAS_MS;
     return <Writing since={ideas.generatingSince} lines={WRITING_LINES} totalMs={totalMs} note="We're building your first ideas. They show up here on their own." />;
   }
-  const writingBlitz = ideas.generating && ideas.filter !== 'slideshow';
-  if (ideas.deck.length === 0 && writingBlitz) {
+  if (ideas.deck.length === 0 && ideas.generating) {
     return <Writing since={ideas.generatingSince} lines={WRITING_LINES} note="This takes about 90 seconds. You can keep using the calendar." />;
-  }
-  if (ideas.deck.length === 0 && ideas.making.length > 0 && ideas.filter === 'slideshow') {
-    return <Writing since={null} lines={SLIDESHOW_LINES} note="Your slideshows join the deck in about 2 minutes." />;
   }
   const total = ideas.deck.length + ideas.making.length + ideas.kept.length + ideas.skipped.length;
   if (total === 0) return <IdeasEmpty ideas={ideas} />;
@@ -133,8 +115,9 @@ function Body({ ideas, maker, placeOf }: Props): ReactNode {
 }
 
 /**
- * The Ideas page: swipe through free ideas (All, or only Blitz or only slideshows); each one kept is made and goes on
- * its day. When a filter runs out, its own "Get more" starts that format's generation.
+ * The Ideas page: swipe through free Blitz video ideas; each one kept is made and goes on its day. When they run out,
+ * "Get more" writes a new batch. Slideshows are made in Campaigns (the line under the deck links there); slideshow ideas
+ * made before 2026-10-15 still show until kept or skipped.
  */
 export function IdeasPanel({ ideas, maker, placeOf }: Props) {
   const making = ideas.making.length;
@@ -154,6 +137,7 @@ export function IdeasPanel({ ideas, maker, placeOf }: Props) {
       {ideas.error && ideas.deck.length + ideas.kept.length > 0 && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{ideas.error}</p>}
       <Body ideas={ideas} maker={maker} placeOf={placeWith} />
       <MakeStatus kept={ideas.kept} maker={maker} />
+      {ideas.deck.length > 0 && <CampaignsHint />}
     </div>
   );
 }

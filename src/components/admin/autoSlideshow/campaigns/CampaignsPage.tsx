@@ -2,72 +2,64 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import type { AutoRunSummary } from '../../../../types/admin/autoSlideshow';
 import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch, useAdminApi } from '../../business/useAdminApi';
+import { SlideshowsTab } from '../content/SlideshowsTab';
 import { CampaignEditor } from './CampaignEditor';
-import { PreviewSlideView } from './PreviewSlideView';
+import { NewCampaignSheet } from './NewCampaignSheet';
+import { CampaignCollection, CampaignTilesSkeleton } from './CampaignTiles';
+import { FilterSelect, useListView, ViewToggle, type ListFilter } from './ListControls';
 
 type Props = { token: string; workspaceId: string };
 
-const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+type Tab = 'hooks' | 'brand';
 
-const statusOf = (c: CampaignSummaryDto): string => {
-  if (c.scheduledCount > 0) return `${c.scheduledCount} scheduled`;
-  if (c.slideshowCount > 0) return `${c.slideshowCount} slideshows ready`;
-  return c.hookCount > 0 ? `Draft · ${c.hookCount} ${c.hookCount === 1 ? 'hook' : 'hooks'}` : 'Draft';
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'hooks', label: 'Hooks Volume' },
+  { id: 'brand', label: 'Brand Cast' },
+];
+
+const tabClass = (active: boolean) =>
+  [
+    'flex min-h-10 shrink-0 items-center rounded-full px-4 text-sm font-medium transition active:scale-95',
+    active ? 'bg-app-cta text-app-cta-ink shadow-sm' : 'border border-app-line bg-app-panel text-app-muted hover:text-app-ink',
+  ].join(' ');
+
+const EMPTY: Record<Tab, { title: string; text: string }> = {
+  hooks: { title: 'No Hooks Volume campaigns yet', text: 'Write a few hooks, pick photos once, and get one slideshow per hook, ready to post.' },
+  brand: { title: 'No Brand Cast slideshows yet', text: 'We write 1 to 5 slideshows for you, with your brand faces. 1 credit each.' },
 };
 
-function ListSkeleton() {
-  return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-busy="true" aria-label="Loading campaigns">
-      {Array.from({ length: 5 }, (_, i) => <div key={i} className="aspect-[9/16] animate-pulse rounded-xl bg-app-sunken" />)}
-    </div>
-  );
-}
-
-function CampaignTile({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () => void }) {
-  return (
-    <li>
-      <button type="button" onClick={onOpen} className="group block w-full text-left transition active:scale-[0.98]">
-        <span className="relative block aspect-[9/16] overflow-hidden rounded-xl border border-app-line bg-app-sunken shadow-sm transition group-hover:shadow-md">
-          {c.coverUrl && c.coverHook && (
-            <span className="absolute inset-0">
-              <PreviewSlideView slide={{ kind: 'draft', photoUrl: c.coverUrl, role: 'hook', body: '', ...c.coverHook }} />
-            </span>
-          )}
-          {c.coverUrl && !c.coverHook && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={c.coverUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-          )}
-          {!c.coverUrl && <span className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-app-muted">No photos yet</span>}
-        </span>
-        <span className="mt-2 block truncate text-sm font-semibold text-app-ink">{c.name}</span>
-        <span className="block truncate text-xs text-app-muted">{statusOf(c)} · {when(c.updatedAt)}</span>
-      </button>
-    </li>
-  );
-}
-
-function Empty({ onCreate, busy }: { onCreate: () => void; busy: boolean }) {
+function Empty({ tab, onCreate }: { tab: Tab; onCreate: () => void }) {
   return (
     <div className="rounded-xl border border-dashed border-app-line p-8 text-center">
-      <p className="text-base font-semibold text-app-ink">No campaigns yet</p>
-      <p className="mx-auto mt-1 max-w-sm text-sm text-app-muted">Write a few hooks, pick photos once, and get one slideshow per hook, ready to post.</p>
-      <button type="button" onClick={onCreate} disabled={busy} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95 disabled:opacity-50">
-        {busy ? 'Creating…' : 'New campaign'}
+      <p className="text-base font-semibold text-app-ink">{EMPTY[tab].title}</p>
+      <p className="mx-auto mt-1 max-w-sm text-sm text-app-muted">{EMPTY[tab].text}</p>
+      <button type="button" onClick={onCreate} className="mt-4 inline-flex min-h-11 items-center rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95">
+        New campaign
       </button>
     </div>
   );
 }
 
 /**
- * One workspace's slideshow campaigns. "New campaign" opens an empty one in the campaign editor (`?campaign=` keeps it
- * open on reload and gives Back its way out).
+ * One workspace's campaigns, the only place slideshows are made, in two tabs: Hooks Volume and Brand Cast. One toolbar
+ * (All / On calendar, cards / list) serves both. "New campaign" asks which kind: Brand Cast (1-5 slideshows from the
+ * Auto Slideshow engine) or Hooks Volume (an empty campaign opened in the campaign editor; `?campaign=` keeps it open on
+ * reload and gives Back its way out).
  */
 export function CampaignsPage({ token, workspaceId }: Props) {
   const list = useAdminApi<{ campaigns: CampaignSummaryDto[] }>(token, `/api/slideshow/campaigns?workspace=${workspaceId}`);
+  const runs = useAdminApi<{ runs: AutoRunSummary[] }>(token, `/api/admin/auto-slideshow/runs?workspace=${workspaceId}`);
+  const [choosing, setChoosing] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Bumped after Brand Cast slideshows were asked for: the Brand Cast section polls its latest run again. */
+  const [brandReload, setBrandReload] = useState(0);
+  const [tab, setTab] = useState<Tab>('hooks');
+  const [filter, setFilter] = useState<ListFilter>('all');
+  const [view, setView] = useListView();
   const router = useRouter();
   const pathname = usePathname();
   const openId = useSearchParams().get('campaign');
@@ -79,6 +71,7 @@ export function CampaignsPage({ token, workspaceId }: Props) {
     setError(null);
     try {
       const { id } = await adminFetch<{ id: string }>(token, `/api/slideshow/campaigns?workspace=${workspaceId}`, { method: 'POST', body: '{}' });
+      setChoosing(false);
       open(id);
       list.refresh();
     } catch (err) {
@@ -90,25 +83,54 @@ export function CampaignsPage({ token, workspaceId }: Props) {
 
   const campaigns = list.data?.campaigns;
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
       <div className="flex items-center gap-3">
         <h1 className="font-heading text-3xl font-normal text-app-ink">Campaigns</h1>
-        {campaigns && campaigns.length > 0 && (
-          <button type="button" onClick={() => void create()} disabled={creating} className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-full bg-app-cta px-4 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95 disabled:opacity-50">
-            <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 4v12M4 10h12" /></svg>
-            {creating ? 'Creating…' : 'New campaign'}
-          </button>
-        )}
+        <button type="button" onClick={() => setChoosing(true)} className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-full bg-app-cta px-4 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95">
+          <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 4v12M4 10h12" /></svg>
+          New campaign
+        </button>
       </div>
       {(error ?? list.error) && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error ?? list.error}</p>}
-      {!campaigns ? (
-        !list.error && <ListSkeleton />
-      ) : campaigns.length === 0 ? (
-        <Empty onCreate={() => void create()} busy={creating} />
-      ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {campaigns.map((c) => <CampaignTile key={c.id} c={c} onOpen={() => open(c.id)} />)}
-        </ul>
+      <div className="flex flex-wrap items-center gap-2">
+        <div role="tablist" aria-label="Campaign kind" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+          {TABS.map((t) => (
+            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={tabClass(tab === t.id)}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="ml-auto flex items-center gap-2 pb-1">
+          <FilterSelect value={filter} onChange={setFilter} />
+          <ViewToggle value={view} onChange={setView} />
+        </div>
+      </div>
+      {/* Both stay mounted: switching tabs keeps what each one loaded. */}
+      <div role="tabpanel" hidden={tab !== 'hooks'}>
+        {!campaigns ? (
+          !list.error && <CampaignTilesSkeleton />
+        ) : campaigns.length === 0 ? (
+          <Empty tab="hooks" onCreate={() => setChoosing(true)} />
+        ) : (
+          <CampaignCollection campaigns={campaigns} calendarOnly={filter === 'calendar'} view={view} onOpen={open} />
+        )}
+      </div>
+      <div role="tabpanel" hidden={tab !== 'brand'}>
+        <SlideshowsTab token={token} workspaceId={workspaceId} filter={filter} view={view} reloadKey={brandReload} empty={<Empty tab="brand" onCreate={() => setChoosing(true)} />} />
+      </div>
+      {choosing && (
+        <NewCampaignSheet
+          token={token}
+          brandRunId={runs.data ? (runs.data.runs[0]?.id ?? null) : undefined}
+          creatingHooks={creating}
+          onHooksVolume={() => void create()}
+          onBrandCastCreated={() => {
+            setChoosing(false);
+            setTab('brand');
+            setBrandReload((n) => n + 1);
+          }}
+          onClose={() => setChoosing(false)}
+        />
       )}
       {openId && (
         <CampaignEditor

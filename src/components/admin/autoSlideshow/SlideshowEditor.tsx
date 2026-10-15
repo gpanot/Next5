@@ -3,23 +3,23 @@
 import { useEffect, useState } from 'react';
 import { isAdminView } from '../../../lib/adminToken';
 import type { AutoPhotoDto, AutoSlideshowDto, AutoTrackDto } from '../../../types/admin/autoSlideshow';
-import { CaptionPanel } from './CaptionPanel';
-import { PostDialog, SaveCaptionButton } from './PostDialog';
+import { CaptionPanel, SaveCaptionButton } from './CaptionPanel';
 import { MusicPicker } from './MusicPicker';
 import { PostPanel } from './posting/PostPanel';
 import { PlayerControls } from './SlidePlayer';
 import { SlidePreview } from './SlidePreview';
 import { photosInSlideOrder } from './photoOrder';
 import { PhotoPicker } from './PhotoPicker';
-import { RoleTabs } from './RoleTabs';
 import { SafeZoneButton, useSafeZone } from './SafeZone';
-import { SlideEditPanel } from './SlideEditPanel';
-import { SlideStrip } from './SlideStrip';
+import { PhotoToggle, SlideEditPanel } from './SlideEditPanel';
+import { roleGroup, SlideStrip } from './SlideStrip';
 import { TextStyleMenu } from './TextStyleMenu';
 import { RenderedTextOverlay } from './slideText/RenderedTextOverlay';
 import type { SlideTextProps } from './slideText/SlideTextView';
 import { SlideshowMenu } from './SlideshowMenu';
 import { GenerateVideoButton } from './VideoButton';
+import { EditorAlert, EditorAside, EditorBody, EditorFrame, editorCard } from './editor/EditorShell';
+import { RoleTabBar, type EditorRole } from './editor/RoleTabBar';
 import { parseTags, useSlideshowDrafts } from './useSlideshowDrafts';
 import { useSlideshowEdit } from './useSlideshowEdit';
 import { useSlideshowVideo } from './useSlideshowVideo';
@@ -40,13 +40,14 @@ type Props = {
   box?: SlideTextProps['box'];
 };
 
-/** The slide editor and Settings boxes. */
-const card = 'rounded-xl border border-white/10 bg-white/[0.03] p-4 shadow-sm';
 const ghostButton = 'min-h-11 rounded-full px-3 text-sm text-white/80 transition hover:bg-white/10 disabled:opacity-30';
 
+const ROLE_OF: Record<ReturnType<typeof roleGroup>, EditorRole> = { Hook: 'hook', Content: 'content', CTA: 'cta' };
+
 /**
- * Full-screen editor, phone first: preview and music on top (left on desktop), every slide as a card, the on-screen
- * slide's text, photo and style. Caption and posting open from "Send to TikTok/Instagram" in the top bar.
+ * A Brand Cast slideshow's editor, on the same frame as the campaign editor (phone first): the player and music (left on
+ * wide screens), every slide as a card, the on-screen slide's Hook · Content · CTA panel with its text, photo and style,
+ * and Post and Schedule (caption, then the post form) beside it.
  */
 export function SlideshowEditor({ token, runId, initial, photos, tracks, onChanged, onPhotosChanged, onClose, onPrev, onNext, box }: Props) {
   const edit = useSlideshowEdit(token, runId, initial, onChanged);
@@ -56,14 +57,18 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
   const current = show.slides[Math.min(slide, show.slides.length - 1)];
   const drafts = useSlideshowDrafts(show, slide);
   const saving = busy === 'caption' || busy === `slide-${slide}`;
-  const [posting, setPosting] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
   /** Video render is admin-only: the admin token, or an "Open as user" tab. */
   const admin = isAdminView(token);
   const safeZone = useSafeZone();
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    // The Send dialog stops Escape itself, so it closes only the dialog.
+    /** Escape in a text field (slide text, caption) only leaves the field; elsewhere it closes the editor. */
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) e.target.blur();
+      else onClose();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
@@ -119,131 +124,145 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
     if (await edit.remove()) onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-zinc-950 text-white" role="dialog" aria-modal="true" aria-label={show.topic}>
-      <header className="flex min-h-14 shrink-0 items-center gap-1 border-b border-white/10 px-2">
-        <button onClick={onClose} aria-label="Close" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-white/10">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg>
+  const roles = show.slides.map((s) => ROLE_OF[roleGroup(s.role)]);
+  const role = roles[slide] ?? 'hook';
+  /** A tab jumps to the first slide of its kind (staying put when already on one). */
+  const pickRole = (r: EditorRole) => r !== role && setSlide(Math.max(0, roles.indexOf(r)));
+
+  const actions = (
+    <>
+      <SafeZoneButton on={safeZone.on} onToggle={safeZone.toggle} />
+      <button
+        onClick={() => void save()}
+        disabled={busy !== null || !drafts.dirty || !drafts.valid}
+        className={`flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold transition active:scale-95 ${
+          drafts.dirty ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-white/10 text-white/40'
+        } disabled:active:scale-100 ${drafts.dirty && !saving ? 'disabled:opacity-50' : ''}`}
+      >
+        {saving && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
+        {saving ? 'Saving…' : 'Save'}
+      </button>
+      <button onClick={onPrev} disabled={!onPrev || busy !== null} aria-label="Previous slideshow" className={ghostButton}>‹</button>
+      <button onClick={onNext} disabled={!onNext || busy !== null} aria-label="Next slideshow" className={ghostButton}>›</button>
+    </>
+  );
+
+  const player = (
+    <>
+      <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={textLayer} safeZone={safeZone.on} />
+      <PlayerControls count={show.slides.length} index={slide}>
+        {current?.textAt && (
+          <button
+            onClick={() => void edit.saveSlide(slide, { textAt: null })}
+            disabled={busy !== null}
+            title="Put the text back on its usual spot"
+            className="min-h-10 rounded-full px-3 text-xs text-white/60 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30"
+          >
+            Reset text
+          </button>
+        )}
+        <button
+          onClick={() => void removeSlide()}
+          disabled={busy !== null || show.slides.length <= 2}
+          aria-label={`Delete slide ${slide + 1}`}
+          title={show.slides.length <= 2 ? 'A slideshow needs at least 2 slides' : `Delete slide ${slide + 1}`}
+          className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:bg-red-500/15 hover:text-red-300 active:scale-95 disabled:opacity-30"
+        >
+          {busy === `delete-slide-${slide}` ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+            </svg>
+          )}
         </button>
-        <div className="min-w-0 flex-1 px-1">
+      </PlayerControls>
+      {admin && (
+        <GenerateVideoButton
+          rendering={video.rendering}
+          startedAt={video.startedAt}
+          lastMs={video.lastMs}
+          disabled={busy !== null || show.slides.some((s) => !s.imageUrl)}
+          onClick={() => void video.download()}
+        />
+      )}
+      <div className="mx-auto mt-3 w-full max-w-[calc((100dvh-15rem)*9/16)]">
+        <MusicPicker compact show={show} tracks={tracks} busy={busy} onPick={(id) => void edit.setMusic(id)} />
+      </div>
+    </>
+  );
+
+  const panel = current && (
+    <section aria-label="Slide" className={editorCard}>
+      <RoleTabBar
+        active={role}
+        onPick={pickRole}
+        missing={(['hook', 'content', 'cta'] as const).filter((r) => !roles.includes(r))}
+        after={<span className="text-xs text-white/40">Slide {slide + 1}</span>}
+        end={
+          <>
+            <PhotoToggle open={photoOpen} onClick={() => setPhotoOpen((o) => !o)} />
+            <SlideshowMenu disabled={video.rendering || busy !== null} busy={busy} onRewrite={() => void rewrite()} onDelete={() => void remove()} />
+          </>
+        }
+      />
+      {(edit.error ?? video.error) && <EditorAlert message={(edit.error ?? video.error)!} />}
+      <SlideEditPanel
+        slide={current}
+        index={slide}
+        title={drafts.title}
+        body={drafts.body}
+        onTitle={drafts.setTitle}
+        onBody={drafts.setBody}
+        photoOpen={photoOpen}
+        photoPicker={
+          <PhotoPicker
+            slide={current}
+            index={slide}
+            photos={photos && photosInSlideOrder(show.id, show.slides, photos)}
+            busy={busy}
+            onPhoto={(photoIndex) => void edit.saveSlide(slide, { photoIndex })}
+            onNewPhoto={() => void edit.newPhoto(slide).then((ok) => ok && onPhotosChanged())}
+          />
+        }
+        titleStyle={<TextStyleMenu slide={live.slideAt(slide) ?? current} part="look" onPick={live.style} />}
+        bodyStyle={<TextStyleMenu slide={live.slideAt(slide) ?? current} part="bodyLook" onPick={live.style} />}
+      />
+    </section>
+  );
+
+  return (
+    <EditorFrame
+      label={show.topic}
+      backLabel="Close"
+      onBack={onClose}
+      title={
+        <div className="min-w-0 px-1">
           <p className="truncate text-sm font-semibold">{show.topic}</p>
           <p className="truncate text-[11px] text-white/50">{show.modelName} · {slide + 1}/{show.slides.length}</p>
         </div>
-        <SafeZoneButton on={safeZone.on} onToggle={safeZone.toggle} />
-        <button
-          type="button"
-          onClick={() => setPosting(true)}
-          className="mr-1 flex min-h-11 items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-zinc-950 shadow-sm transition hover:bg-white/90 active:scale-95"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m22 2-7 20-4-9-9-4zM22 2 11 13" /></svg>
-          <span className="sm:hidden">Send</span>
-          <span className="max-sm:hidden">Send to TikTok/Instagram</span>
-        </button>
-        <button
-          onClick={() => void save()}
-          disabled={busy !== null || !drafts.dirty || !drafts.valid}
-          className={`mr-1 flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold transition active:scale-95 ${
-            drafts.dirty ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-white/10 text-white/40'
-          } disabled:active:scale-100 ${drafts.dirty && !saving ? 'disabled:opacity-50' : ''}`}
-        >
-          {saving && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-        <button onClick={onPrev} disabled={!onPrev || busy !== null} aria-label="Previous slideshow" className={ghostButton}>‹</button>
-        <button onClick={onNext} disabled={!onNext || busy !== null} aria-label="Next slideshow" className={ghostButton}>›</button>
-      </header>
-
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:flex-row md:overflow-hidden">
-        <div className="shrink-0 p-4 md:flex md:w-[30%] md:flex-col md:justify-center md:overflow-y-auto lg:w-[27%]">
-          <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={textLayer} safeZone={safeZone.on} />
-          <PlayerControls count={show.slides.length} index={slide}>
-            {current?.textAt && (
-              <button
-                onClick={() => void edit.saveSlide(slide, { textAt: null })}
-                disabled={busy !== null}
-                title="Put the text back on its usual spot"
-                className="min-h-10 rounded-full px-3 text-xs text-white/60 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30"
-              >
-                Reset text
-              </button>
-            )}
-            <button
-              onClick={() => void removeSlide()}
-              disabled={busy !== null || show.slides.length <= 2}
-              aria-label={`Delete slide ${slide + 1}`}
-              title={show.slides.length <= 2 ? 'A slideshow needs at least 2 slides' : `Delete slide ${slide + 1}`}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:bg-red-500/15 hover:text-red-300 active:scale-95 disabled:opacity-30"
-            >
-              {busy === `delete-slide-${slide}` ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
-                </svg>
-              )}
-            </button>
-          </PlayerControls>
-          {admin && (
-            <GenerateVideoButton
-              rendering={video.rendering}
-              startedAt={video.startedAt}
-              lastMs={video.lastMs}
-              disabled={busy !== null || show.slides.some((s) => !s.imageUrl)}
-              onClick={() => void video.download()}
-            />
-          )}
-          <div className="mx-auto mt-3 w-full max-w-[calc((100dvh-15rem)*9/16)]">
-            <MusicPicker compact show={show} tracks={tracks} busy={busy} onPick={(id) => void edit.setMusic(id)} />
-          </div>
-        </div>
-
-        <div className="min-w-0 md:flex-1 md:overflow-y-auto md:border-l md:border-white/10">
-          <div className="border-y border-white/10 bg-black/20 md:border-t-0">
-            <SlideStrip slides={show.slides} index={slide} busy={busy} onPick={setSlide} textLayer={textLayer} />
-          </div>
-          <div className="p-4 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-            <section aria-label="Slide" className={card}>
-              {(edit.error ?? video.error) && <p className="mb-4 rounded-lg bg-red-500/15 p-3 text-sm text-red-300">{edit.error ?? video.error}</p>}
-              {current && (
-                <SlideEditPanel
-                  slide={current}
-                  index={slide}
-                  title={drafts.title}
-                  body={drafts.body}
-                  onTitle={drafts.setTitle}
-                  onBody={drafts.setBody}
-                  tabs={<RoleTabs slides={show.slides} index={slide} onPick={setSlide} />}
-                  menu={<SlideshowMenu disabled={video.rendering || busy !== null} busy={busy} onRewrite={() => void rewrite()} onDelete={() => void remove()} />}
-                  photoPicker={
-                    <PhotoPicker
-                      slide={current}
-                      index={slide}
-                      photos={photos && photosInSlideOrder(show.id, show.slides, photos)}
-                      busy={busy}
-                      onPhoto={(photoIndex) => void edit.saveSlide(slide, { photoIndex })}
-                      onNewPhoto={() => void edit.newPhoto(slide).then((ok) => ok && onPhotosChanged())}
-                    />
-                  }
-                  titleStyle={<TextStyleMenu slide={live.slideAt(slide) ?? current} part="look" onPick={live.style} />}
-                  bodyStyle={<TextStyleMenu slide={live.slideAt(slide) ?? current} part="bodyLook" onPick={live.style} />}
-                />
-              )}
-            </section>
-          </div>
-        </div>
-      </div>
-      {posting && (
-        <PostDialog onClose={() => setPosting(false)}>
-          {/* Caption, then the post form. TikTok picks the music itself, so there is no music choice here. */}
-          <div className="space-y-3">
-            <CaptionPanel caption={drafts.caption} tags={drafts.tags} onCaption={drafts.setCaption} onTags={drafts.setTags} />
-            {drafts.captionDirty && <SaveCaptionButton saving={busy === 'caption'} onSave={() => void saveCaption()} />}
-          </div>
-          <div className="border-t border-white/10 pt-4">
-            <PostPanel token={token} runId={runId} show={show} onPosted={onChanged} />
-          </div>
-        </PostDialog>
-      )}
-    </div>
+      }
+      actions={actions}
+    >
+      <EditorBody
+        player={player}
+        strip={<SlideStrip slides={show.slides} index={slide} busy={busy} onPick={setSlide} textLayer={textLayer} />}
+        main={panel}
+        aside={
+          <EditorAside title="Post and Schedule">
+            {/* Caption, then the post form. TikTok picks the music itself, so there is no music choice here. */}
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <CaptionPanel caption={drafts.caption} tags={drafts.tags} onCaption={drafts.setCaption} onTags={drafts.setTags} />
+                {drafts.captionDirty && <SaveCaptionButton saving={busy === 'caption'} onSave={() => void saveCaption()} />}
+              </div>
+              <div className="border-t border-white/10 pt-4">
+                <PostPanel token={token} runId={runId} show={show} onPosted={onChanged} />
+              </div>
+            </div>
+          </EditorAside>
+        }
+      />
+    </EditorFrame>
   );
 }

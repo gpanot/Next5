@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SLIDESHOW_AFTER, type IdeaDto, type IdeaFormat, type IdeaPatch, type IdeasListDto } from '../../../../types/admin/calendarIdeas';
+import { SLIDESHOW_AFTER, type IdeaDto, type IdeaPatch, type IdeasListDto } from '../../../../types/admin/calendarIdeas';
 import { errorOf, type LabClient, type LabResponse } from '../../../labs/labClient';
 import { ideasApi } from './ideasApi';
 import type { BlitzVoiceName } from '../../../../types/admin/blitzVoice';
@@ -45,17 +45,6 @@ const splitIdeas = (ideas: IdeaDto[]) => {
     kept: sorted.filter((i) => i.status === 'kept'),
     skipped: sorted.filter((i) => i.status === 'discarded'),
   };
-};
-
-type Lists = ReturnType<typeof splitIdeas>;
-
-/** The Ideas page's filter: every idea, or one format. */
-export type IdeaFilter = 'all' | IdeaFormat;
-
-/** The lists of one format only (the deck keeps its order). */
-const onlyFormat = (lists: Lists, format: IdeaFormat): Lists => {
-  const keep = (list: IdeaDto[]) => list.filter((i) => i.format === format);
-  return { deck: keep(lists.deck), making: keep(lists.making), kept: keep(lists.kept), skipped: keep(lists.skipped) };
 };
 
 /** Ideas made into posts in this session: left out of every list, so an older response can't show them as kept again. */
@@ -219,7 +208,7 @@ const useActions = (client: LabClient | null, request: ListRequest, setState: Se
 
 /**
  * The workspace's ideas: the deck (Blitz cards first, real slideshows joining once made), kept and skipped ones, and
- * every action on them. `filter` narrows every list to one format (the Ideas page's chips); `counts` stay unfiltered. `autoGenerate`: the run is finished, so the first batch can be written.
+ * every action on them. `autoGenerate`: the run is finished, so the first batch can be written.
  * `buildingSince`: the profile is still being built (first setup), since then; with no ideas yet, the deck counts as
  * being written, so the page shows it building instead of "Get more" buttons.
  */
@@ -231,16 +220,9 @@ export function useIdeas(client: LabClient | null, runId: string, autoGenerate: 
   const request = useRequest(setState, made, sync);
   const { generate } = useLoad(client, runId, autoGenerate, setState, request);
   const actions = useActions(client, request, setState, sync);
-  const [filter, setFilter] = useState<IdeaFilter>('all');
-  const everyList = useMemo(() => splitIdeas(state.ideas), [state.ideas]);
-  const lists = useMemo(() => (filter === 'all' ? everyList : onlyFormat(everyList, filter)), [everyList, filter]);
-  /** Ideas left to swipe, per filter chip. */
-  const counts = useMemo<Record<IdeaFilter, number>>(() => {
-    const blitz = everyList.deck.filter((i) => i.format === 'blitz').length;
-    return { all: everyList.deck.length, blitz, slideshow: everyList.deck.length - blitz };
-  }, [everyList.deck]);
-  const finishing = everyList.deck.some((i) => i.card?.finishing);
-  usePoll(client, everyList.making.length > 0 || Boolean(state.batchSince) || finishing, request);
+  const lists = useMemo(() => splitIdeas(state.ideas), [state.ideas]);
+  const finishing = lists.deck.some((i) => i.card?.finishing);
+  usePoll(client, lists.making.length > 0 || Boolean(state.batchSince) || finishing, request);
   const current = lists.deck.find((i) => i.id === actions.focusId) ?? lists.deck[0] ?? null;
   const reviewSkipped = useCallback(() => lists.skipped.forEach((i) => void actions.patch(i.id, { status: 'proposed' })), [lists.skipped, actions]);
   /** Made into posts: off the deck and the day lists at once (they become calendar posts). */
@@ -251,23 +233,12 @@ export function useIdeas(client: LabClient | null, runId: string, autoGenerate: 
   const reload = useCallback(async () => {
     if (client) await request(() => ideasApi.list(client));
   }, [client, request]);
-  /** "Create 3 slideshows": null once started, else the reason (shown in the dialog, not over the deck). */
-  const createSlideshows = useCallback(async (): Promise<string | null> => {
-    if (!client) return OFFLINE;
-    let failed: string | null = null;
-    const list = await request(async () => {
-      const res = await ideasApi.createSlideshows(client, runId);
-      if (!res.ok) failed = errorOf(res);
-      return res;
-    }, true);
-    return list ? null : (failed ?? OFFLINE);
-  }, [client, runId, request]);
   const building = Boolean(buildingSince) && state.ideas.length === 0;
   const generating = state.generating || Boolean(state.batchSince) || building;
   const generatingSince = state.generatingSince ?? state.batchSince ?? (building ? buildingSince : null);
   /** The very first deck is being written (no idea yet): nothing to pick, the page only shows it building. */
   const firstDeck = generating && state.ideas.length === 0;
-  return { ...state, generating, generatingSince, building, firstDeck, ...lists, ...actions, filter, setFilter, counts, client, current, generate, reviewSkipped, reload, markMade, createSlideshows };
+  return { ...state, generating, generatingSince, building, firstDeck, ...lists, ...actions, client, current, generate, reviewSkipped, reload, markMade };
 }
 
 export type IdeasState = ReturnType<typeof useIdeas>;

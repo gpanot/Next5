@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
-import { DeckMenu } from './DeckMenu';
 import { HookPicker } from './HookPicker';
 import { whenOf } from './ideaCards';
 import { IdeaDeck, type DeckClips, type DeckSize } from './IdeaDeck';
@@ -86,7 +85,7 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   };
   return (
     <>
-      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={(target) => void changeVoice(target)} voice={preview.stateOf(idea)} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1, whenOf(idea, placeOf?.(idea))) : undefined} menu={size === 'page' ? <DeckMenu filters={ideas} /> : undefined} hookStyle={hookStyle} clips={clips} />
+      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={(target) => void changeVoice(target)} voice={preview.stateOf(idea)} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1, whenOf(idea, placeOf?.(idea))) : undefined} hookStyle={hookStyle} clips={clips} />
       {hookFor && <HookPicker idea={hookFor} onPick={(id) => ideas.pickHook(hookFor, id)} onClose={() => setHookFor(null)} style={hookFor.card ? hookStyle : undefined} />}
       {dialog}
     </>

@@ -22,6 +22,7 @@ import {
   type CampaignDto,
   type CampaignPlanItem,
   type CampaignPhotoDto,
+  type CampaignPhotoJobDto,
   type CampaignSummaryDto,
 } from '../../../types/admin/slideshowCampaign';
 import { parseTextAt, type TextAt } from '../../../types/slideText';
@@ -47,6 +48,14 @@ export const json = (value: unknown) => value as Prisma.InputJsonValue;
 export type CampaignPhoto = AutoPhoto & { source?: CampaignPhotoDto['source']; origin?: 'ai' | 'copy'; credit?: CampaignPhotoDto['credit']; hotlink?: { thumb: string; full: string } };
 
 export const photosOf = (run: { photos: Prisma.JsonValue }): CampaignPhoto[] => (run.photos as unknown as CampaignPhoto[] | null) ?? [];
+
+/** A background photo still running after this long was cut off (the server stopped): shown as failed. */
+const JOB_TIMEOUT_MS = 10 * 60 * 1000;
+
+/** The run's Content "Auto" photo jobs (photoJobs.ts), as the editor reads them. */
+const photoJobsOf = (run: { photoJobs: Prisma.JsonValue }, now = Date.now()): CampaignPhotoJobDto[] =>
+  ((run.photoJobs as unknown as Array<CampaignPhotoJobDto & { startedAt?: string }> | null) ?? []).map(({ startedAt, ...job }) =>
+    job.status === 'running' && startedAt && now - new Date(startedAt).getTime() > JOB_TIMEOUT_MS ? { ...job, status: 'failed', error: 'A photo took too long. Add it by hand.' } : job);
 /** The stored campaign: the draft, the render key of the draft the slideshows were last made from, and the posts put on
  *  the Calendar (by slideshow position, so they survive a remake). */
 type StoredCampaign = CampaignDraft & { renderedKey?: string; plan?: CampaignPlanItem[] };
@@ -95,7 +104,39 @@ export const loadCampaign = async (access: UserAccess, id: string) => {
   return run;
 };
 
+type BlankCheck = { name: string | null; campaign: Prisma.JsonValue; photos: Prisma.JsonValue; photoJobs: Prisma.JsonValue; slideshowCount: number };
+
+/** Nothing done yet: no name, hook, text, caption, photo (nor one on its way) or slideshow. Text looks alone count as nothing. */
+export const isBlankCampaign = (run: BlankCheck): boolean => {
+  const draft = draftOf(run);
+  const jobs = (run.photoJobs as unknown[] | null) ?? [];
+  return (
+    (run.name ?? DEFAULT_NAME) === DEFAULT_NAME &&
+    run.slideshowCount === 0 &&
+    photosOf(run).length === 0 &&
+    jobs.length === 0 &&
+    draft.hooks.length === 0 &&
+    !draft.caption.trim() &&
+    draft.cards.every((c) => !c.title.trim() && !c.body.trim())
+  );
+};
+
+/**
+ * A new campaign, or the workspace's newest blank one when it has one: opening "New campaign" and leaving it untouched,
+ * again and again, leaves one blank campaign behind, not a pile (blank ones are hidden from the list).
+ */
 export const createCampaign = async (workspaceId: string, name?: string): Promise<string> => {
+  if (!name) {
+    const recent = await prisma.autoSlideshowRun.findMany({
+      where: { workspaceId, kind: CAMPAIGN_KIND },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: { id: true, name: true, campaign: true, photos: true, photoJobs: true, _count: { select: { slideshows: true } } },
+    });
+    const blank = recent.find((r) => isBlankCampaign({ ...r, slideshowCount: r._count.slideshows }));
+    // Reused as new: it moves to the top of the list once something is added.
+    if (blank) return (await prisma.autoSlideshowRun.update({ where: { id: blank.id }, data: { createdAt: new Date() }, select: { id: true } })).id;
+  }
   const run = await prisma.autoSlideshowRun.create({
     // `count` >= 1 is a DB rule; Generate sets it to the number of slideshows made.
     data: { kind: CAMPAIGN_KIND, workspaceId, name: cleanName(name), url: '', count: 1, status: 'COMPLETED', finishedAt: new Date(), photos: json([]), campaign: json(emptyCampaignDraft()) },
@@ -111,9 +152,10 @@ export const listCampaigns = async (workspaceId: string): Promise<CampaignSummar
     where: { workspaceId, kind: CAMPAIGN_KIND },
     orderBy: { createdAt: 'desc' },
     take: 50,
-    select: { id: true, name: true, campaign: true, photos: true, createdAt: true, updatedAt: true, slideshows: { select: { slides: true } }, _count: { select: { posts: { where: { status: { in: LIVE_POSTS } } } } } },
+    select: { id: true, name: true, campaign: true, photos: true, photoJobs: true, createdAt: true, updatedAt: true, slideshows: { select: { slides: true } }, _count: { select: { posts: { where: { status: { in: LIVE_POSTS } } } } } },
   });
-  return runs.map((r): CampaignSummaryDto => {
+  // A campaign opened and left untouched has nothing to show: it stays hidden until something is added.
+  return runs.filter((r) => !isBlankCampaign({ ...r, slideshowCount: r.slideshows.length })).map((r): CampaignSummaryDto => {
     const draft = draftOf(r);
     const firstSlide = (r.slideshows[0]?.slides as unknown as AutoSlide[] | undefined)?.[0];
     const firstPhoto = draft.hookPhotos[0] !== undefined ? photosOf(r)[draft.hookPhotos[0]] : undefined;
@@ -154,6 +196,7 @@ export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
     slideshows: await Promise.all(run.slideshows.map(toSlideshowDto)),
     rendered: isRendered(run, run.slideshows.length),
     plan: planOf(run),
+    photoJobs: photoJobsOf(run),
     createdAt: run.createdAt.toISOString(),
   };
 };

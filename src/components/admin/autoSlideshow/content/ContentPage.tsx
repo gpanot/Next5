@@ -4,13 +4,15 @@ import { useSearchParams } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { BlitzSlideTab } from './BlitzSlideTab';
 import { BlitzVideos } from './BlitzVideos';
+import { CampaignsList } from './CampaignsList';
 import { SlideshowsTab } from './SlideshowsTab';
 
-type LibraryFilter = 'blitz' | 'slideshow';
+type LibraryFilter = 'blitz' | 'brandCast' | 'hooksVolume';
 
 const FILTERS: { id: LibraryFilter; label: string }[] = [
   { id: 'blitz', label: 'Blitz' },
-  { id: 'slideshow', label: 'Slideshow' },
+  { id: 'brandCast', label: 'Brand Cast' },
+  { id: 'hooksVolume', label: 'Hooks Volume' },
 ];
 
 const chipClass = (active: boolean) =>
@@ -38,8 +40,10 @@ function BlitzEdit({ token, workspaceId, postId }: { token: string; workspaceId:
 }
 
 /**
- * One workspace's Editor: everything made, Blitz videos and slideshows, one format at a time. A Blitz video opens in its
- * sheet (as on the calendar); its Edit opens the Blitz editor (`?editPost=`); a slideshow opens in the slideshow editor.
+ * One workspace's Library: everything made (Blitz videos, Brand Cast slideshows, Hooks Volume campaigns), one kind at a
+ * time. Nothing is created here: new slideshows come from Campaigns. A Blitz video opens in its sheet (as on the
+ * calendar) and its Edit in the Blitz editor (`?editPost=`); a Brand Cast slideshow opens in its editor; a campaign opens
+ * in the campaign editor on the Campaigns page.
  */
 export function ContentPage({ token, workspaceId }: { token: string; workspaceId: string }) {
   const [filter, setFilter] = useState<LibraryFilter>('blitz');
@@ -48,7 +52,7 @@ export function ContentPage({ token, workspaceId }: { token: string; workspaceId
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
       <div className="space-y-4">
-        <h1 className="font-heading text-3xl font-normal text-app-ink">Editor</h1>
+        <h1 className="font-heading text-3xl font-normal text-app-ink">Library</h1>
         <div role="radiogroup" aria-label="Show" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {FILTERS.map((f) => (
             <button key={f.id} type="button" role="radio" aria-checked={filter === f.id} onClick={() => setFilter(f.id)} className={chipClass(filter === f.id)}>
@@ -57,12 +61,15 @@ export function ContentPage({ token, workspaceId }: { token: string; workspaceId
           ))}
         </div>
       </div>
-      {/* Both stay mounted: switching filters keeps what each one loaded. */}
-      <div hidden={filter === 'slideshow'}>
+      {/* All stay mounted: switching filters keeps what each one loaded. */}
+      <div hidden={filter !== 'blitz'}>
         <Section title="Blitz videos"><BlitzVideos token={token} workspaceId={workspaceId} /></Section>
       </div>
-      <div hidden={filter === 'blitz'}>
-        <SlideshowsTab token={token} workspaceId={workspaceId} />
+      <div hidden={filter !== 'brandCast'}>
+        <SlideshowsTab token={token} workspaceId={workspaceId} title="Brand Cast" />
+      </div>
+      <div hidden={filter !== 'hooksVolume'}>
+        <CampaignsList token={token} workspaceId={workspaceId} />
       </div>
     </div>
   );

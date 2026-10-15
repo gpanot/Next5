@@ -11,7 +11,7 @@ const tabClass =
 
 /**
  * Phones and tablets: the workspace pages and Settings as tabs at the bottom, in thumb reach. Settings holds the
- * workspace switcher, Editor, Brand, credits and accounts, so there is no top bar. Its height is `--bottom-nav-h` (set by the shell).
+ * workspace switcher, Library, Brand, credits and accounts, so there is no top bar. Its height is `--bottom-nav-h` (set by the shell).
  */
 export function WorkspaceBottomTabs({ workspaceId, settings }: { workspaceId: string; settings: WorkspaceSettings }) {
   const current = pageOf(usePathname());
