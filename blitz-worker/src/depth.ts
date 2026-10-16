@@ -54,6 +54,21 @@ function getSession(): Promise<ort.InferenceSession> {
   return sessionPromise;
 }
 
+/**
+ * Frees the session's native memory (several hundred MB, outside the V8 heap) between jobs.
+ * The model file stays in tmpdir, so the next job only reloads it (~1–2 s), and only if it needs a new depth map.
+ */
+export async function releaseDepthSession(): Promise<void> {
+  const pending = sessionPromise;
+  sessionPromise = null;
+  if (!pending) return;
+  try {
+    await (await pending).release();
+  } catch (err) {
+    console.warn('[depth] Could not release session:', err);
+  }
+}
+
 const ffmpeg = async (args: string[]): Promise<Buffer> => {
   const { stdout } = await execFileAsync(FFMPEG, ['-v', 'error', ...args], { encoding: 'buffer', maxBuffer: 64 * 1024 * 1024 });
   return stdout;

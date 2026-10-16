@@ -17,6 +17,7 @@ import { requireCredits } from '../slideshowCredits/charge';
 import { withSlideCameras } from './blitzCamera';
 import { narrateSlides } from './blitzVoice';
 import type { LabAccess } from './labAccess';
+import { wakeBlitzWorker } from './blitzWorkerWake';
 
 export type RenderBody = {
   templateId: string;
@@ -170,5 +171,6 @@ export async function queueBlitzRender(access: LabAccess, body: RenderBody, prep
   };
   const project = free ? await prisma.blitzProject.create({ data }) : await createPaidRender(access.userId, data);
   console.log(`[blitz/render] BlitzProject created: id=${project.id} status=PENDING template.type=${templateType}`);
+  wakeBlitzWorker();
   return project;
 }

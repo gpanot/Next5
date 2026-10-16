@@ -20,6 +20,7 @@ import { getObject } from '../storage/objectStore';
 import { isYouTubePrivacy, shortState, uploadShort } from '../social/youtubeUpload';
 import { initVideo } from '../social/tiktokVideo';
 import { queueBlitzRender, type RenderBody } from './blitzRender';
+import { wakeBlitzWorker } from './blitzWorkerWake';
 
 const PER_TICK = 10;
 /** A row claimed for rendering but with no render after this long crashed mid-step: it is tried again. */
@@ -105,6 +106,8 @@ const followRender = async (post: BlitzScheduledPost, now: number): Promise<void
     await fail(post.id, 'The video could not be made. Your credit was refunded. Schedule it again.');
   } else if (project.renderStatus === 'COMPLETED' && post.scheduledAt.getTime() <= now) {
     await sendVideo(post);
+  } else if (project.renderStatus === 'PENDING') {
+    wakeBlitzWorker({ throttle: true });
   }
 };
 

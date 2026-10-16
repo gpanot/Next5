@@ -16,6 +16,7 @@ import { studioJson } from '../../../../../../../../../src/server/studio/studioJ
 import { prisma } from '../../../../../../../../../src/lib/db';
 import { blitzKeys } from '../../../../../../../../../src/server/admin/blitzStore';
 import { uploadToR2 } from '../../../../../../../../../src/lib/r2';
+import { pingBlitzWorker } from '../../../../../../../../../src/server/labs/blitzWorkerWake';
 
 export const maxDuration = 120;
 
@@ -174,6 +175,7 @@ export const POST = adminRoute(async (_req: NextRequest, ctx: Ctx) => {
       });
 
       console.log(`[studio/accept] candidate=${candidateId} blitzProject=${project.id} slides=${slidesWithKeys.length}`);
+      await pingBlitzWorker();
     })(),
   );
 

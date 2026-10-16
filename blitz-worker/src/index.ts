@@ -28,6 +28,8 @@ import { bundle } from '@remotion/bundler';
 import { prisma } from './db';
 import { makeCancelSignal } from '@remotion/renderer';
 import { renderProject } from './render';
+import { releaseDepthSession } from './depth';
+import { startWakeServer } from './wakeServer';
 
 const execFileAsync = promisify(execFile);
 
@@ -37,6 +39,13 @@ const JOB_TIMEOUT_MS = parseInt(process.env.JOB_TIMEOUT_MS ?? String(10 * 60_000
 const HEARTBEAT_MS = 30_000;
 /** No heartbeat for this long = the worker running the job is gone. Several heartbeats of margin. */
 const STALE_AFTER_MS = 2 * 60_000;
+/**
+ * Sleep when idle: with a wake secret set, the worker stops polling and closes its DB connection after this long with
+ * no job. No outbound traffic lets Railway (Serverless on) put the service to sleep; the app's POST /wake brings it back.
+ * No secret = polls forever, as before.
+ */
+const WAKE_SECRET = process.env.BLITZ_WORKER_WAKE_SECRET ?? '';
+const IDLE_SLEEP_AFTER_MS = parseInt(process.env.IDLE_SLEEP_AFTER_MS ?? String(3 * 60_000), 10);
 
 // ── Bundle composition at startup ─────────────────────────────────────────────
 
@@ -147,12 +156,27 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
   } finally {
     clearTimeout(limit);
     clearInterval(heartbeat);
+    await releaseDepthSession();
   }
 }
 
 // ── Polling loop ──────────────────────────────────────────────────────────────
 
-async function startPollingLoop(serveUrl: string): Promise<void> {
+let polling = false;
+/** Last job or wake: a wake that lands just before the idle check must not be lost. */
+let lastBusyAt = Date.now();
+
+/** Stops polling and closes the DB connection so the container sends nothing and Railway can put it to sleep. */
+async function goIdle(): Promise<void> {
+  polling = false;
+  console.log(`[blitz-worker] No job for ${Math.round(IDLE_SLEEP_AFTER_MS / 1000)} s — idle until POST /wake`);
+  await prisma.$disconnect().catch((err) => console.warn('[blitz-worker] Disconnect failed:', err));
+}
+
+function startPollingLoop(serveUrl: string): void {
+  lastBusyAt = Date.now();
+  if (polling) return;
+  polling = true;
   console.log(`[blitz-worker] Polling every ${POLL_INTERVAL_MS} ms…`);
 
   const tick = async () => {
@@ -161,9 +185,14 @@ async function startPollingLoop(serveUrl: string): Promise<void> {
       const jobId = await claimNextJob();
       if (jobId) {
         await processJob(jobId, serveUrl);
+        lastBusyAt = Date.now();
       }
     } catch (err) {
       console.error('[blitz-worker] Poll error:', err);
+    }
+    if (WAKE_SECRET && Date.now() - lastBusyAt > IDLE_SLEEP_AFTER_MS) {
+      await goIdle();
+      return;
     }
     setTimeout(tick, POLL_INTERVAL_MS);
   };
@@ -272,10 +301,19 @@ async function checkFfmpeg(): Promise<void> {
 // ── Entry ─────────────────────────────────────────────────────────────────────
 
 async function main() {
+  // Listen first: Railway holds the waking request until the port answers, and a wake during the bundle is fine —
+  // polling starts once the bundle is ready anyway.
+  let serveUrl: string | null = null;
+  const port = parseInt(process.env.PORT ?? '', 10);
+  if (WAKE_SECRET && Number.isFinite(port)) {
+    startWakeServer(port, WAKE_SECRET, () => {
+      if (serveUrl) startPollingLoop(serveUrl);
+    });
+  }
   await requeueStaleJobs();
   await checkFfmpeg();
-  const serveUrl = await buildBundle();
-  await startPollingLoop(serveUrl);
+  serveUrl = await buildBundle();
+  startPollingLoop(serveUrl);
 }
 
 main().catch((err) => {

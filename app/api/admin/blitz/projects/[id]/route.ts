@@ -4,6 +4,7 @@ import { toProjectDto } from '../../../../../../src/server/admin/blitzStore';
 import { prisma } from '../../../../../../src/lib/db';
 import { deleteFromR2 } from '../../../../../../src/lib/r2';
 import { refundFailedRender } from '../../../../../../src/server/slideshowCredits/blitzCharge';
+import { wakeBlitzWorker } from '../../../../../../src/server/labs/blitzWorkerWake';
 
 /**
  * GET /api/admin/blitz/projects/[id]
@@ -26,6 +27,8 @@ export const GET = labRoute(async (_req: NextRequest, ctx: { params: Promise<{ i
   if (project.renderStatus !== 'COMPLETED') {
     console.log(`[blitz/projects/${id}] Poll — status=${project.renderStatus}`);
   }
+
+  if (project.renderStatus === 'PENDING') wakeBlitzWorker({ throttle: true });
 
   const queuePosition = project.renderStatus === 'PENDING'
     ? (await prisma.blitzProject.count({ where: { renderStatus: 'PENDING', createdAt: { lt: project.createdAt } } })) + 1

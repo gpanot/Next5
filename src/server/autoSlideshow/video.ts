@@ -8,6 +8,7 @@ import { prisma } from '../../lib/db';
 import { getPresignedUrl } from '../../lib/r2';
 import type { AutoSlide } from '../../types/admin/autoSlideshow';
 import { HttpError } from '../http';
+import { wakeBlitzWorker } from '../labs/blitzWorkerWake';
 
 /** Seconds per slide: the editor preview's autoplay pace (SlidePreview SLIDE_MS). */
 const SLIDE_SEC = 3;
@@ -96,7 +97,7 @@ const recordDownload = async (runId: string, slideshowId: string, project: Blitz
 const createRender = async (show: ShowRow, keys: string[], print: string, workspaceId: string | null): Promise<BlitzProject> => {
   const template = await prisma.blitzTemplate.findFirst({ where: { type: 'CAROUSEL' } });
   if (!template) throw new HttpError(500, 'no_template', 'No Slideshow render template found.');
-  return prisma.blitzProject.create({
+  const project = await prisma.blitzProject.create({
     data: {
       workspaceId,
       templateId: template.id,
@@ -112,6 +113,8 @@ const createRender = async (show: ShowRow, keys: string[], print: string, worksp
       },
     },
   });
+  wakeBlitzWorker();
+  return project;
 };
 
 /** Starts (or reuses) the MP4 render of one slideshow, and records the tap. */
@@ -132,6 +135,7 @@ export const getSlideshowVideo = async (runId: string, slideshowId: string, proj
     where: { id: projectId, currentAssets: { path: ['autoSlideshow', 'id'], equals: slideshowId } },
   });
   if (!project) throw new HttpError(404, 'not_found', 'Video not found');
+  if (project.renderStatus === 'PENDING') wakeBlitzWorker({ throttle: true });
   if (downloadId) await finishDownload(downloadId, project);
   return toDto(project, show, downloadId);
 };
@@ -156,5 +160,6 @@ export const videoForPost = async (slideshowId: string, workspaceId: string | nu
     if (failed >= MAX_FAILED_RENDERS) throw new HttpError(500, 'render_failed', 'The video of this slideshow failed to render twice. Open the slideshow and try Download video, or change a slide.');
   }
   const project = existing ?? (await createRender(show, keys, print, workspaceId));
+  if (existing?.renderStatus === 'PENDING') wakeBlitzWorker({ throttle: true });
   return { status: project.renderStatus, key: project.renderStatus === 'COMPLETED' ? project.renderedVideoKey : null };
 };
