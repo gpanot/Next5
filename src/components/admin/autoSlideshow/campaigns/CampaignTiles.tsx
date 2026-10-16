@@ -1,19 +1,13 @@
 'use client';
 
 import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampaign';
+import { CampaignRow } from './CampaignRow';
+import { labelOf, statusOf, whenOf } from './campaignSummary';
 import { PreviewSlideView } from './PreviewSlideView';
-
-const when = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-
-const statusOf = (c: CampaignSummaryDto): string => {
-  if (c.scheduledCount > 0) return `${c.scheduledCount} scheduled`;
-  if (c.slideshowCount > 0) return `${c.slideshowCount} slideshows ready`;
-  return c.hookCount > 0 ? `Draft · ${c.hookCount} ${c.hookCount === 1 ? 'hook' : 'hooks'}` : 'Draft';
-};
 
 export function CampaignTilesSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5" aria-busy="true" aria-label="Loading campaigns">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6" aria-busy="true" aria-label="Loading campaigns">
       {Array.from({ length: 5 }, (_, i) => <div key={i} className="aspect-[9/16] animate-pulse rounded-xl bg-app-sunken" />)}
     </div>
   );
@@ -36,8 +30,8 @@ export function CampaignTile({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () 
           )}
           {!c.coverUrl && <span className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-app-muted">No photos yet</span>}
         </span>
-        <span className="mt-2 block truncate text-sm font-semibold text-app-ink">{c.name}</span>
-        <span className="block truncate text-xs text-app-muted">{statusOf(c)} · {when(c.updatedAt)}</span>
+        <span className="mt-2 block truncate text-sm font-semibold text-app-ink">{labelOf(c)}</span>
+        <span className="block truncate text-xs text-app-muted">{statusOf(c)} · {whenOf(c.updatedAt)}</span>
       </button>
     </li>
   );
@@ -62,22 +56,6 @@ export const RowChevron = () => (
   </svg>
 );
 
-/** One campaign as a list row: its cover, name, where it stands and when it last changed. */
-export function CampaignRow({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () => void }) {
-  return (
-    <li>
-      <button type="button" onClick={onOpen} className={rowClass}>
-        <RowThumb url={c.coverUrl} />
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-semibold text-app-ink">{c.name}</span>
-          <span className="block truncate text-xs text-app-muted">{statusOf(c)} · {when(c.updatedAt)}</span>
-        </span>
-        <RowChevron />
-      </button>
-    </li>
-  );
-}
-
 type CollectionProps = { campaigns: CampaignSummaryDto[]; calendarOnly: boolean; view: 'cards' | 'list'; onOpen: (id: string) => void };
 
 /** The campaigns as cards or rows; "On calendar" keeps those with posts scheduled. */
@@ -90,7 +68,7 @@ export function CampaignCollection({ campaigns, calendarOnly, view, onOpen }: Co
     return <ul className="space-y-2">{shown.map((c) => <CampaignRow key={c.id} c={c} onOpen={() => onOpen(c.id)} />)}</ul>;
   }
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
       {shown.map((c) => <CampaignTile key={c.id} c={c} onOpen={() => onOpen(c.id)} />)}
     </ul>
   );

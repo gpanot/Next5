@@ -7,6 +7,7 @@ import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampai
 import { adminFetch, useAdminApi } from '../../business/useAdminApi';
 import { SlideshowsTab } from '../content/SlideshowsTab';
 import { CampaignEditor } from './CampaignEditor';
+import { CampaignRowsSkeleton } from './CampaignRow';
 import { NewCampaignSheet } from './NewCampaignSheet';
 import { clearBrandCastResume, readBrandCastResume } from './brandCastResume';
 import { CampaignCollection, CampaignTilesSkeleton } from './CampaignTiles';
@@ -46,7 +47,7 @@ function Empty({ tab, onCreate }: { tab: Tab; onCreate: () => void }) {
 
 /**
  * One workspace's campaigns, the only place slideshows are made, in two tabs: Hooks Volume and Brand Cast. One toolbar
- * (All / On calendar, cards / list) serves both. "New campaign" asks which kind: Brand Cast (1-5 slideshows from the
+ * (All / On calendar, cards / list) serves both; each tab keeps its own view. "New campaign" asks which kind: Brand Cast (1-5 slideshows from the
  * Auto Slideshow engine) or Hooks Volume (an empty campaign opened in the campaign editor; `?campaign=` keeps it open on
  * reload and gives Back its way out).
  */
@@ -62,7 +63,10 @@ export function CampaignsPage({ token, workspaceId }: Props) {
   const [brandReload, setBrandReload] = useState(0);
   const [tab, setTab] = useState<Tab>('hooks');
   const [filter, setFilter] = useState<ListFilter>('all');
-  const [view, setView] = useListView();
+  const [hooksView, setHooksView] = useListView('hooks');
+  const [brandView, setBrandView] = useListView('brand');
+  const view = tab === 'hooks' ? hooksView : brandView;
+  const setView = tab === 'hooks' ? setHooksView : setBrandView;
   const router = useRouter();
   const pathname = usePathname();
   const openId = useSearchParams().get('campaign');
@@ -88,7 +92,7 @@ export function CampaignsPage({ token, workspaceId }: Props) {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
       <div className="flex items-center gap-3">
-        <h1 className="font-heading text-3xl font-normal text-app-ink">Campaigns</h1>
+        <h1 className="min-w-0 font-heading text-2xl font-normal text-app-ink sm:text-3xl">Slideshow Campaigns</h1>
         <button type="button" onClick={() => setChoosing(true)} className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-full bg-app-cta px-4 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95">
           <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 4v12M4 10h12" /></svg>
           New campaign
@@ -111,15 +115,15 @@ export function CampaignsPage({ token, workspaceId }: Props) {
       {/* Both stay mounted: switching tabs keeps what each one loaded. */}
       <div role="tabpanel" hidden={tab !== 'hooks'}>
         {!campaigns ? (
-          !list.error && <CampaignTilesSkeleton />
+          !list.error && (hooksView === 'list' ? <CampaignRowsSkeleton /> : <CampaignTilesSkeleton />)
         ) : campaigns.length === 0 ? (
           <Empty tab="hooks" onCreate={() => setChoosing(true)} />
         ) : (
-          <CampaignCollection campaigns={campaigns} calendarOnly={filter === 'calendar'} view={view} onOpen={open} />
+          <CampaignCollection campaigns={campaigns} calendarOnly={filter === 'calendar'} view={hooksView} onOpen={open} />
         )}
       </div>
       <div role="tabpanel" hidden={tab !== 'brand'}>
-        <SlideshowsTab token={token} workspaceId={workspaceId} filter={filter} view={view} reloadKey={brandReload} empty={<Empty tab="brand" onCreate={() => setChoosing(true)} />} />
+        <SlideshowsTab token={token} workspaceId={workspaceId} filter={filter} view={brandView} reloadKey={brandReload} empty={<Empty tab="brand" onCreate={() => setChoosing(true)} />} />
       </div>
       {choosing && (
         <NewCampaignSheet

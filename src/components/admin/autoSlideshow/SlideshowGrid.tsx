@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import type { AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
 import { makeEstimateMs, MakingCountdown } from './calendar/MakingCountdown';
+import { FaceBadge, type Face } from './content/CastStrip';
 
 type Props = {
   slideshows: AutoSlideshowDto[];
@@ -16,6 +17,8 @@ type Props = {
   more?: ReactNode;
   /** When the work began: slideshows still being made show the 3:00 countdown instead of a grey box. */
   since?: string;
+  /** Brand Cast: the face telling each story, shown on its cover's corner. */
+  faceOf?: (show: AutoSlideshowDto) => Face | null;
 };
 
 const frame = 'relative aspect-[9/16] w-full overflow-hidden rounded-xl bg-zinc-100 shadow-sm dark:bg-zinc-800';
@@ -55,10 +58,13 @@ function Cover({ show, onOpen, onRetry, retrying, since, totalMs }: CardProps) {
   );
 }
 
-function Card(props: CardProps) {
+function Card({ face, ...props }: CardProps & { face: Face | null }) {
   return (
     <div>
-      <Cover {...props} />
+      <div className="relative">
+        <Cover {...props} />
+        {face && <FaceBadge face={face} className="pointer-events-none absolute top-2 left-2" />}
+      </div>
       <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-ink dark:text-zinc-100">{props.show.topic}</p>
       <p className="line-clamp-1 text-[11px] text-muted">{props.show.modelName}</p>
     </div>
@@ -66,17 +72,17 @@ function Card(props: CardProps) {
 }
 
 /** Slideshows as 9:16 covers; skeletons stand in for the ones not written yet. */
-export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since }: Props) {
+export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, faceOf }: Props) {
   const missing = writing ? Math.max(0, expected - slideshows.length) : 0;
   const totalMs = makeEstimateMs(missing + slideshows.filter((s) => s.status === 'written' || s.status === 'rendering').length);
   if (slideshows.length === 0 && missing === 0 && !more) {
     return <p className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted dark:border-zinc-800">Slideshows show up here once they are written.</p>;
   }
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
       {slideshows.map((show, i) => (
         <li key={show.id}>
-          <Card show={show} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} since={since} totalMs={totalMs} />
+          <Card show={show} face={faceOf?.(show) ?? null} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} since={since} totalMs={totalMs} />
         </li>
       ))}
       {Array.from({ length: missing }, (_, i) => (

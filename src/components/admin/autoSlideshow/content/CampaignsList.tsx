@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampaign';
 import { useAdminApi } from '../../business/useAdminApi';
 import { CampaignCollection, CampaignTilesSkeleton } from '../campaigns/CampaignTiles';
+import { CampaignRowsSkeleton } from '../campaigns/CampaignRow';
 import { FilterSelect, useListView, ViewToggle, type ListFilter } from '../campaigns/ListControls';
 
 const errorClass = 'rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300';
@@ -15,7 +16,7 @@ export function CampaignsList({ token, workspaceId }: { token: string; workspace
   const list = useAdminApi<{ campaigns: CampaignSummaryDto[] }>(token, `/api/slideshow/campaigns?workspace=${workspaceId}`);
   const router = useRouter();
   const [filter, setFilter] = useState<ListFilter>('all');
-  const [view, setView] = useListView();
+  const [view, setView] = useListView('hooks');
   const campaigns = list.data?.campaigns;
   const base = `/slideshow/${workspaceId}/campaigns`;
   return (
@@ -32,7 +33,7 @@ export function CampaignsList({ token, workspaceId }: { token: string; workspace
       {list.error ? (
         <p className={errorClass}>{list.error}</p>
       ) : !campaigns ? (
-        <CampaignTilesSkeleton />
+        (view === 'list' ? <CampaignRowsSkeleton /> : <CampaignTilesSkeleton />)
       ) : campaigns.length === 0 ? (
         <div className="rounded-xl border border-dashed border-app-line p-8 text-center">
           <p className="text-base font-semibold text-app-ink">No Hooks Volume campaigns yet</p>

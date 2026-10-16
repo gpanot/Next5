@@ -131,6 +131,9 @@ export type CampaignPhotoTarget = { slot: 'hook' } | { slot: 'card'; card: numbe
 export const targetsCard = (target: CampaignPhotoTarget, card: number): boolean =>
   (target.slot === 'card' && target.card === card) || (target.slot === 'cards' && target.cards.includes(card));
 
+/** At most this many post thumbs come with each campaign in the list. */
+export const CAMPAIGN_ROW_THUMBS = 6;
+
 export type CampaignSummaryDto = {
   id: string;
   name: string;
@@ -141,6 +144,11 @@ export type CampaignSummaryDto = {
   /** The first hook drawn over a cover that is a bare photo (no slideshow made yet); null when the cover is a made
    *  slide (the hook is already on it) or there is no hook. */
   coverHook: { title: string; look: TextLook; textAt?: TextAt } | null;
+  /** False while the campaign still has the default name: lists then show its first hook instead. */
+  named: boolean;
+  firstHook: string | null;
+  /** One small thumb per post (hook), first CAMPAIGN_ROW_THUMBS of them: the made slide, else the hook photo, else null. */
+  postThumbs: (string | null)[];
   createdAt: string;
   updatedAt: string;
 };

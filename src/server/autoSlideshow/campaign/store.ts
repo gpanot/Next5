@@ -5,6 +5,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/db';
 import type { AutoPhoto, AutoSlide } from '../../../types/admin/autoSlideshow';
 import {
+  CAMPAIGN_ROW_THUMBS,
   emptyCampaignDraft,
   MAX_CAMPAIGN_CONTENT,
   MAX_CAPTION_CHARS,
@@ -148,12 +149,22 @@ export const createCampaign = async (workspaceId: string, name?: string): Promis
 
 const cleanName = (name: unknown): string => (typeof name === 'string' && name.trim() ? name.trim().slice(0, MAX_NAME_CHARS) : DEFAULT_NAME);
 
+/** One thumb per post (hook), as many as a list row shows: the made slideshow's first slide, else the hook's photo. */
+const postThumbsOf = (draft: CampaignDraft, photos: CampaignPhoto[], shows: { slides: Prisma.JsonValue }[]): (string | null)[] =>
+  draft.hooks.slice(0, CAMPAIGN_ROW_THUMBS).map((_, i) => {
+    const madeKey = (shows[i]?.slides as unknown as AutoSlide[] | undefined)?.[0]?.imageKey;
+    if (madeKey) return thumbUrl(madeKey);
+    const photoIndex = draft.hookPhotos[i] ?? draft.hookPhotos[0];
+    const photo = photoIndex !== undefined ? photos[photoIndex] : undefined;
+    return photo?.hotlink?.thumb ?? (photo?.imageKey ? thumbUrl(photo.imageKey) : null);
+  });
+
 export const listCampaigns = async (workspaceId: string): Promise<CampaignSummaryDto[]> => {
   const runs = await prisma.autoSlideshowRun.findMany({
     where: { workspaceId, kind: CAMPAIGN_KIND },
     orderBy: { createdAt: 'desc' },
     take: 50,
-    select: { id: true, name: true, campaign: true, photos: true, photoJobs: true, createdAt: true, updatedAt: true, slideshows: { select: { slides: true } }, _count: { select: { posts: { where: { status: { in: LIVE_POSTS } } } } } },
+    select: { id: true, name: true, campaign: true, photos: true, photoJobs: true, createdAt: true, updatedAt: true, slideshows: { orderBy: { position: 'asc' }, select: { slides: true } }, _count: { select: { posts: { where: { status: { in: LIVE_POSTS } } } } } },
   });
   // A campaign opened and left untouched has nothing to show: it stays hidden until something is added.
   return runs.filter((r) => !isBlankCampaign({ ...r, slideshowCount: r.slideshows.length })).map((r): CampaignSummaryDto => {
@@ -172,6 +183,9 @@ export const listCampaigns = async (workspaceId: string): Promise<CampaignSummar
       coverUrl,
       // A made slide already shows the hook; a bare photo gets the first hook drawn on it, as the editor does.
       coverHook: !firstSlide?.imageKey && draft.hooks[0] ? { title: draft.hooks[0], look: draft.looks.hook, ...(draft.hookTextAt ? { textAt: draft.hookTextAt } : {}) } : null,
+      named: (r.name ?? DEFAULT_NAME) !== DEFAULT_NAME,
+      firstHook: draft.hooks[0]?.trim() || null,
+      postThumbs: postThumbsOf(draft, photosOf(r), r.slideshows),
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     };

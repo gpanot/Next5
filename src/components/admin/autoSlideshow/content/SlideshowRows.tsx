@@ -2,6 +2,7 @@
 
 import type { AutoSlideshowDto } from '../../../../types/admin/autoSlideshow';
 import { RowChevron, rowClass, RowThumb } from '../campaigns/CampaignTiles';
+import { FaceBadge, type Face } from './CastStrip';
 
 type Props = {
   slideshows: AutoSlideshowDto[];
@@ -11,6 +12,8 @@ type Props = {
   onOpen: (index: number) => void;
   /** Offered on failed slideshows once the run is done. */
   onRetry?: (slideshowId: string) => void;
+  /** The face telling each story, on its thumb's corner. */
+  faceOf?: (show: AutoSlideshowDto) => Face | null;
 };
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -23,7 +26,7 @@ const statusOf = (show: AutoSlideshowDto): string => {
   return `${show.slides.length} slides · ready`;
 };
 
-function Row({ show, onOpen, onRetry, retrying }: { show: AutoSlideshowDto; onOpen: () => void; onRetry?: () => void; retrying: boolean }) {
+function Row({ show, face, onOpen, onRetry, retrying }: { show: AutoSlideshowDto; face: Face | null; onOpen: () => void; onRetry?: () => void; retrying: boolean }) {
   const text = (
     <span className="min-w-0 flex-1">
       <span className="block truncate text-sm font-semibold text-app-ink">{show.topic}</span>
@@ -33,7 +36,10 @@ function Row({ show, onOpen, onRetry, retrying }: { show: AutoSlideshowDto; onOp
   if (show.status === 'ready') {
     return (
       <button type="button" onClick={onOpen} aria-label={`Edit ${show.topic}`} className={rowClass}>
-        <RowThumb url={show.slides[0]?.imageUrl ?? null} />
+        <span className="relative shrink-0">
+          <RowThumb url={show.slides[0]?.imageUrl ?? null} />
+          {face && <FaceBadge face={face} className="absolute -right-1.5 -bottom-1.5 h-6 w-6" />}
+        </span>
         {text}
         <span className="hidden shrink-0 text-xs text-app-muted sm:block">{statusOf(show)}</span>
         <RowChevron />
@@ -58,7 +64,7 @@ function Row({ show, onOpen, onRetry, retrying }: { show: AutoSlideshowDto; onOp
 }
 
 /** Brand Cast slideshows as rows (the list view of the slideshow grid). */
-export function SlideshowRows({ slideshows, missing, retrying, onOpen, onRetry }: Props) {
+export function SlideshowRows({ slideshows, missing, retrying, onOpen, onRetry, faceOf }: Props) {
   if (slideshows.length === 0 && missing === 0) {
     return <p className="rounded-xl border border-dashed border-app-line p-8 text-center text-sm text-app-muted">Slideshows show up here once they are written.</p>;
   }
@@ -66,7 +72,7 @@ export function SlideshowRows({ slideshows, missing, retrying, onOpen, onRetry }
     <ul className="space-y-2">
       {slideshows.map((show, i) => (
         <li key={show.id}>
-          <Row show={show} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} />
+          <Row show={show} face={faceOf?.(show) ?? null} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} />
         </li>
       ))}
       {Array.from({ length: missing }, (_, i) => (

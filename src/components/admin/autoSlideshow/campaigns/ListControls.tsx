@@ -13,12 +13,22 @@ const FILTERS: { id: ListFilter; label: string }[] = [
   { id: 'calendar', label: 'On calendar' },
 ];
 
-/** The picked view, kept for this browser so Campaigns and the Library open the way they were left. */
-const viewStore = createLocalStore('next5-campaigns-view');
+/** Which list the view is for: each keeps its own pick. */
+export type ListScope = 'hooks' | 'brand';
 
-export const useListView = (): [ListView, (view: ListView) => void] => {
-  const stored = viewStore.useValue();
-  return [stored === 'list' ? 'list' : 'cards', (view) => viewStore.set(view)];
+/** First view before any pick: Hooks Volume reads best as rows (a thumb per post), Brand Cast as covers. */
+const DEFAULT_VIEW: Record<ListScope, ListView> = { hooks: 'list', brand: 'cards' };
+
+/** The picked view, kept for this browser per list, so Campaigns and the Library open the way they were left. */
+const viewStores: Record<ListScope, ReturnType<typeof createLocalStore>> = {
+  hooks: createLocalStore('next5-campaigns-view-hooks'),
+  brand: createLocalStore('next5-campaigns-view-brand'),
+};
+
+export const useListView = (scope: ListScope): [ListView, (view: ListView) => void] => {
+  const stored = viewStores[scope].useValue();
+  const view = stored === 'list' || stored === 'cards' ? stored : DEFAULT_VIEW[scope];
+  return [view, (next) => viewStores[scope].set(next)];
 };
 
 /** The filter as a native select, so phones get their own picker. */
