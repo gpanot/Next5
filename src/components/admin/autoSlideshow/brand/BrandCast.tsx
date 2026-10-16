@@ -62,7 +62,7 @@ function MemberCard({ member, busy, detailed, onAct, onNewFace, onEdit }: CardPr
 }
 
 /** An empty slot: makes one new avatar in it. `creating`: this card's avatar is being written. */
-function CreateAvatarCard({ creating, disabled, onCreate }: { creating: boolean; disabled: boolean; onCreate: () => void }) {
+export function CreateAvatarCard({ creating, disabled, onCreate }: { creating: boolean; disabled: boolean; onCreate: () => void }) {
   return (
     <li className="flex min-w-0 flex-col">
       <button type="button" onClick={onCreate} disabled={disabled} aria-busy={creating} className={`${photoBox} flex flex-col items-center justify-center gap-2 border-2 border-dashed border-app-line bg-transparent p-2 text-center text-app-ink transition hover:bg-app-sunken active:scale-[0.98] disabled:opacity-50`}>

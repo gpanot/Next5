@@ -10,11 +10,13 @@ import { signMagicToken } from '../../../../../src/lib/studio-auth';
 import { sendEmail } from '../../../../../src/lib/maileroo';
 import { enforceRateLimit } from '../../../../../src/server/rateLimit';
 import { HttpError } from '../../../../../src/server/http';
+import { BUSINESS_EMAIL_ONLY, emailKind } from '../../../../../src/lib/emailDomain';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, destination } = (await req.json()) as { email?: string; destination?: 'app' | 'studio' | 'slideshow' };
+    const { email, name, destination } = (await req.json()) as { email?: string; name?: string; destination?: 'app' | 'studio' | 'slideshow' };
     const trimmed = email?.trim().toLowerCase() ?? '';
+    const displayName = typeof name === 'string' ? name.trim().replace(/\s+/g, ' ').slice(0, 80) : '';
 
     if (!trimmed || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmed)) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
@@ -31,6 +33,11 @@ export async function POST(req: NextRequest) {
       throw err;
     }
 
+    // Business emails only for new accounts. Accounts made before the rule (and admins on Gmail) still log in.
+    if (emailKind(trimmed) !== 'business' && !(await prisma.user.findUnique({ where: { email: trimmed }, select: { id: true } }))) {
+      return NextResponse.json({ error: BUSINESS_EMAIL_ONLY }, { status: 400 });
+    }
+
     // Ensure the user exists in the DB (creates a row the first time)
     await prisma.user.upsert({
       where: { email: trimmed },
@@ -38,7 +45,7 @@ export async function POST(req: NextRequest) {
       create: { email: trimmed },
     });
 
-    const token = signMagicToken(trimmed);
+    const token = signMagicToken(trimmed, displayName || undefined);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
     const path = destination === 'app' ? '/app' : destination === 'slideshow' ? '/slideshow/login' : '/studio';
     const link = `${appUrl}${path}?token=${token}`;

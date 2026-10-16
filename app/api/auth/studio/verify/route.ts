@@ -22,8 +22,10 @@ export async function POST(req: NextRequest) {
       where: { email: payload.email },
       update: {},
       create: { email: payload.email },
-      select: { id: true, email: true },
+      select: { id: true, email: true, displayName: true },
     });
+    // The name typed on the sign-in form; never overwrites one already saved.
+    if (payload.name && !user.displayName) await prisma.user.update({ where: { id: user.id }, data: { displayName: payload.name } });
 
     const sessionToken = signSessionToken(user.id, user.email);
 

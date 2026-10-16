@@ -5,7 +5,7 @@
 import { randomUUID } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { FREE_GRANT_CENTS, type CreditReason } from '../../types/admin/slideshowCredits';
+import { FREE_GRANT_CENTS, FREE_GRANT_CREDITS, type CreditReason } from '../../types/admin/slideshowCredits';
 import { HttpError } from '../http';
 
 type Tx = Prisma.TransactionClient;
@@ -36,13 +36,13 @@ export const applyEntry = async (tx: Tx, entry: Entry, cover = false): Promise<n
   return rows[0]!.balance_cents;
 };
 
-/** The user's wallet, created on first use with one free slideshow. */
+/** The user's wallet, created on first use with the free welcome credits. */
 export const ensureWallet = async (userId: string) => {
   const existing = await prisma.slideshowWallet.findUnique({ where: { userId } });
   if (existing) return existing;
   await prisma.$transaction(async (tx) => {
     const created = await tx.$executeRaw`INSERT INTO slideshow_wallets (user_id) VALUES (${userId}) ON CONFLICT (user_id) DO NOTHING`;
-    if (created === 1) await applyEntry(tx, { userId, deltaCents: FREE_GRANT_CENTS, reason: 'free_grant', ref: userId, note: 'Welcome gift: 1 free slideshow' });
+    if (created === 1) await applyEntry(tx, { userId, deltaCents: FREE_GRANT_CENTS, reason: 'free_grant', ref: userId, note: `Welcome gift: ${FREE_GRANT_CREDITS} free credits` });
   });
   return prisma.slideshowWallet.findUniqueOrThrow({ where: { userId } });
 };

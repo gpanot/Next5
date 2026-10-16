@@ -1,14 +1,18 @@
 'use client';
 
-import { APP_SHOT_POSES, type AppShotPoseId } from '../../../../../config/appShotPoses';
+import { useState } from 'react';
+import { APP_SHOT_POSES, type AppShotPose, type AppShotPoseId } from '../../../../../config/appShotPoses';
+import { ImageLightbox } from '../../../../ui/ImageLightbox';
 import { PoseScreenPreview } from './PoseScreenPreview';
 import { StepTitle } from './StepTitle';
 
 /** screen: the uploaded app screenshot's URL, shown on each thumb's green screen; null before one is uploaded. */
 type Props = { pose: AppShotPoseId; screen: string | null; onPick: (pose: AppShotPoseId) => void };
 
-/** Step 1: how the phone is held. The green screen in each thumb is where the app screen goes, and shows it once uploaded. */
+/** Step 1: how the phone is held. The green screen in each thumb is where the app screen goes, and shows it once uploaded.
+ *  A double click (double tap) opens the pose big, with the screen on it. */
 export function PoseStep({ pose, screen, onPick }: Props) {
+  const [zoom, setZoom] = useState<AppShotPose | null>(null);
   return (
     <section>
       <StepTitle n={1} title="Pose" done />
@@ -19,6 +23,7 @@ export function PoseStep({ pose, screen, onPick }: Props) {
             type="button"
             aria-pressed={pose === p.id}
             onClick={() => onPick(p.id)}
+            onDoubleClick={() => setZoom(p)}
             className={`overflow-hidden rounded-xl border-2 bg-zinc-900 text-left transition active:scale-[0.97] ${pose === p.id ? 'border-emerald-400' : 'border-white/10 hover:border-white/30'}`}
           >
             <span className="relative block aspect-[9/16] w-full">
@@ -30,7 +35,13 @@ export function PoseStep({ pose, screen, onPick }: Props) {
           </button>
         ))}
       </div>
-      <p className="mt-2 text-xs text-white/45">{screen ? 'Your screen, at this exact angle.' : 'Your screen sits on the green part, at this exact angle.'}</p>
+      <p className="mt-2 text-xs text-white/45">
+        {screen ? 'Your screen, at this exact angle.' : 'Your screen sits on the green part, at this exact angle.'} Double-tap to see it big.
+      </p>
+      {zoom && (
+        // The full-size pose (hand and phone, see-through elsewhere) with the screenshot warped on, like the thumb.
+        <ImageLightbox src={zoom.overlay} alt={zoom.label} layer="z-[120]" onClose={() => setZoom(null)} imageOverlay={screen && <PoseScreenPreview pose={zoom} src={screen} />} />
+      )}
     </section>
   );
 }

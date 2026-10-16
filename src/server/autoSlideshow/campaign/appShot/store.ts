@@ -5,6 +5,7 @@
 //   - app_shot: the finished images, offered in the picker's Generated tab and imported like any photo.
 
 import { randomUUID } from 'node:crypto';
+import sharp from 'sharp';
 import { prisma } from '../../../../lib/db';
 import { appShotPose } from '../../../../config/appShotPoses';
 import type { AppShotAssetDto, AppShotBackground, AppShotRequest, CampaignCredit, PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
@@ -15,8 +16,10 @@ import { getObject, putObject } from '../../../storage/objectStore';
 import { storeThumb, thumbUrl } from '../../../storage/thumbs';
 import { generatePhoto, photoPrompt } from '../../photos';
 import { fetchUnsplashPhoto, searchedUnsplashPhoto } from '../unsplash';
-import { composeAppShot, composeHandShot, type LoadAsset } from './compose';
+import { composeAppShot, composeGreenShot, type LoadAsset } from './compose';
+import { keyScreenIn } from './greenKey';
 import { placeAppShot } from './relight';
+import { checkScreenShape, fitScreen } from './screenFit';
 
 export type AppAssetKind = 'app_screen' | 'app_scene';
 const SHOT_KIND = 'app_shot';
@@ -34,9 +37,17 @@ const save = async (workspaceId: string, kind: AppAssetKind | typeof SHOT_KIND, 
 
 const assetDto = (row: { id: string; r2Key: string }): AppShotAssetDto => ({ id: row.id, url: thumbUrl(row.r2Key) });
 
-/** An uploaded screenshot or background, compressed like a brand photo. */
-export const addAppAsset = async (workspaceId: string, kind: AppAssetKind, file: File): Promise<AppShotAssetDto> =>
-  assetDto(await save(workspaceId, kind, await compressBrandPhoto(file), file.name || `${kind}.jpg`));
+/** A screenshot checked (portrait phone shape) and fitted to the phone screen (screenFit.ts), as a sharp JPEG. */
+const fittedScreen = async (bytes: Buffer): Promise<Buffer> => {
+  await checkScreenShape(bytes);
+  return sharp(await fitScreen(bytes)).jpeg({ quality: 92, chromaSubsampling: '4:4:4' }).toBuffer();
+};
+
+/** An uploaded screenshot or background, compressed like a brand photo; a screenshot is also fitted to the screen. */
+export const addAppAsset = async (workspaceId: string, kind: AppAssetKind, file: File): Promise<AppShotAssetDto> => {
+  const bytes = await compressBrandPhoto(file);
+  return assetDto(await save(workspaceId, kind, kind === 'app_screen' ? await fittedScreen(bytes) : bytes, file.name || `${kind}.jpg`));
+};
 
 /** The workspace's newest app screenshot, to start the builder with. */
 export const latestAppScreen = async (workspaceId: string): Promise<AppShotAssetDto | null> => {
@@ -44,9 +55,12 @@ export const latestAppScreen = async (workspaceId: string): Promise<AppShotAsset
   return row ? assetDto(row) : null;
 };
 
+/** A background the hand and phone fit into: seen from where a person stands, not up at the ceiling. */
+const SCENE_FRAMING = 'Seen from standing eye level, camera level and looking straight ahead, not up at the ceiling, as if someone is about to hold up a phone in front of it. No person close to the camera.';
+
 /** "Generate scene": an AI background of the scene. */
 export const generateAppScene = async (workspaceId: string, scene: string): Promise<AppShotAssetDto> => {
-  const { buffer } = await generatePhoto(photoPrompt(scene), [], createMeter()).catch((err: unknown) => {
+  const { buffer } = await generatePhoto(photoPrompt(`${scene}. ${SCENE_FRAMING}`), [], createMeter()).catch((err: unknown) => {
     throw new HttpError(502, 'photo_failed', err instanceof Error ? `Scene failed: ${err.message.slice(0, 120)}` : 'Scene failed. Try again.');
   });
   return assetDto(await save(workspaceId, 'app_scene', buffer, 'scene.jpg', { description: scene }));
@@ -67,15 +81,22 @@ const backgroundOf = async (workspaceId: string, bg: AppShotBackground, scene: s
 };
 
 /**
- * The App shot: AI places the hand-held phone (screenshot warped onto the pose, plain background) in the background
- * photo. When the model fails (logged) it is the plain composite, so Build still gives an image.
+ * The App shot: AI blends the green-screen composite into the background's light, then the real screenshot is keyed
+ * into the green. When the model fails or loses the green screen (logged) it is the plain composite, so Build still
+ * gives an image.
  */
 const shotImage = async (workspaceId: string, pose: NonNullable<ReturnType<typeof appShotPose>>, screen: Buffer, background: Buffer, scene: string, load: LoadAsset): Promise<Buffer> => {
-  const hand = await composeHandShot(pose, screen, background, load);
-  return placeAppShot(hand, background, scene, `user-uploads/${workspaceId}/app-shot-tmp`).catch(async (err: unknown) => {
+  const plain = () => composeAppShot(pose, screen, background, load);
+  try {
+    const green = await composeGreenShot(pose, background, load);
+    const ai = await placeAppShot(green, background, pose.id, scene, `user-uploads/${workspaceId}/app-shot-tmp`);
+    const keyed = await keyScreenIn(ai, pose, screen, load);
+    if (keyed) return keyed;
+    console.warn('[app-shot] green screen lost in the AI photo, keeping the composite');
+  } catch (err) {
     console.warn('[app-shot] AI step failed, keeping the composite:', err instanceof Error ? err.message : err);
-    return composeAppShot(pose, screen, background, load);
-  });
+  }
+  return plain();
 };
 
 /** Builds the App shot (the hand-held phone placed in the background by AI) and keeps it; returns it as a picker

@@ -4,8 +4,6 @@ import { SLIDESHOW_PRICE_CENTS, SLIDESHOW_PRICE_LABEL } from '../../../../types/
 
 export const PRICE_CENTS = SLIDESHOW_PRICE_CENTS;
 export const MIN_DEPOSIT_CENTS = 1_000;
-export const DEPOSITS_CENTS = [1_000, 2_500, 5_000, 10_000] as const;
-export const MAX_PER_DAY = 10;
 export const DAYS_PER_MONTH = 30;
 
 export const money = (cents: number): string => `$${(cents / 100).toFixed(2)}`;
@@ -13,12 +11,6 @@ export const money = (cents: number): string => `$${(cents / 100).toFixed(2)}`;
 export const PRICE_LABEL = SLIDESHOW_PRICE_LABEL;
 /** "$10" for whole dollars, "$29.70" otherwise. */
 export const shortMoney = (cents: number): string => (cents % 100 === 0 ? `$${cents / 100}` : money(cents));
-
-/** How far a balance goes at `perDay` slideshows a day. */
-export const runway = (depositCents: number, perDay: number) => {
-  const slideshows = Math.floor(depositCents / PRICE_CENTS);
-  return { slideshows, days: Math.floor(slideshows / perDay) };
-};
 
 /**
  * Value stack, per slideshow. `anchor` is what the piece typically costs to hire out.

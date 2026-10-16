@@ -2,11 +2,20 @@
 
 /** Price of one post (slideshow or Blitz video). Change it here only: every page, charge and Stripe line reads it. */
 export const SLIDESHOW_PRICE_CENTS = 299;
-/** New users get one slideshow free. */
-export const FREE_GRANT_CENTS = SLIDESHOW_PRICE_CENTS;
+/** New users get 3 free credits: the first slideshow plus a couple of Blitz videos on their calendar. */
+export const FREE_GRANT_CREDITS = 3;
+export const FREE_GRANT_CENTS = FREE_GRANT_CREDITS * SLIDESHOW_PRICE_CENTS;
 export const MIN_TOPUP_CENTS = 1_000;
 export const MAX_TOPUP_CENTS = 1_000_000;
-export const TOPUP_PRESETS_CENTS = [1_000, 2_500, 5_000, 10_000] as const;
+/** Top up by plan: days of content × posts a day. RECOMMENDED_* get the "Best" tag; START_* is the cheap first pick. */
+export const PLAN_DAYS = [7, 30, 60, 90] as const;
+export const PLAN_PER_DAY = [1, 2, 3, 4, 5] as const;
+export const RECOMMENDED_DAYS = 60;
+export const RECOMMENDED_PER_DAY = 4;
+export const START_DAYS = 7;
+export const START_PER_DAY = 1;
+/** Price of a plan in cents: one post per day per slot. */
+export const planCents = (days: number, perDay: number, priceCents: number = SLIDESHOW_PRICE_CENTS): number => days * perDay * priceCents;
 export const MIN_THRESHOLD_CENTS = 100;
 export const MAX_THRESHOLD_CENTS = 100_000;
 
@@ -36,7 +45,7 @@ export type CreditsDto = {
 };
 
 export const REASON_LABEL: Record<CreditReason, string> = {
-  free_grant: 'Free slideshow',
+  free_grant: 'Free credits',
   topup: 'Top up',
   auto_recharge: 'Auto top up',
   slideshow_charge: 'Slideshow',

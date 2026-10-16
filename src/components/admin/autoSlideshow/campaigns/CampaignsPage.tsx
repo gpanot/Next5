@@ -121,6 +121,7 @@ export function CampaignsPage({ token, workspaceId }: Props) {
       {choosing && (
         <NewCampaignSheet
           token={token}
+          workspaceId={workspaceId}
           brandRunId={runs.data ? (runs.data.runs[0]?.id ?? null) : undefined}
           creatingHooks={creating}
           onHooksVolume={() => void create()}

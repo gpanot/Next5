@@ -5,6 +5,7 @@ import { isNumbered, numberCards } from '../../../../types/admin/campaignNumberi
 import { titlePick, type TextAt } from '../../../../types/slideText';
 import { targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
 import { isAdminView } from '../../../../lib/adminToken';
+import { adminFetch } from '../../business/useAdminApi';
 import { LookMenu } from '../LookMenu';
 import { announceCreditsChanged } from '../creditsEvents';
 import { SettingsModal } from '../settings/SettingsModal';
@@ -125,6 +126,12 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   /** Slide i's store badge row dragged to `y` (undefined: back to its usual spot). Only the CTA has badges. */
   const moveBadges = (i: number, y: number | undefined) => {
     if (i > 0) patchCard(i - 1, { badgesAt: y });
+  };
+  /** Hooks typed by hand have no photo search yet: one is written from them and kept in the draft. */
+  const writeHookQuery = async (hooks: string[]): Promise<string> => {
+    const { photoQuery } = await adminFetch<{ photoQuery: string }>(token, `/api/slideshow/campaigns/${campaignId}/photo-query`, { method: 'POST', body: JSON.stringify({ hooks }) });
+    if (photoQuery) setDraft((d) => ({ ...d, hookPhotoQuery: photoQuery }));
+    return photoQuery;
   };
   const removeCard = (i: number) => {
     setDraft((d) => withCards(d, d.cards.filter((_, j) => j !== i)));
@@ -259,6 +266,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           title={picker.slot === 'hook' ? 'Hook photos' : picker.slot === 'cardRotation' ? 'Slide photos' : 'Slide photo'}
           recommended={picker.slot === 'hook' && draft ? draft.hooks.length - draft.hookPhotos.length - state.pending.filter((p) => p.target.slot === 'hook').length : 0}
           startTab={picker.slot === 'card' && draft?.cards[picker.card]?.role === 'cta' ? 'appshot' : 'search'}
+          chooseForMe={picker.slot === 'hook' && draft ? { query: draft.hookPhotoQuery ?? '', count: draft.hooks.length, writeQuery: () => writeHookQuery(draft.hooks) } : undefined}
           onClose={() => setPicker(null)}
           onDone={(picks) => {
             setPicker(null);

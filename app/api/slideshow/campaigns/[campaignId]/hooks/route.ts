@@ -1,7 +1,7 @@
 /**
- * POST /api/slideshow/campaigns/[campaignId]/hooks — the Hook tab's "Generate for me": { count: 2-6, cards? } → { hooks }.
- *      Written from the brand, the content slides and the admins' Hook Knowledge. Nothing is saved: the editor puts the
- *      hooks in the draft (one slideshow each).
+ * POST /api/slideshow/campaigns/[campaignId]/hooks — the Hook tab's "Generate for me": { count: 2-6, cards? } →
+ *      { hooks, photoQuery }. Written from the brand, the content slides and the admins' Hook Knowledge; `photoQuery` is
+ *      the hook photos' stock search. Nothing is saved: the editor puts both in the draft (one slideshow per hook).
  */
 import { NextResponse } from 'next/server';
 import { requireUser } from '../../../../../../src/server/autoSlideshow/access';
@@ -32,6 +32,6 @@ export const POST = slideshowRoute(async (req, ctx: Ctx, access) => {
   const raw = (await req.json().catch(() => ({}))) as { count?: unknown; cards?: unknown };
   const draft = draftOf(run);
   const cards = cardsOf(raw.cards) ?? draft.cards;
-  const hooks = await writeCampaignHooks(run.workspaceId!, run.name ?? 'Campaign', { ...draft, cards }, Number(raw.count));
-  return NextResponse.json({ hooks });
+  const { hooks, photoQuery } = await writeCampaignHooks(run.workspaceId!, run.id, run.name ?? 'Campaign', { ...draft, cards }, Number(raw.count));
+  return NextResponse.json({ hooks, photoQuery });
 });

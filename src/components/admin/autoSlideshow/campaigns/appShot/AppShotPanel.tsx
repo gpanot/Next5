@@ -115,7 +115,10 @@ export function AppShotPanel({ token, campaignId, onBuilt, selected, onToggle }:
           type="button"
           onClick={() => void build()}
           disabled={!s.ready || s.busy !== null}
-          className="flex min-h-11 items-center justify-center gap-2 rounded-full bg-emerald-400 px-5 text-sm font-semibold text-zinc-950 shadow-sm transition active:scale-95 disabled:opacity-40"
+          // Solid green once a background is picked; with text alone, Search (green) is the next step, so Build waits outlined.
+          className={`flex min-h-11 items-center justify-center gap-2 rounded-full border px-5 text-sm font-semibold transition active:scale-95 disabled:opacity-40 ${
+            s.background ? 'border-emerald-400 bg-emerald-400 text-zinc-950 shadow-sm hover:bg-emerald-300' : 'border-white/20 text-white/80 hover:bg-white/5'
+          }`}
         >
           <SparkIcon />
           {s.busy === 'build' ? (left > 0 ? `Building… ${left} s` : 'Almost done…') : 'Build the image'}

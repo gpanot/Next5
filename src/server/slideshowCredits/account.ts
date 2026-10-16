@@ -36,6 +36,14 @@ export const loadCredits = async (userId: string): Promise<CreditsDto> => {
   };
 };
 
+/** An amount in cents (any cents) within [min, max], or 400. Plans like 60 days × 4 a day are not whole dollars. */
+export const centsInRange = (value: unknown, min: number, max: number, label: string): number => {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
+    throw new HttpError(400, 'bad_amount', `${label} must be from ${usd(min)} to ${usd(max)}.`);
+  }
+  return value;
+};
+
 /** A whole-dollar amount in cents within [min, max], or 400. */
 export const wholeDollars = (value: unknown, min: number, max: number, label: string): number => {
   if (typeof value !== 'number' || !Number.isInteger(value) || value % 100 !== 0 || value < min || value > max) {

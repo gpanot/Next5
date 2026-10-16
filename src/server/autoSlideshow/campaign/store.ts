@@ -8,6 +8,7 @@ import {
   emptyCampaignDraft,
   MAX_CAMPAIGN_CONTENT,
   MAX_CAPTION_CHARS,
+  MAX_PHOTO_QUERY_CHARS,
   MAX_CAMPAIGN_HOOK_PHOTOS,
   MAX_CAMPAIGN_HOOKS,
   MAX_CARD_BODY_CHARS,
@@ -246,6 +247,7 @@ export const parseDraft = (value: unknown, photoCount: number): CampaignDraft =>
     looks: looksOf(d),
     ...(parseTextAt(d.hookTextAt) ? { hookTextAt: parseTextAt(d.hookTextAt) } : {}),
     caption: str(d.caption, MAX_CAPTION_CHARS),
+    ...(str(d.hookPhotoQuery, MAX_PHOTO_QUERY_CHARS).trim() ? { hookPhotoQuery: str(d.hookPhotoQuery, MAX_PHOTO_QUERY_CHARS).trim() } : {}),
   };
 };
 

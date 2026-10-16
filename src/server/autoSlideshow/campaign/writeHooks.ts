@@ -1,15 +1,17 @@
 // server-only — never import from a 'use client' file.
 // The Hook tab's "Generate for me": writes 2-6 hook lines for the campaign (one slideshow each), from the brand, the
-// campaign's content slides and the admins' Hook Knowledge (formulas and examples that work on TikTok right now).
+// campaign's content slides and the admins' Hook Knowledge (formulas and examples that work on TikTok right now), and the
+// stock photo search for their hook photos (the Hook photos picker opens on it; "Choose for me" picks from it).
 
 import type { BrandProfile } from '../../../types/admin/companyIntel';
 import { MAX_GENERATED_HOOKS, MIN_GENERATED_HOOKS } from '../../../types/admin/hookKnowledge';
-import { hookNumber, MAX_HOOK_CHARS, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
+import { hookNumber, MAX_HOOK_CHARS, MAX_PHOTO_QUERY_CHARS, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
 import { prisma } from '../../../lib/db';
 import { HttpError } from '../../http';
 import { knowledgeForPrompt } from '../../hookKnowledge/store';
 import { metaAdsJson } from '../../metaAds/llm';
 import { clip } from '../../metaAds/text';
+import { CAMPAIGN_KIND, draftOf } from './store';
 
 const SYSTEM = `You write hook lines for TikTok photo slideshows. The hook is the text on the first slide: it decides if
 people stop scrolling. Each hook opens its own slideshow; every slideshow shares the same content slides and the same
@@ -22,29 +24,59 @@ closing slide after it. So the hooks are NOT different ideas: they are near-copi
 - Every hook must fit the brand's audience and the content slides. Never name the brand.
 - Simple words a 10-year-old can read. At most 12 words. No emoji, no hashtags, no quotes around the line.
 - Sentence case. Never invent facts or numbers the slides do not back.
-Return JSON: {"hooks":[string]}`;
+{PHOTO}
+Return JSON: {"hooks":[string],"photo_search":string}`;
 
-/** Hook numbers the writer may pick when no content is written yet. */
-const FREE_MIN = 5;
-const FREE_MAX = 10;
+/** How the photo search is written (shared with writeHookPhotoQuery). */
+const PHOTO_RULE = `"photo_search": what to type in Unsplash to find the hook's background photo: 2 to 4 plain words
+naming one concrete scene a phone camera could shoot, fitting the hook and the brand's audience ("woman cooking dinner",
+"golf course sunrise", "family kitchen table"). People and places, never text, logos, brands, numbers or abstract ideas.`;
+
+/** Hook numbers picked when no content is written yet. Left to the model, it wrote "7 …" nearly every time. */
+const PICK_MIN = 3;
+const PICK_MAX = 9;
+/** The workspace's other campaigns whose hook numbers are skipped. */
+const RECENT_CAMPAIGNS = 4;
+
+/** The numbers the workspace's latest other campaigns open their hooks with. */
+const recentNumbers = async (workspaceId: string, campaignId: string): Promise<number[]> => {
+  const runs = await prisma.autoSlideshowRun.findMany({
+    where: { workspaceId, kind: CAMPAIGN_KIND, id: { not: campaignId } },
+    orderBy: { createdAt: 'desc' },
+    take: RECENT_CAMPAIGNS * 3,
+    select: { campaign: true },
+  });
+  const numbers = runs.map((r) => draftOf(r).hooks[0]).flatMap((h) => (h && /^\d+/.test(h) ? [hookNumber(h)] : []));
+  return numbers.filter((n): n is number => n !== null).slice(0, RECENT_CAMPAIGNS);
+};
+
+/** A number in PICK_MIN-PICK_MAX the recent campaigns did not use (only the latest one's skipped when all were). */
+const pickNumber = (recent: number[]): number => {
+  const all = Array.from({ length: PICK_MAX - PICK_MIN + 1 }, (_, i) => PICK_MIN + i);
+  const fresh = all.filter((n) => !recent.includes(n));
+  const pool = fresh.length > 0 ? fresh : all.filter((n) => n !== recent[0]);
+  return pool[Math.floor(Math.random() * pool.length)]!;
+};
 
 /**
  * The number every hook starts with: every slideshow shares the same content and CTA slides, so "5 ways…" on one hook
- * and "7 ways…" on another cannot both be true. With content written, it is the content slides plus the CTA (5 content
- * slides + CTA = "6 ways…", see campaignNumbering.ts). Null: the writer picks one, the same for all.
+ * and "6 ways…" on another cannot both be true. With content written, it is the content slides plus the CTA (5 content
+ * slides + CTA = "6 ways…", see campaignNumbering.ts). Without, the campaign's hooks so far keep theirs; else it is
+ * picked here (pickNumber), and the content written later follows it.
  */
-const fixedNumber = (contentCount: number): number | null => (contentCount >= 2 ? contentCount + 1 : null);
+const hookCount = async (workspaceId: string, campaignId: string, draft: CampaignDraft, contentCount: number): Promise<number> => {
+  if (contentCount >= 2) return contentCount + 1;
+  const own = draft.hooks.map(hookNumber).find((n) => n !== null);
+  return own ?? pickNumber(await recentNumbers(workspaceId, campaignId));
+};
 
-const numberRule = (fixed: number | null): string =>
-  fixed !== null
-    ? `Every hook starts with the number ${fixed} ("${fixed} ways…", "${fixed} mistakes…"): the slideshow has ${fixed - 1} content slides and a closing slide.`
-    : `Every hook starts with the SAME number, between ${FREE_MIN} and ${FREE_MAX} ("7 ways…", "7 mistakes…"): the slides after the hook follow that number.`;
+const numberRule = (n: number): string =>
+  `Every hook starts with the number ${n} ("${n} ways…", "${n} mistakes…"): the slideshow has ${n - 1} content slides and a closing slide.`;
 
-/** Why the hooks' numbers are wrong, or null when every hook starts with the same (required) number. */
-const numberProblem = (hooks: string[], fixed: number | null): string | null => {
+/** Why the hooks' numbers are wrong, or null when every hook starts with the required number. */
+const numberProblem = (hooks: string[], want: number): string | null => {
   const numbers = hooks.map((h) => (/^\d+/.test(h) ? hookNumber(h) : null));
-  const want = fixed ?? numbers[0];
-  if (want === null || want === undefined || numbers.some((n) => n !== want)) return `every hook must start with the same number${fixed !== null ? ` (${fixed})` : ''}; you wrote ${numbers.map((n) => n ?? 'none').join(', ')}`;
+  if (numbers.some((n) => n !== want)) return `every hook must start with the number ${want}; you wrote ${numbers.map((n) => n ?? 'none').join(', ')}`;
   return null;
 };
 
@@ -77,16 +109,39 @@ const cleanHooks = (raw: unknown): string[] => {
     .filter((h) => h && !seen.has(h.toLowerCase()) && seen.add(h.toLowerCase()));
 };
 
-/** Writes `count` (2-6) hook lines for the campaign. A short answer is retried with the reason. */
-export const writeCampaignHooks = async (workspaceId: string, name: string, draft: CampaignDraft, count: number): Promise<string[]> => {
+/** A photo search, cleaned: plain words only, within the length; empty when the model gave none. */
+const cleanQuery = (raw: unknown): string =>
+  typeof raw === 'string' ? clip(raw.replace(/["'“”#]/g, '').replace(/\s+/g, ' ').trim().toLowerCase(), MAX_PHOTO_QUERY_CHARS) : '';
+
+export type WrittenHooks = { hooks: string[]; photoQuery: string };
+
+/**
+ * The hook photos' stock search for hooks written by hand (no photo search was written with them). Cheap: one short
+ * answer. Falls back to the brand's first product category, then the campaign name.
+ */
+export const writeHookPhotoQuery = async (workspaceId: string, name: string, hooks: string[]): Promise<string> => {
+  const brand = await brandOf(workspaceId);
+  const raw = await metaAdsJson<{ photo_search?: unknown }>(
+    [
+      { role: 'system', content: `You pick stock photos for TikTok slideshow hooks.\n${PHOTO_RULE}\nReturn JSON: {"photo_search":string}` },
+      { role: 'user', content: [brand ? `Brand: ${brand.brandName}. Offers: ${brand.valueProp}. Audience: ${brand.audience}.` : '', `Campaign: ${name}`, `Hooks:\n${hooks.join('\n')}`].filter(Boolean).join('\n\n') },
+    ],
+    { maxTokens: 200, label: 'OpenAI campaign hook photo search' },
+  ).catch(() => ({ photo_search: '' }));
+  return cleanQuery(raw.photo_search) || cleanQuery(brand?.productCategories[0]) || cleanQuery(name);
+};
+
+/** Writes `count` (2-6) hook lines for campaign `campaignId`, and their photo search. A short answer is retried with the reason. */
+export const writeCampaignHooks = async (workspaceId: string, campaignId: string, name: string, draft: CampaignDraft, count: number): Promise<WrittenHooks> => {
   if (!Number.isInteger(count) || count < MIN_GENERATED_HOOKS || count > MAX_GENERATED_HOOKS) throw new HttpError(400, 'bad_count', `Pick ${MIN_GENERATED_HOOKS} to ${MAX_GENERATED_HOOKS} hooks.`);
   const [brand, knowledge] = await Promise.all([brandOf(workspaceId), knowledgeForPrompt()]);
-  const fixed = fixedNumber(draft.cards.filter((c) => c.role === 'item' && c.title.trim()).length);
-  const system = SYSTEM.replace('{COUNT}', String(count)).replace('{NUMBER}', numberRule(fixed));
+  const fixed = await hookCount(workspaceId, campaignId, draft, draft.cards.filter((c) => c.role === 'item' && c.title.trim()).length);
+  const system = SYSTEM.replace('{COUNT}', String(count)).replace('{NUMBER}', numberRule(fixed)).replace('{PHOTO}', `- ${PHOTO_RULE}`);
   let problem = '';
   let best: string[] = [];
+  let photoQuery = '';
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const raw = await metaAdsJson<{ hooks?: unknown }>(
+    const raw = await metaAdsJson<{ hooks?: unknown; photo_search?: unknown }>(
       [
         { role: 'system', content: system },
         { role: 'user', content: brief(brand, name, draft, knowledge) + (problem ? `\n\nYour last answer was rejected: ${problem}. Fix it.` : '') },
@@ -94,14 +149,16 @@ export const writeCampaignHooks = async (workspaceId: string, name: string, draf
       { maxTokens: 2_000, label: 'OpenAI campaign hooks' },
     );
     const hooks = cleanHooks(raw.hooks).slice(0, count);
+    photoQuery = cleanQuery(raw.photo_search) || photoQuery;
     if (hooks.length < count) {
       problem = `${hooks.length} different hooks; write exactly ${count}`;
       continue;
     }
     best = hooks;
     problem = numberProblem(hooks, fixed) ?? '';
-    if (!problem) return hooks;
+    if (!problem) return { hooks, photoQuery: photoQuery || (await writeHookPhotoQuery(workspaceId, name, hooks)) };
   }
   if (best.length === 0) throw new HttpError(502, 'hooks_failed', 'Could not write the hooks. Try again.');
-  return forceNumber(best, fixed ?? hookNumber(best[0]!) ?? 7);
+  const hooks = forceNumber(best, fixed);
+  return { hooks, photoQuery: photoQuery || (await writeHookPhotoQuery(workspaceId, name, hooks)) };
 };

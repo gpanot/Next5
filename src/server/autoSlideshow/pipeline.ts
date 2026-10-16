@@ -115,6 +115,7 @@ const planStep: StepFn = async (runId, meter, { append }) => {
     usedDrafts: false,
     bankId: bank.id,
     bankBuilt: bank.built || Boolean(before?.bankBuilt),
+    ...(before?.castId ? { castId: before.castId } : {}),
   };
   return { plan: json(plan) };
 };
@@ -168,8 +169,9 @@ const awaitWarmUp = async (runId: string, meter: CostMeter) => {
 type Assembled = ReturnType<typeof assembleCombo>;
 
 /** Each assembled slideshow's slides with their photo plan (photoPlan.ts): a brand cast member per slideshow, taking
- *  turns, the Visual Bible and the brand's own photos. Slideshows that failed to assemble stay as they are. */
-const planPhotos = async (runId: string, shows: (Assembled | Error)[], picks: SlideshowPick[], meter: CostMeter): Promise<(Assembled | Error)[]> => {
+ *  turns (or `castId` for all, when the owner picked one), the Visual Bible and the brand's own photos. Slideshows that
+ *  failed to assemble stay as they are. */
+const planPhotos = async (runId: string, shows: (Assembled | Error)[], picks: SlideshowPick[], meter: CostMeter, castId?: string): Promise<(Assembled | Error)[]> => {
   await awaitWarmUp(runId, meter);
   const run = await loadRun(runId);
   const profile = run.profile as unknown as BrandProfile | null;
@@ -177,7 +179,7 @@ const planPhotos = async (runId: string, shows: (Assembled | Error)[], picks: Sl
   if (!profile || !workspaceId) return shows;
   const bible = await runBible(runId, profile, workspaceId, meter);
   const ok = shows.flatMap((s, i) => (s instanceof Error ? [] : [i]));
-  const [photos, cast] = await Promise.all([brandPhotoFacts(workspaceId), castForShows(workspaceId, ok.length, meter)]);
+  const [photos, cast] = await Promise.all([brandPhotoFacts(workspaceId), castForShows(workspaceId, ok.length, meter, castId)]);
   const planned = [...shows];
   await runPool(ok.map((i, k) => ({ i, k })), 4, async ({ i, k }) => {
     const show = shows[i] as Assembled;
@@ -207,7 +209,7 @@ const writeStep: StepFn = async (runId, meter, { append }) => {
       return err instanceof Error ? err : new Error(String(err));
     }
   });
-  const shows = await planPhotos(runId, assembled, picks, meter);
+  const shows = await planPhotos(runId, assembled, picks, meter, append > 0 ? plan.castId : undefined);
   // Same music pick as Blitz cards: Jev fit, not what the workspace used lately, no repeat in the run; changeable in the editor.
   const tracks = await matchTracks(
     shows.map((show, i) => (show instanceof Error ? { goal: null, slides: [] } : { goal: picks[i]!.goal ?? null, slides: show.slides })),

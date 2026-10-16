@@ -15,6 +15,13 @@ export type AppShotPose = {
   quad: [number, number][];
 };
 
+/**
+ * The app screenshot's shape on every pose: a real phone screen (9:19.5, like iPhone and most Android store
+ * screenshots). Uploads are fitted to it once, then warped onto the pose; the quad's own shape in the photo is
+ * squeezed by the phone's tilt, so it must not size the screenshot.
+ */
+export const APP_SCREEN_SIZE = { width: 886, height: 1920 };
+
 const DIR = '/images/app-shot';
 
 const pose = (id: AppShotPoseId, label: string, quad: [number, number][]): AppShotPose => ({

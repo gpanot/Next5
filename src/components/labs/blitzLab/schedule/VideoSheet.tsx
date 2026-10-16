@@ -8,6 +8,7 @@ import { CoverMedia } from '../../addToCalendar/CoverMedia';
 import { whenLabel } from '../../addToCalendar/slots';
 import { ChangeDay } from './ChangeDay';
 import { PostChoicesForm } from './PostChoicesForm';
+import { RefundNotice } from './RefundNotice';
 import { usePostChoices } from './usePostChoices';
 import { useVideoSheet, type VideoSheetActions } from './useVideoSheet';
 import { VideoPreview } from './VideoPreview';
@@ -99,14 +100,26 @@ function Footer({ item, editable, f, blocked, onClose }: { item: BlitzScheduleDt
 /**
  * One Blitz video, opened from the calendar or the Library. Not made yet (planned or approved): it plays as a deck card,
  * and the user approves it (where it posts and that platform's choices), edits it, moves it to another day, or removes
- * it (its credit comes back). Made, posting, posted or failed: its cover and status.
+ * it (its credit comes back, and a popup says so). Made, posting, posted or failed: its cover and status.
  */
 export function VideoSheet(props: Props) {
   const { item, onClose, editHref } = props;
   const choices = usePostChoices();
   const f = useVideoSheet(props, choices);
   const editable = item.status === 'planned' || item.status === 'scheduled';
-  useEscape(onClose);
+  // After a refund, every way out goes through dismissRefund so the calendar reloads.
+  const close = f.refunded ? f.dismissRefund : onClose;
+  useEscape(close);
+
+  if (f.refunded) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={close}>
+        <div role="dialog" aria-modal="true" aria-label="Credit added back" onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-t-2xl bg-[var(--paper,#fff)] shadow-xl sm:rounded-2xl dark:bg-neutral-950">
+          <RefundNotice onDone={close} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>

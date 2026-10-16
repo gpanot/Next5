@@ -19,6 +19,7 @@ export const MAX_HOOK_CHARS = 120;
 export const MAX_CARD_TITLE_CHARS = 120;
 export const MAX_CARD_BODY_CHARS = 220;
 export const MAX_CAPTION_CHARS = 2_000;
+export const MAX_PHOTO_QUERY_CHARS = 80;
 
 /** The line under a card's headline: hidden from the editor for now (2026-10-11), so it is neither drawn nor rendered. */
 export const SHOW_CARD_BODY = false;
@@ -62,6 +63,9 @@ export type CampaignDraft = {
   hookTextAt?: TextAt;
   /** The post caption every slideshow of the campaign gets (hashtags written in it). */
   caption: string;
+  /** Stock photo search for the hook photos ("woman cooking dinner"), written with the hooks: the Hook photos picker
+   *  opens on it, and its "Choose for me" picks from its results. */
+  hookPhotoQuery?: string;
 };
 
 /** Which kind of slide a text style applies to. */

@@ -15,13 +15,13 @@ export const GET = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
   return NextResponse.json(await getBlitzEdit(workspaceId, id));
 });
 
-/** DELETE /api/admin/blitz/schedule/[id] — takes a scheduled video off the calendar, before it starts rendering. */
+/** DELETE /api/admin/blitz/schedule/[id] — takes a scheduled video off the calendar, before it starts rendering. → { ok, refunded } */
 export const DELETE = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
   const { id } = await ctx.params;
   const workspaceId = access.admin ? new URL(req.url).searchParams.get('workspaceId') : access.workspaceId;
   if (!workspaceId) throw new HttpError(400, 'no_workspace', 'Pick a workspace.');
-  await cancelBlitz(workspaceId, id);
-  return NextResponse.json({ ok: true });
+  const { refunded } = await cancelBlitz(workspaceId, id);
+  return NextResponse.json({ ok: true, refunded });
 });
 
 /** POST /api/admin/blitz/schedule/[id] — approves a planned video on the calendar with its TikTok choices. Users only. */

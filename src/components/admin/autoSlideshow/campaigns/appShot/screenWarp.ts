@@ -3,13 +3,6 @@
 
 type Point = [number, number];
 
-/** The screen's size, averaged over its opposite edges (as the server sizes the screenshot before warping it). */
-export const screenSize = (quad: Point[]): { width: number; height: number } => {
-  const [tl, tr, br, bl] = quad as [Point, Point, Point, Point];
-  const dist = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1]);
-  return { width: (dist(tl, tr) + dist(bl, br)) / 2, height: (dist(tl, bl) + dist(tr, br)) / 2 };
-};
-
 /**
  * The CSS transform taking a `width` x `height` box (transform-origin at its top left) onto `quad` (TL, TR, BR, BL),
  * every point scaled by `scale` (photo pixels to on-screen pixels).

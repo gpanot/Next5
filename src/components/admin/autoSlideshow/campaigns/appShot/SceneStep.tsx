@@ -19,14 +19,22 @@ type Props = {
 
 const HOW: Record<PickedBackground['how'], string> = { upload: 'Your photo', generated: 'Generated scene', search: 'Stock photo' };
 
-function Choice({ icon, label, onClick, disabled, on = false }: { icon: ReactNode; label: string; onClick: () => void; disabled: boolean; on?: boolean }) {
+type ChoiceProps = { icon: ReactNode; label: string; onClick: () => void; disabled: boolean; on?: boolean; suggested?: boolean };
+
+/** `on`: the way the background was picked. `suggested`: the next tap to make (solid green). */
+function Choice({ icon, label, onClick, disabled, on = false, suggested = false }: ChoiceProps) {
+  const look = suggested
+    ? 'border-emerald-400 bg-emerald-400 text-zinc-950 shadow-sm hover:bg-emerald-300'
+    : on
+      ? 'border-emerald-400 bg-emerald-400/10 text-white'
+      : 'border-white/10 text-white/75 hover:bg-white/5';
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
       aria-pressed={on}
-      className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border px-1 text-xs font-medium transition active:scale-95 disabled:opacity-35 ${on ? 'border-emerald-400 bg-emerald-400/10 text-white' : 'border-white/10 text-white/75 hover:bg-white/5'}`}
+      className={`flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border px-1 text-xs font-medium transition active:scale-95 disabled:opacity-35 ${look}`}
     >
       {icon}
       {label}
@@ -38,6 +46,8 @@ function Choice({ icon, label, onClick, disabled, on = false }: { icon: ReactNod
 export function SceneStep({ scene, background, busy, searching, onScene, onUpload, onGenerate, onSearch, onClear }: Props) {
   const input = useRef<HTMLInputElement>(null);
   const hasText = scene.trim() !== '';
+  // Text typed, nothing picked yet: Search is the next step.
+  const suggestSearch = hasText && background === null && !searching && busy === null;
   return (
     <section>
       <StepTitle n={3} title="Scene" done={background !== null || hasText} />
@@ -53,7 +63,7 @@ export function SceneStep({ scene, background, busy, searching, onScene, onUploa
       <div className="mt-2 grid grid-cols-3 gap-2">
         <Choice icon={<UploadIcon />} label={busy === 'scene-upload' ? 'Uploading…' : 'Upload'} onClick={() => input.current?.click()} disabled={busy !== null} on={background?.how === 'upload'} />
         <Choice icon={<SparkIcon />} label={busy === 'scene-generate' ? 'Making…' : 'Generate'} onClick={onGenerate} disabled={busy !== null || !hasText} on={background?.how === 'generated'} />
-        <Choice icon={<SearchIcon />} label="Search" onClick={onSearch} disabled={busy !== null || !hasText} on={searching || background?.how === 'search'} />
+        <Choice icon={<SearchIcon />} label="Search" onClick={onSearch} disabled={busy !== null || !hasText} on={searching || background?.how === 'search'} suggested={suggestSearch} />
       </div>
       {background ? (
         <div className="mt-3 flex items-center gap-3 rounded-xl border border-white/10 bg-zinc-900 p-2">

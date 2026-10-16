@@ -245,13 +245,26 @@ const takeLeastUsed = async (workspaceId: string): Promise<CastPick | null> => {
   return row ? { id: row.id, name: row.name, look: row.look, imageKey: row.image_key } : null;
 };
 
+/** The member the owner picked, for `count` slideshows (its uses counted); null when it is gone or has no photo. */
+const takeChosen = async (workspaceId: string, castId: string, count: number): Promise<CastPick | null> => {
+  const rows = await prisma.$queryRaw<PickedRow[]>`
+    UPDATE brand_cast_members SET uses = uses + ${count}
+    WHERE id = ${castId} AND workspace_id = ${workspaceId} AND archived_at IS NULL AND status = 'ready' AND image_key IS NOT NULL
+    RETURNING id, name, look, image_key`;
+  const row = rows[0];
+  return row ? { id: row.id, name: row.name, look: row.look, imageKey: row.image_key } : null;
+};
+
 /**
  * One cast member per slideshow of a batch, least used first, each counted at once so the faces take turns (a cast
- * of one face gives it to every slideshow). On the brand's first slideshows the cast is made here (prepareCast).
- * Empty when there is none (the photos then go without a reference).
+ * of one face gives it to every slideshow). `castId`: the face the owner picked, for all of them (taking turns again
+ * when it is gone). On the brand's first slideshows the cast is made here (prepareCast). Empty when there is none
+ * (the photos then go without a reference).
  */
-export const castForShows = async (workspaceId: string, count: number, meter: CostMeter): Promise<CastPick[]> => {
+export const castForShows = async (workspaceId: string, count: number, meter: CostMeter, castId?: string): Promise<CastPick[]> => {
   if (count === 0) return [];
+  const chosen = castId ? await takeChosen(workspaceId, castId, count) : null;
+  if (chosen) return Array.from({ length: count }, () => chosen);
   await prepareCast(workspaceId, meter);
   const picks: CastPick[] = [];
   for (let i = 0; i < count; i += 1) {

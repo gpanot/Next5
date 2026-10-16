@@ -131,3 +131,11 @@ describe('isBlankCampaign', () => {
     expect(isBlankCampaign({ ...blank(), slideshowCount: 1 })).toBe(false);
   });
 });
+
+describe('parseDraft hookPhotoQuery', () => {
+  it('keeps the hook photo search, trimmed, and drops an empty one', () => {
+    expect(parseDraft({ ...ready(), hookPhotoQuery: '  golf course sunrise ' }, 5).hookPhotoQuery).toBe('golf course sunrise');
+    expect(parseDraft({ ...ready(), hookPhotoQuery: '   ' }, 5)).not.toHaveProperty('hookPhotoQuery');
+    expect(parseDraft({ ...ready(), hookPhotoQuery: 'x'.repeat(200) }, 5).hookPhotoQuery).toHaveLength(80);
+  });
+});

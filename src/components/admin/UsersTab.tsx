@@ -1,12 +1,17 @@
 'use client';
 
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { fmtDate, PAYMENT_BADGE } from '../../lib/admin-format';
+import type { EmailKind } from '../../lib/emailDomain';
+import { CreditCells, EmailFilterChips, EmailFlag, matchesEmailFilter, type EmailFilter, type UserCredits } from './users/userCells';
 import type { UserWorkspaceDto } from '../../types/admin/workspaceDetail';
 
 type AdminUser = {
   id: string;
   email: string;
+  display_name: string | null;
+  email_kind: EmailKind;
+  credits: UserCredits;
   created_at: string;
   booking_count: number;
   photo_count: number;
@@ -75,6 +80,13 @@ export const UsersTab = ({ token }: UsersTabProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
   const [openId, setOpenId]   = useState<string | null>(null);
+  const [filter, setFilter]   = useState<EmailFilter>('all');
+  const shown = useMemo(() => users.filter((u) => matchesEmailFilter(u.email_kind, filter)), [users, filter]);
+  const counts = useMemo(() => ({
+    all: users.length,
+    business: users.filter((u) => u.email_kind === 'business').length,
+    suspicious: users.filter((u) => u.email_kind !== 'business').length,
+  }), [users]);
 
   useEffect(() => {
     fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
@@ -89,17 +101,23 @@ export const UsersTab = ({ token }: UsersTabProps) => {
 
   return (
     <div>
-      <div className="mb-4 flex items-baseline gap-2">
-        <h2 className="font-display text-[22px] tracking-[0.04em] text-ink uppercase">Users</h2>
-        <span className="text-[13px] text-muted">{users.length}</span>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-baseline gap-2">
+          <h2 className="font-display text-[22px] tracking-[0.04em] text-ink uppercase">Users</h2>
+          <span className="text-[13px] text-muted">{shown.length}</span>
+        </div>
+        <EmailFilterChips value={filter} onChange={setFilter} counts={counts} />
       </div>
       <div className="overflow-hidden rounded-2xl border border-line bg-white">
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[700px] text-[13px]">
+        <table className="w-full min-w-[960px] text-[13px]">
           <thead>
             <tr className="border-b border-line bg-surface text-left text-[10px] uppercase tracking-[0.12em] text-muted">
-              <Th>Email</Th>
+              <Th>User</Th>
               <Th>Workspaces</Th>
+              <Th>Credits left</Th>
+              <Th>Used</Th>
+              <Th>Purchased</Th>
               <Th>Bookings</Th>
               <Th>Photos</Th>
               <Th>Last Shoot</Th>
@@ -108,7 +126,7 @@ export const UsersTab = ({ token }: UsersTabProps) => {
             </tr>
           </thead>
           <tbody>
-            {users.map((u, i) => (
+            {shown.map((u, i) => (
               <Fragment key={u.id}>
                 <tr
                   onClick={() => setOpenId(openId === u.id ? null : u.id)}
@@ -118,8 +136,11 @@ export const UsersTab = ({ token }: UsersTabProps) => {
                   <Td className="font-medium text-ink">
                     <span className="mr-2 inline-block w-3 text-muted">{openId === u.id ? '▾' : '▸'}</span>
                     {u.email}
+                    <EmailFlag kind={u.email_kind} />
+                    {u.display_name && <span className="mt-0.5 block pl-5 text-[12px] font-normal text-muted">{u.display_name}</span>}
                   </Td>
                   <Td>{u.workspaces.length}</Td>
+                  <CreditCells credits={u.credits} Td={Td} />
                   <Td>{u.booking_count}</Td>
                   <Td>{u.photo_count}</Td>
                   <Td>{u.last_booking?.route_title ?? '—'}</Td>
@@ -132,7 +153,7 @@ export const UsersTab = ({ token }: UsersTabProps) => {
                 </tr>
                 {openId === u.id && (
                   <tr className="border-b border-line bg-zinc-50 dark:bg-zinc-950">
-                    <td colSpan={7} className="px-4 py-3">
+                    <td colSpan={10} className="px-4 py-3">
                       <WorkspaceLinks workspaces={u.workspaces} />
                     </td>
                   </tr>
@@ -142,8 +163,8 @@ export const UsersTab = ({ token }: UsersTabProps) => {
           </tbody>
         </table>
         </div>
-        {users.length === 0 && (
-          <p className="px-5 py-10 text-center text-[13px] text-muted">No users yet.</p>
+        {shown.length === 0 && (
+          <p className="px-5 py-10 text-center text-[13px] text-muted">{users.length === 0 ? 'No users yet.' : 'No user matches this filter.'}</p>
         )}
       </div>
     </div>

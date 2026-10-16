@@ -13,7 +13,8 @@ type Props = {
   /** Hooks there now: generating replaces them. */
   current: number;
   onClose: () => void;
-  onDone: (hooks: string[]) => void;
+  /** The hooks, and the hook photos' stock search written with them. */
+  onDone: (hooks: string[], photoQuery: string) => void;
 };
 
 const COUNTS = Array.from({ length: MAX_GENERATED_HOOKS - MIN_GENERATED_HOOKS + 1 }, (_, i) => MIN_GENERATED_HOOKS + i);
@@ -42,8 +43,8 @@ export function GenerateHooksDialog({ token, campaignId, cards, current, onClose
     setWriting(true);
     setError(null);
     try {
-      const { hooks } = await adminFetch<{ hooks: string[] }>(token, `/api/slideshow/campaigns/${campaignId}/hooks`, { method: 'POST', body: JSON.stringify({ count, cards }) });
-      onDone(hooks);
+      const { hooks, photoQuery } = await adminFetch<{ hooks: string[]; photoQuery?: string }>(token, `/api/slideshow/campaigns/${campaignId}/hooks`, { method: 'POST', body: JSON.stringify({ count, cards }) });
+      onDone(hooks, photoQuery ?? '');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not write the hooks. Try again.');
       setWriting(false);

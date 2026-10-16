@@ -7,6 +7,7 @@ import { createWorkspaceLabClient, errorOf } from '../../../labs/labClient';
 import { MAX_RAW_BYTES, shrinkPhoto } from '../brand/shrinkPhoto';
 import { AppShotPanel } from './appShot/AppShotPanel';
 import { PhotoOptionGrid } from './PhotoOptionGrid';
+import { useChooseForMe, type ChooseForMe } from './useChooseForMe';
 import { usePhotoOptions } from './usePhotoOptions';
 
 type Props = {
@@ -20,6 +21,8 @@ type Props = {
   startTab?: PickerTab;
   /** Photos still missing for one per hook: a warning counts down as photos are picked. */
   recommended?: number;
+  /** Hook photos only: the stock search to open on (already run), and "Choose for me". */
+  chooseForMe?: ChooseForMe;
   onDone: (picks: PhotoOptionDto[]) => void;
   onClose: () => void;
 };
@@ -60,8 +63,9 @@ const uploadFiles = async (token: string, workspaceId: string, files: File[]): P
   return null;
 };
 
-function SearchBar({ onSearch }: { onSearch: (q: string) => void }) {
-  const [text, setText] = useState('');
+/** `initial`: the search it opens with (remounted with a new one when "Choose for me" sets it). */
+function SearchBar({ initial, onSearch }: { initial: string; onSearch: (q: string) => void }) {
+  const [text, setText] = useState(initial);
   const submit = (e: FormEvent) => {
     e.preventDefault();
     onSearch(text.trim());
@@ -71,6 +75,21 @@ function SearchBar({ onSearch }: { onSearch: (q: string) => void }) {
       <input value={text} onChange={(e) => setText(e.target.value)} autoFocus placeholder="golf course, coffee shop…" className="min-h-11 min-w-0 flex-1 rounded-xl border border-white/15 bg-white/5 px-3 text-base text-white placeholder:text-white/40 focus:border-emerald-400 focus:outline-none" />
       <button type="submit" disabled={!text.trim()} className="min-h-11 rounded-xl bg-emerald-400 px-4 text-sm font-semibold text-zinc-950 transition active:scale-95 disabled:opacity-40">Search</button>
     </form>
+  );
+}
+
+const SparkIcon = () => (
+  <svg aria-hidden width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />
+  </svg>
+);
+
+function ChooseButton({ busy, onClick }: { busy: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} disabled={busy} className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-400/60 bg-emerald-400/10 px-4 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-400/15 active:scale-[0.98] disabled:opacity-60 sm:w-auto">
+      {busy ? <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-300/30 border-t-emerald-300" /> : <SparkIcon />}
+      {busy ? 'Choosing photos…' : 'Choose for me'}
+    </button>
   );
 }
 
@@ -90,9 +109,10 @@ function UploadButton({ onFiles, busy }: { onFiles: (files: File[]) => void; bus
  * The photo library: stock photos (Unsplash), the workspace's generated photos, its own photos (with upload), the
  * shared library and the App shot builder (the app on a hand-held phone), as tabs. Picks keep their order across tabs; Done hands them over for import.
  */
-export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, title, startTab = 'search', recommended = 0, onDone, onClose }: Props) {
+export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, title, startTab = 'search', recommended = 0, chooseForMe, onDone, onClose }: Props) {
   const [tab, setTab] = useState<PickerTab>(startTab);
-  const [query, setQuery] = useState('');
+  // The hook photos' search runs as soon as the picker opens.
+  const [query, setQuery] = useState(chooseForMe?.query ?? '');
   const [picked, setPicked] = useState<PhotoOptionDto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -100,10 +120,12 @@ export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, t
   const list = usePhotoOptions(token, campaignId, tab === 'appshot' ? 'search' : tab, tab === 'appshot' ? '' : query);
   const keys = useMemo(() => picked.map((p) => p.key), [picked]);
   const missing = Math.max(0, recommended - picked.length);
+  const choose = useChooseForMe(chooseForMe, { query, setQuery, setTab, list, picked, setPicked, missing });
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
+      // A lightbox opened from inside (the App shot pose preview) closes first.
+      if (e.key !== 'Escape' || document.querySelector('[data-lightbox-open]')) return;
       e.stopPropagation();
       onClose();
     };
@@ -134,7 +156,9 @@ export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, t
             {TABS.map((t) => <button key={t.id} type="button" aria-pressed={tab === t.id} onClick={() => setTab(t.id)} className={tabClass(tab === t.id)}>{t.label}</button>)}
           </nav>
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3 sm:p-4">
-            {tab === 'search' && <SearchBar onSearch={setQuery} />}
+            {tab === 'search' && <SearchBar key={query} initial={query} onSearch={setQuery} />}
+            {tab === 'search' && chooseForMe && <ChooseButton busy={choose.busy} onClick={() => void choose.run()} />}
+            {choose.error && <p role="alert" className="rounded-lg bg-red-500/15 p-3 text-sm text-red-300">{choose.error}</p>}
             {tab === 'search' && <p className="text-xs text-white/40">Free photos from <a href="https://unsplash.com/?utm_source=next5&utm_medium=referral" target="_blank" rel="noreferrer" className="underline">Unsplash</a>.</p>}
             {tab === 'brand' && <UploadButton onFiles={(f) => void upload(f)} busy={uploading} />}
             {tab === 'appshot' && <AppShotPanel token={token} campaignId={campaignId} onBuilt={(o) => setPicked((p) => (multiple ? [...p, o] : [o]))} selected={keys} onToggle={toggle} />}

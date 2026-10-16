@@ -24,7 +24,7 @@ export function ScreenStep({ screen, uploading, onFile, onClear }: Props) {
       {screen ? (
         <div className="relative flex justify-center rounded-xl border border-white/10 bg-zinc-900 p-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={screen.url} alt="Your app screen" className={`aspect-[9/19] h-56 rounded-lg object-cover transition ${uploading ? 'opacity-40' : ''}`} />
+          <img src={screen.url} alt="Your app screen" className={`aspect-[9/19.5] h-56 rounded-lg object-cover transition ${uploading ? 'opacity-40' : ''}`} />
           <button type="button" onClick={onClear} aria-label="Remove app screen" className="absolute top-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-black/60 text-white transition hover:bg-black/80 active:scale-95"><CloseIcon /></button>
           <button type="button" onClick={() => input.current?.click()} disabled={uploading} className="absolute bottom-4 min-h-9 rounded-full bg-black/70 px-4 text-xs font-semibold text-white transition hover:bg-black/85 active:scale-95">
             {uploading ? 'Uploading…' : 'Replace'}
@@ -42,7 +42,7 @@ export function ScreenStep({ screen, uploading, onFile, onClear }: Props) {
         >
           <PhoneIcon className="text-white/60" />
           <span className="text-sm text-white/80">{uploading ? 'Uploading…' : 'Drop a screenshot, or tap to browse'}</span>
-          <span className="text-xs text-white/40">PNG, JPEG or WebP</span>
+          <span className="text-xs text-white/40">A raw phone screenshot, portrait. Not your store image with text or a phone frame.</span>
         </button>
       )}
     </section>

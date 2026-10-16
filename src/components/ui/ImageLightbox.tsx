@@ -23,6 +23,8 @@ type ImageLightboxProps = {
   /** When set, prev/next arrow buttons are shown. */
   onPrev?: () => void;
   onNext?: () => void;
+  /** Stacking class; raise it when opened from a dialog that sits above z-[100]. */
+  layer?: string;
 };
 
 /**
@@ -46,6 +48,7 @@ export const ImageLightbox = ({
   overlay,
   onPrev,
   onNext,
+  layer = 'z-[100]',
 }: ImageLightboxProps) => {
   const INITIAL_SCALE = initialScale;
   const MIN_SCALE = 1;
@@ -181,7 +184,7 @@ export const ImageLightbox = ({
   return createPortal(
     <div
       data-lightbox-open="true"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/92"
+      className={`fixed inset-0 ${layer} flex items-center justify-center bg-black/92`}
       style={{ touchAction: 'none' }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { adminFetch } from '../../business/useAdminApi';
+import { CastPicker } from '../brand/CastPicker';
 import { announceCreditsChanged } from '../creditsEvents';
 
 /** Most Brand Cast slideshows one tap makes. */
@@ -31,13 +32,15 @@ type ChoiceProps = {
   goal: string;
   /** Who it talks to. */
   audience: string;
+  /** How many to make, as advice. */
+  tip: string;
   visual: ReactNode;
   disabled?: boolean;
   onPick: () => void;
 };
 
 /** One kind of campaign: a small picture of its slides, what it is, what it is for, and who it reaches. */
-function Choice({ title, text, goal, audience, visual, disabled, onPick }: ChoiceProps) {
+function Choice({ title, text, goal, audience, tip, visual, disabled, onPick }: ChoiceProps) {
   return (
     <button
       type="button"
@@ -59,6 +62,7 @@ function Choice({ title, text, goal, audience, visual, disabled, onPick }: Choic
             {audience}
           </span>
         </span>
+        <span className="block pt-0.5 text-xs font-medium text-app-ink">{tip}</span>
       </span>
     </button>
   );
@@ -97,11 +101,13 @@ const HooksVisual = () => (
   </svg>
 );
 
-type BrandCastProps = { token: string; runId: string; onBack: () => void; onCreated: () => void };
+type BrandCastProps = { token: string; workspaceId: string; runId: string; onBack: () => void; onCreated: () => void };
 
-/** Step 2 of Brand Cast: how many slideshows (1-5) and what it costs (1 credit each), then adds them to the latest run. */
-function BrandCastStep({ token, runId, onBack, onCreated }: BrandCastProps) {
+/** Step 2 of Brand Cast: how many slideshows (1-5), what it costs (1 credit each) and who tells them (a brand face, or
+ *  "Choose for me"), then adds them to the latest run. */
+function BrandCastStep({ token, workspaceId, runId, onBack, onCreated }: BrandCastProps) {
   const [count, setCount] = useState(1);
+  const [castId, setCastId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -109,7 +115,7 @@ function BrandCastStep({ token, runId, onBack, onCreated }: BrandCastProps) {
     setBusy(true);
     setError(null);
     try {
-      await adminFetch(token, `/api/admin/auto-slideshow/runs/${runId}/more`, { method: 'POST', body: JSON.stringify({ count }) });
+      await adminFetch(token, `/api/admin/auto-slideshow/runs/${runId}/more`, { method: 'POST', body: JSON.stringify(castId ? { count, castId } : { count }) });
       announceCreditsChanged();
       onCreated();
     } catch (err) {
@@ -133,6 +139,7 @@ function BrandCastStep({ token, runId, onBack, onCreated }: BrandCastProps) {
       <p className="text-sm text-app-muted">
         This uses <span className="font-semibold text-app-ink">{plural(count, 'credit')}</span>. You only pay for slideshows that come out ready.
       </p>
+      <CastPicker token={token} workspaceId={workspaceId} value={castId} onChange={setCastId} />
       {error && <p role="alert" className="text-sm text-app-danger">{error}</p>}
       <div className="flex gap-2">
         <button type="button" onClick={onBack} disabled={busy} className={`${button} border border-app-line text-app-ink hover:bg-app-sunken`}>
@@ -148,6 +155,7 @@ function BrandCastStep({ token, runId, onBack, onCreated }: BrandCastProps) {
 
 type Props = {
   token: string;
+  workspaceId: string;
   /** The workspace's latest auto run: Brand Cast slideshows join it. Null when it has none yet; undefined while loading. */
   brandRunId: string | null | undefined;
   /** Hooks Volume is being created (an empty campaign on its way). */
@@ -161,7 +169,7 @@ type Props = {
  * "New campaign": pick Brand Cast (1-5 slideshows written by the Auto Slideshow engine with the brand's faces, 1 credit
  * each) or Hooks Volume (one campaign, many hooks, built in the campaign editor). A bottom sheet on phones.
  */
-export function NewCampaignSheet({ token, brandRunId, creatingHooks, onHooksVolume, onBrandCastCreated, onClose }: Props) {
+export function NewCampaignSheet({ token, workspaceId, brandRunId, creatingHooks, onHooksVolume, onBrandCastCreated, onClose }: Props) {
   const [step, setStep] = useState<'choose' | 'brandCast'>('choose');
   // On <body>: a parent's stacking context must not cover the sheet.
   return createPortal(
@@ -171,10 +179,10 @@ export function NewCampaignSheet({ token, brandRunId, creatingHooks, onHooksVolu
         aria-modal="true"
         aria-labelledby="new-campaign-title"
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md space-y-4 rounded-t-2xl bg-app-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl"
+        className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-app-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl"
       >
         {step === 'brandCast' && brandRunId ? (
-          <BrandCastStep token={token} runId={brandRunId} onBack={() => setStep('choose')} onCreated={onBrandCastCreated} />
+          <BrandCastStep token={token} workspaceId={workspaceId} runId={brandRunId} onBack={() => setStep('choose')} onCreated={onBrandCastCreated} />
         ) : (
           <>
             <div className="space-y-1">
@@ -187,6 +195,7 @@ export function NewCampaignSheet({ token, brandRunId, creatingHooks, onHooksVolu
                 text={brandRunId === null ? 'Set up your brand first: this needs your website read.' : 'Story slideshows about your business and product, told by your brand faces.'}
                 goal="Builds trust"
                 audience="People ready to buy"
+                tip="Recommended to create 1 to 3 stories"
                 visual={<StoryVisual />}
                 disabled={!brandRunId || creatingHooks}
                 onPick={() => setStep('brandCast')}
@@ -196,6 +205,7 @@ export function NewCampaignSheet({ token, brandRunId, creatingHooks, onHooksVolu
                 text={creatingHooks ? 'Creating…' : 'Many hook slideshows that pull new people in. Find what works, then make more of it.'}
                 goal="Reaches more people"
                 audience="Your whole niche"
+                tip="Recommended to create 4-6 posts"
                 visual={<HooksVisual />}
                 disabled={creatingHooks}
                 onPick={onHooksVolume}

@@ -34,7 +34,7 @@ export const listCreditUsers = async (query: string): Promise<AdminCreditUserDto
     displayName: u.displayName,
     createdAt: u.createdAt.toISOString(),
     workspaces: u._count.workspaces,
-    // No wallet yet: they still get the free slideshow on first use.
+    // No wallet yet: they still get the free credits on first use.
     balanceCents: walletOf.get(u.id)?.balanceCents ?? null,
     autoRecharge: walletOf.get(u.id)?.autoRechargeEnabled ?? false,
     slideshowsCharged: spentOf.get(u.id) ?? 0,

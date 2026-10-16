@@ -303,14 +303,14 @@ export async function moveBlitz(workspaceId: string, id: string, req: MoveBlitzR
   return toScheduleDto(await prisma.blitzScheduledPost.findUniqueOrThrow({ where: { id } }));
 }
 
-/** Takes a video off the calendar and gives its credit back. Only before it starts rendering. */
-export async function cancelBlitz(workspaceId: string, id: string): Promise<void> {
+/** Takes a video off the calendar and gives its credit back. Only before it starts rendering. `refunded`: a credit came back now. */
+export async function cancelBlitz(workspaceId: string, id: string): Promise<{ refunded: boolean }> {
   const done = await prisma.blitzScheduledPost.updateMany({ where: { id, workspaceId, status: { in: MOVABLE } }, data: { status: 'canceled' } });
   if (done.count === 0) {
     const row = await prisma.blitzScheduledPost.findFirst({ where: { id, workspaceId }, select: { status: true } });
     if (!row) throw new HttpError(404, 'not_found', 'Post not found.');
-    if (!BLITZ_LIVE.includes(row.status as BlitzScheduleStatus) || MOVABLE.includes(row.status)) return;
+    if (!BLITZ_LIVE.includes(row.status as BlitzScheduleStatus) || MOVABLE.includes(row.status)) return { refunded: false };
     throw new HttpError(409, 'started', 'This video is already being made. It can no longer be canceled.');
   }
-  await refundBlitzCharge(id, 'Scheduled Blitz video canceled');
+  return { refunded: await refundBlitzCharge(id, 'Scheduled Blitz video canceled') };
 }

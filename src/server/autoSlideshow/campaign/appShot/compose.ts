@@ -1,64 +1,69 @@
 // server-only — never import from a 'use client' file.
-// The App shot image: a background photo, the app screenshot warped onto the phone screen, then the hand and phone on
-// top. Pure image work. For the AI step (relight.ts) the hand and phone are also drawn on a plain background.
+// The App shot image: a background photo (softly out of focus), the app screenshot warped onto the phone screen, then
+// the hand and phone on top, toned and edge-blended into the background (blend.ts). Pure image work. The AI step gets
+// the same picture with a flat green screen (composeGreenShot), so the model never touches the app.
 
-import sharp, { type Sharp } from 'sharp';
-import type { AppShotPose } from '../../../../config/appShotPoses';
+import sharp from 'sharp';
+import { APP_SCREEN_SIZE, type AppShotPose } from '../../../../config/appShotPoses';
 import { PHOTO_SIZE } from '../../jpeg';
+import { blendEdges, softBackground } from './blend';
+import { screenRaw } from './screenFit';
 import { matchTone } from './tone';
 import { warpOnto } from './warp';
 
 /** Reads a pose file (its public path, like /images/app-shot/held-up-overlay.png). */
 export type LoadAsset = (path: string) => Promise<Buffer>;
 
-type Point = [number, number];
+type Raw = { data: Buffer; width: number; height: number };
+type Rgba = [number, number, number, number];
 
-const dist = (a: Point, b: Point) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+/** The key color of the AI step's screen. */
+export const SCREEN_GREEN: Rgba = [0, 255, 0, 255];
+const SCREEN_BLACK: Rgba = [0, 0, 0, 255];
 
-/** The screen's size in pixels, averaged over its opposite edges. */
-const screenSize = (quad: Point[]) => {
-  const [tl, tr, br, bl] = quad as [Point, Point, Point, Point];
-  return { width: Math.round((dist(tl, tr) + dist(bl, br)) / 2), height: Math.round((dist(tl, bl) + dist(tr, br)) / 2) };
-};
+/** The pose's screen mask as raw gray at photo size. */
+export const screenMaskRaw = async (pose: AppShotPose, load: LoadAsset): Promise<Buffer> =>
+  sharp(await load(pose.screen)).resize(PHOTO_SIZE.width, PHOTO_SIZE.height).toColourspace('b-w').raw().toBuffer();
 
-/** The screenshot warped onto the screen and clipped by the screen mask, as raw RGBA at photo size. */
-const screenLayer = async (pose: AppShotPose, screenshot: Buffer, mask: Buffer): Promise<Buffer> => {
+/** `flat` warped onto the screen and clipped by the screen mask, as raw RGBA at photo size; inside the screen but past
+ *  the warped picture (its rounded corners, the thin edge by the bezel) it is `fill`. */
+const screenLayer = (pose: AppShotPose, flat: Raw, clip: Buffer, fill: Rgba): Buffer => {
   const { width, height } = PHOTO_SIZE;
-  const size = screenSize(pose.quad);
-  const flat = await sharp(screenshot).rotate().resize(size.width, size.height, { fit: 'cover' }).ensureAlpha().raw().toBuffer();
-  const warped = warpOnto({ data: flat, width: size.width, height: size.height }, pose.quad, width, height);
-  const clip = await sharp(mask).resize(width, height).toColourspace('b-w').raw().toBuffer();
+  const warped = warpOnto(flat, pose.quad, width, height);
   for (let i = 0; i < width * height; i += 1) {
-    // Inside the screen but past the warped screenshot (its rounded corners, the thin edge by the bezel): screen black.
-    if (warped[i * 4 + 3] === 0 && clip[i]! > 0) warped.set([0, 0, 0, clip[i]!], i * 4);
+    if (warped[i * 4 + 3] === 0 && clip[i]! > 0) warped.set([fill[0], fill[1], fill[2], clip[i]!], i * 4);
     else warped[i * 4 + 3] = Math.round((warped[i * 4 + 3]! * clip[i]!) / 255);
   }
   return warped;
 };
 
-/** The hand and phone showing the screenshot on a plain light background (no scene), colored toward `scene`, as a
- *  JPEG at photo size: the first reference image of the AI step, which places it in the scene. */
-export const composeHandShot = async (pose: AppShotPose, screenshot: Buffer, scene: Buffer, load: LoadAsset): Promise<Buffer> => {
+/** A flat screen of one color, to warp like a screenshot. */
+const flatColor = (color: Rgba): Raw => {
+  const { width, height } = APP_SCREEN_SIZE;
+  const data = Buffer.alloc(width * height * 4);
+  for (let i = 0; i < data.length; i += 4) data.set(color, i);
+  return { data, width, height };
+};
+
+/** The screen layer (built by `screen` from the mask), then the toned, edge-blended hand and phone, over the soft
+ *  background; a JPEG at photo size. */
+const layered = async (pose: AppShotPose, background: Buffer, load: LoadAsset, screen: (clip: Buffer) => Promise<Buffer>): Promise<Buffer> => {
   const { width, height } = PHOTO_SIZE;
-  return layered(sharp({ create: { width, height, channels: 3, background: '#f2f2f2' } }), pose, screenshot, scene, load);
+  const [rawOverlay, clip, base] = await Promise.all([load(pose.overlay), screenMaskRaw(pose, load), softBackground(background)]);
+  const [screenRgba, toned] = await Promise.all([screen(clip), matchTone(rawOverlay, background)]);
+  const overlay = await blendEdges(toned, base, clip);
+  return sharp(base, { raw: { width, height, channels: 3 } })
+    .composite([{ input: screenRgba, raw: { width, height, channels: 4 } }, { input: overlay }])
+    .jpeg({ quality: 90, chromaSubsampling: '4:4:4' })
+    .toBuffer();
 };
 
 /** The finished App shot without AI (the screenshot on the pose over the background), as a JPEG at photo size. */
 export const composeAppShot = async (pose: AppShotPose, screenshot: Buffer, background: Buffer, load: LoadAsset): Promise<Buffer> => {
-  const { width, height } = PHOTO_SIZE;
-  return layered(sharp(background).rotate().resize(width, height, { fit: 'cover' }), pose, screenshot, background, load);
+  const flat = await screenRaw(screenshot);
+  return layered(pose, background, load, async (clip) => screenLayer(pose, flat, clip, SCREEN_BLACK));
 };
 
-/** The warped screenshot, then the hand and phone (colored toward `scene`, tone.ts), over `base` (photo size). */
-const layered = async (base: Sharp, pose: AppShotPose, screenshot: Buffer, scene: Buffer, load: LoadAsset): Promise<Buffer> => {
-  const { width, height } = PHOTO_SIZE;
-  const [rawOverlay, mask] = await Promise.all([load(pose.overlay), load(pose.screen)]);
-  const [screen, overlay] = await Promise.all([screenLayer(pose, screenshot, mask), matchTone(rawOverlay, scene)]);
-  return base
-    .composite([
-      { input: screen, raw: { width, height, channels: 4 } },
-      { input: overlay },
-    ])
-    .jpeg({ quality: 88 })
-    .toBuffer();
-};
+/** The same picture with a flat green screen: the AI step's first reference, keyed back out after (greenKey.ts). */
+export const composeGreenShot = (pose: AppShotPose, background: Buffer, load: LoadAsset): Promise<Buffer> =>
+  layered(pose, background, load, async (clip) => screenLayer(pose, flatColor(SCREEN_GREEN), clip, SCREEN_GREEN));

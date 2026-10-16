@@ -23,25 +23,27 @@ export async function createPaidRender(userId: string, data: Prisma.BlitzProject
   return project;
 }
 
-/** Gives back the credit charged under `ref` (a render or a scheduled post), once. Never throws. */
-export async function refundBlitzCharge(ref: string, note: string): Promise<void> {
+/** Gives back the credit charged under `ref` (a render or a scheduled post), once. True when this call refunded it. Never throws. */
+export async function refundBlitzCharge(ref: string, note: string): Promise<boolean> {
   try {
-    await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx) => {
       const entries = await tx.slideshowCreditEntry.findMany({
         where: { ref, reason: { in: ['slideshow_charge', 'slideshow_refund'] } },
         select: { userId: true, deltaCents: true, reason: true },
       });
       const charge = entries.find((e) => e.reason === 'slideshow_charge');
-      if (!charge || entries.some((e) => e.reason === 'slideshow_refund')) return;
+      if (!charge || entries.some((e) => e.reason === 'slideshow_refund')) return false;
       await applyEntry(tx, { userId: charge.userId, deltaCents: -charge.deltaCents, reason: 'slideshow_refund', ref, note });
+      return true;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   } catch (err) {
     console.error(`[blitz-credits] could not refund ${ref}:`, err instanceof Error ? err.message : err);
+    return false;
   }
 }
 
 /** Gives back the credit of a failed render, once. Never throws: a billing hiccup must not break the poll. */
-export const refundFailedRender = (projectId: string): Promise<void> => refundBlitzCharge(projectId, 'Blitz video failed');
+export const refundFailedRender = (projectId: string): Promise<boolean> => refundBlitzCharge(projectId, 'Blitz video failed');
 
 /** True when this scheduled post was paid when it was scheduled (posts scheduled before that pay at render). */
 export const isPrepaid = async (postId: string): Promise<boolean> =>

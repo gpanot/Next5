@@ -60,6 +60,8 @@ export type AutoPlan = {
   bankBuilt?: boolean;
   /** Combos the next "Get more" makes as they are (kept calendar ideas), instead of picking. Step 3 drops them once used. */
   requested?: BankCombo[];
+  /** The brand face the last "Get more" asked for (Brand Cast campaign picker); missing: the faces take turns. */
+  castId?: string;
 };
 
 /** Step 5 checkpoint: one generated photo per prompt (null when that image failed). */

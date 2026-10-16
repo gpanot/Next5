@@ -15,8 +15,9 @@ const OFFLINE = 'Could not reach the server. Check your connection.';
 
 /**
  * What the video sheet does to one calendar video: approve it (with its post choices), remove it (its credit comes
- * back), or move it to another day (same time of day). Approve and remove close the sheet; a move keeps it open on the
- * new day.
+ * back), or move it to another day (same time of day). Approve closes the sheet; a move keeps it open on the new day.
+ * Remove closes it too, unless a credit came back: then `refunded` shows the "credit added back" popup first, and the
+ * list reloads on `dismissRefund` (a reload first could drop the canceled video and unmount the popup).
  */
 export function useVideoSheet({ item, onClose, onChanged }: Options, choices: PostChoices) {
   const client = useLabClient();
@@ -24,8 +25,9 @@ export function useVideoSheet({ item, onClose, onChanged }: Options, choices: Po
   const [error, setError] = useState<string | null>(null);
   const [scheduledAt, setScheduledAt] = useState(item.scheduledAt);
   const [postNow, setPostNow] = useState(false);
+  const [refunded, setRefunded] = useState(false);
 
-  const send = async <T,>(how: Exclude<Busy, null>, call: () => Promise<LabResponse<T>>): Promise<T | null> => {
+  const send = async <T,>(how: Exclude<Busy, null>, call: () => Promise<LabResponse<T>>, notify = true): Promise<T | null> => {
     setBusy(how);
     setError(null);
     const res = await call().catch(() => null);
@@ -34,7 +36,7 @@ export function useVideoSheet({ item, onClose, onChanged }: Options, choices: Po
       setError(res ? errorOf(res) : OFFLINE);
       return null;
     }
-    onChanged();
+    if (notify) onChanged();
     return res.data;
   };
 
@@ -46,7 +48,16 @@ export function useVideoSheet({ item, onClose, onChanged }: Options, choices: Po
   };
 
   const remove = async () => {
-    if (await send('remove', () => scheduleApi.cancel(client, item.id))) onClose();
+    const data = await send('remove', () => scheduleApi.cancel(client, item.id), false);
+    if (!data) return;
+    if (data.refunded) return setRefunded(true);
+    onChanged();
+    onClose();
+  };
+
+  const dismissRefund = () => {
+    onChanged();
+    onClose();
   };
 
   const move = async (at: Date) => {
@@ -55,7 +66,7 @@ export function useVideoSheet({ item, onClose, onChanged }: Options, choices: Po
     if (data) setScheduledAt(data.item.scheduledAt);
   };
 
-  return { busy, error, setError, scheduledAt, postNow, setPostNow, approve, remove, move };
+  return { busy, error, setError, scheduledAt, postNow, setPostNow, approve, remove, move, refunded, dismissRefund };
 }
 
 export type VideoSheetActions = ReturnType<typeof useVideoSheet>;

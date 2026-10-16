@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { AppShotPose } from '../../../../../config/appShotPoses';
-import { quadTransform, screenSize } from './screenWarp';
+import { APP_SCREEN_SIZE, type AppShotPose } from '../../../../../config/appShotPoses';
+import { quadTransform } from './screenWarp';
 
 /** The pose files' width in pixels (the quad's space: the 1440x2560 photo). */
 const POSE_WIDTH = 1440;
@@ -23,9 +23,9 @@ export function PoseScreenPreview({ pose, src }: { pose: AppShotPose; src: strin
     return () => observer.disconnect();
   }, []);
 
-  const size = screenSize(pose.quad);
-  const width = size.width * scale;
-  const height = size.height * scale;
+  // A phone-shaped box (as the server fits the screenshot), which the warp then tilts onto the screen.
+  const width = APP_SCREEN_SIZE.width * scale;
+  const height = APP_SCREEN_SIZE.height * scale;
   const mask = `url(${pose.screen})`;
 
   return (

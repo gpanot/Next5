@@ -13,7 +13,7 @@ export const scheduleApi = {
   accounts: (client: LabClient) => client.request<BlitzAccountsDto>('/blitz/schedule/accounts'),
   /** A calendar video as saved: preview and editor state. */
   get: (client: LabClient, id: string) => client.request<BlitzEditDto>(`/blitz/schedule/${id}`),
-  cancel: (client: LabClient, id: string) => client.request<{ ok: true }>(`/blitz/schedule/${id}`, { method: 'DELETE' }),
+  cancel: (client: LabClient, id: string) => client.request<{ ok: true; refunded: boolean }>(`/blitz/schedule/${id}`, { method: 'DELETE' }),
   approve: (client: LabClient, id: string, req: ApproveBlitzRequest) => client.request<{ item: BlitzScheduleDto }>(`/blitz/schedule/${id}`, { json: req }),
   /** A video not started yet to another time (same as a drag on the calendar). */
   move: (client: LabClient, id: string, req: MoveBlitzRequest) => client.request<{ item: BlitzScheduleDto }>(`/blitz/schedule/${id}`, { method: 'PATCH', json: req }),

@@ -3,6 +3,7 @@
 import { MailCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useState, type FormEvent, type ReactNode } from 'react';
+import { BUSINESS_EMAIL_ONLY } from '../../../lib/emailDomain';
 import { AppButton } from '../../ui/AppButton';
 import { Field } from '../../ui/Field';
 import { TextInput } from '../../ui/TextInput';
@@ -15,6 +16,7 @@ type Phase = { name: 'idle' } | { name: 'sending' } | { name: 'sent'; email: str
 type Props = { notice?: string; destination?: 'app' | 'slideshow'; title?: ReactNode };
 
 export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to Next5' }: Props) => {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phase, setPhase] = useState<Phase>({ name: 'idle' });
 
@@ -24,10 +26,12 @@ export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to N
     const res = await fetch('/api/auth/studio/magic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, destination }),
+      body: JSON.stringify({ name, email, destination }),
     }).catch(() => null);
-    if (res?.ok) setPhase({ name: 'sent', email: email.trim().toLowerCase() });
-    else setPhase({ name: 'error', message: 'We couldn’t send the link. Check the address and try again.' });
+    if (res?.ok) return setPhase({ name: 'sent', email: email.trim().toLowerCase() });
+    // A refused email (personal inbox) says why; anything else gets the generic line.
+    const body = res?.status === 400 ? ((await res.json().catch(() => null)) as { error?: string } | null) : null;
+    setPhase({ name: 'error', message: body?.error === BUSINESS_EMAIL_ONLY ? BUSINESS_EMAIL_ONLY : 'We couldn’t send the link. Check the address and try again.' });
   };
 
   return (
@@ -47,6 +51,9 @@ export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to N
               <h1 className="text-[22px] font-semibold text-app-ink">{title}</h1>
               <p className="mt-1 text-[14px] text-app-muted">{notice ?? 'We’ll email you a secure sign-in link. New here? The same link creates your account.'}</p>
             </div>
+            <Field label="Your name" htmlFor="signin-name">
+              <TextInput id="signin-name" type="text" autoComplete="name" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" />
+            </Field>
             <Field label="Work email" htmlFor="signin-email" error={phase.name === 'error' ? phase.message : undefined}>
               <TextInput id="signin-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" />
             </Field>

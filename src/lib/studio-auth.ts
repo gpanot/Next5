@@ -22,15 +22,16 @@ const LONG_MAGIC_LINK_TTL_S = 30 * 24 * 60 * 60;
 /** 30 days — long-lived session */
 const SESSION_TTL_S = 30 * 24 * 60 * 60;
 
-export type MagicPayload = { email: string; type: 'magic' };
+/** `name`: typed on the sign-in form; saved on the user when the link is opened (so only the inbox owner sets it). */
+export type MagicPayload = { email: string; type: 'magic'; name?: string };
 /** `impersonated`: minted by an admin to view the app as this user (short-lived, never stored in localStorage). */
 export type SessionPayload = { userId: string; email: string; type: 'session'; impersonated?: boolean };
 
 /** 1 hour — admin "Open as user" session */
 const IMPERSONATION_TTL_S = 60 * 60;
 
-export function signMagicToken(email: string): string {
-  return jwt.sign({ email, type: 'magic' } satisfies MagicPayload, JWT_SECRET, {
+export function signMagicToken(email: string, name?: string): string {
+  return jwt.sign({ email, type: 'magic', ...(name ? { name } : {}) } satisfies MagicPayload, JWT_SECRET, {
     expiresIn: MAGIC_LINK_TTL_S,
   });
 }

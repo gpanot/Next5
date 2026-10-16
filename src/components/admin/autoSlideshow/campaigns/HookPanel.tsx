@@ -128,9 +128,9 @@ export function HookPanel({ token, campaignId, draft, photos, pending, onChange,
           cards={draft.cards}
           current={draft.hooks.length}
           onClose={() => setGenerating(false)}
-          onDone={(hooks) => {
+          onDone={(hooks, photoQuery) => {
             setGenerating(false);
-            onChange((d) => ({ ...d, hooks }));
+            onChange((d) => ({ ...d, hooks, ...(photoQuery ? { hookPhotoQuery: photoQuery } : {}) }));
           }}
         />
       )}
