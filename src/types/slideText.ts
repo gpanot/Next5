@@ -44,13 +44,14 @@ export type TextLook = SlideLook | 'default';
 export const isSlideLook = (v: unknown): v is SlideLook => SLIDE_LOOKS.some((id) => id === v);
 
 /**
- * How a headline is drawn. 'default' is the outlined TikTok text on hooks and the brand's box elsewhere (the box the
- * menu calls Black box, as brands' boxes mostly are).
+ * How a headline is drawn. 'default' is the outlined TikTok text on hooks and the Black box elsewhere, as the menu shows
+ * it. Since 2026-10-16 it no longer takes the brand's box color from its site (that made boxes blue nobody picked);
+ * 'brand-box' is kept only so older code paths still type-check.
  */
 export type TitleKind = 'outline' | 'brand-box' | 'black-box' | 'white-box' | 'tiktok-red' | 'all-caps';
 export const titleKind = (role: string, look: TextLook | undefined): TitleKind => {
   if (look === 'tiktok-default') return 'outline';
-  if (!look || look === 'default') return role === 'hook' ? 'outline' : 'brand-box';
+  if (!look || look === 'default') return role === 'hook' ? 'outline' : 'black-box';
   return look;
 };
 
