@@ -58,7 +58,7 @@ export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (
         {item.kind === 'blitz' && (
           <span className={`flex items-center gap-1 text-[11px] ${item.blitz.error ? 'text-red-600 dark:text-red-400' : 'text-muted'}`}>
             <PlatformIcon id={item.blitz.platform} className="h-3 w-3" />
-            {item.blitz.error ?? (countdown ? <CountdownText {...countdown} /> : item.blitz.status === 'planned' ? 'Video · tap to approve' : 'Video · made 1 hour before it posts')}
+            {item.blitz.error ?? (countdown ? <CountdownText {...countdown} /> : item.blitz.status === 'planned' ? 'Video · tap to approve' : item.blitz.status === 'posted' ? 'Video · live' : 'Video · made 1 hour before it posts')}
           </span>
         )}
         {item.kind === 'post' && countdown && <span className="block text-[11px] text-muted"><CountdownText {...countdown} /></span>}

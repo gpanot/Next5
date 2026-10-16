@@ -2,14 +2,15 @@ import type { AutoPostStatus } from '../../../../types/admin/autoSlideshow';
 import type { BlitzScheduleStatus } from '../../../../types/admin/blitzSchedule';
 import type { DayItem } from './monthPlan';
 
-/** A slot's status pill. Neutral on purpose: on the calendar, color means the content goal (goalStyle.ts). */
+/** A slot's status pill. Neutral on purpose: on the calendar, color means the content goal (goalStyle.ts).
+ *  Posted is the one exception: green, so a live post reads as done at a glance. */
 export type Badge = { label: string; short: string; tone: string };
 
 const POST_BADGE: Record<AutoPostStatus, Badge> = {
   scheduled: { label: '✓ Scheduled', short: '✓ Sched.', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
   sending: { label: 'Sending', short: 'Sending', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
   processing: { label: 'Publishing', short: 'Pub.', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
-  posted: { label: '✓ Posted', short: '✓ Posted', tone: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400' },
+  posted: { label: '✓ Posted', short: '✓ Posted', tone: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
   failed: { label: 'Failed', short: 'Failed', tone: 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300' },
   canceled: { label: 'Canceled', short: 'Canceled', tone: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400' },
 };
