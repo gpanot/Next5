@@ -1,4 +1,4 @@
-// server-only — never import from a 'use client' file.
+// Pure (types only): the campaign editor's preview imports it too, so its draft text sits where the render puts it.
 // Where a slide's text sits so it never covers a face (or where it was moved by hand, wrapped narrower near a side). The text keeps its usual spot when that spot is clear of every head;
 // otherwise it moves up or down to the nearest clear spot. Satori cannot measure text before it renders, so the text's
 // boxes are estimated from character counts, on the wide side. render.tsx draws with the same sizes.

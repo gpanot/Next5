@@ -7,7 +7,7 @@
 import { isHookStyleId } from '../hookStyle';
 import { isSlideLook, type TextAt, type TextLook } from '../slideText';
 import type { StoreBadge } from '../storeBadges';
-import type { AutoSlideshowDto } from './autoSlideshow';
+import type { AutoSlideshowDto, HeadBox } from './autoSlideshow';
 
 /** Slides a new campaign starts with: 1 hook, 5 content, 1 CTA. */
 export const CAMPAIGN_START_SLIDES = 7;
@@ -111,8 +111,9 @@ export type CampaignCredit = { name: string; url: string };
 export const UNSPLASH_HOME_URL = 'https://unsplash.com/?utm_source=next5&utm_medium=referral';
 
 /** `url`: small thumb for strips and pickers; `fullUrl`: the photo itself, for the preview. Unsplash photos show from
- *  Unsplash's own URLs (hotlinked, as its API rules ask); our copy is only for the render. */
-export type CampaignPhotoDto = { index: number; url: string | null; fullUrl: string | null; source: CampaignPhotoSource; credit: CampaignCredit | null };
+ *  Unsplash's own URLs (hotlinked, as its API rules ask); our copy is only for the render. `heads`: the faces found in it
+ *  (unset until detection ran), so the editor puts the text where the render will, off them. */
+export type CampaignPhotoDto = { index: number; url: string | null; fullUrl: string | null; source: CampaignPhotoSource; credit: CampaignCredit | null; heads?: HeadBox[] };
 
 /** What to import into the campaign: a photo the workspace already has, a shared library photo, or an Unsplash photo. */
 export type CampaignPhotoRef =

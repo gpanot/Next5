@@ -1,6 +1,7 @@
 'use client';
 
-import { HOME_TEXT_AT, type TextAt } from '../../../../types/slideText';
+import type { TextAt } from '../../../../types/slideText';
+import { placeText } from '../../../../server/autoSlideshow/textPlacement';
 import { HOME_BADGES_Y } from '../../../../types/storeBadges';
 import { MovableText } from '../slideText/MovableText';
 import { SlideTextLayer } from '../slideText/SlideTextLayer';
@@ -52,7 +53,7 @@ export function PreviewSlideView({ slide, movable = false, onMoveText, onMoveBad
         body={slide.body}
         look={slide.look}
         placeholder={slide.role === 'hook' ? 'Your hook line' : 'Your headline'}
-        at={{ x: 0.5, y: (slide.textAt ?? HOME_TEXT_AT).y }}
+        at={{ x: 0.5, y: slide.textAt?.y ?? placeText(slide, slide.heads).y }}
         movable={movable}
         verticalOnly
         onMove={onMoveText}

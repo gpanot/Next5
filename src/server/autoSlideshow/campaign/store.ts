@@ -187,6 +187,7 @@ export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
     fullUrl: p.hotlink?.full ?? (p.imageKey ? await presignObject(p.imageKey) : null),
     source: p.source ?? 'generated',
     credit: p.credit ?? null,
+    ...(p.heads ? { heads: p.heads } : {}),
   })));
   return {
     id: run.id,
