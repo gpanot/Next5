@@ -8,6 +8,7 @@ import { adminFetch, useAdminApi } from '../../business/useAdminApi';
 import { SlideshowsTab } from '../content/SlideshowsTab';
 import { CampaignEditor } from './CampaignEditor';
 import { NewCampaignSheet } from './NewCampaignSheet';
+import { clearBrandCastResume, readBrandCastResume } from './brandCastResume';
 import { CampaignCollection, CampaignTilesSkeleton } from './CampaignTiles';
 import { FilterSelect, useListView, ViewToggle, type ListFilter } from './ListControls';
 
@@ -52,7 +53,9 @@ function Empty({ tab, onCreate }: { tab: Tab; onCreate: () => void }) {
 export function CampaignsPage({ token, workspaceId }: Props) {
   const list = useAdminApi<{ campaigns: CampaignSummaryDto[] }>(token, `/api/slideshow/campaigns?workspace=${workspaceId}`);
   const runs = useAdminApi<{ runs: AutoRunSummary[] }>(token, `/api/admin/auto-slideshow/runs?workspace=${workspaceId}`);
-  const [choosing, setChoosing] = useState(false);
+  /** Back from Stripe after Add credits in the Brand Cast step: that step opens again. */
+  const [resume] = useState(readBrandCastResume);
+  const [choosing, setChoosing] = useState(resume !== null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Bumped after Brand Cast slideshows were asked for: the Brand Cast section polls its latest run again. */
@@ -123,14 +126,19 @@ export function CampaignsPage({ token, workspaceId }: Props) {
           token={token}
           workspaceId={workspaceId}
           brandRunId={runs.data ? (runs.data.runs[0]?.id ?? null) : undefined}
+          resume={resume}
           creatingHooks={creating}
           onHooksVolume={() => void create()}
           onBrandCastCreated={() => {
+            clearBrandCastResume();
             setChoosing(false);
             setTab('brand');
             setBrandReload((n) => n + 1);
           }}
-          onClose={() => setChoosing(false)}
+          onClose={() => {
+            clearBrandCastResume();
+            setChoosing(false);
+          }}
         />
       )}
       {openId && (

@@ -4,7 +4,10 @@ import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { adminFetch } from '../../business/useAdminApi';
 import { CastPicker } from '../brand/CastPicker';
-import { announceCreditsChanged } from '../creditsEvents';
+import { announceCreditsChanged, CREDITS_HINT } from '../creditsEvents';
+import { SettingsModal } from '../settings/SettingsModal';
+import { useCheckoutReturn } from '../settings/credits/useCheckoutReturn';
+import { clearBrandCastResume, markBrandCastResume, type BrandCastResume } from './brandCastResume';
 
 /** Most Brand Cast slideshows one tap makes. */
 const MAX_BRAND_CAST = 5;
@@ -21,7 +24,8 @@ const countClass = (active: boolean) =>
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-/** The server's 409 when the run is still making slideshows. */
+/** The server's 409: the run cannot take more yet (its site is still being read) or it failed. A run busy making
+ *  slideshows queues the new ones instead. */
 const STILL_WORKING = 'Run not found or still working';
 
 type ChoiceProps = {
@@ -101,15 +105,48 @@ const HooksVisual = () => (
   </svg>
 );
 
-type BrandCastProps = { token: string; workspaceId: string; runId: string; onBack: () => void; onCreated: () => void };
+type CreditsAlertProps = { error: string | null; paid: ReturnType<typeof useCheckoutReturn>; onAddCredits: () => void };
+
+/** The step's error, with an Add credits button when the balance is short, or Stripe's word once back from checkout. */
+function CreditsAlert({ error, paid, onAddCredits }: CreditsAlertProps) {
+  if (!error) {
+    if (!paid) return null;
+    return <p role="status" className={`rounded-xl p-3 text-sm ${paid.tone === 'ok' ? 'bg-app-success/10 text-app-success' : 'bg-app-sunken text-app-muted'}`}>{paid.text}</p>;
+  }
+  if (!error.endsWith(CREDITS_HINT)) return <p role="alert" className="text-sm text-app-danger">{error}</p>;
+  return (
+    <div role="alert" className="flex items-center gap-3 rounded-xl border border-app-line bg-app-sunken p-3">
+      <p className="flex-1 text-sm text-app-danger">{error.slice(0, -CREDITS_HINT.length)}</p>
+      <button type="button" onClick={onAddCredits} className="min-h-11 shrink-0 rounded-full bg-app-cta px-4 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95">
+        Add credits
+      </button>
+    </div>
+  );
+}
+
+type BrandCastProps = { token: string; workspaceId: string; runId: string; resume: BrandCastResume | null; onBack: () => void; onCreated: () => void };
 
 /** Step 2 of Brand Cast: how many slideshows (1-5), what it costs (1 credit each) and who tells them (a brand face, or
- *  "Choose for me"), then adds them to the latest run. */
-function BrandCastStep({ token, workspaceId, runId, onBack, onCreated }: BrandCastProps) {
-  const [count, setCount] = useState(1);
-  const [castId, setCastId] = useState<string | null>(null);
+ *  "Choose for me"), then adds them to the latest run. Short on credits: Add credits opens Settings → Credits, and
+ *  Stripe brings the browser back to this step with the same choices. */
+function BrandCastStep({ token, workspaceId, runId, resume, onBack, onCreated }: BrandCastProps) {
+  const [count, setCount] = useState(resume?.count ?? 1);
+  const [castId, setCastId] = useState<string | null>(resume?.castId ?? null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [addingCredits, setAddingCredits] = useState(false);
+  const paid = useCheckoutReturn(token, announceCreditsChanged);
+
+  const openCredits = () => {
+    markBrandCastResume({ count, castId });
+    setAddingCredits(true);
+  };
+  const closeCredits = () => {
+    clearBrandCastResume();
+    setAddingCredits(false);
+    setError(null);
+    announceCreditsChanged();
+  };
 
   const create = async () => {
     setBusy(true);
@@ -120,7 +157,7 @@ function BrandCastStep({ token, workspaceId, runId, onBack, onCreated }: BrandCa
       onCreated();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not create slideshows';
-      setError(message === STILL_WORKING ? 'Your last Brand Cast slideshows are still being made. Try again in a few minutes.' : message);
+      setError(message === STILL_WORKING ? 'Your brand is still being set up. Try again in a minute.' : message);
       setBusy(false);
     }
   };
@@ -140,7 +177,7 @@ function BrandCastStep({ token, workspaceId, runId, onBack, onCreated }: BrandCa
         This uses <span className="font-semibold text-app-ink">{plural(count, 'credit')}</span>. You only pay for slideshows that come out ready.
       </p>
       <CastPicker token={token} workspaceId={workspaceId} value={castId} onChange={setCastId} />
-      {error && <p role="alert" className="text-sm text-app-danger">{error}</p>}
+      <CreditsAlert error={error} paid={paid} onAddCredits={openCredits} />
       <div className="flex gap-2">
         <button type="button" onClick={onBack} disabled={busy} className={`${button} border border-app-line text-app-ink hover:bg-app-sunken`}>
           Back
@@ -149,6 +186,14 @@ function BrandCastStep({ token, workspaceId, runId, onBack, onCreated }: BrandCa
           {busy ? 'Starting…' : `Create ${count}`}
         </button>
       </div>
+      {/* Above the sheet (z-[100]); its clicks stay inside the sheet, so they do not close it. */}
+      {addingCredits &&
+        createPortal(
+          <div className="relative z-[110]">
+            <SettingsModal token={token} workspaceId={workspaceId} initialTab="credits" onClose={closeCredits} />
+          </div>,
+          document.body,
+        )}
     </>
   );
 }
@@ -158,6 +203,8 @@ type Props = {
   workspaceId: string;
   /** The workspace's latest auto run: Brand Cast slideshows join it. Null when it has none yet; undefined while loading. */
   brandRunId: string | null | undefined;
+  /** Back from Stripe after Add credits: opens on the Brand Cast step with these choices. */
+  resume?: BrandCastResume | null;
   /** Hooks Volume is being created (an empty campaign on its way). */
   creatingHooks: boolean;
   onHooksVolume: () => void;
@@ -169,8 +216,8 @@ type Props = {
  * "New campaign": pick Brand Cast (1-5 slideshows written by the Auto Slideshow engine with the brand's faces, 1 credit
  * each) or Hooks Volume (one campaign, many hooks, built in the campaign editor). A bottom sheet on phones.
  */
-export function NewCampaignSheet({ token, workspaceId, brandRunId, creatingHooks, onHooksVolume, onBrandCastCreated, onClose }: Props) {
-  const [step, setStep] = useState<'choose' | 'brandCast'>('choose');
+export function NewCampaignSheet({ token, workspaceId, brandRunId, resume = null, creatingHooks, onHooksVolume, onBrandCastCreated, onClose }: Props) {
+  const [step, setStep] = useState<'choose' | 'brandCast'>(resume ? 'brandCast' : 'choose');
   // On <body>: a parent's stacking context must not cover the sheet.
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 sm:items-center" onClick={creatingHooks ? undefined : onClose}>
@@ -182,7 +229,7 @@ export function NewCampaignSheet({ token, workspaceId, brandRunId, creatingHooks
         className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-app-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl"
       >
         {step === 'brandCast' && brandRunId ? (
-          <BrandCastStep token={token} workspaceId={workspaceId} runId={brandRunId} onBack={() => setStep('choose')} onCreated={onBrandCastCreated} />
+          <BrandCastStep token={token} workspaceId={workspaceId} runId={brandRunId} resume={resume} onBack={() => setStep('choose')} onCreated={onBrandCastCreated} />
         ) : (
           <>
             <div className="space-y-1">

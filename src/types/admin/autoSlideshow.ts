@@ -62,7 +62,12 @@ export type AutoPlan = {
   requested?: BankCombo[];
   /** The brand face the last "Get more" asked for (Brand Cast campaign picker); missing: the faces take turns. */
   castId?: string;
+  /** "Get more" batches asked for while the run was busy, oldest first. Each starts once the batch before it is done
+   *  (./server/autoSlideshow/more.ts); the run's `count` already includes them, so they show as "still being made". */
+  queued?: QueuedMore[];
 };
+
+export type QueuedMore = { count: number; castId?: string };
 
 /** Step 5 checkpoint: one generated photo per prompt (null when that image failed). */
 /** `hook`: made for one slideshow's first slide (older runs). `slide`: made for one slide, named by `owner`

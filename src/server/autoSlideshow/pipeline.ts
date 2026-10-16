@@ -32,6 +32,7 @@ import { brandLook, planSlidePhotos } from './photoPlan';
 import { makePhotos } from './photos';
 import { renderSlide, slidePhotoIndexes, type PhotoCache } from './render';
 import { ownPhotoEntries, photosPending, withOwnPhotos } from './slidePhotos';
+import { dropQueuedMore, savePlanKeepingQueue, startQueuedMore } from './more';
 
 const running = (step: AutoStep): AutoRunStatus => `STEP_${step}_RUNNING`;
 const json = (value: unknown) => value as Prisma.InputJsonValue;
@@ -117,7 +118,8 @@ const planStep: StepFn = async (runId, meter, { append }) => {
     bankBuilt: bank.built || Boolean(before?.bankBuilt),
     ...(before?.castId ? { castId: before.castId } : {}),
   };
-  return { plan: json(plan) };
+  await savePlanKeepingQueue(runId, plan);
+  return {};
 };
 
 const loadBank = async (plan: AutoPlan): Promise<SlideshowBankContent> => {
@@ -361,9 +363,13 @@ export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, app
       warmUps.delete(runId);
       await saveStep(runId, step, Date.now() - t0, meter.summary(), {}).catch(() => undefined);
       await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { status: 'FAILED', failedStep: step, error: clip(message, 1_000), finishedAt: new Date() } });
+      await dropQueuedMore(runId);
       return;
     }
   }
   await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { status: 'COMPLETED', finishedAt: new Date() } });
   if (append === 0) await kickIdeas(runId, 'ideas');
+  // A batch asked for while this one ran starts now.
+  const next = await startQueuedMore(runId);
+  if (next) await runAutoPipeline(runId, 3, next);
 };

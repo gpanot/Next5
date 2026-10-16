@@ -7,7 +7,7 @@ import { targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRo
 import { isAdminView } from '../../../../lib/adminToken';
 import { adminFetch } from '../../business/useAdminApi';
 import { LookMenu } from '../LookMenu';
-import { announceCreditsChanged } from '../creditsEvents';
+import { announceCreditsChanged, CREDITS_HINT } from '../creditsEvents';
 import { SettingsModal } from '../settings/SettingsModal';
 import { useCheckoutReturn } from '../settings/credits/useCheckoutReturn';
 import { SafeZoneButton, useSafeZone } from '../SafeZone';
@@ -32,9 +32,6 @@ import { ScheduleButton } from './ScheduleButton';
 import { useCampaignSchedule } from './useCampaignSchedule';
 
 type Props = { token: string; workspaceId: string; campaignId: string; onClose: () => void };
-
-/** The server's "not enough credits" line ends with this; the banner swaps it for an Add Credit button. */
-const CREDITS_HINT = ' Add credits in Settings → Credits.';
 
 /** The slides (0 = hook, i = card i - 1) whose shown photo is on its way: a card's photo being replaced, or the first
  *  photo of an empty hook or card. Photos added to a rotation behind a shown one change nothing on screen. */

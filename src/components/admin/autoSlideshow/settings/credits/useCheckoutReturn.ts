@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { adminFetch } from '../../../business/useAdminApi';
+import { BRAND_CAST_PARAM } from '../../campaigns/brandCastResume';
 
 export type CheckoutReturn = { tone: 'ok' | 'info'; text: string } | null;
 
@@ -13,12 +14,12 @@ export const here = (): string => window.location.pathname + window.location.sea
 
 /**
  * True when the page was opened by a Stripe return, so the Settings → Credits tab should open. Not with a campaign
- * open (`?campaign=`): checkout started in the editor, which confirms the payment itself.
+ * open (`?campaign=`) or the Brand Cast step (`?brandCast=`): checkout started there, which confirms the payment itself.
  */
 export const isCheckoutReturn = (): boolean => {
   if (typeof window === 'undefined') return false;
   const params = new URL(window.location.href).searchParams;
-  return params.has(CREDITS_PARAM) && !params.has('campaign');
+  return params.has(CREDITS_PARAM) && !params.has('campaign') && !params.has(BRAND_CAST_PARAM);
 };
 
 type Pending = { state: string; sessionId: string | null } | null;
