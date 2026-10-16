@@ -7,7 +7,7 @@ import type { SlideshowWorkspaceDto } from '../../../../types/admin/autoSlidesho
 import { useAdminApi } from '../../business/useAdminApi';
 import { CreateWorkspaceForm } from './CreateWorkspaceForm';
 import { startPendingSite } from './startPendingSite';
-import { lastWorkspaceStore, pendingSiteStore, SLIDESHOW_HOME } from './WorkspaceContext';
+import { lastWorkspaceStore, pendingSiteStore, SIGNUP_PARAM, SLIDESHOW_HOME } from './WorkspaceContext';
 
 function Centered({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-dvh flex-col items-center justify-center gap-8 px-4 py-12"><BusinessLogo href={SLIDESHOW_HOME} />{children}</div>;
@@ -49,7 +49,11 @@ export function WorkspaceLanding({ token }: { token: string }) {
   }, [pending, data, token, router]);
 
   useEffect(() => {
-    if (target) router.replace(`/slideshow/${target.id}${window.location.search}`);
+    if (!target) return;
+    const params = new URLSearchParams(window.location.search);
+    params.delete(SIGNUP_PARAM);
+    const query = params.toString();
+    router.replace(`/slideshow/${target.id}${query ? `?${query}` : ''}`);
   }, [target, router]);
 
   if (pendingError && data?.workspaces.length === 0) return <FirstWorkspace token={token} error={pendingError} onCreated={(path) => router.replace(path)} />;

@@ -13,9 +13,10 @@ import { SLIDESHOW_HOME } from '../../admin/autoSlideshow/workspace/WorkspaceCon
 
 type Phase = { name: 'idle' } | { name: 'sending' } | { name: 'sent'; email: string } | { name: 'error'; message: string };
 
-type Props = { notice?: string; destination?: 'app' | 'slideshow'; title?: ReactNode };
+/** `askName`: also ask the user's name (the home page's website flow); a plain log in asks only the email. */
+type Props = { notice?: string; destination?: 'app' | 'slideshow'; title?: ReactNode; askName?: boolean };
 
-export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to Next5' }: Props) => {
+export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to Next5', askName = false }: Props) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phase, setPhase] = useState<Phase>({ name: 'idle' });
@@ -26,7 +27,7 @@ export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to N
     const res = await fetch('/api/auth/studio/magic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, destination }),
+      body: JSON.stringify({ ...(askName ? { name } : {}), email, destination }),
     }).catch(() => null);
     if (res?.ok) return setPhase({ name: 'sent', email: email.trim().toLowerCase() });
     // A refused email (personal inbox) says why; anything else gets the generic line.
@@ -51,9 +52,11 @@ export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to N
               <h1 className="text-[22px] font-semibold text-app-ink">{title}</h1>
               <p className="mt-1 text-[14px] text-app-muted">{notice ?? 'We’ll email you a secure sign-in link. New here? The same link creates your account.'}</p>
             </div>
-            <Field label="Your name" htmlFor="signin-name">
-              <TextInput id="signin-name" type="text" autoComplete="name" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" />
-            </Field>
+            {askName && (
+              <Field label="Your name" htmlFor="signin-name">
+                <TextInput id="signin-name" type="text" autoComplete="name" required maxLength={80} value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" />
+              </Field>
+            )}
             <Field label="Work email" htmlFor="signin-email" error={phase.name === 'error' ? phase.message : undefined}>
               <TextInput id="signin-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" />
             </Field>

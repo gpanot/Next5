@@ -18,6 +18,10 @@ export const SLIDESHOW_HOME = '/';
 /** Sign in, then into a workspace. The email link lands here too. */
 export const SLIDESHOW_LOGIN = '/slideshow/login';
 
+/** The home page's website box: same sign-in, but it asks the new user's name too. */
+export const SIGNUP_PARAM = 'signup';
+export const SLIDESHOW_SIGNUP = `${SLIDESHOW_LOGIN}?${SIGNUP_PARAM}=1`;
+
 export const SLIDESHOW_PRICING = '/pricing';
 
 /** A website typed on the home page before signing in; after sign-in it becomes a workspace and its first run. */

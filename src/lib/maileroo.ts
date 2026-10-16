@@ -9,7 +9,7 @@
 
 const MAILEROO_API = 'https://smtp.maileroo.com/api/v2/emails';
 const FROM_ADDRESS = 'noreply@mail.next5.giinger.com';
-const FROM_NAME = 'Next5 Studio';
+const FROM_NAME = 'Next5 - Workspace';
 
 export interface MailerooEmail {
   to: string;

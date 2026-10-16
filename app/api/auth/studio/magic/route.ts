@@ -12,6 +12,10 @@ import { enforceRateLimit } from '../../../../../src/server/rateLimit';
 import { HttpError } from '../../../../../src/server/http';
 import { BUSINESS_EMAIL_ONLY, emailKind } from '../../../../../src/lib/emailDomain';
 
+/** SIGNUP_EMAIL_ALLOWLIST (comma separated): personal emails that may still sign up, e.g. the team's test accounts. */
+const signupExempt = (email: string): boolean =>
+  (process.env.SIGNUP_EMAIL_ALLOWLIST ?? '').split(',').some((e) => e.trim().toLowerCase() === email);
+
 export async function POST(req: NextRequest) {
   try {
     const { email, name, destination } = (await req.json()) as { email?: string; name?: string; destination?: 'app' | 'studio' | 'slideshow' };
@@ -34,7 +38,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Business emails only for new accounts. Accounts made before the rule (and admins on Gmail) still log in.
-    if (emailKind(trimmed) !== 'business' && !(await prisma.user.findUnique({ where: { email: trimmed }, select: { id: true } }))) {
+    if (emailKind(trimmed) !== 'business' && !signupExempt(trimmed) && !(await prisma.user.findUnique({ where: { email: trimmed }, select: { id: true } }))) {
       return NextResponse.json({ error: BUSINESS_EMAIL_ONLY }, { status: 400 });
     }
 
@@ -52,20 +56,20 @@ export async function POST(req: NextRequest) {
 
     const reference = await sendEmail({
       to: trimmed,
-      subject: 'Access your Next5 Studio',
+      subject: 'Access your Next5 Marketing Workspace',
       html: `
         <div style="font-family:serif;max-width:480px;margin:0 auto;padding:40px 24px;">
-          <h1 style="font-size:28px;letter-spacing:0.08em;text-transform:uppercase;color:#111;margin:0 0 8px;">Your Studio</h1>
+          <h1 style="font-size:28px;letter-spacing:0.08em;text-transform:uppercase;color:#111;margin:0 0 8px;">Your Workspace</h1>
           <p style="font-size:14px;color:#555;line-height:1.6;margin:0 0 32px;">
-            Click the link below to access your Next5 photo studio. This link expires in 15 minutes.
+            Click the link below to access your Next5 Marketing Workspace. This link expires in 15 minutes.
           </p>
           <a href="${link}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:14px 28px;font-family:serif;font-size:14px;letter-spacing:0.06em;text-transform:uppercase;border-radius:12px;">
-            Open my studio
+            Open my workspace
           </a>
           <p style="font-size:12px;color:#999;margin:32px 0 0;">If you didn't request this, you can safely ignore this email.</p>
         </div>
       `,
-      plain: `Access your Next5 Studio\n\nClick the link below to open your studio (expires in 15 minutes):\n\n${link}\n\nIf you didn't request this, you can safely ignore this email.`,
+      plain: `Access your Next5 Marketing Workspace\n\nClick the link below to access your Next5 Marketing Workspace. This link expires in 15 minutes.\n\n${link}\n\nIf you didn't request this, you can safely ignore this email.`,
     });
 
     if (reference === 'dev-no-key' && process.env.VERCEL_ENV === 'production') {
