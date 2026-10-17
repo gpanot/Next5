@@ -2,7 +2,7 @@
 
 import { Loader2, Pencil, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { AutoSlideshowDto, RunAccountsDto } from '../../../../types/admin/autoSlideshow';
+import { YOUTUBE_PRIVACY_LABELS, type AutoSlideshowDto, type RunAccountsDto, type YouTubePrivacyChoice } from '../../../../types/admin/autoSlideshow';
 import { whenLabel } from '../../../labs/addToCalendar/slots';
 import { ChangeDay } from '../../../labs/blitzLab/schedule/ChangeDay';
 import { adminFetch } from '../../business/useAdminApi';
@@ -38,29 +38,68 @@ function useEscape(onClose: () => void) {
   }, [onClose]);
 }
 
-/** Approve on its day, or post it now: the slideshow's choices go to the schedule or straight to the platforms. */
+const SENT = ['sending', 'processing', 'posted'];
+
+/** Platforms already sent (locked), and the approval still waiting for its time: its platforms and choices (editable). */
+const approvalOf = (show: AutoSlideshowDto) => {
+  const waiting = show.posts.filter((p) => p.status === 'scheduled');
+  const youtube = waiting.find((p) => p.platform === 'youtube')?.privacyLevel;
+  return {
+    live: show.posts.filter((p) => SENT.includes(p.status)).map((p) => p.platform),
+    approved: waiting.length > 0,
+    initial: {
+      platforms: waiting.map((p) => p.platform),
+      tiktokPrivacy: waiting.find((p) => p.platform === 'tiktok')?.privacyLevel ?? null,
+      youtubePrivacy: youtube && youtube in YOUTUBE_PRIVACY_LABELS ? (youtube as YouTubePrivacyChoice) : null,
+    },
+  };
+};
+
+/** Approve on its day, or post it now: the slideshow's choices go to the schedule or straight to the platforms. Once
+ *  approved, the same sheet changes its platforms and choices, moves it, sends it now or unapproves it (like an
+ *  approved Blitz video). */
 function useApprove({ token, runId, show, at, posting, onDone, onClose }: Props, accounts: RunAccountsDto) {
-  const choices = useSlideshowChoices(token, runId, accounts);
+  const { live, approved, initial } = approvalOf(show);
+  const choices = useSlideshowChoices(token, runId, accounts, live, approved ? initial : undefined);
   const [postNow, setPostNow] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<'approve' | 'move' | 'unapprove' | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const base = `/api/admin/auto-slideshow/runs/${runId}/slideshows/${show.id}`;
+  const call = (path: string, body: object) => adminFetch(token, `${base}/${path}`, { method: 'POST', body: JSON.stringify(body) }).then(() => true)
+    .catch((err: unknown) => (setError(err instanceof Error ? err.message : 'Something went wrong'), false));
   const approve = async () => {
     const missing = choices.problem();
-    if (missing) return setError(missing);
-    setBusy(true);
+    if (missing) return setError(approved && choices.platforms.length === 0 ? 'Pick where to post, or tap Unapprove.' : missing);
+    setBusy('approve');
     setError(null);
     const req = choices.request();
-    const ok = postNow
-      ? await adminFetch(token, `/api/admin/auto-slideshow/runs/${runId}/slideshows/${show.id}/post`, { method: 'POST', body: JSON.stringify({ workspaceId: accounts.workspaceId, ...req }) })
-        .then(() => true)
-        .catch((err: unknown) => (setError(err instanceof Error ? err.message : 'Could not post'), false))
-      : await posting.schedule({ ...req, items: [{ slideshowId: show.id, scheduledAt: at.toISOString() }] });
-    setBusy(false);
+    let ok: boolean;
+    if (approved) {
+      // Approved again with the platforms and choices on screen, then sent now when asked.
+      ok = await call('approved', { action: 'update', scheduledAt: at.toISOString(), ...req });
+      if (ok && postNow) ok = await call('approved', { action: 'now' });
+    } else if (postNow) {
+      ok = await call('post', { workspaceId: accounts.workspaceId, ...req });
+    } else {
+      ok = await posting.schedule({ ...req, items: [{ slideshowId: show.id, scheduledAt: at.toISOString() }] });
+    }
+    setBusy(null);
     if (!ok) return;
     onDone();
     onClose();
   };
-  return { choices, postNow, setPostNow, busy, error: error ?? posting.error, approve };
+  const act = async (kind: 'move' | 'unapprove', body: object, close: boolean) => {
+    setBusy(kind);
+    setError(null);
+    const ok = await call('approved', body);
+    setBusy(null);
+    if (!ok) return;
+    onDone();
+    if (close) onClose();
+  };
+  const move = (next: Date) => void act('move', { action: 'move', scheduledAt: next.toISOString() }, false);
+  const unapprove = () => void act('unapprove', { action: 'unapprove' }, true);
+  return { choices, approved, postNow, setPostNow, busy, error: error ?? posting.error, approve, move, unapprove };
 }
 
 /** The form part, once the workspace's accounts are known. */
@@ -81,7 +120,7 @@ function Body(props: Props & { accounts: RunAccountsDto }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={onEdit} className={pill}><Pencil aria-hidden className="h-4 w-4" /> Edit</button>
-            {!a.postNow && <ChangeDay scheduledAt={at.toISOString()} busy={false} onMove={onMove} />}
+            {!a.postNow && <ChangeDay scheduledAt={at.toISOString()} busy={a.busy === 'move'} onMove={a.approved ? a.move : onMove} />}
             <label className={`${pill} cursor-pointer ${a.postNow ? 'border-[var(--ready,#1e8049)] dark:border-[var(--ready,#1e8049)]' : ''}`}>
               <input type="checkbox" checked={a.postNow} onChange={(e) => a.setPostNow(e.target.checked)} className="h-4 w-4 accent-[var(--ready,#1e8049)]" />
               Post now
@@ -92,12 +131,18 @@ function Body(props: Props & { accounts: RunAccountsDto }) {
         {a.error && <p role="alert" className={alert}>{a.error}</p>}
       </div>
       <footer className="flex gap-2 border-t border-[var(--line,#e8e5e1)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-neutral-800">
-        <button type="button" onClick={onClose} className="flex min-h-12 items-center justify-center rounded-full border border-[var(--line,#e8e5e1)] px-5 text-[14px] font-semibold text-[var(--ink,#000)] transition active:scale-95 dark:border-neutral-700 dark:text-neutral-100">
-          Cancel
-        </button>
-        <button type="button" onClick={() => void a.approve()} disabled={a.busy || a.choices.blocked !== null} title={a.choices.blocked ?? undefined} className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ready,#1e8049)] px-4 text-[14px] font-semibold text-white shadow-sm transition active:scale-95 disabled:opacity-40">
-          {a.busy && <Loader2 aria-hidden className="h-4 w-4 animate-spin" />}
-          {a.postNow ? 'Post now' : 'Approve & post'}
+        {a.approved ? (
+          <button type="button" onClick={a.unapprove} disabled={a.busy !== null} className="flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-[var(--line,#e8e5e1)] px-5 text-[14px] font-semibold text-red-600 transition active:scale-95 disabled:opacity-40 dark:border-neutral-700 dark:text-red-400">
+            {a.busy === 'unapprove' && <Loader2 aria-hidden className="h-4 w-4 animate-spin" />} Unapprove
+          </button>
+        ) : (
+          <button type="button" onClick={onClose} className="flex min-h-12 items-center justify-center rounded-full border border-[var(--line,#e8e5e1)] px-5 text-[14px] font-semibold text-[var(--ink,#000)] transition active:scale-95 dark:border-neutral-700 dark:text-neutral-100">
+            Cancel
+          </button>
+        )}
+        <button type="button" onClick={() => void a.approve()} disabled={a.busy !== null || a.choices.blocked !== null} title={a.choices.blocked ?? undefined} className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ready,#1e8049)] px-4 text-[14px] font-semibold text-white shadow-sm transition active:scale-95 disabled:opacity-40">
+          {a.busy === 'approve' && <Loader2 aria-hidden className="h-4 w-4 animate-spin" />}
+          {a.postNow ? 'Post now' : a.approved ? 'Save' : 'Approve & post'}
         </button>
       </footer>
     </>
@@ -105,19 +150,20 @@ function Body(props: Props & { accounts: RunAccountsDto }) {
 }
 
 /**
- * One ready slideshow (or campaign slideshow), opened from the calendar: the same approval as a Blitz video. It plays,
- * and the user edits it, moves it to another day, or approves it with its platforms and TikTok's choices, on its day
- * or right now.
+ * One ready or approved slideshow (or campaign slideshow), opened from the calendar: the same approval as a Blitz video.
+ * It plays, and the user edits it, moves it to another day, or approves it with its platforms and TikTok's choices, on
+ * its day or right now. Approved: more platforms can be added, and it can be sent now or unapproved.
  */
 export function SlideshowSheet(props: Props) {
   const { posting, onClose } = props;
   useEscape(onClose);
   const accounts = posting.accounts;
+  const title = approvalOf(props.show).approved ? 'Approved slideshow' : 'Approve slideshow';
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
-      <div role="dialog" aria-modal="true" aria-label="Approve slideshow" onClick={(e) => e.stopPropagation()} className="flex max-h-[92dvh] w-full max-w-md flex-col rounded-t-2xl bg-[var(--paper,#fff)] shadow-xl sm:rounded-2xl dark:bg-neutral-950">
+      <div role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()} className="flex max-h-[92dvh] w-full max-w-md flex-col rounded-t-2xl bg-[var(--paper,#fff)] shadow-xl sm:rounded-2xl dark:bg-neutral-950">
         <header className="flex items-center gap-3 border-b border-[var(--line,#e8e5e1)] p-4 dark:border-neutral-800">
-          <h3 className="min-w-0 flex-1 text-[16px] font-bold text-[var(--ink,#000)] dark:text-neutral-100">Approve slideshow</h3>
+          <h3 className="min-w-0 flex-1 text-[16px] font-bold text-[var(--ink,#000)] dark:text-neutral-100">{title}</h3>
           <button type="button" onClick={onClose} aria-label="Close" className="flex h-11 w-11 flex-none items-center justify-center rounded-full text-[var(--mute,#7c7d82)] transition hover:bg-neutral-100 dark:hover:bg-neutral-800">
             <X aria-hidden className="h-5 w-5" />
           </button>

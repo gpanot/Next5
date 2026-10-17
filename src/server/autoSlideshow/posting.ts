@@ -184,3 +184,42 @@ export const postNow = async (runId: string, postId: string): Promise<void> => {
   await prisma.autoSlideshowPost.update({ where: { id: postId }, data: { status: 'scheduled', scheduledAt: new Date(), error: null, attempts: post.status === 'failed' ? 0 : post.attempts } });
   await sendPost(postId);
 };
+
+export type ApprovedAction = { action: 'move'; scheduledAt: string } | { action: 'now' } | { action: 'unapprove' } | ({ action: 'update'; scheduledAt: string } & Omit<ScheduleInput, 'items'>);
+
+/**
+ * The approved posts of one slideshow (scheduled, not sent yet), acted on together from the calendar's sheet: moved to
+ * another time, sent now with the choices approved, unapproved (it reads "To approve" again), or approved again with
+ * new platforms and choices (`update` replaces them; a platform already sent stays as it is). A campaign's
+ * slideshow on this workspace's calendar counts, as in `schedulePosts`.
+ */
+export const actOnApproved = async (runId: string, slideshowId: string, input: ApprovedAction): Promise<AutoPostDto[]> => {
+  const run = await prisma.autoSlideshowRun.findUniqueOrThrow({ where: { id: runId }, select: { workspaceId: true } });
+  const show = await prisma.autoSlideshow.findFirst({
+    where: { id: slideshowId, OR: [{ runId }, ...(run.workspaceId ? [{ run: { workspaceId: run.workspaceId, kind: CAMPAIGN_KIND } }] : [])] },
+    include: { posts: { where: { status: 'scheduled' } } },
+  });
+  if (!show) throw new HttpError(404, 'slideshow_not_found', 'Slideshow not found.');
+  const ids = show.posts.map((p) => p.id);
+  if (ids.length === 0) throw new HttpError(409, 'not_approved', 'This slideshow has no approved post waiting to go out.');
+  if (input.action === 'update') {
+    await prisma.autoSlideshowPost.updateMany({ where: { id: { in: ids } }, data: { status: 'canceled' } });
+    try {
+      await schedulePosts(runId, { items: [{ slideshowId, scheduledAt: input.scheduledAt }], platforms: input.platforms, tiktok: input.tiktok, youtube: input.youtube });
+    } catch (err) {
+      // Refused (a choice missing, an account gone): the approval stays as it was.
+      await prisma.autoSlideshowPost.updateMany({ where: { id: { in: ids } }, data: { status: 'scheduled' } });
+      throw err;
+    }
+  } else if (input.action === 'move') {
+    const at = new Date(input.scheduledAt);
+    if (Number.isNaN(at.getTime()) || at.getTime() < Date.now()) throw new HttpError(400, 'bad_time', 'Pick a time from now on.');
+    await prisma.autoSlideshowPost.updateMany({ where: { id: { in: ids } }, data: { scheduledAt: at } });
+  } else if (input.action === 'unapprove') {
+    await prisma.autoSlideshowPost.updateMany({ where: { id: { in: ids } }, data: { status: 'canceled' } });
+  } else {
+    await prisma.autoSlideshowPost.updateMany({ where: { id: { in: ids } }, data: { scheduledAt: new Date() } });
+    for (const id of ids) await sendPost(id);
+  }
+  return (await prisma.autoSlideshowPost.findMany({ where: { slideshowId } })).map(toPostDto);
+};

@@ -16,11 +16,14 @@ const NO_TIKTOK: TikTokChoices = { privacyLevel: '', allowComments: false, brand
  * choices (read live from the account) and YouTube's privacy. `problem` says what is missing; `blocked` is TikTok's
  * rule that Post stays disabled while disclosure is on with no box ticked.
  */
-export function useSlideshowChoices(token: string, runId: string, accounts: RunAccountsDto) {
-  const [platforms, setPlatforms] = useState<PostPlatform[]>(() => defaultPlatforms(accounts));
-  const [tiktok, setTikTok] = useState<TikTokChoices>(NO_TIKTOK);
+/** `initial`: the choices it was approved with (editing an approval): its platforms and TikTok's privacy. */
+export type InitialChoices = { platforms: PostPlatform[]; tiktokPrivacy: string | null; youtubePrivacy: YouTubePrivacyChoice | null };
+
+export function useSlideshowChoices(token: string, runId: string, accounts: RunAccountsDto, live: PostPlatform[] = [], initial?: InitialChoices) {
+  const [platforms, setPlatforms] = useState<PostPlatform[]>(() => initial?.platforms ?? defaultPlatforms(accounts, live));
+  const [tiktok, setTikTok] = useState<TikTokChoices>(() => ({ ...NO_TIKTOK, privacyLevel: initial?.tiktokPrivacy ?? '' }));
   const [disclose, setDisclose] = useState(false);
-  const [youtube, setYouTube] = useState<YouTubePrivacyChoice>('private');
+  const [youtube, setYouTube] = useState<YouTubePrivacyChoice>(initial?.youtubePrivacy ?? 'private');
   const withTikTok = platforms.includes('tiktok');
   const creator = useAdminApi<{ creator: CreatorInfoDto }>(token, withTikTok ? `/api/admin/auto-slideshow/runs/${runId}/tiktok` : null);
 
@@ -36,7 +39,7 @@ export function useSlideshowChoices(token: string, runId: string, accounts: RunA
     tiktok: withTikTok ? { ...tiktok, brandOrganic: disclose && tiktok.brandOrganic, brandContent: disclose && tiktok.brandContent } : null,
     youtube: platforms.includes('youtube') ? { privacyLevel: youtube } : null,
   });
-  return { token, accounts, platforms, setPlatforms, creator, tiktok, setTikTok, disclose, setDisclose, youtube, setYouTube, problem, blocked, request };
+  return { token, accounts, live, platforms, setPlatforms, creator, tiktok, setTikTok, disclose, setDisclose, youtube, setYouTube, problem, blocked, request };
 }
 
 export type SlideshowChoices = ReturnType<typeof useSlideshowChoices>;
@@ -46,7 +49,7 @@ export function SlideshowChoicesForm({ c }: { c: SlideshowChoices }) {
   const creator = c.creator.data?.creator;
   return (
     <div className="space-y-3">
-      <PlatformPicker accounts={c.accounts} value={c.platforms} onChange={c.setPlatforms} token={c.token} />
+      <PlatformPicker accounts={c.accounts} value={c.platforms} onChange={c.setPlatforms} live={c.live} token={c.token} />
       {c.platforms.includes('tiktok') && (creator
         ? <TikTokFields photo creator={creator} value={c.tiktok} onChange={c.setTikTok} disclose={c.disclose} onDisclose={c.setDisclose} />
         : c.creator.error

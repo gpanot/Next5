@@ -119,10 +119,12 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   );
   const counts = monthCounts(days);
   const approve = toApprove(all);
-  // A ready slideshow opens its approval, like a Blitz video; the others (scheduled, posted) open where they are edited.
+  // A ready or approved slideshow opens its approval sheet, like a Blitz video; the others (on their way, posted) open
+  // where they are edited.
+  const approved = useMemo(() => all.flatMap((d) => d.slots.flatMap((s) => (s.item?.kind === 'post' && s.item.post.status === 'scheduled' ? [{ show: s.item.show, at: s.at }] : []))), [all]);
   const [openReadyId, setOpenReadyId] = useState<string | null>(null);
-  const openReady = approve.find((a) => a.show.id === openReadyId) ?? null;
-  const openShow = (id: string) => (approve.some((a) => a.show.id === id) ? setOpenReadyId(id) : editShow(id));
+  const openReady = approve.find((a) => a.show.id === openReadyId) ?? approved.find((a) => a.show.id === openReadyId) ?? null;
+  const openShow = (id: string) => (approve.some((a) => a.show.id === id) || approved.some((a) => a.show.id === id) ? setOpenReadyId(id) : editShow(id));
   // Planned Blitz videos wait for the same approval (TikTok). Ones whose time passed are expired by the server.
   const plannedVideos = useMemo(() => blitz.filter((b) => b.status === 'planned'), [blitz]);
   const toApproveCount = approve.length + plannedVideos.length;
