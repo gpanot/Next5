@@ -62,7 +62,7 @@ const CARD_SIZE: Record<DeckSize, string> = {
   day: 'aspect-[9/16] w-[min(calc(100vw-7.5rem),calc((100dvh-10rem)*0.5625),460px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',
   /** The Ideas page: every bit of height left after its compact header and the controls goes to the card, 9:16.
    *  Phones: as wide as the screen allows with the buttons beside it. */
-  page: 'aspect-[9/16] w-[min(calc(100vw-7.5rem),calc((100lvh-13.5rem)*0.5625))] lg:w-[min(calc((100dvh-20rem)*0.5625),480px)]',
+  page: 'aspect-[9/16] w-[min(calc(100vw-7rem),calc((100lvh-12rem)*0.5625))] lg:w-[min(calc((100dvh-20rem)*0.5625),480px)]',
 };
 
 /** Where the ⋯ menu and the side buttons sit: beside the card, closer to it on phones (Ideas page and a day). Only

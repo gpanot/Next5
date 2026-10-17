@@ -6,6 +6,7 @@ import { TYPICAL_RUN_MS } from '../RunEta';
 import { RotatingLine } from '../../shared/RotatingLine';
 import { MakingCountdown } from '../calendar/MakingCountdown';
 import { CampaignsHint, IdeasEmpty } from './IdeasEmpty';
+import { IdeasHelp } from './IdeasHelp';
 import { KeptIdeas } from './KeptIdeas';
 import { LiveDeck } from './LiveDeck';
 import { MakeStatus } from './MakeStatus';
@@ -29,7 +30,7 @@ const WRITING_LINES = [
  *  fitting finish after the deck shows). */
 const TYPICAL_IDEAS_MS = 90_000;
 
-const deckBox = 'relative mx-auto aspect-[9/16] w-[min(calc(100vw-5rem),calc((100lvh-13.5rem)*0.5625))] rounded-[26px] bg-app-sunken lg:w-auto lg:max-w-full lg:h-[min(853px,calc(100dvh-20rem))]';
+const deckBox = 'relative mx-auto aspect-[9/16] w-[min(calc(100vw-5rem),calc((100lvh-12rem)*0.5625))] rounded-[26px] bg-app-sunken lg:w-auto lg:max-w-full lg:h-[min(853px,calc(100dvh-20rem))]';
 
 /**
  * The title, "3 / 14", and a progress bar. Compact on phones; while the deck shows there, the title is the day the idea
@@ -55,6 +56,7 @@ function Header({ ideas, placeOf, onPickDate }: HeaderProps) {
           ) : 'Your next 2 weeks'}
         </h1>
         {total > 0 && <span className="text-[13px] font-medium text-app-muted tabular-nums">{Math.min(decided + 1, total)} / {total}</span>}
+        <IdeasHelp auto={shown !== null} />
       </header>
       {total > 0 && (
         <div className="h-0.5 overflow-hidden rounded-full bg-app-sunken lg:h-1" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={decided} aria-label="Ideas looked at">
@@ -137,7 +139,8 @@ export function IdeasPanel({ ideas, maker, placeOf }: Props) {
       {ideas.error && ideas.deck.length + ideas.kept.length > 0 && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{ideas.error}</p>}
       <Body ideas={ideas} maker={maker} placeOf={placeWith} />
       <MakeStatus kept={ideas.kept} maker={maker} />
-      {ideas.deck.length > 0 && <CampaignsHint />}
+      {/* Phones: hidden, so the card gets the height. */}
+      {ideas.deck.length > 0 && <div className="max-lg:hidden"><CampaignsHint /></div>}
     </div>
   );
 }
