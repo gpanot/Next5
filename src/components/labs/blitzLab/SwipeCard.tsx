@@ -367,6 +367,7 @@ export function SwipeCard({
   const displayedShotIdx = isTop ? shotIdx : 0;
   const displayedShot = shots[displayedShotIdx] ?? shots[0];
   const spokenWords = isTop ? voiced?.words?.[displayedShotIdx] : undefined;
+  const captionMove = isTop && paused && onCaptionMove ? (y: number) => onCaptionMove(displayedShotIdx, y) : undefined;
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -438,11 +439,11 @@ export function SwipeCard({
 
         {/* ── Caption ─────────────────────────────────────────────────────── */}
         {/* A voiced card shows what the voice says, as it says it. Keyed by shot so each line starts fresh. */}
-        {/* Paused, the caption moves up or down (the whole line, not the words said so far). */}
-        {displayedShot && captionConfig && isTop && paused && onCaptionMove ? (
-          <DraggableCaption key={displayedShotIdx} text={displayedShot.text} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} onMove={(y) => onCaptionMove(displayedShotIdx, y)} />
-        ) : displayedShot && captionConfig && (spokenWords ? (
-          <SpokenDeckCaption key={`${voiceUrl}-${displayedShotIdx}`} words={spokenWords} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} elapsedRef={elapsedRef} />
+        {/* Paused, the caption moves up or down: a voiced card's spoken line on screen shows whole, else the shot's line. */}
+        {displayedShot && captionConfig && (spokenWords ? (
+          <SpokenDeckCaption key={`${voiceUrl}-${displayedShotIdx}`} words={spokenWords} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} elapsedRef={elapsedRef} onMove={captionMove} />
+        ) : captionMove ? (
+          <DraggableCaption key={displayedShotIdx} text={displayedShot.text} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} onMove={captionMove} />
         ) : (
           <SlideCaption text={displayedShot.text} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} />
         ))}
