@@ -36,7 +36,7 @@ export function useSlideshowChoices(token: string, runId: string, accounts: RunA
     tiktok: withTikTok ? { ...tiktok, brandOrganic: disclose && tiktok.brandOrganic, brandContent: disclose && tiktok.brandContent } : null,
     youtube: platforms.includes('youtube') ? { privacyLevel: youtube } : null,
   });
-  return { accounts, platforms, setPlatforms, creator, tiktok, setTikTok, disclose, setDisclose, youtube, setYouTube, problem, blocked, request };
+  return { token, accounts, platforms, setPlatforms, creator, tiktok, setTikTok, disclose, setDisclose, youtube, setYouTube, problem, blocked, request };
 }
 
 export type SlideshowChoices = ReturnType<typeof useSlideshowChoices>;
@@ -46,7 +46,7 @@ export function SlideshowChoicesForm({ c }: { c: SlideshowChoices }) {
   const creator = c.creator.data?.creator;
   return (
     <div className="space-y-3">
-      <PlatformPicker accounts={c.accounts} value={c.platforms} onChange={c.setPlatforms} />
+      <PlatformPicker accounts={c.accounts} value={c.platforms} onChange={c.setPlatforms} token={c.token} />
       {c.platforms.includes('tiktok') && (creator
         ? <TikTokFields photo creator={creator} value={c.tiktok} onChange={c.setTikTok} disclose={c.disclose} onDisclose={c.setDisclose} />
         : c.creator.error

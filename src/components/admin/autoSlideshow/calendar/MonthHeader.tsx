@@ -39,7 +39,7 @@ export function MonthHeader({ month, canPrev, canNext, onMonth, subtitle, subtit
 export const countsLine = (counts: MonthCounts): string =>
   [
     counts.ready > 0 && `${counts.ready} ready to post`,
-    counts.scheduled > 0 && `${counts.scheduled} scheduled`,
+    counts.scheduled > 0 && `${counts.scheduled} approved`,
     counts.posted > 0 && `${counts.posted} posted`,
     counts.empty > 0 && `${counts.empty} empty`,
   ].filter(Boolean).join(' · ');

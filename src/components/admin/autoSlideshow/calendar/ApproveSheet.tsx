@@ -122,7 +122,7 @@ function PlatformsAndForm({ token, run, accounts, items, videoCount, posting, on
   const nothing = items.length + withVideos === 0;
   return (
     <>
-      <PlatformPicker accounts={accounts} value={platforms} onChange={setPlatforms} />
+      <PlatformPicker accounts={accounts} value={platforms} onChange={setPlatforms} token={token} />
       {videoCount > 0 && !platforms.includes('tiktok') && <p className={notice}>Videos post to TikTok only. Pick TikTok to approve {videoCount === 1 ? 'it' : 'them'}.</p>}
       {platforms.length > 0 && !nothing && <ApproveForm key={platforms.join()} token={token} runId={run.id} items={items} platforms={platforms} total={items.length + withVideos} busy={posting.busy === 'schedule'} onApprove={onApprove} />}
     </>

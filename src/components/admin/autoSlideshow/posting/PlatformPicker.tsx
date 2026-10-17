@@ -1,7 +1,10 @@
 'use client';
 
-import { PlatformIcon } from '../../../marketing/offer/PlatformMarks';
+import { useState } from 'react';
 import { PLATFORM_LABELS, POST_PLATFORMS, type PostPlatform, type RunAccountsDto } from '../../../../types/admin/autoSlideshow';
+import { ChannelList } from '../../../labs/blitzLab/schedule/ChannelList';
+import { InstagramTypeDialog } from '../settings/InstagramTypeDialog';
+import { startConnect } from '../settings/AccountsSection';
 
 type Props = {
   accounts: RunAccountsDto;
@@ -10,34 +13,29 @@ type Props = {
   /** Platforms this slideshow is already live on: shown, not pickable. */
   live?: PostPlatform[];
   tone?: 'light' | 'dark';
+  /** Signed-in token: a platform not connected yet gets a Connect button (it comes back to this page, then can be ticked). */
+  token?: string;
 };
 
-const handle = (u: string | null) => (u ? (u.startsWith('@') ? u : `@${u}`) : 'connected');
-
-/** "Post to": one checkbox per platform; a platform without a connected account says where to connect it. */
-export function PlatformPicker({ accounts, value, onChange, live = [], tone = 'light' }: Props) {
-  const dark = tone === 'dark';
-  const toggle = (p: PostPlatform) => onChange(value.includes(p) ? value.filter((x) => x !== p) : [...value, p]);
+/** "Post to" for slideshows: tick any connected platforms (the same rows as a Blitz video's approval). */
+export function PlatformPicker({ accounts, value, onChange, live = [], tone = 'light', token }: Props) {
+  // Instagram asks the account type first: only Business and Creator accounts can be connected.
+  const [askingType, setAskingType] = useState(false);
+  const workspace = accounts.workspaceId;
+  const rows = POST_PLATFORMS.map((p) => {
+    const account = accounts.accounts[p];
+    return { id: p, label: PLATFORM_LABELS[p], username: account?.username ?? null, connected: Boolean(account), available: accounts.configured[p] };
+  });
+  const connect = token && workspace
+    ? (p: PostPlatform) => (p === 'instagram' ? setAskingType(true) : startConnect(token, workspace, p))
+    : undefined;
   return (
-    <fieldset className="space-y-2">
-      <legend className={`mb-1 text-[11px] font-semibold tracking-widest uppercase ${dark ? 'text-white/50' : 'text-muted'}`}>Post to</legend>
-      {POST_PLATFORMS.map((p) => {
-        const account = accounts.accounts[p];
-        const isLive = live.includes(p);
-        const disabled = !account || isLive;
-        const note = isLive ? 'Already posted or scheduled' : account ? handle(account.username) : accounts.configured[p] ? 'Not connected · Settings → Accounts' : 'Not available yet';
-        return (
-          <label key={p} className={`flex min-h-12 items-center gap-3 rounded-xl border px-3 ${dark ? 'border-white/15' : 'border-line dark:border-zinc-800'} ${disabled ? 'opacity-50' : 'cursor-pointer'}`}>
-            <input type="checkbox" checked={value.includes(p)} disabled={disabled} onChange={() => toggle(p)} className="h-5 w-5 shrink-0 accent-blue-600" />
-            <PlatformIcon id={p} className="h-5 w-5 shrink-0" />
-            <span className="min-w-0 flex-1">
-              <span className={`block text-sm font-semibold ${dark ? 'text-white' : 'text-ink dark:text-zinc-100'}`}>{PLATFORM_LABELS[p]}</span>
-              <span className={`block truncate text-xs ${dark ? 'text-white/50' : 'text-muted'}`}>{note}</span>
-            </span>
-          </label>
-        );
-      })}
-    </fieldset>
+    <>
+      <ChannelList rows={rows} value={value} onChange={onChange} live={live} tone={tone} connect={connect} />
+      {askingType && token && workspace && (
+        <InstagramTypeDialog onClose={() => setAskingType(false)} onBusiness={() => { setAskingType(false); void startConnect(token, workspace, 'instagram'); }} />
+      )}
+    </>
   );
 }
 

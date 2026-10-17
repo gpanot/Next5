@@ -64,7 +64,7 @@ function PostNowForm({ token, runId, show, accounts, live, onSent }: FormProps) 
 
   return (
     <div className="space-y-3">
-      <PlatformPicker accounts={accounts} value={platforms} onChange={setPlatforms} live={live} tone="dark" />
+      <PlatformPicker accounts={accounts} value={platforms} onChange={setPlatforms} live={live} tone="dark" token={token} />
       {withTikTok && (c ? <TikTokFields creator={c} value={tt} onChange={setTt} /> : creator.error ? <p className="text-sm text-red-300">{creator.error}</p> : <div className="h-24 animate-pulse rounded-xl bg-white/10" />)}
       {withYouTube && <YouTubeFields value={yt} onChange={setYt} tone="dark" />}
       {error && <p className="text-sm text-red-300">{error}</p>}

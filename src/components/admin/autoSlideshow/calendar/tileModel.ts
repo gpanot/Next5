@@ -6,9 +6,9 @@ import { ideaCover } from '../ideas/ideaCover';
 import type { DayItem, PlanDay, PlanSlot } from './monthPlan';
 import { coverIsVideoOf, coverOf, titleOf } from './slotBadge';
 
-/** Idea: free, not kept yet. Kept: will be made on Make. Making: being made. Ready: waits for approval. Scheduled:
- *  approved (or posted). Failed: could not be made or posted. */
-export type TileStatus = 'idea' | 'kept' | 'making' | 'ready' | 'scheduled' | 'failed';
+/** Idea: free, not kept yet. Kept: will be made on Make. Making: being made. Ready: waits for approval. Scheduled ("Approved"):
+ *  approved, on its way out. Posted: live. Failed: could not be made or posted. */
+export type TileStatus = 'idea' | 'kept' | 'making' | 'ready' | 'scheduled' | 'posted' | 'failed';
 
 export type Filled = PlanSlot & { item: DayItem };
 
@@ -50,14 +50,14 @@ export const countdownOfItem = (item: DayItem, now = Date.now()): PostCountdown 
 };
 
 /** Legend order and labels. */
-export const STATUS_LABELS: Record<Exclude<TileStatus, 'failed'>, string> = { idea: 'Idea', kept: 'Kept', making: 'Making', ready: 'Ready', scheduled: 'Scheduled' };
+export const STATUS_LABELS: Record<Exclude<TileStatus, 'failed'>, string> = { idea: 'Idea', kept: 'Kept', making: 'Making', ready: 'To approve', scheduled: 'Approved', posted: 'Posted' };
 
 export const statusOf = (item: DayItem): TileStatus | null => {
   if (item.kind === 'making') return 'making';
   if (item.kind === 'ready') return 'ready';
-  if (item.kind === 'post') return item.post.status === 'canceled' ? null : item.post.status === 'failed' ? 'failed' : 'scheduled';
+  if (item.kind === 'post') return item.post.status === 'canceled' ? null : item.post.status === 'failed' ? 'failed' : item.post.status === 'posted' ? 'posted' : 'scheduled';
   const s = item.blitz.status;
-  return s === 'canceled' ? null : s === 'failed' ? 'failed' : s === 'planned' ? 'ready' : s === 'rendering' ? 'making' : 'scheduled';
+  return s === 'canceled' ? null : s === 'failed' ? 'failed' : s === 'planned' ? 'ready' : s === 'rendering' ? 'making' : s === 'posted' ? 'posted' : 'scheduled';
 };
 
 /**

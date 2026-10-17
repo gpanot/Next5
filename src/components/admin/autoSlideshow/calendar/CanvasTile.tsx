@@ -12,7 +12,8 @@ export const DOT: Record<TileStatus, string> = {
   kept: 'bg-blue-400',
   making: 'bg-zinc-400',
   ready: 'bg-white',
-  scheduled: 'bg-emerald-400',
+  scheduled: 'bg-amber-400',
+  posted: 'bg-emerald-400',
   failed: 'bg-red-500',
 };
 
@@ -52,14 +53,14 @@ function Cover({ entries }: { entries: TileEntry[] }) {
   );
 }
 
-/** The tile's edge: blue ring on the day in focus, green when all is scheduled, dashed blue with an idea, else dark. */
+/** The tile's edge: blue ring on the day in focus, green when all is posted, dashed blue with an idea, else dark. */
 const edgeOf = (entries: TileEntry[], focused: boolean, past: boolean) => {
   if (focused) return 'ring-[3px] ring-blue-600';
   // Past days with nothing on them stay blank, as in the canvas.
   if (entries.length === 0 && past) return 'border border-transparent';
   if (entries.length === 0) return 'border-[1.5px] border-dashed border-zinc-300 bg-white dark:border-zinc-700 dark:bg-zinc-900';
   if (entries.some((e) => e.status === 'idea')) return 'border-[1.5px] border-dashed border-blue-600 dark:border-blue-400';
-  if (entries.every((e) => e.status === 'scheduled')) return 'ring-2 ring-emerald-500';
+  if (entries.every((e) => e.status === 'posted')) return 'ring-2 ring-emerald-500';
   return 'ring-[1.5px] ring-zinc-900 dark:ring-zinc-100';
 };
 

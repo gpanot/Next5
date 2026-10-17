@@ -40,7 +40,8 @@ describe('calendar tile statuses', () => {
   it('maps Blitz videos to the canvas statuses', () => {
     expect(statusOf({ kind: 'blitz', show: null, blitz: blitz('planned') })).toBe('ready');
     expect(statusOf({ kind: 'blitz', show: null, blitz: blitz('rendering') })).toBe('making');
-    expect(statusOf({ kind: 'blitz', show: null, blitz: blitz('posted') })).toBe('scheduled');
+    expect(statusOf({ kind: 'blitz', show: null, blitz: blitz('posted') })).toBe('posted');
+    expect(statusOf({ kind: 'blitz', show: null, blitz: blitz('scheduled') })).toBe('scheduled');
     expect(statusOf({ kind: 'blitz', show: null, blitz: blitz('canceled') })).toBeNull();
   });
 

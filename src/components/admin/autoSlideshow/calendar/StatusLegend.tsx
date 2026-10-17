@@ -6,7 +6,7 @@ import { STATUS_LABELS, type TileStatus } from './tileModel';
 import type { CalendarView } from './useCalendarStore';
 
 /** Statuses the legend names. Kept, Making and Ready left out: the tiles and the day view already say it. */
-const SHOWN: TileStatus[] = ['scheduled'];
+const SHOWN: TileStatus[] = ['scheduled', 'posted'];
 
 type Props = { view?: CalendarView; onView?: (view: CalendarView) => void };
 

@@ -7,7 +7,7 @@ import type { DayItem } from './monthPlan';
 export type Badge = { label: string; short: string; tone: string };
 
 const POST_BADGE: Record<AutoPostStatus, Badge> = {
-  scheduled: { label: '✓ Scheduled', short: '✓ Sched.', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
+  scheduled: { label: '✓ Approved', short: '✓ Approved', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
   sending: { label: 'Sending', short: 'Sending', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
   processing: { label: 'Publishing', short: 'Pub.', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
   posted: { label: '✓ Posted', short: '✓ Posted', tone: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
@@ -16,7 +16,7 @@ const POST_BADGE: Record<AutoPostStatus, Badge> = {
 };
 
 /** Ready waits for the user's approval: the one strong pill. */
-const READY: Badge = { label: 'Ready', short: 'Ready', tone: 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900' };
+const READY: Badge = { label: 'Approve slideshow', short: 'Approve', tone: 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900' };
 const MAKING: Badge = { label: 'Making…', short: 'Making', tone: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400' };
 
 const neutral = 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200';
@@ -24,7 +24,7 @@ const neutral = 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200';
 const BLITZ_BADGE: Record<BlitzScheduleStatus, Badge> = {
   // Waits for the user's approval, like a ready slideshow: the strong pill.
   planned: { label: 'Approve video', short: 'Approve', tone: READY.tone },
-  scheduled: { label: '✓ Video scheduled', short: '✓ Video', tone: neutral },
+  scheduled: { label: '✓ Video approved', short: '✓ Video', tone: neutral },
   rendering: { label: 'Making video', short: 'Making', tone: neutral },
   sending: POST_BADGE.sending,
   processing: POST_BADGE.processing,
