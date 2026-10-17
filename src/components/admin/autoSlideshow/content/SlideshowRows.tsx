@@ -14,6 +14,8 @@ type Props = {
   onRetry?: (slideshowId: string) => void;
   /** The face telling each story, on its thumb's corner. */
   faceOf?: (show: AutoSlideshowDto) => Face | null;
+  /** Rows only (the `ul` is `display: contents`): several runs share the parent's column. */
+  flat?: boolean;
 };
 
 const day = (iso: string) => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -64,12 +66,13 @@ function Row({ show, face, onOpen, onRetry, retrying }: { show: AutoSlideshowDto
 }
 
 /** Brand Cast slideshows as rows (the list view of the slideshow grid). */
-export function SlideshowRows({ slideshows, missing, retrying, onOpen, onRetry, faceOf }: Props) {
+export function SlideshowRows({ slideshows, missing, retrying, onOpen, onRetry, faceOf, flat = false }: Props) {
   if (slideshows.length === 0 && missing === 0) {
+    if (flat) return null;
     return <p className="rounded-xl border border-dashed border-app-line p-8 text-center text-sm text-app-muted">Slideshows show up here once they are written.</p>;
   }
   return (
-    <ul className="space-y-2">
+    <ul className={flat ? 'contents' : 'space-y-2'}>
       {slideshows.map((show, i) => (
         <li key={show.id}>
           <Row show={show} face={faceOf?.(show) ?? null} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} />

@@ -17,9 +17,14 @@ type Props = {
   more?: ReactNode;
   /** When the work began: slideshows still being made show the 3:00 countdown instead of a grey box. */
   since?: string;
+  /** Cells only (the `ul` is `display: contents`): several runs share the parent's COVER_GRID, on one set of lines. */
+  flat?: boolean;
   /** Brand Cast: the face telling each story, shown on its cover's corner. */
   faceOf?: (show: AutoSlideshowDto) => Face | null;
 };
+
+/** The covers' grid: 2 columns on phones, more as the screen widens. */
+export const COVER_GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
 
 const frame = 'relative aspect-[9/16] w-full overflow-hidden rounded-xl bg-zinc-100 shadow-sm dark:bg-zinc-800';
 
@@ -72,14 +77,15 @@ function Card({ face, ...props }: CardProps & { face: Face | null }) {
 }
 
 /** Slideshows as 9:16 covers; skeletons stand in for the ones not written yet. */
-export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, faceOf }: Props) {
+export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, faceOf, flat = false }: Props) {
   const missing = writing ? Math.max(0, expected - slideshows.length) : 0;
   const totalMs = makeEstimateMs(missing + slideshows.filter((s) => s.status === 'written' || s.status === 'rendering').length);
   if (slideshows.length === 0 && missing === 0 && !more) {
+    if (flat) return null;
     return <p className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted dark:border-zinc-800">Slideshows show up here once they are written.</p>;
   }
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+    <ul className={flat ? 'contents' : COVER_GRID}>
       {slideshows.map((show, i) => (
         <li key={show.id}>
           <Card show={show} face={faceOf?.(show) ?? null} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} since={since} totalMs={totalMs} />

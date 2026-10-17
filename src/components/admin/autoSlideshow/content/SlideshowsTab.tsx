@@ -6,7 +6,7 @@ import { isTerminalAutoStatus, type AutoRunSummary, type AutoSlideshowDto } from
 import { adminFetch, useAdminApi } from '../../business/useAdminApi';
 import { FilterSelect, useListView, ViewToggle, type ListFilter, type ListView } from '../campaigns/ListControls';
 import { RunSlideshowEditor } from '../RunSlideshowEditor';
-import { SlideshowGrid } from '../SlideshowGrid';
+import { COVER_GRID, SlideshowGrid } from '../SlideshowGrid';
 import { useAutoRun } from '../useAutoRun';
 import { CastStrip, castIdOf, useCastFaces, type Face } from './CastStrip';
 import { SlideshowRows } from './SlideshowRows';
@@ -15,7 +15,7 @@ const errorClass = 'rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-
 
 function GridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" aria-busy="true" aria-label="Loading your slideshows">
+    <div className={COVER_GRID} aria-busy="true" aria-label="Loading your slideshows">
       {Array.from({ length: 5 }, (_, i) => (
         <div key={i} className="aspect-[9/16] animate-pulse rounded-xl bg-app-sunken" />
       ))}
@@ -45,18 +45,18 @@ function RunSlideshows({ token, auto, view, calendarOnly, castId, faceOf }: RunP
     setRetrying(null);
     refresh();
   };
-  if (!run) return error ? <p className={errorClass}>{error}</p> : <GridSkeleton />;
+  if (!run) return error ? <p className={`${errorClass} col-span-full`}>{error}</p> : <div className="col-span-full"><GridSkeleton /></div>;
   // One face's stories: a run with none of them stays out, and slots still being made are not shown.
   if (castId && shows.length === 0) return null;
   const expected = castId || (calendarOnly && done) ? shows.length : run.count;
   const onOpen = (i: number) => setOpenId(shows[i]!.id);
   const onRetry = done ? (id: string) => void retry(id) : undefined;
   return (
-    <section>
+    <section className="contents">
       {view === 'list' ? (
-        <SlideshowRows slideshows={shows} missing={done ? 0 : Math.max(0, expected - shows.length)} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
+        <SlideshowRows flat slideshows={shows} missing={done ? 0 : Math.max(0, expected - shows.length)} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
       ) : (
-        <SlideshowGrid slideshows={shows} expected={expected} writing={!done} since={done ? undefined : run.startedAt} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
+        <SlideshowGrid flat slideshows={shows} expected={expected} writing={!done} since={done ? undefined : run.startedAt} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
       )}
       <RunSlideshowEditor token={token} run={run} openId={openId} onOpen={setOpenId} onChanged={refresh} />
     </section>
@@ -102,7 +102,8 @@ function Runs({ token, runs, filter, view, reloadKey, castId, faceOf }: RunsProp
   }, [reloadKey, refresh]);
   const calendarOnly = filter === 'calendar';
   return (
-    <div className="space-y-6">
+    // Every run's slideshows on one shared grid (or column), so they fill the lines instead of one run per line.
+    <div className={view === 'list' ? 'flex flex-col gap-2' : COVER_GRID}>
       <RunSlideshows token={token} auto={latest} view={view} calendarOnly={calendarOnly} castId={castId} faceOf={faceOf} />
       {!calendarOnly && runs.slice(1).map((summary) => <OlderRun key={summary.id} token={token} runId={summary.id} view={view} calendarOnly={false} castId={castId} faceOf={faceOf} />)}
     </div>
