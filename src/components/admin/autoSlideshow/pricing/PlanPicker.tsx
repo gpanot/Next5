@@ -42,12 +42,12 @@ function Options({ label, options, value, recommended, onChange, big, small }: O
 
 type Props = { days: number; perDay: number; onDays: (n: number) => void; onPerDay: (n: number) => void };
 
-/** Buy by content: how many days, and how many posts a day. 60 days × 4 a day is marked "Best". */
+/** Buy by content: how many posts a day, then how many days. 60 days × 4 a day is marked "Best". */
 export function PlanPicker({ days, perDay, onDays, onPerDay }: Props) {
   return (
     <div className="flex flex-col gap-5">
-      <Options label="How many days?" options={PLAN_DAYS} value={days} recommended={RECOMMENDED_DAYS} onChange={onDays} big={(n) => String(n)} small={() => 'days'} />
       <Options label="Posts a day?" options={PLAN_PER_DAY} value={perDay} recommended={RECOMMENDED_PER_DAY} onChange={onPerDay} big={(n) => String(n)} small={(n) => (n === 1 ? 'post' : 'posts')} />
+      <Options label="How many days?" options={PLAN_DAYS} value={days} recommended={RECOMMENDED_DAYS} onChange={onDays} big={(n) => String(n)} small={() => 'days'} />
     </div>
   );
 }
