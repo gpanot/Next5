@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { TIKTOK_SAFE_ZONE } from '../../../config/tiktokSafeZone';
 
 const STORE_KEY = 'slideshow-safe-zone';
 
-/**
- * TikTok's UI over a 9:16 post, as % of the frame: the search bar on top, the caption and progress bar at the bottom,
- * the like / comment / share column on the right (from about a third down). Text in these bands gets covered.
- */
-const ZONE = { top: 13, bottom: 16, right: 20, rightFrom: 35 };
+/** TikTok's covered bands, as % of the frame. */
+const ZONE = { top: TIKTOK_SAFE_ZONE.top * 100, bottom: TIKTOK_SAFE_ZONE.bottom * 100, right: TIKTOK_SAFE_ZONE.right * 100, rightFrom: TIKTOK_SAFE_ZONE.rightFrom * 100 };
 
 const band = 'absolute bg-red-500/45';
 

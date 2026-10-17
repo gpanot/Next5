@@ -198,12 +198,19 @@ const useActions = (client: LabClient | null, request: ListRequest, setState: Se
     setState((s) => ({ ...s, ideas: s.ideas.map((i) => (i.id === idea.id ? { ...i, card } : i)) }));
     await patch(idea.id, { media: { shot, assetKey } });
   }, [patch, setState]);
+  /** Shot `shot`'s caption of a Blitz idea moved up or down: shows at once, saved for when it is made. */
+  const moveCaption = useCallback(async (idea: IdeaDto, shot: number, positionY: number) => {
+    const card = idea.card && { ...idea.card, shots: idea.card.shots.map((s, i) => (i === shot ? { ...s, positionY } : s)) };
+    if (!card) return;
+    setState((s) => ({ ...s, ideas: s.ideas.map((i) => (i.id === idea.id ? { ...i, card } : i)) }));
+    await patch(idea.id, { caption: { shot, positionY } });
+  }, [patch, setState]);
   const changeDay = useCallback(async (action: 'add' | 'remove', day: string) => {
     if (!client) return;
     setState((s) => ({ ...s, error: null }));
     await request(() => ideasApi.day(client, action, day));
   }, [client, request, setState]);
-  return { focusId, setFocusId, canUndo: history.length > 0, patch, decide, keepNow, undo, pickHook, setVoice, swapMedia, changeDay };
+  return { focusId, setFocusId, canUndo: history.length > 0, patch, decide, keepNow, undo, pickHook, setVoice, swapMedia, moveCaption, changeDay };
 };
 
 /**

@@ -4,6 +4,7 @@
 import type { DeckItem } from '../../server/slideshow/core/deckAssembly';
 import type { ContentGoal } from './contentGoals';
 import type { BlitzVoiceName } from './blitzVoice';
+import { TIKTOK_SAFE_ZONE } from '../../config/tiktokSafeZone';
 
 /** `blitz`: a Blitz video (quick to make). `slideshow`: a real Auto Slideshow from the Slideshow Bank, made in the
  *  background while the user swipes (1-2 minutes). */
@@ -54,8 +55,17 @@ export const SLIDESHOW_AFTER = 8;
 
 /** PATCH /blitz/ideas/[id]. `voice`: a Blitz idea's narrator (BLITZ_VOICES name). `media`: shot `shot` of a Blitz
  *  idea shows its alternative `assetKey` (the deck's swap button and its undo); without `assetKey`, the server picks
- *  the next one of the same kind, from the library when the shot's own ran out. */
-export type IdeaPatch = { status?: Exclude<IdeaStatus, 'made'>; plannedAt?: string; hookId?: string; voice?: BlitzVoiceName; media?: { shot: number; assetKey?: string } };
+ *  the next one of the same kind, from the library when the shot's own ran out. `caption`: shot `shot`'s caption moved
+ *  up or down (its bottom edge at `positionY` of the height, as in the render). */
+export type IdeaPatch = { status?: Exclude<IdeaStatus, 'made'>; plannedAt?: string; hookId?: string; voice?: BlitzVoiceName; media?: { shot: number; assetKey?: string }; caption?: { shot: number; positionY: number } };
+
+/** A deck caption may go halfway into TikTok's top and bottom bands, no further. */
+const BAND_OVERLAP = 0.5;
+/** Highest a deck caption's top edge can go. The deck card keeps it there (it knows the caption's height). */
+export const CAPTION_TOP_MIN = TIKTOK_SAFE_ZONE.top * (1 - BAND_OVERLAP);
+/** How high and low a deck caption's bottom edge can go. */
+export const CAPTION_Y_MIN = CAPTION_TOP_MIN;
+export const CAPTION_Y_MAX = 1 - TIKTOK_SAFE_ZONE.bottom * (1 - BAND_OVERLAP);
 
 /** Ideas in one batch, over the next IDEA_DAYS days: one post a day. */
 export const IDEAS_PER_BATCH = 14;

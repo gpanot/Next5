@@ -83,6 +83,14 @@ describe('calendar ideas', () => {
     expect((await prisma.slideshowVariant.findUniqueOrThrow({ where: { id: idea.id } })).archetype).toBe('call_out');
   });
 
+  it('moves a shot\'s caption up or down on a Blitz idea', async () => {
+    const ws = await createTestWorkspace('slideshow');
+    const idea = await blitzRow(ws.id, 'First', TOMORROW);
+    const { ideas } = await patchIdea(ws.id, idea.id, { caption: { shot: 0, positionY: 0.42 } });
+    expect(ideas[0]!.card!.shots[0]!.positionY).toBe(0.42);
+    await expect(patchIdea(ws.id, idea.id, { caption: { shot: 5, positionY: 0.5 } })).rejects.toMatchObject({ status: 400 });
+  });
+
   it('keeps ideas inside their workspace', async () => {
     const mine = await createTestWorkspace('slideshow');
     const other = await createTestWorkspace('slideshow');

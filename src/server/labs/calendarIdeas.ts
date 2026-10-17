@@ -308,6 +308,14 @@ const swapMedia = async (workspaceId: string, row: SlideshowVariant, media: NonN
   await prisma.slideshowVariant.update({ where: { id: row.id }, data: { plan: asJson({ ...(row.plan as object), card: swapped }) } });
 };
 
+/** A Blitz idea's caption on one shot, moved up or down (paused deck card): saved for when it is made. */
+const moveCaption = async (row: SlideshowVariant, caption: NonNullable<IdeaPatch['caption']>) => {
+  const card = row.engine === 'website' ? (row.plan as BlitzIdeaPlan).card : undefined;
+  if (!card?.shots[caption.shot]) throw new HttpError(400, 'no_caption', 'Only videos move their captions.');
+  const shots = card.shots.map((s, i) => (i === caption.shot ? { ...s, positionY: caption.positionY } : s));
+  await prisma.slideshowVariant.update({ where: { id: row.id }, data: { plan: asJson({ ...(row.plan as object), card: { ...card, shots } }) } });
+};
+
 const SWIPE: Record<NonNullable<IdeaPatch['status']>, 'keep' | 'discard' | 'undo'> = { kept: 'keep', discarded: 'discard', proposed: 'undo' };
 
 /** Keep, skip or bring back an idea (logged like a deck swipe), move it, or give a Blitz idea another first line or voice. */
@@ -324,6 +332,8 @@ export async function patchIdea(workspaceId: string, id: string, patch: IdeaPatc
     await prisma.slideshowVariant.update({ where: { id }, data: { plan: asJson({ ...(row.plan as object), card: { ...card, voice: patch.voice } }) } });
   }
   if (patch.media) await swapMedia(workspaceId, row, patch.media);
+  // After a swap in the same patch, the row's plan is stale: read it again.
+  if (patch.caption) await moveCaption(patch.media ? await ownIdea(workspaceId, id) : row, patch.caption);
   if (patch.plannedAt) {
     const at = new Date(patch.plannedAt);
     if (Number.isNaN(at.getTime()) || at.getTime() < Date.now()) throw new HttpError(400, 'invalid_date', 'Pick a day from tomorrow on.');

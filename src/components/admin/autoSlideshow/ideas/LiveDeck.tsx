@@ -48,7 +48,7 @@ type Props = {
 
 /**
  * The ideas deck wired to the ideas: swipe right asks once (it uses a credit), keeps the idea on its day (or where
- * `placeOf` says) and makes it right away; swipe left skips; undo, another first line and the hook's look (Hook, under the card), the voiceover (recorded for the top and next card; the mic swaps woman / man voice); paused, the shot's clip swaps (with undo); ⋯ (Ideas page, phones) filters the deck.
+ * `placeOf` says) and makes it right away; swipe left skips; undo, another first line and the hook's look (Hook, under the card), the voiceover (recorded for the top and next card; the mic swaps woman / man voice); paused, the shot's clip swaps (with undo) and its caption moves up or down; ⋯ (Ideas page, phones) filters the deck.
  */
 export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   const [hookFor, setHookFor] = useState<IdeaDto | null>(null);
@@ -85,7 +85,7 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   };
   return (
     <>
-      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={(target) => void changeVoice(target)} voice={preview.stateOf(idea)} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1, whenOf(idea, placeOf?.(idea))) : undefined} hookStyle={hookStyle} clips={clips} />
+      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={(target) => void changeVoice(target)} voice={preview.stateOf(idea)} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1, whenOf(idea, placeOf?.(idea))) : undefined} hookStyle={hookStyle} clips={clips} onCaptionMove={(target, shot, y) => void ideas.moveCaption(target, shot, y)} />
       {hookFor && <HookPicker idea={hookFor} onPick={(id) => ideas.pickHook(hookFor, id)} onClose={() => setHookFor(null)} style={hookFor.card ? hookStyle : undefined} />}
       {dialog}
     </>

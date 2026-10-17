@@ -41,6 +41,8 @@ type Props = {
   hookStyle?: HookStyleState;
   /** Blitz ideas, while paused: another clip for the shot on screen, and back to the one before. */
   clips?: DeckClips;
+  /** Blitz ideas, while paused: the shot's caption dragged up or down (saved for when it is made). */
+  onCaptionMove?: (idea: IdeaDto, shot: number, positionY: number) => void;
 };
 
 export type DeckClips = {
@@ -129,7 +131,7 @@ const useShotSwap = (idea: IdeaDto, shot: number, clips?: DeckClips): ShotSwap |
 };
 
 /** One idea at a time: swipe or tap ✓ / ✕. The day it will be posted shows under the card. */
-export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onVoice, voice, size = 'panel', plannedAt, confirmKeep, menu, hookStyle, clips }: Props) {
+export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onVoice, voice, size = 'panel', plannedAt, confirmKeep, menu, hookStyle, clips, onCaptionMove }: Props) {
   const { soundOn, toggleSound } = useDeckSound();
   const [exit, setExit] = useState<{ id: string; dir: 'keep' | 'discard' } | null>(null);
   // The next card loads once the top card can play, so its clips don't slow the first one down.
@@ -179,6 +181,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
           paused={paused}
           onPausedChange={setPaused}
           onShotChange={setShot}
+          onCaptionMove={idea.card && onCaptionMove ? (at, y) => onCaptionMove(idea, at, y) : undefined}
         />
         {idea.card && hookStyle?.pending && (
           <div role="status" className="absolute inset-0 z-[6] grid place-items-center rounded-[26px] bg-black/45 backdrop-blur-[2px] transition-opacity">

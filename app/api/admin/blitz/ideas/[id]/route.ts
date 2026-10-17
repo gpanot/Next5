@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { HttpError } from '../../../../../../src/server/http';
 import { patchIdea } from '../../../../../../src/server/labs/calendarIdeas';
 import { labRoute } from '../../../../../../src/server/labs/labAccess';
-import type { IdeaPatch } from '../../../../../../src/types/admin/calendarIdeas';
+import { CAPTION_Y_MAX, CAPTION_Y_MIN, type IdeaPatch } from '../../../../../../src/types/admin/calendarIdeas';
 import { isBlitzVoice } from '../../../../../../src/types/admin/blitzVoice';
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -31,10 +31,16 @@ const patchOf = (raw: unknown): IdeaPatch => {
     if (!Number.isInteger(m.shot) || (m.assetKey !== undefined && typeof m.assetKey !== 'string')) throw new HttpError(400, 'invalid_media', 'Pick a clip.');
     patch.media = { shot: m.shot as number, ...(typeof m.assetKey === 'string' ? { assetKey: m.assetKey } : {}) };
   }
+  if (b.caption !== undefined) {
+    const c = (b.caption ?? {}) as Record<string, unknown>;
+    const y = c.positionY;
+    if (!Number.isInteger(c.shot) || typeof y !== 'number' || !Number.isFinite(y)) throw new HttpError(400, 'invalid_caption', 'Move the caption again.');
+    patch.caption = { shot: c.shot as number, positionY: Math.min(CAPTION_Y_MAX, Math.max(CAPTION_Y_MIN, y)) };
+  }
   return patch;
 };
 
-/** PATCH /api/admin/blitz/ideas/[id] — { status?, plannedAt?, hookId?, voice?, media? } → the updated ideas list. */
+/** PATCH /api/admin/blitz/ideas/[id] — { status?, plannedAt?, hookId?, voice?, media?, caption? } → the updated ideas list. */
 export const PATCH = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
   if (access.admin) throw new HttpError(400, 'user_only', 'Ideas belong to a workspace.');
   const { id } = await ctx.params;
