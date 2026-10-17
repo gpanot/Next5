@@ -111,14 +111,36 @@ describe('buildMonth', () => {
     expect(kinds([dayOf(days, '2026-10-21')])[0]).toEqual(['empty']);
   });
 
-  it('dropping a slideshow: on an empty day it moves there; on a full day it swaps with a ready one', () => {
+  it('dropping a slideshow: on an empty day it moves there; on a day with posts it joins them at a free time', () => {
     const { all } = plan([show(0), show(1)]);
     const moved = dropPins(all, 's0', dayOf(all, '2026-10-10'))!;
     expect(new Date(moved.s0!).getDate()).toBe(10);
-    const swapped = dropPins(all, 's0', dayOf(all, '2026-10-03'))!;
-    expect(new Date(swapped.s0!).getDate()).toBe(3);
-    expect(new Date(swapped.s1!).getDate()).toBe(2);
+    const joined = dropPins(all, 's0', dayOf(all, '2026-10-03'))!;
+    expect(new Date(joined.s0!).getDate()).toBe(3);
+    expect(new Date(joined.s1!).getDate()).toBe(3);
+    expect(new Date(joined.s0!).getHours()).not.toBe(new Date(joined.s1!).getHours());
     expect(dayOf(plan([show(0), show(1)], { pins: moved }).days, '2026-10-10').slots[0]!.item).toMatchObject({ show: { id: 's0' } });
+  });
+
+  it('a day takes dropped slideshows past its planned count, up to 5; a full day swaps with a ready one', () => {
+    const shows = [0, 1, 2, 3, 4, 5].map((i) => show(i));
+    const full = currentPins(plan(shows).all);
+    const onDay = (n: number) => Object.fromEntries(shows.slice(0, n).map((s, i) => [s.id, new Date(2026, 9, 12, 8 + i * 3).toISOString()]));
+    const four = plan(shows, { targets: { '2026-10-12': 3 }, pins: { ...full, ...onDay(4) } }).all;
+    const added = dropPins(four, 's5', dayOf(four, '2026-10-12'))!;
+    expect(new Date(added.s5!).getDate()).toBe(12);
+    const five = plan(shows, { pins: { ...full, ...onDay(5) } }).all;
+    const swapped = dropPins(five, 's5', dayOf(five, '2026-10-12'))!;
+    expect(new Date(swapped.s5!).getDate()).toBe(12);
+    expect(Object.values(swapped).filter((at) => new Date(at).getDate() === 12)).toHaveLength(5);
+  });
+
+  it('shows this month from its 1st when asked', () => {
+    const mid = new Date(2026, 9, 17, 10);
+    expect(plan([], { now: mid }).days[0]!.key).toBe('2026-10-17');
+    const { days } = buildMonth({ slideshows: [], pending: 0, month: october, now: mid, earlier: true });
+    expect(days.find((d) => d.inMonth)!.key).toBe('2026-10-01');
+    expect(days.find((d) => d.key === '2026-10-05')!.past).toBe(true);
   });
 
   it('dropping into an empty slot of a picked day uses that slot', () => {

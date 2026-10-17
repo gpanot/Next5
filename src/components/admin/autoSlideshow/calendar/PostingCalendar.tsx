@@ -22,7 +22,7 @@ import { placeIdea, takenBy, uniqueTimes } from './ideaPlacement';
 import { MonthGrid } from './MonthGrid';
 import { MonthList } from './MonthList';
 import { countsLine, MonthHeader } from './MonthHeader';
-import { buildMonth, currentPins, dayKey, dropPins, emptySlots, MAX_PER_DAY, monthCounts, toApprove, type PlanDay } from './monthPlan';
+import { buildMonth, currentPins, dayKey, dropPins, emptySlots, MAX_PER_DAY, monthCounts, monthOf, toApprove, type PlanDay } from './monthPlan';
 import { useAdd, useMonth, useWatchPosts } from './postingHooks';
 import { SlideshowDnd } from './SlideshowDnd';
 import { SlideshowSheet } from './SlideshowSheet';
@@ -110,9 +110,12 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   // Only a working run has slideshows still to come; a finished one shows what it has.
   const working = !isTerminalAutoStatus(run.status);
   const pending = working ? Math.max(0, run.count - run.slideshows.length) : 0;
+  // This month starts at today; "Show earlier days" brings back its 1st to yesterday.
+  const [earlier, setEarlier] = useState(false);
+  const hasEarlier = month.getTime() === monthOf(new Date()).getTime() && new Date().getDate() > 1;
   const { days, all } = useMemo(
-    () => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins, blitz, campaign: { slideshows: campaigns.slideshows, planned: campaigns.planned } }),
-    [run.slideshows, pending, working, month, targets, pins, blitz, campaigns.slideshows, campaigns.planned],
+    () => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins, blitz, campaign: { slideshows: campaigns.slideshows, planned: campaigns.planned }, earlier: earlier && hasEarlier }),
+    [run.slideshows, pending, working, month, targets, pins, blitz, campaigns.slideshows, campaigns.planned, earlier, hasEarlier],
   );
   const counts = monthCounts(days);
   const approve = toApprove(all);
@@ -175,6 +178,12 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
       <div className="flex flex-wrap items-center justify-between gap-2 empty:hidden">
         <Accounts accounts={posting.accounts} />
       </div>
+      {hasEarlier && (
+        <button type="button" onClick={() => setEarlier(!earlier)} aria-pressed={earlier}
+          className="min-h-11 rounded-full px-1 text-sm font-semibold text-blue-700 transition hover:text-blue-900 active:scale-95 dark:text-blue-300 dark:hover:text-blue-200">
+          {earlier ? 'Hide earlier days' : 'Show earlier days this month'}
+        </button>
+      )}
       {view === 'list' ? (
         <MonthList key={dayKey(month)} days={days} entriesOf={entriesFor} selectedKey={rail.selectedKey} focusKey={null} onSelect={rail.select} detail={(day) => (wide ? null : detail(day))} />
       ) : (

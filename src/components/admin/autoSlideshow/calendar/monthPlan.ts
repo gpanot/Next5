@@ -11,7 +11,7 @@ import { MAX_PER_DAY, POST_TIMES } from '../../../../lib/postTimes';
  * - Blitz videos put on the calendar from the Content page (`blitz`) sit at their own time, like live posts.
  * - Campaign posts (`campaign`: planned ones wait for approval like ready slideshows, then scheduled ones) sit at their
  *   own time on top of the day: they never take a day's slot, so adding a campaign moves nothing else.
- * The page shows one calendar month (Monday to Sunday weeks; this month from today on); targets and pins in any month count.
+ * The page shows one calendar month (Monday to Sunday weeks; this month from today on, or from its 1st on request); targets and pins in any month count.
  */
 
 export type DayItem =
@@ -48,12 +48,12 @@ export const addMonths = (d: Date, n: number) => new Date(d.getFullYear(), d.get
 
 /**
  * Monday on or before the 1st, through Sunday on or after the last day. The month holding today starts at today
- * instead (past days are not shown), still in whole weeks of 7 days.
+ * instead (past days are not shown, unless `earlier`), still in whole weeks of 7 days.
  */
-const gridOf = (month: Date, today: Date) => {
+const gridOf = (month: Date, today: Date, earlier = false) => {
   const first = monthOf(month);
   const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
-  if (today >= first && today <= last) {
+  if (!earlier && today >= first && today <= last) {
     const weeks = Math.ceil((last.getDate() - today.getDate() + 1) / 7);
     return { start: today, end: addDays(today, weeks * 7 - 1) };
   }
@@ -136,7 +136,8 @@ const placeQueue = (drafts: Draft[], queue: DayItem[], tomorrow: Date) => {
 /** The workspace's campaign posts on the calendar: their slideshows, and the planned time of the ones not approved yet. */
 export type CampaignPlan = { slideshows: AutoSlideshowDto[]; planned: Pins };
 
-type PlanInput = { slideshows: AutoSlideshowDto[]; pending: number; month: Date; targets?: Targets; pins?: Pins; working?: boolean; now?: Date; blitz?: BlitzScheduleDto[]; campaign?: CampaignPlan };
+/** `earlier`: the month holding today shows from its 1st too (the days already gone, faded), not from today. */
+type PlanInput = { slideshows: AutoSlideshowDto[]; pending: number; month: Date; targets?: Targets; pins?: Pins; working?: boolean; now?: Date; blitz?: BlitzScheduleDto[]; campaign?: CampaignPlan; earlier?: boolean };
 
 /**
  * Campaign posts by day key: scheduled ones at their post time, planned ones at their time (or where they were dragged,
@@ -178,7 +179,7 @@ export const buildMonth = (input: PlanInput): MonthPlan => {
   const { queue, pinned } = waitingQueue(input.slideshows, input.pending, input.working ?? true, input.pins ?? {}, tomorrow);
   const extras = campaignByDay(input.campaign, input.pins ?? {}, tomorrow, now);
   const extraOf = (key: string) => extras.get(key) ?? [];
-  const grid = gridOf(input.month, today);
+  const grid = gridOf(input.month, today, input.earlier);
   const from = grid.start < tomorrow ? grid.start : tomorrow;
   const lastKey = [...pinned.keys(), ...extras.keys(), ...Object.keys(targets)].sort().at(-1);
   const lastDate = lastKey ? new Date(`${lastKey}T00:00`) : grid.end;
@@ -203,9 +204,12 @@ export const emptySlots = (all: PlanDay[]) => all.reduce((n, d) => n + emptyIn(d
 export const currentPins = (all: PlanDay[]): Pins =>
   Object.fromEntries(all.flatMap((d) => d.slots.flatMap((s) => (s.item && s.item.kind !== 'post' && s.item.show ? [[s.item.show.id, s.at.toISOString()]] : []))));
 
+/** Times a slideshow dropped on a day tries, in order: the evening first, then the day's other post times. */
+const DROP_TIMES = [...new Set(['19:00', ...POST_TIMES[MAX_PER_DAY]!])];
+
 /**
- * Pins after dropping slideshow `id` on `day`: into one of its empty slots, else at a free time when the day holds no
- * more than its target; on a full day it swaps with a ready slideshow there. Null when it cannot go there.
+ * Pins after dropping slideshow `id` on `day`: into one of its empty slots, else at a free time while the day has fewer
+ * than MAX_PER_DAY posts; on a full day it swaps with a ready slideshow there. Null when it cannot go there.
  */
 export const dropPins = (all: PlanDay[], id: string, day: PlanDay): Pins | null => {
   const pins = currentPins(all);
@@ -215,7 +219,9 @@ export const dropPins = (all: PlanDay[], id: string, day: PlanDay): Pins | null 
   const empty = others.find((s) => s.item === null);
   if (empty) return { ...pins, [id]: empty.at.toISOString() };
   const filled = others.filter((s) => s.item !== null);
-  if (filled.length === 0) return { ...pins, [id]: atTime(day.date, '19:00').toISOString() };
+  const used = new Set(filled.map((s) => hhmm(s.at)));
+  const free = DROP_TIMES.find((t) => !used.has(t));
+  if (filled.length < MAX_PER_DAY && free) return { ...pins, [id]: atTime(day.date, free).toISOString() };
   const swap = filled.find((s) => s.item?.kind === 'ready');
   if (!swap || swap.item?.kind !== 'ready') return null;
   return { ...pins, [id]: swap.at.toISOString(), [swap.item.show.id]: from };

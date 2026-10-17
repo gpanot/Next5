@@ -35,11 +35,11 @@ export const POST = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
   return NextResponse.json({ item });
 });
 
-/** PATCH /api/admin/blitz/schedule/[id] — moves a video not started yet to another time (dragged to another day). */
+/** PATCH /api/admin/blitz/schedule/[id] — moves a video not started yet to another time (dragged to another day); a failed one goes on that day again. */
 export const PATCH = labRoute(async (req: NextRequest, ctx: Ctx, access) => {
   const { id } = await ctx.params;
   const workspaceId = access.admin ? new URL(req.url).searchParams.get('workspaceId') : access.workspaceId;
   if (!workspaceId) throw new HttpError(400, 'no_workspace', 'Pick a workspace.');
-  const item = await moveBlitz(workspaceId, id, (await req.json()) as MoveBlitzRequest);
+  const item = await moveBlitz(workspaceId, id, (await req.json()) as MoveBlitzRequest, access.admin || access.impersonated);
   return NextResponse.json({ item });
 });

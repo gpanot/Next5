@@ -294,10 +294,41 @@ export async function blitzAccounts(workspaceId: string): Promise<BlitzAccountsD
   return { accounts, configured: { tiktok: tiktok.configured(), youtube: youtube.configured() } };
 }
 
-/** Moves a video not started yet to another time (dragged to another day). Free; keeps its approval. */
-export async function moveBlitz(workspaceId: string, id: string, req: MoveBlitzRequest): Promise<BlitzScheduleDto> {
+/**
+ * A failed video dragged to another day: it leaves its old day (canceled, so that day is free again) and a new planned
+ * copy goes on the new one (made again from the same render request, approved again). One card is on the calendar
+ * once: refused when it is already there. 1 credit, like scheduling it again; a charge the failed one never got back is
+ * refunded first, so it is never paid twice. `free`: an admin moved it, nobody is charged.
+ */
+const reuseFailed = async (failed: BlitzScheduledPost, scheduledAt: Date, free: boolean): Promise<BlitzScheduleDto> => {
+  const twin = await prisma.blitzScheduledPost.findFirst({ where: { workspaceId: failed.workspaceId, cardId: failed.cardId, status: { in: BLITZ_LIVE } }, select: { id: true } });
+  if (twin) throw new HttpError(409, 'already_planned', 'This video is already on the calendar. Move that one instead.');
+  const adminFree = free || failed.adminFree;
+  // Claimed first, so a double drop makes one copy only; put back when the copy cannot be made (no credits).
+  const claimed = await prisma.blitzScheduledPost.updateMany({ where: { id: failed.id, status: 'failed' }, data: { status: 'canceled' } });
+  if (claimed.count === 0) throw new HttpError(409, 'already_planned', 'This video is already on the calendar.');
+  try {
+    await refundBlitzCharge(failed.id, 'Failed Blitz video put on the calendar again');
+    if (!adminFree) await requireCredits(failed.userId, 1);
+    const data = {
+      workspaceId: failed.workspaceId, userId: failed.userId, cardId: failed.cardId, variantId: failed.variantId, title: failed.title,
+      coverKey: failed.coverKey, renderBody: failed.renderBody as Prisma.InputJsonValue, scheduledAt, status: 'planned', platform: failed.platform,
+    };
+    const row = adminFree ? await prisma.blitzScheduledPost.create({ data: { ...data, adminFree: true } }) : await createPaidPost(failed.userId, data);
+    return toScheduleDto(row);
+  } catch (err) {
+    await prisma.blitzScheduledPost.update({ where: { id: failed.id }, data: { status: 'failed' } });
+    throw err;
+  }
+};
+
+/** Moves a video not started yet to another time (dragged to another day). Free; keeps its approval. A failed one is
+ *  put on that day again instead (`reuseFailed`). `free`: an admin moved it. */
+export async function moveBlitz(workspaceId: string, id: string, req: MoveBlitzRequest, free = false): Promise<BlitzScheduleDto> {
   const scheduledAt = scheduledAtOf(req.scheduledAt);
   await checkDayRoom(workspaceId, scheduledAt, req.tzOffsetMin, id);
+  const failed = await prisma.blitzScheduledPost.findFirst({ where: { id, workspaceId, status: 'failed' } });
+  if (failed) return reuseFailed(failed, scheduledAt, free);
   const done = await prisma.blitzScheduledPost.updateMany({ where: { id, workspaceId, status: { in: MOVABLE } }, data: { scheduledAt } });
   if (done.count === 0) throw new HttpError(409, 'started', 'This video is already being made or posted.');
   return toScheduleDto(await prisma.blitzScheduledPost.findUniqueOrThrow({ where: { id } }));

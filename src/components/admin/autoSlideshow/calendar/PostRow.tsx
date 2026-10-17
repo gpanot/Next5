@@ -20,9 +20,10 @@ export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (
   const cover = coverOf(item);
   const live = item.show?.posts.filter((p) => p.status !== 'canceled' && p.status !== 'failed') ?? [];
   const views = live.reduce((n, p) => n + (p.stats?.views ?? 0), 0);
-  // A ready slideshow, or a Blitz video not started yet, can be dragged to another day.
+  // A ready slideshow, or a Blitz video not started yet, can be dragged to another day. A failed video too: it leaves
+  // its old day and goes on the new one.
   const drag: { kind: DragKind; id: string | undefined; enabled: boolean } =
-    item.kind === 'blitz' ? { kind: 'blitz', id: item.blitz.id, enabled: blitzOpenable(item.blitz) } : { kind: 'show', id: item.show?.id, enabled: item.kind === 'ready' };
+    item.kind === 'blitz' ? { kind: 'blitz', id: item.blitz.id, enabled: blitzOpenable(item.blitz) || item.blitz.status === 'failed' } : { kind: 'show', id: item.show?.id, enabled: item.kind === 'ready' };
   const { attributes, listeners, setNodeRef, isDragging } = useDraggablePost('panel', drag.kind, drag.id, cover, drag.enabled, coverIsVideoOf(item));
   const { justDropped } = useSlideshowDrag();
   // A Blitz video opens its approval until it starts, then its live post (TikTok or YouTube) once live.
@@ -41,7 +42,8 @@ export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (
       {...listeners}
       {...attributes}
       onClick={open}
-      disabled={!approvable && !link && (!item.show || item.kind === 'making')}
+      // Never disabled while it can be dragged: a disabled button takes no hold.
+      disabled={!drag.enabled && !approvable && !link && (!item.show || item.kind === 'making')}
       aria-label={`${titleOf(item)} · ${badge.label} · ${timeOf(slot.at)}`}
       className={`${NO_LONG_PRESS_MENU} ${isDragging ? 'opacity-30' : ''} flex min-h-20 w-full items-center gap-3 rounded-[14px] border border-line bg-white p-1.5 pr-2.5 text-left transition active:scale-[0.98] dark:border-zinc-800 dark:bg-zinc-900`}
     >
