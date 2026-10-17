@@ -9,12 +9,14 @@ import { getObject, putObject } from '../storage/objectStore';
 import { blitzBrowserUrl } from '../admin/blitzStore';
 import { cachedNarration, narrateSlides } from './blitzVoice';
 import type { LabAccess } from './labAccess';
+import type { SpokenWord } from '../../remotion/types';
 
 export const FREE_PREVIEWS_PER_DAY = 10;
 const MAX_SLIDES = 10;
 const MAX_TEXT = 200;
 
-export type VoicePreview = { url: string; durations: number[]; lines: string[] };
+/** `words`: each shot's spoken line, word by word, timed from the shot's start (the deck shows it as it is said). */
+export type VoicePreview = { url: string; durations: number[]; lines: string[]; words: SpokenWord[][] };
 
 const quotaKey = (workspaceId: string) => `blitz/voiceovers/quota/${workspaceId}/${new Date().toISOString().slice(0, 10)}.json`;
 
@@ -40,7 +42,7 @@ const cleanTexts = (texts: unknown): string[] => {
 export async function previewVoiceover(access: LabAccess, slideTexts: unknown, voice: string | undefined): Promise<VoicePreview> {
   const texts = cleanTexts(slideTexts);
   const hit = await cachedNarration(texts, voice, access.workspaceId);
-  if (hit) return { url: await blitzBrowserUrl(hit.audioKey), durations: hit.durations, lines: hit.lines };
+  if (hit) return { url: await blitzBrowserUrl(hit.audioKey), durations: hit.durations, lines: hit.lines, words: hit.words };
   const capped = !access.admin && !(await workspaceHasPaid(access.workspaceId));
   if (capped && (await usedToday(access.workspaceId!)) >= FREE_PREVIEWS_PER_DAY) {
     throw new HttpError(429, 'voice_limit', `You heard ${FREE_PREVIEWS_PER_DAY} new voiceovers today. Top up to hear more, or come back tomorrow.`);
@@ -50,5 +52,5 @@ export async function previewVoiceover(access: LabAccess, slideTexts: unknown, v
     throw new HttpError(503, 'voice_busy', 'The voice is busy right now. Tap the mic again in a moment.');
   });
   if (capped) await countOne(access.workspaceId!);
-  return { url: await blitzBrowserUrl(narration.audioKey), durations: narration.slides.map((s) => s.durationSec), lines: narration.lines };
+  return { url: await blitzBrowserUrl(narration.audioKey), durations: narration.slides.map((s) => s.durationSec), lines: narration.lines, words: narration.slides.map((s) => s.words) };
 }

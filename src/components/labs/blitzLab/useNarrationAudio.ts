@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import type { SpokenWord } from '../../../remotion/types';
 
-/** A card's recorded voiceover: one audio file, and how long each shot lasts in it. */
-export type CardNarration = { url: string; durations: number[] };
+/** A card's recorded voiceover: one audio file, how long each shot lasts in it, and each shot's spoken words (timed). */
+export type CardNarration = { url: string; durations: number[]; words?: SpokenWord[][] };
 
 /** How far the audio may drift from the shot timer before it is moved back in place. */
 const MAX_DRIFT_S = 0.3;

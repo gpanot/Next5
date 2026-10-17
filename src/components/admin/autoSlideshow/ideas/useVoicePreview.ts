@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { DEFAULT_BLITZ_VOICE, isBlitzVoice, type BlitzVoiceName } from '../../../../types/admin/blitzVoice';
+import type { SpokenWord } from '../../../../remotion/types';
 import type { CardNarration } from '../../../labs/blitzLab/useNarrationAudio';
 import { errorOf, type LabClient } from '../../../labs/labClient';
 import { ideaCard } from './ideaCards';
@@ -36,10 +37,10 @@ export function useVoicePreview(client: LabClient | null) {
     if (!client) return { status: 'error', message: 'Not signed in.', limit: false };
     setByKey((m) => ({ ...m, [key]: { status: 'loading' } }));
     const res = await client
-      .request<{ url: string; durations: number[] }>('/blitz/voice-preview', { json: { texts: textsOf(idea), voice } })
+      .request<{ url: string; durations: number[]; words?: SpokenWord[][] }>('/blitz/voice-preview', { json: { texts: textsOf(idea), voice } })
       .catch(() => null);
     const next: VoicePreviewState = res?.ok
-      ? { status: 'ready', narration: { url: res.data.url, durations: res.data.durations } }
+      ? { status: 'ready', narration: { url: res.data.url, durations: res.data.durations, words: res.data.words } }
       : { status: 'error', message: res ? errorOf(res) : 'Could not reach the server. Check your connection.', limit: res?.status === 429 };
     setByKey((m) => {
       if (next.status === 'ready' || !ahead) return { ...m, [key]: next };

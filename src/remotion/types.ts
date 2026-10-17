@@ -54,9 +54,14 @@ export type TextConfig = {
 export type HookCtaStyle = Partial<Pick<TextConfig,
   'font' | 'fontSize' | 'fontWeight' | 'color' | 'strokeWidth' | 'strokeColor' | 'textBackground' | 'lineHighlight'>>;
 
+/** One word of a narrated slide's spoken line, timed from the slide's start. */
+export type SpokenWord = { word: string; startS: number; endS: number };
+
 /** One slide in a Slideshow: text + optional per-slide background. */
 export type SlideshowSlide = {
   text: string;
+  /** Narrated slide: the spoken line word by word. When set, the caption is this line, shown as it is said (SpokenCaption). */
+  words?: SpokenWord[];
   /** Fully-resolved background URL for this slide. Falls back to SlideshowProps.backgroundUrl if absent. */
   backgroundUrl?: string;
   /** Force image treatment for this slide's background. */

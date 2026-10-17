@@ -22,6 +22,7 @@ import { slideTextConfig } from '../../../remotion/slideTextConfig';
 import type { TextConfig } from '../../../remotion/types';
 import { ShotLayers } from './ShotLayers';
 import { SlideCaption } from './SlideCaption';
+import { SpokenDeckCaption } from './SpokenDeckCaption';
 import type { ShotEditData } from './shotFormat';
 import { useNarrationAudio, type CardNarration } from './useNarrationAudio';
 import {
@@ -442,6 +443,7 @@ export function SwipeCard({
   const currentShot = shots[shotIdx] ?? shots[0];
   const displayedShotIdx = isTop ? shotIdx : 0;
   const displayedShot = shots[displayedShotIdx] ?? shots[0];
+  const spokenWords = isTop ? voiced?.words?.[displayedShotIdx] : undefined;
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
@@ -512,9 +514,12 @@ export function SwipeCard({
         )}
 
         {/* ── Caption ─────────────────────────────────────────────────────── */}
-        {displayedShot && captionConfig && (
+        {/* A voiced card shows what the voice says, as it says it. Keyed by shot so each line starts fresh. */}
+        {displayedShot && captionConfig && (spokenWords ? (
+          <SpokenDeckCaption key={`${voiceUrl}-${displayedShotIdx}`} words={spokenWords} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} elapsedRef={elapsedRef} />
+        ) : (
           <SlideCaption text={displayedShot.text} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} />
-        )}
+        ))}
         {displayedShot && !captionConfig && (
           <div
             className={[

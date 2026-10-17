@@ -28,6 +28,7 @@ import { loadBlitzFonts } from './fontLoader';
 import { slideTextConfig } from './slideTextConfig';
 import { BusinessLayer, CaptionLayer } from './TextLayers';
 import type { SlideshowProps } from './types';
+import { SpokenCaption } from './SpokenCaption';
 import { WordPopCaption } from './WordPopCaption';
 
 /** Returns true if the URL looks like a static image (not a video). */
@@ -213,8 +214,15 @@ export function SlideshowComposition({
               )}
             </AbsoluteFill>
 
-            {/* Text — fades in at the start of its own Sequence */}
-            {slide.text.trim() ? (
+            {/* Text — fades in at the start of its own Sequence, or follows the voice on a narrated slide */}
+            {slide.words?.length ? (
+              <SpokenCaption
+                words={slide.words}
+                config={slide.positionY != null ? { ...config, positionY: slide.positionY } : config}
+                width={width}
+                height={height}
+              />
+            ) : slide.text.trim() ? (
               <SlideTextLayer
                 text={slide.text}
                 config={slide.positionY != null ? { ...config, positionY: slide.positionY } : config}

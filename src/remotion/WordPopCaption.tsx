@@ -1,5 +1,6 @@
 /**
- * Slideshow caption that appears word by word: each word springs up 3 frames after the one before.
+ * Slideshow caption that appears word by word: each word springs up 3 frames after the one before, or on its own
+ * frame when `startFrames` is given (a narrated slide: each word pops as the voice says it).
  * Same layout and look as CaptionLayer's plain style (no box); boxed styles keep CaptionLayer and its fade.
  */
 
@@ -12,9 +13,9 @@ const FIRST_WORD_FRAME = 2;
 const WORD_GAP_FRAMES = 3;
 const WORD_SPRING = { damping: 12, stiffness: 180, mass: 0.6 };
 
-type Props = { text: string; config: TextConfig; width: number; height: number };
+type Props = { text: string; config: TextConfig; width: number; height: number; startFrames?: number[] };
 
-export function WordPopCaption({ text, config, width, height }: Props) {
+export function WordPopCaption({ text, config, width, height, startFrames }: Props) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const strokeW = config.strokeWidth ?? 3;
@@ -49,7 +50,8 @@ export function WordPopCaption({ text, config, width, height }: Props) {
     >
       <p data-blitz-layer="TEXT" style={textStyle}>
         {words.map((word, i) => {
-          const s = spring({ frame: frame - FIRST_WORD_FRAME - i * WORD_GAP_FRAMES, fps, config: WORD_SPRING });
+          const start = startFrames?.[i] ?? FIRST_WORD_FRAME + i * WORD_GAP_FRAMES;
+          const s = spring({ frame: frame - start, fps, config: WORD_SPRING });
           const opacity = interpolate(s, [0, 0.4], [0, 1], { extrapolateRight: 'clamp' });
           return (
             <span key={i}>

@@ -15,7 +15,7 @@ import type { BlitzProject, BlitzTemplate } from '@prisma/client';
 import { ensureDepthMaps } from './depth';
 import { getPresignedUrl, uploadToR2 } from './r2';
 import { ensureBrowserDecodableKey } from './transcode';
-import type { GreenScreenProps, SlideCamera, SlideDepth, SlideshowProps, TextConfig } from '../../src/remotion/types';
+import type { GreenScreenProps, SlideCamera, SlideDepth, SlideshowProps, SpokenWord, TextConfig } from '../../src/remotion/types';
 
 const RENDER_OUTPUT_KEY = (projectId: string) => `blitz/renders/${projectId}/output.mp4`;
 
@@ -79,6 +79,8 @@ export async function renderProject(
       fit?: 'cover' | 'contain';
       /** Photo camera move picked when the render was queued (src/server/labs/blitzCamera.ts). */
       camera?: SlideCamera;
+      /** Narrated slide: the spoken line word by word, shown as it is said (src/remotion/SpokenCaption.tsx). */
+      words?: SpokenWord[];
     };
     const currentAssets = project.currentAssets as {
       backgroundKey: string;
@@ -148,6 +150,7 @@ export async function renderProject(
             ...(s.trimStart ? { trimStart: s.trimStart } : {}),
             ...(s.positionY != null ? { positionY: s.positionY } : {}),
             ...(s.fit ? { fit: s.fit } : {}),
+            ...(s.words?.length ? { words: s.words } : {}),
           };
           if (!s.backgroundKey) return { text: s.text, ...timing };
           const bgUrl = await getPresignedUrl(s.backgroundKey);

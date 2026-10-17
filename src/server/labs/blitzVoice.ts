@@ -1,9 +1,12 @@
 // server-only — never import from a 'use client' file.
 // Blitz voiceover (2026-10-12, replaces music on Blitz cards): one spoken line per slide, written like a short explainer
 // (the hook opens a loop, middle lines explain what the caption only states, the last line says the CTA), recorded with
-// the Shorts voice step (Gemini 3.8 Flash TTS on treg; no Whisper passes since 2026-10-14, they took ~6 s a line). Each slide then lasts as long as its
+// the Shorts voice step (Gemini 3.8 Flash TTS on treg; its two Whisper passes were cut 2026-10-14, one is back since 2026-10-17). Each slide then lasts as long as its
 // line. Tested on 2026-10-12 (scripts/tmp/blitz-voice): the user rated it "much better" than music. ~$0.02 a video.
 // Since 2026-10-13 each recording is cached by its text and voice: the Ideas deck previews it, the render reuses it.
+// Since 2026-10-17 the caption IS the spoken line, each word shown as it is said (remotion/SpokenCaption.tsx): every
+// line is heard back once by Whisper, which times its words and catches a take that added or skipped words (one test
+// read "to a friend" from the director's notes, then said the line again); that line is recorded once more.
 
 import { createHash } from 'crypto';
 import { prisma } from '../../lib/db';
@@ -12,6 +15,8 @@ import { createMeter } from '../metaAds/cost';
 import { pcmSeconds, pcmToWav, SAMPLE_RATE, wavToPcm } from '../shorts/ffmpeg';
 import { creativeJson } from '../shorts/llm';
 import { sampleLine, synthesize } from '../shorts/voice';
+import { alignWords, misreadWords, transcribe, WHISPER_USD_PER_MIN } from '../shorts/wordTiming';
+import type { SpokenWord } from '../../remotion/types';
 import { blitzBrowserUrl } from '../admin/blitzStore';
 import { getObject, putObject } from '../storage/objectStore';
 
@@ -63,8 +68,9 @@ Return JSON with flat keys: {"line_1": string, "line_2": string, ...} one key pe
 
 export type NarratedSlide = { text: string; durationSec?: number };
 
+/** A narrated slide: its text is the spoken line, `words` times each word from the slide's start. */
 export type Narration<S> = {
-  slides: Array<S & { durationSec: number }>;
+  slides: Array<S & { durationSec: number; words: SpokenWord[] }>;
   audioKey: string;
   durationSeconds: number;
   voice: string;
@@ -73,11 +79,12 @@ export type Narration<S> = {
 
 /** A voiceover is kept by what it says and how: the deck preview and the later render of the same card share one recording. */
 const cacheBase = (voice: string, workspaceId: string | null, texts: string[]): string => {
-  const hash = createHash('sha256').update(JSON.stringify([SYSTEM, DIRECTION, voice, workspaceId, texts.map((t) => t.trim())])).digest('hex').slice(0, 32);
+  // 'spoken-v1': recordings made before word timings (2026-10-17) are not reused.
+  const hash = createHash('sha256').update(JSON.stringify(['spoken-v1', SYSTEM, DIRECTION, voice, workspaceId, texts.map((t) => t.trim())])).digest('hex').slice(0, 32);
   return `blitz/voiceovers/cache/${hash}`;
 };
 
-type CachedNarration = { audioKey: string; durations: number[]; lines: string[]; voice: string };
+type CachedNarration = { audioKey: string; durations: number[]; lines: string[]; voice: string; words: SpokenWord[][] };
 
 /** The recorded voiceover of these slides in this voice, if one was made before (a preview or a render). */
 export async function cachedNarration(slideTexts: string[], voiceName: string | undefined, workspaceId: string | null): Promise<CachedNarration | null> {
@@ -86,7 +93,7 @@ export async function cachedNarration(slideTexts: string[], voiceName: string | 
   if (!raw) return null;
   try {
     const hit = JSON.parse(raw.toString('utf8')) as CachedNarration;
-    return hit.durations?.length === slideTexts.length ? hit : null;
+    return hit.durations?.length === slideTexts.length && hit.words?.length === slideTexts.length ? hit : null;
   } catch {
     return null;
   }
@@ -108,23 +115,52 @@ const writeLines = async (slides: NarratedSlide[], workspaceId: string | null, m
   return slides.map((s, i) => raw[`line_${i + 1}`]?.replace(/\s+/g, ' ').trim() || s.text);
 };
 
+type Take = { wav: Buffer; words: SpokenWord[]; errors: string[] };
+
+/** One take of a line, heard back: its word timings (syllable spread when Whisper fails) and the words it got wrong. */
+const takeLine = async (line: string, voice: string, meter: ReturnType<typeof createMeter>): Promise<Take> => {
+  const take = await synthesize(line, { voice, direction: DIRECTION }, meter, { readBack: false, wordTimings: false });
+  const heard = await transcribe(take.wav, line).catch((err: unknown) => {
+    console.warn('[blitz/voice] Whisper failed, syllable timing:', err instanceof Error ? err.message.slice(0, 160) : err);
+    return null;
+  });
+  if (!heard) return { wav: take.wav, words: take.words, errors: [] };
+  meter.add('Word timing (Whisper)', Math.round((take.durationS / 60) * WHISPER_USD_PER_MIN * 1_000_000));
+  const { extra, missing } = misreadWords(line, heard);
+  const words = alignWords(line.split(/\s+/).filter(Boolean), heard, take.durationS) ?? take.words;
+  return { wav: take.wav, words, errors: [...extra.map((w) => `+${w}`), ...missing.map((w) => `-${w}`)] };
+};
+
+/** A line recorded; recorded once more when the voice added or skipped words (the take with fewer errors wins). */
+const recordLine = async (line: string, voice: string, meter: ReturnType<typeof createMeter>): Promise<Take> => {
+  const first = await takeLine(line, voice, meter);
+  if (!first.errors.length) return first;
+  console.warn(`[blitz/voice] line misread (${first.errors.join(' ')}); recording it again`);
+  const second = await takeLine(line, voice, meter);
+  return second.errors.length < first.errors.length ? second : first;
+};
+
+const roundWords = (words: SpokenWord[], maxS: number): SpokenWord[] =>
+  words.map((w) => ({ word: w.word, startS: Math.round(Math.min(maxS, w.startS) * 1000) / 1000, endS: Math.round(Math.min(maxS, w.endS) * 1000) / 1000 }));
+
 /**
  * The voiceover of a Blitz slideshow: lines written, each recorded in `voice`, one WAV saved to storage. Slides come
- * back timed to their line (the render's per-slide durations). Throws when a line cannot be recorded.
+ * back timed to their line (the render's per-slide durations), their text replaced by the line, with its word timings.
+ * Throws when a line cannot be recorded.
  */
 export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceName: string | undefined, workspaceId: string | null): Promise<Narration<S>> {
   const voice = isBlitzVoice(voiceName) ? voiceName : DEFAULT_BLITZ_VOICE;
   const texts = slides.map((s) => s.text);
   const hit = await cachedNarration(texts, voice, workspaceId);
   if (hit) {
-    const timed = slides.map((slide, i) => ({ ...slide, durationSec: hit.durations[i]! }));
+    const timed = slides.map((slide, i) => ({ ...slide, text: hit.lines[i]!, durationSec: hit.durations[i]!, words: hit.words[i]! }));
     const durationSeconds = Math.round(hit.durations.reduce((sum, d) => sum + d, 0) * 100) / 100;
     return { slides: timed, audioKey: hit.audioKey, durationSeconds, voice, lines: hit.lines };
   }
   const started = Date.now();
   const meter = createMeter();
   const lines = await writeLines(slides, workspaceId, meter);
-  const takes = await mapLimited(lines, RECORD_AT_ONCE, (line) => synthesize(line, { voice, direction: DIRECTION }, meter, { readBack: false, wordTimings: false }));
+  const takes = await mapLimited(lines, RECORD_AT_ONCE, (line) => recordLine(line, voice, meter));
   const pcms: Buffer[] = [];
   const timed = slides.map((slide, i) => {
     const pcm = wavToPcm(takes[i]!.wav);
@@ -132,12 +168,12 @@ export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceN
     // A line longer than the slide's cap is cut there rather than drifting over the next slide.
     const fitted = pcm.subarray(0, Math.round(seconds * SAMPLE_RATE) * 2);
     pcms.push(Buffer.concat([fitted, silence(seconds - pcmSeconds(fitted))]));
-    return { ...slide, durationSec: Math.round(seconds * 100) / 100 };
+    return { ...slide, text: lines[i]!, durationSec: Math.round(seconds * 100) / 100, words: roundWords(takes[i]!.words, seconds) };
   });
   const base = cacheBase(voice, workspaceId, texts);
   const audioKey = `${base}.wav`;
   await putObject(audioKey, pcmToWav(Buffer.concat(pcms)), 'audio/wav');
-  const manifest: CachedNarration = { audioKey, durations: timed.map((s) => s.durationSec), lines, voice };
+  const manifest: CachedNarration = { audioKey, durations: timed.map((s) => s.durationSec), lines, voice, words: timed.map((s) => s.words) };
   await putObject(`${base}.json`, Buffer.from(JSON.stringify(manifest)), 'application/json');
   const durationSeconds = Math.round(timed.reduce((sum, s) => sum + s.durationSec, 0) * 100) / 100;
   const cost = meter.summary();

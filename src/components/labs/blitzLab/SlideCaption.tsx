@@ -38,8 +38,11 @@ function cssTextStyle(config: TextConfig): React.CSSProperties {
 /** Same proportions as CaptionLayer (remotion/TextLayers.tsx), in cqw of the 1080-wide canvas. */
 const cqw = (px: number) => `${(px / 1080) * 100}cqw`;
 
-/** Caption paragraph with the style's background: per-line highlight (TikTok Red) or one box. */
-export function CaptionText({ text, config, dim }: { text: string; config: TextConfig; dim?: boolean }) {
+/**
+ * Caption paragraph with the style's background: per-line highlight (TikTok Red) or one box.
+ * `text` may be words in spans (a narrated caption appearing word by word).
+ */
+export function CaptionText({ text, config, dim }: { text: React.ReactNode; config: TextConfig; dim?: boolean }) {
   // Caption fonts normally load with the Remotion player; HTML previews have none, so load them here.
   // Without them the browser falls back to the emoji font, whose wide spaces split the words.
   useEffect(loadBlitzFonts, []);
@@ -81,7 +84,7 @@ export function CaptionText({ text, config, dim }: { text: string; config: TextC
 }
 
 /** Caption placed on a 9:16 canvas: its bottom edge at positionY of the height, like the render. */
-export function SlideCaption({ text, config, positionY }: { text: string; config: TextConfig; positionY?: number }) {
+export function SlideCaption({ text, config, positionY }: { text: React.ReactNode; config: TextConfig; positionY?: number }) {
   return (
     <div
       className="pointer-events-none absolute inset-x-0 z-[1] flex justify-center"
