@@ -7,12 +7,16 @@ import { labelOf, postCount, statusOf, whenOf } from './campaignSummary';
 const PHONE_THUMBS = 4;
 const WIDE_THUMBS = 6;
 
-/** One post's 9:16 thumb; past PHONE_THUMBS it shows from `sm` up only. A post with no photo yet is a blank. */
-function PostThumb({ url, index }: { url: string | null; index: number }) {
+/** One post's 9:16 thumb, with the day it goes out on the calendar under it; past PHONE_THUMBS it shows from `sm` up
+ *  only. A post with no photo yet is a blank; `date` undefined (nothing in the campaign scheduled) hides the day line. */
+function PostThumb({ url, date, index }: { url: string | null; date?: string | null; index: number }) {
   return (
-    <span className={`relative aspect-[9/16] w-11 shrink-0 overflow-hidden rounded-lg border border-app-line bg-app-sunken sm:w-12 ${index >= PHONE_THUMBS ? 'hidden sm:block' : 'block'}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      {url && <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+    <span className={`w-11 shrink-0 flex-col gap-1 sm:w-12 ${index >= PHONE_THUMBS ? 'hidden sm:flex' : 'flex'}`}>
+      <span className="relative block aspect-[9/16] w-full overflow-hidden rounded-lg border border-app-line bg-app-sunken">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {url && <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />}
+      </span>
+      {date !== undefined && <span className={`truncate text-center text-[10px] leading-tight ${date ? 'font-semibold text-app-ink' : 'text-app-muted'}`}>{date ? whenOf(date) : 'Not set'}</span>}
     </span>
   );
 }
@@ -27,11 +31,12 @@ function MoreChip({ more, className }: { more: number; className: string }) {
 export function CampaignRow({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () => void }) {
   const total = postCount(c);
   const thumbs = c.postThumbs.length > 0 ? c.postThumbs : [c.coverUrl];
+  const dated = c.postDates?.some(Boolean) ?? false;
   return (
     <li>
       <button type="button" onClick={onOpen} className="block w-full rounded-xl border border-app-line bg-app-panel p-3 text-left shadow-sm transition hover:border-app-muted active:scale-[0.99]">
-        <span className="flex gap-1.5" aria-hidden>
-          {thumbs.slice(0, WIDE_THUMBS).map((url, i) => <PostThumb key={i} url={url} index={i} />)}
+        <span className="flex items-start gap-1.5" aria-hidden>
+          {thumbs.slice(0, WIDE_THUMBS).map((url, i) => <PostThumb key={i} url={url} date={dated ? (c.postDates[i] ?? null) : undefined} index={i} />)}
           <MoreChip more={total - PHONE_THUMBS} className="flex sm:hidden" />
           <MoreChip more={total - WIDE_THUMBS} className="hidden sm:flex" />
         </span>

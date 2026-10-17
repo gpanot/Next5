@@ -159,12 +159,28 @@ const postThumbsOf = (draft: CampaignDraft, photos: CampaignPhoto[], shows: { sl
     return photo?.hotlink?.thumb ?? (photo?.imageKey ? thumbUrl(photo.imageKey) : null);
   });
 
+/**
+ * When each listed post goes out, as the Calendar shows it: its live post's time, else the time planned for it (a ready
+ * slideshow waiting there for approval), else null.
+ */
+const postDatesOf = (
+  draft: CampaignDraft,
+  run: { campaign: Prisma.JsonValue; slideshows: { position: number; status: string; posts: { scheduledAt: Date }[] }[] },
+): (string | null)[] => {
+  const plan = new Map(planOf(run).map((p) => [p.position, p.at]));
+  return draft.hooks.slice(0, CAMPAIGN_ROW_THUMBS).map((_, i) => {
+    const show = run.slideshows[i];
+    if (!show) return null;
+    return show.posts[0]?.scheduledAt.toISOString() ?? (show.status === 'ready' ? plan.get(show.position) ?? null : null);
+  });
+};
+
 export const listCampaigns = async (workspaceId: string): Promise<CampaignSummaryDto[]> => {
   const runs = await prisma.autoSlideshowRun.findMany({
     where: { workspaceId, kind: CAMPAIGN_KIND },
     orderBy: { createdAt: 'desc' },
     take: 50,
-    select: { id: true, name: true, campaign: true, photos: true, photoJobs: true, createdAt: true, updatedAt: true, slideshows: { orderBy: { position: 'asc' }, select: { slides: true } }, _count: { select: { posts: { where: { status: { in: LIVE_POSTS } } } } } },
+    select: { id: true, name: true, campaign: true, photos: true, photoJobs: true, createdAt: true, updatedAt: true, slideshows: { orderBy: { position: 'asc' }, select: { position: true, status: true, slides: true, posts: { where: { status: { in: LIVE_POSTS } }, orderBy: { scheduledAt: 'asc' }, take: 1, select: { scheduledAt: true } } } }, _count: { select: { posts: { where: { status: { in: LIVE_POSTS } } } } } },
   });
   // A campaign opened and left untouched has nothing to show: it stays hidden until something is added.
   return runs.filter((r) => !isBlankCampaign({ ...r, slideshowCount: r.slideshows.length })).map((r): CampaignSummaryDto => {
@@ -186,6 +202,7 @@ export const listCampaigns = async (workspaceId: string): Promise<CampaignSummar
       named: (r.name ?? DEFAULT_NAME) !== DEFAULT_NAME,
       firstHook: draft.hooks[0]?.trim() || null,
       postThumbs: postThumbsOf(draft, photosOf(r), r.slideshows),
+      postDates: postDatesOf(draft, r),
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     };

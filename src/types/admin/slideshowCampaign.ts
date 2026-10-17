@@ -149,6 +149,8 @@ export type CampaignSummaryDto = {
   firstHook: string | null;
   /** One small thumb per post (hook), first CAMPAIGN_ROW_THUMBS of them: the made slide, else the hook photo, else null. */
   postThumbs: (string | null)[];
+  /** When each of those posts goes out (or went out) on the calendar, same order as postThumbs; null when not scheduled. */
+  postDates: (string | null)[];
   createdAt: string;
   updatedAt: string;
 };
