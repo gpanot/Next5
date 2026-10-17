@@ -2,7 +2,8 @@
 
 import { THEME } from '../../config/theme';
 
-export type EmailContent = { subject: string; heading: string; body: string[]; cta?: { label: string; url: string }; footnote?: string };
+/** `settingsUrl`: where the footer's "Manage settings" leads (default: the studio settings). */
+export type EmailContent = { subject: string; heading: string; body: string[]; cta?: { label: string; url: string }; footnote?: string; settingsUrl?: string };
 
 const escape = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -21,7 +22,7 @@ export const renderEmail = (content: EmailContent): { subject: string; html: str
 ${paragraphs}${cta}
 ${content.footnote ? `<p style="margin:12px 0 0;font-size:13px;color:${THEME.muted}">${escape(content.footnote)}</p>` : ''}
 </div>
-<p style="max-width:560px;margin:16px auto 0;font-size:12px;color:${THEME.muted};text-align:center">You’re receiving this because you have a Next5 workspace. <a href="${appUrl('/app/settings')}" style="color:${THEME.muted}">Manage settings</a></p>
+<p style="max-width:560px;margin:16px auto 0;font-size:12px;color:${THEME.muted};text-align:center">You’re receiving this because you have a Next5 workspace. <a href="${escape(content.settingsUrl ?? appUrl('/app/settings'))}"style="color:${THEME.muted}">Manage settings</a></p>
 </div>`;
   const plain = [content.heading, '', ...content.body, '', content.cta ? `${content.cta.label}: ${content.cta.url}` : '', content.footnote ?? ''].join('\n').trim();
   return { subject: content.subject, html, plain };

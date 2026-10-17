@@ -32,6 +32,9 @@ export type DayDetailProps = {
   onOpenIdea: (idea: IdeaDto) => void;
   /** Wide screens: back to the ideas deck. */
   onBack?: () => void;
+  /** The day's posts waiting for approval; "Approve & Publish" approves only those. */
+  approveCount?: number;
+  onApprove?: () => void;
 };
 
 type AddMoreProps = { busy: boolean; open: boolean; canAdd: boolean; onAdd: () => void; onClose: () => void };
@@ -124,6 +127,11 @@ export function DayDetail(p: DayDetailProps) {
           </li>
         ))}
       </ul>
+      {p.onApprove && (p.approveCount ?? 0) > 0 && (
+        <button type="button" onClick={p.onApprove} className="min-h-12 w-full rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95">
+          Approve & Publish ({p.approveCount}) →
+        </button>
+      )}
       {ideas && showing && <DayDeck ideas={ideas} maker={p.maker} day={p.day} taken={p.taken} />}
       {ideas && offerBatch && !ideas.loading && <DayGenerate writing={ideas.generating} onGenerate={() => void ideas.generate()} />}
       {shown === 0 && <p className="text-sm text-muted">{p.day.past && !p.day.today ? 'Nothing posted this day.' : 'Nothing planned yet.'}</p>}

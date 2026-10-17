@@ -32,7 +32,11 @@ import { useBlitzOnCalendar } from './useBlitzOnCalendar';
 import { useCampaignsOnCalendar } from './useCampaignsOnCalendar';
 import { useCalendarView, usePins, useTargets } from './useCalendarStore';
 import { useIsWide } from './useIsWide';
+import { useLinkedDay } from './useLinkedDay';
 import { useMoveOnCalendar } from './useMoveOnCalendar';
+
+/** `approving`: every post waiting for approval, or only one day's (its key). */
+const ALL = 'all';
 
 type Props = {
   token: string;
@@ -84,7 +88,7 @@ const useRail = (ui: CalendarIdeasUi | null, ideasHref: string, onRailOpen?: () 
  * slideshows for empty slots, slideshows can be dragged to another day, and one approval schedules them all.
  */
 export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled = false, onRailOpen }: Props) {
-  const [approving, setApproving] = useState(false);
+  const [approving, setApproving] = useState<string | null>(null);
   const [targets, setTargets] = useTargets(run.id);
   const [pins, setPins] = usePins(run.id);
   const posting = usePosting(token, run.id, onRunChanged);
@@ -128,6 +132,13 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   // Planned Blitz videos wait for the same approval (TikTok). Ones whose time passed are expired by the server.
   const plannedVideos = useMemo(() => blitz.filter((b) => b.status === 'planned'), [blitz]);
   const toApproveCount = approve.length + plannedVideos.length;
+  // One day's share of the approval: its ready slideshows and planned videos ("Approve & Publish" in the day panel).
+  const videosOn = (key: string) => plannedVideos.filter((b) => dayKey(new Date(b.scheduledAt)) === key);
+  const approvalOf = (key: string) => {
+    if (key === ALL) return { items: approve, videos: plannedVideos };
+    const day = all.find((d) => d.key === key) ?? days.find((d) => d.key === key);
+    return { items: day ? toApprove([day]) : [], videos: videosOn(key) };
+  };
   const idle = run.status === 'COMPLETED' && adding === null;
   // Every empty slot the user asked for, in any month. One request makes at most MAX_SLIDESHOWS for now.
   const fill = emptySlots(all);
@@ -151,6 +162,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const ideasPage = pageOf(usePathname()) === 'ideas';
   const wide = useIsWide();
   const [view, setView] = useCalendarView();
+  useLinkedDay(setView, rail.select);
   const ideasOn = (day: PlanDay) => ui?.byDay.get(day.key) ?? [];
   const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day), run.startedAt);
   // A kept idea fills the soonest empty day (no slideshow, video or kept idea yet); only a full calendar stacks days.
@@ -162,8 +174,10 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   useConfirmHeld(ui, all);
   const detail = (day: PlanDay, onBack?: () => void) => (
     <DayDetail key={day.key} day={day} entries={entriesFor(day)} taken={takenOn(day)} ideas={ui?.ideas ?? null} maker={ui?.maker ?? null}
-      onOpen={openShow} onOpenBlitz={setOpenBlitz} onSetCount={onSetCount} onOpenIdea={rail.openIdea} onBack={onBack} />
+      onOpen={openShow} onOpenBlitz={setOpenBlitz} onSetCount={onSetCount} onOpenIdea={rail.openIdea} onBack={onBack}
+      approveCount={toApprove([day]).length + videosOn(day.key).length} onApprove={() => setApproving(day.key)} />
   );
+  const approval = approving ? approvalOf(approving) : null;
   const selected = all.concat(days).find((d) => d.key === rail.selectedKey) ?? null;
   // Wide screens: the day the user opened, on the right. Ideas live on the Ideas page, not beside the calendar.
   const dayOpen = wide && selected !== null;
@@ -201,8 +215,8 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
             {adding !== null ? 'Generating…' : `Generate ${fill} ${fill === 1 ? 'slideshow' : 'slideshows'} · ${money(PRICE_CENTS * fill)}`}
           </button>
         )}
-        <button onClick={() => setApproving(true)} disabled={toApproveCount === 0} className="min-h-12 flex-1 rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95 disabled:opacity-40">
-          {toApproveCount > 0 ? `Approve & Publish (${toApproveCount}) →` : 'Nothing to approve'}
+        <button onClick={() => setApproving(ALL)} disabled={toApproveCount === 0} className="min-h-12 flex-1 rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-95 disabled:opacity-40">
+          {toApproveCount > 0 ? `Approve & Publish All (${toApproveCount}) →` : 'Nothing to approve'}
         </button>
       </div>
       {run.status === 'FAILED' && fill > 0 && <p className="text-center text-xs text-muted">Tap “Retry” on the failed step above first, then Generate.</p>}
@@ -226,7 +240,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
           onDone={() => { onRunChanged(); campaigns.reload(); }}
           onClose={() => setOpenReadyId(null)} />
       )}
-      {approving && <ApproveSheet token={token} run={run} items={approve} videos={plannedVideos} onVideosChanged={reloadBlitz} posting={posting} onClose={() => { setApproving(false); onRunChanged(); campaigns.reload(); }} />}
+      {approval && <ApproveSheet token={token} run={run} items={approval.items} videos={approval.videos} onVideosChanged={reloadBlitz} posting={posting} onClose={() => { setApproving(null); onRunChanged(); campaigns.reload(); }} />}
     </section>
     {dayOpen && selected && (
       <aside aria-label="Day" className="hidden lg:sticky lg:top-24 lg:block lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto">

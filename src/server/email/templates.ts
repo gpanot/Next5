@@ -120,3 +120,31 @@ export const postsReadyEmail = (
   ],
   cta: { label: 'Open my calendar', url: appUrl('/app/brand/calendar') },
 });
+
+export type PostToApprove = { title: string; at: Date };
+
+/** "7:00 PM" in the user's time, from a getTimezoneOffset value. */
+const localTime = (at: Date, offsetMin: number): string =>
+  new Date(at.getTime() - offsetMin * 60_000).toLocaleTimeString('en-US', { timeZone: 'UTC', hour: 'numeric', minute: '2-digit' });
+
+/**
+ * The 8 am recap (Auto Slideshow): today's posts still waiting for approval. Planned posts never go out on their own,
+ * so it says when the first one is due. The button opens the Calendar's list on today (`?view=list&day=`).
+ */
+export const approveTodayEmail = (workspaceId: string, day: string, posts: PostToApprove[], offsetMin: number): EmailContent => {
+  const n = posts.length;
+  const shown = posts.slice(0, 5);
+  return {
+    subject: `${n} post${n === 1 ? '' : 's'} need${n === 1 ? 's' : ''} your OK today`,
+    heading: 'Approve today’s posts',
+    body: [
+      `${n} post${n === 1 ? ' is' : 's are'} set for today. ${n === 1 ? 'It will not' : 'They will not'} go out until you approve.`,
+      ...shown.map((p) => `${localTime(p.at, offsetMin)} · ${p.title}`),
+      ...(n > shown.length ? [`And ${n - shown.length} more.`] : []),
+      `Approve before ${localTime(posts[0]!.at, offsetMin)} so the first one goes out on time.`,
+    ],
+    cta: { label: `Approve & Publish (${n})`, url: appUrl(`/slideshow/${workspaceId}?view=list&day=${day}`) },
+    footnote: 'We only email you on days with posts to approve.',
+    settingsUrl: appUrl(`/slideshow/${workspaceId}`),
+  };
+};
