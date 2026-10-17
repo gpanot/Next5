@@ -91,6 +91,13 @@ function SearchBar({ value, onChange, placeholder }: { value: string; onChange: 
 
 // ── Section content ───────────────────────────────────────────────────────────
 
+/** Name, tags (e.g. "topic:Fitness") and descriptor text (e.g. "friends at the gym") all count. */
+function assetMatches(asset: BlitzAssetDto, qLow: string): boolean {
+  return asset.name.toLowerCase().includes(qLow)
+    || asset.tags.some(t => t.toLowerCase().includes(qLow))
+    || (asset.searchText?.toLowerCase().includes(qLow) ?? false);
+}
+
 const GRID_VIDEO = 'grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2';
 const GRID_AUDIO = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3';
 
@@ -125,14 +132,13 @@ function SectionContent({
   const removed = (ids: string[]) => onRemoved(section, ids);
 
   const filtered = useMemo(() => {
-    if (section === 'memes')      return qLow ? data.memes.filter(a => a.name.toLowerCase().includes(qLow)) : data.memes;
-    if (section === 'videos')     return qLow ? data.videos.filter(a => a.name.toLowerCase().includes(qLow)) : data.videos;
-    if (section === 'sounds')     return qLow ? data.sounds.filter(a => a.name.toLowerCase().includes(qLow)) : data.sounds;
-    if (section === 'aiPictures') return qLow ? data.aiPictures.filter(a => a.name.toLowerCase().includes(qLow)) : data.aiPictures;
-    if (section === 'hookVideos') return qLow
-      ? data.hookVideos.filter(a => a.name.toLowerCase().includes(qLow) || a.tags.some(t => t.toLowerCase().includes(qLow)))
-      : data.hookVideos;
-    return [];
+    const list = section === 'memes' ? data.memes
+      : section === 'videos' ? data.videos
+      : section === 'sounds' ? data.sounds
+      : section === 'aiPictures' ? data.aiPictures
+      : section === 'hookVideos' ? data.hookVideos
+      : [];
+    return qLow ? list.filter(a => assetMatches(a, qLow)) : list;
   }, [section, data, qLow]);
 
   const filteredUgc = useMemo(() => {
@@ -149,9 +155,8 @@ function SectionContent({
           onChange={setQ}
           placeholder={
             section === 'ugcVideos'  ? 'Search by script or mode…'
-            : section === 'videos'   ? 'Search by name…'
-            : section === 'hookVideos' ? 'Search by name or tag…'
-            : 'Search…'
+            : section === 'aiPictures' ? 'Search by name…'
+            : 'Search by name, tag or description…'
           }
         />
         <span className="text-[12px] text-muted">

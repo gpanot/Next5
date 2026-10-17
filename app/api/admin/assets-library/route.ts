@@ -24,6 +24,17 @@ import { prisma } from '../../../../src/lib/db';
 /** Page size of the AI Pictures section (full load and each "Load more"). */
 const AI_PICTURES_PAGE = 120;
 
+/** Descriptor fields the library search matches on (tags live on the asset itself). */
+const SEARCH_INCLUDE = { descriptor: { select: { retrievalText: true, mood: true } } } as const;
+
+type SearchableAsset = Prisma.BlitzAssetGetPayload<{ include: typeof SEARCH_INCLUDE }>;
+
+/** Asset DTO plus the descriptor text, so the search box finds "gym" or "friends" not only in names. */
+const toSearchableDto = async (asset: SearchableAsset) => ({
+  ...(await toAssetDto(asset)),
+  searchText: [asset.descriptor?.retrievalText ?? '', ...(asset.descriptor?.mood ?? [])].join(' '),
+});
+
 const IMAGE_WHERE: Prisma.BlitzAssetWhereInput = { type: 'BACKGROUND', ...blitzImageKeyWhere };
 const VIDEO_WHERE: Prisma.BlitzAssetWhereInput = { type: 'BACKGROUND', NOT: blitzImageKeyWhere };
 
@@ -42,8 +53,9 @@ export const GET = adminRoute(async (req) => {
       where: { type: 'OVERLAY', ...nameFilter, ...(cursorDate ? { createdAt: { lt: cursorDate } } : {}) },
       orderBy: { createdAt: 'asc' },
       take: section ? limit : 120,
+      include: SEARCH_INCLUDE,
     });
-    const assets = await Promise.all(rows.map(toAssetDto));
+    const assets = await Promise.all(rows.map(toSearchableDto));
     if (section) return NextResponse.json({ assets, total: await prisma.blitzAsset.count({ where: { type: 'OVERLAY' } }) });
 
     // Full load (no section filter) — return all buckets
@@ -51,8 +63,9 @@ export const GET = adminRoute(async (req) => {
       where: { AND: [VIDEO_WHERE] },
       orderBy: { createdAt: 'asc' },
       take: 600,
+      include: SEARCH_INCLUDE,
     });
-    const videos = await Promise.all(videoRows.map(toAssetDto));
+    const videos = await Promise.all(videoRows.map(toSearchableDto));
     const imageRows = await prisma.blitzAsset.findMany({
       where: { AND: [IMAGE_WHERE] },
       orderBy: { createdAt: 'desc' },
@@ -67,8 +80,9 @@ export const GET = adminRoute(async (req) => {
     const soundRows = await prisma.blitzAsset.findMany({
       where: { type: 'AUDIO' },
       orderBy: { name: 'asc' },
+      include: SEARCH_INCLUDE,
     });
-    const sounds = await Promise.all(soundRows.map(toAssetDto));
+    const sounds = await Promise.all(soundRows.map(toSearchableDto));
 
     const ugcRows = await prisma.ugcVideo.findMany({
       where: { status: 'ready', workspaceId: null },
@@ -82,8 +96,9 @@ export const GET = adminRoute(async (req) => {
       where: { type: 'HOOK' },
       orderBy: { createdAt: 'desc' },
       take: 600,
+      include: SEARCH_INCLUDE,
     });
-    const hookVideos = await Promise.all(hookRows.map(toAssetDto));
+    const hookVideos = await Promise.all(hookRows.map(toSearchableDto));
     const hookTotal = await prisma.blitzAsset.count({ where: { type: 'HOOK' } });
 
     return NextResponse.json({
@@ -109,8 +124,9 @@ export const GET = adminRoute(async (req) => {
       where: { AND: [VIDEO_WHERE, nameFilter, cursorDate ? { createdAt: { gt: cursorDate } } : {}] },
       orderBy: { createdAt: 'asc' },
       take: limit,
+      include: SEARCH_INCLUDE,
     });
-    const assets = await Promise.all(rows.map(toAssetDto));
+    const assets = await Promise.all(rows.map(toSearchableDto));
     return NextResponse.json({ assets });
   }
 

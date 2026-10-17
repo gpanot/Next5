@@ -8,7 +8,21 @@ import type { BlitzAssetDto } from '../../labs/blitzLab/api';
 import type { UgcVideoDto } from '../../../types/admin/ugc';
 import { DescriptionPanel } from './AssetDescriptionPanel';
 
-/** Video asset card (Memes + Videos) — plays on hover, click to toggle mute + "See Description" expand. */
+/** First 6 tags as small pills under the card name (Videos, Memes, Hook Videos). */
+function TagPills({ tags }: { tags: string[] }) {
+  if (tags.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-1 px-2 pb-2">
+      {tags.slice(0, 6).map((tag) => (
+        <span key={tag} className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[9px] text-muted">
+          {tag}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Video asset card (Memes + Videos) — plays on hover, click to toggle mute, tag pills + "See Description" expand. */
 export function VideoCard({ asset, token }: { asset: BlitzAssetDto; token: string }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
@@ -58,9 +72,10 @@ export function VideoCard({ asset, token }: { asset: BlitzAssetDto; token: strin
           }
         </button>
       </div>
-      <div className="min-h-8 px-2 py-1.5">
-        <p className="truncate text-[11px] text-ink" title={asset.name}>{asset.name}</p>
+      <div className="px-2 pt-1.5 pb-1">
+        <p className="truncate text-[11px] font-medium text-ink" title={asset.name}>{asset.name}</p>
       </div>
+      <TagPills tags={asset.tags} />
       <DescriptionPanel token={token} assetId={asset.id} />
     </div>
   );
@@ -178,16 +193,7 @@ export function HookCard({ asset, token }: { asset: BlitzAssetDto; token: string
       <div className="px-2 pt-1.5 pb-1">
         <p className="truncate text-[11px] font-medium text-ink" title={asset.name}>{asset.name}</p>
       </div>
-      {/* Tag pills */}
-      {asset.tags && asset.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1 px-2 pb-2">
-          {asset.tags.slice(0, 4).map((tag) => (
-            <span key={tag} className="rounded-full bg-surface-alt px-1.5 py-0.5 text-[9px] text-muted">
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
+      <TagPills tags={asset.tags} />
       <DescriptionPanel token={token} assetId={asset.id} />
     </div>
   );

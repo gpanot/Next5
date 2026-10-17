@@ -112,6 +112,8 @@ export type BlitzAssetDto = {
   source: 'library' | 'upload' | 'hook_library';
   /** Flat tag list — populated for HOOK assets. */
   tags: string[];
+  /** Descriptor text (retrieval sentence + moods) — only set by the admin Assets Library, for search. */
+  searchText?: string;
   createdAt: string;
 };
 
