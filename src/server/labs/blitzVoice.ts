@@ -84,7 +84,7 @@ const cacheBase = (voice: string, workspaceId: string | null, texts: string[]): 
   return `blitz/voiceovers/cache/${hash}`;
 };
 
-type CachedNarration = { audioKey: string; durations: number[]; lines: string[]; voice: string; words: SpokenWord[][] };
+export type CachedNarration = { audioKey: string; durations: number[]; lines: string[]; voice: string; words: SpokenWord[][] };
 
 /** The recorded voiceover of these slides in this voice, if one was made before (a preview or a render). */
 export async function cachedNarration(slideTexts: string[], voiceName: string | undefined, workspaceId: string | null): Promise<CachedNarration | null> {
@@ -97,6 +97,15 @@ export async function cachedNarration(slideTexts: string[], voiceName: string | 
   } catch {
     return null;
   }
+}
+
+/**
+ * The recording also kept under its spoken lines: an Ideas card whose captions became those lines (2026-10-17) finds the
+ * same recording at render time instead of writing new lines from them.
+ */
+export async function keepUnderSpokenLines(narration: CachedNarration, workspaceId: string | null): Promise<void> {
+  const key = `${cacheBase(narration.voice, workspaceId, narration.lines)}.json`;
+  await putObject(key, Buffer.from(JSON.stringify(narration)), 'application/json');
 }
 
 const silence = (seconds: number): Buffer => Buffer.alloc(Math.max(0, Math.round(seconds * SAMPLE_RATE)) * 2);
@@ -175,6 +184,7 @@ export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceN
   await putObject(audioKey, pcmToWav(Buffer.concat(pcms)), 'audio/wav');
   const manifest: CachedNarration = { audioKey, durations: timed.map((s) => s.durationSec), lines, voice, words: timed.map((s) => s.words) };
   await putObject(`${base}.json`, Buffer.from(JSON.stringify(manifest)), 'application/json');
+  await keepUnderSpokenLines(manifest, workspaceId);
   const durationSeconds = Math.round(timed.reduce((sum, s) => sum + s.durationSec, 0) * 100) / 100;
   const cost = meter.summary();
   console.log(`[blitz/voice] ${voice}, ${slides.length} lines, ${durationSeconds.toFixed(1)} s in ${((Date.now() - started) / 1000).toFixed(1)} s, $${(cost.usdMicros / 1e6).toFixed(4)}`);

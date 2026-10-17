@@ -316,6 +316,22 @@ const moveCaption = async (row: SlideshowVariant, caption: NonNullable<IdeaPatch
   await prisma.slideshowVariant.update({ where: { id: row.id }, data: { plan: asJson({ ...(row.plan as object), card: { ...card, shots } }) } });
 };
 
+/**
+ * A Blitz idea's captions become its voiceover's spoken lines once the voice is recorded (2026-10-17): the caption is
+ * what the voice says, no old caption left. Only while the card still has the captions the voice was written from
+ * (a hook swapped meanwhile keeps the new hook). False when nothing changed.
+ */
+export async function adoptSpokenLines(workspaceId: string, id: string, texts: string[], lines: string[]): Promise<boolean> {
+  const row = await ownIdea(workspaceId, id).catch(() => null);
+  const card = row?.engine === 'website' && row.status !== 'made' ? (row.plan as BlitzIdeaPlan).card : undefined;
+  const same = card && card.shots.length === texts.length && lines.length === texts.length
+    && card.shots.every((s, i) => s.text.trim() === texts[i]!.trim());
+  if (!row || !card || !same || lines.every((l, i) => l === card.shots[i]!.text)) return false;
+  const shots = card.shots.map((s, i) => ({ ...s, text: lines[i]! }));
+  await prisma.slideshowVariant.update({ where: { id: row.id }, data: { plan: asJson({ ...(row.plan as object), shots, card: { ...card, shots } }) } });
+  return true;
+}
+
 const SWIPE: Record<NonNullable<IdeaPatch['status']>, 'keep' | 'discard' | 'undo'> = { kept: 'keep', discarded: 'discard', proposed: 'undo' };
 
 /** Keep, skip or bring back an idea (logged like a deck swipe), move it, or give a Blitz idea another first line or voice. */

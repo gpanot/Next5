@@ -14,7 +14,8 @@ export type VoicePreviewState =
   | { status: 'error'; message: string; limit: boolean };
 
 const textsOf = (idea: IdeaDto): string[] => ideaCard(idea).shots.map((s) => s.text);
-const keyOf = (idea: IdeaDto, voice: BlitzVoiceName) => `${idea.id}:${voice}:${textsOf(idea).join('|')}`;
+const keyFor = (id: string, voice: BlitzVoiceName, texts: string[]) => `${id}:${voice}:${texts.join('|')}`;
+const keyOf = (idea: IdeaDto, voice: BlitzVoiceName) => keyFor(idea.id, voice, textsOf(idea));
 /** The idea's narrator; a voice no longer offered (Kore, before 2026-10-13) is the default. */
 export const voiceOf = (idea: IdeaDto): BlitzVoiceName => (isBlitzVoice(idea.card?.voice) ? idea.card.voice : DEFAULT_BLITZ_VOICE);
 
@@ -22,8 +23,10 @@ export const voiceOf = (idea: IdeaDto): BlitzVoiceName => (isBlitzVoice(idea.car
  * The real voiceover of Blitz ideas on the deck, kept per idea, voice and caption text, so replays are free. A changed
  * hook is a new voiceover. The deck loads the top card's voice and the next card's (`ahead`), and the other voice on a
  * mic tap. A failed `ahead` load is forgotten, so the card asks again once it is on top and shows that error.
+ * Once recorded, the idea's captions become the spoken lines (`onSpoken`; the server saves them too), and the voiceover
+ * is kept under those captions as well.
  */
-export function useVoicePreview(client: LabClient | null) {
+export function useVoicePreview(client: LabClient | null, onSpoken: (idea: IdeaDto, lines: string[]) => void) {
   const [byKey, setByKey] = useState<Record<string, VoicePreviewState>>({});
   const byKeyRef = useRef(byKey);
   useEffect(() => { byKeyRef.current = byKey; }, [byKey]);
@@ -37,19 +40,23 @@ export function useVoicePreview(client: LabClient | null) {
     if (!client) return { status: 'error', message: 'Not signed in.', limit: false };
     setByKey((m) => ({ ...m, [key]: { status: 'loading' } }));
     const res = await client
-      .request<{ url: string; durations: number[]; words?: SpokenWord[][] }>('/blitz/voice-preview', { json: { texts: textsOf(idea), voice } })
+      .request<{ url: string; durations: number[]; lines?: string[]; words?: SpokenWord[][] }>('/blitz/voice-preview', { json: { texts: textsOf(idea), voice, ideaId: idea.id } })
       .catch(() => null);
     const next: VoicePreviewState = res?.ok
       ? { status: 'ready', narration: { url: res.data.url, durations: res.data.durations, words: res.data.words } }
       : { status: 'error', message: res ? errorOf(res) : 'Could not reach the server. Check your connection.', limit: res?.status === 429 };
+    const lines = res?.ok ? res.data.lines : undefined;
+    const spokenKey = lines?.length ? keyFor(idea.id, voice, lines) : null;
     setByKey((m) => {
-      if (next.status === 'ready' || !ahead) return { ...m, [key]: next };
+      if (next.status === 'ready') return spokenKey ? { ...m, [key]: next, [spokenKey]: next } : { ...m, [key]: next };
+      if (!ahead) return { ...m, [key]: next };
       const rest = { ...m };
       delete rest[key];
       return rest;
     });
+    if (next.status === 'ready' && lines?.length) onSpoken(idea, lines);
     return next;
-  }, [client]);
+  }, [client, onSpoken]);
 
   return { stateOf, load };
 }

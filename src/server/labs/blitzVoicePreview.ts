@@ -7,7 +7,8 @@ import { HttpError } from '../http';
 import { workspaceHasPaid } from '../slideshowCredits/paid';
 import { getObject, putObject } from '../storage/objectStore';
 import { blitzBrowserUrl } from '../admin/blitzStore';
-import { cachedNarration, narrateSlides } from './blitzVoice';
+import { cachedNarration, keepUnderSpokenLines, narrateSlides } from './blitzVoice';
+import { adoptSpokenLines } from './calendarIdeas';
 import type { LabAccess } from './labAccess';
 import type { SpokenWord } from '../../remotion/types';
 
@@ -38,9 +39,24 @@ const cleanTexts = (texts: unknown): string[] => {
   return texts as string[];
 };
 
-/** This card's voiceover in `voice`, recorded unless it was before. Throws 429 when a free workspace used its day. */
-export async function previewVoiceover(access: LabAccess, slideTexts: unknown, voice: string | undefined): Promise<VoicePreview> {
+/**
+ * This card's voiceover in `voice`, recorded unless it was before. Throws 429 when a free workspace used its day.
+ * `ideaId` (Ideas deck): the idea's captions become the spoken lines, and the recording is kept under them.
+ */
+export async function previewVoiceover(access: LabAccess, slideTexts: unknown, voice: string | undefined, ideaId?: unknown): Promise<VoicePreview> {
   const texts = cleanTexts(slideTexts);
+  const preview = await recordedPreview(access, texts, voice);
+  if (typeof ideaId === 'string' && access.workspaceId) await adoptLines(access.workspaceId, ideaId, texts, preview, voice);
+  return preview;
+}
+
+const adoptLines = async (workspaceId: string, ideaId: string, texts: string[], preview: VoicePreview, voice: string | undefined) => {
+  const hit = await cachedNarration(texts, voice, workspaceId);
+  if (hit) await keepUnderSpokenLines(hit, workspaceId);
+  await adoptSpokenLines(workspaceId, ideaId, texts, preview.lines);
+};
+
+const recordedPreview = async (access: LabAccess, texts: string[], voice: string | undefined): Promise<VoicePreview> => {
   const hit = await cachedNarration(texts, voice, access.workspaceId);
   if (hit) return { url: await blitzBrowserUrl(hit.audioKey), durations: hit.durations, lines: hit.lines, words: hit.words };
   const capped = !access.admin && !(await workspaceHasPaid(access.workspaceId));
@@ -53,4 +69,4 @@ export async function previewVoiceover(access: LabAccess, slideTexts: unknown, v
   });
   if (capped) await countOne(access.workspaceId!);
   return { url: await blitzBrowserUrl(narration.audioKey), durations: narration.slides.map((s) => s.durationSec), lines: narration.lines, words: narration.slides.map((s) => s.words) };
-}
+};

@@ -205,12 +205,21 @@ const useActions = (client: LabClient | null, request: ListRequest, setState: Se
     setState((s) => ({ ...s, ideas: s.ideas.map((i) => (i.id === idea.id ? { ...i, card } : i)) }));
     await patch(idea.id, { caption: { shot, positionY } });
   }, [patch, setState]);
+  /** A Blitz idea's captions became its voiceover's spoken lines (the server saved them): shown at once. */
+  const adoptSpokenLines = useCallback((idea: IdeaDto, lines: string[]) => {
+    setState((s) => ({
+      ...s,
+      ideas: s.ideas.map((i) => (i.id === idea.id && i.card && i.card.shots.length === lines.length
+        ? { ...i, card: { ...i.card, shots: i.card.shots.map((shot, n) => ({ ...shot, text: lines[n]! })) } }
+        : i)),
+    }));
+  }, [setState]);
   const changeDay = useCallback(async (action: 'add' | 'remove', day: string) => {
     if (!client) return;
     setState((s) => ({ ...s, error: null }));
     await request(() => ideasApi.day(client, action, day));
   }, [client, request, setState]);
-  return { focusId, setFocusId, canUndo: history.length > 0, patch, decide, keepNow, undo, pickHook, setVoice, swapMedia, moveCaption, changeDay };
+  return { focusId, setFocusId, canUndo: history.length > 0, patch, decide, keepNow, undo, pickHook, setVoice, swapMedia, moveCaption, adoptSpokenLines, changeDay };
 };
 
 /**

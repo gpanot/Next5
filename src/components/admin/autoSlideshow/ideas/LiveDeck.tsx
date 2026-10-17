@@ -56,7 +56,7 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   const voices = useBlitzVoices(ideas.client);
   const hookStyle = useHookStyle();
   const { confirm, dialog } = useKeepConfirm();
-  const preview = useVoicePreview(ideas.client);
+  const preview = useVoicePreview(ideas.client, ideas.adoptSpokenLines);
   const { load } = preview;
   // The top card's voiceover is recorded as soon as it is on top, then the next card's (2026-10-14), so a swipe usually
   // lands on a voice already recorded. The next waits for the top: both at once slowed the top one from ~9 s to ~12 s.
