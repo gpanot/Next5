@@ -43,7 +43,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const firstName = (m: BrandCastMember) => m.name.split(',')[0]!.trim();
 
 /** "Woman" / "Man" from the member's look. */
-const isMan = (look: string) => /\b(man|male|guy)\b/i.test(look) && !/\bwoman\b/i.test(look);
+export const isMan = (look: string) => /\b(man|male|guy)\b/i.test(look) && !/\bwoman\b/i.test(look);
 
 /** The voice as the best test clip asked for it (2026-10-10): "warm, friendly American young woman in her early twenties". */
 const voiceOf = (member: BrandCastMember): string => {

@@ -10,7 +10,7 @@ import { creativeJson, smartModel } from './llm';
 import { sampleLine, stripTags, VOICE } from './voice';
 
 /** Gemini TTS prebuilt voices with Google's descriptor (ai.google.dev/gemini-api/docs/speech-generation). */
-const GEMINI_VOICES: Record<string, { gender: VoiceGender; style: string }> = {
+export const GEMINI_VOICES: Record<string, { gender: VoiceGender; style: string }> = {
   Zephyr: { gender: 'female', style: 'Bright' },
   Puck: { gender: 'male', style: 'Upbeat' },
   Charon: { gender: 'male', style: 'Informative' },

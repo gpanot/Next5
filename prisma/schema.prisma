@@ -394,6 +394,10 @@ model BrandCastMember {
   introError    String?   @map("intro_error")
   /// When the intro was last started (a "pending" intro older than 8 minutes was cut off)
   introAt       DateTime? @map("intro_at")
+  /// The Gemini prebuilt voice picked on "Change voice" ("Sulafat"). Not used by the intro video (Veo speaks it).
+  ttsVoice      String?   @map("tts_voice")
+  /// "Change voice" candidates with their samples: [{ name, style, why, sampleKey }], made once per member
+  voiceOptions  Json?     @map("voice_options")
   /// Set when "New face" parked this member: kept 14 days (7 at most), then deleted. Null for the active cast.
   archivedAt    DateTime? @map("archived_at")
   createdAt     DateTime  @default(now()) @map("created_at")

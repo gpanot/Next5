@@ -2,7 +2,11 @@
 // Minimal OpenRouter chat client (OpenAI-compatible endpoint) for multi-turn vision + JSON calls.
 // Gemini 3.6 Flash runs on the Flex tier of Google AI Studio (half price, a bit slower), with the standard tier as fallback.
 
-type Part = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
+type Part =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } }
+  /** Base64 audio (Gemini listens to it). */
+  | { type: 'input_audio'; input_audio: { data: string; format: 'wav' | 'mp3' } };
 
 export type OpenRouterMessage = {
   role: 'system' | 'user' | 'assistant';

@@ -10,6 +10,7 @@ import { CastMemberMedia, photoBox } from './CastMemberMedia';
 import { CastMemberMenu } from './CastMemberMenu';
 import { EditMemberDialog, type MemberEdit } from './EditMemberDialog';
 import { NewFaceDialog, type NewFaceRequest } from './NewFaceDialog';
+import { VoiceDialog } from './VoiceDialog';
 import { useBrandCast, type CastAction } from './useBrandCast';
 
 const errorClass = 'rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300';
@@ -37,6 +38,7 @@ type CardProps = {
   campaignHref?: string;
   onAct: (action: CastAction) => void;
   onNewFace: () => void;
+  onVoice: () => void;
   onEdit: () => void;
 };
 
@@ -64,16 +66,16 @@ function CardAction({ member, busy, campaignHref, onAct }: Pick<CardProps, 'memb
   );
 }
 
-function MemberCard({ member, busy, detailed, campaignHref, onAct, onNewFace, onEdit }: CardProps) {
+function MemberCard({ member, busy, detailed, campaignHref, onAct, onNewFace, onVoice, onEdit }: CardProps) {
   return (
     <li className="flex min-w-0 flex-col gap-2">
       <CastMemberMedia member={member} />
       <div className="min-w-0">
         <div className="flex items-center gap-1">
           <p className="min-w-0 flex-1 truncate text-sm font-semibold text-app-ink">{member.name}</p>
-          <CastMemberMenu name={member.name} onEdit={onEdit} onNewFace={onNewFace} newFaceDisabled={busy || member.status !== 'ready'} />
+          <CastMemberMenu name={member.name} onEdit={onEdit} onNewFace={onNewFace} newFaceDisabled={busy || member.status !== 'ready'} onVoice={member.status === 'ready' ? onVoice : undefined} />
         </div>
-        {detailed && <p className="mt-0.5 text-xs text-app-muted">{member.look} · used {member.uses}×</p>}
+        {detailed && <p className="mt-0.5 text-xs text-app-muted">{member.look} · used {member.uses}×{member.ttsVoice ? ` · voice ${member.ttsVoice}` : ''}</p>}
         {detailed && member.introScript && <p className="mt-1 text-xs text-app-ink">Intro: “{member.introScript}”</p>}
         {detailed && member.introStatus === 'failed' && member.introError && <p className="mt-1 text-xs text-app-danger">{member.introError}</p>}
       </div>
@@ -126,6 +128,7 @@ export function BrandCast({ client, path, detailed = false, campaignHref }: Bran
   const { members, archived, loadError, busy, actionError, build, act, manage, swap, makeIntros, reload, clearError } = useBrandCast(client, path);
   const [editing, setEditing] = useState<BrandCastMemberDto | null>(null);
   const [renaming, setRenaming] = useState<BrandCastMemberDto | null>(null);
+  const [voicing, setVoicing] = useState<BrandCastMemberDto | null>(null);
   const submitNewFace = async (request: NewFaceRequest) => {
     if (editing && (await swap(editing.id, request))) setEditing(null);
   };
@@ -150,7 +153,7 @@ export function BrandCast({ client, path, detailed = false, campaignHref }: Bran
   return (
     <div className="max-w-2xl space-y-3">
       <ul className={grid}>
-        {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} campaignHref={campaignHref?.(m.id)} onAct={(a) => void act(m.id, a)} onNewFace={() => setEditing(m)} onEdit={() => setRenaming(m)} />)}
+        {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} campaignHref={campaignHref?.(m.id)} onAct={(a) => void act(m.id, a)} onNewFace={() => setEditing(m)} onVoice={() => setVoicing(m)} onEdit={() => setRenaming(m)} />)}
         {Array.from({ length: empty }, (_, i) => (
           <CreateAvatarCard key={`empty-${i}`} creating={busy === 'build' && i === 0} disabled={busy !== null} onCreate={() => void build(true)} />
         ))}
@@ -159,6 +162,7 @@ export function BrandCast({ client, path, detailed = false, campaignHref }: Bran
       {actionError && !editing && !renaming && <p role="alert" className="text-sm text-app-danger">{actionError}</p>}
       <ArchivedFaces archived={archived} active={members} busy={busy} error={actionError} onManage={manage} onClearError={clearError} />
       <NewFaceDialog key={editing?.id ?? 'closed'} member={editing} archiveFull={archived.length >= ARCHIVE_MAX} busy={editing !== null && busy === editing.id} error={editing ? actionError : null} onClose={() => setEditing(null)} onSubmit={(r) => void submitNewFace(r)} />
+      <VoiceDialog key={voicing?.id ?? 'closed-voice'} client={client} path={path} member={voicing} onClose={() => setVoicing(null)} onPicked={reload} />
       <EditMemberDialog key={renaming?.id ?? 'closed-edit'} member={renaming} busy={renaming !== null && busy === renaming.id} error={renaming ? actionError : null} onClose={closeRename} onSubmit={(e) => void submitEdit(e)} />
     </div>
   );

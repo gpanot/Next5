@@ -36,6 +36,8 @@ export type BrandCastMemberDto = {
   introUrl: string | null;
   introScript: string | null;
   introError: string | null;
+  /** The voice picked on "Change voice" (a Gemini voice name); null before one is picked. */
+  ttsVoice: string | null;
   /** When "New face" parked this person, and when they are deleted for good; null for the active cast. */
   archivedAt: string | null;
   expiresAt: string | null;
@@ -45,3 +47,24 @@ export type IntroStatus = 'none' | 'pending' | 'ready' | 'failed';
 
 /** GET /brand-cast. `members`: the active cast, empty before it is made. `archived`: parked people, newest first. */
 export type BrandCastDto = { members: BrandCastMemberDto[]; archived: BrandCastMemberDto[] };
+
+/** One "Change voice" candidate: a Gemini prebuilt voice reading the avatar's hello. */
+export type AvatarVoiceOptionDto = {
+  name: string;
+  /** Google's word for it: "Warm", "Friendly"… */
+  style: string;
+  /** Why it fits this person and brand, in a few words. */
+  why: string;
+  /** The sample; null when it could not be made. */
+  sampleUrl: string | null;
+};
+
+/** GET /brand-cast/[id]/voices: the candidates (made on the first open), the one in use ("Current") and the best fit
+ *  ("Recommended": the planner's first pick, also the default voice). */
+export type AvatarVoicesDto = {
+  voice: string | null;
+  recommended: string | null;
+  /** The intro video's own voice (Veo), to compare with; null without a ready intro. */
+  introSampleUrl: string | null;
+  options: AvatarVoiceOptionDto[];
+};

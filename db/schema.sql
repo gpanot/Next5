@@ -587,6 +587,10 @@ CREATE TABLE public.auto_slideshow_runs (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     brand_profile_id text,
     idea_for_run_id text,
+    kind text DEFAULT 'auto'::text NOT NULL,
+    name text,
+    campaign jsonb,
+    photo_jobs jsonb,
     CONSTRAINT auto_slideshow_runs_count_check CHECK (((count >= 1) AND (count <= 20)))
 );
 
@@ -816,7 +820,10 @@ CREATE TABLE public.blitz_scheduled_posts (
     posted_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    platform text DEFAULT 'tiktok'::text NOT NULL
+    platform text DEFAULT 'tiktok'::text NOT NULL,
+    admin_free boolean DEFAULT false NOT NULL,
+    allow_duet boolean DEFAULT false NOT NULL,
+    allow_stitch boolean DEFAULT false NOT NULL
 );
 
 
@@ -916,7 +923,10 @@ CREATE TABLE public.brand_cast_members (
     intro_video_key text,
     intro_status text DEFAULT 'none'::text NOT NULL,
     intro_error text,
-    intro_at timestamp with time zone
+    intro_at timestamp with time zone,
+    archived_at timestamp with time zone,
+    tts_voice text,
+    voice_options jsonb
 );
 
 
@@ -1124,6 +1134,20 @@ CREATE TABLE public.email_logs (
     sent_at timestamp(3) without time zone,
     error text,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: hook_knowledge; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.hook_knowledge (
+    id text NOT NULL,
+    title text NOT NULL,
+    body text NOT NULL,
+    file_name text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -1346,6 +1370,26 @@ CREATE TABLE public.model_test_runs (
     product_name text,
     input_r2_keys text[] DEFAULT '{}'::text[] NOT NULL,
     created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+--
+-- Name: onboarding_profiles; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.onboarding_profiles (
+    workspace_id text NOT NULL,
+    goals text[] DEFAULT '{}'::text[] NOT NULL,
+    goals_other character varying(140),
+    pains text[] DEFAULT '{}'::text[] NOT NULL,
+    pains_other character varying(140),
+    posting_mode text DEFAULT 'approve_first'::text NOT NULL,
+    monthly_spend text,
+    last_step integer DEFAULT 0 NOT NULL,
+    skipped_steps integer[] DEFAULT '{}'::integer[] NOT NULL,
+    completed_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -2157,7 +2201,8 @@ CREATE TABLE public.users (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     active_offer_percent integer,
     active_offer_label text,
-    active_offer_route_ids text[] DEFAULT '{}'::text[] NOT NULL
+    active_offer_route_ids text[] DEFAULT '{}'::text[] NOT NULL,
+    stock_images_only boolean DEFAULT false NOT NULL
 );
 
 
@@ -2485,6 +2530,14 @@ ALTER TABLE ONLY public.email_logs
 
 
 --
+-- Name: hook_knowledge hook_knowledge_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.hook_knowledge
+    ADD CONSTRAINT hook_knowledge_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: identity_references identity_references_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2562,6 +2615,14 @@ ALTER TABLE ONLY public.model_test_items
 
 ALTER TABLE ONLY public.model_test_runs
     ADD CONSTRAINT model_test_runs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: onboarding_profiles onboarding_profiles_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_profiles
+    ADD CONSTRAINT onboarding_profiles_pkey PRIMARY KEY (workspace_id);
 
 
 --
@@ -3053,6 +3114,13 @@ CREATE INDEX auto_slideshow_runs_idea_for_run_id_idx ON public.auto_slideshow_ru
 
 
 --
+-- Name: auto_slideshow_runs_workspace_kind_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX auto_slideshow_runs_workspace_kind_idx ON public.auto_slideshow_runs USING btree (workspace_id, kind, created_at DESC);
+
+
+--
 -- Name: auto_slideshow_video_downloads_requested_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3210,7 +3278,7 @@ CREATE INDEX booking_regenerations_booking_id_idx ON public.booking_regeneration
 -- Name: brand_cast_members_workspace_id_slot_key; Type: INDEX; Schema: public; Owner: -
 --
 
-CREATE UNIQUE INDEX brand_cast_members_workspace_id_slot_key ON public.brand_cast_members USING btree (workspace_id, slot);
+CREATE UNIQUE INDEX brand_cast_members_workspace_id_slot_key ON public.brand_cast_members USING btree (workspace_id, slot) WHERE (archived_at IS NULL);
 
 
 --
@@ -4387,6 +4455,14 @@ ALTER TABLE ONLY public.model_test_items
 
 
 --
+-- Name: onboarding_profiles onboarding_profiles_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.onboarding_profiles
+    ADD CONSTRAINT onboarding_profiles_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
 -- Name: payments payments_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4880,4 +4956,13 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261115090000'),
     ('20261116090000'),
     ('20261117090000'),
-    ('20261118090000');
+    ('20261118090000'),
+    ('20261119090000'),
+    ('20261120090000'),
+    ('20261121090000'),
+    ('20261122090000'),
+    ('20261123090000'),
+    ('20261124090000'),
+    ('20261125090000'),
+    ('20261126090000'),
+    ('20261127090000');

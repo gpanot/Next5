@@ -33,6 +33,7 @@ const toDto = async (m: BrandCastMember): Promise<BrandCastMemberDto> => ({
   uses: m.uses,
   updatedAt: m.updatedAt.toISOString(),
   ...(await introOf(m)),
+  ttsVoice: m.ttsVoice,
   archivedAt: m.archivedAt?.toISOString() ?? null,
   expiresAt: expiresAt(m)?.toISOString() ?? null,
 });
