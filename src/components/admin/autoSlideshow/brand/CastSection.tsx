@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import { createWorkspaceLabClient } from '../../../labs/labClient';
+import { brandCastHref } from '../campaigns/brandCastResume';
 import { BrandCast } from './BrandCast';
 
 /** The Brand page's cast section: the people who appear in the brand's slideshows. */
@@ -11,9 +12,9 @@ export function CastSection({ token, workspaceId }: { token: string; workspaceId
     <section aria-labelledby="brand-cast-title" className="space-y-3">
       <div className="space-y-0.5">
         <h2 id="brand-cast-title" className="text-sm font-bold text-app-ink">Your brand avatars</h2>
-        <p className="text-sm text-app-muted">The people in your slideshows. Don’t like a face? Swap it.</p>
+        <p className="text-sm text-app-muted">The people in your slideshows. Don’t like a face? Swap it in the ⋮ menu.</p>
       </div>
-      <BrandCast client={client} path="/brand-cast" />
+      <BrandCast client={client} path="/brand-cast" campaignHref={(castId) => brandCastHref(workspaceId, castId)} />
     </section>
   );
 }

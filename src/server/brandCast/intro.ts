@@ -163,6 +163,8 @@ export const startIntro = async (workspaceId: string, memberId: string, charge: 
   if (!member) throw new HttpError(404, 'not_found', 'This person is not in your cast.');
   if (member.status !== 'ready' || !member.imageKey) throw new HttpError(409, 'no_photo', 'Wait for this person\'s photo first.');
   if (isPending(member)) throw new HttpError(409, 'busy', 'This video is still being made.');
+  // One intro per avatar: a made video is kept. A new face (a new member) gets its own.
+  if (member.introStatus === 'ready') throw new HttpError(409, 'intro_done', 'This person already has an intro video.');
   const run = await prisma.autoSlideshowRun.findFirst({ where: { workspaceId, profile: { not: { equals: null } } }, orderBy: { createdAt: 'desc' }, select: { profile: true } });
   if (!run) throw new HttpError(409, 'no_brand', 'Add your website first. We read your brand from it.');
   const updated = await prisma.brandCastMember.update({ where: { id: member.id }, data: { introStatus: 'pending', introError: null, introAt: new Date() } });

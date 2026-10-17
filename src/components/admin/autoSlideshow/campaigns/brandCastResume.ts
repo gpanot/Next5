@@ -33,3 +33,7 @@ export const clearBrandCastResume = () =>
     params.delete(BRAND_CAST_PARAM);
     params.delete(CAST_PARAM);
   });
+
+/** The campaigns page, opened on the "How many slideshows?" step with this face picked (from the Brand page). */
+export const brandCastHref = (workspaceId: string, castId: string) =>
+  `/slideshow/${workspaceId}/campaigns?${BRAND_CAST_PARAM}=1&${CAST_PARAM}=${encodeURIComponent(castId)}`;

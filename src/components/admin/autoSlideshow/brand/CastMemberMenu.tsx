@@ -1,12 +1,20 @@
 'use client';
 
-import { MoreVertical, PencilLine } from 'lucide-react';
+import { MoreVertical, PencilLine, RefreshCw } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
 const item = 'flex min-h-11 w-full items-center gap-2.5 px-4 text-left text-sm font-semibold text-app-ink transition hover:bg-app-sunken disabled:opacity-50';
 
-/** ⋮ beside a cast member's name: "Edit name and age". */
-export function CastMemberMenu({ name, onEdit }: { name: string; onEdit: () => void }) {
+type Props = {
+  name: string;
+  onEdit: () => void;
+  /** "New face": swaps this person's face. Left out: not in the menu. */
+  onNewFace?: () => void;
+  newFaceDisabled?: boolean;
+};
+
+/** ⋮ beside a cast member's name: "New face" and "Edit name and age". */
+export function CastMemberMenu({ name, onEdit, onNewFace, newFaceDisabled = false }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -34,6 +42,20 @@ export function CastMemberMenu({ name, onEdit }: { name: string; onEdit: () => v
       </button>
       {open && (
         <div role="menu" className="absolute top-full right-0 z-20 mt-1 w-52 overflow-hidden rounded-xl border border-app-line bg-app-panel py-1 shadow-lg">
+          {onNewFace && (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={newFaceDisabled}
+              onClick={() => {
+                setOpen(false);
+                onNewFace();
+              }}
+              className={item}
+            >
+              <RefreshCw aria-hidden className="h-4 w-4 shrink-0" /> New face
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"

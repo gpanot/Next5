@@ -1,6 +1,7 @@
 'use client';
 
-import { Clapperboard, Plus, RefreshCw } from 'lucide-react';
+import { Clapperboard, Plus, RefreshCw, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { ARCHIVE_MAX, CAST_SIZE, type BrandCastMemberDto } from '../../../../types/admin/brandCast';
 import type { LabClient } from '../../../labs/labClient';
 import { useState } from 'react';
@@ -28,35 +29,55 @@ function CastSkeleton() {
   );
 }
 
-type CardProps = { member: BrandCastMemberDto; busy: boolean; detailed: boolean; onAct: (action: CastAction) => void; onNewFace: () => void; onEdit: () => void };
+type CardProps = {
+  member: BrandCastMemberDto;
+  busy: boolean;
+  detailed: boolean;
+  /** "Create campaign" with this face; left out: no button. */
+  campaignHref?: string;
+  onAct: (action: CastAction) => void;
+  onNewFace: () => void;
+  onEdit: () => void;
+};
 
-function MemberCard({ member, busy, detailed, onAct, onNewFace, onEdit }: CardProps) {
-  const failed = member.status === 'failed';
-  // A made (or failed) intro can be made again; a first one comes from the "Make intro videos" button.
-  const canRedo = member.status === 'ready' && (member.introStatus === 'ready' || member.introStatus === 'failed');
+/** A failed photo: "Try again". A ready one: "Create campaign" told by this person. */
+function CardAction({ member, busy, campaignHref, onAct }: Pick<CardProps, 'member' | 'busy' | 'campaignHref' | 'onAct'>) {
+  if (member.status === 'failed') {
+    return (
+      <button type="button" onClick={() => onAct('retry')} disabled={busy} className={smallButton}>
+        <RefreshCw aria-hidden className={`h-3.5 w-3.5 ${busy ? 'animate-spin' : ''}`} /> Try again
+      </button>
+    );
+  }
+  if (!campaignHref) return null;
+  if (member.status !== 'ready' || busy) {
+    return (
+      <button type="button" disabled className={smallButton}>
+        <Sparkles aria-hidden className="h-3.5 w-3.5" /> Create campaign
+      </button>
+    );
+  }
+  return (
+    <Link href={campaignHref} className={smallButton}>
+      <Sparkles aria-hidden className="h-3.5 w-3.5" /> Create campaign
+    </Link>
+  );
+}
+
+function MemberCard({ member, busy, detailed, campaignHref, onAct, onNewFace, onEdit }: CardProps) {
   return (
     <li className="flex min-w-0 flex-col gap-2">
       <CastMemberMedia member={member} />
       <div className="min-w-0">
         <div className="flex items-center gap-1">
           <p className="min-w-0 flex-1 truncate text-sm font-semibold text-app-ink">{member.name}</p>
-          <CastMemberMenu name={member.name} onEdit={onEdit} />
+          <CastMemberMenu name={member.name} onEdit={onEdit} onNewFace={onNewFace} newFaceDisabled={busy || member.status !== 'ready'} />
         </div>
         {detailed && <p className="mt-0.5 text-xs text-app-muted">{member.look} · used {member.uses}×</p>}
         {detailed && member.introScript && <p className="mt-1 text-xs text-app-ink">Intro: “{member.introScript}”</p>}
         {detailed && member.introStatus === 'failed' && member.introError && <p className="mt-1 text-xs text-app-danger">{member.introError}</p>}
       </div>
-      <div className="flex flex-col gap-1.5">
-        <button type="button" onClick={() => (failed ? onAct('retry') : onNewFace())} disabled={busy || member.status === 'pending'} className={smallButton}>
-          <RefreshCw aria-hidden className={`h-3.5 w-3.5 ${busy ? 'animate-spin' : ''}`} />
-          {failed ? 'Try again' : 'New face'}
-        </button>
-        {canRedo && (
-          <button type="button" onClick={() => onAct('intro')} disabled={busy} className={smallButton}>
-            <Clapperboard aria-hidden className="h-3.5 w-3.5" /> Redo intro{detailed ? '' : ' · 1 credit'}
-          </button>
-        )}
-      </div>
+      <CardAction member={member} busy={busy} campaignHref={campaignHref} onAct={onAct} />
     </li>
   );
 }
@@ -93,12 +114,15 @@ type BrandCastProps = {
   path: string;
   /** Admin view: each person's full look and how often they were used. */
   detailed?: boolean;
+  /** "Create campaign" link told by this face (the Brand page); left out: no button. */
+  campaignHref?: (castId: string) => string;
 };
 
-/** The Brand Cast: the recurring people (avatars) of the brand's slideshows, each with "New face" to swap them (the old
- *  face goes to the archive), ⋮ to edit their name and age, and an intro video (1 credit a click, whatever the count).
+/** The Brand Cast: the recurring people (avatars) of the brand's slideshows, each with "Create campaign" told by them and
+ *  ⋮ for "New face" (the old face goes to the archive) and to edit their name and age, and one intro video each (1 credit a click, whatever the
+ *  count; a failed one comes back in the "Make intro videos" button).
  *  Each empty slot shows a "+ Create Avatar" card. */
-export function BrandCast({ client, path, detailed = false }: BrandCastProps) {
+export function BrandCast({ client, path, detailed = false, campaignHref }: BrandCastProps) {
   const { members, archived, loadError, busy, actionError, build, act, manage, swap, makeIntros, reload, clearError } = useBrandCast(client, path);
   const [editing, setEditing] = useState<BrandCastMemberDto | null>(null);
   const [renaming, setRenaming] = useState<BrandCastMemberDto | null>(null);
@@ -126,7 +150,7 @@ export function BrandCast({ client, path, detailed = false }: BrandCastProps) {
   return (
     <div className="max-w-2xl space-y-3">
       <ul className={grid}>
-        {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} onAct={(a) => void act(m.id, a)} onNewFace={() => setEditing(m)} onEdit={() => setRenaming(m)} />)}
+        {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} campaignHref={campaignHref?.(m.id)} onAct={(a) => void act(m.id, a)} onNewFace={() => setEditing(m)} onEdit={() => setRenaming(m)} />)}
         {Array.from({ length: empty }, (_, i) => (
           <CreateAvatarCard key={`empty-${i}`} creating={busy === 'build' && i === 0} disabled={busy !== null} onCreate={() => void build(true)} />
         ))}
