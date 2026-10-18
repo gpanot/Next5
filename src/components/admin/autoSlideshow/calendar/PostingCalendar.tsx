@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import type { AutoRunDto } from '../../../../types/admin/autoSlideshow';
 import { isTerminalAutoStatus, MAX_SLIDESHOWS } from '../../../../types/admin/autoSlideshow';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
@@ -32,6 +32,7 @@ import { useBlitzOnCalendar } from './useBlitzOnCalendar';
 import { useCampaignsOnCalendar } from './useCampaignsOnCalendar';
 import { useCalendarView, usePins, useTargets } from './useCalendarStore';
 import { useIsWide } from './useIsWide';
+import { useLinkedApproval } from './useLinkedApproval';
 import { useLinkedDay } from './useLinkedDay';
 import { useMoveOnCalendar } from './useMoveOnCalendar';
 
@@ -163,6 +164,9 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const wide = useIsWide();
   const [view, setView] = useCalendarView();
   useLinkedDay(setView, rail.select);
+  // The Claude connector's approval link: its slideshows pinned on their days, then the approval sheet open.
+  const openAll = useCallback(() => setApproving(ALL), []);
+  useLinkedApproval({ pins, setPins, toApproveCount, openAll });
   const ideasOn = (day: PlanDay) => ui?.byDay.get(day.key) ?? [];
   const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day), run.startedAt);
   // A kept idea fills the soonest empty day (no slideshow, video or kept idea yet); only a full calendar stacks days.

@@ -12,13 +12,16 @@ import { enforceRateLimit } from '../../../../../src/server/rateLimit';
 import { HttpError } from '../../../../../src/server/http';
 import { BUSINESS_EMAIL_ONLY, emailKind } from '../../../../../src/lib/emailDomain';
 
+/** The only page a sign-in link may return to: Claude's connector consent screen, with its query. */
+const OAUTH_RETURN_PREFIX = '/oauth/authorize?';
+
 /** SIGNUP_EMAIL_ALLOWLIST (comma separated): personal emails that may still sign up, e.g. the team's test accounts. */
 const signupExempt = (email: string): boolean =>
   (process.env.SIGNUP_EMAIL_ALLOWLIST ?? '').split(',').some((e) => e.trim().toLowerCase() === email);
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, name, destination } = (await req.json()) as { email?: string; name?: string; destination?: 'app' | 'studio' | 'slideshow' };
+    const { email, name, destination, returnTo } = (await req.json()) as { email?: string; name?: string; destination?: 'app' | 'studio' | 'slideshow'; returnTo?: unknown };
     const trimmed = email?.trim().toLowerCase() ?? '';
     const displayName = typeof name === 'string' ? name.trim().replace(/\s+/g, ' ').slice(0, 80) : '';
 
@@ -52,7 +55,9 @@ export async function POST(req: NextRequest) {
     const token = signMagicToken(trimmed, displayName || undefined);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
     const path = destination === 'app' ? '/app' : destination === 'slideshow' ? '/slideshow/login' : '/studio';
-    const link = `${appUrl}${path}?token=${token}`;
+    // Connecting Claude: the link lands back on the consent screen with its OAuth query (that path only).
+    const back = typeof returnTo === 'string' && returnTo.startsWith(OAUTH_RETURN_PREFIX) && returnTo.length <= 2000 ? returnTo : null;
+    const link = back ? `${appUrl}${back}&token=${token}` : `${appUrl}${path}?token=${token}`;
 
     const reference = await sendEmail({
       to: trimmed,

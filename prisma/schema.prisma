@@ -2618,3 +2618,51 @@ model HookKnowledge {
 
   @@map("hook_knowledge")
 }
+
+/// Next5 for Claude (MCP connector): an OAuth client Claude registered itself as (Dynamic Client Registration).
+/// db/migrations/20261128090000_mcp_oauth.sql
+model McpOauthClient {
+  id           String   @id
+  clientName   String?  @map("client_name")
+  redirectUris String[] @default([]) @map("redirect_uris")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("mcp_oauth_clients")
+}
+
+/// A one-time sign-in code (10 minutes), exchanged for tokens with its PKCE verifier. Stored as a SHA-256 hash.
+model McpOauthCode {
+  codeHash      String    @id @map("code_hash")
+  clientId      String    @map("client_id")
+  userId        String    @map("user_id")
+  /// The workspace picked on the consent screen: the tools' default
+  workspaceId   String    @map("workspace_id")
+  redirectUri   String    @map("redirect_uri")
+  codeChallenge String    @map("code_challenge")
+  scope         String    @default("next5")
+  resource      String?
+  expiresAt     DateTime  @map("expires_at")
+  usedAt        DateTime? @map("used_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  @@map("mcp_oauth_codes")
+}
+
+/// One connection of Claude to a user's Next5: an access token (1 hour) and its refresh token (rotated on use).
+model McpOauthToken {
+  id               String    @id @default(cuid())
+  accessHash       String    @unique @map("access_hash")
+  refreshHash      String    @unique @map("refresh_hash")
+  clientId         String    @map("client_id")
+  userId           String    @map("user_id")
+  workspaceId      String    @map("workspace_id")
+  scope            String    @default("next5")
+  accessExpiresAt  DateTime  @map("access_expires_at")
+  refreshExpiresAt DateTime  @map("refresh_expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+  lastUsedAt       DateTime? @map("last_used_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  @@index([userId], map: "mcp_oauth_tokens_user_idx")
+  @@map("mcp_oauth_tokens")
+}

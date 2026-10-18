@@ -14,9 +14,10 @@ import { SLIDESHOW_HOME } from '../../admin/autoSlideshow/workspace/WorkspaceCon
 type Phase = { name: 'idle' } | { name: 'sending' } | { name: 'sent'; email: string } | { name: 'error'; message: string };
 
 /** `askName`: also ask the user's name (the home page's website flow); a plain log in asks only the email. */
-type Props = { notice?: string; destination?: 'app' | 'slideshow'; title?: ReactNode; askName?: boolean };
+/** `returnTo`: the page the emailed link opens instead of the destination's (only Claude's consent screen is accepted). */
+type Props = { notice?: string; destination?: 'app' | 'slideshow'; title?: ReactNode; askName?: boolean; returnTo?: string };
 
-export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to Next5', askName = false }: Props) => {
+export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to Next5', askName = false, returnTo }: Props) => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phase, setPhase] = useState<Phase>({ name: 'idle' });
@@ -27,7 +28,7 @@ export const SignInScreen = ({ notice, destination = 'app', title = 'Log in to N
     const res = await fetch('/api/auth/studio/magic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...(askName ? { name } : {}), email, destination }),
+      body: JSON.stringify({ ...(askName ? { name } : {}), email, destination, ...(returnTo ? { returnTo } : {}) }),
     }).catch(() => null);
     if (res?.ok) return setPhase({ name: 'sent', email: email.trim().toLowerCase() });
     // A refused email (personal inbox) says why; anything else gets the generic line.

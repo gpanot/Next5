@@ -16,6 +16,15 @@ const nextConfig: NextConfig = {
     // Slide renders read the store badge SVGs from public/ at runtime.
     '/api/**': ['./public/images/store-badges/**'],
   },
+  // OAuth discovery for the Claude connector (/api/mcp): the well-known documents are served by API routes.
+  async rewrites() {
+    return [
+      { source: '/.well-known/oauth-authorization-server', destination: '/api/oauth/metadata' },
+      { source: '/.well-known/oauth-authorization-server/:path*', destination: '/api/oauth/metadata' },
+      { source: '/.well-known/oauth-protected-resource', destination: '/api/oauth/protected-resource' },
+      { source: '/.well-known/oauth-protected-resource/:path*', destination: '/api/oauth/protected-resource' },
+    ];
+  },
   // Auto Slideshow is the site root; the realtor/TikTok Shop home moved to /TTZillow. Old links keep working.
   async redirects() {
     return [
