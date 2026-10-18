@@ -21,7 +21,7 @@ type Props = {
 
 /**
  * Over a rendered slide (its text already in the image): an invisible copy of the headline and the line under it, in
- * place, dragged together. While dragged, and while a drop or a new text style renders, the plain photo covers the image
+ * place, dragged together up and down only (it stays centered, as in the Hooks Volume editor). While dragged, and while a drop or a new text style renders, the plain photo covers the image
  * and the copy shows, as the campaign editor draws it: nothing waits.
  */
 export function RenderedTextOverlay({ slide, photoUrl, box, live, movable, onMove }: Props) {
@@ -48,6 +48,7 @@ export function RenderedTextOverlay({ slide, photoUrl, box, live, movable, onMov
         box={box}
         at={live?.textAt ?? slide.placedAt ?? slide.textAt ?? HOME_TEXT_AT}
         movable={movable}
+        verticalOnly
         hidden={!shown}
         onMove={onMove}
         onDragging={setDragging}

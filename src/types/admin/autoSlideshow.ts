@@ -118,6 +118,9 @@ export type AutoSlide = {
   look?: TextLook;
   /** Where the text was moved to by hand (the editors' drag); unset = its usual spot, off the photo's heads. */
   textAt?: TextAt;
+  /** Content slides: true when the text was unlocked to move alone. Unset = locked, so dragging it moves the text of
+   *  every locked content slide up or down with it. */
+  textFree?: boolean;
   /** The line under the headline's own look, picked apart from the headline's (`look`). Unset = plain white text. */
   bodyLook?: TextLook;
   /** CTA slides made from a campaign: the app store badges, in a centered row apart from the text. Unset = none. */
@@ -137,6 +140,18 @@ export type AutoPhotoDto = { index: number; prompt: string; url: string | null; 
 export type AutoSlideshowStatus = 'written' | 'rendering' | 'ready' | 'failed';
 
 export type AutoSlideDto = AutoSlide & { imageUrl: string | null };
+
+/** True for content slides (every slide but the hook and CTA). */
+export const isContentSlide = (slide: Pick<AutoSlide, 'role'>) => slide.role !== 'hook' && slide.role !== 'cta';
+
+/** The slides whose text moves when slide `index`'s text is dragged: every locked content slide when it is one, else
+ *  that slide alone. */
+export const linkedTextSlides = (slides: Pick<AutoSlide, 'role' | 'textFree'>[], index: number): number[] => {
+  const locked = (s: Pick<AutoSlide, 'role' | 'textFree'>) => isContentSlide(s) && !s.textFree;
+  const slide = slides[index];
+  if (!slide || !locked(slide)) return [index];
+  return slides.flatMap((s, i) => (locked(s) ? [i] : []));
+};
 
 /** A background track from the Assets Library; `url` plays in the browser. */
 /** `durationSec`: full track length, measured when the track was described; null when not described yet. */

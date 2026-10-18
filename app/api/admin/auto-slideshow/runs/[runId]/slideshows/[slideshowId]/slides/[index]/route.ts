@@ -1,6 +1,6 @@
 /**
- * PATCH /api/admin/auto-slideshow/runs/[runId]/slideshows/[slideshowId]/slides/[index] — { title?, body?, photoIndex?, textAt? }
- * Saves the edit and re-renders that slide only.
+ * PATCH /api/admin/auto-slideshow/runs/[runId]/slideshows/[slideshowId]/slides/[index] — { title?, body?, photoIndex?, textAt?, textFree? }
+ * Saves the edit and re-renders that slide only (a change of textFree alone renders nothing).
  * DELETE — removes that slide (a slideshow keeps at least 2).
  */
 import type { NextRequest } from 'next/server';

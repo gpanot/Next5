@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { isAdminView } from '../../../lib/adminToken';
-import type { AutoPhotoDto, AutoSlideshowDto, AutoTrackDto } from '../../../types/admin/autoSlideshow';
+import { isContentSlide, type AutoPhotoDto, type AutoSlideshowDto, type AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { CaptionPanel, SaveCaptionButton } from './CaptionPanel';
 import { MusicPicker } from './MusicPicker';
 import { PostPanel } from './posting/PostPanel';
@@ -13,6 +13,7 @@ import { PhotoPicker } from './PhotoPicker';
 import { SafeZoneButton, useSafeZone } from './SafeZone';
 import { PhotoToggle, SlideEditPanel } from './SlideEditPanel';
 import { roleGroup, SlideStrip } from './SlideStrip';
+import { TextLockButton } from './TextLockButton';
 import { TextStyleMenu } from './TextStyleMenu';
 import { RenderedTextOverlay } from './slideText/RenderedTextOverlay';
 import type { SlideTextProps } from './slideText/SlideTextView';
@@ -117,6 +118,14 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
         onMove={(at) => live.move(i, at)}
       />
     );
+  };
+
+  /** Content slides' text lock, once there are two content slides to lock together. */
+  const contentCount = show.slides.filter(isContentSlide).length;
+  const textLock = (i: number) => {
+    const s = show.slides[i];
+    if (!s || !isContentSlide(s) || contentCount < 2) return null;
+    return <TextLockButton locked={!s.textFree} onToggle={() => edit.setTextFree(i, !s.textFree)} />;
   };
 
   const remove = async () => {
@@ -246,7 +255,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
     >
       <EditorBody
         player={player}
-        strip={<SlideStrip slides={show.slides} index={slide} busy={busy} onPick={setSlide} textLayer={textLayer} />}
+        strip={<SlideStrip slides={show.slides} index={slide} busy={busy} onPick={setSlide} textLayer={textLayer} corner={textLock} />}
         main={panel}
         aside={
           <EditorAside title="Post and Schedule">

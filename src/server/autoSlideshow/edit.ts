@@ -4,7 +4,7 @@
 
 import type { AutoSlideshow, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import type { AutoPhoto, AutoPlan, AutoSlide, AutoStep } from '../../types/admin/autoSlideshow';
+import { linkedTextSlides, type AutoPhoto, type AutoPlan, type AutoSlide, type AutoStep } from '../../types/admin/autoSlideshow';
 import { isHookStyleId } from '../../types/hookStyle';
 import { isSlideLook, parseTextAt, type SlideLook, type TextAt } from '../../types/slideText';
 import type { BrandProfile } from '../../types/admin/companyIntel';
@@ -64,8 +64,9 @@ const renderInto = async (runId: string, showId: string, index: number, slide: A
 const saveSlides = (show: AutoSlideshow, slides: AutoSlide[]) =>
   prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(slides), status: 'ready', error: null } });
 
-/** `textAt`: where the text (headline and the line under it) was dragged to; null puts it back on its usual spot. */
-export type SlidePatch = { title?: unknown; body?: unknown; photoIndex?: unknown; textAt?: unknown; };
+/** `textAt`: where the text (headline and the line under it) was dragged to; null puts it back on its usual spot.
+ *  `textFree`: a content slide's text unlocked from the others (true) or locked back (false). */
+export type SlidePatch = { title?: unknown; body?: unknown; photoIndex?: unknown; textAt?: unknown; textFree?: unknown };
 
 /** A dragged text position; null (back to the usual spot) is undefined, which drops out of the saved JSON. */
 const spotOf = (value: unknown): TextAt | undefined => {
@@ -89,6 +90,17 @@ export const updateSlide = async (runId: string, showId: string, index: number, 
   if (!slide) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
   const photos = photosOf(show.run);
   const next = { ...slide };
+  if (patch.textFree !== undefined) {
+    if (typeof patch.textFree !== 'boolean') throw new HttpError(400, 'bad_text_free', 'The text lock must be on or off.');
+    // False drops out of the saved JSON: locked is the default.
+    next.textFree = patch.textFree || undefined;
+  }
+  // Only the lock changed: nothing to render again.
+  if (Object.keys(patch).every((k) => k === 'textFree')) {
+    slides[index] = next;
+    await saveSlides(show, slides);
+    return;
+  }
   if (patch.title !== undefined) {
     if (typeof patch.title !== 'string' || !patch.title.trim()) throw new HttpError(400, 'bad_title', 'The headline cannot be empty.');
     next.title = patch.title.trim().slice(0, 120);
@@ -103,6 +115,22 @@ export const updateSlide = async (runId: string, showId: string, index: number, 
   }
   if (patch.textAt !== undefined) next.textAt = spotOf(patch.textAt);
   slides[index] = await renderInto(runId, showId, index, next, photos, new Map(), styleOf(show.run));
+  await saveSlides(show, slides);
+};
+
+/** Text dragged on one slide, kept centered: every locked content slide's text moves to the same height when it is
+ *  one of them (linkedTextSlides), else that slide alone. Each moved slide renders again. */
+export const moveText = async (runId: string, showId: string, index: unknown, at: unknown): Promise<void> => {
+  const show = await loadShow(runId, showId);
+  const slides = show.slides as unknown as AutoSlide[];
+  if (!Number.isInteger(index) || !slides[index as number]) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
+  const spot = spotOf(at);
+  if (!spot) throw new HttpError(400, 'bad_text_at', 'The text position must be inside the slide.');
+  const photos = photosOf(show.run);
+  const cache: PhotoCache = new Map();
+  for (const i of linkedTextSlides(slides, index as number)) {
+    slides[i] = await renderInto(runId, showId, i, { ...slides[i]!, textAt: { x: 0.5, y: spot.y } }, photos, cache, styleOf(show.run));
+  }
   await saveSlides(show, slides);
 };
 
