@@ -4,6 +4,7 @@ import { Sheet } from '../ui/Sheet';
 import type { ProspectViewDay } from '../../types/admin/prospects';
 import { dayLabel, KIND_LABEL, postTime } from './postLabels';
 import { SlidePlayer } from './SlidePlayer';
+import { WhyThis } from './WhyThis';
 
 /** One post, full size (the video plays, a slideshow swipes), its caption and day, and the way to claim it. */
 export function PostSheet({ day, onClose }: { day: ProspectViewDay | null; onClose: () => void }) {
@@ -36,6 +37,7 @@ export function PostSheet({ day, onClose }: { day: ProspectViewDay | null; onClo
             <button type="button" onClick={claim} className="inline-flex min-h-[50px] w-full items-center justify-center rounded-full bg-app-ink px-6 font-semibold text-app-bg transition active:scale-[0.98]">
               Claim to get this post
             </button>
+            {day.why && <WhyThis why={day.why} />}
           </div>
         </div>
       )}

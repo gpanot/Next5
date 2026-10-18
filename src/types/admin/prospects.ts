@@ -43,6 +43,9 @@ export type ProspectPackDto = {
   claimedAt: string | null;
 };
 
+/** "Why this one?" in the post sheet: the same reasons the Ideas deck shows on a card (its whyPanel). */
+export type ProspectWhy = { audience: string; hook: string; hookReason: string; story: Array<{ label: string; text: string }>; proof: string };
+
 /** One day on the public page. */
 export type ProspectViewDay = {
   day: number;
@@ -56,6 +59,7 @@ export type ProspectViewDay = {
   /** Blitz: the video's length in seconds, when known. */
   durationSec: number | null;
   caption: string;
+  why: ProspectWhy | null;
 };
 
 /** GET /api/prospect/[token]. `heldUntil`: when the preview offer ends (7 days after the pack was made). */
