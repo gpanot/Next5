@@ -16,7 +16,8 @@ function reapiKey(): string {
   return key;
 }
 
-async function reapiRequest<T>(
+/** Direct reAPI call on our own key. Also used by UGC Clone for models treg doesn't list (Seedance Mini). */
+export async function reapiRequest<T>(
   method: 'GET' | 'POST',
   path: string,
   body?: unknown,
@@ -39,14 +40,14 @@ async function reapiRequest<T>(
     try {
       json = JSON.parse(text) as Record<string, unknown>;
     } catch {
-      throw new Error(`reapi Wan3 ${method} ${path}: HTTP ${res.status} ${text.slice(0, 200)}`);
+      throw new Error(`reapi ${method} ${path}: HTTP ${res.status} ${text.slice(0, 200)}`);
     }
     if (!res.ok) {
       const msg =
         typeof json?.message === 'string' ? json.message
         : typeof json?.error === 'string' ? json.error
         : res.statusText;
-      throw new Error(`reapi Wan3 ${method} ${path}: ${msg}`);
+      throw new Error(`reapi ${method} ${path}: ${msg}`);
     }
     return json as T;
   } finally {

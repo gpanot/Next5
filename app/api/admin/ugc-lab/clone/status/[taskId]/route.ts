@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../../../src/server/admin/route';
-import { getCloneVideoByTaskId } from '../../../../../../../src/server/admin/cloneVideos';
-import { tregCall } from '../../../../../../../src/server/admin/ugcLab';
+import { getCloneVideoByTaskId, getReapiTask } from '../../../../../../../src/server/admin/cloneVideos';
 
 type RreapiTaskResult = {
   id?: string;
@@ -43,10 +42,8 @@ export const GET = adminRoute(async (_req: NextRequest, { params }: { params: Pr
 
   // ── Path 2: orphan task not in DB — poll reapi directly ──────────────────
   try {
-    const result = await tregCall<RreapiTaskResult>('reapi.tasks.get', {
-      query: { id: taskId },  // reapi path param is `id`, NOT `task_id`
-      timeoutMs: 30_000,
-    });
+    // Unknown model: try treg's key (Seedance 2.5) first, then ours (Mini).
+    const result: RreapiTaskResult = await getReapiTask(taskId).catch(() => getReapiTask(taskId, 'seedance-2.0-mini'));
 
     const status  = result.status ?? 'processing';
     const videoUrl =

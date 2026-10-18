@@ -6,11 +6,11 @@
  * URL so the preview appears before the round trip finishes.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { errorOf } from '../labClient';
 import { useLabClient } from '../LabClientProvider';
 import type { ResearchVideo } from '../ugcLab/researchCache';
-import { readVideoDuration, type CloneDuration, type CloneUpload, type CloneVoice } from './cloneConfig';
+import { readVideoDuration, UPLOAD_CAP_SEC, type CloneUpload, type CloneVoice } from './cloneConfig';
 
 type UploadResponse = {
   key?: string;
@@ -25,8 +25,6 @@ type UploadResponse = {
 };
 
 type Options = {
-  /** The duration the reference video is trimmed to. */
-  maxDurationSec: CloneDuration;
   /** A voice was added or removed — the prompt may need to change. */
   onVoiceChanged?: (hasVoice: boolean) => void;
   /** A reference video was pulled from a researched URL rather than uploaded. */
@@ -37,7 +35,7 @@ const revoke = (url: string | undefined) => {
   if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
 };
 
-export function useCloneUploads({ maxDurationSec, onVoiceChanged, onSourcedFromUrl }: Options) {
+export function useCloneUploads({ onVoiceChanged, onSourcedFromUrl }: Options) {
   const client = useLabClient();
 
   const [character, setCharacter] = useState<CloneUpload | null>(null);
@@ -54,8 +52,6 @@ export function useCloneUploads({ maxDurationSec, onVoiceChanged, onSourcedFromU
 
   /** Set while a researched video is being downloaded, so its card can show a spinner. */
   const [sourceLoadingId, setSourceLoadingId] = useState<string | null>(null);
-  /** The last picked video file, so changing the duration cap can re-upload and re-trim it. */
-  const videoFileRef = useRef<File | null>(null);
 
   const post = useCallback(
     (path: string, init: { form?: FormData; json?: unknown }) =>
@@ -81,32 +77,32 @@ export function useCloneUploads({ maxDurationSec, onVoiceChanged, onSourcedFromU
     }
   }, [post]);
 
-  const uploadVideo = useCallback(async (file: File, capSec?: CloneDuration) => {
+  /** Keeps up to UPLOAD_CAP_SEC; the duration step decides how much of it is used. */
+  const uploadVideo = useCallback(async (file: File) => {
     setVideoBusy(true);
     setVideoError('');
     const durationSec = await readVideoDuration(file);
     const form = new FormData();
     form.append('file', file);
     form.append('purpose', 'video');
-    form.append('maxDuration', String(capSec ?? maxDurationSec));
+    form.append('maxDuration', String(UPLOAD_CAP_SEC));
     const res = await post('/ugc-lab/clone/upload', { form });
     setVideoBusy(false);
     if (res?.ok && res.data.key && res.data.vendorUrl) {
-      videoFileRef.current = file;
       setRefVideo((prev) => {
         revoke(prev?.previewUrl);
         return {
           key: res.data.key!,
           vendorUrl: res.data.vendorUrl!,
           previewUrl: URL.createObjectURL(file),
-          durationSec,
+          durationSec: Math.min(durationSec, UPLOAD_CAP_SEC),
           frameVendorUrl: res.data.frameVendorUrl,
         };
       });
     } else {
       setVideoError(res ? errorOf(res) : 'Upload failed');
     }
-  }, [post, maxDurationSec]);
+  }, [post]);
 
   const uploadVoice = useCallback(async (file: File) => {
     setVoiceBusy(true);
@@ -142,11 +138,10 @@ export function useCloneUploads({ maxDurationSec, onVoiceChanged, onSourcedFromU
     setSourceLoadingId(video.id);
     setVideoError('');
     const res = await post('/ugc-lab/clone/source-from-url', {
-      json: { videoUrl: video.video_url, maxDuration: maxDurationSec },
+      json: { videoUrl: video.video_url, maxDuration: UPLOAD_CAP_SEC },
     });
     setSourceLoadingId(null);
     if (res?.ok && res.data.key && res.data.vendorUrl) {
-      videoFileRef.current = null;
       setRefVideo((prev) => {
         revoke(prev?.previewUrl);
         return {
@@ -154,7 +149,7 @@ export function useCloneUploads({ maxDurationSec, onVoiceChanged, onSourcedFromU
           vendorUrl: res.data.vendorUrl!,
           // No local blob for a sourced video — the editor shows a badge instead of a player.
           previewUrl: '',
-          durationSec: res.data.durationSeconds,
+          durationSec: res.data.durationSeconds ? Math.min(res.data.durationSeconds, UPLOAD_CAP_SEC) : undefined,
           frameVendorUrl: res.data.frameVendorUrl,
         };
       });
@@ -162,18 +157,12 @@ export function useCloneUploads({ maxDurationSec, onVoiceChanged, onSourcedFromU
     } else {
       setVideoError(res ? errorOf(res) : 'Failed to download the TikTok video. Please try again.');
     }
-  }, [post, maxDurationSec, onSourcedFromUrl]);
-
-  /** Re-upload the picked video so the server trims it to a newly chosen cap. */
-  const retrimVideo = useCallback((capSec: CloneDuration) => {
-    if (videoFileRef.current) void uploadVideo(videoFileRef.current, capSec);
-  }, [uploadVideo]);
+  }, [post, onSourcedFromUrl]);
 
   const reset = useCallback(() => {
     setCharacter((prev) => { revoke(prev?.previewUrl); return null; });
     setRefVideo((prev) => { revoke(prev?.previewUrl); return null; });
     setVoice((prev) => { revoke(prev?.previewUrl); return null; });
-    videoFileRef.current = null;
     setCharacterError('');
     setVideoError('');
     setVoiceError('');
@@ -181,7 +170,7 @@ export function useCloneUploads({ maxDurationSec, onVoiceChanged, onSourcedFromU
 
   return {
     character, characterBusy, characterError, uploadCharacter,
-    refVideo, videoBusy, videoError, uploadVideo, retrimVideo,
+    refVideo, videoBusy, videoError, uploadVideo,
     voice, voiceBusy, voiceError, uploadVoice, removeVoice,
     sourceFromUrl, sourceLoadingId,
     reset,

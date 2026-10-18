@@ -1,24 +1,12 @@
 'use client';
 
-/** The choices that shape the request: mode, duration, prompt and whether audio is generated. */
+/** The prompt and whether audio is generated. The mode and the duration have their own steps. */
 
 import { Section } from '../ugcLab/ui';
-import {
-  estimateCost,
-  getDefaultPrompt,
-  MAX_DURATION_OPTIONS,
-  MODE_CONFIG,
-  PROMPTS,
-  type CloneDuration,
-  type CloneMode,
-} from './cloneConfig';
+import { getDefaultPrompt, PROMPTS, type CloneMode } from './cloneConfig';
 
 type Props = {
   mode: CloneMode;
-  onModeChange: (mode: CloneMode) => void;
-
-  maxDurationSec: CloneDuration;
-  onDurationChange: (seconds: CloneDuration) => void;
 
   prompt: string;
   onPromptChange: (prompt: string) => void;
@@ -31,73 +19,19 @@ type Props = {
 };
 
 export function CloneOptionsPanel({
-  mode, onModeChange,
-  maxDurationSec, onDurationChange,
+  mode,
   prompt, onPromptChange, onPromptReset, hasVoice,
   generateAudio, onGenerateAudioChange,
 }: Props) {
-  const config = MODE_CONFIG[mode];
-
   return (
     <>
-      <Section title="UGC Clone" description="Pick a mode, then follow the steps below">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {(['face-swap', 'video-update'] as CloneMode[]).map((m) => {
-            const c = MODE_CONFIG[m];
-            const active = mode === m;
-            return (
-              <button
-                key={m}
-                type="button"
-                onClick={() => onModeChange(m)}
-                className={`flex flex-col items-start gap-1.5 rounded-xl border-2 p-4 text-left transition-colors ${
-                  active ? 'border-ink bg-ink text-white' : 'border-line bg-white text-ink hover:bg-surface-alt'
-                }`}
-              >
-                <span className="text-[14px] font-semibold">{c.label}</span>
-                <span className={`font-mono text-[10px] ${active ? 'text-white/60' : 'text-muted'}`}>{c.model}</span>
-                <span className={`text-[11px] leading-snug ${active ? 'text-white/80' : 'text-muted'}`}>{c.hint}</span>
-              </button>
-            );
-          })}
-        </div>
-        {config.billingNote && (
-          <p className="mt-2 rounded-lg bg-orange-50 px-3 py-2 text-[12px] text-orange-800">{config.billingNote}</p>
-        )}
-      </Section>
-
       <Section
-        title="1 · Duration"
+        title="4 · Prompt"
         description={
           mode === 'face-swap'
-            ? 'Reference video is trimmed to this length — output matches the trimmed input'
-            : 'How many seconds to generate — sent explicitly to the API'
-        }
-      >
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
-          {MAX_DURATION_OPTIONS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => onDurationChange(s)}
-              className={`flex flex-col items-center justify-center rounded-xl border py-3 text-[13px] font-medium transition-colors ${
-                maxDurationSec === s ? 'border-ink bg-ink text-white' : 'border-line bg-white text-ink hover:bg-surface-alt'
-              }`}
-            >
-              <span className="text-[15px] font-semibold">{s}s</span>
-              <span className={`text-[11px] ${maxDurationSec === s ? 'text-white/70' : 'text-muted'}`}>
-                ≈ {estimateCost(s)}
-              </span>
-            </button>
-          ))}
-        </div>
-      </Section>
-
-      <Section
-        title="5 · Prompt"
-        description={
-          mode === 'face-swap'
-            ? 'Uses @Image1 (character) and @Video1 (reference) — editing mode, duration: -1'
+            ? 'Uses @Image1 (character) and @Video1 (reference) — reference mode, duration = clip length'
+            : mode === 'mini-swap'
+            ? 'Uses @Image1 (character) and @Video1 (reference) — sent as reference_image_urls / reference_video_urls'
             : 'Uses @Image1 (character) only — generation mode, explicit duration'
         }
       >
@@ -135,7 +69,10 @@ export function CloneOptionsPanel({
         </div>
       </Section>
 
-      <Section title="6 · Original sound" description="Controls generate_audio in the API call">
+      <Section
+        title="5 · Original sound"
+        description="Controls generate_audio in the API call"
+      >
         <button
           type="button"
           role="switch"

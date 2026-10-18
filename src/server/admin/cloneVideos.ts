@@ -1,20 +1,31 @@
 // server-only — never import from a 'use client' file.
-// UGC Clone video lifecycle: persist reapi (Seedance) task in DB, mirror the finished video to R2.
+// UGC Clone video lifecycle: persist reapi (Seedance or Kling) task in DB, mirror the finished video to R2.
 
 import type { CloneVideo } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
 import { browserUrl, deleteFiles, mirrorFile, vendorUrl } from './ugcStore';
 import { tregCall } from './ugcLab';
+import { reapiRequest } from './wan3Provider';
 import { scopedKey, type LabScope } from '../labs/scope';
 
 // ── Cost ────────────────────────────────────────────────────────────────────
 
-const SEEDANCE_USD_PER_SECOND = 0.59 / 5; // doubao-seedance-2.5-face 480p via reapi
+// reAPI bills any Seedance request with a reference video on source + output seconds at the
+// "uploaded video" rate, so a swap costs ~2 × that rate per second of clip. Confirmed on real tasks:
+// Seedance 2.5 480p 5 s = 712 credits, 20 s = 2,847 (2026-10-17); Mini 720p 5 s ≈ $0.48.
+const USD_PER_SECOND: Record<string, number> = {
+  'seedance-2.0-mini':       0.048 * 2,
+};
+const SEEDANCE_25_USD_PER_SECOND = 0.072 * 2;
 
-/** Estimated cost in micros (millionths of a dollar). */
-const estimateMicros = (durationSec: number): number =>
-  Math.round(SEEDANCE_USD_PER_SECOND * durationSec * 1_000_000);
+/** Models treg doesn't list, so they run on our own reAPI key. Kling stays for old library rows (mode removed 2026-10-17). */
+export const isDirectReapiModel = (model?: string | null) =>
+  Boolean(model && (model.startsWith('kling') || model === 'seedance-2.0-mini'));
+
+/** Estimated cost in micros (millionths of a dollar). Replaced by the real credits once the task ends. */
+const estimateMicros = (durationSec: number, model?: string): number =>
+  Math.round((USD_PER_SECOND[model ?? ''] ?? SEEDANCE_25_USD_PER_SECOND) * durationSec * 1_000_000);
 
 // ── R2 keys ─────────────────────────────────────────────────────────────────
 
@@ -34,18 +45,29 @@ type RreapiTaskResult = {
     video_url?: string;
   };
   error?: string | { message?: string };
+  /** 1 credit = $0.001 — what reAPI actually charged. */
+  usage?: { credits?: number };
 };
 
 type TaskResult =
   | { state: 'running'; progress: number }
-  | { state: 'done'; videoUrl: string }
-  | { state: 'failed'; error: string };
+  | { state: 'done'; videoUrl: string; costMicros?: number }
+  | { state: 'failed'; error: string; costMicros?: number };
 
-async function checkReapi(taskId: string): Promise<TaskResult> {
-  const result = await tregCall<RreapiTaskResult>('reapi.tasks.get', {
+/** Seedance 2.5 runs on treg's reAPI key; Seedance Mini (and old Kling rows) run on ours. */
+export async function getReapiTask(taskId: string, model?: string | null): Promise<RreapiTaskResult> {
+  if (isDirectReapiModel(model)) {
+    return reapiRequest<RreapiTaskResult>('GET', `/tasks/${taskId}`, undefined, 30_000);
+  }
+  return tregCall<RreapiTaskResult>('reapi.tasks.get', {
     query: { id: taskId },   // reapi path param is `id`, NOT `task_id`
     timeoutMs: 30_000,
   });
+}
+
+async function checkReapi(taskId: string, model?: string | null): Promise<TaskResult> {
+  const result = await getReapiTask(taskId, model);
+  const costMicros = typeof result.usage?.credits === 'number' ? result.usage.credits * 1_000 : undefined;
 
   const status = result.status ?? '';
 
@@ -55,7 +77,7 @@ async function checkReapi(taskId: string): Promise<TaskResult> {
       result.output?.video_url ??
       '';
     if (!videoUrl) return { state: 'failed', error: 'reapi completed but returned no video URL.' };
-    return { state: 'done', videoUrl };
+    return { state: 'done', videoUrl, costMicros };
   }
 
   if (status === 'failed') {
@@ -63,7 +85,7 @@ async function checkReapi(taskId: string): Promise<TaskResult> {
       typeof result.error === 'string'
         ? result.error
         : result.error?.message ?? 'reapi generation failed.';
-    return { state: 'failed', error: errMsg };
+    return { state: 'failed', error: errMsg, costMicros };
   }
 
   return { state: 'running', progress: 0 };
@@ -96,7 +118,7 @@ export async function createCloneJob(opts: {
       model,
       resolution,
       prompt,
-      costUsdMicros: estimateMicros(durationSec),
+      costUsdMicros: estimateMicros(durationSec, model),
       submittedAt: new Date(),
     },
   });
@@ -108,14 +130,14 @@ export async function refreshCloneVideo(video: CloneVideo): Promise<CloneVideo> 
 
   let result: TaskResult;
   try {
-    result = await checkReapi(video.poyoTaskId);
+    result = await checkReapi(video.poyoTaskId, video.model);
   } catch (err) {
     console.warn('[clone] reapi status check failed for', video.id, err);
     return video;
   }
 
   if (result.state === 'failed') {
-    return upd(video.id, { status: 'failed', error: result.error });
+    return upd(video.id, { status: 'failed', error: result.error, ...(result.costMicros !== undefined && { costUsdMicros: result.costMicros }) });
   }
 
   if (result.state === 'running') return video;
@@ -137,6 +159,7 @@ export async function refreshCloneVideo(video: CloneVideo): Promise<CloneVideo> 
     status: 'ready',
     rawKey: key,
     completedAt: new Date(),
+    ...(result.costMicros !== undefined && { costUsdMicros: result.costMicros }),
   });
 }
 

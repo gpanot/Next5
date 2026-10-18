@@ -28,7 +28,7 @@ export function DropZone({ title, subtitle, accept, busy, onFile, children }: Pr
       <p className="text-[12px] text-muted">{subtitle}</p>
       {children ?? (
         <label
-          className={`mx-auto inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 ${busy ? 'pointer-events-none opacity-40' : ''}`}
+          className={`relative mx-auto inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2 text-[13px] font-medium text-white transition-opacity hover:opacity-90 ${busy ? 'pointer-events-none opacity-40' : ''}`}
         >
           {busy ? <><Spinner /> Uploading…</> : 'Choose file'}
           <input type="file" accept={accept} className="sr-only" disabled={busy} onChange={handleChange} />
@@ -42,7 +42,7 @@ export function DropZone({ title, subtitle, accept, busy, onFile, children }: Pr
 export function ReplaceButton({ accept, busy, onFile }: { accept: string; busy: boolean; onFile: (file: File) => void }) {
   return (
     <label
-      className={`inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-ink transition-colors hover:bg-surface-alt ${busy ? 'pointer-events-none opacity-40' : ''}`}
+      className={`relative inline-flex min-h-9 cursor-pointer items-center justify-center gap-2 rounded-lg border border-line bg-white px-3 py-1.5 text-[12px] text-ink transition-colors hover:bg-surface-alt ${busy ? 'pointer-events-none opacity-40' : ''}`}
     >
       {busy ? <><Spinner /> Uploading…</> : 'Replace'}
       <input
