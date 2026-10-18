@@ -1,30 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { Sheet } from '../ui/Sheet';
 import type { ProspectViewDay } from '../../types/admin/prospects';
 import { dayLabel, KIND_LABEL, postTime } from './postLabels';
-
-/** A slideshow, swiped like on TikTok: one slide per screen, snapping, with a dot per slide. */
-function Slides({ slides }: { slides: string[] }) {
-  const [current, setCurrent] = useState(0);
-  return (
-    <div className="space-y-2">
-      <div
-        onScroll={(e) => setCurrent(Math.round(e.currentTarget.scrollLeft / Math.max(1, e.currentTarget.clientWidth)))}
-        className="flex aspect-[9/16] w-full snap-x snap-mandatory overflow-x-auto rounded-[18px] bg-black [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {slides.map((src, i) => (
-          // eslint-disable-next-line @next/next/no-img-element -- signed R2 links that expire
-          <img key={src} src={src} alt={`Slide ${i + 1} of ${slides.length}`} className="h-full w-full shrink-0 snap-center object-contain" />
-        ))}
-      </div>
-      <div className="flex justify-center gap-1.5" aria-hidden>
-        {slides.map((src, i) => <span key={src} className={`h-1.5 rounded-full transition-all ${i === current ? 'w-4 bg-app-ink' : 'w-1.5 bg-app-line'}`} />)}
-      </div>
-    </div>
-  );
-}
+import { SlidePlayer } from './SlidePlayer';
 
 /** One post, full size (the video plays, a slideshow swipes), its caption and day, and the way to claim it. */
 export function PostSheet({ day, onClose }: { day: ProspectViewDay | null; onClose: () => void }) {
@@ -45,7 +24,7 @@ export function PostSheet({ day, onClose }: { day: ProspectViewDay | null; onClo
             {day.videoUrl ? (
               <video src={day.videoUrl} controls autoPlay playsInline className="aspect-[9/16] w-full rounded-[18px] bg-black object-contain" />
             ) : (
-              <Slides slides={day.slides} />
+              <SlidePlayer key={day.day} slides={day.slides} />
             )}
           </div>
           <div>
