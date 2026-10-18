@@ -1,12 +1,12 @@
 // server-only — never import from a 'use client' file.
 //
 // Stock photo fallback for story shots, for workspaces that have not paid yet (shotImages.ts): no AI image, the shot
-// the library could not cover gets a Pexels stock photo (scraped: campaign/pexels.ts) searched with words from its photo
+// the library could not cover gets an Unsplash photo (campaign/unsplash.ts) searched with words from its photo
 // description. Each photo is saved as a normal library asset (generatedAssets.ts storeShotAsset), so the next deck finds
-// it by search like any other. Not Unsplash: its API rules ask for hotlinked photos and a visible credit wherever one
-// shows, which a shared library copy cannot give; Unsplash stays in the campaign photo picker.
+// it by search like any other. Unsplash since 2026-10-18 (the user's pick): the Pexels scraper behind treg ran out of
+// capacity. Its download is reported to Unsplash as its API rules ask; searches are cached, as the app has 50 calls an hour.
 
-import { downloadPexels, searchPexels } from '../../autoSlideshow/campaign/pexels';
+import { unsplashResults } from '../../autoSlideshow/campaign/unsplash';
 import { storeShotAsset, type ImageNeed, type ShotImageFile } from './generatedAssets';
 import type { LibraryAsset } from './library';
 
@@ -28,22 +28,19 @@ export const stockQuery = (need: ImageNeed): string =>
     .join(' ');
 
 /** Photos already given in this batch, so two shots never get the same stock photo. */
-export type StockUsed = { pexels: Set<string> };
+export type StockUsed = { ids: Set<string> };
 
-export const newStockUsed = (): StockUsed => ({ pexels: new Set() });
+export const newStockUsed = (): StockUsed => ({ ids: new Set() });
 
-const fromPexels = async (query: string, used: StockUsed): Promise<ShotImageFile> => {
-  const photo = (await searchPexels(query)).find((p) => !used.pexels.has(p.id));
-  if (!photo) throw new Error(`no Pexels photo for "${query}"`);
-  used.pexels.add(photo.id);
-  return { buffer: await downloadPexels(photo.id), ext: 'jpg', contentType: 'image/jpeg', description: photo.label, source: 'scraped', model: 'pexels' };
-};
-
-/** One shot's stock photo. Throws when Pexels has none. */
+/** One shot's stock photo: the first search result no other shot of the batch took. Throws when there is none. */
 const stockFile = async (need: ImageNeed, used: StockUsed): Promise<ShotImageFile> => {
   const query = stockQuery(need);
   if (!query) throw new Error(`no search words for ${need.key}`);
-  return fromPexels(query, used);
+  const photo = (await unsplashResults(query)).find((p) => !used.ids.has(p.id));
+  if (!photo) throw new Error(`no Unsplash photo for "${query}"`);
+  used.ids.add(photo.id);
+  const file = await photo.download();
+  return { buffer: file.bytes, ext: 'jpg', contentType: 'image/jpeg', description: photo.label, source: 'scraped', model: 'unsplash' };
 };
 
 /**

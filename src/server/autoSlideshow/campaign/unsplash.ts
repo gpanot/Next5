@@ -1,5 +1,6 @@
 // server-only — never import from a 'use client' file.
-// Unsplash stock photos for the campaign photo picker and Auto content (Pexels closed its API). Needs UNSPLASH_API_KEY
+// Unsplash stock photos for the campaign photo picker, Auto content and free Blitz story shots
+// (slideshow/core/stockImages.ts; Pexels closed its API and its scraper was dropped 2026-10-18). Needs UNSPLASH_API_KEY
 // (the app's Access Key; UNSPLASH_ACCESS_KEY also works). The app is limited to 50 API calls an hour, so searches are
 // kept for 10 minutes and Auto uses a search result as it is (no second call for the photo).
 // Unsplash's API rules this follows: photos shown from Unsplash's URLs (the picker, and attached photos: `hotlink`; our
@@ -95,3 +96,10 @@ export const searchedUnsplashPhoto = async (query: string, nth: number): Promise
   if (!photo) throw new HttpError(404, 'no_stock_photo', `No stock photo found for "${query}". Pick one by hand.`);
   return download(photo);
 };
+
+/** One search result for the Blitz stock shots: its id, its description, and its download (reported to Unsplash). */
+export type UnsplashResult = { id: string; label: string; download: () => Promise<Downloaded> };
+
+/** The first page of portrait results for `query` (cached 10 minutes, so shots of a batch share searches). */
+export const unsplashResults = async (query: string): Promise<UnsplashResult[]> =>
+  (await searchPage(query, 1)).results.map((p) => ({ id: p.id, label: p.alt_description ?? query, download: () => download(p) }));
