@@ -91,11 +91,11 @@ export function HowItWorks() {
 }
 
 /** Questions, with the price from the app's own pricing. */
-export function LeadFaq({ name, price }: { name: string; price: string }) {
+export function LeadFaq({ name, price, freeDays }: { name: string; price: string; freeDays: number }) {
   const items = [
     { q: 'Do I need to film anything?', a: 'No. The posts are built from your website and short formats that already get views. You can add your own photos later if you want.' },
     { q: 'Who writes the captions?', a: 'We do, for each post, with a day to post it. You can change any of them before they go out.' },
-    { q: 'What happens after these posts?', a: `Nothing, unless you want more. Each new post is ${price}. There is no plan to cancel.` },
+    { q: 'What does it cost?', a: `Your first ${freeDays} days of posts are free. After that, each post is ${price}. Pay as you go, with no subscription.` },
     { q: 'Why did I get this?', a: `We saw ${name} online and made these posts to show what we do. If you would rather not hear from us, reply "stop" and we won't contact you again.` },
   ];
   return (
