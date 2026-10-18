@@ -14,6 +14,7 @@ import type { DeckItem } from '../slideshow/core/deckAssembly';
 import { IDEA_DAYS, IDEAS_PER_BATCH, type IdeaDto } from '../../types/admin/calendarIdeas';
 import { BLITZ_LIVE } from '../../types/admin/blitzSchedule';
 import { buildIdeaRenderBody, carouselTemplateId } from './ideaRender';
+import { brandOf, fillMissingPhotos, missingPhotos } from './ideaPhotos';
 import { approvalPath, localTime, windowOf, type IdeaView } from './plannerFormat';
 import type { McpCaller } from './oauthStore';
 
@@ -163,12 +164,21 @@ export async function addToCalendar(caller: McpCaller, picks: CalendarPick[], wo
   };
 }
 
+/** The ideas' cards, with a photo on every shot (Claude can't pick a background: ideaPhotos.ts), all at once. */
+async function withPhotos(ws: Ws, videos: IdeaDto[]): Promise<Array<DeckItem | null>> {
+  const cards = videos.map((i) => i.card as DeckItem | null);
+  if (!cards.some((c) => c && !c.finishing && missingPhotos(c).length > 0)) return cards;
+  const brand = await brandOf(ws.id, ws.name);
+  return Promise.all(cards.map((c, n) => (c && !c.finishing && missingPhotos(c).length > 0 ? fillMissingPhotos(videos[n]!.id, c, ws.id, brand) : c)));
+}
+
 /** Schedules kept video ideas as `planned` posts, one by one: each checks its day still has room. */
 async function scheduleVideos(ws: Ws, userId: string, videos: IdeaDto[], done: (i: IdeaDto) => void, fail: (id: string) => (err: unknown) => void) {
   if (videos.length === 0) return;
-  const templateId = await carouselTemplateId();
-  for (const idea of videos) {
-    const built = templateId && idea.card ? buildIdeaRenderBody(idea.card as DeckItem, idea.id, templateId) : { error: 'No video template is set up.' };
+  const [templateId, cards] = await Promise.all([carouselTemplateId(), withPhotos(ws, videos)]);
+  for (const [n, idea] of videos.entries()) {
+    const card = cards[n];
+    const built = templateId && card ? buildIdeaRenderBody(card, idea.id, templateId) : { error: 'No video template is set up.' };
     if ('error' in built) {
       fail(idea.id)(new Error(built.error));
       continue;

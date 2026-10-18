@@ -37,6 +37,8 @@ vi.mock('../../../src/server/mcp/ideaRender', () => ({
   buildIdeaRenderBody: () => ({ body: {} }),
 }));
 
+vi.mock('../../../src/server/mcp/ideaPhotos', () => ({ missingPhotos: () => [], brandOf: vi.fn(), fillMissingPhotos: vi.fn() }));
+
 import { addToCalendar } from '../../../src/server/mcp/planner';
 
 const caller = { userId: 'user_1', defaultWorkspaceId: 'ws_1' } as Parameters<typeof addToCalendar>[0];
