@@ -12,8 +12,11 @@ import { enforceRateLimit } from '../../../../../src/server/rateLimit';
 import { HttpError } from '../../../../../src/server/http';
 import { BUSINESS_EMAIL_ONLY, emailKind } from '../../../../../src/lib/emailDomain';
 
-/** The only page a sign-in link may return to: Claude's connector consent screen, with its query. */
+/** The pages a sign-in link may return to, with their query: Claude's connector consent screen, and a Prospect Pack's
+ *  review page claiming its posts (/p/<token>?claim=1). */
 const OAUTH_RETURN_PREFIX = '/oauth/authorize?';
+const PROSPECT_RETURN = /^\/p\/[\w-]{16,64}\?claim=1$/;
+const isReturnPath = (v: unknown): v is string => typeof v === 'string' && v.length <= 2000 && (v.startsWith(OAUTH_RETURN_PREFIX) || PROSPECT_RETURN.test(v));
 
 /** SIGNUP_EMAIL_ALLOWLIST (comma separated): personal emails that may still sign up, e.g. the team's test accounts. */
 const signupExempt = (email: string): boolean =>
@@ -55,8 +58,8 @@ export async function POST(req: NextRequest) {
     const token = signMagicToken(trimmed, displayName || undefined);
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
     const path = destination === 'app' ? '/app' : destination === 'slideshow' ? '/slideshow/login' : '/studio';
-    // Connecting Claude: the link lands back on the consent screen with its OAuth query (that path only).
-    const back = typeof returnTo === 'string' && returnTo.startsWith(OAUTH_RETURN_PREFIX) && returnTo.length <= 2000 ? returnTo : null;
+    // Connecting Claude or claiming a Prospect Pack: the link lands back on that page with its query (those paths only).
+    const back = isReturnPath(returnTo) ? returnTo : null;
     const link = back ? `${appUrl}${back}&token=${token}` : `${appUrl}${path}?token=${token}`;
 
     const reference = await sendEmail({

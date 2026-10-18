@@ -337,6 +337,28 @@ const kickIdeas = async (runId: string, phase: 'bank' | 'ideas'): Promise<void> 
   await kickRunIdeas(runId, phase);
 };
 
+/**
+ * A Prospect Pack's first run (hold_before_step4) stops after step 3, once the warm-up has made the Brand Cast, so the
+ * admin can check the faces before any slideshow uses them. The warm-up's cost goes on step 3. True when held.
+ * Dynamic import: prospects/held.ts imports this file.
+ */
+const holdForCast = async (runId: string): Promise<boolean> => {
+  const run = await loadRun(runId);
+  if (!run.holdBeforeStep4) return false;
+  const meter = createMeter();
+  await awaitWarmUp(runId, meter);
+  const costs = (await loadRun(runId)).stepCosts as Record<string, StepCost>;
+  const warm = meter.summary();
+  const step3 = costs['3'] ?? { usdMicros: 0, items: [] };
+  await prisma.autoSlideshowRun.update({
+    where: { id: runId },
+    data: { status: 'HELD', stepCosts: json({ ...costs, 3: { usdMicros: step3.usdMicros + warm.usdMicros, items: [...step3.items, ...warm.items] } }) },
+  });
+  const { onRunHeld } = await import('../prospects/held');
+  await onRunHeld(runId);
+  return true;
+};
+
 const photosLeft = async (runId: string) => photosPending(((await loadRun(runId)).photos as AutoPhoto[] | null) ?? []);
 
 /** Runs steps `fromStep`…6. Never throws: a failure is saved on the run with its step.
@@ -355,6 +377,7 @@ export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, app
         startWarmUp(runId);
         await kickIdeas(runId, 'bank');
       }
+      if (step === 3 && append === 0 && (await holdForCast(runId))) return;
       if (step === 4 && (await handOff(runId))) return;
       if (step === 5 && (await photosLeft(runId)) && (await handOff(runId))) return;
     } catch (err) {
