@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { claimPath } from './postLabels';
 
-type Props = { shareToken: string; name: string; total: number; price: string; claimed: boolean };
+type Props = { shareToken: string; name: string; freeDays: number; price: string; claimed: boolean };
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -63,11 +63,11 @@ function ClaimForm({ shareToken, name }: Pick<Props, 'shareToken' | 'name'>) {
 }
 
 /** The dark box at the end: what they get, what it costs after, and the email form. */
-export function ClaimBox({ shareToken, name, total, price, claimed }: Props) {
+export function ClaimBox({ shareToken, name, freeDays, price, claimed }: Props) {
   const rows = [
-    ['These posts', 'Free to claim'],
+    [`First ${freeDays} days`, 'Free'],
     ['After that', `${price} a post`],
-    ['Plan to cancel', 'None'],
+    ['Pay as you go', 'No subscription'],
   ];
   return (
     <section id="claim" className="scroll-mt-4 pb-16 pt-5">
@@ -75,7 +75,7 @@ export function ClaimBox({ shareToken, name, total, price, claimed }: Props) {
         <div className="grid gap-7 rounded-[28px] bg-app-ink px-5 py-8 text-app-bg md:grid-cols-2 md:items-center md:p-12">
           <div>
             <h2 className="m-0 font-display text-[clamp(1.7rem,5vw,2.6rem)] font-[800] leading-[1.05] tracking-[-0.03em]">
-              {claimed ? 'These posts were taken.' : `Get the ${total} posts for ${name}`}
+              {claimed ? 'These posts were taken.' : `Get your first ${freeDays} days free, ${name}`}
             </h2>
             <p className="m-0 mt-3 max-w-[40ch] opacity-70">
               {claimed ? 'Log in to Next5 to see them.' : 'They land in your Next5 account, ready to approve, with your faces and your captions.'}

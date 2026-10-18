@@ -65,6 +65,9 @@ export type ProspectViewDay = {
 /** GET /api/prospect/[token]. `heldUntil`: when the preview offer ends (7 days after the pack was made). */
 export type ProspectViewDto = { name: string; websiteUrl: string; status: 'ready' | 'claimed'; heldUntil: string; heldEnded: boolean; days: ProspectViewDay[] };
 
+/** Days of the pack the prospect gets free when they claim it (the rest are paid like any post). */
+export const PROSPECT_FREE_DAYS = 7;
+
 /** How long a pack's preview is held for the prospect. */
 export const PROSPECT_HOLD_DAYS = 7;
 

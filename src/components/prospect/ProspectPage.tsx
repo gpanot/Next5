@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ErrorState } from '../ui/ErrorState';
 import { SkeletonText } from '../ui/Skeleton';
+import { PROSPECT_FREE_DAYS } from '../../types/admin/prospects';
 import { SLIDESHOW_PRICE_LABEL } from '../../types/admin/slideshowCredits';
 import { ClaimBox } from './ClaimBox';
 import { LeadHero, LeadNav } from './LeadHero';
@@ -43,8 +44,8 @@ export function ProspectPage({ shareToken }: { shareToken: string }) {
             <WeekStrip days={days} onOpen={setOpen} />
             <CompareSection name={data.name} day={days.find((d) => d.kind !== 'blitz') ?? days[0]} />
             <HowItWorks />
-            <ClaimBox shareToken={shareToken} name={data.name} total={days.length} price={SLIDESHOW_PRICE_LABEL} claimed={claimed} />
-            <LeadFaq name={data.name} price={SLIDESHOW_PRICE_LABEL} />
+            <ClaimBox shareToken={shareToken} name={data.name} freeDays={PROSPECT_FREE_DAYS} price={SLIDESHOW_PRICE_LABEL} claimed={claimed} />
+            <LeadFaq name={data.name} price={SLIDESHOW_PRICE_LABEL} freeDays={PROSPECT_FREE_DAYS} />
           </main>
           <footer className="border-t border-app-line py-7 text-[13px] text-app-muted">
             <div className="mx-auto flex max-w-[1180px] flex-wrap justify-between gap-x-6 gap-y-2 px-5">
