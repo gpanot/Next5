@@ -409,7 +409,8 @@ export async function makeSlideshowIdeas(workspaceId: string, userId: string, ru
     try {
       if (!plan.ideaRunId) throw new HttpError(409, 'not_ready', 'This slideshow was never started. Skip it.');
       const slideshowId = await adoptIdeaSlideshow(plan.ideaRunId, runId);
-      await prisma.slideshowVariant.update({ where: { id: row.id }, data: { status: 'made' } });
+      // `slideshowId`: the Claude connector's approval link pins the slideshow on this idea's day (src/server/mcp/planner.ts).
+      await prisma.slideshowVariant.update({ where: { id: row.id }, data: { status: 'made', plan: asJson({ ...plan, slideshowId }) } });
       made.push({ ideaId: row.id, slideshowId, plannedAt: row.plannedAt!.toISOString() });
     } catch (err) {
       errors[row.id] = err instanceof Error ? err.message : 'Could not make this slideshow.';
