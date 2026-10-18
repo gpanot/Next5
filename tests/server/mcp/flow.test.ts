@@ -65,7 +65,7 @@ import { GET as consentInfo, POST as consent } from '../../../app/api/oauth/auth
 import { POST as token } from '../../../app/api/oauth/token/route';
 import { GET as asMetadata } from '../../../app/api/oauth/metadata/route';
 import { GET as prMetadata } from '../../../app/api/oauth/protected-resource/route';
-import { POST as mcp } from '../../../app/api/mcp/route';
+import { GET as mcpGet, POST as mcp } from '../../../app/api/mcp/route';
 
 const ORIGIN = 'https://next5.test';
 const CALLBACK = 'https://claude.ai/api/mcp/auth_callback';
@@ -167,6 +167,12 @@ describe('Claude connector flow', () => {
 
     await rpc(access, 'tools/call', { name: 'get_post_ideas', arguments: { days: 7, format: 'video' } }, 4);
     expect(planner.getIdeas).toHaveBeenCalledWith(expect.anything(), { workspaceId: undefined, startDate: undefined, days: 7, format: 'video', writeMore: undefined });
+  });
+
+  it('answers GET with 405 (no SSE stream for clients to reconnect to)', async () => {
+    const res = await mcpGet();
+    expect(res.status).toBe(405);
+    expect(res.headers.get('Allow')).toContain('POST');
   });
 
   it('rotates refresh tokens and shuts the connection on reuse', async () => {

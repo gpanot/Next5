@@ -27,7 +27,13 @@ async function handle(req: Request): Promise<Response> {
   }
 }
 
+/**
+ * No server-to-client SSE stream: a stateless server closes it as soon as it opens, and clients (MCP Inspector) then
+ * reconnect in a loop. The spec lets a server answer GET with 405 instead.
+ */
+const noStream = () => new Response(null, { status: 405, headers: { ...CORS_HEADERS, Allow: 'POST, DELETE, OPTIONS' } });
+
 export const POST = handle;
-export const GET = handle;
+export const GET = noStream;
 export const DELETE = handle;
 export const OPTIONS = preflight;

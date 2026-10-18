@@ -125,6 +125,7 @@ export async function addToCalendar(caller: McpCaller, picks: CalendarPick[], wo
   const ws = await workspaceFor(caller, workspaceId);
   const errors: Record<string, string> = {};
   const fail = (id: string) => (err: unknown) => { errors[id] = messageOf(err); };
+  const wasProposed = new Set((await listIdeas(ws.id)).ideas.filter((i) => i.status === 'proposed').map((i) => i.id));
 
   for (const p of picks) {
     if (errors[p.id]) continue;
@@ -134,21 +135,7 @@ export async function addToCalendar(caller: McpCaller, picks: CalendarPick[], wo
   const added: Array<{ id: string; format: string; planned_for: string; hook: string }> = [];
   const done = (i: IdeaDto) => added.push({ id: i.id, format: i.format === 'blitz' ? 'video' : 'slideshow', planned_for: localTime(new Date(i.plannedAt), ws.tz), hook: i.hook });
 
-  const videos = kept.filter((i) => i.format === 'blitz');
-  if (videos.length > 0) {
-    const templateId = await carouselTemplateId();
-    // One by one: each checks its day still has room.
-    for (const idea of videos) {
-      const built = templateId && idea.card ? buildIdeaRenderBody(idea.card as DeckItem, idea.id, templateId) : { error: 'No video template is set up.' };
-      if ('error' in built) {
-        errors[idea.id] = built.error;
-        continue;
-      }
-      const at = new Date(idea.plannedAt);
-      await scheduleBlitz(ws.id, caller.userId, { cardId: idea.id, variantId: idea.id, title: idea.hook, scheduledAt: at.toISOString(), tzOffsetMin: ws.tz, renderBody: built.body })
-        .then(() => done(idea), fail(idea.id));
-    }
-  }
+  await scheduleVideos(ws, caller.userId, kept.filter((i) => i.format === 'blitz'), done, fail);
 
   const shows = kept.filter((i) => i.format === 'slideshow');
   if (shows.length > 0) {
@@ -164,6 +151,8 @@ export async function addToCalendar(caller: McpCaller, picks: CalendarPick[], wo
 
   const missing = picks.filter((p) => !added.some((a) => a.id === p.id) && !errors[p.id]);
   for (const p of missing) errors[p.id] = 'Idea not found, already made, or skipped.';
+  // As in the app (kept only once made): a pick that failed goes back to the proposed ideas, so it can be picked again.
+  for (const id of Object.keys(errors).filter((i) => wasProposed.has(i))) await patchIdea(ws.id, id, { status: 'proposed' }).catch(() => undefined);
   return {
     workspace: ws.name,
     added,
@@ -172,6 +161,22 @@ export async function addToCalendar(caller: McpCaller, picks: CalendarPick[], wo
     approval: await approvalInfo(caller, ws.id),
     note: 'Nothing is published yet. Every post waits for the user to approve it in Next5 (open the approval link).',
   };
+}
+
+/** Schedules kept video ideas as `planned` posts, one by one: each checks its day still has room. */
+async function scheduleVideos(ws: Ws, userId: string, videos: IdeaDto[], done: (i: IdeaDto) => void, fail: (id: string) => (err: unknown) => void) {
+  if (videos.length === 0) return;
+  const templateId = await carouselTemplateId();
+  for (const idea of videos) {
+    const built = templateId && idea.card ? buildIdeaRenderBody(idea.card as DeckItem, idea.id, templateId) : { error: 'No video template is set up.' };
+    if ('error' in built) {
+      fail(idea.id)(new Error(built.error));
+      continue;
+    }
+    const at = new Date(idea.plannedAt);
+    await scheduleBlitz(ws.id, userId, { cardId: idea.id, variantId: idea.id, title: idea.hook, scheduledAt: at.toISOString(), tzOffsetMin: ws.tz, renderBody: built.body })
+      .then(() => done(idea), fail(idea.id));
+  }
 }
 
 /** Posts waiting for approval and the link that opens the approval screen. */
