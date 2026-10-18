@@ -2325,41 +2325,43 @@ model SlideshowReference {
 
 /// One run: each step saves its output so it can be inspected and resumed.
 model AutoSlideshowRun {
-  id             String    @id @default(cuid())
-  url            String
-  count          Int
+  id              String    @id @default(cuid())
+  url             String
+  count           Int
   /// Workspace whose TikTok account will post; null for admin test runs
-  workspaceId    String?   @map("workspace_id")
+  workspaceId     String?   @map("workspace_id")
   /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'COMPLETED' | 'FAILED'
-  status         String    @default("STEP_1_RUNNING")
+  status          String    @default("STEP_1_RUNNING")
   /// Step 1: BrandProfile (flat copy of the shared profile below)
-  profile        Json?
+  profile         Json?
   /// The shared company profile (studio_brand_profiles) step 1 used; null on runs made before 2026-10-02
-  brandProfileId String?   @map("brand_profile_id")
+  brandProfileId  String?   @map("brand_profile_id")
   /// Hidden run making one calendar slideshow idea (no workspace, never charged); the workspace run it belongs to
-  ideaForRunId   String?   @map("idea_for_run_id")
+  ideaForRunId    String?   @map("idea_for_run_id")
   /// 'auto' (the 6-step pipeline) | 'campaign' (built by hand in the campaign editor; never on the Calendar's run list)
-  kind           String    @default("auto")
+  kind            String    @default("auto")
   /// Campaign runs: the name the person gave it
-  name           String?
+  name            String?
   /// Campaign runs: CampaignDraft (src/types/admin/slideshowCampaign.ts)
-  campaign       Json?
+  campaign        Json?
   /// Step 2: BrandLever[]
-  levers         Json?
+  levers          Json?
   /// Step 3: AutoPlan
-  plan           Json?
+  plan            Json?
   /// Step 5: AutoPhoto[]
-  photos         Json?
+  photos          Json?
   /// Campaign runs: Content "Auto" photos made in the background (CampaignPhotoJob[], src/server/autoSlideshow/campaign/photoJobs.ts)
-  photoJobs      Json?     @map("photo_jobs")
-  stepTimings    Json      @default("{}") @map("step_timings")
-  stepCosts      Json      @default("{}") @map("step_costs")
-  failedStep     Int?      @map("failed_step")
-  error          String?
-  startedAt      DateTime  @default(now()) @map("started_at")
-  finishedAt     DateTime? @map("finished_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  photoJobs       Json?     @map("photo_jobs")
+  /// Prospect Pack runs: stop after step 3 (status 'HELD') until the admin approves the Brand Cast faces
+  holdBeforeStep4 Boolean   @default(false) @map("hold_before_step4")
+  stepTimings     Json      @default("{}") @map("step_timings")
+  stepCosts       Json      @default("{}") @map("step_costs")
+  failedStep      Int?      @map("failed_step")
+  error           String?
+  startedAt       DateTime  @default(now()) @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   brandProfile StudioBrandProfile? @relation(fields: [brandProfileId], references: [id], onDelete: SetNull)
   slideshows   AutoSlideshow[]
@@ -2665,4 +2667,33 @@ model McpOauthToken {
 
   @@index([userId], map: "mcp_oauth_tokens_user_idx")
   @@map("mcp_oauth_tokens")
+}
+
+/// Admin outbound: 14 days of content made for an SME before they sign up, shown at /p/<shareToken>. The workspace
+/// belongs to a placeholder user (ownerUserId) until the prospect claims it.
+model ProspectPack {
+  id              String    @id @default(cuid())
+  workspaceId     String    @unique @map("workspace_id")
+  ownerUserId     String    @map("owner_user_id")
+  websiteUrl      String    @map("website_url")
+  name            String
+  /// 'building' | 'faces' | 'making' | 'ready' | 'failed' | 'claimed'
+  status          String    @default("building")
+  shareToken      String    @unique @map("share_token")
+  brandRunId      String?   @map("brand_run_id")
+  hooksRunId      String?   @map("hooks_run_id")
+  /// Set when the Hooks Volume campaign starts being built (a lock; stale after 10 minutes)
+  hooksStartedAt  DateTime? @map("hooks_started_at")
+  /// ProspectBlitz[]: the Blitz ideas picked for the pack and their renders
+  blitz           Json      @default("[]")
+  /// ProspectDay[] (src/types/admin/prospects.ts)
+  days            Json      @default("[]")
+  error           String?
+  claimedAt       DateTime? @map("claimed_at")
+  claimedByUserId String?   @map("claimed_by_user_id")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([createdAt(sort: Desc)], map: "prospect_packs_created_idx")
+  @@map("prospect_packs")
 }

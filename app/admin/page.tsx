@@ -12,6 +12,7 @@ import { PaymentsTab } from '../../src/components/admin/business/PaymentsTab';
 import { PromiseTab } from '../../src/components/admin/business/PromiseTab';
 import { QaTab } from '../../src/components/admin/business/QaTab';
 import { WorkspacesTab } from '../../src/components/admin/business/WorkspacesTab';
+import { ProspectsTab } from '../../src/components/admin/prospects/ProspectsTab';
 import { ModelTestTab } from '../../src/components/admin/business/ModelTestTab';
 import { UgcLabTab } from '../../src/components/admin/business/UgcLabTab';
 import { UgcCloneTab } from '../../src/components/admin/business/UgcCloneTab';
@@ -28,7 +29,7 @@ import { AutoSlideshowTab } from '../../src/components/admin/autoSlideshow/AutoS
 import { ShortsPage } from '../../src/components/admin/shorts/ShortsPage';
 
 type Tab =
-  | 'overview' | 'workspaces' | 'payments' | 'promise' | 'qa' | 'models'
+  | 'overview' | 'workspaces' | 'prospects' | 'payments' | 'promise' | 'qa' | 'models'
   | 'users' | 'credits' | 'bookings' | 'prompts'
   | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces'
   | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow' | 'shorts'
@@ -42,6 +43,7 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { id: 'overview',    label: 'Overview',     icon: '◉' },
       { id: 'workspaces',  label: 'Workspaces',   icon: '⊞' },
+      { id: 'prospects',   label: 'Prospects',    icon: '➚' },
       { id: 'payments',    label: 'Payments',     icon: '₿' },
       { id: 'promise',     label: 'Promise',      icon: '◈' },
       { id: 'qa',          label: 'QA',           icon: '✓' },
@@ -237,6 +239,7 @@ export default function AdminPage() {
         <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8">
           {tab === 'overview'         && <OverviewTab          token={token} />}
           {tab === 'workspaces'       && <WorkspacesTab        token={token} />}
+          {tab === 'prospects'        && <ProspectsTab         token={token} />}
           {tab === 'payments'         && <PaymentsTab          token={token} />}
           {tab === 'promise'          && <PromiseTab           token={token} />}
           {tab === 'qa'               && <QaTab                token={token} />}
