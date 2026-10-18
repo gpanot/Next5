@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: '/slideshow', destination: '/', permanent: true },
+      // The blog lives on the guides hub, like /guides#blog; posts themselves are at /blog/<slug>.
+      { source: '/blog', destination: '/guides#blog', permanent: false },
       { source: '/slideshow/pricing', destination: '/pricing', permanent: true },
       { source: '/slideshow/privacy', destination: '/privacy', permanent: true },
       { source: '/slideshow/terms', destination: '/terms', permanent: true },

@@ -1,0 +1,70 @@
+import { SLIDESHOW_PRICE_CENTS, SLIDESHOW_PRICE_LABEL } from '../../../types/admin/slideshowCredits';
+import type { Article } from '../types';
+
+const monthly = `$${((SLIDESHOW_PRICE_CENTS * 30) / 100).toFixed(2)}`;
+
+export const socialMediaManagerCost: Article = {
+  kind: 'blog',
+  slug: 'how-much-does-a-social-media-manager-cost',
+  title: 'How Much Does a Social Media Manager Cost? 5 Options for Small Businesses',
+  seoTitle: 'How Much Does a Social Media Manager Cost? 5 Options',
+  description: 'What a social media manager costs a small business, how freelancers and agencies charge, and 5 options compared, from doing it yourself to done-for-you tools.',
+  excerpt: 'How freelancers and agencies charge, the hidden cost of doing it yourself, and 5 options side by side.',
+  keyword: 'how much does a social media manager cost',
+  published: '2026-10-18',
+  cover: 'no-show-fixes',
+  coverAlt: 'TikTok slideshow made by Next5: "5 No-Show Fixes For Service Teams (If Reminders Actually Send)"',
+  blocks: [
+    { type: 'p', text: 'You know you should post more. You also know you do not have the time. So you start asking: what would it cost to hand this off?' },
+    { type: 'p', text: 'The honest answer: it depends on who you hire and what they do. This guide shows how each option charges, what you get, and how to compare them with your own numbers.' },
+    { type: 'h2', text: 'What a social media manager does' },
+    { type: 'ul', items: [
+      'Plans what to post (the content calendar)',
+      'Makes the posts: photos, slideshows, videos, captions',
+      'Posts them on time',
+      'Answers comments and messages',
+      'Checks the numbers and changes the plan',
+    ] },
+    { type: 'p', text: 'When you get a quote, ask which of these are included. Many low quotes only cover posting, not making the content.' },
+    { type: 'h2', text: 'How they charge' },
+    { type: 'table', head: ['Model', 'How it works', 'Watch out for'], rows: [
+      ['Hourly', 'You pay for hours worked', 'Hours add up fast when content is made from scratch'],
+      ['Monthly retainer', 'A set price for a set number of posts and apps', 'Extra fees for videos, ads or new apps'],
+      ['Per post', 'A price for each post made', 'Check if posting and captions are included'],
+      ['Agency package', 'A team handles strategy, content and reports', 'Long contracts and setup fees'],
+    ] },
+    { type: 'h2', text: '5 options compared' },
+    { type: 'h3', text: '1. Do it yourself' },
+    { type: 'p', text: 'Cost: $0 in cash. But making a good post can take 20 to 60 minutes. At one post a day, that is 10 to 30 hours a month. Multiply those hours by what your time is worth. That is your real cost.' },
+    { type: 'h3', text: '2. A freelancer' },
+    { type: 'p', text: 'Good for a steady monthly plan. Prices vary a lot by city and skill. Ask for 3 quotes for the same list: number of posts, apps, and whether they make the photos and videos.' },
+    { type: 'h3', text: '3. An agency' },
+    { type: 'p', text: 'Good when you also want ads, strategy and a team. It usually costs the most. Read the contract length before you sign.' },
+    { type: 'h3', text: '4. A part-time hire' },
+    { type: 'p', text: 'Good if you want someone in your shop who can film behind the scenes. Add payroll costs, training and the tools they need.' },
+    { type: 'h3', text: '5. A done-for-you content tool' },
+    { type: 'p', text: `Good when you mainly need posts made and posted every day. With Next5 you pay ${SLIDESHOW_PRICE_LABEL} per slideshow or video. One post a day for 30 days is ${monthly}. No subscription, no contract.` },
+    { type: 'h2', text: 'How to compare with your own numbers' },
+    { type: 'steps', items: [
+      { title: 'Count the posts you need', text: 'For example: 1 TikTok a day = 30 posts a month.' },
+      { title: 'Get the monthly price for each option', text: 'Freelancer quote, agency quote, your own hours × your hourly value, tool price.' },
+      { title: 'Divide by the number of posts', text: 'Now you have a price per post for each option. It is the fairest way to compare.' },
+      { title: 'Check what is not included', text: 'Making the content, posting, comments and reports. Add any extras to the price.' },
+    ] },
+    { type: 'tip', title: 'Mix and match', text: 'Many owners use a tool for daily posts and do the personal parts themselves: answering messages and the odd behind-the-scenes video.' },
+    { type: 'h2', text: 'Questions to ask before you hire' },
+    { type: 'ol', items: [
+      'How many posts a month, on which apps?',
+      'Do you make the photos and videos, or do I send them?',
+      'Do I approve posts before they go live?',
+      'What numbers will you show me, and how often?',
+      'How long is the contract? Can I stop any month?',
+    ] },
+    { type: 'cta', title: `Daily posts for ${SLIDESHOW_PRICE_LABEL} each`, text: 'Paste your website. Next5 makes TikTok slideshows and videos, fills a 30-day calendar and posts after you approve. Pay as you go, pause any day.' },
+  ],
+  faq: [
+    { q: 'Is a social media manager worth it for a small business?', a: 'It is worth it if the posts bring in more money than they cost. Track calls, bookings or sales from social media for 2 to 3 months to know.' },
+    { q: 'What is the cheapest way to get social media posts?', a: 'Doing it yourself costs no cash but a lot of time. A done-for-you tool is often the lowest cash cost per post for daily posting.' },
+    { q: 'Can I manage social media myself?', a: 'Yes. Plan the month in one sitting, batch your posts weekly, and check your numbers every week. Our free 30-day calendar helps.' },
+  ],
+};

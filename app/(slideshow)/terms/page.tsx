@@ -4,7 +4,7 @@ import { PublicFooter } from '../../../src/components/admin/autoSlideshow/worksp
 import { PublicTopBar } from '../../../src/components/admin/autoSlideshow/workspace/PublicTopBar';
 import { LEGAL_UPDATED, TERMS } from '../../../src/content/business/legal';
 
-export const metadata: Metadata = { title: 'Terms of Service — Auto Slideshow' };
+export const metadata: Metadata = { title: 'Terms of Service | Next5', description: 'The terms for using Next5 Auto Slideshow to make and post TikTok and Instagram content.', alternates: { canonical: '/terms' } };
 
 /** Public terms for Auto Slideshow (linked from the Google, TikTok and Meta app settings). */
 export default function SlideshowTermsPage() {

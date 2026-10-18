@@ -1,4 +1,6 @@
 import { HOME_FAQ } from '../../src/components/admin/autoSlideshow/workspace/homeFaqItems';
+import { ALL_ARTICLES, articleHref } from '../../src/content/guides';
+import { SOCIAL_LINKS } from '../../src/components/admin/autoSlideshow/workspace/siteLinks';
 import { MIN_DEPOSIT_CENTS, PRICE_LABEL, shortMoney } from '../../src/components/admin/autoSlideshow/pricing/pricing';
 
 export const dynamic = 'force-static';
@@ -6,6 +8,8 @@ export const dynamic = 'force-static';
 /** /llms.txt (llmstxt.org): a plain Markdown summary of Next5 Auto Slideshow for AI tools. FAQ comes from the home page (/), so both stay in sync. */
 export function GET() {
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+  const socials = SOCIAL_LINKS.map(({ name, href }) => `- [${name}](${href})`).join('\n');
+  const articles = ALL_ARTICLES.map((a) => `- [${a.title}](${base}${articleHref(a)}): ${a.excerpt}`).join('\n');
   const faq = HOME_FAQ.map(({ q, a }) => `### ${q}\n\n${a}`).join('\n\n');
   const body = `# Next5 Auto Slideshow
 
@@ -26,12 +30,20 @@ Auto Slideshow is part of Next5, a US-only service for small businesses such as 
 - ${shortMoney(MIN_DEPOSIT_CENTS)} minimum top-up. The top-up is balance, not a fee.
 - No subscription, no contract. When the balance runs out, autopilot stops and nothing is charged.
 
+## Follow
+
+${socials}
+
 ## Pages
 
 - [Auto Slideshow home](${base}/): paste a website and start.
 - [Auto Slideshow pricing](${base}/pricing): price calculator and pricing questions.
-- [Terms](${base}/legal/terms)
-- [Privacy](${base}/legal/privacy)
+- [Terms](${base}/terms)
+- [Privacy](${base}/privacy)
+
+## Guides and blog
+
+${articles}
 
 ## FAQ
 

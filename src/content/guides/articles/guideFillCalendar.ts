@@ -1,0 +1,39 @@
+import type { Article } from '../types';
+
+export const guideFillCalendar: Article = {
+  kind: 'guide',
+  slug: 'fill-your-30-day-calendar',
+  title: 'How to Fill a 30-Day Content Calendar With the Ideas Deck',
+  seoTitle: 'Fill a 30-Day Content Calendar in Next5',
+  description: 'Use the Next5 Ideas deck to fill 30 days of TikTok posts: swipe to keep or skip ideas, approve posts, change dates, and get a daily approval reminder.',
+  excerpt: 'Swipe right to keep, left to skip. Fill a month of daily posts in one sitting, then approve as you go.',
+  keyword: 'social media content calendar tool',
+  published: '2026-10-18',
+  cover: 'realtor-habits',
+  coverAlt: 'TikTok slideshow made by Next5: "7 Realtor Habits That Quietly Lower Video Time"',
+  blocks: [
+    { type: 'p', text: 'Posting once a day is how accounts grow. Planning 30 posts is the hard part. In Next5 it takes one sitting with the Ideas deck.' },
+    { type: 'h2', text: 'How the Ideas deck works' },
+    { type: 'p', text: 'Ideas are post ideas made for your business. Each one is built on a hook and format that already gets views in your market. You see them one at a time, like cards.' },
+    { type: 'ul', items: [
+      '**Like it? Swipe right.** The idea is kept and made into a post.',
+      '**Not for you? Swipe left.** The idea is skipped.',
+    ] },
+    { type: 'h2', text: 'Fill your month in 4 steps' },
+    { type: 'steps', items: [
+      { title: 'Open Ideas', text: 'In your workspace, tap **Ideas** in the menu.' },
+      { title: 'Swipe through the deck', text: 'Keep the ideas that fit your business and your buyers. Skip the rest. Need more? New ideas are written for you.' },
+      { title: 'Check the Calendar', text: 'Tap **Calendar**. The ideas you kept are made into posts and placed on days. Tap a post to see it.' },
+      { title: 'Change a date if you need', text: 'Open a post and change the posting date. Move offers near paydays or busy seasons.' },
+    ] },
+    { type: 'tip', title: 'Keep a good mix', text: 'Try to keep tips, mistakes, proof and offers. A month of only offers feels pushy. A month of only tips never asks for the sale. See our [free 30-day content calendar](/blog/social-media-content-calendar) for a good mix.' },
+    { type: 'h2', text: 'Approve as you go' },
+    { type: 'p', text: 'Every post waits for your OK. Open it, check the slides, then approve. You can approve a week at a time or day by day.' },
+    { type: 'p', text: 'Each morning, Next5 can send you an email with the posts to approve that day. One tap and you are done.' },
+    { type: 'h2', text: 'Campaigns: more posts on one theme' },
+    { type: 'p', text: 'Want a run of posts on one topic, like a launch or a season? Open **Campaigns** and start a new one. It is the place to make a batch of posts around one goal.' },
+    { type: 'h2', text: 'Next step' },
+    { type: 'p', text: 'After a week or two of posts, check what worked. Read the next guide: [how to read your Analytics and make more of what works](/guides/read-your-analytics).' },
+    { type: 'cta', title: 'Start your 30 days', text: 'Paste your website to get your first ideas and slideshows.' },
+  ],
+};

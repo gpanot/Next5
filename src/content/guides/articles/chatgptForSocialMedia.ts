@@ -1,0 +1,58 @@
+import type { Article } from '../types';
+
+export const chatgptForSocialMedia: Article = {
+  kind: 'blog',
+  slug: 'chatgpt-for-social-media',
+  title: 'Can ChatGPT Do Your Social Media? What It Can and Cannot Do',
+  seoTitle: 'ChatGPT for Social Media: What It Can and Cannot Do',
+  description: 'Using ChatGPT for social media posts as a small business: what it does well, where it falls short, 5 prompts that work, and what you still have to do yourself.',
+  excerpt: 'ChatGPT writes words fast. Here is what it does well, what it cannot do, and 5 prompts that work for small businesses.',
+  keyword: 'chatgpt for social media',
+  published: '2026-10-18',
+  cover: 'trading-gaps',
+  coverAlt: 'TikTok slideshow made by Next5: "How to enter faster when gaps reopen — without rushing spikes."',
+  blocks: [
+    { type: 'p', text: 'Many owners ask: "Why pay for social media help when ChatGPT is right there?" Fair question. ChatGPT is a great writing helper. But writing is only one part of social media.' },
+    { type: 'h2', text: 'What ChatGPT does well' },
+    { type: 'ul', items: [
+      '**Ideas** — give it your business and it lists 30 post ideas in seconds.',
+      '**Captions** — it writes and rewrites captions fast.',
+      '**Hashtags** — it suggests a starting list.',
+      '**Rewording** — it can make your text shorter or simpler.',
+    ] },
+    { type: 'h2', text: 'What ChatGPT cannot do for you' },
+    { type: 'table', head: ['Job', 'ChatGPT', 'What you still need'], rows: [
+      ['Know what gets views in your market right now', 'No. It does not see live TikTok views', 'Research real posts in your niche'],
+      ['Make photos and slideshows', 'Not as ready-to-post slideshows', 'A design tool or app, and time'],
+      ['Make videos', 'No', 'Filming or a video tool'],
+      ['Fill and keep a calendar', 'No', 'A planner and the habit'],
+      ['Post for you every day', 'No', 'A scheduler or a tool'],
+      ['Show what worked', 'No', 'Your analytics, checked every week'],
+    ] },
+    { type: 'p', text: 'The hard part of social media is not the words. It is doing it every day, with posts that look good, based on what already works.' },
+    { type: 'h2', text: 'The "sounds like AI" problem' },
+    { type: 'p', text: 'ChatGPT text often sounds the same: long, polite and full of words like "elevate" and "unlock". People scroll past it. If you use it, edit hard:' },
+    { type: 'ol', items: [
+      'Cut every sentence in half.',
+      'Remove words you would never say out loud.',
+      'Add one real detail only you know: a street name, a price, a customer story.',
+    ] },
+    { type: 'h2', text: '5 ChatGPT prompts for social media that work' },
+    { type: 'steps', items: [
+      { title: 'Post ideas', text: '"I run a [business] in [town]. My buyers are [who]. List 30 short TikTok post ideas. Mix tips, mistakes, before and after, and offers. One line each."' },
+      { title: 'Hooks', text: '"Write 10 hooks for a TikTok slideshow about [topic]. Under 10 words each. Use simple words a 10-year-old knows."' },
+      { title: 'Slides', text: '"Turn this tip into a 6-slide TikTok slideshow. Slide 1 is the hook. One short line per slide. Last slide asks people to [action]."' },
+      { title: 'Caption', text: '"Write a 2-sentence caption for this post and 4 hashtags. No emojis. No words like elevate or unlock."' },
+      { title: 'Reply to comments', text: '"Write a friendly 1-sentence reply to this comment: [comment]. Invite them to [action]."' },
+    ] },
+    { type: 'tip', title: 'Give it real facts', text: 'ChatGPT only knows what you tell it. Paste your prices, your services and real customer questions. Never post facts it made up.' },
+    { type: 'h2', text: 'So, ChatGPT or a done-for-you tool?' },
+    { type: 'p', text: 'If you have time to design, post and check numbers yourself, ChatGPT plus a free design app can work. If you do not, a done-for-you tool does the whole job: finds what works, makes the posts, posts them and tracks the results.' },
+    { type: 'cta', title: 'More than words', text: 'Next5 finds hooks that win in your market, makes the photos and videos, fills your calendar, posts for you and shows your numbers. You approve every post.' },
+  ],
+  faq: [
+    { q: 'Can ChatGPT post to TikTok or Instagram for me?', a: 'No. ChatGPT writes text. You still need to make the post and publish it, or use a tool that does.' },
+    { q: 'Is it OK to use AI for business social media?', a: 'Yes, if the facts are true and the post helps your buyers. Edit AI text so it sounds like you.' },
+    { q: 'Will TikTok hide posts written with AI?', a: 'Using AI to help write a caption is common. Follow TikTok rules on labeling AI-made images or video where they apply.' },
+  ],
+};

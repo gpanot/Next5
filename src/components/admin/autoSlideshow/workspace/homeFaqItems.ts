@@ -9,6 +9,7 @@ const freeLine = freePosts === 1 ? 'Your first post is free.' : `Your first ${fr
 /** Questions on the public Auto Slideshow home. Plain words, only claims a buyer can check. Also feeds the FAQPage JSON-LD. */
 export const HOME_FAQ: { q: string; a: string }[] = [
   { q: 'What is Next5?', a: 'You paste your website. We make TikTok slideshows, short videos and Shorts for your business. Each one has a hook, a caption and hashtags. You approve it, and we post it.' },
+  { q: 'Who is Next5 for?', a: 'Small businesses in the US that want more customers from TikTok and Instagram. Realtors, TikTok Shop sellers, local shops and services. If you have a website, we can make your posts.' },
   { q: 'What do I get?', a: 'More leads, enquiries, bookings or sales. You pick the goal. We make posts built to get it.' },
   { q: 'Why do these posts work?', a: 'Each one copies a hook and a format that already pull views in your market. We only use formats from our approved list. No guessing.' },
   { q: 'Can I plan my whole month?', a: 'Yes. Your posts land on a 30-day calendar. Swipe through ideas, keep the ones you like, and we make them.' },

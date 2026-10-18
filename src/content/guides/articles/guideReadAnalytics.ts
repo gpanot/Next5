@@ -1,0 +1,39 @@
+import type { Article } from '../types';
+
+export const guideReadAnalytics: Article = {
+  kind: 'guide',
+  slug: 'read-your-analytics',
+  title: 'How to Read Your Analytics and Make More of What Works',
+  seoTitle: 'Read Your TikTok Analytics in Next5',
+  description: 'How to use the Next5 Analytics page: views at 48 hours, how each post compares to your typical post, and how to turn winning hooks into more posts.',
+  excerpt: 'Compare every post to your typical post at 48 hours, spot the winning hooks, and make more like them.',
+  keyword: 'tiktok analytics for business',
+  published: '2026-10-18',
+  cover: 'slide-chapters',
+  coverAlt: 'TikTok slideshow made by Next5: "The clarity glow-up: your slideshow finally reads like chapters."',
+  blocks: [
+    { type: 'p', text: 'Posting every day is step one. Step two is learning from it. The Analytics page shows which posts worked, so you can make more of them and drop what does not.' },
+    { type: 'h2', text: 'What you see on the Analytics page' },
+    { type: 'ul', items: [
+      '**Views, likes, comments and shares** for each post.',
+      '**Views at 48h** — the views a post got in its first 2 days.',
+      '**Typical post** — what your usual post gets, so you can see which posts beat it.',
+      '**Latest numbers** — the most recent count from TikTok.',
+    ] },
+    { type: 'h2', text: 'Why 48 hours?' },
+    { type: 'p', text: 'A post that is 2 hours old always looks worse than one that is 2 weeks old. Comparing every post at the same age, 48 hours, is fair. It shows which hook and format really did better.' },
+    { type: 'h2', text: 'Turn your numbers into better posts' },
+    { type: 'steps', items: [
+      { title: 'Wait for 7 to 10 posts', text: 'One post can be luck. After 7 to 10 posts you start to see a pattern.' },
+      { title: 'Find posts that beat your typical post', text: 'Look for the 2 or 3 posts with the most views at 48h.' },
+      { title: 'Look at the hook and format', text: 'Was it a mistake hook? A list? A before and after? That pattern is your winner.' },
+      { title: 'Keep more ideas like it', text: 'In the Ideas deck, keep more ideas with the same kind of hook. Skip the kinds that flopped.' },
+      { title: 'Check again every week', text: 'Your buyers change and trends move. A quick weekly look keeps you on track.' },
+    ] },
+    { type: 'tip', title: 'Views are not the only number', text: 'Saves and shares mean people found it useful. Comments and messages mean people may want to buy. A post with fewer views but lots of messages can be your best post.' },
+    { type: 'h2', text: 'What good looks like' },
+    { type: 'p', text: 'Do not compare yourself to big accounts. Compare to your own typical post. If more of your posts beat it each month, you are growing.' },
+    { type: 'p', text: 'Want to write better hooks? Read [TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business). Unsure about timing? Read [the best time to post on TikTok](/blog/best-time-to-post-on-tiktok).' },
+    { type: 'cta', title: 'See what works for your business', text: 'Paste your website. Post daily, then let your numbers tell you what to make next.' },
+  ],
+};

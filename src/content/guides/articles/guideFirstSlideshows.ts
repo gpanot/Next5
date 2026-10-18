@@ -1,0 +1,46 @@
+import type { Article } from '../types';
+
+export const guideFirstSlideshows: Article = {
+  kind: 'guide',
+  slug: 'first-tiktok-slideshows-with-next5',
+  title: 'How to Make Your First TikTok Slideshows With Next5',
+  seoTitle: 'How to Make Your First TikTok Slideshows With Next5',
+  description: 'Step-by-step: paste your website into Next5, get your first TikTok slideshows in about 5 minutes, edit them, connect TikTok and approve your first post.',
+  excerpt: 'From your website to your first approved TikTok post in about 5 minutes. Six steps.',
+  keyword: 'ai tiktok slideshow maker',
+  published: '2026-10-18',
+  cover: 'golf-striking',
+  coverAlt: 'TikTok slideshow made by Next5: "5 Striking is Easy for Golfers (if you Fix Contact)"',
+  blocks: [
+    { type: 'p', text: 'This guide takes you from zero to your first approved TikTok slideshow. You need your website and an email address. That is it.' },
+    { type: 'h2', text: 'What you will have at the end' },
+    { type: 'ul', items: [
+      'Your first slideshows, made from your website',
+      'Each one with a hook, 5 to 9 slides, a caption and hashtags',
+      'Your TikTok account connected',
+      'Your first post approved and on the calendar',
+    ] },
+    { type: 'h2', text: 'Step by step' },
+    { type: 'steps', items: [
+      { title: 'Paste your website', text: 'Go to the [Next5 home page](/) and paste your website in the box. Tap **Make slideshows**.' },
+      { title: 'Sign in with your email', text: 'Type your business email. We send you a link. The same link signs you up and logs you in. No password.' },
+      { title: 'Wait about 5 minutes', text: 'Next5 reads your website: what you sell, who you sell to, your offers. Then it picks formats that already get views in your market and writes your first slideshows.' },
+      { title: 'Open a slideshow and check it', text: 'Swipe through the slides. Tap **Edit the hook** to change the first line. Change any slide text or photo you do not like.' },
+      { title: 'Connect TikTok', text: 'Connect your TikTok account once. Next5 uses TikTok\'s official posting access.' },
+      { title: 'Approve your post', text: 'Tap **Approve slideshow**. It goes on your calendar and posts on the day you picked. Nothing goes live without your OK.' },
+    ] },
+    { type: 'tip', title: 'Check the first slide twice', text: 'The hook on slide 1 decides if people stay. If a hook does not sound like you, change it. Short and clear wins.' },
+    { type: 'h2', text: 'What makes a good first post' },
+    { type: 'ul', items: [
+      '**A clear hook** that names your buyer or their problem.',
+      '**Bright photos** with people in them when possible.',
+      '**A last slide with one ask**: follow, visit the website, or book.',
+    ] },
+    { type: 'p', text: 'Want to know why these things matter? Read [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok) and [TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business).' },
+    { type: 'h2', text: 'What it costs' },
+    { type: 'p', text: 'Your first posts are free. After that you pay per slideshow or video from a prepaid balance. No subscription and no contract. See [pricing](/pricing).' },
+    { type: 'h2', text: 'Next step' },
+    { type: 'p', text: 'One post is a start. Daily posts are what grow an account. Read the next guide: [how to fill a 30-day content calendar with the Ideas deck](/guides/fill-your-30-day-calendar).' },
+    { type: 'cta', title: 'Make your first slideshows', text: 'Paste your website. Your first slideshows are ready in about 5 minutes.' },
+  ],
+};

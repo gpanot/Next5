@@ -18,11 +18,11 @@ function Hero({ homeHref }: { homeHref: string }) {
   return (
     <section className="flex flex-col items-center text-center">
       <p className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold tracking-wide text-blue-700 uppercase dark:bg-blue-950 dark:text-blue-300">Pay as you go · No subscription</p>
-      <h2 className="mt-5 text-4xl leading-[1.12] font-extrabold tracking-tight text-ink md:text-6xl dark:text-zinc-100">
+      <h1 className="mt-5 text-4xl leading-[1.12] font-extrabold tracking-tight text-ink md:text-6xl dark:text-zinc-100">
         A new TikTok post
         <br />
         every day. <span className="text-blue-600 dark:text-blue-400">For {PRICE_LABEL}.</span>
-      </h2>
+      </h1>
       <p className="mt-5 max-w-xl text-base text-muted md:text-lg dark:text-zinc-400">We make it from your website and post it for you. You don’t film. You don’t write. You don’t design.</p>
       <div className="mt-8 flex items-end gap-2">
         <span className="text-6xl font-extrabold tracking-tighter text-ink md:text-7xl dark:text-zinc-100">{PRICE_LABEL}</span>

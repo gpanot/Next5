@@ -1,0 +1,62 @@
+import type { Article } from '../types';
+
+export const bestTimeToPostTikTok: Article = {
+  kind: 'blog',
+  slug: 'best-time-to-post-on-tiktok',
+  title: 'Best Time to Post on TikTok and Instagram for Business (and How to Find Yours)',
+  seoTitle: 'Best Time to Post on TikTok and Instagram for Business',
+  description: 'The best time to post on TikTok and Instagram is when your own buyers are online. Here is how to find your time in the app, and a simple 2-week test.',
+  excerpt: 'Generic charts guess. Your own followers tell you. How to find your best posting time in the app, plus a 2-week test.',
+  keyword: 'best time to post on tiktok',
+  published: '2026-10-18',
+  cover: 'porsche-calmer',
+  coverAlt: 'TikTok slideshow made by Next5: "Last visit: overloaded. This year: calmer decisions and smoother drives."',
+  blocks: [
+    { type: 'p', text: 'You have seen the charts. "Post on Tuesday at 9 AM!" The problem: those charts mix millions of accounts. Your buyers are not millions of accounts. A bakery, a realtor and a gym all have different buyers who scroll at different times.' },
+    { type: 'p', text: 'The best time to post is **when your own followers are online**. Both TikTok and Instagram show you that time for free.' },
+    { type: 'h2', text: 'A good starting point' },
+    { type: 'p', text: 'If you are brand new and have no data yet, start with the times most people pick up their phone:' },
+    { type: 'ul', items: [
+      '**Morning** — 7 to 9 AM, before work and on the commute.',
+      '**Lunch** — 11 AM to 1 PM.',
+      '**Evening** — 6 to 9 PM, after work and dinner.',
+    ] },
+    { type: 'p', text: 'Use your buyers\' time zone, not yours. If you sell to all of the US, Eastern and Central time cover most people.' },
+    { type: 'h2', text: 'How to find your best time to post on TikTok' },
+    { type: 'steps', items: [
+      { title: 'Use a Business or Creator account', text: 'Analytics are free, but you need a Business or Creator account. You can switch in Settings.' },
+      { title: 'Open Analytics', text: 'Go to your profile, open the menu, and find **Analytics** (it may sit inside TikTok Studio or Creator tools).' },
+      { title: 'Open the Followers tab', text: 'Scroll to **follower activity**. It shows the hours and days your followers are most active.' },
+      { title: 'Post 1 to 2 hours before the peak', text: 'TikTok needs a little time to start showing your post. Posting just before the busy hour helps.' },
+    ] },
+    { type: 'tip', title: 'Few followers?', text: 'With under 100 followers the chart is thin. Use the starting times above and run the 2-week test below.' },
+    { type: 'h2', text: 'How to find your best time to post on Instagram' },
+    { type: 'steps', items: [
+      { title: 'Use a professional account', text: 'Switch to a Business or Creator account in Settings. It is free.' },
+      { title: 'Open Insights', text: 'Go to your profile and tap **Insights** (or the professional dashboard).' },
+      { title: 'Check most active times', text: 'Open **Total followers** and scroll to **Most active times**. Tap through hours and days.' },
+    ] },
+    { type: 'h2', text: 'The 2-week posting time test' },
+    { type: 'p', text: 'Charts tell you when people are online. A test tells you when they actually watch your posts.' },
+    { type: 'ol', items: [
+      'Pick 3 time slots, for example 8 AM, 12 PM and 7 PM.',
+      'Post once a day for 2 weeks. Rotate the slots so each one gets 4 or 5 posts.',
+      'After each post, write down the views at 48 hours.',
+      'Average the views for each slot. Keep the winner. Test a new slot against it next month.',
+    ] },
+    { type: 'table', head: ['Slot', 'Posts', 'Average views at 48h'], rows: [
+      ['8 AM', '5', 'fill in'],
+      ['12 PM', '5', 'fill in'],
+      ['7 PM', '4', 'fill in'],
+    ] },
+    { type: 'p', text: 'Compare views at the same age. A post that is 2 hours old will always look worse than one that is 2 days old.' },
+    { type: 'h2', text: 'Time matters less than you think' },
+    { type: 'p', text: 'A great post at a so-so time beats a weak post at the perfect time. TikTok keeps showing good posts for days. Spend most of your energy on the hook. Read [TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business) for 40 you can copy.' },
+    { type: 'cta', title: 'Posts that go out on time, every day', text: 'Next5 makes your posts, puts them on a 30-day calendar and posts them on the day you pick. Your Analytics page shows views at 48 hours for every post.' },
+  ],
+  faq: [
+    { q: 'What is the best day to post on TikTok?', a: 'It depends on your followers. Check follower activity in TikTok Analytics. Posting every day removes the guesswork.' },
+    { q: 'Does posting time matter on TikTok?', a: 'Some. It helps your post get its first views. But TikTok shows good posts for days, so the hook and the content matter more.' },
+    { q: 'Should I post at the same time every day?', a: 'Yes, once you find a good slot. Being steady helps you compare posts fairly and builds a habit for your followers.' },
+  ],
+};

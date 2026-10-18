@@ -4,7 +4,7 @@ import { PublicFooter } from '../../../src/components/admin/autoSlideshow/worksp
 import { PublicTopBar } from '../../../src/components/admin/autoSlideshow/workspace/PublicTopBar';
 import { LEGAL_UPDATED, PRIVACY } from '../../../src/content/business/legal';
 
-export const metadata: Metadata = { title: 'Privacy Policy — Auto Slideshow' };
+export const metadata: Metadata = { title: 'Privacy Policy | Next5', description: 'How Next5 handles your personal data, photos and connected TikTok and Instagram accounts.', alternates: { canonical: '/privacy' } };
 
 /** Public privacy policy for Auto Slideshow (linked from the Google, TikTok and Meta app settings). */
 export default function SlideshowPrivacyPage() {
