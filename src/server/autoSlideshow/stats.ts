@@ -3,7 +3,7 @@
 // a schedule (+48 h, +96 h, +7 d, then weekly; statsSchedule.ts). Every read is kept as a snapshot for Analytics, and
 // the latest one also sits on the post. TikTok numbers come from TikTok's Display API when the account granted
 // video.list, with saves (which that API lacks) from the public post through treg; treg alone otherwise. Instagram
-// numbers come from insights.
+// numbers come from insights, YouTube Shorts' from the Data API.
 
 import type { AutoSlideshowPost, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
@@ -13,6 +13,7 @@ import { fetchInstagramStats } from '../social/instagramCarousel';
 import { hasStatsScopes } from '../social/tiktok';
 import { fetchTikTokPublicStats } from '../social/tiktokPublicStats';
 import { fetchTikTokStats } from '../social/tiktokStats';
+import { fetchYouTubeStats } from '../social/youtubeStats';
 import { afterFailedRead, afterGoodRead, ageHours } from './statsSchedule';
 
 /** Posts read per tick: the first-week checkpoints must land on time, but a tick stays well under a minute. */
@@ -53,6 +54,12 @@ const readStats = async (post: AutoSlideshowPost): Promise<Read | null> => {
     const conn = await prisma.socialConnection.findUnique({ where: { workspaceId_provider: { workspaceId: post.workspaceId, provider: 'instagram' } } });
     if (!conn) return null;
     return { stats: await fetchInstagramStats(await freshAccessToken(conn), post.tiktokPostId!), source: 'instagram' };
+  }
+  if (post.platform === 'youtube') {
+    const conn = await prisma.socialConnection.findUnique({ where: { workspaceId_provider: { workspaceId: post.workspaceId, provider: 'youtube' } } });
+    if (!conn) return null;
+    const stats = await fetchYouTubeStats(await freshAccessToken(conn), post.tiktokPostId!);
+    return stats ? { stats, source: 'youtube' } : null;
   }
   return readTikTok(post);
 };
