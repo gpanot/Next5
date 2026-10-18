@@ -8,7 +8,7 @@ import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
 import { listSlideshowWorkspaces, requireSlideshowWorkspace } from '../autoSlideshow/workspaces';
 import { affordableCredits } from '../slideshowCredits/charge';
-import { createSlideshowIdeas, generateIdeas, listIdeas, makeSlideshowIdeas, patchIdea } from '../labs/calendarIdeas';
+import { OTHER_HOOK, createSlideshowIdeas, generateIdeas, listIdeas, makeSlideshowIdeas, patchIdea } from '../labs/calendarIdeas';
 import { scheduleBlitz } from '../labs/blitzSchedule';
 import type { DeckItem } from '../slideshow/core/deckAssembly';
 import { IDEA_DAYS, IDEAS_PER_BATCH, type IdeaDto } from '../../types/admin/calendarIdeas';
@@ -115,26 +115,56 @@ export async function skipIdeas(caller: McpCaller, ids: string[], workspaceId?: 
 
 const messageOf = (err: unknown) => (err instanceof Error ? err.message : 'Something went wrong.');
 
-export type CalendarPick = { id: string; plannedAt?: string };
+/** `hook`: one of the idea's other_hooks (its text or id) to open with instead. */
+export type CalendarPick = { id: string; plannedAt?: string; hook?: string };
+
+const sameText = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+
+/**
+ * Gives the idea the hook Claude picked (as the app's hook picker does) and returns the id to keep. A bank card's other
+ * first line edits the idea; a reserve card's hook puts that card on the idea's day instead, so its id comes back.
+ */
+async function chooseHook(workspaceId: string, pick: CalendarPick, ideas: IdeaDto[]): Promise<string> {
+  const idea = ideas.find((i) => i.id === pick.id);
+  if (!pick.hook || !idea || sameText(idea.hook, pick.hook)) return pick.id;
+  const hook = idea.hooks.find((h) => h.id === pick.hook || sameText(h.text, pick.hook!));
+  if (!hook) throw new HttpError(400, 'hook_not_found', 'That hook is not one of this idea\'s other_hooks.');
+  await patchIdea(workspaceId, pick.id, { hookId: hook.id });
+  return hook.id.startsWith(OTHER_HOOK) ? pick.id : hook.id;
+}
 
 /**
  * Keeps the picked ideas and puts them on the calendar, waiting for approval: videos are scheduled as `planned` (1
  * credit now, refunded if not approved in time), slideshows (made already while proposed) move into the calendar run
  * and are charged. `plannedAt` moves an idea first. Returns what was added, what failed and why, and the approval link.
  */
-export async function addToCalendar(caller: McpCaller, picks: CalendarPick[], workspaceId?: string) {
+export async function addToCalendar(caller: McpCaller, asked: CalendarPick[], workspaceId?: string) {
   const ws = await workspaceFor(caller, workspaceId);
   const errors: Record<string, string> = {};
   const fail = (id: string) => (err: unknown) => { errors[id] = messageOf(err); };
-  const wasProposed = new Set((await listIdeas(ws.id)).ideas.filter((i) => i.status === 'proposed').map((i) => i.id));
+  const listed = (await listIdeas(ws.id)).ideas;
+  const wasProposed = new Set(listed.filter((i) => i.status === 'proposed').map((i) => i.id));
+  // Hooks first: a reserve card's hook changes which idea goes on the day (`replaces` in the answer).
+  const replaced = new Map<string, string>();
+  const picks: CalendarPick[] = [];
+  for (const p of asked) {
+    const id = await chooseHook(ws.id, p, listed).catch((err: unknown) => (fail(p.id)(err), p.id));
+    if (id !== p.id) {
+      replaced.set(id, p.id);
+      if (wasProposed.has(p.id)) wasProposed.add(id);
+    }
+    picks.push({ ...p, id });
+  }
 
   for (const p of picks) {
     if (errors[p.id]) continue;
     await patchIdea(ws.id, p.id, { ...(p.plannedAt ? { plannedAt: p.plannedAt } : {}), status: 'kept' }).catch(fail(p.id));
   }
   const kept = (await listIdeas(ws.id)).ideas.filter((i) => picks.some((p) => p.id === i.id) && !errors[i.id] && i.status === 'kept');
-  const added: Array<{ id: string; format: string; planned_for: string; hook: string }> = [];
-  const done = (i: IdeaDto) => added.push({ id: i.id, format: i.format === 'blitz' ? 'video' : 'slideshow', planned_for: localTime(new Date(i.plannedAt), ws.tz), hook: i.hook });
+  const added: Array<{ id: string; replaces?: string; format: string; planned_for: string; hook: string }> = [];
+  const done = (i: IdeaDto) => added.push({
+    id: i.id, ...(replaced.has(i.id) ? { replaces: replaced.get(i.id) } : {}), format: i.format === 'blitz' ? 'video' : 'slideshow', planned_for: localTime(new Date(i.plannedAt), ws.tz), hook: i.hook,
+  });
 
   await scheduleVideos(ws, caller.userId, kept.filter((i) => i.format === 'blitz'), done, fail);
 

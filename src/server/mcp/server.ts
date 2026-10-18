@@ -9,7 +9,7 @@ import { addToCalendar, approvalInfo, calendarPosts, getIdeas, listWorkspaces, r
 
 const INSTRUCTIONS = `Next5 makes short-form posts (TikTok, Instagram, YouTube Shorts) for a small business from its website.
 Two formats: "video" (a narrated Blitz video, ~25 s, 7 on-screen lines: hook, pain, old way, mechanism, proof, cost of waiting, call to action) and "slideshow" (a photo carousel).
-Typical flow: get_post_ideas for the week -> show the ideas to the user (day, format, hook) -> skip_ideas for ones they reject (the day gets a fresh one) -> add_to_calendar with the ones they pick -> give them the approval_url.
+Typical flow: get_post_ideas for the week -> show the ideas to the user (day, format, hook) -> skip_ideas for ones they reject (the day gets a fresh one) -> add_to_calendar with the ones they pick (with "hook" for any video you show with one of its other_hooks) -> give them the approval_url.
 Ideas are free. Putting one on the calendar costs 1 credit (as in the app). Nothing is ever published from here: every post waits for the user's approval in Next5, so always end by sharing the approval_url.
 Times are in the workspace's local time zone.`;
 
@@ -74,17 +74,19 @@ export function createNext5Server(caller: McpCaller): McpServer {
   server.registerTool('add_to_calendar', {
     title: 'Add ideas to the calendar',
     description: 'Puts the picked ideas on the Next5 calendar as posts waiting for the user\'s approval. Costs 1 credit per post '
-      + '(a video\'s credit is refunded if it is not approved in time). Optionally moves an idea to another day/time first. '
+      + '(a video\'s credit is refunded if it is not approved in time). Optionally moves an idea to another day/time first, or gives a video another hook from its other_hooks. '
       + 'Does NOT publish. Returns what was added, what failed and why, and the approval_url the user must open to approve.',
     inputSchema: {
       workspace_id: workspaceArg,
       ideas: z.array(z.object({
         id: z.string(),
         planned_at: z.string().datetime({ offset: true }).optional().describe('Move it to this time first (ISO 8601 with offset), from tomorrow on.'),
+        hook: z.string().optional().describe('Videos: open with this hook instead, copied exactly from the idea\'s other_hooks. '
+          + 'If you show the user another hook than `hook`, pass it here, or the post keeps the original one.'),
       })).min(1).max(20),
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-  }, (a) => run(() => addToCalendar(caller, a.ideas.map((i) => ({ id: i.id, plannedAt: i.planned_at })), a.workspace_id)));
+  }, (a) => run(() => addToCalendar(caller, a.ideas.map((i) => ({ id: i.id, plannedAt: i.planned_at, hook: i.hook })), a.workspace_id)));
 
   server.registerTool('get_calendar', {
     title: 'Get calendar',

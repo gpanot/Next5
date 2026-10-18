@@ -38,7 +38,7 @@ const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 
 const firstLine = (card: DeckItem) => card.shots[0]?.text ?? card.hookStyle;
 /** Hook ids of a bank card's other first lines (its story's other hooks), by archetype. */
-const OTHER_HOOK = 'hook:';
+export const OTHER_HOOK = 'hook:';
 
 /** Reserve Blitz cards (not planned), newest first. Content-page deck cards are saved without their full card: left out. */
 const loadReserve = async (workspaceId: string) => {
