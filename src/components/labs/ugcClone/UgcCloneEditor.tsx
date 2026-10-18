@@ -15,8 +15,12 @@ import { ApiPreview } from './ApiPreview';
 import { CloneInputsPanel } from './CloneInputsPanel';
 import { CloneLibrary } from './CloneLibrary';
 import { CloneOptionsPanel } from './CloneOptionsPanel';
+import { CloneModePicker } from './CloneModePicker';
+import { CloneDurationSlider } from './CloneDurationSlider';
 import { CloneResult } from './CloneResult';
-import { getDefaultPrompt, MODE_CONFIG, PROMPTS, type CloneDuration, type CloneMode } from './cloneConfig';
+import {
+  clipSeconds, DEFAULT_DURATION_SEC, getDefaultPrompt, maxDurationFor, MODE_CONFIG, PROMPTS, type CloneMode,
+} from './cloneConfig';
 import { useCloneJob } from './useCloneJob';
 import { useCloneUploads } from './useCloneUploads';
 
@@ -28,7 +32,8 @@ const STEPS = [
 export function UgcCloneEditor() {
   const [step, setStep] = useState<1 | 2>(1);
   const [mode, setMode] = useState<CloneMode>('face-swap');
-  const [maxDurationSec, setMaxDurationSec] = useState<CloneDuration>(5);
+  // The picked duration belongs to one clip; a new clip goes back to its whole length.
+  const [pickedDuration, setPickedDuration] = useState<{ clipKey: string | null; sec: number } | null>(null);
   const [generateAudio, setGenerateAudio] = useState(true);
 
   // The prompt follows the mode and the voice until she edits it, and then it is hers.
@@ -42,20 +47,23 @@ export function UgcCloneEditor() {
   const job = useCloneJob();
 
   const uploads = useCloneUploads({
-    maxDurationSec,
     onVoiceChanged: (hasVoice) => syncPrompt(mode, hasVoice),
     onSourcedFromUrl: () => setStep(2),
   });
   const { character, refVideo, voice } = uploads;
+  const config = MODE_CONFIG[mode];
+  const clipSec = refVideo?.durationSec || undefined;
+  const maxDuration = maxDurationFor(mode, clipSec);
+  const defaultDuration = clipSec ? clipSeconds(mode, Math.floor(clipSec)) : DEFAULT_DURATION_SEC;
+  const durationSec = pickedDuration && pickedDuration.clipKey === (refVideo?.key ?? null)
+    ? Math.min(pickedDuration.sec, maxDuration)
+    : Math.min(defaultDuration, maxDuration);
+  // Swap modes send the clip as the reference, so it must be no longer than the output.
+  const trimClip = mode !== 'video-update' && clipSec !== undefined && durationSec < clipSec - 0.5;
 
   const handleModeChange = (next: CloneMode) => {
     setMode(next);
     syncPrompt(next, Boolean(voice));
-  };
-
-  const handleDurationChange = (seconds: CloneDuration) => {
-    setMaxDurationSec(seconds);
-    uploads.retrimVideo(seconds);
   };
 
   const handlePromptChange = (next: string) => {
@@ -80,13 +88,14 @@ export function UgcCloneEditor() {
     void job.submit({
       mode,
       imageVendorUrl: character.vendorUrl,
-      videoVendorUrl: refVideo.vendorUrl,   // face-swap: sent as video_urls
+      videoVendorUrl: refVideo.vendorUrl,   // face-swap: video_urls · mini-swap: reference_video_urls
       frameVendorUrl: refVideo.frameVendorUrl, // video-update: the first_frame role
       voiceVendorUrl: voice?.voiceVendorUrl,
       prompt: promptText.trim(),
       characterKey: character.key,
       refVideoKey: refVideo.key,
-      durationSec: maxDurationSec,
+      durationSec,
+      trimClip,
       generateAudio,
     });
   };
@@ -94,7 +103,6 @@ export function UgcCloneEditor() {
   const isGenerating = job.status === 'submitting' || job.status === 'polling';
   const canGenerate = Boolean(character && refVideo && promptText.trim()) && !isGenerating;
   const showPreview = Boolean(character && refVideo) && !isGenerating && job.status !== 'done';
-  const config = MODE_CONFIG[mode];
 
   if (job.status === 'done' && job.resultUrl) {
     return (
@@ -139,11 +147,26 @@ export function UgcCloneEditor() {
       {/* ── Step 2: Clone editor ──────────────────────────────────────── */}
       {step === 2 && (
         <div className="flex flex-col gap-6">
+          <CloneModePicker mode={mode} onModeChange={handleModeChange} />
+
+          <CloneInputsPanel
+            character={character}
+            characterBusy={uploads.characterBusy}
+            characterError={uploads.characterError}
+            onCharacterFile={(f) => void uploads.uploadCharacter(f)}
+            refVideo={refVideo}
+            videoBusy={uploads.videoBusy}
+            videoError={uploads.videoError}
+            onVideoFile={(f) => void uploads.uploadVideo(f)}
+            voice={voice}
+            voiceBusy={uploads.voiceBusy}
+            voiceError={uploads.voiceError}
+            onVoiceFile={(f) => void uploads.uploadVoice(f)}
+            onRemoveVoice={uploads.removeVoice}
+          />
+
           <CloneOptionsPanel
             mode={mode}
-            onModeChange={handleModeChange}
-            maxDurationSec={maxDurationSec}
-            onDurationChange={handleDurationChange}
             prompt={promptText}
             onPromptChange={handlePromptChange}
             onPromptReset={handlePromptReset}
@@ -152,21 +175,12 @@ export function UgcCloneEditor() {
             onGenerateAudioChange={setGenerateAudio}
           />
 
-          <CloneInputsPanel
-            maxDurationSec={maxDurationSec}
-            character={character}
-            characterBusy={uploads.characterBusy}
-            characterError={uploads.characterError}
-            onCharacterFile={(f) => void uploads.uploadCharacter(f)}
-            refVideo={refVideo}
-            videoBusy={uploads.videoBusy}
-            videoError={uploads.videoError}
-            onVideoFile={(f) => void uploads.uploadVideo(f, maxDurationSec)}
-            voice={voice}
-            voiceBusy={uploads.voiceBusy}
-            voiceError={uploads.voiceError}
-            onVoiceFile={(f) => void uploads.uploadVoice(f)}
-            onRemoveVoice={uploads.removeVoice}
+          <CloneDurationSlider
+            mode={mode}
+            value={durationSec}
+            max={maxDuration}
+            clipSec={clipSec}
+            onChange={(sec) => setPickedDuration({ clipKey: refVideo?.key ?? null, sec })}
           />
 
           <Section title="Generate" description={`${config.label} · ${config.model} · reapi`}>
@@ -186,7 +200,7 @@ export function UgcCloneEditor() {
                     refVideo={refVideo}
                     voice={voice}
                     prompt={promptText}
-                    durationSec={maxDurationSec}
+                    durationSec={durationSec}
                     generateAudio={generateAudio}
                   />
                 )}
@@ -196,7 +210,7 @@ export function UgcCloneEditor() {
                     <Spinner />
                     <span className="text-[13px] text-muted">
                       {job.status === 'submitting'
-                        ? 'Submitting to Seedance…'
+                        ? `Submitting to ${config.label}…`
                         : `Generating… ${job.progress > 0 ? `${job.progress}%` : ''} (${job.elapsedSec}s elapsed)`}
                     </span>
                   </div>

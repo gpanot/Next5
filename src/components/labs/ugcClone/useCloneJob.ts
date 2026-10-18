@@ -23,6 +23,8 @@ export type CloneSubmitBody = {
   characterKey: string;
   refVideoKey: string;
   durationSec: number;
+  /** Swap modes: the duration is shorter than the clip, so the server cuts the clip first. */
+  trimClip: boolean;
   generateAudio: boolean;
 };
 

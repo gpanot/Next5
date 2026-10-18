@@ -62,8 +62,13 @@ export const useSlideshowEdit = (token: string, runId: string, initial: AutoSlid
     show,
     busy,
     error,
-    /** Text dragged on a slide, saved and rendered in the background. */
-    placeText: (index: number, textAt: TextAt) => quiet(`/slides/${index}`, { textAt }, 'The text could not be moved'),
+    /** Text dragged on a slide (and the locked content slides with it), saved and rendered in the background. */
+    placeText: (index: number, at: TextAt) => quiet('', { textMove: { index, at } }, 'The text could not be moved'),
+    /** A content slide's text unlocked from the others or locked back: shown at once, saved in the background. */
+    setTextFree: (index: number, textFree: boolean) => {
+      setShow((s) => ({ ...s, slides: s.slides.map((slide, i) => (i === index ? { ...slide, textFree: textFree || undefined } : slide)) }));
+      void quiet(`/slides/${index}`, { textFree }, 'The text lock could not be saved');
+    },
     /** One text style (headline or the line under it) on every hook, content or CTA slide, in the background. */
     styleText: (group: 'hook' | 'content' | 'cta', part: 'look' | 'bodyLook', look: SlideLook) =>
       quiet('', { textStyle: { group, part, look } }, 'The text style could not be saved'),

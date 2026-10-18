@@ -11,6 +11,7 @@ import { writeFile, readFile, unlink } from 'fs/promises';
 import { tmpdir } from 'os';
 import path from 'path';
 import { promisify } from 'util';
+import { putFile, uniqueStamp, vendorUrl } from './ugcStore';
 
 // Resolve ffmpeg at runtime — avoids Next.js webpack bundling replacing
 // ffmpeg-static's internal __dirname with /ROOT/ (ENOENT in route handlers).
@@ -137,4 +138,21 @@ export async function extractFirstFrame(input: Buffer): Promise<Buffer | null> {
       unlink(outPath).catch(() => {}),
     ]);
   }
+}
+
+// ── Trim at submit ────────────────────────────────────────────────────────────
+
+/**
+ * Cuts an already stored reference clip to its first `seconds` and stores the cut as a new file.
+ * Used when the duration picked at the last step is shorter than the uploaded clip, so the
+ * reference sent to the model is exactly as long as the video asked for.
+ */
+export async function trimStoredClip(key: string, seconds: number): Promise<{ key: string; vendorUrl: string }> {
+  const res = await fetch(await vendorUrl(key));
+  if (!res.ok) throw new Error(`Could not read the reference video (${res.status})`);
+  const trimmed = await trimVideo(Buffer.from(await res.arrayBuffer()), seconds);
+  if (!trimmed) throw new Error(`Could not trim the reference video to ${seconds} s`);
+  const trimmedKey = cloneKeys.video(uniqueStamp(), 'mp4');
+  await putFile(trimmedKey, trimmed, 'video/mp4');
+  return { key: trimmedKey, vendorUrl: await vendorUrl(trimmedKey) };
 }

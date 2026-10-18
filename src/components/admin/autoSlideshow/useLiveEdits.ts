@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { AutoSlideDto, AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
+import { linkedTextSlides, type AutoSlideDto, type AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
 import type { SlideLook, TextAt } from '../../../types/slideText';
 
 /** What the editor shows on a slide before its new image is in: where its text was dropped, its new text styles. */
@@ -57,7 +57,13 @@ export const useLiveEdits = (slides: AutoSlideDto[], save: Save) => {
     });
   };
 
-  const move = (index: number, at: TextAt) => apply({ [index]: { textAt: at } }, () => save.placeText(index, at));
+  /** Text dropped on slide `index`: it stays centered, and the locked content slides take the same height. */
+  const move = (index: number, at: TextAt) => {
+    const textAt = { x: 0.5, y: at.y };
+    const patch: Edits = {};
+    for (const i of linkedTextSlides(slides, index)) patch[i] = { textAt };
+    apply(patch, () => save.placeText(index, textAt));
+  };
 
   const style = (group: StyleGroup, part: 'look' | 'bodyLook', look: SlideLook) => {
     const patch: Edits = {};

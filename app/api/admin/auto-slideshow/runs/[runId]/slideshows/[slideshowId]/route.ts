@@ -3,13 +3,14 @@
  * PATCH  /api/admin/auto-slideshow/runs/[runId]/slideshows/[slideshowId] — { caption?, hashtags?, audioAssetId? (null = none) }
  *        or { hookStyle } — the hook and CTA slides' look (types/hookStyle.ts), re-rendered
  *        or { textStyle: { group: hook|content|cta, part: look|bodyLook, look } } — one text style on every slide of a kind
+ *        or { textMove: { index, at } } — slide index's text dragged (centered); locked content slides move with it
  * DELETE /api/admin/auto-slideshow/runs/[runId]/slideshows/[slideshowId] — remove it and its images
  */
 import type { NextRequest } from 'next/server';
 import { json } from '../../../../../../../../src/server/admin/route';
 import { assertRunAccess } from '../../../../../../../../src/server/autoSlideshow/access';
 import { slideshowRoute } from '../../../../../../../../src/server/autoSlideshow/route';
-import { deleteSlideshow, setHookStyle, setTextStyle, updateShow, type ShowPatch, type TextStylePatch } from '../../../../../../../../src/server/autoSlideshow/edit';
+import { deleteSlideshow, moveText, setHookStyle, setTextStyle, updateShow, type ShowPatch, type TextStylePatch } from '../../../../../../../../src/server/autoSlideshow/edit';
 import { getSlideshowDto } from '../../../../../../../../src/server/autoSlideshow/store';
 
 type Ctx = { params: Promise<{ runId: string; slideshowId: string }> };
@@ -24,8 +25,9 @@ export const GET = slideshowRoute(async (_req: NextRequest, ctx: Ctx, access) =>
 export const PATCH = slideshowRoute(async (req: NextRequest, ctx: Ctx, access) => {
   const { runId, slideshowId } = await ctx.params;
   await assertRunAccess(access, runId);
-  const body = (await req.json().catch(() => ({}))) as ShowPatch & { hookStyle?: unknown; textStyle?: TextStylePatch };
-  if (body.textStyle !== undefined) await setTextStyle(runId, slideshowId, body.textStyle ?? {});
+  const body = (await req.json().catch(() => ({}))) as ShowPatch & { hookStyle?: unknown; textStyle?: TextStylePatch; textMove?: { index?: unknown; at?: unknown } };
+  if (body.textMove !== undefined) await moveText(runId, slideshowId, body.textMove?.index, body.textMove?.at ?? null);
+  else if (body.textStyle !== undefined) await setTextStyle(runId, slideshowId, body.textStyle ?? {});
   else if (body.hookStyle !== undefined) await setHookStyle(runId, slideshowId, body.hookStyle);
   else await updateShow(runId, slideshowId, body);
   return json({ slideshow: await getSlideshowDto(runId, slideshowId) });

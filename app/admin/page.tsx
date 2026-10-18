@@ -236,7 +236,9 @@ export default function AdminPage() {
         </header>
 
         {/* Main content — scrolls independently */}
-        <main className="flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8">
+        {/* relative: keeps absolutely positioned children (sr-only file inputs) inside the scroll area, so
+            picking a file never scrolls the whole page past the sidebar. */}
+        <main className="relative flex-1 overflow-y-auto px-4 py-4 md:px-8 md:py-8">
           {tab === 'overview'         && <OverviewTab          token={token} />}
           {tab === 'workspaces'       && <WorkspacesTab        token={token} />}
           {tab === 'prospects'        && <ProspectsTab         token={token} />}

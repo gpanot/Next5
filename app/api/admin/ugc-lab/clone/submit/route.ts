@@ -2,20 +2,28 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { adminRoute } from '../../../../../../src/server/admin/route';
 import { tregCall } from '../../../../../../src/server/admin/ugcLab';
 import { createCloneJob } from '../../../../../../src/server/admin/cloneVideos';
+import { reapiRequest } from '../../../../../../src/server/admin/wan3Provider';
+import { trimStoredClip } from '../../../../../../src/server/admin/cloneUtils';
 
-export const maxDuration = 30;
+// Trimming the reference clip at submit (download, ffmpeg, upload) can take a while.
+export const maxDuration = 120;
 
 // --------------------------------------------------------------------------
-// Two Seedance modes via reapi.video-gen.seedance-2-5.unrestricted
+// Two Seedance 2.5 modes via reapi.video-gen.seedance-2-5.unrestricted
 //
 // face-swap    — doubao-seedance-2.5-face
-//   • video_urls  → triggers video editing mode (required by the face model)
-//   • duration: -1 (forced by reapi in video editing mode)
-//   • output length = trimmed input video length
+//   • video_urls as a reference (omni_reference_task_type 'reference'), not edit mode:
+//     the prompt does the swap, so the duration is explicit (= trimmed clip length)
+//   • reAPI still bills source + output seconds whenever video_urls is sent
 //
 // video-update — doubao-seedance-2.5 (unrestricted)
 //   • image_with_roles (character reference_image + first_frame)
 //   • explicit duration from the dropdown (table-based billing)
+
+//
+// mini-swap    — seedance-2.0-mini, reAPI direct (REAPI_API_KEY)
+//   • reference_image_urls + reference_video_urls, prompt does the swap
+//   • 4–15 s, 720p, billed source + output seconds (~$0.48 for a 5 s clip)
 // --------------------------------------------------------------------------
 
 const SEEDANCE_ENDPOINT = 'reapi.video-gen.seedance-2-5.unrestricted';
@@ -23,12 +31,17 @@ const SEEDANCE_ENDPOINT = 'reapi.video-gen.seedance-2-5.unrestricted';
 const MODELS = {
   'face-swap':    'doubao-seedance-2.5-face',
   'video-update': 'doubao-seedance-2.5-face',  // reapi endpoint only accepts the -face variant
+  'mini-swap':    'seedance-2.0-mini',
 } as const;
 
-type Mode = 'face-swap' | 'video-update';
+/** Output limits per model (reapi.ai docs, 2026-10-17): Seedance 2.5 4–30 s, Mini 4–15 s. */
+const MAX_SEC: Record<Mode, number> = { 'face-swap': 30, 'video-update': 30, 'mini-swap': 15 };
+const clampDuration = (sec: number, max: number) => Math.min(max, Math.max(4, Math.round(sec)));
+
+type Mode = keyof typeof MODELS;
 
 type SubmitBody = {
-  /** face-swap | video-update */
+  /** face-swap | video-update | mini-swap */
   mode?: Mode;
   /** Vendor URL for the character face image */
   imageVendorUrl?: string;
@@ -43,8 +56,10 @@ type SubmitBody = {
   /** R2 keys — stored in the DB so the library can re-sign them */
   characterKey?: string;
   refVideoKey?: string;
-  /** Explicit duration from the dropdown — used for video-update mode */
+  /** Seconds to generate — the trimmed clip length for the swap modes, the dropdown for video-update */
   durationSec?: number;
+  /** Swap modes: the duration is shorter than the uploaded clip, so cut the clip to it first. */
+  trimClip?: boolean;
   /** Whether to ask Seedance to generate audio — maps to generate_audio. Default true. */
   generateAudio?: boolean;
 };
@@ -53,15 +68,18 @@ export const POST = adminRoute(async (req: NextRequest) => {
   const {
     mode = 'face-swap',
     imageVendorUrl,
-    videoVendorUrl,
+    videoVendorUrl: rawVideoUrl,
     frameVendorUrl,
     voiceVendorUrl,
     prompt,
     characterKey,
-    refVideoKey,
+    refVideoKey: rawVideoKey,
     durationSec = 5,
+    trimClip = false,
     generateAudio = true,
   } = (await req.json()) as SubmitBody;
+  let videoVendorUrl = rawVideoUrl;
+  let refVideoKey = rawVideoKey;
 
   if (!imageVendorUrl?.trim()) {
     return NextResponse.json(
@@ -74,6 +92,38 @@ export const POST = adminRoute(async (req: NextRequest) => {
   }
 
   const model = MODELS[mode] ?? MODELS['face-swap'];
+
+  // The duration step chose fewer seconds than the clip has: send a reference of exactly that length.
+  if (trimClip && mode !== 'video-update' && rawVideoKey) {
+    try {
+      const cut = await trimStoredClip(rawVideoKey, clampDuration(durationSec, MAX_SEC[mode]));
+      refVideoKey = cut.key;
+      videoVendorUrl = cut.vendorUrl;
+    } catch (err) {
+      console.error('[clone/submit] trim failed:', err);
+      return NextResponse.json({ error: (err as Error).message }, { status: 422 });
+    }
+  }
+
+  let taskId: string;
+  if (mode === 'mini-swap') {
+    if (!videoVendorUrl?.trim()) {
+      return NextResponse.json({ error: 'videoVendorUrl is required for Seedance Mini' }, { status: 400 });
+    }
+    const seconds = clampDuration(durationSec, MAX_SEC['mini-swap']);
+    try {
+      taskId = await submitSeedanceMini({
+        prompt: prompt.trim(), imageUrl: imageVendorUrl, videoUrl: videoVendorUrl,
+        voiceUrl: voiceVendorUrl?.trim() || undefined, durationSec: seconds, generateAudio,
+      });
+    } catch (err) {
+      console.error('[clone/submit] reapi mini error:', err);
+      return NextResponse.json({ error: (err as Error).message ?? 'Failed to submit to Seedance Mini' }, { status: 502 });
+    }
+    await persistJob({ taskId, characterKey, refVideoKey, durationSec: seconds, model, resolution: '720p', prompt: prompt.trim() });
+    return NextResponse.json({ taskId }, { status: 201 });
+  }
+
   const hasAudio = Boolean(voiceVendorUrl?.trim());
 
   // ── Build the Seedance request body based on mode ───────────────────────
@@ -87,15 +137,16 @@ export const POST = adminRoute(async (req: NextRequest) => {
   };
 
   if (mode === 'face-swap') {
-    // Video editing mode — video_urls forces duration: -1
-    // The face model requires the reference video this way.
+    // Reference mode — the video is a reference, the prompt asks for the swap.
     if (!videoVendorUrl?.trim()) {
       return NextResponse.json(
         { error: 'videoVendorUrl is required for face-swap mode' },
         { status: 400 },
       );
     }
-    seedanceBody.duration = -1;  // required by reapi when video_urls is present
+    seedanceBody.omni_reference_task_type = 'reference';
+    seedanceBody.duration = clampDuration(durationSec, MAX_SEC['face-swap']);
+    seedanceBody.size = '9:16';
     seedanceBody.image_with_roles = [
       { url: imageVendorUrl, role: 'reference_image' },
     ];
@@ -103,7 +154,7 @@ export const POST = adminRoute(async (req: NextRequest) => {
 
   } else {
     // video-update: generation mode — image_with_roles + first_frame + explicit duration
-    seedanceBody.duration = durationSec;
+    seedanceBody.duration = clampDuration(durationSec, MAX_SEC['video-update']);
     seedanceBody.size = 'adaptive';
     if (frameVendorUrl?.trim()) {
       seedanceBody.image_with_roles = [
@@ -124,7 +175,6 @@ export const POST = adminRoute(async (req: NextRequest) => {
 
   // ── Submit to reapi via Treg ────────────────────────────────────────────
 
-  let taskId: string;
   try {
     const result = await tregCall<{ id?: string; task_id?: string }>(
       SEEDANCE_ENDPOINT,
@@ -142,21 +192,54 @@ export const POST = adminRoute(async (req: NextRequest) => {
 
   // ── Persist to DB ───────────────────────────────────────────────────────
 
-  if (characterKey && refVideoKey) {
-    try {
-      await createCloneJob({
-        poyoTaskId:  taskId,
-        characterKey,
-        refVideoKey,
-        durationSec: mode === 'face-swap' ? durationSec : durationSec,
-        model,
-        resolution:  '480p',
-        prompt:      prompt.trim(),
-      });
-    } catch (err) {
-      console.error('[clone/submit] failed to persist job to DB:', err);
-    }
-  }
+  await persistJob({
+    taskId, characterKey, refVideoKey, model, resolution: '480p', prompt: prompt.trim(),
+    durationSec: seedanceBody.duration as number,
+  });
 
   return NextResponse.json({ taskId }, { status: 201 });
 });
+
+/** Seedance 2.0 Mini on reAPI direct: character as a reference image, the clip as a reference video. */
+async function submitSeedanceMini(input: {
+  prompt: string; imageUrl: string; videoUrl: string; voiceUrl?: string; durationSec: number; generateAudio: boolean;
+}): Promise<string> {
+  const res = await reapiRequest<{ id?: string; task_id?: string }>('POST', '/videos/generations', {
+    model: MODELS['mini-swap'],
+    prompt: input.prompt,
+    reference_image_urls: [input.imageUrl],
+    reference_video_urls: [input.videoUrl],
+    ...(input.voiceUrl && { reference_audio_urls: [input.voiceUrl] }),
+    duration: input.durationSec,
+    resolution: '720p',
+    aspect_ratio: '9:16',
+    generate_audio: input.generateAudio,
+    bitrate_mode: 'default',
+    web_search: false,
+    content_filter: true,
+  });
+  const taskId = res.id ?? res.task_id ?? '';
+  if (!taskId) throw new Error('No task ID returned from reapi');
+  return taskId;
+}
+
+/** Library record, so the clone shows up and gets mirrored to R2. Best effort: the task runs either way. */
+async function persistJob(job: {
+  taskId: string; characterKey?: string; refVideoKey?: string; durationSec: number;
+  model: string; resolution: string; prompt: string;
+}): Promise<void> {
+  if (!job.characterKey || !job.refVideoKey) return;
+  try {
+    await createCloneJob({
+      poyoTaskId:  job.taskId,
+      characterKey: job.characterKey,
+      refVideoKey: job.refVideoKey,
+      durationSec: job.durationSec,
+      model:       job.model,
+      resolution:  job.resolution,
+      prompt:      job.prompt,
+    });
+  } catch (err) {
+    console.error('[clone/submit] failed to persist job to DB:', err);
+  }
+}
