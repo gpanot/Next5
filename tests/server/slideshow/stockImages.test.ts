@@ -3,16 +3,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   paid: vi.fn<(workspaceId: string | null) => Promise<boolean>>(),
   generate: vi.fn(),
-  treg: vi.fn(),
+  store: vi.fn(),
+  results: vi.fn(),
 }));
 
-vi.mock('../../../src/server/slideshowCredits/paid', () => ({ workspaceHasPaid: mocks.paid }));
-vi.mock('../../../src/server/slideshow/core/generatedAssets', () => ({ generateShotImages: mocks.generate, storeShotAsset: vi.fn() }));
-vi.mock('../../../src/server/shorts/treg', () => ({ tregJson: mocks.treg, withRetry: <T>(fn: () => Promise<T>) => fn() }));
+vi.mock('../../../src/server/slideshowCredits/paid', () => ({ workspaceGetsAiImages: mocks.paid }));
+vi.mock('../../../src/server/slideshow/core/generatedAssets', () => ({ generateShotImages: mocks.generate, storeShotAsset: mocks.store }));
+vi.mock('../../../src/server/autoSlideshow/campaign/unsplash', () => ({ unsplashResults: mocks.results }));
 
-import { searchPexels } from '../../../src/server/autoSlideshow/campaign/pexels';
 import { batchShotImages, type BatchNeed } from '../../../src/server/slideshow/core/imageNeeds';
-import { stockQuery } from '../../../src/server/slideshow/core/stockImages';
+import { newStockUsed, stockQuery, stockShotImages } from '../../../src/server/slideshow/core/stockImages';
 
 const need = (text: string, description?: string): BatchNeed['need'] =>
   ({ key: 'electricians:pain', role: 'pain', text, ...(description ? { photo: { prompt: 'p', description } } : {}) });
@@ -31,7 +31,7 @@ describe('batchShotImages', () => {
   beforeEach(() => {
     mocks.paid.mockReset();
     mocks.generate.mockReset().mockResolvedValue(new Map());
-    mocks.treg.mockReset().mockResolvedValue({ data: { images: {} }, costMicros: 0 });
+    mocks.results.mockReset().mockResolvedValue([]);
   });
 
   const needs: BatchNeed[] = [{ script: 0, audience: 'electricians', categories: ['home_services'], need: need('Calls go to voicemail.') }];
@@ -56,24 +56,24 @@ describe('batchShotImages', () => {
   });
 });
 
-describe('searchPexels', () => {
-  it('reads the search results from the scraped images list, skipping ads and duplicates', async () => {
-    mocks.treg.mockResolvedValue({
-      costMicros: 150,
-      data: {
-        images: {
-          'Image 3: electrician working': 'https://images.pexels.com/photos/33694016/pexels-photo-33694016.jpeg?h=40&w=40',
-          'Image 18: Free Electrician fixing a panel indoors. Stock Photo': 'https://images.pexels.com/photos/33694016/pexels-photo-33694016/free-photo.jpeg?w=500',
-          'Image 19: Create your own electrician content with Canva': 'https://content.pexels.com/aigc-bundle/images/x.jpg',
-          'Image 26': 'https://media.istockphoto.com/id/1/photo.jpg',
-          'Image 32: Free Crop faceless man using screwdriver Stock Photo': 'https://images.pexels.com/photos/5691589/pexels-photo-5691589.jpeg?w=500',
-          'Image 33: Free Electrician fixing a panel indoors. Stock Photo': 'https://images.pexels.com/photos/33694016/pexels-photo-33694016.jpeg?w=500',
-        },
-      },
-    });
-    expect(await searchPexels('electrician panel test')).toEqual([
-      { id: '33694016', label: 'Electrician fixing a panel indoors.' },
-      { id: '5691589', label: 'Crop faceless man using screwdriver' },
-    ]);
+describe('stockShotImages (Unsplash)', () => {
+  const result = (id: string) => ({ id, label: `photo ${id}`, download: vi.fn(async () => ({ bytes: Buffer.from(id) })) });
+
+  beforeEach(() => {
+    mocks.store.mockReset().mockImplementation(async (file: { description: string; model: string }) => ({ r2Key: file.description, model: file.model }));
+  });
+
+  it('gives each shot its own photo, even when two shots search the same words', async () => {
+    mocks.results.mockReset().mockResolvedValue([result('a'), result('b')]);
+    const shots = [need('Calls go to voicemail.'), { ...need('Calls go to voicemail.'), key: 'electricians:oldWay' }];
+    const out = await stockShotImages('electricians', [], shots, 'ws1', newStockUsed());
+    expect([...out.values()].map((a) => (a as unknown as { r2Key: string }).r2Key).sort()).toEqual(['photo a', 'photo b']);
+    expect(mocks.store.mock.calls[0]![0]).toMatchObject({ model: 'unsplash', source: 'scraped' });
+  });
+
+  it('leaves a shot to the library when Unsplash has nothing or fails', async () => {
+    mocks.results.mockReset().mockRejectedValueOnce(new Error('unsplash_limit')).mockResolvedValueOnce([]);
+    const shots = [need('Calls go to voicemail.'), { ...need('Late replies'), key: 'electricians:oldWay' }];
+    expect((await stockShotImages('electricians', [], shots, 'ws1')).size).toBe(0);
   });
 });
