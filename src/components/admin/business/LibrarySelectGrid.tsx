@@ -78,10 +78,16 @@ function SelectableCard({ selecting, selected, onToggle, children }: CardProps) 
   );
 }
 
-type BarProps = { count: number; total: number; busy: boolean; onAll: () => void; onClear: () => void; onDelete: () => void };
+type BarProps = {
+  count: number; total: number; busy: boolean; message: string | null;
+  onAll: () => void; onClear: () => void; onDelete: () => void;
+};
 
-/** Bottom bar while selecting: count, select all / clear, delete with a second tap to confirm. */
-function SelectionBar({ count, total, busy, onAll, onClear, onDelete }: BarProps) {
+/**
+ * Bottom bar while selecting: count, select all / clear, delete with a second tap to confirm.
+ * The delete result (and why assets were kept) shows here, since the top of the grid may be scrolled away.
+ */
+function SelectionBar({ count, total, busy, message, onAll, onClear, onDelete }: BarProps) {
   const [confirming, setConfirming] = useState(false);
   return (
     <div className="sticky bottom-0 z-20 mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-white/95 px-3 py-2.5 shadow-sm backdrop-blur">
@@ -99,6 +105,7 @@ function SelectionBar({ count, total, busy, onAll, onClear, onDelete }: BarProps
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
         {busy ? 'Deleting…' : confirming ? `Delete ${count}? Tap again` : `Delete ${count}`}
       </button>
+      {message && <p role="status" className="basis-full text-[12px] text-red-600">{message}</p>}
     </div>
   );
 }
@@ -142,7 +149,7 @@ export function LibrarySelectGrid<T extends { id: string }>(props: Props<T>) {
           {selecting ? <X className="h-3.5 w-3.5" /> : <Check className="h-3.5 w-3.5" />}
           {selecting ? 'Done' : 'Select'}
         </button>
-        {status && <p role="status" className="text-[12px] text-muted">{status}</p>}
+        {status && !selecting && <p role="status" className="text-[12px] text-muted">{status}</p>}
       </div>
 
       <div className={gridClassName}>
@@ -161,6 +168,7 @@ export function LibrarySelectGrid<T extends { id: string }>(props: Props<T>) {
           count={bulk.selected.size}
           total={items.length}
           busy={bulk.busy}
+          message={status ?? null}
           onAll={() => bulk.setSelected(new Set(items.map((i) => i.id)))}
           onClear={() => bulk.setSelected(new Set())}
           onDelete={() => void bulk.remove()}
