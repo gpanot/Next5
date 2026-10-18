@@ -4,17 +4,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ideas = vi.hoisted(() => {
-  const rows = new Map<string, { id: string; status: string }>();
-  const idea = (id: string, status: string) => ({
-    id, status, format: 'blitz', plannedAt: '2026-10-20T19:00:00.000Z', hook: `Hook ${id}`, hooks: [], outline: [], goal: null,
+  const rows = new Map<string, { id: string; status: string; hook?: string; onDay?: boolean }>();
+  const hooks = [{ id: 'hook:question', text: 'Other line?' }, { id: 'r1', text: 'Reserve line' }];
+  const idea = (id: string, status: string, hook?: string) => ({
+    id, status, format: 'blitz', plannedAt: '2026-10-20T19:00:00.000Z', hook: hook ?? `Hook ${id}`, hooks, outline: [], goal: null,
     coverUrl: null, slideshow: null, card: { shots: [{ text: 'a' }] },
   });
   return {
     rows,
-    listIdeas: vi.fn(async () => ({ ideas: [...rows.values()].map((r) => idea(r.id, r.status)), batchSince: null })),
-    patchIdea: vi.fn(async (_ws: string, id: string, patch: { status?: string }) => {
+    listIdeas: vi.fn(async () => ({ ideas: [...rows.values()].filter((r) => r.onDay !== false).map((r) => idea(r.id, r.status, r.hook)), batchSince: null })),
+    patchIdea: vi.fn(async (_ws: string, id: string, patch: { status?: string; hookId?: string }) => {
       const row = rows.get(id);
       if (!row) throw new Error('Idea not found.');
+      if (patch.hookId === 'hook:question') row.hook = 'Other line?';
+      if (patch.hookId === 'r1') {
+        rows.set('r1', { id: 'r1', status: row.status, hook: 'Reserve line' });
+        row.onDay = false;
+      }
       if (patch.status) row.status = patch.status;
     }),
   };
@@ -28,7 +34,7 @@ vi.mock('../../../src/server/autoSlideshow/workspaces', () => ({
 }));
 vi.mock('../../../src/server/slideshowCredits/charge', () => ({ affordableCredits: async () => 5 }));
 vi.mock('../../../src/server/labs/calendarIdeas', () => ({
-  listIdeas: ideas.listIdeas, patchIdea: ideas.patchIdea, createSlideshowIdeas: vi.fn(), generateIdeas: vi.fn(), makeSlideshowIdeas: vi.fn(),
+  OTHER_HOOK: 'hook:', listIdeas: ideas.listIdeas, patchIdea: ideas.patchIdea, createSlideshowIdeas: vi.fn(), generateIdeas: vi.fn(), makeSlideshowIdeas: vi.fn(),
 }));
 const scheduleBlitz = vi.hoisted(() => vi.fn());
 vi.mock('../../../src/server/labs/blitzSchedule', () => ({ scheduleBlitz }));
@@ -69,5 +75,26 @@ describe('addToCalendar', () => {
     expect(res.failed).toEqual([{ id: 'b', reason: 'Not enough credits.' }]);
     expect(ideas.rows.get('a')!.status).toBe('kept');
     expect(ideas.rows.get('b')!.status).toBe('proposed');
+  });
+
+  it('opens a video with the other hook Claude picked', async () => {
+    scheduleBlitz.mockResolvedValue({});
+    const res = await addToCalendar(caller, [{ id: 'a', hook: 'other line?' }]);
+    expect(res.added).toEqual([expect.objectContaining({ id: 'a', hook: 'Other line?' })]);
+    expect(ideas.patchIdea).toHaveBeenCalledWith('ws_1', 'a', { hookId: 'hook:question' });
+  });
+
+  it('schedules the reserve card when its hook is picked, and says which idea it replaces', async () => {
+    scheduleBlitz.mockResolvedValue({});
+    const res = await addToCalendar(caller, [{ id: 'a', hook: 'Reserve line' }]);
+    expect(res.added).toEqual([expect.objectContaining({ id: 'r1', replaces: 'a', hook: 'Reserve line' })]);
+    expect(scheduleBlitz).toHaveBeenCalledWith('ws_1', 'user_1', expect.objectContaining({ cardId: 'r1' }));
+  });
+
+  it('refuses a hook the idea does not have', async () => {
+    const res = await addToCalendar(caller, [{ id: 'a', hook: 'Made up' }]);
+    expect(res.added).toEqual([]);
+    expect(res.failed).toEqual([{ id: 'a', reason: 'That hook is not one of this idea\'s other_hooks.' }]);
+    expect(ideas.rows.get('a')!.status).toBe('proposed');
   });
 });
