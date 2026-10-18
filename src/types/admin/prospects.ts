@@ -51,13 +51,18 @@ export type ProspectViewDay = {
   title: string;
   /** Blitz: the rendered video. */
   videoUrl: string | null;
-  /** Slideshows: the slide images in order. Blitz: its poster (first slide), when there is one. */
+  /** Slideshows: the slide images in order. Blitz: none (its thumbnail is the video's first frame). */
   slides: string[];
+  /** Blitz: the video's length in seconds, when known. */
+  durationSec: number | null;
   caption: string;
 };
 
-/** GET /api/prospect/[token]. */
-export type ProspectViewDto = { name: string; websiteUrl: string; status: 'ready' | 'claimed'; days: ProspectViewDay[] };
+/** GET /api/prospect/[token]. `heldUntil`: when the preview offer ends (7 days after the pack was made). */
+export type ProspectViewDto = { name: string; websiteUrl: string; status: 'ready' | 'claimed'; heldUntil: string; heldEnded: boolean; days: ProspectViewDay[] };
+
+/** How long a pack's preview is held for the prospect. */
+export const PROSPECT_HOLD_DAYS = 7;
 
 /** The share link's path for a pack. */
 export const prospectPath = (shareToken: string): string => `/p/${shareToken}`;
