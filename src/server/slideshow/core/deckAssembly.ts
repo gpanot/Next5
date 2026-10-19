@@ -7,6 +7,7 @@ import type { ImageNeed } from './generatedAssets';
 import type { ShotMedia } from './media';
 import type { HookArchetype, ShotRole } from './types';
 import { createVariants } from './variants';
+import type { SlideCamera } from '../../../remotion/types';
 import type { BlitzVoiceName } from '../../../types/admin/blitzVoice';
 
 // ── Types (JSON-safe, sent to the client) ────────────────────────────────────
@@ -17,6 +18,8 @@ export type DeckShot = ShotMedia & {
   text: string;
   textZone: 'top' | 'middle' | 'bottom';
   durationSec: number;
+  /** Photo shots of finished calendar ideas: the zoom/pan the card plays and the render uses (labs/blitzCamera.ts). */
+  camera?: SlideCamera;
 };
 
 /** One card = one hook archetype on its brief's shared story + CTA. */

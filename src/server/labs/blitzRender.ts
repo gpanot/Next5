@@ -4,7 +4,8 @@
 
 import type { BlitzProject, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import type { TextConfig } from '../../remotion/types';
+import { parseSlideCamera } from '../../remotion/slideCamera';
+import type { SlideCamera, TextConfig } from '../../remotion/types';
 import {
   BLITZ_BUSINESS_TEXT_MAX,
   BLITZ_MAX_DURATION_S,
@@ -61,20 +62,22 @@ const cleanSet = (set: unknown): object | null => {
   return JSON.stringify(set).length <= MAX_SET_BYTES ? set : null;
 };
 
-type SlideBody = { text: string; backgroundKey?: string; durationSec?: number; trimStart?: number; positionY?: number };
+type SlideBody = { text: string; backgroundKey?: string; durationSec?: number; trimStart?: number; positionY?: number; camera?: SlideCamera };
 
-/** Keeps only well-formed per-slide timing: 1–10 s slides, non-negative trims, positions inside the frame. */
+/** Keeps only well-formed per-slide timing (1–10 s slides, non-negative trims, positions inside the frame) and camera. */
 const cleanSlide = (s: SlideBody): SlideBody => {
   const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
   const durationSec = num(s.durationSec);
   const trimStart = num(s.trimStart);
   const positionY = num(s.positionY);
+  const camera = parseSlideCamera(s.camera);
   return {
     text: s.text,
     ...(s.backgroundKey ? { backgroundKey: s.backgroundKey } : {}),
     ...(durationSec !== undefined ? { durationSec: Math.min(10, Math.max(1, durationSec)) } : {}),
     ...(trimStart !== undefined && trimStart > 0 ? { trimStart } : {}),
     ...(positionY !== undefined ? { positionY: Math.min(0.95, Math.max(0.05, positionY)) } : {}),
+    ...(camera ? { camera } : {}),
   };
 };
 
@@ -140,7 +143,8 @@ export async function queueBlitzRender(access: LabAccess, body: RenderBody, prep
     body = { ...body, currentAssets: { ...body.currentAssets, audioKey: narration.audioKey }, durationSeconds: narration.durationSeconds, muteVideoAudio: true };
   }
   const textSlides = narration?.slides ?? captioned;
-  // Slideshow photos get a camera move (zoom/pan + depth parallax) so stills in a row do not feel like a slideshow.
+  // Slideshow photos get a camera move (zoom/pan) so stills in a row do not feel like a slideshow. Idea cards bring
+  // theirs (what the card played); only photos without one are picked here.
   const nonEmptySlides = templateType === 'CAROUSEL' ? await withSlideCameras(textSlides, captionY) : textSlides;
   const captionText = body.captionText.trim() || (nonEmptySlides[0]?.text ?? '');
   const set = cleanSet(body.set);

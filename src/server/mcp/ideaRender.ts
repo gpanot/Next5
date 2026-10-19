@@ -6,10 +6,11 @@
 import { prisma } from '../../lib/db';
 import { BLITZ_SLIDESHOW_TEXT_DEFAULTS } from '../../config/blitzLab';
 import { DEFAULT_BLITZ_VOICE } from '../../types/admin/blitzVoice';
+import type { SlideCamera } from '../../remotion/types';
 import type { DeckItem, DeckShot } from '../slideshow/core/deckAssembly';
 import type { RenderBody } from '../labs/blitzRender';
 
-type Slide = { text: string; backgroundKey?: string; trimStart?: number; positionY?: number; durationSec?: number };
+type Slide = { text: string; backgroundKey?: string; trimStart?: number; positionY?: number; durationSec?: number; camera?: SlideCamera };
 
 /** A deck shot as the editor's ShotView (SlideshowDeckStep.toShotView), with the slide's edits (slideshowSet.buildSet). */
 const setShot = (shot: DeckShot, slide: Slide) => ({
@@ -31,7 +32,7 @@ const setShot = (shot: DeckShot, slide: Slide) => ({
 
 /** The card's shots as render slides (useDeckCardEditor.toSlide). */
 export const slidesOf = (card: DeckItem): Slide[] =>
-  card.shots.map((shot) => ({ text: shot.text, backgroundKey: shot.assetKey, trimStart: shot.trimStart, positionY: shot.positionY, durationSec: shot.durationSec }));
+  card.shots.map((shot) => ({ text: shot.text, backgroundKey: shot.assetKey, trimStart: shot.trimStart, positionY: shot.positionY, durationSec: shot.durationSec, camera: shot.camera }));
 
 /** Pure part, for tests: the body for `card` with the carousel template `templateId`, or why it cannot render yet. */
 export function buildIdeaRenderBody(card: DeckItem, ideaId: string, templateId: string): { body: RenderBody } | { error: string } {

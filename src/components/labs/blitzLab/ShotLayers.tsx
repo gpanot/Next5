@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { cameraOrigin, cameraTransform } from '../../../remotion/slideCamera';
+import type { SlideCamera } from '../../../remotion/types';
 import type { ShotView } from './SwipeCard';
 
 /** A shot's photo: filling the card, or whole over a blurred copy of itself (finished slides keep their framing). */
@@ -16,6 +18,24 @@ function ShotImage({ src, fit, onReady }: { src: string; fit: 'cover' | 'contain
     </>
   );
   /* eslint-enable @next/next/no-img-element */
+}
+
+/** A photo with a camera move: the render's zoom/pan, moved each frame by the card's ticker (moveShotCamera). */
+function CameraImage({ src, camera, index, onReady }: { src: string; camera: SlideCamera; index: number; onReady?: () => void }) {
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      <div data-shot-camera={index} className="absolute inset-0 will-change-transform" style={{ transformOrigin: cameraOrigin(camera), transform: cameraTransform(camera, 0) }}>
+        <ShotImage src={src} fit="cover" onReady={onReady} />
+      </div>
+    </div>
+  );
+}
+
+/** Puts shot `index`'s photo at raw progress t (0–1) of its shot. DOM write, no re-render (called every frame). */
+export function moveShotCamera(root: HTMLElement | null, shots: ShotView[], index: number, t: number): void {
+  const camera = shots[index]?.camera;
+  const layer = camera ? root?.querySelector<HTMLElement>(`[data-shot-camera="${index}"]`) : null;
+  if (camera && layer) layer.style.transform = cameraTransform(camera, t);
 }
 
 /** Start of the clip's best window, from the URL's "#t=start,end" (0 without one). */
@@ -82,6 +102,8 @@ export function ShotLayers({ shots, index, loadAll, playing, muted, fallback, on
               <div className="absolute inset-0" style={{ background: fallback(i) }} />
             ) : shot.mediaKind === 'video' ? (
               <ShotVideo src={shot.mediaUrl} active={visible && playing} muted={muted || !visible} preload={playing || i === 0 ? 'auto' : 'metadata'} onReady={onReady} />
+            ) : shot.camera && (shot.fit ?? 'cover') === 'cover' ? (
+              <CameraImage src={shot.mediaUrl} camera={shot.camera} index={i} onReady={onReady} />
             ) : (
               <ShotImage src={shot.mediaUrl} fit={shot.fit ?? 'cover'} onReady={onReady} />
             )}
