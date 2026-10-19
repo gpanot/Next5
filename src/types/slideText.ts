@@ -2,6 +2,8 @@
  * Where a slide's text sits, moved by hand in the editors: `x` is the center of the text block, `y` its top, as shares
  * (0-1) of the slide's width and height. Plain data, so the slide render and the editors share it.
  */
+import { TEXT_SIDE } from '../config/tiktokSafeZone';
+
 export type TextAt = { x: number; y: number };
 
 const share = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1;
@@ -14,8 +16,9 @@ export const parseTextAt = (v: unknown): TextAt | undefined =>
 
 /** Narrowest the text block wraps when moved toward a side, as a share of the slide's width. */
 const MIN_TEXT_WIDTH = 0.4;
-/** Margin kept between a moved text block and the slide's side edge, as a share of its width. */
-const TEXT_EDGE = 0.03;
+/** Margin kept between a moved text block and the slide's side edge, as a share of its width: the same as centered
+ *  text's, so moved text never reaches further into TikTok's right rail either. */
+const TEXT_EDGE = TEXT_SIDE;
 
 /** A text block's center x, kept where the block can still be MIN_TEXT_WIDTH wide. */
 export const clampTextX = (x: number): number => Math.min(Math.max(x, MIN_TEXT_WIDTH / 2 + TEXT_EDGE), 1 - MIN_TEXT_WIDTH / 2 - TEXT_EDGE);
