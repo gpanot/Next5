@@ -37,7 +37,11 @@ export function useVoicePreview(client: LabClient | null, onSpoken: (idea: IdeaD
     const key = keyOf(idea, voice);
     const known = byKeyRef.current[key];
     if (known?.status === 'ready' || known?.status === 'loading') return known;
-    if (!client) return { status: 'error', message: 'Not signed in.', limit: false };
+    if (!client) {
+      const failed: VoicePreviewState = { status: 'error', message: 'Not signed in.', limit: false };
+      if (!ahead) setByKey((m) => ({ ...m, [key]: failed }));
+      return failed;
+    }
     setByKey((m) => ({ ...m, [key]: { status: 'loading' } }));
     const res = await client
       .request<{ url: string; durations: number[]; lines?: string[]; words?: SpokenWord[][] }>('/blitz/voice-preview', { json: { texts: textsOf(idea), voice, ideaId: idea.id } })
