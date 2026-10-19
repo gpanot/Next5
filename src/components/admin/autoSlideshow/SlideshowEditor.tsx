@@ -41,6 +41,8 @@ type Props = {
   onNext?: () => void;
   /** The brand's headline box colors, so text dragged on a slide looks as it will render. */
   box?: SlideTextProps['box'];
+  /** The Calendar's next empty slot: where Schedule starts when the slideshow has no spot yet. */
+  nextSlot?: Date | null;
 };
 
 const ghostButton = 'min-h-11 rounded-full px-3 text-sm text-white/80 transition hover:bg-white/10 disabled:opacity-30';
@@ -52,7 +54,7 @@ const ROLE_OF: Record<ReturnType<typeof roleGroup>, EditorRole> = { Hook: 'hook'
  * wide screens), every slide as a card, the on-screen slide's Hook · Content · CTA panel with its text, photo and style,
  * and Post and Schedule (caption, then its day and time; Schedule in the top bar) beside it.
  */
-export function SlideshowEditor({ token, runId, initial, photos, onChanged, onPhotosChanged, onClose, onPrev, onNext, box }: Props) {
+export function SlideshowEditor({ token, runId, initial, photos, onChanged, onPhotosChanged, onClose, onPrev, onNext, box, nextSlot = null }: Props) {
   const edit = useSlideshowEdit(token, runId, initial, onChanged);
   const { show, busy } = edit;
   const [slide, setSlide] = useState(0);
@@ -64,7 +66,8 @@ export function SlideshowEditor({ token, runId, initial, photos, onChanged, onPh
   /** Video render is admin-only: the admin token, or an "Open as user" tab. */
   const admin = isAdminView(token);
   const safeZone = useSafeZone();
-  const plan = useSlideshowSchedule(runId, show);
+  /** `initial` is read again with the run, so a spot saved here or moved on the Calendar shows. */
+  const plan = useSlideshowSchedule({ token, runId, show: initial, nextSlot, onSaved: onChanged });
 
   useEffect(() => {
     /** Escape in a text field (slide text, caption) only leaves the field; elsewhere it closes the editor. */
@@ -259,7 +262,7 @@ export function SlideshowEditor({ token, runId, initial, photos, onChanged, onPh
                 {drafts.captionDirty && <SaveCaptionButton saving={busy === 'caption'} onSave={() => void saveCaption()} />}
               </div>
               <div className="border-t border-white/10 pt-4">
-                <SchedulePanel plan={plan} ready={show.status === 'ready'} />
+                <SchedulePanel plan={plan} ready={initial.status === 'ready'} />
               </div>
             </div>
           </EditorAside>

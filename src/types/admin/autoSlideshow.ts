@@ -178,6 +178,8 @@ export type AutoSlideshowDto = {
   post: AutoPostDto | null;
   /** Every platform this slideshow was approved for. */
   posts: AutoPostDto[];
+  /** Where it waits on the Calendar for approval (ISO); null: the Calendar places it in the next free slot. */
+  plannedAt: string | null;
   status: AutoSlideshowStatus;
   error: string | null;
 };

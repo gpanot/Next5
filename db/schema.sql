@@ -676,6 +676,7 @@ CREATE TABLE public.auto_slideshows (
     bank_hook_id text,
     bank_cta_id text,
     recommended_audio_asset_id text,
+    planned_at timestamp with time zone,
     CONSTRAINT auto_slideshows_status_check CHECK ((status = ANY (ARRAY['written'::text, 'rendering'::text, 'ready'::text, 'failed'::text])))
 );
 
@@ -5273,4 +5274,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261130090000'),
     ('20261201090000'),
     ('20261202090000'),
-    ('20261203090000');
+    ('20261203090000'),
+    ('20261204090000');

@@ -2406,6 +2406,8 @@ model AutoSlideshow {
   /// 'written' | 'rendering' | 'ready' | 'failed'
   status                  String   @default("written")
   error                   String?
+  /// Where it waits on the Calendar for approval (dragged, or scheduled from the editor); null: the next free slot
+  plannedAt               DateTime? @map("planned_at")
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
