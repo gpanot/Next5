@@ -93,9 +93,10 @@ async function claimNextJob() {
 
 // ── Process one job ───────────────────────────────────────────────────────────
 
-/** Render time for stats (render_finished_at - render_started_at). Raw SQL: the worker's Prisma schema is a subset. */
-const markFinished = (jobId: string) =>
-  prisma.$executeRaw`UPDATE blitz_projects SET render_finished_at = now() WHERE id = ${jobId}`
+/** Render time for stats (render_finished_at - render_started_at), and why it failed (null on success: the admin's
+ *  Prospect progress panel shows it). Raw SQL: the worker's Prisma schema is a subset. */
+const markFinished = (jobId: string, error: string | null = null) =>
+  prisma.$executeRaw`UPDATE blitz_projects SET render_finished_at = now(), render_error = ${error?.slice(0, 1_000) ?? null} WHERE id = ${jobId}`
     .catch((err) => console.warn(`[blitz-worker] Could not record finish time for ${jobId}:`, err));
 
 async function processJob(jobId: string, serveUrl: string): Promise<void> {
@@ -115,6 +116,7 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
       where: { id: jobId },
       data: { renderStatus: 'FAILED' },
     });
+    await markFinished(jobId, `Template ${project.templateId} not found`);
     console.error(`[blitz-worker] Template not found for job ${jobId}`);
     return;
   }
@@ -151,7 +153,8 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
       where: { id: jobId },
       data: { renderStatus: 'FAILED', updatedAt: new Date() },
     });
-    await markFinished(jobId);
+    const reason = err instanceof Error ? err.message : String(err);
+    await markFinished(jobId, timedOut ? `Time limit: ${reason}` : reason);
   } finally {
     clearTimeout(limit);
     clearInterval(heartbeat);

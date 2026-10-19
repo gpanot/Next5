@@ -1334,6 +1334,8 @@ model BlitzProject {
   renderStartedAt      DateTime?         @map("render_started_at")
   /// Set by the blitz-worker when the job ends (COMPLETED or FAILED). Render time = renderFinishedAt - renderStartedAt.
   renderFinishedAt     DateTime?         @map("render_finished_at")
+  /// Why the last render failed (set by the blitz-worker; null once one succeeds)
+  renderError          String?           @map("render_error")
   /// Hard-blocks any future export path; set manually for real-person test footage.
   isIdentifiablePerson Boolean           @default(false) @map("is_identifiable_person")
   createdAt            DateTime          @default(now()) @map("created_at")
