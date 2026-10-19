@@ -4,11 +4,14 @@
 //   cast   — the brand run's steps 4-6, released by approveFaces (3 Brand Cast slideshows)
 //   hooks  — the Hooks Volume campaign (hooksVolume.ts), once
 //   blitz  — PROSPECT_BLITZ Blitz ideas rendered (blitz.ts), once the first ideas batch has them
-// When all three have settled, the days are planned (days.ts) and the pack is ready to share.
+// When all three have settled, the days are planned (days.ts) and the pack is ready to share. Only the posts of the
+// free days are made in full: the other Blitz ideas and Brand Cast slideshows are previews (first shot or slide) until
+// the pack is unlocked (unlock.ts). Hooks Volume is stock photos only, so all of it is made.
 
 import type { Prisma, ProspectPack } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { blitzPending, PROSPECT_BLITZ_TRIES, type ProspectBlitz, type ProspectKind } from '../../types/admin/prospects';
+import type { AutoSlide } from '../../types/admin/autoSlideshow';
+import { blitzPending, fullCount, PROSPECT_BLITZ_TRIES, type ProspectBlitz, type ProspectKind } from '../../types/admin/prospects';
 import type { UserAccess } from '../autoSlideshow/access';
 import { runAutoPipeline } from '../autoSlideshow/pipeline';
 import { HttpError } from '../http';
@@ -66,7 +69,8 @@ const retryBlitz = async (pack: ProspectPack, picked: ProspectBlitz[]): Promise<
   const locked = await prisma.prospectPack.updateMany({ where: { id: pack.id, updatedAt: pack.updatedAt }, data: { blitz: json(started) } });
   if (locked.count === 0) return;
   const ideas = await ideasById(pack.workspaceId, again.map((b) => b.ideaId));
-  const rendered = new Map((await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas)).map((r) => [r.ideaId, r]));
+  const previews = new Set(again.filter((b) => b.preview).map((b) => b.ideaId));
+  const rendered = new Map((await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas, previews)).map((r) => [r.ideaId, r]));
   const merged = started.map((b) => {
     const r = rendered.get(b.ideaId);
     return r ? { ...r, tries: b.tries } : again.some((a) => a.ideaId === b.ideaId) ? { ...b, error: 'Idea not found.', retry: false } : b;
@@ -82,15 +86,23 @@ const advanceBlitz = async (pack: ProspectPack): Promise<void> => {
   const placeholder: ProspectBlitz[] = ideas.map((i) => ({ ideaId: i.id, projectId: null }));
   const locked = await prisma.prospectPack.updateMany({ where: { id: pack.id, blitz: { equals: [] } }, data: { blitz: json(placeholder) } });
   if (locked.count === 0) return;
-  const rendered = await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas);
+  const previews = new Set(ideas.slice(fullCount('blitz')).map((i) => i.id));
+  const rendered = await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas, previews);
   await prisma.prospectPack.update({ where: { id: pack.id }, data: { blitz: json(rendered) } });
 };
 
-type Settled = { posts: Record<ProspectKind, string[]> } | null;
+type Settled = { posts: Record<ProspectKind, string[]>; previews: Set<string> } | null;
+
+/** The run's cover-only slideshows whose first slide is rendered (Brand Cast previews), first position first. */
+const coverShows = async (runId: string, positions: number[]): Promise<string[]> => {
+  if (positions.length === 0) return [];
+  const rows = await prisma.autoSlideshow.findMany({ where: { runId, status: 'written', position: { in: positions } }, orderBy: { position: 'asc' }, select: { id: true, slides: true } });
+  return rows.filter((r) => (r.slides as unknown as AutoSlide[] | null)?.[0]?.imageKey).map((r) => r.id);
+};
 
 /** The made posts of each part, once every part has settled; null while any is still working. */
 const settledPosts = async (pack: ProspectPack): Promise<Settled> => {
-  const brand = await prisma.autoSlideshowRun.findUnique({ where: { id: pack.brandRunId! }, select: { status: true, finishedAt: true } });
+  const brand = await prisma.autoSlideshowRun.findUnique({ where: { id: pack.brandRunId! }, select: { status: true, finishedAt: true, coverOnlyPositions: true } });
   if (brand?.status !== 'COMPLETED' && brand?.status !== 'FAILED') return null;
   const hooksBuilding = pack.hooksStartedAt && !pack.error?.startsWith('Hooks Volume') && Date.now() - pack.hooksStartedAt.getTime() < HOOKS_STALE_MS;
   const hooksCount = pack.hooksRunId ? await prisma.autoSlideshow.count({ where: { runId: pack.hooksRunId } }) : 0;
@@ -99,19 +111,22 @@ const settledPosts = async (pack: ProspectPack): Promise<Settled> => {
   const gaveUp = picked.length === 0 && !!brand.finishedAt && Date.now() - brand.finishedAt.getTime() > BLITZ_GIVE_UP_MS;
   if ((picked.length === 0 && !gaveUp) || picked.some(blitzPending) || !(await blitzRenders(picked)).settled) return null;
   const shows = (runId: string | null) => (runId ? prisma.autoSlideshow.findMany({ where: { runId, status: 'ready' }, orderBy: { position: 'asc' }, select: { id: true } }) : Promise.resolve([]));
-  const [cast, hooks, videos] = await Promise.all([
+  const [cast, covers, hooks, videos] = await Promise.all([
     shows(pack.brandRunId),
+    coverShows(pack.brandRunId!, brand.coverOnlyPositions),
     shows(pack.hooksRunId),
     prisma.blitzProject.findMany({ where: { id: { in: picked.flatMap((p) => (p.projectId ? [p.projectId] : [])) }, renderStatus: 'COMPLETED' }, select: { id: true } }),
   ]);
-  return { posts: { blitz: videos.map((v) => v.id), cast: cast.map((s) => s.id), hooks: hooks.map((s) => s.id) } };
+  const ideaPreviews = picked.filter((p) => p.preview && !p.error).map((p) => p.ideaId);
+  const blitz = [...videos.map((v) => v.id), ...ideaPreviews];
+  return { posts: { blitz, cast: [...cast.map((s) => s.id), ...covers], hooks: hooks.map((s) => s.id) }, previews: new Set([...ideaPreviews, ...covers]) };
 };
 
 /** Plans the days and opens the share link; a pack with nothing made fails instead. */
-const finish = async (pack: ProspectPack, posts: Record<ProspectKind, string[]>): Promise<void> => {
+const finish = async (pack: ProspectPack, posts: Record<ProspectKind, string[]>, previews: Set<string>): Promise<void> => {
   if (posts.blitz.length + posts.cast.length + posts.hooks.length === 0) return void (await fail(pack.id, pack.error ?? 'Nothing could be made.'));
   const ws = await prisma.workspace.findUniqueOrThrow({ where: { id: pack.workspaceId }, select: { ideaTzOffsetMin: true } });
-  const days = composeDays(posts, new Date(), ws.ideaTzOffsetMin);
+  const days = composeDays(posts, new Date(), ws.ideaTzOffsetMin, previews);
   await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'making' }, data: { status: 'ready', days: json(days) } });
 };
 
@@ -127,5 +142,5 @@ export const advanceProspect = async (id: string): Promise<void> => {
   await Promise.all([advanceHooks(pack), advanceBlitz(pack)]);
   const fresh = await loadPack(id);
   const settled = await settledPosts(fresh);
-  if (settled) await finish(fresh, settled.posts);
+  if (settled) await finish(fresh, settled.posts, settled.previews);
 };

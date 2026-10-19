@@ -1,5 +1,5 @@
 // A Prospect Pack moves on step by step: the face check releases the held run, then the pack is ready only once the
-// Brand Cast run, the Hooks Volume campaign and the Blitz renders have all settled.
+// Brand Cast run, the Hooks Volume campaign and the Blitz renders have all settled. Posts past the free days are previews.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,6 +10,8 @@ const db = vi.hoisted(() => {
     faces: 1,
     shows: { run_brand: ['c1', 'c2', 'c3'], run_hooks: ['h1', 'h2', 'h3', 'h4'] } as Record<string, string[]>,
     renders: [] as Array<{ id: string; renderStatus: string }>,
+    covers: [] as number[],
+    coverRows: [] as Array<{ id: string; slides: Array<{ imageKey: string | null }> }>,
   };
   const prisma = {
     prospectPack: {
@@ -26,11 +28,11 @@ const db = vi.hoisted(() => {
     brandCastMember: { count: vi.fn(async () => state.faces) },
     autoSlideshowRun: {
       updateMany: vi.fn(async () => ({ count: state.runStatus === 'HELD' ? 1 : 0 })),
-      findUnique: vi.fn(async () => ({ status: state.runStatus, finishedAt: new Date(), error: null })),
+      findUnique: vi.fn(async () => ({ status: state.runStatus, finishedAt: new Date(), error: null, coverOnlyPositions: state.covers })),
     },
     autoSlideshow: {
       count: vi.fn(async ({ where }: { where: { runId: string } }) => (state.shows[where.runId] ?? []).length),
-      findMany: vi.fn(async ({ where }: { where: { runId: string } }) => (state.shows[where.runId] ?? []).map((id) => ({ id }))),
+      findMany: vi.fn(async ({ where }: { where: { runId: string; position?: unknown } }) => (where.position ? state.coverRows : (state.shows[where.runId] ?? []).map((id) => ({ id })))),
     },
     blitzProject: { findMany: vi.fn(async () => state.renders.filter((r) => r.renderStatus === 'COMPLETED')) },
     workspace: { findUniqueOrThrow: vi.fn(async () => ({ ideaTzOffsetMin: 0 })) },
@@ -41,11 +43,15 @@ const db = vi.hoisted(() => {
 
 vi.mock('../../../src/lib/db', () => ({ prisma: db.prisma }));
 const runAutoPipeline = vi.hoisted(() => vi.fn(async () => undefined));
+const blitzMock = vi.hoisted(() => ({
+  ideas: [{ id: 'idea_1' }, { id: 'idea_2' }] as Array<{ id: string }>,
+  rendered: [{ ideaId: 'idea_1', projectId: 'bp_1' }, { ideaId: 'idea_2', projectId: 'bp_2' }] as Array<Record<string, unknown>>,
+}));
 vi.mock('../../../src/server/autoSlideshow/pipeline', () => ({ runAutoPipeline }));
 vi.mock('../../../src/server/prospects/hooksVolume', () => ({ buildHooksVolume: vi.fn(async () => 4) }));
 vi.mock('../../../src/server/prospects/blitz', () => ({
-  blitzReady: vi.fn(async () => [{ id: 'idea_1' }, { id: 'idea_2' }]),
-  renderBlitz: vi.fn(async () => [{ ideaId: 'idea_1', projectId: 'bp_1' }, { ideaId: 'idea_2', projectId: 'bp_2' }]),
+  blitzReady: vi.fn(async () => blitzMock.ideas),
+  renderBlitz: vi.fn(async () => blitzMock.rendered),
   blitzRenders: vi.fn(async () => ({ done: db.state.renders.filter((r) => r.renderStatus === 'COMPLETED').length, settled: db.state.renders.every((r) => r.renderStatus === 'COMPLETED' || r.renderStatus === 'FAILED') })),
 }));
 
@@ -56,6 +62,10 @@ beforeEach(() => {
   db.state.runStatus = 'HELD';
   db.state.faces = 1;
   db.state.renders = [{ id: 'bp_1', renderStatus: 'PROCESSING' }, { id: 'bp_2', renderStatus: 'COMPLETED' }];
+  db.state.covers = [];
+  db.state.coverRows = [];
+  blitzMock.ideas = [{ id: 'idea_1' }, { id: 'idea_2' }];
+  blitzMock.rendered = [{ ideaId: 'idea_1', projectId: 'bp_1' }, { ideaId: 'idea_2', projectId: 'bp_2' }];
   runAutoPipeline.mockClear();
 });
 
@@ -94,6 +104,25 @@ describe('advanceProspect', () => {
     const days = db.state.pack.days as Array<{ kind: string; refId: string }>;
     expect(days).toHaveLength(8);
     expect(days.filter((d) => d.kind === 'blitz').map((d) => d.refId)).toEqual(['bp_2']);
+  });
+
+  it('marks the Blitz ideas and Brand Cast slideshows past the free days as previews', async () => {
+    db.state.pack.status = 'making';
+    db.state.runStatus = 'COMPLETED';
+    db.state.renders = [{ id: 'bp_1', renderStatus: 'COMPLETED' }];
+    db.state.shows.run_brand = ['c1', 'c2'];
+    db.state.covers = [2];
+    db.state.coverRows = [{ id: 'c3', slides: [{ imageKey: 'k0' }, { imageKey: null }] }];
+    blitzMock.ideas = ['idea_1', 'idea_2', 'idea_3', 'idea_4', 'idea_5'].map((id) => ({ id }));
+    blitzMock.rendered = [{ ideaId: 'idea_1', projectId: 'bp_1' }, { ideaId: 'idea_5', projectId: null, preview: true }];
+    const { renderBlitz } = await import('../../../src/server/prospects/blitz');
+    await advanceProspect('pp_1');
+    expect(vi.mocked(renderBlitz).mock.calls.at(-1)?.[4]).toEqual(new Set(['idea_5']));
+    expect(db.state.pack.status).toBe('ready');
+    const days = db.state.pack.days as Array<{ day: number; refId: string; preview?: boolean }>;
+    // One video rendered: the free days take full slideshows before the video preview.
+    expect(days.filter((d) => d.preview).map((d) => ({ day: d.day, refId: d.refId }))).toEqual([{ day: 8, refId: 'idea_5' }, { day: 9, refId: 'c3' }]);
+    db.state.shows.run_brand = ['c1', 'c2', 'c3'];
   });
 
   it('fails a pack whose site could not be read', async () => {

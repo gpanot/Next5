@@ -18,8 +18,9 @@ export const monthDay = (iso: string): string => new Date(iso).toLocaleDateStrin
 /** "9:00 AM". */
 export const postTime = (iso: string): string => new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-/** The right chip: "0:28" for a video, "6 photos" for a slideshow. */
+/** The right chip: "0:28" for a video, "6 photos" for a slideshow, "Locked" for a day after the free ones. */
 export const lengthLabel = (day: ProspectViewDay): string => {
+  if (day.locked) return 'Locked';
   if (day.kind !== 'blitz') return `${day.slides.length} photos`;
   if (!day.durationSec) return 'Video';
   return `${Math.floor(day.durationSec / 60)}:${String(day.durationSec % 60).padStart(2, '0')}`;

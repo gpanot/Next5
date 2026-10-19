@@ -42,7 +42,7 @@ export function ProspectPage({ shareToken }: { shareToken: string }) {
           <main>
             <LeadHero name={data.name} websiteUrl={data.websiteUrl} videos={videos} slideshows={days.length - videos} />
             <WeekStrip days={days} onOpen={setOpen} />
-            <CompareSection name={data.name} day={days.find((d) => d.kind !== 'blitz') ?? days[0]} />
+            <CompareSection name={data.name} day={days.find((d) => d.kind !== 'blitz' && !d.locked) ?? days[0]} />
             <HowItWorks />
             <ClaimBox shareToken={shareToken} name={data.name} freeDays={PROSPECT_FREE_DAYS} price={SLIDESHOW_PRICE_LABEL} claimed={claimed} />
             <LeadFaq name={data.name} price={SLIDESHOW_PRICE_LABEL} freeDays={PROSPECT_FREE_DAYS} />
