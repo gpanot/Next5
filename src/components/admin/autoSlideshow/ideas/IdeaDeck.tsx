@@ -14,6 +14,7 @@ import { DeckSide, type ShotSwap } from './DeckSide';
 import type { VoicePreviewState } from './useVoicePreview';
 import { formatLabel, ideaCard, whenOf } from './ideaCards';
 import type { HookStyleState } from './useHookStyle';
+import { VoiceCountdown } from './VoiceCountdown';
 
 /** How long the card flies out before the next one shows. */
 const EXIT_MS = 220;
@@ -117,6 +118,18 @@ function VoiceNote({ message }: { message: string }) {
   );
 }
 
+/** Over the card while its voiceover records: the card waits for it (2026-10-19), so the voice starts with the first shot. Swipes still go through. */
+function VoiceWait() {
+  return (
+    <div role="status" className="pointer-events-none absolute inset-0 z-[6] grid place-items-center rounded-[26px] bg-black/45 backdrop-blur-[2px] transition-opacity">
+      <span className="flex flex-col items-center gap-2 text-[13px] font-semibold text-white">
+        <VoiceCountdown large />
+        Recording the voice…
+      </span>
+    </div>
+  );
+}
+
 /** The swap buttons for the shot on screen (Blitz ideas with `clips`): a photo swaps for a photo, a clip for a clip.
  *  The card's own runner-ups show at once; past them the server searches the library (`busy` meanwhile). */
 const useShotSwap = (idea: IdeaDto, shot: number, clips?: DeckClips): ShotSwap | undefined => {
@@ -144,6 +157,8 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
   const setPaused = (p: boolean) => setPausedFor(p ? idea.id : null);
   const [shot, setShot] = useState(0);
   const swap = useShotSwap(idea, shot, clips);
+  // A Blitz idea plays once its voiceover is recorded (or failed: it then plays without), not before.
+  const awaitingVoice = Boolean(idea.card) && onVoice !== null && (!voice || voice.status === 'loading');
   const decide = async (status: 'kept' | 'discarded') => {
     if (exit) return;
     if (status === 'kept' && confirmKeep && !(await confirmKeep())) return; // the card slides back
@@ -179,6 +194,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
           narration={voice?.status === 'ready' ? voice.narration : null}
           ariaLabel={`${formatLabel(idea)} idea: ${idea.hook}`}
           paused={paused}
+          externalPause={awaitingVoice}
           onPausedChange={setPaused}
           onShotChange={setShot}
           onCaptionMove={idea.card && onCaptionMove ? (at, y) => onCaptionMove(idea, at, y) : undefined}
@@ -191,6 +207,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
             </span>
           </div>
         )}
+        {awaitingVoice && !hookStyle?.pending && <VoiceWait />}
         {voice?.status === 'error' && <VoiceNote key={voice.message} message={voice.message} />}
         {menu && <div className={`absolute z-10 ${MENU_AT[at]}`}>{menu}</div>}
         <div className={`absolute z-10 ${SIDE_AT[at]}`}>
