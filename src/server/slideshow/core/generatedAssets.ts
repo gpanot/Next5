@@ -67,6 +67,8 @@ export type ShotImageFile = {
   /** The image model, or the stock site's name. */
   model: string;
   aiPrompt?: string;
+  /** Stock photos: the search that found it and the business it was picked for (stockApproval.ts shares it later). */
+  stock?: { query: string; business: string };
 };
 
 /** Stores one image for a shot and describes it as a normal library asset (searchable by the next deck). */
@@ -88,6 +90,7 @@ export async function storeShotAsset(file: ShotImageFile, need: ImageNeed, audie
     bestUse: `${need.role} shot for ${categories.map(categoryLabel).join(', ')} videos`,
     categories,
     ...(file.aiPrompt ? { aiPrompt: file.aiPrompt } : {}),
+    ...(file.stock ? { stockQuery: file.stock.query, pickedFor: { business: file.stock.business, audience, categories } } : {}),
     textSafeZone: 'top_third',
   };
   const row = await prisma.assetDescriptor.create({

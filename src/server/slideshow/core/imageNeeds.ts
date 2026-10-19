@@ -65,9 +65,9 @@ export const makeBatchImages = (needs: BatchNeed[], scripts: number, workspaceId
   makeBatch(needs, scripts, (audience, categories, leads) => generateShotImages(audience, categories, leads, workspaceId, brand), 'made');
 
 /** Stock photos instead (stockImages.ts), one per moment, never the same photo twice in the batch. Saved to the library too. */
-export const makeBatchStock = (needs: BatchNeed[], scripts: number, workspaceId: string | null) => {
+export const makeBatchStock = (needs: BatchNeed[], scripts: number, workspaceId: string | null, brand: PhotoBrand) => {
   const used = newStockUsed();
-  return makeBatch(needs, scripts, (audience, categories, leads) => stockShotImages(audience, categories, leads, workspaceId, used), 'stock found');
+  return makeBatch(needs, scripts, (audience, categories, leads) => stockShotImages(audience, categories, leads, workspaceId, brand, used), 'stock found');
 };
 
 /** The batch's images by plan: AI images once the workspace's owner has paid (unless they test as free), stock photos before. */
@@ -77,5 +77,5 @@ export const batchShotImages = async (needs: BatchNeed[], scripts: number, works
     console.warn('[imageNeeds] paid check failed, using stock:', err instanceof Error ? err.message : err);
     return false;
   });
-  return paid ? makeBatchImages(needs, scripts, workspaceId, brand) : makeBatchStock(needs, scripts, workspaceId);
+  return paid ? makeBatchImages(needs, scripts, workspaceId, brand) : makeBatchStock(needs, scripts, workspaceId, brand);
 };
