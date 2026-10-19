@@ -83,9 +83,12 @@ export function SlideshowCopyPanel({
   // ── drag-to-reorder ────────────────────────────────────────────────────
   const dragIndexRef = useRef<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  /** Mirrors dragIndexRef for render: the dragged slide is not highlighted as a drop target. */
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   const handleDragStart = (e: React.DragEvent, i: number) => {
     dragIndexRef.current = i;
+    setDragIndex(i);
     e.dataTransfer.effectAllowed = 'move';
     // Transparent ghost — we rely on CSS opacity instead
     const el = e.currentTarget as HTMLElement;
@@ -95,6 +98,7 @@ export function SlideshowCopyPanel({
   const handleDragEnd = (e: React.DragEvent) => {
     (e.currentTarget as HTMLElement).style.opacity = '';
     dragIndexRef.current = null;
+    setDragIndex(null);
     setDragOverIndex(null);
   };
 
@@ -121,6 +125,7 @@ export function SlideshowCopyPanel({
       onIndexChange(currentIndex + 1);
     }
     dragIndexRef.current = null;
+    setDragIndex(null);
     setDragOverIndex(null);
   };
 
@@ -328,7 +333,7 @@ export function SlideshowCopyPanel({
                 className={[
                   'flex flex-col gap-1.5 rounded-xl border p-2 transition-colors',
                   i === currentIndex ? 'border-orange-400 ring-1 ring-orange-400/40' : 'border-line',
-                  dragOverIndex === i && dragIndexRef.current !== i ? 'border-orange-400 bg-orange-50/60' : '',
+                  dragOverIndex === i && dragIndex !== i ? 'border-orange-400 bg-orange-50/60' : '',
                 ].join(' ')}
               >
                 {/* Drag handle + slide number + background picker + generate + remove */}

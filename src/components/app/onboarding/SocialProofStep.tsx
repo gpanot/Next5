@@ -60,7 +60,7 @@ export const SocialProofStep = ({ me, advance }: StepProps) => {
         {TESTIMONIALS.map((t) => (
           <div key={t.handle} className="flex flex-col gap-3 rounded-2xl bg-app-sunken p-4 sm:p-5">
             <Stars />
-            <p className="text-[14px] leading-relaxed text-app-ink">"{t.quote}"</p>
+            <p className="text-[14px] leading-relaxed text-app-ink">“{t.quote}”</p>
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-app-line text-[12px] font-semibold text-app-ink">
                 {t.name[0]}

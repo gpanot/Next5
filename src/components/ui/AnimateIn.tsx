@@ -1,6 +1,6 @@
 'use client';
 
-import { createElement, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ElementType } from 'react';
 
 /**
  * Scroll-triggered entrance animation.
@@ -25,11 +25,8 @@ export const AnimateIn = ({
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    // Instantly show when user prefers reduced motion
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setVisible(true);
-      return;
-    }
+    // Reduced motion: shown at once by the motion-reduce classes, nothing to watch
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const el = ref.current;
     if (!el) return;
@@ -57,18 +54,19 @@ export const AnimateIn = ({
     };
   }, [delay]);
 
-  return createElement(
-    as,
-    {
-      ref,
-      className: [
+  const Tag = as as ElementType;
+  return (
+    <Tag
+      ref={ref}
+      className={[
         className,
-        'transition-[opacity,transform] duration-700 ease-out',
+        'transition-[opacity,transform] duration-700 ease-out motion-reduce:translate-y-0 motion-reduce:opacity-100 motion-reduce:transition-none',
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5',
       ]
         .filter(Boolean)
-        .join(' '),
-    },
-    children,
+        .join(' ')}
+    >
+      {children}
+    </Tag>
   );
 };

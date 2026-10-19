@@ -38,6 +38,7 @@ export function RunListPanel({
   }, [token]);
 
   // Auto-load on mount
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount: load() flags loading before its request
   useEffect(() => { void loadRuns(); }, [loadRuns]);
 
   const handleCreate = useCallback(async () => {

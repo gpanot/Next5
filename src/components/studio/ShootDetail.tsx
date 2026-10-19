@@ -96,6 +96,7 @@ export const ShootDetail = ({ booking, token, onUpdated }: ShootDetailProps) => 
     if (booking.shoot_status === 'delivered') return;
 
     started.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time start of the missing scenes' generation
     setIsGenerating(true);
 
     const run = async () => {

@@ -7,7 +7,7 @@
  * what a campaign defaults to when she does not write her own — so they are worth getting right
  * once, rather than retyping every week.
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { apiFetch } from '../../../lib/apiClient';
 import type { ProductLineDto } from '../../../types/business/me';
 import { AppButton } from '../../ui/AppButton';
@@ -38,15 +38,13 @@ export const BusinessProfileSection = ({ product, audienceType, promoting, offer
 
   // Sync local state when extraction fills in empty fields from the website
   // (only overwrites if the field was blank — never clobbers user edits)
-  useEffect(() => {
-    if (!audience && audienceType) setAudience(audienceType);
-  }, [audienceType]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!promotingText && promoting) setPromotingText(promoting);
-  }, [promoting]); // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!offerText && offer) setOfferText(offer);
-  }, [offer]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [synced, setSynced] = useState({ audienceType, promoting, offer });
+  if (synced.audienceType !== audienceType || synced.promoting !== promoting || synced.offer !== offer) {
+    setSynced({ audienceType, promoting, offer });
+    if (synced.audienceType !== audienceType && !audience && audienceType) setAudience(audienceType);
+    if (synced.promoting !== promoting && !promotingText && promoting) setPromotingText(promoting);
+    if (synced.offer !== offer && !offerText && offer) setOfferText(offer);
+  }
 
   const dirty =
     audience !== (audienceType ?? '') ||

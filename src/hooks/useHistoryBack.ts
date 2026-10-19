@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 /**
  * Pushes a browser-history entry when `isActive` becomes true, so the device
@@ -13,7 +13,9 @@ import { useEffect, useRef } from 'react';
  */
 export function useHistoryBack(isActive: boolean, onBack: () => void): void {
   const onBackRef = useRef(onBack);
-  onBackRef.current = onBack;
+  useLayoutEffect(() => {
+    onBackRef.current = onBack;
+  });
 
   // The token of the history entry that is currently "owned" by this hook.
   // Stored in a ref so it survives across Strict Mode re-mounts.
