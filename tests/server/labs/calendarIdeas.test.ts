@@ -67,6 +67,19 @@ describe('calendar ideas', () => {
     expect((await prisma.slideshowVariant.findUniqueOrThrow({ where: { id: idea.id } })).plannedAt).toBeNull();
   });
 
+  it('two other hooks of one archetype get their own ids, and the one picked is the one swapped in', async () => {
+    const ws = await createTestWorkspace('slideshow');
+    const otherHooks = [{ archetype: 'curiosity', text: 'First curious line' }, { archetype: 'curiosity', text: 'Second curious line' }];
+    const bankCard = { ...card('Main hook'), script: { storyId: 's1', archetype: 'curiosity', otherHooks } };
+    const idea = await prisma.slideshowVariant.create({
+      data: { workspaceId: ws.id, engine: 'website', lens: 'busy-moms', archetype: 'curiosity', plannedAt: TOMORROW, plan: { card: bankCard } as unknown as Prisma.InputJsonValue },
+    });
+    const { hooks } = (await listIdeas(ws.id)).ideas[0]!;
+    expect(new Set(hooks.map((h) => h.id)).size).toBe(2);
+    const { ideas } = await patchIdea(ws.id, idea.id, { hookId: hooks.find((h) => h.text === 'Second curious line')!.id });
+    expect(ideas[0]!.hook).toBe('Second curious line');
+  });
+
   it('a bank card offers its story\'s other hooks and swaps its first line in place', async () => {
     const ws = await createTestWorkspace('slideshow');
     const bankCard = { ...card('Main hook'), script: { storyId: 's1', archetype: 'curiosity', otherHooks: [{ archetype: 'call_out', text: 'Moms, this is you' }] } };
@@ -75,10 +88,10 @@ describe('calendar ideas', () => {
     });
     await blitzRow(ws.id, 'Reserve card of another story', null);
     const before = await listIdeas(ws.id);
-    expect(before.ideas[0]!.hooks).toEqual([{ id: 'hook:call_out', text: 'Moms, this is you' }]);
-    const { ideas } = await patchIdea(ws.id, idea.id, { hookId: 'hook:call_out' });
+    expect(before.ideas[0]!.hooks).toEqual([{ id: expect.stringMatching(/^hook:call_out:[0-9a-f]{8}$/), text: 'Moms, this is you' }]);
+    const { ideas } = await patchIdea(ws.id, idea.id, { hookId: before.ideas[0]!.hooks[0]!.id });
     expect(ideas[0]).toMatchObject({ id: idea.id, hook: 'Moms, this is you', plannedAt: TOMORROW.toISOString() });
-    expect(ideas[0]!.hooks).toEqual([{ id: 'hook:curiosity', text: 'Main hook' }]);
+    expect(ideas[0]!.hooks).toEqual([{ id: expect.stringMatching(/^hook:curiosity:/), text: 'Main hook' }]);
     expect(ideas[0]!.card!.script).toMatchObject({ storyId: 's1', archetype: 'call_out' });
     expect((await prisma.slideshowVariant.findUniqueOrThrow({ where: { id: idea.id } })).archetype).toBe('call_out');
   });
