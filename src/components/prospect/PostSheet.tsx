@@ -4,6 +4,7 @@ import { Sheet } from '../ui/Sheet';
 import { PROSPECT_FREE_DAYS, type ProspectViewDay } from '../../types/admin/prospects';
 import { LockIcon, Thumb } from './PostCard';
 import { dayLabel, KIND_LABEL, postTime } from './postLabels';
+import { ScheduledOn } from './ScheduledOn';
 import { SlidePlayer } from './SlidePlayer';
 import { WhyThis } from './WhyThis';
 
@@ -42,6 +43,7 @@ export function PostSheet({ day, onClose }: { day: ProspectViewDay | null; onClo
             ) : (
               <SlidePlayer key={day.day} slides={day.slides} />
             )}
+            <ScheduledOn slideshow={day.kind !== 'blitz'} />
           </div>
           <div>
             <h3 className="m-0 mb-1.5 font-display text-[22px] font-[800] leading-[1.15] tracking-[-0.02em] text-app-ink">{day.title}</h3>

@@ -1,5 +1,6 @@
 // A Prospect Pack moves on step by step: the face check releases the held run, then the pack is ready only once the
 // Brand Cast run, the Hooks Volume campaign and the Blitz renders have all settled. Posts past the free days are previews.
+// Blitz ideas are picked as they finish, from the site scan on (no wait for the face check).
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -50,8 +51,10 @@ const blitzMock = vi.hoisted(() => ({
 vi.mock('../../../src/server/autoSlideshow/pipeline', () => ({ runAutoPipeline }));
 vi.mock('../../../src/server/prospects/hooksVolume', () => ({ buildHooksVolume: vi.fn(async () => 4) }));
 vi.mock('../../../src/server/prospects/blitz', () => ({
-  blitzReady: vi.fn(async () => blitzMock.ideas),
-  renderBlitz: vi.fn(async () => blitzMock.rendered),
+  unpickedIdeas: vi.fn(async (_ws: string, picked: Set<string>) => ({ ideas: blitzMock.ideas.filter((i) => !picked.has(i.id)), writing: false })),
+  blitzPicked: vi.fn(async () => true),
+  renderBlitz: vi.fn(async (_u: string, _w: string, _n: string, ideas: Array<{ id: string }>) =>
+    ideas.map((i) => blitzMock.rendered.find((r) => r.ideaId === i.id) ?? { ideaId: i.id, projectId: null, error: 'No stock photo for every shot yet.' })),
   blitzRenders: vi.fn(async () => ({ done: db.state.renders.filter((r) => r.renderStatus === 'COMPLETED').length, settled: db.state.renders.every((r) => r.renderStatus === 'COMPLETED' || r.renderStatus === 'FAILED') })),
 }));
 
@@ -123,6 +126,24 @@ describe('advanceProspect', () => {
     // One video rendered: the free days take full slideshows before the video preview.
     expect(days.filter((d) => d.preview).map((d) => ({ day: d.day, refId: d.refId }))).toEqual([{ day: 8, refId: 'idea_5' }, { day: 9, refId: 'c3' }]);
     db.state.shows.run_brand = ['c1', 'c2', 'c3'];
+  });
+
+  it('renders Blitz ideas at the face check as they finish, one batch at a time', async () => {
+    const { renderBlitz } = await import('../../../src/server/prospects/blitz');
+    blitzMock.ideas = [{ id: 'idea_1' }];
+    await advanceProspect('pp_1');
+    expect(db.state.pack.status).toBe('faces');
+    expect(db.state.pack.blitz).toEqual([{ ideaId: 'idea_1', projectId: 'bp_1' }]);
+
+    blitzMock.ideas = [{ id: 'idea_1' }, { id: 'idea_2' }];
+    await advanceProspect('pp_1');
+    expect(vi.mocked(renderBlitz).mock.calls.at(-1)?.[3]).toEqual([{ id: 'idea_2' }]);
+    expect(db.state.pack.blitz).toEqual([{ ideaId: 'idea_1', projectId: 'bp_1' }, { ideaId: 'idea_2', projectId: 'bp_2' }]);
+
+    db.state.pack.blitz = [{ ideaId: 'idea_1', projectId: null }];
+    const calls = vi.mocked(renderBlitz).mock.calls.length;
+    await advanceProspect('pp_1');
+    expect(vi.mocked(renderBlitz).mock.calls.length).toBe(calls);
   });
 
   it('fails a pack whose site could not be read', async () => {

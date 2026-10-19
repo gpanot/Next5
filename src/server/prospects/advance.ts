@@ -3,7 +3,8 @@
 // each call does what is next and possible, and two calls at once never do the same work (locks on the row). The parts:
 //   cast   — the brand run's steps 4-6, released by approveFaces (3 Brand Cast slideshows)
 //   hooks  — the Hooks Volume campaign (hooksVolume.ts), once
-//   blitz  — PROSPECT_BLITZ Blitz ideas rendered (blitz.ts), once the first ideas batch has them
+//   blitz  — PROSPECT_BLITZ Blitz ideas rendered (blitz.ts), each picked as soon as it is finished: from the site scan
+//            on, without waiting for the face check
 // A 'queued' pack starts here when its turn comes (queue.ts). When all three have settled, the days are planned (days.ts) and the pack is ready to share. Only the posts of the
 // free days are made in full: the other Blitz ideas and Brand Cast slideshows are previews (first shot or slide) until
 // the pack is unlocked (unlock.ts). Hooks Volume is stock photos only, so all of it is made.
@@ -16,7 +17,7 @@ import type { UserAccess } from '../autoSlideshow/access';
 import { runAutoPipeline } from '../autoSlideshow/pipeline';
 import { withUserCostContext } from '../costs/ledger';
 import { HttpError } from '../http';
-import { blitzReady, blitzRenders, ideasById, renderBlitz } from './blitz';
+import { blitzPicked, blitzRenders, ideasById, renderBlitz, unpickedIdeas } from './blitz';
 import { composeDays } from './days';
 import { buildHooksVolume } from './hooksVolume';
 import { startIfTurn } from './queue';
@@ -27,7 +28,7 @@ const json = (value: unknown) => value as Prisma.InputJsonValue;
 /** A Hooks Volume build that started this long ago without slideshows died (Vercel kills a job at its limit). */
 const HOOKS_STALE_MS = 10 * 60 * 1000;
 
-/** Blitz ideas still missing this long after the Brand Cast slideshows are done: the pack goes on without videos. */
+/** Blitz ideas still missing this long after the Brand Cast slideshows are done: the pack goes on with the videos it has. */
 const BLITZ_GIVE_UP_MS = 15 * 60 * 1000;
 
 const ownerAccess = async (pack: ProspectPack): Promise<UserAccess> => {
@@ -80,17 +81,22 @@ const retryBlitz = async (pack: ProspectPack, picked: ProspectBlitz[]): Promise<
   await prisma.prospectPack.update({ where: { id: pack.id }, data: { blitz: json(merged) } });
 };
 
-/** The Blitz part: picks and renders the videos once the ideas are ready (the empty list is the lock), then retries. */
+/** A picked idea whose photos are being found and render queued (a new pick, or a retry started). */
+const inFlight = (b: ProspectBlitz): boolean => !b.projectId && !b.error && !b.preview;
+
+/** The Blitz part: picks the ideas finished so far and queues their renders, one batch at a time (the photo scraper
+ *  refuses bursts; the row's updatedAt is the lock), then retries. Ideas past the free days only get their photos. */
 const advanceBlitz = async (pack: ProspectPack): Promise<void> => {
-  if (blitzOf(pack).length > 0) return retryBlitz(pack, blitzOf(pack));
-  const ideas = await blitzReady(pack.workspaceId);
-  if (!ideas) return;
-  const placeholder: ProspectBlitz[] = ideas.map((i) => ({ ideaId: i.id, projectId: null }));
-  const locked = await prisma.prospectPack.updateMany({ where: { id: pack.id, blitz: { equals: [] } }, data: { blitz: json(placeholder) } });
+  const picked = blitzOf(pack);
+  if (picked.some(inFlight)) return;
+  const { ideas } = await unpickedIdeas(pack.workspaceId, new Set(picked.map((b) => b.ideaId)));
+  if (ideas.length === 0) return retryBlitz(pack, picked);
+  const started: ProspectBlitz[] = [...picked, ...ideas.map((i) => ({ ideaId: i.id, projectId: null }))];
+  const locked = await prisma.prospectPack.updateMany({ where: { id: pack.id, updatedAt: pack.updatedAt }, data: { blitz: json(started) } });
   if (locked.count === 0) return;
-  const previews = new Set(ideas.slice(fullCount('blitz')).map((i) => i.id));
-  const rendered = await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas, previews);
-  await prisma.prospectPack.update({ where: { id: pack.id }, data: { blitz: json(rendered) } });
+  const previews = new Set(ideas.filter((_, i) => picked.length + i >= fullCount('blitz')).map((i) => i.id));
+  const rendered = new Map((await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas, previews)).map((r) => [r.ideaId, r]));
+  await prisma.prospectPack.update({ where: { id: pack.id }, data: { blitz: json(started.map((b) => rendered.get(b.ideaId) ?? b)) } });
 };
 
 type Settled = { posts: Record<ProspectKind, string[]>; previews: Set<string> } | null;
@@ -110,8 +116,9 @@ const settledPosts = async (pack: ProspectPack): Promise<Settled> => {
   const hooksCount = pack.hooksRunId ? await prisma.autoSlideshow.count({ where: { runId: pack.hooksRunId } }) : 0;
   if (hooksCount === 0 && hooksBuilding) return null;
   const picked = blitzOf(pack);
-  const gaveUp = picked.length === 0 && !!brand.finishedAt && Date.now() - brand.finishedAt.getTime() > BLITZ_GIVE_UP_MS;
-  if ((picked.length === 0 && !gaveUp) || picked.some(blitzPending) || !(await blitzRenders(picked)).settled) return null;
+  const allPicked = await blitzPicked(pack.workspaceId, picked);
+  const gaveUp = !allPicked && !!brand.finishedAt && Date.now() - brand.finishedAt.getTime() > BLITZ_GIVE_UP_MS;
+  if ((!allPicked && !gaveUp) || picked.some(blitzPending) || !(await blitzRenders(picked)).settled) return null;
   const shows = (runId: string | null) => (runId ? prisma.autoSlideshow.findMany({ where: { runId, status: 'ready' }, orderBy: { position: 'asc' }, select: { id: true } }) : Promise.resolve([]));
   const [cast, covers, hooks, videos] = await Promise.all([
     shows(pack.brandRunId),
@@ -141,9 +148,9 @@ const stepPack = async (pack: ProspectPack): Promise<void> => {
   }
   if (pack.status === 'building') {
     const run = await prisma.autoSlideshowRun.findUnique({ where: { id: pack.brandRunId! }, select: { status: true, error: true } });
-    if (run?.status === 'FAILED') await fail(id, run.error ?? 'The site could not be read.');
-    return;
+    if (run?.status === 'FAILED') return void (await fail(id, run.error ?? 'The site could not be read.'));
   }
+  if (pack.status === 'building' || pack.status === 'faces') return advanceBlitz(pack);
   if (pack.status !== 'making') return;
   await Promise.all([advanceHooks(pack), advanceBlitz(pack)]);
   const fresh = await loadPack(id);

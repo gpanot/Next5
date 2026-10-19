@@ -76,7 +76,7 @@ const videoGroup = async (pack: ProspectPack, run: Run | null): Promise<Prospect
   const picked = blitzOf(pack);
   if (picked.length === 0) {
     const since = run?.finishedAt ? `Brand Cast done ${minutesAgo(run.finishedAt)}: goes on without videos after 15 min` : 'Ideas are written after the site scan';
-    const state = pack.status === 'making' ? 'running' : pack.status === 'ready' || pack.status === 'claimed' ? 'skipped' : 'waiting';
+    const state = pack.status === 'building' || pack.status === 'faces' || pack.status === 'making' ? 'running' : pack.status === 'ready' || pack.status === 'claimed' ? 'skipped' : 'waiting';
     return { title: 'Videos', tasks: [task('Pick 7 Blitz ideas', state, state === 'skipped' ? 'No ideas came in time' : since)] };
   }
   const ids = picked.flatMap((b) => (b.projectId ? [b.projectId] : []));
