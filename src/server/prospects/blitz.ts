@@ -22,13 +22,13 @@ const readyIdeas = (ideas: IdeaDto[]): IdeaDto[] =>
     .filter((i) => i.format === 'blitz' && i.status === 'proposed' && i.card && !i.card.finishing)
     .sort((a, b) => a.plannedAt.localeCompare(b.plannedAt));
 
-/** True when the batch has enough finished ideas, or is done writing (then the pack takes what there is). */
-export const blitzReady = async (workspaceId: string): Promise<IdeaDto[] | null> => {
+/** Finished ideas the pack has not picked yet (first day first, at most what it still takes), and whether the batch is
+ *  still writing more. The pack picks them as they finish, so each video renders without waiting for the others. */
+export const unpickedIdeas = async (workspaceId: string, picked: Set<string>): Promise<{ ideas: IdeaDto[]; writing: boolean }> => {
   const list = await listIdeas(workspaceId);
-  const ready = readyIdeas(list.ideas);
-  if (ready.length >= PROSPECT_BLITZ) return ready.slice(0, PROSPECT_BLITZ);
+  const ideas = readyIdeas(list.ideas).filter((i) => !picked.has(i.id)).slice(0, Math.max(0, PROSPECT_BLITZ - picked.size));
   const writing = list.batchSince !== null || list.ideas.some((i) => i.format === 'blitz' && i.card?.finishing);
-  return writing || ready.length === 0 ? null : ready;
+  return { ideas, writing };
 };
 
 /** What rendering an idea reads from it. */
@@ -49,6 +49,14 @@ const renderIdea = async (access: LabAccess, idea: Renderable, templateId: strin
   const project = await queueBlitzRender(access, built.body);
   await prisma.slideshowVariant.update({ where: { id: idea.id }, data: { status: 'kept' } });
   return { ideaId: idea.id, projectId: project.id };
+};
+
+/** True when the pack takes no more ideas: it has PROSPECT_BLITZ, or the batch is done writing and none is left. */
+export const blitzPicked = async (workspaceId: string, picked: ProspectBlitz[]): Promise<boolean> => {
+  if (picked.length >= PROSPECT_BLITZ) return true;
+  if (picked.length === 0) return false;
+  const { ideas, writing } = await unpickedIdeas(workspaceId, new Set(picked.map((b) => b.ideaId)));
+  return !writing && ideas.length === 0;
 };
 
 /** The workspace's ideas with these ids (still proposed: a picked idea is kept only once its render is queued). */
