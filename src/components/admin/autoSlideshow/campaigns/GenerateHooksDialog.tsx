@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { MAX_GENERATED_HOOKS, MIN_GENERATED_HOOKS } from '../../../../types/admin/hookKnowledge';
-import type { CampaignCard } from '../../../../types/admin/slideshowCampaign';
+import type { AutoPhotoSource, CampaignCard } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
 
 type Props = {
@@ -16,7 +16,7 @@ type Props = {
   /** The hooks, and the hook photos' stock search written with them. */
   onDone: (hooks: string[], photoQuery: string) => void;
   /** "Generate the entire slideshows": the hooks, then every slide written from them. Resolves false on failure. */
-  onDoneAll: (hooks: string[], photoQuery: string) => Promise<boolean>;
+  onDoneAll: (hooks: string[], photoQuery: string, photoSource: AutoPhotoSource) => Promise<boolean>;
 };
 
 /** What is being written: the hooks only, or the entire slideshows. */
@@ -50,10 +50,10 @@ export function GenerateHooksDialog({ token, campaignId, cards, current, onClose
     setWriting(what);
     setError(null);
     try {
-      const { hooks, photoQuery } = await adminFetch<{ hooks: string[]; photoQuery?: string }>(token, `/api/slideshow/campaigns/${campaignId}/hooks`, { method: 'POST', body: JSON.stringify({ count, cards }) });
+      const { hooks, photoQuery, photoSource } = await adminFetch<{ hooks: string[]; photoQuery?: string; photoSource?: AutoPhotoSource }>(token, `/api/slideshow/campaigns/${campaignId}/hooks`, { method: 'POST', body: JSON.stringify({ count, cards }) });
       if (what === 'hooks') return onDone(hooks, photoQuery ?? '');
       // The editor shows the error when the slides could not be written; the hooks are in either way.
-      await onDoneAll(hooks, photoQuery ?? '');
+      await onDoneAll(hooks, photoQuery ?? '', photoSource ?? 'stock');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not write the hooks. Try again.');
       setWriting(null);
@@ -66,7 +66,10 @@ export function GenerateHooksDialog({ token, campaignId, cards, current, onClose
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 sm:items-center" onClick={() => !busy && onClose()}>
       <div role="dialog" aria-modal="true" aria-labelledby="generate-hooks-title" onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-5 rounded-t-2xl border border-white/10 bg-zinc-900 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-white shadow-xl sm:rounded-2xl">
-        <div className="space-y-1">
+        <div className="relative space-y-1 pr-10">
+          <button type="button" onClick={onClose} disabled={busy} aria-label="Close" className="absolute -top-1 -right-1 flex h-11 w-11 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-40">
+            <svg aria-hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
           <h2 id="generate-hooks-title" className="text-lg font-bold">How many hooks do you want to generate?</h2>
           <p className="text-sm text-white/60">
             {count} hooks, rotating one per post. Which means {count} posts will be generated for your campaign.
@@ -92,7 +95,6 @@ export function GenerateHooksDialog({ token, campaignId, cards, current, onClose
             {writing === 'hooks' && spinner(false)}
             {writing === 'hooks' ? 'Writing your hooks…' : `Generate ${count} hooks`}
           </button>
-          <button type="button" onClick={onClose} disabled={busy} className="min-h-11 rounded-full text-sm font-semibold text-white/60 transition hover:bg-white/5 active:scale-95 disabled:opacity-40">Cancel</button>
         </div>
       </div>
     </div>

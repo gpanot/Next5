@@ -45,6 +45,8 @@ model User {
   stockImagesOnly Boolean @default(false) @map("stock_images_only")
   /// Testing switch: Blitz cards always get AI images, even before any payment (Settings → Profile).
   aiImagesOnly    Boolean @default(false) @map("ai_images_only")
+  /// Testing switch: Hooks Volume's "Generate the entire slideshows" uses stock photos even when paid (Settings → Profile).
+  hooksVolumeStockOnly Boolean @default(false) @map("hooks_volume_stock_only")
 
   bookings Booking[]
   photos   Photo[]

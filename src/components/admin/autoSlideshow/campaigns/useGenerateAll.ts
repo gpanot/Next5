@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback } from 'react';
-import type { PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
+import type { AutoPhotoSource, PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
 import type { useAutoContent } from './useAutoContent';
 import type { CampaignState } from './useCampaign';
@@ -15,13 +15,13 @@ const hookPhotoPicks = async (token: string, campaignId: string, query: string, 
 
 /**
  * "Generate the entire slideshows" from the hooks dialog: puts the hooks just written in the draft, writes the content
- * slides from them (Auto, with its photos), then fills the hook photos up to one per hook. Resolves true once the text
- * is on every slide; photos keep coming in.
+ * slides from them (Auto, its photos made with `photoSource`: stock until paid), then fills the hook photos up to one per
+ * hook. Resolves true once the text is on every slide; photos keep coming in.
  */
 export const useGenerateAll = (token: string, campaignId: string, state: CampaignState, auto: ReturnType<typeof useAutoContent>) =>
-  useCallback(async (hooks: string[], photoQuery: string): Promise<boolean> => {
+  useCallback(async (hooks: string[], photoQuery: string, photoSource: AutoPhotoSource): Promise<boolean> => {
     state.setDraft((d) => ({ ...d, hooks, ...(photoQuery ? { hookPhotoQuery: photoQuery } : {}) }));
-    if (!(await auto.run(hooks))) return false;
+    if (!(await auto.run(hooks, photoSource))) return false;
     const have = state.campaign?.draft.hookPhotos.length ?? 0;
     const picks = await hookPhotoPicks(token, campaignId, photoQuery, hooks.length - have).catch(() => []);
     if (picks.length > 0) void state.importPhotos(picks, { slot: 'hook' });
