@@ -462,6 +462,40 @@ CREATE TABLE public.admin_audit_logs (
 
 
 --
+-- Name: api_cost_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.api_cost_events (
+    id bigint NOT NULL,
+    created_at timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    user_id text,
+    provider text NOT NULL,
+    model text NOT NULL,
+    feature text,
+    cost_usd_micros integer NOT NULL
+);
+
+
+--
+-- Name: api_cost_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.api_cost_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: api_cost_events_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.api_cost_events_id_seq OWNED BY public.api_cost_events.id;
+
+
+--
 -- Name: asset_descriptors; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -591,6 +625,8 @@ CREATE TABLE public.auto_slideshow_runs (
     name text,
     campaign jsonb,
     photo_jobs jsonb,
+    hold_before_step4 boolean DEFAULT false NOT NULL,
+    cover_only_positions integer[] DEFAULT '{}'::integer[] NOT NULL,
     CONSTRAINT auto_slideshow_runs_count_check CHECK (((count >= 1) AND (count <= 20)))
 );
 
@@ -1256,6 +1292,57 @@ CREATE TABLE public.listings (
 
 
 --
+-- Name: mcp_oauth_clients; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mcp_oauth_clients (
+    id text NOT NULL,
+    client_name text,
+    redirect_uris text[] DEFAULT '{}'::text[] NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: mcp_oauth_codes; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mcp_oauth_codes (
+    code_hash text NOT NULL,
+    client_id text NOT NULL,
+    user_id text NOT NULL,
+    workspace_id text NOT NULL,
+    redirect_uri text NOT NULL,
+    code_challenge text NOT NULL,
+    scope text DEFAULT 'next5'::text NOT NULL,
+    resource text,
+    expires_at timestamp with time zone NOT NULL,
+    used_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: mcp_oauth_tokens; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.mcp_oauth_tokens (
+    id text NOT NULL,
+    access_hash text NOT NULL,
+    refresh_hash text NOT NULL,
+    client_id text NOT NULL,
+    user_id text NOT NULL,
+    workspace_id text NOT NULL,
+    scope text DEFAULT 'next5'::text NOT NULL,
+    access_expires_at timestamp with time zone NOT NULL,
+    refresh_expires_at timestamp with time zone NOT NULL,
+    revoked_at timestamp with time zone,
+    last_used_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: meta_ad_runs; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1610,6 +1697,32 @@ CREATE TABLE public.prompts (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT prompts_scene_index_check CHECK (((scene_index >= 0) AND (scene_index <= 4)))
+);
+
+
+--
+-- Name: prospect_packs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.prospect_packs (
+    id text NOT NULL,
+    workspace_id text NOT NULL,
+    owner_user_id text NOT NULL,
+    website_url text NOT NULL,
+    name text NOT NULL,
+    status text DEFAULT 'building'::text NOT NULL,
+    share_token text NOT NULL,
+    brand_run_id text,
+    hooks_run_id text,
+    hooks_started_at timestamp with time zone,
+    blitz jsonb DEFAULT '[]'::jsonb NOT NULL,
+    days jsonb DEFAULT '[]'::jsonb NOT NULL,
+    error text,
+    claimed_at timestamp with time zone,
+    claimed_by_user_id text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    unlocked_at timestamp with time zone
 );
 
 
@@ -2268,6 +2381,13 @@ CREATE TABLE public.workspaces (
 
 
 --
+-- Name: api_cost_events id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_cost_events ALTER COLUMN id SET DEFAULT nextval('public.api_cost_events_id_seq'::regclass);
+
+
+--
 -- Name: ratings id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -2280,6 +2400,14 @@ ALTER TABLE ONLY public.ratings ALTER COLUMN id SET DEFAULT nextval('public.rati
 
 ALTER TABLE ONLY public.admin_audit_logs
     ADD CONSTRAINT admin_audit_logs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: api_cost_events api_cost_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_cost_events
+    ADD CONSTRAINT api_cost_events_pkey PRIMARY KEY (id);
 
 
 --
@@ -2579,6 +2707,46 @@ ALTER TABLE ONLY public.listings
 
 
 --
+-- Name: mcp_oauth_clients mcp_oauth_clients_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_clients
+    ADD CONSTRAINT mcp_oauth_clients_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mcp_oauth_codes mcp_oauth_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_codes
+    ADD CONSTRAINT mcp_oauth_codes_pkey PRIMARY KEY (code_hash);
+
+
+--
+-- Name: mcp_oauth_tokens mcp_oauth_tokens_access_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_tokens
+    ADD CONSTRAINT mcp_oauth_tokens_access_hash_key UNIQUE (access_hash);
+
+
+--
+-- Name: mcp_oauth_tokens mcp_oauth_tokens_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_tokens
+    ADD CONSTRAINT mcp_oauth_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: mcp_oauth_tokens mcp_oauth_tokens_refresh_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_tokens
+    ADD CONSTRAINT mcp_oauth_tokens_refresh_hash_key UNIQUE (refresh_hash);
+
+
+--
 -- Name: meta_ad_runs meta_ad_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -2712,6 +2880,30 @@ ALTER TABLE ONLY public.prompts
 
 ALTER TABLE ONLY public.prompts
     ADD CONSTRAINT prompts_route_id_scene_index_key UNIQUE (route_id, scene_index);
+
+
+--
+-- Name: prospect_packs prospect_packs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.prospect_packs
+    ADD CONSTRAINT prospect_packs_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: prospect_packs prospect_packs_share_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.prospect_packs
+    ADD CONSTRAINT prospect_packs_share_token_key UNIQUE (share_token);
+
+
+--
+-- Name: prospect_packs prospect_packs_workspace_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.prospect_packs
+    ADD CONSTRAINT prospect_packs_workspace_id_key UNIQUE (workspace_id);
 
 
 --
@@ -3007,6 +3199,20 @@ ALTER TABLE ONLY public.workspaces
 --
 
 CREATE INDEX admin_audit_logs_target_idx ON public.admin_audit_logs USING btree (target_type, target_id);
+
+
+--
+-- Name: api_cost_events_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX api_cost_events_created_at_idx ON public.api_cost_events USING btree (created_at);
+
+
+--
+-- Name: api_cost_events_user_id_created_at_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX api_cost_events_user_id_created_at_idx ON public.api_cost_events USING btree (user_id, created_at);
 
 
 --
@@ -3514,6 +3720,13 @@ CREATE UNIQUE INDEX listings_workspace_id_zpid_key ON public.listings USING btre
 
 
 --
+-- Name: mcp_oauth_tokens_user_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX mcp_oauth_tokens_user_idx ON public.mcp_oauth_tokens USING btree (user_id);
+
+
+--
 -- Name: meta_ad_runs_created_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3672,6 +3885,13 @@ CREATE INDEX promise_claims_status_created_at_idx ON public.promise_claims USING
 --
 
 CREATE INDEX promise_claims_workspace_id_idx ON public.promise_claims USING btree (workspace_id);
+
+
+--
+-- Name: prospect_packs_created_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX prospect_packs_created_idx ON public.prospect_packs USING btree (created_at DESC);
 
 
 --
@@ -4029,6 +4249,14 @@ CREATE TRIGGER trg_prompts_updated_at BEFORE UPDATE ON public.prompts FOR EACH R
 --
 
 CREATE TRIGGER trg_users_updated_at BEFORE UPDATE ON public.users FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+
+
+--
+-- Name: api_cost_events api_cost_events_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_cost_events
+    ADD CONSTRAINT api_cost_events_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -4416,6 +4644,54 @@ ALTER TABLE ONLY public.listings
 
 
 --
+-- Name: mcp_oauth_codes mcp_oauth_codes_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_codes
+    ADD CONSTRAINT mcp_oauth_codes_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.mcp_oauth_clients(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mcp_oauth_codes mcp_oauth_codes_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_codes
+    ADD CONSTRAINT mcp_oauth_codes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mcp_oauth_codes mcp_oauth_codes_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_codes
+    ADD CONSTRAINT mcp_oauth_codes_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mcp_oauth_tokens mcp_oauth_tokens_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_tokens
+    ADD CONSTRAINT mcp_oauth_tokens_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.mcp_oauth_clients(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mcp_oauth_tokens mcp_oauth_tokens_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_tokens
+    ADD CONSTRAINT mcp_oauth_tokens_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: mcp_oauth_tokens mcp_oauth_tokens_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.mcp_oauth_tokens
+    ADD CONSTRAINT mcp_oauth_tokens_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
+
+
+--
 -- Name: meta_ad_videos meta_ad_videos_ad_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4589,6 +4865,30 @@ ALTER TABLE ONLY public.products
 
 ALTER TABLE ONLY public.promise_claims
     ADD CONSTRAINT promise_claims_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: prospect_packs prospect_packs_claimed_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.prospect_packs
+    ADD CONSTRAINT prospect_packs_claimed_by_user_id_fkey FOREIGN KEY (claimed_by_user_id) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: prospect_packs prospect_packs_owner_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.prospect_packs
+    ADD CONSTRAINT prospect_packs_owner_user_id_fkey FOREIGN KEY (owner_user_id) REFERENCES public.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: prospect_packs prospect_packs_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.prospect_packs
+    ADD CONSTRAINT prospect_packs_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON DELETE CASCADE;
 
 
 --
@@ -4967,4 +5267,8 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261125090000'),
     ('20261126090000'),
     ('20261127090000'),
-    ('20261201090000');
+    ('20261128090000'),
+    ('20261129090000'),
+    ('20261130090000'),
+    ('20261201090000'),
+    ('20261202090000');

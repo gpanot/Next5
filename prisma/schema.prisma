@@ -2703,3 +2703,20 @@ model ProspectPack {
   @@index([createdAt(sort: Desc)], map: "prospect_packs_created_idx")
   @@map("prospect_packs")
 }
+
+/// One paid provider call (OpenAI, OpenRouter, reAPI, treg, WaveSpeed, Exa, Apify). userId comes from the session that
+/// started the work; null = admin, cron or other system work. Admin → Users sums it per user and per day.
+model ApiCostEvent {
+  id            BigInt   @id @default(autoincrement())
+  createdAt     DateTime @default(now()) @map("created_at")
+  userId        String?  @map("user_id")
+  provider      String
+  model         String
+  /// The API route that started the work, ids replaced by ":id" (e.g. "POST /api/app/campaigns/:id/generate").
+  feature       String?
+  costUsdMicros Int      @map("cost_usd_micros")
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("api_cost_events")
+}

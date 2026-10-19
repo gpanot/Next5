@@ -7,6 +7,7 @@ import { prisma } from '../../lib/db';
 import { isMockGeneration } from '../../lib/mock';
 import { isReapiModelId, REAPI_MODEL_IDS } from '../../config/reapiModels';
 import { isReapiRatio, submitReapiImage } from '../../lib/reapiImage';
+import { withWorkspaceCostContext } from '../costs/ledger';
 import { costUsdMicros, isImageModel, submitEdit, uploadPhotoToWaveSpeed } from '../../lib/wavespeed';
 import { getObject, presignObject } from '../storage/objectStore';
 import { failItem } from './finalize';
@@ -70,7 +71,7 @@ const submitWaveSpeed = async (item: BatchItem, highRes: boolean): Promise<{ tas
 };
 
 const submitItem = async (item: BatchItem): Promise<void> => {
-  const batch = await prisma.batch.findUniqueOrThrow({ where: { id: item.batchId }, select: { highRes: true } });
+  const batch = await prisma.batch.findUniqueOrThrow({ where: { id: item.batchId }, select: { highRes: true, workspaceId: true } });
   const isMock = isMockGeneration();
   const onReapi = isReapiModelId(item.model);
   const provider = isMock ? 'mock' : onReapi ? 'reapi' : 'wavespeed';
@@ -78,7 +79,7 @@ const submitItem = async (item: BatchItem): Promise<void> => {
   try {
     const { taskId, cost } = isMock
       ? { taskId: `mock:${item.id}:${Date.now()}`, cost: 0 }
-      : onReapi ? await submitReapi(item, batch.highRes) : await submitWaveSpeed(item, batch.highRes);
+      : await withWorkspaceCostContext(batch.workspaceId, () => (onReapi ? submitReapi(item, batch.highRes) : submitWaveSpeed(item, batch.highRes)));
     console.log(`[pump] item ${item.id} submitted → taskId=${taskId}`);
     await prisma.batchItem.update({ where: { id: item.id }, data: { status: 'generating', wavespeedTaskId: taskId } });
     await prisma.batch.update({
