@@ -13,6 +13,8 @@ type Props = {
   verticalOnly?: boolean;
   /** Hidden text still takes pointer events, so it can be grabbed over a rendered slide that already shows it. */
   hidden?: boolean;
+  /** No dashed outline around movable text until it is dragged, so the slide reads clean (the editors' big preview). */
+  quiet?: boolean;
   onMove?: (at: TextAt) => void;
   onDragging?: (dragging: boolean) => void;
   children: ReactNode;
@@ -40,7 +42,7 @@ const nextAt = (d: Drag, x: number, y: number): TextAt => {
  * (toward a side it wraps narrower),
  * with mouse or finger. The frame is the nearest positioned parent. Drops call `onMove` once.
  */
-export function MovableText({ at, side, movable, verticalOnly = false, hidden, onMove, onDragging, children }: Props) {
+export function MovableText({ at, side, movable, verticalOnly = false, hidden, quiet = false, onMove, onDragging, children }: Props) {
   const content = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
   const [live, setLive] = useState<TextAt | null>(null);
@@ -83,7 +85,7 @@ export function MovableText({ at, side, movable, verticalOnly = false, hidden, o
           onPointerMove={move}
           onPointerUp={up}
           onPointerCancel={up}
-          className={`${movable ? 'pointer-events-auto cursor-grab touch-none rounded-[1.5cqw] outline-1 outline-offset-[1cqw] outline-white/60 outline-dashed select-none active:cursor-grabbing' : ''} ${live ? 'outline-emerald-300' : ''}`}
+          className={`${movable ? 'pointer-events-auto cursor-grab touch-none rounded-[1.5cqw] outline-offset-[1cqw] outline-dashed select-none active:cursor-grabbing' : ''} ${movable && (!quiet || live) ? 'outline-1' : 'outline-0'} ${live ? 'outline-emerald-300' : 'outline-white/60'}`}
         >
           <div className={hidden ? 'opacity-0' : undefined}>{children}</div>
         </div>

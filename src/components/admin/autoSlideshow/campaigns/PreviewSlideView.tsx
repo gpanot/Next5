@@ -17,6 +17,8 @@ type Props = {
   onMoveBadges?: (y: number) => void;
   /** A photo for this slide is being made or copied in: a pulse and a spinner until it lands. */
   loading?: boolean;
+  /** No dashed outline around movable text until it is dragged (the editor's big preview). */
+  quiet?: boolean;
 };
 
 /** Over a slide whose photo is on its way: the frame pulses, a spinner turns, the text stays readable on top. */
@@ -32,7 +34,7 @@ function PhotoLoading({ hasPhoto }: { hasPhoto: boolean }) {
 
 /** One 9:16 slide filling its frame: the rendered image, or the photo with the draft text on it (and the CTA's store
  *  badges, on their own), each centered at the height it was moved to. */
-export function PreviewSlideView({ slide, movable = false, onMoveText, onMoveBadges, loading = false }: Props) {
+export function PreviewSlideView({ slide, movable = false, onMoveText, onMoveBadges, loading = false, quiet = false }: Props) {
   if (slide.kind === 'rendered') {
     // eslint-disable-next-line @next/next/no-img-element
     return <img src={slide.imageUrl} alt="" className="h-full w-full object-cover" draggable={false} />;
@@ -56,10 +58,11 @@ export function PreviewSlideView({ slide, movable = false, onMoveText, onMoveBad
         at={{ x: 0.5, y: slide.textAt?.y ?? placeText(slide, slide.heads).y }}
         movable={movable}
         verticalOnly
+        quiet={quiet}
         onMove={onMoveText}
       />
       {slide.badges?.length ? (
-        <MovableText at={{ x: 0.5, y: slide.badgesAt ?? HOME_BADGES_Y }} side={0} movable={movable} verticalOnly onMove={(at) => onMoveBadges?.(at.y)}>
+        <MovableText at={{ x: 0.5, y: slide.badgesAt ?? HOME_BADGES_Y }} side={0} movable={movable} verticalOnly quiet={quiet} onMove={(at) => onMoveBadges?.(at.y)}>
           <StoreBadgeRow badges={slide.badges} />
         </MovableText>
       ) : null}

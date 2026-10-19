@@ -16,6 +16,8 @@ type Props = {
   live: LiveEdit | null;
   /** The slide being edited: its text can be dragged. */
   movable: boolean;
+  /** No dashed outline until dragged (the editor's big preview). */
+  quiet?: boolean;
   onMove: (at: TextAt) => void;
 };
 
@@ -24,7 +26,7 @@ type Props = {
  * place, dragged together up and down only (it stays centered, as in the Hooks Volume editor). While dragged, and while a drop or a new text style renders, the plain photo covers the image
  * and the copy shows, as the campaign editor draws it: nothing waits.
  */
-export function RenderedTextOverlay({ slide, photoUrl, box, live, movable, onMove }: Props) {
+export function RenderedTextOverlay({ slide, photoUrl, box, live, movable, quiet, onMove }: Props) {
   const [dragging, setDragging] = useState(false);
   const shown = dragging || live !== null;
   const look = slide.look ?? 'default';
@@ -50,6 +52,7 @@ export function RenderedTextOverlay({ slide, photoUrl, box, live, movable, onMov
         movable={movable}
         verticalOnly
         hidden={!shown}
+        quiet={quiet}
         onMove={onMove}
         onDragging={setDragging}
       />
