@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { lookOfRole, MAX_CAMPAIGN_CONTENT, shownBody, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import type { TextAt } from '../../../../types/slideText';
 import { badgesOf, headsOf, type PreviewSlide } from './previewSlides';
@@ -18,6 +18,8 @@ type Props = {
   onMoveBadges: (i: number, y: number) => void;
   /** Slides whose photo is being made or copied in. */
   loading: ReadonlySet<number>;
+  /** A control in slide i's top right corner, beside the card (not inside its button): the content slides' text lock. */
+  corner?: (i: number) => ReactNode;
 };
 
 type Card = { label: string; slide: PreviewSlide };
@@ -41,7 +43,7 @@ const cardsOf = (draft: CampaignDraft, photos: CampaignPhotoDto[]): Card[] => {
 
 /** Every slide of the campaign as a numbered 9:16 card; the one being edited is ringed and its text can be dragged.
  *  A last tile adds a content slide. */
-export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText, onMoveBadges, loading }: Props) {
+export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText, onMoveBadges, loading, corner }: Props) {
   const list = useRef<HTMLOListElement>(null);
   const cards = cardsOf(draft, photos);
   const contentCount = draft.cards.length - 1;
@@ -55,8 +57,9 @@ export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText,
     <ol ref={list} aria-label="Slides" className="flex gap-2.5 overflow-x-auto px-4 py-3 [scrollbar-width:thin]">
       {cards.map((c, i) => {
         const on = i === index;
+        const control = corner?.(i);
         return (
-          <li key={i} className="shrink-0">
+          <li key={i} className="relative shrink-0">
             <button
               type="button"
               onClick={() => onPick(i)}
@@ -70,6 +73,7 @@ export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText,
               </span>
               <span className={`truncate px-3 py-2 text-left text-sm font-medium ${on ? 'text-white' : 'text-white/60'}`}>{c.label}</span>
             </button>
+            {control && <span className="absolute top-2 right-2 z-10">{control}</span>}
           </li>
         );
       })}
