@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { AutoPhotoDto, AutoRunDto, AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import { useAdminApi } from '../business/useAdminApi';
+import { useNextSlot } from './calendar/useNextSlot';
 import { SlideshowEditor } from './SlideshowEditor';
 
 type Props = { token: string; run: AutoRunDto; openId: string | null; onOpen: (id: string | null) => void; onChanged: () => void };
@@ -17,6 +18,7 @@ export function RunSlideshowEditor({ token, run, openId, onOpen, onChanged }: Pr
   if (open && !used) setUsed(true);
   const photos = useAdminApi<{ photos: AutoPhotoDto[] }>(token, used ? `/api/admin/auto-slideshow/runs/${run.id}/photos` : null);
   const music = useAdminApi<{ tracks: AutoTrackDto[] }>(token, used ? '/api/admin/auto-slideshow/music' : null);
+  const nextSlot = useNextSlot(token, run, openId ?? '');
   if (!open) return null;
   return (
     <SlideshowEditor
@@ -30,6 +32,7 @@ export function RunSlideshowEditor({ token, run, openId, onOpen, onChanged }: Pr
       onChanged={onChanged}
       onClose={() => onOpen(null)}
       box={run.profile?.slideshowStyle}
+      nextSlot={nextSlot}
       onPrev={at > 0 ? () => onOpen(ready[at - 1]!.id) : undefined}
       onNext={at < ready.length - 1 ? () => onOpen(ready[at + 1]!.id) : undefined}
     />

@@ -37,6 +37,7 @@ export const toSlideshowDto = async (s: ShowRow): Promise<AutoSlideshowDto> => (
   recommendedAudioId: s.recommendedAudioAssetId,
   post: (() => { const p = primaryPost(s.posts ?? []); return p ? toPostDto(p) : null; })(),
   posts: (s.posts ?? []).map(toPostDto),
+  plannedAt: s.plannedAt?.toISOString() ?? null,
   status: s.status as AutoSlideshowStatus,
   error: s.error,
 });

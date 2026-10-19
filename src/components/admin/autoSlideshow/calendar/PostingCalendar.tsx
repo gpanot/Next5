@@ -30,7 +30,8 @@ import { StatusLegend } from './StatusLegend';
 import { entriesOf } from './tileModel';
 import { useBlitzOnCalendar } from './useBlitzOnCalendar';
 import { useCampaignsOnCalendar } from './useCampaignsOnCalendar';
-import { useCalendarView, usePins, useTargets } from './useCalendarStore';
+import { useCalendarView, useTargets } from './useCalendarStore';
+import { usePlannedPins } from './usePlannedPins';
 import { useIsWide } from './useIsWide';
 import { useLinkedApproval } from './useLinkedApproval';
 import { useLinkedDay } from './useLinkedDay';
@@ -91,7 +92,7 @@ const useRail = (ui: CalendarIdeasUi | null, ideasHref: string, onRailOpen?: () 
 export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled = false, onRailOpen }: Props) {
   const [approving, setApproving] = useState<string | null>(null);
   const [targets, setTargets] = useTargets(run.id);
-  const [pins, setPins] = usePins(run.id);
+  const [pins, setPins] = usePlannedPins(token, run, onRunChanged);
   const posting = usePosting(token, run.id, onRunChanged);
   useWatchPosts(run, onRunChanged);
   const { adding, error, add } = useAdd(token, run.id, onRunChanged);
