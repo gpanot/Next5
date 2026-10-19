@@ -1,5 +1,7 @@
 // server-only — never import from a 'use client' file.
-// Prospect Pack rows for the admin: the list, one pack, and what it has cost so far.
+// Prospect Pack rows for the admin: the list, one pack, and what it has cost so far. The cost is every paid API call
+// billed to the pack's placeholder owner (api_cost_events: Brand Cast, slideshows, Blitz ideas and voiceovers, Hooks
+// Volume). Packs made before that billing (2026-10-19) fall back to their brand run's step costs.
 
 import type { ProspectPack } from '@prisma/client';
 import { prisma } from '../../lib/db';
@@ -18,7 +20,7 @@ export const loadPack = async (id: string): Promise<ProspectPack> => {
 const runCost = (stepCosts: unknown): number => Object.values((stepCosts ?? {}) as Record<string, StepCost>).reduce((sum, c) => sum + (c?.usdMicros ?? 0), 0);
 
 /** Each run's spend (brand run steps, and its warm-up on step 3) plus the Blitz Script Bank of its brand profile. */
-const costsOf = async (packs: ProspectPack[]): Promise<Map<string, number>> => {
+const runCostsOf = async (packs: ProspectPack[]): Promise<Map<string, number>> => {
   const runIds = packs.map((p) => p.brandRunId).filter((id): id is string => !!id);
   const runs = await prisma.autoSlideshowRun.findMany({ where: { id: { in: runIds } }, select: { id: true, stepCosts: true, brandProfileId: true } });
   const profileIds = runs.map((r) => r.brandProfileId).filter((id): id is string => !!id);
@@ -46,6 +48,16 @@ const progressOf = async (pack: ProspectPack): Promise<ProspectPackDto['progress
   return { blitz: videos + previews, cast, hooks };
 };
 
+/** Each pack's cost in micro-USD, by pack id: its owner's ledger, or the run's step costs when those are more. */
+const costsOf = async (packs: ProspectPack[]): Promise<Map<string, number>> => {
+  const [runs, ledger] = await Promise.all([
+    runCostsOf(packs),
+    prisma.apiCostEvent.groupBy({ by: ['userId'], where: { userId: { in: packs.map((p) => p.ownerUserId) } }, _sum: { costUsdMicros: true } }),
+  ]);
+  const billed = new Map(ledger.map((row) => [row.userId, row._sum.costUsdMicros ?? 0]));
+  return new Map(packs.map((p) => [p.id, Math.max(billed.get(p.ownerUserId) ?? 0, p.brandRunId ? runs.get(p.brandRunId) ?? 0 : 0)]));
+};
+
 const toDto = async (pack: ProspectPack, costs: Map<string, number>): Promise<ProspectPackDto> => ({
   id: pack.id,
   workspaceId: pack.workspaceId,
@@ -55,7 +67,7 @@ const toDto = async (pack: ProspectPack, costs: Map<string, number>): Promise<Pr
   shareToken: pack.shareToken,
   error: pack.error,
   progress: await progressOf(pack),
-  costUsd: (pack.brandRunId ? costs.get(pack.brandRunId) ?? 0 : 0) / 1e6,
+  costUsd: (costs.get(pack.id) ?? 0) / 1e6,
   createdAt: pack.createdAt.toISOString(),
   claimedAt: pack.claimedAt?.toISOString() ?? null,
 });

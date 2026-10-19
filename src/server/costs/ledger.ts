@@ -23,10 +23,23 @@ export const featureOf = (req: Request): string => {
 /** Tags the rest of this request (and the work it starts) with a user and feature. */
 export const enterCostContext = (ctx: CostContext): void => store.enterWith(ctx);
 
+/** Runs `fn` (and the work it starts) billed to `userId`, keeping the feature. */
+export const withUserCostContext = <T>(userId: string | null, fn: () => Promise<T>): Promise<T> =>
+  store.run({ userId, feature: store.getStore()?.feature ?? null }, fn);
+
 /** Runs `fn` billed to a workspace's owner: for queues where one request may process other users' jobs. */
 export const withWorkspaceCostContext = async <T>(workspaceId: string, fn: () => Promise<T>): Promise<T> => {
   const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ownerUserId: true } });
-  return store.run({ userId: workspace?.ownerUserId ?? null, feature: store.getStore()?.feature ?? null }, fn);
+  return withUserCostContext(workspace?.ownerUserId ?? null, fn);
+};
+
+/** Runs `fn` billed to the owner of the workspace an Auto Slideshow run makes content for (an internal hand-off route
+ *  starts a fresh request, tagged admin, so the run's own work must say who it is for). A run with none: as is. */
+export const withRunCostContext = async <T>(runId: string, fn: () => Promise<T>): Promise<T> => {
+  const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { workspaceId: true, ideaForRunId: true } });
+  const main = !run?.workspaceId && run?.ideaForRunId ? await prisma.autoSlideshowRun.findUnique({ where: { id: run.ideaForRunId }, select: { workspaceId: true } }) : null;
+  const workspaceId = run?.workspaceId ?? main?.workspaceId;
+  return workspaceId ? withWorkspaceCostContext(workspaceId, fn) : fn();
 };
 
 export type CostEvent = { provider: string; model: string; usdMicros: number };

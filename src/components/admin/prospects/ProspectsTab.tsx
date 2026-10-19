@@ -34,7 +34,7 @@ function CreateForm({ onCreate }: { onCreate: (url: string, name: string) => Pro
       <div>
         <h2 className="text-[15px] font-semibold text-app-ink">New prospect</h2>
         <p className="text-[13px] text-app-muted">
-          14 days of posts for their site: {PROSPECT_BLITZ} videos (stock photos), {PROSPECT_CAST} Brand Cast and {PROSPECT_HOOKS} Hooks Volume slideshows. You check the faces first. About $1-3.
+          14 days of posts for their site: {PROSPECT_BLITZ} videos (stock photos), {PROSPECT_CAST} Brand Cast and {PROSPECT_HOOKS} Hooks Volume slideshows. You check the faces first. Days 1-7 are made in full, days 8-14 as previews until they pay. About $0.70.
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-[2fr_1fr_auto]">
