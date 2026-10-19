@@ -19,8 +19,8 @@
 
 import { ChevronDown, Info, Pause } from 'lucide-react';
 import { slideTextConfig } from '../../../remotion/slideTextConfig';
-import type { TextConfig } from '../../../remotion/types';
-import { ShotLayers } from './ShotLayers';
+import type { SlideCamera, TextConfig } from '../../../remotion/types';
+import { moveShotCamera, ShotLayers } from './ShotLayers';
 import { SlideCaption } from './SlideCaption';
 import { SpokenDeckCaption } from './SpokenDeckCaption';
 import type { ShotEditData } from './shotFormat';
@@ -66,6 +66,8 @@ export type ShotView = {
   photoTag?: string;
   /** Editor data (library asset, trim, caption position, swaps). The card reads only positionY, with captionConfig. */
   edit?: ShotEditData;
+  /** Photo shots: the zoom/pan the card plays, same as its render (src/remotion/slideCamera.ts). */
+  camera?: SlideCamera;
 };
 
 export type SwipeCardTag = {
@@ -172,6 +174,9 @@ export function SwipeCard({
   const durations: readonly number[] = voiced?.durations ?? SHOT_DURATIONS;
   const durationsRef = useRef(durations);
   useEffect(() => { durationsRef.current = durations; }, [durations]);
+  // A finishing card gets its camera moves after it is on screen: the ticker reads the latest shots.
+  const shotsRef = useRef(shots);
+  useEffect(() => { shotsRef.current = shots; }, [shots]);
 
   // ── Shot player state ──────────────────────────────────────────────────────
   const [shotIdx, setShotIdx] = useState(0);
@@ -244,6 +249,8 @@ export function SwipeCard({
         }
       }
       setBarsFromRef();
+      // Photo shots move like the render: same zoom/pan at the same point of the shot.
+      moveShotCamera(cardRef.current, shotsRef.current, shotIdxRef.current, elapsedRef.current / (durationsRef.current[shotIdxRef.current] ?? 4));
       rafRef.current = requestAnimationFrame(tick);
     };
 

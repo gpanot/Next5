@@ -41,6 +41,7 @@ export const toSlide = (shot: ShotView, i: number): SlideData => ({
   trimStart: shot.edit?.trimStart,
   positionY: shot.edit?.positionY,
   durationSec: shot.edit?.durationSec ?? SHOT_FORMAT[i]?.durationSec,
+  ...(shot.camera ? { camera: shot.camera } : {}),
 });
 
 /** The shot's own media first (so a swap can be undone), then the engine's runner-ups. */

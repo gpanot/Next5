@@ -192,9 +192,7 @@ export function SlideshowComposition({
                 <CameraStill
                   src={bgUrl}
                   camera={slide.camera}
-                  depth={slide.depth}
                   durationInFrames={duration}
-                  filterId={`slide-camera-${i}`}
                 />
               ) : bgIsImage && slide.fit === 'contain' ? (
                 <>
