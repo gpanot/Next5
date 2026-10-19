@@ -4,11 +4,12 @@ import { useRouter } from 'next/navigation';
 import { sessionTokenStore } from '../../../../lib/localStore';
 import { lastWorkspaceStore, SLIDESHOW_HOME } from '../workspace/WorkspaceContext';
 import type { SlideshowMeDto } from '../../../../types/admin/autoSlideshow';
+import { ApprovalEmailSwitch } from './ApprovalEmailSwitch';
 import { ImageTestSwitches } from './ImageTestSwitches';
 
 type Props = { token: string; me: SlideshowMeDto; onClose: () => void; onChanged: () => void };
 
-/** Who is signed in, the testing switches (testing accounts only), and the log out button. */
+/** Who is signed in, the approval email switch, the testing switches (testing accounts only), and the log out button. */
 export function ProfileSection({ token, me, onClose, onChanged }: Props) {
   const name = me.displayName || me.email.split('@')[0] || me.email;
   const router = useRouter();
@@ -29,6 +30,7 @@ export function ProfileSection({ token, me, onClose, onChanged }: Props) {
           <p className="truncate text-xs text-muted">Workspace: {me.workspace.name}</p>
         </div>
       </div>
+      <ApprovalEmailSwitch token={token} on={me.approvalEmailEnabled} onChanged={onChanged} />
       {me.stockImagesOnly !== null && me.aiImagesOnly !== null && me.hooksVolumeStockOnly !== null && (
         <ImageTestSwitches token={token} values={{ stockImagesOnly: me.stockImagesOnly, aiImagesOnly: me.aiImagesOnly, hooksVolumeStockOnly: me.hooksVolumeStockOnly }} onChanged={onChanged} />
       )}

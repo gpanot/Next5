@@ -312,6 +312,8 @@ export type SlideshowMeDto = {
   connections: ConnectionDto[];
   /** Platforms whose developer keys are set on our side. */
   available: SocialProviderDto[];
+  /** Settings → Profile: the 8 am email about today's posts waiting for approval. */
+  approvalEmailEnabled: boolean;
   /** Testing switch: Ideas-page Blitz cards get stock photos even when paid. Null when this user may not see it. */
   stockImagesOnly: boolean | null;
   /** Testing switch: Blitz cards always get AI images, even before any payment. Null when this user may not see it. */

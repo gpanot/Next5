@@ -47,6 +47,8 @@ model User {
   aiImagesOnly    Boolean @default(false) @map("ai_images_only")
   /// Testing switch: Hooks Volume's "Generate the entire slideshows" uses stock photos even when paid (Settings → Profile).
   hooksVolumeStockOnly Boolean @default(false) @map("hooks_volume_stock_only")
+  /// Settings → Profile: the 8 am email about today's posts waiting for approval. On for new sign-ups, off for accounts made before 2026-10-19.
+  approvalEmailEnabled Boolean @default(true) @map("approval_email_enabled")
 
   bookings Booking[]
   photos   Photo[]
