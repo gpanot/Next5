@@ -2,7 +2,8 @@
 //
 // A batch of calendar ideas answers with no model call (blitzBank.ts → deckFromScripts `later`): shots the library
 // lacks show their best library match, captions sit where saved fits put them. After the response this finishes the
-// cards, both at once: the vision caption Auto Fit of every shot without a saved fit (saved for the next batches), and
+// cards. First every card's captions become its voiceover's spoken lines (2026-10-19), so the screen says what the
+// voice says from the start. Then, both at once: the vision caption Auto Fit of every shot without a saved fit (saved for the next batches), and
 // the images (AI once the workspace has paid, stock photos before), one per moment of the batch, swapped onto their shots (the library match becomes the first swap; the
 // new shots get their own fit). Last, each card's photos get their camera move (labs/blitzCamera.ts, one vision call per
 // card), so the card plays the zoom/pan its render will use. Then the cards lose `finishing` and the deck stops
@@ -12,6 +13,7 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { withShotCameras } from './blitzCamera';
+import { spokenLines } from './blitzVoice';
 import { mergeCard } from './ideaCardMerge';
 import { fitShotCaptions } from '../slideshow/core/captionFit';
 import type { DeckItem, DeckShot } from '../slideshow/core/deckAssembly';
@@ -101,11 +103,45 @@ async function finishCard(id: string): Promise<void> {
   await saveCard(id, async (card) => finished({ ...card, shots: await withShotCameras(card.shots) }));
 }
 
+/** The ideas' cards as they are now. */
+async function snapshots(ids: string[]): Promise<Snapshot[]> {
+  const rows = await prisma.slideshowVariant.findMany({ where: { id: { in: ids } }, select: { id: true, plan: true } });
+  return rows.flatMap((r) => {
+    const card = (r.plan as IdeaPlan).card;
+    return card ? [{ id: r.id, shots: card.shots, pending: card.pendingImages }] : [];
+  });
+}
+
 /** The images every card lists, one per moment of the batch (no write): AI when paid, else stock. Per card index: need key → image. */
 async function makeImages(cards: Snapshot[], workspaceId: string | null, brand: PhotoBrand): Promise<Array<Map<string, LibraryAsset>>> {
   const needs: BatchNeed[] = cards.flatMap((c, script) => (c.pending ? c.pending.needs.map((need) => ({ script, audience: c.pending!.audience, categories: c.pending!.categories, need })) : []));
   if (needs.length === 0) return cards.map(() => new Map());
   return batchShotImages(needs, cards.length, workspaceId, brand);
+}
+
+/**
+ * Every card's captions become its voiceover's spoken lines (2026-10-19), so no card keeps the first written captions:
+ * the voice later reads them as they are (blitzVoice.ts spokenLines). A card whose captions changed meanwhile (the
+ * deck adopted the same lines, or a hook swap) is left alone. A card whose lines fail keeps its captions (the deck
+ * adopts the lines once it is recorded).
+ */
+async function speakCards(cards: Snapshot[], workspaceId: string | null): Promise<void> {
+  await Promise.all(cards.map(async (c) => {
+    const texts = c.shots.map((s) => s.text);
+    const lines = await spokenLines(texts, workspaceId).catch((err: unknown) => {
+      console.error(`[idea-finish] spoken lines failed for ${c.id}:`, err instanceof Error ? err.message : err);
+      return null;
+    });
+    if (!lines || lines.every((l, i) => l === texts[i])) return;
+    await prisma.$transaction(async (tx) => {
+      const [locked] = await tx.$queryRaw<Array<{ plan: IdeaPlan; status: string }>>`SELECT plan, status FROM slideshow_variants WHERE id = ${c.id} FOR UPDATE`;
+      const plan = locked?.plan;
+      const card = plan?.card;
+      if (!card || !OPEN.includes(locked.status) || card.shots.length !== texts.length || card.shots.some((s, i) => s.text !== texts[i])) return;
+      const shots = card.shots.map((s, i) => ({ ...s, text: lines[i]! }));
+      await tx.slideshowVariant.update({ where: { id: c.id }, data: { plan: { ...plan, shots, card: { ...card, shots } } as unknown as Prisma.InputJsonValue } });
+    });
+  }));
 }
 
 /** How long the first caption pass waits for a shot; slower ones land in a second write. */
@@ -126,15 +162,16 @@ export async function finishIdeaCards(ids: string[], workspaceId: string | null,
   const started = Date.now();
   const secs = (from: number) => ((Date.now() - from) / 1000).toFixed(1);
   try {
-    const rows = await prisma.slideshowVariant.findMany({ where: { id: { in: ids } }, select: { id: true, plan: true } });
-    const cards: Snapshot[] = rows.flatMap((r) => {
-      const card = (r.plan as IdeaPlan).card;
-      return card ? [{ id: r.id, shots: card.shots, pending: card.pendingImages }] : [];
-    });
-    const imaging = makeImages(cards, workspaceId, brand).catch((err: unknown) => {
+    const first = await snapshots(ids);
+    const imaging = makeImages(first, workspaceId, brand).catch((err: unknown) => {
       console.error('[idea-finish] images failed:', err instanceof Error ? err.message : err);
-      return cards.map(() => new Map<string, LibraryAsset>());
+      return first.map(() => new Map<string, LibraryAsset>());
     });
+    // Captions are fitted to the spoken lines, so those are written first; the images render meanwhile.
+    await speakCards(first, workspaceId);
+    const spokenIn = secs(started);
+    const now = new Map((await snapshots(ids)).map((c) => [c.id, c]));
+    const cards = first.map((c) => ({ ...c, shots: now.get(c.id)?.shots ?? c.shots }));
     // Two writes: what is fitted within FIRST_PASS_MS, then the slow shots (their calls keep running, not restarted).
     const shots = cards.flatMap((c) => c.shots);
     const early = await captionHeights(shots, FIRST_PASS_MS);
@@ -154,7 +191,7 @@ export async function finishIdeaCards(ids: string[], workspaceId: string | null,
     })));
     await Promise.all([ready, finishCards(cards.filter((c) => c.pending))]);
     const swapped = saved.filter(Boolean).length;
-    console.log(`[idea-finish] ${ids.length} card(s): captions ${captionsIn}s, images ${imagesIn}s (on ${swapped} card(s)), done ${secs(started)}s`);
+    console.log(`[idea-finish] ${ids.length} card(s): spoken lines ${spokenIn}s, captions ${captionsIn}s, images ${imagesIn}s (on ${swapped} card(s)), done ${secs(started)}s`);
   } catch (err) {
     console.error('[idea-finish] failed:', err instanceof Error ? err.message : err);
     // Never leave the deck re-reading forever.
