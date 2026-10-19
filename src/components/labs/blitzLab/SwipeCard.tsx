@@ -17,7 +17,7 @@
  * The caller supplies shot data, tags and callbacks.
  */
 
-import { ChevronDown, Info, Pause } from 'lucide-react';
+import { ChevronDown, Info, Pause, Play } from 'lucide-react';
 import { slideTextConfig } from '../../../remotion/slideTextConfig';
 import type { SlideCamera, TextConfig } from '../../../remotion/types';
 import { moveShotCamera, ShotLayers } from './ShotLayers';
@@ -228,6 +228,25 @@ export function SwipeCard({
     });
   }
 
+  // ── "Why this?" drawer ────────────────────────────────────────────────────
+  const [whyOpen, setWhyOpen] = useState(false);
+  const whyOpenRef = useRef(false);
+
+  // ── Voiceover: a new one starts the card over, so the hook line plays on the hook ──
+  const voiceUrl = voiced?.url;
+  const [startedFor, setStartedFor] = useState(voiceUrl);
+  if (startedFor !== voiceUrl) {
+    setStartedFor(voiceUrl);
+    setShotIdx(0);
+  }
+  useEffect(() => {
+    elapsedRef.current = 0;
+    shotIdxRef.current = 0;
+  }, [voiceUrl]);
+  const voice = useNarrationAudio({ narration: voiced, shotIdx, elapsedRef, playing: isTop && ready && !paused && !externalPause && !whyOpen, muted: !soundOn });
+  // The card holds its first shot (clips too) until the voice can start with it, as while the voice records.
+  const held = externalPause || voice.waiting || voice.blocked;
+
   // RAF ticker — only runs when this card is top
   useEffect(() => {
     if (!isTop) return;
@@ -238,7 +257,7 @@ export function SwipeCard({
       lastTsRef.current = now;
 
       const isDrawerOpen = whyOpenRef.current;
-      if (ready && !paused && !externalPause && !isDrawerOpen) {
+      if (ready && !paused && !held && !isDrawerOpen) {
         elapsedRef.current += dt;
         const dur = durationsRef.current[shotIdxRef.current] ?? 4;
         if (elapsedRef.current >= dur) {
@@ -258,7 +277,7 @@ export function SwipeCard({
     rafRef.current = requestAnimationFrame(tick);
     return () => { cancelAnimationFrame(rafRef.current); lastTsRef.current = 0; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTop, paused, externalPause, ready]);
+  }, [isTop, paused, held, ready]);
 
   function jumpShot(delta: number) {
     const next = Math.max(0, Math.min(shots.length - 1, shotIdxRef.current + delta));
@@ -266,23 +285,6 @@ export function SwipeCard({
     shotIdxRef.current = next;
     setShotIdx(next);
   }
-
-  // ── "Why this?" drawer ────────────────────────────────────────────────────
-  const [whyOpen, setWhyOpen] = useState(false);
-  const whyOpenRef = useRef(false);
-
-  // ── Voiceover: a new one starts the card over, so the hook line plays on the hook ──
-  const voiceUrl = voiced?.url;
-  const [startedFor, setStartedFor] = useState(voiceUrl);
-  if (startedFor !== voiceUrl) {
-    setStartedFor(voiceUrl);
-    setShotIdx(0);
-  }
-  useEffect(() => {
-    elapsedRef.current = 0;
-    shotIdxRef.current = 0;
-  }, [voiceUrl]);
-  useNarrationAudio({ narration: voiced, shotIdx, elapsedRef, playing: isTop && ready && !paused && !externalPause && !whyOpen, muted: !soundOn });
 
   function toggleWhy() {
     setWhyOpen((o) => {
@@ -413,13 +415,14 @@ export function SwipeCard({
           // The top card loads its first shot alone, so it is not slowed by the other clips.
           loadAll={position === 'back1' || (isTop && ready)}
           playing={isTop}
-          muted={!soundOn || !isTop || paused || externalPause || Boolean(voiced)}
+          held={held}
+          muted={!soundOn || !isTop || paused || held || Boolean(voiced)}
           fallback={(i) => tint(hue, i)}
           onFirstReady={markReady}
         />
 
-        {/* ── Loading: the first shot is not on screen yet ─────────────────── */}
-        {isTop && !ready && (
+        {/* ── Loading: the first shot is not on screen yet, or its voice is still buffering ── */}
+        {isTop && (!ready || (voice.waiting && !externalPause)) && (
           <div role="status" aria-label="Loading video" className="pointer-events-none absolute inset-0 z-[3] grid place-items-center bg-black/25">
             <span aria-hidden className="h-8 w-8 animate-spin rounded-full border-[3px] border-white/30 border-t-white" />
           </div>
@@ -472,6 +475,16 @@ export function SwipeCard({
               <span>{displayedShot.text}</span>
             )}
           </div>
+        )}
+
+        {/* ── Voice blocked by the browser (no tap yet on this page): one tap starts card and voice ── */}
+        {isTop && ready && voice.blocked && !externalPause && (
+          <button type="button" data-no-swipe onClick={(e) => { e.stopPropagation(); voice.unblock(); }} className="absolute inset-0 z-[5] grid place-items-center bg-black/35 text-white">
+            <span className="flex flex-col items-center gap-2 text-[13px] font-semibold">
+              <span className="grid h-16 w-16 place-items-center rounded-full bg-black/50"><Play aria-hidden className="h-6 w-6" /></span>
+              Tap to play with sound
+            </span>
+          </button>
         )}
 
         {/* ── Pause overlay ───────────────────────────────────────────────── */}
