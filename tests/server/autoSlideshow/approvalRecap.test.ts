@@ -21,11 +21,12 @@ describe('localDay', () => {
 describe('approveTodayEmail', () => {
   it('lists today’s posts in local time and links the list view on that day', () => {
     const email = approveTodayEmail('ws1', '2026-10-18', [
-      { title: 'Stop choosing', at: new Date('2026-10-18T23:00:00Z') },
-      { title: 'Gym comfort', at: new Date('2026-10-19T00:00:00Z') },
+      { title: 'Stop choosing', at: new Date('2026-10-18T23:00:00Z'), thumbUrl: 'https://app.test/api/thumb/a.jpg' },
+      { title: 'Gym comfort', at: new Date('2026-10-19T00:00:00Z'), thumbUrl: null },
     ], 240);
     expect(email.subject).toBe('2 posts need your OK today');
-    expect(email.body).toContain('7:00 PM · Stop choosing');
+    expect(email.items?.[0]).toEqual({ text: '7:00 PM · Stop choosing', imageUrl: 'https://app.test/api/thumb/a.jpg' });
+    expect(email.items?.[1]?.imageUrl).toBeNull();
     expect(email.body.at(-1)).toBe('Approve before 7:00 PM so the first one goes out on time.');
     expect(email.cta?.url).toMatch(/\/slideshow\/ws1\?view=list&day=2026-10-18$/);
   });

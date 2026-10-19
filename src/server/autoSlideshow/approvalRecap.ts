@@ -3,8 +3,11 @@
 // Calendar. Planned ones never post on their own, so this is the nudge that keeps them from being missed.
 
 import { prisma } from '../../lib/db';
+import { appUrl } from '../email/layout';
 import { sendOnce } from '../email/send';
 import { approveTodayEmail, type PostToApprove } from '../email/templates';
+import { thumbUrl } from '../storage/thumbs';
+import type { AutoSlide } from '../../types/admin/autoSlideshow';
 import { CAMPAIGN_KIND, planOf } from './campaign/store';
 
 const HOUR = 3_600_000;
@@ -13,6 +16,15 @@ const DAY = 24 * HOUR;
 const RECAP_FROM_HOUR = 8;
 const RECAP_UNTIL_HOUR = 11;
 const LIVE = ['scheduled', 'sending', 'processing', 'posted'];
+const IMAGE_KEY = /\.(jpe?g|png|webp)$/i;
+const VIDEO_KEY = /\.(mp4|mov|webm|m4v)$/i;
+
+/** A Blitz cover as an email image (absolute, no expiry): a photo's thumb, or a clip's first frame. */
+const blitzCoverUrl = (key: string | null): string | null => {
+  if (!key) return null;
+  if (IMAGE_KEY.test(key)) return appUrl(thumbUrl(key));
+  return VIDEO_KEY.test(key) ? appUrl(`/api/admin/blitz/poster?key=${encodeURIComponent(key)}`) : null;
+};
 
 /** Minutes behind UTC (as Date.getTimezoneOffset) in New York right now: the fallback for a workspace that never sent one. */
 const newYorkOffset = (now: Date): number => {
@@ -38,13 +50,13 @@ const plannedSoon = async (now: Date): Promise<Map<string, PostToApprove[]>> => 
 
   const videos = await prisma.blitzScheduledPost.findMany({
     where: { status: 'planned', scheduledAt: { gt: now, lt: until } },
-    select: { workspaceId: true, title: true, scheduledAt: true },
+    select: { workspaceId: true, title: true, scheduledAt: true, coverKey: true },
   });
-  videos.forEach((v) => add(v.workspaceId, { title: v.title, at: v.scheduledAt }));
+  videos.forEach((v) => add(v.workspaceId, { title: v.title, at: v.scheduledAt, thumbUrl: blitzCoverUrl(v.coverKey) }));
 
   const runs = await prisma.autoSlideshowRun.findMany({
     where: { kind: CAMPAIGN_KIND, workspaceId: { not: null } },
-    select: { workspaceId: true, campaign: true, slideshows: { select: { position: true, status: true, topic: true, posts: { select: { status: true } } } } },
+    select: { workspaceId: true, campaign: true, slideshows: { select: { position: true, status: true, topic: true, slides: true, posts: { select: { status: true } } } } },
   });
   for (const run of runs) {
     // Same rule as the Calendar (campaignCalendar): a ready slideshow with a planned time and no live post waits there.
@@ -53,21 +65,22 @@ const plannedSoon = async (now: Date): Promise<Map<string, PostToApprove[]>> => 
       const show = shows.get(item.position);
       const at = new Date(item.at);
       if (!show || show.status !== 'ready' || show.posts.some((p) => LIVE.includes(p.status)) || at >= until) continue;
-      add(run.workspaceId!, { title: show.topic, at });
+      const cover = (show.slides as unknown as AutoSlide[] | null)?.[0]?.imageKey;
+      add(run.workspaceId!, { title: show.topic, at, thumbUrl: cover ? appUrl(thumbUrl(cover)) : null });
     }
   }
   return byWorkspace;
 };
 
 /**
- * Emails each workspace owner whose morning it is about today's posts still to approve. Safe to run every hour (or
+ * Emails each workspace owner (with the email on in Settings → Profile) whose morning it is about today's posts still to approve. Safe to run every hour (or
  * more): one email per workspace per local day, and none on a day with nothing to approve.
  */
 export const sendApprovalRecaps = async (now = new Date()): Promise<number> => {
   const planned = await plannedSoon(now);
   if (planned.size === 0) return 0;
   const workspaces = await prisma.workspace.findMany({
-    where: { id: { in: [...planned.keys()] }, product: 'slideshow', deletedAt: null },
+    where: { id: { in: [...planned.keys()] }, product: 'slideshow', deletedAt: null, owner: { approvalEmailEnabled: true } },
     select: { id: true, ownerUserId: true, ideaTzOffsetMin: true },
   });
   const fallback = newYorkOffset(now);
