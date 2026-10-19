@@ -29,8 +29,8 @@ export function ProfileSection({ token, me, onClose, onChanged }: Props) {
           <p className="truncate text-xs text-muted">Workspace: {me.workspace.name}</p>
         </div>
       </div>
-      {me.stockImagesOnly !== null && me.aiImagesOnly !== null && (
-        <ImageTestSwitches token={token} values={{ stockImagesOnly: me.stockImagesOnly, aiImagesOnly: me.aiImagesOnly }} onChanged={onChanged} />
+      {me.stockImagesOnly !== null && me.aiImagesOnly !== null && me.hooksVolumeStockOnly !== null && (
+        <ImageTestSwitches token={token} values={{ stockImagesOnly: me.stockImagesOnly, aiImagesOnly: me.aiImagesOnly, hooksVolumeStockOnly: me.hooksVolumeStockOnly }} onChanged={onChanged} />
       )}
       <button onClick={logout} className="min-h-11 w-full rounded-full border border-line px-5 text-sm font-semibold text-ink transition hover:bg-zinc-50 active:scale-95 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-900">
         Log out

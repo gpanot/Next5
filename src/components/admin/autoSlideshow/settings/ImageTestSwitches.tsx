@@ -4,15 +4,19 @@ import { useState } from 'react';
 import { adminFetch } from '../../business/useAdminApi';
 import { Notice, Switch } from './credits/fields';
 
-type Values = { stockImagesOnly: boolean; aiImagesOnly: boolean };
+type Values = { stockImagesOnly: boolean; aiImagesOnly: boolean; hooksVolumeStockOnly: boolean };
 type Props = { token: string; values: Values; onChanged: () => void };
 
 const SWITCHES: { key: keyof Values; title: string; hint: string }[] = [
   { key: 'stockImagesOnly', title: 'Stock photos only', hint: 'New Ideas cards get free stock photos, like a free account. Slideshows do not change.' },
   { key: 'aiImagesOnly', title: 'Only AI images for Blitz', hint: 'New Blitz cards always get AI images, even before any payment. Slideshows do not change.' },
+  { key: 'hooksVolumeStockOnly', title: 'Images for Hooks Volume: stock only', hint: 'Off: AI images once paid, stock before. On: "Generate the entire slideshows" always uses stock photos.' },
 ];
 
-/** Testing switches for Blitz card images: force stock photos or force AI images. Turning one on turns the other off. */
+/** The two Blitz switches ask for opposite images: turning one on turns the other off. */
+const BLITZ: (keyof Values)[] = ['stockImagesOnly', 'aiImagesOnly'];
+
+/** Testing switches: Blitz card images (force stock photos or force AI images), and Hooks Volume images (force stock). */
 export function ImageTestSwitches({ token, values, onChanged }: Props) {
   const [state, setState] = useState<Values>(values);
   const [busy, setBusy] = useState(false);
@@ -22,7 +26,7 @@ export function ImageTestSwitches({ token, values, onChanged }: Props) {
     const before = state;
     setBusy(true);
     setError(null);
-    setState(next ? { stockImagesOnly: false, aiImagesOnly: false, [key]: true } : { ...state, [key]: false });
+    setState(next && BLITZ.includes(key) ? { ...state, stockImagesOnly: false, aiImagesOnly: false, [key]: true } : { ...state, [key]: next });
     try {
       const saved = await adminFetch<Values>(token, '/api/slideshow/me', { method: 'PATCH', body: JSON.stringify({ [key]: next }) });
       setState(saved);

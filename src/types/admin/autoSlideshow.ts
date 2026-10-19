@@ -314,6 +314,8 @@ export type SlideshowMeDto = {
   stockImagesOnly: boolean | null;
   /** Testing switch: Blitz cards always get AI images, even before any payment. Null when this user may not see it. */
   aiImagesOnly: boolean | null;
+  /** Testing switch: Hooks Volume's "Generate the entire slideshows" uses stock photos even when paid. Null when this user may not see it. */
+  hooksVolumeStockOnly: boolean | null;
 };
 
 /** One generated photo of a user's runs, as listed in Settings → Photos. */

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { MAX_CAMPAIGN_HOOK_PHOTOS, MAX_CAMPAIGN_HOOKS, MAX_HOOK_CHARS, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
+import { MAX_CAMPAIGN_HOOK_PHOTOS, MAX_CAMPAIGN_HOOKS, MAX_HOOK_CHARS, type AutoPhotoSource, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import { GenerateHooksDialog } from './GenerateHooksDialog';
 import { PhotoThumb } from './PhotoThumb';
 import { HookPhotoCredits } from './UnsplashCredit';
@@ -19,7 +19,7 @@ type Props = {
   /** Opens the picker to swap hook photo `i` (its place in the rotation). */
   onReplacePhoto: (i: number) => void;
   /** "Generate the entire slideshows": every slide written from the hooks just generated. */
-  onGenerateAll: (hooks: string[], photoQuery: string) => Promise<boolean>;
+  onGenerateAll: (hooks: string[], photoQuery: string, photoSource: AutoPhotoSource) => Promise<boolean>;
 };
 
 const chip = 'inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border border-white/15 bg-white/5 pr-1 pl-3 text-sm text-white/90';
@@ -143,8 +143,8 @@ export function HookPanel({ token, campaignId, draft, photos, pending, onChange,
             setGenerating(false);
             onChange((d) => ({ ...d, hooks, ...(photoQuery ? { hookPhotoQuery: photoQuery } : {}) }));
           }}
-          onDoneAll={async (hooks, photoQuery) => {
-            const ok = await onGenerateAll(hooks, photoQuery);
+          onDoneAll={async (hooks, photoQuery, photoSource) => {
+            const ok = await onGenerateAll(hooks, photoQuery, photoSource);
             setGenerating(false);
             return ok;
           }}

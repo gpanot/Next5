@@ -62,11 +62,11 @@ export const useAutoContent = (token: string, campaignId: string, state: Campaig
   }, [tonePhoto]);
 
   /** Writes and places the slides; resolves true once the text is on the cards (photos keep coming in). `freshHooks`:
-   *  hooks just written, not in `draft` yet. */
-  const run = useCallback(async (freshHooks?: string[]): Promise<boolean> => {
+   *  hooks just written, not in `draft` yet; `photoSource` overrides the picked one. */
+  const run = useCallback(async (freshHooks?: string[], photoSource?: AutoPhotoSource): Promise<boolean> => {
     if (!draft) return false;
     const hooks = freshHooks ?? draft.hooks;
-    const settings = settingsFor(hooks);
+    const settings = { ...settingsFor(hooks), ...(photoSource ? { photoSource } : {}) };
     setWriting(true);
     state.setError(null);
     try {
