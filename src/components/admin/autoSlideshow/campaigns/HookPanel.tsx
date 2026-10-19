@@ -18,6 +18,8 @@ type Props = {
   onAddPhotos: () => void;
   /** Opens the picker to swap hook photo `i` (its place in the rotation). */
   onReplacePhoto: (i: number) => void;
+  /** "Generate the entire slideshows": every slide written from the hooks just generated. */
+  onGenerateAll: (hooks: string[], photoQuery: string) => Promise<boolean>;
 };
 
 const chip = 'inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border border-white/15 bg-white/5 pr-1 pl-3 text-sm text-white/90';
@@ -65,7 +67,7 @@ function GenerateButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function HookPanel({ token, campaignId, draft, photos, pending, onChange, onAddPhotos, onReplacePhoto }: Props) {
+export function HookPanel({ token, campaignId, draft, photos, pending, onChange, onAddPhotos, onReplacePhoto, onGenerateAll }: Props) {
   const replacing = (i: number) => pending.find((p) => p.target.slot === 'hook' && p.target.replace === i);
   const adding = pending.filter((p) => p.target.slot !== 'hook' || p.target.replace === undefined || p.target.replace >= draft.hookPhotos.length);
   const [generating, setGenerating] = useState(false);
@@ -140,6 +142,11 @@ export function HookPanel({ token, campaignId, draft, photos, pending, onChange,
           onDone={(hooks, photoQuery) => {
             setGenerating(false);
             onChange((d) => ({ ...d, hooks, ...(photoQuery ? { hookPhotoQuery: photoQuery } : {}) }));
+          }}
+          onDoneAll={async (hooks, photoQuery) => {
+            const ok = await onGenerateAll(hooks, photoQuery);
+            setGenerating(false);
+            return ok;
           }}
         />
       )}

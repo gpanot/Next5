@@ -28,6 +28,7 @@ import { previewShows } from './previewSlides';
 import { useAutoContent } from './useAutoContent';
 import { useCampaign, type PendingPhoto } from './useCampaign';
 import { useCampaignVideo } from './useCampaignVideo';
+import { useGenerateAll } from './useGenerateAll';
 import { ScheduleButton } from './ScheduleButton';
 import { useCampaignSchedule } from './useCampaignSchedule';
 
@@ -72,6 +73,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   const { campaign, setDraft } = state;
   const [mode, setMode] = useState<ContentMode | null>(null);
   const auto = useAutoContent(token, campaignId, state);
+  const generateAll = useGenerateAll(token, campaignId, state, auto);
   const video = useCampaignVideo(token, campaignId, state);
   const plan = useCampaignSchedule(token, state);
   /** Video render is admin-only: the admin token, or an "Open as user" tab. */
@@ -225,7 +227,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                     onRun={() => void runAuto()}
                   />
                 ) : at === 0 ? (
-                  <HookPanel token={token} campaignId={campaignId} draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} onReplacePhoto={(i) => setPicker({ slot: 'hook', replace: i })} />
+                  <HookPanel token={token} campaignId={campaignId} draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} onReplacePhoto={(i) => setPicker({ slot: 'hook', replace: i })} onGenerateAll={generateAll} />
                 ) : (
                   <CardPanel
                     card={draft.cards[at - 1]!}

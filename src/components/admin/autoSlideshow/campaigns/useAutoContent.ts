@@ -38,7 +38,8 @@ export const useAutoContent = (token: string, campaignId: string, state: Campaig
   const [picked, setPicked] = useState<AutoSettings>(START_SETTINGS);
   /** Until the person picks a format, a hook with a number ("6 ways…") makes the slides Numbered. */
   const [formatPicked, setFormatPicked] = useState(false);
-  const settings: AutoSettings = formatPicked || !draft || autoSlideCount(draft.hooks) === null ? picked : { ...picked, format: 'numbered' };
+  const settingsFor = useCallback((hooks: string[]): AutoSettings => (formatPicked || autoSlideCount(hooks) === null ? picked : { ...picked, format: 'numbered' }), [formatPicked, picked]);
+  const settings: AutoSettings = draft ? settingsFor(draft.hooks) : picked;
   const tonePhoto = draft?.hookPhotos[0];
   const [writing, setWriting] = useState(false);
   const base = `/api/slideshow/campaigns/${campaignId}`;
@@ -60,13 +61,16 @@ export const useAutoContent = (token: string, campaignId: string, state: Campaig
     return written.titles.map((_, i) => ({ key: `auto-${stamp}-${i}`, cards: [i], ...source(i) }));
   }, [tonePhoto]);
 
-  /** Writes and places the slides; resolves true once the text is on the cards (photos keep coming in). */
-  const run = useCallback(async (): Promise<boolean> => {
+  /** Writes and places the slides; resolves true once the text is on the cards (photos keep coming in). `freshHooks`:
+   *  hooks just written, not in `draft` yet. */
+  const run = useCallback(async (freshHooks?: string[]): Promise<boolean> => {
     if (!draft) return false;
+    const hooks = freshHooks ?? draft.hooks;
+    const settings = settingsFor(hooks);
     setWriting(true);
     state.setError(null);
     try {
-      const written = await adminFetch<AutoContentDto>(token, `${base}/auto`, { method: 'POST', body: JSON.stringify({ ...settings, hooks: draft.hooks }) });
+      const written = await adminFetch<AutoContentDto>(token, `${base}/auto`, { method: 'POST', body: JSON.stringify({ ...settings, hooks }) });
       state.setDraft((d) => {
         const cta = d.cards[d.cards.length - 1]!;
         // "6 ways…": an empty CTA is the 6th slide, so it gets text to edit (numbered "6. " below when Numbered).
@@ -83,7 +87,7 @@ export const useAutoContent = (token: string, campaignId: string, state: Campaig
     } finally {
       setWriting(false);
     }
-  }, [draft, settings, token, base, state, photoJobs]);
+  }, [draft, settingsFor, token, base, state, photoJobs]);
 
   return { settings, update, writing, run };
 };
