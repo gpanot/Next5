@@ -66,6 +66,12 @@ export const ImageLightbox = ({
 
   // Pan state
   const isDragging = useRef(false);
+  /** Mirrors isDragging for render (no transition while dragging). */
+  const [dragging, setDragging] = useState(false);
+  const setDrag = (on: boolean) => {
+    isDragging.current = on;
+    setDragging(on);
+  };
   const lastPointer = useRef({ x: 0, y: 0 });
 
   // Double-tap state
@@ -108,7 +114,7 @@ export const ImageLightbox = ({
       lastScaleRef.current = scale;
     } else if (e.touches.length === 1) {
       lastPointer.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      isDragging.current = true;
+      setDrag(true);
 
       // Double-tap detection
       const now = Date.now();
@@ -142,7 +148,7 @@ export const ImageLightbox = ({
 
   const handleTouchEnd = () => {
     lastPinchDist.current = null;
-    isDragging.current = false;
+    setDrag(false);
     lastScaleRef.current = scale;
     // Snap back to 1× if pinch ended below threshold
     if (scale < 1.1) {
@@ -153,7 +159,7 @@ export const ImageLightbox = ({
 
   /* ── Mouse pan (desktop) ─────────────────────────────────────────── */
   const handleMouseDown = (e: React.MouseEvent) => {
-    isDragging.current = true;
+    setDrag(true);
     lastPointer.current = { x: e.clientX, y: e.clientY };
   };
 
@@ -165,7 +171,7 @@ export const ImageLightbox = ({
     setTranslate((prev) => clamp({ x: prev.x + dx * 0.3, y: prev.y + dy * 0.3 }, scale));
   };
 
-  const handleMouseUp = () => { isDragging.current = false; };
+  const handleMouseUp = () => setDrag(false);
 
   /* ── Wheel zoom (desktop) ─────────────────────────────────────────── */
   const handleWheel = (e: React.WheelEvent) => {
@@ -232,7 +238,7 @@ export const ImageLightbox = ({
         className="relative"
         style={{
           transform: `scale(${scale}) translate(${translate.x}%, ${translate.y}%)`,
-          transition: isDragging.current ? 'none' : 'transform 0.2s ease',
+          transition: dragging ? 'none' : 'transform 0.2s ease',
           maxWidth: '100vw',
           maxHeight: '100vh',
           cursor: scale > 1 ? 'grab' : 'zoom-in',

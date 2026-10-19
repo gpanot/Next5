@@ -113,7 +113,7 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
             <p className="text-[13px] text-app-muted">A couple of things to confirm before we start.</p>
             <Checkbox checked={labels} onChange={setLabels} label={
               <span className="text-[14px] text-app-ink">
-                <strong className="font-semibold">I understand my photos are AI-generated.</strong> Every file carries an AI label, and I'll follow platform rules when posting.
+                <strong className="font-semibold">I understand my photos are AI-generated.</strong> Every file carries an AI label, and I’ll follow platform rules when posting.
               </span>
             } />
             <Checkbox checked={terms} onChange={setTerms} label={

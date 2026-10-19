@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { heroFeatures, heroImage } from '../../data/site';
 import { useLocale } from '../../i18n/LocaleContext';
 import { ButtonLink } from '../ui/Button';
@@ -14,19 +14,19 @@ const DELETE_MS = 35;
 const HOLD_MS = 1400;
 const GAP_MS = 250;
 
+const REDUCED_MOTION = '(prefers-reduced-motion: reduce)';
+const subscribeReducedMotion = (onChange: () => void) => {
+  const query = window.matchMedia(REDUCED_MOTION);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+};
+const prefersReducedMotion = () => window.matchMedia(REDUCED_MOTION).matches;
+
 function PlatformCycler() {
   const [index, setIndex] = useState(0);
   const [text, setText] = useState('');
   const [phase, setPhase] = useState<'typing' | 'deleting'>('typing');
-  const [reducedMotion, setReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(query.matches);
-    const onChange = () => setReducedMotion(query.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
+  const reducedMotion = useSyncExternalStore(subscribeReducedMotion, prefersReducedMotion, () => false);
 
   useEffect(() => {
     if (reducedMotion) {

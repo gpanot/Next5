@@ -55,11 +55,11 @@ function CloneCard({
     return () => { stopped = true; window.clearInterval(id); };
   }, [client, video.id, video.status]);
 
-  const elapsed = useRef(0);
+  const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     if (video.status !== 'generating') return;
     const start = Date.now();
-    const id = window.setInterval(() => { elapsed.current = Math.floor((Date.now() - start) / 1000); }, 1000);
+    const id = window.setInterval(() => setElapsed(Math.floor((Date.now() - start) / 1000)), 1000);
     return () => window.clearInterval(id);
   }, [video.status]);
 
@@ -101,7 +101,7 @@ function CloneCard({
 
         {video.status === 'generating' && (
           <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-white/90 py-2 text-[12px] text-muted">
-            <Spinner /> Generating… {clock(elapsed.current)} elapsed
+            <Spinner /> Generating… {clock(elapsed)} elapsed
           </span>
         )}
         {video.status === 'failed' && (
@@ -245,6 +245,7 @@ export function CloneLibrary() {
     else setError(res ? errorOf(res) : 'Could not load library');
   }, [client]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount: load() flags loading before its request
   useEffect(() => { void load(); }, [load]);
 
   const update = useCallback((v: CloneVideoDto) => {

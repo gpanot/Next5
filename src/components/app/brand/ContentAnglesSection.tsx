@@ -197,7 +197,7 @@ export const ContentAnglesSection = ({ angles, genState, product, onChange }: Pr
       {/* Empty state */}
       {!generating && angles.length === 0 && (
         <p className="text-[13px] text-app-muted">
-          No angles yet. Add your website URL above and they'll be extracted automatically, or add one manually below.
+          No angles yet. Add your website URL above and they’ll be extracted automatically, or add one manually below.
         </p>
       )}
 
