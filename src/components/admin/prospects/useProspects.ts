@@ -4,10 +4,10 @@ import { useCallback, useEffect } from 'react';
 import type { ProspectPackDto } from '../../../types/admin/prospects';
 import { adminFetch, useAdminApi } from '../business/useAdminApi';
 
-/** How often a pack being made is moved on (each call does the next step: prospects/advance.ts). */
+/** How often a pack being made (or waiting its turn) is moved on (each call does the next step: prospects/advance.ts). */
 const ADVANCE_MS = 8_000;
 
-const working = (p: ProspectPackDto) => p.status === 'building' || p.status === 'making';
+const working = (p: ProspectPackDto) => p.status === 'queued' || p.status === 'building' || p.status === 'making';
 
 /** The packs, with create / approve / delete, and the advance calls for packs being made while the tab is open. */
 export function useProspects(token: string) {

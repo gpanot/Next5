@@ -4,7 +4,7 @@
 //   cast   — the brand run's steps 4-6, released by approveFaces (3 Brand Cast slideshows)
 //   hooks  — the Hooks Volume campaign (hooksVolume.ts), once
 //   blitz  — PROSPECT_BLITZ Blitz ideas rendered (blitz.ts), once the first ideas batch has them
-// When all three have settled, the days are planned (days.ts) and the pack is ready to share. Only the posts of the
+// A 'queued' pack starts here when its turn comes (queue.ts). When all three have settled, the days are planned (days.ts) and the pack is ready to share. Only the posts of the
 // free days are made in full: the other Blitz ideas and Brand Cast slideshows are previews (first shot or slide) until
 // the pack is unlocked (unlock.ts). Hooks Volume is stock photos only, so all of it is made.
 
@@ -19,6 +19,7 @@ import { HttpError } from '../http';
 import { blitzReady, blitzRenders, ideasById, renderBlitz } from './blitz';
 import { composeDays } from './days';
 import { buildHooksVolume } from './hooksVolume';
+import { startIfTurn } from './queue';
 import { blitzOf, loadPack } from './store';
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
@@ -45,7 +46,7 @@ export const approveFaces = async (id: string): Promise<() => Promise<void>> => 
   const runId = pack.brandRunId!;
   const released = await prisma.autoSlideshowRun.updateMany({ where: { id: runId, status: 'HELD' }, data: { holdBeforeStep4: false } });
   if (released.count === 0) throw new HttpError(409, 'not_held', 'The run is not waiting. Refresh and try again.');
-  await prisma.prospectPack.update({ where: { id }, data: { status: 'making' } });
+  await prisma.prospectPack.update({ where: { id }, data: { status: 'making', approvedAt: new Date() } });
   return () => withUserCostContext(pack.ownerUserId, () => runAutoPipeline(runId, 4));
 };
 
@@ -128,12 +129,16 @@ const finish = async (pack: ProspectPack, posts: Record<ProspectKind, string[]>,
   if (posts.blitz.length + posts.cast.length + posts.hooks.length === 0) return void (await fail(pack.id, pack.error ?? 'Nothing could be made.'));
   const ws = await prisma.workspace.findUniqueOrThrow({ where: { id: pack.workspaceId }, select: { ideaTzOffsetMin: true } });
   const days = composeDays(posts, new Date(), ws.ideaTzOffsetMin, previews);
-  await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'making' }, data: { status: 'ready', days: json(days) } });
+  await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'making' }, data: { status: 'ready', days: json(days), readyAt: new Date() } });
 };
 
 /** The step itself, for the pack as loaded. */
 const stepPack = async (pack: ProspectPack): Promise<void> => {
   const id = pack.id;
+  if (pack.status === 'queued') {
+    const job = await startIfTurn(pack);
+    return job ? job() : undefined;
+  }
   if (pack.status === 'building') {
     const run = await prisma.autoSlideshowRun.findUnique({ where: { id: pack.brandRunId! }, select: { status: true, error: true } });
     if (run?.status === 'FAILED') await fail(id, run.error ?? 'The site could not be read.');

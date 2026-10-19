@@ -4,8 +4,9 @@ import { useState, type FormEvent } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeleton';
-import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS } from '../../../types/admin/prospects';
+import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS, PROSPECT_MAX_ACTIVE, type ProspectPackDto } from '../../../types/admin/prospects';
 import { ProspectRow } from './ProspectRow';
+import { averages, formatDuration } from './timing';
 import { useProspects } from './useProspects';
 
 const input =
@@ -34,7 +35,7 @@ function CreateForm({ onCreate }: { onCreate: (url: string, name: string) => Pro
       <div>
         <h2 className="text-[15px] font-semibold text-app-ink">New prospect</h2>
         <p className="text-[13px] text-app-muted">
-          14 days of posts for their site: {PROSPECT_BLITZ} videos (stock photos), {PROSPECT_CAST} Brand Cast and {PROSPECT_HOOKS} Hooks Volume slideshows. You check the faces first. Days 1-7 are made in full, days 8-14 as previews until they pay. About $0.70.
+          14 days of posts for their site: {PROSPECT_BLITZ} videos (stock photos), {PROSPECT_CAST} Brand Cast and {PROSPECT_HOOKS} Hooks Volume slideshows. You check the faces first. Days 1-7 are made in full, days 8-14 as previews until they pay. About $0.70. Up to {PROSPECT_MAX_ACTIVE} are made at once: the others wait their turn (keep this tab open).
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-[2fr_1fr_auto]">
@@ -46,6 +47,17 @@ function CreateForm({ onCreate }: { onCreate: (url: string, name: string) => Pro
       </div>
       {error && <p role="alert" className="text-[13px] text-app-danger">{error}</p>}
     </form>
+  );
+}
+
+/** Average make time and cost of the finished packs on the list. */
+function Averages({ packs }: { packs: ProspectPackDto[] }) {
+  const avg = averages(packs);
+  if (!avg) return null;
+  return (
+    <p className="px-1 text-[12px] tabular-nums text-app-muted">
+      Average over {avg.count} finished {avg.count === 1 ? 'pack' : 'packs'}: {formatDuration(avg.sec)} to make (face check wait not counted) · ${avg.usd.toFixed(2)}
+    </p>
   );
 }
 
@@ -63,6 +75,7 @@ export function ProspectsTab({ token }: { token: string }) {
         </div>
       )}
       {!loading && !error && packs.length === 0 && <EmptyState title="No prospects yet" body="Add a website above to make their first 14 days of posts." />}
+      <Averages packs={packs} />
       {packs.length > 0 && (
         <ul className="space-y-3">
           {packs.map((p) => <ProspectRow key={p.id} token={token} pack={p} onApprove={approve} onDelete={remove} />)}
