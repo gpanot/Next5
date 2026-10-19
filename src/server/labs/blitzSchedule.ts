@@ -20,6 +20,7 @@ import { SLIDESHOW_PRICE_CENTS } from '../../types/admin/slideshowCredits';
 import { applyEntry } from '../slideshowCredits/wallet';
 import type { RenderBody } from './blitzRender';
 import { isBlitzVoice } from '../../types/admin/blitzVoice';
+import { shareApprovedStock } from '../slideshow/core/stockApproval';
 
 /** A post must be at least this far ahead, so the render has time to start. */
 const MIN_AHEAD_MS = 10 * 60 * 1000;
@@ -157,6 +158,12 @@ const createPaidPost = async (userId: string, data: Prisma.BlitzScheduledPostUnc
 /** Not started yet: still on the calendar, waiting for approval or for its render. */
 const MOVABLE = ['planned', 'scheduled'];
 
+/** A video on the calendar was kept by its owner: its stock photos join the shared library (never fails the post). */
+const shareStock = (workspaceId: string, body: RenderBody) =>
+  shareApprovedStock(workspaceId, body).catch((err: unknown) => {
+    console.error('[blitzSchedule] stock photos not shared:', err instanceof Error ? err.message : err);
+  });
+
 /**
  * Puts a kept card on the calendar as `planned` and charges 1 credit now (refunded when canceled, when it is not
  * approved in time, or when the video cannot be made). It is approved on the calendar, like the slideshows. A card
@@ -187,6 +194,7 @@ export async function scheduleBlitz(workspaceId: string, userId: string, req: Sc
       : await createPaidPost(userId, created);
   // A calendar idea made into a post leaves the ideas list.
   if (req.variantId) await prisma.slideshowVariant.updateMany({ where: { id: req.variantId, workspaceId, plannedAt: { not: null } }, data: { status: 'made' } });
+  await shareStock(workspaceId, renderBody);
   return toScheduleDto(row);
 }
 
@@ -284,6 +292,7 @@ export async function postBlitzNow(workspaceId: string, userId: string, req: Pos
       : await createPaidPost(userId, { ...data, workspaceId, cardId: req.cardId });
   if (existing && projectId) await refundBlitzCharge(existing.id, 'Posted a video already made');
   if (req.variantId) await prisma.slideshowVariant.updateMany({ where: { id: req.variantId, workspaceId, plannedAt: { not: null } }, data: { status: 'made' } });
+  await shareStock(workspaceId, renderBody);
   return toScheduleDto(row);
 }
 
