@@ -7,6 +7,7 @@ export const howToMakeTikTokSlideshow: Article = {
   description: 'How to make a slideshow on TikTok in 5 steps: pick photos, add text and sound, write the caption, post. Plus what makes a business slideshow get views.',
   excerpt: 'Five steps in the TikTok app, how to add text to each photo, and the simple rules that make a slideshow worth a swipe.',
   keyword: 'how to make a slideshow on tiktok',
+  hub: 'how-to',
   published: '2026-10-18',
   cover: 'slide-chapters',
   coverAlt: 'TikTok slideshow made by Next5: "The clarity glow-up: your slideshow finally reads like chapters."',

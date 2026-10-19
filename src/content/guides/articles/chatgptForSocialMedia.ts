@@ -8,6 +8,7 @@ export const chatgptForSocialMedia: Article = {
   description: 'Using ChatGPT for social media posts as a small business: what it does well, where it falls short, 5 prompts that work, and what you still have to do yourself.',
   excerpt: 'ChatGPT writes words fast. Here is what it does well, what it cannot do, and 5 prompts that work for small businesses.',
   keyword: 'chatgpt for social media',
+  hub: 'cost-alternatives',
   published: '2026-10-18',
   cover: 'trading-gaps',
   coverAlt: 'TikTok slideshow made by Next5: "How to enter faster when gaps reopen — without rushing spikes."',

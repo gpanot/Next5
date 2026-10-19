@@ -8,6 +8,7 @@ export const guideFirstSlideshows: Article = {
   description: 'Step-by-step: paste your website into Next5, get your first TikTok slideshows in about 5 minutes, edit them, connect TikTok and approve your first post.',
   excerpt: 'From your website to your first approved TikTok post in about 5 minutes. Six steps.',
   keyword: 'ai tiktok slideshow maker',
+  hub: 'product',
   published: '2026-10-18',
   cover: 'golf-striking',
   coverAlt: 'TikTok slideshow made by Next5: "5 Striking is Easy for Golfers (if you Fix Contact)"',

@@ -8,6 +8,7 @@ export const guideFillCalendar: Article = {
   description: 'Use the Next5 Ideas deck to fill 30 days of TikTok posts: swipe to keep or skip ideas, approve posts, change dates, and get a daily approval reminder.',
   excerpt: 'Swipe right to keep, left to skip. Fill a month of daily posts in one sitting, then approve as you go.',
   keyword: 'social media content calendar tool',
+  hub: 'product',
   published: '2026-10-18',
   cover: 'realtor-habits',
   coverAlt: 'TikTok slideshow made by Next5: "7 Realtor Habits That Quietly Lower Video Time"',

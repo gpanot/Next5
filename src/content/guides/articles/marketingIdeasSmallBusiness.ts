@@ -8,6 +8,7 @@ export const marketingIdeasSmallBusiness: Article = {
   description: '25 low-cost marketing ideas for small businesses: social media, local, word of mouth and email. Simple ideas you can start this week with little or no budget.',
   excerpt: 'Social, local, word of mouth and email: 25 ideas that cost little or nothing, and which ones to try first.',
   keyword: 'marketing ideas for small business',
+  hub: 'post-ideas',
   published: '2026-10-18',
   cover: 'golf-setup',
   coverAlt: 'TikTok slideshow made by Next5: "Did you know setup decides the start line?"',

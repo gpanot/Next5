@@ -8,6 +8,7 @@ export const facelessTikTokIdeas: Article = {
   description: '20 faceless TikTok content ideas for small businesses. Grow on TikTok without showing your face or filming, using slideshows, hands-only clips and screen text.',
   excerpt: 'No camera, no dancing. 20 faceless post ideas that still sell, and the formats that work best.',
   keyword: 'faceless tiktok ideas',
+  hub: 'post-ideas',
   published: '2026-10-18',
   cover: 'pantry-gaps',
   coverAlt: 'TikTok slideshow made by Next5: "3 ways to avoid empty gaps (without double-buying)"',
