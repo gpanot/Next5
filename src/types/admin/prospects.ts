@@ -65,6 +65,14 @@ export type ProspectCostLine = { part: string; provider: string; model: string; 
 /** GET /api/admin/prospects/[id]/costs. `source`: the owner's ledger, or (packs made before it) the brand run's steps. */
 export type ProspectCostsDto = { totalUsd: number; source: 'ledger' | 'run'; lines: ProspectCostLine[] };
 
+/** One task of a pack in the admin's progress panel. `detail`: why it waits, how far it is, or the error. */
+export type ProspectTaskState = 'waiting' | 'running' | 'done' | 'failed' | 'skipped';
+export type ProspectTask = { label: string; state: ProspectTaskState; detail: string | null };
+export type ProspectTaskGroup = { title: string; tasks: ProspectTask[] };
+
+/** GET /api/admin/prospects/[id]/tasks: the pack's parts, in the order they are made. */
+export type ProspectTasksDto = { groups: ProspectTaskGroup[] };
+
 /** "Why this one?" in the post sheet: the same reasons the Ideas deck shows on a card (its whyPanel). */
 export type ProspectWhy = { audience: string; hook: string; hookReason: string; story: Array<{ label: string; text: string }>; proof: string };
 
