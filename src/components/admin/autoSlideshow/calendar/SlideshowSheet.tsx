@@ -6,6 +6,7 @@ import { YOUTUBE_PRIVACY_LABELS, type AutoSlideshowDto, type RunAccountsDto, typ
 import { whenLabel } from '../../../labs/addToCalendar/slots';
 import { ChangeDay } from '../../../labs/blitzLab/schedule/ChangeDay';
 import { adminFetch } from '../../business/useAdminApi';
+import { Arrow } from '../SlidePlayer';
 import { SlidePreview } from '../SlidePreview';
 import type { usePosting } from '../usePosting';
 import { SlideshowChoicesForm, useSlideshowChoices } from './SlideshowChoices';
@@ -27,6 +28,8 @@ type Props = {
 };
 
 const pill = 'inline-flex min-h-11 flex-none items-center gap-1.5 rounded-full border border-[var(--line,#e8e5e1)] px-4 text-[14px] font-semibold text-[var(--ink,#000)] transition hover:bg-neutral-50 active:scale-95 dark:border-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-800';
+/** ‹ › beside the card, not over its photo. */
+const side = 'flex h-11 w-11 flex-none items-center justify-center rounded-full border border-[var(--line,#e8e5e1)] text-[var(--ink,#000)] transition hover:bg-neutral-50 active:scale-95 dark:border-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-800';
 const alert = 'rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300';
 
 /** Closes the sheet on Escape. */
@@ -107,11 +110,16 @@ function Body(props: Props & { accounts: RunAccountsDto }) {
   const { show, at, onEdit, onMove, onClose } = props;
   const a = useApprove(props, props.accounts);
   const [index, setIndex] = useState(0);
+  const count = Math.max(show.slides.length, 1);
   return (
     <>
       <div className="space-y-4 overflow-y-auto p-4">
-        <div className="mx-auto w-[min(56vw,220px)] overflow-hidden rounded-[26px] shadow-sm">
-          <SlidePreview show={show} index={index} onIndex={setIndex} working={false} />
+        <div className="flex items-center justify-center gap-3">
+          <button type="button" onClick={() => setIndex((index - 1 + count) % count)} aria-label="Previous slide" className={side}><Arrow dir="left" /></button>
+          <div className="w-[min(56vw,220px)] overflow-hidden rounded-[26px] shadow-sm">
+            <SlidePreview show={show} index={index} onIndex={setIndex} working={false} arrows={false} />
+          </div>
+          <button type="button" onClick={() => setIndex((index + 1) % count)} aria-label="Next slide" className={side}><Arrow dir="right" /></button>
         </div>
         <div className="space-y-3">
           <div className="min-w-0">

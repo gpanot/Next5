@@ -17,6 +17,8 @@ type Props = {
   audio?: { url: string; startAt: number } | null;
   /** TikTok's covered bands drawn over the slide on screen. */
   safeZone?: boolean;
+  /** ‹ › on the slide's edges; off when the caller draws its own beside the slide. */
+  arrows?: boolean;
 };
 
 /** Seconds per slide in autoplay: long enough to read one tip, like a TikTok carousel on auto-advance. */
@@ -30,7 +32,7 @@ const side = 'absolute top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center
 /** As tall as the screen allows under the editor's top bar, the controls and the music, never wider than its column. */
 export const FIT_HEIGHT = { maxWidth: 'calc((100dvh - 15rem) * 9 / 16)' };
 
-function Arrow({ dir }: { dir: 'left' | 'right' }) {
+export function Arrow({ dir }: { dir: 'left' | 'right' }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d={dir === 'left' ? 'm15 18-6-6 6-6' : 'm9 18 6-6-6-6'} />
@@ -100,7 +102,7 @@ const usePlayback = (count: number, strip: React.RefObject<HTMLDivElement | null
  * Slides as TikTok shows them: swipe, tap ‹ › (or arrow keys), or autoplay, which also plays the music from its best
  * start. The index is controlled so the editor follows the slide on screen. Used by the slideshow and campaign editors.
  */
-export function SlidePlayer({ count, slideKey, renderSlide, index, onIndex, working = false, audio = null, safeZone = false }: Props) {
+export function SlidePlayer({ count, slideKey, renderSlide, index, onIndex, working = false, audio = null, safeZone = false, arrows = true }: Props) {
   const strip = useRef<HTMLDivElement>(null);
   const go = (i: number) => {
     const el = strip.current;
@@ -119,8 +121,8 @@ export function SlidePlayer({ count, slideKey, renderSlide, index, onIndex, work
   return (
     <div className="mx-auto w-full md:min-w-[200px]" style={FIT_HEIGHT}>
       <div className="relative aspect-[9/16] w-full">
-        <button onClick={() => go(index - 1)} aria-label="Previous slide" className={`${side} left-2`}><Arrow dir="left" /></button>
-        <button onClick={() => go(index + 1)} aria-label="Next slide" className={`${side} right-2`}><Arrow dir="right" /></button>
+        {arrows && <button onClick={() => go(index - 1)} aria-label="Previous slide" className={`${side} left-2`}><Arrow dir="left" /></button>}
+        {arrows && <button onClick={() => go(index + 1)} aria-label="Next slide" className={`${side} right-2`}><Arrow dir="right" /></button>}
         <div
           ref={strip}
           onScroll={() => strip.current && onIndex(Math.round(strip.current.scrollLeft / strip.current.clientWidth))}
