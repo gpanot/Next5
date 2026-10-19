@@ -51,5 +51,5 @@ export const validateMeat = (meat: Omit<MeatLines, 'cta'>, cta: string, facts: W
   checkMeatDraft(meat, cta, lineGuard(facts));
 
 /** Re-checks an edited card before render. Empty = ok. */
-export const checkEditedShots = (texts: string[], facts: WebsiteFacts): string[] =>
-  checkShotTexts(texts, lineGuard(facts));
+export const checkEditedShots = (texts: string[], facts: WebsiteFacts, baseline?: string[]): string[] =>
+  checkShotTexts(texts, lineGuard(facts), baseline);

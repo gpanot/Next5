@@ -8,12 +8,13 @@ import { checkEditedShots as checkWebsiteShots } from '../../../../../../src/ser
 import { checkEditedShots as checkListingShots } from '../../../../../../src/server/slideshow/engines/zillow/guardrails';
 
 type Body =
-  | { engine?: 'zillow'; facts?: ListingFacts; texts?: unknown }
-  | { engine: 'website'; runId?: string; texts?: unknown };
+  | { engine?: 'zillow'; facts?: ListingFacts; texts?: unknown; baseline?: unknown }
+  | { engine: 'website'; runId?: string; texts?: unknown; baseline?: unknown };
 
 /**
  * POST /api/admin/blitz/slideshow-deck/check
  * Body: { engine: 'zillow', facts, texts } | { engine: 'website', runId, texts }   (texts: string[7])
+ *       optional baseline: string[7], the texts before the edit (unchanged lines skip the format checks)
  * Returns: { problems: string[] } — empty means the edited card may render.
  *
  * Same guardrails as generation plus the 7-shot format, so a user edit cannot ship what the
@@ -25,18 +26,19 @@ export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => 
     throw new HttpError(400, 'invalid_texts', 'texts must be an array of strings.');
   }
   const texts = body.texts as string[];
+  const baseline = Array.isArray(body.baseline) && body.baseline.every((t) => typeof t === 'string') ? (body.baseline as string[]) : undefined;
 
   if (body.engine === 'website') {
     if (!body.runId) throw new HttpError(400, 'missing_run', 'runId is required.');
     await assertRunAccess(access, body.runId);
     const brief = websiteEngine.briefs(await loadWebsiteSource(body.runId))[0];
     if (!brief) throw new HttpError(409, 'no_brief', 'The profile has no audience to check against.');
-    return NextResponse.json({ problems: checkWebsiteShots(texts, brief.facts) });
+    return NextResponse.json({ problems: checkWebsiteShots(texts, brief.facts, baseline) });
   }
 
   if (!body.facts) throw new HttpError(400, 'missing_facts', 'facts is required.');
   const facts = body.facts;
   return NextResponse.json({
-    problems: checkListingShots(texts, { ...facts, priceHistory: facts.priceHistory ?? undefined }),
+    problems: checkListingShots(texts, { ...facts, priceHistory: facts.priceHistory ?? undefined }, baseline),
   });
 });
