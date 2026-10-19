@@ -1,21 +1,30 @@
 // server-only — never import from a 'use client' file.
-// Pexels stock photos without an API (Pexels closed it): the public search page, fetched through treg's Linkup fetch
-// with JavaScript rendered (pexels.com answers plain server requests with a Cloudflare 403), read from its images list.
-// $0.005 a search, about 10 s. Linkup answers 429 when many searches start together, so at most 3 run at once.
+// Pexels stock photos without an API (Pexels closed it): the public search page, fetched through treg with a browser
+// (pexels.com answers plain server requests with a Cloudflare 403), read from its images list. Litescrape first
+// ($0.00015 a search); Linkup with JavaScript rendered ($0.005, about 10 s) when Litescrape fails. Litescrape's treg
+// account ran dry twice (402 insufficient_credits, 2026-10-18 and 19): after a failure it is skipped for 10 minutes.
+// Linkup answers 429 when many searches start together, so at most 3 searches run at once.
 // Photos then download straight from Pexels' image CDN, cropped 9:16 there. Searches are kept for 10 minutes on this
-// instance, like Unsplash's. Back since 2026-10-19 (treg's Litescrape account, used before, ran out of capacity).
+// instance, like Unsplash's.
 
 import { tregJson, withRetry } from '../../shorts/treg';
 
-const ENDPOINT = 'linkup.web.fetch';
+const LITESCRAPE = 'litescrape.web.fetch.post';
+const LINKUP = 'linkup.web.fetch';
 const SEARCH_TTL_MS = 10 * 60_000;
+const LITESCRAPE_PAUSE_MS = 10 * 60_000;
 const MAX_IN_FLIGHT = 3;
-/** Search result alt texts look like "Free <description> Stock Photo"; ads, iStock tiles and suggestions do not. */
-const RESULT_ALT = /^Free (.+?) Stock Photo$/;
+/** Result alt texts look like "Free <description> Stock Photo" ("Image 3: Free …" from Litescrape); ads, iStock tiles
+ *  and suggestions do not. */
+const RESULT_ALT = /^(?:Image \d+: )?Free (.+?) Stock Photo$/;
 const PHOTO_ID = /images\.pexels\.com\/photos\/(\d+)\//;
 
 export type PexelsPhoto = { id: string; label: string };
-type FetchBody = { images?: Array<{ alt?: string; url?: string }> };
+/** One image of a page: its alt text and URL. */
+type PageImage = { alt?: string; url?: string };
+/** Litescrape lists images as alt → URL; Linkup as a list. */
+type LitescrapeBody = { images?: Record<string, string> };
+type LinkupBody = { images?: PageImage[] };
 
 const searches = new Map<string, { at: number; photos: Promise<PexelsPhoto[]> }>();
 
@@ -34,18 +43,48 @@ const limited = async <T>(fn: () => Promise<T>): Promise<T> => {
   }
 };
 
-/** Portrait results of one search page, in Pexels' order, without duplicates. */
-const scrape = async (query: string): Promise<PexelsPhoto[]> => {
-  const url = `https://www.pexels.com/search/${encodeURIComponent(query)}/?orientation=portrait`;
-  const fetchPage = () => tregJson<FetchBody>(ENDPOINT, { body: { url, renderJs: true, extractImages: true }, timeoutMs: 70_000 });
+/** Litescrape is skipped until then, after it failed. */
+let litescrapeDownUntil = 0;
+
+const viaLitescrape = async (url: string): Promise<PageImage[]> => {
+  const { data } = await tregJson<LitescrapeBody>(LITESCRAPE, {
+    query: { timeout: '60' },
+    body: { url, respond_with: 'text', with_images_summary: true, retain_images: 'none', engine: 'browser', max_tokens: 500 },
+    timeoutMs: 70_000,
+  });
+  return Object.entries(data.images ?? {}).map(([alt, src]) => ({ alt, url: src }));
+};
+
+const viaLinkup = async (url: string): Promise<PageImage[]> => {
+  const fetchPage = () => tregJson<LinkupBody>(LINKUP, { body: { url, renderJs: true, extractImages: true }, timeoutMs: 70_000 });
   // Linkup sometimes answers 400 FETCH_TARGET_UNREACHABLE for a page it reaches on the next try.
   const once = () => withRetry(fetchPage, 3);
-  const { data } = await limited(() => once().catch((err: unknown) => {
+  const { data } = await once().catch((err: unknown) => {
     if (err instanceof Error && err.message.includes('FETCH_TARGET_UNREACHABLE')) return once();
     throw err;
-  }));
+  });
+  return data.images ?? [];
+};
+
+/** The search page's images: Litescrape, else Linkup. A Litescrape page with no result falls through too. */
+const pageImages = async (url: string): Promise<PageImage[]> => {
+  if (Date.now() >= litescrapeDownUntil) {
+    try {
+      const images = await viaLitescrape(url);
+      if (images.some((im) => RESULT_ALT.test(im.alt ?? ''))) return images;
+    } catch (err) {
+      litescrapeDownUntil = Date.now() + LITESCRAPE_PAUSE_MS;
+      console.warn('[pexels] Litescrape failed, using Linkup for 10 minutes:', err instanceof Error ? err.message.slice(0, 200) : err);
+    }
+  }
+  return viaLinkup(url);
+};
+
+/** Portrait results of one search page, in Pexels' order, without duplicates. */
+const scrape = async (query: string): Promise<PexelsPhoto[]> => {
+  const images = await limited(() => pageImages(`https://www.pexels.com/search/${encodeURIComponent(query)}/?orientation=portrait`));
   const seen = new Set<string>();
-  return (data.images ?? []).flatMap(({ alt, url: src }) => {
+  return images.flatMap(({ alt, url: src }) => {
     const label = RESULT_ALT.exec(alt ?? '')?.[1];
     const id = PHOTO_ID.exec(src ?? '')?.[1];
     if (!label || !id || seen.has(id)) return [];
