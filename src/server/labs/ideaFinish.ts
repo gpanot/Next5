@@ -5,12 +5,14 @@
 // cards, both at once: the vision caption Auto Fit of every shot without a saved fit (saved for the next batches), and
 // the images (AI once the workspace has paid, stock photos before), one per moment of the batch, swapped onto their shots (the library match becomes the first swap; the
 // new shots get their own fit). Last, each card's photos get their camera move (labs/blitzCamera.ts, one vision call per
-// card, merged under a row lock), so the card plays the zoom/pan its render will use. Then the cards lose `finishing`
-// and the deck stops re-reading. A shot the user changed meanwhile and ideas already made are left alone.
+// card), so the card plays the zoom/pan its render will use. Then the cards lose `finishing` and the deck stops
+// re-reading. Every write lays only what it changed onto the card as it is then, under a row lock (ideaCardMerge.ts):
+// the voiceover's spoken lines, adopted while the card finishes, stay. Ideas already made are left alone.
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { withShotCameras } from './blitzCamera';
+import { mergeCard } from './ideaCardMerge';
 import { fitShotCaptions } from '../slideshow/core/captionFit';
 import type { DeckItem, DeckShot } from '../slideshow/core/deckAssembly';
 import type { ImageNeed } from '../slideshow/core/generatedAssets';
@@ -61,14 +63,24 @@ const withCaptions = (shots: DeckShot[], ys: Map<string, number>) =>
     return y == null ? s : { ...s, positionY: y };
   });
 
-/** Writes one idea's finished card (and its plan.shots), when it is still open. */
+/**
+ * Writes what `finish` changes on one idea's card (and its plan.shots), when it is still open. `finish` runs on a copy
+ * with no lock held; its changes are then merged onto the card as it is now, row locked, so a voiceover line or caption
+ * saved during its calls is kept.
+ */
 async function saveCard(id: string, finish: (card: DeckItem) => Promise<DeckItem>): Promise<boolean> {
   const row = await prisma.slideshowVariant.findFirst({ where: { id, status: { in: OPEN } }, select: { plan: true } });
-  const plan = row?.plan as IdeaPlan | undefined;
-  if (!plan?.card) return false;
-  const card = await finish(plan.card);
-  await prisma.slideshowVariant.update({ where: { id }, data: { plan: { ...plan, shots: card.shots, card } as unknown as Prisma.InputJsonValue } });
-  return true;
+  const base = (row?.plan as IdeaPlan | undefined)?.card;
+  if (!base) return false;
+  const mine = await finish(base);
+  return prisma.$transaction(async (tx) => {
+    const [locked] = await tx.$queryRaw<Array<{ plan: IdeaPlan; status: string }>>`SELECT plan, status FROM slideshow_variants WHERE id = ${id} FOR UPDATE`;
+    const plan = locked?.plan;
+    if (!plan?.card || !OPEN.includes(locked.status)) return false;
+    const card = mergeCard(base, mine, plan.card);
+    await tx.slideshowVariant.update({ where: { id }, data: { plan: { ...plan, shots: card.shots, card } as unknown as Prisma.InputJsonValue } });
+    return true;
+  });
 }
 
 /** Drops the finishing marks of these cards as they are (no camera moves): the deck must never re-read forever. */
@@ -84,26 +96,9 @@ const finishCards = (cards: Snapshot[]) =>
     await clearFinishing([c.id]);
   })));
 
-/**
- * A card's last step: its photos' camera moves (one vision call, no lock held), merged onto the card as it is now
- * under a row lock, so a voiceover line or caption saved during the call is kept. A shot whose photo changed
- * meanwhile gets none (its render picks one). Ends the card's finishing.
- */
+/** A card's last step: its photos' camera moves (one vision call), then the end of its finishing. */
 async function finishCard(id: string): Promise<void> {
-  const row = await prisma.slideshowVariant.findFirst({ where: { id, status: { in: OPEN } }, select: { plan: true } });
-  const card = (row?.plan as IdeaPlan | undefined)?.card;
-  if (!card) return;
-  const picked = await withShotCameras(card.shots);
-  await prisma.$transaction(async (tx) => {
-    const [locked] = await tx.$queryRaw<Array<{ plan: IdeaPlan; status: string }>>`SELECT plan, status FROM slideshow_variants WHERE id = ${id} FOR UPDATE`;
-    const plan = locked?.plan;
-    if (!plan?.card || !OPEN.includes(locked.status)) return;
-    const shots = plan.card.shots.map((s, i) => {
-      const camera = picked[i]?.assetKey === s.assetKey ? picked[i]!.camera : undefined;
-      return camera && !s.camera ? { ...s, camera } : s;
-    });
-    await tx.slideshowVariant.update({ where: { id }, data: { plan: { ...plan, shots, card: finished({ ...plan.card, shots }) } as unknown as Prisma.InputJsonValue } });
-  });
+  await saveCard(id, async (card) => finished({ ...card, shots: await withShotCameras(card.shots) }));
 }
 
 /** The images every card lists, one per moment of the batch (no write): AI when paid, else stock. Per card index: need key → image. */
