@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { isNumbered, numberCards } from '../../../../types/admin/campaignNumbering';
 import { titlePick, type TextAt } from '../../../../types/slideText';
-import { targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
+import { linkedTextCards, targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
 import { isAdminView } from '../../../../lib/adminToken';
 import { adminFetch } from '../../business/useAdminApi';
 import { LookMenu } from '../LookMenu';
@@ -14,6 +14,7 @@ import { SafeZoneButton, useSafeZone } from '../SafeZone';
 import { GenerateVideoButton } from '../VideoButton';
 import { EditorAlert, EditorAside, EditorBody, EditorFrame, EditorPlaceholder, editorCard, topBarButton } from '../editor/EditorShell';
 import { RoleTabBar } from '../editor/RoleTabBar';
+import { TextLockButton } from '../TextLockButton';
 import { CampaignPlayer } from './CampaignPlayer';
 import { CampaignPosts } from './CampaignPosts';
 import { CampaignPreview } from './CampaignPreview';
@@ -116,12 +117,28 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   /** The draft with its cards replaced, numbered again when the headlines were numbered. */
   const withCards = (d: CampaignDraft, cards: CampaignCard[]): CampaignDraft => ({ ...d, cards: isNumbered(d.cards) ? numberCards({ hooks: d.hooks, cards }, true) : cards });
   const addCard = () => {
-    setDraft((d) => withCards(d, [...d.cards.slice(0, -1), { role: 'item', title: '', body: '', photo: null }, d.cards[d.cards.length - 1]!]));
+    setDraft((d) => {
+      // A new slide is locked: its text starts where the other locked content slides' text sits.
+      const at = d.cards.find((c) => c.role === 'item' && !c.textFree)?.textAt;
+      const card: CampaignCard = { role: 'item', title: '', body: '', photo: null, ...(at ? { textAt: at } : {}) };
+      return withCards(d, [...d.cards.slice(0, -1), card, d.cards[d.cards.length - 1]!]);
+    });
     setSlide(draft ? draft.cards.length : 1);
   };
-  /** Slide i's text dragged to `at` (undefined: back to its usual spot). Slide 0 is the hook, on every hook photo. */
+  /** Slide i's text dragged to `at` (undefined: back to its usual spot). Slide 0 is the hook, on every hook photo; a
+   *  locked content slide moves every locked content slide's text with it. */
   const moveText = (i: number, at: TextAt | undefined) =>
-    setDraft((d) => (i === 0 ? { ...d, hookTextAt: at } : { ...d, cards: d.cards.map((c, j) => (j === i - 1 ? { ...c, textAt: at } : c)) }));
+    setDraft((d) => {
+      if (i === 0) return { ...d, hookTextAt: at };
+      const linked = new Set(linkedTextCards(d.cards, i - 1));
+      return { ...d, cards: d.cards.map((c, j) => (linked.has(j) ? { ...c, textAt: at } : c)) };
+    });
+  /** Content slides' text lock on the strip, once there are two content slides to lock together. */
+  const textLock = (i: number) => {
+    const card = draft?.cards[i - 1];
+    if (!draft || !card || card.role !== 'item' || draft.cards.length - 1 < 2) return null;
+    return <TextLockButton locked={!card.textFree} onToggle={() => patchCard(i - 1, { textFree: card.textFree ? undefined : true })} />;
+  };
   /** Slide i's store badge row dragged to `y` (undefined: back to its usual spot). Only the CTA has badges. */
   const moveBadges = (i: number, y: number | undefined) => {
     if (i > 0) patchCard(i - 1, { badgesAt: y });
@@ -183,7 +200,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
               )}
             </>
           }
-          strip={<CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} onMoveBadges={moveBadges} loading={loading} />}
+          strip={<CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} onMoveBadges={moveBadges} loading={loading} corner={textLock} />}
           main={
             <>
               <section aria-label="Slide" className={editorCard}>

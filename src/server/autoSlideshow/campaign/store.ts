@@ -259,7 +259,7 @@ const badgesOf = (v: unknown, at: unknown): Pick<CampaignCard, 'badges' | 'badge
 const parseCards = (value: unknown, photoCount: number): CampaignCard[] => {
   if (!Array.isArray(value)) throw new HttpError(400, 'bad_cards', 'The cards are missing.');
   const raw = value as Array<Record<string, unknown>>;
-  const items = raw.slice(0, -1).map((c): CampaignCard => ({ role: 'item', title: str(c?.title, MAX_CARD_TITLE_CHARS), body: str(c?.body, MAX_CARD_BODY_CHARS), photo: photoIndex(c?.photo, photoCount), ...morePhotosOf(c?.morePhotos, photoCount), ...movedTo(c?.textAt) }));
+  const items = raw.slice(0, -1).map((c): CampaignCard => ({ role: 'item', title: str(c?.title, MAX_CARD_TITLE_CHARS), body: str(c?.body, MAX_CARD_BODY_CHARS), photo: photoIndex(c?.photo, photoCount), ...morePhotosOf(c?.morePhotos, photoCount), ...movedTo(c?.textAt), ...(c?.textFree === true ? { textFree: true } : {}) }));
   const last = raw[raw.length - 1];
   if (items.length < MIN_CAMPAIGN_CONTENT || items.length > MAX_CAMPAIGN_CONTENT || !last) {
     throw new HttpError(400, 'bad_cards', `A campaign has ${MIN_CAMPAIGN_CONTENT} to ${MAX_CAMPAIGN_CONTENT} content cards and one CTA card.`);

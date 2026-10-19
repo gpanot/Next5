@@ -29,7 +29,18 @@ export const SHOW_CARD_BODY = false;
  *  the one photo everywhere. `textAt`: where its text was dragged to (unset = the usual spot). */
 /** `badges`: the CTA's app store badges; unset = none. `badgesAt`: their row's top (share of the height), moved apart from
  *  the text; unset = HOME_BADGES_Y. */
-export type CampaignCard = { role: 'item' | 'cta'; title: string; body: string; photo: number | null; morePhotos?: number[]; textAt?: TextAt; badges?: StoreBadge[]; badgesAt?: number };
+/** `textFree`: a content card's text unlocked to move alone; unset = locked, so dragging it moves every locked content
+ *  card's text with it (as in the Brand Cast editor). */
+export type CampaignCard = { role: 'item' | 'cta'; title: string; body: string; photo: number | null; morePhotos?: number[]; textAt?: TextAt; textFree?: boolean; badges?: StoreBadge[]; badgesAt?: number };
+
+/** The cards whose text moves when card `index`'s text is dragged: every locked content card when it is one, else that
+ *  card alone. */
+export const linkedTextCards = (cards: Pick<CampaignCard, 'role' | 'textFree'>[], index: number): number[] => {
+  const locked = (c: Pick<CampaignCard, 'role' | 'textFree'>) => c.role === 'item' && !c.textFree;
+  const card = cards[index];
+  if (!card || !locked(card)) return [index];
+  return cards.flatMap((c, i) => (locked(c) ? [i] : []));
+};
 
 /** Photos one content card rotates through, the first included. */
 export const MAX_CARD_PHOTOS = 10;
@@ -87,8 +98,15 @@ export const lookOfRole = (looks: CampaignLooks, role: 'hook' | 'item' | 'cta'):
 export const shownBody = (card: Pick<CampaignCard, 'body'>): string => (SHOW_CARD_BODY ? card.body : '');
 
 /** What the rendered slides depend on (the caption is not drawn): equal keys mean the made slideshows are current. */
+const withoutLock = (c: CampaignCard): CampaignCard => {
+  const rest = { ...c };
+  delete rest.textFree;
+  return rest;
+};
+
 export const renderKeyOf = (d: CampaignDraft): string =>
-  JSON.stringify({ hooks: d.hooks, hookPhotos: d.hookPhotos, cards: d.cards, looks: d.looks, ...(d.hookTextAt ? { hookTextAt: d.hookTextAt } : {}) });
+  // The text lock changes nothing on the slides: it is left out, so toggling it does not ask for a new render.
+  JSON.stringify({ hooks: d.hooks, hookPhotos: d.hookPhotos, cards: d.cards.map(withoutLock), looks: d.looks, ...(d.hookTextAt ? { hookTextAt: d.hookTextAt } : {}) });
 
 export const emptyCampaignDraft = (): CampaignDraft => ({
   hooks: [],
