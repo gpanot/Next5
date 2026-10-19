@@ -18,9 +18,10 @@ export function SlideStrip({ slides, index, busy, onPick, textLayer, corner }: P
   useEffect(() => {
     const [box, card] = [list.current, selected.current];
     if (!box || !card) return;
-    const left = card.offsetLeft - box.offsetLeft;
-    if (left < box.scrollLeft) box.scrollLeft = left - 16;
-    else if (left + card.offsetWidth > box.scrollLeft + box.clientWidth) box.scrollLeft = left + card.offsetWidth - box.clientWidth + 16;
+    // Measured on screen: the card's offsetLeft is relative to its own <li>, so it can't place it in the strip.
+    const [b, c] = [box.getBoundingClientRect(), card.getBoundingClientRect()];
+    if (c.left < b.left) box.scrollLeft -= b.left - c.left + 16;
+    else if (c.right > b.right) box.scrollLeft += c.right - b.right + 16;
   }, [index]);
 
   return (
