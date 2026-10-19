@@ -17,7 +17,7 @@ function Spinner() {
   return <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />;
 }
 
-/** The slide's photo: "New" makes one, or pick one of the slideshow's photos (its number = the slide using it). */
+/** The slide's photo: "Generate New" makes one, or pick one of the slideshow's photos (its number = the slide using it). */
 export function PhotoPicker({ slide, index, photos, busy, onPhoto, onNewPhoto }: Props) {
   const locked = busy !== null;
   return (
@@ -26,10 +26,10 @@ export function PhotoPicker({ slide, index, photos, busy, onPhoto, onNewPhoto }:
         type="button"
         onClick={onNewPhoto}
         disabled={locked}
-        className="flex h-24 w-[54px] shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-white/30 text-[10px] font-semibold text-white/80 transition active:scale-95 disabled:opacity-40"
+        className="flex h-24 w-[54px] shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-white/30 px-1 text-center text-[10px] leading-tight font-semibold text-white/80 transition active:scale-95 disabled:opacity-40"
       >
         {busy === `photo-${index}` ? <Spinner /> : <span className="text-lg leading-none">+</span>}
-        {busy === `photo-${index}` ? 'Making…' : 'New'}
+        {busy === `photo-${index}` ? 'Making…' : 'Generate New'}
       </button>
       {photos === null
         ? [0, 1, 2, 3].map((i) => <div key={i} className="h-24 w-[54px] shrink-0 animate-pulse rounded-lg bg-white/10" />)
