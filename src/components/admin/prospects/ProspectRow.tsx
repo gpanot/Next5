@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS, prospectDm, prospectPath, type ProspectPackDto, type ProspectStatus } from '../../../types/admin/prospects';
 import { CastPanel } from '../workspaceDetail/CastPanel';
 import { CostDialog } from './CostDialog';
+import { TasksPanel } from './TasksPanel';
 import { formatDuration, makeSec } from './timing';
 
 const STATUS: Record<ProspectStatus, { label: string; tone: string }> = {
@@ -72,6 +73,19 @@ function FaceCheck({ token, pack, onApprove }: Omit<Props, 'onDelete'>) {
   );
 }
 
+/** "See progress" (or what failed): opens the tasks panel. */
+function TasksButton({ token, pack }: { token: string; pack: ProspectPackDto }) {
+  const [open, setOpen] = useState(false);
+  const busy = pack.status === 'queued' || pack.status === 'building' || pack.status === 'making';
+  const label = pack.status === 'failed' ? 'See what failed' : busy ? 'See progress' : 'Details';
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} className={`${button} ${pack.status === 'failed' ? 'text-app-danger' : ''}`}>{label}</button>
+      {open && <TasksPanel token={token} pack={pack} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
 /** One prospect: status, progress and cost, then what the admin can do at this point. */
 export function ProspectRow({ token, pack, onApprove, onDelete }: Props) {
   const status = STATUS[pack.status];
@@ -92,6 +106,7 @@ export function ProspectRow({ token, pack, onApprove, onDelete }: Props) {
       {pack.error && <p className="text-[12px] text-app-danger">{pack.error}</p>}
       {pack.status === 'faces' && <FaceCheck token={token} pack={pack} onApprove={onApprove} />}
       <div className="flex flex-wrap gap-2">
+        <TasksButton token={token} pack={pack} />
         {(pack.status === 'ready' || pack.status === 'claimed') && (
           <>
             <a href={link} target="_blank" rel="noopener noreferrer" className={`${button} inline-flex items-center`}>Open link ↗</a>
