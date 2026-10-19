@@ -162,16 +162,6 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
     <>
       <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={(i) => textLayer(i, true)} safeZone={safeZone.on} />
       <PlayerControls count={show.slides.length} index={slide}>
-        {current?.textAt && (
-          <button
-            onClick={() => void edit.saveSlide(slide, { textAt: null })}
-            disabled={busy !== null}
-            title="Put the text back on its usual spot"
-            className="min-h-10 rounded-full px-3 text-xs text-white/60 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:opacity-30"
-          >
-            Reset text
-          </button>
-        )}
         <button
           onClick={() => void removeSlide()}
           disabled={busy !== null || show.slides.length <= 2}
