@@ -93,7 +93,7 @@ export function GenerateHooksDialog({ token, campaignId, cards, current, onClose
           </button>
           <button type="button" onClick={() => void generate('hooks')} disabled={busy} className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-4 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-400/20 active:scale-95 disabled:opacity-60">
             {writing === 'hooks' && spinner(false)}
-            {writing === 'hooks' ? 'Writing your hooks…' : `Generate ${count} hooks`}
+            {writing === 'hooks' ? 'Writing your hooks…' : `Generate ${count} hooks only`}
           </button>
         </div>
       </div>
