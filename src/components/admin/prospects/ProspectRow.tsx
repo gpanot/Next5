@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS, prospectDm, prospectPath, type ProspectPackDto, type ProspectStatus } from '../../../types/admin/prospects';
 import { CastPanel } from '../workspaceDetail/CastPanel';
+import { CostDialog } from './CostDialog';
+import { formatDuration, makeSec } from './timing';
 
 const STATUS: Record<ProspectStatus, { label: string; tone: string }> = {
   building: { label: 'Reading site', tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
@@ -28,12 +30,22 @@ function CopyButton({ label, text }: { label: string; text: string }) {
   return <button type="button" onClick={copy} className={button}>{done ? 'Copied' : label}</button>;
 }
 
-/** What each part has made, against the pack's mix. */
-function Progress({ pack }: { pack: ProspectPackDto }) {
+/** What each part has made, against the pack's mix, then the cost (tap for the detail) and the make time. */
+function Progress({ token, pack }: { token: string; pack: ProspectPackDto }) {
+  const [costsOpen, setCostsOpen] = useState(false);
   const { blitz, cast, hooks } = pack.progress;
+  const sec = makeSec(pack);
+  const { siteSec, postsSec } = pack.timing;
   return (
     <p className="text-[12px] tabular-nums text-app-muted">
-      {blitz}/{PROSPECT_BLITZ} videos · {cast}/{PROSPECT_CAST} Brand Cast · {hooks}/{PROSPECT_HOOKS} Hooks Volume · ${pack.costUsd.toFixed(2)}
+      {blitz}/{PROSPECT_BLITZ} videos · {cast}/{PROSPECT_CAST} Brand Cast · {hooks}/{PROSPECT_HOOKS} Hooks Volume ·{' '}
+      <button type="button" onClick={() => setCostsOpen(true)} className="-my-2 rounded-md px-1 py-2 font-semibold text-app-ink underline decoration-dotted underline-offset-2 transition hover:bg-zinc-100 active:scale-95 dark:hover:bg-zinc-800">
+        ${pack.costUsd.toFixed(2)}
+      </button>
+      {sec !== null && (
+        <span title={`Site + faces ${formatDuration(siteSec ?? 0)} · posts ${formatDuration(postsSec ?? 0)} (face check wait not counted)`}> · {formatDuration(sec)}</span>
+      )}
+      {costsOpen && <CostDialog token={token} pack={pack} onClose={() => setCostsOpen(false)} />}
     </p>
   );
 }
@@ -75,7 +87,7 @@ export function ProspectRow({ token, pack, onApprove, onDelete }: Props) {
         </div>
         <span className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-bold uppercase ${status.tone}`}>{status.label}</span>
       </div>
-      <Progress pack={pack} />
+      <Progress token={token} pack={pack} />
       {pack.error && <p className="text-[12px] text-app-danger">{pack.error}</p>}
       {pack.status === 'faces' && <FaceCheck token={token} pack={pack} onApprove={onApprove} />}
       <div className="flex flex-wrap gap-2">

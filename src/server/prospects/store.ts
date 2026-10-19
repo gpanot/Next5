@@ -20,7 +20,7 @@ export const loadPack = async (id: string): Promise<ProspectPack> => {
 const runCost = (stepCosts: unknown): number => Object.values((stepCosts ?? {}) as Record<string, StepCost>).reduce((sum, c) => sum + (c?.usdMicros ?? 0), 0);
 
 /** Each run's spend (brand run steps, and its warm-up on step 3) plus the Blitz Script Bank of its brand profile. */
-const runCostsOf = async (packs: ProspectPack[]): Promise<Map<string, number>> => {
+export const runCostsOf = async (packs: ProspectPack[]): Promise<Map<string, number>> => {
   const runIds = packs.map((p) => p.brandRunId).filter((id): id is string => !!id);
   const runs = await prisma.autoSlideshowRun.findMany({ where: { id: { in: runIds } }, select: { id: true, stepCosts: true, brandProfileId: true } });
   const profileIds = runs.map((r) => r.brandProfileId).filter((id): id is string => !!id);
@@ -58,6 +58,14 @@ const costsOf = async (packs: ProspectPack[]): Promise<Map<string, number>> => {
   return new Map(packs.map((p) => [p.id, Math.max(billed.get(p.ownerUserId) ?? 0, p.brandRunId ? runs.get(p.brandRunId) ?? 0 : 0)]));
 };
 
+const secondsBetween = (from: Date | null, to: Date | null): number | null => (from && to ? Math.max(0, Math.round((to.getTime() - from.getTime()) / 1000)) : null);
+
+/** Make time without the face check (see ProspectPackDto.timing). */
+const timingOf = (pack: ProspectPack): ProspectPackDto['timing'] => ({
+  siteSec: secondsBetween(pack.createdAt, pack.facesAt),
+  postsSec: secondsBetween(pack.approvedAt, pack.readyAt),
+});
+
 const toDto = async (pack: ProspectPack, costs: Map<string, number>): Promise<ProspectPackDto> => ({
   id: pack.id,
   workspaceId: pack.workspaceId,
@@ -68,6 +76,7 @@ const toDto = async (pack: ProspectPack, costs: Map<string, number>): Promise<Pr
   error: pack.error,
   progress: await progressOf(pack),
   costUsd: (costs.get(pack.id) ?? 0) / 1e6,
+  timing: timingOf(pack),
   createdAt: pack.createdAt.toISOString(),
   claimedAt: pack.claimedAt?.toISOString() ?? null,
 });

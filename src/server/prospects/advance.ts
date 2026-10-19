@@ -45,7 +45,7 @@ export const approveFaces = async (id: string): Promise<() => Promise<void>> => 
   const runId = pack.brandRunId!;
   const released = await prisma.autoSlideshowRun.updateMany({ where: { id: runId, status: 'HELD' }, data: { holdBeforeStep4: false } });
   if (released.count === 0) throw new HttpError(409, 'not_held', 'The run is not waiting. Refresh and try again.');
-  await prisma.prospectPack.update({ where: { id }, data: { status: 'making' } });
+  await prisma.prospectPack.update({ where: { id }, data: { status: 'making', approvedAt: new Date() } });
   return () => withUserCostContext(pack.ownerUserId, () => runAutoPipeline(runId, 4));
 };
 
@@ -128,7 +128,7 @@ const finish = async (pack: ProspectPack, posts: Record<ProspectKind, string[]>,
   if (posts.blitz.length + posts.cast.length + posts.hooks.length === 0) return void (await fail(pack.id, pack.error ?? 'Nothing could be made.'));
   const ws = await prisma.workspace.findUniqueOrThrow({ where: { id: pack.workspaceId }, select: { ideaTzOffsetMin: true } });
   const days = composeDays(posts, new Date(), ws.ideaTzOffsetMin, previews);
-  await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'making' }, data: { status: 'ready', days: json(days) } });
+  await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'making' }, data: { status: 'ready', days: json(days), readyAt: new Date() } });
 };
 
 /** The step itself, for the pack as loaded. */

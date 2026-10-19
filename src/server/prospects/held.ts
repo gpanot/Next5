@@ -30,5 +30,5 @@ export const onRunHeld = async (runId: string): Promise<void> => {
   });
   await job?.().catch((err: unknown) => console.warn(`[prospects] ${pack.id}: faces failed:`, err instanceof Error ? err.message : err));
   await addToStep3(runId, meter).catch(() => undefined);
-  await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'building' }, data: { status: 'faces' } });
+  await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'building' }, data: { status: 'faces', facesAt: new Date() } });
 };

@@ -4,8 +4,9 @@ import { useState, type FormEvent } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeleton';
-import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS } from '../../../types/admin/prospects';
+import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS, type ProspectPackDto } from '../../../types/admin/prospects';
 import { ProspectRow } from './ProspectRow';
+import { averages, formatDuration } from './timing';
 import { useProspects } from './useProspects';
 
 const input =
@@ -49,6 +50,17 @@ function CreateForm({ onCreate }: { onCreate: (url: string, name: string) => Pro
   );
 }
 
+/** Average make time and cost of the finished packs on the list. */
+function Averages({ packs }: { packs: ProspectPackDto[] }) {
+  const avg = averages(packs);
+  if (!avg) return null;
+  return (
+    <p className="px-1 text-[12px] tabular-nums text-app-muted">
+      Average over {avg.count} finished {avg.count === 1 ? 'pack' : 'packs'}: {formatDuration(avg.sec)} to make (face check wait not counted) · ${avg.usd.toFixed(2)}
+    </p>
+  );
+}
+
 /** Admin › Prospects: make an SME's next 14 days of posts and send them a review link before they sign up. */
 export function ProspectsTab({ token }: { token: string }) {
   const { packs, error, loading, refresh, create, approve, remove } = useProspects(token);
@@ -63,6 +75,7 @@ export function ProspectsTab({ token }: { token: string }) {
         </div>
       )}
       {!loading && !error && packs.length === 0 && <EmptyState title="No prospects yet" body="Add a website above to make their first 14 days of posts." />}
+      <Averages packs={packs} />
       {packs.length > 0 && (
         <ul className="space-y-3">
           {packs.map((p) => <ProspectRow key={p.id} token={token} pack={p} onApprove={approve} onDelete={remove} />)}

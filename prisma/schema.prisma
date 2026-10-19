@@ -2701,6 +2701,10 @@ model ProspectPack {
   claimedByUserId String?   @map("claimed_by_user_id")
   /// When the previews (days 8-14) started being made in full, after the first payment of the person who claimed it
   unlockedAt      DateTime? @map("unlocked_at")
+  /// When the faces were ready to check, the admin approved them, and the pack was ready to share (its make time)
+  facesAt         DateTime? @map("faces_at")
+  approvedAt      DateTime? @map("approved_at")
+  readyAt         DateTime? @map("ready_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 

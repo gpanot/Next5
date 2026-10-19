@@ -48,9 +48,18 @@ export type ProspectPackDto = {
   /** What each part has so far, for the progress line. */
   progress: { blitz: number; cast: number; hooks: number };
   costUsd: number;
+  /** Make time in seconds, without the admin's face check: site read and faces (created → faces), then the posts
+   *  (approved → ready). Null while that part is not done. */
+  timing: { siteSec: number | null; postsSec: number | null };
   createdAt: string;
   claimedAt: string | null;
 };
+
+/** One line of a pack's cost: the paid calls of one model for one part of the pack. */
+export type ProspectCostLine = { part: string; provider: string; model: string; calls: number; usd: number };
+
+/** GET /api/admin/prospects/[id]/costs. `source`: the owner's ledger, or (packs made before it) the brand run's steps. */
+export type ProspectCostsDto = { totalUsd: number; source: 'ledger' | 'run'; lines: ProspectCostLine[] };
 
 /** "Why this one?" in the post sheet: the same reasons the Ideas deck shows on a card (its whyPanel). */
 export type ProspectWhy = { audience: string; hook: string; hookReason: string; story: Array<{ label: string; text: string }>; proof: string };
