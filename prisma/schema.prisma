@@ -43,6 +43,8 @@ model User {
 
   /// Testing switch: Blitz cards on the Ideas page get stock photos even when the owner has paid (Settings → Profile).
   stockImagesOnly Boolean @default(false) @map("stock_images_only")
+  /// Testing switch: Blitz cards always get AI images, even before any payment (Settings → Profile).
+  aiImagesOnly    Boolean @default(false) @map("ai_images_only")
 
   bookings Booking[]
   photos   Photo[]

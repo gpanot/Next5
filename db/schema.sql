@@ -2202,7 +2202,8 @@ CREATE TABLE public.users (
     active_offer_percent integer,
     active_offer_label text,
     active_offer_route_ids text[] DEFAULT '{}'::text[] NOT NULL,
-    stock_images_only boolean DEFAULT false NOT NULL
+    stock_images_only boolean DEFAULT false NOT NULL,
+    ai_images_only boolean DEFAULT false NOT NULL
 );
 
 
@@ -4965,4 +4966,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261124090000'),
     ('20261125090000'),
     ('20261126090000'),
-    ('20261127090000');
+    ('20261127090000'),
+    ('20261201090000');
