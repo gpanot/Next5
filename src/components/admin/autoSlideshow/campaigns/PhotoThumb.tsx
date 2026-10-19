@@ -1,15 +1,18 @@
 'use client';
 
-type Props = { url: string | null; number?: number; onRemove?: () => void; loading?: boolean };
+type Props = { url: string | null; number?: number; onRemove?: () => void; onOpen?: () => void; loading?: boolean };
 
-/** One attached photo, 9:16, with its rotation number and a remove button. Too narrow for a credit: the panels show
+/** One attached photo, 9:16, with its rotation number and a remove button (tap it to replace, with `onOpen`). Too narrow for a credit: the panels show
  *  Unsplash credits under the photos (UnsplashCredit). */
-export function PhotoThumb({ url, number, onRemove, loading }: Props) {
+export function PhotoThumb({ url, number, onRemove, onOpen, loading }: Props) {
   return (
     <div className="relative h-28 w-16 shrink-0 overflow-hidden rounded-lg bg-white/10">
       {url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+      )}
+      {onOpen && !loading && (
+        <button type="button" onClick={onOpen} aria-label={number !== undefined ? `Replace photo ${number}` : 'Replace photo'} className="absolute inset-0 transition hover:bg-white/10 active:bg-black/20" />
       )}
       {loading && (
         <span className="absolute inset-0 flex items-center justify-center bg-black/40" aria-label="Adding photo">
