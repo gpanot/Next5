@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
+import { PROSPECT_DAYS } from '../../types/admin/prospects';
 import { claimPath } from './postLabels';
 
 type Props = { shareToken: string; name: string; freeDays: number; price: string; claimed: boolean };
@@ -10,7 +11,7 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /** Sends the sign-in link that comes back to this page and claims the posts (ClaimRunner). The business email rule is
  *  the sign-in route's own: its error shows here. */
-function ClaimForm({ shareToken, name }: Pick<Props, 'shareToken' | 'name'>) {
+function ClaimForm({ shareToken, name, freeDays, price }: Pick<Props, 'shareToken' | 'name' | 'freeDays' | 'price'>) {
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -56,8 +57,11 @@ function ClaimForm({ shareToken, name }: Pick<Props, 'shareToken' | 'name'>) {
       />
       <p role="alert" className="m-0 min-h-[1em] text-[13px] text-red-300 dark:text-red-700">{error}</p>
       <button type="submit" disabled={busy} className="mt-1 inline-flex min-h-[50px] w-full items-center justify-center rounded-full bg-app-accent px-6 text-[16px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-60">
-        {busy ? 'Sending…' : 'Get my posts'}
+        {busy ? 'Sending…' : `Get my ${PROSPECT_DAYS} days, first ${freeDays} free`}
       </button>
+      <p className="m-0 text-center text-[13px] opacity-70">
+        Days {freeDays + 1}–{PROSPECT_DAYS}: {price} a day. No subscription.
+      </p>
     </form>
   );
 }
@@ -93,7 +97,7 @@ export function ClaimBox({ shareToken, name, freeDays, price, claimed }: Props) 
             {claimed ? (
               <Link href="/slideshow/login" className="inline-flex min-h-[50px] w-full items-center justify-center rounded-full bg-app-accent px-6 font-semibold text-white">Log in</Link>
             ) : (
-              <ClaimForm shareToken={shareToken} name={name} />
+              <ClaimForm shareToken={shareToken} name={name} freeDays={freeDays} price={price} />
             )}
           </div>
         </div>

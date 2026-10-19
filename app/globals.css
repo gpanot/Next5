@@ -441,3 +441,21 @@ body {
 @utility animate-nudge {
   animation: nudge 4s ease-in-out 1s infinite;
 }
+
+/* ── Prospect review page (/p/[token]): Google blue instead of coral (red read as an alarm there). `body:has()`
+     reaches the post sheet, which renders outside the page root. ── */
+[data-accent='blue'],
+body:has([data-accent='blue']) {
+  --color-app-accent: #1a73e8;
+  --color-app-accent-ink: #ffffff;
+  --color-app-accent-soft: #e8f0fe;
+}
+@media (prefers-color-scheme: dark) {
+  [data-accent='blue'],
+  body:has([data-accent='blue']) {
+    /* Same blue as light: the page's buttons put white text on it. */
+    --color-app-accent: #1a73e8;
+    --color-app-accent-ink: #ffffff;
+    --color-app-accent-soft: #1b2a41;
+  }
+}

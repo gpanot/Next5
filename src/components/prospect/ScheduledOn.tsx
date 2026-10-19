@@ -1,21 +1,37 @@
-/** Hand-drawn platform marks, in the text color. */
-const TikTokMark = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
-    <path d="M16.6 2h-3.3v13.2a2.9 2.9 0 1 1-2.9-2.9c.3 0 .6 0 .9.1V9a6.3 6.3 0 1 0 5.3 6.2V8.6a7.6 7.6 0 0 0 4.4 1.4V6.7A4.4 4.4 0 0 1 16.6 2Z" />
-  </svg>
+import { useId } from 'react';
+import { TikTokMark } from '../marketing/shared/BrandLogos';
+
+/** The platforms' own app icons, in their brand colors (nominative use, no endorsement implied). */
+const TikTokTile = () => (
+  <span className="grid h-10 w-10 place-items-center rounded-xl bg-black text-white">
+    <TikTokMark className="h-6 w-6" />
+  </span>
 );
 
-const InstagramMark = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <rect x="3" y="3" width="18" height="18" rx="5" />
-    <circle cx="12" cy="12" r="4" />
-    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
-  </svg>
-);
+const InstagramTile = () => {
+  const id = useId();
+  return (
+    <svg viewBox="0 0 40 40" className="h-10 w-10" aria-hidden="true">
+      <defs>
+        <radialGradient id={id} cx="0.3" cy="1.07" r="1.3">
+          <stop offset="0" stopColor="#FFDD55" />
+          <stop offset="0.1" stopColor="#FFDD55" />
+          <stop offset="0.5" stopColor="#FF543E" />
+          <stop offset="1" stopColor="#C837AB" />
+        </radialGradient>
+      </defs>
+      <rect width="40" height="40" rx="11" fill={`url(#${id})`} />
+      <rect x="9" y="9" width="22" height="22" rx="6.5" fill="none" stroke="#fff" strokeWidth="2.6" />
+      <circle cx="20" cy="20" r="5.2" fill="none" stroke="#fff" strokeWidth="2.6" />
+      <circle cx="26.4" cy="13.6" r="1.6" fill="#fff" />
+    </svg>
+  );
+};
 
-const YouTubeMark = () => (
-  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="currentColor" aria-hidden="true">
-    <path d="M22 8.2a3 3 0 0 0-2.1-2.1C18 5.6 12 5.6 12 5.6s-6 0-7.9.5A3 3 0 0 0 2 8.2 31 31 0 0 0 1.6 12 31 31 0 0 0 2 15.8a3 3 0 0 0 2.1 2.1c1.9.5 7.9.5 7.9.5s6 0 7.9-.5a3 3 0 0 0 2.1-2.1c.3-1.2.4-2.5.4-3.8s-.1-2.6-.4-3.8ZM10 15.1V8.9l5.2 3.1L10 15.1Z" />
+const YouTubeTile = () => (
+  <svg viewBox="0 0 40 40" className="h-10 w-10" aria-hidden="true">
+    <rect width="40" height="40" rx="11" fill="#FF0000" />
+    <path d="M17 14.5v11l9.5-5.5Z" fill="#fff" />
   </svg>
 );
 
@@ -27,9 +43,9 @@ const MusicMark = () => (
   </svg>
 );
 
-const TIKTOK = { name: 'TikTok', Mark: TikTokMark };
-const INSTAGRAM = { name: 'Instagram', Mark: InstagramMark };
-const YOUTUBE = { name: 'YouTube', Mark: YouTubeMark };
+const TIKTOK = { name: 'TikTok', Tile: TikTokTile };
+const INSTAGRAM = { name: 'Instagram', Tile: InstagramTile };
+const YOUTUBE = { name: 'YouTube', Tile: YouTubeTile };
 
 /** The music a slideshow posts with: picked for them. */
 const MusicBox = () => (
@@ -47,9 +63,9 @@ export function ScheduledOn({ slideshow }: { slideshow: boolean }) {
     <div className="mt-4">
       <p className="m-0 mb-2 text-[13px] text-app-muted">Scheduled on</p>
       <ul className="m-0 flex list-none gap-2 p-0">
-        {platforms.map(({ name, Mark }) => (
-          <li key={name} title={name} className="grid h-10 w-10 place-items-center rounded-full border border-app-line text-app-ink">
-            <Mark />
+        {platforms.map(({ name, Tile }) => (
+          <li key={name} title={name} className="rounded-xl shadow-sm">
+            <Tile />
             <span className="sr-only">{name}</span>
           </li>
         ))}

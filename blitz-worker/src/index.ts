@@ -104,6 +104,21 @@ const markFinished = (jobId: string, error: string | null = null) =>
   prisma.$executeRaw`UPDATE blitz_projects SET render_finished_at = now(), render_error = ${error?.slice(0, 1_000) ?? null} WHERE id = ${jobId}`
     .catch((err) => console.warn(`[blitz-worker] Could not record finish time for ${jobId}:`, err));
 
+/** Errors from a render's child process (Chrome, ffmpeg, compositor) dying mid-render, often when several renders share
+ *  the container: the same job usually renders fine on a second try. */
+const CRASH_CODES = new Set(['EPIPE', 'ECONNRESET', 'EAGAIN']);
+const CRASH_RETRIES = 2;
+const crashTries = new Map<string, number>();
+
+/** True when the job should go back in line after this error (counted per job, in memory). */
+function crashRetry(jobId: string, err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | null)?.code ?? '';
+  const tries = crashTries.get(jobId) ?? 0;
+  if (!CRASH_CODES.has(code) || tries >= CRASH_RETRIES) return false;
+  crashTries.set(jobId, tries + 1);
+  return true;
+}
+
 async function processJob(jobId: string, serveUrl: string): Promise<void> {
   console.log(`[blitz-worker] Processing job: ${jobId}`);
 
@@ -153,6 +168,11 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
     await markFinished(jobId);
     console.log(`[blitz-worker] Job ${jobId} COMPLETED → ${r2Key}`);
   } catch (err) {
+    if (!timedOut && crashRetry(jobId, err)) {
+      console.warn(`[blitz-worker] Job ${jobId} lost a render process (${(err as NodeJS.ErrnoException).code}) — back in line`);
+      await prisma.blitzProject.update({ where: { id: jobId }, data: { renderStatus: 'PENDING', updatedAt: new Date() } });
+      return;
+    }
     console.error(`[blitz-worker] Job ${jobId} FAILED${timedOut ? ' (time limit)' : ''}:`, err);
     await prisma.blitzProject.update({
       where: { id: jobId },

@@ -139,6 +139,16 @@ const finish = async (pack: ProspectPack, posts: Record<ProspectKind, string[]>,
   await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'making' }, data: { status: 'ready', days: json(days), readyAt: new Date() } });
 };
 
+/** The faces are approved on their own as soon as they are made (2026-10-19: no admin face check), then the Brand Cast
+ *  slideshows are made. With no face, the pack waits at the face check for faces made by hand. Never throws. */
+const autoApprove = async (pack: ProspectPack): Promise<void> => {
+  const job = await approveFaces(pack.id).catch((err: unknown) => {
+    if (!(err instanceof HttpError && (err.code === 'not_held' || err.code === 'no_faces'))) console.warn(`[prospects] ${pack.id}: faces not approved:`, err instanceof Error ? err.message : err);
+    return null;
+  });
+  await job?.();
+};
+
 /** The step itself, for the pack as loaded. */
 const stepPack = async (pack: ProspectPack): Promise<void> => {
   const id = pack.id;
@@ -150,7 +160,8 @@ const stepPack = async (pack: ProspectPack): Promise<void> => {
     const run = await prisma.autoSlideshowRun.findUnique({ where: { id: pack.brandRunId! }, select: { status: true, error: true } });
     if (run?.status === 'FAILED') return void (await fail(id, run.error ?? 'The site could not be read.'));
   }
-  if (pack.status === 'building' || pack.status === 'faces') return advanceBlitz(pack);
+  if (pack.status === 'faces') return void (await Promise.all([autoApprove(pack), advanceBlitz(pack)]));
+  if (pack.status === 'building') return advanceBlitz(pack);
   if (pack.status !== 'making') return;
   await Promise.all([advanceHooks(pack), advanceBlitz(pack)]);
   const fresh = await loadPack(id);
