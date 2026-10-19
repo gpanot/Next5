@@ -1,6 +1,7 @@
 'use client';
 
 import { Montserrat } from 'next/font/google';
+import { TEXT_SIDE } from '../../../../config/tiktokSafeZone';
 import { bodyKind, titleKind, type TextLook } from '../../../../types/slideText';
 
 /** The All caps look's font, as the render's (Montserrat ExtraBold Italic). */
@@ -30,8 +31,9 @@ const BLACK_BOX = { boxColor: '#111111', boxTextColor: '#ffffff' };
 const OUTLINE = '[text-shadow:0.28cqw_0.28cqw_0_#000,-0.28cqw_-0.28cqw_0_#000,0.28cqw_-0.28cqw_0_#000,-0.28cqw_0.28cqw_0_#000,0_0.37cqw_1.67cqw_rgba(0,0,0,0.55)]';
 const SOFT = '[text-shadow:0_0.19cqw_0.37cqw_rgba(0,0,0,0.9),0_0_1.48cqw_rgba(0,0,0,0.6)]';
 
-/** Side margin of the text block, as % of the slide width (70 px for the outlined headline, 80 px otherwise). */
-export const textSide = (role: SlideTextProps['role'], look: TextLook): number => (['outline', 'all-caps'].includes(titleKind(role, look)) ? 6.48 : 7.41);
+/** Side margin of the text block, as % of the slide width, for every look (TEXT_SIDE: TikTok's right rail covers at
+ *  most 15% of the text's reach). */
+export const TEXT_SIDE_PCT = TEXT_SIDE * 100;
 /** Gap between the headline and the line under it (36 px), as a share of the slide's width. */
 export const BODY_GAP = 36 / 1080;
 

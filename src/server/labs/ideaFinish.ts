@@ -4,10 +4,13 @@
 // lacks show their best library match, captions sit where saved fits put them. After the response this finishes the
 // cards, both at once: the vision caption Auto Fit of every shot without a saved fit (saved for the next batches), and
 // the images (AI once the workspace has paid, stock photos before), one per moment of the batch, swapped onto their shots (the library match becomes the first swap; the
-// new shots get their own fit). Then the cards lose `finishing` and the deck stops re-reading. A shot the user changed meanwhile and ideas already made are left alone.
+// new shots get their own fit). Last, each card's photos get their camera move (labs/blitzCamera.ts, one vision call per
+// card), so the card plays the zoom/pan its render will use. Then the cards lose `finishing` and the deck stops
+// re-reading. A shot the user changed meanwhile and ideas already made are left alone.
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
+import { withShotCameras } from './blitzCamera';
 import { fitShotCaptions } from '../slideshow/core/captionFit';
 import type { DeckItem, DeckShot } from '../slideshow/core/deckAssembly';
 import type { ImageNeed } from '../slideshow/core/generatedAssets';
@@ -43,9 +46,9 @@ async function withImages(shots: DeckShot[], before: DeckShot[], images: Map<str
   return out;
 }
 
-/** The card without its finishing marks. */
-const finished = (card: DeckItem): DeckItem => {
-  const done = { ...card };
+/** The card with its camera moves, without its finishing marks. */
+const finished = async (card: DeckItem): Promise<DeckItem> => {
+  const done = { ...card, shots: await withShotCameras(card.shots) };
   delete done.finishing;
   delete done.pendingImages;
   return done;

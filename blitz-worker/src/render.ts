@@ -12,10 +12,9 @@ import { renderMedia, selectComposition, type CancelSignal } from '@remotion/ren
 import fs from 'fs';
 import path from 'path';
 import type { BlitzProject, BlitzTemplate } from '@prisma/client';
-import { ensureDepthMaps } from './depth';
 import { getPresignedUrl, uploadToR2 } from './r2';
 import { ensureBrowserDecodableKey } from './transcode';
-import type { GreenScreenProps, SlideCamera, SlideDepth, SlideshowProps, SpokenWord, TextConfig } from '../../src/remotion/types';
+import type { GreenScreenProps, SlideCamera, SlideshowProps, SpokenWord, TextConfig } from '../../src/remotion/types';
 
 const RENDER_OUTPUT_KEY = (projectId: string) => `blitz/renders/${projectId}/output.mp4`;
 
@@ -38,18 +37,6 @@ const RENDER_LIMITS = {
   /** Per-frame load limit (default 30 s): a slow R2 fetch under load is not a failed render. */
   timeoutInMilliseconds: envInt('FRAME_TIMEOUT_MS', 90_000),
 };
-
-/** Depth maps for a moving photo; on any failure the photo keeps its zoom/pan without parallax. */
-async function slideDepth(photoKey: string, tmpDir: string, jobId: string): Promise<{ depth?: SlideDepth }> {
-  try {
-    const maps = await ensureDepthMaps(photoKey, tmpDir);
-    const [radialUrl, truckUrl] = await Promise.all([getPresignedUrl(maps.radialKey), getPresignedUrl(maps.truckKey)]);
-    return { depth: { radialUrl, truckUrl, spread: maps.spread } };
-  } catch (err) {
-    console.warn(`[render:${jobId}] Depth maps failed for ${photoKey}, no parallax:`, err instanceof Error ? err.message : err);
-    return {};
-  }
-}
 
 export async function renderProject(
   project: BlitzProject,
@@ -77,7 +64,7 @@ export async function renderProject(
       positionY?: number;
       /** 'contain' = whole image over a blurred fill (Auto Slideshow slides, text drawn in). */
       fit?: 'cover' | 'contain';
-      /** Photo camera move picked when the render was queued (src/server/labs/blitzCamera.ts). */
+      /** Photo camera move, picked with the idea or else when the render was queued (src/server/labs/blitzCamera.ts). */
       camera?: SlideCamera;
       /** Narrated slide: the spoken line word by word, shown as it is said (src/remotion/SpokenCaption.tsx). */
       words?: SpokenWord[];
@@ -161,7 +148,7 @@ export async function renderProject(
             ...timing,
             backgroundUrl: bgUrl,
             backgroundIsImage,
-            ...(moving ? { camera: s.camera, ...(await slideDepth(s.backgroundKey, tmpDir, jobId)) } : {}),
+            ...(moving ? { camera: s.camera } : {}),
           };
         }),
       );

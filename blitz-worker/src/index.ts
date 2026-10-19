@@ -28,7 +28,6 @@ import { bundle } from '@remotion/bundler';
 import { prisma } from './db';
 import { makeCancelSignal } from '@remotion/renderer';
 import { renderProject } from './render';
-import { releaseDepthSession } from './depth';
 import { startWakeServer } from './wakeServer';
 
 const execFileAsync = promisify(execFile);
@@ -156,7 +155,6 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
   } finally {
     clearTimeout(limit);
     clearInterval(heartbeat);
-    await releaseDepthSession();
   }
 }
 

@@ -12,7 +12,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { BLITZ_CANVAS_WIDTH } from '../../../config/blitzLab';
 import { slideTextConfig } from '../../../remotion/slideTextConfig';
-import type { TextConfig } from '../../../remotion/types';
+import type { SlideCamera, TextConfig } from '../../../remotion/types';
 import { hitTest } from './canvasHitTest';
 import type { BlitzLayer } from './canvasHitTest';
 import type { BlitzAssetDto } from './api';
@@ -30,6 +30,8 @@ export type SlideData = {
   trimStart?: number;
   /** Caption position for this slide (TextConfig.positionY scale), chosen from the asset's text-safe zone. */
   positionY?: number;
+  /** Idea card photos: the zoom/pan the card played, kept through photo swaps (src/server/labs/blitzCamera.ts). */
+  camera?: SlideCamera;
 };
 
 type SlidePreviewProps = {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { isNumbered, numberCards, stripNumber } from '../../../src/types/admin/campaignNumbering';
 import { autoSlideCount, type CampaignCard } from '../../../src/types/admin/slideshowCampaign';
+import { TEXT_SIDE } from '../../../src/config/tiktokSafeZone';
 import { clampTextX, textSpan } from '../../../src/types/slideText';
 
 const card = (title: string, role: CampaignCard['role'] = 'item'): CampaignCard => ({ role, title, body: '', photo: null });
@@ -30,13 +31,13 @@ describe('autoSlideCount', () => {
 });
 
 describe('textSpan', () => {
-  it('is the full width centered and narrows toward a side', () => {
-    const center = textSpan(0.5, 0.07);
-    expect(center.left).toBeCloseTo(0.07);
-    expect(center.right).toBeCloseTo(0.07);
-    const left = textSpan(0.3, 0.07);
-    expect(left.left).toBeCloseTo(0.03);
-    expect(1 - left.left - left.right).toBeCloseTo(0.54);
-    expect(clampTextX(0)).toBeCloseTo(0.23);
+  it('is the full width centered and narrows toward a side, never closer to an edge than TEXT_SIDE', () => {
+    const center = textSpan(0.5, TEXT_SIDE);
+    expect(center.left).toBeCloseTo(0.136);
+    expect(center.right).toBeCloseTo(0.136);
+    const left = textSpan(0.4, TEXT_SIDE);
+    expect(left.left).toBeCloseTo(0.136);
+    expect(1 - left.left - left.right).toBeCloseTo(0.528);
+    expect(clampTextX(0)).toBeCloseTo(0.336);
   });
 });
