@@ -42,11 +42,12 @@ export const getWorkspaceDeleteImpact = async (userId: string, workspaceId: stri
 
 /**
  * Moves a workspace to the trash: it disappears from every list and its scheduled posts are canceled, so nothing posts
- * from it. The last workspace cannot be deleted, and neither can one with a post going out right now.
+ * from it. The last workspace cannot be deleted (unless `allowLast`: a Prospect Pack's placeholder owner only ever has
+ * one), and neither can one with a post going out right now.
  */
-export const deleteSlideshowWorkspace = async (userId: string, workspaceId: string): Promise<void> => {
+export const deleteSlideshowWorkspace = async (userId: string, workspaceId: string, opts: { allowLast?: boolean } = {}): Promise<void> => {
   await requireSlideshowWorkspace(userId, workspaceId);
-  if ((await countSlideshowWorkspaces(userId)) <= 1) throw new HttpError(409, 'last_workspace', 'You need at least one workspace. Add a new one first, then delete this one.');
+  if (!opts.allowLast && (await countSlideshowWorkspaces(userId)) <= 1) throw new HttpError(409, 'last_workspace', 'You need at least one workspace. Add a new one first, then delete this one.');
   const sending = await prisma.autoSlideshowPost.count({ where: { workspaceId, status: { in: ['sending', 'processing'] } } });
   if (sending > 0) throw new HttpError(409, 'post_in_flight', 'A post is going out right now. Try again in a few minutes.');
   await prisma.$transaction([
