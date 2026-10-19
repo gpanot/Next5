@@ -3,6 +3,8 @@
 // after the run's step 1), rendered to mp4 for the review page. Stock photos only: the placeholder owner never pays and
 // has stock_images_only. Built like the connector does it (mcp/ideaRender.ts, mcp/ideaPhotos.ts), with no browser.
 // The ideas stay "kept" (not scheduled): the person who claims the pack puts them on the calendar.
+// Ideas past the free days are previews: their photos are filled (the review page shows the first shot) but they are
+// rendered only once the pack is unlocked (unlock.ts).
 
 import { prisma } from '../../lib/db';
 import type { IdeaDto } from '../../types/admin/calendarIdeas';
@@ -29,14 +31,21 @@ export const blitzReady = async (workspaceId: string): Promise<IdeaDto[] | null>
   return writing || ready.length === 0 ? null : ready;
 };
 
-/** One idea rendered (free: an impersonated access); the reason when it cannot be. */
-const renderIdea = async (access: LabAccess, idea: IdeaDto, templateId: string, brand: Awaited<ReturnType<typeof brandOf>>): Promise<ProspectBlitz> => {
+/** What rendering an idea reads from it. */
+type Renderable = Pick<IdeaDto, 'id' | 'card'>;
+
+/** One idea rendered (free: an impersonated access), or only its photos filled for a `preview`; the reason when it cannot be. */
+const renderIdea = async (access: LabAccess, idea: Renderable, templateId: string, brand: Awaited<ReturnType<typeof brandOf>>, preview: boolean): Promise<ProspectBlitz> => {
   const workspaceId = access.workspaceId!;
   let card = idea.card as DeckItem;
   if (missingPhotos(card).length > 0) card = await fillMissingPhotos(idea.id, card, workspaceId, brand);
   if (missingPhotos(card).length > 0) return { ideaId: idea.id, projectId: null, error: 'No stock photo for every shot yet.', retry: true };
   const built = buildIdeaRenderBody(card, idea.id, templateId);
   if ('error' in built) return { ideaId: idea.id, projectId: null, error: built.error };
+  if (preview) {
+    await prisma.slideshowVariant.update({ where: { id: idea.id }, data: { status: 'kept' } });
+    return { ideaId: idea.id, projectId: null };
+  }
   const project = await queueBlitzRender(access, built.body);
   await prisma.slideshowVariant.update({ where: { id: idea.id }, data: { status: 'kept' } });
   return { ideaId: idea.id, projectId: project.id };
@@ -46,15 +55,27 @@ const renderIdea = async (access: LabAccess, idea: IdeaDto, templateId: string, 
 export const ideasById = async (workspaceId: string, ids: string[]): Promise<IdeaDto[]> =>
   (await listIdeas(workspaceId)).ideas.filter((i) => ids.includes(i.id) && i.card);
 
-/** Renders the picked ideas one by one (the photo scraper refuses bursts). */
-export const renderBlitz = async (userId: string, workspaceId: string, name: string, ideas: IdeaDto[]): Promise<ProspectBlitz[]> => {
+/** Kept ideas with these ids (previews, rendered once the pack is unlocked). */
+export const keptIdeas = async (workspaceId: string, ids: string[]): Promise<Renderable[]> => {
+  const rows = await prisma.slideshowVariant.findMany({ where: { id: { in: ids }, workspaceId }, select: { id: true, plan: true } });
+  const cards = new Map(rows.map((r) => [r.id, (r.plan as { card?: DeckItem } | null)?.card ?? null]));
+  return ids.flatMap((id) => {
+    const card = cards.get(id);
+    return card ? [{ id, card }] : [];
+  });
+};
+
+/** Renders the picked ideas one by one (the photo scraper refuses bursts); the ones in `previews` only get their photos. */
+export const renderBlitz = async (userId: string, workspaceId: string, name: string, ideas: Renderable[], previews: Set<string> = new Set()): Promise<ProspectBlitz[]> => {
   const templateId = await carouselTemplateId();
-  if (!templateId) return ideas.map((i) => ({ ideaId: i.id, projectId: null, error: 'No video template is set up.' }));
+  const tag = (r: ProspectBlitz): ProspectBlitz => (previews.has(r.ideaId) ? { ...r, preview: true } : r);
+  if (!templateId) return ideas.map((i) => tag({ ideaId: i.id, projectId: null, error: 'No video template is set up.' }));
   const access: LabAccess = { admin: false, userId, workspaceId, impersonated: true };
   const brand = await brandOf(workspaceId, name);
   const out: ProspectBlitz[] = [];
   for (const idea of ideas) {
-    out.push(await renderIdea(access, idea, templateId, brand).catch((err: unknown) => ({ ideaId: idea.id, projectId: null, error: err instanceof Error ? err.message : String(err) })));
+    const result = await renderIdea(access, idea, templateId, brand, previews.has(idea.id)).catch((err: unknown) => ({ ideaId: idea.id, projectId: null, error: err instanceof Error ? err.message : String(err) }));
+    out.push(tag(result));
   }
   return out;
 };

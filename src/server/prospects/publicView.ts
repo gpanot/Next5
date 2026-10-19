@@ -1,12 +1,13 @@
 // server-only — never import from a 'use client' file.
 // The public review page's data (/p/<token>): only the pack's 14 posts, as signed links that expire. Nothing else of
-// the workspace is shown, and a pack that is not ready answers like a missing one.
+// the workspace is shown, and a pack that is not ready answers like a missing one. Days after the free ones are locked:
+// only their first slide (slideshows) or first shot (videos) is sent, with no caption or story.
 
 import { prisma } from '../../lib/db';
 import { getPresignedUrl } from '../../lib/r2';
 import type { AutoSlide } from '../../types/admin/autoSlideshow';
 import { GOAL_LABELS, type ContentGoal } from '../../types/admin/contentGoals';
-import { PROSPECT_HOLD_DAYS, type ProspectBlitz, type ProspectDay, type ProspectKind, type ProspectViewDay, type ProspectViewDto, type ProspectWhy } from '../../types/admin/prospects';
+import { PROSPECT_FREE_DAYS, PROSPECT_HOLD_DAYS, type ProspectBlitz, type ProspectDay, type ProspectKind, type ProspectViewDay, type ProspectViewDto, type ProspectWhy } from '../../types/admin/prospects';
 import type { DeckItem } from '../slideshow/core/deckAssembly';
 import { HttpError } from '../http';
 
@@ -38,20 +39,42 @@ const slideshowWhy = (kind: Exclude<ProspectKind, 'blitz'>, goal: string | null,
   proof: '',
 });
 
+/** A locked video: the first shot of its idea (photo or clip) under its hook line. */
+const lockedBlitzDay = async (day: ProspectDay, ideaId: string | undefined): Promise<ProspectViewDay | null> => {
+  if (!ideaId) return null;
+  const row = await prisma.slideshowVariant.findUnique({ where: { id: ideaId }, select: { plan: true } });
+  const shot = ((row?.plan as { card?: DeckItem } | null)?.card)?.shots[0];
+  if (!shot) return null;
+  const url = shot.assetKey ? await signed(shot.assetKey) : shot.mediaUrl || null;
+  const clip = shot.mediaKind === 'video';
+  return { day: day.day, at: day.at, kind: 'blitz', title: shot.text, videoUrl: clip ? url : null, slides: !clip && url ? [url] : [], durationSec: null, caption: '', why: null, locked: true };
+};
+
 const blitzDay = async (day: ProspectDay, ideaId: string | undefined): Promise<ProspectViewDay | null> => {
   const project = await prisma.blitzProject.findUnique({ where: { id: day.refId }, select: { renderedVideoKey: true, captionText: true, currentAssets: true } });
   if (!project?.renderedVideoKey) return null;
   const seconds = Number((project.currentAssets as { durationSeconds?: unknown } | null)?.durationSeconds);
   const durationSec = Number.isFinite(seconds) && seconds > 0 ? Math.round(seconds) : null;
-  return { day: day.day, at: day.at, kind: 'blitz', title: project.captionText, videoUrl: await signed(project.renderedVideoKey), slides: [], durationSec, caption: project.captionText, why: await blitzWhy(ideaId) };
+  return { day: day.day, at: day.at, kind: 'blitz', title: project.captionText, videoUrl: await signed(project.renderedVideoKey), slides: [], durationSec, caption: project.captionText, why: await blitzWhy(ideaId), locked: false };
 };
 
-const slideshowDay = async (day: ProspectDay): Promise<ProspectViewDay | null> => {
+/** A slideshow day; a locked one keeps only its first slide (a preview has only that one rendered). */
+const slideshowDay = async (day: ProspectDay, locked: boolean): Promise<ProspectViewDay | null> => {
   const show = await prisma.autoSlideshow.findUnique({ where: { id: day.refId }, select: { slides: true, caption: true, status: true, goal: true } });
-  if (!show || show.status !== 'ready') return null;
+  if (!show || (show.status !== 'ready' && !day.preview)) return null;
   const slides = (show.slides as unknown as AutoSlide[]) ?? [];
-  const urls = (await Promise.all(slides.map((s) => signed(s.imageKey)))).filter((u): u is string => !!u);
-  return { day: day.day, at: day.at, kind: day.kind, title: slides[0]?.title ?? '', videoUrl: null, slides: urls, durationSec: null, caption: show.caption ?? '', why: day.kind === 'blitz' ? null : slideshowWhy(day.kind, show.goal, slides) };
+  const urls = (await Promise.all((locked ? slides.slice(0, 1) : slides).map((s) => signed(s.imageKey)))).filter((u): u is string => !!u);
+  if (urls.length === 0) return null;
+  const why = locked || day.kind === 'blitz' ? null : slideshowWhy(day.kind, show.goal, slides);
+  return { day: day.day, at: day.at, kind: day.kind, title: slides[0]?.title ?? '', videoUrl: null, slides: urls, durationSec: null, caption: locked ? '' : show.caption ?? '', why, locked };
+};
+
+const viewDay = (day: ProspectDay, ideaOf: Map<string | null, string>): Promise<ProspectViewDay | null> => {
+  const locked = day.day > PROSPECT_FREE_DAYS || !!day.preview;
+  if (day.kind !== 'blitz') return slideshowDay(day, locked);
+  // A Blitz preview's refId is its idea; a rendered video's is its project.
+  if (locked) return lockedBlitzDay(day, day.preview ? day.refId : ideaOf.get(day.refId));
+  return blitzDay(day, ideaOf.get(day.refId));
 };
 
 export const prospectView = async (token: string): Promise<ProspectViewDto> => {
@@ -59,7 +82,7 @@ export const prospectView = async (token: string): Promise<ProspectViewDto> => {
   if (!pack || (pack.status !== 'ready' && pack.status !== 'claimed')) throw new HttpError(404, 'not_found', 'This link does not work.');
   const stored = (pack.days as unknown as ProspectDay[]) ?? [];
   const ideaOf = new Map(((pack.blitz as unknown as ProspectBlitz[]) ?? []).map((b) => [b.projectId, b.ideaId]));
-  const days = await Promise.all(stored.map((d) => (d.kind === 'blitz' ? blitzDay(d, ideaOf.get(d.refId)) : slideshowDay(d)).catch(() => null)));
+  const days = await Promise.all(stored.map((d) => viewDay(d, ideaOf).catch(() => null)));
   const heldUntil = new Date(pack.createdAt.getTime() + PROSPECT_HOLD_DAYS * 86_400_000).toISOString();
   return { name: pack.name, websiteUrl: pack.websiteUrl, status: pack.status, heldUntil, heldEnded: Date.parse(heldUntil) < Date.now(), days: days.filter((d): d is ProspectViewDay => d !== null) };
 };

@@ -2354,6 +2354,8 @@ model AutoSlideshowRun {
   photoJobs       Json?     @map("photo_jobs")
   /// Prospect Pack runs: stop after step 3 (status 'HELD') until the admin approves the Brand Cast faces
   holdBeforeStep4 Boolean   @default(false) @map("hold_before_step4")
+  /// Prospect Pack runs: positions of slideshows made with only their first slide until the pack is unlocked
+  coverOnlyPositions Int[]  @default([]) @map("cover_only_positions")
   stepTimings     Json      @default("{}") @map("step_timings")
   stepCosts       Json      @default("{}") @map("step_costs")
   failedStep      Int?      @map("failed_step")
@@ -2691,6 +2693,8 @@ model ProspectPack {
   error           String?
   claimedAt       DateTime? @map("claimed_at")
   claimedByUserId String?   @map("claimed_by_user_id")
+  /// When the previews (days 8-14) started being made in full, after the first payment of the person who claimed it
+  unlockedAt      DateTime? @map("unlocked_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
 

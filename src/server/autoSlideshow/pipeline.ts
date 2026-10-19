@@ -249,7 +249,9 @@ const photoStep: StepFn = async (runId, meter, { continued }) => {
   const existing = (run.photos as AutoPhoto[] | null) ?? [];
   const rows = await prisma.autoSlideshow.findMany({ where: { runId, status: { not: 'failed' } }, orderBy: { position: 'asc' } });
   const shows = rows.map((r) => ({ id: r.id, status: r.status, slides: r.slides as unknown as AutoSlide[], bank: r.bankHookId !== null }));
-  const entries = ownPhotoEntries(pool, existing, shows);
+  // A cover-only slideshow (a Prospect Pack preview) gets the photo of its first slide only.
+  const covers = new Set(rows.filter((r) => run.coverOnlyPositions.includes(r.position)).map((r) => r.id));
+  const entries = ownPhotoEntries(pool, existing, shows.map((s) => (covers.has(s.id) ? { ...s, slides: s.slides.slice(0, 1) } : s)));
   const deadline = process.env.VERCEL === '1' ? Date.now() + PHOTO_BUDGET_MS : undefined;
   const look = brandLook(run.profile as unknown as BrandProfile | null);
   const made = await makePhotos(runId, [...plan.photoPrompts, ...entries], existing, meter, { deadline, skipFailed: continued, look });
@@ -267,33 +269,41 @@ const photoStep: StepFn = async (runId, meter, { continued }) => {
 const RENDER_CONCURRENCY = 4;
 export const slideKey = (runId: string, slideshowId: string, index: number) => `admin/auto-slideshow/${runId}/${slideshowId}/${index}.jpg`;
 
-/** Renders slideshows not rendered yet (all of them again when step 6 is re-run directly). Heads found on photos made
- *  before head detection existed are stored with the photos. */
+type RenderCtx = { runId: string; photos: AutoPhoto[]; cache: PhotoCache; heads: HeadsCache; look: BrandProfile['slideshowStyle'] | undefined };
+
+/** The slideshow's slides rendered together (each waits on its own photo, heads and upload); only the first `upTo`. */
+const renderSlides = async (ctx: RenderCtx, show: { id: string; position: number; slides: AutoSlide[] }, upTo: number): Promise<AutoSlide[]> => {
+  const indexes = slidePhotoIndexes(show.slides, show.position, ctx.photos);
+  if (indexes.slice(0, upTo).some((i) => i === null)) throw new Error('No photo was made for this slideshow');
+  return Promise.all(
+    show.slides.map(async (slide, i) => {
+      if (i >= upTo) return slide;
+      const key = slideKey(ctx.runId, show.id, i);
+      const photo = ctx.photos[indexes[i]!]!;
+      const { jpeg, at } = await renderSlide(slide, photo.imageKey!, ctx.cache, ctx.look, await headsFor(photo, ctx.cache, ctx.heads));
+      await putObject(key, jpeg, 'image/jpeg');
+      return { ...slide, photoIndex: indexes[i]!, imageKey: key, placedAt: at };
+    }),
+  );
+};
+
+/** Renders slideshows not rendered yet (all of them again when step 6 is re-run directly). A cover-only slideshow (a
+ *  Prospect Pack preview) renders its first slide and stays 'written', uncharged, so a later run makes the rest.
+ *  Heads found on photos made before head detection existed are stored with the photos. */
 const renderStep: StepFn = async (runId, _meter, { rerender }) => {
   const run = await loadRun(runId);
   const photos = checkpoint<AutoPhoto[]>(run.photos, 5);
   const shows = await prisma.autoSlideshow.findMany({ where: { runId, status: rerender ? { not: 'failed' } : { in: ['written', 'rendering'] } }, orderBy: { position: 'asc' } });
-  const cache: PhotoCache = new Map();
   const heads: HeadsCache = new Map();
-  const look = (run.profile as unknown as BrandProfile | null)?.slideshowStyle;
+  const ctx: RenderCtx = { runId, photos, cache: new Map(), heads, look: (run.profile as unknown as BrandProfile | null)?.slideshowStyle };
   await runPool(shows, RENDER_CONCURRENCY, async (show) => {
     try {
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { status: 'rendering', error: null } });
       const slides = show.slides as unknown as AutoSlide[];
-      const indexes = slidePhotoIndexes(slides, show.position, photos);
-      if (indexes.some((i) => i === null)) throw new Error('No photo was made for this slideshow');
-      // A slideshow's slides render together: each waits on its own photo, heads and upload.
-      const rendered: AutoSlide[] = await Promise.all(
-        slides.map(async (slide, i) => {
-          const key = slideKey(runId, show.id, i);
-          const photo = photos[indexes[i]!]!;
-          const { jpeg, at } = await renderSlide(slide, photo.imageKey!, cache, look, await headsFor(photo, cache, heads));
-          await putObject(key, jpeg, 'image/jpeg');
-          return { ...slide, photoIndex: indexes[i]!, imageKey: key, placedAt: at };
-        }),
-      );
-      await prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(rendered), status: 'ready' } });
-      await chargeSlideshow(runId, show.id);
+      const cover = run.coverOnlyPositions.includes(show.position);
+      const rendered = await renderSlides(ctx, { id: show.id, position: show.position, slides }, cover ? 1 : slides.length);
+      await prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(rendered), status: cover ? 'written' : 'ready' } });
+      if (!cover) await chargeSlideshow(runId, show.id);
     } catch (err) {
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { status: 'failed', error: clip(err instanceof Error ? err.message : String(err), 500) } });
     }
@@ -310,7 +320,7 @@ const STEPS: Record<AutoStep, StepFn> = { 1: profileStep, 2: leverStep, 3: planS
  * another 2-3 min, so step 5 starts in a fresh invocation via the continue route; a step 5 that ran out of its time
  * budget hands off again. Locally it just keeps going. True when the new invocation took the work.
  */
-const handOff = async (runId: string): Promise<boolean> => {
+export const handOff = async (runId: string): Promise<boolean> => {
   if (process.env.VERCEL !== '1') return false;
   try {
     await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { status: running(5) } });

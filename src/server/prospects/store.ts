@@ -27,15 +27,23 @@ const costsOf = async (packs: ProspectPack[]): Promise<Map<string, number>> => {
   return new Map(runs.map((r) => [r.id, runCost(r.stepCosts) + (r.brandProfileId ? bankCost.get(r.brandProfileId) ?? 0 : 0)]));
 };
 
-/** What each part has made so far: rendered videos, ready Brand Cast slideshows, Hooks Volume slideshows. */
+/** Ready Brand Cast slideshows, plus the cover-only previews (counted from step 4, before their first slide is rendered). */
+const castMade = async (runId: string): Promise<number> => {
+  const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { coverOnlyPositions: true } });
+  const covers = run?.coverOnlyPositions ?? [];
+  return prisma.autoSlideshow.count({ where: { runId, OR: [{ status: 'ready' }, { status: 'written', position: { in: covers } }] } });
+};
+
+/** What each part has made so far: rendered videos and Blitz previews, Brand Cast slideshows, Hooks Volume slideshows. */
 const progressOf = async (pack: ProspectPack): Promise<ProspectPackDto['progress']> => {
   const ids = blitzOf(pack).flatMap((b) => (b.projectId ? [b.projectId] : []));
-  const [blitz, cast, hooks] = await Promise.all([
+  const previews = blitzOf(pack).filter((b) => b.preview && !b.error).length;
+  const [videos, cast, hooks] = await Promise.all([
     ids.length ? prisma.blitzProject.count({ where: { id: { in: ids }, renderStatus: 'COMPLETED' } }) : 0,
-    pack.brandRunId ? prisma.autoSlideshow.count({ where: { runId: pack.brandRunId, status: 'ready' } }) : 0,
+    pack.brandRunId ? castMade(pack.brandRunId) : 0,
     pack.hooksRunId ? prisma.autoSlideshow.count({ where: { runId: pack.hooksRunId, status: 'ready' } }) : 0,
   ]);
-  return { blitz, cast, hooks };
+  return { blitz: videos + previews, cast, hooks };
 };
 
 const toDto = async (pack: ProspectPack, costs: Map<string, number>): Promise<ProspectPackDto> => ({
