@@ -12,10 +12,11 @@ const POLL_MS = 4_000;
 
 export type CastAction = 'swap' | 'retry' | 'intro';
 
-/** What the owner can do to an archived face, or to a name and age: done when the request answers. */
+/** What the owner can do to an archived face, to an active one ("Move to archive"), or to a name and age: done when the request answers. */
 export type ArchiveRequest =
   | { action: 'restore'; replace?: string }
   | { action: 'delete' }
+  | { action: 'archive' }
   | { action: 'edit'; name: string; age: number };
 
 /**
@@ -71,8 +72,6 @@ export function useBrandCast(client: LabClient, path: string) {
   const build = useCallback((one = false) => send('build', path, one ? { count: 1 } : {}), [send, path]);
   const act = useCallback((id: string, action: CastAction) => send(id, `${path}/${id}`, { action }), [send, path]);
   const manage = useCallback((id: string, request: ArchiveRequest) => send(id, `${path}/${id}`, request), [send, path]);
-  /** Starts the intro videos of these members as one click (1 credit in all; the videos are made in parallel). */
-  const makeIntros = useCallback((ids: string[]) => send('intros', path, { action: 'intros', ids }), [send, path]);
   /** "New face" from the dialog: the note and the photo (made small first) go as a form. True when it started. */
   const swap = useCallback(async (id: string, { note, file }: NewFaceRequest): Promise<boolean> => {
     setBusy(id);
@@ -100,5 +99,5 @@ export function useBrandCast(client: LabClient, path: string) {
 
   const clearError = useCallback(() => setActionError(null), []);
 
-  return { members, archived, loadError, busy, actionError, build, act, manage, swap, makeIntros, reload, clearError };
+  return { members, archived, loadError, busy, actionError, build, act, manage, swap, reload, clearError };
 }
