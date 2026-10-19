@@ -1,9 +1,10 @@
 'use client';
 
-import type { CampaignSchedule } from './useCampaignSchedule';
+/** What the button needs from a schedule: a campaign's (useCampaignSchedule) or one slideshow's (useSlideshowSchedule). */
+export type SchedulePlan = { open: readonly unknown[]; making: boolean; planning: boolean; label: string; disabled: boolean; schedule: () => Promise<void> };
 
 /** The editor's top bar "Schedule N posts": makes the slideshows when needed, then puts the posts on the Calendar. */
-export function ScheduleButton({ plan }: { plan: CampaignSchedule }) {
+export function ScheduleButton({ plan }: { plan: SchedulePlan }) {
   if (plan.open.length === 0) return null;
   const working = plan.making || plan.planning;
   const label = plan.making ? 'Making slideshows…' : plan.planning ? 'Adding…' : plan.label;
