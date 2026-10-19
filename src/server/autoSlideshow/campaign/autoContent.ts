@@ -18,7 +18,9 @@ import {
   type AutoContentRequest,
   type AutoFormat,
 } from '../../../types/admin/slideshowCampaign';
+import { recordCost } from '../../costs/ledger';
 import { HttpError } from '../../http';
+import { openAiCostMicros } from '../../metaAds/cost';
 import { metaAdsJson } from '../../metaAds/llm';
 import { clip } from '../../metaAds/text';
 
@@ -72,23 +74,31 @@ const strings = (v: unknown, max: number): string[] => (Array.isArray(v) ? v.map
 
 /** The model behind "Search the web" (the user's pick, 2026-10-11): it supports the web_search tool. */
 const RESEARCH_MODEL = 'gpt-6.1-sol';
+/** OpenAI web_search tool: $10 per 1,000 searches. */
+const WEB_SEARCH_MICROS = 10_000;
 
 /** Facts and numbers about the topic from a web search (OpenAI Responses API, web_search tool). */
 const research = async (topic: string): Promise<string> => {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new HttpError(503, 'research_unavailable', 'Web search is not set up. Turn Research off.');
+  const model = process.env.CAMPAIGN_RESEARCH_MODEL ?? RESEARCH_MODEL;
   const res = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     signal: AbortSignal.timeout(90_000),
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: process.env.CAMPAIGN_RESEARCH_MODEL ?? RESEARCH_MODEL,
+      model,
       tools: [{ type: 'web_search' }],
       input: `Search the web and list 8-12 short, accurate facts with numbers (and their source site) for TikTok slides about: ${topic}`,
     }),
   });
   if (!res.ok) throw new HttpError(502, 'research_failed', 'Web search failed. Try again, or turn Research off.');
-  const data = (await res.json()) as { output?: { type?: string; content?: { type?: string; text?: string }[] }[] };
+  const data = (await res.json()) as {
+    output?: { type?: string; content?: { type?: string; text?: string }[] }[];
+    usage?: { input_tokens?: number; output_tokens?: number };
+  };
+  const searches = (data.output ?? []).filter((o) => o.type === 'web_search_call').length;
+  recordCost({ provider: 'openai', model, usdMicros: openAiCostMicros(model, data.usage?.input_tokens ?? 0, data.usage?.output_tokens ?? 0) + searches * WEB_SEARCH_MICROS });
   const text = (data.output ?? []).flatMap((o) => (o.type === 'message' ? (o.content ?? []) : [])).map((c) => (c.type === 'output_text' ? c.text ?? '' : '')).join('\n');
   return clip(text.trim(), 6_000);
 };

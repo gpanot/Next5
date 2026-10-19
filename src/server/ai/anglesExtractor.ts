@@ -1,4 +1,5 @@
 // server-only — never import from a 'use client' file.
+import { recordCost } from '../costs/ledger';
 import { prisma } from '../../lib/db';
 import { chatJson } from './openai';
 import type { BrandExtractData } from '../../types/business/me';
@@ -37,7 +38,8 @@ async function fetchHomepageText(url: string): Promise<string | null> {
       console.log('[brand-extract] ❌ Exa HTTP error', res.status, res.statusText);
       return null;
     }
-    const data = (await res.json()) as ExaContentsResponse;
+    const data = (await res.json()) as ExaContentsResponse & { costDollars?: { total?: number } };
+    recordCost({ provider: 'exa', model: '/contents', usdMicros: (data.costDollars?.total ?? 0) * 1e6 });
     const text = data.results?.[0]?.text ?? null;
     console.log('[brand-extract] ✅ Exa returned', text?.length ?? 0, 'chars');
     return text;

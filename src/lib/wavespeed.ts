@@ -1,4 +1,5 @@
 import { IMAGE_MODELS, isImageModelId, modelCostUsdMicros, resolutionFor, sizeForRatio, type ImageModelId, type ModelRequestSpec, type ModelResolution } from '../config/imageModels';
+import { recordCost } from '../server/costs/ledger';
 import { isReapiModelId, REAPI_FALLBACK_MODELS, reapiFallbackFor, type ReapiModelId } from '../config/reapiModels';
 
 /** Read per call so tests and local runs can set it after import. */
@@ -112,6 +113,11 @@ export async function submitEdit(params: SubmitEditParams & { model?: ImageModel
   if (!res.ok || body.code !== 200) {
     throw new Error(`WaveSpeed submit failed (${res.status}): ${body.message ?? 'unknown'}`);
   }
+  // Admin bench specs (params.spec) have no price in our catalog.
+  if (!params.spec) {
+    const model = params.model ?? 'nano-banana-2';
+    recordCost({ provider: 'wavespeed', model, usdMicros: costUsdMicros(model, params.resolution ?? '1k', images.length) });
+  }
   return body.data.id as string;
 }
 
@@ -154,6 +160,7 @@ export async function submitGenerate(params: SubmitGenerateParams): Promise<stri
   if (!res.ok || data.code !== 200) {
     throw new Error(`WaveSpeed generate failed (${res.status}): ${data.message ?? 'unknown'}`);
   }
+  recordCost({ provider: 'wavespeed', model: 'nano-banana-2-t2i', usdMicros: modelCostUsdMicros('nano-banana-2-t2i', params.resolution ?? '1k', 0) });
   return data.data.id as string;
 }
 

@@ -1,6 +1,8 @@
 // server-only — never import from a 'use client' file.
 
+import { recordCost } from '../costs/ledger';
 import { HttpError } from '../http';
+import { costOf } from '../shorts/treg';
 
 // ── Shared types ───────────────────────────────────────────────────────────────
 
@@ -131,6 +133,7 @@ export async function tregCall<T>(
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
+    recordCost({ provider: 'treg', model: endpointId, usdMicros: costOf(res) });
 
     const text = await res.text();
     let json: Record<string, unknown>;
@@ -167,6 +170,7 @@ export async function tregBinary(
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url.toString(), { signal: controller.signal, headers: { 'X-Treg-Token': key } });
+    recordCost({ provider: 'treg', model: endpointId, usdMicros: costOf(res) });
     const type = res.headers.get('content-type') ?? '';
     if (!res.ok || type.includes('application/json')) {
       const text = await res.text();

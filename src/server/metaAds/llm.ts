@@ -1,6 +1,7 @@
 // server-only — never import from a 'use client' file.
 
 import { chatJsonWithMeta, type ChatMessage } from '../ai/openai';
+import { recordCost } from '../costs/ledger';
 import { openAiCostMicros, type CostMeter } from './cost';
 import { wellFormed } from './text';
 
@@ -45,9 +46,10 @@ const reasoningJson = async <T>(messages: ChatMessage[], model: string, options:
     choices?: { message?: { content?: string }; finish_reason?: string }[];
     usage?: { prompt_tokens?: number; completion_tokens?: number };
   };
+  const usage = data.usage ? { promptTokens: data.usage.prompt_tokens ?? 0, completionTokens: data.usage.completion_tokens ?? 0 } : null;
+  if (usage) recordCost({ provider: 'openai', model, usdMicros: openAiCostMicros(model, usage.promptTokens, usage.completionTokens) });
   const choice = data.choices?.[0];
   if (!choice?.message?.content) throw new Error(`OpenAI ${model} returned no content (finish_reason=${choice?.finish_reason ?? 'unknown'})`);
-  const usage = data.usage ? { promptTokens: data.usage.prompt_tokens ?? 0, completionTokens: data.usage.completion_tokens ?? 0 } : null;
   return { result: JSON.parse(choice.message.content) as T, usage };
 };
 

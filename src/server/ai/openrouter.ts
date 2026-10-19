@@ -2,6 +2,8 @@
 // Minimal OpenRouter chat client (OpenAI-compatible endpoint) for multi-turn vision + JSON calls.
 // Gemini 3.6 Flash runs on the Flex tier of Google AI Studio (half price, a bit slower), with the standard tier as fallback.
 
+import { recordCost } from '../costs/ledger';
+
 type Part =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string } }
@@ -39,6 +41,8 @@ const FLEX_TIME_SHARE = 0.6;
 
 type ChatResponse = {
   choices?: { message?: { content?: string | null }; finish_reason?: string }[];
+  /** OpenRouter reports what the call cost, in USD. */
+  usage?: { cost?: number };
   error?: { message?: string };
 };
 
@@ -50,6 +54,8 @@ const requestBody = (messages: OpenRouterMessage[], options: OpenRouterOptions, 
   ...(options.reasoning ? { reasoning: { effort: options.reasoning } } : {}),
   ...(flex ? FLEX_ROUTING : {}),
   response_format: { type: 'json_object' },
+  // Makes the reply carry usage.cost, which the cost ledger records.
+  usage: { include: true },
   messages,
 });
 
@@ -66,6 +72,7 @@ const post = async (key: string, body: ReturnType<typeof requestBody>, timeoutMs
       body: JSON.stringify(body),
     });
     const data = (await res.json().catch(() => ({}))) as ChatResponse;
+    recordCost({ provider: 'openrouter', model: body.model, usdMicros: (data.usage?.cost ?? 0) * 1e6 });
     if (!res.ok) {
       console.error(`${tag} returned ${res.status}: ${data.error?.message ?? 'no message'}`);
       return null;

@@ -5,6 +5,7 @@ import { fmtDate, PAYMENT_BADGE } from '../../lib/admin-format';
 import type { EmailKind } from '../../lib/emailDomain';
 import { CreditCells, EmailFilterChips, EmailFlag, matchesEmailFilter, type EmailFilter, type UserCredits } from './users/userCells';
 import type { UserWorkspaceDto } from '../../types/admin/workspaceDetail';
+import { CostCell, UserCostSheet, usdMicros } from './users/UserCostSheet';
 
 type AdminUser = {
   id: string;
@@ -12,6 +13,8 @@ type AdminUser = {
   display_name: string | null;
   email_kind: EmailKind;
   credits: UserCredits;
+  /** All-time API spend, micro-USD. */
+  cost_usd_micros: number;
   created_at: string;
   booking_count: number;
   photo_count: number;
@@ -81,6 +84,9 @@ export const UsersTab = ({ token }: UsersTabProps) => {
   const [error, setError]     = useState('');
   const [openId, setOpenId]   = useState<string | null>(null);
   const [filter, setFilter]   = useState<EmailFilter>('all');
+  const [unattributed, setUnattributed] = useState(0);
+  /** The cost sheet: a user id ("none" = spend tied to no user) and its title. */
+  const [costsOf, setCostsOf] = useState<{ userId: string; title: string } | null>(null);
   const shown = useMemo(() => users.filter((u) => matchesEmailFilter(u.email_kind, filter)), [users, filter]);
   const counts = useMemo(() => ({
     all: users.length,
@@ -91,7 +97,7 @@ export const UsersTab = ({ token }: UsersTabProps) => {
   useEffect(() => {
     fetch('/api/admin/users', { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
-      .then((d) => setUsers(d.users ?? []))
+      .then((d) => { setUsers(d.users ?? []); setUnattributed(d.unattributed_cost_usd_micros ?? 0); })
       .catch(() => setError('Failed to load users'))
       .finally(() => setLoading(false));
   }, [token]);
@@ -106,8 +112,20 @@ export const UsersTab = ({ token }: UsersTabProps) => {
           <h2 className="font-display text-[22px] tracking-[0.04em] text-ink uppercase">Users</h2>
           <span className="text-[13px] text-muted">{shown.length}</span>
         </div>
-        <EmailFilterChips value={filter} onChange={setFilter} counts={counts} />
+        <div className="flex flex-wrap items-center gap-3">
+          {unattributed > 0 && (
+            <button
+              type="button"
+              onClick={() => setCostsOf({ userId: 'none', title: 'Admin, cron and system work' })}
+              className="min-h-10 rounded-full border border-line px-3 text-[12px] text-muted transition hover:border-ink/30 dark:border-zinc-800"
+            >
+              Not tied to a user: <span className="font-semibold tabular-nums text-ink dark:text-zinc-100">{usdMicros(unattributed)}</span>
+            </button>
+          )}
+          <EmailFilterChips value={filter} onChange={setFilter} counts={counts} />
+        </div>
       </div>
+      {costsOf && <UserCostSheet token={token} userId={costsOf.userId} title={costsOf.title} onClose={() => setCostsOf(null)} />}
       <div className="overflow-hidden rounded-2xl border border-line bg-white">
         <div className="overflow-x-auto">
         <table className="w-full min-w-[960px] text-[13px]">
@@ -118,6 +136,7 @@ export const UsersTab = ({ token }: UsersTabProps) => {
               <Th>Credits left</Th>
               <Th>Used</Th>
               <Th>Purchased</Th>
+              <Th>Cost</Th>
               <Th>Bookings</Th>
               <Th>Photos</Th>
               <Th>Last Shoot</Th>
@@ -141,6 +160,7 @@ export const UsersTab = ({ token }: UsersTabProps) => {
                   </Td>
                   <Td>{u.workspaces.length}</Td>
                   <CreditCells credits={u.credits} Td={Td} />
+                  <Td><CostCell micros={u.cost_usd_micros} onOpen={() => setCostsOf({ userId: u.id, title: u.email })} /></Td>
                   <Td>{u.booking_count}</Td>
                   <Td>{u.photo_count}</Td>
                   <Td>{u.last_booking?.route_title ?? '—'}</Td>
@@ -153,7 +173,7 @@ export const UsersTab = ({ token }: UsersTabProps) => {
                 </tr>
                 {openId === u.id && (
                   <tr className="border-b border-line bg-zinc-50 dark:bg-zinc-950">
-                    <td colSpan={10} className="px-4 py-3">
+                    <td colSpan={11} className="px-4 py-3">
                       <WorkspaceLinks workspaces={u.workspaces} />
                     </td>
                   </tr>

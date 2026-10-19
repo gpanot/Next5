@@ -1,6 +1,7 @@
 // server-only — never import from a 'use client' file.
 // treg proxy calls for Shorts that also return what each call really cost (the X-Treg-Cost-Micro header).
 
+import { recordCost } from '../costs/ledger';
 import { HttpError } from '../http';
 
 const TREG_BASE = 'https://treg.to/call';
@@ -10,6 +11,8 @@ const tregKey = (): string => {
   if (!key) throw new HttpError(503, 'treg_not_configured', 'TREG_API_KEY is not set on the server.');
   return key;
 };
+
+export const costOf = (res: Response): number => Number(res.headers.get('x-treg-cost-micro') ?? 0) || 0;
 
 type CallOptions = { query?: Record<string, string>; body?: unknown; timeoutMs?: number };
 
@@ -22,11 +25,10 @@ const request = async (endpointId: string, { query, body, timeoutMs = 120_000 }:
     headers: { 'X-Treg-Token': tregKey(), ...(body === undefined ? {} : { 'Content-Type': 'application/json' }) },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   });
+  recordCost({ provider: 'treg', model: endpointId, usdMicros: costOf(res) });
   if (!res.ok) throw new Error(`treg ${endpointId}: HTTP ${res.status} ${(await res.text().catch(() => '')).slice(0, 300)}`);
   return res;
 };
-
-const costOf = (res: Response): number => Number(res.headers.get('x-treg-cost-micro') ?? 0) || 0;
 
 /** One JSON call. `costMicros` is the charge treg settled for it (0 when the header is absent). */
 export const tregJson = async <T>(endpointId: string, options: CallOptions = {}): Promise<{ data: T; costMicros: number }> => {

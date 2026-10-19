@@ -20,6 +20,7 @@
  */
 
 import { GoogleGenAI, FileState, MediaModality, MediaResolution } from '@google/genai';
+import { recordCost } from '../../costs/ledger';
 import type { UsageSummary } from './types';
 
 /** Maximum file size to send inline (base64). Larger files use the Files API. */
@@ -40,6 +41,9 @@ function ai(): GoogleGenAI {
 }
 
 // ── Token usage ───────────────────────────────────────────────────────────────
+
+/** Gemini 2.5 Flash list prices, micro-USD per token: $0.30/M input ($1/M audio), $2.50/M output. */
+const geminiFlashMicros = (u: UsageSummary): number => (u.total - u.audio) * 0.3 + u.audio * 1 + u.out * 2.5;
 
 export function parseUsage(u: {
   promptTokenCount?: number;
@@ -115,6 +119,7 @@ async function callOpenRouter(parts: Array<Record<string, unknown>>): Promise<Ge
     max_tokens: 8000,
     temperature: 0.15,
     response_format: { type: 'json_object' },
+    usage: { include: true },
   };
 
   const controller = new AbortController();
@@ -145,8 +150,9 @@ async function callOpenRouter(parts: Array<Record<string, unknown>>): Promise<Ge
 
   const d = await res.json() as {
     choices?: Array<{ message?: { content?: string } }>;
-    usage?: { prompt_tokens?: number; completion_tokens?: number };
+    usage?: { prompt_tokens?: number; completion_tokens?: number; cost?: number };
   };
+  recordCost({ provider: 'openrouter', model: OPENROUTER_MODEL, usdMicros: (d.usage?.cost ?? 0) * 1e6 });
 
   const text = d.choices?.[0]?.message?.content ?? '';
   const total = d.usage?.prompt_tokens ?? 0;
@@ -238,9 +244,11 @@ export async function callGemini(
         .map((p: { text?: string }) => p.text ?? '')
         .join('');
 
+      const usage = parseUsage(response.usageMetadata as Parameters<typeof parseUsage>[0]);
+      recordCost({ provider: 'gemini', model: MODEL, usdMicros: geminiFlashMicros(usage) });
       return {
         text,
-        usage:  parseUsage(response.usageMetadata as Parameters<typeof parseUsage>[0]),
+        usage,
         wallMs: Date.now() - t0,
         retries,
       };
