@@ -1,6 +1,6 @@
 'use client';
 
-import { Clapperboard, Plus, RefreshCw, Sparkles } from 'lucide-react';
+import { Plus, RefreshCw, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { ARCHIVE_MAX, CAST_SIZE, type BrandCastMemberDto } from '../../../../types/admin/brandCast';
 import type { LabClient } from '../../../labs/labClient';
@@ -40,6 +40,9 @@ type CardProps = {
   onNewFace: () => void;
   onVoice: () => void;
   onEdit: () => void;
+  onArchive: () => void;
+  /** Intro videos are free (the admin view). */
+  freeIntro: boolean;
 };
 
 /** A failed photo: "Try again". A ready one: "Create campaign" told by this person. */
@@ -66,14 +69,25 @@ function CardAction({ member, busy, campaignHref, onAct }: Pick<CardProps, 'memb
   );
 }
 
-function MemberCard({ member, busy, detailed, campaignHref, onAct, onNewFace, onVoice, onEdit }: CardProps) {
+function MemberCard({ member, busy, detailed, campaignHref, onAct, onNewFace, onVoice, onEdit, onArchive, freeIntro }: CardProps) {
+  const introLabel = `${member.introStatus === 'failed' ? 'Retry intro video' : 'Make intro video'}${freeIntro ? '' : ' · 1 credit'}`;
   return (
     <li className="flex min-w-0 flex-col gap-2">
       <CastMemberMedia member={member} />
       <div className="min-w-0">
         <div className="flex items-center gap-1">
           <p className="min-w-0 flex-1 truncate text-sm font-semibold text-app-ink">{member.name}</p>
-          <CastMemberMenu name={member.name} onEdit={onEdit} onNewFace={onNewFace} newFaceDisabled={busy || member.status !== 'ready'} onVoice={member.status === 'ready' ? onVoice : undefined} />
+          <CastMemberMenu
+            name={member.name}
+            busy={busy}
+            onEdit={onEdit}
+            onNewFace={onNewFace}
+            newFaceDisabled={busy || member.status !== 'ready'}
+            onVoice={member.status === 'ready' ? onVoice : undefined}
+            onIntro={needsIntro(member) ? () => onAct('intro') : undefined}
+            introLabel={introLabel}
+            onArchive={onArchive}
+          />
         </div>
         {detailed && <p className="mt-0.5 text-xs text-app-muted">{member.look} · used {member.uses}×{member.ttsVoice ? ` · voice ${member.ttsVoice}` : ''}</p>}
         {detailed && member.introScript && <p className="mt-1 text-xs text-app-ink">Intro: “{member.introScript}”</p>}
@@ -96,19 +110,8 @@ export function CreateAvatarCard({ creating, disabled, onCreate }: { creating: b
   );
 }
 
-/** Members whose intro video can be made now: photo ready, no video yet (or it failed). */
-const needIntro = (members: BrandCastMemberDto[]) => members.filter((m) => m.status === 'ready' && (m.introStatus === 'none' || m.introStatus === 'failed'));
-
-function IntroCta({ count, busy, free, onMake }: { count: number; busy: boolean; free: boolean; onMake: () => void }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-app-line bg-app-panel p-3 shadow-sm">
-      <p className="min-w-[12rem] flex-1 text-sm text-app-muted">A 6-second hello from {count === 1 ? 'this person' : 'each person'}, talking to your followers. About a minute.</p>
-      <button type="button" onClick={onMake} disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-app-cta px-5 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95 disabled:opacity-50">
-        <Clapperboard aria-hidden className="h-4 w-4" /> {busy ? 'Starting…' : count === 1 ? 'Make intro video' : 'Make intro videos'}{busy || free ? '' : ' · 1 credit'}
-      </button>
-    </div>
-  );
-}
+/** The intro video can be made now: photo ready, no video yet (or it failed). */
+const needsIntro = (m: BrandCastMemberDto) => m.status === 'ready' && (m.introStatus === 'none' || m.introStatus === 'failed');
 
 type BrandCastProps = {
   client: LabClient;
@@ -121,11 +124,11 @@ type BrandCastProps = {
 };
 
 /** The Brand Cast: the recurring people (avatars) of the brand's slideshows, each with "Create campaign" told by them and
- *  ⋮ for "New face" (the old face goes to the archive) and to edit their name and age, and one intro video each (1 credit a click, whatever the
- *  count; a failed one comes back in the "Make intro videos" button).
+ *  ⋮ for "Make intro video" (this person only, 1 credit), "New face" (the old face goes to the archive), "Change voice", editing their
+ *  name and age, and "Move to archive" (frees the slot).
  *  Each empty slot shows a "+ Create Avatar" card. */
 export function BrandCast({ client, path, detailed = false, campaignHref }: BrandCastProps) {
-  const { members, archived, loadError, busy, actionError, build, act, manage, swap, makeIntros, reload, clearError } = useBrandCast(client, path);
+  const { members, archived, loadError, busy, actionError, build, act, manage, swap, reload, clearError } = useBrandCast(client, path);
   const [editing, setEditing] = useState<BrandCastMemberDto | null>(null);
   const [renaming, setRenaming] = useState<BrandCastMemberDto | null>(null);
   const [voicing, setVoicing] = useState<BrandCastMemberDto | null>(null);
@@ -149,16 +152,14 @@ export function BrandCast({ client, path, detailed = false, campaignHref }: Bran
   }
   if (!members) return <CastSkeleton />;
   const empty = CAST_SIZE - members.length;
-  const intros = needIntro(members);
   return (
     <div className="max-w-2xl space-y-3">
       <ul className={grid}>
-        {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} campaignHref={campaignHref?.(m.id)} onAct={(a) => void act(m.id, a)} onNewFace={() => setEditing(m)} onVoice={() => setVoicing(m)} onEdit={() => setRenaming(m)} />)}
+        {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} campaignHref={campaignHref?.(m.id)} onAct={(a) => void act(m.id, a)} onNewFace={() => setEditing(m)} onVoice={() => setVoicing(m)} onEdit={() => setRenaming(m)} onArchive={() => void manage(m.id, { action: 'archive' })} freeIntro={detailed} />)}
         {Array.from({ length: empty }, (_, i) => (
           <CreateAvatarCard key={`empty-${i}`} creating={busy === 'build' && i === 0} disabled={busy !== null} onCreate={() => void build(true)} />
         ))}
       </ul>
-      {intros.length > 0 && <IntroCta count={intros.length} busy={busy === 'intros'} free={detailed} onMake={() => void makeIntros(intros.map((m) => m.id))} />}
       {actionError && !editing && !renaming && <p role="alert" className="text-sm text-app-danger">{actionError}</p>}
       <ArchivedFaces archived={archived} active={members} busy={busy} error={actionError} onManage={manage} onClearError={clearError} />
       <NewFaceDialog key={editing?.id ?? 'closed'} member={editing} archiveFull={archived.length >= ARCHIVE_MAX} busy={editing !== null && busy === editing.id} error={editing ? actionError : null} onClose={() => setEditing(null)} onSubmit={(r) => void submitNewFace(r)} />
