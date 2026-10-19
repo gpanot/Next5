@@ -33,7 +33,7 @@ export function ProspectPage({ shareToken }: { shareToken: string }) {
   const claimed = data?.status === 'claimed';
 
   return (
-    <div className="min-h-dvh bg-app-bg text-app-ink">
+    <div data-accent="blue" className="min-h-dvh bg-app-bg text-app-ink">
       {loading && <Loading />}
       {error && <div className="mx-auto max-w-md px-5 py-24"><ErrorState message={error} onRetry={retry} /></div>}
       {data && (

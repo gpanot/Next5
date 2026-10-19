@@ -1,6 +1,7 @@
 // server-only — never import from a 'use client' file.
 // "New prospect": a placeholder owner (until the prospect claims the pack), their slideshow workspace for the site, and
-// the workspace's first run, held after step 3 so the admin checks the Brand Cast faces first (pipeline.ts holdForCast).
+// the workspace's first run, held after step 3 until the Brand Cast faces are made (pipeline.ts holdForCast), then
+// approved on their own (advance.ts autoApprove).
 // The run's step 1 also starts the first Blitz ideas (labs/firstIdeas.ts), all videos (idea_slideshow_pct 0).
 // Its API costs are billed to the placeholder owner, so the pack's cost is that user's ledger (store.ts).
 // Brand Cast slideshows past the free days are made cover-only (their first slide) until the pack is unlocked.

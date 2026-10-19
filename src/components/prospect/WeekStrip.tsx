@@ -4,7 +4,7 @@ import type { ProspectViewDay } from '../../types/admin/prospects';
 import { PostCard } from './PostCard';
 import { KIND_LABEL, monthDay, postTime, weekday } from './postLabels';
 
-/** The posts, one a day: a swipeable row on phones, rows of 7 on desktop. */
+/** The posts, one a day: 2 a row on phones (all of them in view, no sideways scroll), 4 on tablets, 7 on desktop. */
 export function WeekStrip({ days, onOpen }: { days: ProspectViewDay[]; onOpen: (index: number) => void }) {
   const first = days[0];
   const last = days.at(-1);
@@ -17,11 +17,11 @@ export function WeekStrip({ days, onOpen }: { days: ProspectViewDay[]; onOpen: (
           </h2>
           <p className="m-0 text-[15px] text-app-muted">Tap any post to watch it.</p>
         </div>
-        <ul className="-mx-5 grid snap-x snap-mandatory auto-cols-[min(62vw,230px)] grid-flow-col gap-3 overflow-x-auto px-5 pb-4 pt-1 [scrollbar-width:none] lg:mx-0 lg:grid-flow-row lg:grid-cols-7 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden">
+        <ul className="m-0 grid list-none grid-cols-2 gap-x-3 gap-y-4 p-0 pb-4 pt-1 sm:grid-cols-4 lg:grid-cols-7">
           {days.map((d, i) => (
-            <li key={`${d.day}-${d.kind}`} className="flex snap-start flex-col gap-2">
+            <li key={`${d.day}-${d.kind}`} className="flex min-w-0 flex-col gap-2">
               <PostCard day={d} onOpen={() => onOpen(i)} />
-              <p className="m-0 flex items-center justify-between px-0.5 text-[13px] text-app-muted">
+              <p className="m-0 flex items-center justify-between gap-1 px-0.5 text-[12px] text-app-muted sm:text-[13px]">
                 <span><b className="font-semibold text-app-ink">{weekday(d.at)}</b> at {postTime(d.at)}</span>
                 <span>{KIND_LABEL[d.kind]}</span>
               </p>

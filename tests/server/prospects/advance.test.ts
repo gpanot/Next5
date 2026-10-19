@@ -128,11 +128,23 @@ describe('advanceProspect', () => {
     db.state.shows.run_brand = ['c1', 'c2', 'c3'];
   });
 
-  it('renders Blitz ideas at the face check as they finish, one batch at a time', async () => {
+  it('approves the faces on its own and starts the Brand Cast slideshows', async () => {
+    await advanceProspect('pp_1');
+    expect(db.state.pack.status).toBe('making');
+    expect(runAutoPipeline).toHaveBeenCalledWith('run_brand', 4);
+  });
+
+  it('waits at the face check when no face could be made', async () => {
+    db.state.faces = 0;
+    await advanceProspect('pp_1');
+    expect(db.state.pack.status).toBe('faces');
+    expect(runAutoPipeline).not.toHaveBeenCalled();
+  });
+
+  it('renders Blitz ideas from the face check on as they finish, one batch at a time', async () => {
     const { renderBlitz } = await import('../../../src/server/prospects/blitz');
     blitzMock.ideas = [{ id: 'idea_1' }];
     await advanceProspect('pp_1');
-    expect(db.state.pack.status).toBe('faces');
     expect(db.state.pack.blitz).toEqual([{ ideaId: 'idea_1', projectId: 'bp_1' }]);
 
     blitzMock.ideas = [{ id: 'idea_1' }, { id: 'idea_2' }];

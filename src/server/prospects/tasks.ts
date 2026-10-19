@@ -48,8 +48,8 @@ const siteGroup = async (pack: ProspectPack, run: Run | null): Promise<ProspectT
   }
   const faces = await prisma.brandCastMember.count({ where: { workspaceId: pack.workspaceId, archivedAt: null, imageKey: { not: null } } });
   const facesTask =
-    pack.approvedAt ? task('Face check', 'done', `${faces} faces approved`)
-    : pack.status === 'faces' ? task('Face check', 'running', `${faces} faces ready: approve them on the row`)
+    pack.approvedAt ? task('Face check', 'done', `${faces} faces approved on their own`)
+    : pack.status === 'faces' ? task('Face check', 'running', faces ? `${faces} faces ready: approved on the next step` : 'No face could be made: make one, then approve on the row')
     : run?.status === 'FAILED' ? task('Face check', 'skipped')
     : task('Face check', 'waiting', faces ? `${faces} faces made so far` : null);
   return { title: 'Site + faces', tasks: [...AUTO_STEPS.slice(0, 3).map((s) => stepTask(run, s)), facesTask] };
