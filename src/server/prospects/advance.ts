@@ -4,7 +4,7 @@
 //   cast   — the brand run's steps 4-6, released by approveFaces (3 Brand Cast slideshows)
 //   hooks  — the Hooks Volume campaign (hooksVolume.ts), once
 //   blitz  — PROSPECT_BLITZ Blitz ideas rendered (blitz.ts), once the first ideas batch has them
-// When all three have settled, the days are planned (days.ts) and the pack is ready to share. Only the posts of the
+// A 'queued' pack starts here when its turn comes (queue.ts). When all three have settled, the days are planned (days.ts) and the pack is ready to share. Only the posts of the
 // free days are made in full: the other Blitz ideas and Brand Cast slideshows are previews (first shot or slide) until
 // the pack is unlocked (unlock.ts). Hooks Volume is stock photos only, so all of it is made.
 
@@ -19,6 +19,7 @@ import { HttpError } from '../http';
 import { blitzReady, blitzRenders, ideasById, renderBlitz } from './blitz';
 import { composeDays } from './days';
 import { buildHooksVolume } from './hooksVolume';
+import { startIfTurn } from './queue';
 import { blitzOf, loadPack } from './store';
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
@@ -134,6 +135,10 @@ const finish = async (pack: ProspectPack, posts: Record<ProspectKind, string[]>,
 /** The step itself, for the pack as loaded. */
 const stepPack = async (pack: ProspectPack): Promise<void> => {
   const id = pack.id;
+  if (pack.status === 'queued') {
+    const job = await startIfTurn(pack);
+    return job ? job() : undefined;
+  }
   if (pack.status === 'building') {
     const run = await prisma.autoSlideshowRun.findUnique({ where: { id: pack.brandRunId! }, select: { status: true, error: true } });
     if (run?.status === 'FAILED') await fail(id, run.error ?? 'The site could not be read.');

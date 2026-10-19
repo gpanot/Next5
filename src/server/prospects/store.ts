@@ -62,7 +62,7 @@ const secondsBetween = (from: Date | null, to: Date | null): number | null => (f
 
 /** Make time without the face check (see ProspectPackDto.timing). */
 const timingOf = (pack: ProspectPack): ProspectPackDto['timing'] => ({
-  siteSec: secondsBetween(pack.createdAt, pack.facesAt),
+  siteSec: secondsBetween(pack.startedAt ?? pack.createdAt, pack.facesAt),
   postsSec: secondsBetween(pack.approvedAt, pack.readyAt),
 });
 

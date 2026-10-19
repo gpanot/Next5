@@ -2685,7 +2685,7 @@ model ProspectPack {
   ownerUserId     String    @map("owner_user_id")
   websiteUrl      String    @map("website_url")
   name            String
-  /// 'building' | 'faces' | 'making' | 'ready' | 'failed' | 'claimed'
+  /// 'queued' | 'building' | 'faces' | 'making' | 'ready' | 'failed' | 'claimed'
   status          String    @default("building")
   shareToken      String    @unique @map("share_token")
   brandRunId      String?   @map("brand_run_id")
@@ -2702,6 +2702,8 @@ model ProspectPack {
   /// When the previews (days 8-14) started being made in full, after the first payment of the person who claimed it
   unlockedAt      DateTime? @map("unlocked_at")
   /// When the faces were ready to check, the admin approved them, and the pack was ready to share (its make time)
+  /// When its making started (after waiting as 'queued' when too many were being made)
+  startedAt       DateTime? @map("started_at")
   facesAt         DateTime? @map("faces_at")
   approvedAt      DateTime? @map("approved_at")
   readyAt         DateTime? @map("ready_at")

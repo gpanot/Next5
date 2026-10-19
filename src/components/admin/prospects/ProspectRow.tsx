@@ -7,6 +7,7 @@ import { CostDialog } from './CostDialog';
 import { formatDuration, makeSec } from './timing';
 
 const STATUS: Record<ProspectStatus, { label: string; tone: string }> = {
+  queued: { label: 'Waiting', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
   building: { label: 'Reading site', tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
   faces: { label: 'Check faces', tone: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
   making: { label: 'Making posts', tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },

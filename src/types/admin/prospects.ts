@@ -1,6 +1,10 @@
 /** Prospect Packs (admin outbound): 14 days of content made for an SME before they sign up, shared at /p/<token>. */
 
-export type ProspectStatus = 'building' | 'faces' | 'making' | 'ready' | 'failed' | 'claimed';
+export type ProspectStatus = 'queued' | 'building' | 'faces' | 'making' | 'ready' | 'failed' | 'claimed';
+
+/** Packs made at once (reading the site, or making posts). More wait as 'queued' and start, oldest first, when one
+ *  finishes: the Blitz render worker, stock photo searches and the database are shared with every user. */
+export const PROSPECT_MAX_ACTIVE = 5;
 
 /** What one day of the pack posts: a Blitz video, a Brand Cast slideshow or a Hooks Volume slideshow. */
 export type ProspectKind = 'blitz' | 'cast' | 'hooks';
@@ -48,7 +52,7 @@ export type ProspectPackDto = {
   /** What each part has so far, for the progress line. */
   progress: { blitz: number; cast: number; hooks: number };
   costUsd: number;
-  /** Make time in seconds, without the admin's face check: site read and faces (created → faces), then the posts
+  /** Make time in seconds, without the admin's face check: site read and faces (started → faces), then the posts
    *  (approved → ready). Null while that part is not done. */
   timing: { siteSec: number | null; postsSec: number | null };
   createdAt: string;

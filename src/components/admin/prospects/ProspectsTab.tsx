@@ -4,7 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeleton';
-import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS, type ProspectPackDto } from '../../../types/admin/prospects';
+import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS, PROSPECT_MAX_ACTIVE, type ProspectPackDto } from '../../../types/admin/prospects';
 import { ProspectRow } from './ProspectRow';
 import { averages, formatDuration } from './timing';
 import { useProspects } from './useProspects';
@@ -35,7 +35,7 @@ function CreateForm({ onCreate }: { onCreate: (url: string, name: string) => Pro
       <div>
         <h2 className="text-[15px] font-semibold text-app-ink">New prospect</h2>
         <p className="text-[13px] text-app-muted">
-          14 days of posts for their site: {PROSPECT_BLITZ} videos (stock photos), {PROSPECT_CAST} Brand Cast and {PROSPECT_HOOKS} Hooks Volume slideshows. You check the faces first. Days 1-7 are made in full, days 8-14 as previews until they pay. About $0.70.
+          14 days of posts for their site: {PROSPECT_BLITZ} videos (stock photos), {PROSPECT_CAST} Brand Cast and {PROSPECT_HOOKS} Hooks Volume slideshows. You check the faces first. Days 1-7 are made in full, days 8-14 as previews until they pay. About $0.70. Up to {PROSPECT_MAX_ACTIVE} are made at once: the others wait their turn (keep this tab open).
         </p>
       </div>
       <div className="grid gap-2 sm:grid-cols-[2fr_1fr_auto]">

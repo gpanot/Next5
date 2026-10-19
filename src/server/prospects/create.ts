@@ -4,13 +4,13 @@
 // The run's step 1 also starts the first Blitz ideas (labs/firstIdeas.ts), all videos (idea_slideshow_pct 0).
 // Its API costs are billed to the placeholder owner, so the pack's cost is that user's ledger (store.ts).
 // Brand Cast slideshows past the free days are made cover-only (their first slide) until the pack is unlocked.
+// When enough packs are being made already, it waits as 'queued' instead (queue.ts).
 
 import { randomBytes } from 'node:crypto';
 import { prisma } from '../../lib/db';
 import { fullCount, PROSPECT_CAST } from '../../types/admin/prospects';
-import { runAutoPipeline } from '../autoSlideshow/pipeline';
-import { withUserCostContext } from '../costs/ledger';
 import { createSlideshowWorkspace } from '../autoSlideshow/workspaces';
+import { canStartNow, startJob } from './queue';
 
 /** A placeholder address nobody can sign in with (.invalid never resolves). */
 const placeholderEmail = (): string => `prospect-${randomBytes(6).toString('hex')}@prospects.next5.invalid`;
@@ -26,8 +26,12 @@ export const createProspect = async (input: { websiteUrl?: unknown; name?: unkno
   await prisma.workspace.update({ where: { id: ws.id }, data: { ideaSlideshowPct: 0, ideaTzOffsetMin: tz } });
   const covers = Array.from({ length: PROSPECT_CAST - fullCount('cast') }, (_, i) => fullCount('cast') + i);
   const run = await prisma.autoSlideshowRun.create({ data: { url: ws.websiteUrl!, count: PROSPECT_CAST, workspaceId: ws.id, holdBeforeStep4: true, coverOnlyPositions: covers } });
+  const now = await canStartNow();
   const pack = await prisma.prospectPack.create({
-    data: { workspaceId: ws.id, ownerUserId: owner.id, websiteUrl: ws.websiteUrl!, name: ws.name, shareToken: randomBytes(18).toString('base64url'), brandRunId: run.id },
+    data: {
+      workspaceId: ws.id, ownerUserId: owner.id, websiteUrl: ws.websiteUrl!, name: ws.name, shareToken: randomBytes(18).toString('base64url'), brandRunId: run.id,
+      status: now ? 'building' : 'queued', startedAt: now ? new Date() : null,
+    },
   });
-  return { id: pack.id, work: () => withUserCostContext(owner.id, () => runAutoPipeline(run.id, 1)) };
+  return { id: pack.id, work: now ? startJob(pack) : async () => undefined };
 };
