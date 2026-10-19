@@ -80,7 +80,7 @@ const videoGroup = async (pack: ProspectPack, run: Run | null): Promise<Prospect
     return { title: 'Videos', tasks: [task('Pick 7 Blitz ideas', state, state === 'skipped' ? 'No ideas came in time' : since)] };
   }
   const ids = picked.flatMap((b) => (b.projectId ? [b.projectId] : []));
-  const projects = await prisma.blitzProject.findMany({ where: { id: { in: ids } }, select: { id: true, renderStatus: true, createdAt: true, renderStartedAt: true, renderFinishedAt: true } });
+  const projects = await prisma.blitzProject.findMany({ where: { id: { in: ids } }, select: { id: true, renderStatus: true, createdAt: true, renderStartedAt: true, renderFinishedAt: true, renderError: true } });
   const byId = new Map(projects.map((p) => [p.id, p]));
   const tasks = await Promise.all(picked.map(async (b, i): Promise<ProspectTask> => {
     const label = `Video ${i + 1}`;
@@ -90,7 +90,7 @@ const videoGroup = async (pack: ProspectPack, run: Run | null): Promise<Prospect
     const project = b.projectId ? byId.get(b.projectId) : undefined;
     if (!project) return task(label, 'running', 'Getting photos');
     if (project.renderStatus === 'COMPLETED') return task(label, 'done', project.renderStartedAt && project.renderFinishedAt ? `Rendered in ${seconds(project.renderFinishedAt.getTime() - project.renderStartedAt.getTime())}` : null);
-    if (project.renderStatus === 'FAILED') return task(label, 'failed', 'Render failed (see the blitz-worker logs)');
+    if (project.renderStatus === 'FAILED') return task(label, 'failed', project.renderError ? `Render failed: ${project.renderError}` : 'Render failed (no reason saved: see the blitz-worker logs)');
     if (project.renderStatus === 'PROCESSING') return task(label, 'running', `Rendering, started ${minutesAgo(project.renderStartedAt ?? project.createdAt)}`);
     const ahead = await prisma.blitzProject.count({ where: { renderStatus: 'PENDING', createdAt: { lt: project.createdAt } } });
     return task(label, 'waiting', `In the render line: ${ahead + 1}`);
