@@ -176,6 +176,17 @@ export const hasIdeas = async (workspaceId: string): Promise<boolean> => (await 
  * The batch itself, under the workspace's lock: Blitz ideas only. Slideshow ideas have their own job
  * (createSlideshowIdeas), started from the Ideas page's Slideshow filter. Returns the work to run after the response.
  */
+/**
+ * A new batch replaces the deck: the Blitz ideas of earlier batches that were not kept leave it (waiting ones go back
+ * to the reserve, skipped ones off the list), so the deck, its "3 / 14" and "Look at skipped again" show only the new
+ * batch. Kept ideas stay on the calendar; slideshow ideas are left alone.
+ */
+const retireEarlierIdeas = (workspaceId: string, newIds: string[]) =>
+  prisma.slideshowVariant.updateMany({
+    where: { workspaceId, engine: 'website', status: { in: ['proposed', 'discarded'] }, plannedAt: { not: null }, id: { notIn: newIds } },
+    data: { plannedAt: null },
+  });
+
 async function writeBatch(workspaceId: string, tzOffsetMin: unknown, have = 0, topUp = true): Promise<() => Promise<void>> {
   const started = Date.now();
   const secs = (from: number) => ((Date.now() - from) / 1000).toFixed(1);
@@ -191,6 +202,8 @@ async function writeBatch(workspaceId: string, tzOffsetMin: unknown, have = 0, t
   const planned = blitz.ids.slice(0, IDEAS_PER_BATCH - have);
   if (planned.length === 0) throw new HttpError(502, 'no_ideas', 'Could not write ideas right now. Try again.');
   const planAt = Date.now();
+  // A first batch's second half joins its first half; any other batch replaces the deck.
+  if (have === 0) await retireEarlierIdeas(workspaceId, planned);
   await planOnDays(workspaceId, planned, tzOffsetMin, have > 0);
   console.log(`[calendar-ideas] batch for ${workspaceId}: start ${((deckAt - started) / 1000).toFixed(1)}s, deck ${((planAt - deckAt) / 1000).toFixed(1)}s, days ${secs(planAt)}s, total ${secs(started)}s`);
   return blitz.grow;
