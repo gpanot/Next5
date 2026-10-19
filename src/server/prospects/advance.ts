@@ -14,6 +14,7 @@ import type { AutoSlide } from '../../types/admin/autoSlideshow';
 import { blitzPending, fullCount, PROSPECT_BLITZ_TRIES, type ProspectBlitz, type ProspectKind } from '../../types/admin/prospects';
 import type { UserAccess } from '../autoSlideshow/access';
 import { runAutoPipeline } from '../autoSlideshow/pipeline';
+import { withUserCostContext } from '../costs/ledger';
 import { HttpError } from '../http';
 import { blitzReady, blitzRenders, ideasById, renderBlitz } from './blitz';
 import { composeDays } from './days';
@@ -45,7 +46,7 @@ export const approveFaces = async (id: string): Promise<() => Promise<void>> => 
   const released = await prisma.autoSlideshowRun.updateMany({ where: { id: runId, status: 'HELD' }, data: { holdBeforeStep4: false } });
   if (released.count === 0) throw new HttpError(409, 'not_held', 'The run is not waiting. Refresh and try again.');
   await prisma.prospectPack.update({ where: { id }, data: { status: 'making' } });
-  return () => runAutoPipeline(runId, 4);
+  return () => withUserCostContext(pack.ownerUserId, () => runAutoPipeline(runId, 4));
 };
 
 /** The Hooks Volume part, when nobody is building it and it is not built. */
@@ -130,9 +131,9 @@ const finish = async (pack: ProspectPack, posts: Record<ProspectKind, string[]>,
   await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'making' }, data: { status: 'ready', days: json(days) } });
 };
 
-/** One step forward (see the top of the file). Safe to call again and again; returns when this call's work is done. */
-export const advanceProspect = async (id: string): Promise<void> => {
-  const pack = await loadPack(id);
+/** The step itself, for the pack as loaded. */
+const stepPack = async (pack: ProspectPack): Promise<void> => {
+  const id = pack.id;
   if (pack.status === 'building') {
     const run = await prisma.autoSlideshowRun.findUnique({ where: { id: pack.brandRunId! }, select: { status: true, error: true } });
     if (run?.status === 'FAILED') await fail(id, run.error ?? 'The site could not be read.');
@@ -143,4 +144,11 @@ export const advanceProspect = async (id: string): Promise<void> => {
   const fresh = await loadPack(id);
   const settled = await settledPosts(fresh);
   if (settled) await finish(fresh, settled.posts, settled.previews);
+};
+
+/** One step forward (see the top of the file). Safe to call again and again; returns when this call's work is done.
+ *  API costs go to the placeholder owner (the pack's cost, store.ts). */
+export const advanceProspect = async (id: string): Promise<void> => {
+  const pack = await loadPack(id);
+  await withUserCostContext(pack.ownerUserId, () => stepPack(pack));
 };

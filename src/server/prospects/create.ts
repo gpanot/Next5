@@ -2,12 +2,14 @@
 // "New prospect": a placeholder owner (until the prospect claims the pack), their slideshow workspace for the site, and
 // the workspace's first run, held after step 3 so the admin checks the Brand Cast faces first (pipeline.ts holdForCast).
 // The run's step 1 also starts the first Blitz ideas (labs/firstIdeas.ts), all videos (idea_slideshow_pct 0).
+// Its API costs are billed to the placeholder owner, so the pack's cost is that user's ledger (store.ts).
 // Brand Cast slideshows past the free days are made cover-only (their first slide) until the pack is unlocked.
 
 import { randomBytes } from 'node:crypto';
 import { prisma } from '../../lib/db';
 import { fullCount, PROSPECT_CAST } from '../../types/admin/prospects';
 import { runAutoPipeline } from '../autoSlideshow/pipeline';
+import { withUserCostContext } from '../costs/ledger';
 import { createSlideshowWorkspace } from '../autoSlideshow/workspaces';
 
 /** A placeholder address nobody can sign in with (.invalid never resolves). */
@@ -27,5 +29,5 @@ export const createProspect = async (input: { websiteUrl?: unknown; name?: unkno
   const pack = await prisma.prospectPack.create({
     data: { workspaceId: ws.id, ownerUserId: owner.id, websiteUrl: ws.websiteUrl!, name: ws.name, shareToken: randomBytes(18).toString('base64url'), brandRunId: run.id },
   });
-  return { id: pack.id, work: () => runAutoPipeline(run.id, 1) };
+  return { id: pack.id, work: () => withUserCostContext(owner.id, () => runAutoPipeline(run.id, 1)) };
 };
