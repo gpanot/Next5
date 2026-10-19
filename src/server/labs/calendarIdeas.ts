@@ -6,6 +6,7 @@
 // "+", and serve as other first lines.
 
 import type { Prisma, SlideshowVariant } from '@prisma/client';
+import { createHash } from 'crypto';
 import { prisma } from '../../lib/db';
 import { BLITZ_LIVE } from '../../types/admin/blitzSchedule';
 import { IDEAS_PER_BATCH, IDEA_DAYS, REQUESTED_SLIDESHOWS, type IdeaDayRequest, type IdeaDto, type IdeaPatch, type IdeasListDto, type MadeSlideshow } from '../../types/admin/calendarIdeas';
@@ -37,8 +38,16 @@ const FINISH_MS = 10 * 60 * 1000;
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 
 const firstLine = (card: DeckItem) => card.shots[0]?.text ?? card.hookStyle;
-/** Hook ids of a bank card's other first lines (its story's other hooks), by archetype. */
+/** Hook ids of a bank card's other first lines (its story's other hooks). */
 export const OTHER_HOOK = 'hook:';
+type OtherHook = NonNullable<NonNullable<DeckItem['script']>['otherHooks']>[number];
+/**
+ * One other first line's id: archetype + text, since a story can have two hooks of one archetype (and a swap puts the
+ * old hook back beside them). Ids from before 2026-10-19 were `hook:<archetype>` alone: still found, first of it.
+ */
+const otherHookId = (h: OtherHook) => `${OTHER_HOOK}${h.archetype}:${createHash('sha1').update(h.text).digest('hex').slice(0, 8)}`;
+const findOtherHook = (others: OtherHook[], hookId: string) =>
+  others.find((h) => otherHookId(h) === hookId) ?? others.find((h) => `${OTHER_HOOK}${h.archetype}` === hookId);
 
 /** Reserve Blitz cards (not planned), newest first. Content-page deck cards are saved without their full card: left out. */
 const loadReserve = async (workspaceId: string) => {
@@ -50,7 +59,7 @@ const blitzDto = (row: SlideshowVariant, reserve: SlideshowVariant[]): IdeaDto |
   const card = (row.plan as BlitzIdeaPlan).card;
   if (!card) return null;
   const hooks = card.script?.otherHooks
-    ? card.script.otherHooks.map((h) => ({ id: `${OTHER_HOOK}${h.archetype}`, text: h.text }))
+    ? [...new Map(card.script.otherHooks.filter((h) => h.text !== firstLine(card)).map((h) => [otherHookId(h), { id: otherHookId(h), text: h.text }])).values()]
     : reserve.filter((r) => r.lens === row.lens).map((r) => ({ id: r.id, text: firstLine((r.plan as BlitzIdeaPlan).card!) }));
   // The calendar shows photos only: the first shot that is a photo.
   const coverUrl = card.shots.find((shot) => shot.mediaKind === 'image' && shot.mediaUrl)?.mediaUrl ?? null;
@@ -253,7 +262,7 @@ const refill = async (workspaceId: string, at: Date | null) => {
  */
 const swapOtherHook = async (row: SlideshowVariant, card: DeckItem, hookId: string) => {
   const others = card.script?.otherHooks ?? [];
-  const next = others.find((h) => `${OTHER_HOOK}${h.archetype}` === hookId);
+  const next = findOtherHook(others, hookId);
   if (!card.script || !next) throw new HttpError(404, 'hook_not_found', 'That hook is gone. Pick another.');
   const previous = { archetype: card.archetype, text: firstLine(card) };
   const hookShot = card.shots[0] && { ...card.shots[0], text: next.text };
