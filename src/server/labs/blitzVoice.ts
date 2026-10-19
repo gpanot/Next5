@@ -105,7 +105,10 @@ export async function cachedNarration(slideTexts: string[], voiceName: string | 
  */
 export async function keepUnderSpokenLines(narration: CachedNarration, workspaceId: string | null): Promise<void> {
   const key = `${cacheBase(narration.voice, workspaceId, narration.lines)}.json`;
-  await putObject(key, Buffer.from(JSON.stringify(narration)), 'application/json');
+  await Promise.all([
+    putObject(key, Buffer.from(JSON.stringify(narration)), 'application/json'),
+    putObject(linesKey(workspaceId, narration.lines), Buffer.from(JSON.stringify(narration.lines)), 'application/json'),
+  ]);
 }
 
 const silence = (seconds: number): Buffer => Buffer.alloc(Math.max(0, Math.round(seconds * SAMPLE_RATE)) * 2);
@@ -123,6 +126,50 @@ const writeLines = async (slides: NarratedSlide[], workspaceId: string | null, m
   const raw = await creativeJson<Record<string, string | undefined>>(SYSTEM, user, meter, 'Blitz voiceover');
   return slides.map((s, i) => raw[`line_${i + 1}`]?.replace(/\s+/g, ' ').trim() || s.text);
 };
+
+/** Spoken lines kept by the captions they were written from; lines are kept under themselves too (read as they are). */
+const linesKey = (workspaceId: string | null, texts: string[]): string => {
+  const hash = createHash('sha256').update(JSON.stringify(['lines-v1', SYSTEM, workspaceId, texts.map((t) => t.trim())])).digest('hex').slice(0, 32);
+  return `blitz/voiceovers/lines/${hash}.json`;
+};
+
+const keepLines = async (texts: string[], lines: string[], workspaceId: string | null): Promise<void> => {
+  const body = Buffer.from(JSON.stringify(lines));
+  await Promise.all([putObject(linesKey(workspaceId, texts), body, 'application/json'), putObject(linesKey(workspaceId, lines), body, 'application/json')]);
+};
+
+const keptLines = async (texts: string[], workspaceId: string | null): Promise<string[] | null> => {
+  const raw = await getObject(linesKey(workspaceId, texts)).catch(() => null);
+  if (!raw) return null;
+  try {
+    const lines = JSON.parse(raw.toString('utf8')) as unknown;
+    return Array.isArray(lines) && lines.length === texts.length && lines.every((l) => typeof l === 'string') ? lines as string[] : null;
+  } catch {
+    return null;
+  }
+};
+
+const writing = new Map<string, Promise<string[]>>();
+
+/**
+ * The spoken lines of these captions, written once (2026-10-19): a new batch's cards take them as captions while they
+ * finish (ideaFinish.ts), and the deck's recording of the same captions reads the same lines, never a second take of
+ * the writer. Captions that are spoken lines already come back as they are, so the other voice says the same words.
+ */
+export async function spokenLines(texts: string[], workspaceId: string | null, meter = createMeter()): Promise<string[]> {
+  const key = linesKey(workspaceId, texts);
+  const running = writing.get(key);
+  if (running) return running;
+  const job = (async () => {
+    const kept = await keptLines(texts, workspaceId);
+    if (kept) return kept;
+    const lines = await writeLines(texts.map((text) => ({ text })), workspaceId, meter);
+    await keepLines(texts, lines, workspaceId);
+    return lines;
+  })().finally(() => writing.delete(key));
+  writing.set(key, job);
+  return job;
+}
 
 type Take = { wav: Buffer; words: SpokenWord[]; errors: string[] };
 
@@ -168,7 +215,7 @@ export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceN
   }
   const started = Date.now();
   const meter = createMeter();
-  const lines = await writeLines(slides, workspaceId, meter);
+  const lines = await spokenLines(texts, workspaceId, meter);
   const takes = await mapLimited(lines, RECORD_AT_ONCE, (line) => recordLine(line, voice, meter));
   const pcms: Buffer[] = [];
   const timed = slides.map((slide, i) => {
