@@ -125,7 +125,8 @@ export type CampaignPhotoRef =
 
 /** Which slide the import is for: the hook (adds to the rotation), one card or several cards (replaces their photo), or
  *  one content card's rotation (adds to it). */
-export type CampaignPhotoTarget = { slot: 'hook' } | { slot: 'card'; card: number } | { slot: 'cards'; cards: number[] } | { slot: 'cardRotation'; card: number };
+/** `replace`: the hook photo (position in the rotation) the pick takes the place of; without it, picks join the rotation. */
+export type CampaignPhotoTarget = { slot: 'hook'; replace?: number } | { slot: 'card'; card: number } | { slot: 'cards'; cards: number[] } | { slot: 'cardRotation'; card: number };
 
 /** True when the import is for card `card`. */
 export const targetsCard = (target: CampaignPhotoTarget, card: number): boolean =>

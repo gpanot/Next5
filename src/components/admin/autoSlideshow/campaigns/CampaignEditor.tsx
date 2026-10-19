@@ -38,7 +38,7 @@ type Props = { token: string; workspaceId: string; campaignId: string; onClose: 
 const loadingSlides = (pending: PendingPhoto[], draft: CampaignDraft | undefined): Set<number> =>
   new Set(
     pending.flatMap(({ target: t }) => {
-      if (t.slot === 'hook') return draft?.hookPhotos.length ? [] : [0];
+      if (t.slot === 'hook') return draft?.hookPhotos.length && t.replace !== 0 ? [] : [0];
       if (t.slot === 'cards') return t.cards.map((c) => c + 1);
       if (t.slot === 'cardRotation' && draft?.cards[t.card]?.photo != null) return [];
       return [t.card + 1];
@@ -225,7 +225,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                     onRun={() => void runAuto()}
                   />
                 ) : at === 0 ? (
-                  <HookPanel token={token} campaignId={campaignId} draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
+                  <HookPanel token={token} campaignId={campaignId} draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} onReplacePhoto={(i) => setPicker({ slot: 'hook', replace: i })} />
                 ) : (
                   <CardPanel
                     card={draft.cards[at - 1]!}
@@ -259,11 +259,11 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           token={token}
           workspaceId={workspaceId}
           campaignId={campaignId}
-          multiple={picker.slot === 'hook' || picker.slot === 'cardRotation'}
+          multiple={(picker.slot === 'hook' && picker.replace === undefined) || picker.slot === 'cardRotation'}
           title={picker.slot === 'hook' ? 'Hook photos' : picker.slot === 'cardRotation' ? 'Slide photos' : 'Slide photo'}
-          recommended={picker.slot === 'hook' && draft ? draft.hooks.length - draft.hookPhotos.length - state.pending.filter((p) => p.target.slot === 'hook').length : 0}
+          recommended={picker.slot === 'hook' && picker.replace === undefined && draft ? draft.hooks.length - draft.hookPhotos.length - state.pending.filter((p) => p.target.slot === 'hook').length : 0}
           startTab={picker.slot === 'card' && draft?.cards[picker.card]?.role === 'cta' ? 'appshot' : 'search'}
-          chooseForMe={picker.slot === 'hook' && draft ? { query: draft.hookPhotoQuery ?? '', count: draft.hooks.length, writeQuery: () => writeHookQuery(draft.hooks) } : undefined}
+          chooseForMe={picker.slot === 'hook' && picker.replace === undefined && draft ? { query: draft.hookPhotoQuery ?? '', count: draft.hooks.length, writeQuery: () => writeHookQuery(draft.hooks) } : undefined}
           onClose={() => setPicker(null)}
           onDone={(picks) => {
             setPicker(null);

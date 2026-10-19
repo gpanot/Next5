@@ -30,10 +30,13 @@ const withPhotos = (photos: CampaignPhotoDto[], added: CampaignPhotoDto[]): Camp
 /** Imports that join a rotation: they land together, in pick order, once all are in. */
 const isRotation = (target: CampaignPhotoTarget) => target.slot === 'hook' || target.slot === 'cardRotation';
 
-/** Puts imported photos on their slide: hook photos and a card's rotation photos join the rotation, a card's photo is
- *  replaced by the last one. */
+/** Puts imported photos on their slide: hook photos and a card's rotation photos join the rotation (or a picked hook
+ *  photo is replaced), a card's photo is replaced by the last one. */
 const placePhotos = (draft: CampaignDraft, target: CampaignPhotoTarget, indexes: number[]): CampaignDraft => {
   if (indexes.length === 0) return draft;
+  if (target.slot === 'hook' && target.replace !== undefined && target.replace < draft.hookPhotos.length) {
+    return { ...draft, hookPhotos: draft.hookPhotos.map((p, i) => (i === target.replace ? indexes[indexes.length - 1]! : p)) };
+  }
   if (target.slot === 'hook') return { ...draft, hookPhotos: [...draft.hookPhotos, ...indexes] };
   if (target.slot === 'cardRotation') return { ...draft, cards: draft.cards.map((c, i) => (i === target.card ? withCardPhotos(c, [...cardPhotos(c), ...indexes]) : c)) };
   return { ...draft, cards: draft.cards.map((c, i) => (targetsCard(target, i) ? { ...c, photo: indexes[indexes.length - 1]! } : c)) };
