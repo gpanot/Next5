@@ -213,6 +213,9 @@ export const hookPhotoFor = (draft: Pick<CampaignDraft, 'hookPhotos'>, hookIndex
 /** What Auto writes on an empty CTA when the hook promises a number ("6 ways…": the CTA is the 6th), for the person to
  *  replace. Schedule waits until it is replaced. */
 export const CTA_PREFILL = 'Edit your CTA here';
+
+/** The CTA text "Generate the entire slideshows" puts on an empty CTA card. */
+export type CampaignCtaText = { title: string; body: string };
 export const isCtaPrefill = (title: string): boolean => /^\s*(?:\d+[.)]\s*)?edit your cta here\s*$/i.test(title);
 
 export const campaignProblems = (draft: CampaignDraft): string[] => {

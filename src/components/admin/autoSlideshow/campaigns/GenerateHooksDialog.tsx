@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { MAX_GENERATED_HOOKS, MIN_GENERATED_HOOKS } from '../../../../types/admin/hookKnowledge';
-import type { AutoPhotoSource, CampaignCard } from '../../../../types/admin/slideshowCampaign';
+import type { AutoPhotoSource, CampaignCard, CampaignCtaText } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
+import type { HooksWritten } from './useGenerateAll';
 
 type Props = {
   token: string;
@@ -16,7 +17,7 @@ type Props = {
   /** The hooks, and the hook photos' stock search written with them. */
   onDone: (hooks: string[], photoQuery: string) => void;
   /** "Generate the entire slideshows": the hooks, then every slide written from them. Resolves false on failure. */
-  onDoneAll: (hooks: string[], photoQuery: string, photoSource: AutoPhotoSource) => Promise<boolean>;
+  onDoneAll: (written: HooksWritten) => Promise<boolean>;
 };
 
 /** What is being written: the hooks only, or the entire slideshows. */
@@ -50,10 +51,10 @@ export function GenerateHooksDialog({ token, campaignId, cards, current, onClose
     setWriting(what);
     setError(null);
     try {
-      const { hooks, photoQuery, photoSource } = await adminFetch<{ hooks: string[]; photoQuery?: string; photoSource?: AutoPhotoSource }>(token, `/api/slideshow/campaigns/${campaignId}/hooks`, { method: 'POST', body: JSON.stringify({ count, cards }) });
+      const { hooks, photoQuery, photoSource, cta } = await adminFetch<{ hooks: string[]; photoQuery?: string; photoSource?: AutoPhotoSource; cta?: CampaignCtaText }>(token, `/api/slideshow/campaigns/${campaignId}/hooks`, { method: 'POST', body: JSON.stringify({ count, cards }) });
       if (what === 'hooks') return onDone(hooks, photoQuery ?? '');
       // The editor shows the error when the slides could not be written; the hooks are in either way.
-      await onDoneAll(hooks, photoQuery ?? '', photoSource ?? 'stock');
+      await onDoneAll({ hooks, photoQuery: photoQuery ?? '', photoSource: photoSource ?? 'stock', cta: cta ?? { title: 'Follow for more', body: '' } });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not write the hooks. Try again.');
       setWriting(null);
@@ -84,7 +85,7 @@ export function GenerateHooksDialog({ token, campaignId, cards, current, onClose
           ))}
         </div>
         {current > 0 && <p className="text-sm text-amber-300">This replaces your {current} {current === 1 ? 'hook' : 'hooks'}.</p>}
-        <p className="text-sm text-white/60">The entire slideshows also writes the content slides and picks their photos.{hasContent && ' It replaces your content slides.'}</p>
+        <p className="text-sm text-white/60">The entire slideshows also writes the content slides and the CTA, and picks their photos.{hasContent && ' It replaces your content slides.'}</p>
         {error && <p role="alert" className="rounded-lg bg-red-500/15 p-3 text-sm text-red-300">{error}</p>}
         <div className="flex flex-col gap-2">
           <button type="button" onClick={() => void generate('all')} disabled={busy} className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-emerald-400 px-4 text-sm font-semibold text-zinc-950 shadow-sm transition active:scale-95 disabled:opacity-60">
