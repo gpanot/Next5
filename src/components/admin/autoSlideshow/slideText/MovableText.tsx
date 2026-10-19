@@ -5,7 +5,7 @@ import { clampTextX, textSpan, type TextAt } from '../../../../types/slideText';
 
 type Props = {
   at: TextAt;
-  /** Side margin of the text block, % of the slide width (textSide). */
+  /** Side margin of the text block, % of the slide width (TEXT_SIDE_PCT). */
   side: number;
   /** False: the text is only drawn, not draggable. */
   movable: boolean;

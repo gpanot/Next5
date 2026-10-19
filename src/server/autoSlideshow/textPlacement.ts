@@ -3,6 +3,7 @@
 // otherwise it moves up or down to the nearest clear spot. Satori cannot measure text before it renders, so the text's
 // boxes are estimated from character counts, on the wide side. render.tsx draws with the same sizes.
 
+import { TEXT_SIDE } from '../../config/tiktokSafeZone';
 import type { AutoSlide, HeadBox } from '../../types/admin/autoSlideshow';
 import { bodyKind, clampTextX, textSpan, titleKind, type TextAt } from '../../types/slideText';
 
@@ -13,13 +14,15 @@ export const SLIDE_SIZE = { width: 1080, height: 1920 };
  * so the text stays where it showed on screen, and inside a 4:5 center crop (Instagram, see media route).
  */
 const TALL_SHIFT = 285;
+/** Every look's side margin (px): TikTok's right rail covers no more than 15% of the text block's reach (TEXT_SIDE). */
+const SIDE = Math.round(TEXT_SIDE * SLIDE_SIZE.width);
 
 /** Hook: big white outlined text. */
-export const HOOK_TEXT = { top: 360 + TALL_SHIFT, side: 70, lineHeight: 1.08, fontSize: (title: string) => (title.length > 40 ? 76 : 90) };
+export const HOOK_TEXT = { top: 360 + TALL_SHIFT, side: SIDE, lineHeight: 1.08, fontSize: (title: string) => (title.length > 40 ? 76 : 90) };
 /** Meat and CTA: headline in a box, one plain line under it. `big` is the CTA. */
 export const BOX_TEXT = {
   top: (big: boolean) => (big ? 300 : 330) + TALL_SHIFT,
-  side: 80,
+  side: SIDE,
   gap: 36,
   titleSize: (big: boolean) => (big ? 62 : 54),
   titleLineHeight: 1.12,
@@ -30,10 +33,10 @@ export const BOX_TEXT = {
 };
 
 /** All caps: white Montserrat ExtraBold Italic capitals with a soft shadow; its glyphs run wider than Inter's. */
-export const CAPS_TEXT = { side: 70, lineHeight: 1.15, char: 0.74, bodySize: 38, bodyLineHeight: 1.25, fontSize: (role: string, title: string) => (role === 'hook' ? (title.length > 40 ? 60 : 72) : role === 'cta' ? 58 : 52) };
+export const CAPS_TEXT = { side: SIDE, lineHeight: 1.15, char: 0.74, bodySize: 38, bodyLineHeight: 1.25, fontSize: (role: string, title: string) => (role === 'hook' ? (title.length > 40 ? 60 : 72) : role === 'cta' ? 58 : 52) };
 
 /** Hook / CTA in the TikTok Red look: white text on a red highlight behind each line. */
-export const RED_TEXT = { side: 80, fontSize: 60, lineHeight: 1.3, padX: 18, color: '#E8453C' };
+export const RED_TEXT = { side: SIDE, fontSize: 60, lineHeight: 1.3, padX: 18, color: '#E8453C' };
 
 /** The line under the headline in its own look: in a box (black or white) or TikTok Red (red behind each line). */
 export const BODY_LOOK = { boxPadY: 12, boxPadX: 22, radius: 14, redLineHeight: 1.3, redPadX: 14 };
