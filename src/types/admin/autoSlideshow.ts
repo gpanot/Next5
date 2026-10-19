@@ -312,6 +312,8 @@ export type SlideshowMeDto = {
   available: SocialProviderDto[];
   /** Testing switch: Ideas-page Blitz cards get stock photos even when paid. Null when this user may not see it. */
   stockImagesOnly: boolean | null;
+  /** Testing switch: Blitz cards always get AI images, even before any payment. Null when this user may not see it. */
+  aiImagesOnly: boolean | null;
 };
 
 /** One generated photo of a user's runs, as listed in Settings → Photos. */
