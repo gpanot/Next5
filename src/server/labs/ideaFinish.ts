@@ -5,8 +5,8 @@
 // cards, both at once: the vision caption Auto Fit of every shot without a saved fit (saved for the next batches), and
 // the images (AI once the workspace has paid, stock photos before), one per moment of the batch, swapped onto their shots (the library match becomes the first swap; the
 // new shots get their own fit). Last, each card's photos get their camera move (labs/blitzCamera.ts, one vision call per
-// card), so the card plays the zoom/pan its render will use. Then the cards lose `finishing` and the deck stops
-// re-reading. A shot the user changed meanwhile and ideas already made are left alone.
+// card, merged under a row lock), so the card plays the zoom/pan its render will use. Then the cards lose `finishing`
+// and the deck stops re-reading. A shot the user changed meanwhile and ideas already made are left alone.
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
@@ -46,9 +46,9 @@ async function withImages(shots: DeckShot[], before: DeckShot[], images: Map<str
   return out;
 }
 
-/** The card with its camera moves, without its finishing marks. */
-const finished = async (card: DeckItem): Promise<DeckItem> => {
-  const done = { ...card, shots: await withShotCameras(card.shots) };
+/** The card without its finishing marks. */
+const finished = (card: DeckItem): DeckItem => {
+  const done = { ...card };
   delete done.finishing;
   delete done.pendingImages;
   return done;
@@ -69,6 +69,41 @@ async function saveCard(id: string, finish: (card: DeckItem) => Promise<DeckItem
   const card = await finish(plan.card);
   await prisma.slideshowVariant.update({ where: { id }, data: { plan: { ...plan, shots: card.shots, card } as unknown as Prisma.InputJsonValue } });
   return true;
+}
+
+/** Drops the finishing marks of these cards as they are (no camera moves): the deck must never re-read forever. */
+const clearFinishing = (ids: string[]) =>
+  prisma.$transaction(ids.map((id) => prisma.$executeRaw`
+    UPDATE slideshow_variants SET plan = jsonb_set(plan, '{card}', (plan->'card') - 'finishing' - 'pendingImages')
+    WHERE id = ${id} AND plan ? 'card'`)).catch(() => undefined);
+
+/** finishCard on each card; a card that fails is still let go of. */
+const finishCards = (cards: Snapshot[]) =>
+  Promise.all(cards.map((c) => finishCard(c.id).catch(async (err: unknown) => {
+    console.error(`[idea-finish] camera moves failed for ${c.id}:`, err instanceof Error ? err.message : err);
+    await clearFinishing([c.id]);
+  })));
+
+/**
+ * A card's last step: its photos' camera moves (one vision call, no lock held), merged onto the card as it is now
+ * under a row lock, so a voiceover line or caption saved during the call is kept. A shot whose photo changed
+ * meanwhile gets none (its render picks one). Ends the card's finishing.
+ */
+async function finishCard(id: string): Promise<void> {
+  const row = await prisma.slideshowVariant.findFirst({ where: { id, status: { in: OPEN } }, select: { plan: true } });
+  const card = (row?.plan as IdeaPlan | undefined)?.card;
+  if (!card) return;
+  const picked = await withShotCameras(card.shots);
+  await prisma.$transaction(async (tx) => {
+    const [locked] = await tx.$queryRaw<Array<{ plan: IdeaPlan; status: string }>>`SELECT plan, status FROM slideshow_variants WHERE id = ${id} FOR UPDATE`;
+    const plan = locked?.plan;
+    if (!plan?.card || !OPEN.includes(locked.status)) return;
+    const shots = plan.card.shots.map((s, i) => {
+      const camera = picked[i]?.assetKey === s.assetKey ? picked[i]!.camera : undefined;
+      return camera && !s.camera ? { ...s, camera } : s;
+    });
+    await tx.slideshowVariant.update({ where: { id }, data: { plan: { ...plan, shots, card: finished({ ...plan.card, shots }) } as unknown as Prisma.InputJsonValue } });
+  });
 }
 
 /** The images every card lists, one per moment of the batch (no write): AI when paid, else stock. Per card index: need key → image. */
@@ -111,25 +146,23 @@ export async function finishIdeaCards(ids: string[], workspaceId: string | null,
     await Promise.all(cards.map((c) => saveCard(c.id, async (card) => ({ ...card, shots: withCaptions(card.shots, early) }))));
     const firstIn = secs(started);
     const ys = early.size < shots.length ? await captionHeights(shots) : early;
-    await Promise.all(cards.map((c) => saveCard(c.id, async (card) => {
-      const next = { ...card, shots: withCaptions(card.shots, ys) };
-      return c.pending ? next : finished(next);
-    })));
+    await Promise.all(cards.map((c) => saveCard(c.id, async (card) => ({ ...card, shots: withCaptions(card.shots, ys) }))));
     const captionsIn = `${firstIn}s first, ${secs(started)}`;
+    // Cards with no image to wait for get their camera moves now; the others once their images are on.
+    const ready = finishCards(cards.filter((c) => !c.pending));
     const images = await imaging;
     const imagesIn = secs(started);
     const saved = await Promise.all(cards.map((c, i) => c.pending && saveCard(c.id, async (card) => {
       const shots = await withImages(card.shots, c.shots, images[i]!, c.pending!.needs);
       const changed = shots.filter((s, n) => s.assetKey !== card.shots[n]?.assetKey);
-      return finished({ ...card, shots: changed.length ? withCaptions(shots, await captionHeights(changed)) : shots });
+      return { ...card, shots: changed.length ? withCaptions(shots, await captionHeights(changed)) : shots };
     })));
+    await Promise.all([ready, finishCards(cards.filter((c) => c.pending))]);
     const swapped = saved.filter(Boolean).length;
     console.log(`[idea-finish] ${ids.length} card(s): captions ${captionsIn}s, images ${imagesIn}s (on ${swapped} card(s)), done ${secs(started)}s`);
   } catch (err) {
     console.error('[idea-finish] failed:', err instanceof Error ? err.message : err);
     // Never leave the deck re-reading forever.
-    await prisma.$transaction(ids.map((id) => prisma.$executeRaw`
-      UPDATE slideshow_variants SET plan = jsonb_set(plan, '{card}', (plan->'card') - 'finishing' - 'pendingImages')
-      WHERE id = ${id} AND plan ? 'card'`)).catch(() => undefined);
+    await clearFinishing(ids);
   }
 }
