@@ -13,7 +13,10 @@ export type VoicePreviewState =
   | { status: 'ready'; narration: CardNarration }
   | { status: 'error'; message: string; limit: boolean };
 
-const textsOf = (idea: IdeaDto): string[] => ideaCard(idea).shots.map((s) => s.text);
+/** Wait between a voiceover arriving and its card playing. */
+const SETTLE_MS = 1000;
+
+const textsOf =(idea: IdeaDto): string[] => ideaCard(idea).shots.map((s) => s.text);
 const keyFor = (id: string, voice: BlitzVoiceName, texts: string[]) => `${id}:${voice}:${texts.join('|')}`;
 const keyOf = (idea: IdeaDto, voice: BlitzVoiceName) => keyFor(idea.id, voice, textsOf(idea));
 /** The idea's narrator; a voice no longer offered (Kore, before 2026-10-13) is the default. */
@@ -49,6 +52,8 @@ export function useVoicePreview(client: LabClient | null, onSpoken: (idea: IdeaD
     const next: VoicePreviewState = res?.ok
       ? { status: 'ready', narration: { url: res.data.url, durations: res.data.durations, words: res.data.words } }
       : { status: 'error', message: res ? errorOf(res) : 'Could not reach the server. Check your connection.', limit: res?.status === 429 };
+    // A recorded voice settles a second before the card plays (2026-10-19): voice and words start in sync.
+    if (next.status === 'ready') await new Promise((done) => setTimeout(done, SETTLE_MS));
     const lines = res?.ok ? res.data.lines : undefined;
     const spokenKey = lines?.length ? keyFor(idea.id, voice, lines) : null;
     setByKey((m) => {
