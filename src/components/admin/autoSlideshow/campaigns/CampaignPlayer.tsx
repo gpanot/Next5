@@ -42,7 +42,7 @@ export function CampaignPlayer({ draft, photos, index, onIndex, onMoveText, onMo
         index={index}
         onIndex={onIndex}
         safeZone={safeZone}
-        renderSlide={(i) => <PreviewSlideView slide={slides[i]!} movable={i === index} loading={loading.has(i)} onMoveText={(at) => onMoveText(i, at)} onMoveBadges={(y) => onMoveBadges(i, y)} />}
+        renderSlide={(i) => <PreviewSlideView slide={slides[i]!} movable={i === index} quiet loading={loading.has(i)} onMoveText={(at) => onMoveText(i, at)} onMoveBadges={(y) => onMoveBadges(i, y)} />}
       />
       <PlayerControls count={slides.length} index={index}>
         {isContent && (

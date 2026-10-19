@@ -104,7 +104,8 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
 
   /** Dropped text and new text styles: shown on the slides at once, while they render again in the background. */
   const live = useLiveEdits(show.slides, edit);
-  const textLayer = (i: number) => {
+  /** `quiet`: the big preview, where the movable text has no dashed outline until dragged. */
+  const textLayer = (i: number, quiet = false) => {
     const s = live.slideAt(i);
     const pending = live.edits[i] ?? null;
     if (!s || (!pending && (i !== slide || busy !== null))) return null;
@@ -115,6 +116,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
         box={box}
         live={pending}
         movable={i === slide}
+        quiet={quiet}
         onMove={(at) => live.move(i, at)}
       />
     );
@@ -158,7 +160,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
 
   const player = (
     <>
-      <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={textLayer} safeZone={safeZone.on} />
+      <SlidePreview show={show} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={(i) => textLayer(i, true)} safeZone={safeZone.on} />
       <PlayerControls count={show.slides.length} index={slide}>
         {current?.textAt && (
           <button
@@ -255,7 +257,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
     >
       <EditorBody
         player={player}
-        strip={<SlideStrip slides={show.slides} index={slide} busy={busy} onPick={setSlide} textLayer={textLayer} corner={textLock} />}
+        strip={<SlideStrip slides={show.slides} index={slide} busy={busy} onPick={setSlide} textLayer={(i) => textLayer(i)} corner={textLock} />}
         main={panel}
         aside={
           <EditorAside title="Post and Schedule">
