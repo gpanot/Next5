@@ -32,7 +32,7 @@ export const guideFillCalendar: Article = {
     { type: 'p', text: 'Every post waits for your OK. Open it, check the slides, then approve. You can approve a week at a time or day by day.' },
     { type: 'p', text: 'Each morning, Next5 can send you an email with the posts to approve that day. One tap and you are done.' },
     { type: 'h2', text: 'Campaigns: more posts on one theme' },
-    { type: 'p', text: 'Want a run of posts on one topic, like a launch or a season? Open **Campaigns** and start a new one. It is the place to make a batch of posts around one goal.' },
+    { type: 'p', text: 'Want a run of posts on one topic, like a launch, a season or a new listing ([coming soon, just listed, just sold](/blog/coming-soon-real-estate-post))? Open **Campaigns** and start a new one. It is the place to make a batch of posts around one goal.' },
     { type: 'h2', text: 'Next step' },
     { type: 'p', text: 'After a week or two of posts, check what worked. Read the next guide: [how to read your Analytics and make more of what works](/guides/read-your-analytics).' },
     { type: 'cta', title: 'Start your 30 days', text: 'Paste your website to get your first ideas and slideshows.' },

@@ -1,5 +1,6 @@
 import { bestTimeToPostTikTok } from './articles/bestTimeToPostTikTok';
 import { chatgptForSocialMedia } from './articles/chatgptForSocialMedia';
+import { comingSoonRealEstatePost } from './articles/comingSoonRealEstatePost';
 import { facelessTikTokIdeas } from './articles/facelessTikTokIdeas';
 import { guideFillCalendar } from './articles/guideFillCalendar';
 import { guideFirstSlideshows } from './articles/guideFirstSlideshows';
@@ -25,6 +26,7 @@ export const BLOG_POSTS: readonly Article[] = [
   bestTimeToPostTikTok,
   howToSellOnTikTokShop,
   socialMediaForRealtors,
+  comingSoonRealEstatePost,
   marketingIdeasSmallBusiness,
   tiktokHooks,
   socialMediaManagerCost,

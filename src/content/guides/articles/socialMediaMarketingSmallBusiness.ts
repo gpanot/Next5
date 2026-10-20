@@ -38,7 +38,7 @@ export const socialMediaMarketingSmallBusiness: Article = {
     { type: 'ol', items: [
       '**Tips** — "3 ways to keep your lawn green in July." Teach one small thing.',
       '**Mistakes** — "5 mistakes first-time buyers make." People love to avoid pain.',
-      '**Before and after** — show a result. A clean car, a new haircut, a staged room.',
+      '**Before and after** — show a result. A clean car, a new haircut, a staged room. Realtors can start before the listing is live with a [coming soon post](/blog/coming-soon-real-estate-post).',
       '**Behind the scenes** — how you make, pack or fix things.',
       '**Questions you get every week** — answer them in a post. You will never run out.',
     ] },
