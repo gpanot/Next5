@@ -1,30 +1,25 @@
 // server-only — never import from a 'use client' file.
 // Background music from the shared Assets Library (blitz_assets type AUDIO). One picker for every kind of content
-// (Auto Slideshow slideshows, slideshow ideas, Blitz deck cards and calendar ideas): rights-safe described tracks,
-// scored by Jev for fit, minus the ones the workspace used lately, random among the close best (see musicPick.ts).
+// (Auto Slideshow slideshows, slideshow ideas, Blitz deck cards and calendar ideas): a random TikTok sound, skipping the
+// ones the workspace used lately (see musicPick.ts).
 // Changeable in the editor. For slideshows it is used for the preview and the ZIP; TikTok's photo API cannot attach it.
 
 import { prisma } from '../../lib/db';
-import type { AutoSlide, AutoTrackDto } from '../../types/admin/autoSlideshow';
-import type { BrandProfile } from '../../types/admin/companyIntel';
+import type { AutoTrackDto } from '../../types/admin/autoSlideshow';
 import { blitzBrowserUrl } from '../admin/blitzStore';
-import { isJevEnabled, jevScore } from '../ai/jev';
-import { runPool } from '../pool';
 import { chooseTrack } from './musicPick';
 
-type MusicDescriptor = { vibe?: string[]; pacing?: string; energyLevel?: number; emotion?: string; sound?: string; imagery?: string; avoidFor?: string[] };
-type TrackRow = { id: string; name: string; r2_key: string; best_start: number | null; duration_sec: number | null; descriptor: MusicDescriptor | null; pickable: boolean; tiktok: boolean };
+type TrackRow = { id: string; name: string; r2_key: string; best_start: number | null; duration_sec: number | null; tiktok: boolean };
 
 /**
  * Shared audio tracks, by name. The start point is the descriptor's best start when the track was described.
- * `pickable`: described music without high rights risk, the only tracks generation picks (the editor lists all).
- * `tiktok`: high rights risk, i.e. a recognisable commercial track taken from TikTok; the others are our own library sounds.
+ * `tiktok`: tagged "tiktok" in the Assets Library (sounds taken from TikTok), the only tracks generation picks; the
+ * editor lists all, our own library sounds at the bottom.
  */
 const loadTracks = () =>
   prisma.$queryRaw<TrackRow[]>`
-    SELECT a.id, a.name, a.r2_key, (d.descriptor->>'bestStart')::float AS best_start, d.duration_sec, d.descriptor,
-      coalesce(d.status = 'done' AND d.kind = 'music' AND d.effective_rights_risk <> 'high', false) AS pickable,
-      coalesce(d.effective_rights_risk = 'high', false) AS tiktok
+    SELECT a.id, a.name, a.r2_key, (d.descriptor->>'bestStart')::float AS best_start, d.duration_sec,
+      'tiktok' = ANY(a.tags) AS tiktok
     FROM blitz_assets a LEFT JOIN asset_descriptors d ON d.blitz_asset_id = a.id
     WHERE a.type = 'AUDIO' AND a.workspace_id IS NULL
     ORDER BY lower(a.name)`;
@@ -60,44 +55,7 @@ export const listTracks = async (): Promise<AutoTrackDto[]> =>
     (await loadTracks()).map(async (t) => ({ assetId: t.id, name: t.name, url: await blitzBrowserUrl(t.r2_key), startAt: t.best_start ?? 0, durationSec: t.duration_sec, tiktok: t.tiktok })),
   );
 
-/** The tracks a new Hooks Volume campaign starts with, in turn: one per campaign, then round again. */
-const CAMPAIGN_ROTATION = ['all about', 'club', 'intrusive thoughts', 'lean', 'mountain top', 'my eyes no pole', 'three strikes'];
-
-/** The rotation's track for the workspace's `nth` campaign (0-based); null when none of them is in the library. */
-export const rotatingCampaignTrack = async (nth: number): Promise<string | null> => {
-  const rows = await prisma.$queryRaw<Array<{ id: string; name: string }>>`
-    SELECT id, name FROM blitz_assets WHERE type = 'AUDIO' AND workspace_id IS NULL AND lower(name) = ANY(${CAMPAIGN_ROTATION})`;
-  const ids = CAMPAIGN_ROTATION.flatMap((name) => rows.find((r) => r.name.toLowerCase() === name)?.id ?? []);
-  return ids.length ? ids[nth % ids.length] : null;
-};
-
-/** `audience`: who this one slideshow is for, when it differs from the profile's (Blitz deck cards, one per audience). */
-export type ShowForMusic = { goal: string | null; slides: Pick<AutoSlide, 'title' | 'body'>[]; audience?: string };
-/** `recommended`: Jev scored the pick (false when Jev was unavailable and only recency and chance chose it). */
-export type MusicPick = { assetId: string; r2Key: string; name: string; startAt: number; recommended: boolean };
-
-const FIT_RUBRIC = ['Clashes with it', 'Weak fit', 'Okay', 'Good fit', 'Perfect fit'];
-const FIT_QUESTION = 'How well does this background track match this TikTok photo slideshow: its mood, topic, audience and brand?';
-/** Parallel Jev calls across all (slideshow, track) pairs. */
-const JEV_CONCURRENCY = 24;
-
-const trackState = (t: TrackRow) => {
-  const d = t.descriptor ?? {};
-  return { name: t.name, vibe: d.vibe, pacing: d.pacing, energy: d.energyLevel, emotion: d.emotion, sound: d.sound, goodFor: d.imagery, avoidFor: d.avoidFor };
-};
-
-/** Jev fit score (0..1) of every described track, per slideshow. A missing entry means that call failed. */
-const scoreTracks = async (shows: ShowForMusic[], profile: BrandProfile | null, tracks: TrackRow[]): Promise<Map<string, number>[]> => {
-  const business = profile ? { brand: profile.brandName, offer: profile.valueProp, audience: profile.audience, tone: profile.tone } : null;
-  const scores = shows.map(() => new Map<string, number>());
-  const pairs = shows.flatMap((show, i) => tracks.map((track) => ({ i, show, track })));
-  await runPool(pairs, JEV_CONCURRENCY, async ({ i, show, track }) => {
-    const slideshow = { business, goal: show.goal, ...(show.audience ? { audience: show.audience } : {}), slides: show.slides.map((s) => `${s.title} ${s.body}`.trim()) };
-    const s = await jevScore({ slideshow, track: trackState(track) }, FIT_QUESTION, FIT_RUBRIC);
-    if (s !== null) scores[i]!.set(track.id, s);
-  });
-  return scores;
-};
+export type MusicPick = { assetId: string; r2Key: string; name: string; startAt: number };
 
 /**
  * Picks made in this process in the last minutes, per workspace. Slideshow ideas of one batch run in parallel, each its
@@ -122,31 +80,26 @@ const rememberPicks = (workspaceId: string | null, ids: string[]) => {
 };
 
 /**
- * One track per piece of content (slideshow or Blitz card), the same way for both: Jev's fit for this content, fewer
- * points for tracks the workspace used lately, no repeat inside the batch while the library has enough, then a random
- * pick among the close best. Without Jev, recency and chance alone choose. Empty when the library has no music.
+ * One track per piece of content (slideshow or Blitz card), the same way for both: a random pick among the TikTok sounds
+ * the workspace used least lately, no repeat inside the batch while the library has enough. Empty when the library has no music.
  */
-export const matchTracks = async (shows: ShowForMusic[], profile: BrandProfile | null, workspaceId: string | null): Promise<MusicPick[]> => {
+export const matchTracks = async (count: number, workspaceId: string | null): Promise<MusicPick[]> => {
   const tracks = await loadTracks();
-  const pickable = tracks.filter((t) => t.pickable);
-  const pool = pickable.length > 0 ? pickable : tracks;
-  if (pool.length === 0 || shows.length === 0) return [];
+  const tiktok = tracks.filter((t) => t.tiktok);
+  const pool = tiktok.length > 0 ? tiktok : tracks;
+  if (pool.length === 0 || count === 0) return [];
 
-  const [scores, recent] = await Promise.all([
-    isJevEnabled() && pickable.length > 0 ? scoreTracks(shows, profile, pickable) : Promise.resolve(shows.map(() => new Map<string, number>())),
-    recentTrackUse(workspaceId).catch((err: unknown) => {
-      console.warn('[music] recent tracks unreadable:', err instanceof Error ? err.message : err);
-      return new Map<string, number>();
-    }),
-  ]);
+  const recent = await recentTrackUse(workspaceId).catch((err: unknown) => {
+    console.warn('[music] recent tracks unreadable:', err instanceof Error ? err.message : err);
+    return new Map<string, number>();
+  });
   const used = new Set<string>();
   const ids = pool.map((t) => t.id);
   const lately = withJustPicked(workspaceId, recent);
-  const picks = shows.map((_, i): MusicPick => {
-    const fit = scores[i]!;
-    const id = chooseTrack({ pool: ids, fit, recent: lately, used });
+  const picks = Array.from({ length: count }, (): MusicPick => {
+    const id = chooseTrack({ pool: ids, recent: lately, used });
     const track = pool.find((t) => t.id === id)!;
-    return { assetId: track.id, r2Key: track.r2_key, name: track.name, startAt: track.best_start ?? 0, recommended: fit.size > 0 };
+    return { assetId: track.id, r2Key: track.r2_key, name: track.name, startAt: track.best_start ?? 0 };
   });
   rememberPicks(workspaceId, picks.map((p) => p.assetId));
   return picks;
