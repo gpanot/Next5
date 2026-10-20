@@ -9,6 +9,7 @@ import { prisma } from '../../lib/db';
 import type { CostMeter } from '../metaAds/cost';
 import { cleanPhotoStyle } from '../companyIntel/slideshowStyle';
 import type { BrandProfile } from '../../types/admin/companyIntel';
+import { isTargetAge, TARGET_BIBLE_AGES } from '../../types/admin/targetClient';
 import { VISUAL_BIBLE_FIELDS, type VisualBible, type VisualBibleKey } from '../../types/admin/visualBible';
 import { creativeJson, smartModel, type UserContent } from './llm';
 
@@ -112,6 +113,12 @@ const olderBible = async (workspaceId: string, skipId: string): Promise<VisualBi
   return runs.map((r) => (r.profile as unknown as BrandProfile).visualBible).find(Boolean) ?? null;
 };
 
+/** The owner's target client age (types/admin/targetClient.ts) wins over the age range read from the site. */
+const withTargetAge = async (workspaceId: string, bible: VisualBible): Promise<VisualBible> => {
+  const ws = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { targetAge: true } }).catch(() => null);
+  return isTargetAge(ws?.targetAge) ? { ...bible, person_age_range: TARGET_BIBLE_AGES[ws.targetAge] } : bible;
+};
+
 /** The workspace's bible: stored, else carried from an older run, else built now and stored. Null when it cannot be made. */
 export const ensureVisualBible = async (workspaceId: string, meter: CostMeter): Promise<VisualBible | null> => {
   const run = await latestRun(workspaceId);
@@ -122,8 +129,10 @@ export const ensureVisualBible = async (workspaceId: string, meter: CostMeter): 
     console.warn('[shorts] Visual Bible failed:', err instanceof Error ? err.message.slice(0, 200) : err);
     return null;
   }));
-  if (bible) await saveOnRun(run, bible);
-  return bible;
+  if (!bible) return null;
+  const aged = await withTargetAge(workspaceId, bible);
+  await saveOnRun(run, aged);
+  return aged;
 };
 
 /** For the admin editor: the stored bible (null when none yet). */

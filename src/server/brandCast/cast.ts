@@ -15,6 +15,7 @@ import { HttpError } from '../http';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { ensureVisualBible } from '../shorts/visualBible';
+import { targetOf, type TargetClient } from '../autoSlideshow/targetClient';
 import { deleteObject, presignObject, putObject } from '../storage/objectStore';
 import { INTRO_STALE_MS } from './intro';
 import { dropFiles, expiresAt, isStale, tidyArchive, vacate } from './archive';
@@ -62,9 +63,9 @@ export const listCast = async (workspaceId: string): Promise<BrandCastDto> => {
   return { members: await Promise.all(active.map(toDto)), archived: await Promise.all(parked.map(toDto)) };
 };
 
-/** The brand as its latest Auto Slideshow run read it, with its Visual Bible (built now when missing) and the product
- *  photos the cast may wear (clothing brands only). */
-type BrandContext = { profile: BrandProfile; bible: VisualBible | null; products: string[]; outfits: BrandPhotoFacts[] };
+/** The brand as its latest Auto Slideshow run read it, with its Visual Bible (built now when missing), the product
+ *  photos the cast may wear (clothing brands only) and the owner's target client. */
+type BrandContext = { profile: BrandProfile; bible: VisualBible | null; products: string[]; outfits: BrandPhotoFacts[]; target: TargetClient | null };
 
 /** Brands whose people wear the product. A car or an app is never an outfit. */
 const WEARABLE = /\b(apparel|cloth|fashion|wear|athleisure|activewear|shoe|sneaker|boot|jewel|accessor|swim|lingerie|dress|denim|hat|bag)/i;
@@ -77,10 +78,14 @@ const brandContext = async (workspaceId: string, meter: CostMeter): Promise<Bran
   });
   if (!run) throw new HttpError(409, 'no_brand', 'Add your website first. We read your brand from it.');
   const profile = run.profile as unknown as BrandProfile;
-  const [bible, photos] = await Promise.all([profile.visualBible ?? ensureVisualBible(workspaceId, meter).catch(() => null), brandPhotoFacts(workspaceId)]);
+  const [bible, photos, target] = await Promise.all([
+    profile.visualBible ?? ensureVisualBible(workspaceId, meter).catch(() => null),
+    brandPhotoFacts(workspaceId),
+    targetOf(workspaceId).catch(() => null),
+  ]);
   const wearable = WEARABLE.test(`${bible?.business_category ?? ''} ${profile.productCategories.join(' ')}`);
   const outfits = wearable ? photos.filter((p) => p.usableAsReference && (p.photoType === 'product_on_person' || p.photoType === 'product_only')) : [];
-  return { profile, bible, products: productLooks(photos), outfits };
+  return { profile, bible, products: productLooks(photos), outfits, target };
 };
 
 /** The product photo the person wears: the one the writer picked, none when it said none fits them, else one per slot. */

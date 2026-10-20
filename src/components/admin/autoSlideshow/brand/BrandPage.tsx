@@ -3,8 +3,9 @@
 import { BrandWebsite } from './BrandWebsite';
 import { CastSection } from './CastSection';
 import { ProductPhotos } from './ProductPhotos';
+import { TargetClientSection } from '../target/TargetClientSection';
 
-/** /slideshow/[workspaceId]/brand: the brand card read from the website, the brand avatars, then product photos. */
+/** /slideshow/[workspaceId]/brand: the brand card read from the website, the main client, the brand avatars, then product photos. */
 export function BrandPage({ token, workspaceId }: { token: string; workspaceId: string }) {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -18,6 +19,7 @@ export function BrandPage({ token, workspaceId }: { token: string; workspaceId: 
           <BrandWebsite token={token} workspaceId={workspaceId} />
         </section>
         <div className="flex min-w-0 flex-col gap-8">
+          <TargetClientSection token={token} workspaceId={workspaceId} />
           <CastSection token={token} workspaceId={workspaceId} />
           <section aria-labelledby="product-photos-title" className="space-y-3">
             <div className="space-y-0.5">

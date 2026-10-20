@@ -12,6 +12,7 @@ import { requireSlideshowWorkspace } from '../../../../../src/server/autoSlidesh
 import { prisma } from '../../../../../src/lib/db';
 import { runAutoPipeline } from '../../../../../src/server/autoSlideshow/pipeline';
 import { listRuns } from '../../../../../src/server/autoSlideshow/store';
+import { runWaitsForTarget } from '../../../../../src/server/autoSlideshow/targetClient';
 import { expireStuck } from '../../../../../src/server/autoSlideshow/stuck';
 import { normalizeUrl } from '../../../../../src/server/companyIntel/profile';
 import { enforceRateLimit } from '../../../../../src/server/rateLimit';
@@ -48,7 +49,9 @@ export const POST = slideshowRoute(async (req: NextRequest, _ctx: unknown, acces
     const tz = body.tzOffsetMin;
     if (typeof tz === 'number' && Number.isInteger(tz) && Math.abs(tz) <= 14 * 60) await prisma.workspace.update({ where: { id: workspaceId }, data: { ideaTzOffsetMin: tz } });
   }
-  const run = await prisma.autoSlideshowRun.create({ data: { url, count, workspaceId } });
+  // A new workspace's first run makes no face and no slideshow before the owner picks the target client.
+  const waitForTarget = workspaceId ? await runWaitsForTarget(workspaceId) : false;
+  const run = await prisma.autoSlideshowRun.create({ data: { url, count, workspaceId, waitForTarget } });
   waitUntil(runAutoPipeline(run.id, 1));
   return json({ runId: run.id }, { status: 201 });
 });

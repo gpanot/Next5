@@ -26,8 +26,9 @@ export const AUTO_STEP_LABELS: Record<AutoStep, string> = {
   6: 'Render',
 };
 
-/** 'HELD': a Prospect Pack's run waiting after step 3 for the admin to approve its Brand Cast faces. */
-export type AutoRunStatus = `STEP_${AutoStep}_RUNNING` | 'HELD' | 'COMPLETED' | 'FAILED';
+/** 'HELD': a Prospect Pack's run waiting after step 3 for the admin to approve its Brand Cast faces.
+ *  'WAITING_TARGET': a new workspace's first run waiting after step 3 for the owner to pick the target client. */
+export type AutoRunStatus = `STEP_${AutoStep}_RUNNING` | 'HELD' | 'WAITING_TARGET' | 'COMPLETED' | 'FAILED';
 
 export const MIN_SLIDESHOWS = 1;
 export const MAX_SLIDESHOWS = 20;
@@ -290,7 +291,7 @@ export const PRIVACY_LABELS: Record<string, string> = {
 
 export const isTerminalAutoStatus = (s: AutoRunStatus) => s === 'COMPLETED' || s === 'FAILED';
 
-export const currentAutoStep = (s: AutoRunStatus): number => (s === 'COMPLETED' ? 7 : s === 'FAILED' ? 0 : s === 'HELD' ? 4 : Number(s.charAt(5)));
+export const currentAutoStep = (s: AutoRunStatus): number => (s === 'COMPLETED' ? 7 : s === 'FAILED' ? 0 : s === 'HELD' || s === 'WAITING_TARGET' ? 4 : Number(s.charAt(5)));
 
 /** Most live workspaces one user can have. */
 export const MAX_WORKSPACES = 10;

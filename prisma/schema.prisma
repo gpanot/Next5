@@ -265,6 +265,13 @@ model Workspace {
   brandExtractAt        DateTime?     @map("brand_extract_at")
   /// Share of slideshows (0-100) in a batch of calendar ideas; the rest are Blitz videos. Settings › Content.
   ideaSlideshowPct      Int           @default(10) @map("idea_slideshow_pct")
+  /// Target client (src/types/admin/targetClient.ts), picked on the first onboarding screen, editable on the Brand page:
+  /// "20_30" | "30_40" | "40_50" | "50_plus"; null until picked. The Brand Cast is cast from it.
+  targetAge             String?       @map("target_age")
+  /// "female" | "male" | "both"; null until picked
+  targetGender          String?       @map("target_gender")
+  /// When the owner first picked the target client; null: a new workspace's first run waits for it after step 3
+  targetConfirmedAt     DateTime?     @map("target_confirmed_at")
   /// The browser's UTC offset (minutes, as Date.getTimezoneOffset): the server plans the first ideas batch on its days.
   ideaTzOffsetMin       Int?          @map("idea_tz_offset_min")
   /// Set while a batch of calendar ideas is being written (lock; stale after 5 min).
@@ -2338,7 +2345,7 @@ model AutoSlideshowRun {
   count           Int
   /// Workspace whose TikTok account will post; null for admin test runs
   workspaceId     String?   @map("workspace_id")
-  /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'COMPLETED' | 'FAILED'
+  /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'HELD' | 'WAITING_TARGET' | 'COMPLETED' | 'FAILED'
   status          String    @default("STEP_1_RUNNING")
   /// Step 1: BrandProfile (flat copy of the shared profile below)
   profile         Json?
@@ -2362,6 +2369,8 @@ model AutoSlideshowRun {
   photoJobs       Json?     @map("photo_jobs")
   /// Prospect Pack runs: stop after step 3 (status 'HELD') until the admin approves the Brand Cast faces
   holdBeforeStep4 Boolean   @default(false) @map("hold_before_step4")
+  /// A new workspace's first run: stop after step 3 (status 'WAITING_TARGET') until the owner picks the target client
+  waitForTarget   Boolean   @default(false) @map("wait_for_target")
   /// Prospect Pack runs: positions of slideshows made with only their first slide until the pack is unlocked
   coverOnlyPositions Int[]  @default([]) @map("cover_only_positions")
   stepTimings     Json      @default("{}") @map("step_timings")

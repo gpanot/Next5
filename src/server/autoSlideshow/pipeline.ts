@@ -24,6 +24,7 @@ import type { VisualBible } from '../../types/admin/visualBible';
 import { castForShows, prepareCast } from '../brandCast/cast';
 import { brandPhotoFacts, productLooks } from '../brandContent/productPhotos';
 import { ensureVisualBible } from '../shorts/visualBible';
+import { castWaitsForTarget, holdForTarget } from './targetClient';
 import { bankForSite, loadUsage } from './bank/build';
 import { assembleCombo, pickCombos } from './bank/pick';
 import { headsFor, withDetectedHeads, type HeadsCache } from './heads';
@@ -151,9 +152,9 @@ const startWarmUp = (runId: string) => {
     const profile = run.profile as unknown as BrandProfile | null;
     const workspaceId = await contentWorkspaceId(run);
     if (!profile || !workspaceId) return;
-    // The cast reads the Visual Bible, so it comes second.
+    // The cast reads the Visual Bible, so it comes second. A first run waiting for the target client makes it in step 4.
     await runBible(runId, profile, workspaceId, meter);
-    await prepareCast(workspaceId, meter);
+    if (!(await castWaitsForTarget(runId))) await prepareCast(workspaceId, meter);
   })()
     .catch((err: unknown) => console.warn(`[auto-slideshow] run ${runId}: warm-up failed (${err instanceof Error ? err.message : err})`))
     .then(() => meter.summary());
@@ -387,7 +388,7 @@ export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, app
         startWarmUp(runId);
         await kickIdeas(runId, 'bank');
       }
-      if (step === 3 && append === 0 && (await holdForCast(runId))) return;
+      if (step === 3 && append === 0 && ((await holdForCast(runId)) || (await holdForTarget(runId)))) return;
       if (step === 4 && (await handOff(runId))) return;
       if (step === 5 && (await photosLeft(runId)) && (await handOff(runId))) return;
     } catch (err) {

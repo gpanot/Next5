@@ -2,13 +2,16 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import type { AutoRunDto } from '../../../../types/admin/autoSlideshow';
+import { currentAutoStep, type AutoRunDto } from '../../../../types/admin/autoSlideshow';
 import { LAST_COUNTED_STEP, ONBOARDING_LAST_STEP, type OnboardingProfileDto } from '../../../../types/admin/onboarding';
+import type { TargetAge, TargetGender } from '../../../../types/admin/targetClient';
 import { adminFetch } from '../../business/useAdminApi';
 import { StepScreen } from './OnboardingSteps';
 import { BuildBar, OnboardingHeader, TITLE_ID } from './OnboardingChrome';
 import { trackOnboarding, type TrackContext } from './onboardingAnalytics';
 import { FailedNotice } from './ReadyScreen';
+import { TargetClientScreen } from './TargetClientScreen';
+import { useTargetClient } from '../target/useTargetClient';
 import { useBuildStatus } from './useBuildStatus';
 import { useOnboarding } from './useOnboarding';
 
@@ -16,6 +19,12 @@ type Props = { token: string; workspaceId: string; run: AutoRunDto; onRunChanged
 
 /** Option keys picked on a screen, for analytics. Never the free text. */
 const answerKeysOf = (a: Partial<OnboardingProfileDto>): string[] => [...(a.goals ?? []), ...(a.pains ?? []), ...(a.postingMode ? [a.postingMode] : []), ...(a.monthlySpend ? [a.monthlySpend] : [])];
+
+/** The age range read from the website ("25-45"), when the run has it and the site shows people. */
+const detectedRangeOf = (run: AutoRunDto): string | null => {
+  const range = run.profile?.visualBible?.person_age_range?.trim();
+  return range && !/^none$/i.test(range) ? range : null;
+};
 
 /** Mobile: full screen. Desktop: a 440px modal over the dimmed calendar. */
 function Frame({ children }: { children: ReactNode }) {
@@ -57,6 +66,7 @@ const useBuildMoments = (ctx: TrackContext | null, build: ReturnType<typeof useB
 /** The onboarding shown while a new workspace's first run builds. Answers are saved for stats only. */
 export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props) {
   const flow = useOnboarding(token, workspaceId);
+  const target = useTargetClient(token, workspaceId);
   const router = useRouter();
   const build = useBuildStatus(run);
   const [retrying, setRetrying] = useState(false);
@@ -103,8 +113,38 @@ export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props)
     onRunChanged();
   };
 
+  const confirmTarget = async (age: TargetAge, gender: TargetGender) => {
+    if (await target.save(age, gender)) trackOnboarding('onboarding_target_picked', ctx, { age, gender });
+  };
+
   const onLast = flow.step === ONBOARDING_LAST_STEP;
   const failed = build.build.status === 'failed';
+  // Hard stop before anything else: no avatar and no slideshow until the owner picks their main client.
+  if (target.loading || !target.target?.confirmedAt) {
+    return (
+      <Frame>
+        <OnboardingHeader step={0} onBack={flow.back} onSkip={skip} />
+        <BuildBar pct={build.barPct(0)} done={false} />
+        {target.loading ? (
+          <div className="flex-1 space-y-3 px-6 pt-5" aria-busy="true">
+            <div className="h-8 w-3/4 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />
+            <div className="h-24 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />
+          </div>
+        ) : (
+          <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col animate-onb-forward">
+            <TargetClientScreen
+              target={target.target}
+              detectedRange={detectedRangeOf(run)}
+              reading={!failed && currentAutoStep(run.status) <= 3}
+              saving={target.saving}
+              error={target.saveError}
+              onConfirm={(age, gender) => void confirmTarget(age, gender)}
+            />
+          </div>
+        )}
+      </Frame>
+    );
+  }
   return (
     <Frame>
       <OnboardingHeader step={flow.step} onBack={flow.back} onSkip={skip} />

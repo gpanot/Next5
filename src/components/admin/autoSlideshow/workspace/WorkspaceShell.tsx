@@ -6,6 +6,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import type { SlideshowWorkspaceDto } from '../../../../types/admin/autoSlideshow';
 import { prefetchAdminApi, useAdminApi } from '../../business/useAdminApi';
 import { SettingsModal } from '../settings/SettingsModal';
+import { TargetClientPrompt } from '../target/TargetClientPrompt';
 import { UserGate } from '../UserGate';
 import { useWorkspaceSettings } from './useWorkspaceSettings';
 import { TopBarSlotProvider, useTopBarSlotRef } from './TopBarSlot';
@@ -93,6 +94,7 @@ function WorkspaceFrame({ token, workspaceId, children }: { token: string; works
       </div>
       <WorkspaceBottomTabs workspaceId={workspaceId} settings={settings} />
       {/* Outside the sticky header: its backdrop blur would make it the containing block of the fixed modal. */}
+      {workspace && <TargetClientPrompt key={workspace.id} token={token} workspaceId={workspace.id} />}
       {workspace && settings.tab && <SettingsModal token={token} workspaceId={workspace.id} initialTab={settings.tab} onClose={settings.close} />}
     </div>
   );

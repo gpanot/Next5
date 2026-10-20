@@ -5,17 +5,33 @@
 // models skip fields nested in an object.
 
 import type { BrandProfile } from '../../types/admin/companyIntel';
+import { TARGET_AGE_LABELS, TARGET_CAST_AGES, type TargetGender } from '../../types/admin/targetClient';
 import type { VisualBible } from '../../types/admin/visualBible';
 import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { creativeJson, type UserContent } from '../shorts/llm';
+import type { TargetClient } from '../autoSlideshow/targetClient';
 
 /** The cast writer (the user's pick, 2026-10-10); gpt-5.4-nano answers when it fails. */
 const CAST_MODEL = 'gpt-6.1-sol';
 
-/** Written faces stay in this age range (the owner can still pick any age with "Edit name and age", or ask in a swap). */
+/** Written faces stay in this age range (the owner can still pick any age with "Edit name and age", or ask in a swap).
+ *  When the owner picked a target client, its range instead (TARGET_CAST_AGES). */
 const CAST_MIN_AGE = 22;
 const CAST_MAX_AGE = 42;
+
+const castAges = (target: TargetClient | null) => (target ? TARGET_CAST_AGES[target.age] : { min: CAST_MIN_AGE, max: CAST_MAX_AGE });
+
+const GENDER_RULE: Record<TargetGender, { who: string; cast: string }> = {
+  female: { who: 'women', cast: 'every person is a woman' },
+  male: { who: 'men', cast: 'every person is a man' },
+  both: { who: 'women and men', cast: 'a mix of women and men (one person: either)' },
+};
+
+/** The owner's own pick of who they sell to most today: it wins over the audience read from the site. */
+const targetText = (target: TargetClient | null) => (target
+  ? `\nTARGET CLIENT (the owner's pick, it wins over AUDIENCE): ${GENDER_RULE[target.gender].who}, aged ${TARGET_AGE_LABELS[target.age]}. Cast: ${GENDER_RULE[target.gender].cast}, aged ${castAges(target).min}-${castAges(target).max}.`
+  : '');
 
 /** `outfitPhoto`: index into the outfit photos the writer was shown (OUTFIT PHOTOS P1, P2…); null when it said none
  *  fits; missing when it did not answer. */
@@ -29,8 +45,9 @@ must like looking at them: good-looking, fit, healthy, confident people from the
 wants to look like. Think of the most attractive creator a brand would pick for its best TikToks: real and believable
 (natural skin, real proportions), not airbrushed runway models.
 - Match the audience's gender, lifestyle and price level. A brand for women casts women; a mixed audience gets a mix.
-- Age: the younger, energetic end of the audience, between {MIN} and {MAX}. When the audience is older, cast people in their
-  late 30s or early 40s who look young for their age and active. Never elderly.
+  A TARGET CLIENT line is the owner's own pick: follow its gender and ages exactly.
+- Age: the younger, energetic end of the audience, between {MIN} and {MAX}. Older people look young for their age and
+  active. Never elderly.
 - Bodies: fit, slim, toned or athletic, good posture. Faces: attractive, clear healthy skin, bright warm smile, well groomed hair.
 - Every person looks clearly different from the others: skin tone and ethnicity, hair color and style, face. Diverse, friendly.
 - Dress them for the brand: when it sells clothing, shoes or accessories, they wear the brand's own pieces (from WARDROBE
@@ -45,9 +62,9 @@ Return JSON with flat keys only, for each person N from 1 to {COUNT}:
 person another one when there are enough; "none" when there are none, or when none fits this person (women's pieces on
 a man, kids' clothes on an adult...): then person_N_outfit describes clothes of the brand's world that fit them.`;
 
-const brandText = (profile: BrandProfile, bible: VisualBible | null, products: string[], outfits: string[]) => `BRAND: ${profile.brandName} (${profile.domain})
+const brandText = ({ profile, bible, products, outfits, target }: CastBrief) => `BRAND: ${profile.brandName} (${profile.domain})
 SELLS: ${profile.valueProp}
-AUDIENCE: ${profile.audience}
+AUDIENCE: ${profile.audience}${targetText(target)}
 ${bible ? `CATEGORY: ${bible.business_category}
 AUDIENCE AGE RANGE (cast at its younger end): ${bible.person_age_range}
 PEOPLE LOOK (from the brand's photos): ${bible.person_look}
@@ -57,8 +74,8 @@ OUTFIT PHOTOS: ${outfits.length ? outfits.map((o, i) => `P${i + 1}: ${o}`).join(
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? clip(v.replace(/\s+/g, ' ').trim(), max) : '');
 
-/** `capAge`: keeps written ages within CAST_MIN_AGE-CAST_MAX_AGE (off when the owner guided the swap). */
-const toPersonas = (raw: Record<string, unknown>, count: number, outfits: number, capAge: boolean): Persona[] =>
+/** `ages`: keeps written ages within this range (null when the owner guided the swap). */
+const toPersonas = (raw: Record<string, unknown>, count: number, outfits: number, ages: { min: number; max: number } | null): Persona[] =>
   Array.from({ length: count }, (_, i) => {
     const n = i + 1;
     const name = str(raw[`person_${n}_name`], 30);
@@ -67,7 +84,7 @@ const toPersonas = (raw: Record<string, unknown>, count: number, outfits: number
     const outfit = str(raw[`person_${n}_outfit`] ?? raw[`person_${n}_style`], 200).replace(/\.$/, '');
     if (!name || !look) return null;
     const written = Number.isFinite(age) && age > 0 ? Math.round(age) : null;
-    const ageText = written && capAge ? Math.min(CAST_MAX_AGE, Math.max(CAST_MIN_AGE, written)) : written;
+    const ageText = written && ages ? Math.min(ages.max, Math.max(ages.min, written)) : written;
     const said = str(raw[`person_${n}_outfit_photo`], 6);
     const photo = Number(said.replace(/^P/i, '')) - 1;
     return {
@@ -88,20 +105,22 @@ const guideText = (guide: CastGuide | undefined): string => {
   ].filter(Boolean).join('\n');
 };
 
-/** What the writer knows about the brand: its profile, Visual Bible, product names and the outfit photos it may pick. */
-export type CastBrief = { profile: BrandProfile; bible: VisualBible | null; products: string[]; outfits: string[] };
+/** What the writer knows about the brand: its profile, Visual Bible, product names, the outfit photos it may pick and the
+ *  owner's target client (null when not picked). */
+export type CastBrief = { profile: BrandProfile; bible: VisualBible | null; products: string[]; outfits: string[]; target: TargetClient | null };
 
 /**
  * `count` new people for the brand. `avoid`: people already in the cast, so the new ones look clearly different.
  * `guide`: the owner's note and/or reference photo when they swap one face. Throws when the model gives fewer than asked.
  */
-export const writePersonas = async ({ profile, bible, products, outfits }: CastBrief, count: number, avoid: Persona[], meter: CostMeter, guide?: CastGuide): Promise<Persona[]> => {
+export const writePersonas = async (brief: CastBrief, count: number, avoid: Persona[], meter: CostMeter, guide?: CastGuide): Promise<Persona[]> => {
   const others = avoid.length ? `\n\nALREADY IN THE CAST (each new person must look clearly different from all of them, and have another name):\n${avoid.map((p) => `- ${p.name}: ${p.look}`).join('\n')}` : '';
-  const text = `${brandText(profile, bible, products, outfits)}${others}${guideText(guide)}\n\nWrite ${count} ${count === 1 ? 'person' : 'people'}.`;
+  const text = `${brandText(brief)}${others}${guideText(guide)}\n\nWrite ${count} ${count === 1 ? 'person' : 'people'}.`;
   const user: UserContent = guide?.photoUrl ? [{ type: 'text', text }, { type: 'image_url', image_url: { url: guide.photoUrl, detail: 'low' } }] : text;
-  const system = SYSTEM.replace('{COUNT}', String(count)).replace('{MIN}', String(CAST_MIN_AGE)).replace('{MAX}', String(CAST_MAX_AGE));
+  const ages = castAges(brief.target);
+  const system = SYSTEM.replace('{COUNT}', String(count)).replace('{MIN}', String(ages.min)).replace('{MAX}', String(ages.max));
   const raw = await creativeJson<Record<string, unknown>>(system, user, meter, 'Brand cast', CAST_MODEL);
-  const personas = toPersonas(raw, count, outfits.length, !guide?.note && !guide?.photoUrl);
+  const personas = toPersonas(raw, count, brief.outfits.length, guide?.note || guide?.photoUrl ? null : ages);
   if (personas.length < count) throw new Error(`The cast writer gave ${personas.length} of ${count} people`);
   return personas;
 };
