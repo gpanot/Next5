@@ -40,16 +40,32 @@ Live: social media manager cost; can ChatGPT do your social media.
 
 ## industry
 
-Live: social media for realtors (30 post ideas).
-
 One article per trade, only with trade-specific hooks, examples and questions:
 
 - tiktok ideas for restaurants
 - social media for hair salons
 - social media for gyms
-- social media marketing for dentists
+- what to post on social media as a dentist
 - tiktok for plumbers
 - social media for hvac companies
 - social media for auto repair shops
 - social media for cleaning business
+
+## realtors
+
+Live: social media for realtors (30 post ideas).
+
+- what to post on tiktok as a realtor
+- what to post on instagram as a new realtor
+- just listed post ideas
+- open house social media post ideas
+- how to get real estate leads from tiktok
+- real estate instagram captions
+
+## tiktok-shop
+
+Live: how to sell on TikTok Shop.
+
 - tiktok shop product photos without a model
+- how to make tiktok shop videos without showing your face
+- what to post on tiktok shop to get sales

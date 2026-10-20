@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { ALL_ARTICLES, articleHref } from '../../src/content/guides';
@@ -44,6 +44,7 @@ const internalLinks = (a: Article): string[] =>
   [...allText(a).join('\n').matchAll(/\]\((\/[^)\s]*)\)/g)].map((m) => m[1].split('#')[0] || '/');
 
 const ARTICLE_PATHS = new Set(ALL_ARTICLES.map(articleHref));
+const MANIFEST: Record<string, unknown> = JSON.parse(readFileSync(join(process.cwd(), 'public/images/manifest.json'), 'utf8'));
 const isIso = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d));
 
 describe('every article', () => {
@@ -71,8 +72,13 @@ describe('every article', () => {
         }
       });
 
-      it('uses a real Next5 slideshow as its cover', () => {
-        expect(existsSync(join(process.cwd(), 'public/images/auto-slideshow', a.cover, '1.jpg'))).toBe(true);
+      it('uses a real cover: a Next5 slideshow, or a generated photo listed in the manifest', () => {
+        if (a.cover.startsWith('/images/')) {
+          expect(existsSync(join(process.cwd(), 'public', a.cover))).toBe(true);
+          expect(Object.keys(MANIFEST)).toContain(`public${a.cover}`);
+        } else {
+          expect(existsSync(join(process.cwd(), 'public/images/auto-slideshow', a.cover, '1.jpg'))).toBe(true);
+        }
       });
 
       it('has a call to action', () => {

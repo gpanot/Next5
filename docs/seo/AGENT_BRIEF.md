@@ -10,10 +10,15 @@ business's market. The owner approves every post. $2.99 a post, first 3 free, no
 
 ## Who reads our articles
 
-US small business owners who need more customers and have no time or team for social media:
-realtors, home services (plumbers, HVAC, electricians, auto repair), local shops and services
-(salons, gyms, restaurants, clinics, cleaners) and TikTok Shop sellers. They search Google with a
-problem ("what to post as a realtor", "how to get customers from TikTok"), not for a product.
+Owners and managers of US small and mid-size businesses (SMEs) that need more customers and have no
+marketing team. Mostly local, "non-sexy" trades whose marketing is weak: home services (plumbers,
+HVAC, electricians, auto repair), clinics (dentists, chiropractors), local shops and services
+(salons, gyms, restaurants, cleaners). Realtors and TikTok Shop sellers are core too, with their own
+hubs. They search Google with a problem ("what to post as a plumber", "how to get customers from
+TikTok"), not for a product.
+
+Not our reader: founders and startups, and companies of 500+ people that already have a marketing
+team. Skip queries written for them ("saas content strategy", "social media manager career").
 
 ## The promise of every article
 
@@ -36,11 +41,20 @@ requirement. If an article only works as an ad, it is not an article.
 | `how-to` | Formats and skills: slideshows, hooks, captions, calendar, timing |
 | `get-customers` | Turning posts into leads, bookings and sales |
 | `cost-alternatives` | What it costs, and the options: freelancer, agency, ChatGPT, tools |
-| `industry` | One trade at a time, with that trade's own hooks, examples and customer questions |
+| `industry` | One local trade at a time (not realtors), with that trade's own hooks, examples and customer questions |
+| `realtors` | Everything for real estate agents: what to post, listing content, getting leads |
+| `tiktok-shop` | Everything for TikTok Shop sellers: product posts, selling, product photos |
 | `product` | How to use Next5 itself (kind `guide`) |
 
 Industry articles are only worth publishing when the content is truly different for that trade.
-Never clone an article and swap the trade name.
+Never clone an article and swap the trade name, and never reuse another article's skeleton (same
+opening, same section names, same tables).
+
+## One narrow question
+
+Each article answers one question the way an owner types it. Vaultaire's titles are the model: "Does
+CarPlay show your photos on the car screen?", "How to share holiday photos without showing your
+camera roll". The narrower the question, the easier it is to be the best answer on Google.
 
 ## Article structure
 
@@ -61,8 +75,12 @@ Fields to get right:
 
 - `keyword`: the exact search phrase. Must be unique across articles.
 - `seoTitle`: 65 characters max. `description`: 70 to 160 characters.
-- `cover`: a folder in `public/images/auto-slideshow/` with a real Next5 slideshow. Pick the one
-  closest to the topic and describe it in `coverAlt`.
+- `cover`: `/images/guides/<slug>.png`, a photo generated for this article that shows the same trade
+  or topic (see DAILY_RUN.md step 4). Describe exactly what it shows in `coverAlt`. Older articles use
+  a Next5 slideshow folder; keep those as they are.
+- A short "How Next5 does this" part where it fits: how Next5 would make this kind of post for the
+  reader. One section at most, after the reader already has the free answer. Never describe the
+  cover as something Next5 made.
 - `published`: today's date. `updated`: set when you improve an existing article.
 
 ## Links
@@ -76,4 +94,7 @@ Fields to get right:
 
 - Never invent statistics, studies, quotes, customers or results.
 - Platform facts (TikTok features, limits) must be checked on the web the same day.
+- Health, legal and money claims need a primary source: the law, the regulator or the official site.
+- End with a `Sources` h2 listing the external sources behind the facts, as links. Every source is
+  also in the research notes.
 - When in doubt, leave it out.

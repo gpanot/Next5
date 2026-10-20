@@ -20,7 +20,7 @@ export type ArticleFaq = { q: string; a: string };
  * Topic cluster. Related reading prefers the same hub, so a new article links into its cluster
  * instead of a random list. See docs/seo/AGENT_BRIEF.md for what each hub covers.
  */
-export type ArticleHub = 'post-ideas' | 'how-to' | 'get-customers' | 'cost-alternatives' | 'industry' | 'product';
+export type ArticleHub = 'post-ideas' | 'how-to' | 'get-customers' | 'cost-alternatives' | 'industry' | 'realtors' | 'tiktok-shop' | 'product';
 
 export type Article = {
   kind: ArticleKind;
@@ -44,7 +44,10 @@ export type Article = {
   /** ISO date (YYYY-MM-DD). */
   published: string;
   updated?: string;
-  /** Folder under public/images/auto-slideshow/ — a real slideshow Next5 made, used as the cover. */
+  /**
+   * The cover, 4:5. Either a folder under public/images/auto-slideshow/ (a real slideshow Next5 made),
+   * or a generated photo path under /images/guides/ that is listed in public/images/manifest.json.
+   */
   cover: string;
   coverAlt: string;
   blocks: readonly ArticleBlock[];
