@@ -85,10 +85,11 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     maxImages: 16,
     sizing: 'ratio',
     supports2k: false,
-    // $0.005 flat at 1K, low quality. Given by the team 2026-09-29.
-    priceUsdMicros: { '1k': 5_000, '2k': 5_000 },
+    // $0.004 flat at 1K, low quality. Given by the team 2026-10-20 ($0.005 on 2026-09-29).
+    priceUsdMicros: { '1k': 4_000, '2k': 4_000 },
     // reAPI wants lowercase "1k" here; it overrides the ratio sizing's "1K".
-    extraBody: { resolution: '1k', quality: 'low', background: 'auto', moderation: 'auto' },
+    // moderation 'low' (user, 2026-10-20): 'auto' blocked plain gym-wear shots (sports bras, leggings).
+    extraBody: { resolution: '1k', quality: 'low', background: 'auto', moderation: 'low' },
   },
   'reapi-grok-imagine': {
     id: 'reapi-grok-imagine',

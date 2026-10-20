@@ -130,6 +130,23 @@ function VoiceWait() {
   );
 }
 
+/** An images-only card (its hook asks for one too) whose photos are still being made: it waits for them, as its
+ *  library clips are only stand-ins. */
+const photosPending = (idea: IdeaDto) =>
+  Boolean(idea.card?.finishing && idea.card.pendingImages?.needs.some((n) => n.role === 'hook'));
+
+/** Over an images-only card until its photos are on (~1 min): hides the stand-in clips. Swipes still go through. */
+function PhotosWait() {
+  return (
+    <div role="status" className="pointer-events-none absolute inset-0 z-[6] grid place-items-center rounded-[26px] bg-zinc-900 transition-opacity dark:bg-zinc-950">
+      <span className="flex flex-col items-center gap-3 px-6 text-center text-[13px] font-semibold text-white">
+        <span aria-hidden className="h-8 w-8 animate-spin rounded-full border-[3px] border-white/30 border-t-white" />
+        Making the photos for this video…
+      </span>
+    </div>
+  );
+}
+
 /** The swap buttons for the shot on screen (Blitz ideas with `clips`): a photo swaps for a photo, a clip for a clip.
  *  The card's own runner-ups show at once; past them the server searches the library (`busy` meanwhile). */
 const useShotSwap = (idea: IdeaDto, shot: number, clips?: DeckClips): ShotSwap | undefined => {
@@ -159,6 +176,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
   const swap = useShotSwap(idea, shot, clips);
   // A Blitz idea plays once its voiceover is recorded (or failed: it then plays without), not before.
   const awaitingVoice = Boolean(idea.card) && onVoice !== null && (!voice || voice.status === 'loading');
+  const awaitingPhotos = photosPending(idea);
   const decide = async (status: 'kept' | 'discarded') => {
     if (exit) return;
     if (status === 'kept' && confirmKeep && !(await confirmKeep())) return; // the card slides back
@@ -194,7 +212,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
           narration={voice?.status === 'ready' ? voice.narration : null}
           ariaLabel={`${formatLabel(idea)} idea: ${idea.hook}`}
           paused={paused}
-          externalPause={awaitingVoice}
+          externalPause={awaitingVoice || awaitingPhotos}
           onPausedChange={setPaused}
           onShotChange={setShot}
           onCaptionMove={idea.card && onCaptionMove ? (at, y) => onCaptionMove(idea, at, y) : undefined}
@@ -207,7 +225,8 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
             </span>
           </div>
         )}
-        {awaitingVoice && !hookStyle?.pending && <VoiceWait />}
+        {awaitingPhotos && !hookStyle?.pending && <PhotosWait />}
+        {awaitingVoice && !awaitingPhotos && !hookStyle?.pending && <VoiceWait />}
         {voice?.status === 'error' && <VoiceNote key={voice.message} message={voice.message} />}
         {menu && <div className={`absolute z-10 ${MENU_AT[at]}`}>{menu}</div>}
         <div className={`absolute z-10 ${SIDE_AT[at]}`}>

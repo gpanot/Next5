@@ -43,23 +43,50 @@ describe('batchShotImages', () => {
 
   const needs: BatchNeed[] = [{ script: 0, audience: 'electricians', categories: ['home_services'], need: need('Calls go to voicemail.') }];
 
-  it('makes AI images once the workspace has paid', async () => {
+  it('makes Nano Banana images once the workspace has paid', async () => {
     mocks.paid.mockResolvedValue(true);
     await batchShotImages(needs, 1, 'ws1', {} as never);
     expect(mocks.generate).toHaveBeenCalledOnce();
+    expect(mocks.generate.mock.calls[0]![5]).toBeUndefined();
   });
 
-  it('never makes AI images before the workspace has paid', async () => {
+  it('makes cheap GPT Image 2 images, not stock, before the workspace has paid', async () => {
     mocks.paid.mockResolvedValue(false);
     const out = await batchShotImages(needs, 1, 'ws1', {} as never);
-    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(mocks.generate.mock.calls[0]![5]).toBe('reapi-gpt-image-2-low');
+    expect(mocks.pexels).not.toHaveBeenCalled();
     expect(out).toHaveLength(1);
   });
 
-  it('uses stock when the paid check fails', async () => {
+  it('tells each script its images as soon as they are made, not at the end of the batch', async () => {
+    mocks.paid.mockResolvedValue(false);
+    let finish!: () => void;
+    const later = new Promise<void>((resolve) => { finish = resolve; });
+    mocks.generate.mockImplementation(async (_a: string, _c: string[], leads: Array<{ key: string; priority?: number }>, _w: unknown, _b: unknown, _m: unknown, onImage: (k: string, i: unknown) => void) => {
+      const [first, second] = leads;
+      onImage(first!.key, { r2Key: 'one' });
+      await later;
+      onImage(second!.key, null);
+      return new Map([[first!.key, { r2Key: 'one' }]]);
+    });
+    const two: BatchNeed[] = [
+      { script: 0, audience: 'electricians', categories: [], need: need('Calls go to voicemail.') },
+      { script: 1, audience: 'electricians', categories: [], need: { ...need('A totally different moment here'), key: 'electricians:oldWay', role: 'oldWay' } },
+    ];
+    const told: number[] = [];
+    const run = batchShotImages(two, 2, 'ws1', {} as never, (script) => told.push(script));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(told).toEqual([0]);
+    expect(mocks.generate.mock.calls[0]![2].map((l: { priority?: number }) => l.priority)).toEqual([0, 1]);
+    finish();
+    await run;
+    expect(told).toEqual([0, 1]);
+  });
+
+  it('makes cheap images when the paid check fails', async () => {
     mocks.paid.mockRejectedValue(new Error('db down'));
     await batchShotImages(needs, 1, 'ws1', {} as never);
-    expect(mocks.generate).not.toHaveBeenCalled();
+    expect(mocks.generate.mock.calls[0]![5]).toBe('reapi-gpt-image-2-low');
   });
 });
 

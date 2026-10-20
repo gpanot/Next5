@@ -18,9 +18,12 @@ export type PhotoBrand = {
   look: string | null;
   /** The product itself may be a photo's subject. */
   productAsSubject: boolean;
+  /** Age and gender of the people shown, from the owner's target client (targetPeople). Absent = not picked. */
+  people?: string | null;
 };
 
-export type ShotPhoto = { prompt: string; description: string };
+/** `people`: the PhotoBrand.people it was written for; a prompt written for other people is written again. */
+export type ShotPhoto = { prompt: string; description: string; people?: string };
 
 /** One shot to picture: `label` says what the beat is in this story's format ("Myth", "Step 1", "After"). */
 export type PhotoShot = { id: string; role: string; label: string; text: string; intent?: string };
@@ -34,14 +37,17 @@ For each shot, a prompt of 40-70 words:
 - The exact moment of its line, with the concrete things the line names (the food, the tool, the place, the gesture).
 - Real-looking photography of a person or place in the audience's world. Follow the brand's Visual style for who and what
   appears, the setting and the clothes: the pictures must feel like this brand, not like stock.
+- PEOPLE, when given, is a hard rule for the age and gender of everyone shown; it wins over the Visual style. Write
+  the age into every prompt that shows a person.
 - One story = one main character and one home or workplace: describe them the same way in every shot of the story
   (age range, look, clothes, the room), so the shots feel like one video.
 - A different camera on every shot of a story: wide scene, medium shot, close-up on hands and objects in action,
   over-the-shoulder, low angle, high angle, view through a doorway... Never the same framing twice in a story.
 - Body language fits the beat: problem and old way = real, specific frustration; fix = ease and control; proof and
   result = visible relief, the result in the frame; cost of waiting = the loss showing.
-- When the line is about the product, show it in use as it really looks (an app on a phone held naturally, the product
-  in its real setting). When "Product as subject" is yes, the product may be the subject. The brand may appear.
+- Only the cta shot may show the product, in use as it really looks (an app on a phone held naturally, the product in
+  its real setting); "Product as subject" applies to the cta shot only. Every other shot shows the audience's real
+  moment with no product, no app screen and no brand: the video is value content, not an ad.
 - Bright daylight. Never: dusk, night, golden hour, moody or cinematic light, close-up faces, readable text, captions,
   documents, clipboards, paper or a lone object as the whole subject.
 - Describe only what is in the photo (no "no text").
@@ -53,6 +59,7 @@ const brandBlock = (brand: PhotoBrand, audience: string, categories: string[]) =
   `AUDIENCE: ${audience}${categories.length ? ` (${categories.map(categoryLabel).join(', ')})` : ''}`,
   `Visual style: ${brand.look || 'everyday scenes of the audience at home or at work'}`,
   `Product as subject: ${brand.productAsSubject ? 'yes' : 'no'}`,
+  ...(brand.people ? [`PEOPLE: ${brand.people}`] : []),
 ].join('\n');
 
 const storyBlock = (story: PhotoStory, keyOf: (shot: PhotoShot) => string) => [
@@ -81,7 +88,7 @@ export async function writeShotPhotos(brand: PhotoBrand, audience: string, categ
   for (const item of result?.items ?? []) {
     const id = keys[Number(item.key?.replace(/^s/, ''))];
     const prompt = item.prompt?.trim();
-    if (id && prompt) out.set(id, { prompt, description: item.description?.trim() || prompt.slice(0, 120) });
+    if (id && prompt) out.set(id, { prompt, description: item.description?.trim() || prompt.slice(0, 120), ...(brand.people ? { people: brand.people } : {}) });
   }
   return out;
 }

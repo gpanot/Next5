@@ -27,6 +27,7 @@ import { categoriesForAudience } from '../slideshow/core/audienceCategories';
 import type { ImageNeed } from '../slideshow/core/generatedAssets';
 import { batchShotImages, type BatchNeed } from '../slideshow/core/imageNeeds';
 import type { PhotoBrand, ShotPhoto } from '../slideshow/core/shotPhotos';
+import { targetOf, targetPeople } from '../autoSlideshow/targetClient';
 import { fitDeckCaptions } from '../slideshow/core/captionFit';
 import type { StudioProfileData } from '../studio/types';
 import type { HookArchetype, ProofPoint, Tone } from '../slideshow/core/types';
@@ -77,6 +78,12 @@ export const photoBrand = (source: WebsiteSource): PhotoBrand => {
     look: style?.photoStyle ?? null,
     productAsSubject: style?.productAsSubject ?? false,
   };
+};
+
+/** photoBrand with the people the owner targets (age, gender); without them when not picked or unreadable. */
+export const photoBrandFor = async (source: WebsiteSource): Promise<PhotoBrand> => {
+  const target = source.workspaceId ? await targetOf(source.workspaceId).catch(() => null) : null;
+  return { ...photoBrand(source), people: targetPeople(target) };
 };
 
 /** Share of a numbered hook's words that must come from one proof quote: the hook may restate proof, never add to it. */
@@ -192,9 +199,9 @@ export async function generateWebsiteDeck(runId: string, opts: { contentDeck?: b
  * Footage half of a deck: library search, AI images for the shots the library lacks, caption Auto Fit, saved.
  * `deckRunId`: a Content-page batch of that run (workspaceDeck.ts). `later`: no model call before the response — shots
  * the library lacks keep their best library match (the card lists them in `pendingImages`) and captions are placed from
- * saved fits; the caller runs finishIdeaCards after the response.
+ * saved fits; the caller runs finishIdeaCards after the response. `allImages`: the scripts whose every shot gets an image.
  */
-export async function deckFromScripts(source: WebsiteSource, written: BriefScript[], deckRunId?: string, opts: { later?: boolean } = {}): Promise<DeckItem[]> {
+export async function deckFromScripts(source: WebsiteSource, written: BriefScript[], deckRunId?: string, opts: { later?: boolean; allImages?: (script: number) => boolean } = {}): Promise<DeckItem[]> {
   const started = Date.now();
   const laps: string[] = [];
   const lap = (step: string) => laps.push(`${step} ${((Date.now() - started) / 1000).toFixed(1)}s`);
@@ -203,11 +210,14 @@ export async function deckFromScripts(source: WebsiteSource, written: BriefScrip
   // does not repeat the last one. Bank decks (one card a day) may show a fix or proof file again a few days later.
   const used = new Set<string>();
   const spacedAt = written.every((b) => b.storyId) ? new Map<string, number>() : null;
-  const inputs: WebsiteMediaInput[] = written.map((b) => ({
+  const inputs: WebsiteMediaInput[] = written.map((b, i) => ({
     idc: b.idc, categories: b.categories, tone: b.tone, story: b.story, hooks: b.hooks,
     workspaceId: source.workspaceId, used, products: source.profile.products?.value,
     beatIntents: b.format ? FORMAT_DEFS[b.format].intents : undefined,
     photos: b.photos, storyId: b.storyId, beatLabels: b.format ? FORMAT_DEFS[b.format].labels : undefined,
+    allImages: opts.allImages?.(i),
+    // The other cards of an images-only batch are its footage cards: clips, not the library's photos.
+    footage: opts.allImages && !opts.allImages(i) ? 'video' as const : undefined,
   }));
   const [recent, searches] = await Promise.all([
     recentClips(source.workspaceId).catch((err: unknown) => {
@@ -228,7 +238,7 @@ export async function deckFromScripts(source: WebsiteSource, written: BriefScrip
   // the workspace has paid, stock photos before).
   // `later`: none now, the cards keep their library match and list what they still need.
   const needs: BatchNeed[] = media.flatMap((m, i) => m.needs.map((need) => ({ script: i, audience: written[i]!.idc, categories: written[i]!.categories, need })));
-  const generated = opts.later ? written.map(() => new Map<string, LibraryAsset>()) : await batchShotImages(needs, written.length, source.workspaceId, photoBrand(source));
+  const generated = opts.later ? written.map(() => new Map<string, LibraryAsset>()) : await batchShotImages(needs, written.length, source.workspaceId, await photoBrandFor(source));
   lap('images');
 
   const decks = await Promise.all(written.map(async (b, i) => {

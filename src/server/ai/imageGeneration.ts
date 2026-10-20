@@ -30,26 +30,32 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const IN_FLIGHT = 20;
 const RATE_RETRIES = 6;
 let running = 0;
-const queue: Array<() => void> = [];
+/** Waiting jobs, lowest `priority` first (a Blitz card's place in its batch), then first come. */
+const queue: Array<{ priority: number; go: () => void }> = [];
 
-async function withSlot<T>(job: () => Promise<T>): Promise<T> {
-  if (running >= IN_FLIGHT) await new Promise<void>((resolve) => queue.push(resolve));
+async function withSlot<T>(job: () => Promise<T>, priority: number): Promise<T> {
+  if (running >= IN_FLIGHT) {
+    await new Promise<void>((go) => {
+      queue.push({ priority, go });
+      queue.sort((a, b) => a.priority - b.priority);
+    });
+  }
   running += 1;
   try {
     return await job();
   } finally {
     running -= 1;
-    queue.shift()?.();
+    queue.shift()?.go();
   }
 }
 
 const isRateLimit = (err: unknown) => err instanceof Error && /\b429\b|rate limit|too many/i.test(err.message);
 
 /** Submits the task, waiting and retrying (2 s, 4 s, 8 s… plus jitter) while reAPI says 429. */
-async function submitWithRetry(prompt: string): Promise<string> {
+async function submitWithRetry(prompt: string, model: ReapiModelId): Promise<string> {
   for (let attempt = 0; ; attempt++) {
     try {
-      return (await submitReapiImage({ model: MODEL, prompt, imageUrls: [], ratio: '9:16', highRes: HIGH_RES })).taskId;
+      return (await submitReapiImage({ model, prompt, imageUrls: [], ratio: '9:16', highRes: HIGH_RES })).taskId;
     } catch (err) {
       if (!isRateLimit(err) || attempt >= RATE_RETRIES) throw err;
       await sleep(Math.min(30_000, 2_000 * 2 ** attempt) + Math.random() * 1_000);
@@ -62,7 +68,15 @@ async function waitForImage(taskId: string): Promise<string> {
   const deadline = Date.now() + MAX_WAIT_MS;
   await sleep(FIRST_POLL_MS);
   while (Date.now() < deadline) {
-    const result = await pollGeminiImage(taskId);
+    // A 429 on a poll (many tasks in flight) is not a failure: wait and ask again.
+    const result = await pollGeminiImage(taskId).catch((err: unknown) => {
+      if (isRateLimit(err)) return null;
+      throw err;
+    });
+    if (!result) {
+      await sleep(POLL_MS + Math.random() * 2_000);
+      continue;
+    }
     if (result.status === 'completed' && result.url) return result.url;
     if (result.status === 'failed') throw new ImageGenerationError(`Image generation failed: ${result.error ?? 'unknown'}`, 502);
     await sleep(POLL_MS);
@@ -70,18 +84,21 @@ async function waitForImage(taskId: string): Promise<string> {
   throw new ImageGenerationError('Image generation timed out', 504);
 }
 
-/** Generates one vertical image. Throws ImageGenerationError (with an HTTP-ish status) on failure. */
-export async function generateVerticalImage(prompt: string): Promise<GeneratedImage> {
+/**
+ * Generates one vertical image (`model`: Nano Banana 2.1 unless asked; `priority`: lower gets a free slot first).
+ * Throws ImageGenerationError (with an HTTP-ish status) on failure.
+ */
+export async function generateVerticalImage(prompt: string, model: ReapiModelId = MODEL, priority = 0): Promise<GeneratedImage> {
   if (!process.env.REAPI_API_KEY) throw new ImageGenerationError('REAPI_API_KEY is not configured on the server.', 503);
   const imageUrl = await withSlot(async () => {
     let taskId: string;
     try {
-      taskId = await submitWithRetry(prompt);
+      taskId = await submitWithRetry(prompt, model);
     } catch (err) {
       throw new ImageGenerationError(`reAPI submission failed: ${err instanceof Error ? err.message.slice(0, 200) : 'unknown'}`, 502);
     }
     return waitForImage(taskId);
-  });
+  }, priority);
 
   const imageRes = await fetch(imageUrl);
   if (!imageRes.ok) throw new ImageGenerationError(`Failed to download generated image: ${imageRes.status}`, 502);
