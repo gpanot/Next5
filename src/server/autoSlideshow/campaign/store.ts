@@ -3,7 +3,7 @@
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/db';
-import type { AutoPhoto, AutoSlide } from '../../../types/admin/autoSlideshow';
+import type { AutoPhoto, AutoSlide, AutoTrackDto } from '../../../types/admin/autoSlideshow';
 import {
   CAMPAIGN_ROW_THUMBS,
   emptyCampaignDraft,
@@ -28,6 +28,8 @@ import {
   type CampaignSummaryDto,
 } from '../../../types/admin/slideshowCampaign';
 import { parseTextAt, type TextAt } from '../../../types/slideText';
+import { listTracks, rotatingCampaignTrack, trackDto } from '../music';
+import { draftShows, type PreviewSlide } from '../../../components/admin/autoSlideshow/campaigns/previewSlides';
 import { parseBadgesAt, parseStoreBadges } from '../../../types/storeBadges';
 import { HttpError } from '../../http';
 import { presignObject } from '../../storage/objectStore';
@@ -136,15 +138,28 @@ export const createCampaign = async (workspaceId: string, name?: string): Promis
       select: { id: true, name: true, campaign: true, photos: true, photoJobs: true, _count: { select: { slideshows: true } } },
     });
     const blank = recent.find((r) => isBlankCampaign({ ...r, slideshowCount: r._count.slideshows }));
-    // Reused as new: it moves to the top of the list once something is added.
-    if (blank) return (await prisma.autoSlideshowRun.update({ where: { id: blank.id }, data: { createdAt: new Date() }, select: { id: true } })).id;
+    // Reused as new: it moves to the top of the list once something is added. One made before the music rotation gets its track.
+    if (blank) {
+      const draft = draftOf(blank);
+      const audio = draft.audioAssetId ? null : await startingAudio(workspaceId);
+      const data = { createdAt: new Date(), ...(audio ? { campaign: json({ ...draft, ...audio }) } : {}) };
+      return (await prisma.autoSlideshowRun.update({ where: { id: blank.id }, data, select: { id: true } })).id;
+    }
   }
+  const campaign = { ...emptyCampaignDraft(), ...(await startingAudio(workspaceId)) };
   const run = await prisma.autoSlideshowRun.create({
     // `count` >= 1 is a DB rule; Generate sets it to the number of slideshows made.
-    data: { kind: CAMPAIGN_KIND, workspaceId, name: cleanName(name), url: '', count: 1, status: 'COMPLETED', finishedAt: new Date(), photos: json([]), campaign: json(emptyCampaignDraft()) },
+    data: { kind: CAMPAIGN_KIND, workspaceId, name: cleanName(name), url: '', count: 1, status: 'COMPLETED', finishedAt: new Date(), photos: json([]), campaign: json(campaign) },
     select: { id: true },
   });
   return run.id;
+};
+
+/** A new campaign's music: the next track in the rotation, by how many campaigns the workspace has. */
+const startingAudio = async (workspaceId: string): Promise<{ audioAssetId?: string }> => {
+  const made = await prisma.autoSlideshowRun.count({ where: { workspaceId, kind: CAMPAIGN_KIND } });
+  const audioAssetId = await rotatingCampaignTrack(made);
+  return audioAssetId ? { audioAssetId } : {};
 };
 
 const cleanName = (name: unknown): string => (typeof name === 'string' && name.trim() ? name.trim().slice(0, MAX_NAME_CHARS) : DEFAULT_NAME);
@@ -175,15 +190,40 @@ const postDatesOf = (
   });
 };
 
+type PreviewShowRow = { status: string; slides: Prisma.JsonValue; audioStart: number; audio: { id: string; name: string; r2Key: string } | null };
+
+/** The music a card plays: the made slideshow's, else the draft's, else one from the library, always the same for a
+ *  campaign (picked from its id) so the card sounds the same on every visit. */
+const previewAudioOf = async (id: string, draft: CampaignDraft, show: PreviewShowRow | undefined, tracks: AutoTrackDto[]): Promise<{ url: string; startAt: number } | null> => {
+  const made = show ? await trackDto(show.audio, show.audioStart) : null;
+  const own = tracks.filter((t) => !t.tiktok);
+  const pool = own.length > 0 ? own : tracks;
+  const track = made ?? tracks.find((t) => t.assetId === draft.audioAssetId) ?? (pool.length ? pool[[...id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 0) % pool.length] : null);
+  return track ? { url: track.url, startAt: track.startAt } : null;
+};
+
+/** The first slideshow as its card plays it: the made slides while they are ready, else the draft's first hook drawn
+ *  on its photos (thumbs). Null while there is no photo to show. */
+const previewOf = async (r: { id: string; photos: Prisma.JsonValue; slideshows: PreviewShowRow[] }, draft: CampaignDraft, tracks: AutoTrackDto[]): Promise<CampaignSummaryDto['preview']> => {
+  const show = r.slideshows[0];
+  const made = show?.status === 'ready' ? (show.slides as unknown as AutoSlide[]) : [];
+  const slides: PreviewSlide[] = made.length > 0 && made.every((s) => s.imageKey)
+    ? made.map((s) => ({ kind: 'rendered', imageUrl: thumbUrl(s.imageKey!) }))
+    : (draftShows(draft, photosOf(r).map((p) => ({ url: p.hotlink?.thumb ?? (p.imageKey ? thumbUrl(p.imageKey) : null), fullUrl: null, ...(p.heads ? { heads: p.heads } : {}) })))[0]?.slides ?? []);
+  if (!slides.some((s) => s.kind === 'rendered' || s.photoUrl)) return null;
+  return { slides, audio: await previewAudioOf(r.id, draft, show, tracks) };
+};
+
 export const listCampaigns = async (workspaceId: string): Promise<CampaignSummaryDto[]> => {
   const runs = await prisma.autoSlideshowRun.findMany({
     where: { workspaceId, kind: CAMPAIGN_KIND },
     orderBy: { createdAt: 'desc' },
     take: 50,
-    select: { id: true, name: true, campaign: true, photos: true, photoJobs: true, createdAt: true, updatedAt: true, slideshows: { orderBy: { position: 'asc' }, select: { position: true, status: true, slides: true, posts: { where: { status: { in: LIVE_POSTS } }, orderBy: { scheduledAt: 'asc' }, take: 1, select: { scheduledAt: true } } } }, _count: { select: { posts: { where: { status: { in: LIVE_POSTS } } } } } },
+    select: { id: true, name: true, campaign: true, photos: true, photoJobs: true, createdAt: true, updatedAt: true, slideshows: { orderBy: { position: 'asc' }, select: { position: true, status: true, slides: true, audioStart: true, audio: { select: { id: true, name: true, r2Key: true } }, posts: { where: { status: { in: LIVE_POSTS } }, orderBy: { scheduledAt: 'asc' }, take: 1, select: { scheduledAt: true } } } }, _count: { select: { posts: { where: { status: { in: LIVE_POSTS } } } } } },
   });
+  const tracks = await listTracks().catch((): AutoTrackDto[] => []);
   // A campaign opened and left untouched has nothing to show: it stays hidden until something is added.
-  return runs.filter((r) => !isBlankCampaign({ ...r, slideshowCount: r.slideshows.length })).map((r): CampaignSummaryDto => {
+  return Promise.all(runs.filter((r) => !isBlankCampaign({ ...r, slideshowCount: r.slideshows.length })).map(async (r): Promise<CampaignSummaryDto> => {
     const draft = draftOf(r);
     const firstSlide = (r.slideshows[0]?.slides as unknown as AutoSlide[] | undefined)?.[0];
     const firstPhoto = draft.hookPhotos[0] !== undefined ? photosOf(r)[draft.hookPhotos[0]] : undefined;
@@ -203,10 +243,11 @@ export const listCampaigns = async (workspaceId: string): Promise<CampaignSummar
       firstHook: draft.hooks[0]?.trim() || null,
       postThumbs: postThumbsOf(draft, photosOf(r), r.slideshows),
       postDates: postDatesOf(draft, r),
+      preview: await previewOf(r, draft, tracks),
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     };
-  });
+  }));
 };
 
 export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
@@ -280,6 +321,7 @@ export const parseDraft = (value: unknown, photoCount: number): CampaignDraft =>
     ...(parseTextAt(d.hookTextAt) ? { hookTextAt: parseTextAt(d.hookTextAt) } : {}),
     caption: str(d.caption, MAX_CAPTION_CHARS),
     ...(str(d.hookPhotoQuery, MAX_PHOTO_QUERY_CHARS).trim() ? { hookPhotoQuery: str(d.hookPhotoQuery, MAX_PHOTO_QUERY_CHARS).trim() } : {}),
+    ...(str(d.audioAssetId, 64).trim() ? { audioAssetId: str(d.audioAssetId, 64).trim() } : {}),
   };
 };
 

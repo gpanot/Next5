@@ -13,7 +13,8 @@ import { writeCampaignHooks } from '../../../../../../src/server/autoSlideshow/c
 import { slideshowRoute } from '../../../../../../src/server/autoSlideshow/route';
 import { workspaceHooksVolumeGetsAi } from '../../../../../../src/server/slideshowCredits/paid';
 import { enforceRateLimit } from '../../../../../../src/server/rateLimit';
-import { MAX_CARD_TITLE_CHARS, type AutoPhotoSource, type CampaignCard } from '../../../../../../src/types/admin/slideshowCampaign';
+import { MAX_GENERATED_HOOKS } from '../../../../../../src/types/admin/hookKnowledge';
+import { MAX_CARD_TITLE_CHARS, MAX_HOOK_CHARS, type AutoPhotoSource, type CampaignCard } from '../../../../../../src/types/admin/slideshowCampaign';
 
 export const maxDuration = 120;
 
@@ -28,16 +29,21 @@ const cardsOf = (value: unknown): CampaignCard[] | null =>
       })
     : null;
 
-export const POST = slideshowRoute(async (req, ctx: Ctx, access) => {
+/** "Regenerate": the hooks the dialog shows, not saved yet, so the new ones change their wording and number. */
+const triedOf = (value: unknown): string[] | null =>
+  Array.isArray(value) && value.length > 0 ? value.filter((h): h is string => typeof h === 'string').slice(0, MAX_GENERATED_HOOKS).map((h) => h.slice(0, MAX_HOOK_CHARS)) : null;
+
+export const POST =slideshowRoute(async (req, ctx: Ctx, access) => {
   const { campaignId } = await ctx.params;
   const user = requireUser(access);
   const run = await loadCampaign(user, campaignId);
   await enforceRateLimit(`campaign-hooks:${user.userId}`, 30, 3600);
-  const raw = (await req.json().catch(() => ({}))) as { count?: unknown; cards?: unknown };
+  const raw = (await req.json().catch(() => ({}))) as { count?: unknown; cards?: unknown; tried?: unknown };
   const draft = draftOf(run);
   const cards = cardsOf(raw.cards) ?? draft.cards;
+  const tried = triedOf(raw.tried) ?? draft.hooks;
   const [{ hooks, photoQuery }, ai, cta] = await Promise.all([
-    writeCampaignHooks(run.workspaceId!, run.id, run.name ?? 'Campaign', { ...draft, cards }, Number(raw.count)),
+    writeCampaignHooks(run.workspaceId!, run.id, run.name ?? 'Campaign', { ...draft, cards, hooks: tried }, Number(raw.count)),
     workspaceHooksVolumeGetsAi(run.workspaceId),
     campaignCta(run.workspaceId),
   ]);

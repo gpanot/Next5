@@ -73,6 +73,8 @@ type Props = {
   loadAll: boolean;
   /** The top card: plays; the next one only loads. */
   playing: boolean;
+  /** The top card waiting for its voice: its clips load but hold still. */
+  held?: boolean;
   muted: boolean;
   /** Shown under a shot with no media. */
   fallback: (i: number) => string;
@@ -85,7 +87,7 @@ type Props = {
  * black frame while a clip loads). The top card loads all its clips; the next card loads them too, quieter, so a
  * swipe lands on a ready video.
  */
-export function ShotLayers({ shots, index, loadAll, playing, muted, fallback, onFirstReady }: Props) {
+export function ShotLayers({ shots, index, loadAll, playing, held = false, muted, fallback, onFirstReady }: Props) {
   const firstHasMedia = Boolean(shots[0]?.mediaUrl);
   useEffect(() => {
     if (!firstHasMedia) onFirstReady?.();
@@ -101,7 +103,7 @@ export function ShotLayers({ shots, index, loadAll, playing, muted, fallback, on
             {!shot.mediaUrl ? (
               <div className="absolute inset-0" style={{ background: fallback(i) }} />
             ) : shot.mediaKind === 'video' ? (
-              <ShotVideo src={shot.mediaUrl} active={visible && playing} muted={muted || !visible} preload={playing || i === 0 ? 'auto' : 'metadata'} onReady={onReady} />
+              <ShotVideo src={shot.mediaUrl} active={visible && playing && !held} muted={muted || !visible} preload={playing || i === 0 ? 'auto' : 'metadata'} onReady={onReady} />
             ) : shot.camera && (shot.fit ?? 'cover') === 'cover' ? (
               <CameraImage src={shot.mediaUrl} camera={shot.camera} index={i} onReady={onReady} />
             ) : (

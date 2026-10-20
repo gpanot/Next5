@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import type { AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
 import { makeEstimateMs, MakingCountdown } from './calendar/MakingCountdown';
 import { FaceBadge, type Face } from './content/CastStrip';
+import { CoverPlayback } from './CoverPlayback';
 
 type Props = {
   slideshows: AutoSlideshowDto[];
@@ -38,7 +39,6 @@ function Cover({ show, onOpen, onRetry, retrying, since, totalMs }: CardProps) {
       <button onClick={onOpen} aria-label={`Edit ${show.topic}`} className={`${frame} group block transition active:scale-[0.98]`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cover.imageUrl} alt={cover.title} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
-        <span className="absolute right-2 bottom-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">{show.slides.length} slides · Edit</span>
       </button>
     );
   }
@@ -63,11 +63,29 @@ function Cover({ show, onOpen, onRetry, retrying, since, totalMs }: CardProps) {
   );
 }
 
+/** A ready slideshow plays on its cover (slides and music); the others show their still state. */
+function PlayableCover(props: CardProps) {
+  const { show } = props;
+  const frames = show.slides.flatMap((s) => (s.imageUrl ? [s.imageUrl] : []));
+  if (show.status !== 'ready' || frames.length === 0) return <Cover {...props} />;
+  return (
+    <CoverPlayback
+      id={show.id}
+      count={frames.length}
+      // eslint-disable-next-line @next/next/no-img-element
+      renderFrame={(i) => <img src={frames[i]} alt="" className="h-full w-full object-cover" />}
+      audio={show.audio}
+    >
+      <Cover {...props} />
+    </CoverPlayback>
+  );
+}
+
 function Card({ face, ...props }: CardProps & { face: Face | null }) {
   return (
     <div>
       <div className="relative">
-        <Cover {...props} />
+        <PlayableCover {...props} />
         {face && <FaceBadge face={face} className="pointer-events-none absolute top-2 left-2" />}
       </div>
       <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-ink dark:text-zinc-100">{props.show.topic}</p>

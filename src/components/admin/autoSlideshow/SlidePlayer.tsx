@@ -49,20 +49,20 @@ function SoundIcon({ muted }: { muted: boolean }) {
   );
 }
 
-export function PlayIcon({ playing }: { playing: boolean }) {
+export function PlayIcon({ playing, size = 16 }: { playing: boolean; size?: number }) {
   return playing ? (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
   ) : (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M8 5v14l11-7z" /></svg>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M8 5v14l11-7z" /></svg>
   );
 }
 
 /** Autoplay (and its music) plus the keys: ← → change slide, space plays, m mutes. */
 const usePlayback = (count: number, strip: React.RefObject<HTMLDivElement | null>, audio: Props['audio'], go: (i: number) => void, index: number) => {
   const sound = useRef<HTMLAudioElement>(null);
-  // Nothing plays on open: the play button starts the slides (and the music, once unmuted).
+  // Nothing plays on open, so the sound starts on: the play button (a tap, which browsers allow sound after) starts both.
   const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(false);
 
   useEffect(() => {
     if (!playing) return;

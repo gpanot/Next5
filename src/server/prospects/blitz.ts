@@ -88,9 +88,9 @@ export const renderBlitz = async (userId: string, workspaceId: string, name: str
   return out;
 };
 
-/** How many picked videos are rendered, and whether every render has ended (done or failed). */
-export const blitzRenders = async (picked: ProspectBlitz[]): Promise<{ done: number; settled: boolean }> => {
+/** How many picked videos are rendered, how many wait in line, and whether every render has ended (done or failed). */
+export const blitzRenders = async (picked: ProspectBlitz[]): Promise<{ done: number; waiting: number; settled: boolean }> => {
   const ids = picked.flatMap((p) => (p.projectId ? [p.projectId] : []));
   const rows = ids.length ? await prisma.blitzProject.findMany({ where: { id: { in: ids } }, select: { renderStatus: true } }) : [];
-  return { done: rows.filter((r) => r.renderStatus === 'COMPLETED').length, settled: rows.every((r) => r.renderStatus === 'COMPLETED' || r.renderStatus === 'FAILED') };
+  return { done: rows.filter((r) => r.renderStatus === 'COMPLETED').length, waiting: rows.filter((r) => r.renderStatus === 'PENDING').length, settled: rows.every((r) => r.renderStatus === 'COMPLETED' || r.renderStatus === 'FAILED') };
 };

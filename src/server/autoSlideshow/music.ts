@@ -13,16 +13,18 @@ import { runPool } from '../pool';
 import { chooseTrack } from './musicPick';
 
 type MusicDescriptor = { vibe?: string[]; pacing?: string; energyLevel?: number; emotion?: string; sound?: string; imagery?: string; avoidFor?: string[] };
-type TrackRow = { id: string; name: string; r2_key: string; best_start: number | null; duration_sec: number | null; descriptor: MusicDescriptor | null; pickable: boolean };
+type TrackRow = { id: string; name: string; r2_key: string; best_start: number | null; duration_sec: number | null; descriptor: MusicDescriptor | null; pickable: boolean; tiktok: boolean };
 
 /**
  * Shared audio tracks, by name. The start point is the descriptor's best start when the track was described.
  * `pickable`: described music without high rights risk, the only tracks generation picks (the editor lists all).
+ * `tiktok`: high rights risk, i.e. a recognisable commercial track taken from TikTok; the others are our own library sounds.
  */
 const loadTracks = () =>
   prisma.$queryRaw<TrackRow[]>`
     SELECT a.id, a.name, a.r2_key, (d.descriptor->>'bestStart')::float AS best_start, d.duration_sec, d.descriptor,
-      coalesce(d.status = 'done' AND d.kind = 'music' AND d.effective_rights_risk <> 'high', false) AS pickable
+      coalesce(d.status = 'done' AND d.kind = 'music' AND d.effective_rights_risk <> 'high', false) AS pickable,
+      coalesce(d.effective_rights_risk = 'high', false) AS tiktok
     FROM blitz_assets a LEFT JOIN asset_descriptors d ON d.blitz_asset_id = a.id
     WHERE a.type = 'AUDIO' AND a.workspace_id IS NULL
     ORDER BY lower(a.name)`;
@@ -54,7 +56,20 @@ const recentTrackUse = async (workspaceId: string | null): Promise<Map<string, n
 };
 
 export const listTracks = async (): Promise<AutoTrackDto[]> =>
-  Promise.all((await loadTracks()).map(async (t) => ({ assetId: t.id, name: t.name, url: await blitzBrowserUrl(t.r2_key), startAt: t.best_start ?? 0, durationSec: t.duration_sec })));
+  Promise.all(
+    (await loadTracks()).map(async (t) => ({ assetId: t.id, name: t.name, url: await blitzBrowserUrl(t.r2_key), startAt: t.best_start ?? 0, durationSec: t.duration_sec, tiktok: t.tiktok })),
+  );
+
+/** The tracks a new Hooks Volume campaign starts with, in turn: one per campaign, then round again. */
+const CAMPAIGN_ROTATION = ['all about', 'club', 'intrusive thoughts', 'lean', 'mountain top', 'my eyes no pole', 'three strikes'];
+
+/** The rotation's track for the workspace's `nth` campaign (0-based); null when none of them is in the library. */
+export const rotatingCampaignTrack = async (nth: number): Promise<string | null> => {
+  const rows = await prisma.$queryRaw<Array<{ id: string; name: string }>>`
+    SELECT id, name FROM blitz_assets WHERE type = 'AUDIO' AND workspace_id IS NULL AND lower(name) = ANY(${CAMPAIGN_ROTATION})`;
+  const ids = CAMPAIGN_ROTATION.flatMap((name) => rows.find((r) => r.name.toLowerCase() === name)?.id ?? []);
+  return ids.length ? ids[nth % ids.length] : null;
+};
 
 /** `audience`: who this one slideshow is for, when it differs from the profile's (Blitz deck cards, one per audience). */
 export type ShowForMusic = { goal: string | null; slides: Pick<AutoSlide, 'title' | 'body'>[]; audience?: string };

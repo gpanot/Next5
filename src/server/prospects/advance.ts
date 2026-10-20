@@ -12,11 +12,12 @@
 import type { Prisma, ProspectPack } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import type { AutoSlide } from '../../types/admin/autoSlideshow';
-import { blitzPending, fullCount, PROSPECT_BLITZ_TRIES, type ProspectBlitz, type ProspectKind } from '../../types/admin/prospects';
+import { blitzPending, fullCount, PROSPECT_BLITZ_TRIES, type ProspectBlitz, type ProspectDay, type ProspectKind } from '../../types/admin/prospects';
 import type { UserAccess } from '../autoSlideshow/access';
 import { runAutoPipeline } from '../autoSlideshow/pipeline';
 import { withUserCostContext } from '../costs/ledger';
 import { HttpError } from '../http';
+import { wakeBlitzWorker } from '../labs/blitzWorkerWake';
 import { blitzPicked, blitzRenders, ideasById, renderBlitz, unpickedIdeas } from './blitz';
 import { composeDays } from './days';
 import { buildHooksVolume } from './hooksVolume';
@@ -139,6 +140,17 @@ const finish = async (pack: ProspectPack, posts: Record<ProspectKind, string[]>,
   await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'making' }, data: { status: 'ready', days: json(days), readyAt: new Date() } });
 };
 
+/** A video that ended after the pack was ready (a render retried, or picked late) joins the days, until the pack is
+ *  claimed: the days are planned again from the same first day, and the link keeps working (status stays 'ready'). */
+const refinish = async (pack: ProspectPack): Promise<void> => {
+  const planned = new Set(((pack.days as unknown as ProspectDay[] | null) ?? []).map((d) => d.refId));
+  const settled = await settledPosts(pack);
+  if (!settled || settled.posts.blitz.every((id) => planned.has(id))) return;
+  const ws = await prisma.workspace.findUniqueOrThrow({ where: { id: pack.workspaceId }, select: { ideaTzOffsetMin: true } });
+  const days = composeDays(settled.posts, pack.readyAt ?? new Date(), ws.ideaTzOffsetMin, settled.previews);
+  await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'ready', updatedAt: pack.updatedAt }, data: { days: json(days) } });
+};
+
 /** The faces are approved on their own as soon as they are made (2026-10-19: no admin face check), then the Brand Cast
  *  slideshows are made. With no face, the pack waits at the face check for faces made by hand. Never throws. */
 const autoApprove = async (pack: ProspectPack): Promise<void> => {
@@ -147,6 +159,12 @@ const autoApprove = async (pack: ProspectPack): Promise<void> => {
     return null;
   });
   await job?.();
+};
+
+/** The render worker sleeps when it has nothing to do, and a render put back in line (a retry) does not wake it:
+ *  while a pack video waits, each step wakes it (throttled). Seen 2026-10-19: a re-queued video waited 10 min. */
+const wakeForWaiting = async (pack: ProspectPack): Promise<void> => {
+  if ((await blitzRenders(blitzOf(pack))).waiting > 0) wakeBlitzWorker({ throttle: true });
 };
 
 /** The step itself, for the pack as loaded. */
@@ -162,6 +180,7 @@ const stepPack = async (pack: ProspectPack): Promise<void> => {
   }
   if (pack.status === 'faces') return void (await Promise.all([autoApprove(pack), advanceBlitz(pack)]));
   if (pack.status === 'building') return advanceBlitz(pack);
+  if (pack.status === 'ready') return refinish(pack);
   if (pack.status !== 'making') return;
   await Promise.all([advanceHooks(pack), advanceBlitz(pack)]);
   const fresh = await loadPack(id);
@@ -173,5 +192,6 @@ const stepPack = async (pack: ProspectPack): Promise<void> => {
  *  API costs go to the placeholder owner (the pack's cost, store.ts). */
 export const advanceProspect = async (id: string): Promise<void> => {
   const pack = await loadPack(id);
+  if (pack.status !== 'queued' && pack.status !== 'claimed' && pack.status !== 'failed') await wakeForWaiting(pack);
   await withUserCostContext(pack.ownerUserId, () => stepPack(pack));
 };

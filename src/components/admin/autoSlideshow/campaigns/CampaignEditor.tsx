@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { isNumbered, numberCards } from '../../../../types/admin/campaignNumbering';
 import { titlePick, type TextAt } from '../../../../types/slideText';
-import { linkedTextCards, targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
+import { linkedTextCards, MIN_CAMPAIGN_CONTENT, targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
 import { isAdminView } from '../../../../lib/adminToken';
 import { adminFetch } from '../../business/useAdminApi';
 import { LookMenu } from '../LookMenu';
@@ -14,7 +14,9 @@ import { SafeZoneButton, useSafeZone } from '../SafeZone';
 import { GenerateVideoButton } from '../VideoButton';
 import { EditorAlert, EditorAside, EditorBody, EditorFrame, EditorPlaceholder, editorCard, topBarButton } from '../editor/EditorShell';
 import { RoleTabBar } from '../editor/RoleTabBar';
+import { SlideDeleteButton } from '../SlideDeleteButton';
 import { TextLockButton } from '../TextLockButton';
+import { playerAudio, SlideshowMusic, useMusicTracks } from '../SlideshowMusic';
 import { CampaignPlayer } from './CampaignPlayer';
 import { CampaignPosts } from './CampaignPosts';
 import { CampaignPreview } from './CampaignPreview';
@@ -80,6 +82,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   /** Video render is admin-only: the admin token, or an "Open as user" tab. */
   const admin = isAdminView(token);
   const safeZone = useSafeZone();
+  const tracks = useMusicTracks(token);
   const [addingCredit, setAddingCredit] = useState(false);
   const needsCredit = state.error?.endsWith(CREDITS_HINT) ?? false;
   /** Back from Stripe (checkout opened from Add Credit): confirms the payment here, no Settings popup. */
@@ -139,6 +142,13 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
     if (!draft || !card || card.role !== 'item' || draft.cards.length - 1 < 2) return null;
     return <TextLockButton locked={!card.textFree} onToggle={() => patchCard(i - 1, { textFree: card.textFree ? undefined : true })} />;
   };
+  /** Content slides' bin, under their picture in the strip. */
+  const deleteControl = (i: number) => {
+    const card = draft?.cards[i - 1];
+    if (!draft || !card || card.role !== 'item') return null;
+    const contentCount = draft.cards.length - 1;
+    return <SlideDeleteButton number={i + 1} onDelete={() => removeCard(i - 1)} disabled={contentCount <= MIN_CAMPAIGN_CONTENT} reason="A campaign needs at least one content slide" />;
+  };
   /** Slide i's store badge row dragged to `y` (undefined: back to its usual spot). Only the CTA has badges. */
   const moveBadges = (i: number, y: number | undefined) => {
     if (i > 0) patchCard(i - 1, { badgesAt: y });
@@ -151,7 +161,8 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   };
   const removeCard = (i: number) => {
     setDraft((d) => withCards(d, d.cards.filter((_, j) => j !== i)));
-    setSlide((s) => Math.max(1, s - 1));
+    // Slide i + 1 went: the slides after it move back one, and the deleted one's place goes to the slide before it.
+    setSlide((s) => (s > i + 1 ? s - 1 : s === i + 1 ? Math.max(1, s - 1) : s));
   };
 
   const header = (
@@ -187,7 +198,8 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
         <EditorBody
           player={
             <>
-              <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} onRemoveCard={removeCard} safeZone={safeZone.on} loading={loading} />
+              <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} safeZone={safeZone.on} loading={loading} audio={playerAudio(draft.audioAssetId, tracks)} />
+              <SlideshowMusic compact value={draft.audioAssetId ?? null} tracks={tracks} onPick={(id) => setDraft((d) => ({ ...d, audioAssetId: id ?? undefined }))} />
               {admin && (
                 <GenerateVideoButton
                   rendering={video.rendering}
@@ -200,7 +212,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
               )}
             </>
           }
-          strip={<CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} onMoveBadges={moveBadges} loading={loading} corner={textLock} />}
+          strip={<CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} onMoveBadges={moveBadges} loading={loading} corner={textLock} footer={deleteControl} />}
           main={
             <>
               <section aria-label="Slide" className={editorCard}>
