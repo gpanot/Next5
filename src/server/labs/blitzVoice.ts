@@ -90,7 +90,8 @@ const cacheBase = (voice: string, workspaceId: string | null, texts: string[]): 
   return `blitz/voiceovers/cache/${hash}`;
 };
 
-export type CachedNarration = { audioKey: string; durations: number[]; lines: string[]; voice: string; words: SpokenWord[][] };
+/** `misread` (debug, 2026-10-20): per line, the words the kept take added (+) or skipped (-), e.g. read director's notes. */
+export type CachedNarration = { audioKey: string; durations: number[]; lines: string[]; voice: string; words: SpokenWord[][]; misread?: string[][] };
 
 /** The recorded voiceover of these slides in this voice, if one was made before (a preview or a render). */
 export async function cachedNarration(slideTexts: string[], voiceName: string | undefined, workspaceId: string | null): Promise<CachedNarration | null> {
@@ -205,7 +206,9 @@ const recordLine = async (line: string, voice: string, meter: ReturnType<typeof 
   if (!first.errors.length) return first;
   console.warn(`[blitz/voice] line misread (${first.errors.join(' ')}); recording it again`);
   const second = await takeLine(line, voice, meter);
-  return second.errors.length < first.errors.length ? second : first;
+  const kept = second.errors.length < first.errors.length ? second : first;
+  if (kept.errors.length) console.warn(`[blitz/voice] line still misread after 2 takes (${kept.errors.join(' ')}): "${line}"`);
+  return kept;
 };
 
 const roundWords = (words: SpokenWord[], maxS: number): SpokenWord[] =>
@@ -247,7 +250,7 @@ export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceN
   const base = cacheBase(voice, workspaceId, texts);
   const audioKey = `${base}.wav`;
   await atStep('saving audio', putObject(audioKey, pcmToWav(Buffer.concat(pcms)), 'audio/wav'));
-  const manifest: CachedNarration = { audioKey, durations: timed.map((s) => s.durationSec), lines, voice, words: timed.map((s) => s.words) };
+  const manifest: CachedNarration = { audioKey, durations: timed.map((s) => s.durationSec), lines, voice, words: timed.map((s) => s.words), misread: takes.map((t) => t.errors) };
   await putObject(`${base}.json`, Buffer.from(JSON.stringify(manifest)), 'application/json');
   await keepUnderSpokenLines(manifest, workspaceId);
   const durationSeconds = Math.round(timed.reduce((sum, s) => sum + s.durationSec, 0) * 100) / 100;
