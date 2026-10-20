@@ -79,7 +79,7 @@ export const socialMediaForRealtors: Article = {
     { type: 'h2', text: 'How to get leads, not just views' },
     { type: 'ul', items: [
       '**Put your town in the post.** "Selling in Austin?" reaches the right people.',
-      '**End with one ask.** "Comment HOME and I\'ll send the checklist."',
+      '**End with one ask.** "Comment HOME and I\'ll send the checklist." It works on a [coming soon post](/blog/coming-soon-real-estate-post) too.',
       '**Put a link in your bio** to book a call or see listings.',
       '**Answer every comment and message** the same day.',
     ] },

@@ -4600,5 +4600,14 @@
     "bytes": 7145,
     "alt": "Get it on Google Play",
     "addedAt": "2026-10-14T05:12:07.495Z"
+  },
+  "public/images/guides/coming-soon-real-estate-post.png": {
+    "prompt": "A real estate agent in a light blazer stands on the front lawn of a two-story American suburban home, holding a smartphone up to photograph the house. In the foreground, a white wooden yard sign on a post reads COMING SOON in bold dark letters. Freshly painted porch, green lawn, tidy flower beds, quiet tree-lined street. Bright late-morning daylight, clear blue sky, soft even light, true-to-life colors. Realistic documentary photograph, shot on a 35mm lens at eye level, natural and candid. Vertical 4:5 framing with the sign and the agent in the lower half and the house filling the upper half.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 655972,
+    "alt": "Real estate agent photographing a suburban home with a Coming Soon sign on the lawn",
+    "generatedAt": "2026-10-19T23:33:11.659Z"
   }
 }
