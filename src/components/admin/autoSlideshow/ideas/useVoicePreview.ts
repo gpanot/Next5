@@ -49,6 +49,8 @@ export function useVoicePreview(client: LabClient | null, onSpoken: (idea: IdeaD
     const res = await client
       .request<{ url: string; durations: number[]; lines?: string[]; words?: SpokenWord[][] }>('/blitz/voice-preview', { json: { texts: textsOf(idea), voice, ideaId: idea.id } })
       .catch(() => null);
+    // Debug (2026-10-20): the server's reason for a failed recording (admins only get `details`).
+    if (res && !res.ok) console.warn('[voice-preview]', res.status, (res.data as { details?: unknown }).details ?? errorOf(res));
     const next: VoicePreviewState = res?.ok
       ? { status: 'ready', narration: { url: res.data.url, durations: res.data.durations, words: res.data.words } }
       : { status: 'error', message: res ? errorOf(res) : 'Could not reach the server. Check your connection.', limit: res?.status === 429 };

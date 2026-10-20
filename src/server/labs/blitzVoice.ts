@@ -216,6 +216,12 @@ const roundWords = (words: SpokenWord[], maxS: number): SpokenWord[] =>
  * back timed to their line (the render's per-slide durations), their text replaced by the line, with its word timings.
  * Throws when a line cannot be recorded.
  */
+/** Debug (2026-10-20, live-only voice_busy): names the step a narration failed at, keeping the cause. */
+const atStep = <T>(step: string, work: Promise<T>): Promise<T> =>
+  work.catch((err: unknown) => {
+    throw new Error(`${step}: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
+  });
+
 export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceName: string | undefined, workspaceId: string | null): Promise<Narration<S>> {
   const voice = isBlitzVoice(voiceName) ? voiceName : DEFAULT_BLITZ_VOICE;
   const texts = slides.map((s) => s.text);
@@ -227,8 +233,8 @@ export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceN
   }
   const started = Date.now();
   const meter = createMeter();
-  const lines = await spokenLines(texts, workspaceId, meter);
-  const takes = await mapLimited(lines, RECORD_AT_ONCE, (line) => recordLine(line, voice, meter));
+  const lines = await atStep('writing lines', spokenLines(texts, workspaceId, meter));
+  const takes = await atStep('recording', mapLimited(lines, RECORD_AT_ONCE, (line) => recordLine(line, voice, meter)));
   const pcms: Buffer[] = [];
   const timed = slides.map((slide, i) => {
     const pcm = wavToPcm(takes[i]!.wav);
@@ -240,7 +246,7 @@ export async function narrateSlides<S extends NarratedSlide>(slides: S[], voiceN
   });
   const base = cacheBase(voice, workspaceId, texts);
   const audioKey = `${base}.wav`;
-  await putObject(audioKey, pcmToWav(Buffer.concat(pcms)), 'audio/wav');
+  await atStep('saving audio', putObject(audioKey, pcmToWav(Buffer.concat(pcms)), 'audio/wav'));
   const manifest: CachedNarration = { audioKey, durations: timed.map((s) => s.durationSec), lines, voice, words: timed.map((s) => s.words) };
   await putObject(`${base}.json`, Buffer.from(JSON.stringify(manifest)), 'application/json');
   await keepUnderSpokenLines(manifest, workspaceId);
