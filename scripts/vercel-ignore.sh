@@ -18,9 +18,15 @@ if [[ -z "$base" ]] || ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
   exit 1
 fi
 
+# A redeploy of the deployed commit is deliberate (an env var changed): build.
+if [[ "$(git rev-parse "${base}^{commit}")" == "$(git rev-parse HEAD)" ]]; then
+  echo "[ignore] redeploy of ${base:0:7}: building"
+  exit 1
+fi
+
 changed=$(git diff --name-only "$base" HEAD) || exit 1
 site=$(printf '%s\n' "$changed" | grep -vE '^(blitz-worker|tests|docs)/|\.md$|^scripts/' | grep -v '^$')
-build_script=$(printf '%s\n' "$changed" | grep -x 'scripts/vercel-build.sh')
+build_script=$(printf '%s\n' "$changed" | grep -xE 'scripts/vercel-(build|ignore)\.sh')
 
 if [[ -z "$site" && -z "$build_script" ]]; then
   echo "[ignore] only worker/tests/docs/scripts changed since ${base:0:7}: skipping build"
