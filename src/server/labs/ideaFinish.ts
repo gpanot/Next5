@@ -3,7 +3,7 @@
 // A batch of calendar ideas answers with no model call (blitzBank.ts → deckFromScripts `later`): shots the library
 // lacks show their best library match, captions sit where saved fits put them. After the response this finishes the
 // cards. First every card's captions become its voiceover's spoken lines (2026-10-19), so the screen says what the
-// voice says from the start. Then, both at once: the vision caption Auto Fit of every shot without a saved fit (saved for the next batches), and
+// voice says from the start. Then, both at once: the vision caption Auto Fit of every hook and CTA shot without a saved fit (story shots keep their position), and
 // the images (AI once the workspace has paid, stock photos before), one per moment of the batch, swapped onto their shots (the library match becomes the first swap; the
 // new shots get their own fit). Last, each card's photos get their camera move (labs/blitzCamera.ts, one vision call per
 // card), so the card plays the zoom/pan its render will use. Then the cards lose `finishing` and the deck stops
@@ -15,7 +15,7 @@ import { prisma } from '../../lib/db';
 import { withShotCameras } from './blitzCamera';
 import { spokenLines } from './blitzVoice';
 import { mergeCard } from './ideaCardMerge';
-import { fitShotCaptions } from '../slideshow/core/captionFit';
+import { fitShotCaptions, isFittedShot } from '../slideshow/core/captionFit';
 import type { DeckItem, DeckShot } from '../slideshow/core/deckAssembly';
 import type { ImageNeed } from '../slideshow/core/generatedAssets';
 import { batchShotImages, type BatchNeed, type OnScriptImages } from '../slideshow/core/imageNeeds';
@@ -170,10 +170,12 @@ async function speakCards(cards: Snapshot[], workspaceId: string | null): Promis
 /** How long the first caption pass waits for a shot; slower ones land in a second write. */
 const FIRST_PASS_MS = 11_000;
 
-/** Caption heights of these shots by clip and line (saved fits instant, the rest fitted all at once). */
+/** Caption heights of these shots' hooks and CTAs (isFittedShot) by clip and line (saved fits instant, the rest fitted
+ *  all at once). Story shots are not fitted: they keep their position. */
 async function captionHeights(shots: DeckShot[], deadlineMs?: number): Promise<Map<string, number>> {
-  const fitted = await fitShotCaptions(shots, { models: true, deadlineMs });
-  return new Map(shots.flatMap((s, i) => (fitted[i] == null ? [] : [[`${s.assetKey}|${s.text}`, fitted[i]!] as const])));
+  const mine = shots.filter(isFittedShot);
+  const fitted = await fitShotCaptions(mine, { models: true, deadlineMs });
+  return new Map(mine.flatMap((s, i) => (fitted[i] == null ? [] : [[`${s.assetKey}|${s.text}`, fitted[i]!] as const])));
 }
 
 /**
@@ -202,7 +204,7 @@ export async function finishIdeaCards(ids: string[], workspaceId: string | null,
     const now = new Map((await snapshots(ids)).map((c) => [c.id, c]));
     cards = first.map((c) => ({ ...c, shots: now.get(c.id)?.shots ?? c.shots }));
     // Two writes: what is fitted within FIRST_PASS_MS, then the slow shots (their calls keep running, not restarted).
-    const shots = cards.flatMap((c) => c.shots);
+    const shots = cards.flatMap((c) => c.shots.filter(isFittedShot));
     const early = await captionHeights(shots, FIRST_PASS_MS);
     await Promise.all(cards.map((c) => saveCard(c.id, async (card) => ({ ...card, shots: withCaptions(card.shots, early) }))));
     const firstIn = secs(started);
