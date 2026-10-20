@@ -16,7 +16,7 @@ type ChipsProps<K extends string> = {
   value: K | null;
   onChange: (key: K) => void;
   columns: string;
-  /** A small "Best match" tag on this option. */
+  /** A small "Best match?" tag on this option: our guess from the site, the owner decides. */
   badged?: K | null;
 };
 
@@ -33,7 +33,7 @@ function Chips<K extends string>({ legend, keys, labels, value, onChange, column
             {labels[key]}
             {badged === key && (
               <span className="absolute -top-2 right-2 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                Best match
+                Best match?
               </span>
             )}
           </label>
@@ -48,7 +48,7 @@ type Props = {
   gender: TargetGender | null;
   onAge: (age: TargetAge) => void;
   onGender: (gender: TargetGender) => void;
-  /** The age read from the website, tagged "Best match". */
+  /** The age read from the website, tagged "Best match?". */
   suggested?: TargetAge | null;
   /** Shows the gender choice only once an age is picked (the onboarding's step by step reveal). */
   revealGender?: boolean;
