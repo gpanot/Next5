@@ -7,3 +7,9 @@ export const HOOK_STYLE_IDS = ['default', 'white-box', 'tiktok-red'] as const;
 export type HookStyleId = (typeof HOOK_STYLE_IDS)[number];
 
 export const isHookStyleId = (v: unknown): v is HookStyleId => HOOK_STYLE_IDS.some((id) => id === v);
+
+/** The hook title's looks (remotion/hookTitle.ts): a title must stand out from the captions, so never "Default". */
+export const HOOK_TITLE_STYLE_IDS = ['tiktok-red', 'white-box'] as const;
+export type HookTitleStyleId = (typeof HOOK_TITLE_STYLE_IDS)[number];
+
+export const isHookTitleStyleId = (v: unknown): v is HookTitleStyleId => HOOK_TITLE_STYLE_IDS.some((id) => id === v);

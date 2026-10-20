@@ -7,6 +7,8 @@
  *   - blitz-worker/src/render.ts   (server-side renderMedia inputProps)
  */
 
+import type { HookTitleStyleId } from '../types/hookStyle';
+
 export type TextConfig = {
   /** CSS font-family, e.g. "sans-serif" */
   font: string;
@@ -48,7 +50,12 @@ export type TextConfig = {
    * Style fields only (font, size, weight, colors, box); the position stays per slide.
    */
   hookCtaStyle?: HookCtaStyle;
+  /** Slideshow only: the written hook as a fixed title over the hook slide and ~1 s of the next (remotion/hookTitle.ts). */
+  hookTitle?: HookTitle;
 };
+
+/** The hook title: its text, its look and its height (bottom edge, same scale as TextConfig.positionY). */
+export type HookTitle = { text: string; style: HookTitleStyleId; positionY: number };
 
 /** The caption fields the hook and CTA may change. */
 export type HookCtaStyle = Partial<Pick<TextConfig,

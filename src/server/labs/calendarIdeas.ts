@@ -27,6 +27,7 @@ import { canSwap, nextClipOf, swapShotMedia, withMoreOptions } from '../../types
 import { moreOptions } from './ideaClips';
 import { adoptIdeaSlideshow, createIdeaRun, ideaSlideshowState } from './ideaSlideshowRun';
 import { claimIdeasBatch, ideasBatchSince, releaseIdeasBatch, waitForIdeasBatch } from './ideasBatchLock';
+import { replaceHookTitle } from './hookTitle';
 import { generateWebsiteDeck } from './websiteDeck';
 import { workspaceRunId } from './workspaceRun';
 
@@ -37,7 +38,7 @@ const SINCE_MS = 12 * 60 * 60 * 1000;
 const FINISH_MS = 10 * 60 * 1000;
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 
-const firstLine = (card: DeckItem) => card.shots[0]?.text ?? card.hookStyle;
+const firstLine = (card: DeckItem) => card.hookLine ?? card.shots[0]?.text ?? card.hookStyle;
 /** Hook ids of a bank card's other first lines (its story's other hooks). */
 export const OTHER_HOOK = 'hook:';
 type OtherHook = NonNullable<NonNullable<DeckItem['script']>['otherHooks']>[number];
@@ -280,14 +281,15 @@ const swapOtherHook = async (row: SlideshowVariant, card: DeckItem, hookId: stri
   const previous = { archetype: card.archetype, text: firstLine(card) };
   const hookShot = card.shots[0] && { ...card.shots[0], text: next.text };
   const [fittedY] = hookShot ? await fitShotCaptions([hookShot]) : [null];
-  const swapped: DeckItem = {
+  const swapped: DeckItem = await replaceHookTitle({
     ...card,
+    hookLine: next.text,
     archetype: next.archetype,
     hookStyle: ARCHETYPE_LABELS[next.archetype],
     shots: card.shots.map((shot, i) => (i === 0 ? { ...shot, text: next.text, ...(fittedY != null ? { positionY: fittedY } : {}) } : shot)),
     whyPanel: { ...card.whyPanel, hookStyle: ARCHETYPE_LABELS[next.archetype], hookStyleReason: ARCHETYPE_WHY[next.archetype] },
     script: { ...card.script, archetype: next.archetype, otherHooks: [...others.filter((h) => h !== next), previous] },
-  };
+  });
   await prisma.slideshowVariant.update({
     where: { id: row.id },
     data: { archetype: next.archetype, plan: asJson({ ...(row.plan as object), shots: swapped.shots, hookStyle: swapped.hookStyle, card: swapped }) },
@@ -335,7 +337,9 @@ const moveCaption = async (row: SlideshowVariant, caption: NonNullable<IdeaPatch
   const card = row.engine === 'website' ? (row.plan as BlitzIdeaPlan).card : undefined;
   if (!card?.shots[caption.shot]) throw new HttpError(400, 'no_caption', 'Only videos move their captions.');
   const shots = card.shots.map((s, i) => (i === caption.shot ? { ...s, positionY: caption.positionY } : s));
-  await prisma.slideshowVariant.update({ where: { id: row.id }, data: { plan: asJson({ ...(row.plan as object), card: { ...card, shots } }) } });
+  // The hook title keeps clear of the hook caption and the next one: it moves with them.
+  const moved = caption.shot <= 1 ? await replaceHookTitle({ ...card, shots }) : { ...card, shots };
+  await prisma.slideshowVariant.update({ where: { id: row.id }, data: { plan: asJson({ ...(row.plan as object), card: moved }) } });
 };
 
 /**

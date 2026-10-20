@@ -81,7 +81,7 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   const decide = (target: IdeaDto, status: 'kept' | 'discarded') => {
     if (status === 'discarded' || !maker) return ideas.decide(target, status);
     const at = placeOf?.(target);
-    void maker.make([{ ...target, status: 'kept', plannedAt: at ?? target.plannedAt, hookCta: hookStyle.hookCta }], () => ideas.keepNow(target, at));
+    void maker.make([{ ...target, status: 'kept', plannedAt: at ?? target.plannedAt, titleStyle: hookStyle.titleStyle }], () => ideas.keepNow(target, at));
   };
   return (
     <>

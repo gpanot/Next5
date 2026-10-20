@@ -33,3 +33,7 @@ export function slideTextConfig(config: TextConfig, index: number, count: number
   const merged = { ...config, ...style };
   return merged.textBackground === '' ? { ...merged, textBackground: undefined } : merged;
 }
+
+/** A narrated slide's caption: with a hook title on the video, the hook look is the title's, never the spoken words'. */
+export const spokenTextConfig = (config: TextConfig, index: number, count: number): TextConfig =>
+  (config.hookTitle?.text.trim() ? config : slideTextConfig(config, index, count));
