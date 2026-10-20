@@ -114,7 +114,10 @@ const useLoad = (client: LabClient | null, runId: string, autoGenerate: boolean,
   const generate = useCallback(async () => {
     if (!client) return;
     setState((s) => ({ ...s, generating: true, generatingSince: new Date().toISOString(), error: null }));
-    await request(() => ideasApi.generate(client, runId));
+    const data = await request(() => ideasApi.generate(client, runId));
+    // A list read sent while the batch was written answers first, so this answer looks older and is dropped: the
+    // deck stayed empty and "Get ideas" came back. A fresh read, sent now, shows the new batch.
+    if (data) await request(() => ideasApi.list(client), true);
     setState((s) => ({ ...s, generating: false, generatingSince: null }));
   }, [client, runId, request, setState]);
 

@@ -31,8 +31,8 @@ export function ProfileSection({ token, me, onClose, onChanged }: Props) {
         </div>
       </div>
       <ApprovalEmailSwitch token={token} on={me.approvalEmailEnabled} onChanged={onChanged} />
-      {me.stockImagesOnly !== null && me.aiImagesOnly !== null && me.hooksVolumeStockOnly !== null && (
-        <ImageTestSwitches token={token} values={{ stockImagesOnly: me.stockImagesOnly, aiImagesOnly: me.aiImagesOnly, hooksVolumeStockOnly: me.hooksVolumeStockOnly }} onChanged={onChanged} />
+      {me.stockImagesOnly !== null && me.hooksVolumeStockOnly !== null && me.splitSlidesPercent !== null && (
+        <ImageTestSwitches token={token} values={{ stockImagesOnly: me.stockImagesOnly, hooksVolumeStockOnly: me.hooksVolumeStockOnly, splitSlidesPercent: me.splitSlidesPercent }} onChanged={onChanged} />
       )}
       <button onClick={logout} className="min-h-11 w-full rounded-full border border-line px-5 text-sm font-semibold text-ink transition hover:bg-zinc-50 active:scale-95 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-900">
         Log out

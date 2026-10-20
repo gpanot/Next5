@@ -20,6 +20,8 @@ export type PhotoBrand = {
   productAsSubject: boolean;
   /** Age and gender of the people shown, from the owner's target client (targetPeople). Absent = not picked. */
   people?: string | null;
+  /** Share (0-1) of shots written as a 50/50 split-screen picture: the owner's testing setting. SPLIT_SHARE when absent. */
+  splitShare?: number;
 };
 
 /** `people`: the PhotoBrand.people it was written for; a prompt written for other people is written again. */
@@ -51,6 +53,10 @@ For each shot, a prompt of 40-70 words:
 - Bright daylight. Never: dusk, night, golden hour, moody or cinematic light, close-up faces, readable text, captions,
   documents, clipboards, paper or a lone object as the whole subject.
 - Describe only what is in the photo (no "no text").
+- A shot marked SPLIT is one photo made of two scenes stacked: top half and bottom half, split by a clean horizontal
+  line. Same main character in both halves, two different moments or angles of the line (e.g. top: wide shot of the
+  character at work, bottom: close-up of their hands on the task; or top: the problem, bottom: the struggle up close).
+  Start the prompt with "Split-screen photo, top half: ..., bottom half: ...". Each half bright and readable on its own.
 Also "description": one plain sentence of what the picture shows (for search).
 Return JSON only, one item per shot, "key" copied exactly: {"items":[{"key":"...","prompt":"...","description":"..."}]}`;
 
@@ -62,10 +68,19 @@ const brandBlock = (brand: PhotoBrand, audience: string, categories: string[]) =
   ...(brand.people ? [`PEOPLE: ${brand.people}`] : []),
 ].join('\n');
 
-const storyBlock = (story: PhotoStory, keyOf: (shot: PhotoShot) => string) => [
+/**
+ * Default share of shots drawn as a split-screen photo (two stacked scenes in one generated image). User, 2026-10-20:
+ * a 50/50 slide seen once stopped the scroll. Never the cta shot: the product must read clearly there.
+ */
+const SPLIT_SHARE = 0.1;
+
+const storyBlock = (story: PhotoStory, keyOf: (shot: PhotoShot) => string, splitShare: number) => {
+  const splitShot = (shot: PhotoShot) => shot.role !== 'cta' && Math.random() < splitShare;
+  return [
   `STORY ${story.id}: ${story.lines}`,
-  ...story.shots.map((s) => `${keyOf(s)} | ${s.label} (${s.role} shot) | line: "${s.text}"${s.intent ? ` | wanted: ${s.intent}` : ''}`),
-].join('\n');
+    ...story.shots.map((s) => `${keyOf(s)} | ${s.label} (${s.role} shot)${splitShot(s) ? ' | SPLIT' : ''} | line: "${s.text}"${s.intent ? ` | wanted: ${s.intent}` : ''}`),
+  ].join('\n');
+};
 
 /**
  * One call: a prompt per shot of every story, by `${story.id}:${shot.id}`. Shots the model skipped are missing.
@@ -77,7 +92,7 @@ export async function writeShotPhotos(brand: PhotoBrand, audience: string, categ
   // Short keys ("s0") survive the round trip; free-text keys came back reworded.
   const keys: string[] = [];
   const keyOf = (story: PhotoStory) => (shot: PhotoShot) => `s${keys.push(`${story.id}:${shot.id}`) - 1}`;
-  const user = [brandBlock(brand, audience, categories), ...stories.map((s) => storyBlock(s, keyOf(s)))].join('\n\n');
+  const user = [brandBlock(brand, audience, categories), ...stories.map((s) => storyBlock(s, keyOf(s), brand.splitShare ?? SPLIT_SHARE))].join('\n\n');
   const result = await chatJson<{ items?: Array<{ key?: string; prompt?: string; description?: string }> }>(
     [{ role: 'system', content: RULES }, { role: 'user', content: user }],
     { model: 'gpt-5.5', reasoningEffort: 'low', maxTokens: 6_000, timeoutMs: 90_000 },

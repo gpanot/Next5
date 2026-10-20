@@ -31,11 +31,10 @@ export const workspaceHooksVolumeGetsAi = async (workspaceId: string | null): Pr
   return workspaceHasPaid(workspaceId);
 };
 
-/** True when the workspace's Blitz cards get AI images: "AI images only" is on, or the owner has paid and has not turned on "stock photos only". */
+/** True when the workspace's Blitz cards get AI images: the owner has paid and has not turned on "stock photos only". */
 export const workspaceGetsAiImages = async (workspaceId: string | null): Promise<boolean> => {
   if (!workspaceId) return true;
-  const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { owner: { select: { stockImagesOnly: true, aiImagesOnly: true } } } });
-  if (workspace?.owner.aiImagesOnly) return true;
+  const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { owner: { select: { stockImagesOnly: true } } } });
   if (workspace?.owner.stockImagesOnly) return false;
   return workspaceHasPaid(workspaceId);
 };

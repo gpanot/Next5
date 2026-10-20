@@ -80,10 +80,23 @@ export const photoBrand = (source: WebsiteSource): PhotoBrand => {
   };
 };
 
-/** photoBrand with the people the owner targets (age, gender); without them when not picked or unreadable. */
+/** The owner's 50/50 split-screen share (Settings → Profile testing setting), 0-1; undefined when unreadable. */
+const splitShareOf = async (workspaceId: string | null): Promise<number | undefined> => {
+  if (!workspaceId) return undefined;
+  const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { owner: { select: { splitSlidesPercent: true } } } }).catch(() => null);
+  return workspace ? workspace.owner.splitSlidesPercent / 100 : undefined;
+};
+
+/**
+ * photoBrand with the people the owner targets (age, gender; without them when not picked or unreadable) and the
+ * owner's split-screen share.
+ */
 export const photoBrandFor = async (source: WebsiteSource): Promise<PhotoBrand> => {
-  const target = source.workspaceId ? await targetOf(source.workspaceId).catch(() => null) : null;
-  return { ...photoBrand(source), people: targetPeople(target) };
+  const [target, splitShare] = await Promise.all([
+    source.workspaceId ? targetOf(source.workspaceId).catch(() => null) : null,
+    splitShareOf(source.workspaceId),
+  ]);
+  return { ...photoBrand(source), people: targetPeople(target), ...(splitShare !== undefined ? { splitShare } : {}) };
 };
 
 /** Share of a numbered hook's words that must come from one proof quote: the hook may restate proof, never add to it. */

@@ -3,7 +3,7 @@
 // One AI image per moment in a batch. A deck's stories often repeat a line on the same shot ("More than 500,000
 // satisfied users", "KitchenPal tracks your pantry"): each asked for its own image, and the images came back alike.
 // Needs of one audience, on the same shot, with nearly the same line, now share one image.
-// Paid workspaces get Nano Banana 2.1 images. The others get cheap GPT Image 2 (low, ~$0.004) images since 2026-10-20
+// Paid workspaces get Nano Banana 2.1 images. The others get cheap AI images (FREE_IMAGE_MODEL) since 2026-10-20
 // (an experiment: stock photos often missed the line); FREE_IMAGES = 'stock' brings stock photos back (stockImages.ts).
 
 import type { ReapiModelId } from '../../../config/reapiModels';
@@ -23,8 +23,11 @@ const FREE_IMAGES = 'cheap_ai' as 'cheap_ai' | 'stock';
  */
 export const PAID_LIKE_FREE = true;
 
-/** The cheap image model of free workspaces: GPT Image 2, low quality, 1K. */
-export const FREE_IMAGE_MODEL: ReapiModelId = 'reapi-gpt-image-2-low';
+/**
+ * The cheap image model of free workspaces: Nano Banana 2 Lite ($0.015, 1K) since 2026-10-20 (user: GPT Image 2 low
+ * images were not good enough). 'reapi-gpt-image-2-low' ($0.004) brings them back.
+ */
+export const FREE_IMAGE_MODEL: ReapiModelId = 'reapi-nano-banana-2-lite';
 
 /** Shared words (Jaccard) from which two lines show the same moment. */
 export const SAME_MOMENT_OVERLAP = 0.6;
