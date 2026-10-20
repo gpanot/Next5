@@ -68,8 +68,20 @@ In code:
    gum login --service googleads
    ```
    treg (DataForSEO) stays as a fallback.
-5. **Schedule the run**: a daily scheduled Claude task, in this repo, whose prompt is
-   "Follow docs/seo/DAILY_RUN.md". It opens a pull request per article.
+5. **Schedule the run**: a local launchd job on the owner's Mac, where gum, treg and the keys work
+   (set up 2026-10-20). `~/Library/LaunchAgents/com.next5.seo-daily.plist` calls
+   `~/.next5-seo/seo-daily.sh` (a copy of [scripts/seo-daily.sh](../../scripts/seo-daily.sh)) every hour
+   from 8:00 to 22:00 Saigon time. A marker file per day (`~/.next5-seo/YYYY-MM-DD`: done, skipped,
+   started, failed) makes sure only one run happens a day. The run uses its own clone in
+   `~/.next5-seo/repo`, reset to `origin/main`, because macOS blocks background jobs in `~/Documents`.
+   It runs Claude Code headless with the allowed tools listed in the script and opens at most one PR.
+   ```bash
+   cp scripts/seo-daily.sh ~/.next5-seo/seo-daily.sh        # after every edit of the script
+   SEO_DAILY_CHECK=1 zsh ~/.next5-seo/seo-daily.sh          # tool check, changes nothing
+   tail -50 ~/.next5-seo/logs/$(TZ=Asia/Ho_Chi_Minh date +%F).log
+   launchctl print gui/$(id -u)/com.next5.seo-daily         # status
+   launchctl bootout gui/$(id -u)/com.next5.seo-daily       # stop
+   ```
 6. **Review**: for the first 4 weeks, read and merge each PR yourself (2 minutes). After 20
    articles in a row pass review without edits, let the run merge its own PRs when CI is green.
 
