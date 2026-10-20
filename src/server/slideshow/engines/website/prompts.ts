@@ -100,6 +100,14 @@ OUTPUT: JSON only.
 }`;
 }
 
+// Blitz stories are value content: the examples teach without the product (the app above is only the business).
+const STORY_EXAMPLES = `STYLE EXAMPLES (pool cleaners; the business is a route app). Show the style only. Never copy these words.
+- pain: "Running a business is hard" (weak, generic) vs "Driving back across town for a missed pool" (strong)
+- oldWay: "Using old tools" (weak) vs "Paper route sheets and a group text" (strong)
+- mechanism: "Our app plans your route" (pitch, banned) vs "Plan tomorrow's stops tonight, closest first" (strong)
+- proof: "Rated 5 stars by users" (pitch, banned) vs "Fewer miles, and home before dinner" (strong)
+- inaction: "Don't wait" (weak) vs "Every wasted mile is unpaid time. Here's the fix:" (strong)`;
+
 /** One story of a batch: what its problem is (or the one already chosen), its five beats in order and its CTA rule. */
 export type StoryPromptSlot = { problemKind: string; problem?: string; beats: string[]; cta: string };
 
@@ -112,15 +120,15 @@ export function buildWebsiteStoriesPrompt(b: WebsiteBriefInput, slots: StoryProm
     const problem = s.problem ? `problem already chosen, tell exactly this: "${s.problem}"` : `problem: ${s.problemKind}`;
     return `${i + 1}. ${problem} | ${s.beats.join(' | ')} | cta: ${s.cta.replaceAll('{name}', b.business.name)}`;
   });
-  return `You write the story lines of ${slots.length} different 26-second vertical videos for ${b.idc}.
-Each speaks TO ${b.idc} about THEIR day, not about the software or company.
-The business and product appear only in "mechanism" and "cta".
+  return `You write the story lines of ${slots.length} different 26-second vertical videos for TikTok and Instagram, for ${b.idc}.
+They are value videos, not ads: each teaches ${b.idc} something useful about THEIR day, so they watch, save and follow.
+Lines pain, oldWay, mechanism, proof and inaction NEVER name the business or its product, never say "app", "our" or
+"we", and never cite ratings, reviews, awards, press or partners. The viewer gets the value with no product.
+Only "cta" may name the business.
 
-PROFILE (the only facts you may use)
+PROFILE (the only facts you may use; the business tells you which problems to pick, never something to pitch)
 ${profileBlock(b)}
 
-${proofBlock(b.proofPoints)}
-${b.proofPoints.length > 1 ? 'Rotate the proof quotes across the stories.\n' : ''}${photoBlock(b.productPhotos)}
 STORIES: one per slot below. Each is about its own concrete problem: a different real moment of their day.
 No two stories share a problem, a setting or a punchline.
 ${avoid.length ? `Already told, do not repeat: ${avoid.slice(0, 40).map((p) => `"${p}"`).join(', ')}\n` : ''}For each slot write "problem" (the moment, one line), then the lines pain, oldWay, mechanism, proof and inaction
@@ -132,11 +140,11 @@ ${slotLines.join('\n')}
 RULES
 - Max 10 words per line. cta max 7 words.
 - Plain words a 9-year-old reads out loud. No hype: innovative, seamless, game-changer, unlock, elevate.
-- No number that is not printed in the profile or proof quotes. No "guaranteed", "#1", "best", "leading".
+- No number that is not printed in the profile. No "guaranteed", "#1", "best", "leading".
 - Never name a city, country, school, person or brand the profile does not name.
 - Never name a competitor. No "!" and no emojis.
 
-${EXAMPLES}
+${STORY_EXAMPLES}
 
 OUTPUT: JSON only, flat keys, "slot" = the slot number.
 {"stories":[{"slot":1,"problem":"...","pain":"...","oldWay":"...","mechanism":"...","proof":"...","inaction":"...","cta":"..."}]}`;
@@ -170,9 +178,9 @@ Write "mechanism" and "proof" so each one describes something a photo above show
 Photos are facts about what they sell, not proof of numbers.\n`;
 }
 
-/** What a hook calls the audience: the IDC up to its first "and/who/looking…" ("Home cooks and families looking…" → "Home cooks"). */
+/** What a hook calls the audience: the IDC up to its first "and/who/looking/seeking…" ("Home cooks and families looking…" → "Home cooks"). */
 export const shortAudience = (idc: string): string =>
-  idc.replace(/[.\s]+$/, '').split(/\s+(?:and|who|that|looking|with|in|for|wanting|trying)\b/i)[0]!.trim() || idc;
+  idc.replace(/[.\s]+$/, '').split(/\s+(?:and|who|that|looking|seeking|searching|needing|hoping|aiming|interested|with|in|for|wanting|trying)\b/i)[0]!.trim() || idc;
 
 /** Brief-specific hook examples built from the IDC name and the profile's own hook ideas. */
 export function websiteHookExamples(b: WebsiteBriefInput): HookFewShot[] {

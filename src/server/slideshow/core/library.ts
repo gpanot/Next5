@@ -180,6 +180,8 @@ export async function searchLibrary(q: LibraryQuery): Promise<LibraryAsset[]> {
       AND (a.workspace_id IS NULL OR a.workspace_id = ${q.workspaceId ?? null}::text)
       AND NOT ((coalesce(d.retrieval_text,'') || ' ' || coalesce(d.descriptor->>'transcript','')) ~* ${UNSAFE_CONTENT})
       AND NOT (a.id = ANY(${q.excludeIds ?? []}::text[]))
+      -- No Pexels/Unsplash stock photos (user, 2026-10-20: stock looked off on the cards).
+      AND coalesce(d.model, '') NOT IN ('pexels', 'unsplash')
       ${categoryFilter}
       ${mediaFilter}
     ORDER BY score DESC

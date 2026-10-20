@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { AutoRunSummary } from '../../../../types/admin/autoSlideshow';
 import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch, useAdminApi } from '../../business/useAdminApi';
@@ -49,7 +49,8 @@ function Empty({ tab, onCreate }: { tab: Tab; onCreate: () => void }) {
  * One workspace's campaigns, the only place slideshows are made, in two tabs: Hooks Volume and Brand Cast. One toolbar
  * (All / On calendar, cards / list) serves both; each tab keeps its own view. "New campaign" asks which kind: Brand Cast (1-5 slideshows from the
  * Auto Slideshow engine) or Hooks Volume (an empty campaign opened in the campaign editor; `?campaign=` keeps it open on
- * reload and gives Back its way out).
+ * reload and gives Back its way out). `?tab=brand&play=first` (the end of onboarding) opens Brand Cast and plays its
+ * newest slideshow once, as soon as it is ready, while the user stays on this tab.
  */
 export function CampaignsPage({ token, workspaceId }: Props) {
   const list = useAdminApi<{ campaigns: CampaignSummaryDto[] }>(token, `/api/slideshow/campaigns?workspace=${workspaceId}`);
@@ -71,7 +72,29 @@ export function CampaignsPage({ token, workspaceId }: Props) {
   const setView = tab === 'hooks' ? setHooksView : setBrandView;
   const router = useRouter();
   const pathname = usePathname();
-  const openId = useSearchParams().get('campaign');
+  const params = useSearchParams();
+  const openId = params.get('campaign');
+  const playAsked = params.get('play') === 'first';
+  const [autoPlay, setAutoPlay] = useState(false);
+  const [seenPlay, setSeenPlay] = useState(false);
+  // Adjusting state while rendering: the page may already be mounted (hidden) when onboarding sends the user here.
+  if (playAsked !== seenPlay) {
+    setSeenPlay(playAsked);
+    if (playAsked) {
+      setAutoPlay(true);
+      setTab('brand');
+    }
+  }
+  if (autoPlay && !pathname.endsWith('/campaigns')) setAutoPlay(false);
+  // Read once: a reload does not play it again.
+  useEffect(() => {
+    if (playAsked) router.replace(pathname, { scroll: false });
+  }, [playAsked, pathname, router]);
+  const endAutoPlay = useCallback(() => setAutoPlay(false), []);
+  const pickTab = (id: Tab) => {
+    setTab(id);
+    setAutoPlay(false);
+  };
 
   const open = (id: string | null) => router.push(id ? `${pathname}?campaign=${id}` : pathname, { scroll: false });
 
@@ -104,7 +127,7 @@ export function CampaignsPage({ token, workspaceId }: Props) {
       <div className="flex flex-wrap items-center gap-2">
         <div role="tablist" aria-label="Campaign kind" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {TABS.map((t) => (
-            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={tabClass(tab === t.id)}>
+            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => pickTab(t.id)} className={tabClass(tab === t.id)}>
               {t.label}
             </button>
           ))}
@@ -125,7 +148,7 @@ export function CampaignsPage({ token, workspaceId }: Props) {
         )}
       </div>
       <div role="tabpanel" hidden={tab !== 'brand'}>
-        <SlideshowsTab token={token} workspaceId={workspaceId} filter={filter} view={brandView} reloadKey={brandReload} empty={<Empty tab="brand" onCreate={() => setChoosing(true)} />} onAdd={() => { setBrandFirst(true); setChoosing(true); }} />
+        <SlideshowsTab token={token} workspaceId={workspaceId} filter={filter} view={brandView} reloadKey={brandReload} empty={<Empty tab="brand" onCreate={() => setChoosing(true)} />} onAdd={() => { setBrandFirst(true); setChoosing(true); }} autoPlay={autoPlay && tab === 'brand' && !openId} onAutoPlayed={endAutoPlay} />
       </div>
       {choosing && (
         <NewCampaignSheet

@@ -6,7 +6,7 @@
 import type { Workspace } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import {
-  isTargetAge, isTargetGender, TARGET_BIBLE_AGES, type TargetAge, type TargetClientDto, type TargetGender,
+  isTargetAge, isTargetGender, TARGET_BIBLE_AGES, TARGET_CAST_AGES, type TargetAge, type TargetClientDto, type TargetGender,
 } from '../../types/admin/targetClient';
 import { HttpError } from '../http';
 import { getVisualBible, saveVisualBible } from '../shorts/visualBible';
@@ -24,6 +24,19 @@ const pickOf = (row: TargetRow): TargetClient | null =>
 export const targetOf = async (workspaceId: string): Promise<TargetClient | null> => {
   const row = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { targetAge: true, targetGender: true, targetConfirmedAt: true } });
   return row ? pickOf(row) : null;
+};
+
+const GENDER_MIX: Record<TargetGender, string> = {
+  male: 'mostly men (about 4 photos in 5), sometimes a woman',
+  female: 'mostly women (about 4 photos in 5), sometimes a man',
+  both: 'men and women, about half each',
+};
+
+/** Who the photos show, from the pick: "mostly men…, every person aged 22-30". Null when not picked. */
+export const targetPeople = (target: TargetClient | null): string | null => {
+  if (!target) return null;
+  const ages = TARGET_CAST_AGES[target.age];
+  return `${GENDER_MIX[target.gender]}; every person shown is aged ${ages.min}-${ages.max}, never older or younger`;
 };
 
 /** True while the owner has not picked yet. */

@@ -221,16 +221,30 @@ const withSavedMusic = async (run: { id: string; campaign: Prisma.JsonValue; sli
   return saved.count > 0 ? { ...draft, audioAssetId } : draft;
 };
 
-/** The first slideshow as its card plays it: the made slides while they are ready, else the draft's first hook drawn
- *  on its photos (thumbs). Null while there is no photo to show. */
+/** A photo as the draft preview reads it: its thumb, or (`full`) the photo itself. */
+const previewPhotoOf = async (p: CampaignPhoto, full: boolean) => ({
+  url: full ? (p.hotlink?.full ?? (p.imageKey ? await presignObject(p.imageKey) : null)) : (p.hotlink?.thumb ?? (p.imageKey ? thumbUrl(p.imageKey) : null)),
+  fullUrl: null,
+  ...(p.heads ? { heads: p.heads } : {}),
+});
+
+/** The card's slides: the made ones while they are ready, else the draft's first hook drawn on its photos. */
+const previewSlidesOf = async (r: { photos: Prisma.JsonValue }, draft: CampaignDraft, made: AutoSlide[], full: boolean): Promise<PreviewSlide[]> => {
+  if (made.length > 0 && made.every((s) => s.imageKey)) {
+    return Promise.all(made.map(async (s): Promise<PreviewSlide> => ({ kind: 'rendered', imageUrl: (full ? await presignObject(s.imageKey!) : null) ?? thumbUrl(s.imageKey!) })));
+  }
+  const photos = await Promise.all(photosOf(r).map((p) => previewPhotoOf(p, full)));
+  return draftShows(draft, photos)[0]?.slides ?? [];
+};
+
+/** The first slideshow as its card plays it (thumbs), and at full size for the expanded card. Null while there is no
+ *  photo to show. */
 const previewOf = async (r: { id: string; photos: Prisma.JsonValue; slideshows: PreviewShowRow[] }, draft: CampaignDraft, tracks: AutoTrackDto[]): Promise<CampaignSummaryDto['preview']> => {
   const show = r.slideshows[0];
   const made = show?.status === 'ready' ? (show.slides as unknown as AutoSlide[]) : [];
-  const slides: PreviewSlide[] = made.length > 0 && made.every((s) => s.imageKey)
-    ? made.map((s) => ({ kind: 'rendered', imageUrl: thumbUrl(s.imageKey!) }))
-    : (draftShows(draft, photosOf(r).map((p) => ({ url: p.hotlink?.thumb ?? (p.imageKey ? thumbUrl(p.imageKey) : null), fullUrl: null, ...(p.heads ? { heads: p.heads } : {}) })))[0]?.slides ?? []);
+  const slides = await previewSlidesOf(r, draft, made, false);
   if (!slides.some((s) => s.kind === 'rendered' || s.photoUrl)) return null;
-  return { slides, audio: await previewAudioOf(r.id, draft, show, tracks) };
+  return { slides, fullSlides: await previewSlidesOf(r, draft, made, true), audio: await previewAudioOf(r.id, draft, show, tracks) };
 };
 
 export const listCampaigns = async (workspaceId: string): Promise<CampaignSummaryDto[]> => {

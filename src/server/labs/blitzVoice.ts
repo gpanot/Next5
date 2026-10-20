@@ -19,6 +19,8 @@ import { alignWords, misreadWords, transcribe, WHISPER_USD_PER_MIN } from '../sh
 import type { SpokenWord } from '../../remotion/types';
 import { blitzBrowserUrl } from '../admin/blitzStore';
 import { getObject, putObject } from '../storage/objectStore';
+import { loadWebsiteSource } from './websiteDeck';
+import { workspaceRunId } from './workspaceRun';
 
 /**
  * Lines recorded at once. 3 after a 503 "pool is saturated" on 7 (2026-10-13), but that cost 3 rounds of ~5 s each.
@@ -54,13 +56,17 @@ const SYSTEM = `You write the voiceover of a short vertical video (TikTok / Reel
 with a short caption on screen. A narrator explains the story out loud, like a friendly explainer video, so the viewer
 keeps watching. Write ONE spoken line per slide, in order.
 Rules:
-- Line 1 says the hook so it lands in the first 2 seconds, then opens a loop that makes them stay
-  ("...and most people get this wrong.", "Here's why."). Max 14 words.
+- Line 1 is the hook in its own words, so it lands in the first 2 seconds. Keep its wording; at most add a few words
+  that make it flow when spoken. Only sometimes add a short loop, and make it specific to this video, never a stock
+  phrase ("most people miss it", "most people get this wrong", "here's why", "here's the fix", "and it matters" are
+  banned). Max 14 words.
 - Middle lines EXPLAIN, never read the caption back: the viewer already sees it. Each adds one thing the screen does
   not say: the why, a quick picture of the moment, what it costs, or how it works. 10-18 words each.
 - Each line hands off to the next slide so the story pulls forward ("And that's the problem.", "Here's the fix.").
 - Plain 3rd-grade words, contractions, one idea per line, talk to "you", like a friend explaining over coffee.
-- Last line says the call to action of the last slide, warm and short (max 8 words).
+- Last line says the call to action of the last slide in its own words, warm and short (max 8 words). Name the
+  business only when the slide does, as BRAND writes it; never add it, never say a web address (.com, .au, www). Only this line may name the
+  brand or its product: the other lines teach, never sell (value content for TikTok and Instagram, not an ad).
 - Every fact, number and result stays exactly as on screen, with the same subject: never soften it ("some", "up to"),
   never widen it. Never invent results, prices, features or claims.
 - No emojis, no hashtags, no stage directions, no brackets.
@@ -113,10 +119,16 @@ export async function keepUnderSpokenLines(narration: CachedNarration, workspace
 
 const silence = (seconds: number): Buffer => Buffer.alloc(Math.max(0, Math.round(seconds * SAMPLE_RATE)) * 2);
 
-/** What the brand is, for the voiceover writer. */
+/** "avenue2.au" → "avenue2": workspaces are often named after their site. */
+const withoutDomain = (name: string) => name.replace(/^(?:https?:\/\/)?(?:www\.)?/i, '').replace(/\.[a-z]{2,}(?:\.[a-z]{2,})?\/?$/i, '');
+
+/** What the brand is, for the voiceover writer: the profile's business name ("EQL Apparel"), never the site's address. */
 const brandOf = async (workspaceId: string | null): Promise<{ name: string; about: string }> => {
   const ws = workspaceId ? await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { name: true, promoting: true, offer: true } }) : null;
-  return { name: ws?.name ?? 'the brand', about: ws?.promoting ?? ws?.offer ?? '' };
+  const profileName = workspaceId
+    ? await workspaceRunId(workspaceId).then(loadWebsiteSource).then((s) => s.profile.identity.businessName.value).catch(() => null)
+    : null;
+  return { name: profileName || (ws?.name ? withoutDomain(ws.name) : 'the brand'), about: ws?.promoting ?? ws?.offer ?? '' };
 };
 
 /** One spoken line per slide (a slide's caption when the writer skipped it). */

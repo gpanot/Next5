@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import { isTerminalAutoStatus, type AutoRunSummary, type AutoSlideshowDto } from '../../../../types/admin/autoSlideshow';
 import { adminFetch, useAdminApi } from '../../business/useAdminApi';
+import { useCalendarSpots } from '../calendar/useCalendarSpots';
+import { playCoverOnce } from '../CoverPlayback';
 import { AddTile } from '../campaigns/AddTile';
 import { FilterSelect, useListView, ViewToggle, type ListFilter, type ListView } from '../campaigns/ListControls';
 import { RunSlideshowEditor } from '../RunSlideshowEditor';
@@ -29,16 +31,28 @@ type AutoRunState = ReturnType<typeof useAutoRun>;
 /** How the list is narrowed: "On calendar", one face's stories, and the face lookup for the badges. */
 type Narrow = { calendarOnly: boolean; castId: string | null; faceOf: (show: AutoSlideshowDto) => Face | null };
 
-type RunProps = { token: string; auto: AutoRunState; view: ListView } & Narrow;
+/** Plays the run's newest ready slideshow once, as soon as there is one; `onPlayed` ends the request. */
+type AutoPlay = { autoPlay?: boolean; onAutoPlayed?: () => void };
+
+/** `latest`: the run the Calendar places on days, so its unpinned slideshows show the Calendar's spot. */
+type RunProps = { token: string; auto: AutoRunState; view: ListView; latest?: boolean } & Narrow & AutoPlay;
 
 /** One run's slideshows, as cards or rows: tap a ready one to edit it; a failed one offers Retry once the run is done. */
-function RunSlideshows({ token, auto, view, calendarOnly, castId, faceOf }: RunProps) {
+function RunSlideshows({ token, auto, view, latest = false, calendarOnly, castId, faceOf, autoPlay = false, onAutoPlayed }: RunProps) {
   const { run, error, refresh } = auto;
+  const spots = useCalendarSpots(token, latest ? run : null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [retrying, setRetrying] = useState<string | null>(null);
   const done = run ? isTerminalAutoStatus(run.status) : false;
   // Newest first, like the runs: a new batch added to this run shows at the top, not past the older ones.
   const shows = run ? run.slideshows.filter((s) => (!calendarOnly || s.status !== 'failed') && (!castId || castIdOf(s) === castId)).sort((a, b) => b.position - a.position) : [];
+  const newestReady = autoPlay && view !== 'list' ? shows.find((s) => s.status === 'ready' && s.slides.some((slide) => slide.imageUrl))?.id : undefined;
+  // Effects pause while the page is hidden, so it only plays while the user is on it.
+  useEffect(() => {
+    if (!newestReady) return;
+    playCoverOnce(newestReady);
+    onAutoPlayed?.();
+  }, [newestReady, onAutoPlayed]);
 
   const retry = async (slideshowId: string) => {
     if (!run) return;
@@ -58,7 +72,7 @@ function RunSlideshows({ token, auto, view, calendarOnly, castId, faceOf }: RunP
       {view === 'list' ? (
         <SlideshowRows flat slideshows={shows} missing={done ? 0 : Math.max(0, expected - shows.length)} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
       ) : (
-        <SlideshowGrid flat calendarMeta newestFirst slideshows={shows} expected={expected} writing={!done} since={done ? undefined : run.startedAt} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
+        <SlideshowGrid flat calendarMeta spots={spots} newestFirst slideshows={shows} expected={expected} writing={!done} since={done ? undefined : run.startedAt} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
       )}
       <RunSlideshowEditor token={token} run={run} openId={openId} onOpen={setOpenId} onChanged={refresh} />
     </section>
@@ -93,10 +107,10 @@ function Header({ title, children }: { title: string; children?: ReactNode }) {
   );
 }
 
-type RunsProps = { token: string; runs: AutoRunSummary[]; filter: ListFilter; view: ListView; reloadKey: number; onAdd?: () => void } & Omit<Narrow, 'calendarOnly'>;
+type RunsProps = { token: string; runs: AutoRunSummary[]; filter: ListFilter; view: ListView; reloadKey: number; onAdd?: () => void } & Omit<Narrow, 'calendarOnly'> & AutoPlay;
 
 /** Every run, newest first. The latest run is polled again when `reloadKey` changes (new slideshows were asked for). */
-function Runs({ token, runs, filter, view, reloadKey, castId, faceOf, onAdd }: RunsProps) {
+function Runs({ token, runs, filter, view, reloadKey, castId, faceOf, onAdd, autoPlay, onAutoPlayed }: RunsProps) {
   const latest = useAutoRun(token, runs[0]!.id);
   const { refresh } = latest;
   useEffect(() => {
@@ -107,7 +121,7 @@ function Runs({ token, runs, filter, view, reloadKey, castId, faceOf, onAdd }: R
     // Every run's slideshows on one shared grid (or column), so they fill the lines instead of one run per line.
     <div className={view === 'list' ? 'flex flex-col gap-2' : COVER_GRID}>
       {onAdd && view !== 'list' && <ul className="contents"><AddTile label="New slideshows" onAdd={onAdd} /></ul>}
-      <RunSlideshows token={token} auto={latest} view={view} calendarOnly={calendarOnly} castId={castId} faceOf={faceOf} />
+      <RunSlideshows token={token} auto={latest} latest view={view} calendarOnly={calendarOnly} castId={castId} faceOf={faceOf} autoPlay={autoPlay} onAutoPlayed={onAutoPlayed} />
       {!calendarOnly && runs.slice(1).map((summary) => <OlderRun key={summary.id} token={token} runId={summary.id} view={view} calendarOnly={false} castId={castId} faceOf={faceOf} />)}
     </div>
   );
@@ -127,13 +141,13 @@ type TabProps = {
   empty?: ReactNode;
   /** Cards only: a blank first card that starts new Brand Cast slideshows. */
   onAdd?: () => void;
-};
+} & AutoPlay;
 
 /**
  * Brand Cast slideshows (the Auto Slideshow engine): every run of the workspace, newest first, as cards or rows. The
  * latest run is the one the Calendar places on days. New ones are made from Campaigns › New campaign › Brand Cast.
  */
-export function SlideshowsTab({ token, workspaceId, title, filter: filterProp, view: viewProp, reloadKey = 0, empty, onAdd }: TabProps) {
+export function SlideshowsTab({ token, workspaceId, title, filter: filterProp, view: viewProp, reloadKey = 0, empty, onAdd, autoPlay, onAutoPlayed }: TabProps) {
   const runs = useAdminApi<{ runs: AutoRunSummary[] }>(token, `/api/admin/auto-slideshow/runs?workspace=${workspaceId}`);
   const [ownFilter, setOwnFilter] = useState<ListFilter>('all');
   const [ownView, setOwnView] = useListView('brand');
@@ -157,7 +171,7 @@ export function SlideshowsTab({ token, workspaceId, title, filter: filterProp, v
       {all && all.length > 0 ? (
         <>
           <CastStrip faces={cast.active} value={castId} onChange={setCastId} />
-          <Runs token={token} runs={all} filter={filter} view={view} reloadKey={reloadKey} castId={castId} faceOf={cast.faceOf} onAdd={onAdd} />
+          <Runs token={token} runs={all} filter={filter} view={view} reloadKey={reloadKey} castId={castId} faceOf={cast.faceOf} onAdd={onAdd} autoPlay={autoPlay} onAutoPlayed={onAutoPlayed} />
         </>
       ) : runs.error ? (
         <p className={errorClass}>{runs.error}</p>

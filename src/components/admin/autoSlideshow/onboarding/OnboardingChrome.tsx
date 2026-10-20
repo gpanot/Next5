@@ -11,8 +11,8 @@ function Wordmark() {
   return <span className="text-sm font-bold tracking-[0.18em] text-ink dark:text-zinc-100">NEXT5</span>;
 }
 
-/** Back arrow, "Step N of 5" and Skip on the question screens; the wordmark on the first and last. */
-export function OnboardingHeader({ step, onBack, onSkip }: { step: number; onBack: () => void; onSkip: () => void }) {
+/** Back arrow and "Step N of 5" on the question screens; the wordmark on the first and last. No Skip: every screen is answered. */
+export function OnboardingHeader({ step, onBack }: { step: number; onBack: () => void }) {
   if (!isCounted(step)) {
     return (
       <div className="flex h-14 shrink-0 items-center justify-center border-b border-zinc-100 px-4 dark:border-zinc-800">
@@ -30,9 +30,8 @@ export function OnboardingHeader({ step, onBack, onSkip }: { step: number; onBac
       <p className="text-center text-xs font-medium text-muted">
         Step {step} of {LAST_COUNTED_STEP}
       </p>
-      <button onClick={onSkip} className="min-h-11 justify-self-end rounded-full px-2 text-sm font-medium text-muted transition hover:text-ink dark:hover:text-zinc-100">
-        Skip
-      </button>
+      {/* Keeps the step line centred. */}
+      <span aria-hidden />
     </div>
   );
 }

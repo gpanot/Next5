@@ -6,7 +6,7 @@
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import { loadWebsiteSource, photoBrand } from '../labs/websiteDeck';
+import { loadWebsiteSource, photoBrandFor } from '../labs/websiteDeck';
 import { workspaceRunId } from '../labs/workspaceRun';
 import type { DeckItem, DeckShot } from '../slideshow/core/deckAssembly';
 import type { ImageNeed } from '../slideshow/core/generatedAssets';
@@ -16,9 +16,9 @@ import { libraryShot, searchShots, type ShotMedia } from '../slideshow/core/medi
 import type { ShotRole } from '../slideshow/core/types';
 import type { PhotoBrand } from '../slideshow/core/shotPhotos';
 
-/** The image need a shot role stands for (hook and CTA shots take the closest story moment). */
+/** The image need a shot role stands for. */
 const NEED_ROLE: Record<ShotRole, ImageNeed['role']> = {
-  hook: 'pain', pain: 'pain', old_way: 'oldWay', inaction: 'inaction', mechanism: 'mechanism', proof: 'proof', cta: 'mechanism',
+  hook: 'hook', pain: 'pain', old_way: 'oldWay', inaction: 'inaction', mechanism: 'mechanism', proof: 'proof', cta: 'cta',
 };
 const SLOT: Record<ShotRole, SlotColumn> = {
   hook: 'slot_hook', pain: 'slot_problem', old_way: 'slot_problem', inaction: 'slot_problem', mechanism: 'slot_payoff', proof: 'slot_proof', cta: 'slot_cta',
@@ -28,7 +28,7 @@ const SLOT: Record<ShotRole, SlotColumn> = {
 export async function brandOf(workspaceId: string, name: string): Promise<PhotoBrand> {
   return workspaceRunId(workspaceId)
     .then(loadWebsiteSource)
-    .then(photoBrand)
+    .then(photoBrandFor)
     .catch((): PhotoBrand => ({ business: name, sells: name, look: null, productAsSubject: false }));
 }
 

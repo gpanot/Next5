@@ -18,15 +18,16 @@ import { mergeCard } from './ideaCardMerge';
 import { fitShotCaptions } from '../slideshow/core/captionFit';
 import type { DeckItem, DeckShot } from '../slideshow/core/deckAssembly';
 import type { ImageNeed } from '../slideshow/core/generatedAssets';
-import { batchShotImages, type BatchNeed } from '../slideshow/core/imageNeeds';
+import { batchShotImages, type BatchNeed, type OnScriptImages } from '../slideshow/core/imageNeeds';
 import type { LibraryAsset } from '../slideshow/core/library';
 import { libraryShot, type MediaOption } from '../slideshow/core/media';
 import type { PhotoBrand } from '../slideshow/core/shotPhotos';
+import type { StoryPhotos } from './blitzStoryPhotos';
 
 type IdeaPlan = { shots?: DeckShot[]; card?: DeckItem };
 /** Ideas whose cards may still change: not made yet. */
 const OPEN = ['proposed', 'kept', 'discarded'];
-const SHOT_ROLE: Record<ImageNeed['role'], DeckShot['role']> = { pain: 'pain', oldWay: 'old_way', mechanism: 'mechanism', proof: 'proof', inaction: 'inaction' };
+const SHOT_ROLE: Record<ImageNeed['role'], DeckShot['role']> = { hook: 'hook', pain: 'pain', oldWay: 'old_way', mechanism: 'mechanism', proof: 'proof', inaction: 'inaction', cta: 'cta' };
 
 type Snapshot = { id: string; shots: DeckShot[]; pending: DeckItem['pendingImages'] };
 
@@ -112,12 +113,34 @@ async function snapshots(ids: string[]): Promise<Snapshot[]> {
   });
 }
 
-/** The images every card lists, one per moment of the batch (no write): AI when paid, else stock. Per card index: need key → image. */
-async function makeImages(cards: Snapshot[], workspaceId: string | null, brand: PhotoBrand): Promise<Array<Map<string, LibraryAsset>>> {
-  const needs: BatchNeed[] = cards.flatMap((c, script) => (c.pending ? c.pending.needs.map((need) => ({ script, audience: c.pending!.audience, categories: c.pending!.categories, need })) : []));
-  if (needs.length === 0) return cards.map(() => new Map());
-  return batchShotImages(needs, cards.length, workspaceId, brand);
+/** A need with its story's bank prompt for its shot (`photos`: by story id), when the bank has one. */
+const withPhoto = (need: ImageNeed, photos: Map<string, StoryPhotos>): ImageNeed => {
+  const photo = need.story ? photos.get(need.story.id)?.[need.role] : undefined;
+  return photo ? { ...need, photo } : need;
+};
+
+/** The images every card lists, one per moment of the batch (no write): AI when paid, else cheap AI. Each card's
+ *  images go to `onCard` as soon as they are made. `photos`: the stories' prompts from the bank (blitzBankPhotos.ts). */
+async function makeImages(cards: Snapshot[], workspaceId: string | null, brand: PhotoBrand, onCard: OnScriptImages, photos?: Promise<Map<string, StoryPhotos>>): Promise<void> {
+  const prompts = (await photos) ?? new Map<string, StoryPhotos>();
+  const needs: BatchNeed[] = cards.flatMap((c, script) => (c.pending ? c.pending.needs.map((need) => ({ script, audience: c.pending!.audience, categories: c.pending!.categories, need: withPhoto(need, prompts) })) : []));
+  if (needs.length > 0) await batchShotImages(needs, cards.length, workspaceId, brand, onCard);
 }
+
+/** Puts a card's images on its shots (new shots get their caption fit), then its camera moves. Never throws. */
+const imageCard = (c: Snapshot, images: Map<string, LibraryAsset>) =>
+  saveCard(c.id, async (card) => {
+    const shots = await withImages(card.shots, c.shots, images, c.pending!.needs);
+    const changed = shots.filter((s, n) => s.assetKey !== card.shots[n]?.assetKey);
+    return { ...card, shots: changed.length ? withCaptions(shots, await captionHeights(changed)) : shots };
+  }).then(async (swapped) => {
+    await finishCards([c]);
+    return swapped;
+  }).catch(async (err: unknown) => {
+    console.error(`[idea-finish] images not put on ${c.id}:`, err instanceof Error ? err.message : err);
+    await clearFinishing([c.id]);
+    return false;
+  });
 
 /**
  * Every card's captions become its voiceover's spoken lines (2026-10-19), so no card keeps the first written captions:
@@ -155,23 +178,29 @@ async function captionHeights(shots: DeckShot[], deadlineMs?: number): Promise<M
 
 /**
  * Finishes the ideas' cards (`ids`: slideshow_variants) after the batch's response: the AI images render while every
- * shot's caption is fitted; cards with no image to wait for are done first, then the others get their images and
- * the new shots' captions. Never throws.
+ * shot's caption is fitted; cards with no image to wait for are done first. Each other card gets its images and its new
+ * shots' captions as soon as its own images are made (earlier cards render first), not when the whole batch is. Never throws.
  */
-export async function finishIdeaCards(ids: string[], workspaceId: string | null, brand: PhotoBrand): Promise<void> {
+export async function finishIdeaCards(ids: string[], workspaceId: string | null, brand: PhotoBrand, photos?: Promise<Map<string, StoryPhotos>>): Promise<void> {
   const started = Date.now();
   const secs = (from: number) => ((Date.now() - from) / 1000).toFixed(1);
   try {
     const first = await snapshots(ids);
-    const imaging = makeImages(first, workspaceId, brand).catch((err: unknown) => {
+    // A card's images wait for its spoken lines and captions (`spoken`), then go on at once.
+    let cards = first;
+    let spoken!: () => void;
+    const captioned = new Promise<void>((resolve) => { spoken = resolve; });
+    const imaged = new Map<number, Promise<boolean>>();
+    const imaging = makeImages(first, workspaceId, brand, (i, images) => {
+      imaged.set(i, captioned.then(() => imageCard(cards[i]!, images)));
+    }, photos).catch((err: unknown) => {
       console.error('[idea-finish] images failed:', err instanceof Error ? err.message : err);
-      return first.map(() => new Map<string, LibraryAsset>());
     });
     // Captions are fitted to the spoken lines, so those are written first; the images render meanwhile.
     await speakCards(first, workspaceId);
     const spokenIn = secs(started);
     const now = new Map((await snapshots(ids)).map((c) => [c.id, c]));
-    const cards = first.map((c) => ({ ...c, shots: now.get(c.id)?.shots ?? c.shots }));
+    cards = first.map((c) => ({ ...c, shots: now.get(c.id)?.shots ?? c.shots }));
     // Two writes: what is fitted within FIRST_PASS_MS, then the slow shots (their calls keep running, not restarted).
     const shots = cards.flatMap((c) => c.shots);
     const early = await captionHeights(shots, FIRST_PASS_MS);
@@ -180,16 +209,15 @@ export async function finishIdeaCards(ids: string[], workspaceId: string | null,
     const ys = early.size < shots.length ? await captionHeights(shots) : early;
     await Promise.all(cards.map((c) => saveCard(c.id, async (card) => ({ ...card, shots: withCaptions(card.shots, ys) }))));
     const captionsIn = `${firstIn}s first, ${secs(started)}`;
+    spoken();
     // Cards with no image to wait for get their camera moves now; the others once their images are on.
     const ready = finishCards(cards.filter((c) => !c.pending));
-    const images = await imaging;
+    await imaging;
     const imagesIn = secs(started);
-    const saved = await Promise.all(cards.map((c, i) => c.pending && saveCard(c.id, async (card) => {
-      const shots = await withImages(card.shots, c.shots, images[i]!, c.pending!.needs);
-      const changed = shots.filter((s, n) => s.assetKey !== card.shots[n]?.assetKey);
-      return { ...card, shots: changed.length ? withCaptions(shots, await captionHeights(changed)) : shots };
-    })));
-    await Promise.all([ready, finishCards(cards.filter((c) => c.pending))]);
+    // A card whose images never came (the batch failed) is let go of as it is.
+    const lost = cards.filter((c, i) => c.pending && !imaged.has(i));
+    const saved = await Promise.all([...imaged.values()]);
+    await Promise.all([ready, finishCards(lost)]);
     const swapped = saved.filter(Boolean).length;
     console.log(`[idea-finish] ${ids.length} card(s): spoken lines ${spokenIn}s, captions ${captionsIn}s, images ${imagesIn}s (on ${swapped} card(s)), done ${secs(started)}s`);
   } catch (err) {

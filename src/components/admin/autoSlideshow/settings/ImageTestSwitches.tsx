@@ -8,7 +8,7 @@ type Values = { stockImagesOnly: boolean; aiImagesOnly: boolean; hooksVolumeStoc
 type Props = { token: string; values: Values; onChanged: () => void };
 
 const SWITCHES: { key: keyof Values; title: string; hint: string }[] = [
-  { key: 'stockImagesOnly', title: 'Stock photos only', hint: 'New Ideas cards get free stock photos, like a free account. Slideshows do not change.' },
+  { key: 'stockImagesOnly', title: 'Stock photos only', hint: 'New Ideas cards get cheap AI images, like a free account. Slideshows do not change.' },
   { key: 'aiImagesOnly', title: 'Only AI images for Blitz', hint: 'New Blitz cards always get AI images, even before any payment. Slideshows do not change.' },
   { key: 'hooksVolumeStockOnly', title: 'Images for Hooks Volume: stock only', hint: 'Off: AI images once paid, stock before. On: "Generate the entire slideshows" always uses stock photos.' },
 ];
