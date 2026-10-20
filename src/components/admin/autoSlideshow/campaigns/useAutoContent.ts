@@ -69,7 +69,9 @@ export const useAutoContent = (token: string, campaignId: string, state: Campaig
     const cta = written.titles.length;
     if (s.samePhoto) return [{ key: `auto-${stamp}-all`, cards: [...written.titles.map((_, i) => i), ...(ctaPhoto ? [cta] : [])], ...source(null) }];
     const items = written.titles.map((_, i) => ({ key: `auto-${stamp}-${i}`, cards: [i], ...source(i) }));
-    return ctaPhoto ? [...items, { key: `auto-${stamp}-cta`, cards: [cta], ...source(null) }] : items;
+    // The CTA's own scene (the product in use) when the server wrote one; else the cover photo.
+    const ctaSource: CampaignPhotoJobSource = written.ctaScene && s.photoSource === 'ai' ? { auto: { source: 'ai', scene: written.ctaScene, cta: true, ...(tonePhoto === undefined ? {} : { tonePhoto }) } } : source(null);
+    return ctaPhoto ? [...items, { key: `auto-${stamp}-cta`, cards: [cta], ...ctaSource }] : items;
   }, [tonePhoto]);
 
   /** Writes and places the slides; resolves true once the text is on the cards (photos keep coming in). */
@@ -77,11 +79,15 @@ export const useAutoContent = (token: string, campaignId: string, state: Campaig
     if (!draft) return false;
     const hooks = options.hooks ?? draft.hooks;
     const settings = { ...settingsFor(hooks), ...(options.photoSource ? { photoSource: options.photoSource } : {}) };
-    const ctaPhoto = options.cta !== undefined && draft.cards[draft.cards.length - 1]?.photo === null;
+    const lastCard = draft.cards[draft.cards.length - 1];
+    const ctaPhoto = options.cta !== undefined && lastCard?.photo === null;
+    // The CTA text its photo is written from: the card's own text, or the one about to be put on it.
+    const ctaText = ctaPhoto && lastCard && options.cta ? withCtaText(lastCard, options.cta) : null;
+    const cta = ctaText ? { title: stripNumber(ctaText.title).trim(), body: ctaText.body } : undefined;
     setWriting(true);
     state.setError(null);
     try {
-      const written = await adminFetch<AutoContentDto>(token, `${base}/auto`, { method: 'POST', body: JSON.stringify({ ...settings, hooks }) });
+      const written = await adminFetch<AutoContentDto>(token, `${base}/auto`, { method: 'POST', body: JSON.stringify({ ...settings, hooks, ...(cta ? { cta } : {}) }) });
       state.setDraft((d) => {
         const last = d.cards[d.cards.length - 1]!;
         const cta = options.cta ? withCtaText(last, options.cta) : last;

@@ -309,11 +309,14 @@ export type AutoContentDto = {
   coverQuery: string;
   libraryRefs: (CampaignPhotoRef | null)[];
   coverRef: CampaignPhotoRef | null;
+  /** The CTA card's own AI photo scene (the product in use, ctaPhoto.ts), when the CTA text was sent; else it takes the cover. */
+  ctaScene?: string | null;
 };
 
 /** One photo for the auto content: an AI photo of a scene (matching the color and light of campaign photo `tonePhoto`,
- *  the first hook photo, when set), or the `nth` stock result of a search. */
-export type AutoPhotoRequest = { source: 'ai'; scene: string; tonePhoto?: number } | { source: 'stock'; query: string; nth: number };
+ *  the first hook photo, when set; `cta`: the CTA photo, made with the Brand Cast face and the product as references),
+ *  or the `nth` stock result of a search. */
+export type AutoPhotoRequest = { source: 'ai'; scene: string; tonePhoto?: number; cta?: boolean } | { source: 'stock'; query: string; nth: number };
 
 /** The number a hook line promises ("5 ways to…"), or null. */
 export const hookNumber = (hook: string): number | null => {
