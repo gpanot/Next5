@@ -58,6 +58,7 @@ export function useNarrationAudio({ narration, shotIdx, elapsedRef, playing, mut
     if (Math.abs(audio.currentTime - at) > MAX_DRIFT_S) audio.currentTime = at;
   }, [narration, shotIdx, elapsedRef]);
 
+  // Runs on each shot change too: when the card loops, the audio has ended, and the seek above alone leaves it silent.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -66,7 +67,7 @@ export function useNarrationAudio({ narration, shotIdx, elapsedRef, playing, mut
     audio.play().catch((err: unknown) => {
       if (err instanceof DOMException && err.name === 'NotAllowedError' && !audio.muted) setBlocked(true);
     });
-  }, [url, playing, muted, waiting, isBlocked]);
+  }, [url, playing, muted, waiting, isBlocked, shotIdx]);
 
   const unblock = useCallback(() => {
     audioRef.current?.play().catch(() => undefined);
