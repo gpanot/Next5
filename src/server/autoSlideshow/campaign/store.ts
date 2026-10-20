@@ -192,14 +192,34 @@ const postDatesOf = (
 
 type PreviewShowRow = { status: string; slides: Prisma.JsonValue; audioStart: number; audio: { id: string; name: string; r2Key: string } | null };
 
-/** The music a card plays: the made slideshow's, else the draft's, else one from the library, always the same for a
- *  campaign (picked from its id) so the card sounds the same on every visit. */
-const previewAudioOf = async (id: string, draft: CampaignDraft, show: PreviewShowRow | undefined, tracks: AutoTrackDto[]): Promise<{ url: string; startAt: number } | null> => {
-  const made = show ? await trackDto(show.audio, show.audioStart) : null;
+/** A campaign with no music gets one of our own library tracks (TikTok ones only when there is nothing else), always
+ *  the same for a campaign (picked from its id). */
+const stableTrackOf = (id: string, tracks: AutoTrackDto[]): AutoTrackDto | null => {
   const own = tracks.filter((t) => !t.tiktok);
   const pool = own.length > 0 ? own : tracks;
-  const track = made ?? tracks.find((t) => t.assetId === draft.audioAssetId) ?? (pool.length ? pool[[...id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 0) % pool.length] : null);
+  return pool.length ? pool[[...id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 0) % pool.length]! : null;
+};
+
+/** The music a card plays: the made slideshow's, else the draft's, else the campaign's stable pick (saved once the
+ *  editor opens it, see withSavedMusic). */
+const previewAudioOf = async (id: string, draft: CampaignDraft, show: PreviewShowRow | undefined, tracks: AutoTrackDto[]): Promise<{ url: string; startAt: number } | null> => {
+  const made = show ? await trackDto(show.audio, show.audioStart) : null;
+  const track = made ?? tracks.find((t) => t.assetId === draft.audioAssetId) ?? stableTrackOf(id, tracks);
   return track ? { url: track.url, startAt: track.startAt } : null;
+};
+
+/** A campaign made before the music rotation gets its music saved: the made slideshow's track, else the one its card
+ *  plays. Skipped when the draft changed meanwhile, so an editor save is never overwritten. */
+const withSavedMusic = async (run: { id: string; campaign: Prisma.JsonValue; slideshows: { audioAssetId: string | null }[] }): Promise<CampaignDraft> => {
+  const draft = draftOf(run);
+  if (draft.audioAssetId || run.campaign === null) return draft;
+  const audioAssetId = run.slideshows[0]?.audioAssetId ?? stableTrackOf(run.id, await listTracks().catch((): AutoTrackDto[] => []))?.assetId;
+  if (!audioAssetId) return draft;
+  const saved = await prisma.autoSlideshowRun.updateMany({
+    where: { id: run.id, campaign: { equals: run.campaign as Prisma.InputJsonValue } },
+    data: { campaign: json({ ...storedOf(run), audioAssetId }) },
+  });
+  return saved.count > 0 ? { ...draft, audioAssetId } : draft;
 };
 
 /** The first slideshow as its card plays it: the made slides while they are ready, else the draft's first hook drawn
@@ -265,7 +285,7 @@ export const getCampaignDto = async (id: string): Promise<CampaignDto> => {
     id: run.id,
     workspaceId: run.workspaceId ?? '',
     name: run.name ?? DEFAULT_NAME,
-    draft: draftOf(run),
+    draft: await withSavedMusic(run),
     photos,
     slideshows: await Promise.all(run.slideshows.map(toSlideshowDto)),
     rendered: isRendered(run, run.slideshows.length),
