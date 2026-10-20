@@ -12,7 +12,7 @@
 //      twice in a deck
 //   4. batchShotImages: images for story shots the library can't cover (parallel, one per moment of the deck), AI
 //      once the workspace has paid, stock photos before, saved to the library with categories so the next deck reuses them
-// Then interleave (no music since 2026-10-12: the videos are narrated, blitzVoice.ts), caption Auto Fit on every shot (captionFit.tsx), persist.
+// Then interleave (no music since 2026-10-12: the videos are narrated, blitzVoice.ts), caption Auto Fit on hook and CTA shots (captionFit.tsx), persist.
 // Steps 1–2 can also come ready-made from the workspace's Blitz Script Bank (blitzBank.ts): deckFromScripts runs 3–4.
 
 import { prisma } from '../../lib/db';
@@ -246,7 +246,7 @@ export async function deckFromScripts(source: WebsiteSource, written: BriefScrip
     const pending = media[i]!.needs;
     return opts.later ? cards.map((c) => ({ ...c, finishing: true, ...(pending.length ? { pendingImages: { audience: b.idc, categories: b.categories, needs: pending } } : {}) })) : cards;
   }));
-  // Quality first: every shot's caption is placed by the vision Auto Fit on its real frame (~$0.006 per unique shot),
+  // Hook and CTA captions are placed by the vision Auto Fit on their real frame (~$0.006 per unique shot),
   // so no card shows its caption over a face. A shot that cannot be fitted keeps its text-safe-zone position.
   // `later`: saved fits and known heads only, the Auto Fit runs after the response.
   const fitted = await fitDeckCaptions(interleave(decks), { models: !opts.later });

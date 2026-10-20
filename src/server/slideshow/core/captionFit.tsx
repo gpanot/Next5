@@ -220,21 +220,25 @@ export async function fitShotCaptions(shots: DeckShot[], opts: { models?: boolea
   return shots.map((s) => byKey.get(shotKey(s)) ?? null);
 }
 
+/** Blitz cards fit only their hook and CTA captions (user, 2026-10-20): the story slides keep their zone position. */
+export const FITTED_ROLES: ReadonlySet<DeckShot['role']> = new Set(['hook', 'cta']);
+export const isFittedShot = (shot: DeckShot) => FITTED_ROLES.has(shot.role);
+
 /** The shot's fit-cache key: its frame and caption box (captionFitCache.ts). */
 const cacheKeyOf = (s: DeckShot) => fitCacheKey(s.trimStart ?? 0, captionRect(s.text.trim(), STYLE.positionY), STYLE.fontSize * 1.25);
 
 /**
- * Places the caption of every shot of `cards`, in place of the text-safe-zone guess. Story shots shared by a brief's
- * cards (same clip, same line) are placed once. `models`: see fitShotCaptions. Never throws: a shot without a height
- * keeps its zone position.
+ * Places the hook and CTA captions of `cards` (isFittedShot), in place of the text-safe-zone guess; story shots keep
+ * theirs. `models`: see fitShotCaptions. Never throws: a shot without a height keeps its zone position.
  */
 export async function fitDeckCaptions(cards: DeckItem[], opts: { models?: boolean } = {}): Promise<DeckItem[]> {
-  const ys = await fitShotCaptions(cards.flatMap((c) => c.shots), opts);
-  let n = 0;
+  const fitted = cards.flatMap((c) => c.shots.filter(isFittedShot));
+  const ys = await fitShotCaptions(fitted, opts);
+  const byShot = new Map(fitted.map((s, i) => [s, ys[i]] as const));
   return cards.map((c) => ({
     ...c,
     shots: c.shots.map((s) => {
-      const y = ys[n++];
+      const y = byShot.get(s);
       return y == null ? s : { ...s, positionY: y };
     }),
   }));
