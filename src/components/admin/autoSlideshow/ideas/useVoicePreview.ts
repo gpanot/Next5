@@ -19,6 +19,25 @@ const SETTLE_MS = 1000;
 const textsOf =(idea: IdeaDto): string[] => ideaCard(idea).shots.map((s) => s.text);
 const keyFor = (id: string, voice: BlitzVoiceName, texts: string[]) => `${id}:${voice}:${texts.join('|')}`;
 const keyOf = (idea: IdeaDto, voice: BlitzVoiceName) => keyFor(idea.id, voice, textsOf(idea));
+type VoiceDebug = { durations: number[]; lines?: string[]; words?: SpokenWord[][]; cached?: boolean; misread?: string[][] };
+
+/**
+ * Debug (2026-10-20): one console row per shot — its caption, the spoken line, how many caption words are timed (0 = no
+ * caption shows) and what the voice added (+) or skipped (-), e.g. "+director's +notes". Old recordings have no misread.
+ */
+const logVoiceover = (idea: IdeaDto, texts: string[], data: VoiceDebug) => {
+  const rows = texts.map((caption, i) => ({
+    caption,
+    spoken: data.lines?.[i] ?? '(none)',
+    seconds: data.durations[i],
+    timedWords: data.words?.[i]?.length ?? 0,
+    misread: data.misread?.[i]?.join(' ') ?? (data.misread ? '' : '(not recorded)'),
+  }));
+  console.groupCollapsed(`[voice-preview] ${idea.id} ${data.cached ? 'replay' : 'new recording'}`);
+  console.table(rows);
+  console.groupEnd();
+};
+
 /** The idea's narrator; a voice no longer offered (Kore, before 2026-10-13) is the default. */
 export const voiceOf = (idea: IdeaDto): BlitzVoiceName => (isBlitzVoice(idea.card?.voice) ? idea.card.voice : DEFAULT_BLITZ_VOICE);
 
@@ -51,6 +70,7 @@ export function useVoicePreview(client: LabClient | null, onSpoken: (idea: IdeaD
       .catch(() => null);
     // Debug (2026-10-20): the server's reason for a failed recording (admins only get `details`).
     if (res && !res.ok) console.warn('[voice-preview]', res.status, (res.data as { details?: unknown }).details ?? errorOf(res));
+    if (res?.ok) logVoiceover(idea, textsOf(idea), res.data);
     const next: VoicePreviewState = res?.ok
       ? { status: 'ready', narration: { url: res.data.url, durations: res.data.durations, words: res.data.words } }
       : { status: 'error', message: res ? errorOf(res) : 'Could not reach the server. Check your connection.', limit: res?.status === 429 };
