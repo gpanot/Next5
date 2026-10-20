@@ -318,8 +318,8 @@ export type SlideshowMeDto = {
   approvalEmailEnabled: boolean;
   /** Testing switch: Ideas-page Blitz cards get stock photos even when paid. Null when this user may not see it. */
   stockImagesOnly: boolean | null;
-  /** Testing switch: Blitz cards always get AI images, even before any payment. Null when this user may not see it. */
-  aiImagesOnly: boolean | null;
+  /** Testing setting: percent of Blitz photo prompts written as a 50/50 split-screen picture. Null when this user may not see it. */
+  splitSlidesPercent: number | null;
   /** Testing switch: Hooks Volume's "Generate the entire slideshows" uses stock photos even when paid. Null when this user may not see it. */
   hooksVolumeStockOnly: boolean | null;
 };
