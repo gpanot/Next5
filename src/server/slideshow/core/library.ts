@@ -8,7 +8,8 @@
 //   the asset's own avoidFor matches the role.
 // Meaning match: cosine similarity on pgvector embeddings when the query was embedded
 // (embedQueries); otherwise Postgres full-text rank over retrievalText / meaning / bestUse.
-// A little random jitter keeps two decks for the same listing from looking identical.
+// Random jitter (up to 0.15, raised from 0.06 on 2026-10-20) rotates clips of near-equal relevance between decks;
+// meaning match spans ~0.5, so a weak clip still never beats a close one.
 //
 // All values go through Prisma.sql parameters: shot text comes from an LLM and is never interpolated.
 
@@ -166,7 +167,7 @@ export async function searchLibrary(q: LibraryQuery): Promise<LibraryAsset[]> {
         + (1 - abs(coalesce(d.energy_level, 0.5) - ${q.targetEnergy}::float)) * 0.1
         + CASE d.kind WHEN 'hook' THEN ${boost('hook')}::float ELSE ${boost('background')}::float END
         - CASE WHEN ${q.avoidPattern ?? ''}::text <> '' AND array_to_string(d.avoid_for, ' ') ~* ${q.avoidPattern ?? ''}::text THEN 0.15 ELSE 0 END
-        + random() * 0.06
+        + random() * 0.15
       )::float AS score
     FROM asset_descriptors d
     JOIN blitz_assets a ON a.id = d.blitz_asset_id
