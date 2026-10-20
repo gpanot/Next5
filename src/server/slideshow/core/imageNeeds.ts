@@ -16,6 +16,13 @@ import { newStockUsed, stockShotImages } from './stockImages';
 
 /** What workspaces that have not paid get: cheap AI images, or stock photos (before 2026-10-20). */
 const FREE_IMAGES = 'cheap_ai' as 'cheap_ai' | 'stock';
+/**
+ * Paid workspaces get the free plan's images too (cheap model, images-only cards in batches) while a client tests them
+ * (user, 2026-10-20: Nano Banana runs 10 at a time at ~45 s an image, so paid batches were slow). false = paid
+ * workspaces get Nano Banana 2.1 again, and their batches no images-only cards.
+ */
+export const PAID_LIKE_FREE = true;
+
 /** The cheap image model of free workspaces: GPT Image 2, low quality, 1K. */
 export const FREE_IMAGE_MODEL: ReapiModelId = 'reapi-gpt-image-2-low';
 
@@ -117,7 +124,7 @@ export const getsPaidImages = (workspaceId: string | null) =>
  */
 export const batchShotImages = async (needs: BatchNeed[], scripts: number, workspaceId: string | null, brand: PhotoBrand, onScript?: OnScriptImages) => {
   if (needs.length === 0) return Array.from({ length: scripts }, () => new Map<string, LibraryAsset>());
-  if (await getsPaidImages(workspaceId)) return makeBatchImages(needs, scripts, workspaceId, brand, undefined, onScript);
+  if (!PAID_LIKE_FREE && (await getsPaidImages(workspaceId))) return makeBatchImages(needs, scripts, workspaceId, brand, undefined, onScript);
   return FREE_IMAGES === 'stock'
     ? makeBatchStock(needs, scripts, workspaceId, brand, onScript)
     : makeBatchImages(needs, scripts, workspaceId, brand, FREE_IMAGE_MODEL, onScript);
