@@ -3,8 +3,8 @@ import { coverSrc } from '../../content/guides';
 import type { Article } from '../../content/guides/types';
 
 /**
- * A real Next5 slideshow cover (4:5) on a soft blurred copy of itself, so a portrait slide fills a
- * landscape card without cropping its hook text.
+ * A 4:5 cover (a Next5 slideshow slide or a generated photo) on a soft blurred copy of itself, so a
+ * portrait image fills a landscape card without cropping its hook text.
  */
 export function ArticleCover({ article, sizes, priority = false, className = '' }: { article: Pick<Article, 'cover' | 'coverAlt'>; sizes: string; priority?: boolean; className?: string }) {
   const src = coverSrc(article);

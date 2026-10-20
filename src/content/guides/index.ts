@@ -41,7 +41,14 @@ export const articleHref = ({ kind, slug }: Pick<Article, 'kind' | 'slug'>): str
 
 export const findArticle = (kind: ArticleKind, slug: string): Article | undefined => ALL_ARTICLES.find((a) => a.kind === kind && a.slug === slug);
 
-export const coverSrc = (article: Pick<Article, 'cover'>): string => `/images/auto-slideshow/${article.cover}/1.jpg`;
+const isGeneratedCover = (cover: string): boolean => cover.startsWith('/images/');
+
+export const coverSrc = (article: Pick<Article, 'cover'>): string =>
+  isGeneratedCover(article.cover) ? article.cover : `/images/auto-slideshow/${article.cover}/1.jpg`;
+
+/** Pixel size of the cover file: generated covers are 1024x1280, slideshow slides 1080x1350. */
+export const coverSize = (article: Pick<Article, 'cover'>): { width: number; height: number } =>
+  isGeneratedCover(article.cover) ? { width: 1024, height: 1280 } : { width: 1080, height: 1350 };
 
 const blockText = (block: ArticleBlock): string => {
   switch (block.type) {

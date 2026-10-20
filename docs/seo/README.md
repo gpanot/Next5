@@ -1,11 +1,26 @@
 # SEO engine: one useful article a day
 
-Next5 grows organic traffic with an agent that publishes 1 or 2 genuinely useful articles per day,
-each chosen from real Google data and linked into pages that already rank. It never writes for volume.
+Next5 grows organic traffic with an agent that publishes at most 1 genuinely useful article per day,
+chosen from real Google data and linked into pages that already rank. It never writes for volume.
 
-The model is Vaultaire's (Rasty Turek): a daily Claude run reads Search Console through
-[gum](https://gumcli.dev/), finds queries where the site is shown but not clicked, writes one guide
-for that exact query, links it from pages with traffic, and repeats the next morning.
+The model is Vaultaire's (Rasty Turek): a daily Claude run reads Search Console and Keyword Planner
+through [gum](https://gumcli.dev/), finds queries where the site is shown but not clicked, writes one
+guide for that exact query, links it from pages with traffic, and repeats the next morning. Google
+picks a new page up in 3 to 4 days. Vaultaire has published about 120 guides since March 2026, about
+one every two days: few pages, each one strong.
+
+## What we copy from Vaultaire
+
+Read [vaultaire.app/guides](https://vaultaire.app/guides/) once before changing this engine.
+
+| Vaultaire does | Next5 does |
+| --- | --- |
+| One narrow question per guide, in the searcher's words ("Does CarPlay show your photos?") | Same. Prefer the narrow question over the broad head term |
+| The direct answer in the first lines | The `answer` box |
+| An image per guide, and the product shown where it solves the problem | A generated cover photo for the same trade or topic, and a short "How Next5 does this" part |
+| A sources list on facts that matter ("What this is based on") | A `Sources` section with primary sources |
+| 4 or more links to sibling guides inside the body | 3 or more in the body, plus 3 to 5 links in from pages with traffic |
+| Scenario pages ("My kid found my private photos") and free tools | Later (see Next steps). Not part of the daily run yet |
 
 ## Files
 
@@ -15,6 +30,7 @@ for that exact query, links it from pages with traffic, and repeats the next mor
 | [QUALITY_BAR.md](QUALITY_BAR.md) | The publish checklist and the reviewer rubric. |
 | [DAILY_RUN.md](DAILY_RUN.md) | The exact instructions for each morning run, step by step, with the gum commands. |
 | [KEYWORD_BACKLOG.md](KEYWORD_BACKLOG.md) | Seed topics per hub, to validate with keyword data. Used while Search Console is thin. |
+| `research/<slug>.md` | One file per article: query data, top 5 results, People also ask, every fact with its source. The reviewer checks against it. |
 | [RUN_LOG.md](RUN_LOG.md) | One line per run: what was targeted, what shipped, what was skipped and why. |
 
 In code:
@@ -25,8 +41,10 @@ In code:
 
 ## One-time setup (owner)
 
-1. **Search Console**: verify `https://next5.giinger.com/` as a URL-prefix property and submit
-   `https://next5.giinger.com/sitemap.xml`. Data starts collecting from that day.
+1. **Search Console**: the property is the domain property `sc-domain:giinger.com` (verified). It
+   also covers other giinger.com sites, so every query filters to pages that start with
+   `https://next5.giinger.com/`. The sitemap `https://next5.giinger.com/sitemap.xml` was submitted on
+   2026-10-18 and resubmitted with gum on 2026-10-19. Done.
 2. **Google Cloud project**: enable the Search Console API (and the Google Ads API if using Keyword
    Planner), configure the OAuth consent screen with your account as a test user, create a
    Desktop OAuth client.
@@ -35,16 +53,37 @@ In code:
    # install: see https://gumcli.dev/install.html
    printf '%s' "$GOOGLE_OAUTH_CLIENT_SECRET" | gum auth use-oauth-client --client-id "$GOOGLE_OAUTH_CLIENT_ID" --secret-stdin
    gum login --service searchconsole
-   gum auth status --scopes webmasters,webmasters.readonly
-   gum setup --dry-run && gum setup --target claude --features skills,mcp --yes
+   gum doctor        # "BYO OAuth ready" means it works (`gum auth status` checks gcloud ADC, ignore it)
+   gum setup --dry-run --target claude --features skills,mcp
+   gum setup --target claude --features skills,mcp --yes
+   claude mcp add --scope user gum -- gum mcp --stdio   # Claude Code reads ~/.claude.json, not ~/.claude/mcp.json
    ```
-4. **Keyword data** (optional at first): keep using treg as today, or add Google Ads
-   Keyword Planner through gum (`gum login --service googleads`, needs a developer token,
-   which can take days to approve).
+   Done on 2026-10-19.
+4. **Keyword data**: Keyword Planner through gum, as Vaultaire does. Google Ads manager
+   `997-919-1937`, client account `870-307-4080` (Next5), Basic API access on the gum Cloud project
+   (15,000 operations a day, free). Google no longer requires a developer token; gum still stores the
+   test one. The OAuth app is in production, so logins do not expire after 7 days. Done on 2026-10-20:
+   ```bash
+   printf '%s' "$GOOGLE_ADS_TEST_TOKEN" | gum auth use-ads-developer-token --stdin
+   gum login --service googleads
+   ```
+   treg (DataForSEO) stays as a fallback.
 5. **Schedule the run**: a daily scheduled Claude task, in this repo, whose prompt is
    "Follow docs/seo/DAILY_RUN.md". It opens a pull request per article.
 6. **Review**: for the first 4 weeks, read and merge each PR yourself (2 minutes). After 20
    articles in a row pass review without edits, let the run merge its own PRs when CI is green.
+
+## Decisions to make before more articles
+
+- **Domain.** `next5.giinger.com` is final (confirmed 2026-10-20). All authority builds on it.
+  Never move the articles.
+
+## Next steps (not in the daily run yet)
+
+- Hub pages for `realtors` and `tiktok-shop` (for example `/guides/realtors`) once each hub has 5
+  articles. A hub page with 1 or 2 articles is thin.
+- Scenario pages: one owner situation per page ("My TikTok gets 200 views", "I have no time to post").
+- Free tools: a hook generator, a calendar template.
 
 ## Measuring
 

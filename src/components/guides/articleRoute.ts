@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { articleHref, BLOG_POSTS, coverSrc, findArticle, GUIDES } from '../../content/guides';
+import { articleHref, BLOG_POSTS, coverSize, coverSrc, findArticle, GUIDES } from '../../content/guides';
 import type { Article, ArticleKind } from '../../content/guides/types';
 
 /** Shared by /guides/[slug] and /blog/[slug]: every slug is known at build time. */
@@ -15,7 +15,7 @@ export const loadArticle = async (kind: ArticleKind, params: Promise<{ slug: str
 export const articleMetadata = (article: Article): Metadata => {
   const title = article.seoTitle ?? article.title;
   const url = articleHref(article);
-  const images = [{ url: coverSrc(article), width: 1080, height: 1350, alt: article.coverAlt }];
+  const images = [{ url: coverSrc(article), ...coverSize(article), alt: article.coverAlt }];
   return {
     title,
     description: article.description,
