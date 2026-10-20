@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createLocalStore } from '../../../lib/localStore';
+import { ExpandedPlayback, ExpandIcon, wantsFullscreen } from './ExpandedPlayback';
 import { PlayIcon, SLIDE_MS } from './SlidePlayer';
 
 /** Sound on the covers' playback, kept for this browser: on until the user turns it off. */
@@ -12,13 +13,18 @@ const useCoverSound = (): [boolean, () => void] => {
   return [on, () => soundStore.set(on ? 'off' : 'on')];
 };
 
-/** The one cover playing on the page: starting one stops the others. */
+/** The one cover playing on the page: starting one stops the others. `onceId`: that cover stops after one pass. */
 let playingId: string | null = null;
+let onceId: string | null = null;
 let listeners: (() => void)[] = [];
-const setPlayingId = (id: string | null) => {
+const setPlayingId = (id: string | null, once = false) => {
   playingId = id;
+  onceId = once ? id : null;
   listeners.forEach((l) => l());
 };
+
+/** Plays cover `id` through its slides once, then back to the cover (the first slideshow after onboarding). */
+export const playCoverOnce = (id: string) => setPlayingId(id, true);
 const subscribe = (listener: () => void) => {
   listeners.push(listener);
   return () => {
@@ -26,6 +32,9 @@ const subscribe = (listener: () => void) => {
   };
 };
 const usePlayingId = () => useSyncExternalStore(subscribe, () => playingId, () => null);
+
+/** On a grid cell holding a cover: the cell takes 2×2 tracks while its cover is expanded (desktop). */
+export const EXPANDABLE_CELL = 'sm:has-[[data-cover-expanded]]:col-span-2 sm:has-[[data-cover-expanded]]:row-span-2';
 
 const button = 'flex items-center justify-center rounded-full bg-black/55 text-white backdrop-blur transition hover:bg-black/75 active:scale-95';
 
@@ -38,20 +47,43 @@ function SoundIcon({ on }: { on: boolean }) {
   );
 }
 
-/** Steps through the frames while playing; back to the cover when another cover takes over. */
-const useFrames = (count: number, playing: boolean, othersPlaying: boolean) => {
+/** Steps through the frames while playing (one pass when played once); back to the cover when another cover takes over. */
+const useFrames = (id: string, count: number, playing: boolean, othersPlaying: boolean) => {
   const [index, setIndex] = useState(0);
   useEffect(() => {
     if (!playing) return;
-    const timer = setInterval(() => setIndex((i) => (i + 1) % count), SLIDE_MS);
+    const once = onceId === id;
+    let shown = 1;
+    const timer = setInterval(() => {
+      if (once && shown >= count) {
+        setIndex(0);
+        setPlayingId(null);
+        return;
+      }
+      shown += 1;
+      setIndex((i) => (i + 1) % count);
+    }, SLIDE_MS);
     return () => clearInterval(timer);
-  }, [playing, count]);
+  }, [id, playing, count]);
   const [wasOthers, setWasOthers] = useState(othersPlaying);
   if (othersPlaying !== wasOthers) {
     setWasOthers(othersPlaying);
     if (othersPlaying) setIndex(0);
   }
   return index;
+};
+
+type ExpandMode = 'inline' | 'screen' | null;
+
+/** How the cover is expanded; it collapses when another cover starts playing. */
+const useExpanded = (othersPlaying: boolean): [ExpandMode, (m: ExpandMode) => void] => {
+  const [mode, setMode] = useState<ExpandMode>(null);
+  const [wasOthers, setWasOthers] = useState(othersPlaying);
+  if (othersPlaying !== wasOthers) {
+    setWasOthers(othersPlaying);
+    if (othersPlaying) setMode(null);
+  }
+  return [mode, setMode];
 };
 
 type Props = {
@@ -61,6 +93,8 @@ type Props = {
   count: number;
   /** Slide i, filling its 9:16 frame. */
   renderFrame: (i: number) => ReactNode;
+  /** Slide i at full size, for the expanded cover (when `renderFrame` draws thumbs). */
+  renderFullFrame?: (i: number) => ReactNode;
   audio: { url: string; startAt: number } | null;
   /** The still cover (usually the button that opens the editor), drawn under the playback. */
   children: ReactNode;
@@ -68,12 +102,13 @@ type Props = {
 
 /**
  * A 9:16 cover that plays its slideshow in place: Play steps through the slides with the music, the sound icon turns
- * the music on or off (remembered for this browser). Opening the cover stops it.
+ * the music on or off (remembered for this browser), Expand doubles the cover in its grid (put `EXPANDABLE_CELL` on
+ * the cell) or, on phones, goes full screen. Opening the cover stops it.
  */
-export function CoverPlayback({ id, count, renderFrame, audio, children }: Props) {
+export function CoverPlayback({ id, count, renderFrame, renderFullFrame, audio, children }: Props) {
   const current = usePlayingId();
   const playing = current === id;
-  const index = useFrames(count, playing, current !== null && !playing);
+  const index = useFrames(id, count, playing, current !== null && !playing);
   const [soundOn, toggleSound] = useCoverSound();
   const sound = useRef<HTMLAudioElement>(null);
 
@@ -92,27 +127,45 @@ export function CoverPlayback({ id, count, renderFrame, audio, children }: Props
     if (playingId === id) setPlayingId(null);
   }, [id]);
 
-  const started = playing || index > 0;
+  const [mode, setMode] = useExpanded(current !== null && !playing);
+  const expanded = mode !== null;
+  const wrapper = useRef<HTMLDivElement>(null);
+  const toggleExpanded = () => {
+    if (expanded) return setMode(null);
+    setMode(wantsFullscreen() ? 'screen' : 'inline');
+    requestAnimationFrame(() => wrapper.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+  };
+  const started = playing || index > 0 || expanded;
+  const frameOf = expanded && renderFullFrame ? renderFullFrame : renderFrame;
+  const controls = (size: string) => (
+    <>
+      {audio && (playing || expanded) && (
+        <button type="button" onClick={(e) => { e.stopPropagation(); toggleSound(); }} aria-label={soundOn ? 'Sound off' : 'Sound on'} aria-pressed={soundOn} className={`${button} ${size}`}>
+          <SoundIcon on={soundOn} />
+        </button>
+      )}
+      {(playing || expanded) && (
+        <button type="button" onClick={(e) => { e.stopPropagation(); toggleExpanded(); }} aria-label={expanded ? 'Collapse' : 'Expand'} aria-pressed={expanded} className={`${button} ${size}`}>
+          <ExpandIcon expanded={expanded} />
+        </button>
+      )}
+      <button type="button" onClick={(e) => { e.stopPropagation(); setPlayingId(playing ? null : id); }} aria-label={playing ? 'Pause' : 'Play'} aria-pressed={playing} className={`${button} ${size}`}>
+        <PlayIcon playing={playing} size={14} />
+      </button>
+    </>
+  );
   return (
-    <div className="relative" onClickCapture={(e) => playing && !(e.target as HTMLElement).closest('[data-cover-controls]') && setPlayingId(null)}>
+    <div ref={wrapper} data-cover-expanded={mode === 'inline' || undefined} className="relative" onClickCapture={(e) => playing && !(e.target as HTMLElement).closest('[data-cover-controls]') && setPlayingId(null)}>
       {children}
       {started && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
           {Array.from({ length: count }, (_, i) => (
-            <div key={i} className={`absolute inset-0 transition-opacity duration-300 ${i === index ? 'opacity-100' : 'opacity-0'}`}>{renderFrame(i)}</div>
+            <div key={i} className={`absolute inset-0 transition-opacity duration-300 ${i === index ? 'opacity-100' : 'opacity-0'}`}>{frameOf(i)}</div>
           ))}
         </div>
       )}
-      <div data-cover-controls className="absolute right-2 bottom-2 flex items-center gap-1.5">
-        {audio && playing && (
-          <button type="button" onClick={(e) => { e.stopPropagation(); toggleSound(); }} aria-label={soundOn ? 'Sound off' : 'Sound on'} aria-pressed={soundOn} className={`${button} h-8 w-8`}>
-            <SoundIcon on={soundOn} />
-          </button>
-        )}
-        <button type="button" onClick={(e) => { e.stopPropagation(); setPlayingId(playing ? null : id); }} aria-label={playing ? 'Pause' : 'Play'} aria-pressed={playing} className={`${button} h-8 w-8`}>
-          <PlayIcon playing={playing} size={14} />
-        </button>
-      </div>
+      <div data-cover-controls className="absolute right-2 bottom-2 flex items-center gap-1.5">{controls('h-8 w-8')}</div>
+      {mode === 'screen' && <ExpandedPlayback count={count} index={index} renderFrame={frameOf} controls={controls('h-11 w-11')} onClose={() => setMode(null)} />}
       {audio && (
         <audio ref={sound} src={audio.url} loop muted={!soundOn} preload="none" onLoadedMetadata={(e) => { e.currentTarget.currentTime = audio.startAt; }} />
       )}

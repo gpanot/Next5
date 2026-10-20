@@ -175,7 +175,8 @@ export type CampaignSummaryDto = {
   postDates: (string | null)[];
   /** The first slideshow, played on its card: its slides (made, else drawn from the draft) and its music; null while
    *  there is no photo. */
-  preview: { slides: PreviewSlide[]; audio: { url: string; startAt: number } | null } | null;
+  /** `fullSlides`: the same slides at full size, for the card's expanded playback (`slides` are thumbs). */
+  preview: { slides: PreviewSlide[]; fullSlides: PreviewSlide[]; audio: { url: string; startAt: number } | null } | null;
   createdAt: string;
   updatedAt: string;
 };

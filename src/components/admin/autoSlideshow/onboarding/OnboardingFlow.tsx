@@ -92,10 +92,6 @@ export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props)
     if (keys.length || 'goals' in answers || 'pains' in answers) trackOnboarding('onboarding_step_answered', ctx, { answerKeys: keys.join(','), hasOtherText });
     flow.next(answers);
   };
-  const skip = () => {
-    trackOnboarding('onboarding_step_skipped', ctx);
-    flow.skip();
-  };
   const jump = () => {
     trackOnboarding('onboarding_jump_to_calendar', ctx, { fromStep: flow.step });
     const remaining = Array.from({ length: LAST_COUNTED_STEP }, (_, i) => i + 1).filter((s) => s >= flow.step);
@@ -103,8 +99,8 @@ export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props)
   };
   const finish = () => {
     trackOnboarding('onboarding_completed', ctx, { totalMs: Date.now() - flow.flowStartedAt, waitedOnReadyMs: waitedOnReadyMs() });
-    // The Blitz cards are ready before the first slideshow: land on the Ideas deck, once the server knows it is done.
-    void flow.complete().then(() => router.push(`/slideshow/${workspaceId}/ideas`));
+    // Land on Campaigns › Brand Cast, once the server knows it is done: the first slideshow plays once when it is ready.
+    void flow.complete().then(() => router.push(`/slideshow/${workspaceId}/campaigns?tab=brand&play=first`));
   };
   const retry = async () => {
     setRetrying(true);
@@ -123,7 +119,7 @@ export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props)
   if (target.loading || !target.target?.confirmedAt) {
     return (
       <Frame>
-        <OnboardingHeader step={0} onBack={flow.back} onSkip={skip} />
+        <OnboardingHeader step={0} onBack={flow.back} />
         <BuildBar pct={build.barPct(0)} done={false} />
         {target.loading ? (
           <div className="flex-1 space-y-3 px-6 pt-5" aria-busy="true">
@@ -147,7 +143,7 @@ export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props)
   }
   return (
     <Frame>
-      <OnboardingHeader step={flow.step} onBack={flow.back} onSkip={skip} />
+      <OnboardingHeader step={flow.step} onBack={flow.back} />
       <BuildBar pct={build.barPct(flow.step)} done={build.build.status === 'done'} onJump={onLast ? undefined : jump} />
       {failed && <FailedNotice retrying={retrying} onRetry={() => void retry()} />}
       <div ref={bodyRef} key={flow.step} className={`flex min-h-0 flex-1 flex-col ${flow.dir === 'forward' ? 'animate-onb-forward' : 'animate-onb-back'}`}>

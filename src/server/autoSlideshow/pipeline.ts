@@ -213,17 +213,13 @@ const writeStep: StepFn = async (runId, meter, { append }) => {
     }
   });
   const shows = await planPhotos(runId, assembled, picks, meter, append > 0 ? plan.castId : undefined);
-  // Same music pick as Blitz cards: Jev fit, not what the workspace used lately, no repeat in the run; changeable in the editor.
-  const tracks = await matchTracks(
-    shows.map((show, i) => (show instanceof Error ? { goal: null, slides: [] } : { goal: picks[i]!.goal ?? null, slides: show.slides })),
-    run.profile as unknown as BrandProfile | null,
-    await contentWorkspaceId(run),
-  );
+  // Same music pick as Blitz cards: a random TikTok sound, not what the workspace used lately, no repeat in the run; changeable in the editor.
+  const tracks = await matchTracks(shows.length, await contentWorkspaceId(run));
   for (const [i, pick] of picks.entries()) {
     const track = tracks[i];
     const base = {
       runId, position: start + i, modelId: null, modelName: pick.modelName, hookPattern: pick.hookPattern, topic: pick.topic, goal: pick.goal ?? null,
-      ...(track ? { audioAssetId: track.assetId, audioStart: track.startAt, recommendedAudioAssetId: track.recommended ? track.assetId : null } : {}),
+      ...(track ? { audioAssetId: track.assetId, audioStart: track.startAt, recommendedAudioAssetId: null } : {}),
     };
     try {
       const show = shows[i]!;

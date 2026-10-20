@@ -75,7 +75,7 @@ export function SpendScreen({ profile, onNext }: Props) {
     <Screen
       kicker="Last one, optional"
       title="What do you spend on content or ads each month?"
-      subtitle="Helps us suggest the right plan. Skip if you prefer."
+      subtitle="Helps us suggest the right plan."
       cta={{ label: 'Finish', onClick: () => onNext(spend ? { monthlySpend: spend } : {}) }}
     >
       <RadioCards label="Monthly spend on content or ads" items={items} value={spend} onChange={setSpend} />

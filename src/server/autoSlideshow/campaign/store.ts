@@ -28,7 +28,7 @@ import {
   type CampaignSummaryDto,
 } from '../../../types/admin/slideshowCampaign';
 import { parseTextAt, type TextAt } from '../../../types/slideText';
-import { listTracks, rotatingCampaignTrack, trackDto } from '../music';
+import { listTracks, matchTracks, trackDto } from '../music';
 import { draftShows, type PreviewSlide } from '../../../components/admin/autoSlideshow/campaigns/previewSlides';
 import { parseBadgesAt, parseStoreBadges } from '../../../types/storeBadges';
 import { HttpError } from '../../http';
@@ -138,7 +138,7 @@ export const createCampaign = async (workspaceId: string, name?: string): Promis
       select: { id: true, name: true, campaign: true, photos: true, photoJobs: true, _count: { select: { slideshows: true } } },
     });
     const blank = recent.find((r) => isBlankCampaign({ ...r, slideshowCount: r._count.slideshows }));
-    // Reused as new: it moves to the top of the list once something is added. One made before the music rotation gets its track.
+    // Reused as new: it moves to the top of the list once something is added. One without music gets its track.
     if (blank) {
       const draft = draftOf(blank);
       const audio = draft.audioAssetId ? null : await startingAudio(workspaceId);
@@ -155,11 +155,10 @@ export const createCampaign = async (workspaceId: string, name?: string): Promis
   return run.id;
 };
 
-/** A new campaign's music: the next track in the rotation, by how many campaigns the workspace has. */
+/** A new campaign's music: a random TikTok sound the workspace did not use lately. */
 const startingAudio = async (workspaceId: string): Promise<{ audioAssetId?: string }> => {
-  const made = await prisma.autoSlideshowRun.count({ where: { workspaceId, kind: CAMPAIGN_KIND } });
-  const audioAssetId = await rotatingCampaignTrack(made);
-  return audioAssetId ? { audioAssetId } : {};
+  const [pick] = await matchTracks(1, workspaceId);
+  return pick ? { audioAssetId: pick.assetId } : {};
 };
 
 const cleanName = (name: unknown): string => (typeof name === 'string' && name.trim() ? name.trim().slice(0, MAX_NAME_CHARS) : DEFAULT_NAME);
@@ -192,11 +191,11 @@ const postDatesOf = (
 
 type PreviewShowRow = { status: string; slides: Prisma.JsonValue; audioStart: number; audio: { id: string; name: string; r2Key: string } | null };
 
-/** A campaign with no music gets one of our own library tracks (TikTok ones only when there is nothing else), always
- *  the same for a campaign (picked from its id). */
+/** A campaign with no music gets a TikTok sound (any track when none is tagged), always the same for a campaign
+ *  (picked from its id). */
 const stableTrackOf = (id: string, tracks: AutoTrackDto[]): AutoTrackDto | null => {
-  const own = tracks.filter((t) => !t.tiktok);
-  const pool = own.length > 0 ? own : tracks;
+  const tiktok = tracks.filter((t) => t.tiktok);
+  const pool = tiktok.length > 0 ? tiktok : tracks;
   return pool.length ? pool[[...id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 0) % pool.length]! : null;
 };
 
@@ -208,7 +207,7 @@ const previewAudioOf = async (id: string, draft: CampaignDraft, show: PreviewSho
   return track ? { url: track.url, startAt: track.startAt } : null;
 };
 
-/** A campaign made before the music rotation gets its music saved: the made slideshow's track, else the one its card
+/** A campaign with no music gets its music saved: the made slideshow's track, else the one its card
  *  plays. Skipped when the draft changed meanwhile, so an editor save is never overwritten. */
 const withSavedMusic = async (run: { id: string; campaign: Prisma.JsonValue; slideshows: { audioAssetId: string | null }[] }): Promise<CampaignDraft> => {
   const draft = draftOf(run);
@@ -222,16 +221,30 @@ const withSavedMusic = async (run: { id: string; campaign: Prisma.JsonValue; sli
   return saved.count > 0 ? { ...draft, audioAssetId } : draft;
 };
 
-/** The first slideshow as its card plays it: the made slides while they are ready, else the draft's first hook drawn
- *  on its photos (thumbs). Null while there is no photo to show. */
+/** A photo as the draft preview reads it: its thumb, or (`full`) the photo itself. */
+const previewPhotoOf = async (p: CampaignPhoto, full: boolean) => ({
+  url: full ? (p.hotlink?.full ?? (p.imageKey ? await presignObject(p.imageKey) : null)) : (p.hotlink?.thumb ?? (p.imageKey ? thumbUrl(p.imageKey) : null)),
+  fullUrl: null,
+  ...(p.heads ? { heads: p.heads } : {}),
+});
+
+/** The card's slides: the made ones while they are ready, else the draft's first hook drawn on its photos. */
+const previewSlidesOf = async (r: { photos: Prisma.JsonValue }, draft: CampaignDraft, made: AutoSlide[], full: boolean): Promise<PreviewSlide[]> => {
+  if (made.length > 0 && made.every((s) => s.imageKey)) {
+    return Promise.all(made.map(async (s): Promise<PreviewSlide> => ({ kind: 'rendered', imageUrl: (full ? await presignObject(s.imageKey!) : null) ?? thumbUrl(s.imageKey!) })));
+  }
+  const photos = await Promise.all(photosOf(r).map((p) => previewPhotoOf(p, full)));
+  return draftShows(draft, photos)[0]?.slides ?? [];
+};
+
+/** The first slideshow as its card plays it (thumbs), and at full size for the expanded card. Null while there is no
+ *  photo to show. */
 const previewOf = async (r: { id: string; photos: Prisma.JsonValue; slideshows: PreviewShowRow[] }, draft: CampaignDraft, tracks: AutoTrackDto[]): Promise<CampaignSummaryDto['preview']> => {
   const show = r.slideshows[0];
   const made = show?.status === 'ready' ? (show.slides as unknown as AutoSlide[]) : [];
-  const slides: PreviewSlide[] = made.length > 0 && made.every((s) => s.imageKey)
-    ? made.map((s) => ({ kind: 'rendered', imageUrl: thumbUrl(s.imageKey!) }))
-    : (draftShows(draft, photosOf(r).map((p) => ({ url: p.hotlink?.thumb ?? (p.imageKey ? thumbUrl(p.imageKey) : null), fullUrl: null, ...(p.heads ? { heads: p.heads } : {}) })))[0]?.slides ?? []);
+  const slides = await previewSlidesOf(r, draft, made, false);
   if (!slides.some((s) => s.kind === 'rendered' || s.photoUrl)) return null;
-  return { slides, audio: await previewAudioOf(r.id, draft, show, tracks) };
+  return { slides, fullSlides: await previewSlidesOf(r, draft, made, true), audio: await previewAudioOf(r.id, draft, show, tracks) };
 };
 
 export const listCampaigns = async (workspaceId: string): Promise<CampaignSummaryDto[]> => {

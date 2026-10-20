@@ -6,7 +6,7 @@ import { makeEstimateMs, MakingCountdown } from './calendar/MakingCountdown';
 import { calendarLine } from './campaigns/campaignSummary';
 import { CoverMeta } from './campaigns/CoverMeta';
 import { FaceBadge, type Face } from './content/CastStrip';
-import { CoverPlayback } from './CoverPlayback';
+import { CoverPlayback, EXPANDABLE_CELL } from './CoverPlayback';
 
 type Props = {
   slideshows: AutoSlideshowDto[];
@@ -26,6 +26,8 @@ type Props = {
   faceOf?: (show: AutoSlideshowDto) => Face | null;
   /** Campaigns: under each cover, when it posts (or "Add to Calendar") instead of the model it was made from. */
   calendarMeta?: boolean;
+  /** With `calendarMeta`: where the Calendar shows slideshows with no stored spot (it places them in the next free slot). */
+  spots?: Record<string, string>;
   /** Slots still being made come first (Campaigns lists newest first, so new ones show without scrolling). */
   newestFirst?: boolean;
 };
@@ -88,14 +90,14 @@ function PlayableCover(props: CardProps) {
 }
 
 /** Where a slideshow stands on the Calendar, as Hooks Volume covers show it; null when it is not on it yet. */
-function whenOf(show: AutoSlideshowDto): string | null {
+function whenOf(show: AutoSlideshowDto, spot: string | undefined): string | null {
   const post = show.post;
   if (post?.status === 'posted') return calendarLine(post.scheduledAt, 'Posted');
   if (post && post.status !== 'failed' && post.status !== 'canceled') return calendarLine(post.scheduledAt, 'Scheduled');
-  return calendarLine(show.plannedAt, 'On Calendar');
+  return calendarLine(show.plannedAt ?? spot ?? null, 'On Calendar');
 }
 
-function Card({ face, calendarMeta, ...props }: CardProps & { face: Face | null; calendarMeta: boolean }) {
+function Card({ face, calendarMeta, spot, ...props }: CardProps & { face: Face | null; calendarMeta: boolean; spot?: string }) {
   const { show } = props;
   return (
     <div>
@@ -104,7 +106,7 @@ function Card({ face, calendarMeta, ...props }: CardProps & { face: Face | null;
         {face && <FaceBadge face={face} className="pointer-events-none absolute top-2 left-2" />}
       </div>
       {calendarMeta && show.status === 'ready' ? (
-        <CoverMeta title={show.topic} when={whenOf(show)} onOpen={props.onOpen} />
+        <CoverMeta title={show.topic} when={whenOf(show, spot)} onOpen={props.onOpen} />
       ) : calendarMeta ? (
         <p className="mt-2 truncate text-sm font-semibold text-app-ink">{show.topic}</p>
       ) : (
@@ -118,7 +120,7 @@ function Card({ face, calendarMeta, ...props }: CardProps & { face: Face | null;
 }
 
 /** Slideshows as 9:16 covers; skeletons stand in for the ones not written yet. */
-export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, faceOf, flat = false, calendarMeta = false, newestFirst = false }: Props) {
+export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, faceOf, flat = false, calendarMeta = false, spots, newestFirst = false }: Props) {
   const missing = writing ? Math.max(0, expected - slideshows.length) : 0;
   const totalMs = makeEstimateMs(missing + slideshows.filter((s) => s.status === 'written' || s.status === 'rendering').length);
   if (slideshows.length === 0 && missing === 0 && !more) {
@@ -132,8 +134,8 @@ export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen,
     <ul className={flat ? 'contents' : COVER_GRID}>
       {newestFirst && placeholders}
       {slideshows.map((show, i) => (
-        <li key={show.id}>
-          <Card show={show} face={faceOf?.(show) ?? null} calendarMeta={calendarMeta} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} since={since} totalMs={totalMs} />
+        <li key={show.id} className={EXPANDABLE_CELL}>
+          <Card show={show} face={faceOf?.(show) ?? null} calendarMeta={calendarMeta} spot={spots?.[show.id]} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} since={since} totalMs={totalMs} />
         </li>
       ))}
       {!newestFirst && placeholders}

@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampaign';
-import { CoverPlayback } from '../CoverPlayback';
+import { CoverPlayback, EXPANDABLE_CELL } from '../CoverPlayback';
 import { AddTile } from './AddTile';
 import { CampaignRow } from './CampaignRow';
 import { CoverMeta } from './CoverMeta';
@@ -35,10 +35,17 @@ function TileCover({ c }: { c: CampaignSummaryDto }) {
   );
 }
 
-/** The campaign's first slideshow playing on its cover: the made slides, or the draft drawn as the editor does. */
+/** The campaign's first slideshow playing on its cover: the made slides, or the draft drawn as the editor does (full
+ *  size once expanded). */
 function TilePlayback({ id, preview, children }: { id: string; preview: NonNullable<CampaignSummaryDto['preview']>; children: ReactNode }) {
   return (
-    <CoverPlayback id={id} count={preview.slides.length} renderFrame={(i) => <PreviewSlideView slide={preview.slides[i]!} />} audio={preview.audio}>
+    <CoverPlayback
+      id={id}
+      count={preview.slides.length}
+      renderFrame={(i) => <PreviewSlideView slide={preview.slides[i]!} />}
+      renderFullFrame={(i) => <PreviewSlideView slide={preview.fullSlides[i] ?? preview.slides[i]!} />}
+      audio={preview.audio}
+    >
       {children}
     </CoverPlayback>
   );
@@ -53,7 +60,7 @@ export function CampaignTile({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () 
     </button>
   );
   return (
-    <li>
+    <li className={EXPANDABLE_CELL}>
       {c.preview ? <TilePlayback id={c.id} preview={c.preview}>{cover}</TilePlayback> : cover}
       <CoverMeta title={labelOf(c)} when={scheduledOf(c)} onOpen={onOpen} />
     </li>
