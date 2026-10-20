@@ -11,6 +11,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/admin/shorts/**': ['./node_modules/ffmpeg-static/ffmpeg', './assets/fonts/**'],
     '/api/admin/blitz/schedule': ['./node_modules/ffmpeg-static/ffmpeg'],
+    // Ideas deck voiceover: every TTS take is trimmed and paced with ffmpeg.
+    '/api/admin/blitz/voice-preview': ['./node_modules/ffmpeg-static/ffmpeg'],
     '/api/admin/auto-slideshow/**': ['./node_modules/ffmpeg-static/ffmpeg'],
     '/api/cron/**': ['./node_modules/ffmpeg-static/ffmpeg'],
     // Slide renders read the store badge SVGs from public/ at runtime.
