@@ -43,11 +43,11 @@ describe('batchShotImages', () => {
 
   const needs: BatchNeed[] = [{ script: 0, audience: 'electricians', categories: ['home_services'], need: need('Calls go to voicemail.') }];
 
-  it('makes Nano Banana images once the workspace has paid', async () => {
+  it('makes the free plan\'s cheap images for paid workspaces too while PAID_LIKE_FREE', async () => {
     mocks.paid.mockResolvedValue(true);
     await batchShotImages(needs, 1, 'ws1', {} as never);
     expect(mocks.generate).toHaveBeenCalledOnce();
-    expect(mocks.generate.mock.calls[0]![5]).toBeUndefined();
+    expect(mocks.generate.mock.calls[0]![5]).toBe('reapi-gpt-image-2-low');
   });
 
   it('makes cheap GPT Image 2 images, not stock, before the workspace has paid', async () => {

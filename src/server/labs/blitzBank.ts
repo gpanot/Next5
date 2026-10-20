@@ -34,7 +34,7 @@ import { workspaceRunId } from './workspaceRun';
 import type { StoryPhotos } from './blitzStoryPhotos';
 import { backfillStoryPhotos, batchStoryPhotos, carryPhotos, updateBankContent } from './blitzBankPhotos';
 import { finishIdeaCards } from './ideaFinish';
-import { getsPaidImages } from '../slideshow/core/imageNeeds';
+import { getsPaidImages, PAID_LIKE_FREE } from '../slideshow/core/imageNeeds';
 
 type BankHook = { archetype: HookArchetype; text: string };
 type BankStory = {
@@ -418,8 +418,9 @@ export async function bankDeck(workspaceId: string, quotas: Array<Record<Stage, 
   const scripts = pickScripts(content, usage, quotas, learning);
   if (scripts.length === 0) throw new Error('The Blitz Script Bank has no story');
   const scriptsAt = Date.now();
-  // Free workspaces (2026-10-20 experiment): 3 cards of images only, then 3 with library footage, and so on.
-  const free = !(await getsPaidImages(workspaceId));
+  // Free workspaces (2026-10-20 experiment), and paid ones while PAID_LIKE_FREE: 3 cards of images only, then 3 with
+  // library footage, and so on.
+  const free = PAID_LIKE_FREE || !(await getsPaidImages(workspaceId));
   const cards = await deckFromScripts(source, scripts, undefined, { later: true, allImages: free ? imagesOnlyCard : undefined });
   console.log(`[BlitzBank] deck for workspace ${workspaceId}: scripts ${((scriptsAt - started) / 1000).toFixed(1)}s${short ? ' (stories written first)' : ''}, footage ${((Date.now() - scriptsAt) / 1000).toFixed(1)}s`);
   const ids = cards.flatMap((c) => (c.variantId ? [c.variantId] : []));
