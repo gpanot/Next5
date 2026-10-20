@@ -15,6 +15,7 @@ import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { creativeJson } from '../shorts/llm';
 import { PHOTO_RULES } from './bank/prompts';
+import { CTA_PHOTO_RULE, productCtaPhoto } from './ctaPhoto';
 
 /** Product photos per slideshow: one on the product slides or the CTA, two at most. */
 const MAX_PRODUCT_SLIDES = 2;
@@ -38,9 +39,9 @@ plan the photos behind them, so the slideshow looks like ONE story by this brand
   office, car...), picked from the brand's places. Never a photo studio or an empty loft: these are real moments, not a
   shoot. A slide may move to a second real place when its text needs it.
 - Vary the shots: never the same shot type twice in a row (wide, medium, detail of hands or product in use...).
-  Hook: the most striking shot. CTA: the main person enjoying the result.
+  Hook: the most striking shot. {CTA_RULE}
 - The brand's own product photos (P1, P2...) may only go on slides marked "product allowed", and only when the slide
-  is about the product. Never on teaching slides: these are not ads.
+  is about the product{CTA_PRODUCT}. Never on teaching slides: these are not ads.
 - ${PHOTO_RULES}
 Return JSON with flat keys only:
 "setting": the main place, 5-12 words,
@@ -51,6 +52,12 @@ and for each slide N (1 = first slide):
 "slide_N_scene": one sentence, max 35 words: shot type, action and place. Call the main person "the main person"; never describe their face or body,
 "slide_N_person": "main" | "other" | "none",
 "slide_N_product": "P1"... or "none".`;
+
+/** The plan's instructions with the CTA rule: the product in use (ctaPhoto.ts), or under CTA_PHOTO_MODE=legacy the old line. */
+const systemPrompt = () =>
+  productCtaPhoto()
+    ? SYSTEM.replace('{CTA_RULE}', CTA_PHOTO_RULE).replace('{CTA_PRODUCT}', ', or on the CTA slide, where the product should show when a photo fits')
+    : SYSTEM.replace('{CTA_RULE}', 'CTA: the main person enjoying the result.').replace('{CTA_PRODUCT}', '');
 
 const bibleText = (bible: VisualBible | null, profile: BrandProfile) =>
   bible
@@ -150,7 +157,7 @@ export const slidesFromReply = (raw: Record<string, unknown>, input: PlanInput):
  */
 export const planSlidePhotos = async (input: PlanInput, meter: CostMeter): Promise<Omit<AutoSlide, 'imageKey'>[]> => {
   try {
-    const raw = await creativeJson<Record<string, unknown>>(SYSTEM, userText(input, planProducts(input.photos)), meter, 'Photo plan');
+    const raw = await creativeJson<Record<string, unknown>>(systemPrompt(), userText(input, planProducts(input.photos)), meter, 'Photo plan');
     return slidesFromReply(raw, input);
   } catch (err) {
     console.warn('[auto-slideshow] photo plan failed, bank photo ideas kept:', err instanceof Error ? err.message.slice(0, 200) : err);

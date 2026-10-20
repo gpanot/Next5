@@ -41,16 +41,18 @@ export const useSlideshowSchedule = ({ token, runId, show, nextSlot, onSaved }: 
   const unchanged = pinned !== null && at !== null && pinned.getTime() === at.getTime();
   const open = post ? [] : [show.id];
 
-  const schedule = async () => {
-    if (!at) return;
+  const schedule = async (): Promise<boolean> => {
+    if (!at) return false;
     setError(null);
     setPlanning(true);
     try {
       await savePlannedPins(token, runId, { [show.id]: at.toISOString() });
       setAdded(true);
       onSaved();
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not add the post to the Calendar');
+      return false;
     } finally {
       setPlanning(false);
     }

@@ -23,6 +23,8 @@ type Props = {
   recommended?: number;
   /** Hook photos only: the stock search to open on (already run), and "Choose for me". */
   chooseForMe?: ChooseForMe;
+  /** The search to open on (already run) when there is no "Choose for me": swapping one hook photo. */
+  initialQuery?: string;
   onDone: (picks: PhotoOptionDto[]) => void;
   onClose: () => void;
 };
@@ -109,10 +111,10 @@ function UploadButton({ onFiles, busy }: { onFiles: (files: File[]) => void; bus
  * The photo library: stock photos (Unsplash), the workspace's generated photos, its own photos (with upload), the
  * shared library and the App shot builder (the app on a hand-held phone), as tabs. Picks keep their order across tabs; Done hands them over for import.
  */
-export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, title, startTab = 'search', recommended = 0, chooseForMe, onDone, onClose }: Props) {
+export function PhotoLibraryDialog({ token, workspaceId, campaignId, multiple, title, startTab = 'search', recommended = 0, chooseForMe, initialQuery = '', onDone, onClose }: Props) {
   const [tab, setTab] = useState<PickerTab>(startTab);
   // The hook photos' search runs as soon as the picker opens.
-  const [query, setQuery] = useState(chooseForMe?.query ?? '');
+  const [query, setQuery] = useState(chooseForMe?.query ?? initialQuery);
   const [picked, setPicked] = useState<PhotoOptionDto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);

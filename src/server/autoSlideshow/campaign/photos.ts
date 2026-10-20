@@ -14,6 +14,7 @@ import { getObject, presignObject, putObject } from '../../storage/objectStore';
 import { storeThumb, thumbUrl } from '../../storage/thumbs';
 import { detectHeads } from '../heads';
 import { compressJpeg, MAX_JPEG_BYTES, PHOTO_SIZE } from '../jpeg';
+import { ctaPhotoRefs, productCtaPhoto } from '../ctaPhoto';
 import { generatePhoto, photoPrompt } from '../photos';
 import { CAMPAIGN_KIND, type CampaignPhoto } from './store';
 import { appShotOptions, fetchAppShot } from './appShot/store';
@@ -150,6 +151,16 @@ const tonePhotoUrl = async (runId: string, index: number): Promise<string | null
   return key ? presignObject(key) : null;
 };
 
+/** The CTA photo's prompt and references: the cast face and the product first, then the hook photo for the tone. */
+const ctaPrompt = async (runId: string, scene: string, tone: string | null): Promise<{ prompt: string; refs: string[] }> => {
+  const run = await prisma.autoSlideshowRun.findFirst({ where: { id: runId }, select: { workspaceId: true } });
+  const cast = run?.workspaceId ? await ctaPhotoRefs(run.workspaceId) : { look: null, urls: [], notes: [] };
+  const refs = [...cast.urls, ...(tone ? [tone] : [])];
+  const notes = [...cast.notes, ...(tone ? [`Image ${refs.length} only sets the look: match its color grade, light, contrast and mood, over the style above. Do not copy its subject, objects, people or layout.`] : [])];
+  const withPerson = cast.look ? `${scene} The main person: ${cast.look}` : scene;
+  return { prompt: photoPrompt(withPerson, undefined, notes.join(' ') || undefined), refs };
+};
+
 /**
  * One photo for the Content tab's "Auto": an AI photo of the scene (on the photo model the auto slideshows use, bright
  * style, in the tone of the first hook photo when sent), or the `nth` portrait result of a stock search. Stored like a
@@ -160,8 +171,8 @@ export const autoPhoto = async (runId: string, req: AutoPhotoRequest): Promise<{
     return storeCampaignPhoto(runId, await searchedUnsplashPhoto(req.query, req.nth), 'unsplash');
   }
   const tone = req.tonePhoto === undefined ? null : await tonePhotoUrl(runId, req.tonePhoto);
-  const prompt = photoPrompt(req.scene, undefined, tone ? TONE_NOTE : undefined);
-  const { buffer } = await generatePhoto(prompt, tone ? [tone] : [], createMeter()).catch((err: unknown) => {
+  const { prompt, refs } = req.cta && productCtaPhoto() ? await ctaPrompt(runId, req.scene, tone) : { prompt: photoPrompt(req.scene, undefined, tone ? TONE_NOTE : undefined), refs: tone ? [tone] : [] };
+  const { buffer } = await generatePhoto(prompt, refs, createMeter()).catch((err: unknown) => {
     throw new HttpError(502, 'photo_failed', err instanceof Error ? `Photo failed: ${err.message.slice(0, 120)}` : 'Photo failed. Try again.');
   });
   return storeCampaignPhoto(runId, { bytes: buffer, label: req.scene }, 'generated', 'ai');
@@ -194,7 +205,7 @@ export const parseAutoPhoto = (v: unknown): AutoPhotoRequest => {
   if (r.source === 'stock' && text(r.query, 80)) return { source: 'stock', query: text(r.query, 80), nth: Number.isInteger(r.nth) ? Math.max(0, r.nth as number) : 0 };
   if (r.source === 'ai' && text(r.scene, 400)) {
     const tone = Number.isInteger(r.tonePhoto) && (r.tonePhoto as number) >= 0 ? (r.tonePhoto as number) : undefined;
-    return { source: 'ai', scene: text(r.scene, 400), ...(tone === undefined ? {} : { tonePhoto: tone }) };
+    return { source: 'ai', scene: text(r.scene, 400), ...(tone === undefined ? {} : { tonePhoto: tone }), ...(r.cta === true ? { cta: true } : {}) };
   }
   throw new HttpError(400, 'bad_auto_photo', 'Say what the photo shows.');
 };
