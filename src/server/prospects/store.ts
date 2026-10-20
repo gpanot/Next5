@@ -6,7 +6,7 @@
 import type { ProspectPack } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import type { StepCost } from '../../types/admin/metaAds';
-import type { ProspectBlitz, ProspectPackDto, ProspectStatus } from '../../types/admin/prospects';
+import type { ProspectBlitz, ProspectDay, ProspectPackDto, ProspectStatus } from '../../types/admin/prospects';
 import { HttpError } from '../http';
 
 export const blitzOf = (pack: Pick<ProspectPack, 'blitz'>): ProspectBlitz[] => (pack.blitz as unknown as ProspectBlitz[] | null) ?? [];
@@ -48,6 +48,17 @@ const progressOf = async (pack: ProspectPack): Promise<ProspectPackDto['progress
   return { blitz: videos + previews, cast, hooks };
 };
 
+/** A ready pack with a video that may still join its days (prospects/advance.ts refinish): one still rendering, or
+ *  one rendered after the days were planned. The admin tab keeps moving such a pack on. */
+const lateVideosOf = async (pack: ProspectPack): Promise<boolean> => {
+  if (pack.status !== 'ready') return false;
+  const ids = blitzOf(pack).flatMap((b) => (b.projectId ? [b.projectId] : []));
+  if (ids.length === 0) return false;
+  const planned = new Set(((pack.days as unknown as ProspectDay[] | null) ?? []).map((d) => d.refId));
+  const rows = await prisma.blitzProject.findMany({ where: { id: { in: ids } }, select: { id: true, renderStatus: true } });
+  return rows.some((r) => r.renderStatus === 'PENDING' || r.renderStatus === 'PROCESSING' || (r.renderStatus === 'COMPLETED' && !planned.has(r.id)));
+};
+
 /** Each pack's cost in micro-USD, by pack id: its owner's ledger, or the run's step costs when those are more. */
 const costsOf = async (packs: ProspectPack[]): Promise<Map<string, number>> => {
   const [runs, ledger] = await Promise.all([
@@ -75,6 +86,7 @@ const toDto = async (pack: ProspectPack, costs: Map<string, number>): Promise<Pr
   shareToken: pack.shareToken,
   error: pack.error,
   progress: await progressOf(pack),
+  lateVideos: await lateVideosOf(pack),
   costUsd: (costs.get(pack.id) ?? 0) / 1e6,
   timing: timingOf(pack),
   createdAt: pack.createdAt.toISOString(),

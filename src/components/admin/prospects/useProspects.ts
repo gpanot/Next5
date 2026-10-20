@@ -8,7 +8,7 @@ import { adminFetch, useAdminApi } from '../business/useAdminApi';
  *  prospects/advance.ts). At the face check, its Blitz videos go on. */
 const ADVANCE_MS = 8_000;
 
-const working = (p: ProspectPackDto) => p.status === 'queued' || p.status === 'building' || p.status === 'faces' || p.status === 'making';
+const working = (p: ProspectPackDto) => p.status === 'queued' || p.status === 'building' || p.status === 'faces' || p.status === 'making' || p.lateVideos;
 
 /** The packs, with create / approve / delete, and the advance calls for packs being made while the tab is open. */
 export function useProspects(token: string) {

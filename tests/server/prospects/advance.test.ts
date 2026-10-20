@@ -49,13 +49,15 @@ const blitzMock = vi.hoisted(() => ({
   rendered: [{ ideaId: 'idea_1', projectId: 'bp_1' }, { ideaId: 'idea_2', projectId: 'bp_2' }] as Array<Record<string, unknown>>,
 }));
 vi.mock('../../../src/server/autoSlideshow/pipeline', () => ({ runAutoPipeline }));
+const wakeBlitzWorker = vi.hoisted(() => vi.fn());
+vi.mock('../../../src/server/labs/blitzWorkerWake', () => ({ wakeBlitzWorker }));
 vi.mock('../../../src/server/prospects/hooksVolume', () => ({ buildHooksVolume: vi.fn(async () => 4) }));
 vi.mock('../../../src/server/prospects/blitz', () => ({
   unpickedIdeas: vi.fn(async (_ws: string, picked: Set<string>) => ({ ideas: blitzMock.ideas.filter((i) => !picked.has(i.id)), writing: false })),
   blitzPicked: vi.fn(async () => true),
   renderBlitz: vi.fn(async (_u: string, _w: string, _n: string, ideas: Array<{ id: string }>) =>
     ideas.map((i) => blitzMock.rendered.find((r) => r.ideaId === i.id) ?? { ideaId: i.id, projectId: null, error: 'No stock photo for every shot yet.' })),
-  blitzRenders: vi.fn(async () => ({ done: db.state.renders.filter((r) => r.renderStatus === 'COMPLETED').length, settled: db.state.renders.every((r) => r.renderStatus === 'COMPLETED' || r.renderStatus === 'FAILED') })),
+  blitzRenders: vi.fn(async () => ({ done: db.state.renders.filter((r) => r.renderStatus === 'COMPLETED').length, waiting: db.state.renders.filter((r) => r.renderStatus === 'PENDING').length, settled: db.state.renders.every((r) => r.renderStatus === 'COMPLETED' || r.renderStatus === 'FAILED') })),
 }));
 
 import { advanceProspect, approveFaces } from '../../../src/server/prospects/advance';
@@ -107,6 +109,24 @@ describe('advanceProspect', () => {
     const days = db.state.pack.days as Array<{ kind: string; refId: string }>;
     expect(days).toHaveLength(8);
     expect(days.filter((d) => d.kind === 'blitz').map((d) => d.refId)).toEqual(['bp_2']);
+
+    // The failed video is rendered on a retry after the pack is ready: it joins the days, the link stays open.
+    db.state.renders[0]!.renderStatus = 'COMPLETED';
+    db.state.pack.readyAt = new Date();
+    await advanceProspect('pp_1');
+    expect(db.state.pack.status).toBe('ready');
+    const again = db.state.pack.days as Array<{ kind: string; refId: string }>;
+    expect(again).toHaveLength(9);
+    expect(again.filter((d) => d.kind === 'blitz').map((d) => d.refId).sort()).toEqual(['bp_1', 'bp_2']);
+  });
+
+  it('wakes the render worker while a pack video waits in line', async () => {
+    db.state.pack.status = 'making';
+    db.state.pack.blitz = [{ ideaId: 'idea_1', projectId: 'bp_1' }];
+    db.state.renders = [{ id: 'bp_1', renderStatus: 'PENDING' }];
+    wakeBlitzWorker.mockClear();
+    await advanceProspect('pp_1');
+    expect(wakeBlitzWorker).toHaveBeenCalledWith({ throttle: true });
   });
 
   it('marks the Blitz ideas and Brand Cast slideshows past the free days as previews', async () => {

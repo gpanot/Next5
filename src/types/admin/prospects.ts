@@ -51,6 +51,8 @@ export type ProspectPackDto = {
   error: string | null;
   /** What each part has so far, for the progress line. */
   progress: { blitz: number; cast: number; hooks: number };
+  /** Ready, with a video still rendering or rendered after the days were planned: it joins the days on a later step. */
+  lateVideos: boolean;
   costUsd: number;
   /** Make time in seconds, without the admin's face check: site read and faces (started → faces), then the posts
    *  (approved → ready). Null while that part is not done. */
