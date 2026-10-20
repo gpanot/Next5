@@ -37,7 +37,8 @@ function RunSlideshows({ token, auto, view, calendarOnly, castId, faceOf }: RunP
   const [openId, setOpenId] = useState<string | null>(null);
   const [retrying, setRetrying] = useState<string | null>(null);
   const done = run ? isTerminalAutoStatus(run.status) : false;
-  const shows = run ? run.slideshows.filter((s) => (!calendarOnly || s.status !== 'failed') && (!castId || castIdOf(s) === castId)) : [];
+  // Newest first, like the runs: a new batch added to this run shows at the top, not past the older ones.
+  const shows = run ? run.slideshows.filter((s) => (!calendarOnly || s.status !== 'failed') && (!castId || castIdOf(s) === castId)).sort((a, b) => b.position - a.position) : [];
 
   const retry = async (slideshowId: string) => {
     if (!run) return;
@@ -57,7 +58,7 @@ function RunSlideshows({ token, auto, view, calendarOnly, castId, faceOf }: RunP
       {view === 'list' ? (
         <SlideshowRows flat slideshows={shows} missing={done ? 0 : Math.max(0, expected - shows.length)} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
       ) : (
-        <SlideshowGrid flat slideshows={shows} expected={expected} writing={!done} since={done ? undefined : run.startedAt} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
+        <SlideshowGrid flat calendarMeta newestFirst slideshows={shows} expected={expected} writing={!done} since={done ? undefined : run.startedAt} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
       )}
       <RunSlideshowEditor token={token} run={run} openId={openId} onOpen={setOpenId} onChanged={refresh} />
     </section>

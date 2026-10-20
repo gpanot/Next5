@@ -295,6 +295,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           recommended={picker.slot === 'hook' && picker.replace === undefined && draft ? draft.hooks.length - draft.hookPhotos.length - state.pending.filter((p) => p.target.slot === 'hook').length : 0}
           startTab={picker.slot === 'card' && draft?.cards[picker.card]?.role === 'cta' ? 'appshot' : 'search'}
           chooseForMe={picker.slot === 'hook' && picker.replace === undefined && draft ? { query: draft.hookPhotoQuery ?? '', count: draft.hooks.length, writeQuery: () => writeHookQuery(draft.hooks) } : undefined}
+          initialQuery={picker.slot === 'hook' ? (draft?.hookPhotoQuery ?? '') : ''}
           onClose={() => setPicker(null)}
           onDone={(picks) => {
             setPicker(null);

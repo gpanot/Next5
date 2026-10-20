@@ -5,7 +5,8 @@ import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampai
 import { CoverPlayback } from '../CoverPlayback';
 import { AddTile } from './AddTile';
 import { CampaignRow } from './CampaignRow';
-import { labelOf, statusOf, whenOf } from './campaignSummary';
+import { CoverMeta } from './CoverMeta';
+import { labelOf, scheduledOf } from './campaignSummary';
 import { PreviewSlideView } from './PreviewSlideView';
 
 export function CampaignTilesSkeleton() {
@@ -43,7 +44,7 @@ function TilePlayback({ id, preview, children }: { id: string; preview: NonNulla
   );
 }
 
-/** One campaign as its 9:16 cover (the first hook on its first photo), its name and where it stands. A made slideshow
+/** One campaign as its 9:16 cover (the first hook on its first photo), its name and when it posts. A made slideshow
  *  plays on the cover. */
 export function CampaignTile({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () => void }) {
   const cover = (
@@ -54,10 +55,7 @@ export function CampaignTile({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () 
   return (
     <li>
       {c.preview ? <TilePlayback id={c.id} preview={c.preview}>{cover}</TilePlayback> : cover}
-      <button type="button" tabIndex={-1} aria-hidden onClick={onOpen} className="block w-full text-left">
-        <span className="mt-2 block truncate text-sm font-semibold text-app-ink">{labelOf(c)}</span>
-        <span className="block truncate text-xs text-app-muted">{statusOf(c)} · {whenOf(c.updatedAt)}</span>
-      </button>
+      <CoverMeta title={labelOf(c)} when={scheduledOf(c)} onOpen={onOpen} />
     </li>
   );
 }

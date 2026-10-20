@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react';
 import type { AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
 import { makeEstimateMs, MakingCountdown } from './calendar/MakingCountdown';
+import { calendarLine } from './campaigns/campaignSummary';
+import { CoverMeta } from './campaigns/CoverMeta';
 import { FaceBadge, type Face } from './content/CastStrip';
 import { CoverPlayback } from './CoverPlayback';
 
@@ -22,6 +24,10 @@ type Props = {
   flat?: boolean;
   /** Brand Cast: the face telling each story, shown on its cover's corner. */
   faceOf?: (show: AutoSlideshowDto) => Face | null;
+  /** Campaigns: under each cover, when it posts (or "Add to Calendar") instead of the model it was made from. */
+  calendarMeta?: boolean;
+  /** Slots still being made come first (Campaigns lists newest first, so new ones show without scrolling). */
+  newestFirst?: boolean;
 };
 
 /** The covers' grid: 2 columns on phones, more as the screen widens. */
@@ -81,37 +87,56 @@ function PlayableCover(props: CardProps) {
   );
 }
 
-function Card({ face, ...props }: CardProps & { face: Face | null }) {
+/** Where a slideshow stands on the Calendar, as Hooks Volume covers show it; null when it is not on it yet. */
+function whenOf(show: AutoSlideshowDto): string | null {
+  const post = show.post;
+  if (post?.status === 'posted') return calendarLine(post.scheduledAt, 'Posted');
+  if (post && post.status !== 'failed' && post.status !== 'canceled') return calendarLine(post.scheduledAt, 'Scheduled');
+  return calendarLine(show.plannedAt, 'On Calendar');
+}
+
+function Card({ face, calendarMeta, ...props }: CardProps & { face: Face | null; calendarMeta: boolean }) {
+  const { show } = props;
   return (
     <div>
       <div className="relative">
         <PlayableCover {...props} />
         {face && <FaceBadge face={face} className="pointer-events-none absolute top-2 left-2" />}
       </div>
-      <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-ink dark:text-zinc-100">{props.show.topic}</p>
-      <p className="line-clamp-1 text-[11px] text-muted">{props.show.modelName}</p>
+      {calendarMeta && show.status === 'ready' ? (
+        <CoverMeta title={show.topic} when={whenOf(show)} onOpen={props.onOpen} />
+      ) : calendarMeta ? (
+        <p className="mt-2 truncate text-sm font-semibold text-app-ink">{show.topic}</p>
+      ) : (
+        <>
+          <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-ink dark:text-zinc-100">{show.topic}</p>
+          <p className="line-clamp-1 text-[11px] text-muted">{show.modelName}</p>
+        </>
+      )}
     </div>
   );
 }
 
 /** Slideshows as 9:16 covers; skeletons stand in for the ones not written yet. */
-export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, faceOf, flat = false }: Props) {
+export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, faceOf, flat = false, calendarMeta = false, newestFirst = false }: Props) {
   const missing = writing ? Math.max(0, expected - slideshows.length) : 0;
   const totalMs = makeEstimateMs(missing + slideshows.filter((s) => s.status === 'written' || s.status === 'rendering').length);
   if (slideshows.length === 0 && missing === 0 && !more) {
     if (flat) return null;
     return <p className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted dark:border-zinc-800">Slideshows show up here once they are written.</p>;
   }
+  const placeholders = Array.from({ length: missing }, (_, i) => (
+    <li key={`s${i}`}>{since ? <div className={frame}><MakingCountdown since={since} totalMs={totalMs} /></div> : <div className="aspect-[9/16] animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />}</li>
+  ));
   return (
     <ul className={flat ? 'contents' : COVER_GRID}>
+      {newestFirst && placeholders}
       {slideshows.map((show, i) => (
         <li key={show.id}>
-          <Card show={show} face={faceOf?.(show) ?? null} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} since={since} totalMs={totalMs} />
+          <Card show={show} face={faceOf?.(show) ?? null} calendarMeta={calendarMeta} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} since={since} totalMs={totalMs} />
         </li>
       ))}
-      {Array.from({ length: missing }, (_, i) => (
-        <li key={`s${i}`}>{since ? <div className={frame}><MakingCountdown since={since} totalMs={totalMs} /></div> : <div className="aspect-[9/16] animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />}</li>
-      ))}
+      {!newestFirst && placeholders}
       {more && <li>{more}</li>}
     </ul>
   );
