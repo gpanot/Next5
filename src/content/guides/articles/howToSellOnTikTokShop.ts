@@ -8,6 +8,7 @@ export const howToSellOnTikTokShop: Article = {
   description: 'How to sell on TikTok Shop as a small seller: set up your shop, list products that sell, and post content every day that sends buyers to your products.',
   excerpt: 'Set up your shop, list products the right way, and post content every day that sends people to buy.',
   keyword: 'how to sell on tiktok shop',
+  hub: 'get-customers',
   published: '2026-10-18',
   cover: 'legging-habits',
   coverAlt: 'TikTok slideshow made by Next5: "7 Running Leggings Habits That Quietly Lower Rolling"',

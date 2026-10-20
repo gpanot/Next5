@@ -1,16 +1,21 @@
 'use client';
 
+import { track } from '@vercel/analytics';
 import { useRouter } from 'next/navigation';
 import { useState, type FormEvent } from 'react';
 import { pendingSiteStore, SLIDESHOW_SIGNUP } from './WorkspaceContext';
 
-/** Website box: kept through sign-in, then it becomes the user's workspace and first run. Used in the hero and the final CTA. */
-export function SiteForm({ className = '' }: { className?: string }) {
+/**
+ * Website box: kept through sign-in, then it becomes the user's workspace and first run. Used in the hero and the final CTA.
+ * `source` names where the box sits (e.g. "blog/social-media-for-realtors") so each guide's sign-up starts can be counted.
+ */
+export function SiteForm({ className = '', source }: { className?: string; source?: string }) {
   const router = useRouter();
   const [url, setUrl] = useState('');
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!url.trim()) return;
+    if (source) track('site_form_submit', { source });
     pendingSiteStore.set(url.trim());
     router.push(SLIDESHOW_SIGNUP);
   };

@@ -8,6 +8,7 @@ export const bestTimeToPostTikTok: Article = {
   description: 'The best time to post on TikTok and Instagram is when your own buyers are online. Here is how to find your time in the app, and a simple 2-week test.',
   excerpt: 'Generic charts guess. Your own followers tell you. How to find your best posting time in the app, plus a 2-week test.',
   keyword: 'best time to post on tiktok',
+  hub: 'how-to',
   published: '2026-10-18',
   cover: 'porsche-calmer',
   coverAlt: 'TikTok slideshow made by Next5: "Last visit: overloaded. This year: calmer decisions and smoother drives."',

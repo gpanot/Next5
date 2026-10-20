@@ -16,6 +16,12 @@ export type ArticleKind = 'guide' | 'blog';
 
 export type ArticleFaq = { q: string; a: string };
 
+/**
+ * Topic cluster. Related reading prefers the same hub, so a new article links into its cluster
+ * instead of a random list. See docs/seo/AGENT_BRIEF.md for what each hub covers.
+ */
+export type ArticleHub = 'post-ideas' | 'how-to' | 'get-customers' | 'cost-alternatives' | 'industry' | 'product';
+
 export type Article = {
   kind: ArticleKind;
   slug: string;
@@ -29,6 +35,12 @@ export type Article = {
   excerpt: string;
   /** The search phrase this page is built to rank for (from treg keyword research, US). */
   keyword: string;
+  hub: ArticleHub;
+  /**
+   * The direct answer to the search, in 2 or 3 plain sentences, shown in a box right under the title.
+   * Required for articles published from QUALITY_BAR_SINCE on (tests/content/articles.test.ts).
+   */
+  answer?: string;
   /** ISO date (YYYY-MM-DD). */
   published: string;
   updated?: string;

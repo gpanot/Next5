@@ -11,6 +11,7 @@ export const socialMediaManagerCost: Article = {
   description: 'What a social media manager costs a small business, how freelancers and agencies charge, and 5 options compared, from doing it yourself to done-for-you tools.',
   excerpt: 'How freelancers and agencies charge, the hidden cost of doing it yourself, and 5 options side by side.',
   keyword: 'how much does a social media manager cost',
+  hub: 'cost-alternatives',
   published: '2026-10-18',
   cover: 'no-show-fixes',
   coverAlt: 'TikTok slideshow made by Next5: "5 No-Show Fixes For Service Teams (If Reminders Actually Send)"',

@@ -8,6 +8,7 @@ export const tiktokHooks: Article = {
   description: '40 TikTok hook examples for small businesses, sorted by type: mistakes, lists, secrets, before and after, and questions. Plus how to write your own.',
   excerpt: 'The first line decides if people stay. 40 hooks sorted by type, and a 3-part formula to write your own.',
   keyword: 'tiktok hooks',
+  hub: 'how-to',
   published: '2026-10-18',
   cover: 'first-slide-signs',
   coverAlt: 'TikTok slideshow made by Next5: "3 signs you\'re losing first-slide reads. Number 3 is crucial."',

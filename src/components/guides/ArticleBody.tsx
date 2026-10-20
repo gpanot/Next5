@@ -41,7 +41,7 @@ function Table({ head, rows }: Extract<ArticleBlock, { type: 'table' }>) {
   );
 }
 
-function Block({ block }: { block: ArticleBlock }) {
+function Block({ block, source }: { block: ArticleBlock; source?: string }) {
   switch (block.type) {
     case 'p':
       return <p className={pClass}><InlineText text={block.text} /></p>;
@@ -65,11 +65,11 @@ function Block({ block }: { block: ArticleBlock }) {
         </aside>
       );
     case 'cta':
-      return <ArticleCta title={block.title} text={block.text} />;
+      return <ArticleCta title={block.title} text={block.text} source={source} />;
   }
 }
 
-/** The body of a guide or blog post, block by block. H2 and H3 get ids for the table of contents. */
-export function ArticleBody({ blocks }: { blocks: readonly ArticleBlock[] }) {
-  return <div>{blocks.map((block, i) => <Block key={i} block={block} />)}</div>;
+/** The body of a guide or blog post, block by block. H2 and H3 get ids for the table of contents. `source` tags its CTAs. */
+export function ArticleBody({ blocks, source }: { blocks: readonly ArticleBlock[]; source?: string }) {
+  return <div>{blocks.map((block, i) => <Block key={i} block={block} source={source} />)}</div>;
 }

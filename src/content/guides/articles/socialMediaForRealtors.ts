@@ -8,6 +8,7 @@ export const socialMediaForRealtors: Article = {
   description: 'Social media marketing for real estate agents made simple: 30 real estate post ideas for TikTok and Instagram, what to post each week, and how to get leads.',
   excerpt: 'What realtors should post on TikTok and Instagram, 30 real estate post ideas, and how to turn views into leads.',
   keyword: 'social media for realtors',
+  hub: 'industry',
   published: '2026-10-18',
   cover: 'listing-video-tips',
   coverAlt: 'TikTok slideshow made by Next5: "5 Listing Video Tips For Busy Realtors"',

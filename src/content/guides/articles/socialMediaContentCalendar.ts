@@ -8,6 +8,7 @@ export const socialMediaContentCalendar: Article = {
   description: 'A free 30-day social media content calendar template for small businesses. One post a day, 5 post types, and a plan you can fill in under an hour.',
   excerpt: 'A copy-ready 30-day plan: one post a day, five post types on repeat, and how to fill it in under an hour.',
   keyword: 'social media content calendar',
+  hub: 'how-to',
   published: '2026-10-18',
   cover: 'meal-planning',
   coverAlt: 'TikTok slideshow made by Next5: "Hot take: a long list isn\'t the problem — planning is."',

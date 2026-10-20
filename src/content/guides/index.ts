@@ -66,10 +66,11 @@ export const readMinutes = (article: Article): number => {
   return Math.max(1, Math.round(text.split(/\s+/).length / 200));
 };
 
-/** Up to `count` other articles: same kind first, then the rest. */
+/** Up to `count` other articles: same hub first, then same kind, then the rest. */
 export const relatedArticles = (article: Article, count = 3): Article[] => {
   const others = ALL_ARTICLES.filter((a) => a.slug !== article.slug);
-  return [...others.filter((a) => a.kind === article.kind), ...others.filter((a) => a.kind !== article.kind)].slice(0, count);
+  const rank = (a: Article): number => (a.hub === article.hub ? 0 : a.kind === article.kind ? 1 : 2);
+  return [...others].sort((a, b) => rank(a) - rank(b)).slice(0, count);
 };
 
 export const formatDate = (iso: string): string =>

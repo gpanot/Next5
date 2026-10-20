@@ -8,6 +8,7 @@ export const socialMediaMarketingSmallBusiness: Article = {
   description: 'A simple social media marketing plan for small businesses: pick one goal, one or two apps, post every day, and keep what works. No big budget needed.',
   excerpt: 'Pick one goal, pick one or two apps, post every day, and do more of what works. A plan you can start this week.',
   keyword: 'social media marketing for small business',
+  hub: 'get-customers',
   published: '2026-10-18',
   cover: 'missed-call-tips',
   coverAlt: 'TikTok slideshow made by Next5: "5 Missed-Call Booking Tips For Service Owners"',
