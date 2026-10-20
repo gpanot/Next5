@@ -13,6 +13,7 @@ import { HttpError } from '../../http';
 import { deleteObject, putObject } from '../../storage/objectStore';
 import type { UserAccess } from '../access';
 import { headsFor, withDetectedHeads, type HeadsCache } from '../heads';
+import { isTrack } from '../music';
 import { renderSlide, type PhotoCache, type RenderedSlide } from '../render';
 import { draftOf, isRendered, json, loadCampaign, photosOf, storeDraft, type CampaignPhoto } from './store';
 
@@ -93,6 +94,12 @@ const buildShows = (runId: string, plan: ReturnType<typeof plannedSlides>, hookJ
   return { shows, uploads };
 };
 
+/** The draft's music as the slideshows store it; none when unset or no longer a library track. */
+const campaignAudio = async (draft: CampaignDraft): Promise<{ audioAssetId: string | null; audioStart?: number }> => {
+  const track = draft.audioAssetId ? await isTrack(draft.audioAssetId) : null;
+  return track ? { audioAssetId: draft.audioAssetId!, audioStart: track.startAt } : { audioAssetId: null };
+};
+
 /**
  * Makes the campaign's slideshows, for Schedule. When they were already made from this draft, only the caption is
  * copied onto them (no render). Otherwise renders the draft, replacing the ones made before; refused while any of them
@@ -105,8 +112,9 @@ export const generateCampaign = async (access: UserAccess, id: string): Promise<
   if (problems.length > 0) throw new HttpError(409, 'campaign_incomplete', problems[0]!);
   const existing = await prisma.autoSlideshow.count({ where: { runId: id } });
   const caption = draft.caption.trim();
+  const audio = await campaignAudio(draft);
   if (isRendered(run, existing)) {
-    await prisma.autoSlideshow.updateMany({ where: { runId: id }, data: { caption, hashtags: [] } });
+    await prisma.autoSlideshow.updateMany({ where: { runId: id }, data: { caption, hashtags: [], ...audio } });
     return existing;
   }
   const live = await prisma.autoSlideshowPost.count({ where: { runId: id, status: { in: LIVE_POSTS } } });
@@ -125,7 +133,7 @@ export const generateCampaign = async (access: UserAccess, id: string): Promise<
   await prisma.$transaction([
     prisma.autoSlideshow.deleteMany({ where: { runId: id } }),
     prisma.autoSlideshow.createMany({
-      data: shows.map((s, position) => ({ runId: id, position, modelName: name, hookPattern: s.hook, topic: s.hook, caption, slides: s.slides as unknown as Prisma.InputJsonValue, status: 'ready' })),
+      data: shows.map((s, position) => ({ runId: id, position, modelName: name, hookPattern: s.hook, topic: s.hook, caption, ...audio, slides: s.slides as unknown as Prisma.InputJsonValue, status: 'ready' })),
     }),
     prisma.autoSlideshowRun.update({ where: { id }, data: { count: shows.length, finishedAt: new Date(), campaign: storeDraft(run, draft, renderKeyOf(draft)), ...(withHeads ? { photos: json(withHeads) } : {}) } }),
   ]);

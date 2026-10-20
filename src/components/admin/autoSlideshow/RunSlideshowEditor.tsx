@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import type { AutoPhotoDto, AutoRunDto, AutoTrackDto } from '../../../types/admin/autoSlideshow';
+import type { AutoPhotoDto, AutoRunDto } from '../../../types/admin/autoSlideshow';
 import { useAdminApi } from '../business/useAdminApi';
 import { useNextSlot } from './calendar/useNextSlot';
 import { SlideshowEditor } from './SlideshowEditor';
+import { useMusicTracks } from './SlideshowMusic';
 
 type Props = { token: string; run: AutoRunDto; openId: string | null; onOpen: (id: string | null) => void; onChanged: () => void };
 
@@ -17,7 +18,7 @@ export function RunSlideshowEditor({ token, run, openId, onOpen, onChanged }: Pr
   const [used, setUsed] = useState(false);
   if (open && !used) setUsed(true);
   const photos = useAdminApi<{ photos: AutoPhotoDto[] }>(token, used ? `/api/admin/auto-slideshow/runs/${run.id}/photos` : null);
-  const music = useAdminApi<{ tracks: AutoTrackDto[] }>(token, used ? '/api/admin/auto-slideshow/music' : null);
+  const tracks = useMusicTracks(token, used);
   const nextSlot = useNextSlot(token, run, openId ?? '');
   if (!open) return null;
   return (
@@ -27,7 +28,7 @@ export function RunSlideshowEditor({ token, run, openId, onOpen, onChanged }: Pr
       runId={run.id}
       initial={open}
       photos={photos.data?.photos ?? null}
-      tracks={music.data?.tracks ?? null}
+      tracks={tracks}
       onPhotosChanged={photos.refresh}
       onChanged={onChanged}
       onClose={() => onOpen(null)}

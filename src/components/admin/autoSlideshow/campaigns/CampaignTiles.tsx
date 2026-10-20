@@ -1,6 +1,9 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampaign';
+import { CoverPlayback } from '../CoverPlayback';
+import { AddTile } from './AddTile';
 import { CampaignRow } from './CampaignRow';
 import { labelOf, statusOf, whenOf } from './campaignSummary';
 import { PreviewSlideView } from './PreviewSlideView';
@@ -13,23 +16,45 @@ export function CampaignTilesSkeleton() {
   );
 }
 
-/** One campaign as its 9:16 cover (the first hook on its first photo), its name and where it stands. */
+/** The cover itself: the first made slide, or the first hook drawn on its photo, or a blank. */
+function TileCover({ c }: { c: CampaignSummaryDto }) {
+  return (
+    <span className="relative block aspect-[9/16] overflow-hidden rounded-xl border border-app-line bg-app-sunken shadow-sm transition group-hover:shadow-md">
+      {c.coverUrl && c.coverHook && (
+        <span className="absolute inset-0">
+          <PreviewSlideView slide={{ kind: 'draft', photoUrl: c.coverUrl, role: 'hook', body: '', ...c.coverHook }} />
+        </span>
+      )}
+      {c.coverUrl && !c.coverHook && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={c.coverUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
+      )}
+      {!c.coverUrl && <span className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-app-muted">No photos yet</span>}
+    </span>
+  );
+}
+
+/** The campaign's first slideshow playing on its cover: the made slides, or the draft drawn as the editor does. */
+function TilePlayback({ id, preview, children }: { id: string; preview: NonNullable<CampaignSummaryDto['preview']>; children: ReactNode }) {
+  return (
+    <CoverPlayback id={id} count={preview.slides.length} renderFrame={(i) => <PreviewSlideView slide={preview.slides[i]!} />} audio={preview.audio}>
+      {children}
+    </CoverPlayback>
+  );
+}
+
+/** One campaign as its 9:16 cover (the first hook on its first photo), its name and where it stands. A made slideshow
+ *  plays on the cover. */
 export function CampaignTile({ c, onOpen }: { c: CampaignSummaryDto; onOpen: () => void }) {
+  const cover = (
+    <button type="button" onClick={onOpen} aria-label={`Open ${labelOf(c)}`} className="group block w-full transition active:scale-[0.98]">
+      <TileCover c={c} />
+    </button>
+  );
   return (
     <li>
-      <button type="button" onClick={onOpen} className="group block w-full text-left transition active:scale-[0.98]">
-        <span className="relative block aspect-[9/16] overflow-hidden rounded-xl border border-app-line bg-app-sunken shadow-sm transition group-hover:shadow-md">
-          {c.coverUrl && c.coverHook && (
-            <span className="absolute inset-0">
-              <PreviewSlideView slide={{ kind: 'draft', photoUrl: c.coverUrl, role: 'hook', body: '', ...c.coverHook }} />
-            </span>
-          )}
-          {c.coverUrl && !c.coverHook && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={c.coverUrl} alt="" loading="lazy" className="h-full w-full object-cover" />
-          )}
-          {!c.coverUrl && <span className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-app-muted">No photos yet</span>}
-        </span>
+      {c.preview ? <TilePlayback id={c.id} preview={c.preview}>{cover}</TilePlayback> : cover}
+      <button type="button" tabIndex={-1} aria-hidden onClick={onOpen} className="block w-full text-left">
         <span className="mt-2 block truncate text-sm font-semibold text-app-ink">{labelOf(c)}</span>
         <span className="block truncate text-xs text-app-muted">{statusOf(c)} · {whenOf(c.updatedAt)}</span>
       </button>
@@ -56,10 +81,18 @@ export const RowChevron = () => (
   </svg>
 );
 
-type CollectionProps = { campaigns: CampaignSummaryDto[]; calendarOnly: boolean; view: 'cards' | 'list'; onOpen: (id: string) => void };
+type CollectionProps = {
+  campaigns: CampaignSummaryDto[];
+  calendarOnly: boolean;
+  view: 'cards' | 'list';
+  onOpen: (id: string) => void;
+  /** Cards only: a blank first card that starts a new campaign. */
+  onAdd?: () => void;
+  adding?: boolean;
+};
 
 /** The campaigns as cards or rows; "On calendar" keeps those with posts scheduled. */
-export function CampaignCollection({ campaigns, calendarOnly, view, onOpen }: CollectionProps) {
+export function CampaignCollection({ campaigns, calendarOnly, view, onOpen, onAdd, adding }: CollectionProps) {
   const shown = calendarOnly ? campaigns.filter((c) => c.scheduledCount > 0) : campaigns;
   if (shown.length === 0) {
     return <p className="rounded-xl border border-dashed border-app-line p-8 text-center text-sm text-app-muted">No campaign has posts on the calendar yet.</p>;
@@ -69,6 +102,7 @@ export function CampaignCollection({ campaigns, calendarOnly, view, onOpen }: Co
   }
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+      {onAdd && <AddTile label="New campaign" busy={adding} onAdd={onAdd} />}
       {shown.map((c) => <CampaignTile key={c.id} c={c} onOpen={() => onOpen(c.id)} />)}
     </ul>
   );

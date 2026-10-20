@@ -7,6 +7,7 @@
 import { isHookStyleId } from '../hookStyle';
 import { isSlideLook, type TextAt, type TextLook } from '../slideText';
 import type { StoreBadge } from '../storeBadges';
+import type { PreviewSlide } from '../../components/admin/autoSlideshow/campaigns/previewSlides';
 import type { AutoSlideshowDto, HeadBox } from './autoSlideshow';
 
 /** Slides a new campaign starts with: 1 hook, 5 content, 1 CTA. */
@@ -77,6 +78,8 @@ export type CampaignDraft = {
   /** Stock photo search for the hook photos ("woman cooking dinner"), written with the hooks: the Hook photos picker
    *  opens on it, and its "Choose for me" picks from its results. */
   hookPhotoQuery?: string;
+  /** Background music every slideshow of the campaign gets (an Assets Library track); unset = none. */
+  audioAssetId?: string;
 };
 
 /** Which kind of slide a text style applies to. */
@@ -170,6 +173,9 @@ export type CampaignSummaryDto = {
   postThumbs: (string | null)[];
   /** When each of those posts goes out (or went out) on the calendar, same order as postThumbs; null when not scheduled. */
   postDates: (string | null)[];
+  /** The first slideshow, played on its card: its slides (made, else drawn from the draft) and its music; null while
+   *  there is no photo. */
+  preview: { slides: PreviewSlide[]; audio: { url: string; startAt: number } | null } | null;
   createdAt: string;
   updatedAt: string;
 };

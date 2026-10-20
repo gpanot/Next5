@@ -11,7 +11,7 @@ type Props = {
 
 const itemClass = 'flex min-h-11 w-full items-center px-4 text-left text-sm transition hover:bg-white/10 disabled:opacity-40';
 
-/** Three-dots menu with the whole-slideshow actions: rewrite all text, delete. */
+/** Three-dots menu in the editor's top bar, beside the title (as the campaign's ⋯): rewrite all text, delete. */
 export function SlideshowMenu({ disabled, busy, onRewrite, onDelete }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -29,13 +29,13 @@ export function SlideshowMenu({ disabled, busy, onRewrite, onDelete }: Props) {
   };
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative shrink-0">
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="More actions"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="-my-2 -mr-2 flex h-11 w-11 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 active:scale-95"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/70 transition hover:bg-white/10 active:scale-95"
       >
         {busy === 'regenerate' || busy === 'delete' ? (
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -46,7 +46,7 @@ export function SlideshowMenu({ disabled, busy, onRewrite, onDelete }: Props) {
         )}
       </button>
       {open && (
-        <div role="menu" className="absolute top-full right-0 z-10 mt-1 w-52 overflow-hidden rounded-xl border border-white/10 bg-zinc-900 py-1 shadow-lg">
+        <div role="menu" className="absolute top-full left-0 z-10 mt-1 w-52 overflow-hidden rounded-xl border border-white/10 bg-zinc-900 py-1 shadow-lg">
           <button role="menuitem" onClick={pick(onRewrite)} disabled={disabled} className={itemClass}>Rewrite all text</button>
           <button role="menuitem" onClick={pick(onDelete)} disabled={disabled} className={`${itemClass} text-red-300 hover:bg-red-500/10`}>Delete slideshow</button>
         </div>

@@ -155,7 +155,8 @@ export const linkedTextSlides = (slides: Pick<AutoSlide, 'role' | 'textFree'>[],
 
 /** A background track from the Assets Library; `url` plays in the browser. */
 /** `durationSec`: full track length, measured when the track was described; null when not described yet. */
-export type AutoTrackDto = { assetId: string; name: string; url: string; startAt: number; durationSec?: number | null };
+/** `tiktok`: a sound taken from TikTok (shown with "(TikTok)"); false for our own library sounds. */
+export type AutoTrackDto = { assetId: string; name: string; url: string; startAt: number; durationSec?: number | null; tiktok?: boolean };
 
 export type AutoSlideshowDto = {
   id: string;

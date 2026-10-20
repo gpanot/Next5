@@ -18,7 +18,9 @@ import { TextLockButton } from './TextLockButton';
 import { TextStyleMenu } from './TextStyleMenu';
 import { RenderedTextOverlay } from './slideText/RenderedTextOverlay';
 import type { SlideTextProps } from './slideText/SlideTextView';
+import { SlideDeleteButton } from './SlideDeleteButton';
 import { SlideshowMenu } from './SlideshowMenu';
+import { SHOW_MUSIC, SlideshowMusic } from './SlideshowMusic';
 import { GenerateVideoButton } from './VideoButton';
 import { EditorAlert, EditorAside, EditorBody, EditorFrame, editorCard } from './editor/EditorShell';
 import { RoleTabBar, type EditorRole } from './editor/RoleTabBar';
@@ -32,7 +34,7 @@ type Props = {
   runId: string;
   initial: AutoSlideshowDto;
   photos: AutoPhotoDto[] | null;
-  /** Music is hidden for now: kept so callers need no change when it comes back. */
+  /** The music picker's tracks (SlideshowMusic: hidden while SHOW_MUSIC is off). */
   tracks: AutoTrackDto[] | null;
   onChanged: () => void;
   onPhotosChanged: () => void;
@@ -54,7 +56,7 @@ const ROLE_OF: Record<ReturnType<typeof roleGroup>, EditorRole> = { Hook: 'hook'
  * wide screens), every slide as a card, the on-screen slide's Hook · Content · CTA panel with its text, photo and style,
  * and Post and Schedule (caption, then its day and time; Schedule in the top bar) beside it.
  */
-export function SlideshowEditor({ token, runId, initial, photos, onChanged, onPhotosChanged, onClose, onPrev, onNext, box, nextSlot = null }: Props) {
+export function SlideshowEditor({ token, runId, initial, photos, tracks, onChanged, onPhotosChanged, onClose, onPrev, onNext, box, nextSlot = null }: Props) {
   const edit = useSlideshowEdit(token, runId, initial, onChanged);
   const { show, busy } = edit;
   const [slide, setSlide] = useState(0);
@@ -100,11 +102,11 @@ export function SlideshowEditor({ token, runId, initial, photos, onChanged, onPh
     }
   };
 
-  const removeSlide = async () => {
-    if (!window.confirm(`Delete slide ${slide + 1}? This cannot be undone.`)) return;
-    if (await edit.deleteSlide(slide)) {
-      drafts.clearText();
-      setSlide((i) => Math.min(i, show.slides.length - 2));
+  /** Asked twice by the bin under the slide's picture (SlideDeleteButton). */
+  const removeSlide = async (i: number) => {
+    if (await edit.deleteSlide(i)) {
+      if (i === slide) drafts.clearText();
+      setSlide((s) => (s > i ? s - 1 : Math.min(s, show.slides.length - 2)));
     }
   };
 
@@ -134,6 +136,20 @@ export function SlideshowEditor({ token, runId, initial, photos, onChanged, onPh
     const s = show.slides[i];
     if (!s || !isContentSlide(s) || contentCount < 2) return null;
     return <TextLockButton locked={!s.textFree} onToggle={() => edit.setTextFree(i, !s.textFree)} />;
+  };
+  /** Content slides' bin, under their picture in the strip. */
+  const deleteControl = (i: number) => {
+    const s = show.slides[i];
+    if (!s || !isContentSlide(s)) return null;
+    return (
+      <SlideDeleteButton
+        number={i + 1}
+        onDelete={() => void removeSlide(i)}
+        disabled={busy !== null || show.slides.length <= 2}
+        reason="A slideshow needs at least 2 slides"
+        working={busy === `delete-slide-${i}`}
+      />
+    );
   };
 
   const remove = async () => {
@@ -167,24 +183,9 @@ export function SlideshowEditor({ token, runId, initial, photos, onChanged, onPh
 
   const player = (
     <>
-      <SlidePreview show={{ ...show, audio: null }} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={(i) => textLayer(i, true)} safeZone={safeZone.on} />
-      <PlayerControls count={show.slides.length} index={slide}>
-        <button
-          onClick={() => void removeSlide()}
-          disabled={busy !== null || show.slides.length <= 2}
-          aria-label={`Delete slide ${slide + 1}`}
-          title={show.slides.length <= 2 ? 'A slideshow needs at least 2 slides' : `Delete slide ${slide + 1}`}
-          className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:bg-red-500/15 hover:text-red-300 active:scale-95 disabled:opacity-30"
-        >
-          {busy === `delete-slide-${slide}` ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
-            </svg>
-          )}
-        </button>
-      </PlayerControls>
+      <SlidePreview show={SHOW_MUSIC ? show : { ...show, audio: null }} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={(i) => textLayer(i, true)} safeZone={safeZone.on} />
+      <PlayerControls count={show.slides.length} index={slide} />
+      <SlideshowMusic compact value={show.audio?.assetId ?? null} recommendedId={show.recommendedAudioId} tracks={tracks} busy={busy !== null} onPick={(id) => void edit.setMusic(id)} />
       {admin && (
         <GenerateVideoButton
           rendering={video.rendering}
@@ -204,12 +205,7 @@ export function SlideshowEditor({ token, runId, initial, photos, onChanged, onPh
         onPick={pickRole}
         missing={(['hook', 'content', 'cta'] as const).filter((r) => !roles.includes(r))}
         after={<span className="text-xs text-white/40">Slide {slide + 1}</span>}
-        end={
-          <>
-            <PhotoToggle open={photoOpen} onClick={() => setPhotoOpen((o) => !o)} />
-            <SlideshowMenu disabled={video.rendering || busy !== null} busy={busy} onRewrite={() => void rewrite()} onDelete={() => void remove()} />
-          </>
-        }
+        end={<PhotoToggle open={photoOpen} onClick={() => setPhotoOpen((o) => !o)} />}
       />
       {(edit.error ?? video.error) && <EditorAlert message={(edit.error ?? video.error)!} />}
       <SlideEditPanel
@@ -242,20 +238,23 @@ export function SlideshowEditor({ token, runId, initial, photos, onChanged, onPh
       backLabel="Close"
       onBack={onClose}
       title={
-        <div className="min-w-0 px-1">
-          <p className="truncate text-sm font-semibold">{show.topic}</p>
-          <p className="truncate text-[11px] text-white/50">{show.modelName} · {slide + 1}/{show.slides.length}</p>
-        </div>
+        <>
+          <div className="min-w-0 px-1">
+            <p className="truncate text-sm font-semibold">{show.topic}</p>
+            <p className="truncate text-[11px] text-white/50">{show.modelName} · {slide + 1}/{show.slides.length}</p>
+          </div>
+          <SlideshowMenu disabled={video.rendering || busy !== null} busy={busy} onRewrite={() => void rewrite()} onDelete={() => void remove()} />
+        </>
       }
       actions={actions}
     >
       <EditorBody
         player={player}
-        strip={<SlideStrip slides={show.slides} index={slide} busy={busy} onPick={setSlide} textLayer={(i) => textLayer(i)} corner={textLock} />}
+        strip={<SlideStrip slides={show.slides} index={slide} busy={busy} onPick={setSlide} textLayer={(i) => textLayer(i)} corner={textLock} footer={deleteControl} />}
         main={panel}
         aside={
           <EditorAside title="Post and Schedule">
-            {/* Caption, then when it posts (as in a campaign). TikTok picks the music itself, so there is no music choice here. */}
+            {/* Caption, then when it posts (as in a campaign). The music sits under the player. */}
             <div className="space-y-6">
               <div className="space-y-3">
                 <CaptionPanel caption={drafts.caption} tags={drafts.tags} onCaption={drafts.setCaption} onTags={drafts.setTags} />

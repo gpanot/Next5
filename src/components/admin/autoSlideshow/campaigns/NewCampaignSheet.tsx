@@ -205,6 +205,8 @@ type Props = {
   brandRunId: string | null | undefined;
   /** Back from Stripe after Add credits: opens on the Brand Cast step with these choices. */
   resume?: BrandCastResume | null;
+  /** Opens straight on the Brand Cast step (the Brand Cast tab's blank card). */
+  brandFirst?: boolean;
   /** Hooks Volume is being created (an empty campaign on its way). */
   creatingHooks: boolean;
   onHooksVolume: () => void;
@@ -216,8 +218,8 @@ type Props = {
  * "New campaign": pick Brand Cast (1-5 slideshows written by the Auto Slideshow engine with the brand's faces, 1 credit
  * each) or Hooks Volume (one campaign, many hooks, built in the campaign editor). A bottom sheet on phones.
  */
-export function NewCampaignSheet({ token, workspaceId, brandRunId, resume = null, creatingHooks, onHooksVolume, onBrandCastCreated, onClose }: Props) {
-  const [step, setStep] = useState<'choose' | 'brandCast'>(resume ? 'brandCast' : 'choose');
+export function NewCampaignSheet({ token, workspaceId, brandRunId, resume = null, brandFirst = false, creatingHooks, onHooksVolume, onBrandCastCreated, onClose }: Props) {
+  const [step, setStep] = useState<'choose' | 'brandCast'>(resume || brandFirst ? 'brandCast' : 'choose');
   // On <body>: a parent's stacking context must not cover the sheet.
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 sm:items-center" onClick={creatingHooks ? undefined : onClose}>

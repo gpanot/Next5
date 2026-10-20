@@ -57,6 +57,8 @@ export function CampaignsPage({ token, workspaceId }: Props) {
   /** Back from Stripe after Add credits in the Brand Cast step: that step opens again. */
   const [resume] = useState(readBrandCastResume);
   const [choosing, setChoosing] = useState(resume !== null);
+  /** The Brand Cast tab's blank card opens the sheet on its Brand Cast step. */
+  const [brandFirst, setBrandFirst] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Bumped after Brand Cast slideshows were asked for: the Brand Cast section polls its latest run again. */
@@ -119,11 +121,11 @@ export function CampaignsPage({ token, workspaceId }: Props) {
         ) : campaigns.length === 0 ? (
           <Empty tab="hooks" onCreate={() => setChoosing(true)} />
         ) : (
-          <CampaignCollection campaigns={campaigns} calendarOnly={filter === 'calendar'} view={hooksView} onOpen={open} />
+          <CampaignCollection campaigns={campaigns} calendarOnly={filter === 'calendar'} view={hooksView} onOpen={open} onAdd={() => void create()} adding={creating} />
         )}
       </div>
       <div role="tabpanel" hidden={tab !== 'brand'}>
-        <SlideshowsTab token={token} workspaceId={workspaceId} filter={filter} view={brandView} reloadKey={brandReload} empty={<Empty tab="brand" onCreate={() => setChoosing(true)} />} />
+        <SlideshowsTab token={token} workspaceId={workspaceId} filter={filter} view={brandView} reloadKey={brandReload} empty={<Empty tab="brand" onCreate={() => setChoosing(true)} />} onAdd={() => { setBrandFirst(true); setChoosing(true); }} />
       </div>
       {choosing && (
         <NewCampaignSheet
@@ -131,17 +133,20 @@ export function CampaignsPage({ token, workspaceId }: Props) {
           workspaceId={workspaceId}
           brandRunId={runs.data ? (runs.data.runs[0]?.id ?? null) : undefined}
           resume={resume}
+          brandFirst={brandFirst}
           creatingHooks={creating}
           onHooksVolume={() => void create()}
           onBrandCastCreated={() => {
             clearBrandCastResume();
             setChoosing(false);
+            setBrandFirst(false);
             setTab('brand');
             setBrandReload((n) => n + 1);
           }}
           onClose={() => {
             clearBrandCastResume();
             setChoosing(false);
+            setBrandFirst(false);
           }}
         />
       )}

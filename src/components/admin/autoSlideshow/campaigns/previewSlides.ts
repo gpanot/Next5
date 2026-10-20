@@ -10,17 +10,20 @@ export type PreviewSlide =
 
 export type PreviewShow = { hook: string; slides: PreviewSlide[] };
 
+/** What the draft preview reads of a photo (the list's covers pass thumbs only). */
+type PhotoLike = Pick<CampaignPhotoDto, 'url' | 'fullUrl' | 'heads'>;
+
 /** A card's store badges and their row's spot: the CTA only. */
 export const badgesOf = (c: CampaignCard): { badges?: StoreBadge[]; badgesAt?: number } => (c.role === 'cta' ? { badges: c.badges, badgesAt: c.badgesAt } : {});
 
 /** The faces in photo i, so the draft text keeps off them as the render will. */
-export const headsOf = (photos: CampaignPhotoDto[], i: number | null | undefined): { heads?: HeadBox[] } => {
+export const headsOf = (photos: PhotoLike[], i: number | null | undefined): { heads?: HeadBox[] } => {
   const heads = i === null || i === undefined ? undefined : photos[i]?.heads;
   return heads ? { heads } : {};
 };
 
 /** The draft's slideshows, one per hook (a single placeholder one before any hook is written). */
-export const draftShows = (draft: CampaignDraft, photos: CampaignPhotoDto[]): PreviewShow[] => {
+export const draftShows = (draft: CampaignDraft, photos: PhotoLike[]): PreviewShow[] => {
   const photo = (i: number | null) => (i === null ? null : photos[i]?.fullUrl ?? photos[i]?.url ?? null);
   // Content cards with several photos show the one that goes with hook i.
   const cards = (i: number) => draft.cards.map((c): PreviewSlide => ({ kind: 'draft', photoUrl: photo(cardPhotoFor(c, i)), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role), textAt: c.textAt, ...headsOf(photos, cardPhotoFor(c, i)), ...badgesOf(c) }));

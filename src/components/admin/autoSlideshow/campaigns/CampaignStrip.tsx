@@ -20,6 +20,8 @@ type Props = {
   loading: ReadonlySet<number>;
   /** A control in slide i's top right corner, beside the card (not inside its button): the content slides' text lock. */
   corner?: (i: number) => ReactNode;
+  /** A control at the right of slide i's label, under the picture: the content slides' delete. */
+  footer?: (i: number) => ReactNode;
 };
 
 type Card = { label: string; slide: PreviewSlide };
@@ -43,7 +45,7 @@ const cardsOf = (draft: CampaignDraft, photos: CampaignPhotoDto[]): Card[] => {
 
 /** Every slide of the campaign as a numbered 9:16 card; the one being edited is ringed and its text can be dragged.
  *  A last tile adds a content slide. */
-export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText, onMoveBadges, loading, corner }: Props) {
+export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText, onMoveBadges, loading, corner, footer }: Props) {
   const list = useRef<HTMLOListElement>(null);
   const cards = cardsOf(draft, photos);
   const contentCount = draft.cards.length - 1;
@@ -58,6 +60,7 @@ export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText,
       {cards.map((c, i) => {
         const on = i === index;
         const control = corner?.(i);
+        const below = footer?.(i);
         return (
           <li key={i} className="relative shrink-0">
             <button
@@ -74,6 +77,7 @@ export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText,
               <span className={`truncate px-3 py-2 text-left text-sm font-medium ${on ? 'text-white' : 'text-white/60'}`}>{c.label}</span>
             </button>
             {control && <span className="absolute top-2 right-2 z-10">{control}</span>}
+            {below && <span className="absolute right-1 bottom-0.5 z-10">{below}</span>}
           </li>
         );
       })}
