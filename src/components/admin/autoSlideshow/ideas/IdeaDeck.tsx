@@ -3,7 +3,8 @@
 import { Check, Undo2, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS } from '../../../../config/blitzLab';
-import type { HookCtaStyle } from '../../../../remotion/types';
+import { titleInStyle } from '../../../../remotion/hookTitle';
+import type { HookTitleStyleId } from '../../../../types/hookStyle';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { blitzVoiceLabel } from '../../../../types/admin/blitzVoice';
 import { SwipeCard } from '../../../labs/blitzLab/SwipeCard';
@@ -38,7 +39,7 @@ type Props = {
   confirmKeep?: () => Promise<boolean>;
   /** The deck's ⋯ menu: pinned outside the card, top right. */
   menu?: ReactNode;
-  /** The hook's look on Blitz ideas (picked in the Hook sheet). Absent: the Default look. */
+  /** The hook title's look on Blitz ideas (picked in the Hook sheet). Absent: each card's own look. */
   hookStyle?: HookStyleState;
   /** Blitz ideas, while paused: another clip for the shot on screen, and back to the one before. */
   clips?: DeckClips;
@@ -99,9 +100,14 @@ function Controls({ idea, onSkip, onKeep, onEditHook, undo }: ControlsProps) {
 }
 
 /** Video ideas draw their captions like the editor's "Default" style (and the render), each at its shot's position,
- *  with the picked hook look on the first and last slide. Photo slideshows have their text in the pictures. */
+ *  with the hook title over the start (its own look, or the one picked in the Hook sheet). Photo slideshows have their
+ *  text in the pictures. */
 const VIDEO_CAPTION = mergeTextConfig(BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS);
-const captionFor = (idea: IdeaDto, hookCtaStyle?: HookCtaStyle) => (idea.card ? { ...VIDEO_CAPTION, hookCtaStyle } : undefined);
+const captionFor = (idea: IdeaDto, titleStyle?: HookTitleStyleId | null) => {
+  if (!idea.card) return undefined;
+  const hookTitle = titleInStyle(idea.card.hookTitle, titleStyle);
+  return hookTitle ? { ...VIDEO_CAPTION, hookTitle } : VIDEO_CAPTION;
+};
 
 /** Why the voiceover did not play, over the top of the card for a few seconds. */
 function VoiceNote({ message }: { message: string }) {
@@ -194,11 +200,11 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
     <div className="flex flex-col items-center gap-2 lg:gap-3">
       {/* Centered over ✕ / ✓; sized by the screen height (✕ and ✓ stay in view) and leaving room for the sound buttons. */}
       <div className={`relative ${CARD_SIZE[size]}`} aria-live="polite">
-        {back && next && readyId === idea.id && <SwipeCard key={back.id} shots={back.shots} captionConfig={captionFor(next, hookStyle?.hookCta)} position="back1" hue={back.hue} onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} />}
+        {back && next && readyId === idea.id && <SwipeCard key={back.id} shots={back.shots} captionConfig={captionFor(next, hookStyle?.titleStyle)} position="back1" hue={back.hue} onKeep={() => {}} onDiscard={() => {}} onOpen={() => {}} />}
         <SwipeCard
           key={`${card.id}-${hookStyle?.version ?? 0}`}
           shots={card.shots}
-          captionConfig={captionFor(idea, hookStyle?.hookCta)}
+          captionConfig={captionFor(idea, hookStyle?.titleStyle)}
           tags={tags}
           whyPanel={card.whyPanel}
           position="top"

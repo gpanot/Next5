@@ -1,7 +1,8 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import type { HookCtaStyle } from '../../../../remotion/types';
+import { titleInStyle } from '../../../../remotion/hookTitle';
+import type { HookTitleStyleId } from '../../../../types/hookStyle';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { deckRenderBody, type RenderBodyContext } from '../../../labs/blitzLab/deckRenderBody';
 import { scheduleApi } from '../../../labs/blitzLab/schedule/scheduleApi';
@@ -12,8 +13,8 @@ import { ideaCard } from './ideaCards';
 import { ideasApi } from './ideasApi';
 import { loadRenderContext } from './renderContext';
 
-/** A kept idea, with the hook look picked on the deck (Blitz; none = the Default look). */
-export type KeptIdea = IdeaDto & { hookCta?: HookCtaStyle };
+/** A kept idea, with the hook title look picked on the deck (Blitz; none = the card's own look). */
+export type KeptIdea = IdeaDto & { titleStyle?: HookTitleStyleId | null };
 
 type Options = {
   client: LabClient | null;
@@ -27,7 +28,8 @@ type Options = {
 /** A kept Blitz idea on the calendar as a planned video (1 credit now, refunded if not approved in time). */
 const scheduleBlitz = async (client: LabClient, ctx: RenderBodyContext, idea: KeptIdea): Promise<string | null> => {
   const card = ideaCard(idea);
-  const textOverride = idea.hookCta ? { ...ctx.textOverride, hookCtaStyle: idea.hookCta } : ctx.textOverride;
+  const hookTitle = titleInStyle(idea.card?.hookTitle, idea.titleStyle);
+  const textOverride = hookTitle ? { ...ctx.textOverride, hookTitle } : ctx.textOverride;
   const built = await deckRenderBody(client, card, card.shots.map(toSlide), { ...ctx, textOverride });
   if ('error' in built) return built.error;
   const at = new Date(idea.plannedAt);

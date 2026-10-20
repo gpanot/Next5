@@ -7,12 +7,14 @@
 // the images (AI once the workspace has paid, stock photos before), one per moment of the batch, swapped onto their shots (the library match becomes the first swap; the
 // new shots get their own fit). Last, each card's photos get their camera move (labs/blitzCamera.ts, one vision call per
 // card), so the card plays the zoom/pan its render will use. Then the cards lose `finishing` and the deck stops
-// re-reading. Every write lays only what it changed onto the card as it is then, under a row lock (ideaCardMerge.ts):
+// re-reading. With the camera moves, each card gets its hook title (labs/hookTitle.ts: look picked, placed off heads and
+// captions), as its hook photo and captions are final by then. Every write lays only what it changed onto the card as it is then, under a row lock (ideaCardMerge.ts):
 // the voiceover's spoken lines, adopted while the card finishes, stay. Ideas already made are left alone.
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { withShotCameras } from './blitzCamera';
+import { withHookTitle } from './hookTitle';
 import { spokenLines } from './blitzVoice';
 import { mergeCard } from './ideaCardMerge';
 import { fitShotCaptions, isFittedShot } from '../slideshow/core/captionFit';
@@ -93,15 +95,22 @@ const clearFinishing = (ids: string[]) =>
     WHERE id = ${id} AND plan ? 'card'`)).catch(() => undefined);
 
 /** finishCard on each card; a card that fails is still let go of. */
-const finishCards = (cards: Snapshot[]) =>
-  Promise.all(cards.map((c) => finishCard(c.id).catch(async (err: unknown) => {
+const finishCards = (cards: Snapshot[], workspaceId: string | null) =>
+  Promise.all(cards.map((c) => finishCard(c.id, workspaceId).catch(async (err: unknown) => {
     console.error(`[idea-finish] camera moves failed for ${c.id}:`, err instanceof Error ? err.message : err);
     await clearFinishing([c.id]);
   })));
 
-/** A card's last step: its photos' camera moves (one vision call), then the end of its finishing. */
-async function finishCard(id: string): Promise<void> {
-  await saveCard(id, async (card) => finished({ ...card, shots: await withShotCameras(card.shots) }));
+/** A card's last step: its photos' camera moves and its hook title (one vision call each, at once), then the end of its finishing. */
+async function finishCard(id: string, workspaceId: string | null): Promise<void> {
+  await saveCard(id, async (card) => {
+    const [shots, titled] = await Promise.all([withShotCameras(card.shots), withHookTitle(card, workspaceId).catch((err: unknown) => {
+      console.error(`[idea-finish] hook title failed for ${id}:`, err instanceof Error ? err.message : err);
+      return card;
+    })]);
+    // The title may have moved the hook caption under it: that height wins over the one the camera step read.
+    return finished({ ...titled, shots: shots.map((s, i) => ({ ...s, positionY: titled.shots[i]?.positionY ?? s.positionY })) });
+  });
 }
 
 /** The ideas' cards as they are now. */
@@ -128,13 +137,13 @@ async function makeImages(cards: Snapshot[], workspaceId: string | null, brand: 
 }
 
 /** Puts a card's images on its shots (new shots get their caption fit), then its camera moves. Never throws. */
-const imageCard = (c: Snapshot, images: Map<string, LibraryAsset>) =>
+const imageCard = (c: Snapshot, images: Map<string, LibraryAsset>, workspaceId: string | null) =>
   saveCard(c.id, async (card) => {
     const shots = await withImages(card.shots, c.shots, images, c.pending!.needs);
     const changed = shots.filter((s, n) => s.assetKey !== card.shots[n]?.assetKey);
     return { ...card, shots: changed.length ? withCaptions(shots, await captionHeights(changed)) : shots };
   }).then(async (swapped) => {
-    await finishCards([c]);
+    await finishCards([c], workspaceId);
     return swapped;
   }).catch(async (err: unknown) => {
     console.error(`[idea-finish] images not put on ${c.id}:`, err instanceof Error ? err.message : err);
@@ -194,7 +203,7 @@ export async function finishIdeaCards(ids: string[], workspaceId: string | null,
     const captioned = new Promise<void>((resolve) => { spoken = resolve; });
     const imaged = new Map<number, Promise<boolean>>();
     const imaging = makeImages(first, workspaceId, brand, (i, images) => {
-      imaged.set(i, captioned.then(() => imageCard(cards[i]!, images)));
+      imaged.set(i, captioned.then(() => imageCard(cards[i]!, images, workspaceId)));
     }, photos).catch((err: unknown) => {
       console.error('[idea-finish] images failed:', err instanceof Error ? err.message : err);
     });
@@ -213,13 +222,13 @@ export async function finishIdeaCards(ids: string[], workspaceId: string | null,
     const captionsIn = `${firstIn}s first, ${secs(started)}`;
     spoken();
     // Cards with no image to wait for get their camera moves now; the others once their images are on.
-    const ready = finishCards(cards.filter((c) => !c.pending));
+    const ready = finishCards(cards.filter((c) => !c.pending), workspaceId);
     await imaging;
     const imagesIn = secs(started);
     // A card whose images never came (the batch failed) is let go of as it is.
     const lost = cards.filter((c, i) => c.pending && !imaged.has(i));
     const saved = await Promise.all([...imaged.values()]);
-    await Promise.all([ready, finishCards(lost)]);
+    await Promise.all([ready, finishCards(lost, workspaceId)]);
     const swapped = saved.filter(Boolean).length;
     console.log(`[idea-finish] ${ids.length} card(s): spoken lines ${spokenIn}s, captions ${captionsIn}s, images ${imagesIn}s (on ${swapped} card(s)), done ${secs(started)}s`);
   } catch (err) {

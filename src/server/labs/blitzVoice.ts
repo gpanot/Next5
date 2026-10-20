@@ -186,9 +186,12 @@ export async function spokenLines(texts: string[], workspaceId: string | null, m
 
 type Take = { wav: Buffer; words: SpokenWord[]; errors: string[] };
 
-/** One take of a line, heard back: its word timings (syllable spread when Whisper fails) and the words it got wrong. */
-const takeLine = async (line: string, voice: string, meter: ReturnType<typeof createMeter>): Promise<Take> => {
-  const take = await synthesize(line, { voice, direction: DIRECTION }, meter, { readBack: false, wordTimings: false });
+/**
+ * One take of a line, heard back: its word timings (syllable spread when Whisper fails) and the words it got wrong.
+ * `direction` false: the plain line, without the director's notes (the voice cannot read them aloud).
+ */
+const takeLine = async (line: string, voice: string, meter: ReturnType<typeof createMeter>, direction = true): Promise<Take> => {
+  const take = await synthesize(line, { voice, direction: direction ? DIRECTION : undefined }, meter, { readBack: false, wordTimings: false });
   const heard = await transcribe(take.wav, line).catch((err: unknown) => {
     console.warn('[blitz/voice] Whisper failed, syllable timing:', err instanceof Error ? err.message.slice(0, 160) : err);
     return null;
@@ -200,12 +203,15 @@ const takeLine = async (line: string, voice: string, meter: ReturnType<typeof cr
   return { wav: take.wav, words, errors: [...extra.map((w) => `+${w}`), ...missing.map((w) => `-${w}`)] };
 };
 
-/** A line recorded; recorded once more when the voice added or skipped words (the take with fewer errors wins). */
+/**
+ * A line recorded; recorded once more when the voice added or skipped words (the take with fewer errors wins). The
+ * second take goes without the director's notes (2026-10-20): a voice that read them aloud once could do it again.
+ */
 const recordLine = async (line: string, voice: string, meter: ReturnType<typeof createMeter>): Promise<Take> => {
   const first = await takeLine(line, voice, meter);
   if (!first.errors.length) return first;
   console.warn(`[blitz/voice] line misread (${first.errors.join(' ')}); recording it again`);
-  const second = await takeLine(line, voice, meter);
+  const second = await takeLine(line, voice, meter, false);
   const kept = second.errors.length < first.errors.length ? second : first;
   if (kept.errors.length) console.warn(`[blitz/voice] line still misread after 2 takes (${kept.errors.join(' ')}): "${line}"`);
   return kept;

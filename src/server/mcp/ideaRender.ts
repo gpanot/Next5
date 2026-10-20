@@ -52,7 +52,7 @@ export function buildIdeaRenderBody(card: DeckItem, ideaId: string, templateId: 
       captionText: slides[0]?.text ?? '',
       slides,
       durationSeconds: slides.reduce((sum, s) => sum + (s.durationSec ?? 0), 0),
-      textConfigOverride: { ...BLITZ_SLIDESHOW_TEXT_DEFAULTS },
+      textConfigOverride: { ...BLITZ_SLIDESHOW_TEXT_DEFAULTS, ...(card.hookTitle ? { hookTitle: card.hookTitle } : {}) },
       set: {
         version: 1,
         kind: 'deck',

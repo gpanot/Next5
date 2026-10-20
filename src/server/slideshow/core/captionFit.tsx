@@ -65,7 +65,7 @@ async function videoFrame(key: string, atSec: number): Promise<Buffer | null> {
 }
 
 /** The shot's first visible frame as a half-size 9:16 JPEG, cropped like the video (cover). */
-async function backgroundJpeg(shot: DeckShot): Promise<Buffer | null> {
+export async function backgroundJpeg(shot: DeckShot): Promise<Buffer | null> {
   const key = shot.assetKey;
   if (!key) return null;
   const raw = isImageKey(key) ? await getObjectBuffer(key) : await videoFrame(key, shot.trimStart ?? 0);

@@ -18,11 +18,13 @@
  */
 
 import { ChevronDown, Info, Pause, Play } from 'lucide-react';
-import { slideTextConfig } from '../../../remotion/slideTextConfig';
+import { hookTitleOf } from '../../../remotion/hookTitle';
+import { slideTextConfig, spokenTextConfig } from '../../../remotion/slideTextConfig';
 import type { SlideCamera, TextConfig } from '../../../remotion/types';
 import { moveShotCamera, ShotLayers } from './ShotLayers';
 import { SlideCaption } from './SlideCaption';
 import { SpokenDeckCaption } from './SpokenDeckCaption';
+import { DeckHookTitle } from './DeckHookTitle';
 import type { ShotEditData } from './shotFormat';
 import { useNarrationAudio, type CardNarration } from './useNarrationAudio';
 import { WhyDrawer } from './WhyDrawer';
@@ -376,6 +378,7 @@ export function SwipeCard({
   const displayedShotIdx = isTop ? shotIdx : 0;
   const displayedShot = shots[displayedShotIdx] ?? shots[0];
   const spokenWords = isTop ? voiced?.words?.[displayedShotIdx] : undefined;
+  const hookTitle = hookTitleOf(captionConfig);
   const captionMove = isTop && paused && onCaptionMove ? (y: number) => onCaptionMove(displayedShotIdx, y) : undefined;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -451,12 +454,14 @@ export function SwipeCard({
         {/* A voiced card shows what the voice says, as it says it. Keyed by shot so each line starts fresh. */}
         {/* Paused, the caption moves up or down: a voiced card's spoken line on screen shows whole, else the shot's line. */}
         {displayedShot && captionConfig && (spokenWords ? (
-          <SpokenDeckCaption key={`${voiceUrl}-${displayedShotIdx}`} words={spokenWords} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} elapsedRef={elapsedRef} onMove={captionMove} />
+          <SpokenDeckCaption key={`${voiceUrl}-${displayedShotIdx}`} words={spokenWords} config={spokenTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} elapsedRef={elapsedRef} onMove={captionMove} />
         ) : captionMove ? (
           <DraggableCaption key={displayedShotIdx} text={displayedShot.text} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} onMove={captionMove} />
         ) : (
           <SlideCaption text={displayedShot.text} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} />
         ))}
+        {/* The hook title: fixed over the hook shot and the start of the next, like the render. */}
+        {hookTitle && captionConfig && <DeckHookTitle key={displayedShotIdx} title={hookTitle} config={captionConfig} shot={displayedShotIdx} elapsedRef={elapsedRef} />}
         {displayedShot && !captionConfig && (
           <div
             className={[

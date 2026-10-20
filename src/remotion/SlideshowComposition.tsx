@@ -7,6 +7,7 @@
  * Layer order (bottom → top):
  *   1. Background  — full-bleed image or video (loops if shorter than clip); photos with a camera move (CameraStill)
  *   2. Slide text  — one caption per slide: word by word (plain style) or a 4-frame fade (boxed styles)
+ *   2b. Hook title — optional, the written hook fixed over the hook slide and ~1 s of the next (hookTitle.ts)
  *   3. Business    — optional pill, same as GreenScreenComposition
  *   4. Audio       — optional, loops if shorter than the video, volume fade at end
  */
@@ -25,7 +26,9 @@ import {
 } from 'remotion';
 import { CameraStill } from './CameraStill';
 import { loadBlitzFonts } from './fontLoader';
-import { slideTextConfig } from './slideTextConfig';
+import { HOOK_TITLE_CARRY_S, hookTitleOf } from './hookTitle';
+import { HookTitleLayer } from './HookTitleLayer';
+import { slideTextConfig, spokenTextConfig } from './slideTextConfig';
 import { BusinessLayer, CaptionLayer } from './TextLayers';
 import type { SlideshowProps } from './types';
 import { SpokenCaption } from './SpokenCaption';
@@ -131,6 +134,9 @@ function slideTimeline(slides: SlideshowProps['slides'], durationInFrames: numbe
   });
 }
 
+/** `config` at the slide's own caption height, when it has one. */
+const withY = <T extends { positionY: number }>(config: T, positionY?: number): T => (positionY != null ? { ...config, positionY } : config);
+
 export function SlideshowComposition({
   backgroundUrl,
   backgroundIsImage,
@@ -146,6 +152,8 @@ export function SlideshowComposition({
   // Image-only slides (text already drawn on the picture) count as slides too.
   const nonEmptySlides = slides.filter((s) => s.text.trim() || s.backgroundUrl);
   const timeline = slideTimeline(nonEmptySlides, durationInFrames, fps);
+  const hookTitle = hookTitleOf(textConfig);
+  const titleFrames = (timeline[0]?.duration ?? 0) + Math.min(Math.round(HOOK_TITLE_CARRY_S * fps), timeline[1]?.duration ?? 0);
 
   // Audio volume: fade to 0 in the last AUDIO_FADE_FRAMES
   const frame = useCurrentFrame();
@@ -216,7 +224,7 @@ export function SlideshowComposition({
             {slide.words?.length ? (
               <SpokenCaption
                 words={slide.words}
-                config={slide.positionY != null ? { ...config, positionY: slide.positionY } : config}
+                config={withY(spokenTextConfig(textConfig, i, nonEmptySlides.length), slide.positionY)}
                 width={width}
                 height={height}
               />
@@ -231,6 +239,13 @@ export function SlideshowComposition({
           </Sequence>
         );
       })}
+
+      {/* ── Layer 2b: Hook title (optional): the hook slide, then HOOK_TITLE_CARRY_S of the next ─────────── */}
+      {hookTitle && timeline[0] ? (
+        <Sequence from={0} durationInFrames={titleFrames} layout="none">
+          <HookTitleLayer title={hookTitle} config={textConfig} width={width} height={height} durationInFrames={titleFrames} />
+        </Sequence>
+      ) : null}
 
       {/* ── Layer 3: Business line (optional, shown on every slide) ─────── */}
       {businessText?.trim() ? (
