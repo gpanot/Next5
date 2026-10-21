@@ -159,13 +159,18 @@ const boxRect = (slide: SlideText, wrap?: number): Rect => {
 
 const homeTop = (slide: SlideText) => (slide.role === 'hook' && ['outline', 'all-caps'].includes(titleKindOf(slide)) ? HOOK_TEXT.top : BOX_TEXT.top(isBig(slide)));
 
-/** A head in slide px, grown by the margin. */
-const headRect = (h: HeadBox): Rect => ({
-  x: h.left * SLIDE_SIZE.width - HEAD_MARGIN,
-  y: h.top * SLIDE_SIZE.height - HEAD_MARGIN,
-  w: (h.right - h.left) * SLIDE_SIZE.width + HEAD_MARGIN * 2,
-  h: (h.bottom - h.top) * SLIDE_SIZE.height + HEAD_MARGIN * 2,
-});
+/**
+ * A head is taller than wide: a box flatter than this (height / width) stopped short of the chin (seen 2026-10-21 on a
+ * face looking down: hair to nose only), so it is grown down to it.
+ */
+export const MIN_HEAD_RATIO = 1.25;
+
+/** A head in slide px, at least MIN_HEAD_RATIO tall, grown by the margin. */
+export const headRect = (h: HeadBox): Rect => {
+  const w = (h.right - h.left) * SLIDE_SIZE.width;
+  const height = Math.max((h.bottom - h.top) * SLIDE_SIZE.height, w * MIN_HEAD_RATIO);
+  return { x: h.left * SLIDE_SIZE.width - HEAD_MARGIN, y: h.top * SLIDE_SIZE.height - HEAD_MARGIN, w: w + HEAD_MARGIN * 2, h: height + HEAD_MARGIN * 2 };
+};
 
 const overlap = (a: Rect, b: Rect) =>
   Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
