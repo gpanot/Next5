@@ -93,8 +93,8 @@ export const IMAGE_MODELS: Record<ImageModelId, ImageModel> = {
     supportsAspectRatio: true,
     supportsResolution: true,
     extraBody: { quality: 'medium' },
+    // Measured on the account balance 2026-10-21: $0.039 at 1k with a reference image, no charge per reference.
     priceUsdMicros: { '1k': 39_000, '2k': 55_000 },
-    perImageUsdMicros: 15_000,
     note: 'What Shop product photos use. Fast tier of GPT Image 2.5 (checked 2026-09-26).',
   },
   'gpt-image-2.5-sunburst': {
@@ -168,8 +168,9 @@ export const IMAGE_MODELS: Record<ImageModelId, ImageModel> = {
     supportsAspectRatio: true,
     supportsResolution: true,
     extraBody: { quality: 'medium' },
-    priceUsdMicros: { '1k': 39_000, '2k': 55_000 },
-    note: 'Slideshow photos without a reference image (photoEngine.ts).',
+    // Measured on the account balance 2026-10-21: $0.024 at 1k.
+    priceUsdMicros: { '1k': 24_000, '2k': 24_000 },
+    note: 'Slideshow photos without a reference image (autoSlideshow/photos.ts).',
   },
 };
 

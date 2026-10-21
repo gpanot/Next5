@@ -49,9 +49,9 @@ export type PhotoEngineStep = 'wavespeed-gpt-2.5' | 'reapi-gpt-2.5' | 'reapi-nan
 /**
  * Which model makes the slideshow photos (Brand Cast runs and their edits), tried in order until one works.
  * - gpt (default since 2026-10-21, board V5/V6): GPT Image 2.5 Flare made the prompts tidier and brighter (luma 137-183
- *   vs 121-171 on Nano). reAPI first, on its official channel with moderation 'low' (the plain channel failed every
- *   call that day; moderation 'auto' rejects gym-wear shots); WaveSpeed only when reAPI fails ($0.054 with a reference:
- *   the user found it far too expensive), then Nano.
+ *   vs 121-171 on Nano). reAPI first ($0.012), on its official channel with moderation 'low' (the plain channel failed
+ *   every call that day; moderation 'auto' rejects gym-wear shots); WaveSpeed only when reAPI fails ($0.039 with a
+ *   reference, $0.024 without, at 1k), then Nano.
  * - nano (board V1/V7): Nano Banana 2.1, the most candid photos, but busier and darker. Set SLIDESHOW_PHOTO_ENGINE=nano.
  *   Its safety filter refused about 1 EQL photo in 8 (young women in sportswear); GPT takes those.
  */
