@@ -35,6 +35,8 @@ import type { StoryPhotos } from './blitzStoryPhotos';
 import { backfillStoryPhotos, batchStoryPhotos, carryPhotos, updateBankContent } from './blitzBankPhotos';
 import { finishIdeaCards } from './ideaFinish';
 import { getsPaidImages, PAID_LIKE_FREE } from '../slideshow/core/imageNeeds';
+import { isOpenProspect } from '../prospects/openPack';
+import { holdPreviewImages, plannedIdeas } from './packPreviews';
 
 type BankHook = { archetype: HookArchetype; text: string };
 type BankStory = {
@@ -215,8 +217,9 @@ async function build(brandProfileId: string, source: WebsiteSource, onEnough?: (
   try {
     const week = (await writeAudiences(source, WEEK_MIX[0]!, undefined, NO_LEARNING, progress)).filter((a) => a.stories.length > 0);
     console.log(`[BlitzBank] profile ${brandProfileId}: first week (${storyCount({ audiences: week })} stories) in ${Date.now() - t0}ms`);
+    // An unclaimed Prospect Pack shows one week of Blitz ideas: the rest is written by the first batch after the claim.
     const rest = missingByStage({ audiences: week }, new Map(), STAGE_TARGET);
-    const later = await writeAudiences(source, rest, { audiences: week }, NO_LEARNING, (audiences) => progress(merged(week, audiences)));
+    const later = (await isOpenProspect(source.workspaceId)) ? [] : await writeAudiences(source, rest, { audiences: week }, NO_LEARNING, (audiences) => progress(merged(week, audiences)));
     const audiences = merged(week, later).filter((a) => a.stories.length > 0);
     await saving;
     if (audiences.length === 0) throw new Error('No Blitz story could be written for this site');
@@ -375,9 +378,11 @@ async function growIfSpent(studioRunId: string, workspaceId: string, target: Rec
   }
 }
 
-/** Photo prompts for the next unused stories (blitzBankPhotos.ts), so the next batch only renders images. Never throws. */
+/** Photo prompts for the next unused stories (blitzBankPhotos.ts), so the next batch only renders images. Never throws.
+ *  None for an unclaimed Prospect Pack: it may never have a next batch. */
 async function backfillPhotos(studioRunId: string, workspaceId: string, source: WebsiteSource): Promise<void> {
   try {
+    if (await isOpenProspect(workspaceId)) return;
     const brandProfileId = await brandProfileOf(studioRunId);
     const row = await prisma.blitzScriptBank.findUnique({ where: { brandProfileId }, select: { content: true } });
     const content = row?.content as unknown as BlitzBankContent | null;
@@ -421,7 +426,10 @@ export async function bankDeck(workspaceId: string, quotas: Array<Record<Stage, 
   // Free workspaces (2026-10-20 experiment), and paid ones while PAID_LIKE_FREE: 3 cards of images only, then 3 with
   // library footage, and so on.
   const free = PAID_LIKE_FREE || !(await getsPaidImages(workspaceId));
-  const cards = await deckFromScripts(source, scripts, undefined, { later: true, allImages: free ? imagesOnlyCard : undefined });
+  // An unclaimed Prospect Pack's preview cards make only their hook image now (packPreviews.ts).
+  const firstPreview = (await isOpenProspect(workspaceId)) ? await plannedIdeas(workspaceId) : null;
+  const deck = await deckFromScripts(source, scripts, undefined, { later: true, allImages: free ? imagesOnlyCard : undefined });
+  const cards = firstPreview === null ? deck : holdPreviewImages(deck, firstPreview);
   console.log(`[BlitzBank] deck for workspace ${workspaceId}: scripts ${((scriptsAt - started) / 1000).toFixed(1)}s${short ? ' (stories written first)' : ''}, footage ${((Date.now() - scriptsAt) / 1000).toFixed(1)}s`);
   const ids = cards.flatMap((c) => (c.variantId ? [c.variantId] : []));
   // After the response: the cards' AI images (their stories' photo prompts from the bank, written now when missing) and
