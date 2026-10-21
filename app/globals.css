@@ -459,3 +459,10 @@ body:has([data-accent='blue']) {
     --color-app-accent-soft: #1b2a41;
   }
 }
+
+/* Cover playback: the playing slide's progress bar fills over one slide's time. */
+@keyframes slide-fill {
+  from {
+    transform: scaleX(0);
+  }
+}

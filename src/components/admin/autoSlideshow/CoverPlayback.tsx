@@ -47,6 +47,25 @@ function SoundIcon({ on }: { on: boolean }) {
   );
 }
 
+/** Thin bars at the top of a playing cover, one per slide: done slides full, the playing one filling over its time. */
+function SlideProgress({ count, index, playing }: { count: number; index: number; playing: boolean }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-2 top-1.5 flex gap-0.5" aria-hidden>
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/35">
+          {i <= index && (
+            <div
+              key={i === index ? `${index}-${playing}` : undefined}
+              className="h-full origin-left rounded-full bg-white"
+              style={i === index && playing ? { animation: `slide-fill ${SLIDE_MS}ms linear both` } : undefined}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Steps through the frames while playing (one pass when played once); back to the cover when another cover takes over. */
 const useFrames = (id: string, count: number, playing: boolean, othersPlaying: boolean) => {
   const [index, setIndex] = useState(0);
@@ -162,6 +181,7 @@ export function CoverPlayback({ id, count, renderFrame, renderFullFrame, audio, 
           {Array.from({ length: count }, (_, i) => (
             <div key={i} className={`absolute inset-0 transition-opacity duration-300 ${i === index ? 'opacity-100' : 'opacity-0'}`}>{frameOf(i)}</div>
           ))}
+          {count > 1 && <SlideProgress count={count} index={index} playing={playing} />}
         </div>
       )}
       <div data-cover-controls className="absolute right-2 bottom-2 flex items-center gap-1.5">{controls('h-8 w-8')}</div>
