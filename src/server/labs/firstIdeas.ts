@@ -15,6 +15,7 @@ import { prisma } from '../../lib/db';
 import { appBaseUrl } from '../social/links';
 import { blitzBankReady, prepareBlitzBank } from './blitzBank';
 import { IDEAS_PER_BATCH } from '../../types/admin/calendarIdeas';
+import { PROSPECT_BLITZ } from '../../types/admin/prospects';
 import { generateIdeas, hasIdeas, ideaCount } from './calendarIdeas';
 import { narrateSlides } from './blitzVoice';
 import type { IdeaDto } from '../../types/admin/calendarIdeas';
@@ -49,14 +50,17 @@ export async function prepareRunIdeas(runId: string, phase: IdeasPhase): Promise
       return await kickRunIdeas(runId, 'ideas');
     }
     // Up to 3 passes: one may only wait for a batch another start was writing, then the next fills what it left.
+    // A Prospect Pack uses PROSPECT_BLITZ ideas: more would only make images and voiceovers nobody sees.
+    const prospect = await prisma.prospectPack.findFirst({ where: { workspaceId }, select: { id: true } });
+    const max = prospect ? PROSPECT_BLITZ : IDEAS_PER_BATCH;
     const works: Array<() => Promise<void>> = [];
     let voiced = false;
     for (let pass = 0; pass < 3; pass += 1) {
       const before = await ideaCount(workspaceId);
       // The second half waits for the whole bank: a bank still being built has only the first week's stories.
-      if (before >= IDEAS_PER_BATCH || (before > 0 && !(await blitzBankReady(workspaceId)))) break;
+      if (before >= max || (before > 0 && !(await blitzBankReady(workspaceId)))) break;
       const t0 = Date.now();
-      const batch = await generateIdeas(workspaceId, runId, null, { firstOnly: true });
+      const batch = await generateIdeas(workspaceId, runId, null, { firstOnly: true, max });
       works.push(batch.work);
       if (!voiced && batch.list.ideas.length > 0) {
         // Started now, not with the batch's work: later passes can wait a while for the bank.
