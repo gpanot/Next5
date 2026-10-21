@@ -67,6 +67,10 @@ export type DeckItem = {
   finishing?: boolean;
   /** Story shots showing a weak library match until their AI image is made (labs/ideaFinish.ts). */
   pendingImages?: { audience: string; categories: string[]; needs: ImageNeed[] };
+  /** Prospect Pack preview (labs/packPreviews.ts): only its first shot is shown until the pack is unlocked. */
+  packPreview?: boolean;
+  /** A preview's AI images held until the pack is unlocked, then made like `pendingImages`. */
+  laterImages?: { audience: string; categories: string[]; needs: ImageNeed[] };
 };
 
 export type StoryTexts = { pain: string; oldWay: string; mechanism: string; proof: string; inaction: string; cta: string };

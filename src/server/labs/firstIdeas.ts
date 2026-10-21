@@ -16,6 +16,7 @@ import { appBaseUrl } from '../social/links';
 import { blitzBankReady, prepareBlitzBank } from './blitzBank';
 import { IDEAS_PER_BATCH } from '../../types/admin/calendarIdeas';
 import { PROSPECT_BLITZ } from '../../types/admin/prospects';
+import { isOpenProspect } from '../prospects/openPack';
 import { generateIdeas, hasIdeas, ideaCount } from './calendarIdeas';
 import { narrateSlides } from './blitzVoice';
 import type { IdeaDto } from '../../types/admin/calendarIdeas';
@@ -51,8 +52,7 @@ export async function prepareRunIdeas(runId: string, phase: IdeasPhase): Promise
     }
     // Up to 3 passes: one may only wait for a batch another start was writing, then the next fills what it left.
     // A Prospect Pack uses PROSPECT_BLITZ ideas: more would only make images and voiceovers nobody sees.
-    const prospect = await prisma.prospectPack.findFirst({ where: { workspaceId }, select: { id: true } });
-    const max = prospect ? PROSPECT_BLITZ : IDEAS_PER_BATCH;
+    const max = (await isOpenProspect(workspaceId)) ? PROSPECT_BLITZ : IDEAS_PER_BATCH;
     const works: Array<() => Promise<void>> = [];
     let voiced = false;
     for (let pass = 0; pass < 3; pass += 1) {

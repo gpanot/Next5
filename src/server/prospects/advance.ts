@@ -18,6 +18,7 @@ import { runAutoPipeline } from '../autoSlideshow/pipeline';
 import { withUserCostContext } from '../costs/ledger';
 import { HttpError } from '../http';
 import { wakeBlitzWorker } from '../labs/blitzWorkerWake';
+import type { DeckItem } from '../slideshow/core/deckAssembly';
 import { blitzPicked, blitzRenders, ideasById, renderBlitz, unpickedIdeas } from './blitz';
 import { composeDays } from './days';
 import { buildHooksVolume } from './hooksVolume';
@@ -95,7 +96,9 @@ const advanceBlitz = async (pack: ProspectPack): Promise<void> => {
   const started: ProspectBlitz[] = [...picked, ...ideas.map((i) => ({ ideaId: i.id, projectId: null }))];
   const locked = await prisma.prospectPack.updateMany({ where: { id: pack.id, updatedAt: pack.updatedAt }, data: { blitz: json(started) } });
   if (locked.count === 0) return;
-  const previews = new Set(ideas.filter((_, i) => picked.length + i >= fullCount('blitz')).map((i) => i.id));
+  // Bank cards say whether they are previews (their images are held, labs/packPreviews.ts); others: past the free ones.
+  const isPreview = (card: DeckItem | null, i: number) => (card?.script?.storyId ? Boolean(card.packPreview) : picked.length + i >= fullCount('blitz'));
+  const previews = new Set(ideas.filter((idea, i) => isPreview(idea.card as DeckItem | null, i)).map((i) => i.id));
   const rendered = new Map((await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas, previews)).map((r) => [r.ideaId, r]));
   await prisma.prospectPack.update({ where: { id: pack.id }, data: { blitz: json(started.map((b) => rendered.get(b.ideaId) ?? b)) } });
 };

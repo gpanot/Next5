@@ -8,16 +8,18 @@ import type { Prisma, ProspectPack } from '@prisma/client';
 import { waitUntil } from '@vercel/functions';
 import { prisma } from '../../lib/db';
 import { handOff, runAutoPipeline } from '../autoSlideshow/pipeline';
+import { makeHeldImages } from '../labs/packPreviews';
 import { workspaceHasPaid } from '../slideshowCredits/paid';
 import { keptIdeas, renderBlitz } from './blitz';
 import { blitzOf } from './store';
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
 
-/** Renders the Blitz preview ideas for `userId` and stores the renders on the pack. */
+/** Makes the Blitz preview ideas' held images, renders them for `userId` and stores the renders on the pack. */
 const unlockBlitz = async (pack: ProspectPack, userId: string): Promise<void> => {
   const previews = blitzOf(pack).filter((b) => b.preview && !b.error);
   if (previews.length === 0) return;
+  await makeHeldImages(pack.workspaceId, previews.map((b) => b.ideaId));
   const ideas = await keptIdeas(pack.workspaceId, previews.map((b) => b.ideaId));
   const rendered = new Map((await renderBlitz(userId, pack.workspaceId, pack.name, ideas)).map((r) => [r.ideaId, r]));
   await prisma.prospectPack.update({ where: { id: pack.id }, data: { blitz: json(blitzOf(pack).map((b) => rendered.get(b.ideaId) ?? b)) } });
