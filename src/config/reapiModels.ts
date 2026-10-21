@@ -86,7 +86,8 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     maxImages: 16,
     sizing: 'pixels',
     supports2k: false,
-    priceUsdMicros: { '1k': 23_000, '2k': 23_000 },
+    // $0.012 at 1k medium, from the reAPI bill (user, 2026-10-21).
+    priceUsdMicros: { '1k': 12_000, '2k': 12_000 },
     // moderation 'low' (user, 2026-10-21): 'auto' rejects plain gym-wear shots (EQL sports sets).
     extraBody: { quality: 'medium', output_format: 'jpeg', moderation: 'low' },
   },
