@@ -8,12 +8,12 @@ function Check() {
   );
 }
 
-/** Hormozi-style stack: everything in one slideshow, what each piece costs to hire out, then the real price. */
+/** Hormozi-style stack: everything in one post, what each piece costs from an agency, then the real price. */
 export function ValueStack() {
   return (
     <section className="w-full text-left">
       <h3 className="text-center text-3xl font-extrabold tracking-tight text-ink md:text-4xl dark:text-zinc-100">What you get for {PRICE_LABEL}</h3>
-      <p className="mt-2 text-center text-base text-muted dark:text-zinc-400">Every single slideshow. Every single day.</p>
+      <p className="mt-2 text-center text-base text-muted dark:text-zinc-400">Every single post. No agency. No marketing hire.</p>
       <ul className="mt-8 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white shadow-sm dark:divide-zinc-800 dark:border-zinc-800 dark:bg-zinc-900">
         {VALUE_STACK.map((item) => (
           <li key={item.title} className="flex items-start gap-3 p-4 md:p-5">
@@ -26,7 +26,7 @@ export function ValueStack() {
           </li>
         ))}
         <li className="flex items-center justify-between gap-3 bg-zinc-50 p-4 md:p-5 dark:bg-zinc-950">
-          <span className="text-sm font-semibold text-muted dark:text-zinc-400">If you hired it out</span>
+          <span className="text-sm font-semibold text-muted dark:text-zinc-400">What an agency charges</span>
           <span className="text-lg font-bold text-muted tabular-nums line-through decoration-red-400 dark:text-zinc-500">${STACK_TOTAL}</span>
         </li>
         <li className="flex items-center justify-between gap-3 bg-blue-600 p-4 text-white md:p-5 dark:bg-blue-500">
