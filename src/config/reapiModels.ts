@@ -7,6 +7,7 @@
 export type ReapiModelId =
   | 'reapi-nano-banana-2-lite'
   | 'reapi-gpt-image-2.5'
+  | 'reapi-gpt-image-2.5-official'
   | 'reapi-gpt-image-2-low'
   | 'reapi-grok-imagine'
   | 'reapi-grok-imagine-2-official'
@@ -76,6 +77,19 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     priceUsdMicros: { '1k': 15_000, '2k': 15_000 },
   },
   'reapi-gpt-image-2.5': { id: 'reapi-gpt-image-2.5', ...GPT_IMAGE_2_5 },
+  'reapi-gpt-image-2.5-official': {
+    id: 'reapi-gpt-image-2.5-official',
+    // Stable (official) channel: the plain 'gpt-image-2.5-flare' channel failed every call on 2026-10-21 (error 80001).
+    apiModel: 'gpt-image-2.5-flare-official',
+    label: 'ChatGPT Image 2.5 (official)',
+    note: 'Brand Cast slideshow photos.',
+    maxImages: 16,
+    sizing: 'pixels',
+    supports2k: false,
+    priceUsdMicros: { '1k': 23_000, '2k': 23_000 },
+    // moderation 'low' (user, 2026-10-21): 'auto' rejects plain gym-wear shots (EQL sports sets).
+    extraBody: { quality: 'medium', output_format: 'jpeg', moderation: 'low' },
+  },
   'reapi-gpt-image-2-low': {
     id: 'reapi-gpt-image-2-low',
     // Stable (official) channel, low quality: mood backgrounds under text, where detail matters less than price.

@@ -93,7 +93,7 @@ const onReapi = (model: ReapiModelId) => async (prompt: string, refUrls: string[
 
 const ENGINE_STEPS: Record<PhotoEngineStep, (prompt: string, refUrls: string[], meter: CostMeter) => Promise<Made>> = {
   'wavespeed-gpt-2.5': wavespeedPhoto,
-  'reapi-gpt-2.5': onReapi('reapi-gpt-image-2.5'),
+  'reapi-gpt-2.5': onReapi('reapi-gpt-image-2.5-official'),
   'reapi-nano-2.1': onReapi(PHOTO_GEN.model),
 };
 
