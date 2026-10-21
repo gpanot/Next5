@@ -96,7 +96,9 @@ export type AutoPhoto = {
 /** How a photo was made, kept so it can be made again for a test. `prompt` above is only the scene; `sentPrompt` is the
  *  full text the model got (scene + brand look + style). Missing on photos made before 2026-10-02. */
 /** `refs`: how many reference images went with the prompt. */
-export type PhotoGen = { sentPrompt: string; model: string; ratio: string; highRes: boolean; taskId: string; styleVersion: string; createdAt: string; refs?: number };
+/** `flaw`: the body mistake the check found on the first try (heads.ts), when the photo was made again; `flawLeft`: the
+ *  one still found on the redo (kept anyway). */
+export type PhotoGen = { sentPrompt: string; model: string; ratio: string; highRes: boolean; taskId: string; styleVersion: string; createdAt: string; refs?: number; flaw?: string; flawLeft?: string };
 
 /** One human head in a photo, as shares (0-1) of its width and height. Step 6 keeps the slide text off these. */
 export type HeadBox = { top: number; left: number; bottom: number; right: number };

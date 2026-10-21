@@ -12,7 +12,7 @@ import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
 import { getObject, presignObject, putObject } from '../storage/objectStore';
-import { detectHeads } from './heads';
+import { detectHeads, inspectPhoto } from './heads';
 import { PHOTO_STYLE_RULES, PHOTO_STYLE_VERSION, photoEngine, type PhotoEngineStep } from './photoRules';
 import { compressJpeg, PHOTO_SIZE } from './jpeg';
 
@@ -136,31 +136,56 @@ const refLinks = async (keys: string[] | undefined): Promise<string[]> => {
   return urls.filter((u): u is string => Boolean(u?.startsWith('https://')));
 };
 
-/** `heads`: still being found when the photo is stored, so the next photo can start meanwhile. */
-type MadePhoto = { key: string; heads: Promise<HeadBox[] | null>; gen: PhotoGen };
+/** `checked`: its heads, and its record once checked (a flawed AI photo is made again meanwhile). It runs after the
+ *  photo is stored, so the next photo can start meanwhile. */
+type Checked = { heads: HeadBox[] | null; gen: PhotoGen };
+type MadePhoto = { key: string; checked: Promise<Checked> };
 
-const storePhoto = async (runId: string, index: number, image: Buffer): Promise<{ key: string; heads: Promise<HeadBox[] | null> }> => {
+const dataUri = (jpeg: Buffer) => `data:image/jpeg;base64,${jpeg.toString('base64')}`;
+
+const storePhoto = async (runId: string, index: number, image: Buffer): Promise<{ key: string; jpeg: Buffer }> => {
   const jpeg = await compressJpeg(image, PHOTO_SIZE);
   const key = photoKey(runId, index);
   await putObject(key, jpeg, 'image/jpeg');
-  return { key, heads: detectHeads(`data:image/jpeg;base64,${jpeg.toString('base64')}`) };
+  return { key, jpeg };
+};
+
+/** An AI photo's body check: flawed (a third hand, a cut leg), it is made once more and stored over the first. A redo
+ *  still flawed, or one that fails, keeps what it has. */
+const checkAiPhoto = async (jpeg: Buffer, gen: PhotoGen, redo: () => Promise<{ jpeg: Buffer; gen: PhotoGen }>): Promise<Checked> => {
+  const first = await inspectPhoto(dataUri(jpeg));
+  if (!first.flaw) return { heads: first.heads, gen };
+  console.warn(`[auto-slideshow] photo flawed (${first.flaw}), making it again`);
+  try {
+    const again = await redo();
+    const second = await inspectPhoto(dataUri(again.jpeg));
+    return { heads: second.heads, gen: { ...again.gen, flaw: first.flaw, ...(second.flaw ? { flawLeft: second.flaw } : {}) } };
+  } catch (err) {
+    console.warn('[auto-slideshow] photo redo failed, first kept:', err instanceof Error ? err.message : err);
+    return { heads: first.heads, gen: { ...gen, flaw: first.flaw, flawLeft: first.flaw } };
+  }
 };
 
 /** One photo, generated (or a brand photo copied) and stored as a 1440x1800 JPEG under 1 MB, with its heads being found
- *  so step 6 keeps text off them. */
+ *  so step 6 keeps text off them (and, generated, its body checked). */
 const makePhoto = async (runId: string, index: number, spec: PhotoSpec, look: string | undefined, meter: CostMeter): Promise<MadePhoto> => {
   const createdAt = new Date().toISOString();
   if (spec.brandPhotoKey) {
     const original = await getObject(spec.brandPhotoKey);
     if (!original) throw new Error('The brand photo is no longer in storage');
     const gen: PhotoGen = { sentPrompt: '(the brand\'s own photo, used as it is)', model: 'brand-photo', ratio: '9:16', highRes: false, taskId: '', styleVersion: STYLE_VERSION, createdAt };
-    return { ...(await storePhoto(runId, index, original)), gen };
+    const { key, jpeg } = await storePhoto(runId, index, original);
+    return { key, checked: detectHeads(dataUri(jpeg)).then((heads) => ({ heads, gen })) };
   }
   const refUrls = await refLinks(spec.refs);
   const sentPrompt = photoPrompt(spec.prompt, look, refUrls.length > 0 ? spec.refNote : undefined);
-  const { buffer, taskId, model } = await slideshowPhoto(sentPrompt, refUrls, meter);
-  const gen: PhotoGen = { sentPrompt, model, ratio: PHOTO_GEN.ratio, highRes: PHOTO_GEN.highRes, taskId, styleVersion: STYLE_VERSION, createdAt, ...(refUrls.length ? { refs: refUrls.length } : {}) };
-  return { ...(await storePhoto(runId, index, buffer)), gen };
+  const generate = async () => {
+    const { buffer, taskId, model } = await slideshowPhoto(sentPrompt, refUrls, meter);
+    const gen: PhotoGen = { sentPrompt, model, ratio: PHOTO_GEN.ratio, highRes: PHOTO_GEN.highRes, taskId, styleVersion: STYLE_VERSION, createdAt, ...(refUrls.length ? { refs: refUrls.length } : {}) };
+    return { ...(await storePhoto(runId, index, buffer)), gen };
+  };
+  const { key, jpeg, gen } = await generate();
+  return { key, checked: checkAiPhoto(jpeg, gen, generate) };
 };
 
 /** `deadline`: no new photo starts after it (the rest stay untried for the next invocation). `skipFailed`: a continued
@@ -188,10 +213,10 @@ export const makePhotos = async (runId: string, specs: (string | PhotoSpec)[], e
   await runPool(todo, CONCURRENCY, async ({ p, i }) => {
     if (options.deadline && Date.now() > options.deadline) return;
     try {
-      const { key, heads, gen } = await makePhoto(runId, i, p, options.look, meter);
-      photos[i] = { ...p, imageKey: key, error: null, gen };
+      const { key, checked } = await makePhoto(runId, i, p, options.look, meter);
+      photos[i] = { ...p, imageKey: key, error: null };
       // Unknown heads (detection failed) stay unset, so step 6 tries again.
-      finding.push(heads.then((found) => { if (found) photos[i] = { ...photos[i]!, heads: found }; }));
+      finding.push(checked.then(({ heads, gen }) => { photos[i] = { ...photos[i]!, gen, ...(heads ? { heads } : {}) }; }));
     } catch (err) {
       photos[i] = { ...p, imageKey: null, error: clip(err instanceof Error ? err.message : String(err), 300) };
     }

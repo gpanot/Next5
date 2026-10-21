@@ -76,22 +76,29 @@ const productRef = async (workspaceId: string): Promise<{ name: string; key: str
   return pick ? { name: pick.productName || pick.description, key: pick.r2Key } : null;
 };
 
+/** A Brand Cast member as a photo reference: their look (without the outfit line) and their portrait. */
+export type CastFace = { look: string; key: string };
+
+/** A cast member's look without its outfit line: the scene says what they wear. */
+export const castLook = (look: string): string => look.replace(/\s*(Everyday style|Outfit):.*$/, '');
+
 /** The least used ready Brand Cast member (read only: a CTA photo does not count as a use). */
-const castFace = async (workspaceId: string): Promise<{ look: string; key: string } | null> => {
+const castFace = async (workspaceId: string): Promise<CastFace | null> => {
   const rows = await prisma.$queryRaw<{ look: string; image_key: string }[]>`
     SELECT look, image_key FROM brand_cast_members
     WHERE workspace_id = ${workspaceId} AND archived_at IS NULL AND status = 'ready' AND image_key IS NOT NULL
     ORDER BY uses ASC, slot ASC LIMIT 1`;
   const row = rows[0];
-  return row ? { look: row.look.replace(/\s*(Everyday style|Outfit):.*$/, ''), key: row.image_key } : null;
+  return row ? { look: castLook(row.look), key: row.image_key } : null;
 };
 
 /**
  * What the CTA photo adds to its scene: the cast member's look, and the reference images with what they are (the cast
  * face first, then the product), worded as the photo plan words them. Links that cannot be signed are left out.
+ * `cast`: the person to show (a Hooks Volume campaign's avatar); unset = the least used cast member.
  */
-export const ctaPhotoRefs = async (workspaceId: string): Promise<{ look: string | null; urls: string[]; notes: string[] }> => {
-  const [face, product] = await Promise.all([castFace(workspaceId), productRef(workspaceId)]);
+export const ctaPhotoRefs = async (workspaceId: string, cast?: CastFace | null): Promise<{ look: string | null; urls: string[]; notes: string[] }> => {
+  const [face, product] = await Promise.all([cast === undefined ? castFace(workspaceId) : cast, productRef(workspaceId)]);
   const urls: string[] = [];
   const notes: string[] = [];
   const faceUrl = face ? await presignObject(face.key, 60 * 60).catch(() => null) : null;

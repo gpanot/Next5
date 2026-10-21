@@ -60,9 +60,10 @@ const JOB_TIMEOUT_MS = 10 * 60 * 1000;
 const photoJobsOf = (run: { photoJobs: Prisma.JsonValue }, now = Date.now()): CampaignPhotoJobDto[] =>
   ((run.photoJobs as unknown as Array<CampaignPhotoJobDto & { startedAt?: string }> | null) ?? []).map(({ startedAt, ...job }) =>
     job.status === 'running' && startedAt && now - new Date(startedAt).getTime() > JOB_TIMEOUT_MS ? { ...job, status: 'failed', error: 'A photo took too long. Add it by hand.' } : job);
-/** The stored campaign: the draft, the render key of the draft the slideshows were last made from, and the posts put on
- *  the Calendar (by slideshow position, so they survive a remake). */
-type StoredCampaign = CampaignDraft & { renderedKey?: string; plan?: CampaignPlanItem[] };
+/** The stored campaign: the draft, the render key of the draft the slideshows were last made from, the posts put on
+ *  the Calendar (by slideshow position, so they survive a remake), and `castId`, the Brand Cast member its AI photos
+ *  show (campaignCast.ts). */
+type StoredCampaign = CampaignDraft & { renderedKey?: string; plan?: CampaignPlanItem[]; castId?: string };
 
 /** Drafts saved before 2026-10-11 hold one `look`; it becomes the hook and CTA looks. */
 const storedOf = (run: { campaign: Prisma.JsonValue }): StoredCampaign => {
@@ -76,6 +77,7 @@ export const draftOf = (run: { campaign: Prisma.JsonValue }): CampaignDraft => {
   const stored: Partial<StoredCampaign> = storedOf(run);
   delete stored.renderedKey;
   delete stored.plan;
+  delete stored.castId;
   return stored as CampaignDraft;
 };
 
@@ -92,10 +94,13 @@ export const isRendered = (run: { campaign: Prisma.JsonValue }, slideshowCount: 
   return slideshowCount > 0 && stored.renderedKey === renderKeyOf(stored);
 };
 
-/** Stores the draft, keeping the render key unless `renderedKey` is given. */
+/** The campaign's avatar (a Brand Cast member id), when one was picked. */
+export const castIdOf = (run: { campaign: Prisma.JsonValue }): string | undefined => storedOf(run).castId;
+
+/** Stores the draft, keeping the render key unless `renderedKey` is given, and the plan and avatar. */
 export const storeDraft = (run: { campaign: Prisma.JsonValue }, draft: CampaignDraft, renderedKey?: string) => {
   const stored = storedOf(run);
-  return json({ ...draft, renderedKey: renderedKey ?? stored.renderedKey, ...(stored.plan ? { plan: stored.plan } : {}) });
+  return json({ ...draft, renderedKey: renderedKey ?? stored.renderedKey, ...(stored.plan ? { plan: stored.plan } : {}), ...(stored.castId ? { castId: stored.castId } : {}) });
 };
 
 /** The campaign run, when the signed-in user owns its workspace; 404 otherwise (no hint that it exists). */

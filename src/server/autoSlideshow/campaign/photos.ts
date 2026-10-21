@@ -6,18 +6,20 @@
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import { prisma } from '../../../lib/db';
+import type { HeadBox } from '../../../types/admin/autoSlideshow';
 import type { AutoPhotoRequest, CampaignPhotoDto, CampaignPhotoRef, PhotoOptionDto, PhotoTab } from '../../../types/admin/slideshowCampaign';
 import { blitzImageKeyWhere } from '../../admin/blitzStore';
 import { HttpError } from '../../http';
 import { createMeter } from '../../metaAds/cost';
 import { getObject, presignObject, putObject } from '../../storage/objectStore';
 import { storeThumb, thumbUrl } from '../../storage/thumbs';
-import { detectHeads } from '../heads';
+import { detectHeads, inspectPhoto } from '../heads';
 import { compressJpeg, MAX_JPEG_BYTES, PHOTO_SIZE } from '../jpeg';
-import { ctaPhotoRefs, productCtaPhoto } from '../ctaPhoto';
+import { ctaPhotoRefs, productCtaPhoto, type CastFace } from '../ctaPhoto';
 import { photoPrompt, slideshowPhoto } from '../photos';
 import { CAMPAIGN_KIND, type CampaignPhoto } from './store';
 import { appShotOptions, fetchAppShot } from './appShot/store';
+import { campaignCast } from './campaignCast';
 import { fetchUnsplashPhoto, searchedUnsplashPhoto, searchUnsplash } from './unsplash';
 
 const SHARED_LIMIT = 120;
@@ -140,9 +142,9 @@ const toCampaignJpeg = async (bytes: Buffer): Promise<Buffer> => {
 export const importPhoto = async (runId: string, workspaceId: string, ref: CampaignPhotoRef): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> =>
   storeCampaignPhoto(runId, await fetchPick(workspaceId, ref), ref.source === 'app_shot' ? 'generated' : ref.source, ref.source === 'app_shot' || ref.source === 'generated' ? 'copy' : undefined);
 
-/** Tells the photo model the reference only sets the look, so the content slides match the hook photo's tone. */
-const TONE_NOTE =
-  'The reference image only sets the look: match its color grade, light, contrast and mood (black and white if it is), over the style above. Do not copy its subject, objects, people or layout.';
+/** Tells the photo model reference image `n` only sets the look, so the content slides match the hook photo's tone. */
+const toneNote = (n: number) =>
+  `Image ${n} only sets the look: match its color grade, light, contrast and mood (black and white if it is), over the style above. Do not copy its subject, objects, people or layout.`;
 
 /** A signed link to campaign photo `index` (the first hook photo), or null when it has none. */
 const tonePhotoUrl = async (runId: string, index: number): Promise<string | null> => {
@@ -151,13 +153,27 @@ const tonePhotoUrl = async (runId: string, index: number): Promise<string | null
   return key ? presignObject(key) : null;
 };
 
-/** The CTA photo's prompt and references: the cast face and the product first, then the hook photo for the tone. */
-const ctaPrompt = async (runId: string, scene: string, tone: string | null): Promise<{ prompt: string; refs: string[] }> => {
+/** The CTA photo's prompt and references: the campaign's avatar and the product first, then the hook photo for the tone. */
+const ctaPrompt = async (runId: string, scene: string, tone: string | null, avatar: CastFace | null): Promise<{ prompt: string; refs: string[] }> => {
   const run = await prisma.autoSlideshowRun.findFirst({ where: { id: runId }, select: { workspaceId: true } });
-  const cast = run?.workspaceId ? await ctaPhotoRefs(run.workspaceId) : { look: null, urls: [], notes: [] };
+  const cast = run?.workspaceId ? await ctaPhotoRefs(run.workspaceId, avatar) : { look: null, urls: [], notes: [] };
   const refs = [...cast.urls, ...(tone ? [tone] : [])];
-  const notes = [...cast.notes, ...(tone ? [`Image ${refs.length} only sets the look: match its color grade, light, contrast and mood, over the style above. Do not copy its subject, objects, people or layout.`] : [])];
+  const notes = [...cast.notes, ...(tone ? [toneNote(refs.length)] : [])];
   const withPerson = cast.look ? `${scene} The main person: ${cast.look}` : scene;
+  return { prompt: photoPrompt(withPerson, undefined, notes.join(' ') || undefined), refs };
+};
+
+/** A content slide's prompt and references: the campaign's avatar (whenever a person is in the scene), then the hook
+ *  photo for the tone. */
+const contentPrompt = async (scene: string, tone: string | null, avatar: CastFace | null): Promise<{ prompt: string; refs: string[] }> => {
+  const signed = avatar ? await presignObject(avatar.key, 60 * 60).catch(() => null) : null;
+  const face = avatar && signed?.startsWith('https://') ? signed : null;
+  const refs = [...(face ? [face] : []), ...(tone ? [tone] : [])];
+  const notes = [
+    ...(face ? ['Image 1 is the main person: whenever a person is in the photo, it is this SAME person (face, hair, skin tone, build); change the pose, place and clothes as described here.'] : []),
+    ...(tone ? [toneNote(refs.length)] : []),
+  ];
+  const withPerson = face ? `${scene} If a person is in the photo, it is the main person: ${avatar!.look}` : scene;
   return { prompt: photoPrompt(withPerson, undefined, notes.join(' ') || undefined), refs };
 };
 
@@ -170,12 +186,24 @@ export const autoPhoto = async (runId: string, req: AutoPhotoRequest): Promise<{
   if (req.source === 'stock') {
     return storeCampaignPhoto(runId, await searchedUnsplashPhoto(req.query, req.nth), 'unsplash');
   }
-  const tone = req.tonePhoto === undefined ? null : await tonePhotoUrl(runId, req.tonePhoto);
-  const { prompt, refs } = req.cta && productCtaPhoto() ? await ctaPrompt(runId, req.scene, tone) : { prompt: photoPrompt(req.scene, undefined, tone ? TONE_NOTE : undefined), refs: tone ? [tone] : [] };
-  const { buffer } = await slideshowPhoto(prompt, refs, createMeter()).catch((err: unknown) => {
-    throw new HttpError(502, 'photo_failed', err instanceof Error ? `Photo failed: ${err.message.slice(0, 120)}` : 'Photo failed. Try again.');
-  });
-  return storeCampaignPhoto(runId, { bytes: buffer, label: req.scene }, 'generated', 'ai');
+  const [tone, avatar] = await Promise.all([req.tonePhoto === undefined ? null : tonePhotoUrl(runId, req.tonePhoto), campaignCast(runId)]);
+  const { prompt, refs } = req.cta && productCtaPhoto() ? await ctaPrompt(runId, req.scene, tone, avatar) : await contentPrompt(req.scene, tone, avatar);
+  const make = async () => {
+    const { buffer } = await slideshowPhoto(prompt, refs, createMeter()).catch((err: unknown) => {
+      throw new HttpError(502, 'photo_failed', err instanceof Error ? `Photo failed: ${err.message.slice(0, 120)}` : 'Photo failed. Try again.');
+    });
+    const jpeg = await toCampaignJpeg(buffer);
+    return { jpeg, check: await inspectPhoto(`data:image/jpeg;base64,${jpeg.toString('base64')}`) };
+  };
+  // A body mistake (a third hand, a cut leg) gets the photo made once more; a redo still flawed or failing keeps the first.
+  let made = await make();
+  if (made.check.flaw) {
+    console.warn(`[campaign] auto photo flawed (${made.check.flaw}), making it again`);
+    made = await make().catch(() => made);
+  }
+  const heads = made.check.heads;
+  const stored = await storeCampaignPhoto(runId, { bytes: made.jpeg, label: req.scene }, 'generated', 'ai');
+  return heads ? { photo: { ...stored.photo, heads }, detect: () => storeFoundHeads(runId, stored.photo.index, heads) } : stored;
 };
 
 const storeCampaignPhoto = async (runId: string, pick: Fetched, source: CampaignPhotoDto['source'], origin?: CampaignPhoto['origin']): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> => {
@@ -214,8 +242,11 @@ export const parseAutoPhoto = (v: unknown): AutoPhotoRequest => {
  * Finds the photo's heads (the slide text keeps off them) and stores them on it, run after the import's response so
  * "Make" does not wait for it. A failed detection stores none: the text keeps its usual spot, and nothing retries.
  */
-const storeHeads = async (runId: string, index: number, jpeg: Buffer): Promise<void> => {
-  const heads = (await detectHeads(`data:image/jpeg;base64,${jpeg.toString('base64')}`)) ?? [];
+const storeHeads = async (runId: string, index: number, jpeg: Buffer): Promise<void> =>
+  storeFoundHeads(runId, index, (await detectHeads(`data:image/jpeg;base64,${jpeg.toString('base64')}`)) ?? []);
+
+/** Stores heads already found on campaign photo `index`. */
+const storeFoundHeads = async (runId: string, index: number, heads: HeadBox[]): Promise<void> => {
   await prisma.$executeRaw`
     UPDATE public.auto_slideshow_runs
     SET photos = jsonb_set(photos, ARRAY[${String(index)}, 'heads'], ${JSON.stringify(heads)}::jsonb)

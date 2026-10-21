@@ -23,6 +23,10 @@ import { HttpError } from '../../http';
 import { openAiCostMicros } from '../../metaAds/cost';
 import { metaAdsJson } from '../../metaAds/llm';
 import { clip } from '../../metaAds/text';
+import { PLAN_SCENE_RULES } from '../photoRules';
+
+/** The photo plan's scene rules (photoRules.ts), so Hooks Volume photos are as clean as Brand Cast's. */
+const SCENE_RULES = PLAN_SCENE_RULES.map((rule) => `- ${rule}`).join('\n');
 
 const TONES: Record<AutoContentRequest['tone'], string> = {
   plain: 'plain and clear, like a friend explaining',
@@ -40,7 +44,9 @@ come right after it and must deliver exactly what the hook promises. Simple word
   Never invent studies, statistics or percentages.
 - Every hook line below opens its own slideshow with these same slides, so the slides must fit all of them.
 - scenes: for each slide, one sentence describing a real-looking background photo that shows the slide's subject.
-  Bright daytime light, natural framing, seen from the side or behind. Never night, dusk or moody light. No text, no close-up faces.
+  Bright daytime light. Never night, dusk or moody light. No text. When a person is in it, call them "the main person"
+  (the same person on every slide); never describe their face or body.
+{SCENE_RULES}
 - queries: for each slide, a 2-4 word stock photo search for that background (concrete things, not ideas).
 - cover_scene and cover_query: one photo that fits every slide at once.
 Return JSON: {"titles":[string],"scenes":[string],"queries":[string],"cover_scene":string,"cover_query":string}`;
@@ -127,7 +133,7 @@ export const writeAutoContent = async (req: AutoContentRequest, hooks: string[],
   const [min, max] = AUTO_LENGTH_WORDS[req.length];
   const fixed = autoSlideCount(hooks);
   const most = Math.max(AUTO_MIN_SLIDES, Math.min(AUTO_MAX_SLIDES, maxSlides));
-  const system = SYSTEM.replace('{COUNT}', countRule(fixed, most)).replace('{MIN}', String(min)).replace('{MAX}', String(max)).replace('{TONE}', TONES[req.tone]);
+  const system = SYSTEM.replace('{SCENE_RULES}', SCENE_RULES).replace('{COUNT}', countRule(fixed, most)).replace('{MIN}', String(min)).replace('{MAX}', String(max)).replace('{TONE}', TONES[req.tone]);
   let problem = '';
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     const raw = await metaAdsJson<Raw>(
