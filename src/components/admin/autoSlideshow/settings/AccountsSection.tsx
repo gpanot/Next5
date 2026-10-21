@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { PlatformIcon } from '../../../marketing/offer/PlatformMarks';
 import type { ConnectionDto, SocialProviderDto } from '../../../../types/business/integrations';
-import type { SlideshowMeDto } from '../../../../types/admin/autoSlideshow';
+import { SOON_PLATFORMS, type SlideshowMeDto } from '../../../../types/admin/autoSlideshow';
 import { adminFetch } from '../../business/useAdminApi';
 import { InstagramTypeDialog } from './InstagramTypeDialog';
 
@@ -21,7 +21,7 @@ export const startConnect = async (token: string, workspace: string, provider: S
 export type AccountRowProps = { token: string; workspace: string; provider: SocialProviderDto; connection: ConnectionDto | undefined; available: boolean; soon?: boolean; onChanged: () => void };
 
 /** One platform: its state, and Connect or Disconnect. Also used in the approve sheet. */
-export function AccountRow({ token, workspace, provider, connection, available, soon, onChanged }: AccountRowProps) {
+export function AccountRow({ token, workspace, provider, connection, available, soon = SOON_PLATFORMS.includes(provider), onChanged }: AccountRowProps) {
   const [busy, setBusy] = useState(false);
   // Instagram asks the account type first: only Business and Creator accounts can be connected.
   const [askingType, setAskingType] = useState(false);
@@ -51,7 +51,7 @@ export function AccountRow({ token, workspace, provider, connection, available, 
     }
   };
 
-  const status = connection ? `Connected${handle(connection)}` : soon ? 'Coming soon' : available ? 'Not connected' : 'Not available yet';
+  const status = soon ? 'Coming soon' : connection ? `Connected${handle(connection)}` : available ? 'Not connected' : 'Not available yet';
   return (
     <li className="space-y-2 rounded-xl border border-line bg-white p-3 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex items-center gap-3">
@@ -66,7 +66,7 @@ export function AccountRow({ token, workspace, provider, connection, available, 
           <button onClick={() => (provider === 'instagram' ? setAskingType(true) : void connect())} disabled={busy || soon || !available} className="min-h-10 shrink-0 rounded-full bg-ink px-4 text-xs font-semibold text-white transition active:scale-95 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">{busy ? 'Opening…' : 'Connect'}</button>
         )}
       </div>
-      {!connection && provider === 'instagram' && available && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-muted dark:bg-zinc-950">Needs an Instagram Professional account (Business or Creator). Instagram connects the account signed in to instagram.com in this browser.</p>}
+      {!connection && provider === 'instagram' && available && !soon && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-muted dark:bg-zinc-950">Needs an Instagram Professional account (Business or Creator). Instagram connects the account signed in to instagram.com in this browser.</p>}
       {!connection && provider === 'tiktok' && available && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-muted dark:bg-zinc-950">TikTok connects the account signed in to TikTok in this browser. For a client&apos;s account, log in to it on tiktok.com first, then Connect. Each workspace keeps its own account.</p>}
       {!connection && provider === 'youtube' && available && <p className="rounded-lg bg-zinc-50 px-3 py-2 text-xs text-muted dark:bg-zinc-950">Posts as YouTube Shorts. Pick the Google account that owns the channel, and tick every permission box. Each workspace keeps its own channel.</p>}
       {error && <p className="text-xs text-red-600 dark:text-red-400">{error}</p>}

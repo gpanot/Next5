@@ -21,6 +21,7 @@ import { applyEntry } from '../slideshowCredits/wallet';
 import type { RenderBody } from './blitzRender';
 import { isBlitzVoice } from '../../types/admin/blitzVoice';
 import { shareApprovedStock } from '../slideshow/core/stockApproval';
+import { isPackVideo } from '../prospects/packVideo';
 
 /** A post must be at least this far ahead, so the render has time to start. */
 const MIN_AHEAD_MS = 10 * 60 * 1000;
@@ -167,10 +168,11 @@ const shareStock = (workspaceId: string, body: RenderBody) =>
 /**
  * Puts a kept card on the calendar as `planned` and charges 1 credit now (refunded when canceled, when it is not
  * approved in time, or when the video cannot be made). It is approved on the calendar, like the slideshows. A card
- * already on the calendar moves to the new day, free, and keeps its approval. `adminFree`: an admin in an "Open as
- * user" tab, never charged.
+ * already on the calendar moves to the new day, free, and keeps its approval. `admin`: an admin in an "Open as
+ * user" tab, never charged. A claimed Prospect Pack's video is never charged either (paid with the pack).
  */
-export async function scheduleBlitz(workspaceId: string, userId: string, req: ScheduleBlitzRequest, adminFree = false): Promise<BlitzScheduleDto> {
+export async function scheduleBlitz(workspaceId: string, userId: string, req: ScheduleBlitzRequest, admin = false): Promise<BlitzScheduleDto> {
+  const adminFree = admin || (await isPackVideo(workspaceId, req.variantId ?? req.cardId));
   const scheduledAt = scheduledAtOf(req.scheduledAt);
   const renderBody = renderBodyOf(req.renderBody);
   if (!req.cardId) throw new HttpError(400, 'no_card', 'Missing card.');
@@ -256,9 +258,11 @@ const checkNotPosted = async (workspaceId: string, projectId: string, platform: 
  * "Post now" from the kept list, approved at once and due now. With a `projectId` (made with Generate, already paid)
  * the tick uploads that video right away, free. Without one it costs 1 credit and the tick renders it first (about
  * 5 minutes). A card already on the calendar (not started) is replaced by this post; its credit is kept, or refunded
- * when the post uses a video already made. `adminFree`: an admin in an "Open as user" tab, never charged.
+ * when the post uses a video already made. `admin`: an admin in an "Open as user" tab, never charged. A claimed
+ * Prospect Pack's video is never charged either (paid with the pack).
  */
-export async function postBlitzNow(workspaceId: string, userId: string, req: PostNowBlitzRequest, adminFree = false): Promise<BlitzScheduleDto> {
+export async function postBlitzNow(workspaceId: string, userId: string, req: PostNowBlitzRequest, admin = false): Promise<BlitzScheduleDto> {
+  const adminFree = admin || (await isPackVideo(workspaceId, req.variantId ?? req.cardId));
   const approval = await connectedApproval(workspaceId, req);
   if (!req.cardId) throw new HttpError(400, 'no_card', 'Missing card.');
   const project = req.projectId ? await readyVideoOf(workspaceId, req.projectId) : null;

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import type { PlatformId } from '../../../../content/business/offer';
+import { SOON_PLATFORMS } from '../../../../types/admin/autoSlideshow';
 import { PlatformIcon } from '../../../marketing/offer/PlatformMarks';
 
 /** One channel to post to: its account (when connected) and whether this app can post there at all. */
@@ -58,9 +59,10 @@ export function ChannelList<P extends PlatformId>({ rows, value, onChange, mode 
       <legend className={`mb-1 text-[11px] font-semibold tracking-widest uppercase ${dark ? 'text-white/50' : 'text-muted'}`}>Post to</legend>
       {rows.map((row) => {
         const isLive = live.includes(row.id);
-        const disabled = !row.connected || isLive;
-        const canConnect = !row.connected && !isLive && row.available && Boolean(connect);
-        const note = isLive ? 'Already posted or scheduled' : row.connected ? handle(row.username) : !row.available ? 'Not available yet' : connect ? 'Not connected' : 'Not connected · Settings → Accounts';
+        const soon = SOON_PLATFORMS.includes(row.id);
+        const disabled = !row.connected || isLive || soon;
+        const canConnect = !row.connected && !isLive && !soon && row.available && Boolean(connect);
+        const note = soon ? 'Coming soon' : isLive ? 'Already posted or scheduled' : row.connected ? handle(row.username) : !row.available ? 'Not available yet' : connect ? 'Not connected' : 'Not connected · Settings → Accounts';
         const faded = disabled ? 'opacity-50' : '';
         return (
           <label key={row.id} className={`flex min-h-12 items-center gap-3 rounded-xl border px-3 py-1.5 ${dark ? 'border-white/15' : 'border-line dark:border-zinc-800'} ${disabled ? '' : 'cursor-pointer'}`}>

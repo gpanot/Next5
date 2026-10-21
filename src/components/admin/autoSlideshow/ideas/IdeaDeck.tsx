@@ -58,7 +58,7 @@ export type DeckSize = 'panel' | 'day' | 'page';
 
 /** Card sizes that keep ~48px free on each side for the side buttons (36px + gap) while the card stays centered.
  *  Phone panel: the height left after the tight header (~4.5rem) and the controls + undo row (~7.5rem) goes to the card. */
-const CARD_SIZE: Record<DeckSize, string> = {
+export const CARD_SIZE: Record<DeckSize, string> = {
   panel: 'aspect-[9/16] w-[min(calc(100vw-6rem),calc((100dvh-13rem)*0.5625),380px)] lg:w-[min(calc((100dvh-28rem)*0.5625),260px)]',
   /** Phones: the buttons beside the card too (outside it, in the screen gutter), so the card leaves them room. */
   day: 'aspect-[9/16] w-[min(calc(100vw-7.5rem),calc((100dvh-10rem)*0.5625),460px)] lg:w-[min(calc((100dvh-22rem)*0.5625),260px)]',

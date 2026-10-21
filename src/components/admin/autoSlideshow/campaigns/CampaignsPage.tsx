@@ -116,13 +116,7 @@ export function CampaignsPage({ token, workspaceId }: Props) {
   const campaigns = list.data?.campaigns;
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <h1 className="min-w-0 font-heading text-2xl font-normal text-app-ink sm:text-3xl">Slideshow Campaigns</h1>
-        <button type="button" onClick={() => setChoosing(true)} className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-full bg-app-cta px-4 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95">
-          <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 4v12M4 10h12" /></svg>
-          New campaign
-        </button>
-      </div>
+      <h1 className="min-w-0 font-heading text-2xl font-normal text-app-ink sm:text-3xl">Slideshow Campaigns</h1>
       {(error ?? list.error) && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error ?? list.error}</p>}
       <div className="flex flex-wrap items-center gap-2">
         <div role="tablist" aria-label="Campaign kind" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">

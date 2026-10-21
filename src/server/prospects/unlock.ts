@@ -1,21 +1,24 @@
 // server-only — never import from a 'use client' file.
 // A claimed Prospect Pack's previews (days after the free ones) made in full once the person who claimed it pays for the
 // first time: a top up, an auto recharge, or a payment made before they claimed. The Blitz preview ideas are rendered
-// (free renders: a video is charged when it is scheduled, like any idea) and the cover-only Brand Cast slideshows get
-// their other slides (charged when ready, like any slideshow). Once per pack: unlocked_at is the lock.
+// and charged 1 credit each once made (putting them on the calendar or posting them is then free, packVideo.ts), and
+// the cover-only Brand Cast slideshows get their other slides (charged when ready, like any slideshow). Once per pack:
+// unlocked_at is the lock.
 
 import type { Prisma, ProspectPack } from '@prisma/client';
 import { waitUntil } from '@vercel/functions';
 import { prisma } from '../../lib/db';
 import { handOff, runAutoPipeline } from '../autoSlideshow/pipeline';
 import { makeHeldImages } from '../labs/packPreviews';
+import { chargeCredits } from '../slideshowCredits/charge';
 import { workspaceHasPaid } from '../slideshowCredits/paid';
 import { keptIdeas, renderBlitz } from './blitz';
 import { blitzOf } from './store';
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
 
-/** Makes the Blitz preview ideas' held images, renders them for `userId` and stores the renders on the pack. */
+/** Makes the Blitz preview ideas' held images, renders them for `userId`, stores the renders on the pack and charges
+ *  1 credit per video made (charges follow making, never posting). */
 const unlockBlitz = async (pack: ProspectPack, userId: string): Promise<void> => {
   const previews = blitzOf(pack).filter((b) => b.preview && !b.error);
   if (previews.length === 0) return;
@@ -23,6 +26,11 @@ const unlockBlitz = async (pack: ProspectPack, userId: string): Promise<void> =>
   const ideas = await keptIdeas(pack.workspaceId, previews.map((b) => b.ideaId));
   const rendered = new Map((await renderBlitz(userId, pack.workspaceId, pack.name, ideas)).map((r) => [r.ideaId, r]));
   await prisma.prospectPack.update({ where: { id: pack.id }, data: { blitz: json(blitzOf(pack).map((b) => rendered.get(b.ideaId) ?? b)) } });
+  const made = [...rendered.values()].filter((r) => r.projectId).length;
+  if (made === 0) return;
+  await chargeCredits(userId, made, `prospect-unlock:${pack.id}`, `${made} pack ${made === 1 ? 'video' : 'videos'}`).catch((err: unknown) =>
+    console.error(`[prospects] ${pack.id}: unlock videos not charged:`, err instanceof Error ? err.message : err),
+  );
 };
 
 /** Lifts the cover-only rule on the Brand Cast run and makes the rest of those slideshows (steps 5-6 again). */

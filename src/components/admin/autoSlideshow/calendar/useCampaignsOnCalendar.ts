@@ -10,14 +10,15 @@ const REFRESH_MS = 60_000;
 /** Fired on window when a campaign put posts on the Calendar, so a mounted Calendar reads them at once. */
 export const CAMPAIGN_PLAN_EVENT = 'campaign-plan-changed';
 
-const EMPTY: CampaignCalendarDto = { slideshows: [], planned: {}, campaignOf: {} };
+const EMPTY: CampaignCalendarDto = { slideshows: [], planned: {}, campaignOf: {}, waiting: [] };
 
 /**
  * The workspace's campaign posts on this calendar: planned ones (Schedule in a campaign; they wait for the approval
  * here) and scheduled ones. A failed read leaves the calendar as it is.
  */
-export function useCampaignsOnCalendar(token: string, workspaceId: string | null): CampaignCalendarDto & { reload: () => void } {
+export function useCampaignsOnCalendar(token: string, workspaceId: string | null): CampaignCalendarDto & { loaded: boolean; reload: () => void } {
   const [data, setData] = useState<CampaignCalendarDto>(EMPTY);
+  const [loaded, setLoaded] = useState(false);
   const [tick, setTick] = useState(0);
   const reload = useCallback(() => setTick((n) => n + 1), []);
   useEffect(() => {
@@ -29,7 +30,11 @@ export function useCampaignsOnCalendar(token: string, workspaceId: string | null
     let cancelled = false;
     const load = () =>
       adminFetch<CampaignCalendarDto>(token, `/api/slideshow/campaigns/calendar?workspace=${encodeURIComponent(workspaceId)}`)
-        .then((next) => !cancelled && setData(next))
+        .then((next) => {
+          if (cancelled) return;
+          setData(next);
+          setLoaded(true);
+        })
         .catch((err: unknown) => console.warn('[calendar] Campaign posts not loaded:', err instanceof Error ? err.message : err));
     void load();
     const id = setInterval(() => void load(), REFRESH_MS);
@@ -38,5 +43,5 @@ export function useCampaignsOnCalendar(token: string, workspaceId: string | null
       clearInterval(id);
     };
   }, [token, workspaceId, tick]);
-  return { ...data, reload };
+  return { ...data, loaded, reload };
 }

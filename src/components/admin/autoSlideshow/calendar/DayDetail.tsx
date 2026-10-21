@@ -3,6 +3,7 @@
 import { ChevronLeft, Loader2, Plus, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
+import type { CampaignWaitingDto } from '../../../../types/admin/slideshowCampaign';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import type { Make } from '../ideas/IdeasPanel';
 import { MakeStatus } from '../ideas/MakeStatus';
@@ -13,6 +14,7 @@ import { MAX_PER_DAY, type PlanDay } from './monthPlan';
 import { DayGenerate } from './DayGenerate';
 import { keepTimeOn } from './ideaPlacement';
 import { PostRow } from './PostRow';
+import { DeckTabs, SlideshowDayDeck, type DeckTab } from './SlideshowDayDeck';
 import { timeOf } from './slotBadge';
 import { openSlots, type TileEntry } from './tileModel';
 
@@ -35,6 +37,8 @@ export type DayDetailProps = {
   /** The day's posts waiting for approval; "Approve & Publish" approves only those. */
   approveCount?: number;
   onApprove?: () => void;
+  /** Campaign slideshows not on the Calendar yet, for the deck's Slideshows tab; "Create" leads to the campaigns. */
+  slideshows?: { token: string; waiting: CampaignWaitingDto[]; loaded: boolean; onCreate: () => void };
 };
 
 type AddMoreProps = { busy: boolean; open: boolean; canAdd: boolean; onAdd: () => void; onClose: () => void };
@@ -89,6 +93,8 @@ export function DayDetail(p: DayDetailProps) {
   const count = Math.max(p.entries.length, p.taken.length) + empty;
   const ideas = p.ideas;
   const { wanted, open, set } = useWanted(p, count);
+  const [tab, setTab] = useState<DeckTab>('videos');
+  const videos = tab === 'videos' || !p.slideshows;
   useRefill(ideas, p.day.key, wanted);
   const decide = (idea: IdeaDto, status: 'kept' | 'discarded' | 'proposed') => ideas?.decide(idea, status);
   const kept = p.entries.flatMap((e) => (e.idea?.status === 'kept' ? [e.idea] : []));
@@ -99,7 +105,7 @@ export function DayDetail(p: DayDetailProps) {
   const dropSlot = () => p.onSetCount(p.day.key, p.day.slots.length - 1);
   const shown = count + (wanted ? 1 : 0);
   // Phones: the deck's post time sits in the header (the deck drops its "Will be posted" line there).
-  const deckAt = ideas && showing ? keepTimeOn(p.day, p.taken) : undefined;
+  const deckAt = ideas && showing && videos ? keepTimeOn(p.day, p.taken) : undefined;
   return (
     // Phones: no frame (it only cost margin); a line above sets the day apart from the month.
     <section className="flex flex-col gap-3 border-t border-line pt-4 md:rounded-[20px] md:border md:bg-white md:p-4 dark:border-zinc-800 md:dark:bg-zinc-900">
@@ -132,8 +138,10 @@ export function DayDetail(p: DayDetailProps) {
           Approve & Publish ({p.approveCount}) →
         </button>
       )}
-      {ideas && showing && <DayDeck ideas={ideas} maker={p.maker} day={p.day} taken={p.taken} />}
-      {ideas && offerBatch && !ideas.loading && <DayGenerate writing={ideas.generating} onGenerate={() => void ideas.generate()} />}
+      {wanted && p.slideshows && <DeckTabs tab={tab} onTab={setTab} />}
+      {videos && ideas && showing && <DayDeck ideas={ideas} maker={p.maker} day={p.day} taken={p.taken} />}
+      {videos && ideas && offerBatch && !ideas.loading && <DayGenerate writing={ideas.generating} onGenerate={() => void ideas.generate()} />}
+      {!videos && wanted && p.slideshows && <SlideshowDayDeck {...p.slideshows} at={keepTimeOn(p.day, p.taken)} />}
       {shown === 0 && <p className="text-sm text-muted">{p.day.past && !p.day.today ? 'Nothing posted this day.' : 'Nothing planned yet.'}</p>}
       {ideas?.error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{ideas.error}</p>}
       {noteOf(p, count) && <p className="text-xs text-muted">{noteOf(p, count)}</p>}

@@ -180,7 +180,8 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const detail = (day: PlanDay, onBack?: () => void) => (
     <DayDetail key={day.key} day={day} entries={entriesFor(day)} taken={takenOn(day)} ideas={ui?.ideas ?? null} maker={ui?.maker ?? null}
       onOpen={openShow} onOpenBlitz={setOpenBlitz} onSetCount={onSetCount} onOpenIdea={rail.openIdea} onBack={onBack}
-      approveCount={toApprove([day]).length + videosOn(day.key).length} onApprove={() => setApproving(day.key)} />
+      approveCount={toApprove([day]).length + videosOn(day.key).length} onApprove={() => setApproving(day.key)}
+      slideshows={{ token, waiting: campaigns.waiting, loaded: campaigns.loaded, onCreate: () => router.push(`/slideshow/${run.workspaceId}/campaigns`) }} />
   );
   const approval = approving ? approvalOf(approving) : null;
   const selected = all.concat(days).find((d) => d.key === rail.selectedKey) ?? null;

@@ -222,7 +222,7 @@ const withSavedMusic = async (run: { id: string; campaign: Prisma.JsonValue; sli
 };
 
 /** A photo as the draft preview reads it: its thumb, or (`full`) the photo itself. */
-const previewPhotoOf = async (p: CampaignPhoto, full: boolean) => ({
+export const previewPhotoOf = async (p: CampaignPhoto, full: boolean) => ({
   url: full ? (p.hotlink?.full ?? (p.imageKey ? await presignObject(p.imageKey) : null)) : (p.hotlink?.thumb ?? (p.imageKey ? thumbUrl(p.imageKey) : null)),
   fullUrl: null,
   ...(p.heads ? { heads: p.heads } : {}),

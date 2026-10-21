@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PLATFORM_LABELS, POST_PLATFORMS, type PostPlatform, type RunAccountsDto } from '../../../../types/admin/autoSlideshow';
+import { PLATFORM_LABELS, POST_PLATFORMS, SOON_PLATFORMS, type PostPlatform, type RunAccountsDto } from '../../../../types/admin/autoSlideshow';
 import { ChannelList } from '../../../labs/blitzLab/schedule/ChannelList';
 import { InstagramTypeDialog } from '../settings/InstagramTypeDialog';
 import { startConnect } from '../settings/AccountsSection';
@@ -40,4 +40,4 @@ export function PlatformPicker({ accounts, value, onChange, live = [], tone = 'l
 }
 
 /** Connected platforms not yet live, in display order: the default selection. */
-export const defaultPlatforms = (accounts: RunAccountsDto, live: PostPlatform[] = []) => POST_PLATFORMS.filter((p) => accounts.accounts[p] && !live.includes(p));
+export const defaultPlatforms = (accounts: RunAccountsDto, live: PostPlatform[] = []) => POST_PLATFORMS.filter((p) => accounts.accounts[p] && !live.includes(p) && !SOON_PLATFORMS.includes(p));

@@ -223,6 +223,8 @@ export type AutoRunSummary = {
 export type PostPlatform = 'tiktok' | 'instagram' | 'youtube';
 export const POST_PLATFORMS: readonly PostPlatform[] = ['tiktok', 'instagram', 'youtube'];
 export const PLATFORM_LABELS: Record<PostPlatform, string> = { tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube Shorts' };
+/** Platforms shown as "Coming soon": not live yet, so they cannot be connected or picked. */
+export const SOON_PLATFORMS: readonly string[] = ['instagram'];
 export const isPostPlatform = (v: unknown): v is PostPlatform => v === 'tiktok' || v === 'instagram' || v === 'youtube';
 
 /** Who can see a YouTube Short. Until Google audits the app, YouTube keeps every upload private whatever is picked. */

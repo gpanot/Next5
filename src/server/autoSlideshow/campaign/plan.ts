@@ -8,6 +8,7 @@ import { HttpError } from '../../http';
 import type { UserAccess } from '../access';
 import { SHOW_INCLUDE, toSlideshowDto } from '../store';
 import { CAMPAIGN_KIND, isRendered, loadCampaign, planOf, storePlan } from './store';
+import { campaignWaiting } from './waiting';
 
 const LIVE = ['scheduled', 'sending', 'processing', 'posted'];
 
@@ -49,7 +50,7 @@ export const planCampaign = async (access: UserAccess, id: string, items: unknow
 export const campaignCalendar = async (workspaceId: string): Promise<CampaignCalendarDto> => {
   const runs = await prisma.autoSlideshowRun.findMany({
     where: { workspaceId, kind: CAMPAIGN_KIND },
-    select: { id: true, campaign: true, slideshows: { orderBy: { position: 'asc' }, include: SHOW_INCLUDE } },
+    select: { id: true, campaign: true, photos: true, slideshows: { orderBy: { position: 'asc' }, include: SHOW_INCLUDE } },
   });
   const planned: Record<string, string> = {};
   const campaignOf: Record<string, string> = {};
@@ -64,5 +65,10 @@ export const campaignCalendar = async (workspaceId: string): Promise<CampaignCal
       return shown;
     });
   });
-  return { slideshows: await Promise.all(picked.map(toSlideshowDto)), planned, campaignOf };
+  return {
+    slideshows: await Promise.all(picked.map(toSlideshowDto)),
+    planned,
+    campaignOf,
+    waiting: await campaignWaiting(runs),
+  };
 };

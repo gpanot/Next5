@@ -212,9 +212,14 @@ export type CampaignPhotoJobRequest = { key: string; cards: number[] } & Campaig
 /** A campaign post on the Calendar, waiting for approval there: slideshow `position` (hook i) at `at` (ISO). */
 export type CampaignPlanItem = { position: number; at: string };
 
+/** A campaign post not on the Calendar yet (not planned, not scheduled): the day panel's Slideshows deck offers it for
+ *  a day. `position` is its hook, as the plan wants it. `made`: false while only the draft exists (the deck makes the
+ *  campaign first, free); `slides` are then the draft drawn in the browser. */
+export type CampaignWaitingDto = { campaignId: string; position: number; made: boolean; slides: PreviewSlide[]; audio: { url: string; startAt: number } | null };
+
 /** The workspace's campaign posts for the Calendar: slideshows planned there (`planned`: id → ISO time) or scheduled.
- *  `campaignOf`: slideshow id → its campaign, so a tap opens the campaign. */
-export type CampaignCalendarDto = { slideshows: AutoSlideshowDto[]; planned: Record<string, string>; campaignOf: Record<string, string> };
+ *  `campaignOf`: slideshow id → its campaign, so a tap opens the campaign. `waiting`: made ones not on it yet. */
+export type CampaignCalendarDto = { slideshows: AutoSlideshowDto[]; planned: Record<string, string>; campaignOf: Record<string, string>; waiting: CampaignWaitingDto[] };
 
 /** One photo of a picker tab (generated, brand, shared, Unsplash), with what importing it needs. */
 export type PhotoOptionDto = { key: string; thumbUrl: string; ref: CampaignPhotoRef; label: string; credit: CampaignCredit | null };
