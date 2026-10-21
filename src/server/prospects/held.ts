@@ -1,14 +1,14 @@
 // server-only — never import from a 'use client' file.
-// A Prospect Pack's run reached its hold (pipeline.ts holdForCast): the warm-up made the brand's first face, so the
-// other faces are made now (a full cast to choose from), and the pack waits for the admin's face check.
+// A Prospect Pack's run reached its hold (pipeline.ts holdForCast): the warm-up made the brand's first face. One face is
+// enough to start (2026-10-21), so no other face is made; one is made here only when the warm-up made none.
 
 import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import type { StepCost } from '../../types/admin/metaAds';
-import { startCast } from '../brandCast/cast';
+import { prepareCast } from '../brandCast/cast';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 
-/** Puts what the extra faces cost on the run's step 3 (with the warm-up), so the pack's cost counts them. */
+/** Puts what the face costs on the run's step 3 (with the warm-up), so the pack's cost counts them. */
 const addToStep3 = async (runId: string, meter: CostMeter): Promise<void> => {
   const spent = meter.summary();
   if (spent.usdMicros === 0) return;
@@ -24,11 +24,7 @@ export const onRunHeld = async (runId: string): Promise<void> => {
   const pack = await prisma.prospectPack.findFirst({ where: { brandRunId: runId }, select: { id: true, workspaceId: true } });
   if (!pack) return;
   const meter = createMeter();
-  const job = await startCast(pack.workspaceId, meter).catch((err: unknown) => {
-    console.warn(`[prospects] ${pack.id}: more faces not started:`, err instanceof Error ? err.message : err);
-    return null;
-  });
-  await job?.().catch((err: unknown) => console.warn(`[prospects] ${pack.id}: faces failed:`, err instanceof Error ? err.message : err));
+  await prepareCast(pack.workspaceId, meter).catch((err: unknown) => console.warn(`[prospects] ${pack.id}: face failed:`, err instanceof Error ? err.message : err));
   await addToStep3(runId, meter).catch(() => undefined);
   await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'building' }, data: { status: 'faces', facesAt: new Date() } });
 };

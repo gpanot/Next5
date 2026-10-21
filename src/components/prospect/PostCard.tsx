@@ -1,7 +1,7 @@
 'use client';
 
 import type { ProspectViewDay } from '../../types/admin/prospects';
-import { chipDay, lengthLabel } from './postLabels';
+import { chipDay } from './postLabels';
 
 export const PlayIcon = ({ className = 'h-4 w-4' }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden className={className}><path d="M6 4l14 8-14 8z" /></svg>
@@ -50,16 +50,12 @@ export function Thumb({ day }: { day: ProspectViewDay }) {
   );
 }
 
-const chip = 'absolute top-2.5 rounded-full bg-black/45 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur-md';
-
-/** A 9:16 post: its still, the day and length chips, a play mark on videos, and "Yours when you claim" at the bottom
+/** A 9:16 post: its still, a play mark on videos, and "Yours when you claim" at the bottom
  *  ("After you buy" on a locked day). `showState` false for the copies in the post sheet and the compare section. */
 export function PostFrame({ day, showState = true, extra }: { day: ProspectViewDay; showState?: boolean; extra?: React.ReactNode }) {
   return (
     <>
       <Thumb day={day} />
-      <span className={`${chip} left-2.5`}>{chipDay(day.at)}</span>
-      <span className={`${chip} right-2.5`}>{lengthLabel(day)}</span>
       {day.kind === 'blitz' && !day.locked && (
         <span className="absolute left-1/2 top-[62%] grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-white/90 pl-0.5 text-black shadow-sm">
           <PlayIcon />
