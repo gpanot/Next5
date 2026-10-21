@@ -41,7 +41,7 @@ export function PostSheet({ day, onClose }: { day: ProspectViewDay | null; onClo
             ) : day.videoUrl ? (
               <video src={day.videoUrl} controls autoPlay playsInline className="aspect-[9/16] w-full rounded-[18px] bg-black object-contain" />
             ) : (
-              <SlidePlayer key={day.day} slides={day.slides} />
+              <SlidePlayer key={day.day} slides={day.slides} audioUrl={day.audioUrl} audioStart={day.audioStart} />
             )}
             <ScheduledOn slideshow={day.kind !== 'blitz'} />
           </div>
