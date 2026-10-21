@@ -20,7 +20,7 @@ const STATUS: Record<ProspectStatus, { label: string; tone: string }> = {
 const button =
   'min-h-11 rounded-xl border border-app-line px-4 text-[13px] font-semibold text-app-ink transition hover:bg-zinc-50 active:scale-95 disabled:opacity-50 dark:hover:bg-zinc-800';
 
-type Props = { token: string; pack: ProspectPackDto; onApprove: (id: string) => Promise<void>; onDelete: (id: string) => Promise<void> };
+type Props = { token: string; pack: ProspectPackDto; hideCost?: boolean; onApprove: (id: string) => Promise<void>; onDelete: (id: string) => Promise<void> };
 
 /** Copies `text`; shows "Copied" on the button for a moment. */
 function CopyButton({ label, text }: { label: string; text: string }) {
@@ -33,17 +33,17 @@ function CopyButton({ label, text }: { label: string; text: string }) {
 }
 
 /** What each part has made, against the pack's mix, then the cost (tap for the detail) and the make time. */
-function Progress({ token, pack }: { token: string; pack: ProspectPackDto }) {
+function Progress({ token, pack, hideCost }: { token: string; pack: ProspectPackDto; hideCost?: boolean }) {
   const [costsOpen, setCostsOpen] = useState(false);
   const { blitz, cast, hooks } = pack.progress;
   const sec = makeSec(pack);
   const { siteSec, postsSec } = pack.timing;
   return (
     <p className="text-[12px] tabular-nums text-app-muted">
-      {blitz}/{PROSPECT_BLITZ} videos · {cast}/{PROSPECT_CAST} Brand Cast · {hooks}/{PROSPECT_HOOKS} Hooks Volume ·{' '}
-      <button type="button" onClick={() => setCostsOpen(true)} className="-my-2 rounded-md px-1 py-2 font-semibold text-app-ink underline decoration-dotted underline-offset-2 transition hover:bg-zinc-100 active:scale-95 dark:hover:bg-zinc-800">
+      {blitz}/{PROSPECT_BLITZ} videos · {cast}/{PROSPECT_CAST} Brand Cast · {hooks}/{PROSPECT_HOOKS} Hooks Volume
+      {!hideCost && <>{' · '}<button type="button" onClick={() => setCostsOpen(true)} className="-my-2 rounded-md px-1 py-2 font-semibold text-app-ink underline decoration-dotted underline-offset-2 transition hover:bg-zinc-100 active:scale-95 dark:hover:bg-zinc-800">
         ${pack.costUsd.toFixed(2)}
-      </button>
+      </button></>}
       {sec !== null && (
         <span title={`Site + faces ${formatDuration(siteSec ?? 0)} · posts ${formatDuration(postsSec ?? 0)} (face check wait not counted)`}> · {formatDuration(sec)}</span>
       )}
@@ -87,7 +87,7 @@ function TasksButton({ token, pack }: { token: string; pack: ProspectPackDto }) 
 }
 
 /** One prospect: status, progress and cost, then what the admin can do at this point. */
-export function ProspectRow({ token, pack, onApprove, onDelete }: Props) {
+export function ProspectRow({ token, pack, hideCost, onApprove, onDelete }: Props) {
   const status = STATUS[pack.status];
   const link = typeof window === 'undefined' ? prospectPath(pack.shareToken) : `${window.location.origin}${prospectPath(pack.shareToken)}`;
   const remove = () => {
@@ -102,7 +102,7 @@ export function ProspectRow({ token, pack, onApprove, onDelete }: Props) {
         </div>
         <span className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-bold uppercase ${status.tone}`}>{status.label}</span>
       </div>
-      <Progress token={token} pack={pack} />
+      <Progress token={token} pack={pack} hideCost={hideCost} />
       {pack.error && <p className="text-[12px] text-app-danger">{pack.error}</p>}
       {pack.status === 'faces' && <FaceCheck token={token} pack={pack} onApprove={onApprove} />}
       <div className="flex flex-wrap gap-2">
