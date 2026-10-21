@@ -4609,5 +4609,14 @@
     "bytes": 655972,
     "alt": "Real estate agent photographing a suburban home with a Coming Soon sign on the lawn",
     "generatedAt": "2026-10-19T23:33:11.659Z"
+  },
+  "public/images/guides/social-media-for-gyms.png": {
+    "prompt": "A fit gym owner in her 30s in workout gear holds up a smartphone to film herself coaching, standing in a clean modern independent gym with a dumbbell rack and a weight bench visible behind her, bright natural window light streaming in, true-to-life colors. Realistic documentary photograph, shot on a 35mm lens at eye level, candid mid-action pose, shallow depth of field. Vertical 4:5 framing, centered subject with even margin on all sides, no text or logos anywhere in frame.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 426739,
+    "alt": "Gym owner filming herself on a smartphone while coaching, dumbbell rack and bench visible in a bright independent gym",
+    "generatedAt": "2026-10-21T01:02:24.783Z"
   }
 }

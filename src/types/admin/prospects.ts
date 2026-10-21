@@ -90,6 +90,9 @@ export type ProspectViewDay = {
   slides: string[];
   /** Blitz: the video's length in seconds, when known. */
   durationSec: number | null;
+  /** Slideshows: the TikTok sound it posts with (played with the slides), and where in the track it starts (s). */
+  audioUrl: string | null;
+  audioStart: number;
   caption: string;
   why: ProspectWhy | null;
   /** A day after the free ones: only its first slide or shot is shown, the rest comes after purchase. */

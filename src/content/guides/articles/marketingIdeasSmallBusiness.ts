@@ -22,7 +22,7 @@ export const marketingIdeasSmallBusiness: Article = {
       '**Turn reviews into posts.** Big text, real words, a photo.',
       '**Post the same content on TikTok, Instagram and YouTube Shorts.** Make once, post three times.',
       '**Reply to comments with a new post.** It shows you listen and gives you an easy idea.',
-      '**Show behind the scenes.** How you make, fix or pack things.',
+      '**Show behind the scenes.** How you make, fix or pack things. A gym can do this with class setup or a coach\'s morning, see [social media for gyms](/blog/social-media-for-gyms).',
       '**Use local words.** Put your town or area in captions so local buyers find you.',
     ] },
     { type: 'h2', text: 'Local ideas' },
