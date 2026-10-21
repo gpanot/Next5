@@ -1,8 +1,11 @@
 // server-only — never import from a 'use client' file.
-// Step 5: the run's photos, on reAPI (model in PHOTO_GEN, 9:16 like the slides). Each photo is copied to the object store right
-// away: reAPI result links expire, and step 6 renders from our copy. Each photo keeps how it was made (`gen`) for replays.
+// Step 5: the run's photos, 9:16 like the slides, from the photo engine in photoRules.ts (GPT Image 2.5 on reAPI, then
+// WaveSpeed, since 2026-10-21). Each photo is copied to the object store right away: result links expire, and step 6 renders
+// from our copy. Each photo keeps how it was made (`gen`) for replays.
 
+import { IMAGE_MODELS, type ImageModelId } from '../../config/imageModels';
 import { REAPI_MODELS, type ReapiModelId } from '../../config/reapiModels';
+import { costUsdMicros, submitEdit, waitForTask } from '../../lib/wavespeed';
 import { pollGeminiImage, submitReapiImage, type ReapiRatio } from '../../lib/reapiImage';
 import type { AutoPhoto, HeadBox, PhotoGen } from '../../types/admin/autoSlideshow';
 import type { CostMeter } from '../metaAds/cost';
@@ -10,6 +13,7 @@ import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
 import { getObject, presignObject, putObject } from '../storage/objectStore';
 import { detectHeads } from './heads';
+import { PHOTO_STYLE_RULES, PHOTO_STYLE_VERSION, photoEngine, type PhotoEngineStep } from './photoRules';
 import { compressJpeg, PHOTO_SIZE } from './jpeg';
 
 export type PhotoGenConfig = { model: ReapiModelId; ratio: ReapiRatio; highRes: boolean };
@@ -28,15 +32,10 @@ const TIMEOUT_MS = 180_000;
 const SUBMIT_ATTEMPTS = 4;
 const BUSY_WAIT_MS = 15_000;
 
-// Keep this bright. "Cinematic light" made GPT Image 2 return dark, moody photos (mean luma 85-140 of 255); this wording
-// gave 164-173 on the same scenes (A/B test 2026-09-29). White slide text still reads thanks to its outline.
-// No framing rule: "heads below the middle, upper 40% empty" bent scenes (roofless cars, sky inside rooms) and heads still
-// landed in the text zone 9 times in 10, so the text moves off heads instead (A/B test 2026-10-02).
-// No brand ban: "no logos, no phone screens" made people hold phones flipped and hid the brand. Logos and brand names may
-// show. Only stray text is kept out, so it never fights the slide text.
-const STYLE = 'Bright, airy, well-exposed photograph in daylight, high-key, true-to-life colors, clean and inviting, realistic candid photo with natural proportions, vertical framing. No text overlays, no watermarks.';
-/** Bump when STYLE changes, so each photo's record says which wording made it. */
-export const STYLE_VERSION = '2026-10-02b';
+// The shared style lives in photoRules.ts with its A/B history, so it can be tweaked step by step.
+const STYLE = PHOTO_STYLE_RULES.join(' ');
+/** Which wording made each photo (stored in its record). */
+export const STYLE_VERSION = PHOTO_STYLE_VERSION;
 
 /** The full text the photo model gets: the scene, the brand's look, the shared style, then what the reference images are. */
 export const photoPrompt = (scene: string, look?: string, refNote?: string): string => [scene, look && `Brand look: ${look}`, STYLE, refNote].filter(Boolean).join(' ');
@@ -77,6 +76,57 @@ export const generatePhoto = async (prompt: string, refUrls: string[], meter: Co
   throw new Error('Photo generation timed out');
 };
 
+type Made = { buffer: Buffer; taskId: string; model: string };
+
+/** GPT Image 2.5 Flare on WaveSpeed: the edit model with reference images, text-to-image without. */
+const wavespeedPhoto = async (prompt: string, refUrls: string[], meter: CostMeter): Promise<Made> => {
+  const model: ImageModelId = refUrls.length ? 'gpt-image-2.5-flare' : 'gpt-image-2.5-flare-t2i';
+  const taskId = await submitEdit({ model, prompt, imageUrls: refUrls, aspectRatio: PHOTO_GEN.ratio, resolution: '1k' });
+  const url = await waitForTask(taskId, { timeoutMs: TIMEOUT_MS });
+  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  if (!res.ok) throw new Error(`photo download failed (${res.status})`);
+  meter.add(`Photo (${IMAGE_MODELS[model].label}, WaveSpeed)`, costUsdMicros(model, '1k', refUrls.length));
+  return { buffer: Buffer.from(await res.arrayBuffer()), taskId, model: `wavespeed-${model}` };
+};
+
+const onReapi = (model: ReapiModelId) => async (prompt: string, refUrls: string[], meter: CostMeter): Promise<Made> => ({ ...(await generatePhoto(prompt, refUrls, meter, { ...PHOTO_GEN, model })), model });
+
+const ENGINE_STEPS: Record<PhotoEngineStep, (prompt: string, refUrls: string[], meter: CostMeter) => Promise<Made>> = {
+  'wavespeed-gpt-2.5': wavespeedPhoto,
+  'reapi-gpt-2.5': onReapi('reapi-gpt-image-2.5'),
+  'reapi-nano-2.1': onReapi(PHOTO_GEN.model),
+};
+
+/** A step that failed this many times in a row (a provider outage) is skipped for a while, so each photo does not wait
+ *  on it first (reAPI's GPT failed every call for hours on 2026-10-21). Kept per server instance. */
+const BREAKER_FAILURES = 3;
+const BREAKER_MS = 10 * 60_000;
+const breaker = new Map<PhotoEngineStep, { failures: number; until: number }>();
+const isOpen = (step: PhotoEngineStep) => (breaker.get(step)?.until ?? 0) > Date.now();
+const noteResult = (step: PhotoEngineStep, ok: boolean) => {
+  const failures = ok ? 0 : (breaker.get(step)?.failures ?? 0) + 1;
+  breaker.set(step, { failures, until: failures >= BREAKER_FAILURES ? Date.now() + BREAKER_MS : 0 });
+};
+
+/** A slideshow photo from the engine in use (photoRules.ts): each model in turn until one makes it (a refusal by a
+ *  safety filter, a provider outage). The last step always runs, even when its breaker is open. Fails with every step's reason. */
+export const slideshowPhoto = async (prompt: string, refUrls: string[], meter: CostMeter): Promise<Made> => {
+  const steps = photoEngine();
+  const errors: string[] = [];
+  for (const [i, step] of steps.entries()) {
+    if (isOpen(step) && i < steps.length - 1) continue;
+    try {
+      const made = await ENGINE_STEPS[step](prompt, refUrls, meter);
+      noteResult(step, true);
+      return made;
+    } catch (err) {
+      noteResult(step, false);
+      errors.push(`${step}: ${err instanceof Error ? err.message.slice(0, 120) : String(err)}`);
+    }
+  }
+  throw new Error(errors.join(' | '));
+};
+
 /** What one photo is made from: the scene, plus (photo plan, photoPlan.ts) its reference images or a brand photo used as it is. */
 export type PhotoSpec = Pick<AutoPhoto, 'prompt' | 'refs' | 'refNote' | 'brandPhotoKey'>;
 
@@ -98,7 +148,7 @@ const storePhoto = async (runId: string, index: number, image: Buffer): Promise<
 
 /** One photo, generated (or a brand photo copied) and stored as a 1440x1800 JPEG under 1 MB, with its heads being found
  *  so step 6 keeps text off them. */
-const makePhoto = async (runId: string, index: number, spec: PhotoSpec, look: string | undefined, meter: CostMeter, config: PhotoGenConfig = PHOTO_GEN): Promise<MadePhoto> => {
+const makePhoto = async (runId: string, index: number, spec: PhotoSpec, look: string | undefined, meter: CostMeter): Promise<MadePhoto> => {
   const createdAt = new Date().toISOString();
   if (spec.brandPhotoKey) {
     const original = await getObject(spec.brandPhotoKey);
@@ -108,8 +158,8 @@ const makePhoto = async (runId: string, index: number, spec: PhotoSpec, look: st
   }
   const refUrls = await refLinks(spec.refs);
   const sentPrompt = photoPrompt(spec.prompt, look, refUrls.length > 0 ? spec.refNote : undefined);
-  const { buffer, taskId } = await generatePhoto(sentPrompt, refUrls, meter, config);
-  const gen: PhotoGen = { sentPrompt, model: config.model, ratio: config.ratio, highRes: config.highRes, taskId, styleVersion: STYLE_VERSION, createdAt, ...(refUrls.length ? { refs: refUrls.length } : {}) };
+  const { buffer, taskId, model } = await slideshowPhoto(sentPrompt, refUrls, meter);
+  const gen: PhotoGen = { sentPrompt, model, ratio: PHOTO_GEN.ratio, highRes: PHOTO_GEN.highRes, taskId, styleVersion: STYLE_VERSION, createdAt, ...(refUrls.length ? { refs: refUrls.length } : {}) };
   return { ...(await storePhoto(runId, index, buffer)), gen };
 };
 

@@ -8,6 +8,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import type { CostMeter } from '../metaAds/cost';
 import { cleanPhotoStyle } from '../companyIntel/slideshowStyle';
+import { LOOK_RULE } from '../autoSlideshow/photoRules';
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import { isTargetAge, TARGET_BIBLE_AGES } from '../../types/admin/targetClient';
 import { VISUAL_BIBLE_FIELDS, type VisualBible, type VisualBibleKey } from '../../types/admin/visualBible';
@@ -31,7 +32,7 @@ Return JSON with flat string keys only:
 "person_look": 15-30 words: build, styling, grooming, energy, as the brand's photos show its people,
 "wardrobe": 10-25 words: what people wear (the brand's own product when it is clothing),
 "environments": 6-8 REAL-LIFE places where this customer lives with the product, at the brand's price level, comma separated, specific. The brand's photo studio may be one of them, never most of them. No offices unless the brand is about offices,
-"visual_style": 15-30 words: photographic look (editorial lifestyle, polished, minimal, documentary...) at the brand's price level. Always bright, well-exposed daylight; never cinematic, moody or dark,
+"visual_style": 15-30 words: photographic look (editorial lifestyle, polished, minimal, documentary...) at the brand's price level. Always bright, well-exposed daylight; never cinematic, moody or dark. ${LOOK_RULE},
 "product_visibility": 10-25 words: how and how often the product appears,
 "shot_vocabulary": 6-8 shot types that fit THIS category, separated by " | " (for apparel: "full-body outfit in motion | fabric detail close-up | ..."),
 "consistency_rules": 15-30 words: what stays the same across all shots of one video,
