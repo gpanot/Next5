@@ -82,8 +82,16 @@ In code:
    launchctl print gui/$(id -u)/com.next5.seo-daily         # status
    launchctl bootout gui/$(id -u)/com.next5.seo-daily       # stop
    ```
-6. **Review**: for the first 4 weeks, read and merge each PR yourself (2 minutes). After 20
-   articles in a row pass review without edits, let the run merge its own PRs when CI is green.
+6. **Auto-publish** (since 2026-10-21): the script merges each article PR that only touches article
+   paths and passes the content tests, checks the live page and the sitemap, and resubmits the
+   sitemap. At the end it emails the owner a report, one ✅/❌ line per step, with a full copy of
+   the article (via Maileroo, keys in `~/.next5-seo/secrets.env`). Skipped days and the last failed
+   attempt get a report too, so no email means the run never happened. To undo an article, press
+   Revert on its PR.
+   ```bash
+   cp scripts/seo-email.ts ~/.next5-seo/seo-email.ts                      # after every edit
+   SEO_PUBLISH_PR=<pr url> zsh ~/.next5-seo/seo-daily.sh                 # publish one PR by hand
+   ```
 
 ## Decisions to make before more articles
 
