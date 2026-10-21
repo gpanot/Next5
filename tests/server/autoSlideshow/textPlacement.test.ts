@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lineWidths, placeText, textRects, textTop } from '../../../src/server/autoSlideshow/textPlacement';
+import { headRect, lineWidths, MIN_HEAD_RATIO, placeText, textRects, textTop } from '../../../src/server/autoSlideshow/textPlacement';
 
 const meat = { role: 'item' as const, title: 'Check Charging, Not Just Range', body: 'Plan where you’ll charge, so trips feel easy.' };
 const hook = { role: 'hook' as const, title: '5 Things EV Owners Wish They Knew', body: '' };
@@ -62,6 +62,21 @@ describe('placeText', () => {
     const height = Math.max(...textRects(meat, 0.4 * 1080).map((r) => r.y + r.h)) / 1920;
     expect(at.x).toBeCloseTo(0.664);
     expect(at.y).toBeCloseTo(1 - height);
+  });
+});
+
+describe('flat head boxes', () => {
+  it('grows a box flatter than a head down to the chin (a face looking down, 2026-10-21)', () => {
+    const slide = { role: 'item' as const, title: 'Follow Up For Non-Responders', body: 'Send a gentle reminder a little later, so more customers finish it.' };
+    const flat = { top: 0.245, bottom: 0.305, left: 0.437, right: 0.597 };
+    const chin = 0.245 * 1920 + (0.597 - 0.437) * 1080 * MIN_HEAD_RATIO;
+    const top = textTop(slide, [flat]);
+    expect(top >= chin || blockBottom(slide, top) <= 0.245 * 1920).toBe(true);
+  });
+
+  it('leaves a box of a normal head shape as it is', () => {
+    const tall = { top: 0.2, bottom: 0.32, left: 0.4, right: 0.55 };
+    expect(headRect(tall).h).toBeCloseTo((0.32 - 0.2) * 1920 + 56);
   });
 });
 
