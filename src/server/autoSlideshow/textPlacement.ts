@@ -175,18 +175,23 @@ export const headRect = (h: HeadBox): Rect => {
 const overlap = (a: Rect, b: Rect) =>
   Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
 
+/** A slide and the heads on its photo. */
+export type PlacedSlide = { slide: SlideText; heads?: HeadBox[] | null };
+
 /**
- * The text block's top in px. Its usual spot when no head is known or that spot is clear; else the clear spot nearest to
- * it between TikTok's top tabs and bottom caption; when no spot is clear (heads everywhere), the one that covers the least.
+ * One top (px) for slides whose text should line up (a slideshow's content slides): their usual spot when it is clear
+ * on every photo; else the spot nearest to it, between TikTok's top tabs and bottom caption, that covers the fewest
+ * heads over all the photos at once. Each slide counts its own text size and heads. Undefined for no slides.
  */
-export const textTop = (slide: SlideText, heads?: HeadBox[] | null): number => {
-  const home = homeTop(slide);
-  if (!heads?.length) return home;
-  const rects = textRects(slide);
-  const height = Math.max(...rects.map((r) => r.y + r.h));
-  const blocks = heads.map(headRect);
+export const sharedTop = (group: PlacedSlide[]): number | undefined => {
+  if (group.length === 0) return undefined;
+  const home = homeTop(group[0]!.slide);
+  if (group.every((g) => !g.heads?.length)) return home;
+  const parts = group.map((g) => ({ rects: textRects(g.slide), blocks: (g.heads ?? []).map(headRect) }));
+  const height = Math.max(...parts.flatMap((p) => p.rects.map((r) => r.y + r.h)));
   // Rounded: float noise must not beat a closer spot that covers the same area.
-  const coverAt = (top: number) => Math.round(rects.reduce((sum, r) => sum + blocks.reduce((s, b) => s + overlap({ ...r, y: r.y + top }, b), 0), 0));
+  const coverAt = (top: number) =>
+    Math.round(parts.reduce((total, p) => total + p.rects.reduce((sum, r) => sum + p.blocks.reduce((s, b) => s + overlap({ ...r, y: r.y + top }, b), 0), 0), 0));
   let best = { top: home, cover: coverAt(home), distance: 0 };
   for (let top = TOP_MIN; top <= Math.max(TOP_MIN, BOTTOM_MAX - height); top += SCAN_STEP) {
     const cover = coverAt(top);
@@ -196,14 +201,27 @@ export const textTop = (slide: SlideText, heads?: HeadBox[] | null): number => {
   return best.top;
 };
 
+/**
+ * The text block's top in px. Its usual spot when no head is known or that spot is clear; else the clear spot nearest to
+ * it between TikTok's top tabs and bottom caption; when no spot is clear (heads everywhere), the one that covers the least.
+ */
+export const textTop = (slide: SlideText, heads?: HeadBox[] | null): number => sharedTop([{ slide, heads }])!;
+
+/** Content slides placed automatically (not moved by hand): their text lines up at one sharedTop. */
+export const alignsWithContent = (slide: SlideText): boolean => slide.role === 'item' && !slide.textAt;
+
+/** The one top every auto-placed content slide of `group` shares (other slides are left out). */
+export const contentTop = (group: PlacedSlide[]): number | undefined => sharedTop(group.filter((g) => alignsWithContent(g.slide)));
+
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), Math.max(min, max));
 
 /**
  * Where the text block goes, as shares of the slide: the spot it was moved to in an editor (kept inside the slide by its
- * estimated size, heads ignored: the person chose it), else centered at textTop's spot.
+ * estimated size, heads ignored: the person chose it), else centered at `top` (px: the slideshow's content slides share
+ * one, contentTop) or textTop's spot.
  */
-export const placeText = (slide: SlideText, heads?: HeadBox[] | null): TextAt => {
-  if (!slide.textAt) return { x: 0.5, y: textTop(slide, heads) / SLIDE_SIZE.height };
+export const placeText = (slide: SlideText, heads?: HeadBox[] | null, top?: number): TextAt => {
+  if (!slide.textAt) return { x: 0.5, y: (top ?? textTop(slide, heads)) / SLIDE_SIZE.height };
   const x = clampTextX(slide.textAt.x);
   const span = textSpan(x, sideOf(slide) / SLIDE_SIZE.width);
   const rects = textRects(slide, (1 - span.left - span.right) * SLIDE_SIZE.width);

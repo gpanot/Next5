@@ -3,7 +3,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { lookOfRole, MAX_CAMPAIGN_CONTENT, shownBody, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import type { TextAt } from '../../../../types/slideText';
-import { badgesOf, headsOf, type PreviewSlide } from './previewSlides';
+import { badgesOf, campaignContentTop, headsOf, type PreviewSlide } from './previewSlides';
 import { PreviewSlideView } from './PreviewSlideView';
 
 type Props = {
@@ -33,12 +33,13 @@ type Card = { label: string; slide: PreviewSlide };
 const cardsOf = (draft: CampaignDraft, photos: CampaignPhotoDto[]): Card[] => {
   const url = (i: number | null | undefined) => (i === null || i === undefined ? null : photos[i]?.url ?? null);
   const rotating = draft.hooks.length;
+  const top = campaignContentTop(draft, photos);
   const hook: PreviewSlide = { kind: 'draft', photoUrl: url(draft.hookPhotos[0]), role: 'hook', title: draft.hooks[0] ?? '', body: '', look: draft.looks.hook, textAt: draft.hookTextAt, ...headsOf(photos, draft.hookPhotos[0]) };
   return [
     { label: rotating > 1 ? `Hook · ${rotating} rotating` : 'Hook', slide: hook },
     ...draft.cards.map((c): Card => ({
       label: c.role === 'cta' ? 'CTA' : 'Content',
-      slide: { kind: 'draft', photoUrl: url(c.photo), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role), textAt: c.textAt, ...headsOf(photos, c.photo), ...badgesOf(c) },
+      slide: { kind: 'draft', photoUrl: url(c.photo), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role), textAt: c.textAt, ...headsOf(photos, c.photo), ...badgesOf(c), ...(c.role === 'item' && !c.textAt && top !== undefined ? { alignTop: top } : {}) },
     })),
   ];
 };

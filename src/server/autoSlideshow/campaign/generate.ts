@@ -15,6 +15,7 @@ import type { UserAccess } from '../access';
 import { headsFor, withDetectedHeads, type HeadsCache } from '../heads';
 import { isTrack } from '../music';
 import { renderSlide, type PhotoCache, type RenderedSlide } from '../render';
+import { alignsWithContent, contentTop } from '../textPlacement';
 import { draftOf, isRendered, json, loadCampaign, photosOf, storeDraft, type CampaignPhoto } from './store';
 
 const LIVE_POSTS = ['scheduled', 'sending', 'processing', 'posted'];
@@ -24,9 +25,9 @@ const RENDER_BATCH = 4;
 type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look' | 'textAt' | 'badges' | 'badgesAt'> & { photoIndex: number };
 
 /** Runs `work` over `items`, `size` at a time, keeping their order. */
-const inBatches = async <T, R>(items: T[], size: number, work: (item: T) => Promise<R>): Promise<R[]> => {
+const inBatches = async <T, R>(items: T[], size: number, work: (item: T, index: number) => Promise<R>): Promise<R[]> => {
   const out: R[] = [];
-  for (let i = 0; i < items.length; i += size) out.push(...(await Promise.all(items.slice(i, i + size).map(work))));
+  for (let i = 0; i < items.length; i += size) out.push(...(await Promise.all(items.slice(i, i + size).map((item, j) => work(item, i + j)))));
   return out;
 };
 
@@ -67,11 +68,13 @@ const renderCards = async (cards: SlideText[][], photos: CampaignPhoto[], heads:
 const renderAll = async (slides: SlideText[], photos: CampaignPhoto[], heads: HeadsCache): Promise<RenderedSlide[]> => {
   const cache: PhotoCache = new Map();
   // Photos imported before head detection finished: detect them all at once, not one per render batch.
-  await Promise.all([...new Set(slides.map((s) => s.photoIndex))].map((i) => (photos[i] ? headsFor(photos[i], cache, heads) : null)));
-  return inBatches(slides, RENDER_BATCH, async (slide) => {
+  const found = await Promise.all(slides.map((s) => (photos[s.photoIndex] ? headsFor(photos[s.photoIndex]!, cache, heads) : null)));
+  // Every content card of every slideshow (each photo it rotates through) shares one text spot, so they line up.
+  const top = contentTop(slides.map((slide, i) => ({ slide, heads: found[i] })));
+  return inBatches(slides, RENDER_BATCH, async (slide, i) => {
     const photo = photos[slide.photoIndex];
     if (!photo?.imageKey) throw new HttpError(409, 'photo_missing', 'A photo of this campaign is missing. Pick it again.');
-    return renderSlide(slide, photo.imageKey, cache, DEFAULT_BOX, await headsFor(photo, cache, heads));
+    return renderSlide(slide, photo.imageKey, cache, DEFAULT_BOX, found[i], alignsWithContent(slide) ? top : undefined);
   });
 };
 

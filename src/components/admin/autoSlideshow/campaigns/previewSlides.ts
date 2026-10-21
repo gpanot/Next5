@@ -2,11 +2,23 @@ import type { AutoSlideshowDto, HeadBox } from '../../../../types/admin/autoSlid
 import { cardPhotoFor, hookPhotoFor, lookOfRole, shownBody, type CampaignCard, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import type { TextAt, TextLook } from '../../../../types/slideText';
 import type { StoreBadge } from '../../../../types/storeBadges';
+import { alignsWithContent, contentTop } from '../../../../server/autoSlideshow/textPlacement';
 
-/** One slide as the preview shows it: the rendered image once made, else the photo with the draft's text on top. */
+/** One slide as the preview shows it: the rendered image once made, else the photo with the draft's text on top.
+ *  `alignTop`: the spot (px) every auto-placed content slide of the campaign shares, as the render puts it. */
 export type PreviewSlide =
   | { kind: 'rendered'; imageUrl: string }
-  | { kind: 'draft'; photoUrl: string | null; role: 'hook' | 'item' | 'cta'; title: string; body: string; look: TextLook; textAt?: TextAt; heads?: HeadBox[]; badges?: StoreBadge[]; badgesAt?: number };
+  | { kind: 'draft'; photoUrl: string | null; role: 'hook' | 'item' | 'cta'; title: string; body: string; look: TextLook; textAt?: TextAt; heads?: HeadBox[]; badges?: StoreBadge[]; badgesAt?: number; alignTop?: number };
+
+type DraftSlide = Extract<PreviewSlide, { kind: 'draft' }>;
+
+/** The draft slides with the content slides' shared spot (contentTop over every one of them, as generate.ts does). */
+const aligned = (shows: PreviewShow[]): PreviewShow[] => {
+  const drafts = shows.flatMap((s) => s.slides.filter((x): x is DraftSlide => x.kind === 'draft'));
+  const top = contentTop(drafts.map((slide) => ({ slide, heads: slide.heads })));
+  if (top === undefined) return shows;
+  return shows.map((s) => ({ ...s, slides: s.slides.map((x) => (x.kind === 'draft' && alignsWithContent(x) ? { ...x, alignTop: top } : x)) }));
+};
 
 export type PreviewShow = { hook: string; slides: PreviewSlide[] };
 
@@ -28,8 +40,12 @@ export const draftShows = (draft: CampaignDraft, photos: PhotoLike[]): PreviewSh
   // Content cards with several photos show the one that goes with hook i.
   const cards = (i: number) => draft.cards.map((c): PreviewSlide => ({ kind: 'draft', photoUrl: photo(cardPhotoFor(c, i)), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role), textAt: c.textAt, ...headsOf(photos, cardPhotoFor(c, i)), ...badgesOf(c) }));
   const hooks = draft.hooks.length > 0 ? draft.hooks : [''];
-  return hooks.map((hook, i) => ({ hook, slides: [{ kind: 'draft', photoUrl: photo(hookPhotoFor(draft, i)), role: 'hook', title: hook, body: '', look: draft.looks.hook, textAt: draft.hookTextAt, ...headsOf(photos, hookPhotoFor(draft, i)) }, ...cards(i)] }));
+  return aligned(hooks.map((hook, i) => ({ hook, slides: [{ kind: 'draft', photoUrl: photo(hookPhotoFor(draft, i)), role: 'hook', title: hook, body: '', look: draft.looks.hook, textAt: draft.hookTextAt, ...headsOf(photos, hookPhotoFor(draft, i)) }, ...cards(i)] })));
 };
+
+/** The spot (px) the campaign's auto-placed content slides share; undefined when none is auto-placed. */
+export const campaignContentTop = (draft: CampaignDraft, photos: PhotoLike[]): number | undefined =>
+  draftShows(draft, photos).flatMap((s) => s.slides).find((x): x is DraftSlide => x.kind === 'draft' && x.alignTop !== undefined)?.alignTop;
 
 /**
  * What the preview plays: the made slideshows as rendered, while they still match the draft; otherwise the draft

@@ -192,9 +192,9 @@ export type RenderedSlide = { jpeg: Buffer; at: TextAt };
  * `heads`: the photo's heads (heads.ts); the text moves off them, and keeps its usual spot when they are unknown. Text
  * moved by hand (`textAt`) stays where it was put.
  */
-export const renderSlide = async (slide: RenderedText, photoKeyForSlide: string, cache: PhotoCache, look: BoxLook = DEFAULT_BOX, heads?: HeadBox[] | null): Promise<RenderedSlide> => {
+export const renderSlide = async (slide: RenderedText, photoKeyForSlide: string, cache: PhotoCache, look: BoxLook = DEFAULT_BOX, heads?: HeadBox[] | null, top?: number): Promise<RenderedSlide> => {
   const [photo, fonts, badges] = await Promise.all([photoUri(photoKeyForSlide, cache), loadFonts(), badgeRowNode(slide.badges, slide.badgesAt)]);
-  const at = placeText(slide, heads);
+  const at = placeText(slide, heads, top);
   const response = new ImageResponse(
     (
       <div style={{ width: '100%', height: '100%', display: 'flex', position: 'relative', fontFamily: 'Inter' }}>

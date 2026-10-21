@@ -17,11 +17,12 @@ import { chargeSlideshow } from '../slideshowCredits/charge';
 import { deleteObject, putObject } from '../storage/objectStore';
 import { loadUsage } from './bank/build';
 import { assembleCombo, swapCombo } from './bank/pick';
-import { headsFor } from './heads';
+import { headsFor, type HeadsCache } from './heads';
 import { isTrack } from './music';
 import { brandLook } from './photoPlan';
 import { makePhotos } from './photos';
 import { renderSlide, type BoxLook, type PhotoCache } from './render';
+import { alignsWithContent, contentTop, SLIDE_SIZE } from './textPlacement';
 import { writeSlideshow } from './write';
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
@@ -50,15 +51,36 @@ const addStepCost = async (runId: string, step: AutoStep, label: string, meter: 
   await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { stepCosts: json({ ...costs, [step]: { usdMicros: current.usdMicros + cost.usdMicros, items } }) } });
 };
 
-/** Renders one slide onto its photo under a fresh key and removes the old image. */
-const renderInto = async (runId: string, showId: string, index: number, slide: AutoSlide, photos: AutoPhoto[], cache: PhotoCache, look?: BoxLook): Promise<AutoSlide> => {
+/** Renders one slide onto its photo under a fresh key and removes the old image. `top`: the spot (px) the content
+ *  slides share (renderAligned). */
+const renderInto = async (runId: string, showId: string, index: number, slide: AutoSlide, photos: AutoPhoto[], cache: PhotoCache, look?: BoxLook, top?: number): Promise<AutoSlide> => {
   const photo = photos[slide.photoIndex];
   if (!photo?.imageKey) throw new HttpError(409, 'photo_missing', 'That photo was not generated. Pick another one.');
   const key = editedKey(runId, showId, index);
-  const { jpeg, at } = await renderSlide(slide, photo.imageKey, cache, look, await headsFor(photo, cache, new Map()));
+  const { jpeg, at } = await renderSlide(slide, photo.imageKey, cache, look, await headsFor(photo, cache, new Map()), top);
   await putObject(key, jpeg, 'image/jpeg');
   if (slide.imageKey) await deleteObject(slide.imageKey).catch(() => undefined);
   return { ...slide, imageKey: key, placedAt: at };
+};
+
+/**
+ * Renders slides `changed` (already updated in `slides`) again, with the content slides lined up: their text shares the
+ * spot that suits all their photos (contentTop), so when an edit moves that spot (a new photo, longer text, a slide
+ * moved by hand leaving the group), every auto-placed content slide renders again at it. Returns the slides.
+ */
+const renderAligned = async (runId: string, showId: string, slides: AutoSlide[], changed: number[], photos: AutoPhoto[], look?: BoxLook): Promise<AutoSlide[]> => {
+  const cache: PhotoCache = new Map();
+  const found: HeadsCache = new Map();
+  const heads = await Promise.all(slides.map((s) => (photos[s.photoIndex]?.imageKey ? headsFor(photos[s.photoIndex]!, cache, found) : null)));
+  const top = contentTop(slides.map((slide, i) => ({ slide, heads: heads[i] })));
+  const out = [...slides];
+  for (const [i, slide] of slides.entries()) {
+    const aligned = alignsWithContent(slide) && top !== undefined;
+    const moved = aligned && Math.abs((slide.placedAt?.y ?? -1) - top / SLIDE_SIZE.height) > 1e-6;
+    if (!changed.includes(i) && !moved) continue;
+    out[i] = await renderInto(runId, showId, i, slide, photos, cache, look, aligned ? top : undefined);
+  }
+  return out;
 };
 
 const saveSlides = (show: AutoSlideshow, slides: AutoSlide[]) =>
@@ -114,8 +136,8 @@ export const updateSlide = async (runId: string, showId: string, index: number, 
     next.photoIndex = patch.photoIndex as number;
   }
   if (patch.textAt !== undefined) next.textAt = spotOf(patch.textAt);
-  slides[index] = await renderInto(runId, showId, index, next, photos, new Map(), styleOf(show.run));
-  await saveSlides(show, slides);
+  slides[index] = next;
+  await saveSlides(show, await renderAligned(runId, showId, slides, [index], photos, styleOf(show.run)));
 };
 
 /** Text dragged on one slide, kept centered: every locked content slide's text moves to the same height when it is
@@ -126,12 +148,9 @@ export const moveText = async (runId: string, showId: string, index: unknown, at
   if (!Number.isInteger(index) || !slides[index as number]) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
   const spot = spotOf(at);
   if (!spot) throw new HttpError(400, 'bad_text_at', 'The text position must be inside the slide.');
-  const photos = photosOf(show.run);
-  const cache: PhotoCache = new Map();
-  for (const i of linkedTextSlides(slides, index as number)) {
-    slides[i] = await renderInto(runId, showId, i, { ...slides[i]!, textAt: { x: 0.5, y: spot.y } }, photos, cache, styleOf(show.run));
-  }
-  await saveSlides(show, slides);
+  const moved = linkedTextSlides(slides, index as number);
+  for (const i of moved) slides[i] = { ...slides[i]!, textAt: { x: 0.5, y: spot.y } };
+  await saveSlides(show, await renderAligned(runId, showId, slides, moved, photosOf(show.run), styleOf(show.run)));
 };
 
 /** A new photo for one slide, made from the photo it replaces (so the mood stays), added to the run's set. */
@@ -156,8 +175,8 @@ export const newPhotoForSlide = async (runId: string, showId: string, index: num
     all[all.length - 1] = made;
     if (!made.imageKey) throw new HttpError(502, 'photo_failed', made.error ?? 'The new photo failed.');
     await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { photos: json(all) } });
-    slides[index] = await renderInto(runId, showId, index, { ...slide, photoIndex: all.length - 1 }, all, new Map(), styleOf(show.run));
-    await saveSlides(show, slides);
+    slides[index] = { ...slide, photoIndex: all.length - 1 };
+    await saveSlides(show, await renderAligned(runId, showId, slides, [index], all, styleOf(show.run)));
   } finally {
     await addStepCost(runId, 5, 'New photo', meter);
   }
@@ -197,13 +216,14 @@ export const setTextStyle = async (runId: string, showId: string, patch: TextSty
   const style = pickedStyle(patch.look);
   const show = await loadShow(runId, showId);
   const slides = show.slides as unknown as AutoSlide[];
-  const photos = photosOf(show.run);
-  const cache: PhotoCache = new Map();
+  const changed: number[] = [];
   for (const [i, slide] of slides.entries()) {
     if (groupOf(slide) !== group || slide[part] === style) continue;
-    slides[i] = await renderInto(runId, showId, i, { ...slide, [part]: style }, photos, cache, styleOf(show.run));
+    slides[i] = { ...slide, [part]: style };
+    changed.push(i);
   }
-  await saveSlides(show, slides);
+  // A style changes the text's size, so the content slides' shared spot can move.
+  await saveSlides(show, await renderAligned(runId, showId, slides, changed, photosOf(show.run), styleOf(show.run)));
 };
 
 export type ShowPatch = { caption?: unknown; hashtags?: unknown; audioAssetId?: unknown };
@@ -273,14 +293,12 @@ export const rewriteSlideshow = async (runId: string, showId: string): Promise<v
     const old = show.slides as unknown as AutoSlide[];
     // The picked hook / CTA look stays on the rewritten hook and CTA.
     const look = old.find(takesLook)?.look;
-    const cache: PhotoCache = new Map();
-    const slides: AutoSlide[] = [];
-    for (const [i, s] of written.slides.entries()) {
+    const drafted = written.slides.map((s, i): AutoSlide => {
       // Same photo per position when there is one, the next photos of the set for extra slides.
       const photoIndex = old[i]?.photoIndex ?? available[(show.position * 3 + i) % available.length]!;
-      const next = { ...s, photoIndex, imageKey: old[i]?.imageKey ?? null, ...(look && takesLook(s) ? { look } : {}) };
-      slides.push(await renderInto(runId, showId, i, next, photos, cache, styleOf(show.run)));
-    }
+      return { ...s, photoIndex, imageKey: old[i]?.imageKey ?? null, ...(look && takesLook(s) ? { look } : {}) };
+    });
+    const slides = await renderAligned(runId, showId, drafted, drafted.map((_, i) => i), photos, styleOf(show.run));
     for (const extra of old.slice(slides.length)) if (extra.imageKey) await deleteObject(extra.imageKey).catch(() => undefined);
     await prisma.autoSlideshow.update({ where: { id: showId }, data: { slides: json(slides), caption: written.caption, hashtags: written.hashtags, status: 'ready', error: null } });
     // A failed slideshow made good here is charged now; one that was already ready was charged before (no-op).

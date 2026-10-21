@@ -55,7 +55,7 @@ export function PreviewSlideView({ slide, movable = false, onMoveText, onMoveBad
         body={slide.body}
         look={slide.look}
         placeholder={slide.role === 'hook' ? 'Your hook line' : 'Your headline'}
-        at={{ x: 0.5, y: slide.textAt?.y ?? placeText(slide, slide.heads).y }}
+        at={{ x: 0.5, y: slide.textAt?.y ?? placeText(slide, slide.heads, slide.alignTop).y }}
         movable={movable}
         verticalOnly
         quiet={quiet}

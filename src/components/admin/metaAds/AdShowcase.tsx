@@ -101,7 +101,7 @@ function AdMedia({ ad }: { ad: ShowcaseAd }) {
 
 function AdCard({ ad, className }: { ad: ShowcaseAd; className: string }) {
   return (
-    <figure className={`w-36 shrink-0 rounded-2xl border border-line bg-white p-2 shadow-sm transition duration-300 hover:z-10 hover:scale-105 hover:rotate-0 hover:shadow-lg 2xl:w-40 dark:border-zinc-800 dark:bg-zinc-900 ${className}`}>
+    <figure className={`w-36 shrink-0 rounded-2xl border border-line bg-white p-2 shadow-[0_1px_2px_rgba(0,0,0,0.05),0_10px_28px_-8px_rgba(0,0,0,0.18)] transition duration-300 hover:z-10 hover:scale-105 hover:rotate-0 hover:shadow-lg 2xl:w-40 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-[0_1px_2px_rgba(0,0,0,0.4),0_10px_28px_-8px_rgba(0,0,0,0.6)] ${className}`}>
       <div className="relative aspect-[9/16] overflow-hidden rounded-xl bg-zinc-100 dark:bg-zinc-800">
         <AdMedia ad={ad} />
         {ad.kind === 'video' && (

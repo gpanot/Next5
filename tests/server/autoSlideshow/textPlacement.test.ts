@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { headRect, lineWidths, MIN_HEAD_RATIO, placeText, textRects, textTop } from '../../../src/server/autoSlideshow/textPlacement';
+import { contentTop, headRect, lineWidths, MIN_HEAD_RATIO, placeText, sharedTop, textRects, textTop } from '../../../src/server/autoSlideshow/textPlacement';
 
 const meat = { role: 'item' as const, title: 'Check Charging, Not Just Range', body: 'Plan where you’ll charge, so trips feel easy.' };
 const hook = { role: 'hook' as const, title: '5 Things EV Owners Wish They Knew', body: '' };
@@ -90,5 +90,34 @@ describe('text looks', () => {
     const plain = textRects(meat)[1]!;
     const boxed = textRects({ ...meat, bodyLook: 'black-box' })[1]!;
     expect(boxed.h).toBeGreaterThan(plain.h);
+  });
+});
+
+describe('sharedTop', () => {
+  const other = { role: 'item' as const, title: 'Charge Overnight At Home', body: '' };
+
+  it('keeps the usual spot when it is clear on every photo', () => {
+    expect(sharedTop([{ slide: meat }, { slide: other, heads: [head(900, 1000)] }])).toBe(330 + SHIFT);
+    expect(sharedTop([])).toBeUndefined();
+  });
+
+  it('moves every slide to one spot clear of the heads on all the photos', () => {
+    const blocked = [head(430, 560)];
+    const top = sharedTop([{ slide: meat }, { slide: other, heads: blocked }])!;
+    expect(top).not.toBe(330 + SHIFT);
+    // The slide with no head moves too: one spot for both.
+    expect(top).toBe(textTop(other, blocked));
+  });
+
+  it('lines up only content slides not moved by hand', () => {
+    const moved = { ...other, textAt: { x: 0.5, y: 0.1 } };
+    const hookHead = [head(300, 700)];
+    expect(contentTop([{ slide: hook, heads: hookHead }, { slide: moved, heads: hookHead }, { slide: meat }])).toBe(330 + SHIFT);
+    expect(contentTop([{ slide: hook }])).toBeUndefined();
+  });
+
+  it('placeText takes the shared spot unless the text was moved by hand', () => {
+    expect(placeText(meat, [head(430, 560)], 700).y).toBeCloseTo(700 / 1920);
+    expect(placeText({ ...meat, textAt: { x: 0.5, y: 0.2 } }, null, 700).y).toBeCloseTo(0.2);
   });
 });

@@ -1,15 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { START_DAYS, START_PER_DAY, planCents } from '../../../../types/admin/slideshowCredits';
+import { planCents } from '../../../../types/admin/slideshowCredits';
 import { DailyBudget } from '../settings/credits/DailyBudget';
 import { PlanPicker } from './PlanPicker';
 import { PRICE_CENTS, money } from './pricing';
 
-/** Same flow as Settings → Credits: starts on the cheap pick (7 × 1), the daily budget is the big number, the total stays small. */
+/** Pricing page opens on 2 posts a day for 7 days (Settings → Credits keeps its own cheaper start). */
+const DEFAULT_DAYS = 7;
+const DEFAULT_PER_DAY = 2;
+
+/** Same flow as Settings → Credits: the daily budget is the big number, the total stays small. */
 export function PriceCalculator() {
-  const [days, setDays] = useState<number>(START_DAYS);
-  const [perDay, setPerDay] = useState<number>(START_PER_DAY);
+  const [days, setDays] = useState<number>(DEFAULT_DAYS);
+  const [perDay, setPerDay] = useState<number>(DEFAULT_PER_DAY);
   const posts = days * perDay;
 
   return (

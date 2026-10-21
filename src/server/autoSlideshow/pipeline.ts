@@ -33,6 +33,7 @@ import { brandLook, planSlidePhotos } from './photoPlan';
 import { castStory } from './storyCast';
 import { makePhotos } from './photos';
 import { renderSlide, slidePhotoIndexes, type PhotoCache } from './render';
+import { alignsWithContent, contentTop } from './textPlacement';
 import { ownPhotoEntries, photosPending, withOwnPhotos } from './slidePhotos';
 import { dropQueuedMore, savePlanKeepingQueue, startQueuedMore } from './more';
 
@@ -276,12 +277,15 @@ type RenderCtx = { runId: string; photos: AutoPhoto[]; cache: PhotoCache; heads:
 const renderSlides = async (ctx: RenderCtx, show: { id: string; position: number; slides: AutoSlide[] }, upTo: number): Promise<AutoSlide[]> => {
   const indexes = slidePhotoIndexes(show.slides, show.position, ctx.photos);
   if (indexes.slice(0, upTo).some((i) => i === null)) throw new Error('No photo was made for this slideshow');
+  // Every photo's heads first: the content slides' text lines up at the one spot that suits all of them.
+  const heads = await Promise.all(show.slides.map((_, i) => (indexes[i] === null ? null : headsFor(ctx.photos[indexes[i]!]!, ctx.cache, ctx.heads))));
+  const top = contentTop(show.slides.map((slide, i) => ({ slide, heads: heads[i] })));
   return Promise.all(
     show.slides.map(async (slide, i) => {
       if (i >= upTo) return slide;
       const key = slideKey(ctx.runId, show.id, i);
       const photo = ctx.photos[indexes[i]!]!;
-      const { jpeg, at } = await renderSlide(slide, photo.imageKey!, ctx.cache, ctx.look, await headsFor(photo, ctx.cache, ctx.heads));
+      const { jpeg, at } = await renderSlide(slide, photo.imageKey!, ctx.cache, ctx.look, heads[i], alignsWithContent(slide) ? top : undefined);
       await putObject(key, jpeg, 'image/jpeg');
       return { ...slide, photoIndex: indexes[i]!, imageKey: key, placedAt: at };
     }),

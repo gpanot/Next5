@@ -3,10 +3,9 @@ import { SlideshowStrip } from '../SlideshowShowcase';
 import { CheckoutButton } from './CheckoutButton';
 import { PriceCalculator } from './PriceCalculator';
 import { PricingFaq } from './PricingFaq';
-import { DAYS_PER_MONTH, MIN_DEPOSIT_CENTS, PRICE_CENTS, PRICE_LABEL, money, shortMoney } from './pricing';
+import { MIN_DEPOSIT_CENTS, PRICE_CENTS, PRICE_LABEL, money, shortMoney } from './pricing';
 import { ValueStack } from './ValueStack';
 
-const PER_DAY_EXAMPLES = [1, 2, 3];
 const STARTER_POSTS = Math.floor(MIN_DEPOSIT_CENTS / PRICE_CENTS);
 
 const PROMISES = [
@@ -37,20 +36,6 @@ function Hero({ homeHref }: { homeHref: string }) {
   );
 }
 
-function PerDayTiles() {
-  return (
-    <div className="grid w-full grid-cols-3 gap-2 md:gap-4">
-      {PER_DAY_EXAMPLES.map((n) => (
-        <div key={n} className="rounded-2xl border border-line bg-white p-3 text-center shadow-sm md:p-5 dark:border-zinc-800 dark:bg-zinc-900">
-          <p className="text-xs font-semibold text-muted md:text-sm dark:text-zinc-400">{n} a day</p>
-          <p className="mt-1 text-xl font-extrabold text-ink tabular-nums md:text-3xl dark:text-zinc-100">{money(PRICE_CENTS * n)}<span className="text-xs font-semibold text-muted md:text-sm dark:text-zinc-400"> /day</span></p>
-          <p className="mt-1 text-[11px] text-muted md:text-xs dark:text-zinc-400">{n * DAYS_PER_MONTH} posts a month</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function Promises() {
   return (
     <section className="grid w-full gap-3 md:grid-cols-3">
@@ -76,7 +61,6 @@ export function PricingPage({ homeHref = '/admin/auto-slideshow' }: { homeHref?:
       <section className="flex w-full flex-col items-center gap-6">
         <h3 className="text-center text-3xl font-extrabold tracking-tight text-ink md:text-4xl dark:text-zinc-100">Want more? Just add more.</h3>
         <p className="-mt-3 text-center text-base text-muted dark:text-zinc-400">{PRICE_LABEL} each. 2 a day is {money(PRICE_CENTS * 2)}. That’s it.</p>
-        <PerDayTiles />
         <PriceCalculator />
       </section>
       <ValueStack />
