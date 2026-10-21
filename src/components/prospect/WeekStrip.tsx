@@ -2,7 +2,7 @@
 
 import type { ProspectViewDay } from '../../types/admin/prospects';
 import { PostCard } from './PostCard';
-import { KIND_LABEL, monthDay, postTime, weekday } from './postLabels';
+import { chipDay, kindLine, monthDay, postTime } from './postLabels';
 
 /** The posts, one a day: 2 a row on phones (all of them in view, no sideways scroll), 4 on tablets, 7 on desktop. */
 export function WeekStrip({ days, onOpen }: { days: ProspectViewDay[]; onOpen: (index: number) => void }) {
@@ -21,10 +21,10 @@ export function WeekStrip({ days, onOpen }: { days: ProspectViewDay[]; onOpen: (
           {days.map((d, i) => (
             <li key={`${d.day}-${d.kind}`} className="flex min-w-0 flex-col gap-2">
               <PostCard day={d} onOpen={() => onOpen(i)} />
-              <p className="m-0 flex items-center justify-between gap-1 px-0.5 text-[12px] text-app-muted sm:text-[13px]">
-                <span><b className="font-semibold text-app-ink">{weekday(d.at)}</b> at {postTime(d.at)}</span>
-                <span>{KIND_LABEL[d.kind]}</span>
-              </p>
+              <div className="px-0.5 text-[12px] leading-snug sm:text-[13px]">
+                <p className="m-0 truncate font-semibold text-app-ink">{chipDay(d.at)} at {postTime(d.at)}</p>
+                <p className="m-0 truncate text-app-muted">{kindLine(d)}</p>
+              </div>
             </li>
           ))}
         </ul>
