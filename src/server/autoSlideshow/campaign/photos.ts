@@ -20,7 +20,7 @@ import { photoPrompt, slideshowPhoto } from '../photos';
 import { CAMPAIGN_KIND, type CampaignPhoto } from './store';
 import { appShotOptions, fetchAppShot } from './appShot/store';
 import { campaignCast } from './campaignCast';
-import { fetchUnsplashPhoto, searchedUnsplashPhoto, searchUnsplash } from './unsplash';
+import { fetchUnsplashPhoto, searchedUnsplashPhoto, searchUnsplash, stockKeyOf } from './unsplash';
 
 const SHARED_LIMIT = 120;
 const BRAND_LIMIT = 200;
@@ -88,9 +88,16 @@ const generatedOptions = async (workspaceId: string, shotLabels: string[]): Prom
   });
 };
 
-/** One tab of the picker. `search` needs `query`; the others list what the workspace has. */
-export const photoOptions = async (workspaceId: string, tab: PhotoTab, query: string, page: number): Promise<{ options: PhotoOptionDto[]; hasMore: boolean }> => {
-  if (tab === 'search') return query.trim() ? searchUnsplash(query, page) : { options: [], hasMore: false };
+/** The Unsplash photos the workspace's campaigns use (stockKeyOf), but campaign `exceptRunId`'s. */
+const usedStock = async (workspaceId: string, exceptRunId?: string): Promise<Set<string>> => {
+  const runs = await prisma.autoSlideshowRun.findMany({ where: { workspaceId, kind: CAMPAIGN_KIND, ...(exceptRunId ? { id: { not: exceptRunId } } : {}) }, select: { photos: true } });
+  return new Set(runs.flatMap((r) => ((r.photos as unknown as CampaignPhoto[] | null) ?? []).flatMap((p) => (p.source === 'unsplash' && p.hotlink ? [stockKeyOf(p.hotlink.thumb)] : []))));
+};
+
+/** One tab of the picker. `search` needs `query`; the others list what the workspace has. `fresh`: search results
+ *  without the photos the workspace's campaigns already use ("Generate the entire slideshows" picks hook photos so). */
+export const photoOptions = async (workspaceId: string, tab: PhotoTab, query: string, page: number, fresh = false): Promise<{ options: PhotoOptionDto[]; hasMore: boolean }> => {
+  if (tab === 'search') return query.trim() ? searchUnsplash(query, page, fresh ? await usedStock(workspaceId) : undefined) : { options: [], hasMore: false };
   if (tab === 'shared') return { options: await sharedOptions(workspaceId), hasMore: false };
   if (tab === 'brand') return { options: await brandOptions(workspaceId), hasMore: false };
   const shots = await appShotOptions(workspaceId);
@@ -184,7 +191,9 @@ const contentPrompt = async (scene: string, tone: string | null, avatar: CastFac
  */
 export const autoPhoto = async (runId: string, req: AutoPhotoRequest): Promise<{ photo: CampaignPhotoDto; detect: () => Promise<void> }> => {
   if (req.source === 'stock') {
-    return storeCampaignPhoto(runId, await searchedUnsplashPhoto(req.query, req.nth), 'unsplash');
+    const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { workspaceId: true } });
+    const skip = run?.workspaceId ? await usedStock(run.workspaceId, runId) : undefined;
+    return storeCampaignPhoto(runId, await searchedUnsplashPhoto(req.query, req.nth, skip), 'unsplash');
   }
   const [tone, avatar] = await Promise.all([req.tonePhoto === undefined ? null : tonePhotoUrl(runId, req.tonePhoto), campaignCast(runId)]);
   const { prompt, refs } = req.cta && productCtaPhoto() ? await ctaPrompt(runId, req.scene, tone, avatar) : await contentPrompt(req.scene, tone, avatar);

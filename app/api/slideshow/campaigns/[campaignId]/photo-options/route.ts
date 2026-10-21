@@ -1,6 +1,7 @@
 /**
- * GET /api/slideshow/campaigns/[campaignId]/photo-options?tab=search|generated|brand|shared&q=&page= — one tab of the
- *     photo picker: Unsplash results for `q`, or the workspace's generated photos, brand photos, or the shared library.
+ * GET /api/slideshow/campaigns/[campaignId]/photo-options?tab=search|generated|brand|shared&q=&page=&fresh=1 — one tab of
+ *     the photo picker: Unsplash results for `q` (`fresh`: without the photos the workspace's campaigns use), or the
+ *     workspace's generated photos, brand photos, or the shared library.
  */
 import { NextResponse } from 'next/server';
 import { requireUser } from '../../../../../../src/server/autoSlideshow/access';
@@ -23,5 +24,5 @@ export const GET = slideshowRoute(async (req, ctx: Ctx, access) => {
   // Unsplash allows 50 searches an hour in demo mode, 5,000 once approved: keep one person from using them all.
   if (tab === 'search') await enforceRateLimit(`unsplash-search:${user.userId}`, 60, 3600);
   const page = Math.max(1, Math.min(50, Number(params.get('page')) || 1));
-  return NextResponse.json(await photoOptions(run.workspaceId!, tab, params.get('q') ?? '', page));
+  return NextResponse.json(await photoOptions(run.workspaceId!, tab, params.get('q') ?? '', page, params.get('fresh') === '1'));
 });

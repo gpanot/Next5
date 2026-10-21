@@ -55,11 +55,14 @@ const searchPage = (query: string, page: number): Promise<SearchPage> => {
   return next;
 };
 
-/** One page of portrait photos for `query`. */
-export const searchUnsplash = async (query: string, page: number): Promise<{ options: PhotoOptionDto[]; hasMore: boolean }> => {
+/** One Unsplash photo whatever the size asked: its image URL without the query (`urls.small` and `hotlink.thumb` match). */
+export const stockKeyOf = (url: string): string => url.split('?')[0]!;
+
+/** One page of portrait photos for `query`, without the ones in `skip` (stockKeyOf of photos used already). */
+export const searchUnsplash = async (query: string, page: number, skip?: Set<string>): Promise<{ options: PhotoOptionDto[]; hasMore: boolean }> => {
   const data = await searchPage(query, page);
   return {
-    options: data.results.map((p) => ({ key: `unsplash:${p.id}`, thumbUrl: p.urls.small, ref: { source: 'unsplash', id: p.id }, label: p.alt_description ?? 'Unsplash photo', credit: creditOf(p) })),
+    options: data.results.filter((p) => !skip?.has(stockKeyOf(p.urls.small))).map((p) => ({ key: `unsplash:${p.id}`, thumbUrl: p.urls.small, ref: { source: 'unsplash', id: p.id }, label: p.alt_description ?? 'Unsplash photo', credit: creditOf(p) })),
     hasMore: page < data.total_pages,
   };
 };
@@ -89,9 +92,13 @@ export const fetchUnsplashPhoto = async (id: string): Promise<Downloaded> => {
   return download(await call<UnsplashPhoto>(`/photos/${id}`));
 };
 
-/** Auto content: the `nth` result of the search (looping), downloaded straight from the search result. */
-export const searchedUnsplashPhoto = async (query: string, nth: number): Promise<Downloaded> => {
-  const { results } = await searchPage(query, 1);
+/** Auto content: the `nth` result of the search (looping), downloaded straight from the search result. Results in
+ *  `skip` (used by the workspace's other campaigns) are passed over while others are left, so campaigns on the same
+ *  subject do not all get the same photos. */
+export const searchedUnsplashPhoto = async (query: string, nth: number, skip?: Set<string>): Promise<Downloaded> => {
+  const { results: all } = await searchPage(query, 1);
+  const fresh = all.filter((p) => !skip?.has(stockKeyOf(p.urls.small)));
+  const results = fresh.length > nth ? fresh : all;
   const photo = results[nth % Math.max(1, results.length)];
   if (!photo) throw new HttpError(404, 'no_stock_photo', `No stock photo found for "${query}". Pick one by hand.`);
   return download(photo);
