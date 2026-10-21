@@ -21,7 +21,7 @@ export const tiktokHooks: Article = {
       '**A problem or a want** — "losing money", "want more bookings".',
       '**A promise of a quick answer** — "3 fixes", "in 30 seconds", "nobody tells you".',
     ] },
-    { type: 'p', text: 'Example: "**Salon owners**: **3 fixes** for **no-show clients**."' },
+    { type: 'p', text: 'Example: "**Salon owners**: **3 fixes** for **no-show clients**." A gym could do "**New lifters**: **3 cues** for **a safer squat**." See more ideas in [social media for gyms](/blog/social-media-for-gyms).' },
     { type: 'h2', text: 'Mistake hooks' },
     { type: 'p', text: 'People hate losing money or time. Mistake hooks often get the most views.' },
     { type: 'ol', items: [
