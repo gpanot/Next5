@@ -188,19 +188,19 @@ const retireEarlierIdeas = (workspaceId: string, newIds: string[]) =>
     data: { plannedAt: null },
   });
 
-async function writeBatch(workspaceId: string, tzOffsetMin: unknown, have = 0, topUp = true): Promise<() => Promise<void>> {
+async function writeBatch(workspaceId: string, tzOffsetMin: unknown, have = 0, topUp = true, max = IDEAS_PER_BATCH): Promise<() => Promise<void>> {
   const started = Date.now();
   const secs = (from: number) => ((Date.now() - from) / 1000).toFixed(1);
   const tomorrow = new Date(Date.now() + 86_400_000);
   const weeks = batchQuotas(campaignWeek(tomorrow, await campaignStart(workspaceId, tomorrow)), []);
-  // The rest of a first batch whose first week is on the calendar already.
-  const quotas = have >= EARLY_STORIES ? weeks.slice(1) : weeks;
+  // The rest of a first batch whose first week is on the calendar already; only the weeks `max` needs (a week is 7).
+  const quotas = (have >= EARLY_STORIES ? weeks.slice(1) : weeks).slice(0, Math.ceil((max - have) / EARLY_STORIES));
   const deckAt = Date.now();
   const blitz = await blitzCards(workspaceId, quotas, topUp).catch((err: unknown) => {
     console.error('[calendar-ideas] Blitz deck failed:', err instanceof Error ? err.message : err);
     return { ids: [] as string[], grow: noWork };
   });
-  const planned = blitz.ids.slice(0, IDEAS_PER_BATCH - have);
+  const planned = blitz.ids.slice(0, max - have);
   if (planned.length === 0) throw new HttpError(502, 'no_ideas', 'Could not write ideas right now. Try again.');
   const planAt = Date.now();
   // A first batch's second half joins its first half; any other batch replaces the deck.
@@ -215,10 +215,11 @@ async function writeBatch(workspaceId: string, tzOffsetMin: unknown, have = 0, t
  * script bank). `runId` is kept for the route's contract; slideshow ideas come from createSlideshowIdeas.
  * One batch at a time: while another is being written, this waits for it and returns it instead.
  * `firstOnly`: the server's first batch, written in two halves while the Blitz bank is built: its first week as soon as
- * the bank has a week of stories, the rest on a later call; never past IDEAS_PER_BATCH ideas. `tzOffsetMin` defaults to the
- * offset the browser last sent.
+ * the bank has a week of stories, the rest on a later call; never past `max` ideas (IDEAS_PER_BATCH; a Prospect Pack's
+ * workspace takes only the Blitz ideas the pack uses, so no images or voiceover are made for the others). `tzOffsetMin`
+ * defaults to the offset the browser last sent.
  */
-export async function generateIdeas(workspaceId: string, runId: string, tzOffsetMin: unknown, opts: { firstOnly?: boolean } = {}): Promise<IdeasBatch> {
+export async function generateIdeas(workspaceId: string, runId: string, tzOffsetMin: unknown, opts: { firstOnly?: boolean; max?: number } = {}): Promise<IdeasBatch> {
   const offset = validOffset(tzOffsetMin);
   if (offset !== null) await prisma.workspace.update({ where: { id: workspaceId }, data: { ideaTzOffsetMin: offset } });
   if (!(await claimIdeasBatch(workspaceId))) {
@@ -228,10 +229,11 @@ export async function generateIdeas(workspaceId: string, runId: string, tzOffset
   let work: () => Promise<void> = noWork;
   try {
     const have = opts.firstOnly ? await ideaCount(workspaceId) : 0;
-    if (have < IDEAS_PER_BATCH) {
+    const max = opts.max ?? IDEAS_PER_BATCH;
+    if (have < max) {
       const saved = offset ?? (await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ideaTzOffsetMin: true } }))?.ideaTzOffsetMin;
       // The server's first batch does not top the bank up: it was just written.
-      work = await writeBatch(workspaceId, saved ?? 0, have, !opts.firstOnly);
+      work = await writeBatch(workspaceId, saved ?? 0, have, !opts.firstOnly, max);
     }
   } finally {
     await releaseIdeasBatch(workspaceId);
