@@ -54,10 +54,24 @@ check() {
   [[ "$1" == ok ]]
 }
 
+# Mondays: saves Search Console data (searches showing Next5 pages) for the last 7 days and the 7 before,
+# for the weekly ranking in the report email. Google's data runs about 3 days late. A failed fetch
+# only drops the ranking section.
+fetch_rankings() {
+  local week end start
+  for week in THIS_WEEK:3:9 LAST_WEEK:10:16; do
+    end="$(TZ=Asia/Ho_Chi_Minh date -v-"${${week#*:}%:*}"d +%F)"; start="$(TZ=Asia/Ho_Chi_Minh date -v-"${week##*:}"d +%F)"
+    gum read searchconsole.searchanalytics.query --output json --args "{\"siteUrl\":\"sc-domain:giinger.com\",\"body\":{\"startDate\":\"$start\",\"endDate\":\"$end\",\"dimensions\":[\"query\"],\"rowLimit\":100,\"dimensionFilterGroups\":[{\"filters\":[{\"dimension\":\"page\",\"operator\":\"contains\",\"expression\":\"next5.giinger.com\"}]}]}}" \
+      > "$STATE_DIR/$TODAY.${week%%:*}.json" 2>> "$LOG" \
+      && export "SEO_SC_${week%%:*}=$STATE_DIR/$TODAY.${week%%:*}.json" || log "ranking fetch failed ($week)"
+  done
+}
+
 # Emails the report, with a copy of the article when there is one. A Mac notification if the email fails.
 # The email script runs from the ~/.next5-seo copy, like this file, so it works before it reaches main.
 # IPv4 first: Node timed out reaching Maileroo over IPv6 on the Mac (2026-10-21).
 send_report() {
+  [[ "$(TZ=Asia/Ho_Chi_Minh date +%u)" == 1 ]] && fetch_rankings
   cp "$STATE_DIR/seo-email.ts" scripts/seo-email.ts \
     && ( set -a; source "$STATE_DIR/secrets.env"
          NODE_OPTIONS=--dns-result-order=ipv4first npx tsx scripts/seo-email.ts "$TODAY" "$REPORT" "$@" ) >> "$LOG" 2>&1 \

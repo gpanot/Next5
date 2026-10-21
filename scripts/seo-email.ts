@@ -1,6 +1,6 @@
 /**
- * Emails the owner the daily SEO run report (scripts/seo-daily.sh): one line per step, then a copy of
- * the article when the run shipped one.
+ * Emails the owner the daily SEO run report (scripts/seo-daily.sh): one line per step, a Search Console
+ * link, the weekly Google ranking on Mondays, then a copy of the article when the run shipped one.
  * Usage: npx tsx scripts/seo-email.ts <date> <report file> [slug] [pr url]
  * Report file: one "ok|fail|skip<TAB>label" line per step. Needs SENDING_KEY (Maileroo) and SEO_EMAIL_TO.
  */
@@ -78,7 +78,51 @@ ${article.blocks.map(renderBlock).join('\n')}
 ${faq ? `<h2>FAQ</h2>${faq}` : ''}`;
 };
 
-const subjectFor = (date: string, steps: readonly Step[], article: Article | undefined): string => {
+/** Search Console, Performance report filtered to Next5 pages, with average position shown. */
+const SEARCH_CONSOLE_URL =
+  'https://search.google.com/search-console/performance/search-analytics?resource_id=sc-domain%3Agiinger.com' +
+  '&page=*next5.giinger.com&metrics=CLICKS%2CIMPRESSIONS%2CCTR%2CPOSITION&num_of_months=3';
+
+type QueryRow = { keys: string[]; clicks: number; impressions: number; position: number };
+
+/** A searchanalytics.query response (dimension: query) saved by seo-daily.sh; no file means no data. */
+const readRows = (file: string | undefined): QueryRow[] =>
+  file ? ((JSON.parse(readFileSync(file, 'utf8')) as { rows?: QueryRow[] }).rows ?? []) : [];
+
+const totals = (rows: readonly QueryRow[]) => {
+  const impressions = rows.reduce((sum, r) => sum + r.impressions, 0);
+  const clicks = rows.reduce((sum, r) => sum + r.clicks, 0);
+  const position = impressions ? rows.reduce((sum, r) => sum + r.position * r.impressions, 0) / impressions : 0;
+  return { impressions, clicks, position };
+};
+
+/** Lower position is better, so a drop in the number is shown as a climb. */
+const movement = (now: number, before: number | undefined): string => {
+  if (before === undefined) return 'new';
+  const diff = before - now;
+  if (Math.abs(diff) < 0.5) return '=';
+  return diff > 0 ? `▲ ${diff.toFixed(1)}` : `▼ ${(-diff).toFixed(1)}`;
+};
+
+const renderRankings = (current: readonly QueryRow[], previous: readonly QueryRow[]): string => {
+  const now = totals(current);
+  const before = totals(previous);
+  const earlier = new Map(previous.map((r) => [r.keys[0], r.position]));
+  const top = [...current].sort((a, b) => b.impressions - a.impressions).slice(0, 15);
+  const rows = top
+    .map((r) => `<tr><td style="${cell}">${escapeHtml(r.keys[0])}</td><td style="${cell}">${r.position.toFixed(1)}</td><td style="${cell}">${movement(r.position, earlier.get(r.keys[0]))}</td><td style="${cell}">${r.impressions}</td><td style="${cell}">${r.clicks}</td></tr>`)
+    .join('');
+  const table = top.length
+    ? `<table style="border-collapse:collapse;width:100%"><tr><th style="${cell}">Search</th><th style="${cell}">Position</th><th style="${cell}">vs last week</th><th style="${cell}">Shown</th><th style="${cell}">Clicks</th></tr>${rows}</table>`
+    : '<p>No searches showed Next5 pages this week yet. New articles take 2 to 8 weeks to start ranking.</p>';
+  return `<h2>Weekly Google ranking</h2>
+<p>Last 7 days of data (Google reports about 3 days late) vs the 7 days before.<br>
+Shown in Google: <strong>${now.impressions}</strong> (was ${before.impressions}) · Clicks: <strong>${now.clicks}</strong> (was ${before.clicks}) · Average position: <strong>${now.position ? now.position.toFixed(1) : '-'}</strong> (was ${before.position ? before.position.toFixed(1) : '-'}). Position 1 is the top result, 1 to 10 is page 1.</p>
+${table}
+<p><a href="${SEARCH_CONSOLE_URL}">Open the full ranking in Search Console</a></p>`;
+};
+
+const subjectFor =(date: string, steps: readonly Step[], article: Article | undefined): string => {
   const failed = steps.find((s) => s.state === 'fail');
   if (failed) return `❌ SEO run ${date}: problem, ${failed.label}`;
   if (!article) return `⏸️ SEO run ${date}: no article today`;
@@ -92,7 +136,11 @@ const main = async (): Promise<void> => {
   const steps = readReport(reportFile);
   const article = slug ? ALL_ARTICLES.find((a) => a.slug === slug) : undefined;
   if (slug && !article) steps.push({ state: 'fail', label: `Article "${slug}" not found for the email copy` });
-  const body = renderReport(steps) + (article && prUrl ? renderArticle(article, prUrl) : '');
+  // Mondays only: seo-daily.sh sets these to this week's and last week's Search Console data.
+  const { SEO_SC_THIS_WEEK: thisWeek, SEO_SC_LAST_WEEK: lastWeek } = process.env;
+  const rankings = thisWeek ? renderRankings(readRows(thisWeek), readRows(lastWeek)) : '';
+  const link = `<p style="color:#666;font-size:13px"><a href="${SEARCH_CONSOLE_URL}">Your Google ranking in Search Console</a></p>`;
+  const body = renderReport(steps) + link + rankings + (article && prUrl ? renderArticle(article, prUrl) : '');
   const html = `<div style="font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:640px;margin:0 auto;color:#111;line-height:1.5">${body}</div>`;
   const plain = steps.map((s) => `${s.state.toUpperCase()}  ${s.label}`).join('\n');
   await sendEmail({ to, subject: subjectFor(date, steps, article), html, plain });

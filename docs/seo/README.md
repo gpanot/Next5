@@ -86,8 +86,9 @@ In code:
    paths and passes the content tests, checks the live page and the sitemap, and resubmits the
    sitemap. At the end it emails the owner a report, one ✅/❌ line per step, with a full copy of
    the article (via Maileroo, keys in `~/.next5-seo/secrets.env`). Skipped days and the last failed
-   attempt get a report too, so no email means the run never happened. To undo an article, press
-   Revert on its PR.
+   attempt get a report too, so no email means the run never happened. Every report links to Search
+   Console; Monday's adds the weekly Google ranking (this week vs last, per search). To undo an
+   article, press Revert on its PR.
    ```bash
    cp scripts/seo-email.ts ~/.next5-seo/seo-email.ts                      # after every edit
    SEO_PUBLISH_PR=<pr url> zsh ~/.next5-seo/seo-daily.sh                 # publish one PR by hand

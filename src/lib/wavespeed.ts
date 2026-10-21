@@ -78,7 +78,7 @@ const requestBody = (spec: ModelRequestSpec, images: string[], params: SubmitEdi
   const ratio = params.aspectRatio ?? '3:4';
   const ratioOk = spec.supportsAspectRatio && (!spec.aspectRatios?.length || spec.aspectRatios.includes(ratio));
   return {
-    ...(spec.imagesField === 'image' ? { image: images[0] } : { [spec.imagesField]: images.slice(0, spec.maxImages) }),
+    ...(images.length === 0 ? {} : spec.imagesField === 'image' ? { image: images[0] } : { [spec.imagesField]: images.slice(0, spec.maxImages) }),
     prompt: params.prompt,
     ...(ratioOk ? { aspect_ratio: ratio } : {}),
     ...(spec.supportsResolution ? { resolution: resolutionFor(resolution, spec.resolutions) } : {}),
@@ -97,8 +97,9 @@ export async function submitEdit(params: SubmitEditParams & { model?: ImageModel
   const key = apiKey();
   if (!key) throw new Error('WAVESPEED_API_KEY is not set');
   const images = params.imageUrls && params.imageUrls.length > 0 ? [...params.imageUrls] : params.imageUrl ? [params.imageUrl] : [];
-  if (images.length === 0) throw new Error('submitEdit needs at least one reference image');
   const spec: ModelRequestSpec = params.spec ?? IMAGE_MODELS[params.model ?? 'nano-banana-2'];
+  // Text-to-image models (maxImages 0) take no reference; every edit model needs one.
+  if (images.length === 0 && spec.maxImages > 0) throw new Error('submitEdit needs at least one reference image');
 
   const res = await fetch(`${BASE_URL}/${spec.path}${params.webhookUrl ? `?webhook=${encodeURIComponent(params.webhookUrl)}` : ''}`, {
     method: 'POST',

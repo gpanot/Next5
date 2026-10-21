@@ -30,6 +30,7 @@ import { assembleCombo, pickCombos } from './bank/pick';
 import { headsFor, withDetectedHeads, type HeadsCache } from './heads';
 import { matchTracks } from './music';
 import { brandLook, planSlidePhotos } from './photoPlan';
+import { castStory } from './storyCast';
 import { makePhotos } from './photos';
 import { renderSlide, slidePhotoIndexes, type PhotoCache } from './render';
 import { ownPhotoEntries, photosPending, withOwnPhotos } from './slidePhotos';
@@ -186,7 +187,10 @@ const planPhotos = async (runId: string, shows: (Assembled | Error)[], picks: Sl
   const planned = [...shows];
   await runPool(ok.map((i, k) => ({ i, k })), 4, async ({ i, k }) => {
     const show = shows[i] as Assembled;
-    const slides = await planSlidePhotos({ slides: show.slides, goal: picks[i]?.goal ?? null, profile, bible, cast: cast[k] ?? null, photos }, meter);
+    const goal = picks[i]?.goal ?? null;
+    // A story names its person in the bank text: it takes the cast member's name, so text and photos match.
+    const texts = goal === 'story' ? await castStory(show.slides, cast[k] ?? null, meter) : show.slides;
+    const slides = await planSlidePhotos({ slides: texts, goal, profile, bible, cast: cast[k] ?? null, photos }, meter);
     planned[i] = { ...show, slides };
   });
   return planned;

@@ -62,9 +62,13 @@ export const hookProblems = (hook: HookDraft, meat: Pick<BankMeat, 'listicle' | 
 };
 
 /** CTA problems, including any number the site does not prove. */
+/** Next5 is US-only: a CTA with several accented letters (a Vietnamese or French site's language) is not English. */
+const readsEnglish = (text: string): boolean => (text.match(/[À-ɏḀ-ỿ]/g) ?? []).length < 3;
+
 export const ctaProblems = (cta: Omit<BankCta, 'id'>, levers: BrandLever[], siteText: string): string[] => {
   const out: string[] = [];
   if (/proven claim/i.test(cta.body)) out.push('says "Proven claim"');
+  if (!readsEnglish(`${cta.title} ${cta.body}`)) out.push('not in English');
   if (cta.body.length > MAX_CTA_BODY) out.push(`body ${cta.body.length} characters (max ${MAX_CTA_BODY})`);
   if ((cta.body.match(/\$\d/g) ?? []).length > 1) out.push('lists several prices');
   if (words(cta.title) > MAX_CTA_TITLE_WORDS) out.push(`title over ${MAX_CTA_TITLE_WORDS} words`);

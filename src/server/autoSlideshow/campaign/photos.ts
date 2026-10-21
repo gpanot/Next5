@@ -15,7 +15,7 @@ import { storeThumb, thumbUrl } from '../../storage/thumbs';
 import { detectHeads } from '../heads';
 import { compressJpeg, MAX_JPEG_BYTES, PHOTO_SIZE } from '../jpeg';
 import { ctaPhotoRefs, productCtaPhoto } from '../ctaPhoto';
-import { generatePhoto, photoPrompt } from '../photos';
+import { photoPrompt, slideshowPhoto } from '../photos';
 import { CAMPAIGN_KIND, type CampaignPhoto } from './store';
 import { appShotOptions, fetchAppShot } from './appShot/store';
 import { fetchUnsplashPhoto, searchedUnsplashPhoto, searchUnsplash } from './unsplash';
@@ -162,7 +162,7 @@ const ctaPrompt = async (runId: string, scene: string, tone: string | null): Pro
 };
 
 /**
- * One photo for the Content tab's "Auto": an AI photo of the scene (on the photo model the auto slideshows use, bright
+ * One photo for the Content tab's "Auto": an AI photo of the scene (on the photo engine the auto slideshows use, bright
  * style, in the tone of the first hook photo when sent), or the `nth` portrait result of a stock search. Stored like a
  * picked photo.
  */
@@ -172,7 +172,7 @@ export const autoPhoto = async (runId: string, req: AutoPhotoRequest): Promise<{
   }
   const tone = req.tonePhoto === undefined ? null : await tonePhotoUrl(runId, req.tonePhoto);
   const { prompt, refs } = req.cta && productCtaPhoto() ? await ctaPrompt(runId, req.scene, tone) : { prompt: photoPrompt(req.scene, undefined, tone ? TONE_NOTE : undefined), refs: tone ? [tone] : [] };
-  const { buffer } = await generatePhoto(prompt, refs, createMeter()).catch((err: unknown) => {
+  const { buffer } = await slideshowPhoto(prompt, refs, createMeter()).catch((err: unknown) => {
     throw new HttpError(502, 'photo_failed', err instanceof Error ? `Photo failed: ${err.message.slice(0, 120)}` : 'Photo failed. Try again.');
   });
   return storeCampaignPhoto(runId, { bytes: buffer, label: req.scene }, 'generated', 'ai');

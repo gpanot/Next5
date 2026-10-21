@@ -3,6 +3,7 @@
 // for the renderer. Lighting words are stripped: "cinematic" and "moody" made photos too dark (A/B test 2026-09-29).
 
 import type { SlideshowStyle } from '../../types/admin/companyIntel';
+import { BUSY_WORDS } from '../autoSlideshow/photoRules';
 
 export const DEFAULT_BOX = { boxColor: '#ffffff', boxTextColor: '#111111' };
 
@@ -11,7 +12,7 @@ export const DEFAULT_BOX = { boxColor: '#ffffff', boxTextColor: '#111111' };
 export const STYLE_PROMPT = `"photoStyle": string (max 30 words, a plain list: who and what the brand's photos show, the
 settings, framing and wardrobe, at the brand's own price level and feel. Luxury car maker: "The car itself on open coastal roads
 and in clean modern architecture; owners in tailored clothes; wide, uncluttered frames". Budget family car: "Families loading
-groceries, busy city streets, everyday driveways; candid, close to the action". Never mention light, weather, time of day, text,
+groceries, city sidewalks, everyday driveways; candid, close to the action". Never mention light, weather, time of day, text,
 graphics, prices or offers),
 "productAsSubject": boolean (true when the product is a physical thing people like to look at, like cars, clothes, food, homes,
 jewelry; false for services and software),
@@ -23,13 +24,13 @@ const BANNED = /\b(dark|darker|moody|night|nighttime|dusk|dawn|sunset|sunrise|go
 const MAX_STYLE_WORDS = 40;
 const HEX = /^#[0-9a-f]{6}$/i;
 
-/** Drops each clause that sets the light or asks for text, and keeps whole clauses up to 40 words. */
+/** Drops each clause that sets the light, asks for text or for clutter (photoRules.ts), and keeps whole clauses up to 40 words. */
 export const cleanPhotoStyle = (text: string): string => {
   const kept: string[] = [];
   let words = 0;
   for (const part of text.split(/(?<=[,.;])\s+/)) {
     const count = part.split(/\s+/).length;
-    if (BANNED.test(part)) continue;
+    if (BANNED.test(part) || BUSY_WORDS.test(part)) continue;
     if (words + count > MAX_STYLE_WORDS) break;
     kept.push(part);
     words += count;

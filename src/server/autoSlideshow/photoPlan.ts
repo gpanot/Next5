@@ -16,6 +16,8 @@ import { clip } from '../metaAds/text';
 import { creativeJson } from '../shorts/llm';
 import { PHOTO_RULES } from './bank/prompts';
 import { CTA_PHOTO_RULE, productCtaPhoto } from './ctaPhoto';
+import { PLAN_SCENE_RULES } from './photoRules';
+import { cleanPhotoStyle } from '../companyIntel/slideshowStyle';
 
 /** Product photos per slideshow: one on the product slides or the CTA, two at most. */
 const MAX_PRODUCT_SLIDES = 2;
@@ -40,6 +42,7 @@ plan the photos behind them, so the slideshow looks like ONE story by this brand
   shoot. A slide may move to a second real place when its text needs it.
 - Vary the shots: never the same shot type twice in a row (wide, medium, detail of hands or product in use...).
   Hook: the most striking shot. {CTA_RULE}
+- ${PLAN_SCENE_RULES.join('\n- ')}
 - The brand's own product photos (P1, P2...) may only go on slides marked "product allowed", and only when the slide
   is about the product{CTA_PRODUCT}. Never on teaching slides: these are not ads.
 - ${PHOTO_RULES}
@@ -63,7 +66,7 @@ const bibleText = (bible: VisualBible | null, profile: BrandProfile) =>
   bible
     ? `BRAND LOOK (Visual Bible):
   category: ${bible.business_category}
-  photo style: ${bible.visual_style}
+  photo style: ${cleanPhotoStyle(bible.visual_style)}
   places (pick from these, never a studio): ${bible.environments}
   wardrobe: ${bible.wardrobe}
   shot types: ${bible.shot_vocabulary}
@@ -166,4 +169,8 @@ export const planSlidePhotos = async (input: PlanInput, meter: CostMeter): Promi
 };
 
 /** The brand look added to every generated photo: the Visual Bible's photo style, else the profile's. */
-export const brandLook = (profile: BrandProfile | null): string | undefined => profile?.visualBible?.visual_style || profile?.slideshowStyle?.photoStyle;
+/** Cleaned again here, so looks stored before a rule change (clutter words, 2026-10-21) follow it too. */
+export const brandLook = (profile: BrandProfile | null): string | undefined => {
+  const look = profile?.visualBible?.visual_style || profile?.slideshowStyle?.photoStyle;
+  return look ? cleanPhotoStyle(look) || look : undefined;
+};
