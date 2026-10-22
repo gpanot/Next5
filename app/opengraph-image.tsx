@@ -21,18 +21,23 @@ const STAT_PATHS: Record<Stat, string> = {
 };
 
 // Same posts and numbers as the home page strip (SlideshowShowcase). Video posts use a still from public/images/og/home.
-const CARDS: { file: string; stats: [Stat, string][]; tilt: number }[] = [
-  { file: 'auto-slideshow/pantry-gaps/1.jpg', stats: [['views', '412K'], ['saves', '9.4K']], tilt: -3 },
-  { file: 'og/home/booking-ugc.jpg', stats: [['views', '97K'], ['likes', '6.8K']], tilt: 2 },
-  { file: 'auto-slideshow/porsche-calmer/1.jpg', stats: [['likes', '14.2K'], ['comments', '284']], tilt: -1 },
-  { file: 'og/home/r1.jpg', stats: [['saves', '31K'], ['comments', '1.8K']], tilt: 2 },
-  { file: 'og/home/reminders-ugc.jpg', stats: [['views', '254K'], ['comments', '395']], tilt: -3 },
+// Each path below is a literal on purpose: a path built from a variable makes the file tracer pull in the whole project.
+const CARDS: { stats: [Stat, string][]; tilt: number }[] = [
+  { stats: [['views', '412K'], ['saves', '9.4K']], tilt: -3 },
+  { stats: [['views', '97K'], ['likes', '6.8K']], tilt: 2 },
+  { stats: [['likes', '14.2K'], ['comments', '284']], tilt: -1 },
+  { stats: [['saves', '31K'], ['comments', '1.8K']], tilt: 2 },
+  { stats: [['views', '254K'], ['comments', '395']], tilt: -3 },
 ];
 
-const imagesDir = join(process.cwd(), 'public', 'images');
+const toJpegSrc = (data: string) => `data:image/jpeg;base64,${data}`;
 const [interBold, ...cardSrcs] = await Promise.all([
   readFile(join(process.cwd(), 'assets', 'fonts', 'Inter-Bold.ttf')),
-  ...CARDS.map(async ({ file }) => `data:image/jpeg;base64,${await readFile(join(imagesDir, file), 'base64')}`),
+  readFile(join(process.cwd(), 'public', 'images', 'auto-slideshow', 'pantry-gaps', '1.jpg'), 'base64').then(toJpegSrc),
+  readFile(join(process.cwd(), 'public', 'images', 'og', 'home', 'booking-ugc.jpg'), 'base64').then(toJpegSrc),
+  readFile(join(process.cwd(), 'public', 'images', 'auto-slideshow', 'porsche-calmer', '1.jpg'), 'base64').then(toJpegSrc),
+  readFile(join(process.cwd(), 'public', 'images', 'og', 'home', 'r1.jpg'), 'base64').then(toJpegSrc),
+  readFile(join(process.cwd(), 'public', 'images', 'og', 'home', 'reminders-ugc.jpg'), 'base64').then(toJpegSrc),
 ]);
 
 const PLATFORMS = [
@@ -78,8 +83,8 @@ const StatRow = ({ stats }: { stats: [Stat, string][] }) => (
 
 const CardStrip = () => (
   <div style={{ position: 'absolute', left: 0, right: 0, top: 322, display: 'flex', justifyContent: 'center', gap: 22 }}>
-    {CARDS.map(({ file, stats, tilt }, i) => (
-      <div key={file} style={{ display: 'flex', flexDirection: 'column', width: 206, padding: 7, borderRadius: 18, background: '#ffffff', border: `1px solid ${THEME.line}`, boxShadow: '0 14px 30px rgba(0,0,0,0.14)', transform: `rotate(${tilt}deg)` }}>
+    {CARDS.map(({ stats, tilt }, i) => (
+      <div key={i} style={{ display: 'flex', flexDirection: 'column', width: 206, padding: 7, borderRadius: 18, background: '#ffffff', border: `1px solid ${THEME.line}`, boxShadow: '0 14px 30px rgba(0,0,0,0.14)', transform: `rotate(${tilt}deg)` }}>
         <img src={cardSrcs[i]} alt="" width={190} height={236} style={{ borderRadius: 12, objectFit: 'cover' }} />
         <StatRow stats={stats} />
       </div>
