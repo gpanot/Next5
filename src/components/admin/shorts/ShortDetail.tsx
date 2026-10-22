@@ -6,6 +6,7 @@ import { DownloadIcon } from '../../ui/Icons';
 import { DEFAULT_PHOTO_MODEL, SHORT_PHOTO_MODELS, SHORT_STEP_LABELS, SHORT_TEXT_MODELS, videoModelLabel, type ShortDetailDto, type ShortStep } from '../../../types/admin/shorts';
 import { BeatsPanel } from './BeatsPanel';
 import { ClipsGatePanel } from './ClipsGatePanel';
+import { RedoClipsPanel } from './RedoClipsPanel';
 import { PhotosGatePanel } from './PhotosGatePanel';
 import { NarrationPanel } from './NarrationPanel';
 import { ScriptPanel } from './ScriptPanel';
@@ -94,6 +95,8 @@ function DetailSkeleton() {
 /** One short in full: the video, then everything needed to understand how it was made and what went wrong. */
 export function ShortDetail({ token, id }: { token: string; id: string }) {
   const { short, error, refresh } = useShortDetail(token, id);
+  const [redoOpen, setRedoOpen] = useState(false);
+  const canRedo = !!short && !isRunning(short.status) && short.beats.length > 0 && short.beats.every((b) => b.imageUrl);
   return (
     <div className="mx-auto max-w-7xl space-y-5">
       <div className="space-y-1">
@@ -104,8 +107,19 @@ export function ShortDetail({ token, id }: { token: string; id: string }) {
           {short && (
             <button
               type="button"
+              onClick={() => setRedoOpen((o) => !o)}
+              disabled={!canRedo}
+              title={canRedo ? undefined : 'Available when the short is idle and every shot has a photo'}
+              className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg bg-app-ink px-4 text-sm font-bold text-app-panel shadow-sm transition hover:opacity-90 active:scale-[0.98] disabled:opacity-40"
+            >
+              Redo clips
+            </button>
+          )}
+          {short && (
+            <button
+              type="button"
               onClick={() => downloadShortSpec(short)}
-              className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg border border-app-line bg-app-panel px-4 text-sm font-bold text-app-ink shadow-sm transition hover:bg-app-sunken active:scale-[0.98]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-app-line bg-app-panel px-4 text-sm font-bold text-app-ink shadow-sm transition hover:bg-app-sunken active:scale-[0.98]"
             >
               <DownloadIcon className="h-4 w-4" />
               Download Spec
@@ -113,6 +127,7 @@ export function ShortDetail({ token, id }: { token: string; id: string }) {
           )}
         </div>
       </div>
+      {short && redoOpen && canRedo && <RedoClipsPanel short={short} token={token} onStarted={() => { setRedoOpen(false); refresh(); }} />}
       {error && !short && <p className="rounded-xl bg-app-accent-soft p-4 text-sm text-app-danger">{error}</p>}
       {!short && !error && <DetailSkeleton />}
       {short && (
@@ -128,7 +143,7 @@ export function ShortDetail({ token, id }: { token: string; id: string }) {
             <StepsPanel short={short} />
             <NarrationPanel short={short} />
             <ScriptPanel short={short} />
-            <BeatsPanel short={short} />
+            <BeatsPanel short={short} token={token} onChanged={refresh} />
             <VisualBiblePanel short={short} token={token} />
           </div>
         </div>

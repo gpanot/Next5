@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { adminFetch, useAdminApi } from '../business/useAdminApi';
-import type { ShortDetailDto, ShortDto, ShortPhotoModel, ShortStatus, ShortStep, ShortTextModel, ShortVideoModel, ShortWorkspaceDto } from '../../../types/admin/shorts';
+import type { ShortDetailDto, ShortDto, ShortPhotoModel, ShortStatus, ShortStep, ShortTextModel, ShortVideoModel, ShortWorkspaceDto, VideoPromptMode } from '../../../types/admin/shorts';
 import type { VisualBible, VisualBibleDto, VisualBibleKey } from '../../../types/admin/visualBible';
 
 const POLL_MS = 4_000;
@@ -41,8 +41,16 @@ export const createShort = (token: string, workspaceId: string, videoModel: Shor
   adminFetch<{ id: string }>(token, '/api/admin/shorts', { method: 'POST', body: JSON.stringify({ workspaceId, videoModel, textModel }) });
 
 /** `photoModel`: the photo stop's pick, saved on the short before the photos are made. */
-export const rerunShort = (token: string, id: string, fromStep: ShortStep, photoModel?: ShortPhotoModel) =>
-  adminFetch<{ ok: boolean }>(token, `/api/admin/shorts/${id}`, { method: 'POST', body: JSON.stringify({ fromStep, photoModel }) });
+export const rerunShort = (token: string, id: string, fromStep: ShortStep, photoModel?: ShortPhotoModel, videoPromptMode?: VideoPromptMode) =>
+  adminFetch<{ ok: boolean }>(token, `/api/admin/shorts/${id}`, { method: 'POST', body: JSON.stringify({ fromStep, photoModel, videoPromptMode }) });
+
+/** Drops every clip and makes them again (steps 4-5) with this video prompt style, optionally with new motion actions. */
+export const redoClips = (token: string, id: string, mode: VideoPromptMode, rewriteActions: boolean) =>
+  adminFetch<{ ok: boolean }>(token, `/api/admin/shorts/${id}`, { method: 'POST', body: JSON.stringify({ redoClips: { mode, rewriteActions } }) });
+
+/** One shot's photo made again from an edited prompt; resolves when the new photo is saved (up to ~3 min). */
+export const regenerateShot = (token: string, id: string, idx: number, prompt: string) =>
+  adminFetch<{ ok: boolean }>(token, `/api/admin/shorts/${id}`, { method: 'POST', body: JSON.stringify({ regenerate: { idx, prompt } }) });
 
 /** New narration with another of the short's voice options, then a new render on the same photos and clips. */
 export const swapVoice = (token: string, id: string, voice: string) =>

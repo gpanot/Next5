@@ -11,9 +11,10 @@
 // clause, not its sentence: dropping whole sentences removed the shot's subject on 2026-10-06).
 
 import type { CostMeter } from '../metaAds/cost';
-import type { MotionHint, ShortBeat, ShortInputs } from '../../types/admin/shorts';
+import type { MotionHint, ShortBeat, ShortInputs, VideoPromptMode } from '../../types/admin/shorts';
 import { planCast, type BeatCast } from './cast';
 import { VISUAL_RULES } from './guidelines';
+import { PHOTO_FORMULA } from './photoFormula';
 import { creativeJson, smartModel } from './llm';
 
 export const MOTIONS: MotionHint[] = ['static', 'slow_zoom_in', 'slow_zoom_out', 'pan_left', 'pan_right', 'ken_burns'];
@@ -67,6 +68,8 @@ COMPOSITION (non-negotiable):
   materials, nothing out of place. Never add a random prop or a recolored object to catch the eye.
 - No text, letters, captions, or watermarks IN the image — subtitles are added later in post.
 
+${PHOTO_FORMULA}
+
 GROUNDING:
 - visual_anchor MUST be one of the evidence items listed below, copied verbatim.
 - image_prompt SHOWS the anchor's subject (the product, place, person or object it is about) — NEVER its number, price
@@ -92,6 +95,11 @@ everyday movements (she types a line and glances up; he picks up the box and tur
 "gracefully", "in slow motion" or dreamy floating. A beat with no person: what moves naturally (steam, a hand, traffic).
 Use ONLY people and objects your image_prompt puts in the frame: never pick up, open or reveal something that is not in
 the photo (a phone that is not on the desk would pop out of nowhere).
+MOTION ACTION RULES (the clip is 4-6 s from this photo; Veo adds artifacts on fine detail):
+  - ONE big, simple movement a viewer sees clearly from THIS camera angle: walk, turn, stand up, open a door, lift, nod.
+  - Never fine hand-object contact (buckles, handles, laces, zippers, small buttons, typing), never an action behind glass
+    or inside a car seen from outside, never two things moving at once.
+  - No new object, person or part of the car that is not already in the photo.
 
 Return JSON with exactly these keys: {"image_prompt": string, "motion_hint": string, "motion_action": string, "visual_anchor": string}`;
 
@@ -103,9 +111,8 @@ THIS IS THE NARRATIVE LINE FOR THIS BEAT — the visual MUST match:
 
 Beat meta: idx ${beat.idx} · role ${beat.role} · ${beat.spanS.toFixed(2)} s
 
-image_prompt — 40-80 words. Start with the shot type. 9:16 vertical, subject centered or slightly above center, calm
-lower third for captions, the concrete subject of this line (never its figures), everything realistic. Specific
-subject, setting, framing, light.`;
+image_prompt — 70-120 words, written with the IMAGE PROMPT FORMULA. The framing (part 3) uses the shot type above. The
+concrete subject of this line (never its figures), everything realistic.`;
 
 type RawVisual = { image_prompt?: string; motion_hint?: string; motion_action?: string; visual_anchor?: string };
 
@@ -198,13 +205,23 @@ const CAMERA: Record<MotionHint, string> = {
 const REAL_TIME =
   'Real-time speed: people and things move at normal everyday pace, like an unedited phone video of real life. No slow motion, no time-lapse, no dreamy floating movement.';
 
-/** The video prompt: the shot, what happens in it, the camera, and real-time speed. */
-export const videoPrompt = (beat: ShortBeat): string =>
-  [
+/** Used when the planner gave no action: Veo only needs permission to move a little. */
+const DEFAULT_ACTION = 'Natural small everyday movement';
+
+/**
+ * The video prompt. 'simple' (default since 2026-10-22): the action, the camera and the speed only; the long prompt
+ * (the whole photo prompt again) gave weird AI artifacts on 4-6 s clips, and Veo 3.1 reads the first frame itself.
+ * 'detailed': the photo's prompt, the action, the camera and real-time speed (the earlier prompt).
+ */
+export const videoPrompt = (beat: ShortBeat, mode: VideoPromptMode = 'simple'): string => {
+  const action = beat.motionAction?.replace(/\.$/, '');
+  if (mode === 'simple') return `${action ?? DEFAULT_ACTION}. ${CAMERA[beat.motionHint ?? 'slow_zoom_in']}. Normal real-life speed.`;
+  return [
     `${(beat.imagePrompt ?? beat.text).replace(/\.$/, '')}.`,
-    beat.motionAction ? `Action: ${beat.motionAction.replace(/\.$/, '')}.` : '',
+    action ? `Action: ${action}.` : '',
     `${CAMERA[beat.motionHint ?? 'slow_zoom_in']}.`,
     REAL_TIME,
   ]
     .filter(Boolean)
     .join(' ');
+};

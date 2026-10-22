@@ -174,7 +174,7 @@ const clipFor = async (short: ShortReel, beat: ShortBeat, meter: CostMeter): Pro
   const model = short.videoModel as ShortVideoModel;
   const t0 = Date.now();
   const seconds = genSeconds(model, beat.spanS);
-  const prompt = videoPrompt(beat);
+  const prompt = videoPrompt(beat, (short.inputs as unknown as ShortInputs | null)?.videoPromptMode);
   const source: ClipSource = { taskId: beat.clipTaskId, url: beat.clipSourceUrl };
   const base = { ...beat, genS: seconds, videoPrompt: prompt };
   try {

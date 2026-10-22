@@ -40,6 +40,10 @@ export const SHORT_PHOTO_MODELS: Record<ShortPhotoModel, { label: string; detail
 /** Nano Banana 2.1 for every generated photo since 2026-10-10 (user's pick). */
 export const DEFAULT_PHOTO_MODEL: ShortPhotoModel = 'nano-banana-2.1';
 
+/** What the video model is told: 'simple' = the action and the camera only (Veo 3.1 reads the photo); 'detailed' = the photo's prompt too. */
+export type VideoPromptMode = 'simple' | 'detailed';
+export const isVideoPromptMode = (v: unknown): v is VideoPromptMode => v === 'simple' || v === 'detailed';
+
 export const isShortPhotoModel = (v: unknown): v is ShortPhotoModel => typeof v === 'string' && v in SHORT_PHOTO_MODELS;
 
 /** Text model of the script, fact check, Visual Bible, storyboard, shot plans, photo check and voice casting, picked per short. */
@@ -83,6 +87,8 @@ export type ShortInputs = {
   textModel?: ShortTextModel;
   /** The photo model the admin picked at the photo stop (absent: FLUX.2). */
   photoModel?: ShortPhotoModel;
+  /** Video prompt style picked at the clips stop (absent: simple, since 2026-10-22). */
+  videoPromptMode?: VideoPromptMode;
   /** The brand's Visual Bible as the photo step used it (absent: the classic photo prompts were used). */
   visualBible?: VisualBible;
   /** The anchor photo (main character + hero product) every shot's photo was made from as a reference. */

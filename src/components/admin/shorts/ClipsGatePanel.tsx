@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { genSeconds, SHORT_VIDEO_MODELS, isShortVideoModel, type ShortDetailDto } from '../../../types/admin/shorts';
+import { genSeconds, SHORT_VIDEO_MODELS, isShortVideoModel, type ShortDetailDto, type VideoPromptMode } from '../../../types/admin/shorts';
 import { rerunShort, usd } from './useShorts';
 
 /** Rough clip cost: every shot's generated seconds at the model's price. Null for a retired model. */
@@ -16,13 +16,14 @@ const clipEstimate = (short: ShortDetailDto): number | null => {
 export function ClipsGatePanel({ short, token, onContinue }: { short: ShortDetailDto; token: string; onContinue: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<VideoPromptMode>(short.inputs?.videoPromptMode ?? 'simple');
   if (short.status !== 'AWAITING_CLIPS') return null;
   const estimate = clipEstimate(short);
   const go = async () => {
     setBusy(true);
     setError(null);
     try {
-      await rerunShort(token, short.id, 4);
+      await rerunShort(token, short.id, 4, undefined, mode);
       onContinue();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not start the clips');
@@ -38,6 +39,15 @@ export function ClipsGatePanel({ short, token, onContinue }: { short: ShortDetai
           Check the narration and the photos below. Make the clips only if they are good. Not good? Use “Run again” from step 1 or 3.
         </p>
       </div>
+      <fieldset className="space-y-1">
+        <legend className="text-xs font-bold text-app-muted">Video prompt</legend>
+        {(['simple', 'detailed'] as const).map((m) => (
+          <label key={m} className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-app-ink">
+            <input type="radio" name="videoPromptMode" checked={mode === m} onChange={() => setMode(m)} className="h-4 w-4" />
+            {m === 'simple' ? 'Simple: the action and the camera only (Veo reads the photo)' : 'Detailed: the photo prompt, action, camera and speed'}
+          </label>
+        ))}
+      </fieldset>
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"

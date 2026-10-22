@@ -9,6 +9,7 @@ import type { CostMeter } from '../metaAds/cost';
 import type { MotionHint, ShortBeat, ShortInputs, ShotBoard } from '../../types/admin/shorts';
 import type { VisualBible } from '../../types/admin/visualBible';
 import { creativeJson, smartModel } from './llm';
+import { PHOTO_FORMULA } from './photoFormula';
 import { LIGHT_WORDS } from './visualBible';
 import { MOTIONS, sanitizeImagePrompt } from './visuals';
 
@@ -98,9 +99,16 @@ COMPOSITION (non-negotiable):
 - Products and packaging are plain, with no invented brand names, logos or lettering on them.
 - Bright, well-exposed daylight. Never night, dusk, moody, neon or cinematic light.
 
+${PHOTO_FORMULA}
+
 MOTION: "motion_hint" one of static | slow_zoom_in | slow_zoom_out | pan_left | pan_right | ken_burns (hook: slow_zoom_in,
 payoff: static). "motion_action": ONE sentence (8-20 words) of what visibly happens next at real-life speed, using only
 people and objects in the photo. Never "slowly", "gently", "in slow motion".
+MOTION ACTION RULES (the clip is 4-6 s from this photo; Veo adds artifacts on fine detail):
+  - ONE big, simple movement a viewer sees clearly from THIS camera angle: walk, turn, stand up, open a door, lift, nod.
+  - Never fine hand-object contact (buckles, handles, laces, zippers, small buttons, typing), never an action behind glass
+    or inside a car seen from outside, never two things moving at once.
+  - No new object, person or part of the car that is not already in the photo.
 
 Return JSON: {"image_prompt": string, "motion_hint": string, "motion_action": string}`;
 
@@ -108,9 +116,9 @@ const shotUser = (beat: ShortBeat, narration: string) => `FULL NARRATION: ${narr
 
 THIS BEAT'S LINE: "${beat.text}"
 
-image_prompt: 50-90 words. Start with the shot type. The line's concrete action and objects MUST be in it (not a pose).
-Describe the main character exactly as the storyboard does (age, look, outfit), the setting, the product as the
-storyboard says, the lower third, the light. Never mention labels, signs, text, prices or numbers: name the object
+image_prompt: 70-120 words, written with the IMAGE PROMPT FORMULA. The line's concrete action and objects MUST be in
+part 1 (not a pose). Describe the main character exactly as the storyboard does (age, look, outfit), the setting, the
+product as the storyboard says. Never mention labels, signs, text, prices or numbers: name the object
 itself. In a close-up, a person appears only as hands or a natural partial crop.`;
 
 type RawShot = { image_prompt?: string; motion_hint?: string; motion_action?: string };

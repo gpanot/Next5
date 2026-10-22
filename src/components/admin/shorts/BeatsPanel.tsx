@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { ShortBeatDto, ShortDetailDto } from '../../../types/admin/shorts';
 import { DownloadIcon } from '../../ui/Icons';
+import { ImagePromptEditor } from './ImagePromptEditor';
 import { PhotoLightbox } from './PhotoLightbox';
 import { Disclosure, Section } from './Section';
 import { ShotQaBadge, ShotQaDetail } from './ShotQaBadge';
@@ -49,7 +50,9 @@ function BeatMedia({ beat, onOpen }: { beat: ShortBeatDto; onOpen: () => void })
   );
 }
 
-function BeatCard({ beat, onOpen }: { beat: ShortBeatDto; onOpen: () => void }) {
+type CardProps = { beat: ShortBeatDto; short: ShortDetailDto; token: string; onOpen: () => void; onChanged: () => void };
+
+function BeatCard({ beat, short, token, onOpen, onChanged }: CardProps) {
   const changed = beat.rawImagePrompt && beat.imagePrompt && beat.rawImagePrompt !== beat.imagePrompt;
   return (
     <li className="space-y-3 rounded-lg border border-app-line p-3">
@@ -82,7 +85,9 @@ function BeatCard({ beat, onOpen }: { beat: ShortBeatDto; onOpen: () => void }) 
       <ShotQaDetail beat={beat} />
       {beat.clipError && <p className="rounded-lg bg-app-accent-soft p-2 font-mono text-[11px] break-words text-app-danger">{beat.clipError}</p>}
       <div className="space-y-1.5">
-        {beat.imagePrompt && <Disclosure label="Image prompt (sent)" text={beat.imagePrompt} />}
+        {beat.imagePrompt && (
+          <ImagePromptEditor key={beat.imageKey ?? beat.idx} beat={beat} shortId={short.id} token={token} disabled={short.status.endsWith('_RUNNING')} onDone={onChanged} />
+        )}
         {changed && <Disclosure label="Image prompt as planned (before text/number stripping)" text={beat.rawImagePrompt ?? ''} />}
         {beat.motionAction && <p className="text-xs text-app-muted">Motion: <span className="text-app-ink">{beat.motionAction}</span></p>}
         {beat.videoPrompt && <Disclosure label="Video prompt" text={beat.videoPrompt} />}
@@ -92,7 +97,7 @@ function BeatCard({ beat, onOpen }: { beat: ShortBeatDto; onOpen: () => void }) 
 }
 
 /** Every shot: its line, timing, photo, clip and the prompts that made them. A photo opens full size. */
-export function BeatsPanel({ short }: { short: ShortDetailDto }) {
+export function BeatsPanel({ short, token, onChanged }: { short: ShortDetailDto; token: string; onChanged: () => void }) {
   const [open, setOpen] = useState<number | null>(null);
   if (short.beats.length === 0) {
     return (
@@ -103,7 +108,7 @@ export function BeatsPanel({ short }: { short: ShortDetailDto }) {
   }
   return (
     <Section title="Shots" aside={`${short.beats.length} shots`}>
-      <ul className="grid gap-3 lg:grid-cols-2">{short.beats.map((b, i) => <BeatCard key={b.idx} beat={b} onOpen={() => setOpen(i)} />)}</ul>
+      <ul className="grid gap-3 lg:grid-cols-2">{short.beats.map((b, i) => <BeatCard key={b.idx} beat={b} short={short} token={token} onOpen={() => setOpen(i)} onChanged={onChanged} />)}</ul>
       {open !== null && <PhotoLightbox beats={short.beats} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />}
     </Section>
   );
