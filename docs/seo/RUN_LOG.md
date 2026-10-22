@@ -4,6 +4,7 @@ One line per daily run, newest first.
 
 | Date | Target query | Source | Action | Result | First-try pass |
 | --- | --- | --- | --- | --- | --- |
+| 2026-10-22 | social media for hair salons (40/mo US) | Backlog, cold start (Search Console: 2 query rows site-wide) | New article, hub `industry` | Shipped: PR #58, both review passes clean | Yes |
 | 2026-10-21 | social media for gyms (70/mo US) | Backlog, cold start (Search Console: 1 impression site-wide) | New article, hub `industry` | Shipped: PR #57, both review passes clean | Yes |
 | 2026-10-20 | coming soon real estate post (90/mo US) | Backlog, cold start (Search Console: 0 rows) | New article, hub `realtors` | Shipped after override: 2nd review fail on check 5, reviewer-introduced lines removed | No |
 | 2026-10-20 | social media marketing for dentists (210/mo US) | Backlog, cold start | New article, hub `industry` | Dropped by owner: broad agency term (not a narrow question), no dental cover, 2nd review fail on check 5 | No |
