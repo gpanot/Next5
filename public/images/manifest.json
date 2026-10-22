@@ -4627,5 +4627,32 @@
     "bytes": 539631,
     "alt": "Hair stylist cutting a seated client's hair at a salon chair, bright daylight through the front window",
     "generatedAt": "2026-10-22T01:02:32.474Z"
+  },
+  "public/images/og/home/booking-ugc.jpg": {
+    "prompt": "Frame at 1.2s of public/videos/perfect-ads/booking-ugc.mp4 (ffmpeg), used as a still in the home page Open Graph card.",
+    "model": "video-frame/ffmpeg",
+    "size": "432x768",
+    "outputSize": "432x768",
+    "bytes": 31410,
+    "alt": "Still from a UGC video about online booking: woman talking to camera at her desk",
+    "generatedAt": "2026-10-22T04:20:00.000Z"
+  },
+  "public/images/og/home/r1.jpg": {
+    "prompt": "Frame at 1.2s of public/videos/perfect-ads/r1.mp4 (ffmpeg), used as a still in the home page Open Graph card.",
+    "model": "video-frame/ffmpeg",
+    "size": "432x768",
+    "outputSize": "432x768",
+    "bytes": 39809,
+    "alt": "Still from a UGC video: person working at a desk in a brick-walled startup office",
+    "generatedAt": "2026-10-22T04:20:00.000Z"
+  },
+  "public/images/og/home/reminders-ugc.jpg": {
+    "prompt": "Frame at 1.2s of public/videos/perfect-ads/reminders-ugc.mp4 (ffmpeg), used as a still in the home page Open Graph card.",
+    "model": "video-frame/ffmpeg",
+    "size": "432x768",
+    "outputSize": "432x768",
+    "bytes": 29218,
+    "alt": "Still from a UGC video about appointment reminders: man talking to camera in a workshop",
+    "generatedAt": "2026-10-22T04:20:00.000Z"
   }
 }
