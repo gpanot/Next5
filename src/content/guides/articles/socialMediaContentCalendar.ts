@@ -76,7 +76,7 @@ export const socialMediaContentCalendar: Article = {
     ] },
     { type: 'cta', title: 'Get your 30 days filled for you', text: 'Next5 reads your website and fills a 30-day calendar with posts built on formats that already get views. Swipe through ideas, keep the ones you like, approve, and we post.' },
     { type: 'h2', text: 'How often should you post?' },
-    { type: 'p', text: 'One post a day is a great goal. If you can only do 3 a week, use days 1 to 30 of the template over 10 weeks. Steady wins. Read [the best time to post on TikTok](/blog/best-time-to-post-on-tiktok) to pick your time slot, or see [social media for gyms](/blog/social-media-for-gyms) for a posting plan sized for one trade.' },
+    { type: 'p', text: 'One post a day is a great goal. If you can only do 3 a week, use days 1 to 30 of the template over 10 weeks. Steady wins. Read [the best time to post on TikTok](/blog/best-time-to-post-on-tiktok) to pick your time slot, or see [social media for gyms](/blog/social-media-for-gyms) and [social media for hair salons](/blog/social-media-for-hair-salons) for posting plans sized for one trade.' },
   ],
   faq: [
     { q: 'What is a social media content calendar?', a: 'A plan that lists what you will post, on which app and on which day. It saves time and keeps you posting every week.' },

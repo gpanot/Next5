@@ -10,6 +10,7 @@ import { howToSellOnTikTokShop } from './articles/howToSellOnTikTokShop';
 import { marketingIdeasSmallBusiness } from './articles/marketingIdeasSmallBusiness';
 import { socialMediaContentCalendar } from './articles/socialMediaContentCalendar';
 import { socialMediaForGyms } from './articles/socialMediaForGyms';
+import { socialMediaForHairSalons } from './articles/socialMediaForHairSalons';
 import { socialMediaForRealtors } from './articles/socialMediaForRealtors';
 import { socialMediaManagerCost } from './articles/socialMediaManagerCost';
 import { socialMediaMarketingSmallBusiness } from './articles/socialMediaMarketingSmallBusiness';
@@ -34,6 +35,7 @@ export const BLOG_POSTS: readonly Article[] = [
   facelessTikTokIdeas,
   chatgptForSocialMedia,
   socialMediaForGyms,
+  socialMediaForHairSalons,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];
