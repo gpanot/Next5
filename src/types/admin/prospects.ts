@@ -97,7 +97,20 @@ export type ProspectViewDay = {
   why: ProspectWhy | null;
   /** A day after the free ones: only its first slide or shot is shown, the rest comes after purchase. */
   locked: boolean;
+  /** What kind of post it is ("Education", "Story"...), shown on its thumbnail. Null when unknown. */
+  tag: string | null;
 };
+
+/** Thumbnail tags: a slideshow's content goal, or a Blitz story's format (labs/blitzFormats.ts), in words a shop owner
+ *  knows. Kept to a few tags so the 14 days read as a mix. */
+const GOAL_TAGS: Record<string, string> = { teach: 'Education', proof: 'Proof', myth: 'Myth buster', story: 'Story', product: 'Product' };
+const FORMAT_TAGS: Record<string, string> = {
+  problem_fix: 'Education', myth_truth: 'Myth buster', mistake: 'Common mistake', how_to: 'How-to',
+  signs: 'Education', before_after: 'Before & after', objection: 'Q&A', offer: 'Product',
+};
+
+export const goalTag = (goal: string | null | undefined): string | null => (goal ? GOAL_TAGS[goal] ?? null : null);
+export const formatTag = (format: string | null | undefined): string | null => (format ? FORMAT_TAGS[format] ?? null : null);
 
 /** GET /api/prospect/[token]. `heldUntil`: when the preview offer ends (7 days after the pack was made). */
 export type ProspectViewDto = { name: string; websiteUrl: string; status: 'ready' | 'claimed'; heldUntil: string; heldEnded: boolean; days: ProspectViewDay[] };

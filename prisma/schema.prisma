@@ -59,6 +59,7 @@ model User {
   workspaces Workspace[]
   consents   ConsentRecord[]
   payments   Payment[]
+  brandBlueprints BrandBlueprint[]
 
   @@map("users")
 }
@@ -319,6 +320,7 @@ model Workspace {
   userUploads         UserUpload[]
   brandCast           BrandCastMember[]
   onboardingProfile   OnboardingProfile?
+  brandBlueprints     BrandBlueprint[]
 
   // One Brand and one Shop studio per user: a partial unique index in SQL (db/migrations, *_slideshow_workspaces.sql)
   // that skips 'slideshow' workspaces. Prisma cannot express it, so it is not declared here.
@@ -2744,4 +2746,27 @@ model ApiCostEvent {
   @@index([userId, createdAt])
   @@index([createdAt])
   @@map("api_cost_events")
+}
+
+/// Brand Blueprint (/app/{studio}/blueprint): topics per pillar, the About card and a 7-day plan with a script per day.
+/// One active row per workspace, enforced in code (get-or-create). `version` is bumped on every write and checked on
+/// PATCH so two open tabs never overwrite each other. Shapes are validated with Zod (src/lib/blueprint/schema.ts).
+model BrandBlueprint {
+  id          String    @id @default(cuid())
+  /// Null: the admin's own blueprint (Admin › Jun Yuh › My Blueprint).
+  workspaceId String?    @map("workspace_id")
+  createdBy   String?    @map("created_by")
+  /// { skills | passions | story: 5 slots of { text, main } }, at most 3 main per pillar.
+  topics      Json
+  about       Json      @default("{\"aud\":\"\",\"off\":\"\",\"cred\":\"\",\"voice\":\"\"}")
+  plan        Json
+  step        Int       @default(0) @db.SmallInt
+  version     Int       @default(1)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @map("updated_at")
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator     User?      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId], map: "brand_blueprints_workspace_idx")
+  @@map("brand_blueprints")
 }

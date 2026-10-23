@@ -7,7 +7,7 @@ import { prisma } from '../../lib/db';
 import { getPresignedUrl } from '../../lib/r2';
 import type { AutoSlide } from '../../types/admin/autoSlideshow';
 import { GOAL_LABELS, type ContentGoal } from '../../types/admin/contentGoals';
-import { PROSPECT_FREE_DAYS, PROSPECT_HOLD_DAYS, type ProspectBlitz, type ProspectDay, type ProspectKind, type ProspectViewDay, type ProspectViewDto, type ProspectWhy } from '../../types/admin/prospects';
+import { formatTag, goalTag, PROSPECT_FREE_DAYS, PROSPECT_HOLD_DAYS, type ProspectBlitz, type ProspectDay, type ProspectKind, type ProspectViewDay, type ProspectViewDto, type ProspectWhy } from '../../types/admin/prospects';
 import type { DeckItem } from '../slideshow/core/deckAssembly';
 import { HttpError } from '../http';
 
@@ -16,11 +16,16 @@ const LINK_S = 6 * 3600;
 
 const signed = async (key: string | null | undefined): Promise<string | null> => (key ? getPresignedUrl(key, LINK_S) : null);
 
-/** The Blitz card's own "Why this?" (deckAssembly whyPanel), from the idea the video was made from. */
-const blitzWhy = async (ideaId: string | undefined): Promise<ProspectWhy | null> => {
+/** The idea's deck card, which the video was made from. */
+const ideaCard = async (ideaId: string | undefined): Promise<DeckItem | null> => {
   if (!ideaId) return null;
   const row = await prisma.slideshowVariant.findUnique({ where: { id: ideaId }, select: { plan: true } });
-  const why = ((row?.plan as { card?: DeckItem } | null)?.card)?.whyPanel;
+  return (row?.plan as { card?: DeckItem } | null)?.card ?? null;
+};
+
+/** The Blitz card's own "Why this?" (deckAssembly whyPanel). */
+const blitzWhy = (card: DeckItem | null): ProspectWhy | null => {
+  const why = card?.whyPanel;
   if (!why) return null;
   return { audience: why.audience, hook: why.hookStyle, hookReason: why.hookStyleReason, story: why.storyLines, proof: why.proofNote };
 };
@@ -41,13 +46,12 @@ const slideshowWhy = (kind: Exclude<ProspectKind, 'blitz'>, goal: string | null,
 
 /** A locked video: the first shot of its idea (photo or clip) under its hook line. */
 const lockedBlitzDay = async (day: ProspectDay, ideaId: string | undefined): Promise<ProspectViewDay | null> => {
-  if (!ideaId) return null;
-  const row = await prisma.slideshowVariant.findUnique({ where: { id: ideaId }, select: { plan: true } });
-  const shot = ((row?.plan as { card?: DeckItem } | null)?.card)?.shots[0];
+  const card = await ideaCard(ideaId);
+  const shot = card?.shots[0];
   if (!shot) return null;
   const url = shot.assetKey ? await signed(shot.assetKey) : shot.mediaUrl || null;
   const clip = shot.mediaKind === 'video';
-  return { day: day.day, at: day.at, kind: 'blitz', title: shot.text, videoUrl: clip ? url : null, slides: !clip && url ? [url] : [], durationSec: null, audioUrl: null, audioStart: 0, caption: '', why: null, locked: true };
+  return { day: day.day, at: day.at, kind: 'blitz', title: shot.text, videoUrl: clip ? url : null, slides: !clip && url ? [url] : [], durationSec: null, audioUrl: null, audioStart: 0, caption: '', why: null, locked: true, tag: formatTag(card.script?.format) };
 };
 
 const blitzDay = async (day: ProspectDay, ideaId: string | undefined): Promise<ProspectViewDay | null> => {
@@ -55,7 +59,8 @@ const blitzDay = async (day: ProspectDay, ideaId: string | undefined): Promise<P
   if (!project?.renderedVideoKey) return null;
   const seconds = Number((project.currentAssets as { durationSeconds?: unknown } | null)?.durationSeconds);
   const durationSec = Number.isFinite(seconds) && seconds > 0 ? Math.round(seconds) : null;
-  return { day: day.day, at: day.at, kind: 'blitz', title: project.captionText, videoUrl: await signed(project.renderedVideoKey), slides: [], durationSec, audioUrl: null, audioStart: 0, caption: project.captionText, why: await blitzWhy(ideaId), locked: false };
+  const card = await ideaCard(ideaId);
+  return { day: day.day, at: day.at, kind: 'blitz', title: project.captionText, videoUrl: await signed(project.renderedVideoKey), slides: [], durationSec, audioUrl: null, audioStart: 0, caption: project.captionText, why: blitzWhy(card), locked: false, tag: formatTag(card?.script?.format) };
 };
 
 /** A slideshow day with its music; a locked one keeps only its first slide (a preview has only that one rendered). */
@@ -70,7 +75,7 @@ const slideshowDay = async (day: ProspectDay, locked: boolean): Promise<Prospect
   if (urls.length === 0) return null;
   const why = locked || day.kind === 'blitz' ? null : slideshowWhy(day.kind, show.goal, slides);
   const audioUrl = locked ? null : await signed(show.audio?.r2Key);
-  return { day: day.day, at: day.at, kind: day.kind, title: slides[0]?.title ?? '', videoUrl: null, slides: urls, durationSec: null, audioUrl, audioStart: show.audioStart, caption: locked ? '' : show.caption ?? '', why, locked };
+  return { day: day.day, at: day.at, kind: day.kind, title: slides[0]?.title ?? '', videoUrl: null, slides: urls, durationSec: null, audioUrl, audioStart: show.audioStart, caption: locked ? '' : show.caption ?? '', why, locked, tag: goalTag(show.goal) ?? (day.kind === 'hooks' ? 'Tips' : null) };
 };
 
 const viewDay = (day: ProspectDay, ideaOf: Map<string | null, string>): Promise<ProspectViewDay | null> => {

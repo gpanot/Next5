@@ -466,3 +466,61 @@ body:has([data-accent='blue']) {
     transform: scaleX(0);
   }
 }
+
+/* ── Brand Nat surface (Admin › Jun Yuh › My Blueprint) ──
+   The Brand Nat Style Guide look: warm cream, ink, yellow highlights, Inter Tight headings with Instrument Serif
+   italics, pill buttons. It re-points the app-* tokens, so the blueprint components restyle without new classes. */
+[data-surface='brand-nat'] {
+  --color-app-bg: #fbf7f0;
+  --color-app-panel: #ffffff;
+  --color-app-sunken: #f3ecdf;
+  --color-app-ink: #1d1a16;
+  --color-app-muted: #6e665c;
+  --color-app-line: #e9e1d4;
+  --color-app-accent: #1d1a16;
+  --color-app-accent-ink: #fbf7f0;
+  --color-app-accent-soft: #fae67a;
+  --color-app-cta: #1d1a16;
+  --color-app-cta-ink: #fbf7f0;
+  --color-app-success: #2e7d4f;
+  --color-app-warning: #b07a12;
+  --nat-highlight: #fae67a;
+  --nat-highlight-ink: #1d1a16;
+  background: var(--color-app-bg);
+  color: var(--color-app-ink);
+}
+@media (prefers-color-scheme: dark) {
+  [data-surface='brand-nat'] {
+    --color-app-bg: #141210;
+    --color-app-panel: #1e1b18;
+    --color-app-sunken: #2a2622;
+    --color-app-ink: #f4eee4;
+    --color-app-muted: #a79e91;
+    --color-app-line: #2e2a25;
+    --color-app-accent: #fae67a;
+    --color-app-accent-ink: #1d1a16;
+    --color-app-accent-soft: #3d3618;
+    --color-app-cta: #f4eee4;
+    --color-app-cta-ink: #141210;
+    --color-app-success: #5cc58a;
+    --color-app-warning: #e0b04a;
+  }
+}
+[data-surface='brand-nat'] :is(h1, h2, h3, h4) {
+  font-family: var(--font-nat-tight), 'Inter Tight', var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+[data-surface='brand-nat'] .nat-serif {
+  font-family: var(--font-nat-serif), 'Instrument Serif', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+[data-surface='brand-nat'] .nat-tag {
+  background: var(--nat-highlight);
+  color: var(--nat-highlight-ink);
+}
+[data-surface='brand-nat'] :is(button, a):is(.rounded-xl, .rounded-lg) {
+  border-radius: 9999px;
+}

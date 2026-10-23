@@ -9,7 +9,9 @@ import { SLIDESHOW_PRICE_LABEL } from '../../types/admin/slideshowCredits';
 import { ClaimBox } from './ClaimBox';
 import { LeadHero, LeadNav } from './LeadHero';
 import { CompareSection, HowItWorks, LeadFaq } from './LeadSections';
+import { ShowreelOverlay } from './ShowreelOverlay';
 import { PostSheet } from './PostSheet';
+import { useTripleClick } from './useTripleClick';
 import { useProspectView } from './useProspectView';
 import { WeekStrip } from './WeekStrip';
 
@@ -28,6 +30,8 @@ const Loading = () => (
 export function ProspectPage({ shareToken }: { shareToken: string }) {
   const { data, error, loading, retry } = useProspectView(shareToken);
   const [open, setOpen] = useState<number | null>(null);
+  const [reel, setReel] = useState(false);
+  const onLogoClick = useTripleClick(() => setReel(true));
   const days = data?.days ?? [];
   const videos = days.filter((d) => d.kind === 'blitz').length;
   const claimed = data?.status === 'claimed';
@@ -38,7 +42,7 @@ export function ProspectPage({ shareToken }: { shareToken: string }) {
       {error && <div className="mx-auto max-w-md px-5 py-24"><ErrorState message={error} onRetry={retry} /></div>}
       {data && (
         <>
-          <LeadNav heldUntil={data.heldUntil} ended={data.heldEnded} claimed={claimed} />
+          <LeadNav heldUntil={data.heldUntil} ended={data.heldEnded} claimed={claimed} onLogoClick={onLogoClick} />
           <main>
             <LeadHero name={data.name} websiteUrl={data.websiteUrl} videos={videos} slideshows={days.length - videos} />
             <WeekStrip days={days} onOpen={setOpen} />
@@ -55,6 +59,7 @@ export function ProspectPage({ shareToken }: { shareToken: string }) {
           </footer>
         </>
       )}
+      {reel && <ShowreelOverlay days={days} onClose={() => setReel(false)} />}
       <PostSheet day={open === null ? null : days[open] ?? null} onClose={() => setOpen(null)} />
     </div>
   );

@@ -39,6 +39,7 @@ function Progress({ token, pack, hideCost }: { token: string; pack: ProspectPack
   const sec = makeSec(pack);
   const { siteSec, postsSec } = pack.timing;
   return (
+    <>
     <p className="text-[12px] tabular-nums text-app-muted">
       {blitz}/{PROSPECT_BLITZ} videos · {cast}/{PROSPECT_CAST} Brand Cast · {hooks}/{PROSPECT_HOOKS} Hooks Volume
       {!hideCost && <>{' · '}<button type="button" onClick={() => setCostsOpen(true)} className="-my-2 rounded-md px-1 py-2 font-semibold text-app-ink underline decoration-dotted underline-offset-2 transition hover:bg-zinc-100 active:scale-95 dark:hover:bg-zinc-800">
@@ -47,8 +48,9 @@ function Progress({ token, pack, hideCost }: { token: string; pack: ProspectPack
       {sec !== null && (
         <span title={`Site + faces ${formatDuration(siteSec ?? 0)} · posts ${formatDuration(postsSec ?? 0)} (face check wait not counted)`}> · {formatDuration(sec)}</span>
       )}
-      {costsOpen && <CostDialog token={token} pack={pack} onClose={() => setCostsOpen(false)} />}
     </p>
+    {costsOpen && <CostDialog token={token} pack={pack} onClose={() => setCostsOpen(false)} />}
+    </>
   );
 }
 

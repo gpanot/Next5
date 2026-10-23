@@ -1,11 +1,11 @@
 import { hostOf, initials } from './postLabels';
 
 /** The top bar: the logo and how long the preview is held. */
-export function LeadNav({ heldUntil, ended, claimed }: { heldUntil: string; ended: boolean; claimed: boolean }) {
+export function LeadNav({ heldUntil, ended, claimed, onLogoClick }: { heldUntil: string; ended: boolean; claimed: boolean; onLogoClick?: () => void }) {
   const held = new Date(heldUntil).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
   return (
     <nav className="mx-auto flex h-16 max-w-[1180px] items-center justify-between px-5">
-      <span className="font-display text-[20px] font-[800] tracking-[0.14em] text-app-ink">NEXT5</span>
+      <span onClick={onLogoClick} className="select-none font-display text-[20px] font-[800] tracking-[0.14em] text-app-ink">NEXT5</span>
       <span className="rounded-full border border-app-line px-3 py-1.5 text-[13px] text-app-muted">
         {claimed ? 'Claimed' : ended ? 'Preview ended' : <>Held until <strong className="font-semibold text-app-ink">{held}</strong></>}
       </span>

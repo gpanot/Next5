@@ -26,13 +26,15 @@ import { AssetsLibraryTab } from '../../src/components/admin/business/AssetsLibr
 import { MetaAdsTab } from '../../src/components/admin/metaAds/MetaAdsTab';
 import { SlideshowKnowledgeTab } from '../../src/components/admin/slideshowKnowledge/SlideshowKnowledgeTab';
 import { AutoSlideshowTab } from '../../src/components/admin/autoSlideshow/AutoSlideshowTab';
+import { ScriptGeneratorTab } from '../../src/components/admin/scriptGenerator/ScriptGeneratorTab';
+import { MyBlueprintTab } from '../../src/components/admin/blueprint/MyBlueprintTab';
 import { ShortsPage } from '../../src/components/admin/shorts/ShortsPage';
 
 type Tab =
   | 'overview' | 'workspaces' | 'prospects' | 'payments' | 'promise' | 'qa' | 'models'
   | 'users' | 'credits' | 'bookings' | 'prompts'
   | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces'
-  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow' | 'shorts'
+  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow' | 'shorts' | 'my-blueprint' | 'script-generator'
   | 'assets-library';
 
 type NavItem = { id: Tab; label: string; icon: string };
@@ -82,6 +84,13 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: 'Jun Yuh',
+    items: [
+      { id: 'my-blueprint', label: 'My Blueprint', icon: '❖' },
+      { id: 'script-generator', label: 'Script Generator', icon: '✎' },
+    ],
+  },
+  {
     title: 'Assets',
     items: [
       { id: 'assets-library', label: 'Assets Library', icon: '◈' },
@@ -101,10 +110,16 @@ export default function AdminPage() {
   const token = useAdminToken();
   const [tab, setTab] = useState<Tab>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  /** Script Generator keeps its script, chat and recording while another tab is open, once it has been opened. */
+  const [scriptGeneratorOpened, setScriptGeneratorOpened] = useState(false);
 
   const logout = useCallback(() => adminTokenStore.set(null), []);
   const handleToken = useCallback((t: string) => adminTokenStore.set(t), []);
-  const selectTab = useCallback((id: Tab) => { setTab(id); setSidebarOpen(false); }, []);
+  const selectTab = useCallback((id: Tab) => {
+    setTab(id);
+    setSidebarOpen(false);
+    if (id === 'script-generator') setScriptGeneratorOpened(true);
+  }, []);
 
   if (token === undefined) return null;
   if (!token) return <AdminLogin onToken={handleToken} />;
@@ -262,6 +277,8 @@ export default function AdminPage() {
           {tab === 'slideshow-knowledge' && <SlideshowKnowledgeTab token={token} />}
           {tab === 'auto-slideshow'   && <AutoSlideshowTab     token={token} />}
           {tab === 'shorts'           && <ShortsPage           token={token} />}
+          {tab === 'my-blueprint'     && <MyBlueprintTab token={token} />}
+          {scriptGeneratorOpened && <div hidden={tab !== 'script-generator'}><ScriptGeneratorTab token={token} /></div>}
           {tab === 'assets-library'   && <AssetsLibraryTab     token={token} />}
         </main>
       </div>
