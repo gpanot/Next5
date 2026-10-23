@@ -64,7 +64,7 @@ export const facelessTikTokIdeas: Article = {
       'End every post with the same kind of ask.',
     ] },
     { type: 'h2', text: 'Does faceless content sell?' },
-    { type: 'p', text: 'Yes, if it is useful. People buy from accounts that solve their problems. A clear tip with a clear ask beats a selfie video with no point. Track your views and messages for 30 days and see for yourself. A gym, for example, can run mostly on equipment shots and member quotes, see [social media for gyms](/blog/social-media-for-gyms). A hair salon can run on before-and-afters and formula shots with no talking, see [social media for hair salons](/blog/social-media-for-hair-salons).' },
+    { type: 'p', text: 'Yes, if it is useful. People buy from accounts that solve their problems. A clear tip with a clear ask beats a selfie video with no point. Track your views and messages for 30 days and see for yourself. A gym, for example, can run mostly on equipment shots and member quotes, see [social media for gyms](/blog/social-media-for-gyms). A hair salon can run on before-and-afters and formula shots with no talking, see [social media for hair salons](/blog/social-media-for-hair-salons). A plumber can run on tool shots and a cleared-pipe before-and-after with no face at all, see [TikTok for plumbers](/blog/tiktok-for-plumbers).' },
     { type: 'cta', title: 'Faceless posts, made for you', text: 'Next5 makes TikTok slideshows and videos for your business with no filming. You never have to be on camera. You approve every post.' },
   ],
   faq: [
