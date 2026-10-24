@@ -20,7 +20,7 @@ import { useScriptGeneration } from './useScriptGeneration';
 type Blueprint = ReturnType<typeof useBlueprint>;
 
 const Loading = () => (
-  <div className="mx-auto flex w-full max-w-[880px] flex-col gap-4" aria-busy="true">
+  <div className="mx-auto flex w-full max-w-[968px] flex-col gap-4" aria-busy="true">
     <SkeletonText lines={1} />
     <SkeletonCard />
     <SkeletonCard />
@@ -77,7 +77,7 @@ export const BlueprintPage = ({ token }: { token: string }) => {
   if (!bp.blueprint) return <Loading />;
 
   return (
-    <div className="mx-auto flex w-full max-w-[880px] flex-col gap-5">
+    <div className="mx-auto flex w-full max-w-[968px] flex-col gap-5">
       <div className="flex min-h-6 justify-end">
         <SaveStatus state={bp.saveState} onRetry={() => void bp.flush()} />
       </div>

@@ -53,7 +53,7 @@ export const PILLAR_COPY: Record<Pillar, PillarCopy> = {
 export const TOPICS_STEP = {
   title: 'Write your topics',
   accent: 'in 60 seconds',
-  body: 'Write up to 5 topics in each branch, a few words each. Then keep your best 3 as main topics. The other 2 stay as extras.',
+  body: 'Write up to 5 topics in each branch, a few words each. Star your best 3: those are your main topics. The other 2 stay as extras.',
   timerHint: 'Press start and write as fast as you can. The timer does not stop you typing.',
   start: 'Start 60s',
   reset: 'Reset timer',
@@ -61,7 +61,6 @@ export const TOPICS_STEP = {
   count: (main: number, filled: number) => `${main} of 3 main, ${filled} of 5 written`,
   slot: (n: number) => `Topic ${n}`,
   main: 'Main',
-  extra: 'Extra',
   mainFull: 'You already have 3 main topics. Unmark one first.',
   clear: 'Clear',
   placeholderNote: 'The grey text is only an example. Write your own. Your topics are saved, so you can come back and change them any time.',

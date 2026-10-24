@@ -47,15 +47,15 @@ const TopicSlot = ({ pillar, index, item, mainFull, onText, onToggle }: SlotProp
         onClick={onToggle}
         disabled={!filled || blocked}
         aria-pressed={item.main}
-        title={blocked ? TOPICS_STEP.mainFull : undefined}
+        aria-label={`${TOPICS_STEP.main}: ${item.text || TOPICS_STEP.slot(index + 1)}`}
+        title={blocked ? TOPICS_STEP.mainFull : TOPICS_STEP.main}
         className={[
-          'flex min-h-11 min-w-[76px] items-center justify-center gap-1 rounded-xl border px-2 text-[12px] font-medium transition-colors duration-200',
+          'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent disabled:cursor-not-allowed disabled:opacity-40',
           item.main ? 'border-app-accent bg-app-accent-soft text-app-accent' : 'border-app-line text-app-muted hover:text-app-ink',
         ].join(' ')}
       >
-        <Star aria-hidden className={['h-3.5 w-3.5', item.main ? 'fill-current' : ''].join(' ')} />
-        {item.main ? TOPICS_STEP.main : TOPICS_STEP.extra}
+        <Star aria-hidden className={['h-4 w-4', item.main ? 'fill-current' : ''].join(' ')} />
       </button>
       {filled && (
         <button type="button" onClick={() => onText('')} aria-label={`${TOPICS_STEP.clear} ${TOPICS_STEP.slot(index + 1)}`} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-app-muted transition-colors duration-200 hover:bg-app-sunken hover:text-app-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent">
