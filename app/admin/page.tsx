@@ -29,12 +29,13 @@ import { AutoSlideshowTab } from '../../src/components/admin/autoSlideshow/AutoS
 import { ScriptGeneratorTab } from '../../src/components/admin/scriptGenerator/ScriptGeneratorTab';
 import { MyBlueprintTab } from '../../src/components/admin/blueprint/MyBlueprintTab';
 import { ShortsPage } from '../../src/components/admin/shorts/ShortsPage';
+import { KallawayHooksTab } from '../../src/components/admin/kallaway/KallawayHooksTab';
 
 type Tab =
   | 'overview' | 'workspaces' | 'prospects' | 'payments' | 'promise' | 'qa' | 'models'
   | 'users' | 'credits' | 'bookings' | 'prompts'
   | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces'
-  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow' | 'shorts' | 'my-blueprint' | 'script-generator'
+  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow' | 'shorts' | 'my-blueprint' | 'script-generator' | 'kallaway-hooks'
   | 'assets-library';
 
 type NavItem = { id: Tab; label: string; icon: string };
@@ -88,6 +89,12 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     items: [
       { id: 'my-blueprint', label: 'My Blueprint', icon: '❖' },
       { id: 'script-generator', label: 'Script Generator', icon: '✎' },
+    ],
+  },
+  {
+    title: 'Kallaway',
+    items: [
+      { id: 'kallaway-hooks', label: 'Hooks', icon: '⚓' },
     ],
   },
   {
@@ -278,6 +285,7 @@ export default function AdminPage() {
           {tab === 'auto-slideshow'   && <AutoSlideshowTab     token={token} />}
           {tab === 'shorts'           && <ShortsPage           token={token} />}
           {tab === 'my-blueprint'     && <MyBlueprintTab token={token} />}
+          {tab === 'kallaway-hooks'   && <KallawayHooksTab token={token} />}
           {scriptGeneratorOpened && <div hidden={tab !== 'script-generator'}><ScriptGeneratorTab token={token} /></div>}
           {tab === 'assets-library'   && <AssetsLibraryTab     token={token} />}
         </main>
