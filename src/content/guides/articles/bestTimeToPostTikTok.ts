@@ -52,7 +52,7 @@ export const bestTimeToPostTikTok: Article = {
     ] },
     { type: 'p', text: 'Compare views at the same age. A post that is 2 hours old will always look worse than one that is 2 days old.' },
     { type: 'h2', text: 'Time matters less than you think' },
-    { type: 'p', text: 'A great post at a so-so time beats a weak post at the perfect time. TikTok keeps showing good posts for days. Spend most of your energy on the hook. Read [TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business) for 40 you can copy.' },
+    { type: 'p', text: 'A great post at a so-so time beats a weak post at the perfect time. TikTok keeps showing good posts for days. Spend most of your energy on the hook. Read [TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business) for 40 you can copy. The same goes for tags: [how many hashtags to use on TikTok for business](/blog/how-many-hashtags-on-tiktok-for-business) shows how small that lever really is.' },
     { type: 'cta', title: 'Posts that go out on time, every day', text: 'Next5 makes your posts, puts them on a 30-day calendar and posts them on the day you pick. Your Analytics page shows views at 48 hours for every post.' },
   ],
   faq: [

@@ -81,7 +81,7 @@ export const tiktokHooks: Article = {
     { type: 'tip', title: 'Only promise what the post gives', text: 'If the hook says "5 tips", give 5 real tips. Hooks that trick people get swiped away, and TikTok learns from that.' },
     { type: 'h2', text: 'How to test your hooks' },
     { type: 'p', text: 'Make the same post with 2 or 3 different hooks. Post them on different days. Compare views at 48 hours. The hook with the most views wins. Use that pattern again.' },
-    { type: 'p', text: 'This is the fastest way to grow. You are not guessing. You are letting your buyers vote.' },
+    { type: 'p', text: 'This is the fastest way to grow. You are not guessing. You are letting your buyers vote. Test the hook before you touch anything else: posts with a hashtag get about 5% more views, so tags are a rounding error next to your first line, as [how many hashtags to use on TikTok for business](/blog/how-many-hashtags-on-tiktok-for-business) lays out.' },
     { type: 'cta', title: 'Hooks that already win in your market', text: 'Next5 finds hook formats that already pull views in your niche and writes them for your business. Your Analytics page shows which hooks beat your usual post.' },
   ],
   faq: [

@@ -14,12 +14,12 @@ Live: 25 low-cost marketing ideas; 20 faceless TikTok ideas.
 
 ## how-to
 
-Live: how to make a TikTok slideshow; 40 TikTok hooks; 30-day content calendar; best time to post.
+Live: how to make a TikTok slideshow; 40 TikTok hooks; 30-day content calendar; best time to post;
+how many hashtags to use on TikTok for business.
 
 - tiktok slideshow vs video for business
 - how to add music to a tiktok slideshow
 - tiktok captions for business
-- how many hashtags to use on tiktok for business
 
 ## get-customers
 
@@ -40,13 +40,12 @@ Live: social media manager cost; can ChatGPT do your social media.
 
 ## industry
 
+Live: social media for gyms; social media for hair salons; TikTok for plumbers.
+
 One article per trade, only with trade-specific hooks, examples and questions:
 
 - tiktok ideas for restaurants
-- social media for hair salons
-- social media for gyms
 - what to post on social media as a dentist
-- tiktok for plumbers
 - social media for hvac companies
 - social media for auto repair shops
 - social media for cleaning business

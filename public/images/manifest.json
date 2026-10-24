@@ -4663,5 +4663,14 @@
     "bytes": 558560,
     "alt": "Plumber repairing a water heater with a smartphone propped on a tripod nearby filming the job",
     "generatedAt": "2026-10-23T01:04:22.176Z"
+  },
+  "public/images/guides/how-many-hashtags-on-tiktok-for-business.png": {
+    "prompt": "A small business owner behind the counter of a bright independent coffee shop in daylight, looking down and typing on a smartphone held in both hands, the phone screen angled away from the camera so nothing on it is readable, warm natural window light, espresso machine and pastries in the background, realistic candid photograph, shallow depth of field, no text, no signage, 4:5 vertical",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 512338,
+    "alt": "Coffee shop owner behind the counter in daylight typing a caption on a phone held in both hands",
+    "generatedAt": "2026-10-24T01:50:35.120Z"
   }
 }

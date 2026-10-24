@@ -72,6 +72,7 @@ export const socialMediaContentCalendar: Article = {
       '**Hook** — the first line people see. See [TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business).',
       '**Post type** — tip, mistake, proof, story or offer.',
       '**Ask** — what people should do at the end: follow, save, book, buy.',
+      '**Tags** — the 2 or 3 that describe this specific post. Your city and trade tags repeat, see [how many hashtags to use on TikTok for business](/blog/how-many-hashtags-on-tiktok-for-business).',
       '**Status** — idea, made, approved, posted.',
     ] },
     { type: 'cta', title: 'Get your 30 days filled for you', text: 'Next5 reads your website and fills a 30-day calendar with posts built on formats that already get views. Swipe through ideas, keep the ones you like, approve, and we post.' },
