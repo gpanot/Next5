@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Brand Nat Style Guide</title>
+<meta name="description" content="Video editing styles anyone can use with Claude. Copy a prompt or download the Style Pack so Claude knows every style by its code.">
+<style>
+@font-face{font-family:'Instrument Serif';font-style:italic;font-weight:400;font-display:swap;src:url(fonts/InstrumentSerif-400-italic.woff2) format('woff2')}
+@font-face{font-family:'Inter';font-weight:500;font-display:swap;src:url(fonts/Inter-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Inter';font-weight:600;font-display:swap;src:url(fonts/Inter-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Inter Tight';font-weight:800;font-display:swap;src:url(fonts/InterTight-800-normal.woff2) format('woff2')}
+:root{
+  --bg:#FBF7F0; --card:#FFFFFF; --ink:#1D1A16; --muted:#6E665C; --line:#E9E1D4;
+  --accent:#FAE67A; --accent-ink:#1D1A16; --chip:#F3ECDF; --tray:#1D1A16; --tray-ink:#FBF7F0;
+  --shadow:0 1px 2px rgba(40,30,15,.06),0 8px 24px rgba(40,30,15,.06);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#141210; --card:#1E1B18; --ink:#F4EEE4; --muted:#A79E91; --line:#2E2A25;
+  --accent:#FAE67A; --accent-ink:#1D1A16; --chip:#2A2622; --tray:#F4EEE4; --tray-ink:#141210;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+}}
+:root[data-theme="dark"]{
+  --bg:#141210; --card:#1E1B18; --ink:#F4EEE4; --muted:#A79E91; --line:#2E2A25;
+  --accent:#FAE67A; --accent-ink:#1D1A16; --chip:#2A2622; --tray:#F4EEE4; --tray-ink:#141210;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.5 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;padding-bottom:110px}
+a{color:inherit}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+button{font:inherit;color:inherit;cursor:pointer}
+
+/* hero */
+header{padding:56px 0 28px}
+.brand{font:800 15px 'Inter Tight',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{font:400 clamp(56px,11vw,128px)/.92 'Instrument Serif',serif;font-style:italic;letter-spacing:-.02em;margin:14px 0 18px}
+h1 b{font:800 .62em/1 'Inter Tight',sans-serif;font-style:normal;letter-spacing:-.04em;display:block;margin-bottom:.08em}
+.lede{font-size:clamp(17px,2.2vw,20px);max-width:620px;color:var(--muted);margin:0 0 26px}
+.lede strong{color:var(--ink)}
+.cta{display:flex;flex-wrap:wrap;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:12px 20px;font-weight:600;text-decoration:none;box-shadow:var(--shadow)}
+.btn[data-pv][aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn:focus-visible,.chip:focus-visible,.add:focus-visible,.copy:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+
+/* section heads */
+.sec{padding:34px 0 8px}
+.sec h2{font:800 clamp(26px,4vw,34px)/1.1 'Inter Tight',sans-serif;letter-spacing:-.03em;margin:0 0 6px}
+.sec h2 i{font:400 1.15em 'Instrument Serif',serif;font-style:italic;letter-spacing:0}
+.sec p{margin:0;color:var(--muted)}
+
+.codes{display:flex;flex-wrap:wrap;gap:4px}
+.code{font:600 12px Inter,sans-serif;background:var(--chip);border-radius:6px;padding:2px 7px;letter-spacing:.02em}
+.step-btn{margin-top:12px}
+.mini{border:1px solid var(--line);background:transparent;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+.mini.solid{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* filter bar */
+.bar{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0;border-bottom:1px solid var(--line);margin-top:28px}
+.bar .wrap{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;font-size:14px;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.search{flex:0 1 220px;min-width:150px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 14px;font:500 14px Inter,sans-serif}
+
+/* grid */
+.cat{padding-top:30px;scroll-margin-top:70px}
+.cat-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.cat-head h2{font:800 28px/1 'Inter Tight',sans-serif;letter-spacing:-.03em;margin:0}
+.cat-head .id{font:400 28px/1 'Instrument Serif',serif;font-style:italic;color:var(--muted)}
+.cat-head p{margin:0;color:var(--muted);font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.card.sel{outline:3px solid var(--accent);outline-offset:-1px}
+.sk{background:var(--chip);display:grid;place-items:center;padding:14px 0;border-bottom:1px solid var(--line)}
+.skv{height:210px;width:auto;display:block}
+.skv .frame{fill:none;stroke:rgba(0,0,0,.18);stroke-width:.8}
+.skv text{dominant-baseline:auto}
+/* sketch palette: fixed colours, it is a picture of a video frame */
+.skv .r{fill:#E7E2DA}.skv .f{fill:#A8A29A}.skv .fl{fill:#C9C4BC}.skv .flit{fill:#D8D2C8}.skv .o{stroke:#fff;stroke-width:1.6}.skv .oo{stroke:#fff;stroke-width:3}
+.skv .wh{fill:#fff}.skv .st{stroke:#D9D2C6;stroke-width:.6}.skv .st2{stroke:#1D1A16;stroke-width:1}.skv .st0{fill:#fff;stroke:#CFC8BC;stroke-width:.6}
+.skv .i{fill:#2A2622}.skv .m{fill:#C9C2B6}.skv .m2{fill:#9A9286}.skv .a{fill:#FAE67A}.skv .d{fill:#26231F}.skv .k{fill:#0B0A09}.skv .y{fill:#F7DD62}
+.skv .b{fill:#CFE0F4}.skv .g{fill:#34C759}.skv .x{fill:#E5484D}.skv .cr{fill:#F4E9D2}.skv .car{fill:#C98B4E}.skv .pk{fill:#F6B7C9}.skv .ice{fill:#CFE8F5}
+.skv .c1{fill:#7C6CF2}.skv .c2{fill:#2BB3A3}.skv .c3{fill:#F08A4B}.skv .c1t{fill:#7C6CF2}.skv .sky{fill:#BFD9EE}.skv .hill{fill:#7FAF8A}.skv .seat{fill:#5F6B7A}
+.skv .blur{fill:#D3CCC1;opacity:.8}.skv .pat{fill:#EFE7DA}.skv .off{fill:#ECE8E1}.skv .offw{fill:#F6F4EF}.skv .lnk{fill:#2F6FDB}.skv .gl{fill:#FAE67A;opacity:.6}
+.skv .imb{fill:#2F8BFF}.skv .glass{fill:rgba(255,255,255,.55);stroke:#fff;stroke-width:.6}.skv .ig2{fill:#1E88F5}.skv .ios{fill:#F2F2F7}.skv .pan{fill:#FAFAF8;stroke:#ECE8E1;stroke-width:.6}
+.skv .paper{fill:#D9CDB8}.skv .tape{fill:rgba(250,240,200,.85)}.skv .mon{fill:#3A3632}.skv .kb{fill:#7C6CF2;opacity:.85}.skv .dark{fill:#2B3133}
+.skv .warm{fill:#FFB25B;opacity:.18}.skv .sepia{fill:#B98A55;opacity:.22}.skv .teal{fill:#1E6F78;opacity:.28}
+.skv .ol{stroke:#2A2622;stroke-width:.9;paint-order:stroke}.skv .dash{stroke:#2A2622;stroke-width:.7;stroke-dasharray:2 2}
+.skv .sk{stroke:#2A2622;stroke-width:1}.skv .sk2{stroke:#2A2622;stroke-width:1.3}.skv .sm{stroke:#9A9286;stroke-width:.8}.skv .sw{stroke:#fff;stroke-width:1.4}
+.skv .sg{stroke:#2E9E4F;stroke-width:1.3}.skv .sx{stroke:#E5484D;stroke-width:2.6;stroke-linecap:round}.skv .ring{stroke:#FAE67A;stroke-width:3;stroke-linecap:round}.skv .ringbg{stroke:rgba(255,255,255,.6);stroke-width:3}
+.skv .glowl{stroke:#F5D53A;stroke-width:2;filter:drop-shadow(0 0 2px #F5D53A)}.skv .wl{stroke:#fff;stroke-width:1}.skv .wob{stroke:#fff;stroke-width:1.3;stroke-dasharray:3 1.2}.skv .wobf{fill:none;stroke:#fff;stroke-width:1}
+.tag{align-self:flex-start;font:800 13px 'Inter Tight',sans-serif;background:var(--accent);color:var(--accent-ink);border-radius:7px;padding:3px 8px;letter-spacing:.02em}
+.body{padding:14px 15px 14px;display:flex;flex-direction:column;gap:7px;flex:1}
+.body h3{margin:0;font:800 17px/1.2 'Inter Tight',sans-serif;letter-spacing:-.02em}
+.body p{margin:0;font-size:13.5px;line-height:1.45;color:var(--muted);flex:1}
+.acts{display:flex;gap:6px;margin-top:6px}
+.add{flex:1;border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 10px;font-size:13px;font-weight:600}
+.card.sel .add{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.copy{border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600}
+/* video previews */
+.pvbtn{white-space:nowrap;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 14px;font-size:14px;font-weight:600;transition:background .2s,color .2s}
+.pvbtn[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.pvbtn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.pv{display:none;height:300px;width:auto;aspect-ratio:9/16;border-radius:10px;background:#000;object-fit:cover}
+body.previews .card.has-pv .skv{display:none}
+body.previews .card.has-pv .pv{display:block}
+.empty{padding:40px 0;color:var(--muted);text-align:center;display:none}
+
+/* how it works */
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:16px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:var(--shadow)}
+.step .n{font:400 44px/1 'Instrument Serif',serif;font-style:italic}
+.step h3{margin:6px 0 4px;font:800 18px 'Inter Tight',sans-serif;letter-spacing:-.02em}
+.step p{margin:0;color:var(--muted);font-size:14.5px}
+pre{background:var(--chip);border-radius:12px;padding:12px 14px;overflow-x:auto;font:500 13px/1.5 ui-monospace,Menlo,monospace;margin:10px 0 0;white-space:pre-wrap}
+footer{padding:48px 0 20px;color:var(--muted);font-size:14px}
+
+/* tray */
+.tray{position:fixed;left:50%;bottom:16px;transform:translate(-50%,140%);transition:transform .25s ease;z-index:10;width:min(760px,calc(100% - 24px));background:var(--tray);color:var(--tray-ink);border-radius:20px;padding:12px 12px 12px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 12px 40px rgba(0,0,0,.25)}
+.tray.on{transform:translate(-50%,0)}
+.tray .lbl{font:800 14px 'Inter Tight',sans-serif;white-space:nowrap}
+.tray .picked{display:flex;gap:4px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none}
+.tray .picked .code{background:rgba(127,127,127,.22);color:inherit}
+.tray button{border:0;border-radius:999px;padding:9px 14px;font-size:13.5px;font-weight:600;white-space:nowrap}
+.tray .go{background:var(--accent);color:var(--accent-ink)}
+.tray .clr{background:transparent;color:inherit;opacity:.75}
+.toast{position:fixed;left:50%;top:18px;transform:translate(-50%,-150%);transition:transform .2s ease;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;font-size:14px;z-index:20}
+.toast.on{transform:translate(-50%,0)}
+@media (max-width:560px){
+  .grid{grid-template-columns:1fr;gap:10px}
+  .search{flex:1 1 100%}
+  .tray .lbl{display:none}
+}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} .tray,.toast{transition:none} }
+</style>
+</head>
+<body>
+<header class="wrap">
+  <div class="brand">Brand Nat</div>
+  <h1><b>The Style Guide</b>for editing with Claude</h1>
+  <p class="lede"><strong id="count">Video styles</strong> you can use on your own videos, no editing skills needed. Pick the ones you like and copy the prompt into Claude, then paste it back into Claude Code with your video.</p>
+  <div class="cta">
+    <a class="btn primary" href="#how">How it works</a>
+    <a class="btn" href="#cats">Browse the styles</a>
+    <button class="btn" data-pv aria-pressed="false">Show Previews</button>
+  </div>
+</header>
+
+<section class="wrap sec" id="how">
+  <h2>How it <i>works</i></h2>
+  <p>You need Claude with Claude Code (the Code tab in the Claude desktop app).</p>
+  <div class="how">
+    <div class="step"><div class="n">1</div><h3>Get the Style Pack</h3><p>You already have it. To share it, drag the zip into Claude Code and say "install this skill for me". Claude saves every style, plus this whole guide, on your computer.</p></div>
+    <div class="step"><div class="n">2</div><h3>Open the guide anytime</h3><p>Say "show me the styles" and Claude opens this page in your browser, even offline. Build your mix and copy the prompt.</p><pre>Show me the styles</pre></div>
+    <div class="step"><div class="n">3</div><h3>Film one take</h3><p>Vertical, good light, a plain wall above your head. Say each line until it feels right. Claude keeps your last clean take.</p></div>
+    <div class="step"><div class="n">4</div><h3>Order your edit</h3><p>Paste your mix, then give notes like you would to a real editor.</p><pre>Edit ~/Downloads/raw.mp4 with H10 C9 L4 X1 M1 S2</pre></div>
+  </div>
+</section>
+
+
+<nav class="bar" aria-label="Style groups">
+  <div class="wrap">
+    <div class="chips" id="chips" role="toolbar"></div>
+    <button class="pvbtn" data-pv aria-pressed="false">Show Previews</button>
+    <input class="search" id="q" type="search" placeholder="Search styles" aria-label="Search styles">
+  </div>
+</nav>
+
+<main class="wrap" id="cats"></main>
+<p class="wrap empty" id="empty">No styles match that search.</p>
+
+
+<footer class="wrap">Made by Brand Nat. Free to use on your own videos.</footer>
+
+<div class="tray" id="tray" aria-live="polite">
+  <span class="lbl">Your mix</span>
+  <div class="picked" id="picked"></div>
+  <button class="clr" id="clr">Clear</button>
+  <button class="go" id="go">Copy prompt</button>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="styles.js"></script>
+<script src="sketches.js"></script>
+<script>
+(function(){
+  const S = window.STYLES, byCode = {};
+  // styles with a rendered 9:16 clip in previews/<code>.mp4
+  const PREVIEWS = new Set(['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'H8', 'H9', 'H10', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'P1', 'P2', 'P3', 'P4', 'P6', 'P7', 'P8', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'V7', 'V8', 'V9', 'V10', 'V11', 'V12', 'V13', 'V14', 'V15', 'V16', 'V17', 'V18', 'V19', 'V20', 'V21', 'V22', 'V23', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X11', 'X12', 'X13', 'X14', 'X15', 'X16', 'X17', 'X18', 'X19', 'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'S1', 'S2', 'S3', 'G1', 'G2', 'G3', 'G4', 'G5', 'G6', 'G7']);
+  S.cats.forEach(c => c.items.forEach(i => byCode[i.code] = i));
+  const total = Object.keys(byCode).length;
+  document.getElementById('count').textContent = total + ' video styles';
+  const $ = id => document.getElementById(id);
+  document.body.insertAdjacentHTML('afterbegin', window.SKETCH_DEFS);
+  const esc = s => s.replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+
+  let picked = [];
+  try { picked = JSON.parse(localStorage.getItem('bn-mix') || '[]').filter(c => byCode[c]); } catch (e) { picked = []; }
+  const save = () => { try { localStorage.setItem('bn-mix', JSON.stringify(picked)); } catch (e) {} };
+
+  const prompt = codes => 'Edit my video in these styles:\n' +
+    codes.map(c => '- ' + c + ' ' + byCode[c].name + ': ' + byCode[c].what).join('\n') +
+    '\nCut every silence. Keep everything inside the TikTok and Reels safe zone and never cover my face. Show me the plan before you render.';
+
+  function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('on'), 1600); }
+  async function copy(text, msg){
+    try { await navigator.clipboard.writeText(text); }
+    catch (e) { const a = document.createElement('textarea'); a.value = text; document.body.appendChild(a); a.select(); try { document.execCommand('copy'); } catch (_) {} a.remove(); }
+    toast(msg);
+  }
+
+
+  // chips + groups
+  $('chips').innerHTML = `<button class="chip" aria-pressed="true" data-cat="all">All</button>` +
+    S.cats.map(c => `<button class="chip" aria-pressed="false" data-cat="${c.id}">${esc(c.name)}</button>`).join('');
+  $('cats').innerHTML = S.cats.map(c => `
+    <section class="cat" id="cat-${c.id}" data-cat="${c.id}">
+      <div class="cat-head"><span class="id">${c.id}</span><h2>${esc(c.name)}</h2><p>${esc(c.blurb)}</p></div>
+      <div class="grid">${c.items.map(i => `
+        <article class="card${PREVIEWS.has(i.code) ? ' has-pv' : ''}" data-code="${i.code}" data-text="${esc((i.code + ' ' + i.name + ' ' + i.what).toLowerCase())}">
+          <div class="sk">${sketchSVG(i.code, i.name)}${PREVIEWS.has(i.code) ? `<video class="pv" muted loop playsinline preload="none" poster="previews/${i.code}.jpg" data-src="previews/${i.code}.mp4" aria-label="Preview of ${esc(i.name)}"></video>` : ''}</div>
+          <div class="body">
+            <span class="tag">${i.code}</span>
+            <h3>${esc(i.name)}</h3>
+            <p>${esc(i.what)}</p>
+            <div class="acts"><button class="add" data-add="${i.code}" aria-pressed="false">Add</button><button class="copy" data-copy="${i.code}" aria-label="Copy prompt for ${esc(i.name)}">Copy</button></div>
+          </div>
+        </article>`).join('')}</div>
+    </section>`).join('');
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function render(){
+    document.querySelectorAll('.card').forEach(c => {
+      const on = picked.includes(c.dataset.code);
+      c.classList.toggle('sel', on);
+      const b = c.querySelector('.add'); b.textContent = on ? 'Added' : 'Add'; b.setAttribute('aria-pressed', on);
+    });
+    $('picked').innerHTML = picked.map(c => `<span class="code">${c}</span>`).join('');
+    $('tray').classList.toggle('on', picked.length > 0);
+    save();
+  }
+
+  document.addEventListener('click', e => {
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.add) { const c = t.dataset.add; picked = picked.includes(c) ? picked.filter(x => x !== c) : [...picked, c]; render(); }
+    else if (t.dataset.copy) copy(prompt([t.dataset.copy]), 'Prompt copied');
+    else if (t.id === 'go') copy(prompt(picked), 'Your mix is copied');
+    else if (t.id === 'clr') { picked = []; render(); }
+    else if (t.dataset.cat) {
+      document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x === t));
+      filter();
+      if (t.dataset.cat !== 'all') document.getElementById('cat-' + t.dataset.cat).scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+    }
+  });
+
+  function filter(){
+    const q = $('q').value.trim().toLowerCase();
+    let any = false;
+    document.querySelectorAll('.cat').forEach(sec => {
+      let n = 0;
+      sec.querySelectorAll('.card').forEach(c => { const hit = !q || c.dataset.text.includes(q); c.style.display = hit ? '' : 'none'; n += hit; });
+      sec.style.display = n ? '' : 'none'; any = any || n > 0;
+    });
+    $('empty').style.display = any ? 'none' : 'block';
+  }
+  $('q').addEventListener('input', filter);
+
+  // previews: load each clip only when its card scrolls into view
+  let showPv = false;
+  try { showPv = localStorage.getItem('bn-previews') === '1'; } catch (e) {}
+  const io = new IntersectionObserver(entries => entries.forEach(en => {
+    const v = en.target;
+    if (en.isIntersecting && showPv) { if (!v.src) v.src = v.dataset.src; if (!reduce) v.play().catch(() => {}); }
+    else v.pause();
+  }), { rootMargin: '200px 0px' });
+  document.querySelectorAll('.pv').forEach(v => {
+    io.observe(v);
+    v.addEventListener('click', () => v.paused ? v.play().catch(() => {}) : v.pause());
+  });
+  function setPreviews(on){
+    showPv = on;
+    document.body.classList.toggle('previews', on);
+    document.querySelectorAll('[data-pv]').forEach(b => { b.setAttribute('aria-pressed', on); b.textContent = on ? 'Show Sketches' : 'Show Previews'; });
+    try { localStorage.setItem('bn-previews', on ? '1' : '0'); } catch (e) {}
+    document.querySelectorAll('.pv').forEach(v => { io.unobserve(v); if (!on) v.pause(); io.observe(v); });
+  }
+  document.querySelectorAll('[data-pv]').forEach(b => b.addEventListener('click', () => {
+    setPreviews(!showPv);
+    if (showPv && b.classList.contains('btn')) $('cats').scrollIntoView({ behavior: reduce ? 'auto' : 'smooth' });
+  }));
+  setPreviews(showPv);
+  render();
+})();
+</script>
+</body>
+</html>

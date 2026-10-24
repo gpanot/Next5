@@ -30,12 +30,13 @@ import { ScriptGeneratorTab } from '../../src/components/admin/scriptGenerator/S
 import { MyBlueprintTab } from '../../src/components/admin/blueprint/MyBlueprintTab';
 import { ShortsPage } from '../../src/components/admin/shorts/ShortsPage';
 import { KallawayHooksTab } from '../../src/components/admin/kallaway/KallawayHooksTab';
+import { BRAND_NAT_STYLES_URL, BrandNatStylesTab } from '../../src/components/admin/brandNat/BrandNatStylesTab';
 
 type Tab =
   | 'overview' | 'workspaces' | 'prospects' | 'payments' | 'promise' | 'qa' | 'models'
   | 'users' | 'credits' | 'bookings' | 'prompts'
   | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces'
-  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow' | 'shorts' | 'my-blueprint' | 'script-generator' | 'kallaway-hooks'
+  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow' | 'shorts' | 'my-blueprint' | 'script-generator' | 'kallaway-hooks' | 'brand-nat-styles'
   | 'assets-library';
 
 type NavItem = { id: Tab; label: string; icon: string };
@@ -98,6 +99,12 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: 'Brand Nat',
+    items: [
+      { id: 'brand-nat-styles', label: 'Style Guide', icon: '▣' },
+    ],
+  },
+  {
     title: 'Assets',
     items: [
       { id: 'assets-library', label: 'Assets Library', icon: '◈' },
@@ -111,6 +118,7 @@ const STANDALONE_ROUTES: Partial<Record<Tab, string>> = {
   'slideshow-knowledge': '/admin/slideshow-knowledge',
   'auto-slideshow': '/admin/auto-slideshow',
   shorts: '/admin/shorts',
+  'brand-nat-styles': BRAND_NAT_STYLES_URL,
 };
 
 export default function AdminPage() {
@@ -286,6 +294,7 @@ export default function AdminPage() {
           {tab === 'shorts'           && <ShortsPage           token={token} />}
           {tab === 'my-blueprint'     && <MyBlueprintTab token={token} />}
           {tab === 'kallaway-hooks'   && <KallawayHooksTab token={token} />}
+          {tab === 'brand-nat-styles' && <BrandNatStylesTab />}
           {scriptGeneratorOpened && <div hidden={tab !== 'script-generator'}><ScriptGeneratorTab token={token} /></div>}
           {tab === 'assets-library'   && <AssetsLibraryTab     token={token} />}
         </main>
