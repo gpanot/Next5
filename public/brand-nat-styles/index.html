@@ -133,6 +133,9 @@ footer{padding:48px 0 20px;color:var(--muted);font-size:14px}
 .toast.on{transform:translate(-50%,0)}
 @media (max-width:560px){
   .grid{grid-template-columns:1fr;gap:10px}
+  .bar{position:static}
+  .cat{scroll-margin-top:16px}
+  .pv{height:360px}
   .search{flex:1 1 100%}
   .tray .lbl{display:none}
 }
@@ -141,7 +144,6 @@ footer{padding:48px 0 20px;color:var(--muted);font-size:14px}
 </head>
 <body>
 <header class="wrap">
-  <div class="brand">Brand Nat</div>
   <h1><b>The Style Guide</b>for editing with Claude</h1>
   <p class="lede"><strong id="count">Video styles</strong> you can use on your own videos, no editing skills needed. Pick the ones you like and copy the prompt into Claude, then paste it back into Claude Code with your video.</p>
   <div class="cta">
@@ -175,7 +177,6 @@ footer{padding:48px 0 20px;color:var(--muted);font-size:14px}
 <p class="wrap empty" id="empty">No styles match that search.</p>
 
 
-<footer class="wrap">Made by Brand Nat. Free to use on your own videos.</footer>
 
 <div class="tray" id="tray" aria-live="polite">
   <span class="lbl">Your mix</span>
