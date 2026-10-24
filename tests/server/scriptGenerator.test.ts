@@ -168,3 +168,53 @@ describe('prompts', () => {
     }
   });
 });
+
+describe('carousels', () => {
+  const carouselBody = { ...baseBody, format: 'carousel', structure: 'story_3p' };
+  const slides = (n: number): GeneratedScript => ({
+    ...script(true),
+    format: 'carousel',
+    structure: 'story_3p',
+    beats: Array.from({ length: n }, (_, i) => ({ start: i * 3, end: i * 3 + 3, label: `S${i}`, onScreen: 'x', spoken: 'should go', rehook: 'should go', rehookAt: 2 })),
+  });
+
+  it('accepts only carousel templates as the structure of a carousel', () => {
+    expect(parseGenerateInput(carouselBody).structure).toBe('story_3p');
+    expect(() => parseGenerateInput({ ...carouselBody, structure: 'listicle' })).toThrow();
+    expect(() => parseGenerateInput({ ...baseBody, structure: 'story_3p' })).toThrow();
+  });
+
+  it('writes the slide plan of the template into the prompt', () => {
+    const story = buildGenerateSystem({ format: 'carousel', structure: 'story_3p', goal: 'attract' });
+    expect(story).toContain('Write exactly 19 beats');
+    expect(story).toContain('Slides 1 to 7');
+    expect(story).toContain('Slides 15 to 19');
+    expect(buildGenerateSystem({ format: 'carousel', structure: 'story_6', goal: 'attract' })).toContain('Write exactly 6 beats');
+    expect(buildGenerateSystem({ format: 'carousel', structure: 'split_to_be_her', goal: 'attract' })).toContain('bottomOnScreen');
+    expect(buildGenerateSystem({ format: 'carousel', structure: 'list_habits', goal: 'attract' })).toContain('Write exactly 12 beats');
+  });
+
+  it('numbers slides by index and drops spoken lines and re-hooks', async () => {
+    mockModel(slides(19));
+    const out = await generateScript(parseGenerateInput(carouselBody), 'claude');
+    expect(out.durationSeconds).toBe(19);
+    expect(out.beats[4]).toMatchObject({ start: 4, end: 5, spoken: '', rehook: '' });
+    expect(out.beats[4].rehookAt).toBeUndefined();
+  });
+
+  it('sends the template to the hooks prompt, silent, and rejects an unknown one', async () => {
+    const calls = mockModel({ hooks: ['contrarian', 'pain', 'mistake'].map((angle) => ({ angle, ...hook, verbal: '' })) });
+    const res = await hooksRoute(hooksRequest({ ...carouselBody, structure: undefined, template: 'split_to_be_her' }), undefined);
+    expect(res.status).toBe(200);
+    expect(calls[0].system).toContain('FIRST SLIDE of a carousel');
+    expect(calls[0].system).toContain('To be her');
+    expect((await hooksRoute(hooksRequest({ ...carouselBody, template: 'nope' }), undefined)).status).toBe(400);
+  });
+
+  it('prompts have no em dashes', () => {
+    for (const t of ['story_3p', 'story_6', 'list_mistakes', 'split_then_now'] as const) {
+      expect(buildGenerateSystem({ format: 'carousel', structure: t, goal: 'attract' })).not.toContain('—');
+      expect(buildHooksSystem({ format: 'carousel', goal: 'attract', template: t })).not.toContain('—');
+    }
+  });
+});

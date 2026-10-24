@@ -2,13 +2,28 @@
 
 import { useState } from 'react';
 import { SCRIPT_FORMATS, type GeneratedScript } from '../../../types/admin/scriptGenerator';
-import { scriptToBrief } from './brief';
+import { beatPosition, scriptToBrief, structureLabel } from './brief';
+import { CarouselPreview } from './CarouselPreview';
+import { useSlidePhotos } from './useSlidePhotos';
 import { ReadAloudPanel, spokenText } from './ReadAloudPanel';
 import { useReadAloud } from './useReadAloud';
 import { amberTag, eyebrowClass, primaryBtn, secondaryBtn, softCard } from './ui';
-import type { ChatEntry } from './useScriptGenerator';
+import { SaveBadge } from './SavedScripts';
+import type { ChatEntry, SaveState } from './useScriptGenerator';
 
-type Props = { token: string; script: GeneratedScript; chat: ChatEntry[]; busy: boolean; error: string; onRefine: (instruction: string) => void };
+type Props = {
+  token: string;
+  script: GeneratedScript;
+  chat: ChatEntry[];
+  busy: boolean;
+  error: string;
+  onRefine: (instruction: string) => void;
+  /** The saved row (null until the first save lands), its save state, and its saved photos. */
+  draftId: string | null;
+  saveState: SaveState;
+  onRetrySave: () => void;
+  savedPhotos: Record<string, string>;
+};
 
 const card = softCard;
 const label = eyebrowClass;
@@ -33,26 +48,37 @@ function CopyBrief({ script }: { script: GeneratedScript }) {
   );
 }
 
+function BeatBody({ script, b, i }: { script: GeneratedScript; b: GeneratedScript['beats'][number]; i: number }) {
+  const carousel = script.format === 'carousel';
+  const split = !!(b.bottomOnScreen || b.bottomBroll);
+  const visualLabel = carousel ? (split ? 'Top photo' : 'Photo') : i === 0 ? 'Visual (first frame)' : 'B-roll';
+  return (
+    <div className="space-y-1.5 text-sm text-app-ink">
+      {b.onScreen && <p className="border-b border-app-line pb-1.5 font-semibold"><span className={`${label} mr-2`}>{split ? 'Top' : 'On screen'}</span>“{b.onScreen}”</p>}
+      {b.spoken && <p>{b.spoken}</p>}
+      {b.broll && <p className="text-xs text-app-muted">{visualLabel}: {b.broll}</p>}
+      {b.bottomOnScreen && <p className="border-b border-app-line pt-1 pb-1.5 font-semibold"><span className={`${label} mr-2`}>Bottom</span>“{b.bottomOnScreen}”</p>}
+      {b.bottomBroll && <p className="text-xs text-app-muted">Bottom photo: {b.bottomBroll}</p>}
+      {b.rehook && <p className="text-xs font-semibold text-app-accent">Re-hook{b.rehookAt !== undefined ? ` at ${Math.round(b.rehookAt)}s` : ''}: {b.rehook}</p>}
+    </div>
+  );
+}
+
 function Beats({ script }: { script: GeneratedScript }) {
   return (
     <div className={`${card} divide-y divide-app-line`}>
       {script.beats.map((b, i) => (
         <div key={i} className="grid gap-2 py-3 first:pt-0 sm:grid-cols-[110px_1fr] sm:gap-4">
           <div>
-            <span className={amberTag}>{Math.round(b.start)}-{Math.round(b.end)}s</span>
+            <span className={amberTag}>{beatPosition(script, b, i)}</span>
             <p className={`${label} mt-1.5`}>{b.label}</p>
           </div>
-          <div className="space-y-1.5 text-sm text-app-ink">
-            {b.onScreen && <p className="border-b border-app-line pb-1.5 font-semibold"><span className={`${label} mr-2`}>On screen</span>“{b.onScreen}”</p>}
-            {b.spoken && <p>{b.spoken}</p>}
-            {b.broll && <p className="text-xs text-app-muted">{i === 0 ? 'Visual (first frame)' : 'B-roll'}: {b.broll}</p>}
-            {b.rehook && <p className="text-xs font-semibold text-app-accent">Re-hook{b.rehookAt !== undefined ? ` at ${Math.round(b.rehookAt)}s` : ''}: {b.rehook}</p>}
-          </div>
+          <BeatBody script={script} b={b} i={i} />
         </div>
       ))}
       {script.music && <p className="pt-3 text-xs text-app-muted">Music: {script.music}</p>}
       <div className="pt-3">
-        <p className={`${label} text-app-accent`}>Call to action</p>
+        <p className={`${label} text-app-accent`}>{script.format === 'carousel' ? 'Call to action (caption)' : 'Call to action'}</p>
         <p className="mt-1 text-sm text-app-ink">“{script.cta}”</p>
       </div>
     </div>
@@ -106,24 +132,41 @@ function RefineBox({ chat, busy, error, onRefine }: Pick<Props, 'chat' | 'busy' 
   );
 }
 
-/** The generated script (beats or read-aloud), the director's note, and the refine chat. */
-export function ScriptResult({ token, script, chat, busy, error, onRefine }: Props) {
-  const [view, setView] = useState<'beats' | 'read'>('beats');
+type View = 'beats' | 'read' | 'preview';
+const VIEW_LABEL: Record<View, string> = { beats: 'Beat by beat', read: 'Read-aloud', preview: 'Preview' };
+
+/** The generated script (beats, read-aloud, or a carousel preview), the director's note, and the refine chat. */
+export function ScriptResult({ token, script, chat, busy, error, onRefine, draftId, saveState, onRetrySave, savedPhotos }: Props) {
+  const carousel = script.format === 'carousel';
+  const views: View[] = carousel ? ['preview', 'beats'] : ['beats', 'read'];
+  const [picked, setView] = useState<View>(views[0]);
+  const view = views.includes(picked) ? picked : views[0];
   const voice = useReadAloud(token, spokenText(script));
+  /** Photos stay on their slides through edits and view changes. */
+  const photos = useSlidePhotos(token, draftId, savedPhotos);
   return (
     <div className={`space-y-5 ${busy ? 'opacity-70' : ''}`}>
       <div>
-        <p className={label}>Your script</p>
+        <div className="flex items-center gap-3">
+          <p className={label}>Your script</p>
+          <SaveBadge state={saveState} onRetry={onRetrySave} />
+        </div>
         <h2 className="mt-1 text-3xl font-extrabold tracking-tight text-app-ink">{script.title}</h2>
-        <p className="text-sm text-app-muted">~{Math.round(script.durationSeconds)} seconds · {SCRIPT_FORMATS[script.format]?.label ?? script.format}</p>
+        <p className="text-sm text-app-muted">
+          {script.format === 'carousel'
+            ? `${script.beats.length} slides · Carousel · ${structureLabel(script.structure)}`
+            : `~${Math.round(script.durationSeconds)} seconds · ${SCRIPT_FORMATS[script.format]?.label ?? script.format}`}
+        </p>
       </div>
       <div className="inline-flex gap-1 rounded-xl bg-app-panel p-1 shadow-sm">
-        {(['beats', 'read'] as const).map((v) => (
-          <button key={v} type="button" onClick={() => setView(v)} className={`min-h-9 rounded-lg px-3 text-sm font-semibold transition ${view === v ? 'bg-app-cta text-app-cta-ink' : 'text-app-muted hover:text-app-ink'}`}>{v === 'beats' ? 'Beat by beat' : 'Read-aloud'}</button>
+        {views.map((v) => (
+          <button key={v} type="button" onClick={() => setView(v)} className={`min-h-9 rounded-lg px-3 text-sm font-semibold transition ${view === v ? 'bg-app-cta text-app-cta-ink' : 'text-app-muted hover:text-app-ink'}`}>{VIEW_LABEL[v]}</button>
         ))}
       </div>
       {view === 'beats' && <CopyBrief script={script} />}
-      {view === 'beats' ? <Beats script={script} /> : <ReadAloudPanel script={script} voice={voice} />}
+      {view === 'beats' && <Beats script={script} />}
+      {view === 'read' && <ReadAloudPanel script={script} voice={voice} />}
+      {view === 'preview' && <CarouselPreview script={script} photos={photos} />}
       <DirectorNote script={script} />
       <RefineBox chat={chat} busy={busy} error={error} onRefine={onRefine} />
     </div>

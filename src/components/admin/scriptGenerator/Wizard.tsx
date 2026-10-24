@@ -10,6 +10,8 @@ import {
   type ScriptGoal,
   type ScriptStructure,
 } from '../../../types/admin/scriptGenerator';
+import { isCarouselTemplate } from '../../../types/admin/carouselTemplates';
+import { CarouselTemplateStep } from './CarouselTemplateStep';
 import { EMPTY_INPUT, type WizardInput } from './useScriptGenerator';
 import { amberTag, BackButton, eyebrowClass, optionCard, primaryBtn, ProgressBar, StepFrame } from './ui';
 
@@ -39,11 +41,12 @@ function Choice({ title, tag, desc, selected, onClick }: { title: string; tag?: 
   );
 }
 
-type QuestionProps = { q: Question; index: number; formatLabel: string; value: string; onChange: (v: string) => void; onBack: () => void; onNext: () => void };
+type QuestionProps = { q: Question; index: number; formatLabel: string; noun: string; value: string; onChange: (v: string) => void; onBack: () => void; onNext: () => void };
 
-function QuestionStep({ q, index, formatLabel, value, onChange, onBack, onNext }: QuestionProps) {
+function QuestionStep({ q, index, formatLabel, noun, value, onChange, onBack, onNext }: QuestionProps) {
   const total = QUESTIONS.length + 1;
-  const title = q.required ? q.title : `${q.title} (optional)`;
+  const base = q.title.replace('video', noun);
+  const title = q.required ? base : `${base} (optional)`;
   return (
     <StepFrame eyebrow={`Step 03 · ${formatLabel} · 0${index + 1} of 0${total}`} title={title} help={q.help} progress={<ProgressBar total={total} current={index} />}>
       <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder="Type here" className="min-h-40 w-full rounded-2xl bg-app-panel p-5 text-base text-app-ink shadow-sm outline-none ring-1 ring-transparent placeholder:text-app-muted/60 focus:ring-amber-400" />
@@ -74,18 +77,22 @@ export function Wizard({ error, initial, onSubmit }: Props) {
   };
 
   const formatLabel = input.format ? SCRIPT_FORMATS[input.format].label : '';
+  const carousel = input.format === 'carousel';
   const goBack = () => setStep(step - 1);
 
   if (step === 0) {
     return (
       <StepFrame eyebrow="Step 01 · Pick your format" title="What kind of video is it?">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(Object.keys(SCRIPT_FORMATS) as ScriptFormat[]).map((k) => (
             <Choice key={k} title={SCRIPT_FORMATS[k].label} tag={SCRIPT_FORMATS[k].range} desc={SCRIPT_FORMATS[k].desc} onClick={() => { set('format', k); setStep(1); }} />
           ))}
         </div>
       </StepFrame>
     );
+  }
+  if (step === 1 && carousel) {
+    return <CarouselTemplateStep selected={isCarouselTemplate(input.structure) ? input.structure : null} onPick={(t) => { set('structure', t); setStep(2); }} onBack={goBack} />;
   }
   if (step === 1) {
     return (
@@ -103,11 +110,11 @@ export function Wizard({ error, initial, onSubmit }: Props) {
   const qIndex = step - 2;
   if (qIndex < QUESTIONS.length) {
     const q = QUESTIONS[qIndex];
-    return <QuestionStep key={q.key} q={q} index={qIndex} formatLabel={formatLabel} value={input[q.key]} onChange={(v) => set(q.key, v)} onBack={goBack} onNext={() => setStep(step + 1)} />;
+    return <QuestionStep key={q.key} q={q} index={qIndex} formatLabel={formatLabel} noun={carousel ? 'carousel' : 'video'} value={input[q.key]} onChange={(v) => set(q.key, v)} onBack={goBack} onNext={() => setStep(step + 1)} />;
   }
   const total = QUESTIONS.length + 1;
   return (
-    <StepFrame eyebrow={`Step 03 · ${formatLabel} · 0${total} of 0${total}`} title="What is the goal of this video?" progress={<ProgressBar total={total} current={total - 1} />}>
+    <StepFrame eyebrow={`Step 03 · ${formatLabel} · 0${total} of 0${total}`} title={`What is the goal of this ${carousel ? 'carousel' : 'video'}?`} progress={<ProgressBar total={total} current={total - 1} />}>
       <div className="space-y-4">
         {(Object.keys(SCRIPT_GOALS) as ScriptGoal[]).map((k) => (
           <Choice key={k} title={SCRIPT_GOALS[k].label} selected={input.goal === k} onClick={() => set('goal', k)} />

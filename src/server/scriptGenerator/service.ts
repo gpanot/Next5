@@ -14,6 +14,7 @@ import {
   type ScriptModel,
   type ScriptHook,
 } from '../../types/admin/scriptGenerator';
+import { isCarouselTemplate } from '../../types/admin/carouselTemplates';
 import { HttpError } from '../http';
 import { callClaude, type ToolDef } from './anthropic';
 import { callOpenAi } from './openai';
@@ -34,7 +35,13 @@ const clean = (value: unknown, max = 1500): string => String(value ?? '').trim()
 function asScript(value: unknown): GeneratedScript {
   const s = value as Partial<GeneratedScript> | null;
   if (!s || !Array.isArray(s.beats) || s.beats.length < 3 || !s.directorNote) throw new HttpError(502, 'invalid_script', 'Model returned an invalid script. Try again.');
-  return s as GeneratedScript;
+  return s.format === 'carousel' ? asCarousel(s as GeneratedScript) : (s as GeneratedScript);
+}
+
+/** A carousel has no time line: each beat is a slide, numbered by its index, with nothing spoken. */
+function asCarousel(s: GeneratedScript): GeneratedScript {
+  const beats = s.beats.map((b, i) => ({ ...b, start: i, end: i + 1, spoken: '', rehook: '', rehookAt: undefined }));
+  return { ...s, beats, durationSeconds: beats.length };
 }
 
 const bad = (message: string) => new HttpError(400, 'bad_request', message);
@@ -47,12 +54,15 @@ export function parseHooksInput(body: Record<string, unknown>): HooksInput {
   const audience = clean(body.audience);
   const message = clean(body.message);
   if (!audience || !message) throw bad('Audience and message are required.');
+  const template = format === 'carousel' ? body.template ?? body.structure : undefined;
+  if (template !== undefined && !isCarouselTemplate(template)) throw bad('Unknown carousel template');
   return {
     format: format as HooksInput['format'],
     goal: goal as HooksInput['goal'],
     audience,
     message,
     credibility: clean(body.credibility),
+    ...(template ? { template } : {}),
   };
 }
 
@@ -69,8 +79,11 @@ export function parseHook(value: unknown): ScriptHook | null {
 /** Throws a 400 HttpError when the body is not a valid generate request. */
 export function parseGenerateInput(body: Record<string, unknown>): GenerateScriptInput {
   const { structure } = body;
-  if (typeof structure !== 'string' || (structure !== 'ai_choose' && !(structure in SCRIPT_STRUCTURES))) throw bad('Unknown structure');
+  const carousel = body.format === 'carousel';
+  const known = carousel ? isCarouselTemplate(structure) : typeof structure === 'string' && (structure === 'ai_choose' || structure in SCRIPT_STRUCTURES);
+  if (!known) throw bad(carousel ? 'Unknown carousel template' : 'Unknown structure');
   const base = parseHooksInput(body);
+  delete base.template;
   const hook = parseHook(body.hook);
   return { ...base, structure: structure as GenerateScriptInput['structure'], ...(hook ? { hook } : {}) };
 }
@@ -97,7 +110,7 @@ export function validateHooks(value: unknown, silent: boolean): HookOption[] {
 
 export async function generateHooks(input: HooksInput, model: ScriptModel = DEFAULT_SCRIPT_MODEL): Promise<HookOption[]> {
   const tool: ToolDef = { name: 'submit_hooks', description: 'Submit the 3 hook options.', input_schema: HOOKS_SCHEMA };
-  return validateHooks(await callModel(model, buildHooksSystem(input), userBlock(input), tool), input.format === 'silent_film');
+  return validateHooks(await callModel(model, buildHooksSystem(input), userBlock(input), tool), input.format !== 'talking_head');
 }
 
 export async function generateScript(input: GenerateScriptInput, model: ScriptModel = DEFAULT_SCRIPT_MODEL): Promise<GeneratedScript> {

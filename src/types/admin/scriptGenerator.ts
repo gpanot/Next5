@@ -1,6 +1,7 @@
 /** Script Generator: shared by the admin API routes and the admin tab. Client-safe (no server imports). */
+import type { CarouselTemplate } from './carouselTemplates';
 
-export type ScriptFormat = 'talking_head' | 'silent_film';
+export type ScriptFormat = 'talking_head' | 'silent_film' | 'carousel';
 export type ScriptStructure = 'problem_pursuit_payoff' | 'personal_story' | 'listicle' | 'perspective_shift' | 'myth_buster';
 export type ScriptGoal = 'attract' | 'nurture' | 'position' | 'convert';
 
@@ -24,6 +25,14 @@ export const SCRIPT_FORMATS: Record<ScriptFormat, FormatInfo> = {
     desc: 'Visuals plus on-screen text, no voiceover. Music carries the emotion. Best for attract content.',
     rules:
       "There is no voiceover: leave 'spoken' empty on every beat. Every beat has 'onScreen' text (max 12 words) and a 'broll' shot description. Fill 'music' with a short mood and tempo direction.",
+  },
+  carousel: {
+    label: 'Carousel',
+    seconds: 0,
+    range: 'Photo post',
+    desc: 'Photos with one line of text each: My Story, Numbered List or Split Screen. Carousels get about 50% more engagement than reels.',
+    rules:
+      "Each beat is one slide. There is no voiceover: leave 'spoken', 'rehook' and 'rehookAt' empty. 'onScreen' is the text on the slide, 'broll' is the photo it sits on: a real photo the creator can take or find in their camera roll. Every slide must make the viewer swipe to the next one. Set 'start' to the slide index (0, 1, 2...) and 'end' to start + 1. Fill 'music' with a short mood for the post's sound. 'cta' is the call to action written in the post caption.",
   },
 };
 
@@ -74,6 +83,7 @@ export const SCRIPT_GOALS: Record<ScriptGoal, GoalInfo> = {
 
 /** On the HOOK beat: broll = visual first frame (0 to 1 s), onScreen = 3 to 5 bold words, spoken = verbal hook.
  *  rehook / rehookAt (optional, so older scripts still render): a short line that resets attention, and the second it lands. */
+/** On a carousel a beat is a slide: start/end are its index. Split screen slides also fill the bottom half. */
 export type ScriptBeat = {
   start: number;
   end: number;
@@ -83,12 +93,15 @@ export type ScriptBeat = {
   broll?: string;
   rehook?: string;
   rehookAt?: number;
+  bottomOnScreen?: string;
+  bottomBroll?: string;
 };
 export type DirectorDecision = { choice: string; rule: string };
 export type GeneratedScript = {
   title: string;
   format: ScriptFormat;
-  structure: ScriptStructure;
+  /** A carousel template when format is 'carousel'. */
+  structure: ScriptStructure | CarouselTemplate;
   durationSeconds: number;
   music?: string;
   beats: ScriptBeat[];
@@ -105,8 +118,8 @@ export type HookOption = ScriptHook & { angle: HookAngle };
 
 export type GenerateScriptInput = {
   format: ScriptFormat;
-  /** A structure key, or 'ai_choose' to let the model pick. */
-  structure: ScriptStructure | 'ai_choose';
+  /** A structure key, or 'ai_choose' to let the model pick. A carousel template when format is 'carousel'. */
+  structure: ScriptStructure | CarouselTemplate | 'ai_choose';
   goal: ScriptGoal;
   audience: string;
   message: string;
@@ -115,8 +128,8 @@ export type GenerateScriptInput = {
   hook?: ScriptHook;
 };
 
-/** What the hooks endpoint needs: the wizard inputs minus structure and hook. */
-export type HooksInput = Omit<GenerateScriptInput, 'structure' | 'hook'>;
+/** What the hooks endpoint needs: the wizard inputs minus structure and hook. A carousel also sends its template. */
+export type HooksInput = Omit<GenerateScriptInput, 'structure' | 'hook'> & { template?: CarouselTemplate };
 
 export type RefineScriptResult = { refused: boolean; message: string; script: GeneratedScript };
 

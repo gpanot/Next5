@@ -14,7 +14,7 @@ export const spokenText = (script: GeneratedScript): string => script.beats.map(
 export function ReadAloudPanel({ script, voice }: { script: GeneratedScript; voice: ReturnType<typeof useReadAloud> }) {
   const text = spokenText(script);
   const { audio, busy, error, listen, markHeard } = voice;
-  if (!text) return <div className={`${softCard} text-base text-app-ink`}>Silent film: there is no spoken text. Use the beat view.</div>;
+  if (!text) return <div className={`${softCard} text-base text-app-ink`}>Nothing is spoken in this format. Use the beat view.</div>;
   return (
     <div className="space-y-3">
       <div className={`${softCard} flex flex-wrap items-center gap-3`}>

@@ -2770,3 +2770,25 @@ model BrandBlueprint {
   @@index([workspaceId], map: "brand_blueprints_workspace_idx")
   @@map("brand_blueprints")
 }
+
+/// Admin › Jun Yuh › Script Generator: one saved script (video or carousel) with its answers, refine chat and photos.
+model ScriptGeneratorDraft {
+  id        String   @id @default(cuid())
+  title     String
+  format    String
+  structure String
+  model     String
+  /// The wizard answers (GenerateScriptInput).
+  input     Json
+  /// The GeneratedScript.
+  script    Json
+  /// [{ you, reply, refused }]
+  chat      Json     @default("[]")
+  /// { slot: r2Key }. Slot "3" = slide 4, "3b" = its bottom half on a split screen.
+  photos    Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([updatedAt(sort: Desc)], map: "script_generator_drafts_updated_idx")
+  @@map("script_generator_drafts")
+}
