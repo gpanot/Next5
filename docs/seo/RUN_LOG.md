@@ -4,6 +4,7 @@ One line per daily run, newest first.
 
 | Date | Target query | Source | Action | Result | First-try pass |
 | --- | --- | --- | --- | --- | --- |
+| 2026-10-25 | social media for restaurants (210/mo US, LOW) | Backlog, cold start (Search Console: 11 query rows, best 7 impressions, nothing near the 50-impression bar) | New article, hub `industry` | Shipped: PR #61. Review 1 failed check 5 on 3 claims (music rule overstated for Instagram in 2 places, unsourced "every 90 seconds"); one rewrite, review 2 clean on all 9 | No |
 | 2026-10-24 | how many hashtags to use on tiktok for business (parents 480 + 480 + 140 + 70/mo US, all LOW) | Backlog, cold start (Search Console: 8 query rows, best 6 impressions) | New article, hub `how-to` (moved off `industry` after 3 in a row) | Shipped: PR #60. Review 1 failed check 5 on 6 unsourced claims; one rewrite, review 2 clean on all 9 | No |
 | 2026-10-23 | tiktok for plumbers (plumber tiktok ~20/mo US) | Backlog, cold start (Search Console: 7 query rows site-wide) | New article, hub `industry` | Shipped: PR #59, both review passes clean | Yes |
 | 2026-10-22 | social media for hair salons (40/mo US) | Backlog, cold start (Search Console: 2 query rows site-wide) | New article, hub `industry` | Shipped: PR #58, both review passes clean | Yes |

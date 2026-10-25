@@ -12,6 +12,7 @@ import { socialMediaContentCalendar } from './articles/socialMediaContentCalenda
 import { socialMediaForGyms } from './articles/socialMediaForGyms';
 import { socialMediaForHairSalons } from './articles/socialMediaForHairSalons';
 import { socialMediaForRealtors } from './articles/socialMediaForRealtors';
+import { socialMediaForRestaurants } from './articles/socialMediaForRestaurants';
 import { socialMediaManagerCost } from './articles/socialMediaManagerCost';
 import { socialMediaMarketingSmallBusiness } from './articles/socialMediaMarketingSmallBusiness';
 import { tiktokForPlumbers } from './articles/tiktokForPlumbers';
@@ -37,6 +38,7 @@ export const BLOG_POSTS: readonly Article[] = [
   socialMediaManagerCost,
   facelessTikTokIdeas,
   chatgptForSocialMedia,
+  socialMediaForRestaurants,
   socialMediaForGyms,
   socialMediaForHairSalons,
   tiktokForPlumbers,
