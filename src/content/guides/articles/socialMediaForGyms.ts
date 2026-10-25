@@ -60,7 +60,7 @@ export const socialMediaForGyms: Article = {
       '**Put the trial link in your bio**, and keep it the one link you update.',
       '**Reply to every comment the same day.** A trial offer with no reply loses the person who was ready to book.',
     ] },
-    { type: 'p', text: 'Plan a month of these posts in one sitting with the [free 30-day content calendar](/blog/social-media-content-calendar), or copy a hook from [40 TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business) for each idea above. Run a different kind of local service business? See [TikTok for plumbers](/blog/tiktok-for-plumbers).' },
+    { type: 'p', text: 'Plan a month of these posts in one sitting with the [free 30-day content calendar](/blog/social-media-content-calendar), or copy a hook from [40 TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business) for each idea above. Run a different kind of local service business? See [TikTok for plumbers](/blog/tiktok-for-plumbers), or [social media for restaurants](/blog/social-media-for-restaurants) if you also run the smoothie bar or cafe side of the gym.' },
     { type: 'cta', title: 'A month of gym posts, done for you', text: 'Paste your gym\'s website. Next5 makes TikTok slideshows and videos built on formats that already get views for gyms. You approve every post before it goes live.' },
     { type: 'h2', text: 'Common mistakes' },
     { type: 'ul', items: [

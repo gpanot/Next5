@@ -4672,5 +4672,14 @@
     "bytes": 512338,
     "alt": "Coffee shop owner behind the counter in daylight typing a caption on a phone held in both hands",
     "generatedAt": "2026-10-24T01:50:35.120Z"
+  },
+  "public/images/guides/social-media-for-restaurants.png": {
+    "prompt": "A cook in a white apron plating a finished pasta dish on the stainless steel pass of a small neighborhood restaurant kitchen, warm plated food in focus, bright daylight coming from a side window, clean counter, realistic documentary photo, 4:5",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 488819,
+    "alt": "Cook in a white apron finishing a plate of spaghetti on the stainless steel pass of a small restaurant kitchen, daylight from a window",
+    "generatedAt": "2026-10-25T01:22:42.767Z"
   }
 }

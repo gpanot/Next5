@@ -27,7 +27,7 @@ export const marketingIdeasSmallBusiness: Article = {
     ] },
     { type: 'h2', text: 'Local ideas' },
     { type: 'ol', items: [
-      '**Fill in your Google Business Profile.** Photos, hours, services and weekly posts.',
+      '**Fill in your Google Business Profile.** Photos, hours, services and weekly posts. If you serve food, the profile matters more than the feed, see [social media for restaurants](/blog/social-media-for-restaurants).',
       '**Ask every happy customer for a Google review.** Send the link by text the same day.',
       '**Team up with a business next door.** Share each other\'s posts or offers.',
       '**Sponsor a small local event.** A school game, a charity run, a market.',
