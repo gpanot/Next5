@@ -4681,5 +4681,14 @@
     "bytes": 488819,
     "alt": "Cook in a white apron finishing a plate of spaghetti on the stainless steel pass of a small restaurant kitchen, daylight from a window",
     "generatedAt": "2026-10-25T01:22:42.767Z"
+  },
+  "public/images/guides/open-house-social-media-post-ideas.png": {
+    "prompt": "Real estate agent in a blazer placing a white OPEN HOUSE yard sign into the front lawn of a suburban American home, bright midday daylight, green lawn, porch and front door visible behind, realistic documentary photograph, 4:5 vertical",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 586802,
+    "alt": "Real estate agent placing an OPEN HOUSE yard sign on the front lawn of a suburban home in bright daylight",
+    "generatedAt": "2026-10-26T01:06:17.656Z"
   }
 }

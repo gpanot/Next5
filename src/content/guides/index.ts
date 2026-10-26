@@ -8,6 +8,7 @@ import { guideReadAnalytics } from './articles/guideReadAnalytics';
 import { howToMakeTikTokSlideshow } from './articles/howToMakeTikTokSlideshow';
 import { howToSellOnTikTokShop } from './articles/howToSellOnTikTokShop';
 import { marketingIdeasSmallBusiness } from './articles/marketingIdeasSmallBusiness';
+import { openHouseSocialMediaPost } from './articles/openHouseSocialMediaPost';
 import { socialMediaContentCalendar } from './articles/socialMediaContentCalendar';
 import { socialMediaForGyms } from './articles/socialMediaForGyms';
 import { socialMediaForHairSalons } from './articles/socialMediaForHairSalons';
@@ -33,6 +34,7 @@ export const BLOG_POSTS: readonly Article[] = [
   howToSellOnTikTokShop,
   socialMediaForRealtors,
   comingSoonRealEstatePost,
+  openHouseSocialMediaPost,
   marketingIdeasSmallBusiness,
   tiktokHooks,
   socialMediaManagerCost,

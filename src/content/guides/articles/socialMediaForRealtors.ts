@@ -84,7 +84,7 @@ export const socialMediaForRealtors: Article = {
       '**Answer every comment and message** the same day.',
     ] },
     { type: 'h2', text: 'How often should realtors post?' },
-    { type: 'p', text: 'Aim for one post a day on TikTok and 3 to 5 a week on Instagram. Plan the month in one sitting with our [free 30-day content calendar](/blog/social-media-content-calendar).' },
+    { type: 'p', text: 'Aim for one post a day on TikTok and 3 to 5 a week on Instagram. Plan the month in one sitting with our [free 30-day content calendar](/blog/social-media-content-calendar). Any week with an open house gets its own run of five posts: see [open house social media post ideas](/blog/open-house-social-media-post-ideas).' },
     { type: 'cta', title: 'Your month of real estate posts, done', text: 'Paste your website or listing page. Next5 makes TikTok slideshows and videos built on formats that already get views for agents. You approve every post before it goes live.' },
   ],
   faq: [

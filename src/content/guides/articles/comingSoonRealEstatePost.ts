@@ -68,7 +68,7 @@ export const comingSoonRealEstatePost: Article = {
       ['The day it goes live', 'Just listed: full room tour', 'Send the listing to everyone who commented'],
       ['Open house or under contract', 'Open house, then just sold', 'Proof for the next seller'],
     ] },
-    { type: 'p', text: 'Put all 4 in your calendar the day the seller signs, so none gets skipped. Our [free 30-day content calendar](/blog/social-media-content-calendar) has room for listing posts next to your weekly tips. For the rest of your posts, see [30 real estate post ideas](/blog/social-media-for-realtors).' },
+    { type: 'p', text: 'Put all 4 in your calendar the day the seller signs, so none gets skipped. Our [free 30-day content calendar](/blog/social-media-content-calendar) has room for listing posts next to your weekly tips. When the open house date is set, the [5 open house posts and captions](/blog/open-house-social-media-post-ideas) slot straight into the same week. For the rest of your posts, see [30 real estate post ideas](/blog/social-media-for-realtors).' },
     { type: 'h2', text: 'Turn comments into buyer leads' },
     { type: 'ul', items: [
       '**Ask for one word.** "Comment SOON" is easy. Ask for nothing else.',
