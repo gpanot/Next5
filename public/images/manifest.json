@@ -4690,5 +4690,14 @@
     "bytes": 586802,
     "alt": "Real estate agent placing an OPEN HOUSE yard sign on the front lawn of a suburban home in bright daylight",
     "generatedAt": "2026-10-26T01:06:17.656Z"
+  },
+  "public/images/guides/christmas-social-media-post-ideas.png": {
+    "prompt": "A small shop owner holding a phone up to photograph the shop counter, which is decorated for Christmas with a small lit tree, pine garland and a few wrapped gift boxes, bright daylight coming through the storefront window behind, realistic photo, 4:5",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 524721,
+    "alt": "Shop owner photographing a Christmas-decorated shop counter with a phone, a small lit tree and wrapped gifts on the counter, daylight through the storefront window",
+    "generatedAt": "2026-10-27T01:05:50.091Z"
   }
 }

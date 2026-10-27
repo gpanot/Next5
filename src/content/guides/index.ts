@@ -1,5 +1,6 @@
 import { bestTimeToPostTikTok } from './articles/bestTimeToPostTikTok';
 import { chatgptForSocialMedia } from './articles/chatgptForSocialMedia';
+import { christmasSocialMediaPostIdeas } from './articles/christmasSocialMediaPostIdeas';
 import { comingSoonRealEstatePost } from './articles/comingSoonRealEstatePost';
 import { facelessTikTokIdeas } from './articles/facelessTikTokIdeas';
 import { guideFillCalendar } from './articles/guideFillCalendar';
@@ -36,6 +37,7 @@ export const BLOG_POSTS: readonly Article[] = [
   comingSoonRealEstatePost,
   openHouseSocialMediaPost,
   marketingIdeasSmallBusiness,
+  christmasSocialMediaPostIdeas,
   tiktokHooks,
   socialMediaManagerCost,
   facelessTikTokIdeas,
