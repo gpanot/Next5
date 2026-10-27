@@ -57,6 +57,8 @@ export const socialMediaMarketingSmallBusiness: Article = {
     { type: 'cta', title: 'Want this done for you?', text: 'Paste your website. Next5 finds what already gets views in your market, makes the posts, fills your calendar and shows your numbers. You approve every post.' },
     { type: 'h2', text: 'How much should a small business spend on social media?' },
     { type: 'p', text: 'You can start with $0 and your phone. The real cost is time: making 30 good posts a month can take 10+ hours. That is why many owners hire help or use a tool. Read [how much a social media manager costs](/blog/how-much-does-a-social-media-manager-cost) to compare your options.' },
+    { type: 'h2', text: 'What changes in November and December' },
+    { type: 'p', text: 'The plan above stays the same, but the calendar does half the work for you: Small Business Saturday, the shipping cutoffs and your holiday hours are all posts that write themselves. See [Christmas social media post ideas for a small business](/blog/christmas-social-media-post-ideas) for the dates and the captions.' },
   ],
   faq: [
     { q: 'What is the best social media for a small business?', a: 'The one your buyers use. For most small businesses, TikTok and Instagram are a strong start. TikTok shows your posts to new people even with 0 followers.' },

@@ -5,12 +5,14 @@ Existing articles are listed so the agent does not duplicate them.
 
 ## post-ideas
 
-Live: 25 low-cost marketing ideas; 20 faceless TikTok ideas.
+Live: 25 low-cost marketing ideas; 20 faceless TikTok ideas; Christmas post ideas for a small
+business (2026 dates).
 
 - instagram post ideas for small business
 - what to post when business is slow
-- holiday post ideas for local businesses
 - tiktok ideas for small business with no followers
+- small business saturday post ideas (70/mo US, seasonal, write it by early November)
+- new year social media post ideas (20/mo US, seasonal, write it in December)
 
 ## how-to
 
