@@ -74,7 +74,10 @@ export const useSlideshowEdit = (token: string, runId: string, initial: AutoSlid
       quiet('', { textStyle: { group, part, look } }, 'The text style could not be saved'),
     saveSlide: (index: number, patch: { title?: string; body?: string; photoIndex?: number; textAt?: null }) => call(`slide-${index}`, `/slides/${index}`, 'PATCH', patch),
     deleteSlide: (index: number) => call(`delete-slide-${index}`, `/slides/${index}`, 'DELETE'),
-    newPhoto: (index: number) => call(`photo-${index}`, `/slides/${index}/photo`, 'POST'),
+    /** A new photo for slide `index`; `choice`: the prompt and avatar picked in the "Generate New" dialog. */
+    newPhoto: (index: number, choice?: { prompt: string; castId: string | null }) => call(`photo-${index}`, `/slides/${index}/photo`, 'POST', choice),
+    /** The slide's photo route, for the "Generate New" dialog's options. */
+    photoPath: (index: number) => `${base}/slides/${index}/photo`,
     saveCaption: (caption: string, hashtags: string[]) => call('caption', '', 'PATCH', { caption, hashtags }),
     setMusic: (audioAssetId: string | null) => call('music', '', 'PATCH', { audioAssetId }),
     setHookStyle: (hookStyle: HookStyleId) => call('hook-style', '', 'PATCH', { hookStyle }),

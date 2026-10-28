@@ -14,12 +14,12 @@ import type { SlideshowPattern } from '../../types/admin/slideshowKnowledge';
 import { HttpError } from '../http';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { chargeSlideshow } from '../slideshowCredits/charge';
-import { deleteObject, putObject } from '../storage/objectStore';
+import { deleteObject, presignObject, putObject } from '../storage/objectStore';
 import { loadUsage } from './bank/build';
 import { assembleCombo, swapCombo } from './bank/pick';
 import { headsFor, type HeadsCache } from './heads';
 import { isTrack } from './music';
-import { brandLook } from './photoPlan';
+import { brandLook, PERSON_NOTE, PRODUCT_NOTE } from './photoPlan';
 import { makePhotos } from './photos';
 import { renderSlide, type BoxLook, type PhotoCache } from './render';
 import { alignsWithContent, contentTop, SLIDE_SIZE } from './textPlacement';
@@ -153,19 +153,56 @@ export const moveText = async (runId: string, showId: string, index: unknown, at
   await saveSlides(show, await renderAligned(runId, showId, slides, moved, photosOf(show.run), styleOf(show.run)));
 };
 
-/** A new photo for one slide, made from the photo it replaces (so the mood stays), added to the run's set. */
-export const newPhotoForSlide = async (runId: string, showId: string, index: number): Promise<void> => {
+/** The prompt "Generate New" uses unless the owner edits it: the replaced photo's, as another moment of that scene. */
+const defaultPrompt = (show: Awaited<ReturnType<typeof loadShow>>, slide: AutoSlide): string => {
+  const base = photosOf(show.run)[slide.photoIndex]?.prompt ?? (show.run.plan as unknown as AutoPlan | null)?.photoPrompts[0] ?? 'A calm outdoor scene';
+  return `${base} Another moment of the same scene: different angle and framing.`;
+};
+
+/** The owner's choices in the "Generate New" dialog: their prompt, and the Brand Cast person (null: nobody). Unset: as before. */
+export type PhotoChoice = { prompt?: string; castId?: string | null };
+
+/** What the "Generate New" dialog opens with: the default prompt, the slide's person and the workspace's ready cast. */
+export const newPhotoOptions = async (runId: string, showId: string, index: number) => {
+  const show = await loadShow(runId, showId);
+  const slide = (show.slides as unknown as AutoSlide[])[index];
+  if (!slide) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
+  const cast = show.run.workspaceId
+    ? await prisma.brandCastMember.findMany({ where: { workspaceId: show.run.workspaceId, archivedAt: null, status: 'ready', imageKey: { not: null } }, orderBy: { slot: 'asc' } })
+    : [];
+  const people = await Promise.all(cast.map(async (m) => ({ id: m.id, name: m.name, look: m.look, imageUrl: await presignObject(m.imageKey!) })));
+  return { prompt: defaultPrompt(show, slide), castId: slide.castId ?? null, cast: people };
+};
+
+/** The slide's reference images with `castId`'s anchor photo in place of the person it had (product images stay). */
+const refsWithCast = async (show: Awaited<ReturnType<typeof loadShow>>, slide: AutoSlide, castId: string | null) => {
+  const others = (slide.castId ? slide.photoRefs?.slice(1) : slide.photoRefs) ?? [];
+  const member = castId
+    ? await prisma.brandCastMember.findFirst({ where: { id: castId, workspaceId: show.run.workspaceId ?? '', archivedAt: null, status: 'ready' } })
+    : null;
+  if (castId && !member?.imageKey) throw new HttpError(400, 'bad_cast', 'Pick one of your avatars.');
+  const refs = [...(member?.imageKey ? [member.imageKey] : []), ...others];
+  const notes = [
+    ...(member ? [`Image 1 is the main person: ${PERSON_NOTE}.`] : []),
+    ...(others.length ? [`Image ${member ? 2 : 1} is the brand's product: ${PRODUCT_NOTE}.`] : []),
+  ];
+  return { photoRefs: refs.length ? refs : undefined, photoRefNote: notes.length ? notes.join(' ') : undefined, castId: member?.id };
+};
+
+/** A new photo for one slide, made from the photo it replaces (so the mood stays), added to the run's set. `choice`: the
+ *  owner's prompt and person from the "Generate New" dialog; the slide keeps that person for later photos. */
+export const newPhotoForSlide = async (runId: string, showId: string, index: number, choice: PhotoChoice = {}): Promise<void> => {
   const show = await loadShow(runId, showId);
   const slides = show.slides as unknown as AutoSlide[];
-  const slide = slides[index];
-  if (!slide) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
+  const original = slides[index];
+  if (!original) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
+  const slide = choice.castId === undefined ? original : { ...original, ...(await refsWithCast(show, original, choice.castId)) };
   const photos = photosOf(show.run);
-  const base = photos[slide.photoIndex]?.prompt ?? (show.run.plan as unknown as AutoPlan | null)?.photoPrompts[0] ?? 'A calm outdoor scene';
-  const prompt = `${base} Another moment of the same scene: different angle and framing.`;
+  const prompt = choice.prompt?.trim() ? choice.prompt.trim().slice(0, 2000) : defaultPrompt(show, slide);
   const meter = createMeter();
   try {
     // Same reference images (brand cast member, product) as the photo it replaces, so the person and product stay.
-    const prior = photos[slide.photoIndex];
+    const prior = choice.castId === undefined ? photos[slide.photoIndex] : undefined;
     const refs = slide.photoRefs ?? prior?.refs;
     const spec = { prompt, ...(refs?.length ? { refs, refNote: slide.photoRefNote ?? prior?.refNote } : {}) };
     const all = await makePhotos(runId, [...photos.map((p) => p.prompt), spec], photos, meter, { look: brandLook(show.run.profile as unknown as BrandProfile | null) });

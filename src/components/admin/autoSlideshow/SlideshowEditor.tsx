@@ -9,7 +9,8 @@ import { useSlideshowSchedule } from './posting/useSlideshowSchedule';
 import { ScheduleButton } from './campaigns/ScheduleButton';
 import { PlayerControls } from './SlidePlayer';
 import { SlidePreview } from './SlidePreview';
-import { photosInSlideOrder } from './photoOrder';
+import { photosForPicker } from './photoOrder';
+import { NewPhotoDialog } from './NewPhotoDialog';
 import { PhotoPicker } from './PhotoPicker';
 import { SafeZoneButton, useSafeZone } from './SafeZone';
 import { PhotoToggle, SlideEditPanel } from './SlideEditPanel';
@@ -65,6 +66,8 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
   const drafts = useSlideshowDrafts(show, slide);
   const saving = busy === 'caption' || busy === `slide-${slide}`;
   const [photoOpen, setPhotoOpen] = useState(false);
+  /** The slide whose "Generate New" dialog is open. */
+  const [newPhotoFor, setNewPhotoFor] = useState<number | null>(null);
   /** Video render is admin-only: the admin token, or an "Open as user" tab. */
   const admin = isAdminView(token);
   const safeZone = useSafeZone();
@@ -74,13 +77,13 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
   useEffect(() => {
     /** Escape in a text field (slide text, caption) only leaves the field; elsewhere it closes the editor. */
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
+      if (e.key !== 'Escape' || newPhotoFor !== null) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) e.target.blur();
       else onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, newPhotoFor]);
 
   /** Stores the slide text and the caption, whichever changed. */
   const save = async () => {
@@ -220,10 +223,10 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
           <PhotoPicker
             slide={current}
             index={slide}
-            photos={photos && photosInSlideOrder(show.id, show.slides, photos)}
+            photos={photos && photosForPicker(show.id, show.slides, photos)}
             busy={busy}
             onPhoto={(photoIndex) => void edit.saveSlide(slide, { photoIndex })}
-            onNewPhoto={() => void edit.newPhoto(slide).then((ok) => ok && onPhotosChanged())}
+            onNewPhoto={() => setNewPhotoFor(slide)}
           />
         }
         titleStyle={<TextStyleMenu slide={live.slideAt(slide) ?? current} part="look" onPick={live.style} />}
@@ -267,6 +270,19 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
           </EditorAside>
         }
       />
+      {newPhotoFor !== null && (
+        <NewPhotoDialog
+          token={token}
+          path={edit.photoPath(newPhotoFor)}
+          slideNumber={newPhotoFor + 1}
+          onClose={() => setNewPhotoFor(null)}
+          onGenerate={(choice) => {
+            const index = newPhotoFor;
+            setNewPhotoFor(null);
+            void edit.newPhoto(index, choice).then((ok) => ok && onPhotosChanged());
+          }}
+        />
+      )}
     </EditorFrame>
   );
 }

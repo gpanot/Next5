@@ -117,8 +117,8 @@ const toPlan = (raw: Record<string, unknown>, input: PlanInput, products: BrandP
 /** A product photo goes on the slide as it is only when it reads as a real photo, not an ad, and no person is asked for. */
 const usesPhotoAsIs = (plan: SlidePlan) => Boolean(plan.product?.usableAsBackground && !plan.product.looksLikeAd && plan.person !== 'main');
 
-const PERSON_NOTE = 'keep the SAME person (face, hair, skin tone, build); change the pose, place and clothes as described here';
-const PRODUCT_NOTE = 'show this EXACT product (same shape, colors and details); do not copy that photo\'s person, pose or background';
+export const PERSON_NOTE = 'keep the SAME person (face, hair, skin tone, build); change the pose, place and clothes as described here';
+export const PRODUCT_NOTE = 'show this EXACT product (same shape, colors and details); do not copy that photo\'s person, pose or background';
 
 /** The slide's photo fields from its plan: prompt, reference images and what they are, or the brand photo used as it is. */
 const planToSlide = (slide: Omit<AutoSlide, 'imageKey'>, plan: SlidePlan, all: Plan, cast: CastPick | null): Omit<AutoSlide, 'imageKey'> => {
