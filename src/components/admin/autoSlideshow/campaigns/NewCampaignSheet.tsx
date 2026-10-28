@@ -124,12 +124,12 @@ function CreditsAlert({ error, paid, onAddCredits }: CreditsAlertProps) {
   );
 }
 
-type BrandCastProps = { token: string; workspaceId: string; runId: string; resume: BrandCastResume | null; onBack: () => void; onCreated: () => void };
+type BrandCastProps = { token: string; workspaceId: string; runId: string; resume: BrandCastResume | null; backLabel: string; onBack: () => void; onCreated: () => void };
 
 /** Step 2 of Brand Cast: how many slideshows (1-5), what it costs (1 credit each) and who tells them (a brand face, or
  *  "Choose for me"), then adds them to the latest run. Short on credits: Add credits opens Settings → Credits, and
  *  Stripe brings the browser back to this step with the same choices. */
-function BrandCastStep({ token, workspaceId, runId, resume, onBack, onCreated }: BrandCastProps) {
+function BrandCastStep({ token, workspaceId, runId, resume, backLabel, onBack, onCreated }: BrandCastProps) {
   const [count, setCount] = useState(resume?.count ?? 1);
   const [castId, setCastId] = useState<string | null>(resume?.castId ?? null);
   const [busy, setBusy] = useState(false);
@@ -180,7 +180,7 @@ function BrandCastStep({ token, workspaceId, runId, resume, onBack, onCreated }:
       <CreditsAlert error={error} paid={paid} onAddCredits={openCredits} />
       <div className="flex gap-2">
         <button type="button" onClick={onBack} disabled={busy} className={`${button} border border-app-line text-app-ink hover:bg-app-sunken`}>
-          Back
+          {backLabel}
         </button>
         <button type="button" autoFocus onClick={() => void create()} disabled={busy} className={`${button} bg-app-cta text-app-cta-ink shadow-sm`}>
           {busy ? 'Starting…' : `Create ${count}`}
@@ -207,6 +207,8 @@ type Props = {
   resume?: BrandCastResume | null;
   /** Opens straight on the Brand Cast step (the Brand Cast tab's blank card). */
   brandFirst?: boolean;
+  /** Only the Brand Cast step (the Calendar's "Create slideshows"): its Back closes the sheet. */
+  brandOnly?: boolean;
   /** Hooks Volume is being created (an empty campaign on its way). */
   creatingHooks: boolean;
   onHooksVolume: () => void;
@@ -218,8 +220,8 @@ type Props = {
  * "New campaign": pick Brand Cast (1-5 slideshows written by the Auto Slideshow engine with the brand's faces, 1 credit
  * each) or Hooks Volume (one campaign, many hooks, built in the campaign editor). A bottom sheet on phones.
  */
-export function NewCampaignSheet({ token, workspaceId, brandRunId, resume = null, brandFirst = false, creatingHooks, onHooksVolume, onBrandCastCreated, onClose }: Props) {
-  const [step, setStep] = useState<'choose' | 'brandCast'>(resume || brandFirst ? 'brandCast' : 'choose');
+export function NewCampaignSheet({ token, workspaceId, brandRunId, resume = null, brandFirst = false, brandOnly = false, creatingHooks, onHooksVolume, onBrandCastCreated, onClose }: Props) {
+  const [step, setStep] = useState<'choose' | 'brandCast'>(resume || brandFirst || brandOnly ? 'brandCast' : 'choose');
   // On <body>: a parent's stacking context must not cover the sheet.
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 sm:items-center" onClick={creatingHooks ? undefined : onClose}>
@@ -231,7 +233,8 @@ export function NewCampaignSheet({ token, workspaceId, brandRunId, resume = null
         className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-app-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl"
       >
         {step === 'brandCast' && brandRunId ? (
-          <BrandCastStep token={token} workspaceId={workspaceId} runId={brandRunId} resume={resume} onBack={() => setStep('choose')} onCreated={onBrandCastCreated} />
+          <BrandCastStep token={token} workspaceId={workspaceId} runId={brandRunId} resume={resume}
+            backLabel={brandOnly ? 'Cancel' : 'Back'} onBack={brandOnly ? onClose : () => setStep('choose')} onCreated={onBrandCastCreated} />
         ) : (
           <>
             <div className="space-y-1">

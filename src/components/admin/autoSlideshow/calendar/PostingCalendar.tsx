@@ -9,6 +9,7 @@ import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { VideoSheet } from '../../../labs/blitzLab/schedule/VideoSheet';
 import { LabClientProvider } from '../../../labs/LabClientProvider';
 import { createWorkspaceLabClient } from '../../../labs/labClient';
+import { NewCampaignSheet } from '../campaigns/NewCampaignSheet';
 import { IdeasPanel } from '../ideas/IdeasPanel';
 import { useCalendarIdeas, type CalendarIdeasUi } from '../ideas/useCalendarIdeas';
 import { PostQueue } from '../PostQueue';
@@ -109,6 +110,8 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
     else onOpen(id);
   };
   const [openBlitz, setOpenBlitz] = useState<BlitzScheduleDto | null>(null);
+  /** The Slideshows tab's "Create slideshows": Brand Cast slideshows made into this run, without leaving the Calendar. */
+  const [creatingShows, setCreatingShows] = useState(false);
   // The Calendar stays mounted while another workspace page shows (its "Edit" leads to Content): close the video sheet
   // when it is hidden, so coming back shows the calendar, not a sheet for a video that may have changed.
   useLayoutEffect(() => () => setOpenBlitz(null), []);
@@ -181,7 +184,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
     <DayDetail key={day.key} day={day} entries={entriesFor(day)} taken={takenOn(day)} ideas={ui?.ideas ?? null} maker={ui?.maker ?? null}
       onOpen={openShow} onOpenBlitz={setOpenBlitz} onSetCount={onSetCount} onOpenIdea={rail.openIdea} onBack={onBack}
       approveCount={toApprove([day]).length + videosOn(day.key).length} onApprove={() => setApproving(day.key)}
-      slideshows={{ token, waiting: campaigns.waiting, loaded: campaigns.loaded, onCreate: () => router.push(`/slideshow/${run.workspaceId}/campaigns`) }} />
+      slideshows={{ token, waiting: campaigns.waiting, loaded: campaigns.loaded, onCreate: () => setCreatingShows(true) }} />
   );
   const approval = approving ? approvalOf(approving) : null;
   const selected = all.concat(days).find((d) => d.key === rail.selectedKey) ?? null;
@@ -245,6 +248,11 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
           onMove={(at) => moveShow(openReady.show.id, dayKey(at))}
           onDone={() => { onRunChanged(); campaigns.reload(); }}
           onClose={() => setOpenReadyId(null)} />
+      )}
+      {creatingShows && run.workspaceId && (
+        <NewCampaignSheet token={token} workspaceId={run.workspaceId} brandRunId={run.id} brandOnly creatingHooks={false} onHooksVolume={() => setCreatingShows(false)}
+          onBrandCastCreated={() => { setCreatingShows(false); onRunChanged(); }}
+          onClose={() => setCreatingShows(false)} />
       )}
       {approval && <ApproveSheet token={token} run={run} items={approval.items} videos={approval.videos} onVideosChanged={reloadBlitz} posting={posting} onClose={() => { setApproving(null); onRunChanged(); campaigns.reload(); }} />}
     </section>

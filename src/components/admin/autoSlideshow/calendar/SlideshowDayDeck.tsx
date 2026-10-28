@@ -38,7 +38,7 @@ export function DeckTabs({ tab, onTab }: { tab: DeckTab; onTab: (tab: DeckTab) =
 
 const round = 'flex items-center justify-center rounded-full border shadow-sm transition active:scale-90 disabled:opacity-30';
 
-/** No slideshow left to place: an empty card that leads to the campaigns, where slideshows are made. */
+/** No slideshow left to place: an empty card that opens "How many slideshows?" to make Brand Cast ones. */
 function CreateCard({ onCreate }: { onCreate: () => void }) {
   return (
     <button type="button" onClick={onCreate} className={`${CARD_SIZE.day} mx-auto flex flex-col items-center justify-center gap-2 rounded-[26px] border-2 border-dashed border-zinc-300 px-6 text-center transition hover:border-zinc-400 hover:bg-zinc-50 active:scale-[0.98] dark:border-zinc-700 dark:hover:border-zinc-500 dark:hover:bg-zinc-800/60`}>
@@ -72,7 +72,7 @@ const planOne = async (token: string, item: CampaignWaitingDto, at: string) => {
 
 /**
  * The day's Slideshows tab: campaign slideshows not on the Calendar yet, one at a time, like the videos deck. ✕ shows
- * the next one (it comes back later), ✓ puts it on this day. None left: a card that leads to the campaigns.
+ * the next one (it comes back later), ✓ puts it on this day. None left: a card that makes more.
  */
 export function SlideshowDayDeck({ waiting, loaded, token, at, onCreate }: Props) {
   const [index, setIndex] = useState(0);
