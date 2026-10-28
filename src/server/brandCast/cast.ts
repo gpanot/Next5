@@ -19,7 +19,7 @@ import { targetOf, type TargetClient } from '../autoSlideshow/targetClient';
 import { deleteObject, presignObject, putObject } from '../storage/objectStore';
 import { INTRO_STALE_MS } from './intro';
 import { dropFiles, expiresAt, isStale, tidyArchive, vacate } from './archive';
-import { anchorPrompt, writePersonas, type Persona } from './personas';
+import { anchorPrompt, writePersonas, type CastGuide, type Persona } from './personas';
 import { brandPhotoFacts, productLooks, type BrandPhotoFacts } from '../brandContent/productPhotos';
 import { compressBrandPhoto } from '../brandContent/compressPhoto';
 
@@ -128,15 +128,23 @@ const makeAnchor = async (member: BrandCastMember, refs: string[], meter: CostMe
 
 const asPersona = (m: BrandCastMember): Persona => ({ name: m.name, look: m.look });
 
+/** The writer's guide from the owner's note and/or stored photo; undefined when they asked for neither ("Surprise me"). */
+const guideOf = async (request: SwapRequest, current?: Persona): Promise<CastGuide | undefined> => {
+  if (!request.note && !request.photoKey) return undefined;
+  const photoUrl = request.photoKey ? ((await presignObject(request.photoKey, 60 * 60)) ?? undefined) : undefined;
+  return { note: request.note, photoUrl, current };
+};
+
 /** Writes the people for the empty slots (at most `max` of them) and creates them as "pending". Returns one photo job
- *  per new member, or null when the cast is already full. */
-const castJobs = async (workspaceId: string, meter: CostMeter, max = CAST_SIZE): Promise<(() => Promise<boolean>)[] | null> => {
+ *  per new member, or null when the cast is already full. `request`: the owner's note and/or photo from the "Create
+ *  avatar" dialog (one person). */
+const castJobs = async (workspaceId: string, meter: CostMeter, max = CAST_SIZE, request: SwapRequest = {}): Promise<(() => Promise<boolean>)[] | null> => {
   const current = await members(workspaceId);
   const free = Array.from({ length: CAST_SIZE }, (_, i) => i + 1).filter((slot) => !current.some((m) => m.slot === slot)).slice(0, max);
   if (free.length === 0) return null;
   const ctx = await brandContext(workspaceId, meter);
-  const personas = await writePersonas(briefOf(ctx), free.length, current.map(asPersona), meter);
-  const anchors = personas.map((p, i) => anchorFor(p, outfitFor(ctx, p, free[i]!)));
+  const personas = await writePersonas(briefOf(ctx), free.length, current.map(asPersona), meter, await guideOf(request));
+  const anchors = personas.map((p, i) => anchorFor(p, outfitFor(ctx, p, free[i]!), request.photoKey));
   await prisma.brandCastMember.createMany({
     data: personas.map((p, i) => ({ workspaceId, slot: free[i]!, name: p.name, look: p.look, prompt: anchors[i]!.prompt })),
     skipDuplicates: true,
@@ -147,13 +155,15 @@ const castJobs = async (workspaceId: string, meter: CostMeter, max = CAST_SIZE):
 
 /**
  * Writes the people for the empty slots (at most `max`) and creates them as "pending", so the caller can answer at
- * once. The returned job makes their photos (about 30-60 s). Null when the cast is already full.
+ * once. The returned job makes their photos (about 30-60 s), then deletes the owner's uploaded photo. Null when the
+ * cast is already full. `request`: the "Create avatar" dialog's note and/or photo.
  */
-export const startCast = async (workspaceId: string, meter: CostMeter = createMeter(), max = CAST_SIZE): Promise<(() => Promise<void>) | null> => {
-  const jobs = await castJobs(workspaceId, meter, max);
+export const startCast = async (workspaceId: string, meter: CostMeter = createMeter(), max = CAST_SIZE, request: SwapRequest = {}): Promise<(() => Promise<void>) | null> => {
+  const jobs = await castJobs(workspaceId, meter, max, request);
   if (!jobs) return null;
   return async () => {
     await Promise.all(jobs.map((job) => job()));
+    if (request.photoKey) await deleteObject(request.photoKey).catch(() => undefined);
     console.log(`[brand-cast] ${workspaceId}: ${jobs.length} people made, $${meter.summary().usdMicros / 1e6}`);
   };
 };
@@ -192,10 +202,8 @@ export const startSwap = async (workspaceId: string, memberId: string, request: 
   if (!member) throw new HttpError(404, 'not_found', 'This person is not in your cast.');
   if (member.status === 'pending' && !isStale(member)) throw new HttpError(409, 'busy', 'This face is still being made.');
   const ctx = await brandContext(workspaceId, meter);
-  const guided = Boolean(request.note || request.photoKey);
-  const photoUrl = request.photoKey ? ((await presignObject(request.photoKey, 60 * 60)) ?? undefined) : undefined;
-  const guide = guided ? { note: request.note, photoUrl, current: asPersona(member) } : undefined;
-  const avoid = (guided ? active.filter((m) => m.id !== member.id) : all).map(asPersona);
+  const guide = await guideOf(request, asPersona(member));
+  const avoid = (guide ? active.filter((m) => m.id !== member.id) : all).map(asPersona);
   const [persona] = await writePersonas(briefOf(ctx), 1, avoid, meter, guide);
   const anchor = anchorFor(persona!, outfitFor(ctx, persona!, member.slot), request.photoKey);
   const { fresh, dropped } = await prisma.$transaction(async (tx) => {
@@ -225,7 +233,16 @@ export const startRetry = async (workspaceId: string, memberId: string, meter: C
   };
 };
 
-/** Stores a reference photo from the "New face" dialog (checked, made small, metadata stripped) and returns its key. */
+/** The person "Surprise me" would make next, written as text the owner can edit in the "Create avatar" dialog
+ *  ("Use your own prompt"). Nothing is saved. */
+export const draftPersona = async (workspaceId: string, meter: CostMeter = createMeter()): Promise<string> => {
+  const [ctx, all] = await Promise.all([brandContext(workspaceId, meter), prisma.brandCastMember.findMany({ where: { workspaceId } })]);
+  const [persona] = await writePersonas(briefOf(ctx), 1, all.map(asPersona), meter);
+  return `${persona!.name.split(',')[0]}, ${persona!.look}`;
+};
+
+/** Stores a reference photo from the "New face" or "Create avatar" dialog (checked, made small, metadata stripped) and
+ *  returns its key. `memberId`: the face it replaces, or 'new'. */
 export const storeSwapPhoto = async (workspaceId: string, memberId: string, file: File): Promise<string> => {
   const key = `brand-cast/${workspaceId}/${memberId}-ref-${Date.now()}.jpg`;
   await putObject(key, await compressBrandPhoto(file), 'image/jpeg');

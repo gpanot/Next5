@@ -9,6 +9,7 @@ import { ArchivedFaces } from './ArchivedFaces';
 import { CastMemberMedia, photoBox } from './CastMemberMedia';
 import { CastMemberMenu } from './CastMemberMenu';
 import { EditMemberDialog, type MemberEdit } from './EditMemberDialog';
+import { CreateAvatarDialog } from './CreateAvatarDialog';
 import { NewFaceDialog, type NewFaceRequest } from './NewFaceDialog';
 import { VoiceDialog } from './VoiceDialog';
 import { useBrandCast, type CastAction } from './useBrandCast';
@@ -128,7 +129,17 @@ type BrandCastProps = {
  *  name and age, and "Move to archive" (frees the slot).
  *  Each empty slot shows a "+ Create Avatar" card. */
 export function BrandCast({ client, path, detailed = false, campaignHref }: BrandCastProps) {
-  const { members, archived, loadError, busy, actionError, build, act, manage, swap, reload, clearError } = useBrandCast(client, path);
+  const { members, archived, loadError, busy, actionError, act, manage, swap, create, draft, reload, clearError } = useBrandCast(client, path);
+  const [adding, setAdding] = useState(0);
+  const [addOpen, setAddOpen] = useState(false);
+  const openAdd = () => {
+    clearError();
+    setAdding((n) => n + 1);
+    setAddOpen(true);
+  };
+  const submitCreate = async (request: NewFaceRequest) => {
+    if (await create(request)) setAddOpen(false);
+  };
   const [editing, setEditing] = useState<BrandCastMemberDto | null>(null);
   const [renaming, setRenaming] = useState<BrandCastMemberDto | null>(null);
   const [voicing, setVoicing] = useState<BrandCastMemberDto | null>(null);
@@ -157,12 +168,13 @@ export function BrandCast({ client, path, detailed = false, campaignHref }: Bran
       <ul className={grid}>
         {members.map((m) => <MemberCard key={m.id} member={m} busy={busy === m.id} detailed={detailed} campaignHref={campaignHref?.(m.id)} onAct={(a) => void act(m.id, a)} onNewFace={() => setEditing(m)} onVoice={() => setVoicing(m)} onEdit={() => setRenaming(m)} onArchive={() => void manage(m.id, { action: 'archive' })} freeIntro={detailed} />)}
         {Array.from({ length: empty }, (_, i) => (
-          <CreateAvatarCard key={`empty-${i}`} creating={busy === 'build' && i === 0} disabled={busy !== null} onCreate={() => void build(true)} />
+          <CreateAvatarCard key={`empty-${i}`} creating={busy === 'build' && i === 0} disabled={busy !== null} onCreate={openAdd} />
         ))}
       </ul>
-      {actionError && !editing && !renaming && <p role="alert" className="text-sm text-app-danger">{actionError}</p>}
+      {actionError && !editing && !addOpen && !renaming && <p role="alert" className="text-sm text-app-danger">{actionError}</p>}
       <ArchivedFaces archived={archived} active={members} busy={busy} error={actionError} onManage={manage} onClearError={clearError} />
       <NewFaceDialog key={editing?.id ?? 'closed'} member={editing} archiveFull={archived.length >= ARCHIVE_MAX} busy={editing !== null && busy === editing.id} error={editing ? actionError : null} onClose={() => setEditing(null)} onSubmit={(r) => void submitNewFace(r)} />
+      <CreateAvatarDialog key={`add-${adding}`} open={addOpen} busy={addOpen && busy === 'build'} error={addOpen ? actionError : null} onClose={() => setAddOpen(false)} onSubmit={(r) => void submitCreate(r)} onDraft={draft} />
       <VoiceDialog key={voicing?.id ?? 'closed-voice'} client={client} path={path} member={voicing} onClose={() => setVoicing(null)} onPicked={reload} />
       <EditMemberDialog key={renaming?.id ?? 'closed-edit'} member={renaming} busy={renaming !== null && busy === renaming.id} error={renaming ? actionError : null} onClose={closeRename} onSubmit={(e) => void submitEdit(e)} />
     </div>

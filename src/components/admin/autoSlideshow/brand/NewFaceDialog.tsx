@@ -19,8 +19,8 @@ type Props = {
   onSubmit: (request: NewFaceRequest) => void;
 };
 
-/** The photo picked as a reference, shown small with ✕ to remove it. */
-function PhotoPick({ file, onPick, onClear }: { file: File | null; onPick: (f: File) => void; onClear: () => void }) {
+/** The photo picked as a reference, shown small with ✕ to remove it. Also used by the "Create avatar" dialog. */
+export function PhotoPick({ file, onPick, onClear }: { file: File | null; onPick: (f: File) => void; onClear: () => void }) {
   const input = useRef<HTMLInputElement>(null);
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => {

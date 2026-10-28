@@ -37,7 +37,7 @@ const targetText = (target: TargetClient | null) => (target
  *  fits; missing when it did not answer. */
 export type Persona = { name: string; look: string; outfitPhoto?: number | null };
 
-/** What the owner asked for when swapping a face: a note ("same face, in EQL leggings"), a reference photo, or both. */
+/** What the owner asked for when swapping a face or creating one: a note ("same face, in EQL leggings"), a reference photo, or both. */
 export type CastGuide = { note?: string; photoUrl?: string; current?: Persona };
 
 const SYSTEM = `You cast the recurring people of a brand's social media photos. They come back across many posts, so viewers
@@ -98,7 +98,7 @@ const toPersonas = (raw: Record<string, unknown>, count: number, outfits: number
 const guideText = (guide: CastGuide | undefined): string => {
   if (!guide?.note && !guide?.photoUrl) return '';
   return [
-    '\n\nTHE BRAND OWNER IS REPLACING ONE PERSON. Their wishes win over the rules above.',
+    guide.current ? '\n\nTHE BRAND OWNER IS REPLACING ONE PERSON. Their wishes win over the rules above.' : '\n\nTHE BRAND OWNER DESCRIBED THE NEW PERSON. Their wishes win over the rules above.',
     guide.current ? `PERSON BEING REPLACED: ${guide.current.name}: ${guide.current.look}\nKeep what the owner does not ask to change; keep the name when the face stays.` : '',
     guide.note ? `OWNER'S NOTE: ${guide.note}` : '',
     guide.photoUrl ? 'REFERENCE PHOTO (attached): base the person on the one in this photo: gender, age, skin tone, face, hair, build. Their outfit too, unless the note or the brand says otherwise.' : '',
