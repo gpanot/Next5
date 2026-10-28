@@ -1,5 +1,6 @@
 'use client';
 
+import { MoreHorizontal } from 'lucide-react';
 import type { BlitzScheduleDto } from '../../../../types/admin/blitzSchedule';
 import { GOAL_LABELS } from '../../../../types/admin/contentGoals';
 import { CoverMedia } from '../../../labs/addToCalendar/CoverMedia';
@@ -30,6 +31,7 @@ export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (
   const link = item.kind === 'blitz' ? item.blitz.postUrl : null;
   const approvable = item.kind === 'blitz' && blitzOpenable(item.blitz);
   const countdown = countdownOfItem(item);
+  const openable = approvable || Boolean(link) || (Boolean(item.show) && item.kind !== 'making');
   const open = () => {
     if (justDropped()) return;
     if (item.kind === 'blitz' && approvable) onOpenBlitz(item.blitz);
@@ -55,6 +57,15 @@ export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (
           <span className="text-xs font-bold text-zinc-600 dark:text-zinc-400">{timeOf(slot.at)}</span>
           <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${badge.tone}`}>{badge.label}</span>
           {item.show?.goal && <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${goalStyle(item.show.goal).pill}`}>{GOAL_LABELS[item.show.goal]}</span>}
+          {openable && (
+            // A span: the row is already a button. Opens the same sheet as a tap on the row.
+            <span role="button" tabIndex={0} aria-label="Post options" title="Post options"
+              onClick={(e) => { e.stopPropagation(); open(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); open(); } }}
+              className="-my-2 ml-auto flex h-9 w-9 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-ink active:scale-90 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100">
+              <MoreHorizontal aria-hidden className="h-5 w-5" />
+            </span>
+          )}
         </span>
         <span className="line-clamp-2 block text-sm leading-snug font-bold text-ink dark:text-zinc-100">{item.kind === 'blitz' ? item.blitz.title : item.show?.slides[0]?.title || titleOf(item)}</span>
         {item.kind === 'blitz' && (

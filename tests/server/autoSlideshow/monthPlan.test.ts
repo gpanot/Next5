@@ -42,6 +42,13 @@ describe('buildMonth', () => {
     expect(days).toHaveLength(28);
   });
 
+  it('at the end of the month shows 2 weeks, the next month\'s days live for dragging posts onto', () => {
+    const { days } = plan([], { now: new Date(2026, 9, 28, 10, 0) });
+    expect(days[0]!.key).toBe('2026-10-28');
+    expect(days.at(-1)!.key).toBe('2026-11-10');
+    expect(days.every((d) => d.inMonth)).toBe(true);
+  });
+
   it('shows whole Monday-Sunday weeks around another month', () => {
     const { days } = plan([], { month: new Date(2026, 10, 1) });
     expect(days[0]!.key).toBe('2026-10-26');

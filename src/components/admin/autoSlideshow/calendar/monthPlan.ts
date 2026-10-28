@@ -24,6 +24,7 @@ export type DayItem =
 type PostItem = Extract<DayItem, { kind: 'post' }>;
 
 export type PlanSlot = { at: Date; item: DayItem | null };
+/** `inMonth`: shown live (not faded); in the month starting at today, the next month's first days are too. */
 export type PlanDay = { key: string; date: Date; past: boolean; today: boolean; inMonth: boolean; slots: PlanSlot[] };
 
 /** `days`: the month grid (whole weeks). `all`: every day built, from the earliest shown or tomorrow to the last queued slot. */
@@ -48,16 +49,17 @@ export const addMonths = (d: Date, n: number) => new Date(d.getFullYear(), d.get
 
 /**
  * Monday on or before the 1st, through Sunday on or after the last day. The month holding today starts at today
- * instead (past days are not shown, unless `earlier`), still in whole weeks of 7 days.
+ * instead (past days are not shown, unless `earlier`), still in whole weeks of 7 days, and at least 2 weeks so the
+ * month's last days still show the next month's first ones (live there: posts can be dragged onto them).
  */
 const gridOf = (month: Date, today: Date, earlier = false) => {
   const first = monthOf(month);
   const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
   if (!earlier && today >= first && today <= last) {
-    const weeks = Math.ceil((last.getDate() - today.getDate() + 1) / 7);
-    return { start: today, end: addDays(today, weeks * 7 - 1) };
+    const weeks = Math.max(2, Math.ceil((last.getDate() - today.getDate() + 1) / 7));
+    return { start: today, end: addDays(today, weeks * 7 - 1), fromToday: true };
   }
-  return { start: addDays(first, -((first.getDay() + 6) % 7)), end: addDays(last, (7 - last.getDay()) % 7) };
+  return { start: addDays(first, -((first.getDay() + 6) % 7)), end: addDays(last, (7 - last.getDay()) % 7), fromToday: false };
 };
 
 /** "19:00" on that day, local time. */
@@ -189,7 +191,7 @@ export const buildMonth = (input: PlanInput): MonthPlan => {
   placeQueue(drafts, queue, tomorrow);
   const month = input.month.getMonth();
   const all = drafts.map(({ date, key, fixed, open }) => ({
-    key, date, past: date < tomorrow, today: key === dayKey(today), inMonth: date.getMonth() === month,
+    key, date, past: date < tomorrow, today: key === dayKey(today), inMonth: date.getMonth() === month || (grid.fromToday && date > today),
     slots: [...fixed, ...extraOf(key), ...open].sort((a, b) => a.at.getTime() - b.at.getTime()),
   }));
   return { days: all.filter((d) => d.date >= grid.start && d.date <= grid.end), all };

@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, Loader2 } from 'lucide-react';
+import { CalendarDays, Loader2, Pencil } from 'lucide-react';
 import { dayKey, startOfToday } from '../../addToCalendar/slots';
 
 type Props = {
@@ -9,6 +9,8 @@ type Props = {
   busy: boolean;
   /** The same time of day on the picked day. */
   onMove: (at: Date) => void;
+  /** A small pencil beside the date line instead of the "Change day" pill. */
+  icon?: boolean;
 };
 
 /** `from`'s time of day on the day `key` (YYYY-MM-DD), in the viewer's time zone. */
@@ -17,13 +19,17 @@ const onDay = (key: string, from: Date): Date => {
   return new Date(y!, m! - 1, d!, from.getHours(), from.getMinutes());
 };
 
-/** "Change day": the phone's own date picker, styled as a pill. The time of day stays. Today onward only. */
-export function ChangeDay({ scheduledAt, busy, onMove }: Props) {
+const PILL = 'relative inline-flex min-h-11 flex-none cursor-pointer items-center gap-1.5 rounded-full border border-[var(--line,#e8e5e1)] px-4 text-[14px] font-semibold text-[var(--ink,#000)] transition hover:bg-neutral-50 active:scale-95 dark:border-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-800';
+const ICON = 'relative inline-flex h-11 w-11 flex-none cursor-pointer items-center justify-center rounded-full text-[var(--mute,#7c7d82)] transition hover:bg-neutral-100 hover:text-[var(--ink,#000)] active:scale-90 dark:hover:bg-neutral-800 dark:hover:text-neutral-100';
+
+/** "Change day": the phone's own date picker, styled as a pill (or a pencil). The time of day stays. Today onward only. */
+export function ChangeDay({ scheduledAt, busy, onMove, icon = false }: Props) {
   const from = new Date(scheduledAt);
+  const Mark = busy ? Loader2 : icon ? Pencil : CalendarDays;
   return (
-    <label className="relative inline-flex min-h-11 flex-none cursor-pointer items-center gap-1.5 rounded-full border border-[var(--line,#e8e5e1)] px-4 text-[14px] font-semibold text-[var(--ink,#000)] transition hover:bg-neutral-50 active:scale-95 dark:border-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-800">
-      {busy ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <CalendarDays aria-hidden className="h-4 w-4" />}
-      Change day
+    <label title={icon ? 'Change day' : undefined} className={icon ? ICON : PILL}>
+      <Mark aria-hidden className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
+      {!icon && 'Change day'}
       <input
         type="date"
         aria-label="Change day"

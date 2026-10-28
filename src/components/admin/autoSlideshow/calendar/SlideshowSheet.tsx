@@ -9,6 +9,7 @@ import { adminFetch } from '../../business/useAdminApi';
 import { Arrow } from '../SlidePlayer';
 import { SlidePreview } from '../SlidePreview';
 import type { usePosting } from '../usePosting';
+import { DeletePost } from './DeletePost';
 import { SlideshowChoicesForm, useSlideshowChoices } from './SlideshowChoices';
 
 type Props = {
@@ -65,7 +66,7 @@ function useApprove({ token, runId, show, at, posting, onDone, onClose }: Props,
   const { live, approved, initial } = approvalOf(show);
   const choices = useSlideshowChoices(token, runId, accounts, live, approved ? initial : undefined);
   const [postNow, setPostNow] = useState(false);
-  const [busy, setBusy] = useState<'approve' | 'move' | 'unapprove' | null>(null);
+  const [busy, setBusy] = useState<'approve' | 'move' | 'unapprove' | 'delete' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const base = `/api/admin/auto-slideshow/runs/${runId}/slideshows/${show.id}`;
   const call = (path: string, body: object) => adminFetch(token, `${base}/${path}`, { method: 'POST', body: JSON.stringify(body) }).then(() => true)
@@ -102,7 +103,19 @@ function useApprove({ token, runId, show, at, posting, onDone, onClose }: Props,
   };
   const move = (next: Date) => void act('move', { action: 'move', scheduledAt: next.toISOString() }, false);
   const unapprove = () => void act('unapprove', { action: 'unapprove' }, true);
-  return { choices, approved, postNow, setPostNow, busy, error: error ?? posting.error, approve, move, unapprove };
+  const remove = async () => {
+    setBusy('delete');
+    setError(null);
+    const ok = await adminFetch(token, base, { method: 'DELETE' }).then(() => true)
+      .catch((err: unknown) => (setError(err instanceof Error ? err.message : 'Something went wrong'), false));
+    setBusy(null);
+    if (!ok) return;
+    onDone();
+    onClose();
+  };
+  // Once a platform has it, it stays in the post history: no delete.
+  const deletable = live.length === 0;
+  return { choices, approved, postNow, setPostNow, busy, error: error ?? posting.error, approve, move, unapprove, remove, deletable };
 }
 
 /** The form part, once the workspace's accounts are known. */
@@ -124,15 +137,18 @@ function Body(props: Props & { accounts: RunAccountsDto }) {
         <div className="space-y-3">
           <div className="min-w-0">
             <p className="line-clamp-2 text-[14px] font-semibold text-[var(--ink,#000)] dark:text-neutral-100">{show.slides[0]?.title || show.topic}</p>
-            <p className="text-[13px] text-[var(--mute,#7c7d82)]">{a.postNow ? 'Now' : whenLabel(at)}</p>
+            <div className="-my-2 flex items-center gap-0.5">
+              <p className="text-[13px] text-[var(--mute,#7c7d82)]">{a.postNow ? 'Now' : whenLabel(at)}</p>
+              {!a.postNow && <ChangeDay icon scheduledAt={at.toISOString()} busy={a.busy === 'move'} onMove={a.approved ? a.move : onMove} />}
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={onEdit} className={pill}><Pencil aria-hidden className="h-4 w-4" /> Edit</button>
-            {!a.postNow && <ChangeDay scheduledAt={at.toISOString()} busy={a.busy === 'move'} onMove={a.approved ? a.move : onMove} />}
             <label className={`${pill} cursor-pointer ${a.postNow ? 'border-[var(--ready,#1e8049)] dark:border-[var(--ready,#1e8049)]' : ''}`}>
               <input type="checkbox" checked={a.postNow} onChange={(e) => a.setPostNow(e.target.checked)} className="h-4 w-4 accent-[var(--ready,#1e8049)]" />
               Post now
             </label>
+            {a.deletable && <DeletePost busy={a.busy === 'delete'} onDelete={() => void a.remove()} />}
           </div>
         </div>
         <SlideshowChoicesForm c={a.choices} />
