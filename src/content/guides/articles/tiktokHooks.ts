@@ -10,8 +10,8 @@ export const tiktokHooks: Article = {
   keyword: 'tiktok hooks',
   hub: 'how-to',
   published: '2026-10-18',
-  cover: 'first-slide-signs',
-  coverAlt: 'TikTok slideshow made by Next5: "3 signs you\'re losing first-slide reads. Number 3 is crucial."',
+  cover: '/images/guides/tiktok-hooks-for-small-business.png',
+  coverAlt: 'Candle maker filming herself pouring wax into jars with a phone on a tripod',
   blocks: [
     { type: 'p', text: 'A hook is the first line of your post. On a slideshow, it is the text on slide 1. On a video, it is the first thing you say or show.' },
     { type: 'p', text: 'People decide to stay or scroll in about a second. If the hook is weak, nothing else matters. The good news: hooks follow patterns. You can copy the pattern and fill in your business.' },

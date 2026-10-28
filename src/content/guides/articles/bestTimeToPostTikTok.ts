@@ -10,8 +10,8 @@ export const bestTimeToPostTikTok: Article = {
   keyword: 'best time to post on tiktok',
   hub: 'how-to',
   published: '2026-10-18',
-  cover: 'porsche-calmer',
-  coverAlt: 'TikTok slideshow made by Next5: "Last visit: overloaded. This year: calmer decisions and smoother drives."',
+  cover: '/images/guides/best-time-to-post-on-tiktok.png',
+  coverAlt: 'Food truck owner checking her phone at the counter during a quiet moment',
   blocks: [
     { type: 'p', text: 'You have seen the charts. "Post on Tuesday at 9 AM!" The problem: those charts mix millions of accounts. Your buyers are not millions of accounts. A bakery, a realtor and a gym all have different buyers who scroll at different times.' },
     { type: 'p', text: 'The best time to post is **when your own followers are online**. Both TikTok and Instagram show you that time for free.' },

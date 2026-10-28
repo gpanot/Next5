@@ -10,8 +10,8 @@ export const howToSellOnTikTokShop: Article = {
   keyword: 'how to sell on tiktok shop',
   hub: 'tiktok-shop',
   published: '2026-10-18',
-  cover: 'legging-habits',
-  coverAlt: 'TikTok slideshow made by Next5: "7 Running Leggings Habits That Quietly Lower Rolling"',
+  cover: '/images/guides/how-to-sell-on-tiktok-shop.png',
+  coverAlt: 'Online seller packing skincare orders into boxes at her kitchen table',
   blocks: [
     { type: 'p', text: 'TikTok Shop lets people buy your products without leaving TikTok. They see a post, tap the product, and pay. For a small seller, that is a big deal: the app that brings the views also takes the order.' },
     { type: 'p', text: 'But a shop with no posts sells nothing. This guide covers both parts: setting up, and getting people to buy.' },

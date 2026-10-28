@@ -10,8 +10,8 @@ export const guideFirstSlideshows: Article = {
   keyword: 'ai tiktok slideshow maker',
   hub: 'product',
   published: '2026-10-18',
-  cover: 'golf-striking',
-  coverAlt: 'TikTok slideshow made by Next5: "5 Striking is Easy for Golfers (if you Fix Contact)"',
+  cover: '/images/guides/first-tiktok-slideshows-with-next5.png',
+  coverAlt: 'Bakery owner choosing photos on a laptop behind her counter, fresh bread beside her',
   blocks: [
     { type: 'p', text: 'This guide takes you from zero to your first approved TikTok slideshow. You need your website and an email address. That is it.' },
     { type: 'h2', text: 'What you will have at the end' },

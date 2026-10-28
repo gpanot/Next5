@@ -13,8 +13,8 @@ export const socialMediaManagerCost: Article = {
   keyword: 'how much does a social media manager cost',
   hub: 'cost-alternatives',
   published: '2026-10-18',
-  cover: 'no-show-fixes',
-  coverAlt: 'TikTok slideshow made by Next5: "5 No-Show Fixes For Service Teams (If Reminders Actually Send)"',
+  cover: '/images/guides/how-much-does-a-social-media-manager-cost.png',
+  coverAlt: 'Business owner comparing a printed quote and costs on a laptop at his kitchen table',
   blocks: [
     { type: 'p', text: 'You know you should post more. You also know you do not have the time. So you start asking: what would it cost to hand this off?' },
     { type: 'p', text: 'The honest answer: it depends on who you hire and what they do. This guide shows how each option charges, what you get, and how to compare them with your own numbers.' },

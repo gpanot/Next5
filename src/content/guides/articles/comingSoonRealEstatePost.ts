@@ -12,7 +12,7 @@ export const comingSoonRealEstatePost: Article = {
   answer: 'Post a coming soon teaser only after the seller signs the listing agreement and you check your MLS rules. In MLSs that follow NAR\'s Clear Cooperation Policy, a public post can count as marketing and start a one business day clock to file the listing. Show one great room, the area and the date, and ask people to comment to get the listing the day it goes live.',
   published: '2026-10-20',
   cover: '/images/guides/coming-soon-real-estate-post.png',
-  coverAlt: 'Real estate agent photographing a suburban home with a Coming Soon sign on the lawn',
+  coverAlt: 'Realtor photographing a house behind a Coming Soon yard sign',
   blocks: [
     { type: 'p', text: 'A coming soon post tells buyers a home is about to hit the market. Done right, it gives you a list of people waiting for the listing and shows sellers you market hard. Done wrong, it can break your MLS rules before the home is even live. Here is how to do it right, step by step.' },
     { type: 'h2', text: 'Check these 4 things before you post' },

@@ -10,8 +10,8 @@ export const socialMediaForRealtors: Article = {
   keyword: 'social media for realtors',
   hub: 'realtors',
   published: '2026-10-18',
-  cover: 'listing-video-tips',
-  coverAlt: 'TikTok slideshow made by Next5: "5 Listing Video Tips For Busy Realtors"',
+  cover: '/images/guides/social-media-for-realtors.png',
+  coverAlt: 'Realtor filming a walkthrough video with her phone in a staged living room',
   blocks: [
     { type: 'p', text: 'Buyers and sellers look you up before they call. If your social media is empty, they call someone else. The good news: you do not need to dance or go viral. You need to show up every week with useful posts.' },
     { type: 'h2', text: 'Which apps should realtors use?' },

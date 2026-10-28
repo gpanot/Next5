@@ -84,12 +84,16 @@ audience ("tiktok memes"). Check the keyword is not already an article's `keywor
 - Make the cover: one photo of the same trade or topic as the article, generated with the
   web-imagery skill. Bright daylight, realistic, 4:5, no text other than what the scene needs (a
   yard sign is fine). Never reuse another article's cover. Never use an unrelated one.
+  Every cover shares one look: a small business owner of the article's trade, busy with a real
+  task, in their own place. Write the subject sentence, then append the style sentence unchanged.
   ```bash
-  node ~/.claude/skills/web-imagery/gen-image.mjs --prompt "<subject, setting, bright daylight, realistic photo, 4:5>" \
+  STYLE="Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third"
+  node ~/.claude/skills/web-imagery/gen-image.mjs --prompt "<who, doing what, where>. $STYLE" \
     --out public/images/guides/<slug>.png --size 1024x1280 --model black-forest-labs/FLUX-2-pro --alt "<alt>"
   ```
-  Then compress it under 1 MB and keep the manifest entry (`public/images/manifest.json`). The test
-  fails when the cover is not in the manifest. Next5 slideshows are not needed for articles.
+  Then compress it under 1 MB (sharp `png({ palette: true, quality: 95, dither: 1 })` gives about
+  800 KB) and update `bytes` in the manifest entry (`public/images/manifest.json`). The test fails
+  when the cover is not in the manifest. Next5 slideshows are not needed for articles.
 - Look for real post results in Next5 data. Never invent numbers.
 
 ## 5. Write the draft (writer pass)
@@ -97,6 +101,11 @@ audience ("tiktok memes"). Check the keyword is not already an article's `keywor
 Create `src/content/guides/articles/<camelCaseName>.ts`, add it to `BLOG_POSTS` in
 `src/content/guides/index.ts`, following AGENT_BRIEF.md. Then add a link to it from 3 to 5
 existing articles where it truly helps the reader.
+
+Before the review, the writer does its own check 5 pass, line by line: every number, rule, platform
+detail, quote or result claim must point to a row in the research notes. If it does not, delete the
+claim or turn it into plain advice ("try", "test", "check your own numbers"). Never keep an outcome
+claim ("this gets more bookings") without a source. Most first-review fails so far were check 5.
 
 ## 6. Review (reviewer pass)
 

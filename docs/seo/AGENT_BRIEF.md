@@ -76,8 +76,8 @@ Fields to get right:
 - `keyword`: the exact search phrase. Must be unique across articles.
 - `seoTitle`: 65 characters max. `description`: 70 to 160 characters.
 - `cover`: `/images/guides/<slug>.png`, a photo generated for this article that shows the same trade
-  or topic (see DAILY_RUN.md step 4). Describe exactly what it shows in `coverAlt`. Older articles use
-  a Next5 slideshow folder; keep those as they are.
+  or topic (see DAILY_RUN.md step 4). Describe exactly what it shows in `coverAlt`. All articles use a
+  generated photo since 2026-10-28; do not use Next5 slideshow folders as covers.
 - A short "How Next5 does this" part where it fits: how Next5 would make this kind of post for the
   reader. One section at most, after the reader already has the free answer. Never describe the
   cover as something Next5 made.

@@ -12,7 +12,7 @@ export const tiktokHashtagsForBusiness: Article = {
   answer: 'TikTok caps every post at 5 hashtags, so use all 5 and make each one specific. For a local business: 1 city tag, 1 trade tag, 2 about the video itself, and 1 trending tag only when it fits. Skip #fyp. Hashtags are a small signal, so your caption and your first 2 seconds matter more.',
   published: '2026-10-24',
   cover: '/images/guides/how-many-hashtags-on-tiktok-for-business.png',
-  coverAlt: 'Coffee shop owner standing behind the counter in daylight, typing on a phone held in both hands, with pastries on the counter and an espresso machine behind him',
+  coverAlt: 'Coffee shop owner typing a caption on his phone behind the counter',
   blocks: [
     { type: 'p', text: 'The 3-to-5 answer you keep reading treats the number as your choice. It is not your choice any more. TikTok set it, and the advice has not caught up.' },
     { type: 'h2', text: 'The number is 5, and TikTok picked it' },

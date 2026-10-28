@@ -12,7 +12,7 @@ export const tiktokForPlumbers: Article = {
   answer: 'TikTok rarely gets you a booked job on its own. It builds the kind of trust that makes someone pick up your truck when they do call, since 37% of US adults are now on it. Post 3 to 5 times a week with real job footage, track how many new customers mention seeing you, and expect it to take months, not days.',
   published: '2026-10-23',
   cover: '/images/guides/tiktok-for-plumbers.png',
-  coverAlt: 'Plumber repairing a water heater with a smartphone propped on a tripod nearby filming the job',
+  coverAlt: 'Plumber fixing a pipe under a kitchen sink while a phone on a tripod films the repair',
   blocks: [
     { type: 'p', text: 'Every plumbing marketing blog says "post on TikTok." Almost none of them say what actually happens when you do. Here is the honest version, so you know what to expect before you film a single clip.' },
     { type: 'h2', text: 'Does TikTok actually get a plumber calls?' },

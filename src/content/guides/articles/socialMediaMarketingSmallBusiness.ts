@@ -10,8 +10,8 @@ export const socialMediaMarketingSmallBusiness: Article = {
   keyword: 'social media marketing for small business',
   hub: 'get-customers',
   published: '2026-10-18',
-  cover: 'missed-call-tips',
-  coverAlt: 'TikTok slideshow made by Next5: "5 Missed-Call Booking Tips For Service Owners"',
+  cover: '/images/guides/social-media-marketing-for-small-business.png',
+  coverAlt: 'Bike shop owner taking a phone photo of a repaired bicycle in his shop',
   blocks: [
     { type: 'p', text: 'You run a business. You do not have time to be a full-time content creator. Good news: you do not need to be. Social media marketing for a small business can be simple.' },
     { type: 'p', text: 'This plan has 5 steps. You can start today.' },

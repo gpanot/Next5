@@ -20,7 +20,19 @@ import { socialMediaMarketingSmallBusiness } from './articles/socialMediaMarketi
 import { tiktokForPlumbers } from './articles/tiktokForPlumbers';
 import { tiktokHashtagsForBusiness } from './articles/tiktokHashtagsForBusiness';
 import { tiktokHooks } from './articles/tiktokHooks';
-import type { Article, ArticleBlock, ArticleKind } from './types';
+import type { Article, ArticleBlock, ArticleHub, ArticleKind } from './types';
+
+/** Short topic label shown on cards. */
+export const HUB_LABELS: Record<ArticleHub, string> = {
+  'post-ideas': 'Post ideas',
+  'how-to': 'How-to',
+  'get-customers': 'Get customers',
+  'cost-alternatives': 'Costs',
+  industry: 'By industry',
+  realtors: 'Realtors',
+  'tiktok-shop': 'TikTok Shop',
+  product: 'Next5',
+};
 
 /** Step-by-step guides to Next5 itself, in reading order. */
 export const GUIDES: readonly Article[] = [guideFirstSlideshows, guideFillCalendar, guideReadAnalytics];

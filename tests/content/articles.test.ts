@@ -72,6 +72,10 @@ describe('every article', () => {
         }
       });
 
+      it('has its own cover, not shared with another article', () => {
+        expect(ALL_ARTICLES.filter((other) => other.cover === a.cover).map((other) => other.slug)).toEqual([a.slug]);
+      });
+
       it('uses a real cover: a Next5 slideshow, or a generated photo listed in the manifest', () => {
         if (a.cover.startsWith('/images/')) {
           expect(existsSync(join(process.cwd(), 'public', a.cover))).toBe(true);

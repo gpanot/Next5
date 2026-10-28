@@ -10,8 +10,8 @@ export const socialMediaContentCalendar: Article = {
   keyword: 'social media content calendar',
   hub: 'how-to',
   published: '2026-10-18',
-  cover: 'meal-planning',
-  coverAlt: 'TikTok slideshow made by Next5: "Hot take: a long list isn\'t the problem — planning is."',
+  cover: '/images/guides/social-media-content-calendar.png',
+  coverAlt: 'Two cafe owners planning a month of posts on a printed calendar before opening',
   blocks: [
     { type: 'p', text: 'A social media content calendar is a list of what you will post and when. It stops the daily "what do I post today?" panic.' },
     { type: 'p', text: 'Below is a free 30-day template. It works for any small business. Copy it into a notebook, a spreadsheet or your phone notes.' },

@@ -9,8 +9,8 @@ export const howToMakeTikTokSlideshow: Article = {
   keyword: 'how to make a slideshow on tiktok',
   hub: 'how-to',
   published: '2026-10-18',
-  cover: 'slide-chapters',
-  coverAlt: 'TikTok slideshow made by Next5: "The clarity glow-up: your slideshow finally reads like chapters."',
+  cover: '/images/guides/how-to-make-a-slideshow-on-tiktok.png',
+  coverAlt: 'Ceramic artist photographing a row of handmade mugs with her phone in her studio',
   blocks: [
     { type: 'p', text: 'A TikTok slideshow is a post made of photos. People swipe from one photo to the next, like a short story. TikTok also calls it a **photo post** or **photo mode**. Some people call it a carousel.' },
     { type: 'p', text: 'Slideshows are great for small businesses. You do not have to film. You do not have to talk to a camera. You need a few good photos and a few short lines of text.' },

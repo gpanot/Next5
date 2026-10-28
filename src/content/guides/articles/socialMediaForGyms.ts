@@ -12,7 +12,7 @@ export const socialMediaForGyms: Article = {
   answer: 'Post 3 to 5 times a week on Instagram and Facebook, and most days on TikTok if you can. Mix member transformations, quick coaching tips, behind-the-scenes gym life and one clear trial offer a week. End every post with one ask, like "comment TRIAL for a free week," so views turn into bookings instead of just likes.',
   published: '2026-10-21',
   cover: '/images/guides/social-media-for-gyms.png',
-  coverAlt: 'Gym owner filming herself on a smartphone while coaching, dumbbell rack and bench visible in a bright independent gym',
+  coverAlt: 'Gym coach filming a client\'s kettlebell swing on his phone',
   blocks: [
     { type: 'p', text: 'People check your Instagram before they walk in. If it is 3 posts from last spring, they assume the gym is the same: quiet, maybe closed. A few posts a week fixes that, and you do not need to be the one on camera every time.' },
     { type: 'h2', text: 'How often should a gym post?' },

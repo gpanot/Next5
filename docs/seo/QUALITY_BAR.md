@@ -44,8 +44,17 @@ The reviewer writes its verdict in the PR description: each check with pass or f
 
 ## Signs the loop is drifting
 
-- First-try pass rate in RUN_LOG.md drops below 70%.
-- New articles start to look alike (same opening, same section names).
+- 2 of the last 5 runs ended with no article because the second review failed.
+- New articles start to look alike (same opening, same section names, same title formula).
 - Articles get indexed but stay below position 30 after 6 weeks.
 
-When any of these shows up, stop publishing new articles for a week and improve existing ones.
+When any of these shows up, the next run improves an existing article instead of writing a new one,
+and logs which sign fired. One improve run per sign, then back to new articles; the sign must show
+again to trigger another.
+
+The first-try pass rate in RUN_LOG.md is tracked, not a stop sign: a first-review fail that the one
+rewrite fixes is the review doing its job. It counted as drift until 2026-10-28 and froze new
+articles for a week after normal rewrite-then-ship days.
+
+Indexing is not drift. While Google has indexed fewer than 10 of the site's pages, keep publishing:
+a new site gets crawled because it grows and earns links, not because it stops.

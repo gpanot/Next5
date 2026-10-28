@@ -10,8 +10,8 @@ export const facelessTikTokIdeas: Article = {
   keyword: 'faceless tiktok ideas',
   hub: 'post-ideas',
   published: '2026-10-18',
-  cover: 'pantry-gaps',
-  coverAlt: 'TikTok slideshow made by Next5: "3 ways to avoid empty gaps (without double-buying)"',
+  cover: '/images/guides/faceless-tiktok-ideas-for-business.png',
+  coverAlt: 'Top-down view of hands frosting cupcakes while a phone films from above',
   blocks: [
     { type: 'p', text: 'Many owners do not want to be on camera. That is fine. Some of the biggest business accounts on TikTok never show a face. They use photos, text, products and hands.' },
     { type: 'h2', text: 'The 4 best faceless formats' },

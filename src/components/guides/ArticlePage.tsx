@@ -29,7 +29,7 @@ function ArticleHeader({ article }: { article: Article }) {
   return (
     <header>
       <Breadcrumbs article={article} />
-      <h1 className="mt-4 text-[2rem] leading-[1.1] font-extrabold tracking-tight text-balance text-ink md:text-5xl md:leading-[1.05] dark:text-zinc-100">{article.title}</h1>
+      <h1 className="mt-4 font-display text-[2rem] leading-[1.1] font-bold tracking-tight text-balance text-ink md:text-5xl md:leading-[1.05] dark:text-zinc-100">{article.title}</h1>
       <p className="mt-4 text-lg leading-relaxed text-muted dark:text-zinc-400">{article.excerpt}</p>
       <p className="mt-5 text-sm text-muted dark:text-zinc-500">
         By the Next5 team · <time dateTime={updated ?? article.published}>{updated ? `Updated ${formatDate(updated)}` : formatDate(article.published)}</time> · {readMinutes(article)} min read

@@ -10,8 +10,8 @@ export const guideFillCalendar: Article = {
   keyword: 'social media content calendar tool',
   hub: 'product',
   published: '2026-10-18',
-  cover: 'realtor-habits',
-  coverAlt: 'TikTok slideshow made by Next5: "7 Realtor Habits That Quietly Lower Video Time"',
+  cover: '/images/guides/fill-your-30-day-calendar.png',
+  coverAlt: 'Boutique owner writing post ideas in a paper monthly planner at her shop worktable',
   blocks: [
     { type: 'p', text: 'Posting once a day is how accounts grow. Planning 30 posts is the hard part. In Next5 it takes one sitting with the Ideas deck.' },
     { type: 'h2', text: 'How the Ideas deck works' },

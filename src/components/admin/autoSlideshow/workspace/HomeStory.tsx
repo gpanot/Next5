@@ -3,7 +3,7 @@
 /**
  * "Website to post" story on the Auto Slideshow home. On large screens a phone stays
  * pinned (CSS sticky) while 5 steps scroll past; each step shows a real output:
- * a slide of an Auto Slideshow post or a short video (compressed, public/videos/story).
+ * a short video (compressed, public/videos/story) or a slideshow slide.
  * Phones get each one inline instead.
  * The active step is plain state, so it also works with reduced motion.
  */
@@ -13,9 +13,6 @@ import { ScrollTrigger } from '../../../motion/gsap';
 import { SplitWords } from '../../../motion/SplitWords';
 
 /** On 2xl the section narrows to the gap between the floating side decks (inner edges sit ~26.5rem from center). */
-/** Real output from the showcase (public/images/auto-slideshow, listed in the image manifest). */
-const STORY_SLUG = 'slide-chapters';
-const STORY_ALT = 'TikTok slideshow: "The clarity glow-up: your slideshow finally reads like chapters."';
 
 /** Each step: a short name, a promise, then what it means for the business. */
 const STEPS = [
@@ -28,16 +25,18 @@ const STEPS = [
 
 type StoryMedia = { kind: 'slide'; src: string } | { kind: 'video'; src: string; poster: string };
 
-const slideSrc = (i: number) => `/images/auto-slideshow/${STORY_SLUG}/${i + 1}.jpg`;
-const shortMedia = (n: number): StoryMedia => ({ kind: 'video', src: `/videos/story/short-${n}.mp4`, poster: `/videos/story/short-${n}.jpg` });
+const storyVideo = (name: string): StoryMedia => ({ kind: 'video', src: `/videos/story/${name}.mp4`, poster: `/videos/story/${name}.jpg` });
 
-/** One output per step: shorts and slideshow slides, mixed. */
+/**
+ * One output per step: real Next5 Blitz videos made for trade businesses (first 16 s, muted, 432x768),
+ * so a home-service owner sees their own world: electricians, auto repair, attic and HVAC work.
+ */
 const MEDIA: StoryMedia[] = [
-  shortMedia(1),
-  { kind: 'slide', src: slideSrc(1) },
-  shortMedia(2),
-  { kind: 'slide', src: slideSrc(3) },
-  { kind: 'slide', src: slideSrc(4) },
+  storyVideo('electricians'),
+  storyVideo('auto-repair'),
+  storyVideo('home-services'),
+  storyVideo('electrician-jobs'),
+  storyVideo('auto-shop'),
 ];
 
 /** Muted looping clip. Plays only while `playing`, so off-screen steps cost nothing. */
@@ -66,7 +65,7 @@ function StoryPhone({ active }: { active: number }) {
     <div className="sticky top-28 mx-auto w-[260px] rounded-[2.25rem] bg-ink p-2.5 shadow-[0_40px_80px_-40px_rgb(0_0_0/0.55)] dark:bg-zinc-100">
       <div className="relative aspect-[9/16] overflow-hidden rounded-[1.75rem] bg-zinc-100 dark:bg-zinc-800">
         {STEPS.map((step, i) => (
-          <StoryMediaView key={step.title} media={MEDIA[i]} alt={i === 1 ? STORY_ALT : ''} sizes="260px" playing={i === active}
+          <StoryMediaView key={step.title} media={MEDIA[i]} alt="" sizes="260px" playing={i === active}
             className={`motion-safe:transition-opacity motion-safe:duration-500 ${i === active ? 'opacity-100' : 'opacity-0'}`} />
         ))}
         <div aria-hidden className="absolute inset-x-3 top-3 flex gap-1">

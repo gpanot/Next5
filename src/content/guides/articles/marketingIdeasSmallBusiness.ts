@@ -10,8 +10,8 @@ export const marketingIdeasSmallBusiness: Article = {
   keyword: 'marketing ideas for small business',
   hub: 'post-ideas',
   published: '2026-10-18',
-  cover: 'golf-setup',
-  coverAlt: 'TikTok slideshow made by Next5: "Did you know setup decides the start line?"',
+  cover: '/images/guides/marketing-ideas-for-small-business.png',
+  coverAlt: 'Plant shop owner drawing on a sidewalk chalkboard sign outside her store',
   blocks: [
     { type: 'p', text: 'You do not need a big budget to market a small business. You need a few ideas you can keep doing every week. Here are 25. Pick 3, do them for 30 days, and keep what works.' },
     { type: 'h2', text: 'Social media ideas' },

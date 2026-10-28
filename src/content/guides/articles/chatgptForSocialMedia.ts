@@ -10,8 +10,8 @@ export const chatgptForSocialMedia: Article = {
   keyword: 'chatgpt for social media',
   hub: 'cost-alternatives',
   published: '2026-10-18',
-  cover: 'trading-gaps',
-  coverAlt: 'TikTok slideshow made by Next5: "How to enter faster when gaps reopen — without rushing spikes."',
+  cover: '/images/guides/chatgpt-for-social-media.png',
+  coverAlt: 'Dog groomer typing on a laptop at her front desk, a groomed dog in the background',
   blocks: [
     { type: 'p', text: 'Many owners ask: "Why pay for social media help when ChatGPT is right there?" Fair question. ChatGPT is a great writing helper. But writing is only one part of social media.' },
     { type: 'h2', text: 'What ChatGPT does well' },

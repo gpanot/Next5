@@ -12,7 +12,7 @@ export const socialMediaForHairSalons: Article = {
   answer: 'Post 2 to 3 times a week on Instagram, more if you can, mixing before-and-afters, quick styling tips and behind-the-chair clips. Always ask the client before posting their photo, tag the stylist who did the work, and put "DM to book" or a booking link on every post so views turn into appointments.',
   published: '2026-10-22',
   cover: '/images/guides/social-media-for-hair-salons.png',
-  coverAlt: "Hair stylist cutting a seated client's hair at a salon chair, bright daylight through the front window",
+  coverAlt: "Stylist taking a phone photo of a client's finished haircut in the salon chair",
   blocks: [
     { type: 'p', text: 'A client scrolls your Instagram before they book, not after. If the last post is from 3 months ago, they book somewhere else, even if your chair has an opening today. You do not need a photographer or a big following, you need a short, steady habit and a clear way to book.' },
     { type: 'h2', text: 'How often should a hair salon post?' },
