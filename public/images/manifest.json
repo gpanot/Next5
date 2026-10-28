@@ -4699,5 +4699,14 @@
     "bytes": 524721,
     "alt": "Shop owner photographing a Christmas-decorated shop counter with a phone, a small lit tree and wrapped gifts on the counter, daylight through the storefront window",
     "generatedAt": "2026-10-27T01:05:50.091Z"
+  },
+  "public/images/guides/how-to-make-a-slideshow-on-tiktok.png": {
+    "prompt": "A small business owner in her early forties standing behind the counter of her bright flower shop, holding her phone up in both hands and looking at the screen as she picks photos to post, buckets of fresh flowers and a sunlit shop window behind her, bright natural daylight, realistic documentary photo, 4:5 vertical, no text or lettering anywhere",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 565046,
+    "alt": "A flower shop owner in an apron stands at her wooden counter looking at her phone, cut stems and shears in front of her and buckets of flowers in the sunlit shop window behind",
+    "generatedAt": "2026-10-28T01:13:07.471Z"
   }
 }
