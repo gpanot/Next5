@@ -19,7 +19,7 @@ export const howToMakeTikTokSlideshow: Article = {
       { title: 'Tap the + button', text: 'Open TikTok and tap **+** at the bottom of the screen.' },
       { title: 'Tap Upload and pick your photos', text: 'Tap **Upload** (bottom right). Open the photos tab and tap each photo in the order you want. You can pick up to 35 photos. 5 to 9 is a good number for a business post.' },
       { title: 'Make sure it is a photo post', text: 'Tap **Next**. If TikTok shows a choice between photo and video, pick **photo**. Now people can swipe through your photos one by one.' },
-      { title: 'Add text and sound', text: 'Tap **Text** to write on a photo. Tap **Add sound** to pick music. Keep the music quiet and simple. The words do the work.' },
+      { title: 'Add text and sound', text: 'Tap **Text** to write on a photo. Tap **Add sound** to pick music. Keep the music quiet and simple. The words do the work. On a business account the list you get is the [Commercial Sounds library](/blog/tiktok-commercial-sounds-library), so the song you heard elsewhere may not be there.' },
       { title: 'Write the caption and post', text: 'Tap **Next**. Add a title, a short caption and 3 to 5 hashtags. Tap **Post**.' },
     ] },
     { type: 'tip', title: 'Button names change', text: 'TikTok moves things around often. If you cannot find a button, look for the same idea: upload photos, choose photo mode, add text, post.' },
