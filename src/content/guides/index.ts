@@ -17,6 +17,7 @@ import { socialMediaForRealtors } from './articles/socialMediaForRealtors';
 import { socialMediaForRestaurants } from './articles/socialMediaForRestaurants';
 import { socialMediaManagerCost } from './articles/socialMediaManagerCost';
 import { socialMediaMarketingSmallBusiness } from './articles/socialMediaMarketingSmallBusiness';
+import { tiktokCommercialSounds } from './articles/tiktokCommercialSounds';
 import { tiktokForPlumbers } from './articles/tiktokForPlumbers';
 import { tiktokHashtagsForBusiness } from './articles/tiktokHashtagsForBusiness';
 import { tiktokHooks } from './articles/tiktokHooks';
@@ -44,6 +45,7 @@ export const BLOG_POSTS: readonly Article[] = [
   socialMediaContentCalendar,
   bestTimeToPostTikTok,
   tiktokHashtagsForBusiness,
+  tiktokCommercialSounds,
   howToSellOnTikTokShop,
   socialMediaForRealtors,
   comingSoonRealEstatePost,

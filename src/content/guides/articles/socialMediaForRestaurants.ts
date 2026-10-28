@@ -59,7 +59,7 @@ export const socialMediaForRestaurants: Article = {
     { type: 'ul', items: [
       '**TikTok:** "If you use a Business Account, when you start a new video and click on Add Sound, you will only see sounds from the Commercial Music Library." Those are cleared for organic posts and ads.',
       '**Instagram:** when your account type does not have the licensed music library, Instagram points you to Meta\'s Sound Collection, which has music and sound effects.',
-      '**What to do:** pick the sound in the app before you shoot, so your cuts match something you can keep. A trend you cannot soundtrack still works as a format: same shots, your own audio.',
+      '**What to do:** pick the sound in the app before you shoot, so your cuts match something you can keep. A trend you cannot soundtrack still works as a format: same shots, your own audio. See [the Commercial Sounds guide](/blog/tiktok-commercial-sounds-library).',
     ] },
     { type: 'h2', text: 'Let your guests shoot the room for you' },
     { type: 'p', text: 'You get 3 photos a week. A full dining room makes hundreds, and a guest photo is more convincing than anything from your own camera.' },
