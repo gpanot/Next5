@@ -1,38 +1,58 @@
-// server-only. Saved Script Generator scripts: one row per generated script, autosaved after every change.
+// server-only. Saved Script Generator work: one row per generated video script or carousel, autosaved after every change.
 import { randomUUID } from 'crypto';
 import type { Prisma, ScriptGeneratorDraft } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { deleteFromR2, getPresignedUrl, uploadToR2 } from '../../lib/r2';
+import type { CarouselInput, GeneratedCarousel } from '../../types/admin/carousel';
+import { isCarouselTemplate } from '../../types/admin/carouselTemplates';
 import { isPhotoSlot, PHOTO_TYPES, type DraftChatEntry, type DraftSummary, type ScriptDraft } from '../../types/admin/scriptDrafts';
 import { isScriptModel, type GeneratedScript, type GenerateScriptInput } from '../../types/admin/scriptGenerator';
 import { HttpError } from '../http';
+import { normalizeCarousel, parseCarouselInput } from './carouselService';
 import { parseGenerateInput } from './service';
 
 const notFound = () => new HttpError(404, 'not_found', 'This saved script no longer exists.');
 const bad = (message: string) => new HttpError(400, 'bad_request', message);
 
 type Photos = Record<string, string>;
+type Raw = Record<string, unknown>;
 const photosOf = (row: ScriptGeneratorDraft): Photos => (row.photos && typeof row.photos === 'object' ? (row.photos as Photos) : {});
+const isCarouselRow = (row: Pick<ScriptGeneratorDraft, 'format'>) => row.format === 'carousel';
 
 const toSummary = (row: ScriptGeneratorDraft): DraftSummary => ({
   id: row.id,
+  kind: isCarouselRow(row) ? 'carousel' : 'video',
   title: row.title,
-  format: row.format as DraftSummary['format'],
-  structure: row.structure as DraftSummary['structure'],
+  format: row.format,
+  structure: row.structure,
   photoCount: Object.keys(photosOf(row)).length,
   updatedAt: row.updatedAt.toISOString(),
 });
 
+/** Carousels saved before 2026-10-24 used the video shape (beats, wizard answers). Read them as a carousel. */
+function legacyCarousel(row: ScriptGeneratorDraft): { input: CarouselInput; script: GeneratedCarousel } {
+  const old = (row.input ?? {}) as Raw;
+  const template = isCarouselTemplate(row.structure) ? row.structure : 'story_6';
+  const input: CarouselInput = { template, answers: { field: String(old.credibility ?? ''), audience: String(old.audience ?? ''), topic: String(old.message ?? '') } };
+  const s = (row.script ?? {}) as Raw;
+  const beats = Array.isArray(s.beats) ? (s.beats as Raw[]) : [];
+  const slides = beats.map((b) => ({ label: String(b.label ?? ''), text: String(b.onScreen ?? ''), photo: String(b.broll ?? ''), bottomText: String(b.bottomOnScreen ?? ''), bottomPhoto: String(b.bottomBroll ?? '') }));
+  return { input, script: { title: String(s.title ?? row.title), template, slides, song: String(s.music ?? ''), caption: String(s.cta ?? ''), bioCta: '' } };
+}
+
 async function toDraft(row: ScriptGeneratorDraft): Promise<ScriptDraft> {
   const signed = await Promise.all(Object.entries(photosOf(row)).map(async ([slot, key]) => [slot, await getPresignedUrl(key)] as const));
-  return {
+  const base = {
     ...toSummary(row),
     model: isScriptModel(row.model) ? row.model : 'gpt-6.1-sol',
-    input: row.input as GenerateScriptInput,
-    script: row.script as GeneratedScript,
     chat: Array.isArray(row.chat) ? (row.chat as DraftChatEntry[]) : [],
     photoUrls: Object.fromEntries(signed.filter((e): e is readonly [string, string] => !!e[1])),
-  };
+  } as const;
+  if (!isCarouselRow(row)) return { ...base, kind: 'video', input: row.input as GenerateScriptInput, script: row.script as GeneratedScript };
+  const saved = Array.isArray((row.script as Raw | null)?.slides)
+    ? { input: row.input as CarouselInput, script: row.script as GeneratedCarousel }
+    : legacyCarousel(row);
+  return { ...base, kind: 'carousel', ...saved };
 }
 
 /** The script as sent by the browser: it came from our own generate or refine call, so only the shape is checked. */
@@ -45,9 +65,23 @@ function parseScript(value: unknown): GeneratedScript {
 function parseChat(value: unknown): DraftChatEntry[] {
   if (!Array.isArray(value)) throw bad('Chat must be a list.');
   return value.slice(-100).map((e) => {
-    const c = (e ?? {}) as Record<string, unknown>;
+    const c = (e ?? {}) as Raw;
     return { you: String(c.you ?? '').slice(0, 500), reply: String(c.reply ?? '').slice(0, 500), refused: c.refused === true };
   });
+}
+
+const json = (v: unknown) => v as Prisma.InputJsonValue;
+
+/** The row fields of a body's work: a video script with its wizard answers, or a carousel with its answers. */
+function parseWork(body: Raw): { format: string; structure: string; title: string; input: Prisma.InputJsonValue; script: Prisma.InputJsonValue } {
+  if (body.kind === 'carousel') {
+    const input = parseCarouselInput((body.input ?? {}) as Raw);
+    const carousel = normalizeCarousel(body.script, input, false);
+    return { format: 'carousel', structure: input.template, title: carousel.title.slice(0, 200), input: json(input), script: json(carousel) };
+  }
+  const input = parseGenerateInput((body.input ?? {}) as Raw);
+  const script = parseScript(body.script);
+  return { format: script.format, structure: String(script.structure), title: script.title.slice(0, 200) || 'Untitled', input: json(input), script: json(script) };
 }
 
 export async function listDrafts(): Promise<DraftSummary[]> {
@@ -61,32 +95,23 @@ export async function getDraft(id: string): Promise<ScriptDraft> {
   return toDraft(row);
 }
 
-export async function createDraft(body: Record<string, unknown>): Promise<ScriptDraft> {
-  const input = parseGenerateInput((body.input ?? {}) as Record<string, unknown>);
-  const script = parseScript(body.script);
+/** body: { kind: 'video' | 'carousel', input, script, model }. */
+export async function createDraft(body: Raw): Promise<ScriptDraft> {
   const model = isScriptModel(body.model) ? body.model : 'gpt-6.1-sol';
-  const row = await prisma.scriptGeneratorDraft.create({
-    data: {
-      title: script.title.slice(0, 200) || 'Untitled',
-      format: script.format,
-      structure: String(script.structure),
-      model,
-      input: input as unknown as Prisma.InputJsonValue,
-      script: script as unknown as Prisma.InputJsonValue,
-    },
-  });
+  const row = await prisma.scriptGeneratorDraft.create({ data: { ...parseWork(body), model } });
   return toDraft(row);
 }
 
-/** Saves the edited script and its chat. Photos are saved on their own (setPhoto), so the two never overwrite each other. */
-export async function saveDraft(id: string, body: Record<string, unknown>): Promise<DraftSummary> {
+/** Saves the edited work ({ kind, input, script }) and its chat. Photos are saved on their own (setPhoto), so the two never overwrite each other. */
+export async function saveDraft(id: string, body: Raw): Promise<DraftSummary> {
   const data: Prisma.ScriptGeneratorDraftUpdateInput = {};
   if (body.script !== undefined) {
-    const script = parseScript(body.script);
-    data.script = script as unknown as Prisma.InputJsonValue;
-    data.title = script.title.slice(0, 200) || 'Untitled';
+    const work = parseWork(body);
+    data.script = work.script;
+    data.input = work.input;
+    data.title = work.title;
   }
-  if (body.chat !== undefined) data.chat = parseChat(body.chat) as unknown as Prisma.InputJsonValue;
+  if (body.chat !== undefined) data.chat = json(parseChat(body.chat));
   if (isScriptModel(body.model)) data.model = body.model;
   const row = await prisma.scriptGeneratorDraft.update({ where: { id }, data }).catch(() => null);
   if (!row) throw notFound();

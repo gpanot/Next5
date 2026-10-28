@@ -9,7 +9,6 @@ import {
   type ScriptHook,
   type ScriptStructure,
 } from '../../types/admin/scriptGenerator';
-import { CAROUSEL_TEMPLATES, carouselSlideCount, isCarouselTemplate, type CarouselTemplate } from '../../types/admin/carouselTemplates';
 
 export const PRINCIPLES = [
   { name: 'Name the viewer', text: "The first line must identify one specific viewer and one specific tension. Generic hooks like 'how to know if you are ready' are dead. Specific ones are alive." },
@@ -34,8 +33,6 @@ const beatProps = {
   broll: { type: 'string' },
   rehook: { type: 'string', description: 'Short line that resets attention inside this beat.' },
   rehookAt: { type: 'number', description: 'The second the re-hook lands.' },
-  bottomOnScreen: { type: 'string', description: 'Split screen carousels only: text on the bottom half.' },
-  bottomBroll: { type: 'string', description: 'Split screen carousels only: the bottom photo.' },
 };
 
 export const SCRIPT_SCHEMA = {
@@ -43,7 +40,7 @@ export const SCRIPT_SCHEMA = {
   properties: {
     title: { type: 'string' },
     format: { type: 'string', enum: Object.keys(SCRIPT_FORMATS) },
-    structure: { type: 'string', enum: [...structureKeys, ...Object.keys(CAROUSEL_TEMPLATES)] },
+    structure: { type: 'string', enum: structureKeys },
     durationSeconds: { type: 'number' },
     music: { type: 'string' },
     beats: { type: 'array', items: { type: 'object', properties: beatProps, required: ['start', 'end', 'label'] } },
@@ -71,25 +68,7 @@ export const SCRIPT_SCHEMA = {
   required: ['title', 'format', 'structure', 'durationSeconds', 'beats', 'cta', 'directorNote'],
 } as const;
 
-/** The slide plan of a carousel template: how many slides, which job each run of slides has, and its own rules. */
-export function carouselBlock(template: CarouselTemplate): string {
-  const t = CAROUSEL_TEMPLATES[template];
-  let from = 1;
-  const plan = t.sections.map((s) => {
-    const range = s.count === 1 ? `Slide ${from}` : `Slides ${from} to ${from + s.count - 1}`;
-    from += s.count;
-    return `- ${range}, label '${s.name}${s.count === 1 ? '' : ' n'}': ${s.job}`;
-  });
-  const split = t.layout === 'split' ? `\nSPLIT SCREEN: every slide has a top half and a bottom half. 'onScreen' and 'broll' are the TOP half, 'bottomOnScreen' and 'bottomBroll' are the BOTTOM half. Each half has at most 6 words of text. The two halves must contrast clearly at a glance.` : '';
-  return `CAROUSEL TEMPLATE: ${t.label} (${t.desc})
-Write exactly ${carouselSlideCount(template)} beats, one per slide, in this order:
-${plan.join('\n')}
-${t.rules}${split}
-Set the 'structure' field to '${template}'. Where a personal detail is needed and not given, write a short bracketed placeholder such as [the year you started]. Never guess.`;
-}
-
 function structureBlock(structure: GenerateScriptInput['structure']): string {
-  if (isCarouselTemplate(structure)) return carouselBlock(structure);
   if (structure !== 'ai_choose') {
     const s = SCRIPT_STRUCTURES[structure];
     return `STRUCTURE: ${s.label}\nBeats in order: ${s.beats.join(' | ')}\nTiming guide: ${s.timing}`;
@@ -111,17 +90,12 @@ Place visual in broll, text in onScreen and verbal in spoken on the first beat. 
 
 export function buildGenerateSystem({ format, structure, goal, hook }: Pick<GenerateScriptInput, 'format' | 'structure' | 'goal' | 'hook'>): string {
   const f = SCRIPT_FORMATS[format];
-  const target = format === 'carousel' ? f.range : `${f.range}, target about ${f.seconds} seconds`;
-  const timing =
-    format === 'carousel'
-      ? "- Slide 1 is the hook: 'broll' is its photo, 'onScreen' its text. Slide 2 is a second hook."
-      : "- On the HOOK beat, 'broll' is the visual first frame (0 to 1 seconds), 'onScreen' is the 3 to 5 word text, 'spoken' is the verbal hook.\n- No stretch longer than 7 seconds without a re-hook. Put it in the beat's 'rehook' field and its second in 'rehookAt'. The hook beat's own re-hook lands at 4 to 7 seconds.\n- Beats must be contiguous: each 'start' equals the previous 'end', the last 'end' equals durationSeconds.";
-  return `You are a short-form ${format === 'carousel' ? 'carousel' : 'video script'} coach. You write ${format === 'carousel' ? 'photo carousels for a creator to post' : 'scripts for a creator to film themselves'}.
+  return `You are a short-form video script coach. You write scripts for a creator to film themselves.
 
 PRINCIPLES (apply all, and cite them by name in the director's note):
 ${principlesText}
 
-FORMAT: ${f.label} (${target})
+FORMAT: ${f.label} (${f.range}, target about ${f.seconds} seconds)
 ${f.rules}
 
 ${structureBlock(structure)}
@@ -129,8 +103,10 @@ ${structureBlock(structure)}
 GOAL: ${SCRIPT_GOALS[goal].label}. CTA guidance: ${SCRIPT_GOALS[goal].cta}
 
 ${hookBlock(hook)}Rules for output:
-${timing}
+- On the HOOK beat, 'broll' is the visual first frame (0 to 1 seconds), 'onScreen' is the 3 to 5 word text, 'spoken' is the verbal hook.
+- No stretch longer than 7 seconds without a re-hook. Put it in the beat's 'rehook' field and its second in 'rehookAt'. The hook beat's own re-hook lands at 4 to 7 seconds.
 - Use only facts the creator gave you. Never invent statistics, credentials or stories.
+- Beats must be contiguous: each 'start' equals the previous 'end', the last 'end' equals durationSeconds.
 - Write in the creator's voice, first person, plain words.
 - The directorNote has a short summary and exactly 5 decisions, each tied to a named principle.
 - Do not use em dashes anywhere in the output.
@@ -168,18 +144,9 @@ export const HOOKS_SCHEMA = {
   required: ['hooks'],
 } as const;
 
-/** For a carousel the hook is the first slide (both halves of it on a split screen). */
-function carouselHookNote(template: CarouselTemplate | undefined): string {
-  if (!template) return '';
-  const t = CAROUSEL_TEMPLATES[template];
-  return `\nThis is the FIRST SLIDE of a carousel: ${t.label}. Its job: ${t.sections[0].job}
-The visual is the photo of slide 1, text is its on-screen line. Keep the template's pattern and wording.\n`;
-}
-
-export function buildHooksSystem({ format, goal, template }: Pick<HooksInput, 'format' | 'goal' | 'template'>): string {
-  const silent = format !== 'talking_head';
+export function buildHooksSystem({ format, goal }: Pick<HooksInput, 'format' | 'goal'>): string {
+  const silent = format === 'silent_film';
   return `You are a short-form video hook writer. You write the opening of a video that a creator will film themselves.
-${carouselHookNote(format === 'carousel' ? template : undefined)}
 
 PRINCIPLES (the first two matter most here):
 ${principlesText}
@@ -193,7 +160,7 @@ Write exactly 3 hooks for the creator's idea. Each hook uses a different angle f
 Each hook has three aligned signals that promise the same thing:
 - visual: a concrete first frame the creator can film in 0 to 1 seconds.
 - text: 3 to 5 bold words shown on screen.
-- verbal: ${silent ? 'leave empty, nobody speaks in this format.' : '1 to 2 short spoken sentences that name the viewer, the pain and a withheld mechanism.'}
+- verbal: ${silent ? 'leave empty, this is a silent film.' : '1 to 2 short spoken sentences that name the viewer, the pain and a withheld mechanism.'}
 
 GOAL: ${SCRIPT_GOALS[goal].label}.
 Rules:

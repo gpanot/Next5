@@ -1,14 +1,14 @@
-/** Script Generator carousels: the 3 types (My Story, Numbered List, Split Screen) and their ready templates.
- *  Client-safe. The prompt text in `rules` is what the model follows, so edit it to change how carousels are written. */
+/** Script Generator carousels (Jun Yuh, Day 2 Module 5): the 3 storytelling types and their ready templates.
+ *  Client-safe. `rules` and the section `job`s go into the prompt, so edit them to change how carousels are written. */
 
 export type CarouselType = 'my_story' | 'numbered_list' | 'split_screen';
 
 export type CarouselTemplate =
   | 'story_3p'
   | 'story_6'
+  | 'list_signs'
   | 'list_habits'
   | 'list_stopped'
-  | 'list_signs'
   | 'list_mistakes'
   | 'split_to_be_her'
   | 'split_before_after'
@@ -19,8 +19,11 @@ export type CarouselTemplate =
 /** slides: one photo per slide. split: each slide has a top and a bottom photo. */
 export type CarouselLayout = 'slides' | 'split';
 
-/** A run of slides that share one job, e.g. 7 PROBLEM slides. Slide labels start with the section name. */
-export type CarouselSection = { name: string; count: number; job: string };
+/** A run of slides that share one job, e.g. 7 PROBLEM slides. `count: 'list'` is the list length the admin picks. */
+export type CarouselSection = { name: string; count: number | 'list'; job: string };
+
+/** The answers a template asks for. Their wording lives in CAROUSEL_QUESTIONS. */
+export type CarouselQuestionKey = 'field' | 'audience' | 'topic' | 'start' | 'pursuit' | 'now' | 'moments' | 'result' | 'work';
 
 export type CarouselTemplateInfo = {
   type: CarouselType;
@@ -30,92 +33,131 @@ export type CarouselTemplateInfo = {
   desc: string;
   layout: CarouselLayout;
   sections: CarouselSection[];
+  questions: CarouselQuestionKey[];
+  /** Slide 1 is fixed by the template ("dear younger me"), so there is no hook step. */
+  fixedHook?: boolean;
   /** Template-specific instructions added to the prompt. */
   rules: string;
 };
 
 export const CAROUSEL_TYPES: Record<CarouselType, { label: string; desc: string }> = {
-  my_story: { label: 'My Story', desc: 'Your real story told in photos and one line of text per slide. Builds connection fast.' },
-  numbered_list: { label: 'Numbered List', desc: '"10 habits of..." One cover, one point per slide. Easy to save and share.' },
-  split_screen: { label: 'Split Screen', desc: 'Two photos stacked on each slide: before and after, them and me, then and now.' },
+  my_story: { label: 'My Story', desc: 'How you got your skill, told in photos with one line each. Builds trust for later coaching.' },
+  numbered_list: { label: 'Numbered List', desc: '"14 signs you..." Items the viewer recognises, and a list they want to finish.' },
+  split_screen: { label: 'Split Screen', desc: 'Two photos on each slide. The viewer sees where they are and where they could be.' },
 };
 
-const listSections = (cover: string): CarouselSection[] => [
+export type CarouselQuestion = { title: string; help: string; required: boolean; examples: string[] };
+
+export const CAROUSEL_QUESTIONS: Record<CarouselQuestionKey, CarouselQuestion> = {
+  field: { title: 'What do you do?', help: 'Your job or business, in a few words.', required: true, examples: ['I own a hair salon in Austin', 'Realtor in Phoenix, mostly first-time buyers', 'I sell handmade candles on TikTok Shop'] },
+  audience: { title: 'Who is it for?', help: 'One specific person and the problem they have right now. Slide 1 talks about them, not you.', required: true, examples: ['First-time buyers in their 30s scared they cannot afford a home', 'New salon owners with empty chairs on weekdays'] },
+  topic: { title: 'What is the list about?', help: 'The topic in a few words. The AI writes the items.', required: true, examples: ['Signs you are ready to buy your first home', 'Habits of stylists who are booked out for months'] },
+  start: { title: 'Where did you start?', help: 'The hard part: real moments, years, places. We never invent your story, so only write what is true.', required: true, examples: ['2019: broke, renting a chair, 3 clients a week, crying in my car after work'] },
+  pursuit: { title: 'What did you do about it?', help: 'The work: small daily actions, the grind, the turning point.', required: true, examples: ['Posted every day for a year, took every walk-in, saved for my own place'] },
+  now: { title: 'Where are you now?', help: 'Real results and the moment it felt worth it.', required: true, examples: ['Opened my own salon in 2024, 4 stylists, booked 6 weeks out'] },
+  moments: { title: 'Any real moments to use?', help: 'Optional. A few true details: when you started, a hard time, a big win. The 6 photos follow your path.', required: false, examples: ['Cut my first hair at 15, beauty school at 19, renting a chair at 22, opened my salon at 29'] },
+  result: { title: 'What does the result look like?', help: 'What people see: the version of you, or the "after".', required: true, examples: ['A realtor who closes 3 homes a month', 'My own salon, fully booked'] },
+  work: { title: 'What did it really take?', help: 'The "before", or the work behind the result. Real details only.', required: true, examples: ['6 am calls, 40 a day, open houses every weekend for 2 years'] },
+};
+
+/** Lengths offered for a numbered list (items, not counting the cover and the closing slide). */
+export const LIST_COUNTS = [5, 7, 10, 14] as const;
+export const DEFAULT_LIST_COUNT = 10;
+
+const listSections = (cover: string, item: string): CarouselSection[] => [
   { name: 'COVER', count: 1, job: cover },
-  { name: 'POINT', count: 10, job: 'One point per slide: a short bold line, then one sentence that makes it concrete. Number it (1 to 10). The strongest point goes last.' },
-  { name: 'CLOSE', count: 1, job: 'A one-line wrap-up that makes the viewer want to save the post.' },
+  { name: 'ITEM', count: 'list', job: `${item} Number them. Keep the strongest item for last, so the viewer swipes to the end.` },
+  { name: 'CLOSE', count: 1, job: 'One line that makes the viewer save or share the post.' },
 ];
+
+const LIST_QUESTIONS: CarouselQuestionKey[] = ['field', 'audience', 'topic'];
+const SPLIT_QUESTIONS: CarouselQuestionKey[] = ['field', 'audience', 'result', 'work'];
 
 export const CAROUSEL_TEMPLATES: Record<CarouselTemplate, CarouselTemplateInfo> = {
   story_3p: {
     type: 'my_story',
-    label: 'Problem, Pursuit, Payoff (19 slides)',
-    example: '2013: my parents divorced... and I eventually...',
-    desc: 'The long story arc: 7 problem slides, 7 pursuit slides, 5 payoff slides. One short line on each photo.',
+    label: 'Origin story: Problem, Pursuit, Payoff',
+    example: 'Exactly six months ago I won my first show... the next six months were the hardest',
+    desc: '19 slides: 7 problem, 7 pursuit, 5 payoff. One short line on each photo, like a diary.',
     layout: 'slides',
     sections: [
-      { name: 'PROBLEM', count: 7, job: 'Where you started and what hurt. Concrete moments, years and places. The first slide is the hook.' },
+      { name: 'PROBLEM', count: 7, job: 'Where you started and what hurt. Concrete moments, years and places. Slide 1 is the hook.' },
       { name: 'PURSUIT', count: 7, job: 'What you did about it, step by step. Small daily actions, the grind, the turning point.' },
-      { name: 'PAYOFF', count: 5, job: 'What changed. Real results and the moment it all felt worth it. The last slide lands the emotion.' },
+      { name: 'PAYOFF', count: 5, job: 'What changed. Real results and the moment it felt worth it. The last slide lands the emotion.' },
     ],
-    rules: "Each slide is one line of 4 to 14 words, like a diary entry. A year or age at the start of a line ('2013:') works well. Slide 2 must also work as a hook, because the app shows slide 2 to people who skipped slide 1.",
+    questions: ['field', 'audience', 'start', 'pursuit', 'now'],
+    rules: "Each slide is one line of 4 to 14 words, like a diary entry. A year or an age at the start of a line ('2013:') works well. The story shows how the creator got their skill, so the viewer trusts them later.",
   },
   story_6: {
     type: 'my_story',
     label: 'Dear younger me (6 slides)',
     example: 'dear younger me / you have no idea / how much your life / is going to change / i think you would be / pretty proud',
-    desc: 'Your progress in 6 steps, from younger you to today. One sentence split across the 6 slides.',
+    desc: 'Your path in 6 photos, from younger you to success. One sentence across the 6 slides. The easiest post to make.',
     layout: 'slides',
-    sections: [{ name: 'STEP', count: 6, job: 'One step of the journey per slide, from oldest (a childhood photo) to newest (the proud moment today).' }],
-    rules: "'onScreen' on the 6 slides together forms ONE sentence of about 18 words, 2 to 5 words per slide, lower case. The classic is: dear younger me / you have no idea / how much your life / is going to change / i think you would be / pretty proud. Keep that sentence unless the creator's idea needs another one. 'broll' says which real photo goes on the slide, following the creator's path (younger photo, learning the skill, doing the work, the hard day job, family, the win).",
-  },
-  list_habits: {
-    type: 'numbered_list',
-    label: '10 habits of...',
-    example: '10 habits of realtors who close every month',
-    desc: 'The habits of the person your viewer wants to become.',
-    layout: 'slides',
-    sections: listSections("The title, like '10 habits of [who the viewer wants to be]'. Make the 'who' specific and wanted."),
-    rules: 'Habits must be specific actions with a time, a number or a place, never vague advice like "stay consistent".',
-  },
-  list_stopped: {
-    type: 'numbered_list',
-    label: '10 things I stopped doing',
-    example: '10 things I stopped doing to grow my salon',
-    desc: 'What you cut out to get your result. Personal and easy to relate to.',
-    layout: 'slides',
-    sections: listSections("The title, like '10 things I stopped doing to [result]'."),
-    rules: 'Each point names a thing most people still do, then what happened when the creator stopped.',
+    sections: [
+      { name: 'YOUNGER YOU', count: 1, job: "A childhood photo of the creator. Text: 'dear younger me'." },
+      { name: 'LEARNING', count: 1, job: "Learning or growing in the field (a beginner, a student, training). Text: 'you have no idea'." },
+      { name: 'PRACTISING', count: 1, job: "Practising the skill, looking capable. Text: 'how much your life'." },
+      { name: 'STRUGGLING', count: 1, job: "Struggling or focused: tired, studying, the job they hated, building the business. Text: 'is going to change'." },
+      { name: 'PASSION', count: 1, job: "The people or thing the creator loves: friends, family, the team. Text: 'i think you would be'." },
+      { name: 'SUCCESS', count: 1, job: "Joy or success: teaching, the work on display, opening day, with family. Text: 'pretty proud'." },
+    ],
+    questions: ['field', 'moments'],
+    fixedHook: true,
+    rules: "The 6 texts are fixed, lower case, exactly as given in the slide plan. Your job is the 6 photos: say what each one shows for this creator's field, as a photo they already have or can take. Use the creator's real moments where given.",
   },
   list_signs: {
     type: 'numbered_list',
-    label: '10 signs you...',
-    example: '10 signs you are ready to buy your first home',
-    desc: 'Signs the viewer can check against their own life. Drives comments.',
+    label: 'Signs you...',
+    example: '14 signs you are ready to buy your first home',
+    desc: 'Signs the viewer checks against their own life. The most relatable list, and it drives comments.',
     layout: 'slides',
-    sections: listSections("The title, like '10 signs you [are ready for / need] [thing]'."),
-    rules: 'Each sign is something the viewer can check in their own life in one second.',
+    sections: listSections("The title, like '[N] signs you [are ready for / need / have] [thing]', about the viewer.", 'One sign per slide that the viewer recognises in their own life in one second.'),
+    questions: LIST_QUESTIONS,
+    rules: 'Signs are small, specific and a little funny or painfully true, never vague.',
+  },
+  list_habits: {
+    type: 'numbered_list',
+    label: 'Habits of...',
+    example: '10 habits of realtors who close every month',
+    desc: 'The habits of the person your viewer wants to become.',
+    layout: 'slides',
+    sections: listSections("The title, like '[N] habits of [who the viewer wants to be]'. Make the 'who' specific and wanted.", 'One habit per slide: a short bold line, then one sentence that makes it concrete.'),
+    questions: LIST_QUESTIONS,
+    rules: 'Habits are specific actions with a time, a number or a place, never vague advice like "stay consistent".',
+  },
+  list_stopped: {
+    type: 'numbered_list',
+    label: 'Things I stopped doing',
+    example: '7 things I stopped doing to grow my salon',
+    desc: 'What you cut out to get your result. Personal and easy to relate to.',
+    layout: 'slides',
+    sections: listSections("The title, like '[N] things I stopped doing to [result the viewer wants]'.", 'One thing per slide that most people still do, then what changed when the creator stopped.'),
+    questions: LIST_QUESTIONS,
+    rules: 'Every item must be something the viewer is probably doing right now.',
   },
   list_mistakes: {
     type: 'numbered_list',
-    label: '10 mistakes...',
+    label: 'Mistakes...',
     example: '10 mistakes new TikTok Shop sellers make',
     desc: 'Mistakes to avoid. Positions you as the expert.',
     layout: 'slides',
-    sections: listSections("The title, like '10 mistakes [who] make with [thing]'."),
-    rules: 'Each point names the mistake in a bold line, then the fix in one sentence.',
+    sections: listSections("The title, like '[N] mistakes [who] make with [thing]'.", 'One mistake per slide in a bold line, then the fix in one sentence.'),
+    questions: LIST_QUESTIONS,
+    rules: 'Mistakes are specific and common. The fix is one action the viewer can take today.',
   },
   split_to_be_her: {
     type: 'split_screen',
     label: 'To be her... / I had to be her',
-    example: 'To be her... (the dream) / I had to be her (the work)',
-    desc: 'Top: the result people want. Bottom: the unglamorous work behind it.',
+    example: 'To be her... (confident, award-winning) / I had to be her (the work)',
+    desc: 'Top: the version people admire. Bottom: what it took to earn it.',
     layout: 'split',
     sections: [
-      { name: 'COVER', count: 1, job: "Top: the dream result, text 'To be her...' or 'To be him...'. Bottom: the hard work behind it, text 'I had to be her' or 'I had to be him'." },
-      { name: 'PAIR', count: 5, job: 'Top: one part of the result people see. Bottom: the matching daily work nobody sees.' },
+      { name: 'COVER', count: 1, job: "Top text 'To be her...' (or him) on the admired result. Bottom text 'I had to be her' (or him) on the hard work behind it." },
+      { name: 'PAIR', count: 5, job: 'Top: one admired version (confident, successful, award-winning). Bottom: the earned work behind it.' },
     ],
-    rules: 'Pick her or him to match the creator. The bottom half always shows effort: early mornings, practice, the boring work.',
+    questions: SPLIT_QUESTIONS,
+    rules: 'The bottom half always shows effort: early mornings, practice, the boring work. Each version is earned.',
   },
   split_before_after: {
     type: 'split_screen',
@@ -125,21 +167,23 @@ export const CAROUSEL_TEMPLATES: Record<CarouselTemplate, CarouselTemplateInfo> 
     layout: 'split',
     sections: [
       { name: 'COVER', count: 1, job: "Top: 'Before'. Bottom: 'After'. The biggest visible change." },
-      { name: 'PAIR', count: 5, job: 'Top: one detail before. Bottom: the same detail after. Same angle and framing on both.' },
+      { name: 'PAIR', count: 5, job: 'Top: one detail before. Bottom: the same detail after, same angle and framing.' },
     ],
+    questions: SPLIT_QUESTIONS,
     rules: 'Only use changes the creator gave you. Where a real number is missing, write a [placeholder].',
   },
   split_expectation_reality: {
     type: 'split_screen',
     label: 'Expectation / Reality',
     example: 'Expectation: open house full of buyers / Reality: me and a plate of cookies',
-    desc: 'What people think the job or the journey looks like, and what it really is. Funny and honest.',
+    desc: 'What people think the job looks like, and what it really is. Funny and honest.',
     layout: 'split',
     sections: [
       { name: 'COVER', count: 1, job: "Top: 'Expectation'. Bottom: 'Reality'. The topic in one glance." },
       { name: 'PAIR', count: 5, job: 'Top: the shiny version people imagine. Bottom: the real, slightly funny truth.' },
     ],
-    rules: 'Keep it warm and self-aware, never bitter. The last pair turns the reality into something the creator is proud of.',
+    questions: SPLIT_QUESTIONS,
+    rules: 'Warm and self-aware, never bitter. The last pair turns the reality into something the creator is proud of.',
   },
   split_they_see: {
     type: 'split_screen',
@@ -151,7 +195,8 @@ export const CAROUSEL_TEMPLATES: Record<CarouselTemplate, CarouselTemplateInfo> 
       { name: 'COVER', count: 1, job: "Top: 'What they see'. Bottom: 'What I actually do'." },
       { name: 'PAIR', count: 5, job: 'Top: one public result. Bottom: the private habit or work behind it.' },
     ],
-    rules: 'The bottom half is always a specific, filmable action.',
+    questions: SPLIT_QUESTIONS,
+    rules: 'The bottom half is always a specific action the creator can photograph.',
   },
   split_then_now: {
     type: 'split_screen',
@@ -163,13 +208,19 @@ export const CAROUSEL_TEMPLATES: Record<CarouselTemplate, CarouselTemplateInfo> 
       { name: 'COVER', count: 1, job: "Top: 'Then' with the year. Bottom: 'Now'." },
       { name: 'PAIR', count: 5, job: 'Top: one thing from back then. Bottom: the same thing today.' },
     ],
-    rules: "Top photos are real old photos from the creator's camera roll. Only use moments the creator gave you; otherwise write a [placeholder].",
+    questions: SPLIT_QUESTIONS,
+    rules: "Top photos are real old photos from the creator's camera roll. Only use moments the creator gave; otherwise write a [placeholder].",
   },
 };
 
 export const isCarouselTemplate = (v: unknown): v is CarouselTemplate => typeof v === 'string' && v in CAROUSEL_TEMPLATES;
 
-export const carouselSlideCount = (t: CarouselTemplate): number => CAROUSEL_TEMPLATES[t].sections.reduce((n, s) => n + s.count, 0);
+/** Slides of each section, with a numbered list's length filled in (count, and [N] in the jobs). */
+export const sectionsOf = (t: CarouselTemplate, listCount = DEFAULT_LIST_COUNT): Array<CarouselSection & { count: number }> =>
+  CAROUSEL_TEMPLATES[t].sections.map((s) => ({ ...s, count: s.count === 'list' ? listCount : s.count, job: s.job.replaceAll('[N]', String(listCount)) }));
+
+export const carouselSlideCount = (t: CarouselTemplate, listCount = DEFAULT_LIST_COUNT): number =>
+  sectionsOf(t, listCount).reduce((n, s) => n + s.count, 0);
 
 /** The templates of one type, in the order they are listed above. */
 export const templatesOf = (type: CarouselType): CarouselTemplate[] =>

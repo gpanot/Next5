@@ -3,16 +3,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import { CAROUSEL_TEMPLATES, isCarouselTemplate } from '../../../types/admin/carouselTemplates';
 import type { DraftSummary } from '../../../types/admin/scriptDrafts';
-import { SCRIPT_FORMATS, SCRIPT_STRUCTURES } from '../../../types/admin/scriptGenerator';
+import { SCRIPT_FORMATS, SCRIPT_STRUCTURES, type ScriptFormat, type ScriptStructure } from '../../../types/admin/scriptGenerator';
 import { adminFetch } from '../business/useAdminApi';
 import { amberTag, eyebrowClass, softCard } from './ui';
-import type { SaveState } from './useScriptGenerator';
+import type { SaveState } from './useDraftSaver';
 
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 const kindOf = (d: DraftSummary): string => {
-  const format = SCRIPT_FORMATS[d.format]?.label ?? d.format;
-  const shape = isCarouselTemplate(d.structure) ? CAROUSEL_TEMPLATES[d.structure].label : SCRIPT_STRUCTURES[d.structure]?.label;
+  if (d.kind === 'carousel') return `Carousel · ${isCarouselTemplate(d.structure) ? CAROUSEL_TEMPLATES[d.structure].label : d.structure}`;
+  const format = SCRIPT_FORMATS[d.format as ScriptFormat]?.label ?? d.format;
+  const shape = SCRIPT_STRUCTURES[d.structure as ScriptStructure]?.label;
   return shape ? `${format} · ${shape}` : format;
 };
 

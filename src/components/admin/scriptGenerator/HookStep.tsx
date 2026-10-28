@@ -4,7 +4,6 @@ import type { HookAngle, HookOption } from '../../../types/admin/scriptGenerator
 import { amberTag, BackButton, optionCard, secondaryBtn, StepFrame } from './ui';
 
 type Props = {
-  carousel?: boolean;
   hooks: HookOption[] | null;
   busy: boolean;
   error: string;
@@ -25,9 +24,9 @@ function HookSkeleton() {
 }
 
 /** "Pick your hook": 3 cards with different angles. Picking one starts the script. */
-export function HookStep({ carousel, hooks, busy, error, onPick, onBack, onRegenerate }: Props) {
+export function HookStep({ hooks, busy, error, onPick, onBack, onRegenerate }: Props) {
   return (
-    <StepFrame eyebrow="Step 04 · Pick your hook" title="Pick your hook" help={carousel ? 'Slide 1 decides if anyone swipes. Each option is a photo and a line of text that promise the same thing.' : 'The first 3 seconds decide everything. Each option is a first frame, a few bold words and a spoken line that promise the same thing.'}>
+    <StepFrame eyebrow="Step 04 · Pick your hook" title="Pick your hook" help="The first 3 seconds decide everything. Each option is a first frame, a few bold words and a spoken line that promise the same thing.">
       {error && <p role="alert" className="text-sm text-app-danger">{error}</p>}
       {!hooks && !error ? <HookSkeleton /> : null}
       <div className={`space-y-4 ${busy ? 'pointer-events-none opacity-60' : ''}`}>
@@ -36,7 +35,7 @@ export function HookStep({ carousel, hooks, busy, error, onPick, onBack, onRegen
             <span className={amberTag}>{ANGLE_LABEL[h.angle]}</span>
             <p className="mt-3 text-lg font-extrabold text-app-ink">{h.text}</p>
             {h.verbal && <p className="mt-1 text-sm text-app-ink">{h.verbal}</p>}
-            <p className="mt-2 text-xs text-app-muted">{carousel ? 'Photo' : 'Visual'}: {h.visual}</p>
+            <p className="mt-2 text-xs text-app-muted">Visual: {h.visual}</p>
           </button>
         ))}
       </div>

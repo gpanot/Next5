@@ -1,8 +1,8 @@
 'use client';
 
 import { useRef, useState, type DragEvent } from 'react';
-import type { GeneratedScript, ScriptBeat } from '../../../types/admin/scriptGenerator';
-import { eyebrowClass, secondaryBtn } from './ui';
+import type { CarouselSlide, GeneratedCarousel } from '../../../../types/admin/carousel';
+import { eyebrowClass, secondaryBtn } from '../ui';
 import type { SlidePhotos, SlotKey } from './useSlidePhotos';
 
 const textShadow = { textShadow: '0 1px 3px rgba(0,0,0,.85), 0 0 12px rgba(0,0,0,.45)' };
@@ -14,9 +14,10 @@ const cameraIcon = (
   </svg>
 );
 
-/** The slots of a script in slide order: one per slide, plus the bottom half on split slides. */
-export const slotsOf = (beats: ScriptBeat[]): SlotKey[] =>
-  beats.flatMap((b, i) => (b.bottomOnScreen || b.bottomBroll ? [`${i}`, `${i}b`] : [`${i}`]));
+const isSplit = (s: CarouselSlide) => !!(s.bottomText || s.bottomPhoto);
+
+/** The photo slots in slide order: one per slide, plus the bottom half on split slides. */
+export const slotsOf = (slides: CarouselSlide[]): SlotKey[] => slides.flatMap((s, i) => (isSplit(s) ? [`${i}`, `${i}b`] : [`${i}`]));
 
 type HalfProps = { slot: SlotKey; text?: string; photoHint?: string; photos: SlidePhotos };
 
@@ -72,24 +73,24 @@ function PhotoSpot({ slot, text, photoHint, photos }: HalfProps) {
   );
 }
 
-function SlideCard({ beat, index, total, photos }: { beat: ScriptBeat; index: number; total: number; photos: SlidePhotos }) {
-  const split = !!(beat.bottomOnScreen || beat.bottomBroll);
+function SlideCard({ slide, index, total, photos }: { slide: CarouselSlide; index: number; total: number; photos: SlidePhotos }) {
+  const split = isSplit(slide);
   return (
     <li className="w-52 shrink-0 snap-start space-y-1.5">
       <div className="relative flex aspect-[9/16] flex-col overflow-hidden rounded-xl shadow-sm">
-        <PhotoSpot slot={`${index}`} text={beat.onScreen} photoHint={beat.broll} photos={photos} />
-        {split && <PhotoSpot slot={`${index}b`} text={beat.bottomOnScreen} photoHint={beat.bottomBroll} photos={photos} />}
+        <PhotoSpot slot={`${index}`} text={slide.text} photoHint={slide.photo} photos={photos} />
+        {split && <PhotoSpot slot={`${index}b`} text={slide.bottomText} photoHint={slide.bottomPhoto} photos={photos} />}
         <span className="pointer-events-none absolute top-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white">{index + 1}/{total}</span>
       </div>
-      <p className="truncate text-[11px] text-app-muted">{beat.label}</p>
+      <p className="truncate text-[11px] text-app-muted">{slide.label}</p>
     </li>
   );
 }
 
 /** The carousel as it will look: 9:16 slides in a swipeable row. Photos come from this computer and are saved with the script. */
-export function CarouselPreview({ script, photos }: { script: GeneratedScript; photos: SlidePhotos }) {
+export function CarouselPreview({ carousel, photos }: { carousel: GeneratedCarousel; photos: SlidePhotos }) {
   const input = useRef<HTMLInputElement>(null);
-  const slots = slotsOf(script.beats);
+  const slots = slotsOf(carousel.slides);
   const filled = slots.filter((s) => photos.photos[s]).length;
   return (
     <div className="space-y-3">
@@ -101,7 +102,7 @@ export function CarouselPreview({ script, photos }: { script: GeneratedScript; p
       </div>
       <p className="text-xs text-app-muted">{photos.ready ? 'Pick several photos at once to fill the empty slides in order, or drop a photo on any slide. Photos are saved with the script.' : 'Saving the script first. Photos can be added once it is saved.'}</p>
       <ol className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-3">
-        {script.beats.map((b, i) => <SlideCard key={i} beat={b} index={i} total={script.beats.length} photos={photos} />)}
+        {carousel.slides.map((s, i) => <SlideCard key={i} slide={s} index={i} total={carousel.slides.length} photos={photos} />)}
       </ol>
     </div>
   );

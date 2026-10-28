@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { adminFetch } from '../business/useAdminApi';
+import { adminFetch } from '../../business/useAdminApi';
 
 /** One photo spot: "3" is slide 3 (0-based), "3b" is the bottom half of a split slide 3. */
 export type SlotKey = string;
