@@ -46,7 +46,7 @@ export const howToMakeTikTokSlideshow: Article = {
     { type: 'p', text: 'Look at slideshows in your niche that got lots of views. Copy the shape, not the words: the type of hook, the number of slides, the way the story moves.' },
     { type: 'cta', title: 'Skip the editing', text: 'Next5 makes TikTok slideshows from your website. Each one has a hook, 5 to 9 slides, a caption and hashtags. You approve it, and we post it.' },
     { type: 'h2', text: 'How many slides should a TikTok slideshow have?' },
-    { type: 'p', text: 'For a business post, 5 to 9 slides is a good range. Fewer than 4 feels thin. More than 10 and people stop swiping before the end, so they never see your ask.' },
+    { type: 'p', text: 'For a business post, 5 to 9 slides is a good range. Fewer than 4 feels thin. More than 10 and people stop swiping before the end, so they never see your ask. If you are tagging products from a TikTok Shop, TikTok publishes its own numbers for that format in the [faceless TikTok Shop guide](/blog/faceless-tiktok-shop).' },
     { type: 'h2', text: 'Slideshow or video?' },
     { type: 'p', text: 'Do both if you can. Slideshows are faster to make, easy to save and easy to read with the sound off. Videos can feel more personal. If you are short on time, slideshows are the easiest way to post every day.' },
   ],

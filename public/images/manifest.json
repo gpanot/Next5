@@ -4834,5 +4834,14 @@
     "bytes": 837792,
     "alt": "Barber in his shop scrolling a list of music on his phone, clippers resting on the counter",
     "generatedAt": "2026-10-28T07:43:48.932Z"
+  },
+  "public/images/guides/faceless-tiktok-shop.png": {
+    "prompt": "A small online shop owner at home holding a ceramic mug up to a phone mounted on a small tripod on the dining table, only their hands and the product in the phone frame, a few boxed orders stacked beside them. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 833354,
+    "alt": "Seller seen from behind holding a grey ceramic mug in front of a phone on a tripod, stacked shipping boxes on the table",
+    "generatedAt": "2026-10-29T03:06:15.349Z"
   }
 }

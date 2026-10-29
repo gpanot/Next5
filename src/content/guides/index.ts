@@ -3,6 +3,7 @@ import { chatgptForSocialMedia } from './articles/chatgptForSocialMedia';
 import { christmasSocialMediaPostIdeas } from './articles/christmasSocialMediaPostIdeas';
 import { comingSoonRealEstatePost } from './articles/comingSoonRealEstatePost';
 import { facelessTikTokIdeas } from './articles/facelessTikTokIdeas';
+import { facelessTikTokShop } from './articles/facelessTikTokShop';
 import { guideFillCalendar } from './articles/guideFillCalendar';
 import { guideFirstSlideshows } from './articles/guideFirstSlideshows';
 import { guideReadAnalytics } from './articles/guideReadAnalytics';
@@ -47,6 +48,7 @@ export const BLOG_POSTS: readonly Article[] = [
   tiktokHashtagsForBusiness,
   tiktokCommercialSounds,
   howToSellOnTikTokShop,
+  facelessTikTokShop,
   socialMediaForRealtors,
   comingSoonRealEstatePost,
   openHouseSocialMediaPost,
