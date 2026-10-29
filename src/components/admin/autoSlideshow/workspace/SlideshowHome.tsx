@@ -42,7 +42,7 @@ export function SlideshowHome() {
                 <SplitWords className="block sm:inline" text="No filming." />{' '}
                 <SplitWords className="block sm:inline" text="No editing." />
               </span>{' '}
-              <SplitWords className="block lg:inline" text="No content team." />
+              <SplitWords className="block lg:inline" text="30 Days Content" />
             </span>
           </h1>
           <p data-intro="2" className="mt-5 max-w-sm text-[17px] leading-relaxed text-muted md:mt-4 md:max-w-none md:text-base lg:text-lg dark:text-zinc-400">Paste your website. Get {PRICE_LABEL} posts built on formats that already get views.</p>
