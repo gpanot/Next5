@@ -44,7 +44,7 @@ export const howToSellOnTikTokShop: Article = {
       '**Reviews**: real buyer reviews, word for word.',
       '**Gift ideas**: "Gifts for runners under $40."',
     ] },
-    { type: 'p', text: 'Slideshows work very well for products. Each slide shows one detail. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok).' },
+    { type: 'p', text: 'Slideshows work very well for products. Each slide shows one detail. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). If you would rather not be on camera at all, read what TikTok\'s own rules allow for a [faceless TikTok Shop](/blog/faceless-tiktok-shop) first, because the format you pick matters.' },
     { type: 'h3', text: 'Work with creators' },
     { type: 'p', text: 'TikTok Shop has an affiliate program. Creators can post about your product and earn a cut of each sale. It is a way to get more posts without making them all yourself.' },
     { type: 'h2', text: 'Part 4: Track what sells' },
