@@ -7,6 +7,7 @@ import { ArticleBody } from './ArticleBody';
 import { ArticleCard } from './ArticleCard';
 import { ArticleCover } from './ArticleCover';
 import { ArticleFaq } from './ArticleFaq';
+import { ArticleSignupCta } from './ArticleSignupCta';
 import { articleJsonLd } from './articleJsonLd';
 import { ArticleToc } from './ArticleToc';
 import { InlineText } from './InlineText';
@@ -60,8 +61,9 @@ export function ArticlePage({ article }: { article: Article }) {
         <article className="mx-auto max-w-3xl">
           <ArticleHeader article={article} />
           <ArticleToc blocks={article.blocks} />
-          <ArticleBody blocks={article.blocks} source={`${article.kind}/${article.slug}`} />
+          <ArticleBody blocks={article.blocks} />
           {article.faq && article.faq.length > 0 && <ArticleFaq items={article.faq} />}
+          <ArticleSignupCta source={`${article.kind}/${article.slug}`} />
         </article>
         <section aria-labelledby="keep-reading" className="mx-auto mt-20 max-w-6xl">
           <h2 id="keep-reading" className="text-2xl font-extrabold tracking-tight text-ink dark:text-zinc-100">Keep reading</h2>

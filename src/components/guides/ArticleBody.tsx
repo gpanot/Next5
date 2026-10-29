@@ -1,6 +1,5 @@
 import type { ArticleBlock } from '../../content/guides/types';
 import { slugify } from '../../content/guides/slugify';
-import { ArticleCta } from './ArticleCta';
 import { InlineText } from './InlineText';
 
 const pClass = 'my-4 text-[17px] leading-[1.7] text-zinc-700 dark:text-zinc-300';
@@ -41,7 +40,7 @@ function Table({ head, rows }: Extract<ArticleBlock, { type: 'table' }>) {
   );
 }
 
-function Block({ block, source }: { block: ArticleBlock; source?: string }) {
+function Block({ block }: { block: ArticleBlock }) {
   switch (block.type) {
     case 'p':
       return <p className={pClass}><InlineText text={block.text} /></p>;
@@ -64,12 +63,13 @@ function Block({ block, source }: { block: ArticleBlock; source?: string }) {
           <p className="mt-1 text-[15px] leading-relaxed text-zinc-700 dark:text-zinc-300"><InlineText text={block.text} /></p>
         </aside>
       );
+    // One call to action per post, after its questions (ArticleSignupCta): the in-body CTA blocks stay in the content but show nothing.
     case 'cta':
-      return <ArticleCta title={block.title} text={block.text} source={source} />;
+      return null;
   }
 }
 
-/** The body of a guide or blog post, block by block. H2 and H3 get ids for the table of contents. `source` tags its CTAs. */
-export function ArticleBody({ blocks, source }: { blocks: readonly ArticleBlock[]; source?: string }) {
-  return <div>{blocks.map((block, i) => <Block key={i} block={block} source={source} />)}</div>;
+/** The body of a guide or blog post, block by block. H2 and H3 get ids for the table of contents. */
+export function ArticleBody({ blocks }: { blocks: readonly ArticleBlock[] }) {
+  return <div>{blocks.map((block, i) => <Block key={i} block={block} />)}</div>;
 }
