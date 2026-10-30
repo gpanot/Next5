@@ -425,7 +425,11 @@ export async function bankDeck(workspaceId: string, quotas: Array<Record<Stage, 
   const scriptsAt = Date.now();
   // Free workspaces (2026-10-20 experiment), and paid ones while PAID_LIKE_FREE: 3 cards of images only, then 3 with
   // library footage, and so on.
-  const free = PAID_LIKE_FREE || !(await getsPaidImages(workspaceId));
+  const paid = await getsPaidImages(workspaceId);
+  // An unpaid workspace pays for images once: its first batch makes them (they are saved to its own library), and every
+  // batch after it reuses those by search and takes stock photos for what is left. Paid workspaces keep making images.
+  const reuseOnly = !paid && opts.topUp !== false;
+  const free = (PAID_LIKE_FREE || !paid) && !reuseOnly;
   // An unclaimed Prospect Pack's preview cards make only their hook image now (packPreviews.ts).
   const firstPreview = (await isOpenProspect(workspaceId)) ? await plannedIdeas(workspaceId) : null;
   const deck = await deckFromScripts(source, scripts, undefined, { later: true, allImages: free ? imagesOnlyCard : undefined });
@@ -439,7 +443,7 @@ export async function bankDeck(workspaceId: string, quotas: Array<Record<Stage, 
     const imaged = cards.flatMap((c) => (c.pendingImages && c.script?.storyId ? [c.script.storyId] : []));
     const photos = batchStoryPhotos(brandProfileId, content, imaged, brand);
     await Promise.all([
-      finishIdeaCards(ids, workspaceId, brand, photos),
+      finishIdeaCards(ids, workspaceId, brand, photos, reuseOnly),
       (opts.topUp === false ? Promise.resolve() : growIfSpent(studioRunId, workspaceId)).then(() => backfillPhotos(studioRunId, workspaceId, source)),
     ]);
   };

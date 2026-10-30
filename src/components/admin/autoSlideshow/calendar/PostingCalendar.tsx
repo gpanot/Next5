@@ -28,6 +28,7 @@ import { useAdd, useMonth, useWatchPosts } from './postingHooks';
 import { SlideshowDnd } from './SlideshowDnd';
 import { SlideshowSheet } from './SlideshowSheet';
 import { StatusLegend } from './StatusLegend';
+import { runMakeEstimateMs } from './MakingCountdown';
 import { entriesOf } from './tileModel';
 import { useBlitzOnCalendar } from './useBlitzOnCalendar';
 import { useCampaignsOnCalendar } from './useCampaignsOnCalendar';
@@ -172,7 +173,9 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const openAll = useCallback(() => setApproving(ALL), []);
   useLinkedApproval({ pins, setPins, toApproveCount, openAll });
   const ideasOn = (day: PlanDay) => ui?.byDay.get(day.key) ?? [];
-  const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day), run.startedAt);
+  // The same wait the Campaigns grid shows: one estimate for the run, not a fixed two minutes.
+  const makingTotalMs = runMakeEstimateMs(run);
+  const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day), run.startedAt, makingTotalMs);
   // A kept idea fills the soonest empty day (no slideshow, video or kept idea yet); only a full calendar stacks days.
   // Times on a day: its posts and kept ideas, plus keeps still being saved (so fast swipes never share a time).
   // Live posts by day, any month: the days past the built ones have no slots, so their posts are counted from here.

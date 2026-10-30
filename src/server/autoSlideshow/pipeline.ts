@@ -22,9 +22,10 @@ import { profileForSite } from '../studio/siteProfile';
 import { putObject } from '../storage/objectStore';
 import type { VisualBible } from '../../types/admin/visualBible';
 import { castForShows, prepareCast } from '../brandCast/cast';
+import { castWaitsForAvatar, holdForAvatar } from '../brandCast/gate';
 import { brandPhotoFacts, productLooks } from '../brandContent/productPhotos';
 import { ensureVisualBible } from '../shorts/visualBible';
-import { castWaitsForTarget, holdForTarget } from './targetClient';
+import { holdForTarget } from './targetClient';
 import { bankForSite, loadUsage } from './bank/build';
 import { assembleCombo, pickCombos } from './bank/pick';
 import { headsFor, withDetectedHeads, type HeadsCache } from './heads';
@@ -154,9 +155,10 @@ const startWarmUp = (runId: string) => {
     const profile = run.profile as unknown as BrandProfile | null;
     const workspaceId = await contentWorkspaceId(run);
     if (!profile || !workspaceId) return;
-    // The cast reads the Visual Bible, so it comes second. A first run waiting for the target client makes it in step 4.
+    // The cast reads the Visual Bible, so it comes second. A new workspace's first run leaves it to the avatar gate
+    // (brandCast/gate.ts), which makes it as the candidate the owner validates.
     await runBible(runId, profile, workspaceId, meter);
-    if (!(await castWaitsForTarget(runId))) await prepareCast(workspaceId, meter);
+    if (!(await castWaitsForAvatar(runId))) await prepareCast(workspaceId, meter);
   })()
     .catch((err: unknown) => console.warn(`[auto-slideshow] run ${runId}: warm-up failed (${err instanceof Error ? err.message : err})`))
     .then(() => meter.summary());
@@ -381,6 +383,8 @@ const photosLeft = async (runId: string) => photosPending(((await loadRun(runId)
 export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, append = 0, continued = false): Promise<void> => {
   const opts: RunOpts = { append, rerender: fromStep === 6, continued };
   for (let step = fromStep; step <= 6; step = (step + 1) as AutoStep) {
+    // Before step 4 of a new workspace's first run: the owner validates their brand avatar first (brandCast/gate.ts).
+    if (step === 4 && append === 0 && (await holdForAvatar(runId))) return;
     const t0 = Date.now();
     const meter = createMeter();
     try {

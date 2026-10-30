@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { isTerminalAutoStatus, type AutoRunSummary, type AutoSlideshowDto } from '../../../../types/admin/autoSlideshow';
 import { adminFetch, useAdminApi } from '../../business/useAdminApi';
 import { useCalendarSpots } from '../calendar/useCalendarSpots';
+import { runMakeEstimateMs } from '../calendar/MakingCountdown';
 import { playCoverOnce } from '../CoverPlayback';
 import { AddTile } from '../campaigns/AddTile';
 import { FilterSelect, useListView, ViewToggle, type ListFilter, type ListView } from '../campaigns/ListControls';
@@ -72,7 +73,7 @@ function RunSlideshows({ token, auto, view, latest = false, calendarOnly, castId
       {view === 'list' ? (
         <SlideshowRows flat slideshows={shows} missing={done ? 0 : Math.max(0, expected - shows.length)} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
       ) : (
-        <SlideshowGrid flat calendarMeta spots={spots} newestFirst slideshows={shows} expected={expected} writing={!done} since={done ? undefined : run.startedAt} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
+        <SlideshowGrid flat calendarMeta spots={spots} newestFirst slideshows={shows} expected={expected} writing={!done} since={done ? undefined : run.startedAt} totalMs={runMakeEstimateMs(run)} retrying={retrying} onOpen={onOpen} onRetry={onRetry} faceOf={faceOf} />
       )}
       <RunSlideshowEditor token={token} run={run} openId={openId} onOpen={setOpenId} onChanged={refresh} />
     </section>

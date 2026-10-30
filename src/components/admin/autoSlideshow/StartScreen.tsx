@@ -30,7 +30,7 @@ function RecentRuns({ token, workspaceId, onOpen }: { token: string; workspaceId
                 <p className="text-xs text-muted">{when(run.createdAt)} · {run.readyCount}/{run.count} slideshows</p>
               </div>
               <span className={`shrink-0 rounded-md px-2 py-1 text-[10px] font-bold uppercase ${run.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' : run.status === 'FAILED' ? 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'}`}>
-                {run.status === 'COMPLETED' ? 'Ready' : run.status === 'FAILED' ? 'Failed' : run.status === 'HELD' ? 'Faces check' : run.status === 'WAITING_TARGET' ? 'Waiting' : `Step ${run.status.charAt(5)}`}
+                {run.status === 'COMPLETED' ? 'Ready' : run.status === 'FAILED' ? 'Failed' : run.status === 'HELD' ? 'Faces check' : run.status === 'WAITING_TARGET' || run.status === 'WAITING_AVATAR' ? 'Waiting' : `Step ${run.status.charAt(5)}`}
               </span>
             </button>
           </li>

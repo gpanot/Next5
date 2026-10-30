@@ -627,6 +627,7 @@ CREATE TABLE public.auto_slideshow_runs (
     photo_jobs jsonb,
     hold_before_step4 boolean DEFAULT false NOT NULL,
     cover_only_positions integer[] DEFAULT '{}'::integer[] NOT NULL,
+    wait_for_target boolean DEFAULT false NOT NULL,
     CONSTRAINT auto_slideshow_runs_count_check CHECK (((count >= 1) AND (count <= 20)))
 );
 
@@ -823,7 +824,8 @@ CREATE TABLE public.blitz_projects (
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     workspace_id text,
     render_started_at timestamp with time zone,
-    render_finished_at timestamp with time zone
+    render_finished_at timestamp with time zone,
+    render_error text
 );
 
 
@@ -935,6 +937,24 @@ CREATE TABLE public.bookings (
     regenerate_last_at timestamp with time zone,
     preview_feedback text,
     preview_feedback_detail text
+);
+
+
+--
+-- Name: brand_blueprints; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.brand_blueprints (
+    id text NOT NULL,
+    workspace_id text,
+    created_by text,
+    topics jsonb NOT NULL,
+    about jsonb DEFAULT '{"aud": "", "off": "", "cred": "", "voice": ""}'::jsonb NOT NULL,
+    plan jsonb NOT NULL,
+    step smallint DEFAULT 0 NOT NULL,
+    version integer DEFAULT 1 NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -1723,7 +1743,11 @@ CREATE TABLE public.prospect_packs (
     claimed_by_user_id text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    unlocked_at timestamp with time zone
+    unlocked_at timestamp with time zone,
+    faces_at timestamp with time zone,
+    approved_at timestamp with time zone,
+    ready_at timestamp with time zone,
+    started_at timestamp with time zone
 );
 
 
@@ -1778,6 +1802,25 @@ ALTER SEQUENCE public.ratings_id_seq OWNED BY public.ratings.id;
 
 CREATE TABLE public.schema_migrations (
     version character varying NOT NULL
+);
+
+
+--
+-- Name: script_generator_drafts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.script_generator_drafts (
+    id text NOT NULL,
+    title text NOT NULL,
+    format text NOT NULL,
+    structure text NOT NULL,
+    model text NOT NULL,
+    input jsonb NOT NULL,
+    script jsonb NOT NULL,
+    chat jsonb DEFAULT '[]'::jsonb NOT NULL,
+    photos jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -2318,7 +2361,9 @@ CREATE TABLE public.users (
     active_offer_route_ids text[] DEFAULT '{}'::text[] NOT NULL,
     stock_images_only boolean DEFAULT false NOT NULL,
     ai_images_only boolean DEFAULT false NOT NULL,
-    hooks_volume_stock_only boolean DEFAULT false NOT NULL
+    hooks_volume_stock_only boolean DEFAULT false NOT NULL,
+    approval_email_enabled boolean DEFAULT true NOT NULL,
+    split_slides_percent integer DEFAULT 10 NOT NULL
 );
 
 
@@ -2378,7 +2423,11 @@ CREATE TABLE public.workspaces (
     purge_at timestamp with time zone,
     idea_slideshow_pct integer DEFAULT 10 NOT NULL,
     idea_tz_offset_min integer,
-    ideas_batch_at timestamp(3) without time zone
+    ideas_batch_at timestamp(3) without time zone,
+    target_age text,
+    target_gender text,
+    target_confirmed_at timestamp with time zone,
+    avatar_confirmed_at timestamp with time zone
 );
 
 
@@ -2570,6 +2619,14 @@ ALTER TABLE ONLY public.booking_regenerations
 
 ALTER TABLE ONLY public.bookings
     ADD CONSTRAINT bookings_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: brand_blueprints brand_blueprints_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.brand_blueprints
+    ADD CONSTRAINT brand_blueprints_pkey PRIMARY KEY (id);
 
 
 --
@@ -2930,6 +2987,14 @@ ALTER TABLE ONLY public.ratings
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: script_generator_drafts script_generator_drafts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.script_generator_drafts
+    ADD CONSTRAINT script_generator_drafts_pkey PRIMARY KEY (id);
 
 
 --
@@ -3484,6 +3549,13 @@ CREATE INDEX booking_regenerations_booking_id_idx ON public.booking_regeneration
 
 
 --
+-- Name: brand_blueprints_workspace_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX brand_blueprints_workspace_idx ON public.brand_blueprints USING btree (workspace_id);
+
+
+--
 -- Name: brand_cast_members_workspace_id_slot_key; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -3901,6 +3973,13 @@ CREATE INDEX prospect_packs_created_idx ON public.prospect_packs USING btree (cr
 --
 
 CREATE UNIQUE INDEX ratings_rater_session ON public.ratings USING btree (rater_id, session_id);
+
+
+--
+-- Name: script_generator_drafts_updated_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX script_generator_drafts_updated_idx ON public.script_generator_drafts USING btree (updated_at DESC);
 
 
 --
@@ -4467,6 +4546,22 @@ ALTER TABLE ONLY public.booking_regenerations
 
 ALTER TABLE ONLY public.bookings
     ADD CONSTRAINT bookings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id);
+
+
+--
+-- Name: brand_blueprints brand_blueprints_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.brand_blueprints
+    ADD CONSTRAINT brand_blueprints_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: brand_blueprints brand_blueprints_workspace_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.brand_blueprints
+    ADD CONSTRAINT brand_blueprints_workspace_id_fkey FOREIGN KEY (workspace_id) REFERENCES public.workspaces(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --
@@ -5275,4 +5370,14 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261201090000'),
     ('20261202090000'),
     ('20261203090000'),
-    ('20261204090000');
+    ('20261204090000'),
+    ('20261205090000'),
+    ('20261205100000'),
+    ('20261205110000'),
+    ('20261205120000'),
+    ('20261206090000'),
+    ('20261207090000'),
+    ('20261208090000'),
+    ('20261208100000'),
+    ('20261209090000'),
+    ('20261210090000');

@@ -123,10 +123,12 @@ export const getsPaidImages = (workspaceId: string | null) =>
 
 /**
  * The batch's images by plan: AI images once the workspace's owner has paid (unless they test as free), free images
- * before. `onScript`: each script's images as soon as they are made.
+ * before. `onScript`: each script's images as soon as they are made. `stockOnly`: no image is made at all (an unpaid
+ * workspace past its first batch, blitzBank.ts) — the shots the library could not cover get stock photos.
  */
-export const batchShotImages = async (needs: BatchNeed[], scripts: number, workspaceId: string | null, brand: PhotoBrand, onScript?: OnScriptImages) => {
+export const batchShotImages = async (needs: BatchNeed[], scripts: number, workspaceId: string | null, brand: PhotoBrand, onScript?: OnScriptImages, opts: { stockOnly?: boolean } = {}) => {
   if (needs.length === 0) return Array.from({ length: scripts }, () => new Map<string, LibraryAsset>());
+  if (opts.stockOnly) return makeBatchStock(needs, scripts, workspaceId, brand, onScript);
   if (!PAID_LIKE_FREE && (await getsPaidImages(workspaceId))) return makeBatchImages(needs, scripts, workspaceId, brand, undefined, onScript);
   return FREE_IMAGES === 'stock'
     ? makeBatchStock(needs, scripts, workspaceId, brand, onScript)

@@ -60,8 +60,8 @@ export const buildStatusOf = (run: AutoRunDto): BuildStatus => {
   const states = STAGES.map(({ steps }) => stateOf(steps, step, failed));
   const stages = STAGES.map(({ key, title, running }, i): BuildStage => {
     const state = states[i]!;
-    const waiting = state === 'running' && run.status === 'WAITING_TARGET';
-    const detail = state === 'done' ? doneDetail(key, run) : waiting ? 'Waiting for your client pick' : state === 'running' ? running : state === 'failed' ? 'This step did not finish' : null;
+    const waitingFor = state !== 'running' ? null : run.status === 'WAITING_TARGET' ? 'Waiting for your client pick' : run.status === 'WAITING_AVATAR' ? 'Waiting for your avatar pick' : null;
+    const detail = state === 'done' ? doneDetail(key, run) : waitingFor ?? (state === 'running' ? running : state === 'failed' ? 'This step did not finish' : null);
     return { key, title, state, detail };
   });
   const allDone = states.every((s) => s === 'done');

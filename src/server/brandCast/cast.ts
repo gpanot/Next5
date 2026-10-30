@@ -56,11 +56,16 @@ const members = (workspaceId: string) => prisma.brandCastMember.findMany({ where
 /** The active cast and the archive (newest first), after deleting parked people past their time. */
 export const listCast = async (workspaceId: string): Promise<BrandCastDto> => {
   await tidyArchive(workspaceId);
-  const [active, parked] = await Promise.all([
+  const [active, parked, ws] = await Promise.all([
     members(workspaceId),
     prisma.brandCastMember.findMany({ where: { workspaceId, archivedAt: { not: null } }, orderBy: { archivedAt: 'desc' } }),
+    prisma.workspace.findUnique({ where: { id: workspaceId }, select: { avatarConfirmedAt: true } }),
   ]);
-  return { members: await Promise.all(active.map(toDto)), archived: await Promise.all(parked.map(toDto)) };
+  return {
+    members: await Promise.all(active.map(toDto)),
+    archived: await Promise.all(parked.map(toDto)),
+    avatarConfirmedAt: ws?.avatarConfirmedAt?.toISOString() ?? null,
+  };
 };
 
 /** The brand as its latest Auto Slideshow run read it, with its Visual Bible (built now when missing), the product

@@ -129,11 +129,13 @@ const withPhoto = (need: ImageNeed, photos: Map<string, StoryPhotos>): ImageNeed
 };
 
 /** The images every card lists, one per moment of the batch (no write): AI when paid, else cheap AI. Each card's
- *  images go to `onCard` as soon as they are made. `photos`: the stories' prompts from the bank (blitzBankPhotos.ts). */
-async function makeImages(cards: Snapshot[], workspaceId: string | null, brand: PhotoBrand, onCard: OnScriptImages, photos?: Promise<Map<string, StoryPhotos>>): Promise<void> {
+ *  images go to `onCard` as soon as they are made. `photos`: the stories' prompts from the bank (blitzBankPhotos.ts).
+ *  `stockOnly`: make none — stock photos for the shots the library could not cover (an unpaid workspace past its
+ *  first batch). */
+async function makeImages(cards: Snapshot[], workspaceId: string | null, brand: PhotoBrand, onCard: OnScriptImages, photos?: Promise<Map<string, StoryPhotos>>, stockOnly = false): Promise<void> {
   const prompts = (await photos) ?? new Map<string, StoryPhotos>();
   const needs: BatchNeed[] = cards.flatMap((c, script) => (c.pending ? c.pending.needs.map((need) => ({ script, audience: c.pending!.audience, categories: c.pending!.categories, need: withPhoto(need, prompts) })) : []));
-  if (needs.length > 0) await batchShotImages(needs, cards.length, workspaceId, brand, onCard);
+  if (needs.length > 0) await batchShotImages(needs, cards.length, workspaceId, brand, onCard, { stockOnly });
 }
 
 /** Puts a card's images on its shots (new shots get their caption fit), then its camera moves. Never throws. */
@@ -191,8 +193,10 @@ async function captionHeights(shots: DeckShot[], deadlineMs?: number): Promise<M
  * Finishes the ideas' cards (`ids`: slideshow_variants) after the batch's response: the AI images render while every
  * shot's caption is fitted; cards with no image to wait for are done first. Each other card gets its images and its new
  * shots' captions as soon as its own images are made (earlier cards render first), not when the whole batch is. Never throws.
+ * `stockOnly`: no image is made (an unpaid workspace past its first batch); the shots the library could not cover get
+ * stock photos.
  */
-export async function finishIdeaCards(ids: string[], workspaceId: string | null, brand: PhotoBrand, photos?: Promise<Map<string, StoryPhotos>>): Promise<void> {
+export async function finishIdeaCards(ids: string[], workspaceId: string | null, brand: PhotoBrand, photos?: Promise<Map<string, StoryPhotos>>, stockOnly = false): Promise<void> {
   const started = Date.now();
   const secs = (from: number) => ((Date.now() - from) / 1000).toFixed(1);
   try {
@@ -204,7 +208,7 @@ export async function finishIdeaCards(ids: string[], workspaceId: string | null,
     const imaged = new Map<number, Promise<boolean>>();
     const imaging = makeImages(first, workspaceId, brand, (i, images) => {
       imaged.set(i, captioned.then(() => imageCard(cards[i]!, images, workspaceId)));
-    }, photos).catch((err: unknown) => {
+    }, photos, stockOnly).catch((err: unknown) => {
       console.error('[idea-finish] images failed:', err instanceof Error ? err.message : err);
     });
     // Captions are fitted to the spoken lines, so those are written first; the images render meanwhile.

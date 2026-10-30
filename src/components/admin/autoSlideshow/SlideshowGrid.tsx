@@ -18,8 +18,11 @@ type Props = {
   onRetry?: (slideshowId: string) => void;
   /** An extra slot after the slideshows (the "Get more" card once the run is done). */
   more?: ReactNode;
-  /** When the work began: slideshows still being made show the 3:00 countdown instead of a grey box. */
+  /** When the work began: slideshows still being made show the countdown instead of a grey box. */
   since?: string;
+  /** The wait to count down (runMakeEstimateMs), so the Calendar and this grid show the same clock. Left out: this
+   *  grid's own slots are counted. */
+  totalMs?: number;
   /** Cells only (the `ul` is `display: contents`): several runs share the parent's COVER_GRID, on one set of lines. */
   flat?: boolean;
   /** Brand Cast: the face telling each story, shown on its cover's corner. */
@@ -120,9 +123,9 @@ function Card({ face, calendarMeta, spot, ...props }: CardProps & { face: Face |
 }
 
 /** Slideshows as 9:16 covers; skeletons stand in for the ones not written yet. */
-export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, faceOf, flat = false, calendarMeta = false, spots, newestFirst = false }: Props) {
+export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, totalMs: runTotalMs, faceOf, flat = false, calendarMeta = false, spots, newestFirst = false }: Props) {
   const missing = writing ? Math.max(0, expected - slideshows.length) : 0;
-  const totalMs = makeEstimateMs(missing + slideshows.filter((s) => s.status === 'written' || s.status === 'rendering').length);
+  const totalMs = runTotalMs ?? makeEstimateMs(missing + slideshows.filter((s) => s.status === 'written' || s.status === 'rendering').length);
   if (slideshows.length === 0 && missing === 0 && !more) {
     if (flat) return null;
     return <p className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted dark:border-zinc-800">Slideshows show up here once they are written.</p>;

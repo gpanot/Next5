@@ -27,6 +27,7 @@ export type ArchiveRequest =
 export function useBrandCast(client: LabClient, path: string) {
   const [members, setMembers] = useState<BrandCastMemberDto[] | null>(null);
   const [archived, setArchived] = useState<BrandCastMemberDto[]>([]);
+  const [avatarConfirmedAt, setAvatarConfirmedAt] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function useBrandCast(client: LabClient, path: string) {
   const apply = useCallback((dto: BrandCastDto) => {
     setMembers(dto.members);
     setArchived(dto.archived ?? []);
+    setAvatarConfirmedAt(dto.avatarConfirmedAt ?? null);
   }, []);
 
   const fetchList = useCallback(
@@ -96,6 +98,8 @@ export function useBrandCast(client: LabClient, path: string) {
   const swap = useCallback((id: string, request: NewFaceRequest) => sendForm(id, `${path}/${id}`, request, { action: 'swap' }), [sendForm, path]);
   /** "Create avatar" from the dialog: one new person from the note and/or photo (neither: "Surprise me"). True when it started. */
   const create = useCallback((request: NewFaceRequest) => sendForm('build', path, request), [sendForm, path]);
+  /** Onboarding's avatar gate: keeps this candidate, drops the others and starts the first slideshow. True when saved. */
+  const confirmAvatar = useCallback((id: string) => send(id, `${path}/confirm`, { memberId: id }), [send, path]);
   /** The person "Surprise me" would make, as text to edit; null with `actionError` set when it failed. */
   const draft = useCallback(async (): Promise<string | null> => {
     setActionError(null);
@@ -111,5 +115,5 @@ export function useBrandCast(client: LabClient, path: string) {
 
   const clearError = useCallback(() => setActionError(null), []);
 
-  return { members, archived, loadError, busy, actionError, build, act, manage, swap, create, draft, reload, clearError };
+  return { members, archived, avatarConfirmedAt, loadError, busy, actionError, build, act, manage, swap, create, confirmAvatar, draft, reload, clearError };
 }

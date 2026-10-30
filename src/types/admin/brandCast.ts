@@ -5,6 +5,8 @@
  */
 
 export const CAST_SIZE = 3;
+/** Brand avatar candidates the owner picks from in onboarding (the first one is made for them). */
+export const AVATAR_CHOICES = 3;
 /** "New face" parks the old person here; they can be brought back or deleted. */
 export const ARCHIVE_MAX = 7;
 export const ARCHIVE_DAYS = 14;
@@ -45,8 +47,10 @@ export type BrandCastMemberDto = {
 
 export type IntroStatus = 'none' | 'pending' | 'ready' | 'failed';
 
-/** GET /brand-cast. `members`: the active cast, empty before it is made. `archived`: parked people, newest first. */
-export type BrandCastDto = { members: BrandCastMemberDto[]; archived: BrandCastMemberDto[] };
+/** GET /brand-cast. `members`: the active cast, empty before it is made. `archived`: parked people, newest first.
+ *  `avatarConfirmedAt`: when the owner picked their brand avatar in onboarding; null while the gate is still open
+ *  (src/server/brandCast/gate.ts). */
+export type BrandCastDto = { members: BrandCastMemberDto[]; archived: BrandCastMemberDto[]; avatarConfirmedAt: string | null };
 
 /** One "Change voice" candidate: a Gemini prebuilt voice reading the avatar's hello. */
 export type AvatarVoiceOptionDto = {

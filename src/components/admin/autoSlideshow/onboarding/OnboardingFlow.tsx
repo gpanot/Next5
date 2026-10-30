@@ -10,8 +10,10 @@ import { StepScreen } from './OnboardingSteps';
 import { BuildBar, OnboardingHeader, TITLE_ID } from './OnboardingChrome';
 import { trackOnboarding, type TrackContext } from './onboardingAnalytics';
 import { FailedNotice } from './ReadyScreen';
+import { AvatarScreen } from './AvatarScreen';
 import { TargetClientScreen } from './TargetClientScreen';
 import { useTargetClient } from '../target/useTargetClient';
+import { useAvatarGate } from './useAvatarGate';
 import { useBuildStatus } from './useBuildStatus';
 import { useOnboarding } from './useOnboarding';
 
@@ -67,6 +69,7 @@ const useBuildMoments = (ctx: TrackContext | null, build: ReturnType<typeof useB
 export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props) {
   const flow = useOnboarding(token, workspaceId);
   const target = useTargetClient(token, workspaceId);
+  const avatar = useAvatarGate(token, workspaceId, run);
   const router = useRouter();
   const build = useBuildStatus(run);
   const [retrying, setRetrying] = useState(false);
@@ -113,6 +116,15 @@ export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props)
     if (await target.save(age, gender)) trackOnboarding('onboarding_target_picked', ctx, { age, gender });
   };
 
+  const makeAvatar = (request: Parameters<typeof avatar.create>[0]) => {
+    trackOnboarding('onboarding_avatar_made', ctx, { made: (avatar.members?.length ?? 0) + 1 });
+    avatar.create(request);
+  };
+  const confirmAvatar = async () => {
+    const made = avatar.members?.length ?? 0;
+    if (await avatar.confirm()) trackOnboarding('onboarding_avatar_picked', ctx, { made });
+  };
+
   const onLast = flow.step === ONBOARDING_LAST_STEP;
   const failed = build.build.status === 'failed';
   // Hard stop before anything else: no avatar and no slideshow until the owner picks their main client.
@@ -138,6 +150,29 @@ export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props)
             />
           </div>
         )}
+      </Frame>
+    );
+  }
+  // The avatar gate: no slideshow is made before the owner picks the face, so it comes before the questions resume.
+  if (avatar.open) {
+    return (
+      <Frame>
+        <OnboardingHeader step={0} onBack={flow.back} />
+        <BuildBar pct={build.barPct(0)} done={false} />
+        <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col animate-onb-forward">
+          <AvatarScreen
+            members={avatar.members}
+            chosenId={avatar.chosenId}
+            busy={avatar.busy}
+            saving={avatar.saving}
+            error={avatar.error}
+            onChoose={avatar.choose}
+            onCreate={makeAvatar}
+            onRetry={avatar.retry}
+            onConfirm={() => void confirmAvatar()}
+            onDraft={avatar.draft}
+          />
+        </div>
       </Frame>
     );
   }
