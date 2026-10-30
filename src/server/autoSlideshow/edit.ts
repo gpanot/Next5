@@ -41,7 +41,7 @@ const photosOf = (run: { photos: Prisma.JsonValue }): AutoPhoto[] => (run.photos
 const styleOf = (run: { profile: Prisma.JsonValue }) => (run.profile as unknown as BrandProfile | null)?.slideshowStyle;
 
 /** Adds an edit's spend to a step, as its own line, so the run total stays what was really paid. */
-const addStepCost = async (runId: string, step: AutoStep, label: string, meter: CostMeter) => {
+export const addStepCost = async (runId: string, step: AutoStep, label: string, meter: CostMeter) => {
   const cost = meter.summary();
   if (cost.usdMicros === 0) return;
   const run = await prisma.autoSlideshowRun.findUniqueOrThrow({ where: { id: runId }, select: { stepCosts: true } });
@@ -68,7 +68,7 @@ const renderInto = async (runId: string, showId: string, index: number, slide: A
  * spot that suits all their photos (contentTop), so when an edit moves that spot (a new photo, longer text, a slide
  * moved by hand leaving the group), every auto-placed content slide renders again at it. Returns the slides.
  */
-const renderAligned = async (runId: string, showId: string, slides: AutoSlide[], changed: number[], photos: AutoPhoto[], look?: BoxLook): Promise<AutoSlide[]> => {
+export const renderAligned = async (runId: string, showId: string, slides: AutoSlide[], changed: number[], photos: AutoPhoto[], look?: BoxLook): Promise<AutoSlide[]> => {
   const cache: PhotoCache = new Map();
   const found: HeadsCache = new Map();
   const heads = await Promise.all(slides.map((s) => (photos[s.photoIndex]?.imageKey ? headsFor(photos[s.photoIndex]!, cache, found) : null)));

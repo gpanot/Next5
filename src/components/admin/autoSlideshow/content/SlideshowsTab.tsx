@@ -8,6 +8,7 @@ import { useCalendarSpots } from '../calendar/useCalendarSpots';
 import { runMakeEstimateMs } from '../calendar/MakingCountdown';
 import { playCoverOnce } from '../CoverPlayback';
 import { AddTile } from '../campaigns/AddTile';
+import { DraftTiles } from '../campaigns/manual/DraftTiles';
 import { FilterSelect, useListView, ViewToggle, type ListFilter, type ListView } from '../campaigns/ListControls';
 import { RunSlideshowEditor } from '../RunSlideshowEditor';
 import { COVER_GRID, SlideshowGrid } from '../SlideshowGrid';
@@ -121,7 +122,12 @@ function Runs({ token, runs, filter, view, reloadKey, castId, faceOf, onAdd, aut
   return (
     // Every run's slideshows on one shared grid (or column), so they fill the lines instead of one run per line.
     <div className={view === 'list' ? 'flex flex-col gap-2' : COVER_GRID}>
-      {onAdd && view !== 'list' && <ul className="contents"><AddTile label="New slideshows" onAdd={onAdd} /></ul>}
+      {onAdd && view !== 'list' && (
+        <ul className="contents">
+          <AddTile label="New slideshows" onAdd={onAdd} />
+          <DraftTiles token={token} runId={runs[0]!.id} reloadKey={reloadKey} onChanged={refresh} />
+        </ul>
+      )}
       <RunSlideshows token={token} auto={latest} latest view={view} calendarOnly={calendarOnly} castId={castId} faceOf={faceOf} autoPlay={autoPlay} onAutoPlayed={onAutoPlayed} />
       {!calendarOnly && runs.slice(1).map((summary) => <OlderRun key={summary.id} token={token} runId={summary.id} view={view} calendarOnly={false} castId={castId} faceOf={faceOf} />)}
     </div>

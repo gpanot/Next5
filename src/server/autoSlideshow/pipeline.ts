@@ -7,7 +7,7 @@
 import type { Prisma } from '@prisma/client';
 import { signAdminToken } from '../../lib/admin-auth';
 import { prisma } from '../../lib/db';
-import type { AutoPhoto, AutoPlan, AutoRunStatus, AutoSlide, AutoStep, SlideshowPick } from '../../types/admin/autoSlideshow';
+import { DRAFT_STATUSES, type AutoPhoto, type AutoPlan, type AutoRunStatus, type AutoSlide, type AutoStep, type SlideshowPick } from '../../types/admin/autoSlideshow';
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import { assignGoals, GOAL_LABELS, type ContentGoal } from '../../types/admin/contentGoals';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
@@ -251,7 +251,8 @@ const photoStep: StepFn = async (runId, meter, { continued }) => {
   const plan = checkpoint<AutoPlan>(run.plan, 3);
   const pool = plan.photoPrompts.length;
   const existing = (run.photos as AutoPhoto[] | null) ?? [];
-  const rows = await prisma.autoSlideshow.findMany({ where: { runId, status: { not: 'failed' } }, orderBy: { position: 'asc' } });
+  // Hand-made drafts make their own photos (manual/photo.ts).
+  const rows = await prisma.autoSlideshow.findMany({ where: { runId, status: { notIn: ['failed', ...DRAFT_STATUSES] } }, orderBy: { position: 'asc' } });
   const shows = rows.map((r) => ({ id: r.id, status: r.status, slides: r.slides as unknown as AutoSlide[], bank: r.bankHookId !== null }));
   // A cover-only slideshow (a Prospect Pack preview) gets the photo of its first slide only.
   const covers = new Set(rows.filter((r) => run.coverOnlyPositions.includes(r.position)).map((r) => r.id));

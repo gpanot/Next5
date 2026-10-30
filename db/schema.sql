@@ -678,7 +678,7 @@ CREATE TABLE public.auto_slideshows (
     bank_cta_id text,
     recommended_audio_asset_id text,
     planned_at timestamp with time zone,
-    CONSTRAINT auto_slideshows_status_check CHECK ((status = ANY (ARRAY['written'::text, 'rendering'::text, 'ready'::text, 'failed'::text])))
+    CONSTRAINT auto_slideshows_status_check CHECK ((status = ANY (ARRAY['written'::text, 'rendering'::text, 'ready'::text, 'failed'::text, 'draft'::text, 'finishing'::text])))
 );
 
 

@@ -141,7 +141,35 @@ export type AutoSlide = {
  *  was made for (its slide photo or a "New" one); null for the run's shared pool. */
 export type AutoPhotoDto = { index: number; prompt: string; url: string | null; showId: string | null };
 
-export type AutoSlideshowStatus = 'written' | 'rendering' | 'ready' | 'failed';
+/** 'draft': a Brand Cast slideshow made by hand, still being reviewed (story, then first photo); 'finishing': its other
+ *  photos are being made. Both stay out of the run's slideshows until it is ready (server/autoSlideshow/manual). */
+export type AutoSlideshowStatus = 'written' | 'rendering' | 'ready' | 'failed' | 'draft' | 'finishing';
+
+export const DRAFT_STATUSES: AutoSlideshowStatus[] = ['draft', 'finishing'];
+
+/** Free redos of a hand-made slideshow's first photo. */
+export const MANUAL_PHOTO_REDOS = 5;
+
+/** Where a hand-made slideshow stands: story review, first photo review, other photos being made, or done. */
+export type ManualStage = 'story' | 'photo' | 'finishing' | 'ready';
+
+/** A hand-made Brand Cast slideshow in the wizard. `photoUrl`: the first slide rendered on its photo (photo stage on). */
+export type ManualDraftDto = {
+  id: string;
+  runId: string;
+  stage: ManualStage;
+  slides: { role: SlideRole; title: string; body: string }[];
+  photoUrl: string | null;
+  redosLeft: number;
+  /** The brand face telling it; null when the brand has none. */
+  castId: string | null;
+  castName: string | null;
+  /** The last try that failed (a rewrite, a photo, finishing); the draft stays where it was. */
+  error: string | null;
+  /** When Finish was tapped (stage 'finishing'), for the card's countdown; null otherwise. */
+  finishingSince: string | null;
+  createdAt: string;
+};
 
 export type AutoSlideDto = AutoSlide & { imageUrl: string | null };
 

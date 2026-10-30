@@ -22,5 +22,10 @@ export const expireStuck = async (now = Date.now()): Promise<void> => {
       where: { status: 'rendering', updatedAt: { lt: cutoff } },
       data: { status: 'failed', error: 'Rendering timed out after 10 minutes. Tap Retry.' },
     }),
+    // A hand-made slideshow whose last photos stopped: back to its photo step, where Finish tries again.
+    prisma.autoSlideshow.updateMany({
+      where: { status: 'finishing', updatedAt: { lt: cutoff } },
+      data: { status: 'draft', error: 'Finishing stopped. Tap Finish to try again.' },
+    }),
   ]);
 };

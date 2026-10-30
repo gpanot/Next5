@@ -8,6 +8,8 @@ import { announceCreditsChanged, CREDITS_HINT } from '../creditsEvents';
 import { SettingsModal } from '../settings/SettingsModal';
 import { useCheckoutReturn } from '../settings/credits/useCheckoutReturn';
 import { clearBrandCastResume, markBrandCastResume, type BrandCastResume } from './brandCastResume';
+import { ManualWizard } from './manual/ManualWizard';
+import { WIZARD_FRAME } from './manual/wizardFrame';
 
 /** Most Brand Cast slideshows one tap makes. */
 const MAX_BRAND_CAST = 5;
@@ -124,12 +126,17 @@ function CreditsAlert({ error, paid, onAddCredits }: CreditsAlertProps) {
   );
 }
 
-type BrandCastProps = { token: string; workspaceId: string; runId: string; resume: BrandCastResume | null; backLabel: string; onBack: () => void; onCreated: () => void };
+type BrandCastProps = {
+  token: string; workspaceId: string; runId: string; resume: BrandCastResume | null; backLabel: string;
+  onBack: () => void; onCreated: () => void;
+  /** "Create 1 manually": the wizard opens with this face (null: Choose for me). */
+  onManual: (castId: string | null) => void;
+};
 
 /** Step 2 of Brand Cast: how many slideshows (1-5), what it costs (1 credit each) and who tells them (a brand face, or
- *  "Choose for me"), then adds them to the latest run. Short on credits: Add credits opens Settings → Credits, and
+ *  "Choose for me"), then adds them to the latest run ("Create x auto"), or opens the wizard for one made by hand. Short on credits: Add credits opens Settings → Credits, and
  *  Stripe brings the browser back to this step with the same choices. */
-function BrandCastStep({ token, workspaceId, runId, resume, backLabel, onBack, onCreated }: BrandCastProps) {
+function BrandCastStep({ token, workspaceId, runId, resume, backLabel, onBack, onCreated, onManual }: BrandCastProps) {
   const [count, setCount] = useState(resume?.count ?? 1);
   const [castId, setCastId] = useState<string | null>(resume?.castId ?? null);
   const [busy, setBusy] = useState(false);
@@ -178,14 +185,18 @@ function BrandCastStep({ token, workspaceId, runId, resume, backLabel, onBack, o
       </p>
       <CastPicker token={token} workspaceId={workspaceId} value={castId} onChange={setCastId} />
       <CreditsAlert error={error} paid={paid} onAddCredits={openCredits} />
-      <div className="flex gap-2">
-        <button type="button" onClick={onBack} disabled={busy} className={`${button} border border-app-line text-app-ink hover:bg-app-sunken`}>
-          {backLabel}
-        </button>
+      <div className="flex flex-col gap-2 sm:flex-row">
         <button type="button" autoFocus onClick={() => void create()} disabled={busy} className={`${button} bg-app-cta text-app-cta-ink shadow-sm`}>
-          {busy ? 'Starting…' : `Create ${count}`}
+          {busy ? 'Starting…' : `Create ${count} auto`}
+        </button>
+        <button type="button" onClick={() => onManual(castId)} disabled={busy} className={`${button} border border-app-cta text-app-ink hover:bg-app-sunken`}>
+          Create 1 manually
         </button>
       </div>
+      <p className="text-xs text-app-muted">Manually: you check the story and the first photo before we make the rest.</p>
+      <button type="button" onClick={onBack} disabled={busy} className={`${button} w-full border border-app-line text-app-ink hover:bg-app-sunken`}>
+        {backLabel}
+      </button>
       {/* Above the sheet (z-[100]); its clicks stay inside the sheet, so they do not close it. */}
       {addingCredits &&
         createPortal(
@@ -221,20 +232,30 @@ type Props = {
  * each) or Hooks Volume (one campaign, many hooks, built in the campaign editor). A bottom sheet on phones.
  */
 export function NewCampaignSheet({ token, workspaceId, brandRunId, resume = null, brandFirst = false, brandOnly = false, creatingHooks, onHooksVolume, onBrandCastCreated, onClose }: Props) {
-  const [step, setStep] = useState<'choose' | 'brandCast'>(resume || brandFirst || brandOnly ? 'brandCast' : 'choose');
+  const [step, setStep] = useState<'choose' | 'brandCast' | 'manual'>(resume || brandFirst || brandOnly ? 'brandCast' : 'choose');
+  const [manualCast, setManualCast] = useState<string | null>(null);
+  const openManual = (castId: string | null) => {
+    setManualCast(castId);
+    setStep('manual');
+  };
   // On <body>: a parent's stacking context must not cover the sheet.
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 sm:items-center" onClick={creatingHooks ? undefined : onClose}>
+    // The wizard closes from its own buttons only: a stray tap outside must not hide a story being made.
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 sm:items-center" onClick={creatingHooks || step === 'manual' ? undefined : onClose}>
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-campaign-title"
         onClick={(e) => e.stopPropagation()}
-        className="max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-app-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl"
+        // The wizard keeps one fixed size (wizardFrame.ts); the other steps stay a small sheet.
+        className={step === 'manual' ? WIZARD_FRAME : 'max-h-[92dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-2xl bg-app-panel p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl'}
       >
-        {step === 'brandCast' && brandRunId ? (
+        {step === 'manual' && brandRunId ? (
+          <ManualWizard token={token} runId={brandRunId} draftId={null} castId={manualCast}
+            onClose={(changed) => (changed ? onBrandCastCreated() : onClose())} />
+        ) : step === 'brandCast' && brandRunId ? (
           <BrandCastStep token={token} workspaceId={workspaceId} runId={brandRunId} resume={resume}
-            backLabel={brandOnly ? 'Cancel' : 'Back'} onBack={brandOnly ? onClose : () => setStep('choose')} onCreated={onBrandCastCreated} />
+            backLabel={brandOnly ? 'Cancel' : 'Back'} onBack={brandOnly ? onClose : () => setStep('choose')} onCreated={onBrandCastCreated} onManual={openManual} />
         ) : (
           <>
             <div className="space-y-1">

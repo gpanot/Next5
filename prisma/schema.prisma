@@ -2424,7 +2424,7 @@ model AutoSlideshow {
   bankMeatId              String?  @map("bank_meat_id")
   bankHookId              String?  @map("bank_hook_id")
   bankCtaId               String?  @map("bank_cta_id")
-  /// 'written' | 'rendering' | 'ready' | 'failed'
+  /// 'written' | 'rendering' | 'ready' | 'failed' | 'draft' | 'finishing' (hand-made, src/server/autoSlideshow/manual)
   status                  String   @default("written")
   error                   String?
   /// Where it waits on the Calendar for approval (dragged, or scheduled from the editor); null: the next free slot
