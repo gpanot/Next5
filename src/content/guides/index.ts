@@ -11,6 +11,7 @@ import { howToMakeTikTokSlideshow } from './articles/howToMakeTikTokSlideshow';
 import { howToSellOnTikTokShop } from './articles/howToSellOnTikTokShop';
 import { marketingIdeasSmallBusiness } from './articles/marketingIdeasSmallBusiness';
 import { openHouseSocialMediaPost } from './articles/openHouseSocialMediaPost';
+import { smallBusinessSaturdayPostIdeas } from './articles/smallBusinessSaturdayPostIdeas';
 import { socialMediaContentCalendar } from './articles/socialMediaContentCalendar';
 import { socialMediaForGyms } from './articles/socialMediaForGyms';
 import { socialMediaForHairSalons } from './articles/socialMediaForHairSalons';
@@ -54,6 +55,7 @@ export const BLOG_POSTS: readonly Article[] = [
   openHouseSocialMediaPost,
   marketingIdeasSmallBusiness,
   christmasSocialMediaPostIdeas,
+  smallBusinessSaturdayPostIdeas,
   tiktokHooks,
   socialMediaManagerCost,
   facelessTikTokIdeas,

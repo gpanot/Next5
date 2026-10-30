@@ -61,7 +61,7 @@ export const marketingIdeasSmallBusiness: Article = {
       ['More repeat buyers', 'Monthly email (#20) + follow-up texts (#18)'],
     ] },
     { type: 'tip', title: 'Track one number', text: 'For each idea, track one number for 30 days: views, calls, bookings or sales. Keep what moves the number. Drop the rest.' },
-    { type: 'p', text: 'November and December need their own list, because the dates do half the work. See [Christmas social media post ideas for a small business](/blog/christmas-social-media-post-ideas) for the twelve posts and the dates to hang them on.' },
+    { type: 'p', text: 'November and December need their own list, because the dates do half the work. See [Christmas social media post ideas for a small business](/blog/christmas-social-media-post-ideas) for the twelve posts and the dates to hang them on, and [Small Business Saturday post ideas](/blog/small-business-saturday-post-ideas) for the single biggest date in that stretch for a local business.' },
     { type: 'cta', title: 'Idea #1, done for you', text: 'Paste your website. Next5 makes a daily TikTok slideshow for your business, built on formats that already get views. You approve, we post.' },
   ],
   faq: [

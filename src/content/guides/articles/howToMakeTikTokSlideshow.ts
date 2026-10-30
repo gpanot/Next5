@@ -48,7 +48,7 @@ export const howToMakeTikTokSlideshow: Article = {
     { type: 'h2', text: 'How many slides should a TikTok slideshow have?' },
     { type: 'p', text: 'For a business post, 5 to 9 slides is a good range. Fewer than 4 feels thin. More than 10 and people stop swiping before the end, so they never see your ask. If you are tagging products from a TikTok Shop, TikTok publishes its own numbers for that format in the [faceless TikTok Shop guide](/blog/faceless-tiktok-shop).' },
     { type: 'h2', text: 'Slideshow or video?' },
-    { type: 'p', text: 'Do both if you can. Slideshows are faster to make, easy to save and easy to read with the sound off. Videos can feel more personal. If you are short on time, slideshows are the easiest way to post every day.' },
+    { type: 'p', text: 'Do both if you can. Slideshows are faster to make, easy to save and easy to read with the sound off. Videos can feel more personal. If you are short on time, slideshows are the easiest way to post every day, including on a single big date like [Small Business Saturday](/blog/small-business-saturday-post-ideas).' },
   ],
   faq: [
     { q: 'Can I make a TikTok slideshow on a computer?', a: 'The phone app is the easiest way. TikTok changes what its website allows often, so check the upload page on desktop. If photo posts are not there, use your phone.' },
