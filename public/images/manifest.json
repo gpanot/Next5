@@ -4843,5 +4843,14 @@
     "bytes": 833354,
     "alt": "Seller seen from behind holding a grey ceramic mug in front of a phone on a tripod, stacked shipping boxes on the table",
     "generatedAt": "2026-10-29T03:06:15.349Z"
+  },
+  "public/images/guides/small-business-saturday-post-ideas.png": {
+    "prompt": "A small shop owner taping a handwritten \"Shop Small\" sign onto the inside of their storefront window, boxes of inventory nearby, does not look at camera. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 909329,
+    "alt": "Shop owner taping a handwritten Shop Small sign to the inside of their storefront window, boxes of inventory nearby",
+    "generatedAt": "2026-10-30T01:03:07.686Z"
   }
 }
