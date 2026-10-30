@@ -25,6 +25,11 @@ export type OpenRouterOptions = {
   seed?: number;
   timeoutMs?: number;
   reasoning?: ReasoningEffort;
+  /**
+   * Gemini Flash only: Flex providers and nothing else (Google AI Studio Flex, then Google Vertex Flex, both $0.375 in /
+   * $1.875 out per M), never the standard tier. For background admin jobs where a retry is cheaper than full price.
+   */
+  flexOnly?: boolean;
 };
 
 /** The one Gemini Flash we use for vision + JSON calls. */
@@ -35,6 +40,8 @@ export const GEMINI_FLASH = 'google/gemini-3.6-flash';
  * calls: 4.6 s a call vs 3.3 s on standard; Vertex Flex took 9 s. OpenRouter never falls back from flex by itself.
  */
 const FLEX_ROUTING = { service_tier: 'flex', provider: { only: ['google-ai-studio'], allow_fallbacks: false } };
+/** Same Flex price on Vertex: slower (7.6 s) and less up (73 %), so only the second try of a flexOnly call. */
+const VERTEX_FLEX_ROUTING = { service_tier: 'flex', provider: { only: ['google-vertex'], allow_fallbacks: false } };
 
 /** Share of the call's timeout given to the flex try. Portrait clone (50 s budget) takes about 27 s on flex. */
 const FLEX_TIME_SHARE = 0.6;
@@ -46,13 +53,15 @@ type ChatResponse = {
   error?: { message?: string };
 };
 
-const requestBody = (messages: OpenRouterMessage[], options: OpenRouterOptions, flex: boolean) => ({
+type Routing = typeof FLEX_ROUTING | typeof VERTEX_FLEX_ROUTING | null;
+
+const requestBody = (messages: OpenRouterMessage[], options: OpenRouterOptions, routing: Routing) => ({
   model: options.model,
   max_tokens: options.maxTokens,
   temperature: options.temperature ?? 0.2,
   ...(options.seed !== undefined ? { seed: options.seed } : {}),
   ...(options.reasoning ? { reasoning: { effort: options.reasoning } } : {}),
-  ...(flex ? FLEX_ROUTING : {}),
+  ...(routing ?? {}),
   response_format: { type: 'json_object' },
   // Makes the reply carry usage.cost, which the cost ledger records.
   usage: { include: true },
@@ -61,7 +70,8 @@ const requestBody = (messages: OpenRouterMessage[], options: OpenRouterOptions, 
 
 /** One POST. Returns the reply text, or null on any failure (logged). */
 const post = async (key: string, body: ReturnType<typeof requestBody>, timeoutMs: number): Promise<string | null> => {
-  const tag = `[openrouter] ${body.model}${'service_tier' in body ? ' (flex)' : ''}`;
+  const flexOn = (body as { provider?: { only: string[] } }).provider?.only[0];
+  const tag = `[openrouter] ${body.model}${flexOn ? ` (flex, ${flexOn})` : ''}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -97,12 +107,16 @@ export const openRouterChat = async (messages: OpenRouterMessage[], options: Ope
     return null;
   }
   const timeoutMs = options.timeoutMs ?? 60_000;
+  if (options.model === GEMINI_FLASH && options.flexOnly) {
+    const text = await post(key, requestBody(messages, options, FLEX_ROUTING), Math.round(timeoutMs * FLEX_TIME_SHARE));
+    return text ?? post(key, requestBody(messages, options, VERTEX_FLEX_ROUTING), timeoutMs);
+  }
   if (options.model === GEMINI_FLASH) {
     // Flex gets part of the time budget, so a stuck flex call still leaves room for the standard retry.
-    const text = await post(key, requestBody(messages, options, true), Math.round(timeoutMs * FLEX_TIME_SHARE));
+    const text = await post(key, requestBody(messages, options, FLEX_ROUTING), Math.round(timeoutMs * FLEX_TIME_SHARE));
     if (text) return text;
   }
-  return post(key, requestBody(messages, options, false), timeoutMs);
+  return post(key, requestBody(messages, options, null), timeoutMs);
 };
 
 /** Parses a JSON object from a reply, tolerating a ```json fence around it. */
