@@ -4852,5 +4852,14 @@
     "bytes": 909329,
     "alt": "Shop owner taping a handwritten Shop Small sign to the inside of their storefront window, boxes of inventory nearby",
     "generatedAt": "2026-10-30T01:03:07.686Z"
+  },
+  "public/images/guides/hvac-social-media-marketing.png": {
+    "prompt": "HVAC technician kneeling beside an outdoor condenser unit in a residential backyard, checking a gauge with a wrench in hand. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 846833,
+    "alt": "HVAC technician kneeling beside an outdoor condenser unit, checking a gauge during a service call",
+    "generatedAt": "2026-10-31T01:04:38.104Z"
   }
 }

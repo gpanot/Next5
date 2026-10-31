@@ -9,6 +9,7 @@ import { guideFirstSlideshows } from './articles/guideFirstSlideshows';
 import { guideReadAnalytics } from './articles/guideReadAnalytics';
 import { howToMakeTikTokSlideshow } from './articles/howToMakeTikTokSlideshow';
 import { howToSellOnTikTokShop } from './articles/howToSellOnTikTokShop';
+import { hvacSocialMediaMarketing } from './articles/hvacSocialMediaMarketing';
 import { marketingIdeasSmallBusiness } from './articles/marketingIdeasSmallBusiness';
 import { openHouseSocialMediaPost } from './articles/openHouseSocialMediaPost';
 import { smallBusinessSaturdayPostIdeas } from './articles/smallBusinessSaturdayPostIdeas';
@@ -64,6 +65,7 @@ export const BLOG_POSTS: readonly Article[] = [
   socialMediaForGyms,
   socialMediaForHairSalons,
   tiktokForPlumbers,
+  hvacSocialMediaMarketing,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];
