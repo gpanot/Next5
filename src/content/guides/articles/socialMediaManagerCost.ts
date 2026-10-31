@@ -44,7 +44,7 @@ export const socialMediaManagerCost: Article = {
     { type: 'h3', text: '4. A part-time hire' },
     { type: 'p', text: 'Good if you want someone in your shop who can film behind the scenes. Add payroll costs, training and the tools they need.' },
     { type: 'h3', text: '5. A done-for-you content tool' },
-    { type: 'p', text: `Good when you mainly need posts made and posted every day. With Next5 you pay ${SLIDESHOW_PRICE_LABEL} per slideshow or video. One post a day for 30 days is ${monthly}. No subscription, no contract.` },
+    { type: 'p', text: `Good when you mainly need posts made and posted every day. With Next5 you pay ${SLIDESHOW_PRICE_LABEL} per slideshow or video. One post a day for 30 days is ${monthly}. No subscription, no contract. This is often the simplest option for a home service trade with no marketing budget, see [HVAC social media marketing](/blog/hvac-social-media-marketing) for what that kind of posting actually looks like.` },
     { type: 'h2', text: 'How to compare with your own numbers' },
     { type: 'steps', items: [
       { title: 'Count the posts you need', text: 'For example: 1 TikTok a day = 30 posts a month.' },
