@@ -24,6 +24,7 @@ import { tiktokCommercialSounds } from './articles/tiktokCommercialSounds';
 import { tiktokForPlumbers } from './articles/tiktokForPlumbers';
 import { tiktokHashtagsForBusiness } from './articles/tiktokHashtagsForBusiness';
 import { tiktokHooks } from './articles/tiktokHooks';
+import { tiktokSlideshowMaker } from './articles/tiktokSlideshowMaker';
 import type { Article, ArticleBlock, ArticleHub, ArticleKind } from './types';
 
 /** Short topic label shown on cards. */
@@ -66,6 +67,7 @@ export const BLOG_POSTS: readonly Article[] = [
   socialMediaForHairSalons,
   tiktokForPlumbers,
   hvacSocialMediaMarketing,
+  tiktokSlideshowMaker,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];
