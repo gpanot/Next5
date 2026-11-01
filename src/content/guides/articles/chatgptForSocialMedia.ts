@@ -30,7 +30,7 @@ export const chatgptForSocialMedia: Article = {
       ['Post for you every day', 'No', 'A scheduler or a tool'],
       ['Show what worked', 'No', 'Your analytics, checked every week'],
     ] },
-    { type: 'p', text: 'The hard part of social media is not the words. It is doing it every day, with posts that look good, based on what already works.' },
+    { type: 'p', text: 'The hard part of social media is not the words. It is doing it every day, with posts that look good, based on what already works. For the slides themselves, see [TikTok slideshow maker: do you need one](/blog/tiktok-slideshow-maker) before you add a paid app to the ChatGPT prompt.' },
     { type: 'h2', text: 'The "sounds like AI" problem' },
     { type: 'p', text: 'ChatGPT text often sounds the same: long, polite and full of words like "elevate" and "unlock". People scroll past it. If you use it, edit hard:' },
     { type: 'ol', items: [

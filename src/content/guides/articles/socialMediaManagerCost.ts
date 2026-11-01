@@ -36,7 +36,7 @@ export const socialMediaManagerCost: Article = {
     ] },
     { type: 'h2', text: '5 options compared' },
     { type: 'h3', text: '1. Do it yourself' },
-    { type: 'p', text: 'Cost: $0 in cash. But making a good post can take 20 to 60 minutes. At one post a day, that is 10 to 30 hours a month. Multiply those hours by what your time is worth. That is your real cost.' },
+    { type: 'p', text: 'Cost: $0 in cash. But making a good post can take 20 to 60 minutes. At one post a day, that is 10 to 30 hours a month. Multiply those hours by what your time is worth. That is your real cost. If slideshows are your format, see [TikTok slideshow maker: do you need one](/blog/tiktok-slideshow-maker) before you pay for an app you may not need.' },
     { type: 'h3', text: '2. A freelancer' },
     { type: 'p', text: 'Good for a steady monthly plan. Prices vary a lot by city and skill. Ask for 3 quotes for the same list: number of posts, apps, and whether they make the photos and videos.' },
     { type: 'h3', text: '3. An agency' },

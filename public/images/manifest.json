@@ -4861,5 +4861,14 @@
     "bytes": 846833,
     "alt": "HVAC technician kneeling beside an outdoor condenser unit, checking a gauge during a service call",
     "generatedAt": "2026-10-31T01:04:38.104Z"
+  },
+  "public/images/guides/tiktok-slideshow-maker.png": {
+    "prompt": "A flower shop owner in her 30s stands behind her counter choosing photos on a laptop to turn into a TikTok slideshow, fresh bouquets and a phone propped on a small tripod beside her. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 771492,
+    "alt": "Flower shop owner choosing photos on a laptop for a TikTok slideshow, bouquets on the counter beside her",
+    "generatedAt": "2026-11-01T04:01:56.794Z"
   }
 }
