@@ -14,8 +14,7 @@ export type ImageModelId =
   | 'seedream-v5-pro'
   | 'flux-2-klein-9b'
   | 'qwen-image'
-  | 'nano-banana-2-t2i'
-  | 'gpt-image-2.5-flare-t2i';
+  | 'nano-banana-2-t2i';
 
 export type ModelResolution = '1k' | '2k';
 
@@ -157,20 +156,6 @@ export const IMAGE_MODELS: Record<ImageModelId, ImageModel> = {
     supportsResolution: true,
     priceUsdMicros: { '1k': 50_000, '2k': 75_000 },
     note: 'Portrait generation for new influencers — text-to-image, no reference images.',
-  },
-  'gpt-image-2.5-flare-t2i': {
-    id: 'gpt-image-2.5-flare-t2i',
-    label: 'GPT Image 2.5 Flare (text-to-image)',
-    path: 'openai/gpt-image-2.5-flare/text-to-image',
-    // Text-to-image: no reference images — imagesField and maxImages are unused but required by the type.
-    imagesField: 'images',
-    maxImages: 0,
-    supportsAspectRatio: true,
-    supportsResolution: true,
-    extraBody: { quality: 'medium' },
-    // Measured on the account balance 2026-10-21: $0.024 at 1k.
-    priceUsdMicros: { '1k': 24_000, '2k': 24_000 },
-    note: 'Slideshow photos without a reference image (autoSlideshow/photos.ts).',
   },
 };
 

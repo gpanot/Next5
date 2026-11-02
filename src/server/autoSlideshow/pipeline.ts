@@ -247,7 +247,7 @@ const writeStep: StepFn = async (runId, meter, { append }) => {
 };
 
 /** On Vercel, step 5 stops starting photos after this long; the rest go to a fresh invocation. Muse Image takes about 100 s
- *  a photo, and a flawed photo is made once more: a photo started at 90 s still lands inside the 300 s function limit. */
+ *  a photo, and a flawed photo is made once more: a photo started at 90 s still lands inside the 300 s function limit, fallback included. */
 const PHOTO_BUDGET_MS = 90_000;
 /** A step 5 slower than this leaves step 6 (1-3 min) to a fresh invocation, so render does not hit the 300 s limit. */
 const RENDER_HANDOFF_MS = 120_000;

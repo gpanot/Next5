@@ -8,6 +8,7 @@ export type ReapiModelId =
   | 'reapi-nano-banana-2-lite'
   | 'reapi-gpt-image-2.5'
   | 'reapi-muse-image'
+  | 'reapi-gpt-image-2.5-official'
   | 'reapi-gpt-image-2-low'
   | 'reapi-grok-imagine'
   | 'reapi-grok-imagine-2-official'
@@ -81,6 +82,7 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     id: 'reapi-muse-image',
     // Slideshow photos since 2026-11-02. Slow: about 60 s alone, 95 s with a reference image (real calls 2026-11-02).
     // No size or quality field: 9:16 comes back 1152x2048 WebP. References must total 11 MB or less.
+    // Refuses about 1 photo in 3 on plain scenes (error 80003), at random: the same prompt can pass on a retry (2026-11-02).
     apiModel: 'muse-image',
     label: 'Muse Image',
     note: 'Brand Cast slideshow photos.',
@@ -89,6 +91,20 @@ export const REAPI_MODELS: Record<ReapiModelId, ReapiModel> = {
     supports2k: false,
     // $0.005 flat, with or without references. Checked 2026-11-02, reapi.ai/models/muse-image.
     priceUsdMicros: { '1k': 5_000, '2k': 5_000 },
+  },
+  'reapi-gpt-image-2.5-official': {
+    id: 'reapi-gpt-image-2.5-official',
+    // Stable (official) channel: the plain 'gpt-image-2.5-flare' channel failed every call on 2026-10-21 (error 80001).
+    apiModel: 'gpt-image-2.5-flare-official',
+    label: 'ChatGPT Image 2.5 (official)',
+    note: 'Slideshow photos Muse Image refuses.',
+    maxImages: 16,
+    sizing: 'pixels',
+    supports2k: false,
+    // $0.012 at 1k medium, from the reAPI bill (user, 2026-10-21).
+    priceUsdMicros: { '1k': 12_000, '2k': 12_000 },
+    // moderation 'low' (user, 2026-10-21): 'auto' rejects plain gym-wear shots (EQL sports sets).
+    extraBody: { quality: 'medium', output_format: 'jpeg', moderation: 'low' },
   },
   'reapi-gpt-image-2-low': {
     id: 'reapi-gpt-image-2-low',

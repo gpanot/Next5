@@ -1,11 +1,9 @@
 // server-only — never import from a 'use client' file.
 // Step 5: the run's photos, 9:16 like the slides, from the photo engine in photoRules.ts (Muse Image on reAPI, then
-// WaveSpeed, since 2026-11-02). Each photo is copied to the object store right away: result links expire, and step 6 renders
+// GPT Image 2.5 and Nano on reAPI, since 2026-11-02). Each photo is copied to the object store right away: result links expire, and step 6 renders
 // from our copy. Each photo keeps how it was made (`gen`) for replays.
 
-import { IMAGE_MODELS, type ImageModelId } from '../../config/imageModels';
 import { REAPI_MODELS, type ReapiModelId } from '../../config/reapiModels';
-import { costUsdMicros, submitEdit, waitForTask } from '../../lib/wavespeed';
 import { pollGeminiImage, submitReapiImage, type ReapiRatio } from '../../lib/reapiImage';
 import type { AutoPhoto, HeadBox, PhotoGen } from '../../types/admin/autoSlideshow';
 import type { CostMeter } from '../metaAds/cost';
@@ -16,7 +14,7 @@ import { detectHeads, inspectPhoto } from './heads';
 import { PHOTO_STYLE_RULES, PHOTO_STYLE_VERSION, photoEngine, type PhotoEngineStep } from './photoRules';
 import { compressJpeg, PHOTO_SIZE } from './jpeg';
 
-export type PhotoGenConfig = { model: ReapiModelId; ratio: ReapiRatio; highRes: boolean };
+export type PhotoGenConfig = { model: ReapiModelId; ratio: ReapiRatio; highRes: boolean; timeoutMs?: number };
 /**
  * Nano Banana 2.1 at native 9:16 ($0.03 a photo; 4:5 until 2026-10-10), the user's pick for every generated photo since 2026-10-10:
  * it keeps the brand cast's face and the brand's real product the same from reference images. Before: FLUX.2 at 1K
@@ -29,6 +27,8 @@ const CONCURRENCY = 10;
 const FIRST_POLL_MS = 8_000;
 const POLL_MS = 3_000;
 const TIMEOUT_MS = 180_000;
+/** Muse Image waits less, so its fallback (about 40 s) still lands inside the 300 s function limit: a photo may start at 90 s. */
+const MUSE_TIMEOUT_MS = 150_000;
 const SUBMIT_ATTEMPTS = 4;
 const BUSY_WAIT_MS = 15_000;
 
@@ -60,7 +60,7 @@ const submit = async (prompt: string, imageUrls: string[], gen: PhotoGenConfig) 
  *  first, then the product). Billed on `meter` only when it finished (reAPI bills finished images only). */
 export const generatePhoto = async (prompt: string, refUrls: string[], meter: CostMeter, config: PhotoGenConfig = PHOTO_GEN): Promise<{ buffer: Buffer; taskId: string }> => {
   const { taskId, cost } = await submit(prompt, refUrls, config);
-  const deadline = Date.now() + TIMEOUT_MS;
+  const deadline = Date.now() + (config.timeoutMs ?? TIMEOUT_MS);
   await sleep(FIRST_POLL_MS);
   while (Date.now() < deadline) {
     const result = await pollGeminiImage(taskId);
@@ -78,22 +78,11 @@ export const generatePhoto = async (prompt: string, refUrls: string[], meter: Co
 
 type Made = { buffer: Buffer; taskId: string; model: string };
 
-/** GPT Image 2.5 Flare on WaveSpeed: the edit model with reference images, text-to-image without. */
-const wavespeedPhoto = async (prompt: string, refUrls: string[], meter: CostMeter): Promise<Made> => {
-  const model: ImageModelId = refUrls.length ? 'gpt-image-2.5-flare' : 'gpt-image-2.5-flare-t2i';
-  const taskId = await submitEdit({ model, prompt, imageUrls: refUrls, aspectRatio: PHOTO_GEN.ratio, resolution: '1k' });
-  const url = await waitForTask(taskId, { timeoutMs: TIMEOUT_MS });
-  const res = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-  if (!res.ok) throw new Error(`photo download failed (${res.status})`);
-  meter.add(`Photo (${IMAGE_MODELS[model].label}, WaveSpeed)`, costUsdMicros(model, '1k', refUrls.length));
-  return { buffer: Buffer.from(await res.arrayBuffer()), taskId, model: `wavespeed-${model}` };
-};
-
-const onReapi = (model: ReapiModelId) => async (prompt: string, refUrls: string[], meter: CostMeter): Promise<Made> => ({ ...(await generatePhoto(prompt, refUrls, meter, { ...PHOTO_GEN, model })), model });
+const onReapi = (model: ReapiModelId, timeoutMs?: number) => async (prompt: string, refUrls: string[], meter: CostMeter): Promise<Made> => ({ ...(await generatePhoto(prompt, refUrls, meter, { ...PHOTO_GEN, model, timeoutMs })), model });
 
 const ENGINE_STEPS: Record<PhotoEngineStep, (prompt: string, refUrls: string[], meter: CostMeter) => Promise<Made>> = {
-  'wavespeed-gpt-2.5': wavespeedPhoto,
-  'reapi-muse': onReapi('reapi-muse-image'),
+  'reapi-muse': onReapi('reapi-muse-image', MUSE_TIMEOUT_MS),
+  'reapi-gpt-2.5': onReapi('reapi-gpt-image-2.5-official'),
   'reapi-nano-2.1': onReapi(PHOTO_GEN.model),
 };
 
@@ -103,6 +92,9 @@ const BREAKER_FAILURES = 3;
 const BREAKER_MS = 10 * 60_000;
 const breaker = new Map<PhotoEngineStep, { failures: number; until: number }>();
 const isOpen = (step: PhotoEngineStep) => (breaker.get(step)?.until ?? 0) > Date.now();
+/** A safety refusal is about one photo, not an outage: Muse refuses 1 in 3 at random, and counting those skipped it for most
+ *  of a run on 2026-11-02. It leaves the breaker as it was. */
+const isRefusal = (err: unknown) => err instanceof Error && /safety/i.test(err.message);
 const noteResult = (step: PhotoEngineStep, ok: boolean) => {
   const failures = ok ? 0 : (breaker.get(step)?.failures ?? 0) + 1;
   breaker.set(step, { failures, until: failures >= BREAKER_FAILURES ? Date.now() + BREAKER_MS : 0 });
@@ -120,7 +112,7 @@ export const slideshowPhoto = async (prompt: string, refUrls: string[], meter: C
       noteResult(step, true);
       return made;
     } catch (err) {
-      noteResult(step, false);
+      if (!isRefusal(err)) noteResult(step, false);
       errors.push(`${step}: ${err instanceof Error ? err.message.slice(0, 120) : String(err)}`);
     }
   }
