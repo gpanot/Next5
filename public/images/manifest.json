@@ -4870,5 +4870,14 @@
     "bytes": 771492,
     "alt": "Flower shop owner choosing photos on a laptop for a TikTok slideshow, bouquets on the counter beside her",
     "generatedAt": "2026-11-01T04:01:56.794Z"
+  },
+  "public/images/guides/real-estate-instagram-captions.png": {
+    "prompt": "A real estate agent standing outside a house with a 'For Sale' sign in the yard, typing a caption into her phone. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 834615,
+    "alt": "Realtor standing by a For Sale sign, typing an Instagram caption into her phone",
+    "generatedAt": "2026-11-02T03:08:48.889Z"
   }
 }

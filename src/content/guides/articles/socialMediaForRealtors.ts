@@ -75,7 +75,7 @@ export const socialMediaForRealtors: Article = {
       'What I do for clients that most agents skip',
       'My favorite house I ever sold',
     ] },
-    { type: 'tip', title: 'Turn tips into slideshows', text: 'Each tip above works as a 5 to 7 slide TikTok slideshow. No filming. Bright home photos + one short line per slide. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok).' },
+    { type: 'tip', title: 'Turn tips into slideshows', text: 'Each tip above works as a 5 to 7 slide TikTok slideshow. No filming. Bright home photos + one short line per slide. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). Need the exact words for a slide? [Real estate Instagram captions](/blog/real-estate-instagram-captions) has a 3-line formula to fill in for each post type.' },
     { type: 'h2', text: 'How to get leads, not just views' },
     { type: 'ul', items: [
       '**Put your town in the post.** "Selling in Austin?" reaches the right people.',
