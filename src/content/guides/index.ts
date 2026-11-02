@@ -9,8 +9,10 @@ import { guideFirstSlideshows } from './articles/guideFirstSlideshows';
 import { guideReadAnalytics } from './articles/guideReadAnalytics';
 import { howToMakeTikTokSlideshow } from './articles/howToMakeTikTokSlideshow';
 import { howToSellOnTikTokShop } from './articles/howToSellOnTikTokShop';
+import { hvacSocialMediaMarketing } from './articles/hvacSocialMediaMarketing';
 import { marketingIdeasSmallBusiness } from './articles/marketingIdeasSmallBusiness';
 import { openHouseSocialMediaPost } from './articles/openHouseSocialMediaPost';
+import { realEstateInstagramCaptions } from './articles/realEstateInstagramCaptions';
 import { smallBusinessSaturdayPostIdeas } from './articles/smallBusinessSaturdayPostIdeas';
 import { socialMediaContentCalendar } from './articles/socialMediaContentCalendar';
 import { socialMediaForGyms } from './articles/socialMediaForGyms';
@@ -23,6 +25,7 @@ import { tiktokCommercialSounds } from './articles/tiktokCommercialSounds';
 import { tiktokForPlumbers } from './articles/tiktokForPlumbers';
 import { tiktokHashtagsForBusiness } from './articles/tiktokHashtagsForBusiness';
 import { tiktokHooks } from './articles/tiktokHooks';
+import { tiktokSlideshowMaker } from './articles/tiktokSlideshowMaker';
 import type { Article, ArticleBlock, ArticleHub, ArticleKind } from './types';
 
 /** Short topic label shown on cards. */
@@ -53,6 +56,7 @@ export const BLOG_POSTS: readonly Article[] = [
   socialMediaForRealtors,
   comingSoonRealEstatePost,
   openHouseSocialMediaPost,
+  realEstateInstagramCaptions,
   marketingIdeasSmallBusiness,
   christmasSocialMediaPostIdeas,
   smallBusinessSaturdayPostIdeas,
@@ -64,6 +68,8 @@ export const BLOG_POSTS: readonly Article[] = [
   socialMediaForGyms,
   socialMediaForHairSalons,
   tiktokForPlumbers,
+  hvacSocialMediaMarketing,
+  tiktokSlideshowMaker,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];

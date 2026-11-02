@@ -37,7 +37,7 @@ export const guideFirstSlideshows: Article = {
       '**Bright photos** with people in them when possible.',
       '**A last slide with one ask**: follow, visit the website, or book.',
     ] },
-    { type: 'p', text: 'Want to know why these things matter? Read [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok) and [TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business).' },
+    { type: 'p', text: 'Want to know why these things matter? Read [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok) and [TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business). Comparing this against other tools first? See [TikTok slideshow maker: do you need one](/blog/tiktok-slideshow-maker).' },
     { type: 'h2', text: 'What it costs' },
     { type: 'p', text: 'Your first posts are free. After that you pay per slideshow or video from a prepaid balance. No subscription and no contract. See [pricing](/pricing).' },
     { type: 'h2', text: 'Next step' },

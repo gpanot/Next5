@@ -36,7 +36,7 @@ export const socialMediaManagerCost: Article = {
     ] },
     { type: 'h2', text: '5 options compared' },
     { type: 'h3', text: '1. Do it yourself' },
-    { type: 'p', text: 'Cost: $0 in cash. But making a good post can take 20 to 60 minutes. At one post a day, that is 10 to 30 hours a month. Multiply those hours by what your time is worth. That is your real cost.' },
+    { type: 'p', text: 'Cost: $0 in cash. But making a good post can take 20 to 60 minutes. At one post a day, that is 10 to 30 hours a month. Multiply those hours by what your time is worth. That is your real cost. If slideshows are your format, see [TikTok slideshow maker: do you need one](/blog/tiktok-slideshow-maker) before you pay for an app you may not need.' },
     { type: 'h3', text: '2. A freelancer' },
     { type: 'p', text: 'Good for a steady monthly plan. Prices vary a lot by city and skill. Ask for 3 quotes for the same list: number of posts, apps, and whether they make the photos and videos.' },
     { type: 'h3', text: '3. An agency' },
@@ -44,7 +44,7 @@ export const socialMediaManagerCost: Article = {
     { type: 'h3', text: '4. A part-time hire' },
     { type: 'p', text: 'Good if you want someone in your shop who can film behind the scenes. Add payroll costs, training and the tools they need.' },
     { type: 'h3', text: '5. A done-for-you content tool' },
-    { type: 'p', text: `Good when you mainly need posts made and posted every day. With Next5 you pay ${SLIDESHOW_PRICE_LABEL} per slideshow or video. One post a day for 30 days is ${monthly}. No subscription, no contract.` },
+    { type: 'p', text: `Good when you mainly need posts made and posted every day. With Next5 you pay ${SLIDESHOW_PRICE_LABEL} per slideshow or video. One post a day for 30 days is ${monthly}. No subscription, no contract. This is often the simplest option for a home service trade with no marketing budget, see [HVAC social media marketing](/blog/hvac-social-media-marketing) for what that kind of posting actually looks like.` },
     { type: 'h2', text: 'How to compare with your own numbers' },
     { type: 'steps', items: [
       { title: 'Count the posts you need', text: 'For example: 1 TikTok a day = 30 posts a month.' },

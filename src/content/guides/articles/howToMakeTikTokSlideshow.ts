@@ -13,7 +13,7 @@ export const howToMakeTikTokSlideshow: Article = {
   coverAlt: 'Ceramic artist photographing a row of handmade mugs with her phone in her studio',
   blocks: [
     { type: 'p', text: 'A TikTok slideshow is a post made of photos. People swipe from one photo to the next, like a short story. TikTok also calls it a **photo post** or **photo mode**. Some people call it a carousel.' },
-    { type: 'p', text: 'Slideshows are great for small businesses. You do not have to film. You do not have to talk to a camera. You need a few good photos and a few short lines of text.' },
+    { type: 'p', text: 'Slideshows are great for small businesses. You do not have to film. You do not have to talk to a camera. You need a few good photos and a few short lines of text. You also do not need a separate app: see [TikTok slideshow maker: do you need one](/blog/tiktok-slideshow-maker) for when a design app or an AI tool is actually worth it.' },
     { type: 'h2', text: 'How to make a slideshow on TikTok in 5 steps' },
     { type: 'steps', items: [
       { title: 'Tap the + button', text: 'Open TikTok and tap **+** at the bottom of the screen.' },
@@ -39,7 +39,7 @@ export const howToMakeTikTokSlideshow: Article = {
     { type: 'h3', text: '2. One idea per slide' },
     { type: 'p', text: 'Each slide should say one thing. If a slide needs two sentences, split it into two slides.' },
     { type: 'h3', text: '3. Use real, bright photos' },
-    { type: 'p', text: 'Bright photos stop the scroll better than dark ones. Photos of people beat photos of logos. A before-and-after works well here too, see [social media for hair salons](/blog/social-media-for-hair-salons) for how a salon builds a whole slideshow around one, or [TikTok for plumbers](/blog/tiktok-for-plumbers) for a cleared drain or a fixed water heater. Agents can build the same thing from listing photos, see [open house social media post ideas](/blog/open-house-social-media-post-ideas).' },
+    { type: 'p', text: 'Bright photos stop the scroll better than dark ones. Photos of people beat photos of logos. A before-and-after works well here too, see [social media for hair salons](/blog/social-media-for-hair-salons) for how a salon builds a whole slideshow around one, [TikTok for plumbers](/blog/tiktok-for-plumbers) for a cleared drain or a fixed water heater, or [HVAC social media marketing](/blog/hvac-social-media-marketing) for an old unit swapped for a new one. Agents can build the same thing from listing photos, see [open house social media post ideas](/blog/open-house-social-media-post-ideas).' },
     { type: 'h3', text: '4. End with one clear ask' },
     { type: 'p', text: 'The last slide should tell people what to do: follow, save, visit your website, or book a call. Pick one. Then write the caption, and put your tags at the end of it: TikTok only allows 5, so see [how many hashtags to use on TikTok for business](/blog/how-many-hashtags-on-tiktok-for-business) for which 5 to pick.' },
     { type: 'h3', text: '5. Copy formats that already work' },

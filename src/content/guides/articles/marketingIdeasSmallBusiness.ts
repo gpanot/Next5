@@ -18,7 +18,7 @@ export const marketingIdeasSmallBusiness: Article = {
     { type: 'ol', items: [
       '**Post one TikTok slideshow a day.** TikTok shows posts to new people even if you have 0 followers. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok).',
       '**Answer your top 10 questions in posts.** One question, one post.',
-      '**Share before and after photos.** Proof sells, see how a plumber turns a cleared drain into proof in [TikTok for plumbers](/blog/tiktok-for-plumbers).',
+      '**Share before and after photos.** Proof sells, see how a plumber turns a cleared drain into proof in [TikTok for plumbers](/blog/tiktok-for-plumbers), or how an HVAC company does the same with a swapped-out unit in [HVAC social media marketing](/blog/hvac-social-media-marketing).',
       '**Turn reviews into posts.** Big text, real words, a photo.',
       '**Post the same content on TikTok, Instagram and YouTube Shorts.** Make once, post three times.',
       '**Reply to comments with a new post.** It shows you listen and gives you an easy idea.',
