@@ -4,6 +4,7 @@
 
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import { domainOf } from '../companyIntel/profile';
+import { stripZeroCounters } from './grounding';
 import type { StudioProfileData } from './types';
 
 const text = (value: string | null | undefined): string => (value ?? '').trim();
@@ -25,7 +26,7 @@ export function toBrandProfile(data: StudioProfileData, sourceUrl: string): Bran
     heroImageUrl: data.visual?.heroImageUrl.value ?? null,
     faviconUrl: data.visual?.faviconUrl.value ?? null,
     pageTitle: null,
-    pageExcerpt: data.siteText ?? '',
+    pageExcerpt: stripZeroCounters(data.siteText ?? ''),
     ...(style ? { slideshowStyle: style } : {}),
   };
 }

@@ -5,6 +5,7 @@ import {
   TARGET_AGE_LABELS, TARGET_AGES, TARGET_GENDER_LABELS, TARGET_GENDERS, targetAgeOf,
   type TargetAge, type TargetClientDto, type TargetGender,
 } from '../../../../types/admin/targetClient';
+import { CustomerIndustries } from './CustomerIndustries';
 import { useTargetClient } from './useTargetClient';
 
 const errorClass = 'rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300';
@@ -76,8 +77,8 @@ function TargetClientForm({ target, saving, saveError, save }: FormProps) {
   );
 }
 
-/** The Brand page's "Your main client": the age range and gender the brand avatars are cast for. */
-export function TargetClientSection({ token, workspaceId }: { token: string; workspaceId: string }) {
+/** The Brand page's "Your main client": the age range and gender the brand avatars are cast for, and the client types videos speak to. */
+export function TargetClientSection({ token, workspaceId, onTypesSaved }: { token: string; workspaceId: string; onTypesSaved?: () => void }) {
   const { target, loading, loadError, saving, saveError, save } = useTargetClient(token, workspaceId);
   return (
     <section aria-labelledby="target-client-title" className="space-y-2">
@@ -88,6 +89,7 @@ export function TargetClientSection({ token, workspaceId }: { token: string; wor
       {loading && <SectionSkeleton />}
       {!loading && loadError && <p role="alert" className={errorClass}>{loadError}</p>}
       {target && <TargetClientForm target={target} saving={saving} saveError={saveError} save={save} />}
+      <div className="pt-2"><CustomerIndustries token={token} workspaceId={workspaceId} onSaved={onTypesSaved} /></div>
     </section>
   );
 }

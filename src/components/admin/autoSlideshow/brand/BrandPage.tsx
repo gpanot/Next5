@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { BrandWebsite } from './BrandWebsite';
 import { CastSection } from './CastSection';
 import { ProductPhotos } from './ProductPhotos';
@@ -7,6 +8,8 @@ import { TargetClientSection } from '../target/TargetClientSection';
 
 /** /slideshow/[workspaceId]/brand: the brand card read from the website and the main client under it, then the brand avatars and product photos. */
 export function BrandPage({ token, workspaceId }: { token: string; workspaceId: string }) {
+  // New client types rewrite the Audience on the brand card: it loads again after a save.
+  const [cardVersion, setCardVersion] = useState(0);
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <header className="space-y-1">
@@ -17,9 +20,9 @@ export function BrandPage({ token, workspaceId }: { token: string; workspaceId: 
         <div className="flex min-w-0 flex-col gap-8">
           <section aria-label="Your website" className="space-y-3">
             <h2 className="text-sm font-bold text-app-ink">From your website</h2>
-            <BrandWebsite token={token} workspaceId={workspaceId} />
+            <BrandWebsite key={cardVersion} token={token} workspaceId={workspaceId} />
           </section>
-          <TargetClientSection token={token} workspaceId={workspaceId} />
+          <TargetClientSection token={token} workspaceId={workspaceId} onTypesSaved={() => setCardVersion((v) => v + 1)} />
         </div>
         <div className="flex min-w-0 flex-col gap-8">
           <CastSection token={token} workspaceId={workspaceId} />

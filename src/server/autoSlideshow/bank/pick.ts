@@ -2,7 +2,7 @@
 
 import type { AutoSlide } from '../../../types/admin/autoSlideshow';
 import type { ContentGoal } from '../../../types/admin/contentGoals';
-import type { BankCombo, BankHook, BankMeat, SlideshowBankContent } from '../../../types/admin/slideshowBank';
+import { liveBank, type BankCombo, type BankHook, type BankMeat, type SlideshowBankContent } from '../../../types/admin/slideshowBank';
 import { libraryHook } from './library';
 
 /** Uses per bank part id, and per hook category (so a batch does not open every slideshow with "Stop…"). */
@@ -34,7 +34,8 @@ const leastUsed = <T extends { id: string }>(items: T[], map: Map<string, number
  * One combo per goal: the least-used meat of that goal (any meat when the bank has none for it), its least-used hook
  * (least-used category, then best score, on ties), and the least-used CTA. `usage` is updated, so a batch spreads like a run of single picks.
  */
-export const pickCombos = (bank: SlideshowBankContent, usage: BankUsage, goals: ContentGoal[]): BankCombo[] => {
+export const pickCombos = (fullBank: SlideshowBankContent, usage: BankUsage, goals: ContentGoal[]): BankCombo[] => {
+  const bank = liveBank(fullBank);
   const playable = bank.meats.filter((m) => bank.hooks.some((h) => h.meatId === m.id));
   if (playable.length === 0 || bank.ctas.length === 0) return [];
   return goals.map((goal) => {
@@ -54,9 +55,10 @@ export const pickCombos = (bank: SlideshowBankContent, usage: BankUsage, goals: 
 export const swapCombo = (bank: SlideshowBankContent, usage: BankUsage, current: BankCombo): BankCombo => {
   const others = <T extends { id: string }>(items: T[], id: string) => (items.length > 1 ? items.filter((t) => t.id !== id) : items);
   const hooks = bank.hooks.filter((h) => h.meatId === current.meatId);
-  if (hooks.length === 0 || bank.ctas.length === 0) throw new Error('This slideshow\'s bank parts no longer exist');
+  const ctas = liveBank(bank).ctas;
+  if (hooks.length === 0 || ctas.length === 0) throw new Error('This slideshow\'s bank parts no longer exist');
   const hook = nextHook(others(hooks, current.hookId), usage);
-  const cta = leastUsed(others(bank.ctas, current.ctaId), usage.ctas);
+  const cta = leastUsed(others(ctas, current.ctaId), usage.ctas);
   return { meatId: current.meatId, hookId: hook.id, ctaId: cta.id };
 };
 

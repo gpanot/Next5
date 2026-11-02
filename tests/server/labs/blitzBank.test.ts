@@ -1,6 +1,6 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { prisma } from '../../../src/lib/db';
-import { bankDeck, ensureBlitzBank, pickHook, pickScripts, type BlitzBankContent } from '../../../src/server/labs/blitzBank';
+import { bankDeck, ensureBlitzBank, pickHook, pickScripts, syncBankAudiences, type BlitzBankContent } from '../../../src/server/labs/blitzBank';
 import { STAGE_TARGET, WEEK_MIX } from '../../../src/server/labs/blitzFormats';
 import type { BriefScript } from '../../../src/server/labs/websiteDeck';
 import type { DeckItem } from '../../../src/server/slideshow/core/deckAssembly';
@@ -19,7 +19,10 @@ vi.mock('../../../src/server/labs/websiteDeck', () => ({
 vi.mock('../../../src/server/labs/blitzStoryPhotos', () => ({ writeStoryPhotos: async () => new Map() }));
 vi.mock('../../../src/server/labs/ideaFinish', () => ({ finishIdeaCards: async () => undefined }));
 vi.mock('../../../src/server/slideshow/engines/website/engine', () => ({
-  websiteEngine: { briefs: () => [{ idc: 'Busy moms', tone: 'casual', proofPoints: [] }] },
+  websiteEngine: {
+    briefs: (source: { profile?: { market?: { targetCustomerIndustries?: { value: string[] } } } }) =>
+      (source.profile?.market?.targetCustomerIndustries?.value ?? ['Busy moms']).map((idc) => ({ idc, idcEvidence: '', tone: 'casual', proofPoints: [] })),
+  },
 }));
 vi.mock('../../../src/server/labs/workspaceRun', () => ({ workspaceRunId: async () => mocks.runId.current }));
 
@@ -177,5 +180,50 @@ describe('pickHook / pickScripts', () => {
     expect(scripts[0]!.stage).not.toBe('conversion');
     expect(scripts[0]!.hooks).toHaveLength(1);
     expect(scripts[0]!.otherHooks).toHaveLength(2);
+  });
+});
+
+describe('syncBankAudiences', () => {
+  const audience = (idc: string, slot: number) => ({
+    idc, categories: [], tone: 'casual', proofNote: '', slot,
+    stories: [{ id: `${idc}-1`, story: script().story, hooks: [{ archetype: 'curiosity', text: 'h' }], stage: 'attention' }],
+  });
+  const source = (types: string[]) => ({
+    sourceUrl: 'https://example.com', workspaceId: null,
+    profile: { market: { targetCustomerIndustries: { value: types, source: 'manual', confidence: 1, locked: true } } },
+  }) as unknown as Parameters<typeof syncBankAudiences>[1];
+  const makeBank = async (status: string, idcs: string[]) => {
+    const { runId } = await setup();
+    const { brandProfileId } = await prisma.studioRun.findUniqueOrThrow({ where: { id: runId }, select: { brandProfileId: true } });
+    await prisma.blitzScriptBank.create({ data: { brandProfileId, status, content: { audiences: idcs.map(audience) } as object } });
+    return brandProfileId;
+  };
+  const bank = (brandProfileId: string) => prisma.blitzScriptBank.findUniqueOrThrow({ where: { brandProfileId } });
+
+  it('drops a removed type and writes stories only for the new one', async () => {
+    const id = await makeBank('ready', ['Old type', 'Kept type']);
+    await syncBankAudiences(id, source(['Kept type', 'New type']));
+    const row = await bank(id);
+    const { audiences } = row.content as unknown as BlitzBankContent;
+    expect(row.status).toBe('ready');
+    expect(audiences.map((a) => a.idc)).toEqual(['Kept type', 'New type']);
+    expect(audiences[0]!.stories.map((s) => s.id)).toEqual(['Kept type-1']);
+    expect(audiences[1]!.slot).toBe(1);
+    expect(audiences[1]!.stories.length).toBeGreaterThan(0);
+    expect(mocks.writeStories).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes nothing when a type is only removed', async () => {
+    const id = await makeBank('ready', ['Old type', 'Kept type']);
+    await syncBankAudiences(id, source(['Kept type']));
+    expect((await bank(id)).content).toMatchObject({ audiences: [{ idc: 'Kept type' }] });
+    expect(mocks.writeStories).not.toHaveBeenCalled();
+  });
+
+  it('does nothing without a bank', async () => {
+    const { runId } = await setup();
+    const { brandProfileId } = await prisma.studioRun.findUniqueOrThrow({ where: { id: runId }, select: { brandProfileId: true } });
+    await syncBankAudiences(brandProfileId, source(['New type']));
+    expect(mocks.writeStories).not.toHaveBeenCalled();
   });
 });

@@ -26,7 +26,7 @@ import { castWaitsForAvatar, holdForAvatar } from '../brandCast/gate';
 import { brandPhotoFacts, productLooks } from '../brandContent/productPhotos';
 import { ensureVisualBible } from '../shorts/visualBible';
 import { holdForTarget } from './targetClient';
-import { bankForSite, loadUsage } from './bank/build';
+import { bankForSite, loadUsage, refreshBank } from './bank/build';
 import { assembleCombo, pickCombos } from './bank/pick';
 import { headsFor, withDetectedHeads, type HeadsCache } from './heads';
 import { matchTracks } from './music';
@@ -101,7 +101,10 @@ const planStep: StepFn = async (runId, meter, { append }) => {
   const [profile, levers] = [checkpoint<BrandProfile>(run.profile, 1), checkpoint<BrandLever[]>(run.levers, 2)];
   const workspaceId = await contentWorkspaceId(run);
   const looks = workspaceId ? productLooks(await brandPhotoFacts(workspaceId)) : [];
-  const bank = await bankForSite(run.url, profile, levers, meter, looks);
+  let bank = await bankForSite(run.url, profile, levers, meter, looks);
+  // The owner changed their client types while the bank was being written: it is rewritten for them now.
+  const latest = checkpoint<BrandProfile>((await loadRun(runId)).profile, 1);
+  if (bank.built && latest.audience !== profile.audience) bank = (await refreshBank(run.url, latest, levers, meter, looks)) ?? bank;
   const before = append > 0 ? checkpoint<AutoPlan>(run.plan, 3) : null;
   // A full re-plan replaces this run's slideshows, so they do not count as used.
   const usage = await loadUsage(run.url, append > 0 ? undefined : runId);
@@ -243,8 +246,11 @@ const writeStep: StepFn = async (runId, meter, { append }) => {
   return {};
 };
 
-/** On Vercel, step 5 stops starting photos after this long, so render still fits; the rest go to a fresh invocation. */
-const PHOTO_BUDGET_MS = 170_000;
+/** On Vercel, step 5 stops starting photos after this long; the rest go to a fresh invocation. Muse Image takes about 100 s
+ *  a photo, and a flawed photo is made once more: a photo started at 90 s still lands inside the 300 s function limit. */
+const PHOTO_BUDGET_MS = 90_000;
+/** A step 5 slower than this leaves step 6 (1-3 min) to a fresh invocation, so render does not hit the 300 s limit. */
+const RENDER_HANDOFF_MS = 120_000;
 
 const photoStep: StepFn = async (runId, meter, { continued }) => {
   const run = await loadRun(runId);
@@ -399,7 +405,7 @@ export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, app
       }
       if (step === 3 && append === 0 && ((await holdForCast(runId)) || (await holdForTarget(runId)))) return;
       if (step === 4 && (await handOff(runId))) return;
-      if (step === 5 && (await photosLeft(runId)) && (await handOff(runId))) return;
+      if (step === 5 && (Date.now() - t0 > RENDER_HANDOFF_MS || (await photosLeft(runId))) && (await handOff(runId))) return;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[auto-slideshow] run ${runId} step ${step} FAILED:`, message);

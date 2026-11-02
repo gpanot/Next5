@@ -27,12 +27,12 @@ export const useTargetClient = (token: string, workspaceId: string) => {
     };
   }, [token, path]);
 
-  /** True when saved. */
-  const save = useCallback(async (age: TargetAge, gender: TargetGender): Promise<boolean> => {
+  /** True when saved. `industries`: the client types confirmed with the pick. */
+  const save = useCallback(async (age: TargetAge, gender: TargetGender, industries?: string[]): Promise<boolean> => {
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await adminFetch<{ target: TargetClientDto }>(token, path, { method: 'PUT', body: JSON.stringify({ age, gender }) });
+      const res = await adminFetch<{ target: TargetClientDto }>(token, path, { method: 'PUT', body: JSON.stringify({ age, gender, industries }) });
       setTarget(res.target);
       return true;
     } catch (err) {

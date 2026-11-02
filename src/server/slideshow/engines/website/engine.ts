@@ -3,6 +3,8 @@
 
 import { contentWords } from '../../core/copyGuards';
 import { writeMeatWithRetries } from '../../core/meatWriter';
+import { usedIndustries } from '../../../../lib/customerIndustries';
+import { isZeroCounter } from '../../../studio/grounding';
 import type { StudioProfileData } from '../../../studio/types';
 import type {
   HookRules,
@@ -15,9 +17,6 @@ import type {
 } from '../../core/types';
 import { lineGuard, type WebsiteFacts } from './guardrails';
 import { buildWebsiteMeatPrompt, shortAudience, websiteHookExamples, type WebsiteBriefInput } from './prompts';
-
-/** Cap per deck: 3 audiences × 6 hooks = 18 cards (spec open question: 30 cards is too many). */
-export const MAX_WEBSITE_BRIEFS = 3;
 
 // ── Source ────────────────────────────────────────────────────────────────────
 
@@ -37,7 +36,7 @@ const TONES: Tone[] = ['casual', 'authoritative', 'witty', 'inspirational', 'edu
 /** Profile → the facts every brief shares. Older profiles have no proof points: mechanism-as-proof. */
 function sharedBrief(source: WebsiteSource): Omit<WebsiteBriefInput, 'idc' | 'idcEvidence'> & { facts: WebsiteFacts } {
   const p = source.profile;
-  const proofPoints: ProofPoint[] = (p.market.proofPoints?.value ?? []).map((pp) => ({ ...pp, sourceUrl: source.sourceUrl }));
+  const proofPoints: ProofPoint[] = (p.market.proofPoints?.value ?? []).filter((pp) => !isZeroCounter(pp.claim)).map((pp) => ({ ...pp, sourceUrl: source.sourceUrl }));
   const business = {
     name: p.identity.businessName.value,
     promoting: p.positioning.promoting.value,
@@ -69,14 +68,14 @@ function sharedBrief(source: WebsiteSource): Omit<WebsiteBriefInput, 'idc' | 'id
 export const websiteEngine: SlideshowEngine<WebsiteSource, WebsiteBrief> = {
   id: 'website',
 
-  /** One brief per evidenced IDC (max 3); B2C or no evidence → one brief for the described customer. */
+  /** One brief per IDC (3 from the website, 5 set by a person: usedIndustries); B2C or no evidence → one brief for the described customer. */
   briefs(source) {
     const shared = sharedBrief(source);
     const market = source.profile.market;
-    const idcs = market.targetCustomerIndustries.value ?? [];
+    const idcs = usedIndustries(market.targetCustomerIndustries);
     const evidence = market.targetCustomerIndustries.evidence ?? [];
     const lenses = idcs.length > 0
-      ? idcs.slice(0, MAX_WEBSITE_BRIEFS).map((idc, i) => ({ idc, idcEvidence: evidence[i] ?? '' }))
+      ? idcs.map((idc, i) => ({ idc, idcEvidence: evidence[i] ?? '' }))
       : [{ idc: shared.audienceDescription || 'Customers', idcEvidence: '' }];
     return lenses.map((lens, i) => ({ ...shared, ...lens, id: `website-brief-${i}` }));
   },

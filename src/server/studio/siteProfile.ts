@@ -28,7 +28,7 @@ const sameSite = (a: string, b: string): boolean => {
 };
 
 /** Profiles with real data (not the empty row a Studio run starts with), newest first. */
-async function latestForSite(url: string, workspaceId: string | null): Promise<ProfileRow | null> {
+export async function latestForSite(url: string, workspaceId: string | null): Promise<ProfileRow | null> {
   const rows = await prisma.studioBrandProfile.findMany({
     where: { workspaceId, sourceUrl: { contains: domainOf(url) } },
     orderBy: { createdAt: 'desc' },

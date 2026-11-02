@@ -16,6 +16,8 @@ export type FieldEnvelope<T = string> = {
   /** 0–1. Human edits always set this to 1. */
   confidence: number;
   evidence?: string[];
+  /** Other values read from the site that the owner did not pick: offered again in the editor. */
+  alternatives?: string[];
   /** For derived fields: signature of the inputs the value was computed from (stale when it changes). */
   derivedFrom?: string;
   /** True when the admin has locked the value; automation must not overwrite. */

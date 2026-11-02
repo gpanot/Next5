@@ -5,7 +5,7 @@
  * clinics from world knowledge. Those must be dropped.
  */
 import { describe, expect, it } from 'vitest';
-import { groundIndustries } from '../../../src/server/studio/grounding';
+import { groundIndustries, groundProofPoints, isZeroCounter, rankIndustries, stripZeroCounters } from '../../../src/server/studio/grounding';
 import { keywordInputFromProfile, keywordInputSignature } from '../../../src/server/studio/keywordDiscovery';
 import type { StudioProfileData } from '../../../src/server/studio/types';
 
@@ -103,5 +103,79 @@ describe('keywordInputFromProfile', () => {
     const before = keywordInputSignature(keywordInputFromProfile(profile({ idc: ['auto mechanics'], idcEvidence: ['x'] })));
     const after = keywordInputSignature(keywordInputFromProfile(profile({ idc: ['auto mechanics', 'electricians'], idcSource: 'manual' })));
     expect(after).not.toBe(before);
+  });
+});
+
+const BURNS = `## Site menu and links
+Industries Served — /industries-served
+Real Estate — /real-estate-plumbing
+
+## Homepage
+# Commercial Plumbers Sydney
+We specialise in complete commercial, industrial and strata plumbing systems. Our commercial team works 24/7.
+
+## Page /industries-served
+### Real Estate
+
+Trusted plumbing services for rental and investment properties.
+
+### Education
+
+Expert plumbing for schools, childcare centres, and universities.
+
+### Industrial
+
+Comprehensive industrial plumbing services.
+
+### Strata
+
+Tailored plumbing services for strata managers.
+
+### Commercial
+
+Reliable plumbing solutions for commercial properties.`;
+
+describe('groundIndustries: sector headings', () => {
+  it('keeps a sector whose quote sits right under its heading', () => {
+    const r = groundIndustries([
+      { industry: 'real estate', evidence: 'Trusted plumbing services for rental and investment properties.' },
+      { industry: 'education', evidence: 'Expert plumbing for schools, childcare centres, and universities.' },
+    ], BURNS);
+    expect(r.industries).toEqual(['real estate', 'education']);
+  });
+  it('still drops a real quote cited under another heading', () => {
+    const r = groundIndustries([{ industry: 'beauty salons', evidence: 'Trusted plumbing services for rental and investment properties.' }], BURNS);
+    expect(r.industries).toEqual([]);
+    const wrong = groundIndustries([{ industry: 'education', evidence: 'Trusted plumbing services for rental and investment properties.' }], BURNS);
+    expect(wrong.industries).toEqual([]);
+  });
+  it('keeps up to 8', () => {
+    const raw = Array.from({ length: 10 }, (_, i) => ({ industry: `plumbing${i}`, evidence: 'Trusted plumbing services' }));
+    expect(groundIndustries(raw, 'Trusted plumbing services').industries.length).toBeLessThanOrEqual(8);
+  });
+});
+
+describe('rankIndustries', () => {
+  it('puts what the homepage stresses first, then page order; evidence follows', () => {
+    const r = rankIndustries({ industries: ['real estate', 'education', 'strata', 'commercial', 'industrial'], evidence: ['r', 'e', 's', 'c', 'i'] }, BURNS);
+    expect(r.industries).toEqual(['commercial', 'strata', 'industrial', 'real estate', 'education']);
+    expect(r.evidence).toEqual(['c', 's', 'i', 'r', 'e']);
+  });
+});
+
+describe('zero counters', () => {
+  it('spots counters read before they counted up', () => {
+    for (const t of ['0+ Google Reviews', '0 + Clients Served', '0 Years of Experience', '0 happy clients']) expect(isZeroCounter(t)).toBe(true);
+  });
+  it('leaves real claims alone', () => {
+    for (const t of ['0% fees', '0 hidden fees', '100+ Google Reviews', '10+ years', 'Over 20 years']) expect(isZeroCounter(t)).toBe(false);
+  });
+  it('drops them from proof points', () => {
+    const text = '0+ Google Reviews\nOver 20 years of experience in Sydney';
+    const r = groundProofPoints([{ claim: '0+ Google Reviews', evidence: '0+ Google Reviews' }, { claim: 'Over 20 years', evidence: 'Over 20 years of experience' }], text);
+    expect(r.map((p) => p.claim)).toEqual(['Over 20 years']);
+  });
+  it('strips them from saved site text', () => {
+    expect(stripZeroCounters('Hello\n0+ Clients Served\nBye')).toBe('Hello\nBye');
   });
 });

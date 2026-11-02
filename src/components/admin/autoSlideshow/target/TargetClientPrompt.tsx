@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { targetAgeOf, type TargetAge, type TargetClientDto, type TargetGender } from '../../../../types/admin/targetClient';
+import type { CustomerIndustriesDto } from '../../../../lib/customerIndustries';
+import { ClientTypesStep } from './ClientTypesField';
 import { TargetClientPicker } from './TargetClientPicker';
+import { useClientTypesDraft } from './useClientTypesDraft';
+import { useCustomerIndustries } from './useCustomerIndustries';
 import { useTargetClient } from './useTargetClient';
 
 const TITLE_ID = 'target-client-prompt-title';
@@ -28,16 +32,18 @@ const laterStore = {
 
 type DialogProps = {
   target: TargetClientDto;
+  types: CustomerIndustriesDto | null;
   saving: boolean;
   error: string | null;
-  onSave: (age: TargetAge, gender: TargetGender) => void;
+  onSave: (age: TargetAge, gender: TargetGender, industries?: string[]) => void;
   onLater: () => void;
 };
 
-function TargetClientDialog({ target, saving, error, onSave, onLater }: DialogProps) {
+function TargetClientDialog({ target, types, saving, error, onSave, onLater }: DialogProps) {
   const [age, setAge] = useState<TargetAge | null>(target.age);
   const [gender, setGender] = useState<TargetGender | null>(target.gender);
   const suggested = targetAgeOf(target.detectedRange);
+  const draft = useClientTypesDraft(types?.industries ?? []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onLater();
     window.addEventListener('keydown', onKey);
@@ -57,6 +63,7 @@ function TargetClientDialog({ target, saving, error, onSave, onLater }: DialogPr
         <div className="mt-6">
           <TargetClientPicker age={age} gender={gender} onAge={setAge} onGender={setGender} suggested={suggested} revealGender />
         </div>
+        {types?.ready && <div className="mt-6"><ClientTypesStep data={types} draft={draft} reading={false} /></div>}
         {error && (
           <p role="alert" className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
             {error}
@@ -64,8 +71,8 @@ function TargetClientDialog({ target, saving, error, onSave, onLater }: DialogPr
         )}
         <button
           type="button"
-          onClick={() => age && gender && onSave(age, gender)}
-          disabled={!age || !gender || saving}
+          onClick={() => age && gender && onSave(age, gender, types?.ready ? draft.final() : undefined)}
+          disabled={!age || !gender || saving || draft.tooMany}
           className="mt-6 h-[54px] w-full rounded-full bg-app-cta text-[15px] font-semibold text-app-cta-ink shadow-sm transition hover:bg-app-cta/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {saving ? 'Saving…' : 'Save'}
@@ -79,16 +86,19 @@ function TargetClientDialog({ target, saving, error, onSave, onLater }: DialogPr
 }
 
 /**
- * Asks a workspace that has no target client yet (made before the onboarding asked it) to pick one. Waits while the
- * onboarding is open (it asks itself). Change it later on the Brand page.
+ * Asks a workspace that has no target client yet, or whose client types nobody checked (made before the onboarding asked
+ * them), to confirm both. Waits while the onboarding is open (it asks itself). Change them later on the Brand page.
  */
 export function TargetClientPrompt({ token, workspaceId }: { token: string; workspaceId: string }) {
   const { target, saving, saveError, save } = useTargetClient(token, workspaceId);
+  const types = useCustomerIndustries(token, workspaceId);
   const [later, setLater] = useState(() => laterStore.get(workspaceId));
-  if (!target || target.confirmedAt || target.inOnboarding || later) return null;
+  const [done, setDone] = useState(false);
+  if (!target || types.loading || target.inOnboarding || later || done) return null;
+  if (target.confirmedAt && !types.data?.askOwner) return null;
   const onLater = () => {
     laterStore.set(workspaceId);
     setLater(true);
   };
-  return <TargetClientDialog target={target} saving={saving} error={saveError} onSave={(age, gender) => void save(age, gender)} onLater={onLater} />;
+  return <TargetClientDialog target={target} types={types.data} saving={saving} error={saveError} onSave={(age, gender, industries) => void save(age, gender, industries).then(setDone)} onLater={onLater} />;
 }

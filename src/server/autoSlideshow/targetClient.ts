@@ -67,7 +67,7 @@ export const holdForTarget = async (runId: string): Promise<boolean> => {
 const toDto = async (workspaceId: string, row: TargetRow): Promise<TargetClientDto> => {
   const [bible, inOnboarding] = await Promise.all([
     getVisualBible(workspaceId).catch(() => null),
-    row.targetConfirmedAt ? false : onboardingOpen(workspaceId).catch(() => false),
+    onboardingOpen(workspaceId).catch(() => false),
   ]);
   const range = bible?.bible?.person_age_range?.trim() ?? '';
   return {

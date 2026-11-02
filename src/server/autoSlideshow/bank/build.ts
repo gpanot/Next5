@@ -59,6 +59,28 @@ export const bankForSite = async (url: string, profile: BrandProfile, levers: Br
   return { id: row.id, content, built: true };
 };
 
+/** Pure: the new parts first (under ids of their own), then the old ones marked retired, so old slideshows still resolve. */
+export const withRefreshedParts = (old: SlideshowBankContent, fresh: SlideshowBankContent, tag: string): SlideshowBankContent => ({
+  meats: [...fresh.meats.map((m) => ({ ...m, id: `${tag}${m.id}` })), ...old.meats.map((m) => ({ ...m, retired: true }))],
+  hooks: [...fresh.hooks.map((h) => ({ ...h, id: `${tag}${h.id}`, meatId: `${tag}${h.meatId}` })), ...old.hooks.map((h) => ({ ...h, retired: true }))],
+  ctas: [...fresh.ctas.map((c) => ({ ...c, id: `${tag}${c.id}` })), ...old.ctas.map((c) => ({ ...c, retired: true }))],
+});
+
+/** Rewrites the site's bank for a changed audience (about 60-80 s, about $0.05). No bank yet: the first run builds it. */
+export const refreshBank = async (url: string, profile: BrandProfile, levers: BrandLever[], meter: CostMeter, productLooks: string[] = []): Promise<{ id: string; content: SlideshowBankContent; built: boolean } | null> => {
+  const before = meter.summary().usdMicros;
+  if (!(await prisma.slideshowBank.findUnique({ where: { url }, select: { id: true } }))) return null;
+  const fresh = await buildBank(profile, levers, meter, productLooks);
+  const spent = meter.summary().usdMicros - before;
+  const tag = `r${Date.now().toString(36)}-`;
+  return prisma.$transaction(async (tx) => {
+    const row = await tx.slideshowBank.findUniqueOrThrow({ where: { url } });
+    const content = withRefreshedParts(row.content as unknown as SlideshowBankContent, fresh, tag);
+    await tx.slideshowBank.update({ where: { url }, data: { content: content as unknown as object, costMicros: row.costMicros + spent } });
+    return { id: row.id, content, built: true };
+  });
+};
+
 /** How often each bank part was used by the site's slideshows (failed ones and run `exceptRunId`'s do not count). */
 export const loadUsage = async (url: string, exceptRunId?: string): Promise<BankUsage> => {
   const [rows, bank] = await Promise.all([

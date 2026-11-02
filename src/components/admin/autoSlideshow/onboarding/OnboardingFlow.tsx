@@ -112,8 +112,8 @@ export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props)
     onRunChanged();
   };
 
-  const confirmTarget = async (age: TargetAge, gender: TargetGender) => {
-    if (await target.save(age, gender)) trackOnboarding('onboarding_target_picked', ctx, { age, gender });
+  const confirmTarget = async (age: TargetAge, gender: TargetGender, industries?: string[]) => {
+    if (await target.save(age, gender, industries)) trackOnboarding('onboarding_target_picked', ctx, { age, gender });
   };
 
   const makeAvatar = (request: Parameters<typeof avatar.create>[0]) => {
@@ -141,12 +141,14 @@ export function OnboardingFlow({ token, workspaceId, run, onRunChanged }: Props)
         ) : (
           <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col animate-onb-forward">
             <TargetClientScreen
+              token={token}
+              workspaceId={workspaceId}
               target={target.target}
               detectedRange={detectedRangeOf(run)}
               reading={!failed && currentAutoStep(run.status) <= 3}
               saving={target.saving}
               error={target.saveError}
-              onConfirm={(age, gender) => void confirmTarget(age, gender)}
+              onConfirm={(age, gender, industries) => void confirmTarget(age, gender, industries)}
             />
           </div>
         )}

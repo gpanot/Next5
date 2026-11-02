@@ -1,6 +1,7 @@
 'use client';
 
 import type { WorkspaceBrandDto } from '../../../types/admin/workspaceDetail';
+import { CustomerIndustries } from '../autoSlideshow/target/CustomerIndustries';
 import { useAdminApi } from '../business/useAdminApi';
 import { JsonTree } from './JsonTree';
 import { PanelEmpty, PanelError, PanelSkeleton, Section } from './PanelStates';
@@ -19,6 +20,7 @@ export function BrandPanel({ token, workspaceId }: { token: string; workspaceId:
 
   return (
     <div className="space-y-4">
+      <Section title="Target customer industries"><CustomerIndustries token={token} workspaceId={workspaceId} /></Section>
       {data.profiles.map((p) => (
         <Section key={p.id} title={`Company profile · ${p.sourceUrl}`} meta={`v${p.version} · ${day(p.createdAt)}`}>
           <JsonTree data={p.data} />

@@ -378,6 +378,57 @@ async function growIfSpent(studioRunId: string, workspaceId: string, target: Rec
   }
 }
 
+/** Claims a ready bank for an edit, waiting while another request writes to it. False when it stays busy or does not exist. */
+async function claimForEdit(brandProfileId: string): Promise<boolean> {
+  const deadline = Date.now() + MAX_WAIT_MS;
+  for (;;) {
+    const { count } = await prisma.blitzScriptBank.updateMany({
+      where: { brandProfileId, OR: [{ status: 'ready' }, { status: 'growing', updatedAt: { lt: staleBefore() } }] },
+      data: { status: 'growing' },
+    });
+    if (count === 1) return true;
+    const row = await prisma.blitzScriptBank.findUnique({ where: { brandProfileId }, select: { status: true } });
+    if (!row || row.status === 'failed' || Date.now() > deadline) return false;
+    await sleep(WAIT_POLL_MS);
+  }
+}
+
+/**
+ * Makes the bank match an edited list of client types: stories of a removed one stop being picked at once, and a new one
+ * gets a week of stories, so the next batch already speaks to it. No bank yet: it is built from the new list anyway.
+ * Busy for too long: the next top-up still rebuilds the audiences from the list. Never throws (it runs after the response).
+ */
+export async function syncBankAudiences(brandProfileId: string, source: WebsiteSource): Promise<void> {
+  try {
+    if (!(await claimForEdit(brandProfileId))) return;
+    try {
+      const briefs = websiteEngine.briefs(source);
+      const keep = new Set(briefs.map((b) => b.idc));
+      let known = new Set<string>();
+      await updateBankContent(brandProfileId, (content) => {
+        known = new Set(content.audiences.map((a) => a.idc));
+        return { audiences: content.audiences.filter((a) => keep.has(a.idc)) };
+      });
+      const added = briefs.filter((b) => !known.has(b.idc));
+      if (added.length === 0) return;
+      const field = source.profile.market.targetCustomerIndustries;
+      const only: WebsiteSource = {
+        ...source,
+        profile: { ...source.profile, market: { ...source.profile.market, targetCustomerIndustries: { ...field, value: added.map((b) => b.idc), evidence: added.map((b) => b.idcEvidence) } } },
+      };
+      const written = (await writeAudiences(only, WEEK_MIX[0]!)).filter((a) => a.stories.length > 0);
+      await updateBankContent(brandProfileId, (content) => ({
+        audiences: [...content.audiences, ...written.map((a) => ({ ...a, slot: briefs.findIndex((b) => b.idc === a.idc) }))],
+      }));
+      console.log(`[BlitzBank] client types edited on profile ${brandProfileId}: kept ${[...keep].join(', ')}; wrote ${written.map((a) => `${a.idc}×${a.stories.length}`).join(', ')}`);
+    } finally {
+      await prisma.blitzScriptBank.update({ where: { brandProfileId }, data: { status: 'ready' } });
+    }
+  } catch (err) {
+    console.error(`[BlitzBank] could not follow the client types edit on profile ${brandProfileId}:`, err instanceof Error ? err.message : err);
+  }
+}
+
 /** Photo prompts for the next unused stories (blitzBankPhotos.ts), so the next batch only renders images. Never throws.
  *  None for an unclaimed Prospect Pack: it may never have a next batch. */
 async function backfillPhotos(studioRunId: string, workspaceId: string, source: WebsiteSource): Promise<void> {
