@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Undo2, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Undo2, X } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { BLITZ_DEFAULT_TEXT_CONFIG, BLITZ_SLIDESHOW_TEXT_DEFAULTS } from '../../../../config/blitzLab';
 import { titleInStyle } from '../../../../remotion/hookTitle';
@@ -45,7 +45,11 @@ type Props = {
   clips?: DeckClips;
   /** Blitz ideas, while paused: the shot's caption dragged up or down (saved for when it is made). */
   onCaptionMove?: (idea: IdeaDto, shot: number, positionY: number) => void;
+  /** Editing a pack's videos: arrows and swipes go to the other videos, nothing is kept or skipped. */
+  review?: DeckReview;
 };
+
+export type DeckReview = { onPrev: (() => void) | null; onNext: (() => void) | null };
 
 export type DeckClips = {
   /** `assetKey` null: the server finds the next one of the same kind. Settles once shown. */
@@ -95,6 +99,18 @@ function Controls({ idea, onSkip, onKeep, onEditHook, undo }: ControlsProps) {
           <Check aria-hidden className="h-6 w-6" />
         </button>
       </div>
+    </div>
+  );
+}
+
+/** Under the card while a pack is reviewed: the video before, Hook, the video after. */
+function ReviewControls({ review, onEditHook }: { review: DeckReview; onEditHook: () => void }) {
+  const arrow = `${round} h-14 w-14 border-line bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200`;
+  return (
+    <div className="flex items-center justify-center gap-5">
+      <button type="button" onClick={review.onPrev ?? undefined} disabled={!review.onPrev} aria-label="Video before" className={arrow}><ChevronLeft aria-hidden className="h-6 w-6" /></button>
+      <button type="button" onClick={onEditHook} aria-label="Edit the hook" className={`${round} h-11 min-w-11 border-line bg-white px-4 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200`}>Hook</button>
+      <button type="button" onClick={review.onNext ?? undefined} disabled={!review.onNext} aria-label="Video after" className={arrow}><ChevronRight aria-hidden className="h-6 w-6" /></button>
     </div>
   );
 }
@@ -167,7 +183,7 @@ const useShotSwap = (idea: IdeaDto, shot: number, clips?: DeckClips): ShotSwap |
 };
 
 /** One idea at a time: swipe or tap ✓ / ✕. The day it will be posted shows under the card. */
-export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onVoice, voice, size = 'panel', plannedAt, confirmKeep, menu, hookStyle, clips, onCaptionMove }: Props) {
+export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, onVoice, voice, size = 'panel', plannedAt, confirmKeep, menu, hookStyle, clips, onCaptionMove, review }: Props) {
   const { soundOn, toggleSound } = useDeckSound();
   const [exit, setExit] = useState<{ id: string; dir: 'keep' | 'discard' } | null>(null);
   // The next card loads once the top card can play, so its clips don't slow the first one down.
@@ -184,6 +200,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
   const awaitingVoice = Boolean(idea.card) && onVoice !== null && (!voice || voice.status === 'loading');
   const awaitingPhotos = photosPending(idea);
   const decide = async (status: 'kept' | 'discarded') => {
+    if (review) return (status === 'kept' ? review.onPrev : review.onNext)?.();
     if (exit) return;
     if (status === 'kept' && confirmKeep && !(await confirmKeep())) return; // the card slides back
     setExit({ id: idea.id, dir: status === 'kept' ? 'keep' : 'discard' });
@@ -239,7 +256,7 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
           <DeckSide soundOn={soundOn} onToggleSound={toggleSound} paused={paused} onTogglePause={() => setPaused(!paused)} swap={swap} onVoice={onVoice && idea.card ? () => onVoice(idea) : null} voiceLabel={blitzVoiceLabel(card.voice)} voiceState={voice?.status ?? null} />
         </div>
       </div>
-      <Controls
+      {review ? <ReviewControls review={review} onEditHook={() => onEditHook(idea)} /> : <Controls
         idea={idea}
         onSkip={() => void decide('discarded')}
         onKeep={() => void decide('kept')}
@@ -249,11 +266,11 @@ export function IdeaDeck({ idea, next, canUndo, onDecide, onUndo, onEditHook, on
             <Undo2 aria-hidden className="h-4 w-4" />
           </button>
         )}
-      />
-      <div className={`-mt-1 flex items-center gap-3 text-xs text-muted lg:mt-0 ${compact ? 'max-lg:hidden' : ''}`}>
-        <button type="button" onClick={onUndo} disabled={!canUndo} className="flex min-h-10 lg:min-h-11 items-center gap-1 px-2 font-semibold transition hover:text-ink disabled:opacity-30 dark:hover:text-zinc-100">
+      />}
+      <div className={`-mt-1 flex items-center gap-3 text-xs text-muted lg:mt-0 ${compact && !review ? 'max-lg:hidden' : ''}`}>
+        {!review && <button type="button" onClick={onUndo} disabled={!canUndo} className="flex min-h-10 lg:min-h-11 items-center gap-1 px-2 font-semibold transition hover:text-ink disabled:opacity-30 dark:hover:text-zinc-100">
           <Undo2 aria-hidden className="h-4 w-4" /> Undo
-        </button>
+        </button>}
         <span>Will be posted: <span className="font-semibold text-ink dark:text-zinc-100">{whenOf(idea, plannedAt)}</span></span>
       </div>
     </div>

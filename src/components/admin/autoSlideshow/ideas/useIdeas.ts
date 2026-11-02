@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SLIDESHOW_AFTER, type IdeaDto, type IdeaPatch, type IdeasListDto } from '../../../../types/admin/calendarIdeas';
+import { SLIDESHOW_AFTER, type IdeaDto, type IdeaPatch, type IdeasListDto, type IdeasPackStage } from '../../../../types/admin/calendarIdeas';
 import { errorOf, type LabClient, type LabResponse } from '../../../labs/labClient';
 import { ideasApi } from './ideasApi';
 import type { BlitzVoiceName } from '../../../../types/admin/blitzVoice';
@@ -9,7 +9,7 @@ import { swapShotMedia } from '../../../../types/admin/ideaMedia';
 
 /** `generatingSince`: when the batch being written was asked for (ISO), for the countdown on the empty card.
  *  `batchSince`: a batch written elsewhere (the server's first one, after the first run), from the list. */
-type State = { ideas: IdeaDto[]; slideshowPct: number; reserve: number; loading: boolean; generating: boolean; generatingSince: string | null; batchSince: string | null; error: string | null };
+type State = { ideas: IdeaDto[]; slideshowPct: number; reserve: number; loading: boolean; generating: boolean; generatingSince: string | null; batchSince: string | null; packStage: IdeasPackStage; error: string | null };
 type SetState = (fn: (s: State) => State) => void;
 
 /** One swipe, so Undo can put the card back as it was. */
@@ -100,7 +100,7 @@ const useRequest = (setState: SetState, made: MadeIds, sync: ListSync): ListRequ
     if (res?.ok) {
       if (sync.stale(ticket)) return res.data;
       const ideas = sync.overlay(res.data.ideas.filter((i) => !made.current.has(i.id)));
-      setState((s) => ({ ...s, ideas, slideshowPct: res.data.slideshowPct, reserve: res.data.reserve, batchSince: res.data.batchSince, error: null }));
+      setState((s) => ({ ...s, ideas, slideshowPct: res.data.slideshowPct, reserve: res.data.reserve, batchSince: res.data.batchSince, packStage: res.data.packStage, error: null }));
       return res.data;
     }
     if (!quiet) setState((s) => ({ ...s, error: res ? errorOf(res) : OFFLINE }));
@@ -185,7 +185,8 @@ const useActions = (client: LabClient | null, request: ListRequest, setState: Se
   }, [history, patch]);
   /** A Blitz idea becomes its sibling card, so the focus follows the new id. */
   const pickHook = useCallback(async (idea: IdeaDto, hookId: string) => {
-    if (await patch(idea.id, { hookId })) setFocusId(hookId);
+    // A first line from the same card stays on that card; a sibling card takes over.
+    if (await patch(idea.id, { hookId })) setFocusId(hookId.startsWith('hook:') ? idea.id : hookId);
   }, [patch]);
   /** Another narrator for a Blitz idea: saved for when it is made. */
   const setVoice = useCallback((idea: IdeaDto, voice: BlitzVoiceName) => {
@@ -236,7 +237,7 @@ const useActions = (client: LabClient | null, request: ListRequest, setState: Se
  * being written, so the page shows it building instead of "Get more" buttons.
  */
 export function useIdeas(client: LabClient | null, runId: string, autoGenerate: boolean, buildingSince: string | null = null) {
-  const [state, setStateRaw] = useState<State>({ ideas: [], slideshowPct: 10, reserve: 0, loading: Boolean(client), generating: false, generatingSince: null, batchSince: null, error: null });
+  const [state, setStateRaw] = useState<State>({ ideas: [], slideshowPct: 10, reserve: 0, loading: Boolean(client), generating: false, generatingSince: null, batchSince: null, packStage: null, error: null });
   const setState = useCallback<SetState>((fn) => setStateRaw(fn), []);
   const made = useRef(new Set<string>());
   const [sync] = useState(() => new ListSync());
@@ -246,7 +247,9 @@ export function useIdeas(client: LabClient | null, runId: string, autoGenerate: 
   const lists = useMemo(() => splitIdeas(state.ideas), [state.ideas]);
   const finishing = lists.deck.some((i) => i.card?.finishing);
   usePoll(client, lists.making.length > 0 || Boolean(state.batchSince) || finishing, request);
-  const current = lists.deck.find((i) => i.id === actions.focusId) ?? lists.deck[0] ?? null;
+  // A pack in review opens its kept videos, one at a time; everywhere else the deck is the waiting ideas.
+  const shown = state.packStage === 'review' ? lists.kept : lists.deck;
+  const current = shown.find((i) => i.id === actions.focusId) ?? shown[0] ?? null;
   const reviewSkipped = useCallback(() => lists.skipped.forEach((i) => void actions.patch(i.id, { status: 'proposed' })), [lists.skipped, actions]);
   /** Made into posts: off the deck and the day lists at once (they become calendar posts). */
   const markMade = useCallback((ids: string[]) => {

@@ -1,7 +1,7 @@
 'use client';
 
-import { Check, X } from 'lucide-react';
-import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
+import { Check, Pencil, X } from 'lucide-react';
+import type { IdeaDto, IdeasPackStage } from '../../../../types/admin/calendarIdeas';
 import { CoverMedia } from '../../../labs/addToCalendar/CoverMedia';
 import { formatLabel } from '../ideas/ideaCards';
 import { ideaCover } from '../ideas/ideaCover';
@@ -16,6 +16,8 @@ type Props = {
   onOpen: (idea: IdeaDto) => void;
   /** Kept ideas are being made into posts right now. */
   busy?: boolean;
+  /** An unclaimed pack's video: kept is its normal state, not a failed make. 'review' can be edited. */
+  pack?: IdeasPackStage;
 };
 
 const CHIP: Record<'proposed' | 'kept' | 'discarded' | 'failed', { label: string; tone: string }> = {
@@ -29,13 +31,13 @@ const round = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-full 
 
 /** One idea on the chosen day: faded photo, time, Idea / Ready / Skipped, its first line, and ✕ / ✓. Keeping makes the
  *  post at once (one step): a kept one reads "Ready" with no ✓ while it is saved, and can be dragged to another day. */
-export function IdeaRow({ idea, onDecide, onOpen, busy = false }: Props) {
+export function IdeaRow({ idea, onDecide, onOpen, busy = false, pack = null }: Props) {
   const status = idea.status === 'kept' || idea.status === 'discarded' ? idea.status : 'proposed';
   const skipped = status === 'discarded';
   const kept = status === 'kept';
   const making = idea.slideshow?.state === 'making';
   // Not busy but still kept: making it failed (or the page reloaded first). The day's "Try again" makes it.
-  const chip = CHIP[kept && !busy ? 'failed' : status];
+  const chip = CHIP[kept && !busy && !pack ? 'failed' : status];
   const cover = ideaCover(idea);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggablePost('panel', 'idea', idea.id, cover?.url ?? null, status === 'kept' && !making && !busy, cover?.video);
   return (
@@ -53,7 +55,12 @@ export function IdeaRow({ idea, onDecide, onOpen, busy = false }: Props) {
         </span>
         <span className={`line-clamp-2 text-sm leading-snug font-bold ${skipped ? 'text-zinc-400 line-through' : 'text-ink dark:text-zinc-100'}`}>{idea.hook}</span>
       </span>
-      {!(kept && busy) && <span className="flex gap-1.5">
+      {pack === 'review' && kept && (
+        <button type="button" onClick={() => onOpen(idea)} className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border-[1.5px] border-line bg-white px-3 text-[13px] font-semibold text-ink transition active:scale-95 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+          <Pencil aria-hidden className="h-3.5 w-3.5" /> Edit
+        </button>
+      )}
+      {!(kept && busy) && pack !== 'locked' && <span className="flex gap-1.5">
         <button type="button" onClick={() => onDecide(idea, skipped ? 'proposed' : 'discarded')} aria-label={skipped ? 'Bring back' : 'Skip'} aria-pressed={skipped} className={`${round} ${skipped ? 'bg-zinc-600 text-white' : 'border-[1.5px] border-line bg-white text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300'}`}>
           <X aria-hidden className="h-4 w-4" strokeWidth={2.6} />
         </button>

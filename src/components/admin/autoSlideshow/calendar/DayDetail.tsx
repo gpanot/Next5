@@ -125,7 +125,7 @@ export function DayDetail(p: DayDetailProps) {
         <AddMore busy={Boolean(ideas?.generating)} open={Boolean(ideas) && wanted} canAdd={ideas ? open : !p.day.past && count < MAX_PER_DAY} onAdd={plus} onClose={() => set(false)} />
       </header>
       <ul className="flex flex-col gap-2">
-        {p.entries.map((e) => (e.idea ? <IdeaRow key={e.id} idea={e.idea} onDecide={decide} onOpen={p.onOpenIdea} busy={Boolean(p.maker?.making)} /> : e.slot && <li key={e.id}><PostRow slot={e.slot} onOpen={p.onOpen} onOpenBlitz={p.onOpenBlitz} /></li>))}
+        {p.entries.map((e) => (e.idea ? <IdeaRow key={e.id} idea={e.idea} onDecide={decide} onOpen={p.onOpenIdea} pack={ideas?.packStage ?? null} busy={Boolean(p.maker?.making)} /> : e.slot && <li key={e.id}><PostRow slot={e.slot} onOpen={p.onOpen} onOpenBlitz={p.onOpenBlitz} /></li>))}
         {Array.from({ length: empty }, (_, i) => (
           <li key={`empty-${i}`} className="flex min-h-14 items-center gap-2 rounded-[14px] border border-dashed border-zinc-300 pr-1.5 pl-3 text-sm text-muted dark:border-zinc-700">
             <span className="flex-1">Empty slot · made when you tap Generate</span>
@@ -145,7 +145,7 @@ export function DayDetail(p: DayDetailProps) {
       {shown === 0 && <p className="text-sm text-muted">{p.day.past && !p.day.today ? 'Nothing posted this day.' : 'Nothing planned yet.'}</p>}
       {ideas?.error && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{ideas.error}</p>}
       {noteOf(p, count) && <p className="text-xs text-muted">{noteOf(p, count)}</p>}
-      {p.maker && <MakeStatus kept={kept} maker={p.maker} />}
+      {p.maker && !ideas?.packStage && <MakeStatus kept={kept} maker={p.maker} />}
     </section>
   );
 }

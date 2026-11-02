@@ -5,6 +5,7 @@
 // while the user swipes. Blitz cards that were not planned stay as a reserve: they refill a skipped day, fill a day's
 // "+", and serve as other first lines.
 
+import { packStageOf } from '../prospects/openPack';
 import type { Prisma, SlideshowVariant } from '@prisma/client';
 import { createHash } from 'crypto';
 import { prisma } from '../../lib/db';
@@ -87,13 +88,14 @@ const slideshowDto = async (row: SlideshowVariant): Promise<IdeaDto | null> => {
 
 /** The workspace's ideas from today on (skipped ones too, for "Look at skipped again"), soonest first. */
 export async function listIdeas(workspaceId: string): Promise<IdeasListDto> {
-  const [rows, reserve, ws] = await Promise.all([
+  const [rows, reserve, ws, packStage] = await Promise.all([
     prisma.slideshowVariant.findMany({ where: { workspaceId, status: { in: LISTED }, plannedAt: { gte: new Date(Date.now() - SINCE_MS) } }, orderBy: { plannedAt: 'asc' } }),
     loadReserve(workspaceId),
     prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ideaSlideshowPct: true, ideasBatchAt: true } }),
+    packStageOf(workspaceId),
   ]);
   const ideas = await Promise.all(rows.map((r) => (r.engine === 'bank' ? slideshowDto(r) : Promise.resolve(blitzDto(r, reserve)))));
-  return { ideas: ideas.filter((i): i is IdeaDto => i !== null), slideshowPct: ws?.ideaSlideshowPct ?? 10, reserve: reserve.length, batchSince: ideasBatchSince(ws?.ideasBatchAt) };
+  return { ideas: ideas.filter((i): i is IdeaDto => i !== null), slideshowPct: ws?.ideaSlideshowPct ?? 10, reserve: reserve.length, batchSince: ideasBatchSince(ws?.ideasBatchAt), packStage };
 }
 
 /** Posts and kept ideas on each of the viewer's days over the ideas window (waiting ideas do not hold a day, except
