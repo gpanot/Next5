@@ -1,6 +1,8 @@
 /** Prospect Packs (admin outbound): 14 days of content made for an SME before they sign up, shared at /p/<token>. */
 
-export type ProspectStatus = 'queued' | 'building' | 'faces' | 'making' | 'ready' | 'failed' | 'claimed';
+/** 'review': every post is made and on the workspace's calendar, for the admin to check and edit. 'generating': the admin
+ *  tapped "Generate calendar": the videos render, then the days are read from the calendar and the link opens ('ready'). */
+export type ProspectStatus = 'queued' | 'building' | 'faces' | 'making' | 'review' | 'generating' | 'ready' | 'failed' | 'claimed';
 
 /** Packs made at once (reading the site, or making posts). More wait as 'queued' and start, oldest first, when one
  *  finishes: the Blitz render worker, stock photo searches and the database are shared with every user. */
@@ -30,15 +32,17 @@ export const fullCount = (kind: ProspectKind): number => PROSPECT_ORDER.slice(0,
 export type ProspectDay = { day: number; at: string; kind: ProspectKind; refId: string; preview?: boolean };
 
 /** A picked Blitz idea and its render (null until queued). `preview`: its photos are filled but it is not rendered
- *  until the pack is unlocked. `retry`: it failed for a reason that may pass (the stock photo scraper was busy), so a
- *  later step tries it again; `tries` counts the attempts. */
-export type ProspectBlitz = { ideaId: string; projectId: string | null; preview?: boolean; error?: string; retry?: boolean; tries?: number };
+ *  until the pack is unlocked. `held`: its photos are filled and it renders on "Generate calendar", so edits made in
+ *  review cost no second render. `rendering`: that render is being queued. `cardHash`: the card its render was made from
+ *  (a card that changed renders again). `retry`: it failed for a reason that may pass (the stock photo scraper was
+ *  busy), so a later step tries it again; `tries` counts the attempts. */
+export type ProspectBlitz = { ideaId: string; projectId: string | null; preview?: boolean; held?: boolean; rendering?: boolean; cardHash?: string; error?: string; retry?: boolean; tries?: number };
 
 /** Attempts per Blitz idea before the pack goes on without it. */
 export const PROSPECT_BLITZ_TRIES = 3;
 
 /** True while a picked idea may still become a video. */
-export const blitzPending = (b: ProspectBlitz): boolean => !b.projectId && !(b.preview && !b.error) && (!b.error || (!!b.retry && (b.tries ?? 1) < PROSPECT_BLITZ_TRIES));
+export const blitzPending = (b: ProspectBlitz): boolean => !b.projectId && !((b.preview || b.held) && !b.error) && (!b.error || (!!b.retry && (b.tries ?? 1) < PROSPECT_BLITZ_TRIES));
 
 /** The admin list row. */
 export type ProspectPackDto = {

@@ -79,7 +79,7 @@ function Averages({ packs, hideCost }: { packs: ProspectPackDto[]; hideCost: boo
 
 /** Admin › Prospects: make an SME's next 14 days of posts and send them a review link before they sign up. */
 export function ProspectsTab({ token }: { token: string }) {
-  const { packs, error, loading, refresh, create, approve, remove } = useProspects(token);
+  const { packs, error, loading, refresh, create, approve, remove, generate, reopen } = useProspects(token);
   const [hideCost, setHideCost] = useState(false);
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -95,7 +95,7 @@ export function ProspectsTab({ token }: { token: string }) {
       <Averages packs={packs} hideCost={hideCost} />
       {packs.length > 0 && (
         <ul className="space-y-3">
-          {packs.map((p) => <ProspectRow key={p.id} token={token} pack={p} hideCost={hideCost} onApprove={approve} onDelete={remove} />)}
+          {packs.map((p) => <ProspectRow key={p.id} token={token} pack={p} hideCost={hideCost} onApprove={approve} onDelete={remove} onGenerate={generate} onReopen={reopen} />)}
         </ul>
       )}
     </div>

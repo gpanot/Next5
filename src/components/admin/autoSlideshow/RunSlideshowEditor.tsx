@@ -11,7 +11,7 @@ type Props = { token: string; run: AutoRunDto; openId: string | null; onOpen: (i
 
 /** The editor over one run's ready slideshows, with prev/next between them. Renders nothing while none is open. */
 export function RunSlideshowEditor({ token, run, openId, onOpen, onChanged }: Props) {
-  const ready = run.slideshows.filter((s) => s.status === 'ready');
+  const ready = run.slideshows.filter((s) => s.status === 'ready' || s.coverOnly);
   const at = ready.findIndex((s) => s.id === openId);
   const open = at >= 0 ? ready[at] : null;
   // The photo and music pickers load once, on the first slideshow opened, and stay for the next ones.

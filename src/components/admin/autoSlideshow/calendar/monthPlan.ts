@@ -18,6 +18,8 @@ export type DayItem =
   | { kind: 'post'; show: AutoSlideshowDto; post: AutoPostDto }
   | { kind: 'ready'; show: AutoSlideshowDto }
   | { kind: 'making'; show: AutoSlideshowDto | null }
+  /** A pack preview: only its first slide is made. It can be opened and moved, not approved. */
+  | { kind: 'preview'; show: AutoSlideshowDto }
   /** A kept Blitz video scheduled from the Content page: rendered near its time, then posted. */
   | { kind: 'blitz'; show: null; blitz: BlitzScheduleDto };
 
@@ -81,8 +83,8 @@ const waitingQueue = (slideshows: AutoSlideshowDto[], pending: number, working: 
   const queue: DayItem[] = [];
   const pinned = new Map<string, PlanSlot[]>();
   for (const show of [...slideshows].sort((a, b) => a.position - b.position)) {
-    if (isLive(show) || show.status === 'failed' || (!working && show.status !== 'ready')) continue;
-    const item: DayItem = show.status === 'ready' ? { kind: 'ready', show } : { kind: 'making', show };
+    if (isLive(show) || show.status === 'failed' || (!working && show.status !== 'ready' && !show.coverOnly)) continue;
+    const item: DayItem = show.status === 'ready' ? { kind: 'ready', show } : show.coverOnly ? { kind: 'preview', show } : { kind: 'making', show };
     const pin = pins[show.id] ? new Date(pins[show.id]!) : null;
     if (pin && !Number.isNaN(pin.getTime()) && pin >= tomorrow) pinned.set(dayKey(pin), [...(pinned.get(dayKey(pin)) ?? []), { at: pin, item }]);
     else queue.push(item);

@@ -215,6 +215,8 @@ export type AutoSlideshowDto = {
   plannedAt: string | null;
   status: AutoSlideshowStatus;
   error: string | null;
+  /** A Prospect Pack preview: only its first slide is made until the pack is unlocked. */
+  coverOnly?: boolean;
 };
 
 export type AutoRunDto = {

@@ -5,9 +5,11 @@
 //   hooks  — the Hooks Volume campaign (hooksVolume.ts), once
 //   blitz  — PROSPECT_BLITZ Blitz ideas rendered (blitz.ts), each picked as soon as it is finished: from the site scan
 //            on, without waiting for the face check
-// A 'queued' pack starts here when its turn comes (queue.ts). When all three have settled, the days are planned (days.ts) and the pack is ready to share. Only the posts of the
-// free days are made in full: the other Blitz ideas and Brand Cast slideshows are previews (first shot or slide) until
-// the pack is unlocked (unlock.ts). Hooks Volume is stock photos only, so all of it is made.
+// A 'queued' pack starts here when its turn comes (queue.ts). When all three have settled, the days are planned (days.ts),
+// every post goes on the workspace's calendar and the pack waits for the admin's 'review'. "Generate calendar" renders the
+// videos and opens the link (generate.ts). Only the posts of the free days are made in full: the other Blitz ideas and
+// Brand Cast slideshows are previews (first shot or slide) until the pack is unlocked (unlock.ts). Hooks Volume is stock
+// photos only, so all of it is made.
 
 import type { Prisma, ProspectPack } from '@prisma/client';
 import { prisma } from '../../lib/db';
@@ -20,7 +22,9 @@ import { HttpError } from '../http';
 import { wakeBlitzWorker } from '../labs/blitzWorkerWake';
 import type { DeckItem } from '../slideshow/core/deckAssembly';
 import { blitzPicked, blitzRenders, ideasById, renderBlitz, unpickedIdeas } from './blitz';
+import { putOnCalendar } from './calendarPlan';
 import { composeDays } from './days';
+import { stepGenerating } from './generate';
 import { buildHooksVolume } from './hooksVolume';
 import { startIfTurn } from './queue';
 import { blitzOf, loadPack } from './store';
@@ -75,7 +79,7 @@ const retryBlitz = async (pack: ProspectPack, picked: ProspectBlitz[]): Promise<
   if (locked.count === 0) return;
   const ideas = await ideasById(pack.workspaceId, again.map((b) => b.ideaId));
   const previews = new Set(again.filter((b) => b.preview).map((b) => b.ideaId));
-  const rendered = new Map((await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas, previews)).map((r) => [r.ideaId, r]));
+  const rendered = new Map((await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas, previews, true)).map((r) => [r.ideaId, r]));
   const merged = started.map((b) => {
     const r = rendered.get(b.ideaId);
     return r ? { ...r, tries: b.tries } : again.some((a) => a.ideaId === b.ideaId) ? { ...b, error: 'Idea not found.', retry: false } : b;
@@ -84,10 +88,10 @@ const retryBlitz = async (pack: ProspectPack, picked: ProspectBlitz[]): Promise<
 };
 
 /** A picked idea whose photos are being found and render queued (a new pick, or a retry started). */
-const inFlight = (b: ProspectBlitz): boolean => !b.projectId && !b.error && !b.preview;
+const inFlight = (b: ProspectBlitz): boolean => !b.projectId && !b.error && !b.preview && !b.held;
 
-/** The Blitz part: picks the ideas finished so far and queues their renders, one batch at a time (the photo scraper
- *  refuses bursts; the row's updatedAt is the lock), then retries. Ideas past the free days only get their photos. */
+/** The Blitz part: picks the ideas finished so far and fills their photos, one batch at a time (the photo scraper
+ *  refuses bursts; the row's updatedAt is the lock), then retries. Nothing renders before the admin's review. */
 const advanceBlitz = async (pack: ProspectPack): Promise<void> => {
   const picked = blitzOf(pack);
   if (picked.some(inFlight)) return;
@@ -99,7 +103,7 @@ const advanceBlitz = async (pack: ProspectPack): Promise<void> => {
   // Bank cards say whether they are previews (their images are held, labs/packPreviews.ts); others: past the free ones.
   const isPreview = (card: DeckItem | null, i: number) => (card?.script?.storyId ? Boolean(card.packPreview) : picked.length + i >= fullCount('blitz'));
   const previews = new Set(ideas.filter((idea, i) => isPreview(idea.card as DeckItem | null, i)).map((i) => i.id));
-  const rendered = new Map((await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas, previews)).map((r) => [r.ideaId, r]));
+  const rendered = new Map((await renderBlitz(pack.ownerUserId, pack.workspaceId, pack.name, ideas, previews, true)).map((r) => [r.ideaId, r]));
   await prisma.prospectPack.update({ where: { id: pack.id }, data: { blitz: json(started.map((b) => rendered.get(b.ideaId) ?? b)) } });
 };
 
@@ -131,21 +135,25 @@ const settledPosts = async (pack: ProspectPack): Promise<Settled> => {
     prisma.blitzProject.findMany({ where: { id: { in: picked.flatMap((p) => (p.projectId ? [p.projectId] : [])) }, renderStatus: 'COMPLETED' }, select: { id: true } }),
   ]);
   const ideaPreviews = picked.filter((p) => p.preview && !p.error).map((p) => p.ideaId);
-  const blitz = [...videos.map((v) => v.id), ...ideaPreviews];
+  const held = picked.filter((p) => p.held && !p.error && !p.projectId).map((p) => p.ideaId);
+  const blitz = [...videos.map((v) => v.id), ...held, ...ideaPreviews];
   return { posts: { blitz, cast: [...cast.map((s) => s.id), ...covers], hooks: hooks.map((s) => s.id) }, previews: new Set([...ideaPreviews, ...covers]) };
 };
 
-/** Plans the days and opens the share link; a pack with nothing made fails instead. */
+/** Plans the days and puts every post on the calendar for the admin's review; a pack with nothing made fails instead. */
 const finish = async (pack: ProspectPack, posts: Record<ProspectKind, string[]>, previews: Set<string>): Promise<void> => {
   if (posts.blitz.length + posts.cast.length + posts.hooks.length === 0) return void (await fail(pack.id, pack.error ?? 'Nothing could be made.'));
   const ws = await prisma.workspace.findUniqueOrThrow({ where: { id: pack.workspaceId }, select: { ideaTzOffsetMin: true } });
   const days = composeDays(posts, new Date(), ws.ideaTzOffsetMin, previews);
-  await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'making' }, data: { status: 'ready', days: json(days), readyAt: new Date() } });
+  await putOnCalendar(pack, days);
+  await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'making' }, data: { status: 'review', days: json(days), readyAt: new Date() } });
 };
 
 /** A video that ended after the pack was ready (a render retried, or picked late) joins the days, until the pack is
  *  claimed: the days are planned again from the same first day, and the link keeps working (status stays 'ready'). */
 const refinish = async (pack: ProspectPack): Promise<void> => {
+  // Generated from the calendar: its days are the admin's, and a video left out there stays out.
+  if (blitzOf(pack).some((b) => b.cardHash)) return;
   const planned = new Set(((pack.days as unknown as ProspectDay[] | null) ?? []).map((d) => d.refId));
   const settled = await settledPosts(pack);
   if (!settled || settled.posts.blitz.every((id) => planned.has(id))) return;
@@ -184,6 +192,7 @@ const stepPack = async (pack: ProspectPack): Promise<void> => {
   if (pack.status === 'faces') return void (await Promise.all([autoApprove(pack), advanceBlitz(pack)]));
   if (pack.status === 'building') return advanceBlitz(pack);
   if (pack.status === 'ready') return refinish(pack);
+  if (pack.status === 'generating') return stepGenerating(pack);
   if (pack.status !== 'making') return;
   await Promise.all([advanceHooks(pack), advanceBlitz(pack)]);
   const fresh = await loadPack(id);
@@ -195,6 +204,6 @@ const stepPack = async (pack: ProspectPack): Promise<void> => {
  *  API costs go to the placeholder owner (the pack's cost, store.ts). */
 export const advanceProspect = async (id: string): Promise<void> => {
   const pack = await loadPack(id);
-  if (pack.status !== 'queued' && pack.status !== 'claimed' && pack.status !== 'failed') await wakeForWaiting(pack);
+  if (pack.status !== 'queued' && pack.status !== 'claimed' && pack.status !== 'failed' && pack.status !== 'review') await wakeForWaiting(pack);
   await withUserCostContext(pack.ownerUserId, () => stepPack(pack));
 };

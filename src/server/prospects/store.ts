@@ -39,7 +39,7 @@ const castMade = async (runId: string): Promise<number> => {
 /** What each part has made so far: rendered videos and Blitz previews, Brand Cast slideshows, Hooks Volume slideshows. */
 const progressOf = async (pack: ProspectPack): Promise<ProspectPackDto['progress']> => {
   const ids = blitzOf(pack).flatMap((b) => (b.projectId ? [b.projectId] : []));
-  const previews = blitzOf(pack).filter((b) => b.preview && !b.error).length;
+  const previews = blitzOf(pack).filter((b) => (b.preview || (b.held && !b.projectId)) && !b.error).length;
   const [videos, cast, hooks] = await Promise.all([
     ids.length ? prisma.blitzProject.count({ where: { id: { in: ids }, renderStatus: 'COMPLETED' } }) : 0,
     pack.brandRunId ? castMade(pack.brandRunId) : 0,
@@ -51,7 +51,7 @@ const progressOf = async (pack: ProspectPack): Promise<ProspectPackDto['progress
 /** A ready pack with a video that may still join its days (prospects/advance.ts refinish): one still rendering, or
  *  one rendered after the days were planned. The admin tab keeps moving such a pack on. */
 const lateVideosOf = async (pack: ProspectPack): Promise<boolean> => {
-  if (pack.status !== 'ready') return false;
+  if (pack.status !== 'ready' || blitzOf(pack).some((b) => b.cardHash)) return false;
   const ids = blitzOf(pack).flatMap((b) => (b.projectId ? [b.projectId] : []));
   if (ids.length === 0) return false;
   const planned = new Set(((pack.days as unknown as ProspectDay[] | null) ?? []).map((d) => d.refId));

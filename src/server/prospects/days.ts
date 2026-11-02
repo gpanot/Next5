@@ -21,6 +21,17 @@ const pickKind = (left: Record<ProspectKind, string[]>, wanted: ProspectKind, da
   return left[wanted].length > 0 ? wanted : KINDS.find((k) => left[k].length > 0)!;
 };
 
+/** The days as they stand on the calendar: one per post, in time order. */
+export const daysFromPlan = (items: Array<Omit<ProspectDay, 'day'>>): ProspectDay[] =>
+  [...items].sort((a, b) => a.at.localeCompare(b.at)).map((item, i) => ({ ...item, day: i + 1 }));
+
+/** Planned days again from tomorrow when the first one has passed (a pack sent back to review later); order kept. */
+export const rebaseDays = (days: ProspectDay[], now: Date, tzOffsetMin: unknown): ProspectDay[] => {
+  if (days.length === 0 || new Date(days[0]!.at) > now) return days;
+  const tomorrow = viewerDay(now, tzOffsetMin) + 1;
+  return days.map((d, i) => ({ ...d, at: atViewerTime(tomorrow + i, POST_TIME, tzOffsetMin).toISOString() }));
+};
+
 export const composeDays = (posts: Record<ProspectKind, string[]>, now: Date, tzOffsetMin: unknown, previews: Set<string> = new Set()): ProspectDay[] => {
   const left: Record<ProspectKind, string[]> = { blitz: [...posts.blitz], cast: [...posts.cast], hooks: [...posts.hooks] };
   const total = left.blitz.length + left.cast.length + left.hooks.length;

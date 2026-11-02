@@ -24,7 +24,7 @@ export function PostRow({ slot, onOpen, onOpenBlitz }: { slot: Filled; onOpen: (
   // A ready slideshow, or a Blitz video not started yet, can be dragged to another day. A failed video too: it leaves
   // its old day and goes on the new one.
   const drag: { kind: DragKind; id: string | undefined; enabled: boolean } =
-    item.kind === 'blitz' ? { kind: 'blitz', id: item.blitz.id, enabled: blitzOpenable(item.blitz) || item.blitz.status === 'failed' } : { kind: 'show', id: item.show?.id, enabled: item.kind === 'ready' };
+    item.kind === 'blitz' ? { kind: 'blitz', id: item.blitz.id, enabled: blitzOpenable(item.blitz) || item.blitz.status === 'failed' } : { kind: 'show', id: item.show?.id, enabled: item.kind === 'ready' || item.kind === 'preview' };
   const { attributes, listeners, setNodeRef, isDragging } = useDraggablePost('panel', drag.kind, drag.id, cover, drag.enabled, coverIsVideoOf(item));
   const { justDropped } = useSlideshowDrag();
   // A Blitz video opens its approval until it starts, then its live post (TikTok or YouTube) once live.

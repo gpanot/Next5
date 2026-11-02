@@ -76,7 +76,7 @@ const videoGroup = async (pack: ProspectPack, run: Run | null): Promise<Prospect
   const picked = blitzOf(pack);
   if (picked.length === 0) {
     const since = run?.finishedAt ? `Brand Cast done ${minutesAgo(run.finishedAt)}: goes on without videos after 15 min` : 'Ideas are written after the site scan';
-    const state = pack.status === 'building' || pack.status === 'faces' || pack.status === 'making' ? 'running' : pack.status === 'ready' || pack.status === 'claimed' ? 'skipped' : 'waiting';
+    const state = pack.status === 'building' || pack.status === 'faces' || pack.status === 'making' ? 'running' : pack.status === 'review' || pack.status === 'generating' || pack.status === 'ready' || pack.status === 'claimed' ? 'skipped' : 'waiting';
     return { title: 'Videos', tasks: [task('Pick 7 Blitz ideas', state, state === 'skipped' ? 'No ideas came in time' : since)] };
   }
   const ids = picked.flatMap((b) => (b.projectId ? [b.projectId] : []));
@@ -87,6 +87,8 @@ const videoGroup = async (pack: ProspectPack, run: Run | null): Promise<Prospect
     const tries = b.tries ?? 1;
     if (b.error) return b.retry && tries < PROSPECT_BLITZ_TRIES ? task(label, 'running', `Try ${tries + 1}/${PROSPECT_BLITZ_TRIES} after: ${b.error}`) : task(label, 'failed', b.error);
     if (b.preview) return task(label, 'done', 'Preview: photos only, rendered once they pay');
+    if (b.rendering) return task(label, 'running', 'Queuing its render');
+    if (b.held && !b.projectId) return task(label, 'done', 'Photos ready: rendered on Generate calendar');
     const project = b.projectId ? byId.get(b.projectId) : undefined;
     if (!project) return task(label, 'running', 'Getting photos');
     if (project.renderStatus === 'COMPLETED') return task(label, 'done', project.renderStartedAt && project.renderFinishedAt ? `Rendered in ${seconds(project.renderFinishedAt.getTime() - project.renderStartedAt.getTime())}` : null);
@@ -99,8 +101,14 @@ const videoGroup = async (pack: ProspectPack, run: Run | null): Promise<Prospect
 };
 
 const finishGroup = (pack: ProspectPack): ProspectTaskGroup => {
-  const state = pack.status === 'ready' || pack.status === 'claimed' ? 'done' : pack.status === 'failed' ? 'failed' : 'waiting';
-  return { title: 'Share link', tasks: [task('Plan the 14 days and open the link', state, state === 'failed' ? pack.error : state === 'waiting' ? 'When every part above is done' : null)] };
+  const reviewed = pack.status === 'ready' || pack.status === 'claimed';
+  const planned = reviewed || pack.status === 'review' || pack.status === 'generating';
+  const planState = planned ? 'done' : pack.status === 'failed' ? 'failed' : 'waiting';
+  const plan = task('Plan the 14 days on the calendar', planState, planState === 'failed' ? pack.error : planState === 'waiting' ? 'When every part above is done' : null);
+  const link = reviewed ? task('Generate the calendar and open the link', 'done')
+    : pack.status === 'generating' ? task('Generate the calendar and open the link', 'running', 'Rendering the videos')
+    : task('Generate the calendar and open the link', 'waiting', pack.status === 'review' ? 'When you tap Generate calendar' : null);
+  return { title: 'Share link', tasks: [plan, link] };
 };
 
 export const packTasks = async (id: string): Promise<ProspectTasksDto> => {

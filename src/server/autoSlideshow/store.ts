@@ -56,7 +56,7 @@ export const toRunDto = async (run: AutoSlideshowRun & { slideshows: ShowRow[] }
   photos: run.photos as unknown as AutoPhoto[] | null,
   stepTimings: run.stepTimings as Partial<Record<AutoStep, number>>,
   stepCosts: run.stepCosts as unknown as Partial<Record<AutoStep, StepCost>>,
-  slideshows: await Promise.all(run.slideshows.map(toSlideshowDto)),
+  slideshows: await Promise.all(run.slideshows.map(async (s) => ({ ...(await toSlideshowDto(s)), ...(s.status === 'written' && run.coverOnlyPositions.includes(s.position) ? { coverOnly: true } : {}) }))),
   createdAt: run.createdAt.toISOString(),
   startedAt: run.startedAt.toISOString(),
   finishedAt: run.finishedAt?.toISOString() ?? null,

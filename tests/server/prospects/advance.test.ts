@@ -51,6 +51,8 @@ const blitzMock = vi.hoisted(() => ({
 vi.mock('../../../src/server/autoSlideshow/pipeline', () => ({ runAutoPipeline }));
 const wakeBlitzWorker = vi.hoisted(() => vi.fn());
 vi.mock('../../../src/server/labs/blitzWorkerWake', () => ({ wakeBlitzWorker }));
+const calendar = vi.hoisted(() => ({ putOnCalendar: vi.fn(async () => undefined) }));
+vi.mock('../../../src/server/prospects/calendarPlan', () => ({ putOnCalendar: calendar.putOnCalendar, daysFromCalendar: vi.fn(async () => []) }));
 vi.mock('../../../src/server/prospects/hooksVolume', () => ({ buildHooksVolume: vi.fn(async () => 4) }));
 vi.mock('../../../src/server/prospects/blitz', () => ({
   unpickedIdeas: vi.fn(async (_ws: string, picked: Set<string>) => ({ ideas: blitzMock.ideas.filter((i) => !picked.has(i.id)), writing: false })),
@@ -105,10 +107,12 @@ describe('advanceProspect', () => {
 
     db.state.renders[0]!.renderStatus = 'FAILED';
     await advanceProspect('pp_1');
-    expect(db.state.pack.status).toBe('ready');
+    expect(db.state.pack.status).toBe('review');
+    expect(calendar.putOnCalendar).toHaveBeenCalled();
     const days = db.state.pack.days as Array<{ kind: string; refId: string }>;
     expect(days).toHaveLength(8);
     expect(days.filter((d) => d.kind === 'blitz').map((d) => d.refId)).toEqual(['bp_2']);
+    db.state.pack.status = 'ready';
 
     // The failed video is rendered on a retry after the pack is ready: it joins the days, the link stays open.
     db.state.renders[0]!.renderStatus = 'COMPLETED';
@@ -140,8 +144,9 @@ describe('advanceProspect', () => {
     blitzMock.rendered = [{ ideaId: 'idea_1', projectId: 'bp_1' }, { ideaId: 'idea_5', projectId: null, preview: true }];
     const { renderBlitz } = await import('../../../src/server/prospects/blitz');
     await advanceProspect('pp_1');
+    expect(vi.mocked(renderBlitz).mock.calls.at(-1)?.[5]).toBe(true);
     expect(vi.mocked(renderBlitz).mock.calls.at(-1)?.[4]).toEqual(new Set(['idea_5']));
-    expect(db.state.pack.status).toBe('ready');
+    expect(db.state.pack.status).toBe('review');
     const days = db.state.pack.days as Array<{ day: number; refId: string; preview?: boolean }>;
     // One video rendered: the free days take full slideshows before the video preview.
     expect(days.filter((d) => d.preview).map((d) => ({ day: d.day, refId: d.refId }))).toEqual([{ day: 8, refId: 'idea_5' }, { day: 9, refId: 'c3' }]);

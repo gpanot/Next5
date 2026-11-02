@@ -56,6 +56,7 @@ export const STATUS_LABELS: Record<Exclude<TileStatus, 'failed'>, string> = { id
 
 export const statusOf = (item: DayItem): TileStatus | null => {
   if (item.kind === 'making') return 'making';
+  if (item.kind === 'preview') return 'kept';
   if (item.kind === 'ready') return 'ready';
   if (item.kind === 'post') return item.post.status === 'canceled' ? null : item.post.status === 'failed' ? 'failed' : item.post.status === 'posted' ? 'posted' : 'scheduled';
   const s = item.blitz.status;
