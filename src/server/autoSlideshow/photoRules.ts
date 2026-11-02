@@ -44,21 +44,20 @@ export const BUSY_WORDS = /\b(details?|detailed|surroundings|busy|bustling|clutt
 export const LOOK_RULE = 'Always clean and uncluttered: few objects, calm backgrounds, one clear subject';
 
 /** One way to make a photo: a model on a provider (photos.ts runs each). */
-export type PhotoEngineStep = 'wavespeed-gpt-2.5' | 'reapi-gpt-2.5' | 'reapi-nano-2.1';
+export type PhotoEngineStep = 'wavespeed-gpt-2.5' | 'reapi-muse' | 'reapi-nano-2.1';
 
 /**
  * Which model makes the slideshow photos (Brand Cast runs and their edits), tried in order until one works.
- * - gpt (default since 2026-10-21, board V5/V6): GPT Image 2.5 Flare made the prompts tidier and brighter (luma 137-183
- *   vs 121-171 on Nano). reAPI first ($0.012), on its official channel with moderation 'low' (the plain channel failed
- *   every call that day; moderation 'auto' rejects gym-wear shots); WaveSpeed only when reAPI fails ($0.039 with a
- *   reference, $0.024 without, at 1k), then Nano.
+ * - muse (default since 2026-11-02): Muse Image on reAPI ($0.005, about 95 s with a reference). It replaced GPT Image 2.5
+ *   Flare on reAPI's official channel ($0.012, default from 2026-10-21). GPT Image 2.5 Flare stays on WaveSpeed only when
+ *   reAPI fails ($0.039 with a reference, $0.024 without, at 1k), then Nano.
  * - nano (board V1/V7): Nano Banana 2.1, the most candid photos, but busier and darker. Set SLIDESHOW_PHOTO_ENGINE=nano.
- *   Its safety filter refused about 1 EQL photo in 8 (young women in sportswear); GPT takes those.
+ *   Its safety filter refused about 1 EQL photo in 8 (young women in sportswear); the next steps take those.
  */
-export const PHOTO_ENGINES: Record<'gpt' | 'nano', readonly PhotoEngineStep[]> = {
-  gpt: ['reapi-gpt-2.5', 'wavespeed-gpt-2.5', 'reapi-nano-2.1'],
-  nano: ['reapi-nano-2.1', 'wavespeed-gpt-2.5', 'reapi-gpt-2.5'],
+export const PHOTO_ENGINES: Record<'muse' | 'nano', readonly PhotoEngineStep[]> = {
+  muse: ['reapi-muse', 'wavespeed-gpt-2.5', 'reapi-nano-2.1'],
+  nano: ['reapi-nano-2.1', 'wavespeed-gpt-2.5', 'reapi-muse'],
 };
 
 /** The engine in use: read per call, so a local or Vercel env change applies without a code change. */
-export const photoEngine = (): readonly PhotoEngineStep[] => PHOTO_ENGINES[process.env.SLIDESHOW_PHOTO_ENGINE === 'nano' ? 'nano' : 'gpt'];
+export const photoEngine = (): readonly PhotoEngineStep[] => PHOTO_ENGINES[process.env.SLIDESHOW_PHOTO_ENGINE === 'nano' ? 'nano' : 'muse'];

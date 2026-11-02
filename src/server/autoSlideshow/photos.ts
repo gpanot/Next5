@@ -1,6 +1,6 @@
 // server-only — never import from a 'use client' file.
-// Step 5: the run's photos, 9:16 like the slides, from the photo engine in photoRules.ts (GPT Image 2.5 on reAPI, then
-// WaveSpeed, since 2026-10-21). Each photo is copied to the object store right away: result links expire, and step 6 renders
+// Step 5: the run's photos, 9:16 like the slides, from the photo engine in photoRules.ts (Muse Image on reAPI, then
+// WaveSpeed, since 2026-11-02). Each photo is copied to the object store right away: result links expire, and step 6 renders
 // from our copy. Each photo keeps how it was made (`gen`) for replays.
 
 import { IMAGE_MODELS, type ImageModelId } from '../../config/imageModels';
@@ -93,12 +93,12 @@ const onReapi = (model: ReapiModelId) => async (prompt: string, refUrls: string[
 
 const ENGINE_STEPS: Record<PhotoEngineStep, (prompt: string, refUrls: string[], meter: CostMeter) => Promise<Made>> = {
   'wavespeed-gpt-2.5': wavespeedPhoto,
-  'reapi-gpt-2.5': onReapi('reapi-gpt-image-2.5-official'),
+  'reapi-muse': onReapi('reapi-muse-image'),
   'reapi-nano-2.1': onReapi(PHOTO_GEN.model),
 };
 
 /** A step that failed this many times in a row (a provider outage) is skipped for a while, so each photo does not wait
- *  on it first (reAPI's GPT failed every call for hours on 2026-10-21). Kept per server instance. */
+ *  on it first (reAPI's GPT Image failed every call for hours on 2026-10-21). Kept per server instance. */
 const BREAKER_FAILURES = 3;
 const BREAKER_MS = 10 * 60_000;
 const breaker = new Map<PhotoEngineStep, { failures: number; until: number }>();

@@ -8,8 +8,9 @@ import { prisma } from '../../../lib/db';
 import { MAX_CAMPAIGN_CONTENT, type CampaignPhotoJobDto, type CampaignPhotoJobRequest } from '../../../types/admin/slideshowCampaign';
 import { autoPhoto, importPhoto, parseAutoPhoto, parsePhotoRef } from './photos';
 
-/** Photos made at once per request. */
-const PARALLEL = 4;
+/** Photos made at once per request: reAPI's limit of 10 in flight. Muse Image takes about 100 s a photo, so the most photos
+ *  one request asks for (15) must land in two waves to fit the 300 s function limit. */
+const PARALLEL = 10;
 /** Most photos one request may ask for (one per content slide, at most). */
 const MAX_JOBS = MAX_CAMPAIGN_CONTENT;
 
