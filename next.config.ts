@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
     // Slide renders read the store badge SVGs from public/ at runtime.
     '/api/**': ['./public/images/store-badges/**'],
   },
+  // Copy Viral runs on localhost only, but its dynamic paths make the tracer pull the whole project into these functions.
+  outputFileTracingExcludes: {
+    '/api/admin/copy-viral/**': ['./public/**', './tools/**', './tests/**', './docs/**', './clone test/**', './tsconfig.tsbuildinfo'],
+  },
   // OAuth discovery for the Claude connector (/api/mcp): the well-known documents are served by API routes.
   async rewrites() {
     return [
