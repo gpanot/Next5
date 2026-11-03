@@ -16,6 +16,7 @@ import { chargeCredits, requireCredits } from '../slideshowCredits/charge';
 import { creativeJson } from '../shorts/llm';
 import { tregBytes, tregJson, withRetry } from '../shorts/treg';
 import { deleteObject, getObject, putObject } from '../storage/objectStore';
+import { ageOf } from './personas';
 
 /** 6 s fits the 11-14 word line; Veo makes 4, 6 or 8 s clips. */
 const SECONDS = 6;
@@ -47,7 +48,7 @@ export const isMan = (look: string) => /\b(man|male|guy)\b/i.test(look) && !/\bw
 
 /** The voice as the best test clip asked for it (2026-10-10): "warm, friendly American young woman in her early twenties". */
 const voiceOf = (member: BrandCastMember): string => {
-  const age = Number(member.name.split(',')[1]?.trim()) || 25;
+  const age = ageOf(member) ?? 25;
   const decade = ['twenties', 'thirties', 'forties', 'fifties', 'sixties'][Math.min(4, Math.max(0, Math.floor(age / 10) - 2))];
   const part = age % 10 < 4 ? 'early' : age % 10 < 7 ? 'mid' : 'late';
   const [who, their] = isMan(member.look) ? ['man', 'his'] : ['woman', 'her'];

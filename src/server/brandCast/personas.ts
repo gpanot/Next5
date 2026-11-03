@@ -11,6 +11,7 @@ import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { creativeJson, type UserContent } from '../shorts/llm';
 import type { TargetClient } from '../autoSlideshow/targetClient';
+import { dressCodeOf } from './dressCode';
 
 /** The cast writer (the user's pick, 2026-10-10); gpt-5.4-nano answers when it fails. */
 const CAST_MODEL = 'gpt-6.1-sol';
@@ -38,7 +39,7 @@ const targetText = (target: TargetClient | null) => (target
 export type Persona = { name: string; look: string; outfitPhoto?: number | null };
 
 /** What the owner asked for when swapping a face or creating one: a note ("same face, in EQL leggings"), a reference photo, or both. */
-export type CastGuide = { note?: string; photoUrl?: string; current?: Persona };
+export type CastGuide = { note?: string; photoUrl?: string; current?: Persona; keepOutfit?: boolean };
 
 const SYSTEM = `You cast the recurring people of a brand's social media photos. They come back across many posts, so viewers
 must like looking at them: good-looking, fit, healthy, confident people from the brand's audience, the ones that audience
@@ -74,8 +75,9 @@ OUTFIT PHOTOS: ${outfits.length ? outfits.map((o, i) => `P${i + 1}: ${o}`).join(
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? clip(v.replace(/\s+/g, ' ').trim(), max) : '');
 
-/** `ages`: keeps written ages within this range (null when the owner guided the swap). */
-const toPersonas = (raw: Record<string, unknown>, count: number, outfits: number, ages: { min: number; max: number } | null): Persona[] =>
+/** `ages`: keeps written ages within this range (null when the owner guided the swap). `outfitLine`: how the look names
+ *  the clothes ("Dress code" when they stay on every photo: dressCode.ts). */
+const toPersonas = (raw: Record<string, unknown>, count: number, outfits: number, ages: { min: number; max: number } | null, outfitLine = 'Outfit'): Persona[] =>
   Array.from({ length: count }, (_, i) => {
     const n = i + 1;
     const name = str(raw[`person_${n}_name`], 30);
@@ -89,7 +91,7 @@ const toPersonas = (raw: Record<string, unknown>, count: number, outfits: number
     const photo = Number(said.replace(/^P/i, '')) - 1;
     return {
       name: ageText ? `${name}, ${ageText}` : name,
-      look: [ageText ? `${ageText} years old.` : '', look, outfit ? `Outfit: ${outfit}.` : ''].filter(Boolean).join(' '),
+      look: [ageText ? `${ageText} years old.` : '', look, outfit ? `${outfitLine}: ${outfit}.` : ''].filter(Boolean).join(' '),
       ...(Number.isInteger(photo) && photo >= 0 && photo < outfits ? { outfitPhoto: photo } : /^none$/i.test(said) ? { outfitPhoto: null } : {}),
     };
   }).filter((p): p is Persona => p !== null);
@@ -102,6 +104,7 @@ const guideText = (guide: CastGuide | undefined): string => {
     guide.current ? `PERSON BEING REPLACED: ${guide.current.name}: ${guide.current.look}\nKeep what the owner does not ask to change; keep the name when the face stays.` : '',
     guide.note ? `OWNER'S NOTE: ${guide.note}` : '',
     guide.photoUrl ? 'REFERENCE PHOTO (attached): base the person on the one in this photo: gender, age, skin tone, face, hair, build. Their outfit too, unless the note or the brand says otherwise.' : '',
+    guide.keepOutfit ? 'DRESS CODE: the person wears exactly the clothes in the photo, a uniform too. person_N_outfit describes them: every piece, its colors and where any logo sits. Ignore WARDROBE and PRODUCTS. person_N_outfit_photo: "none".' : '',
   ].filter(Boolean).join('\n');
 };
 
@@ -116,14 +119,18 @@ export type CastBrief = { profile: BrandProfile; bible: VisualBible | null; prod
 export const writePersonas = async (brief: CastBrief, count: number, avoid: Persona[], meter: CostMeter, guide?: CastGuide): Promise<Persona[]> => {
   const others = avoid.length ? `\n\nALREADY IN THE CAST (each new person must look clearly different from all of them, and have another name):\n${avoid.map((p) => `- ${p.name}: ${p.look}`).join('\n')}` : '';
   const text = `${brandText(brief)}${others}${guideText(guide)}\n\nWrite ${count} ${count === 1 ? 'person' : 'people'}.`;
-  const user: UserContent = guide?.photoUrl ? [{ type: 'text', text }, { type: 'image_url', image_url: { url: guide.photoUrl, detail: 'low' } }] : text;
+  const user: UserContent = guide?.photoUrl ? [{ type: 'text', text }, { type: 'image_url', image_url: { url: guide.photoUrl, detail: guide.keepOutfit ? 'high' : 'low' } }] : text;
   const ages = castAges(brief.target);
   const system = SYSTEM.replace('{COUNT}', String(count)).replace('{MIN}', String(ages.min)).replace('{MAX}', String(ages.max));
   const raw = await creativeJson<Record<string, unknown>>(system, user, meter, 'Brand cast', CAST_MODEL);
-  const personas = toPersonas(raw, count, brief.outfits.length, guide?.note || guide?.photoUrl ? null : ages);
+  const personas = toPersonas(raw, count, brief.outfits.length, guide?.note || guide?.photoUrl ? null : ages, guide?.keepOutfit ? 'Dress code' : 'Outfit');
   if (personas.length < count) throw new Error(`The cast writer gave ${personas.length} of ${count} people`);
   return personas;
 };
+
+/** The member's age: from their name ("Maya, 28"), else from their look ("28 years old. …": a face named by the owner). */
+export const ageOf = (member: Persona): number | null =>
+  Number(member.name.split(',')[1]?.trim()) || Number(member.look.match(/^(\d+) years old\./)?.[1]) || null;
 
 /** What each reference image of the anchor photo is for, in the order they are sent. */
 export type AnchorRefs = { person: boolean; outfit: string | null };
@@ -132,9 +139,10 @@ export type AnchorRefs = { person: boolean; outfit: string | null };
  *  can copy the face and build into any scene. `refs`: the owner's photo of the person, and/or a brand product photo
  *  for the outfit. */
 export const anchorPrompt = (persona: Persona, refs: AnchorRefs = { person: false, outfit: null }): string => {
+  const dressCode = dressCodeOf(persona.look);
   const notes = [
-    ...(refs.person ? ['Image 1 is the person to show: keep the same face, hair, skin tone and build.'] : []),
+    ...(refs.person ? [`Image 1 is the person to show: keep the same face, hair, skin tone and build${dressCode ? ', and exactly the same clothes (same pieces, colors, logos). When the photo does not show the whole outfit, finish it in the same style' : ''}.`] : []),
     ...(refs.outfit ? [`Image ${refs.person ? 2 : 1} shows the brand's ${refs.outfit}: dress the person in exactly these pieces (same cut, colors and details); do not copy that photo's person, face or background.`] : []),
   ];
-  return [`Vertical reference photo of one real, good-looking, fit and healthy person, full body, standing relaxed and confident and facing the camera at eye level, a bright warm smile: ${persona.look} Well groomed, clear glowing skin, flattering soft light. Plain bright light-grey studio wall, soft even daylight, true-to-life colors, natural skin texture (not airbrushed), sharp focus on the face. The whole body visible from head to feet. No text, no logos, no other people.`, ...notes].join(' ');
+  return [`Vertical reference photo of one real, good-looking, fit and healthy person, full body, standing relaxed and confident and facing the camera at eye level, a bright warm smile: ${persona.look} Well groomed, clear glowing skin, flattering soft light. Plain bright light-grey studio wall, soft even daylight, true-to-life colors, natural skin texture (not airbrushed), sharp focus on the face. The whole body visible from head to feet. ${dressCode ? 'No text or logos, except what is on the clothes. No other people.' : 'No text, no logos, no other people.'}`, ...notes].join(' ');
 };

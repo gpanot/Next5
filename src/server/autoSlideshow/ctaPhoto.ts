@@ -11,6 +11,7 @@ import { prisma } from '../../lib/db';
 import { brandPhotoFacts } from '../brandContent/productPhotos';
 import { metaAdsJson } from '../metaAds/llm';
 import { clip } from '../metaAds/text';
+import { personNote } from '../brandCast/dressCode';
 import { presignObject } from '../storage/objectStore';
 
 /** False under CTA_PHOTO_MODE=legacy: the CTA photo goes back to how it was made before 2026-10-20. */
@@ -104,7 +105,7 @@ export const ctaPhotoRefs = async (workspaceId: string, cast?: CastFace | null):
   const faceUrl = face ? await presignObject(face.key, 60 * 60).catch(() => null) : null;
   if (faceUrl?.startsWith('https://')) {
     urls.push(faceUrl);
-    notes.push(`Image ${urls.length} is the main person: keep the SAME person (face, hair, skin tone, build); change the pose, place and clothes as described here.`);
+    notes.push(`Image ${urls.length} is the main person: ${personNote(face!.look)}.`);
   }
   const productUrl = product ? await presignObject(product.key, 60 * 60).catch(() => null) : null;
   if (product && productUrl?.startsWith('https://')) {

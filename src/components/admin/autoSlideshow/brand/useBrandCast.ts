@@ -75,12 +75,14 @@ export function useBrandCast(client: LabClient, path: string) {
   const act = useCallback((id: string, action: CastAction) => send(id, `${path}/${id}`, { action }), [send, path]);
   const manage = useCallback((id: string, request: ArchiveRequest) => send(id, `${path}/${id}`, request), [send, path]);
   /** Sends the note and the photo (made small first) as a form, busy under `key`. True when it started. */
-  const sendForm = useCallback(async (key: string, url: string, { note, file }: NewFaceRequest, extra: Record<string, string> = {}): Promise<boolean> => {
+  const sendForm = useCallback(async (key: string, url: string, { note, file, name, dressCode }: NewFaceRequest, extra: Record<string, string> = {}): Promise<boolean> => {
     setBusy(key);
     setActionError(null);
     const form = new FormData();
     Object.entries(extra).forEach(([k, v]) => form.append(k, v));
     form.append('note', note);
+    if (name) form.append('name', name);
+    if (dressCode) form.append('dressCode', dressCode);
     const small = file ? await shrinkPhoto(file) : null;
     if (small && small.size > MAX_RAW_BYTES) {
       setActionError('This photo is too big. Try a JPG or PNG.');

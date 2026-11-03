@@ -15,6 +15,7 @@ import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { creativeJson } from '../shorts/llm';
 import { PHOTO_RULES } from './bank/prompts';
+import { dressCodeOf, personNote } from '../brandCast/dressCode';
 import { CTA_PHOTO_RULE, productCtaPhoto } from './ctaPhoto';
 import { PLAN_SCENE_RULES } from './photoRules';
 import { cleanPhotoStyle } from '../companyIntel/slideshowStyle';
@@ -83,7 +84,7 @@ const userText = (input: PlanInput, products: BrandPhotoFacts[]) => {
   return `BRAND: ${profile.brandName}. SELLS: ${profile.valueProp}
 AUDIENCE: ${profile.audience}
 ${bibleText(input.bible, profile)}
-MAIN PERSON: ${cast ? `${cast.name}, from the brand's cast` : 'none: people are "other" or "none"'}
+MAIN PERSON: ${cast ? `${cast.name}, from the brand's cast${dressCodeOf(cast.look) ? `, always wearing their dress code: ${dressCodeOf(cast.look)}` : ''}` : 'none: people are "other" or "none"'}
 SLIDESHOW GOAL: ${goal ?? 'teach'}
 BRAND PRODUCT PHOTOS: ${productLines.length ? `\n${productLines.join('\n')}` : 'none'}
 SLIDES:
@@ -122,7 +123,6 @@ const toPlan = (raw: Record<string, unknown>, input: PlanInput, products: BrandP
 /** A product photo goes on the slide as it is only when it reads as a real photo, not an ad, and no person is asked for. */
 const usesPhotoAsIs = (plan: SlidePlan) => Boolean(plan.product?.usableAsBackground && !plan.product.looksLikeAd && plan.person !== 'main');
 
-export const PERSON_NOTE = 'keep the SAME person (face, hair, skin tone, build); change the pose, place and clothes as described here';
 export const PRODUCT_NOTE = 'show this EXACT product (same shape, colors and details); do not copy that photo\'s person, pose or background';
 
 /** The slide's photo fields from its plan: prompt, reference images and what they are, or the brand photo used as it is. */
@@ -132,12 +132,14 @@ const planToSlide = (slide: Omit<AutoSlide, 'imageKey'>, plan: SlidePlan, all: P
   const productRef = plan.product?.usableAsReference ? plan.product : null;
   const refs = [...(main ? [cast.imageKey] : []), ...(productRef ? [productRef.r2Key] : [])];
   const notes = [
-    ...(main ? [`Image 1 is the main person: ${PERSON_NOTE}.`] : []),
+    ...(main ? [`Image 1 is the main person: ${personNote(cast.look)}.`] : []),
     ...(productRef ? [`Image ${main ? 2 : 1} is the brand's product (${productRef.productName || 'the product'}): ${PRODUCT_NOTE}.`] : []),
   ];
-  // The member's own everyday style is for the anchor photo; in a slideshow they wear the planned clothes.
-  const look = all.wardrobe ? cast?.look.replace(/\s*(Everyday style|Outfit):.*$/, '') : cast?.look;
-  const scene = main ? `${plan.scene} The main person: ${look} Wearing ${all.wardrobe || 'everyday clothes'}.` : plan.scene;
+  // The member's own everyday style is for the anchor photo; in a slideshow they wear the planned clothes, or always
+  // their dress code when they have one.
+  const wearing = (cast && dressCodeOf(cast.look)) || all.wardrobe;
+  const look = wearing ? cast?.look.replace(/\s*(Everyday style|Outfit|Dress code):.*$/, '') : cast?.look;
+  const scene = main ? `${plan.scene} The main person: ${look} Wearing ${wearing || 'everyday clothes'}.` : plan.scene;
   const product = plan.product && !productRef ? ` The product shown: ${plan.product.productName || plan.product.description}.` : '';
   return {
     ...slide,

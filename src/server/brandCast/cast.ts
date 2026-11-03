@@ -19,6 +19,7 @@ import { targetOf, type TargetClient } from '../autoSlideshow/targetClient';
 import { deleteObject, presignObject, putObject } from '../storage/objectStore';
 import { INTRO_STALE_MS } from './intro';
 import { dropFiles, expiresAt, isStale, tidyArchive, vacate } from './archive';
+import { dressCodeOf } from './dressCode';
 import { anchorPrompt, writePersonas, type CastGuide, type Persona } from './personas';
 import { brandPhotoFacts, productLooks, type BrandPhotoFacts } from '../brandContent/productPhotos';
 import { compressBrandPhoto } from '../brandContent/compressPhoto';
@@ -137,7 +138,7 @@ const asPersona = (m: BrandCastMember): Persona => ({ name: m.name, look: m.look
 const guideOf = async (request: SwapRequest, current?: Persona): Promise<CastGuide | undefined> => {
   if (!request.note && !request.photoKey) return undefined;
   const photoUrl = request.photoKey ? ((await presignObject(request.photoKey, 60 * 60)) ?? undefined) : undefined;
-  return { note: request.note, photoUrl, current };
+  return { note: request.note, photoUrl, current, keepOutfit: request.keepOutfit };
 };
 
 /** Writes the people for the empty slots (at most `max` of them) and creates them as "pending". Returns one photo job
@@ -149,9 +150,9 @@ const castJobs = async (workspaceId: string, meter: CostMeter, max = CAST_SIZE, 
   if (free.length === 0) return null;
   const ctx = await brandContext(workspaceId, meter);
   const personas = await writePersonas(briefOf(ctx), free.length, current.map(asPersona), meter, await guideOf(request));
-  const anchors = personas.map((p, i) => anchorFor(p, outfitFor(ctx, p, free[i]!), request.photoKey));
+  const anchors = personas.map((p, i) => anchorFor(p, request.keepOutfit ? null : outfitFor(ctx, p, free[i]!), request.photoKey));
   await prisma.brandCastMember.createMany({
-    data: personas.map((p, i) => ({ workspaceId, slot: free[i]!, name: p.name, look: p.look, prompt: anchors[i]!.prompt })),
+    data: personas.map((p, i) => ({ workspaceId, slot: free[i]!, name: request.name ?? p.name, look: p.look, prompt: anchors[i]!.prompt })),
     skipDuplicates: true,
   });
   const created = (await members(workspaceId)).filter((m) => free.includes(m.slot) && m.status === 'pending' && !m.imageKey);
@@ -191,8 +192,9 @@ export const prepareCast = async (workspaceId: string, meter: CostMeter): Promis
   console.log(`[brand-cast] ${workspaceId}: ${jobs.length} person made`);
 };
 
-/** What the owner asked for in the "New face" dialog: what to change, and/or a stored photo of the person to use. */
-export type SwapRequest = { note?: string; photoKey?: string };
+/** What the owner asked for in the "New face" dialog: what to change, and/or a stored photo of the person to use. The
+ *  "Create avatar" dialog adds the person's name (no age) and whether they keep the photo's clothes. */
+export type SwapRequest = { note?: string; photoKey?: string; name?: string; keepOutfit?: boolean };
 
 /**
  * Swaps one member for a new person in the same slot; the old one is parked in the archive (or deleted when it has no
@@ -230,7 +232,7 @@ export const startRetry = async (workspaceId: string, memberId: string, meter: C
   const member = await prisma.brandCastMember.findFirst({ where: { id: memberId, workspaceId, archivedAt: null } });
   if (!member) throw new HttpError(404, 'not_found', 'This person is not in your cast.');
   const ctx = await brandContext(workspaceId, meter);
-  const outfit = ctx.outfits.find((o) => o.productName && member.prompt.includes(o.productName)) ?? null;
+  const outfit = dressCodeOf(member.look) ? null : ctx.outfits.find((o) => o.productName && member.prompt.includes(o.productName)) ?? null;
   const anchor = anchorFor(asPersona(member), outfit);
   const updated = await prisma.brandCastMember.update({ where: { id: member.id }, data: { status: 'pending', error: null, prompt: anchor.prompt } });
   return async () => {

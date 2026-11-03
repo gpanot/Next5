@@ -7,7 +7,10 @@ import { Dialog } from '../../../ui/Dialog';
 
 const MAX_NOTE = 300;
 
-export type NewFaceRequest = { note: string; file: File | null };
+/** "Create an avatar" with a photo: `auto` dresses the person for the brand, `photo` keeps the photo's clothes. */
+export type DressCode = 'auto' | 'photo';
+
+export type NewFaceRequest = { note: string; file: File | null; name?: string; dressCode?: DressCode };
 
 type Props = {
   member: BrandCastMemberDto | null;

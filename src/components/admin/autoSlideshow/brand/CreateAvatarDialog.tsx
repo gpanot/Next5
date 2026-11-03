@@ -4,7 +4,8 @@ import { ImagePlus, PencilLine, RefreshCw, Sparkles, type LucideIcon } from 'luc
 import { useCallback, useState } from 'react';
 import { FACE_SECONDS } from '../../../../types/admin/brandCast';
 import { Dialog } from '../../../ui/Dialog';
-import { PhotoPick, type NewFaceRequest } from './NewFaceDialog';
+import { AvatarPhotoFields, StaffPhotoTip } from './AvatarPhotoFields';
+import { PhotoPick, type DressCode, type NewFaceRequest } from './NewFaceDialog';
 
 const MAX_PROMPT = 600;
 
@@ -99,21 +100,25 @@ function useDraftPrompt(onDraft: () => Promise<string | null>) {
 export function CreateAvatarDialog({ open, busy, error, onClose, onSubmit, onDraft }: Props) {
   const [mode, setMode] = useState<Mode>('surprise');
   const [file, setFile] = useState<File | null>(null);
+  const [name, setName] = useState('');
+  const [dressCode, setDressCode] = useState<DressCode>('auto');
   const draft = useDraftPrompt(onDraft);
   const pick = (next: Mode) => {
     setMode(next);
     if (next === 'prompt') draft.start();
   };
-  const ready = mode === 'surprise' || (mode === 'photo' && file !== null) || (mode === 'prompt' && !draft.loading && draft.prompt.trim().length > 0);
-  const submit = () => onSubmit({ note: mode === 'prompt' ? draft.prompt : '', file: mode === 'photo' ? file : null });
+  const ready = mode === 'surprise' || (mode === 'photo' && file !== null && name.trim().length > 0) || (mode === 'prompt' && !draft.loading && draft.prompt.trim().length > 0);
+  const submit = () => onSubmit({ note: mode === 'prompt' ? draft.prompt : '', file: mode === 'photo' ? file : null, ...(mode === 'photo' ? { name: name.trim(), dressCode } : {}) });
   return (
-    <Dialog open={open} onClose={() => !busy && onClose()} title="Create an avatar" description="A face that comes back in your posts. Pick how to make it.">
+    <Dialog open={open} onClose={() => !busy && onClose()} title="Create an avatar" description="A face that comes back in your posts. Pick how to make it." className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
       <div className="space-y-5">
         <div role="radiogroup" aria-label="How to make the avatar" className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {MODES.map((m) => <ModeCard key={m.id} icon={m.icon} label={m.label} hint={m.hint} selected={mode === m.id} onPick={() => pick(m.id)} />)}
         </div>
         {mode === 'surprise' && <p className="rounded-xl bg-app-sunken px-3 py-2 text-sm text-app-muted">We write a new person for your brand, different from your other faces.</p>}
+        {mode === 'photo' && !file && <StaffPhotoTip />}
         {mode === 'photo' && <PhotoPick file={file} onPick={setFile} onClear={() => setFile(null)} />}
+        {mode === 'photo' && file && <AvatarPhotoFields name={name} dressCode={dressCode} onName={setName} onDressCode={setDressCode} />}
         {mode === 'prompt' && <PromptField value={draft.prompt} loading={draft.loading} failed={draft.failed} onChange={draft.setPrompt} onRetry={() => void draft.retry()} />}
         <p className="text-xs text-app-muted">The photo takes about {FACE_SECONDS} seconds.</p>
         {error && <p role="alert" className="text-sm text-app-danger">{error}</p>}

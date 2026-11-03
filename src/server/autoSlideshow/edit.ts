@@ -19,7 +19,8 @@ import { loadUsage } from './bank/build';
 import { assembleCombo, swapCombo } from './bank/pick';
 import { headsFor, type HeadsCache } from './heads';
 import { isTrack } from './music';
-import { brandLook, PERSON_NOTE, PRODUCT_NOTE } from './photoPlan';
+import { personNote } from '../brandCast/dressCode';
+import { brandLook, PRODUCT_NOTE } from './photoPlan';
 import { makePhotos } from './photos';
 import { renderSlide, type BoxLook, type PhotoCache } from './render';
 import { alignsWithContent, contentTop, SLIDE_SIZE } from './textPlacement';
@@ -182,7 +183,7 @@ const refsWithCast = async (show: Awaited<ReturnType<typeof loadShow>>, slide: A
   if (castId && !member?.imageKey) throw new HttpError(400, 'bad_cast', 'Pick one of your avatars.');
   const refs = [...(member?.imageKey ? [member.imageKey] : []), ...others];
   const notes = [
-    ...(member ? [`Image 1 is the main person: ${PERSON_NOTE}.`] : []),
+    ...(member ? [`Image 1 is the main person: ${personNote(member.look)}.`] : []),
     ...(others.length ? [`Image ${member ? 2 : 1} is the brand's product: ${PRODUCT_NOTE}.`] : []),
   ];
   return { photoRefs: refs.length ? refs : undefined, photoRefNote: notes.length ? notes.join(' ') : undefined, castId: member?.id };

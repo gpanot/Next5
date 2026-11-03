@@ -7,7 +7,7 @@ import { HttpError } from '../http';
 import { readForm } from '../storage/images';
 import { archiveMember, deleteParked, editMember, restoreMember } from './archive';
 import { startCast, startRetry, startSwap, storeSwapPhoto } from './cast';
-import { CAST_SIZE } from '../../types/admin/brandCast';
+import { CAST_SIZE, MAX_NAME } from '../../types/admin/brandCast';
 import { requireIntroCredit, startIntro, startIntros, type IntroCharge } from './intro';
 
 const MAX_NOTE = 300;
@@ -54,12 +54,17 @@ export const startCastAction = async (req: Request, workspaceId: string, memberI
 };
 
 /** One person from the "Create avatar" dialog, sent as a form: a note ("Use your own prompt") and/or a photo; neither
- *  is "Surprise me". */
+ *  is "Surprise me". A photo comes with the person's name and dress code. */
 const startCreate = async (req: Request, workspaceId: string): Promise<(() => Promise<void>) | null> => {
   const form = await readForm(req);
   const file = form.get('file');
   const photoKey = file instanceof File && file.size > 0 ? await storeSwapPhoto(workspaceId, 'new', file) : undefined;
-  return startCast(workspaceId, undefined, 1, { note: cleanText(String(form.get('note') ?? ''), MAX_PROMPT), photoKey });
+  return startCast(workspaceId, undefined, 1, {
+    note: cleanText(String(form.get('note') ?? ''), MAX_PROMPT),
+    photoKey,
+    name: cleanText(String(form.get('name') ?? '').replace(/,/g, ' '), MAX_NAME),
+    keepOutfit: Boolean(photoKey) && form.get('dressCode') === 'photo',
+  });
 };
 
 /**
