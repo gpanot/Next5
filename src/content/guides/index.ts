@@ -14,6 +14,7 @@ import { marketingIdeasSmallBusiness } from './articles/marketingIdeasSmallBusin
 import { openHouseSocialMediaPost } from './articles/openHouseSocialMediaPost';
 import { realEstateInstagramCaptions } from './articles/realEstateInstagramCaptions';
 import { smallBusinessSaturdayPostIdeas } from './articles/smallBusinessSaturdayPostIdeas';
+import { realEstateSocialMediaStatistics } from './articles/realEstateSocialMediaStatistics';
 import { socialMediaContentCalendar } from './articles/socialMediaContentCalendar';
 import { socialMediaForGyms } from './articles/socialMediaForGyms';
 import { socialMediaForHairSalons } from './articles/socialMediaForHairSalons';
@@ -54,6 +55,7 @@ export const BLOG_POSTS: readonly Article[] = [
   howToSellOnTikTokShop,
   facelessTikTokShop,
   socialMediaForRealtors,
+  realEstateSocialMediaStatistics,
   comingSoonRealEstatePost,
   openHouseSocialMediaPost,
   realEstateInstagramCaptions,

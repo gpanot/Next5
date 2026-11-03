@@ -14,7 +14,7 @@ export const comingSoonRealEstatePost: Article = {
   cover: '/images/guides/coming-soon-real-estate-post.png',
   coverAlt: 'Realtor photographing a house behind a Coming Soon yard sign',
   blocks: [
-    { type: 'p', text: 'A coming soon post tells buyers a home is about to hit the market. Done right, it gives you a list of people waiting for the listing and shows sellers you market hard. Done wrong, it can break your MLS rules before the home is even live. Here is how to do it right, step by step.' },
+    { type: 'p', text: 'A coming soon post tells buyers a home is about to hit the market. (Video and tours matter: see the [real estate social media statistics](/blog/real-estate-social-media-statistics) on what buyers and sellers want.) Done right, it gives you a list of people waiting for the listing and shows sellers you market hard. Done wrong, it can break your MLS rules before the home is even live. Here is how to do it right, step by step.' },
     { type: 'h2', text: 'Check these 4 things before you post' },
     { type: 'steps', items: [
       { title: 'The seller signed the listing agreement', text: 'No signed exclusive listing agreement means there is no listing yet. Do not post about a home you have only talked about.' },

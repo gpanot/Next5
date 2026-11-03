@@ -19,7 +19,7 @@ export const socialMediaMarketingSmallBusiness: Article = {
     { type: 'p', text: 'What do you want more of? Pick only one for now.' },
     { type: 'ul', items: [
       '**Calls or bookings** — for salons, gyms, clinics, home services.',
-      '**Leads** — for realtors, coaches, agencies.',
+      '**Leads** — for realtors, coaches, agencies. Realtors: see the [real estate social media statistics](/blog/real-estate-social-media-statistics).',
       '**Sales** — for shops and TikTok Shop sellers.',
       '**Visits** — for restaurants, cafes and local stores.',
     ] },

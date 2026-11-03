@@ -4879,5 +4879,14 @@
     "bytes": 834615,
     "alt": "Realtor standing by a For Sale sign, typing an Instagram caption into her phone",
     "generatedAt": "2026-11-02T03:08:48.889Z"
+  },
+  "public/images/guides/real-estate-social-media-statistics.png": {
+    "prompt": "A real estate agent in her 30s in a light blazer stands on the porch of a two-story American suburban house, checking her phone, a white wooden yard sign on a post in the front yard behind her reads FOR SALE. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 805321,
+    "alt": "A real estate agent checks her phone on the front lawn of a house, next to a for sale sign",
+    "generatedAt": "2026-11-03T06:49:10.018Z"
   }
 }

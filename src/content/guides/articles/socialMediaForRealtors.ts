@@ -20,7 +20,7 @@ export const socialMediaForRealtors: Article = {
       '**TikTok** — the fastest way to reach new people in your area, even with 0 followers.',
       '**Facebook** — still strong for older sellers and local groups.',
     ] },
-    { type: 'p', text: 'Start with TikTok and Instagram. Post the same slideshow or video on both.' },
+    { type: 'p', text: 'Start with TikTok and Instagram. Post the same slideshow or video on both. Want the numbers behind that advice? See the [real estate social media statistics](/blog/real-estate-social-media-statistics) from NAR, Zillow and Pew.' },
     { type: 'h2', text: 'What should a realtor post?' },
     { type: 'p', text: 'Mix 4 kinds of posts. Do not post only listings. Listings help sellers, but tips and local posts bring new buyers to you.' },
     { type: 'table', head: ['Post type', 'Share of posts', 'Why'], rows: [
