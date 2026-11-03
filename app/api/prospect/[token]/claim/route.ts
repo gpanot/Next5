@@ -1,6 +1,6 @@
 /**
  * POST /api/prospect/[token]/claim — the signed-in user takes the pack: its workspace becomes theirs → { workspaceId }.
- * Needs a session (the magic link from the review page's "Get my posts"). Someone who already paid gets days 8-14 made
+ * The pack's free posts replace the welcome credits. Needs a session (the magic link from the review page's "Get my posts"). Someone who already paid gets days 8-14 made
  * in full right away (prospects/unlock.ts).
  */
 import { json } from '../../../../../src/server/admin/route';
@@ -9,6 +9,7 @@ import { slideshowRoute } from '../../../../../src/server/autoSlideshow/route';
 import { HttpError } from '../../../../../src/server/http';
 import { claimProspect } from '../../../../../src/server/prospects/claim';
 import { unlockIfPaid } from '../../../../../src/server/prospects/unlock';
+import { removeWelcomeCredits } from '../../../../../src/server/slideshowCredits/wallet';
 
 type Ctx = RouteContext<'/api/prospect/[token]/claim'>;
 
@@ -17,6 +18,7 @@ export const POST = slideshowRoute<Ctx>(async (_req, ctx, access) => {
   const user = requireUser(access);
   if (user.impersonated) throw new HttpError(403, 'impersonated', 'Sign in as yourself to take these posts.');
   const workspaceId = await claimProspect(token, user.userId);
+  await removeWelcomeCredits(user.userId).catch((err: unknown) => console.error('[prospects] welcome credits not removed:', err instanceof Error ? err.message : err));
   await unlockIfPaid(user.userId, workspaceId);
   return json({ workspaceId });
 });

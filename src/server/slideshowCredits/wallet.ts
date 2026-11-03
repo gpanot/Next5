@@ -47,6 +47,19 @@ export const ensureWallet = async (userId: string) => {
   return prisma.slideshowWallet.findUniqueOrThrow({ where: { userId } });
 };
 
+/**
+ * A Prospect Pack's claimer gets the pack's free posts instead of the welcome credits, so the grant comes back out. Only
+ * when the ledger holds nothing but the grant: credits already spent or paid for stay. The fixed ref applies it once.
+ */
+export const removeWelcomeCredits = async (userId: string): Promise<void> => {
+  await ensureWallet(userId);
+  const other = await prisma.slideshowCreditEntry.findFirst({ where: { userId, reason: { not: 'free_grant' } }, select: { id: true } });
+  if (other) return;
+  await prisma.$transaction((tx) =>
+    applyEntry(tx, { userId, deltaCents: -FREE_GRANT_CENTS, reason: 'free_grant', ref: `prospect-claim:${userId}`, note: 'Free posts from your calendar replace the welcome credits' }, true),
+  );
+};
+
 /** Applies one entry in its own transaction, creating the wallet first when needed. */
 export const addEntry = async (entry: Entry, cover = false): Promise<number | null> => {
   await ensureWallet(entry.userId);
