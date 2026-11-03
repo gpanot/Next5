@@ -2,16 +2,21 @@
 // A Prospect Pack's posts on its workspace's calendar, the one place the admin reviews them: Blitz ideas (kept, at their
 // time), Brand Cast slideshows (their pin) and Hooks Volume slideshows (the campaign's plan). The pack's days are written
 // to the calendar once made, and read back from it on "Generate calendar", so a post moved there moves on the link too.
+// A video put on the calendar during review ("Add to calendar") is a scheduled post: it counts as a day too.
 
 import type { Prisma, ProspectPack } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import type { AutoSlide } from '../../types/admin/autoSlideshow';
+import { BLITZ_LIVE } from '../../types/admin/blitzSchedule';
 import type { ProspectDay } from '../../types/admin/prospects';
 import { planOf, storePlan } from '../autoSlideshow/campaign/store';
-import { daysFromPlan } from './days';
+import { blitzDaysFrom, daysFromPlan } from './days';
 import { blitzOf } from './store';
 
 const NEVER = new Date(0);
+
+/** A scheduled post that can still change day. */
+const POST_MOVABLE = ['planned', 'scheduled'];
 
 type Pack = Pick<ProspectPack, 'id' | 'workspaceId' | 'blitz' | 'brandRunId' | 'hooksRunId' | 'days'>;
 
@@ -28,10 +33,18 @@ const planHooks = async (pack: Pack, days: ProspectDay[]): Promise<void> => {
   await prisma.autoSlideshowRun.update({ where: { id: pack.hooksRunId }, data: { campaign: storePlan(run, plan) as Prisma.InputJsonValue } });
 };
 
-/** Every post at its planned time, one a day. Ideas the pack does not post leave the calendar. */
+/** The ideas of this workspace made into a scheduled post, and when each one posts. */
+export const postedIdeas = async (workspaceId: string): Promise<Map<string, string>> => {
+  const rows = await prisma.blitzScheduledPost.findMany({ where: { workspaceId, status: { in: BLITZ_LIVE }, variantId: { not: null } }, select: { variantId: true, scheduledAt: true } });
+  return new Map(rows.map((r) => [r.variantId!, r.scheduledAt.toISOString()]));
+};
+
+/** Every post at its planned time, one a day. Ideas the pack does not post leave the calendar. An idea with a scheduled
+ *  post stays 'made': only its post and its day move. */
 export const putOnCalendar = async (pack: Pack, days: ProspectDay[]): Promise<void> => {
   const picked = blitzOf(pack);
-  const ideaOf = (refId: string) => picked.find((b) => b.ideaId === refId || b.projectId === refId)?.ideaId;
+  const posted = await postedIdeas(pack.workspaceId);
+  const ideaOf = (refId: string) => picked.find((b) => b.ideaId === refId || b.projectId === refId)?.ideaId ?? (posted.has(refId) ? refId : undefined);
   const ideas = days.flatMap((d) => {
     const ideaId = d.kind === 'blitz' ? ideaOf(d.refId) : undefined;
     return ideaId ? [{ ideaId, at: new Date(d.at) }] : [];
@@ -41,23 +54,21 @@ export const putOnCalendar = async (pack: Pack, days: ProspectDay[]): Promise<vo
       where: { workspaceId: pack.workspaceId, engine: 'website', status: { in: ['proposed', 'kept'] }, plannedAt: { not: null }, id: { notIn: ideas.map((i) => i.ideaId) } },
       data: { plannedAt: null, status: 'proposed' },
     }),
-    ...ideas.map((i) => prisma.slideshowVariant.update({ where: { id: i.ideaId }, data: { plannedAt: i.at, status: 'kept' } })),
+    ...ideas.map((i) => prisma.slideshowVariant.update({ where: { id: i.ideaId }, data: posted.has(i.ideaId) ? { plannedAt: i.at } : { plannedAt: i.at, status: 'kept' } })),
+    ...ideas.filter((i) => posted.has(i.ideaId)).map((i) => prisma.blitzScheduledPost.updateMany({ where: { workspaceId: pack.workspaceId, variantId: i.ideaId, status: { in: POST_MOVABLE } }, data: { scheduledAt: i.at } })),
     ...days.filter((d) => d.kind === 'cast').map((d) => prisma.autoSlideshow.update({ where: { id: d.refId }, data: { plannedAt: new Date(d.at) } })),
   ]);
   await planHooks(pack, days);
 };
 
-/** Blitz days as they stand: videos and previews whose idea is still kept on the calendar. */
+/** Blitz days as they stand: videos and previews whose idea is still kept on the calendar, and ideas made into a post. */
 const blitzItems = async (pack: Pack): Promise<Array<Omit<ProspectDay, 'day'>>> => {
   const picked = blitzOf(pack);
-  const rows = await prisma.slideshowVariant.findMany({ where: { id: { in: picked.map((b) => b.ideaId) }, status: 'kept', plannedAt: { not: null } }, select: { id: true, plannedAt: true } });
-  const at = new Map(rows.map((r) => [r.id, r.plannedAt!.toISOString()]));
-  return picked.flatMap((b) => {
-    const time = at.get(b.ideaId);
-    if (!time) return [];
-    if (b.preview) return [{ at: time, kind: 'blitz' as const, refId: b.ideaId, preview: true }];
-    return b.projectId ? [{ at: time, kind: 'blitz' as const, refId: b.projectId }] : [];
-  });
+  const [rows, posted] = await Promise.all([
+    prisma.slideshowVariant.findMany({ where: { id: { in: picked.map((b) => b.ideaId) }, status: 'kept', plannedAt: { not: null } }, select: { id: true, plannedAt: true } }),
+    postedIdeas(pack.workspaceId),
+  ]);
+  return blitzDaysFrom(picked, new Map(rows.map((r) => [r.id, r.plannedAt!.toISOString()])), posted);
 };
 
 /** Brand Cast days: ready slideshows and previews with a first slide, at their pin or else the day they had. */

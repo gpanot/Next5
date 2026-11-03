@@ -16,7 +16,7 @@ export const useCalendarSpots = (token: string, run: AutoRunDto | null): Pins =>
   const workspaceId = run?.workspaceId ?? null;
   const [targets] = useTargets(run?.id ?? '');
   const [local] = useLocalPins(run?.id ?? '');
-  const { items: blitz, loaded } = useBlitzOnCalendar(token, workspaceId);
+  const { items: blitz, keptAt, loaded } = useBlitzOnCalendar(token, workspaceId);
   const campaigns = useCampaignsOnCalendar(token, workspaceId);
 
   return useMemo(() => {
@@ -26,6 +26,6 @@ export const useCalendarSpots = (token: string, run: AutoRunDto | null): Pins =>
     const pins = { ...local, ...serverPins(run.slideshows) };
     const campaign = { slideshows: campaigns.slideshows, planned: campaigns.planned };
     // One month's plan places every waiting slideshow, adding days past the month as needed.
-    return currentPins(buildMonth({ slideshows: run.slideshows, pending, working, month: monthOf(new Date()), targets, pins, blitz, campaign }).all);
-  }, [run, workspaceId, loaded, local, targets, blitz, campaigns.slideshows, campaigns.planned]);
+    return currentPins(buildMonth({ slideshows: run.slideshows, pending, working, month: monthOf(new Date()), targets, pins, blitz, campaign, keptAt }).all);
+  }, [run, workspaceId, loaded, local, targets, blitz, keptAt, campaigns.slideshows, campaigns.planned]);
 };

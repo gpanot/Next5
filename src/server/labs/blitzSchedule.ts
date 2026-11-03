@@ -85,6 +85,14 @@ export async function listSchedule(workspaceId: string): Promise<BlitzScheduleDt
   return Promise.all(rows.map(toScheduleDto));
 }
 
+/** When the workspace's kept ideas post, from today on (ISO). They are not posts yet, but their days are taken. */
+export async function listKeptTimes(workspaceId: string): Promise<string[]> {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const rows = await prisma.slideshowVariant.findMany({ where: { workspaceId, engine: { in: ['website', 'bank'] }, status: 'kept', plannedAt: { gte: start } }, select: { plannedAt: true } });
+  return rows.flatMap((r) => (r.plannedAt ? [r.plannedAt.toISOString()] : []));
+}
+
 /** Auto Slideshow posts on the workspace's calendar from today on, for the picker's busy days. */
 export async function listBusy(workspaceId: string): Promise<CalendarBusyDto[]> {
   const start = new Date();

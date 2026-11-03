@@ -23,15 +23,27 @@ const plan = (slideshows: AutoSlideshowDto[], extra: Extra = {}) =>
 const dayOf = (days: PlanDay[], key: string) => days.find((d) => d.key === key)!;
 
 describe('buildMonth', () => {
-  it('puts a campaign post on top of its day: the slideshow already there stays, nothing moves', () => {
+  it('a waiting slideshow skips a day with a campaign post; a pinned one stays there', () => {
     const campaignShow = { ...show(9), id: 'c9' };
-    const before = plan([show(0), show(1)]);
-    const { all } = buildMonth({ slideshows: [show(0), show(1)], pending: 0, month: october, now, campaign: { slideshows: [campaignShow], planned: { c9: new Date(2026, 9, 2, 18).toISOString() } } });
-    const where = (days: PlanDay[], id: string) => days.find((d) => d.slots.some((x) => x.item?.show?.id === id))?.key;
-    expect(where(all, 's0')).toBe(where(before.all, 's0'));
-    expect(where(all, 's1')).toBe(where(before.all, 's1'));
-    expect(where(all, 'c9')).toBe('2026-10-02');
+    const pinnedAt = new Date(2026, 9, 2, 19).toISOString();
+    const { all } = buildMonth({ slideshows: [show(0), show(1)], pending: 0, month: october, now, pins: { s1: pinnedAt }, campaign: { slideshows: [campaignShow], planned: { c9: new Date(2026, 9, 2, 18).toISOString() } } });
+    const where = (id: string) => all.find((d) => d.slots.some((x) => x.item?.show?.id === id))?.key;
+    expect(where('c9')).toBe('2026-10-02');
+    expect(where('s1')).toBe('2026-10-02');
+    expect(where('s0')).toBe('2026-10-03');
     expect(toApprove(all).map((x) => x.show.id).sort()).toEqual(['c9', 's0', 's1']);
+  });
+
+  it('a waiting slideshow goes to the first day with no post, past kept ideas and a full calendar', () => {
+    const keptAt = [2, 3, 4].map((d) => new Date(2026, 9, d, 19).toISOString());
+    const { all } = buildMonth({ slideshows: [show(0)], pending: 0, month: october, now, keptAt });
+    expect(all.find((d) => d.slots.some((x) => x.item?.show?.id === 's0'))?.key).toBe('2026-10-05');
+  });
+
+  it('a kept idea past the month shown still takes its day', () => {
+    const days = Array.from({ length: 70 }, (_, i) => new Date(2026, 9, 2 + i, 19).toISOString());
+    const { all } = buildMonth({ slideshows: [show(0)], pending: 0, month: october, now, keptAt: days });
+    expect(all.find((d) => d.slots.some((x) => x.item?.show?.id === 's0'))?.key).toBe('2026-12-11');
   });
 
   it('starts the current month at today, in whole weeks', () => {

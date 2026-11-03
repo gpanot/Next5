@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { AutoRunDto } from '../../../../types/admin/autoSlideshow';
-import { addMonths, buildMonth, monthOf } from './monthPlan';
+import { addMonths, buildMonth, keptDays, monthOf } from './monthPlan';
 import { useBlitzOnCalendar } from './useBlitzOnCalendar';
 import { useLocalPins, useTargets } from './useCalendarStore';
 import { useCampaignsOnCalendar } from './useCampaignsOnCalendar';
@@ -19,7 +19,7 @@ const EVENING = 19;
 export const useNextSlot = (token: string, run: AutoRunDto, showId: string): Date | null => {
   const [targets] = useTargets(run.id);
   const [local] = useLocalPins(run.id);
-  const { items: blitz, loaded } = useBlitzOnCalendar(token, run.workspaceId);
+  const { items: blitz, keptAt, loaded } = useBlitzOnCalendar(token, run.workspaceId);
   const campaigns = useCampaignsOnCalendar(token, run.workspaceId);
 
   return useMemo(() => {
@@ -27,14 +27,15 @@ export const useNextSlot = (token: string, run: AutoRunDto, showId: string): Dat
     const slideshows = run.slideshows.filter((s) => s.id !== showId);
     const pins = { ...local, ...serverPins(slideshows) };
     const now = new Date();
-    const days = Array.from({ length: MONTHS }, (_, i) => buildMonth({ slideshows, pending: 0, working: false, month: addMonths(monthOf(now), i), targets, pins, blitz, campaign: { slideshows: campaigns.slideshows, planned: campaigns.planned }, now }).all);
+    const days = Array.from({ length: MONTHS }, (_, i) => buildMonth({ slideshows, pending: 0, working: false, month: addMonths(monthOf(now), i), targets, pins, blitz, campaign: { slideshows: campaigns.slideshows, planned: campaigns.planned }, keptAt, now }).all);
     const all = [...new Map(days.flat().map((d) => [d.key, d])).values()].sort((a, b) => a.date.getTime() - b.date.getTime());
     const open = all.flatMap((d) => (d.past ? [] : d.slots.filter((s) => s.item === null && s.at > now))).at(0);
     if (open) return open.at;
-    const free = all.find((d) => !d.past && d.slots.length === 0);
+    const kept = keptDays(keptAt);
+    const free = all.find((d) => !d.past && d.slots.length === 0 && !kept.has(d.key));
     // Every day has something: the day after the last one.
     const last = all.at(-1)?.date ?? now;
     const day = free?.date ?? new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1);
     return new Date(day.getFullYear(), day.getMonth(), day.getDate(), EVENING);
-  }, [run.workspaceId, run.slideshows, showId, loaded, local, targets, blitz, campaigns.slideshows, campaigns.planned]);
+  }, [run.workspaceId, run.slideshows, showId, loaded, local, targets, blitz, keptAt, campaigns.slideshows, campaigns.planned]);
 };

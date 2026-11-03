@@ -99,7 +99,7 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   useWatchPosts(run, onRunChanged);
   const { adding, error, add } = useAdd(token, run.id, onRunChanged);
   const { month, step, canPrev, canNext } = useMonth(run);
-  const { items: blitz, reload: reloadBlitz } = useBlitzOnCalendar(token, run.workspaceId);
+  const { items: blitz, keptAt, reload: reloadBlitz } = useBlitzOnCalendar(token, run.workspaceId);
   // Campaign posts: planned ones wait for the approval below like ready slideshows; scheduled ones show as posts.
   const campaigns = useCampaignsOnCalendar(token, run.workspaceId);
   const slideshows = useMemo(() => [...run.slideshows, ...campaigns.slideshows], [run.slideshows, campaigns.slideshows]);
@@ -124,8 +124,8 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const [earlier, setEarlier] = useState(false);
   const hasEarlier = month.getTime() === monthOf(new Date()).getTime() && new Date().getDate() > 1;
   const { days, all } = useMemo(
-    () => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins, blitz, campaign: { slideshows: campaigns.slideshows, planned: campaigns.planned }, earlier: earlier && hasEarlier }),
-    [run.slideshows, pending, working, month, targets, pins, blitz, campaigns.slideshows, campaigns.planned, earlier, hasEarlier],
+    () => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins, blitz, campaign: { slideshows: campaigns.slideshows, planned: campaigns.planned }, keptAt, earlier: earlier && hasEarlier }),
+    [run.slideshows, pending, working, month, targets, pins, blitz, keptAt, campaigns.slideshows, campaigns.planned, earlier, hasEarlier],
   );
   const counts = monthCounts(days);
   const approve = toApprove(all);

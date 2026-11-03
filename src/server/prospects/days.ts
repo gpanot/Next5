@@ -3,7 +3,7 @@
 // list has its full posts first, then its previews (marked by `previews`); a free day takes a full post of another kind
 // before a preview, so the free days stay watchable. Pure.
 
-import { PROSPECT_FREE_DAYS, PROSPECT_ORDER, type ProspectDay, type ProspectKind } from '../../types/admin/prospects';
+import { PROSPECT_FREE_DAYS, PROSPECT_ORDER, type ProspectBlitz, type ProspectDay, type ProspectKind } from '../../types/admin/prospects';
 import { atViewerTime, viewerDay } from '../labs/ideaDays';
 
 /** The time each post goes out, in the prospect's day. */
@@ -24,6 +24,20 @@ const pickKind = (left: Record<ProspectKind, string[]>, wanted: ProspectKind, da
 /** The days as they stand on the calendar: one per post, in time order. */
 export const daysFromPlan = (items: Array<Omit<ProspectDay, 'day'>>): ProspectDay[] =>
   [...items].sort((a, b) => a.at.localeCompare(b.at)).map((item, i) => ({ ...item, day: i + 1 }));
+
+/** Blitz days as the calendar has them. A picked idea posts at its kept time or its post's time. An idea made into a
+ *  post during review (`posted`) was not picked: it joins as a preview, and its video comes from that post. Pure. */
+export const blitzDaysFrom = (picked: ProspectBlitz[], kept: Map<string, string>, posted: Map<string, string>): Array<Omit<ProspectDay, 'day'>> => {
+  const fromPack = picked.flatMap((b) => {
+    const at = posted.get(b.ideaId) ?? kept.get(b.ideaId);
+    if (!at) return [];
+    if (b.projectId && !b.preview) return [{ at, kind: 'blitz' as const, refId: b.projectId }];
+    return b.preview || posted.has(b.ideaId) ? [{ at, kind: 'blitz' as const, refId: b.ideaId, preview: true }] : [];
+  });
+  const pickedIds = new Set(picked.map((b) => b.ideaId));
+  const added = [...posted].filter(([ideaId]) => !pickedIds.has(ideaId)).map(([refId, at]) => ({ at, kind: 'blitz' as const, refId, preview: true }));
+  return [...fromPack, ...added];
+};
 
 /** Planned days again from tomorrow when the first one has passed (a pack sent back to review later); order kept. */
 export const rebaseDays = (days: ProspectDay[], now: Date, tzOffsetMin: unknown): ProspectDay[] => {

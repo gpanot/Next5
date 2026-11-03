@@ -3,7 +3,7 @@ import { tickFromPage } from '../../../../../src/server/autoSlideshow/send';
 import { runBlitzScheduleTick } from '../../../../../src/server/labs/blitzScheduleTick';
 import { HttpError } from '../../../../../src/server/http';
 import { labRoute, type LabAccess } from '../../../../../src/server/labs/labAccess';
-import { listBusy, listSchedule, postBlitzNow, scheduleBlitz } from '../../../../../src/server/labs/blitzSchedule';
+import { listBusy, listKeptTimes, listSchedule, postBlitzNow, scheduleBlitz } from '../../../../../src/server/labs/blitzSchedule';
 import type { PostNowBlitzRequest, ScheduleBlitzRequest } from '../../../../../src/types/admin/blitzSchedule';
 
 /** The posting tick runs after the response and may upload a video. */
@@ -18,14 +18,15 @@ const workspaceOf = (access: LabAccess, req: NextRequest): string => {
 
 /**
  * GET /api/admin/blitz/schedule — the workspace's scheduled Blitz videos (`items`) and its other calendar posts
- * (`busy`, Auto Slideshow), for the calendar and the "Add to calendar" picker.
+ * (`busy`, Auto Slideshow), for the calendar and the "Add to calendar" picker. `keptAt`: when its kept ideas post, so
+ * new slideshows skip those days.
  */
 export const GET = labRoute(async (req: NextRequest, _ctx: unknown, access) => {
   const workspaceId = workspaceOf(access, req);
-  const [items, busy] = await Promise.all([listSchedule(workspaceId), listBusy(workspaceId)]);
+  const [items, busy, keptAt] = await Promise.all([listSchedule(workspaceId), listBusy(workspaceId), listKeptTimes(workspaceId)]);
   // The posting cron is not on Vercel's schedule: a page that is open moves due posts along (at most every 30 s).
   after(() => tickFromPage());
-  return NextResponse.json({ items, busy });
+  return NextResponse.json({ items, busy, keptAt });
 });
 
 /** POST /api/admin/blitz/schedule — puts a kept card on the calendar (rendered and posted near its time), or with `postNow` posts it as soon as it is made. Users only. */

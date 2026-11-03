@@ -40,16 +40,18 @@ export const COVER_GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5 
 
 const frame = 'relative aspect-[9/16] w-full overflow-hidden rounded-xl bg-zinc-100 shadow-sm dark:bg-zinc-800';
 
-/** Ready: a button that opens the editor. Failed: its reason and a Retry. Otherwise: what it is waiting for. */
+/** Ready, or a pack preview with its first slide: a button that opens the editor. Failed: its reason and a Retry.
+ *  Otherwise: what it is waiting for. */
 type CardProps = { show: AutoSlideshowDto; onOpen: () => void; onRetry?: () => void; retrying: boolean; since?: string; totalMs?: number };
 
 function Cover({ show, onOpen, onRetry, retrying, since, totalMs }: CardProps) {
   const cover = show.slides[0];
-  if (show.status === 'ready' && cover?.imageUrl) {
+  if ((show.status === 'ready' || show.coverOnly) && cover?.imageUrl) {
     return (
       <button onClick={onOpen} aria-label={`Edit ${show.topic}`} className={`${frame} group block transition active:scale-[0.98]`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cover.imageUrl} alt={cover.title} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
+        {show.status !== 'ready' && <span className="absolute right-2 bottom-2 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white">Preview</span>}
       </button>
     );
   }
@@ -108,7 +110,7 @@ function Card({ face, calendarMeta, spot, ...props }: CardProps & { face: Face |
         <PlayableCover {...props} />
         {face && <FaceBadge face={face} className="pointer-events-none absolute top-2 left-2" />}
       </div>
-      {calendarMeta && show.status === 'ready' ? (
+      {calendarMeta && (show.status === 'ready' || show.coverOnly) ? (
         <CoverMeta title={show.topic} when={whenOf(show, spot)} onOpen={props.onOpen} />
       ) : calendarMeta ? (
         <p className="mt-2 truncate text-sm font-semibold text-app-ink">{show.topic}</p>

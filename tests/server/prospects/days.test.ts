@@ -2,7 +2,7 @@
 // a missing post's day taken by the next kind that has one. Only the free days' posts are made in full.
 
 import { describe, expect, it } from 'vitest';
-import { composeDays, daysFromPlan, rebaseDays } from '../../../src/server/prospects/days';
+import { blitzDaysFrom, composeDays, daysFromPlan, rebaseDays } from '../../../src/server/prospects/days';
 import { fullCount, PROSPECT_FREE_DAYS, PROSPECT_ORDER } from '../../../src/types/admin/prospects';
 
 const ids = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => `${prefix}${i + 1}`);
@@ -57,5 +57,30 @@ describe('days from the calendar', () => {
     expect(rebaseDays(past, now, 0).map((d) => [d.refId, d.at.slice(0, 10)])).toEqual([['a', '2026-11-03'], ['b', '2026-11-04']]);
     const ahead = [{ ...past[0]!, at: '2026-11-06T09:00:00.000Z' }];
     expect(rebaseDays(ahead, now, 0)).toEqual(ahead);
+  });
+});
+
+describe('blitzDaysFrom', () => {
+  const at = '2026-11-16T12:00:00.000Z';
+
+  it('adds an idea made into a post during review as a preview', () => {
+    expect(blitzDaysFrom([], new Map(), new Map([['idea', at]]))).toEqual([{ at, kind: 'blitz', refId: 'idea', preview: true }]);
+  });
+
+  it('keeps a rendered video on its project, at its post time when it has a post', () => {
+    const picked = [{ ideaId: 'idea', projectId: 'project' }];
+    expect(blitzDaysFrom(picked, new Map(), new Map([['idea', at]]))).toEqual([{ at, kind: 'blitz', refId: 'project' }]);
+    expect(blitzDaysFrom(picked, new Map([['idea', at]]), new Map())).toEqual([{ at, kind: 'blitz', refId: 'project' }]);
+  });
+
+  it('shows a held idea with a post as a preview, and drops one with neither a day nor a render', () => {
+    const held = [{ ideaId: 'idea', projectId: null, held: true }];
+    expect(blitzDaysFrom(held, new Map(), new Map([['idea', at]]))).toEqual([{ at, kind: 'blitz', refId: 'idea', preview: true }]);
+    expect(blitzDaysFrom(held, new Map([['idea', at]]), new Map())).toEqual([]);
+  });
+
+  it('never lists a picked idea twice', () => {
+    const picked = [{ ideaId: 'idea', projectId: null, preview: true }];
+    expect(blitzDaysFrom(picked, new Map([['idea', at]]), new Map([['idea', at]]))).toHaveLength(1);
   });
 });

@@ -13,14 +13,17 @@ import { makeHeldImages } from '../labs/packPreviews';
 import { chargeCredits } from '../slideshowCredits/charge';
 import { workspaceHasPaid } from '../slideshowCredits/paid';
 import { keptIdeas, renderBlitz } from './blitz';
+import { postedIdeas } from './calendarPlan';
 import { blitzOf } from './store';
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
 
 /** Makes the Blitz preview ideas' held images, renders them for `userId`, stores the renders on the pack and charges
- *  1 credit per video made (charges follow making, never posting). */
+ *  1 credit per video made (charges follow making, never posting). An idea with a scheduled post is skipped: that post
+ *  makes its video. */
 const unlockBlitz = async (pack: ProspectPack, userId: string): Promise<void> => {
-  const previews = blitzOf(pack).filter((b) => b.preview && !b.error);
+  const posted = await postedIdeas(pack.workspaceId);
+  const previews = blitzOf(pack).filter((b) => b.preview && !b.error && !posted.has(b.ideaId));
   if (previews.length === 0) return;
   await makeHeldImages(pack.workspaceId, previews.map((b) => b.ideaId));
   const ideas = await keptIdeas(pack.workspaceId, previews.map((b) => b.ideaId));
