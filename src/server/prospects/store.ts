@@ -8,6 +8,7 @@ import { prisma } from '../../lib/db';
 import type { StepCost } from '../../types/admin/metaAds';
 import type { ProspectBlitz, ProspectDay, ProspectPackDto, ProspectStatus } from '../../types/admin/prospects';
 import { HttpError } from '../http';
+import { NO_OPENS, opensOf, type PackOpens } from './opens';
 
 export const blitzOf = (pack: Pick<ProspectPack, 'blitz'>): ProspectBlitz[] => (pack.blitz as unknown as ProspectBlitz[] | null) ?? [];
 
@@ -77,7 +78,7 @@ const timingOf = (pack: ProspectPack): ProspectPackDto['timing'] => ({
   postsSec: secondsBetween(pack.approvedAt, pack.readyAt),
 });
 
-const toDto = async (pack: ProspectPack, costs: Map<string, number>): Promise<ProspectPackDto> => ({
+const toDto = async (pack: ProspectPack, costs: Map<string, number>, opens: Map<string, PackOpens>): Promise<ProspectPackDto> => ({
   id: pack.id,
   workspaceId: pack.workspaceId,
   name: pack.name,
@@ -89,6 +90,7 @@ const toDto = async (pack: ProspectPack, costs: Map<string, number>): Promise<Pr
   lateVideos: await lateVideosOf(pack),
   costUsd: (costs.get(pack.id) ?? 0) / 1e6,
   timing: timingOf(pack),
+  opens: opens.get(pack.id) ?? NO_OPENS,
   createdAt: pack.createdAt.toISOString(),
   claimedAt: pack.claimedAt?.toISOString() ?? null,
 });
@@ -96,11 +98,12 @@ const toDto = async (pack: ProspectPack, costs: Map<string, number>): Promise<Pr
 /** The newest packs first (50). */
 export const listPacks = async (): Promise<ProspectPackDto[]> => {
   const packs = await prisma.prospectPack.findMany({ orderBy: { createdAt: 'desc' }, take: 50 });
-  const costs = await costsOf(packs);
-  return Promise.all(packs.map((p) => toDto(p, costs)));
+  const [costs, opens] = await Promise.all([costsOf(packs), opensOf(packs.map((p) => p.id))]);
+  return Promise.all(packs.map((p) => toDto(p, costs, opens)));
 };
 
 export const packDto = async (id: string): Promise<ProspectPackDto> => {
   const pack = await loadPack(id);
-  return toDto(pack, await costsOf([pack]));
+  const [costs, opens] = await Promise.all([costsOf([pack]), opensOf([pack.id])]);
+  return toDto(pack, costs, opens);
 };

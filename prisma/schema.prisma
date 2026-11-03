@@ -2730,9 +2730,25 @@ model ProspectPack {
   readyAt         DateTime? @map("ready_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
+  opens           ProspectPackOpen[]
 
   @@index([createdAt(sort: Desc)], map: "prospect_packs_created_idx")
   @@map("prospect_packs")
+}
+
+/// One time a lead opened a pack's link (src/server/prospects/opens.ts). No IP or full user agent kept.
+model ProspectPackOpen {
+  id       String       @id @default(cuid())
+  packId   String       @map("pack_id")
+  pack     ProspectPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  openedAt DateTime     @default(now()) @map("opened_at")
+  /// 'mobile' | 'desktop'
+  device   String
+  /// Two-letter country from the host's geo header. Null when unknown (localhost).
+  country  String?
+
+  @@index([packId, openedAt(sort: Desc)], map: "prospect_pack_opens_pack_idx")
+  @@map("prospect_pack_opens")
 }
 
 /// One paid provider call (OpenAI, OpenRouter, reAPI, treg, WaveSpeed, Exa, Apify). userId comes from the session that

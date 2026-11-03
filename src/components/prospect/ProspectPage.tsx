@@ -13,6 +13,7 @@ import { CompareSection, HowItWorks, LeadFaq } from './LeadSections';
 import { ShowreelOverlay } from './ShowreelOverlay';
 import { PostSheet } from './PostSheet';
 import { useTripleClick } from './useTripleClick';
+import { useProspectOpen } from './useProspectOpen';
 import { useProspectView } from './useProspectView';
 import { WeekStrip } from './WeekStrip';
 
@@ -30,6 +31,7 @@ const Loading = () => (
  *  opens, then "Start now" signs them in and hands them the workspace. */
 export function ProspectPage({ shareToken }: { shareToken: string }) {
   const { data, error, loading, retry } = useProspectView(shareToken);
+  useProspectOpen(shareToken, !!data);
   const [open, setOpen] = useState<number | null>(null);
   const [reel, setReel] = useState(false);
   const onLogoClick = useTripleClick(() => setReel(true));

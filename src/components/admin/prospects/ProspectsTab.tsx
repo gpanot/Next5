@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonCard } from '../../ui/Skeleton';
 import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS, PROSPECT_MAX_ACTIVE, type ProspectPackDto } from '../../../types/admin/prospects';
+import { markAdminDevice } from '../../prospect/useProspectOpen';
+import { OpensSummary } from './OpensLine';
 import { ProspectRow } from './ProspectRow';
 import { averages, formatDuration } from './timing';
 import { useProspects } from './useProspects';
@@ -81,6 +83,7 @@ function Averages({ packs, hideCost }: { packs: ProspectPackDto[]; hideCost: boo
 export function ProspectsTab({ token }: { token: string }) {
   const { packs, error, loading, refresh, create, approve, remove, generate, reopen } = useProspects(token);
   const [hideCost, setHideCost] = useState(false);
+  useEffect(markAdminDevice, []);
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <CreateForm onCreate={create} hideCost={hideCost} onToggleCost={() => setHideCost((h) => !h)} />
@@ -93,6 +96,7 @@ export function ProspectsTab({ token }: { token: string }) {
       )}
       {!loading && !error && packs.length === 0 && <EmptyState title="No prospects yet" body="Add a website above to make their first 14 days of posts." />}
       <Averages packs={packs} hideCost={hideCost} />
+      <OpensSummary packs={packs} />
       {packs.length > 0 && (
         <ul className="space-y-3">
           {packs.map((p) => <ProspectRow key={p.id} token={token} pack={p} hideCost={hideCost} onApprove={approve} onDelete={remove} onGenerate={generate} onReopen={reopen} />)}

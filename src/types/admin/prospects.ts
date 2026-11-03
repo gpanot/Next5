@@ -44,6 +44,9 @@ export const PROSPECT_BLITZ_TRIES = 3;
 /** True while a picked idea may still become a video. */
 export const blitzPending = (b: ProspectBlitz): boolean => !b.projectId && !((b.preview || b.held) && !b.error) && (!b.error || (!!b.retry && (b.tries ?? 1) < PROSPECT_BLITZ_TRIES));
 
+/** One time a lead opened the pack's link. */
+export type ProspectOpen = { at: string; device: 'mobile' | 'desktop'; country: string | null };
+
 /** The admin list row. */
 export type ProspectPackDto = {
   id: string;
@@ -61,6 +64,8 @@ export type ProspectPackDto = {
   /** Make time in seconds, without the admin's face check: site read and faces (started → faces), then the posts
    *  (approved → ready). Null while that part is not done. */
   timing: { siteSec: number | null; postsSec: number | null };
+  /** Times the link was opened, with the latest ones (newest first). */
+  opens: { count: number; latest: ProspectOpen[] };
   createdAt: string;
   claimedAt: string | null;
 };

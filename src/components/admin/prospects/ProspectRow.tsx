@@ -5,6 +5,7 @@ import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS, prospectDm, prospectPath
 import { CastPanel } from '../workspaceDetail/CastPanel';
 import { useImpersonation } from '../workspaceDetail/useImpersonation';
 import { CostDialog } from './CostDialog';
+import { OpensLine } from './OpensLine';
 import { TasksPanel } from './TasksPanel';
 import { formatDuration, makeSec } from './timing';
 
@@ -135,6 +136,7 @@ export function ProspectRow({ token, pack, hideCost, onApprove, onDelete, onGene
         <span className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-bold uppercase ${status.tone}`}>{status.label}</span>
       </div>
       <Progress token={token} pack={pack} hideCost={hideCost} />
+      <OpensLine pack={pack} />
       {pack.error && <p className="text-[12px] text-app-danger">{pack.error}</p>}
       {pack.status === 'faces' && <FaceCheck token={token} pack={pack} onApprove={onApprove} />}
       {pack.status === 'review' && <ReviewActions token={token} pack={pack} onGenerate={onGenerate} />}
