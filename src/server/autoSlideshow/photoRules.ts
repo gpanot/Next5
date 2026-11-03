@@ -61,3 +61,16 @@ export const PHOTO_ENGINES: Record<'muse' | 'nano', readonly PhotoEngineStep[]> 
 
 /** The engine in use: read per call, so a local or Vercel env change applies without a code change. */
 export const photoEngine = (): readonly PhotoEngineStep[] => PHOTO_ENGINES[process.env.SLIDESHOW_PHOTO_ENGINE === 'nano' ? 'nano' : 'muse'];
+
+/** A reference image (storage key or signed link) that is a Brand Cast avatar. */
+const isAvatarRef = (ref: string) => ref.includes('brand-cast/');
+
+/** The engine for a photo with these references. Muse skips avatars (user's rule, 2026-11-03): its safety filter refused one
+ *  avatar 3 times out of 3, and made 1 of a run's 10 photos with a reference. Without the avatar,
+ *  the same prompt passed 3 out of 3. Products and other references stay on Muse. */
+export const photoSteps = (refs: readonly string[]): readonly PhotoEngineStep[] =>
+  refs.some(isAvatarRef) ? photoEngine().filter((step) => step !== 'reapi-muse') : photoEngine();
+
+/** "Generate New" in the editor (user's rule, 2026-11-03): the first model for these references, then one redo on GPT Image
+ *  2.5 official. */
+export const newPhotoSteps = (refs: readonly string[]): readonly PhotoEngineStep[] => [photoSteps(refs)[0]!, 'reapi-gpt-2.5'];

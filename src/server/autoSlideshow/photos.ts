@@ -11,7 +11,7 @@ import { clip } from '../metaAds/text';
 import { runPool } from '../pool';
 import { getObject, presignObject, putObject } from '../storage/objectStore';
 import { detectHeads, inspectPhoto } from './heads';
-import { PHOTO_STYLE_RULES, PHOTO_STYLE_VERSION, photoEngine, type PhotoEngineStep } from './photoRules';
+import { newPhotoSteps, PHOTO_STYLE_RULES, PHOTO_STYLE_VERSION, photoSteps, type PhotoEngineStep } from './photoRules';
 import { compressJpeg, PHOTO_SIZE } from './jpeg';
 
 export type PhotoGenConfig = { model: ReapiModelId; ratio: ReapiRatio; highRes: boolean; timeoutMs?: number };
@@ -100,20 +100,21 @@ const noteResult = (step: PhotoEngineStep, ok: boolean) => {
   breaker.set(step, { failures, until: failures >= BREAKER_FAILURES ? Date.now() + BREAKER_MS : 0 });
 };
 
-/** A slideshow photo from the engine in use (photoRules.ts): each model in turn until one makes it (a refusal by a
- *  safety filter, a provider outage). The last step always runs, even when its breaker is open. Fails with every step's reason. */
-export const slideshowPhoto = async (prompt: string, refUrls: string[], meter: CostMeter): Promise<Made> => {
-  const steps = photoEngine();
+/** A slideshow photo from the engine for its references (photoSteps), or `steps` when given: each model in turn until one makes it
+ *  (a refusal by a safety filter, a provider outage). The last step always runs, even when its breaker is open. `failed`:
+ *  why the steps before it failed. Fails with every step's reason. */
+export const slideshowPhoto = async (prompt: string, refUrls: string[], meter: CostMeter, steps: readonly PhotoEngineStep[] = photoSteps(refUrls)): Promise<Made & { failed: string[] }> => {
   const errors: string[] = [];
   for (const [i, step] of steps.entries()) {
     if (isOpen(step) && i < steps.length - 1) continue;
     try {
       const made = await ENGINE_STEPS[step](prompt, refUrls, meter);
       noteResult(step, true);
-      return made;
+      return { ...made, failed: errors };
     } catch (err) {
       if (!isRefusal(err)) noteResult(step, false);
       errors.push(`${step}: ${err instanceof Error ? err.message.slice(0, 120) : String(err)}`);
+      console.warn(`[auto-slideshow] photo step failed: ${errors[errors.length - 1]}`);
     }
   }
   throw new Error(errors.join(' | '));
@@ -143,10 +144,11 @@ const storePhoto = async (runId: string, index: number, image: Buffer): Promise<
 };
 
 /** An AI photo's body check: flawed (a third hand, a cut leg), it is made once more and stored over the first. A redo
- *  still flawed, or one that fails, keeps what it has. */
-const checkAiPhoto = async (jpeg: Buffer, gen: PhotoGen, redo: () => Promise<{ jpeg: Buffer; gen: PhotoGen }>): Promise<Checked> => {
+ *  still flawed, or one that fails, keeps what it has. `redo` null: no redo left, the photo stays as it is. */
+const checkAiPhoto = async (jpeg: Buffer, gen: PhotoGen, redo: (() => Promise<{ jpeg: Buffer; gen: PhotoGen }>) | null): Promise<Checked> => {
   const first = await inspectPhoto(dataUri(jpeg));
   if (!first.flaw) return { heads: first.heads, gen };
+  if (!redo) return { heads: first.heads, gen: { ...gen, flaw: first.flaw, flawLeft: first.flaw } };
   console.warn(`[auto-slideshow] photo flawed (${first.flaw}), making it again`);
   try {
     const again = await redo();
@@ -159,8 +161,9 @@ const checkAiPhoto = async (jpeg: Buffer, gen: PhotoGen, redo: () => Promise<{ j
 };
 
 /** One photo, generated (or a brand photo copied) and stored as a 1440x1800 JPEG under 1 MB, with its heads being found
- *  so step 6 keeps text off them (and, generated, its body checked). */
-const makePhoto = async (runId: string, index: number, spec: PhotoSpec, look: string | undefined, meter: CostMeter): Promise<MadePhoto> => {
+ *  so step 6 keeps text off them (and, generated, its body checked). `oneRedo`: at most 2 images, the second on GPT Image
+ *  2.5, whether the first failed or came out flawed. */
+const makePhoto = async (runId: string, index: number, spec: PhotoSpec, look: string | undefined, meter: CostMeter, oneRedo = false): Promise<MadePhoto> => {
   const createdAt = new Date().toISOString();
   if (spec.brandPhotoKey) {
     const original = await getObject(spec.brandPhotoKey);
@@ -171,19 +174,24 @@ const makePhoto = async (runId: string, index: number, spec: PhotoSpec, look: st
   }
   const refUrls = await refLinks(spec.refs);
   const sentPrompt = photoPrompt(spec.prompt, look, refUrls.length > 0 ? spec.refNote : undefined);
-  const generate = async () => {
-    const { buffer, taskId, model } = await slideshowPhoto(sentPrompt, refUrls, meter);
-    const gen: PhotoGen = { sentPrompt, model, ratio: PHOTO_GEN.ratio, highRes: PHOTO_GEN.highRes, taskId, styleVersion: STYLE_VERSION, createdAt, ...(refUrls.length ? { refs: refUrls.length } : {}) };
+  const steps = oneRedo ? newPhotoSteps(refUrls) : photoSteps(refUrls);
+  const generate = async (from: readonly PhotoEngineStep[]) => {
+    const { buffer, taskId, model, failed } = await slideshowPhoto(sentPrompt, refUrls, meter, from);
+    const gen: PhotoGen = { sentPrompt, model, ratio: PHOTO_GEN.ratio, highRes: PHOTO_GEN.highRes, taskId, styleVersion: STYLE_VERSION, createdAt, ...(refUrls.length ? { refs: refUrls.length } : {}), ...(failed.length ? { failed } : {}) };
     return { ...(await storePhoto(runId, index, buffer)), gen };
   };
-  const { key, jpeg, gen } = await generate();
-  return { key, checked: checkAiPhoto(jpeg, gen, generate) };
+  const { key, jpeg, gen } = await generate(steps);
+  // With oneRedo, a first try that failed has already used the redo.
+  const redo = !oneRedo ? () => generate(steps) : gen.failed ? null : () => generate(steps.slice(-1));
+  return { key, checked: checkAiPhoto(jpeg, gen, redo) };
 };
 
 /** `deadline`: no new photo starts after it (the rest stay untried for the next invocation). `skipFailed`: a continued
  *  pass leaves photos that already failed, so retries do not eat its time. `look`: the brand's photo style, added to
- *  every prompt (banks built before the style existed get it this way too). */
-export type MakePhotosOptions = { deadline?: number; skipFailed?: boolean; look?: string };
+ *  every prompt (banks built before the style existed get it this way too). `onlyFrom`: only the photos from this index on
+ *  are made; the ones before stay as they are, even failed ones (an edit asks for one new photo, not a retry of the run's).
+ *  `oneRedo`: see makePhoto. */
+export type MakePhotosOptions = { deadline?: number; skipFailed?: boolean; look?: string; onlyFrom?: number; oneRedo?: boolean };
 
 /**
  * Generates every photo not stored yet (a resumed run keeps the ones it has). A failed photo is recorded, not fatal;
@@ -194,18 +202,19 @@ export const makePhotos = async (runId: string, specs: (string | PhotoSpec)[], e
     const spec = typeof s === 'string' ? { prompt: s } : s;
     const extra = { ...(spec.refs?.length ? { refs: spec.refs, refNote: spec.refNote } : {}), ...(spec.brandPhotoKey ? { brandPhotoKey: spec.brandPhotoKey } : {}) };
     const prior = existing?.[i];
+    if (prior && options.onlyFrom !== undefined && i < options.onlyFrom) return prior;
     if (prior?.prompt !== spec.prompt) return { prompt: spec.prompt, imageKey: null, error: null, ...extra };
     if (prior.imageKey || prior.deleted || (options.skipFailed && prior.error)) return prior;
     const { kind, owner, altFor } = prior;
     return { prompt: spec.prompt, imageKey: null, error: null, ...(kind ? { kind } : {}), ...(owner ? { owner } : {}), ...(altFor ? { altFor } : {}), ...extra };
   });
-  const todo = photos.map((p, i) => ({ p, i })).filter(({ p }) => !p.imageKey && !p.deleted && !p.error);
+  const todo = photos.map((p, i) => ({ p, i })).filter(({ p, i }) => !p.imageKey && !p.deleted && !p.error && i >= (options.onlyFrom ?? 0));
   // Head detection (a vision call) runs outside the pool: a slot frees as soon as its photo is stored.
   const finding: Promise<void>[] = [];
   await runPool(todo, CONCURRENCY, async ({ p, i }) => {
     if (options.deadline && Date.now() > options.deadline) return;
     try {
-      const { key, checked } = await makePhoto(runId, i, p, options.look, meter);
+      const { key, checked } = await makePhoto(runId, i, p, options.look, meter, options.oneRedo);
       photos[i] = { ...p, imageKey: key, error: null };
       // Unknown heads (detection failed) stay unset, so step 6 tries again.
       finding.push(checked.then(({ heads, gen }) => { photos[i] = { ...photos[i]!, gen, ...(heads ? { heads } : {}) }; }));

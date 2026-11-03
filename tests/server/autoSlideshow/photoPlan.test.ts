@@ -55,6 +55,23 @@ describe('slidesFromReply', () => {
     expect(out.filter((s) => s.brandPhotoKey || s.photoRefs?.includes('user-uploads/ws/b.jpg'))).toHaveLength(2);
   });
 
+  it('gives the cast member to a scene naming the main person, even when the label says otherwise', async () => {
+    const { slidesFromReply } = await import('../../../src/server/autoSlideshow/photoPlan');
+    const raw = { ...reply([]), slide_2_person: 'other', slide_3_person: undefined };
+    const out = slidesFromReply(raw, { slides, goal: 'teach', profile, bible: null, cast, photos: [] });
+    expect(out[1]!.photoRefs).toEqual([cast.imageKey]);
+    expect(out[2]!.photoRefs).toEqual([cast.imageKey]);
+    expect(out[2]!.photoPrompt).toContain('Curly dark hair');
+  });
+
+  it('leaves a scene that does not name the main person without a reference', async () => {
+    const { slidesFromReply } = await import('../../../src/server/autoSlideshow/photoPlan');
+    const raw = { ...reply([]), slide_2_scene: 'Close-up of a leaking pipe.', slide_2_person: 'none' };
+    const out = slidesFromReply(raw, { slides, goal: 'teach', profile, bible: null, cast, photos: [] });
+    expect(out[1]!.photoRefs).toBeUndefined();
+    expect(out[1]!.castId).toBeUndefined();
+  });
+
   it('without a cast, "main" is just someone in the scene: no reference, no cast id', async () => {
     const { slidesFromReply } = await import('../../../src/server/autoSlideshow/photoPlan');
     const out = slidesFromReply(reply([]), { slides, goal: 'story', profile, bible: null, cast: null, photos: [] });

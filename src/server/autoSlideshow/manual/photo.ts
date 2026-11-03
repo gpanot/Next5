@@ -34,7 +34,7 @@ const makeSlidePhotos = async (row: DraftRow, slides: AutoSlide[], indexes: numb
   const run = await prisma.autoSlideshowRun.findUniqueOrThrow({ where: { id: row.runId }, select: { photos: true } });
   const existing = (run.photos as unknown as AutoPhoto[] | null) ?? [];
   const specs = indexes.map((i) => specOf(slides[i]!));
-  const all = await makePhotos(row.runId, [...existing.map((p) => p.prompt), ...specs], existing, meter, { look: brandLook(profileOf(row)) });
+  const all = await makePhotos(row.runId, [...existing.map((p) => p.prompt), ...specs], existing, meter, { look: brandLook(profileOf(row)), onlyFrom: existing.length });
   indexes.forEach((slideIndex, k) => {
     const at = existing.length + k;
     all[at] = { ...all[at]!, kind: 'slide', owner: slideOwner(row.id, slideIndex) };

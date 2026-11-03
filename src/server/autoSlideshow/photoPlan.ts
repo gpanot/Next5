@@ -103,12 +103,17 @@ const toPlan = (raw: Record<string, unknown>, input: PlanInput, products: BrandP
     const scene = str(raw[`slide_${n}_scene`], 400);
     if (!scene) return null;
     const said = str(raw[`slide_${n}_person`], 10).toLowerCase();
-    // Without a cast member, "main" is just someone in the scene.
-    const person: SlidePlan['person'] = said === 'main' ? (input.cast ? 'main' : 'other') : said === 'other' ? 'other' : 'none';
     const index = Number(str(raw[`slide_${n}_product`], 5).replace(/^P/i, '')) - 1;
     const wanted = Number.isInteger(index) ? (products[index] ?? null) : null;
     const product = wanted && productAllowed(slide, input.goal) && productSlides < MAX_PRODUCT_SLIDES ? wanted : null;
     if (product) productSlides += 1;
+    // A scene naming the main person is theirs whatever the label says: a wrong label sent "the main person" to the photo
+    // model with no reference image or look, so it drew a stranger (3 of 4 Muse photos on one run, 2026-11-02). A real brand
+    // photo used as it is needs no person, so its label stands.
+    const realPhoto = Boolean(product?.usableAsBackground && !product.looksLikeAd);
+    const isMain = said === 'main' || (!realPhoto && /\bmain person\b/i.test(scene));
+    // Without a cast member, "main" is just someone in the scene.
+    const person: SlidePlan['person'] = isMain ? (input.cast ? 'main' : 'other') : said === 'other' ? 'other' : 'none';
     return { scene, person, product } satisfies SlidePlan;
   });
   return { setting: str(raw.setting, 160), wardrobe: str(raw.wardrobe, 200), slides };
