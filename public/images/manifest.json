@@ -4888,5 +4888,45 @@
     "bytes": 805321,
     "alt": "A real estate agent checks her phone on the front lawn of a house, next to a for sale sign",
     "generatedAt": "2026-11-03T06:49:10.018Z"
+  },
+  "public/images/prospect/blueprint/cal-poster.jpg": {
+    "prompt": "HyperFrames animation still, website to 14-day calendar",
+    "model": "screenshot/hyperframes",
+    "size": "720x900",
+    "outputSize": "720x900",
+    "alt": "Animation: a website address turns into 14 days of posts, each one approved",
+    "generatedAt": "2026-11-03T07:30:00.000Z"
+  },
+  "public/images/prospect/blueprint/slides-poster.jpg": {
+    "prompt": "HyperFrames animation still, hook and brand slideshows",
+    "model": "screenshot/hyperframes",
+    "size": "720x900",
+    "outputSize": "720x900",
+    "alt": "Animation: a hook slideshow and a brand slideshow, side by side",
+    "generatedAt": "2026-11-03T07:30:00.000Z"
+  },
+  "public/images/prospect/blueprint/formats-poster.jpg": {
+    "prompt": "HyperFrames animation still, mini Blitz and split screen",
+    "model": "screenshot/hyperframes",
+    "size": "720x900",
+    "outputSize": "720x900",
+    "alt": "Animation: a mini Blitz video, then a split screen video",
+    "generatedAt": "2026-11-03T07:30:00.000Z"
+  },
+  "public/images/prospect/blueprint/approve.jpg": {
+    "prompt": "Phone screenshot of the logged-in Next5 approve sheet, supplied by the owner, cropped",
+    "model": "screenshot",
+    "size": "640x942",
+    "outputSize": "640x942",
+    "alt": "Next5 approve screen: pick where a post goes, then approve it",
+    "generatedAt": "2026-11-03T07:45:00.000Z"
+  },
+  "public/images/prospect/blueprint/app-calendar.jpg": {
+    "prompt": "Phone screenshot of the logged-in Next5 calendar, supplied by the owner, cropped",
+    "model": "screenshot",
+    "size": "640x1230",
+    "outputSize": "640x1230",
+    "alt": "Next5 calendar: posts on their days, with one button to approve them all",
+    "generatedAt": "2026-11-03T07:45:00.000Z"
   }
 }

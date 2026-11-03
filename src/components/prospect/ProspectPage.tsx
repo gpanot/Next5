@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ErrorState } from '../ui/ErrorState';
 import { SkeletonText } from '../ui/Skeleton';
-import { PROSPECT_FREE_DAYS } from '../../types/admin/prospects';
 import { SLIDESHOW_PRICE_LABEL } from '../../types/admin/slideshowCredits';
+import { LeadBlueprint } from './blueprint/LeadBlueprint';
 import { ClaimBox } from './ClaimBox';
+import { StoriesSection } from './StoriesSection';
 import { LeadHero, LeadNav } from './LeadHero';
 import { CompareSection, HowItWorks, LeadFaq } from './LeadSections';
 import { ShowreelOverlay } from './ShowreelOverlay';
@@ -26,7 +27,7 @@ const Loading = () => (
 );
 
 /** The review page a prospect gets in a DM (layout from the lead page brief): their next 14 days of posts, each one
- *  opens, then "Get my posts" signs them in and hands them the workspace. */
+ *  opens, then "Start now" signs them in and hands them the workspace. */
 export function ProspectPage({ shareToken }: { shareToken: string }) {
   const { data, error, loading, retry } = useProspectView(shareToken);
   const [open, setOpen] = useState<number | null>(null);
@@ -47,9 +48,11 @@ export function ProspectPage({ shareToken }: { shareToken: string }) {
             <LeadHero name={data.name} websiteUrl={data.websiteUrl} videos={videos} slideshows={days.length - videos} />
             <WeekStrip days={days} onOpen={setOpen} />
             <CompareSection name={data.name} day={days.find((d) => d.kind !== 'blitz' && !d.locked) ?? days[0]} />
+            <StoriesSection />
             <HowItWorks />
-            <ClaimBox shareToken={shareToken} name={data.name} freeDays={PROSPECT_FREE_DAYS} price={SLIDESHOW_PRICE_LABEL} claimed={claimed} />
-            <LeadFaq name={data.name} price={SLIDESHOW_PRICE_LABEL} freeDays={PROSPECT_FREE_DAYS} />
+            <ClaimBox shareToken={shareToken} name={data.name} price={SLIDESHOW_PRICE_LABEL} claimed={claimed} />
+            <LeadFaq name={data.name} price={SLIDESHOW_PRICE_LABEL} />
+            <LeadBlueprint name={data.name} />
           </main>
           <footer className="border-t border-app-line py-7 text-[13px] text-app-muted">
             <div className="mx-auto flex max-w-[1180px] flex-wrap justify-between gap-x-6 gap-y-2 px-5">

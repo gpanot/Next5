@@ -1,7 +1,7 @@
 'use client';
 
 import { Sheet } from '../ui/Sheet';
-import { PROSPECT_FREE_DAYS, type ProspectViewDay } from '../../types/admin/prospects';
+import type { ProspectViewDay } from '../../types/admin/prospects';
 import { LockIcon, Thumb } from './PostCard';
 import { dayLabel, KIND_LABEL, postTime } from './postLabels';
 import { ScheduledOn } from './ScheduledOn';
@@ -52,12 +52,12 @@ export function PostSheet({ day, onClose }: { day: ProspectViewDay | null; onClo
             </p>
             {day.locked && (
               <p className="m-0 mb-4 text-[15px] text-app-ink">
-                This post is yours after you buy. Days 1 to {PROSPECT_FREE_DAYS} are free, so you can see them all now.
+                This post is finished after you buy. You see the first part now.
               </p>
             )}
             {!day.locked && day.caption && day.caption !== day.title && <p className="m-0 mb-4 whitespace-pre-line text-[15px] text-app-ink">{day.caption}</p>}
             <button type="button" onClick={claim} className="inline-flex min-h-[50px] w-full items-center justify-center rounded-full bg-app-ink px-6 font-semibold text-app-bg transition active:scale-[0.98]">
-              {day.locked ? 'Get my posts' : 'Claim to get this post'}
+              Start now
             </button>
             {day.why && <WhyThis why={day.why} />}
           </div>

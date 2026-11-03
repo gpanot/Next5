@@ -1,3 +1,4 @@
+import { PROSPECT_FREE_DAYS } from '../../types/admin/prospects';
 import { hostOf, initials } from './postLabels';
 
 /** The top bar: the logo and how long the preview is held. */
@@ -13,9 +14,7 @@ export function LeadNav({ heldUntil, ended, claimed, onLogoClick }: { heldUntil:
   );
 }
 
-const button = 'inline-flex min-h-[50px] items-center justify-center rounded-full px-6 text-[16px] font-semibold no-underline transition active:scale-[0.98]';
-
-/** Who it is for, the promise, and the two ways on. */
+/** Who it is for and the promise. The posts sit right below, so no buttons here. */
 export function LeadHero({ name, websiteUrl, videos, slideshows }: { name: string; websiteUrl: string; videos: number; slideshows: number }) {
   const total = videos + slideshows;
   return (
@@ -35,11 +34,7 @@ export function LeadHero({ name, websiteUrl, videos, slideshows }: { name: strin
         <p className="m-0 mb-6 max-w-[44ch] text-[18px] text-app-muted">
           {videos} short videos and {slideshows} photo slideshows for {name}, with captions written and a day to post each one.
         </p>
-        <div className="flex flex-wrap gap-2.5">
-          <a href="#claim" className={`${button} bg-app-ink text-app-bg`}>Get my posts</a>
-          <a href="#week" className={`${button} border-[1.5px] border-app-ink text-app-ink`}>See the posts</a>
-        </div>
-        <p className="mb-0 mt-3 text-[13px] text-app-muted">No card needed. Works with TikTok and Instagram.</p>
+        <p className="m-0 text-[13px] text-app-muted">Your first {PROSPECT_FREE_DAYS} posts are free. No card needed. Works with Instagram, TikTok and YouTube.</p>
       </div>
     </section>
   );

@@ -127,4 +127,4 @@ export const prospectPath = (shareToken: string): string => `/p/${shareToken}`;
 
 /** The DM the admin sends with the link (3rd-grade words). */
 export const prospectDm = (name: string, link: string): string =>
-  `Hey! I made your next 14 days of posts for ${name}: TikTok, Instagram and more. Take a look: ${link}\nLike them? They are yours. Just tap "Get my posts".`;
+  `Hey! I made your next 14 days of posts for ${name}: TikTok, Instagram and more. Take a look: ${link}\nLike them? They are yours. Just tap "Start now".`;
