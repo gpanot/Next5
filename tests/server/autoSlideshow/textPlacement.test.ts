@@ -18,6 +18,20 @@ describe('lineWidths', () => {
   });
 });
 
+describe('text size', () => {
+  it('grows the text blocks with the picked size, in every look', () => {
+    for (const look of ['tiktok-default', 'black-box', 'white-box', 'tiktok-red', 'all-caps'] as const) {
+      const height = (textSize?: number) => Math.max(...textRects({ ...meat, look, bodyLook: look, textSize }).map((r) => r.y + r.h));
+      expect(height(1.2)).toBeGreaterThan(height());
+      expect(height(0.8)).toBeLessThan(height());
+    }
+  });
+
+  it('keeps the blocks unchanged at Normal', () => {
+    expect(textRects({ ...meat, textSize: 1 })).toEqual(textRects(meat));
+  });
+});
+
 describe('textTop', () => {
   it('keeps the usual spot when no head is known or the spot is clear', () => {
     expect(textTop(meat)).toBe(330 + SHIFT);

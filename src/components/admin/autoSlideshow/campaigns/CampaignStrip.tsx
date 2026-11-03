@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
-import { lookOfRole, MAX_CAMPAIGN_CONTENT, shownBody, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
+import { cardPhotoFor, hookPhotoFor, lookOfRole, MAX_CAMPAIGN_CONTENT, shownBody, textSizeOfRole, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import type { TextAt } from '../../../../types/slideText';
-import { badgesOf, campaignContentTop, headsOf, type PreviewSlide } from './previewSlides';
+import { badgesOf, campaignContentTop, headsOf, withThumb, type PickedThumbs, type PreviewSlide } from './previewSlides';
 import { PreviewSlideView } from './PreviewSlideView';
 
 type Props = {
   draft: CampaignDraft;
   photos: CampaignPhotoDto[];
+  /** Which hook's slideshow the cards show, as picked above the player. */
+  hook: number;
   index: number;
   onPick: (i: number) => void;
   onAdd: () => void;
@@ -18,6 +20,8 @@ type Props = {
   onMoveBadges: (i: number, y: number) => void;
   /** Slides whose photo is being made or copied in. */
   loading: ReadonlySet<number>;
+  /** Picks being copied in, already drawn on their slides. */
+  thumbs: PickedThumbs;
   /** A control in slide i's top right corner, beside the card (not inside its button): the content slides' text lock. */
   corner?: (i: number) => ReactNode;
   /** A control at the right of slide i's label, under the picture: the content slides' delete. */
@@ -27,28 +31,32 @@ type Props = {
 type Card = { label: string; slide: PreviewSlide };
 
 /**
- * Slide 0 is the hook (its first line on its first photo); then the content cards and the CTA. Each card is drawn as
- * the Preview draws it (thumb photo, text in the picked look), so the strip shows the slide as it will post.
+ * The slides of hook `at`'s slideshow. Slide 0 is that hook on its photo; then the content cards, each on the photo that
+ * goes with that hook, and the CTA. Each card is drawn as the Preview draws it (thumb photo, text in the picked look), so the strip shows the slide as it will post.
  */
-const cardsOf = (draft: CampaignDraft, photos: CampaignPhotoDto[]): Card[] => {
+const cardsOf = (draft: CampaignDraft, photos: CampaignPhotoDto[], at: number): Card[] => {
   const url = (i: number | null | undefined) => (i === null || i === undefined ? null : photos[i]?.url ?? null);
   const rotating = draft.hooks.length;
   const top = campaignContentTop(draft, photos);
-  const hook: PreviewSlide = { kind: 'draft', photoUrl: url(draft.hookPhotos[0]), role: 'hook', title: draft.hooks[0] ?? '', body: '', look: draft.looks.hook, textAt: draft.hookTextAt, ...headsOf(photos, draft.hookPhotos[0]) };
+  const hookPhoto = hookPhotoFor(draft, at);
+  const hook: PreviewSlide = { kind: 'draft', photoUrl: url(hookPhoto), role: 'hook', title: draft.hooks[at] ?? '', body: '', look: draft.looks.hook, textSize: textSizeOfRole(draft.textSizes, 'hook'), textAt: draft.hookTextAt, ...headsOf(photos, hookPhoto) };
   return [
-    { label: rotating > 1 ? `Hook · ${rotating} rotating` : 'Hook', slide: hook },
-    ...draft.cards.map((c): Card => ({
-      label: c.role === 'cta' ? 'CTA' : 'Content',
-      slide: { kind: 'draft', photoUrl: url(c.photo), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role), textAt: c.textAt, ...headsOf(photos, c.photo), ...badgesOf(c), ...(c.role === 'item' && !c.textAt && top !== undefined ? { alignTop: top } : {}) },
-    })),
+    { label: rotating > 1 ? `Hook ${at + 1} of ${rotating}` : 'Hook', slide: hook },
+    ...draft.cards.map((c): Card => {
+      const photo = cardPhotoFor(c, at);
+      return {
+        label: c.role === 'cta' ? 'CTA' : 'Content',
+        slide: { kind: 'draft', photoUrl: url(photo), role: c.role, title: c.title, body: shownBody(c), look: lookOfRole(draft.looks, c.role), textSize: textSizeOfRole(draft.textSizes, c.role), textAt: c.textAt, ...headsOf(photos, photo), ...badgesOf(c), ...(c.role === 'item' && !c.textAt && top !== undefined ? { alignTop: top } : {}) },
+      };
+    }),
   ];
 };
 
 /** Every slide of the campaign as a numbered 9:16 card; the one being edited is ringed and its text can be dragged.
  *  A last tile adds a content slide. */
-export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText, onMoveBadges, loading, corner, footer }: Props) {
+export function CampaignStrip({ draft, photos, hook, index, onPick, onAdd, onMoveText, onMoveBadges, loading, thumbs, corner, footer }: Props) {
   const list = useRef<HTMLOListElement>(null);
-  const cards = cardsOf(draft, photos);
+  const cards = cardsOf(draft, photos, hook);
   const contentCount = draft.cards.length - 1;
 
   useEffect(() => {
@@ -72,7 +80,7 @@ export function CampaignStrip({ draft, photos, index, onPick, onAdd, onMoveText,
               className={`relative flex w-[141px] flex-col overflow-hidden rounded-xl border-2 bg-zinc-900 transition active:scale-[0.98] sm:w-[194px] ${on ? 'border-emerald-400 shadow-sm shadow-emerald-500/20' : 'border-white/10 hover:border-white/30'}`}
             >
               <span className="relative block aspect-[9/16] w-full bg-white/5">
-                <span className="absolute inset-0"><PreviewSlideView slide={c.slide} movable={on} loading={loading.has(i)} onMoveText={(at) => onMoveText(i, at)} onMoveBadges={(y) => onMoveBadges(i, y)} /></span>
+                <span className="absolute inset-0"><PreviewSlideView slide={withThumb(c.slide, i === 0 ? thumbs.hook.get(hook) : thumbs.slides.get(i))} movable={on} loading={loading.has(i)} onMoveText={(at) => onMoveText(i, at)} onMoveBadges={(y) => onMoveBadges(i, y)} /></span>
                 <span className="absolute top-2 left-2 flex h-6 min-w-6 items-center justify-center rounded-md bg-black/70 px-1 text-[11px] font-bold text-white">{i + 1}</span>
               </span>
               <span className={`truncate px-3 py-2 text-left text-sm font-medium ${on ? 'text-white' : 'text-white/60'}`}>{c.label}</span>

@@ -7,7 +7,7 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../../lib/db';
 import type { AutoSlide } from '../../../types/admin/autoSlideshow';
 import type { TextAt } from '../../../types/slideText';
-import { campaignProblems, cardPhotoFor, hookPhotoFor, lookOfRole, renderKeyOf, shownBody, type CampaignCard, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
+import { campaignProblems, cardPhotoFor, hookPhotoFor, lookOfRole, renderKeyOf, shownBody, textSizeOfRole, type CampaignCard, type CampaignDraft } from '../../../types/admin/slideshowCampaign';
 import { DEFAULT_BOX } from '../../companyIntel/slideshowStyle';
 import { HttpError } from '../../http';
 import { deleteObject, putObject } from '../../storage/objectStore';
@@ -22,7 +22,7 @@ const LIVE_POSTS = ['scheduled', 'sending', 'processing', 'posted'];
 /** Slides rendered at once: Satori renders are memory hungry. */
 const RENDER_BATCH = 4;
 
-type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look' | 'textAt' | 'badges' | 'badgesAt'> & { photoIndex: number };
+type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look' | 'textSize' | 'textAt' | 'badges' | 'badgesAt'> & { photoIndex: number };
 
 /** Runs `work` over `items`, `size` at a time, keeping their order. */
 const inBatches = async <T, R>(items: T[], size: number, work: (item: T, index: number) => Promise<R>): Promise<R[]> => {
@@ -31,10 +31,11 @@ const inBatches = async <T, R>(items: T[], size: number, work: (item: T, index: 
   return out;
 };
 
-/** Each slide takes the look picked for its kind (hook, content, CTA); Default stores none. */
+/** Each slide takes the look and text size picked for its kind (hook, content, CTA); Default and Normal store none. */
 const lookFor = (draft: CampaignDraft, role: 'hook' | 'item' | 'cta') => {
   const look = lookOfRole(draft.looks, role);
-  return look === 'default' ? {} : { look };
+  const textSize = textSizeOfRole(draft.textSizes, role);
+  return { ...(look === 'default' ? {} : { look }), ...(textSize === 1 ? {} : { textSize }) };
 };
 
 /** Text moved in the editor keeps its height, always centered (even on drafts saved before campaign text moved only up and down); unmoved text stores none. */

@@ -34,6 +34,16 @@ export const textSpan = (x: number, side: number): { left: number; right: number
   return { left: cx - half, right: 1 - cx - half };
 };
 
+/** The text size picks: a share of each look's usual font size, for the headline and the line under it together. */
+export const TEXT_SIZES = [
+  { value: 0.8, label: 'Smaller' },
+  { value: 0.9, label: 'Small' },
+  { value: 1, label: 'Normal' },
+  { value: 1.1, label: 'Large' },
+  { value: 1.2, label: 'Larger' },
+] as const;
+export const isTextSize = (v: unknown): v is number => TEXT_SIZES.some((s) => s.value === v);
+
 /** The drafts' usual spot before the text is moved: centered, a third of the way down (the render's home, roughly). */
 export const HOME_TEXT_AT: TextAt = { x: 0.5, y: 0.33 };
 

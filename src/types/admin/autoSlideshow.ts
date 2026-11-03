@@ -99,7 +99,7 @@ export type AutoPhoto = {
 /** `refs`: how many reference images went with the prompt. */
 /** `flaw`: the body mistake the check found on the first try (heads.ts), when the photo was made again; `flawLeft`: the
  *  one still found on the redo (kept anyway). */
-export type PhotoGen = { sentPrompt: string; model: string; ratio: string; highRes: boolean; taskId: string; styleVersion: string; createdAt: string; refs?: number; flaw?: string; flawLeft?: string };
+export type PhotoGen = { sentPrompt: string; model: string; ratio: string; highRes: boolean; taskId: string; styleVersion: string; createdAt: string; refs?: number; flaw?: string; flawLeft?: string; failed?: string[] };
 
 /** One human head in a photo, as shares (0-1) of its width and height. Step 6 keeps the slide text off these. */
 export type HeadBox = { top: number; left: number; bottom: number; right: number };
@@ -127,6 +127,8 @@ export type AutoSlide = {
   textFree?: boolean;
   /** The line under the headline's own look, picked apart from the headline's (`look`). Unset = plain white text. */
   bodyLook?: TextLook;
+  /** The text size picked for this kind of slide (TEXT_SIZES), a share of the look's font size. Unset = Normal. */
+  textSize?: number;
   /** CTA slides made from a campaign: the app store badges, in a centered row apart from the text. Unset = none. */
   badges?: StoreBadge[];
   /** The badge row's top, as a share of the height; unset = HOME_BADGES_Y. */

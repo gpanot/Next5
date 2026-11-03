@@ -10,6 +10,7 @@ const caps = Montserrat({ subsets: ['latin'], weight: '800', style: 'italic', di
 /**
  * A slide's text drawn in the browser as the server render draws it (server/autoSlideshow/render.tsx), in cqw: share of
  * the frame's width, where 1cqw is 10.8 px of the 1080 px slide. The parent sets `container-type: inline-size`.
+ * Weights are literal (800, 600), as the render's: the workspace theme remaps font-extrabold to 600 and font-semibold to 500.
  */
 export type SlideTextProps = {
   role: 'hook' | 'item' | 'cta';
@@ -22,6 +23,8 @@ export type SlideTextProps = {
   box?: { boxColor: string; boxTextColor: string };
   /** Shown dimmed while the title is empty. */
   placeholder?: string;
+  /** The picked text size (TEXT_SIZES); Normal when unset. SlideTextLayer sets it as --text-size, which every size below reads. */
+  textSize?: number;
 };
 
 const WHITE_BOX = { boxColor: '#ffffff', boxTextColor: '#111111' };
@@ -39,14 +42,14 @@ export const BODY_GAP = 36 / 1080;
 
 /** Outlined headline size: 90 / 76 px on hooks (long ones smaller), 68 px on the CTA, 60 px on content slides. */
 const outlineSize = (role: SlideTextProps['role'], text: string) => {
-  if (role === 'hook') return text.length > 40 ? 'text-[length:7.037cqw]' : 'text-[length:8.333cqw]';
-  return role === 'cta' ? 'text-[length:6.296cqw]' : 'text-[length:5.556cqw]';
+  if (role === 'hook') return text.length > 40 ? 'text-[length:calc(7.037cqw*var(--text-size,1))]' : 'text-[length:calc(8.333cqw*var(--text-size,1))]';
+  return role === 'cta' ? 'text-[length:calc(6.296cqw*var(--text-size,1))]' : 'text-[length:calc(5.556cqw*var(--text-size,1))]';
 };
 
 /** All caps headline size: 72 / 60 px on hooks (long ones smaller), 58 px on the CTA, 52 px on content slides. */
 const capsSize = (role: SlideTextProps['role'], text: string) => {
-  if (role === 'hook') return text.length > 40 ? 'text-[length:5.556cqw]' : 'text-[length:6.667cqw]';
-  return role === 'cta' ? 'text-[length:5.37cqw]' : 'text-[length:4.815cqw]';
+  if (role === 'hook') return text.length > 40 ? 'text-[length:calc(5.556cqw*var(--text-size,1))]' : 'text-[length:calc(6.667cqw*var(--text-size,1))]';
+  return role === 'cta' ? 'text-[length:calc(5.37cqw*var(--text-size,1))]' : 'text-[length:calc(4.815cqw*var(--text-size,1))]';
 };
 
 /** The line under the headline in its own look: TikTok's plain white text, a black or white box, red behind each line,
@@ -54,24 +57,24 @@ const capsSize = (role: SlideTextProps['role'], text: string) => {
 export function SlideBodyView({ text, look }: { text: string; look?: TextLook }) {
   const kind = bodyKind(look);
   if (kind === 'all-caps') {
-    return <p className={`${caps.className} text-center text-[length:3.519cqw] leading-[1.25] text-white ${SOFT}`}>{text.toUpperCase()}</p>;
+    return <p className={`${caps.className} text-center text-[length:calc(3.519cqw*var(--text-size,1))] leading-[1.25] text-white ${SOFT}`}>{text.toUpperCase()}</p>;
   }
   if (kind === 'black-box' || kind === 'white-box') {
     const colors = kind === 'black-box' ? BLACK_BOX : WHITE_BOX;
     return (
-      <p className="rounded-[1.296cqw] px-[2.037cqw] py-[1.111cqw] text-center text-[length:4.074cqw] leading-[1.2] font-semibold" style={{ background: colors.boxColor, color: colors.boxTextColor }}>
+      <p className="rounded-[1.296cqw] px-[2.037cqw] py-[1.111cqw] text-center text-[length:calc(4.074cqw*var(--text-size,1))] leading-[1.2] font-[600]" style={{ background: colors.boxColor, color: colors.boxTextColor }}>
         {text}
       </p>
     );
   }
   if (kind === 'tiktok-red') {
     return (
-      <p className="text-center text-[length:4.074cqw] leading-[1.3] font-semibold">
+      <p className="text-center text-[length:calc(4.074cqw*var(--text-size,1))] leading-[1.3] font-[600]">
         <span className="rounded-[0.741cqw] bg-[#E8453C] box-decoration-clone px-[1.296cqw] text-white">{text}</span>
       </p>
     );
   }
-  return <p className={`text-center text-[length:4.074cqw] leading-[1.2] font-semibold text-white ${SOFT}`}>{text}</p>;
+  return <p className={`text-center text-[length:calc(4.074cqw*var(--text-size,1))] leading-[1.2] font-[600] text-white ${SOFT}`}>{text}</p>;
 }
 
 /** The headline in its look: outlined TikTok text, red highlight, or a box (brand, black, white). */
@@ -81,7 +84,7 @@ export function SlideTitleView({ role, title, look, box, placeholder }: Omit<Sli
   const kind = titleKind(role, look);
   if (kind === 'tiktok-red') {
     return (
-      <p className={`text-center text-[length:5.556cqw] leading-[1.3] font-extrabold ${dim}`}>
+      <p className={`text-center text-[length:calc(5.556cqw*var(--text-size,1))] leading-[1.3] font-[800] ${dim}`}>
         <span className="rounded-[0.926cqw] bg-[#E8453C] box-decoration-clone px-[1.667cqw] text-white">{shown}</span>
       </p>
     );
@@ -90,12 +93,12 @@ export function SlideTitleView({ role, title, look, box, placeholder }: Omit<Sli
     return <p className={`${caps.className} text-center ${capsSize(role, shown)} leading-[1.15] text-white ${SOFT} ${dim}`}>{shown.toUpperCase()}</p>;
   }
   if (kind === 'outline') {
-    return <p className={`text-center ${outlineSize(role, shown)} leading-[1.08] font-extrabold text-white ${OUTLINE} ${dim}`}>{shown}</p>;
+    return <p className={`text-center ${outlineSize(role, shown)} leading-[1.08] font-[800] text-white ${OUTLINE} ${dim}`}>{shown}</p>;
   }
   const colors = kind === 'white-box' ? WHITE_BOX : kind === 'black-box' ? BLACK_BOX : (box ?? WHITE_BOX);
-  const size = role === 'item' ? 'text-[length:5cqw]' : 'text-[length:5.741cqw]';
+  const size = role === 'item' ? 'text-[length:calc(5cqw*var(--text-size,1))]' : 'text-[length:calc(5.741cqw*var(--text-size,1))]';
   return (
-    <p className={`rounded-[1.667cqw] px-[2.778cqw] py-[1.481cqw] text-center ${size} leading-[1.12] font-extrabold ${dim}`} style={{ background: colors.boxColor, color: colors.boxTextColor }}>
+    <p className={`rounded-[1.667cqw] px-[2.778cqw] py-[1.481cqw] text-center ${size} leading-[1.12] font-[800] ${dim}`} style={{ background: colors.boxColor, color: colors.boxTextColor }}>
       {shown}
     </p>
   );

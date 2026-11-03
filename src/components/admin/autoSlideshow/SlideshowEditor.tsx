@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { isAdminView } from '../../../lib/adminToken';
 import { isContentSlide, type AutoPhotoDto, type AutoSlideshowDto, type AutoTrackDto } from '../../../types/admin/autoSlideshow';
-import { CaptionPanel, SaveCaptionButton } from './CaptionPanel';
+import { CaptionPanel } from './CaptionPanel';
 import { SchedulePanel } from './posting/SchedulePanel';
 import { useSlideshowSchedule } from './posting/useSlideshowSchedule';
 import { ScheduleButton } from './campaigns/ScheduleButton';
@@ -16,6 +16,7 @@ import { SafeZoneButton, useSafeZone } from './SafeZone';
 import { PhotoToggle, SlideEditPanel } from './SlideEditPanel';
 import { roleGroup, SlideStrip } from './SlideStrip';
 import { TextLockButton } from './TextLockButton';
+import { TextSizeMenu } from './TextSizeMenu';
 import { TextStyleMenu } from './TextStyleMenu';
 import { RenderedTextOverlay } from './slideText/RenderedTextOverlay';
 import type { SlideTextProps } from './slideText/SlideTextView';
@@ -25,10 +26,11 @@ import { SHOW_MUSIC, SlideshowMusic } from './SlideshowMusic';
 import { GenerateVideoButton } from './VideoButton';
 import { EditorAlert, EditorAside, EditorBody, EditorFrame, editorCard } from './editor/EditorShell';
 import { RoleTabBar, type EditorRole } from './editor/RoleTabBar';
-import { parseTags, useSlideshowDrafts } from './useSlideshowDrafts';
+import { useSlideshowAutosave } from './useSlideshowAutosave';
+import { useSlideshowDrafts } from './useSlideshowDrafts';
 import { useSlideshowEdit } from './useSlideshowEdit';
 import { useSlideshowVideo } from './useSlideshowVideo';
-import { useLiveEdits } from './useLiveEdits';
+import { styleGroupOf, useLiveEdits } from './useLiveEdits';
 
 type Props = {
   token: string;
@@ -64,7 +66,6 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
   const video = useSlideshowVideo(token, runId, initial.id);
   const current = show.slides[Math.min(slide, show.slides.length - 1)];
   const drafts = useSlideshowDrafts(show, slide);
-  const saving = busy === 'caption' || busy === `slide-${slide}`;
   const [photoOpen, setPhotoOpen] = useState(false);
   /** The slide whose "Generate New" dialog is open. */
   const [newPhotoFor, setNewPhotoFor] = useState<number | null>(null);
@@ -85,20 +86,12 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose, newPhotoFor]);
 
-  /** Stores the slide text and the caption, whichever changed. */
-  const save = async () => {
-    if (drafts.textDirty) {
-      if (!(await edit.saveSlide(slide, { title: drafts.title, body: drafts.body }))) return;
-      drafts.clearText();
-    }
-    if (drafts.captionDirty && (await edit.saveCaption(drafts.caption, parseTags(drafts.tags)))) drafts.clearCaption();
-  };
-
-  const saveCaption = async () => {
-    if (await edit.saveCaption(drafts.caption, parseTags(drafts.tags))) drafts.clearCaption();
-  };
+  /** Dropped text, new text styles, typed text and picked photos: shown on the slides at once, while they render again in the background. */
+  const live = useLiveEdits(show.slides, edit);
+  const autosave = useSlideshowAutosave(show, drafts, slide, { text: live.saveText, caption: (caption, tags) => void edit.autosaveCaption(caption, tags) });
 
   const rewrite = async () => {
+    autosave.flush();
     if (await edit.regenerate()) {
       drafts.clearText();
       drafts.clearCaption();
@@ -107,18 +100,20 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
 
   /** Asked twice by the bin under the slide's picture (SlideDeleteButton). */
   const removeSlide = async (i: number) => {
+    autosave.flush();
     if (await edit.deleteSlide(i)) {
-      if (i === slide) drafts.clearText();
+      // Slides after it moved up, so a draft kept by number would land on the wrong one.
+      drafts.clearText();
       setSlide((s) => (s > i ? s - 1 : Math.min(s, show.slides.length - 2)));
     }
   };
 
-  /** Dropped text and new text styles: shown on the slides at once, while they render again in the background. */
-  const live = useLiveEdits(show.slides, edit);
   /** `quiet`: the big preview, where the movable text has no dashed outline until dragged. */
   const textLayer = (i: number, quiet = false) => {
-    const s = live.slideAt(i);
-    const pending = live.edits[i] ?? null;
+    const typing = i === slide && drafts.textDirty;
+    const saved = live.slideAt(i);
+    const s = saved && typing ? { ...saved, title: drafts.title, body: drafts.body } : saved;
+    const pending = live.edits[i] ?? (typing ? {} : null);
     if (!s || (!pending && (i !== slide || busy !== null))) return null;
     return (
       <RenderedTextOverlay
@@ -168,16 +163,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
   const actions = (
     <>
       <SafeZoneButton on={safeZone.on} onToggle={safeZone.toggle} />
-      <button
-        onClick={() => void save()}
-        disabled={busy !== null || !drafts.dirty || !drafts.valid}
-        className={`flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold transition active:scale-95 ${
-          drafts.dirty ? 'bg-emerald-500 text-white hover:bg-emerald-400' : 'bg-white/10 text-white/40'
-        } disabled:active:scale-100 ${drafts.dirty && !saving ? 'disabled:opacity-50' : ''}`}
-      >
-        {saving && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-hidden />}
-        {saving ? 'Saving…' : 'Save'}
-      </button>
+      <span className="hidden text-xs text-white/40 sm:block" aria-live="polite">{edit.saving || drafts.textDirty || drafts.captionDirty ? 'Saving…' : 'Saved'}</span>
       <ScheduleButton plan={plan} />
       <button onClick={onPrev} disabled={!onPrev || busy !== null} aria-label="Previous slideshow" className={ghostButton}>‹</button>
       <button onClick={onNext} disabled={!onNext || busy !== null} aria-label="Next slideshow" className={ghostButton}>›</button>
@@ -186,7 +172,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
 
   const player = (
     <>
-      <SlidePreview show={SHOW_MUSIC ? show : { ...show, audio: null }} index={slide} onIndex={setSlide} working={busy !== null && !['caption', 'delete', 'music'].includes(busy)} textLayer={(i) => textLayer(i, true)} safeZone={safeZone.on} />
+      <SlidePreview show={SHOW_MUSIC ? show : { ...show, audio: null }} index={slide} onIndex={setSlide} working={busy !== null && !['delete', 'music'].includes(busy)} textLayer={(i) => textLayer(i, true)} safeZone={safeZone.on} />
       <PlayerControls count={show.slides.length} index={slide} />
       <SlideshowMusic compact value={show.audio?.assetId ?? null} recommendedId={show.recommendedAudioId} tracks={tracks} busy={busy !== null} onPick={(id) => void edit.setMusic(id)} />
       {admin && (
@@ -194,7 +180,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
           rendering={video.rendering}
           startedAt={video.startedAt}
           lastMs={video.lastMs}
-          disabled={busy !== null || show.slides.some((s) => !s.imageUrl)}
+          disabled={busy !== null || edit.saving || show.slides.some((s) => !s.imageUrl)}
           onClick={() => void video.download()}
         />
       )}
@@ -208,7 +194,16 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
         onPick={pickRole}
         missing={(['hook', 'content', 'cta'] as const).filter((r) => !roles.includes(r))}
         after={<span className="text-xs text-white/40">Slide {slide + 1}</span>}
-        end={<PhotoToggle open={photoOpen} onClick={() => setPhotoOpen((o) => !o)} />}
+        end={
+          <>
+            <TextSizeMenu
+              scope={role === 'content' ? 'Every content slide' : role === 'hook' ? 'Hook' : 'CTA'}
+              value={(live.slideAt(slide) ?? current).textSize ?? 1}
+              onPick={(size) => live.size(styleGroupOf(current), size)}
+            />
+            <PhotoToggle open={photoOpen} onClick={() => setPhotoOpen((o) => !o)} />
+          </>
+        }
       />
       {(edit.error ?? video.error) && <EditorAlert message={(edit.error ?? video.error)!} />}
       <SlideEditPanel
@@ -221,11 +216,11 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
         photoOpen={photoOpen}
         photoPicker={
           <PhotoPicker
-            slide={current}
+            slide={live.slideAt(slide) ?? current}
             index={slide}
             photos={photos && photosForPicker(show.id, show.slides, photos)}
             busy={busy}
-            onPhoto={(photoIndex) => void edit.saveSlide(slide, { photoIndex })}
+            onPhoto={(photoIndex) => live.pickPhoto(slide, photoIndex)}
             onNewPhoto={() => setNewPhotoFor(slide)}
           />
         }
@@ -259,10 +254,7 @@ export function SlideshowEditor({ token, runId, initial, photos, tracks, onChang
           <EditorAside title="Post and Schedule">
             {/* Caption, then when it posts (as in a campaign). The music sits under the player. */}
             <div className="space-y-6">
-              <div className="space-y-3">
-                <CaptionPanel caption={drafts.caption} tags={drafts.tags} onCaption={drafts.setCaption} onTags={drafts.setTags} />
-                {drafts.captionDirty && <SaveCaptionButton saving={busy === 'caption'} onSave={() => void saveCaption()} />}
-              </div>
+              <CaptionPanel caption={drafts.caption} tags={drafts.tags} onCaption={drafts.setCaption} onTags={drafts.setTags} />
               <div className="border-t border-white/10 pt-4">
                 <SchedulePanel plan={plan} ready={initial.status === 'ready'} />
               </div>

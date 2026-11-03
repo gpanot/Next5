@@ -42,22 +42,24 @@ export const RED_TEXT = { side: SIDE, fontSize: 60, lineHeight: 1.3, padX: 18, c
 export const BODY_LOOK = { boxPadY: 12, boxPadX: 22, radius: 14, redLineHeight: 1.3, redPadX: 14 };
 
 /** The line under the headline: its width and height in px, in its look. */
-export const bodySize = (body: string, look: AutoSlide['bodyLook'], wrap?: number): { w: number; h: number } => {
+export const bodySize = (body: string, look: AutoSlide['bodyLook'], wrap?: number, scale = 1): { w: number; h: number } => {
   const inner = wrap ?? SLIDE_SIZE.width - BOX_TEXT.side * 2;
   const kind = bodyKind(look);
+  const plainSize = BOX_TEXT.bodySize * scale;
   if (kind === 'all-caps') {
-    const lines = lineWidths(body.toUpperCase(), CAPS_TEXT.bodySize, CAPS_TEXT.char, inner);
-    return { w: Math.max(0, ...lines), h: lines.length * CAPS_TEXT.bodySize * CAPS_TEXT.bodyLineHeight };
+    const size = CAPS_TEXT.bodySize * scale;
+    const lines = lineWidths(body.toUpperCase(), size, CAPS_TEXT.char, inner);
+    return { w: Math.max(0, ...lines), h: lines.length * size * CAPS_TEXT.bodyLineHeight };
   }
   if (kind === 'plain') {
-    const lines = lineWidths(body, BOX_TEXT.bodySize, SEMI_CHAR, inner);
-    return { w: Math.max(0, ...lines), h: lines.length * BOX_TEXT.bodySize * BOX_TEXT.bodyLineHeight };
+    const lines = lineWidths(body, plainSize, SEMI_CHAR, inner);
+    return { w: Math.max(0, ...lines), h: lines.length * plainSize * BOX_TEXT.bodyLineHeight };
   }
   const boxed = kind !== 'tiktok-red';
   const padX = boxed ? BODY_LOOK.boxPadX : BODY_LOOK.redPadX;
-  const lines = lineWidths(body, BOX_TEXT.bodySize, SEMI_CHAR, inner - padX * 2);
+  const lines = lineWidths(body, plainSize, SEMI_CHAR, inner - padX * 2);
   const lineHeight = boxed ? BOX_TEXT.bodyLineHeight : BODY_LOOK.redLineHeight;
-  return { w: Math.max(0, ...lines) + padX * 2, h: lines.length * BOX_TEXT.bodySize * lineHeight + (boxed ? BODY_LOOK.boxPadY * 2 : 0) };
+  return { w: Math.max(0, ...lines) + padX * 2, h: lines.length * plainSize * lineHeight + (boxed ? BODY_LOOK.boxPadY * 2 : 0) };
 };
 
 /** Below TikTok's top tabs ("Following | For You"). */
@@ -72,7 +74,10 @@ export const BOLD_CHAR = 0.6;
 export const SEMI_CHAR = 0.54;
 
 type Rect = { x: number; y: number; w: number; h: number };
-type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'> & { textAt?: TextAt; bodyLook?: AutoSlide['bodyLook'] };
+type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'> & { textAt?: TextAt; bodyLook?: AutoSlide['bodyLook']; textSize?: number };
+
+/** The share of its look's font size the slide's text is drawn at (the editors' Text size). */
+export const textScale = (slide: { textSize?: number }): number => slide.textSize ?? 1;
 
 /** Greedy word wrap on estimated widths: each line's words and px width. */
 export const wrapLines = (text: string, fontSize: number, charShare: number, maxWidth: number): { text: string; width: number }[] => {
@@ -107,14 +112,18 @@ export const isBig = (slide: SlideText) => slide.role === 'hook' || slide.role =
 export const titleKindOf = (slide: SlideText) => titleKind(slide.role, slide.look);
 
 /** Outlined headline size: the hook's big text, a little smaller on other slides. */
-export const outlineSize = (slide: SlideText) => (slide.role === 'hook' ? HOOK_TEXT.fontSize(slide.title) : isBig(slide) ? 68 : 60);
+export const outlineSize = (slide: SlideText) => (slide.role === 'hook' ? HOOK_TEXT.fontSize(slide.title) : isBig(slide) ? 68 : 60) * textScale(slide);
+
+/** All caps headline size. */
+export const capsSize = (slide: SlideText) => CAPS_TEXT.fontSize(slide.role, slide.title) * textScale(slide);
 
 /** The red highlight lines' widths (text plus padding) and height. */
 const redRects = (slide: SlideText, wrap?: number): Rect[] => {
-  const lines = lineWidths(slide.title, RED_TEXT.fontSize, BOLD_CHAR, (wrap ?? SLIDE_SIZE.width - RED_TEXT.side * 2) - RED_TEXT.padX * 2);
-  const rects = [centered(Math.max(0, ...lines) + RED_TEXT.padX * 2, 0, lines.length * RED_TEXT.fontSize * RED_TEXT.lineHeight)];
+  const size = RED_TEXT.fontSize * textScale(slide);
+  const lines = lineWidths(slide.title, size, BOLD_CHAR, (wrap ?? SLIDE_SIZE.width - RED_TEXT.side * 2) - RED_TEXT.padX * 2);
+  const rects = [centered(Math.max(0, ...lines) + RED_TEXT.padX * 2, 0, lines.length * size * RED_TEXT.lineHeight)];
   if (slide.body) {
-    const body = bodySize(slide.body, slide.bodyLook, wrap);
+    const body = bodySize(slide.body, slide.bodyLook, wrap, textScale(slide));
     rects.push(centered(body.w, rects[0]!.h + BOX_TEXT.gap, body.h));
   }
   return rects;
@@ -130,7 +139,7 @@ export const textRects = (slide: SlideText, wrap?: number): Rect[] => {
   const title = kind === 'outline' ? outlineRect(slide, wrap) : kind === 'all-caps' ? capsRect(slide, wrap) : boxRect(slide, wrap);
   const rects = [title];
   if (slide.body) {
-    const body = bodySize(slide.body, slide.bodyLook, wrap);
+    const body = bodySize(slide.body, slide.bodyLook, wrap, textScale(slide));
     rects.push(centered(body.w, title.h + BOX_TEXT.gap, body.h));
   }
   return rects;
@@ -145,14 +154,14 @@ const outlineRect = (slide: SlideText, wrap?: number): Rect => {
 
 /** The All caps headline. */
 const capsRect = (slide: SlideText, wrap?: number): Rect => {
-  const size = CAPS_TEXT.fontSize(slide.role, slide.title);
+  const size = capsSize(slide);
   const lines = lineWidths(slide.title.toUpperCase(), size, CAPS_TEXT.char, wrap ?? SLIDE_SIZE.width - CAPS_TEXT.side * 2);
   return centered(Math.max(0, ...lines), 0, lines.length * size * CAPS_TEXT.lineHeight);
 };
 
 /** The boxed headline (brand, black or white box). */
 const boxRect = (slide: SlideText, wrap?: number): Rect => {
-  const titleSize = BOX_TEXT.titleSize(isBig(slide));
+  const titleSize = BOX_TEXT.titleSize(isBig(slide)) * textScale(slide);
   const titleLines = lineWidths(slide.title, titleSize, BOLD_CHAR, (wrap ?? SLIDE_SIZE.width - BOX_TEXT.side * 2) - BOX_TEXT.padX * 2);
   return centered(Math.max(0, ...titleLines) + BOX_TEXT.padX * 2, 0, titleLines.length * titleSize * BOX_TEXT.titleLineHeight + BOX_TEXT.padY * 2);
 };

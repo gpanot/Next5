@@ -1,16 +1,18 @@
 'use client';
 
-import { useState } from 'react';
 import type { CampaignDraft, CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import type { AutoTrackDto } from '../../../../types/admin/autoSlideshow';
 import type { TextAt } from '../../../../types/slideText';
 import { PlayerControls, SlidePlayer } from '../SlidePlayer';
-import { draftShows } from './previewSlides';
+import { draftShows, withThumb, type PickedThumbs } from './previewSlides';
 import { PreviewSlideView } from './PreviewSlideView';
 
 type Props = {
   draft: CampaignDraft;
   photos: CampaignPhotoDto[];
+  /** Which hook's slideshow plays (the strip shows the same one). */
+  hook: number;
+  onHook: (i: number) => void;
   index: number;
   onIndex: (i: number) => void;
   /** Slide i's text dragged to `at`; undefined puts it back on its usual spot. */
@@ -21,6 +23,8 @@ type Props = {
   safeZone?: boolean;
   /** Slides whose photo is being made or copied in. */
   loading: ReadonlySet<number>;
+  /** Picks being copied in, already drawn on their slides. */
+  thumbs: PickedThumbs;
   /** The campaign's music, played with autoplay; null for none. */
   audio?: AutoTrackDto | null;
 };
@@ -51,14 +55,12 @@ function HookSwitch({ count, value, onChange }: { count: number; value: number; 
  * One of the campaign's slideshows (one per hook, picked above it) in the slideshow editor's player, drawn live from the draft (photo plus text layers):
  * swipe, autoplay, drag the on-screen slide's text. Under it: the dots and the music.
  */
-export function CampaignPlayer({ draft, photos, index, onIndex, onMoveText, onMoveBadges, safeZone, loading, audio = null }: Props) {
+export function CampaignPlayer({ draft, photos, hook, onHook, index, onIndex, onMoveText, onMoveBadges, safeZone, loading, thumbs, audio = null }: Props) {
   const shows = draftShows(draft, photos);
-  const [picked, setPicked] = useState(0);
-  const hook = Math.min(picked, shows.length - 1);
   const slides = shows[hook]!.slides;
   return (
     <>
-      <HookSwitch count={shows.length} value={hook} onChange={setPicked} />
+      <HookSwitch count={shows.length} value={hook} onChange={onHook} />
       <SlidePlayer
         count={slides.length}
         slideKey={(i) => `${hook}-${i}`}
@@ -66,7 +68,7 @@ export function CampaignPlayer({ draft, photos, index, onIndex, onMoveText, onMo
         onIndex={onIndex}
         safeZone={safeZone}
         audio={audio}
-        renderSlide={(i) => <PreviewSlideView slide={slides[i]!} movable={i === index} quiet loading={loading.has(i)} onMoveText={(at) => onMoveText(i, at)} onMoveBadges={(y) => onMoveBadges(i, y)} />}
+        renderSlide={(i) => <PreviewSlideView slide={withThumb(slides[i]!, i === 0 ? thumbs.hook.get(hook) : thumbs.slides.get(i))} movable={i === index} quiet loading={loading.has(i)} onMoveText={(at) => onMoveText(i, at)} onMoveBadges={(y) => onMoveBadges(i, y)} />}
       />
       <PlayerControls count={slides.length} index={index} />
     </>

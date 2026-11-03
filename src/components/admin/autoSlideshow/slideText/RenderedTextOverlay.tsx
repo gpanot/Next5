@@ -47,6 +47,7 @@ export function RenderedTextOverlay({ slide, photoUrl, box, live, movable, quiet
         body={slide.body}
         look={look}
         bodyLook={slide.bodyLook}
+        textSize={slide.textSize}
         box={box}
         at={live?.textAt ?? slide.placedAt ?? slide.textAt ?? HOME_TEXT_AT}
         movable={movable}

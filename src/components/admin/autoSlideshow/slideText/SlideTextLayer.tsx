@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import type { TextAt } from '../../../../types/slideText';
 import { MovableText } from './MovableText';
 import { BODY_GAP, SlideBodyView, SlideTitleView, TEXT_SIDE_PCT, type SlideTextProps } from './SlideTextView';
@@ -22,7 +23,7 @@ type Props = SlideTextProps & {
 export function SlideTextLayer({ at, movable, verticalOnly, hidden, quiet, onMove, onDragging, ...text }: Props) {
   return (
     <MovableText at={at} side={TEXT_SIDE_PCT} movable={movable} verticalOnly={verticalOnly} hidden={hidden} quiet={quiet} onMove={onMove} onDragging={onDragging}>
-      <div className="flex flex-col items-center" style={{ gap: `${BODY_GAP * 100}cqw` }}>
+      <div className="flex flex-col items-center" style={{ gap: `${BODY_GAP * 100}cqw`, '--text-size': text.textSize ?? 1 } as CSSProperties}>
         <SlideTitleView role={text.role} title={text.title} look={text.look} box={text.box} placeholder={text.placeholder} />
         {text.body && <SlideBodyView text={text.body} look={text.bodyLook} />}
       </div>

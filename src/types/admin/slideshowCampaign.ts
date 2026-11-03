@@ -5,7 +5,7 @@
  */
 
 import { isHookStyleId } from '../hookStyle';
-import { isSlideLook, type TextAt, type TextLook } from '../slideText';
+import { isSlideLook, isTextSize, type TextAt, type TextLook } from '../slideText';
 import type { StoreBadge } from '../storeBadges';
 import type { PreviewSlide } from '../../components/admin/autoSlideshow/campaigns/previewSlides';
 import type { AutoSlideshowDto, HeadBox } from './autoSlideshow';
@@ -71,6 +71,8 @@ export type CampaignDraft = {
   cards: CampaignCard[];
   /** The text style of each kind of slide: the hook, every content slide (one style for all), the CTA. */
   looks: CampaignLooks;
+  /** The text size of each kind of slide (TEXT_SIZES); a kind left out is Normal. */
+  textSizes?: CampaignTextSizes;
   /** Where the hook text was dragged to, on every hook photo; unset = the usual spot. */
   hookTextAt?: TextAt;
   /** The post caption every slideshow of the campaign gets (hashtags written in it). */
@@ -85,6 +87,22 @@ export type CampaignDraft = {
 /** Which kind of slide a text style applies to. */
 export type CampaignLookRole = 'hook' | 'content' | 'cta';
 export type CampaignLooks = Record<CampaignLookRole, TextLook>;
+
+export type CampaignTextSizes = Partial<Record<CampaignLookRole, number>>;
+
+/** The text sizes a client sent, without Normal (the default) or anything that is not a size. */
+export const parseTextSizes = (value: unknown): CampaignTextSizes => {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const out: CampaignTextSizes = {};
+  for (const role of ['hook', 'content', 'cta'] as const) {
+    const size = raw[role];
+    if (isTextSize(size) && size !== 1) out[role] = size;
+  }
+  return out;
+};
+
+/** The text size a slide of this role is drawn at. */
+export const textSizeOfRole = (sizes: CampaignTextSizes | undefined, role: 'hook' | 'item' | 'cta'): number => sizes?.[role === 'item' ? 'content' : role] ?? 1;
 
 /** The looks of a stored draft. Drafts saved before 2026-10-11 had one `look` for the hook and the CTA. */
 export const looksOf = (d: { looks?: unknown; look?: unknown }): CampaignLooks => {
@@ -107,9 +125,15 @@ const withoutLock = (c: CampaignCard): CampaignCard => {
   return rest;
 };
 
+/** Normal sizes are left out, so drafts that never picked one keep their key and need no new render. */
+const sizesKey = (d: CampaignDraft) => {
+  const textSizes = parseTextSizes(d.textSizes);
+  return Object.keys(textSizes).length > 0 ? { textSizes } : {};
+};
+
 export const renderKeyOf = (d: CampaignDraft): string =>
   // The text lock changes nothing on the slides: it is left out, so toggling it does not ask for a new render.
-  JSON.stringify({ hooks: d.hooks, hookPhotos: d.hookPhotos, cards: d.cards.map(withoutLock), looks: d.looks, ...(d.hookTextAt ? { hookTextAt: d.hookTextAt } : {}) });
+  JSON.stringify({ hooks: d.hooks, hookPhotos: d.hookPhotos, cards: d.cards.map(withoutLock), looks: d.looks, ...sizesKey(d), ...(d.hookTextAt ? { hookTextAt: d.hookTextAt } : {}) });
 
 export const emptyCampaignDraft = (): CampaignDraft => ({
   hooks: [],
@@ -165,7 +189,7 @@ export type CampaignSummaryDto = {
   coverUrl: string | null;
   /** The first hook drawn over a cover that is a bare photo (no slideshow made yet); null when the cover is a made
    *  slide (the hook is already on it) or there is no hook. */
-  coverHook: { title: string; look: TextLook; textAt?: TextAt } | null;
+  coverHook: { title: string; look: TextLook; textAt?: TextAt; textSize?: number } | null;
   /** False while the campaign still has the default name: lists then show its first hook instead. */
   named: boolean;
   firstHook: string | null;

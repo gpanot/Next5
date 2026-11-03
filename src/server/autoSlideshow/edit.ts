@@ -6,7 +6,7 @@ import type { AutoSlideshow, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { linkedTextSlides, type AutoPhoto, type AutoPlan, type AutoSlide, type AutoStep } from '../../types/admin/autoSlideshow';
 import { isHookStyleId } from '../../types/hookStyle';
-import { isSlideLook, parseTextAt, type SlideLook, type TextAt } from '../../types/slideText';
+import { isSlideLook, isTextSize, parseTextAt, type SlideLook, type TextAt } from '../../types/slideText';
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import type { SlideshowBankContent } from '../../types/admin/slideshowBank';
@@ -73,14 +73,13 @@ export const renderAligned = async (runId: string, showId: string, slides: AutoS
   const found: HeadsCache = new Map();
   const heads = await Promise.all(slides.map((s) => (photos[s.photoIndex]?.imageKey ? headsFor(photos[s.photoIndex]!, cache, found) : null)));
   const top = contentTop(slides.map((slide, i) => ({ slide, heads: heads[i] })));
-  const out = [...slides];
-  for (const [i, slide] of slides.entries()) {
+  // Together: one after the other, a new photo that moved the shared spot took about 15 s on a 7-slide slideshow.
+  return Promise.all(slides.map(async (slide, i) => {
     const aligned = alignsWithContent(slide) && top !== undefined;
     const moved = aligned && Math.abs((slide.placedAt?.y ?? -1) - top / SLIDE_SIZE.height) > 1e-6;
-    if (!changed.includes(i) && !moved) continue;
-    out[i] = await renderInto(runId, showId, i, slide, photos, cache, look, aligned ? top : undefined);
-  }
-  return out;
+    if (!changed.includes(i) && !moved) return slide;
+    return renderInto(runId, showId, i, slide, photos, cache, look, aligned ? top : undefined);
+  }));
 };
 
 const saveSlides = (show: AutoSlideshow, slides: AutoSlide[]) =>
@@ -205,7 +204,7 @@ export const newPhotoForSlide = async (runId: string, showId: string, index: num
     const prior = choice.castId === undefined ? photos[slide.photoIndex] : undefined;
     const refs = slide.photoRefs ?? prior?.refs;
     const spec = { prompt, ...(refs?.length ? { refs, refNote: slide.photoRefNote ?? prior?.refNote } : {}) };
-    const all = await makePhotos(runId, [...photos.map((p) => p.prompt), spec], photos, meter, { look: brandLook(show.run.profile as unknown as BrandProfile | null) });
+    const all = await makePhotos(runId, [...photos.map((p) => p.prompt), spec], photos, meter, { look: brandLook(show.run.profile as unknown as BrandProfile | null), onlyFrom: photos.length, oneRedo: true });
     // On bank runs the new photo belongs to this slide, not to the shared pool other slides fall back on.
     const fresh = { ...all[all.length - 1]!, altFor: showId };
     const made = show.bankHookId ? { ...fresh, kind: 'slide' as const } : fresh;
@@ -260,6 +259,26 @@ export const setTextStyle = async (runId: string, showId: string, patch: TextSty
     changed.push(i);
   }
   // A style changes the text's size, so the content slides' shared spot can move.
+  await saveSlides(show, await renderAligned(runId, showId, slides, changed, photosOf(show.run), styleOf(show.run)));
+};
+
+export type TextSizePatch = { group?: unknown; size?: unknown };
+
+/** The text size on every slide of a kind; only the slides it changes render again. */
+export const setTextSize = async (runId: string, showId: string, patch: TextSizePatch): Promise<void> => {
+  const group = TEXT_STYLE_GROUPS.find((g) => g === patch.group);
+  if (!group || !isTextSize(patch.size)) throw new HttpError(400, 'bad_text_size', 'Pick the slides and one of the text sizes.');
+  const size = patch.size;
+  const show = await loadShow(runId, showId);
+  const slides = show.slides as unknown as AutoSlide[];
+  const changed: number[] = [];
+  for (const [i, slide] of slides.entries()) {
+    if (groupOf(slide) !== group || (slide.textSize ?? 1) === size) continue;
+    // Normal: no size stored (undefined drops out of the saved JSON).
+    slides[i] = { ...slide, textSize: size === 1 ? undefined : size };
+    changed.push(i);
+  }
+  // A size changes the text's height, so the content slides' shared spot can move.
   await saveSlides(show, await renderAligned(runId, showId, slides, changed, photosOf(show.run), styleOf(show.run)));
 };
 
@@ -333,7 +352,9 @@ export const rewriteSlideshow = async (runId: string, showId: string): Promise<v
     const drafted = written.slides.map((s, i): AutoSlide => {
       // Same photo per position when there is one, the next photos of the set for extra slides.
       const photoIndex = old[i]?.photoIndex ?? available[(show.position * 3 + i) % available.length]!;
-      return { ...s, photoIndex, imageKey: old[i]?.imageKey ?? null, ...(look && takesLook(s) ? { look } : {}) };
+      // The picked text size stays on its kind of slide.
+      const textSize = old.find((o) => groupOf(o) === groupOf(s))?.textSize;
+      return { ...s, photoIndex, imageKey: old[i]?.imageKey ?? null, ...(look && takesLook(s) ? { look } : {}), ...(textSize ? { textSize } : {}) };
     });
     const slides = await renderAligned(runId, showId, drafted, drafted.map((_, i) => i), photos, styleOf(show.run));
     for (const extra of old.slice(slides.length)) if (extra.imageKey) await deleteObject(extra.imageKey).catch(() => undefined);

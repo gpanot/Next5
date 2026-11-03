@@ -14,7 +14,7 @@ import { getObject } from '../storage/objectStore';
 import { compressJpeg } from './jpeg';
 import { bodyKind, textSpan, type TextAt } from '../../types/slideText';
 import { BADGE_ROW, badgeRow, clampBadgesY, HOME_BADGES_Y, type StoreBadge } from '../../types/storeBadges';
-import { BODY_LOOK, BOLD_CHAR, BOX_TEXT, CAPS_TEXT, HOOK_TEXT, isBig, outlineSize, placeText, RED_TEXT, SEMI_CHAR, SLIDE_SIZE, titleKindOf, wrapLines } from './textPlacement';
+import { BODY_LOOK, BOLD_CHAR, BOX_TEXT, CAPS_TEXT, capsSize, HOOK_TEXT, isBig, outlineSize, placeText, RED_TEXT, SEMI_CHAR, SLIDE_SIZE, textScale, titleKindOf, wrapLines } from './textPlacement';
 
 /** Inter SemiBold + ExtraBold for every look; Montserrat ExtraBold Italic for All caps. */
 const FONT_CSS = [
@@ -75,7 +75,7 @@ const boxAt = (spot: Spot, side: number) => {
 const OutlinedText = ({ slide, spot, children }: { slide: RenderedText; spot: Spot; children?: ReactNode }) => (
   <div style={boxAt(spot, HOOK_TEXT.side).style}>
     <div style={{ display: 'flex', color: '#ffffff', fontSize: outlineSize(slide), fontWeight: 800, lineHeight: HOOK_TEXT.lineHeight, textAlign: 'center', textShadow: OUTLINE }}>{slide.title}</div>
-    {slide.body && <BodyLine body={slide.body} look={slide.bodyLook} width={boxAt(spot, HOOK_TEXT.side).width} />}
+    {slide.body && <BodyLine body={slide.body} look={slide.bodyLook} scale={textScale(slide)} width={boxAt(spot, HOOK_TEXT.side).width} />}
     {children}
   </div>
 );
@@ -83,8 +83,8 @@ const OutlinedText = ({ slide, spot, children }: { slide: RenderedText; spot: Sp
 /** All caps: white Montserrat ExtraBold Italic capitals with a soft shadow, the line under it in its own look. */
 const CapsText = ({ slide, spot, children }: { slide: RenderedText; spot: Spot; children?: ReactNode }) => (
   <div style={boxAt(spot, CAPS_TEXT.side).style}>
-    <div style={{ display: 'flex', fontFamily: 'Montserrat', fontStyle: 'italic', color: '#ffffff', fontSize: CAPS_TEXT.fontSize(slide.role, slide.title), fontWeight: 800, lineHeight: CAPS_TEXT.lineHeight, textAlign: 'center', textShadow: SOFT }}>{slide.title.toUpperCase()}</div>
-    {slide.body && <BodyLine body={slide.body} look={slide.bodyLook} width={boxAt(spot, CAPS_TEXT.side).width} />}
+    <div style={{ display: 'flex', fontFamily: 'Montserrat', fontStyle: 'italic', color: '#ffffff', fontSize: capsSize(slide), fontWeight: 800, lineHeight: CAPS_TEXT.lineHeight, textAlign: 'center', textShadow: SOFT }}>{slide.title.toUpperCase()}</div>
+    {slide.body && <BodyLine body={slide.body} look={slide.bodyLook} scale={textScale(slide)} width={boxAt(spot, CAPS_TEXT.side).width} />}
     {children}
   </div>
 );
@@ -92,10 +92,10 @@ const CapsText = ({ slide, spot, children }: { slide: RenderedText; spot: Spot; 
 /** The headline box colors of the brand's style. */
 export type BoxLook = Pick<SlideshowStyle, 'boxColor' | 'boxTextColor'>;
 
-const BoxedText = ({ title, body, bodyLook, big, look, spot, children }: { title: string; body: string; bodyLook: BodyLook; big: boolean; look: BoxLook; spot: Spot; children?: ReactNode }) => (
+const BoxedText = ({ title, body, bodyLook, big, look, spot, scale, children }: { title: string; body: string; bodyLook: BodyLook; big: boolean; look: BoxLook; spot: Spot; scale: number; children?: ReactNode }) => (
   <div style={boxAt(spot, BOX_TEXT.side).style}>
-    <div style={{ display: 'flex', background: look.boxColor, color: look.boxTextColor, fontSize: BOX_TEXT.titleSize(big), fontWeight: 800, lineHeight: BOX_TEXT.titleLineHeight, padding: `${BOX_TEXT.padY}px ${BOX_TEXT.padX}px`, borderRadius: 18, textAlign: 'center' }}>{title}</div>
-    {body && <BodyLine body={body} look={bodyLook} width={boxAt(spot, BOX_TEXT.side).width} />}
+    <div style={{ display: 'flex', background: look.boxColor, color: look.boxTextColor, fontSize: BOX_TEXT.titleSize(big) * scale, fontWeight: 800, lineHeight: BOX_TEXT.titleLineHeight, padding: `${BOX_TEXT.padY}px ${BOX_TEXT.padX}px`, borderRadius: 18, textAlign: 'center' }}>{title}</div>
+    {body && <BodyLine body={body} look={bodyLook} scale={scale} width={boxAt(spot, BOX_TEXT.side).width} />}
     {children}
   </div>
 );
@@ -103,11 +103,12 @@ const BoxedText = ({ title, body, bodyLook, big, look, spot, children }: { title
 type BodyLook = AutoSlide['bodyLook'];
 
 /** The line under the headline in its own look: TikTok's plain white text, a black or white box, or red behind each line. */
-const BodyLine = ({ body, look, width = SLIDE_SIZE.width - BOX_TEXT.side * 2 }: { body: string; look: BodyLook; width?: number }) => {
-  const text = { fontSize: BOX_TEXT.bodySize, fontWeight: 600 } as const;
+const BodyLine = ({ body, look, scale, width = SLIDE_SIZE.width - BOX_TEXT.side * 2 }: { body: string; look: BodyLook; scale: number; width?: number }) => {
+  const fontSize = BOX_TEXT.bodySize * scale;
+  const text = { fontSize, fontWeight: 600 } as const;
   const kind = bodyKind(look);
   if (kind === 'all-caps') {
-    return <div style={{ display: 'flex', fontFamily: 'Montserrat', fontStyle: 'italic', fontSize: CAPS_TEXT.bodySize, fontWeight: 800, color: '#ffffff', lineHeight: CAPS_TEXT.bodyLineHeight, textAlign: 'center', textShadow: SOFT }}>{body.toUpperCase()}</div>;
+    return <div style={{ display: 'flex', fontFamily: 'Montserrat', fontStyle: 'italic', fontSize: CAPS_TEXT.bodySize * scale, fontWeight: 800, color: '#ffffff', lineHeight: CAPS_TEXT.bodyLineHeight, textAlign: 'center', textShadow: SOFT }}>{body.toUpperCase()}</div>;
   }
   if (kind === 'black-box' || kind === 'white-box') {
     const colors = kind === 'black-box' ? BLACK_BOX : WHITE_BOX;
@@ -116,7 +117,7 @@ const BodyLine = ({ body, look, width = SLIDE_SIZE.width - BOX_TEXT.side * 2 }: 
   if (kind === 'tiktok-red') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {wrapLines(body, BOX_TEXT.bodySize, SEMI_CHAR, width - BODY_LOOK.redPadX * 2).map((line, i) => (
+        {wrapLines(body, fontSize, SEMI_CHAR, width - BODY_LOOK.redPadX * 2).map((line, i) => (
           <div key={i} style={{ ...text, display: 'flex', background: RED_TEXT.color, color: '#ffffff', lineHeight: BODY_LOOK.redLineHeight, padding: `0 ${BODY_LOOK.redPadX}px`, borderRadius: 8 }}>{line.text}</div>
         ))}
       </div>
@@ -130,16 +131,17 @@ const WHITE_BOX: BoxLook = { boxColor: '#ffffff', boxTextColor: '#111111' };
 const BLACK_BOX: BoxLook = { boxColor: '#111111', boxTextColor: '#ffffff' };
 
 /** TikTok Red: white text on a red highlight behind each line (lines wrapped here, as Satori cannot box each line). */
-const RedText = ({ title, body, bodyLook, spot, children }: { title: string; body: string; bodyLook: BodyLook; spot: Spot; children?: ReactNode }) => {
+const RedText = ({ title, body, bodyLook, spot, scale, children }: { title: string; body: string; bodyLook: BodyLook; spot: Spot; scale: number; children?: ReactNode }) => {
   const box = boxAt(spot, RED_TEXT.side);
+  const fontSize = RED_TEXT.fontSize * scale;
   return (
     <div style={box.style}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {wrapLines(title, RED_TEXT.fontSize, BOLD_CHAR, box.width - RED_TEXT.padX * 2).map((line, i) => (
-          <div key={i} style={{ display: 'flex', background: RED_TEXT.color, color: '#ffffff', fontSize: RED_TEXT.fontSize, fontWeight: 800, lineHeight: RED_TEXT.lineHeight, padding: `0 ${RED_TEXT.padX}px`, borderRadius: 10 }}>{line.text}</div>
+        {wrapLines(title, fontSize, BOLD_CHAR, box.width - RED_TEXT.padX * 2).map((line, i) => (
+          <div key={i} style={{ display: 'flex', background: RED_TEXT.color, color: '#ffffff', fontSize, fontWeight: 800, lineHeight: RED_TEXT.lineHeight, padding: `0 ${RED_TEXT.padX}px`, borderRadius: 10 }}>{line.text}</div>
         ))}
       </div>
-      {body && <BodyLine body={body} look={bodyLook} width={box.width} />}
+      {body && <BodyLine body={body} look={bodyLook} scale={scale} width={box.width} />}
       {children}
     </div>
   );
@@ -148,11 +150,11 @@ const RedText = ({ title, body, bodyLook, spot, children }: { title: string; bod
 /** The slide's text in its headline's look (types/slideText.ts): outlined, a box (brand, black, white) or TikTok Red. */
 const SlideText = ({ slide, look, spot, children }: { slide: RenderedText; look: BoxLook; spot: Spot; children?: ReactNode }) => {
   const kind = titleKindOf(slide);
-  if (kind === 'tiktok-red') return <RedText title={slide.title} body={slide.body} bodyLook={slide.bodyLook} spot={spot}>{children}</RedText>;
+  if (kind === 'tiktok-red') return <RedText title={slide.title} body={slide.body} bodyLook={slide.bodyLook} spot={spot} scale={textScale(slide)}>{children}</RedText>;
   if (kind === 'outline') return <OutlinedText slide={slide} spot={spot}>{children}</OutlinedText>;
   if (kind === 'all-caps') return <CapsText slide={slide} spot={spot}>{children}</CapsText>;
   const colors = kind === 'white-box' ? WHITE_BOX : kind === 'black-box' ? BLACK_BOX : look;
-  return <BoxedText title={slide.title} body={slide.body} bodyLook={slide.bodyLook} big={isBig(slide)} look={colors} spot={spot}>{children}</BoxedText>;
+  return <BoxedText title={slide.title} body={slide.body} bodyLook={slide.bodyLook} big={isBig(slide)} look={colors} spot={spot} scale={textScale(slide)}>{children}</BoxedText>;
 };
 
 /** Badge artwork (public/images/store-badges) as data URIs, read once per instance. */
@@ -182,7 +184,7 @@ const badgeRowNode = async (badges: StoreBadge[] | undefined, y: number | undefi
 };
 
 /** What a render draws: the slide's text, its look, and where it was moved to (if it was). */
-type RenderedText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look' | 'textAt' | 'bodyLook' | 'badges' | 'badgesAt'>;
+type RenderedText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look' | 'textAt' | 'bodyLook' | 'textSize' | 'badges' | 'badgesAt'>;
 
 /** A rendered slide and where its text went (stored as the slide's `placedAt`, so the editor can drag it from there). */
 export type RenderedSlide = { jpeg: Buffer; at: TextAt };
