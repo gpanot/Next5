@@ -46,7 +46,7 @@ export const POST = slideshowRoute(async (req: NextRequest, ctx: Ctx, access) =>
     case 'redo':
       return json({ draft: await redoFirstPhoto(runId, draftId, requestOf(body.request)) });
     case 'finish':
-      if (!access.admin) await requireCredits(access.userId, 1);
+      if (!access.admin && !access.impersonated) await requireCredits(access.userId, 1);
       await markFinishing(runId, draftId);
       waitUntil(finishDraft(runId, draftId));
       return json({ draft: await getDraftDto(runId, draftId) }, { status: 202 });

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cardPhotos, renderKeyOf, targetsCard, withCardPhotos, type CampaignDraft, type CampaignDto, type CampaignPhotoDto, type CampaignPhotoJobDto, type CampaignPhotoJobRequest, type CampaignPhotoTarget, type PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
+import { CAMPAIGN_PLAN_EVENT } from '../calendar/useCampaignsOnCalendar';
 
 /** Typing settles this long before the draft is saved. */
 const SAVE_DELAY_MS = 700;
@@ -91,8 +92,17 @@ export const useCampaign = (token: string, id: string) => {
     }
   }, [token, base]);
 
-  // Saves what is left when the editor closes.
-  useEffect(() => () => void flush(), [flush]);
+  /** True when posts of this campaign wait on the Calendar with slideshows older than the draft. */
+  const remakeOnClose = useRef(false);
+
+  // Saves what is left when the editor closes, then remakes planned slideshows so the Calendar shows the edit.
+  useEffect(() => () => {
+    void flush().then(async () => {
+      if (!remakeOnClose.current) return;
+      await adminFetch(token, `${base}/generate`, { method: 'POST', body: '{}' }).catch(() => undefined);
+      window.dispatchEvent(new Event(CAMPAIGN_PLAN_EVENT));
+    });
+  }, [flush, token, base]);
 
   const setDraft = useCallback((update: (d: CampaignDraft) => CampaignDraft) => {
     setCampaign((c) => {
@@ -225,6 +235,7 @@ export const useCampaign = (token: string, id: string) => {
   }, [token, base]);
 
   const stale = !campaign || madeKey === null || renderKeyOf(campaign.draft) !== madeKey;
+  remakeOnClose.current = !!campaign && campaign.plan.length > 0 && stale;
 
   const shown = [...pending, ...(jobs ?? []).filter((j) => j.status === 'running').map(jobPending)];
 

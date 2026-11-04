@@ -23,7 +23,7 @@ export const POST = slideshowRoute(async (req: NextRequest, ctx: Ctx, access) =>
   const body = (await req.json().catch(() => ({}))) as { count?: unknown; castId?: unknown };
   if (!isSlideshowCount(body.count)) return json({ error: `count must be 1 to ${MAX_SLIDESHOWS}` }, { status: 400 });
   if (body.castId !== undefined && (typeof body.castId !== 'string' || body.castId.length > 64)) return json({ error: 'castId must be a cast member id' }, { status: 400 });
-  if (!access.admin) await requireCredits(access.userId, body.count);
+  if (!access.admin && !access.impersonated) await requireCredits(access.userId, body.count);
   const castId = body.castId as string | undefined;
   const added = await addMore(runId, body.count, castId);
   if (!added) return json({ error: 'Run not found or still working' }, { status: 409 });

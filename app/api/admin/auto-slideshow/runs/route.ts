@@ -44,7 +44,7 @@ export const POST = slideshowRoute(async (req: NextRequest, _ctx: unknown, acces
   if (!access.admin) {
     const user = requireUser(access);
     workspaceId = (await requireSlideshowWorkspace(user.userId, typeof body.workspaceId === 'string' ? body.workspaceId : '')).id;
-    await requireCredits(user.userId, count);
+    if (!user.impersonated) await requireCredits(user.userId, count);
     await enforceRateLimit(`slideshow-run:${user.userId}`, 10, 24 * 60 * 60);
     const tz = body.tzOffsetMin;
     if (typeof tz === 'number' && Number.isInteger(tz) && Math.abs(tz) <= 14 * 60) await prisma.workspace.update({ where: { id: workspaceId }, data: { ideaTzOffsetMin: tz } });

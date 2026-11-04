@@ -44,7 +44,8 @@ function hasData(data: Prisma.JsonValue): boolean {
 
 function isEdited(field: unknown): boolean {
   if (!field || typeof field !== 'object') return false;
-  const f = field as { locked?: unknown; source?: unknown };
+  const f = field as { locked?: unknown; source?: unknown; value?: unknown };
+  if (Array.isArray(f.value) && f.value.length === 0) return false; // an empty list is nothing to protect: extraction fills it
   return f.locked === true || f.source === 'manual';
 }
 

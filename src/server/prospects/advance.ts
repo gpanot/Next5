@@ -1,7 +1,7 @@
 // server-only — never import from a 'use client' file.
 // A Prospect Pack moves on in small steps the admin tab asks for while it is open (POST …/advance, every few seconds):
 // each call does what is next and possible, and two calls at once never do the same work (locks on the row). The parts:
-//   cast   — the brand run's steps 4-6, released by approveFaces (3 Brand Cast slideshows)
+//   cast   — the brand run's steps 4-6, released by approveFaces once the admin has created the avatar (3 Brand Cast slideshows)
 //   hooks  — the Hooks Volume campaign (hooksVolume.ts), once
 //   blitz  — PROSPECT_BLITZ Blitz ideas rendered (blitz.ts), each picked as soon as it is finished: from the site scan
 //            on, without waiting for the face check
@@ -162,16 +162,6 @@ const refinish = async (pack: ProspectPack): Promise<void> => {
   await prisma.prospectPack.updateMany({ where: { id: pack.id, status: 'ready', updatedAt: pack.updatedAt }, data: { days: json(days) } });
 };
 
-/** The faces are approved on their own as soon as they are made (2026-10-19: no admin face check), then the Brand Cast
- *  slideshows are made. With no face, the pack waits at the face check for faces made by hand. Never throws. */
-const autoApprove = async (pack: ProspectPack): Promise<void> => {
-  const job = await approveFaces(pack.id).catch((err: unknown) => {
-    if (!(err instanceof HttpError && (err.code === 'not_held' || err.code === 'no_faces'))) console.warn(`[prospects] ${pack.id}: faces not approved:`, err instanceof Error ? err.message : err);
-    return null;
-  });
-  await job?.();
-};
-
 /** The render worker sleeps when it has nothing to do, and a render put back in line (a retry) does not wake it:
  *  while a pack video waits, each step wakes it (throttled). Seen 2026-10-19: a re-queued video waited 10 min. */
 const wakeForWaiting = async (pack: ProspectPack): Promise<void> => {
@@ -189,7 +179,7 @@ const stepPack = async (pack: ProspectPack): Promise<void> => {
     const run = await prisma.autoSlideshowRun.findUnique({ where: { id: pack.brandRunId! }, select: { status: true, error: true } });
     if (run?.status === 'FAILED') return void (await fail(id, run.error ?? 'The site could not be read.'));
   }
-  if (pack.status === 'faces') return void (await Promise.all([autoApprove(pack), advanceBlitz(pack)]));
+  if (pack.status === 'faces') return advanceBlitz(pack);
   if (pack.status === 'building') return advanceBlitz(pack);
   if (pack.status === 'ready') return refinish(pack);
   if (pack.status === 'generating') return stepGenerating(pack);

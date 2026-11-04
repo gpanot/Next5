@@ -40,12 +40,12 @@ export const POST = slideshowRoute(async (req, ctx: Ctx, access) => {
   const request = parseAutoRequest(raw);
   // 1 credit per post: each hook is one post, whatever the slide count (the hook's number, or the writer's 3-15).
   const cost = autoCreditCost(hooks);
-  await requireCredits(user.userId, cost, 'post');
+  if (!user.impersonated) await requireCredits(user.userId, cost, 'post');
   const written = await writeAutoContent(request, hooks);
   const count = written.titles.length;
   const cta = ctaOf(raw.cta);
   const ctaScene = cta && request.photoSource === 'ai' && !request.samePhoto && productCtaPhoto() ? await writeCtaScene({ workspaceId: run.workspaceId!, cta, hooks, titles: written.titles }) : null;
   const stock = request.photoSource === 'stock' ? await matchLibrary(run.workspaceId!, written.queries, written.coverQuery) : { libraryRefs: written.titles.map(() => null), coverRef: null };
-  await chargeCredits(user.userId, cost, `campaign-auto:${campaignId}:${randomUUID()}`, `Campaign: ${count} auto slides for ${cost} ${cost === 1 ? 'post' : 'posts'}`);
+  if (!user.impersonated) await chargeCredits(user.userId, cost, `campaign-auto:${campaignId}:${randomUUID()}`, `Campaign: ${count} auto slides for ${cost} ${cost === 1 ? 'post' : 'posts'}`);
   return NextResponse.json({ ...written, ...stock, ctaScene } satisfies AutoContentDto);
 });

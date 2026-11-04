@@ -26,6 +26,6 @@ export const POST = slideshowRoute(async (req: NextRequest, ctx: Ctx, access) =>
   await assertRunAccess(access, runId);
   const body = (await req.json().catch(() => ({}))) as { castId?: unknown };
   if (body.castId !== undefined && body.castId !== null && (typeof body.castId !== 'string' || body.castId.length > 64)) return json({ error: 'castId must be a cast member id' }, { status: 400 });
-  if (!access.admin) await requireCredits(access.userId, 1);
+  if (!access.admin && !access.impersonated) await requireCredits(access.userId, 1);
   return json({ draft: await startDraft(runId, (body.castId as string | null | undefined) ?? undefined) }, { status: 201 });
 });

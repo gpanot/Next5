@@ -253,8 +253,8 @@ const planOnDays = async (workspaceId: string, ids: string[], tzOffsetMin: unkno
  * "Create 3 slideshows": REQUESTED_SLIDESHOWS slideshow ideas made now (in the background, like a batch's), shown first
  * in the deck once ready. Free to make; each one kept is charged like any slideshow idea, so the balance must cover them.
  */
-export async function createSlideshowIdeas(workspaceId: string, userId: string, runId: string, tzOffsetMin: unknown): Promise<{ list: IdeasListDto; work: () => Promise<void> }> {
-  await requireCredits(userId, REQUESTED_SLIDESHOWS);
+export async function createSlideshowIdeas(workspaceId: string, userId: string, runId: string, tzOffsetMin: unknown, free = false): Promise<{ list: IdeasListDto; work: () => Promise<void> }> {
+  if (!free) await requireCredits(userId, REQUESTED_SLIDESHOWS);
   const slides = await startSlideshows(workspaceId, runId, REQUESTED_SLIDESHOWS, true);
   if (slides.ids.length === 0) throw new HttpError(502, 'no_ideas', 'Could not start new slideshows right now. Try again.');
   await planOnDays(workspaceId, slides.ids, tzOffsetMin);
@@ -426,12 +426,12 @@ export async function changeDay(workspaceId: string, req: IdeaDayRequest): Promi
  * Makes the kept slideshow ideas: each ready slideshow moves into run `runId` and is charged. Ideas still being made
  * stay kept (the reason comes back per idea). Returns the made ones with their days, so the calendar pins them there.
  */
-export async function makeSlideshowIdeas(workspaceId: string, userId: string, runId: string, ids: string[]): Promise<{ made: MadeSlideshow[]; errors: Record<string, string> }> {
+export async function makeSlideshowIdeas(workspaceId: string, userId: string, runId: string, ids: string[], free = false): Promise<{ made: MadeSlideshow[]; errors: Record<string, string> }> {
   const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { workspaceId: true } });
   if (!run || run.workspaceId !== workspaceId) throw new HttpError(404, 'run_not_found', 'Run not found.');
   const rows = await prisma.slideshowVariant.findMany({ where: { id: { in: ids }, workspaceId, engine: 'bank', status: 'kept' } });
   if (rows.length === 0) throw new HttpError(400, 'nothing_kept', 'Keep a slideshow idea first.');
-  await requireCredits(userId, rows.length);
+  if (!free) await requireCredits(userId, rows.length);
   const made: MadeSlideshow[] = [];
   const errors: Record<string, string> = {};
   for (const row of rows) {

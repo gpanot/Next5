@@ -12,7 +12,7 @@ import { formatDuration, makeSec } from './timing';
 const STATUS: Record<ProspectStatus, { label: string; tone: string }> = {
   queued: { label: 'Waiting', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
   building: { label: 'Reading site', tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
-  faces: { label: 'Check faces', tone: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
+  faces: { label: 'Create avatar', tone: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
   making: { label: 'Making posts', tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
   review: { label: 'Review calendar', tone: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
   generating: { label: 'Generating', tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
@@ -73,7 +73,7 @@ function FaceCheck({ token, pack, onApprove }: Pick<Props, 'token' | 'pack' | 'o
       <CastPanel token={token} workspaceId={pack.workspaceId} />
       {error && <p role="alert" className="text-[13px] text-app-danger">{error}</p>}
       <button type="button" onClick={() => void approve()} disabled={busy} className="min-h-11 w-full rounded-xl bg-app-ink px-4 text-[14px] font-semibold text-app-bg shadow-sm transition active:scale-95 disabled:opacity-50 sm:w-auto">
-        {busy ? 'Starting…' : 'Faces look good: make the posts'}
+        {busy ? 'Starting…' : 'Avatar looks good: make the posts'}
       </button>
     </div>
   );
@@ -142,6 +142,7 @@ export function ProspectRow({ token, pack, hideCost, onApprove, onDelete, onGene
       {pack.status === 'review' && <ReviewActions token={token} pack={pack} onGenerate={onGenerate} />}
       <div className="flex flex-wrap gap-2">
         <TasksButton token={token} pack={pack} />
+        <a href={`/admin/workspaces/${pack.workspaceId}#brand`} target="_blank" rel="noopener noreferrer" className={`${button} inline-flex items-center`}>Brand extraction ↗</a>
         {(pack.status === 'ready' || pack.status === 'claimed') && (
           <>
             <a href={link} target="_blank" rel="noopener noreferrer" className={`${button} inline-flex items-center`}>Open link ↗</a>

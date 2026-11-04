@@ -161,7 +161,8 @@ const startWarmUp = (runId: string) => {
     // The cast reads the Visual Bible, so it comes second. A new workspace's first run leaves it to the avatar gate
     // (brandCast/gate.ts), which makes it as the candidate the owner validates.
     await runBible(runId, profile, workspaceId, meter);
-    if (!(await castWaitsForAvatar(runId))) await prepareCast(workspaceId, meter);
+    // A Prospect Pack's run (hold_before_step4) leaves the face to the admin, who creates the avatar first.
+    if (!run.holdBeforeStep4 && !(await castWaitsForAvatar(runId))) await prepareCast(workspaceId, meter);
   })()
     .catch((err: unknown) => console.warn(`[auto-slideshow] run ${runId}: warm-up failed (${err instanceof Error ? err.message : err})`))
     .then(() => meter.summary());

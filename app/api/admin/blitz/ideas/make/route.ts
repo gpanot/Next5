@@ -12,5 +12,5 @@ export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => 
   const body = (await req.json().catch(() => ({}))) as { runId?: unknown; ids?: unknown };
   const ids = Array.isArray(body.ids) ? body.ids.filter((x): x is string => typeof x === 'string').slice(0, 20) : [];
   if (typeof body.runId !== 'string' || ids.length === 0) throw new HttpError(400, 'invalid_body', 'runId and ids are required.');
-  return NextResponse.json(await makeSlideshowIdeas(access.workspaceId, access.userId, body.runId, ids));
+  return NextResponse.json(await makeSlideshowIdeas(access.workspaceId, access.userId, body.runId, ids, access.impersonated));
 });

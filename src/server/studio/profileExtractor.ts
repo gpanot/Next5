@@ -12,6 +12,7 @@ import { KNOWN_VERTICALS } from './verticalPacks';
 import { crawlSite } from './siteCrawl';
 import { findCompetitors } from './competitors';
 import { discoverKeywords, keywordInputSignature } from './keywordDiscovery';
+import { inferClientTypes } from './inferClientTypes';
 import { groundIndustries, groundProofPoints, MAX_GROUNDED_INDUSTRIES, rankIndustries } from './grounding';
 import { classifyVertical } from './verticalClassifier';
 import { readSiteStyle, type SiteStyle } from '../companyIntel/palette';
@@ -252,8 +253,13 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
   // Ranked by what the homepage stresses, since only the first few get content until the owner confirms the list.
   const grounded = rankIndustries(groundIndustries(inferred.targetCustomerIndustries, crawlResult.text), crawlResult.text);
   const keep = grounded.industries.map((n) => !KNOWN_VERTICALS.includes(n.toLowerCase()) && n.toLowerCase() !== 'generic');
-  const targetCustomerIndustries = grounded.industries.filter((_, i) => keep[i]);
-  const industryEvidence = grounded.evidence.filter((_, i) => keep[i]);
+  const quoted = grounded.industries.filter((_, i) => keep[i]);
+  // The site names no client industry word for word: guess who buys, so the list is never empty (no quote, owner can edit).
+  const guessed = quoted.length === 0
+    ? await inferClientTypes({ businessName, promoting, description: str(inferred.description), geography, businessModel })
+    : [];
+  const targetCustomerIndustries = quoted.length > 0 ? quoted : guessed;
+  const industryEvidence = quoted.length > 0 ? grounded.evidence.filter((_, i) => keep[i]) : guessed.map(() => '');
   console.log(`[studio/profile] targetCustomerIndustries raw=${JSON.stringify(inferred.targetCustomerIndustries ?? [])} grounded=${JSON.stringify(targetCustomerIndustries)}`);
 
   // ── Stage 4: keyword discovery — seeded from IDC niches, relevance-verified ─

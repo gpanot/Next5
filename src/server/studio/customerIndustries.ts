@@ -66,7 +66,7 @@ export const withIndustries = (data: StudioProfileData, industries: string[]): S
     ...data,
     market: {
       ...data.market,
-      targetCustomerIndustries: { ...field, value: industries, evidence: industries.map((n) => quotes.get(n.toLowerCase()) ?? ''), alternatives, source: 'manual', confidence: 1, locked: true },
+      targetCustomerIndustries: { ...field, value: industries, evidence: industries.map((n) => quotes.get(n.toLowerCase()) ?? ''), alternatives, ...(industries.length > 0 ? { source: 'manual' as const, confidence: 1, locked: true } : { source: 'inferred' as const, confidence: 0, locked: false }) },
     },
   };
 };
