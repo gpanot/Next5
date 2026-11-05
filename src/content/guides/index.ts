@@ -16,6 +16,7 @@ import { realEstateInstagramCaptions } from './articles/realEstateInstagramCapti
 import { smallBusinessSaturdayPostIdeas } from './articles/smallBusinessSaturdayPostIdeas';
 import { realEstateSocialMediaStatistics } from './articles/realEstateSocialMediaStatistics';
 import { socialMediaContentCalendar } from './articles/socialMediaContentCalendar';
+import { socialMediaForAutoRepairShops } from './articles/socialMediaForAutoRepairShops';
 import { socialMediaForGyms } from './articles/socialMediaForGyms';
 import { socialMediaForHairSalons } from './articles/socialMediaForHairSalons';
 import { socialMediaForRealtors } from './articles/socialMediaForRealtors';
@@ -72,6 +73,7 @@ export const BLOG_POSTS: readonly Article[] = [
   tiktokForPlumbers,
   hvacSocialMediaMarketing,
   tiktokSlideshowMaker,
+  socialMediaForAutoRepairShops,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];
