@@ -66,7 +66,7 @@ export const openHouseSocialMediaPost: Article = {
       '**Deleting the posts afterwards.** The walkthrough keeps pulling in showing requests all week.',
       '**No plan for the next listing.** Put all five in your calendar the day the listing agreement is signed, next to your [coming soon post](/blog/coming-soon-real-estate-post). Our [30-day content calendar](/blog/social-media-content-calendar) has room for both.',
     ] },
-    { type: 'p', text: 'For the weeks with no open house, work from [30 social media post ideas for realtors](/blog/social-media-for-realtors). For a caption formula to fill in on any listing, not only an open house, see [real estate Instagram captions](/blog/real-estate-instagram-captions).' },
+    { type: 'p', text: 'For the weeks with no open house, work from [30 social media post ideas for realtors](/blog/social-media-for-realtors). For a caption formula to fill in on any listing, not only an open house, see [real estate Instagram captions](/blog/real-estate-instagram-captions). If TikTok is where you post it, [what to post on TikTok as a realtor](/blog/what-to-post-on-tiktok-as-a-realtor) covers the format and the filming rules.' },
     { type: 'h2', text: 'Sources' },
     { type: 'ul', items: [
       '[42 U.S.C. 3604(c), Fair Housing Act, discrimination in the sale or rental of housing](https://www.law.cornell.edu/uscode/text/42/3604)',

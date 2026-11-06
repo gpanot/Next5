@@ -4781,6 +4781,15 @@
     "alt": "Realtor filming a walkthrough video with her phone in a staged living room",
     "generatedAt": "2026-10-28T07:21:19.007Z"
   },
+  "public/images/guides/what-to-post-on-tiktok-as-a-realtor.png": {
+    "prompt": "Reused from social-media-for-realtors.png: DeepInfra billing blocked generation for this slug on 2026-11-06, so the file is a copy of that cover under its own path per the cover fallback rule.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 750933,
+    "alt": "Realtor filming a walkthrough video with her phone in a staged living room",
+    "generatedAt": "2026-11-06T00:00:00.000Z"
+  },
   "public/images/guides/marketing-ideas-for-small-business.png": {
     "prompt": "The owner of a small plant shop, a woman in her 40s, kneels on the sidewalk outside her shop drawing a simple leaf with chalk on a wooden A-frame chalkboard sign, potted plants lining the storefront. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
     "model": "black-forest-labs/FLUX-2-pro",
