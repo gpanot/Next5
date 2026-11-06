@@ -61,7 +61,7 @@ export const comingSoonRealEstatePost: Article = {
       '"Your first look at [street or neighborhood]\'s next listing"',
       '"Buyers in [town]: set a reminder for [date]"',
     ] },
-    { type: 'p', text: 'More patterns that work for agents are in our list of [TikTok hooks for small business](/blog/tiktok-hooks-for-small-business).' },
+    { type: 'p', text: 'More patterns that work for agents are in our list of [TikTok hooks for small business](/blog/tiktok-hooks-for-small-business). For the full TikTok content plan, including the filming rules for an occupied home, see [what to post on TikTok as a realtor](/blog/what-to-post-on-tiktok-as-a-realtor).' },
     { type: 'h2', text: 'Plan the 4 posts around one listing' },
     { type: 'table', head: ['When', 'Post', 'Goal'], rows: [
       ['After the agreement is signed and your MLS rules allow it', 'Coming soon teaser', 'Build a list of people who comment'],
