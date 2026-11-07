@@ -9,6 +9,7 @@ export const howToMakeTikTokSlideshow: Article = {
   keyword: 'how to make a slideshow on tiktok',
   hub: 'how-to',
   published: '2026-10-18',
+  updated: '2026-11-07',
   cover: '/images/guides/how-to-make-a-slideshow-on-tiktok.png',
   coverAlt: 'Ceramic artist photographing a row of handmade mugs with her phone in her studio',
   blocks: [
@@ -23,6 +24,10 @@ export const howToMakeTikTokSlideshow: Article = {
       { title: 'Write the caption and post', text: 'Tap **Next**. Add a title, a short caption and 3 to 5 hashtags. Tap **Post**.' },
     ] },
     { type: 'tip', title: 'Button names change', text: 'TikTok moves things around often. If you cannot find a button, look for the same idea: upload photos, choose photo mode, add text, post.' },
+    { type: 'h2', text: 'Photo mode vs a template: pick the right one' },
+    { type: 'p', text: 'After you tap Upload and choose your photos, TikTok can give you two different results. Pick **Photo Mode** and people can swipe through your photos at their own pace, which is what you want for a business post with a hook and an ask. Pick a **Template** instead and TikTok turns your photos into an auto-play slide that moves on its own after a few seconds, closer to a normal video. If your post is advancing by itself instead of waiting for a swipe, you picked a template, not photo mode.' },
+    { type: 'p', text: 'If your account does not show Photo Mode as an option at all, it is not broken: some accounts simply do not have it yet. Upload through Templates instead, pick the plainest one-photo-at-a-time template, and swap its music for one from the Commercial Sounds library.' },
+    { type: 'tip', title: 'Photo size', text: 'Use photos at least 1080 by 1920 pixels (9:16), or 1080 by 1080 at a minimum. Phone photos from the last few years are already this size. A blurry or stretched photo on slide 1 is the fastest way to lose the swipe.' },
     { type: 'h2', text: 'How to add text to a TikTok slideshow' },
     { type: 'p', text: 'Text is what turns a pile of photos into a story. In photo mode, the text you add sits on the photo you are looking at. Swipe to the next photo to add text there.' },
     { type: 'ol', items: [
@@ -55,5 +60,9 @@ export const howToMakeTikTokSlideshow: Article = {
     { q: 'How many photos can a TikTok slideshow have?', a: 'Up to 35 photos. For a business post, 5 to 9 is usually enough.' },
     { q: 'Why is my slideshow posting as a video?', a: 'You probably picked video instead of photo mode. Before you post, look for the photo option on the edit screen and choose it.' },
     { q: 'Can I add different music to each slide?', a: 'No. One sound plays for the whole slideshow.' },
+    { q: 'What if I do not see Photo Mode on my account?', a: 'Some accounts do not have it yet. Upload through Templates instead, pick the simplest one-photo-at-a-time option, and change the music to one from the Commercial Sounds library.' },
+    { q: 'What is the difference between a photo mode slideshow and a template slideshow?', a: 'Photo mode is swipeable: people move to the next photo themselves. A template is auto-play: the photos change on their own after a few seconds, closer to a normal video.' },
+    { q: 'Can I mix photos and video clips in one slideshow?', a: 'Yes. You can combine photos and short video clips in the same post, though a plain photo post is usually simpler and faster to make for a weekly posting habit.' },
+    { q: 'What size should my photos be?', a: 'At least 1080 by 1920 pixels (9:16), or 1080 by 1080 at a minimum. Most phone photos from the last few years already meet this.' },
   ],
 };
