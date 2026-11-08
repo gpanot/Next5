@@ -34,7 +34,7 @@ export const socialMediaMarketingSmallBusiness: Article = {
     ] },
     { type: 'p', text: 'For most small businesses, **TikTok + Instagram** is a strong start. The same slideshow can go on both.' },
     { type: 'h2', text: 'Step 3: Know what to post' },
-    { type: 'p', text: 'Most businesses get stuck here. Use these 5 post types and rotate them.' },
+    { type: 'p', text: 'Most businesses get stuck here. Use these 5 post types and rotate them. If Instagram is where your customers are, see [Instagram post ideas for small business](/blog/instagram-post-ideas-for-small-business) for a caption you can copy for each one.' },
     { type: 'ol', items: [
       '**Tips** — "3 ways to keep your lawn green in July." Teach one small thing.',
       '**Mistakes** — "5 mistakes first-time buyers make." People love to avoid pain.',

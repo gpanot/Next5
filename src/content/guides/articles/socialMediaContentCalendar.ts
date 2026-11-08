@@ -16,7 +16,7 @@ export const socialMediaContentCalendar: Article = {
     { type: 'p', text: 'A social media content calendar is a list of what you will post and when. It stops the daily "what do I post today?" panic.' },
     { type: 'p', text: 'Below is a free 30-day template. It works for any small business. Copy it into a notebook, a spreadsheet or your phone notes.' },
     { type: 'h2', text: 'The 5 post types' },
-    { type: 'p', text: 'The template rotates 5 types of posts. Each type does a different job.' },
+    { type: 'p', text: 'The template rotates 5 types of posts. Each type does a different job. For Instagram specifically, [15 post ideas with captions](/blog/instagram-post-ideas-for-small-business) can fill in each slot.' },
     { type: 'table', head: ['Type', 'What it is', 'Job'], rows: [
       ['Tip', 'Teach one small thing', 'Get saves and new followers'],
       ['Mistake', '"Don\'t do this" post', 'Stop the scroll'],

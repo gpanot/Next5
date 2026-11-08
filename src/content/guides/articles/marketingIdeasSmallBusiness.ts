@@ -13,7 +13,7 @@ export const marketingIdeasSmallBusiness: Article = {
   cover: '/images/guides/marketing-ideas-for-small-business.png',
   coverAlt: 'Plant shop owner drawing on a sidewalk chalkboard sign outside her store',
   blocks: [
-    { type: 'p', text: 'You do not need a big budget to market a small business. You need a few ideas you can keep doing every week. Here are 25. Pick 3, do them for 30 days, and keep what works.' },
+    { type: 'p', text: 'You do not need a big budget to market a small business. You need a few ideas you can keep doing every week. Here are 25. Pick 3, do them for 30 days, and keep what works. If Instagram is your main channel, [15 Instagram post ideas for small business](/blog/instagram-post-ideas-for-small-business) gives you a caption to copy for each one.' },
     { type: 'h2', text: 'Social media ideas' },
     { type: 'ol', items: [
       '**Post one TikTok slideshow a day.** TikTok shows posts to new people even if you have 0 followers. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok).',
