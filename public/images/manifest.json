@@ -4826,6 +4826,15 @@
     "alt": "Top-down view of hands frosting cupcakes while a phone films from above",
     "generatedAt": "2026-10-28T07:21:36.708Z"
   },
+  "public/images/guides/instagram-post-ideas-for-small-business.png": {
+    "prompt": "Reused from faceless-tiktok-ideas-for-business.png (same phone-filming-the-work setup, fits an Instagram post-making topic). DeepInfra returned a 402 billing error on 2 generation attempts for this slug.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 804727,
+    "alt": "Overhead shot of a baker piping frosting on cupcakes while a phone on a tripod records the process for a post",
+    "generatedAt": "2026-10-28T07:21:36.708Z"
+  },
   "public/images/guides/chatgpt-for-social-media.png": {
     "prompt": "Over-the-shoulder view of a dog groomer in her 30s in a grooming apron typing on a laptop on the front desk of her small grooming salon, screen out of focus and unreadable, a fluffy freshly groomed dog waiting in the background. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
     "model": "black-forest-labs/FLUX-2-pro",

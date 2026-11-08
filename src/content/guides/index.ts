@@ -10,6 +10,7 @@ import { guideReadAnalytics } from './articles/guideReadAnalytics';
 import { howToMakeTikTokSlideshow } from './articles/howToMakeTikTokSlideshow';
 import { howToSellOnTikTokShop } from './articles/howToSellOnTikTokShop';
 import { hvacSocialMediaMarketing } from './articles/hvacSocialMediaMarketing';
+import { instagramPostIdeasForSmallBusiness } from './articles/instagramPostIdeasForSmallBusiness';
 import { marketingIdeasSmallBusiness } from './articles/marketingIdeasSmallBusiness';
 import { openHouseSocialMediaPost } from './articles/openHouseSocialMediaPost';
 import { realEstateInstagramCaptions } from './articles/realEstateInstagramCaptions';
@@ -76,6 +77,7 @@ export const BLOG_POSTS: readonly Article[] = [
   tiktokSlideshowMaker,
   socialMediaForAutoRepairShops,
   whatToPostOnTikTokAsARealtor,
+  instagramPostIdeasForSmallBusiness,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];

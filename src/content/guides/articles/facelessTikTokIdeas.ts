@@ -13,7 +13,7 @@ export const facelessTikTokIdeas: Article = {
   cover: '/images/guides/faceless-tiktok-ideas-for-business.png',
   coverAlt: 'Top-down view of hands frosting cupcakes while a phone films from above',
   blocks: [
-    { type: 'p', text: 'Many owners do not want to be on camera. That is fine. Some of the biggest business accounts on TikTok never show a face. They use photos, text, products and hands.' },
+    { type: 'p', text: 'Many owners do not want to be on camera. That is fine. Some of the biggest business accounts on TikTok never show a face. They use photos, text, products and hands. The same ideas work on Instagram too, see [Instagram post ideas for small business](/blog/instagram-post-ideas-for-small-business) for captions to go with them.' },
     { type: 'h2', text: 'The 4 best faceless formats' },
     { type: 'table', head: ['Format', 'What it looks like', 'Effort'], rows: [
       ['Slideshow', '5 to 9 photos with one line of text each', 'Low'],
