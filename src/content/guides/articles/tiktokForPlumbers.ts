@@ -37,6 +37,7 @@ export const tiktokForPlumbers: Article = {
       '**Skip anything that shows a security system, a gate code or a garage door opener.** It is a small detail that matters once it is public.',
       '**Do not name or show a bad previous job in a way that identifies who did it.** Explain the fix, leave out the blame.',
     ] },
+    { type: 'p', text: 'A cleaning business runs into the same problem from a different angle: more time in each home, and a before-and-after that is the whole point of the post. See [social media for a cleaning business](/blog/social-media-for-cleaning-business) for the consent and blur checklist built around that.' },
     { type: 'cta', title: 'Posts made from your job photos', text: 'Paste your plumbing company\'s website. Next5 turns real job photos into TikTok slideshows and videos, built on formats that already get views for home service trades. You approve every post before it goes live.' },
     { type: 'h2', text: 'How often, and for how long before it is worth it' },
     { type: 'p', text: 'Start at 3 to 5 posts a week. That is enough for TikTok to learn who to show your posts to, without eating your week. Give it months, not days: plan on it taking a year or more to meaningfully move the needle on recognition, the same way a truck wrap or a yard sign takes time to become familiar. If you need calls this week, spend that time on Google Business Profile and reviews instead, and treat TikTok as the thing you build while those keep working.' },

@@ -18,6 +18,7 @@ import { smallBusinessSaturdayPostIdeas } from './articles/smallBusinessSaturday
 import { realEstateSocialMediaStatistics } from './articles/realEstateSocialMediaStatistics';
 import { socialMediaContentCalendar } from './articles/socialMediaContentCalendar';
 import { socialMediaForAutoRepairShops } from './articles/socialMediaForAutoRepairShops';
+import { socialMediaForCleaningBusiness } from './articles/socialMediaForCleaningBusiness';
 import { socialMediaForGyms } from './articles/socialMediaForGyms';
 import { socialMediaForHairSalons } from './articles/socialMediaForHairSalons';
 import { socialMediaForRealtors } from './articles/socialMediaForRealtors';
@@ -78,6 +79,7 @@ export const BLOG_POSTS: readonly Article[] = [
   socialMediaForAutoRepairShops,
   whatToPostOnTikTokAsARealtor,
   instagramPostIdeasForSmallBusiness,
+  socialMediaForCleaningBusiness,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];
