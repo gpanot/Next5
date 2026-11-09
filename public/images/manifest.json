@@ -4955,5 +4955,14 @@
     "outputSize": "640x1230",
     "alt": "Next5 calendar: posts on their days, with one button to approve them all",
     "generatedAt": "2026-11-03T07:45:00.000Z"
+  },
+  "public/images/guides/social-media-for-cleaning-business.png": {
+    "prompt": "Reused from public/images/guides/hvac-social-media-marketing.png: image generation failed (DeepInfra API billing error, no balance), cover reused as a fallback per run process, to replace.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 846833,
+    "alt": "A home service technician kneeling to work on equipment during a service call at a client home",
+    "generatedAt": "2026-10-31T01:04:38.104Z"
   }
 }
