@@ -1,6 +1,6 @@
 import { SplitWords } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY, type Audience } from './copy';
-import { CheckIcon, TikTokIcon, VolumeOffIcon, VolumeOnIcon } from './icons';
+import { CheckIcon, TikTokIcon, VolumeOffIcon, VolumeOnIcon, ZillowIcon } from './icons';
 
 /** Static "for realtors" chip where the audience toggle used to be (home services and TikTok Shop dropped 2026-11-11). */
 function AudienceChip() {
@@ -104,8 +104,11 @@ export function HeroSection({ audience }: { audience: Audience }) {
           <p className="v3lede js-sub" data-intro="3">{c.sub}</p>
 
           <form className="v3linkbox js-form" autoComplete="off">
-            <label htmlFor="link1">Your link</label>
-            <input id="link1" className="js-input" type="url" inputMode="url" enterKeyHint="go" placeholder={c.ph} />
+            <label htmlFor="link1">Your Zillow link</label>
+            <span className="v3linkfield">
+              <ZillowIcon />
+              <input id="link1" className="js-input" type="url" inputMode="url" enterKeyHint="go" placeholder={c.ph} />
+            </span>
             <button className="v3btn v3btn-signal" type="submit">Make my free video</button>
           </form>
 

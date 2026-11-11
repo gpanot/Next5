@@ -101,7 +101,9 @@ export const BASE_CSS = String.raw`
 .v3hero h1 .l2{color:var(--signal);font-weight:800}
 .v3linkbox{margin-top:32px;display:flex;gap:8px;padding:8px;border-radius:999px;border:1.5px solid var(--ink);background:var(--paper);max-width:560px}
 .v3linkbox label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
-.v3linkbox input{flex:1;min-width:0;border:0;background:transparent;font:500 16px var(--font);color:var(--ink);padding:0 14px}
+.v3linkfield{flex:1;min-width:0;display:flex;align-items:center;padding-left:14px}
+.v3linkfield svg{flex:none}
+.v3linkbox input{flex:1;min-width:0;border:0;background:transparent;font:500 16px var(--font);color:var(--ink);padding:0 10px}
 .v3linkbox input:focus{outline:none}
 @media (max-width:520px){
   .v3linkbox{flex-direction:column;border-radius:22px;padding:10px}

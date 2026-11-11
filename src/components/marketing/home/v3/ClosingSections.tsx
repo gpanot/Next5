@@ -1,5 +1,6 @@
 import { SplitWords } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY, type Audience } from './copy';
+import { ZillowIcon } from './icons';
 import { reveal } from './reveal';
 
 const FAQS = [
@@ -36,11 +37,14 @@ export function FinalCtaSection({ audience }: { audience: Audience }) {
           <h2 data-split=""><SplitWords text="You have two options." /></h2>
           <div className="v3two">
             <p><b>Option 1:</b> keep telling yourself you&rsquo;ll post next week.</p>
-            <p><b>Option 2:</b> paste your link and watch your first video in 2 minutes. Free.</p>
+            <p><b>Option 2:</b> paste your Zillow link and watch your first video in 2 minutes. Free.</p>
           </div>
           <form className="v3linkbox js-form2" autoComplete="off">
-            <label htmlFor="link2">Your link</label>
-            <input id="link2" className="js-input2" type="url" inputMode="url" enterKeyHint="go" placeholder={AUDIENCE_COPY[audience].ph} />
+            <label htmlFor="link2">Your Zillow link</label>
+            <span className="v3linkfield">
+              <ZillowIcon />
+              <input id="link2" className="js-input2" type="url" inputMode="url" enterKeyHint="go" placeholder={AUDIENCE_COPY[audience].ph} />
+            </span>
             <button className="v3btn" type="submit">Make my free video</button>
           </form>
           <p className="v3fine-w">No card. Keep the video even if you never pay.</p>

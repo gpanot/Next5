@@ -1,4 +1,5 @@
 import { SplitWords } from '../../../motion/SplitWords';
+import { ZillowIcon } from './icons';
 import { reveal } from './reveal';
 
 /**
@@ -17,7 +18,7 @@ export function ListingVideosSection() {
     <section className="v3section" id="listing-videos">
       <div className="v3wrap v3lv-grid">
         <div className="v3lv-head" {...reveal()}>
-            <p className="v3eyebrow">From your Zillow listing</p>
+            <p className="v3eyebrow"><ZillowIcon size={18} />From your Zillow listing</p>
             <h2 data-split=""><SplitWords text="Your listing in. Your videos out." /></h2>
             <p className="v3lede">
               Fully automated from a new listing (2784 Bell Dr, Smyrna, 25 photos): no hand-picked photos or

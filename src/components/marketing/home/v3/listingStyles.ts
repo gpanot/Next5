@@ -1,6 +1,6 @@
 /** CSS for the "From your Zillow listing" section (ListingVideosSection.tsx). Uses the v3 tokens from styles.ts. */
 export const LISTING_CSS = String.raw`
-.v3eyebrow{font:700 13px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--signal);margin-bottom:16px}
+.v3eyebrow{display:flex;align-items:center;gap:8px;font:700 13px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--signal);margin-bottom:16px}
 .v3lv-grid{display:grid;grid-template-columns:1fr 1.05fr;grid-template-areas:'head videos' 'steps videos';column-gap:56px;align-items:center}
 .v3lv-head{grid-area:head;align-self:end}.v3lv-steps{grid-area:steps;align-self:start}.v3lv-videos{grid-area:videos}
 .v3lv-note{margin-top:28px;padding:14px 18px;border-radius:16px;background:var(--soft);color:var(--ink);font-size:16px;max-width:30em}
