@@ -92,7 +92,7 @@ export const InfluencerWizard = () => {
     try {
       await apiFetch('/api/app/influencers', { method: 'POST', json: bodyOf(traits, image, effective, templates) });
       refresh();
-      router.push('/app/sets');
+      router.push('/app/settings');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not create the influencer. Try again.');
       setCreating(false);

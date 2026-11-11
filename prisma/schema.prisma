@@ -556,7 +556,7 @@ model Influencer {
   baseImageKey       String?  @map("base_image_key")
   /// FK when source = "gallery".
   galleryItemId      String?  @map("gallery_item_id")
-  /// "active" | "archived"
+  /// "active" | "archived" | "deleted" (deleted = hidden for good; row kept for photo/set links)
   status             String   @default("active")
   /// Locked identity JSON (portrait-clone) read once from the base portrait; reused by every Gemini prompt.
   identityLock       Json?    @map("identity_lock")

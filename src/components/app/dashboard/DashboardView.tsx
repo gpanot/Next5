@@ -1,14 +1,9 @@
 'use client';
 
-import { ImagePlus, Package } from 'lucide-react';
+import { Package } from 'lucide-react';
 import { AppLink as Link } from '../shell/AppLink';
 import { useAppRouter } from '../shell/AppLink';
-import { useApi } from '../../../hooks/useApi';
-import type { BatchSummaryDto } from '../../../types/business/batches';
 import { EmptyState } from '../../ui/EmptyState';
-import { ErrorState } from '../../ui/ErrorState';
-import { SkeletonGrid } from '../../ui/Skeleton';
-import { BatchCard } from '../batches/BatchCard';
 import { CalendarView } from '../calendar/CalendarView';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { CreditsCard } from './CreditsCard';
@@ -17,22 +12,6 @@ import { QuickstartCard } from './QuickstartCard';
 const greeting = (): string => {
   const hour = new Date().getHours();
   return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
-};
-
-const RecentBatches = ({ product }: { product: 'brand' | 'shop' }) => {
-  const { data, error, loading, refresh } = useApi<{ batches: BatchSummaryDto[] }>(`/api/app/batches?product=${product}&limit=6`);
-  if (loading) return <SkeletonGrid count={3} cols={3} />;
-  if (error) return <ErrorState message={error} onRetry={refresh} />;
-  if (!data?.batches.length) {
-    return (
-      <EmptyState
-        illustration={<ImagePlus className="h-10 w-10" />}
-        title="No photos yet"
-        body="Create your first batch — it takes about 5 minutes."
-      />
-    );
-  }
-  return <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{data.batches.map((b) => <BatchCard key={b.id} batch={b} />)}</div>;
 };
 
 export const DashboardView = () => {
@@ -65,13 +44,6 @@ export const DashboardView = () => {
           <EmptyState illustration={<Package className="h-9 w-9" />} title="New stock in?" body="Add products and create on-model photos in one go." action={{ label: 'Add products', onClick: () => router.push('/app/products') }} />
         </div>
       )}
-      <section className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-[17px] font-semibold text-app-ink">Recent batches</h2>
-          <Link href="/app/library" className="text-[14px] text-app-accent hover:text-app-ink">View library</Link>
-        </div>
-        <RecentBatches product={product} />
-      </section>
     </>
   );
 };

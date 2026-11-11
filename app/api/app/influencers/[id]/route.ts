@@ -25,7 +25,11 @@ export const PATCH = authedRoute<Ctx>(async (req, session, ctx) => {
   return NextResponse.json({ ok: true });
 });
 
-/** DELETE /api/app/influencers/:id — archive influencer and its sets. */
+/**
+ * DELETE /api/app/influencers/:id — archive influencer and its sets.
+ * `?delete=1` removes it for good from the user's view: status "deleted" (hidden from both lists, can't be restored
+ * in the app). The row stays so photos and sets made with it keep their link.
+ */
 export const DELETE = authedRoute<Ctx>(async (req, session, ctx) => {
   const { id } = await ctx.params;
   const product = new URL(req.url).searchParams.get('product');
@@ -36,8 +40,8 @@ export const DELETE = authedRoute<Ctx>(async (req, session, ctx) => {
   });
   if (!influencer) throw new HttpError(404, 'not_found', 'Influencer not found.');
 
-  // Archive the influencer.
-  await prisma.influencer.update({ where: { id }, data: { status: 'archived' } });
+  const status = new URL(req.url).searchParams.get('delete') === '1' ? 'deleted' : 'archived';
+  await prisma.influencer.update({ where: { id }, data: { status } });
 
   // Archive all sets that were auto-created from this influencer.
   await prisma.studioSet.updateMany({
