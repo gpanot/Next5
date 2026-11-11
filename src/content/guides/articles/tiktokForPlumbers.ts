@@ -17,7 +17,7 @@ export const tiktokForPlumbers: Article = {
     { type: 'p', text: 'Every plumbing marketing blog says "post on TikTok." Almost none of them say what actually happens when you do. Here is the honest version, so you know what to expect before you film a single clip.' },
     { type: 'h2', text: 'Does TikTok actually get a plumber calls?' },
     { type: 'p', text: 'Mostly no, not directly. A homeowner with a burst pipe searches Google or calls whoever they used last time, not whoever they saw on TikTok that morning. What TikTok does instead: it makes your name familiar, so when that same homeowner does search, your truck or your logo already looks like someone they have seen before. That familiarity is also what makes a Google or Facebook ad convert better. 37% of US adults use TikTok now, more than 1 in 3, so the audience is not small, even in a local trade.' },
-    { type: 'p', text: 'Track it the honest way: ask every new customer how they found you, and note how many say TikTok or mention a specific clip. That number, not your view count, tells you if it is worth your time.' },
+    { type: 'p', text: 'Track it the honest way: ask every new customer how they found you, and note how many say TikTok or mention a specific clip. That number, not your view count, tells you if it is worth your time. If you want more of those calls to start as a DM instead, see [how to get leads from TikTok](/blog/how-to-get-leads-from-tiktok) for the free setup and the post types that get people to message you.' },
     { type: 'h2', text: 'What to film on a normal job' },
     { type: 'p', text: 'You do not need a separate shoot. Pull your phone out during jobs you are already doing, and keep a running list of these 6:' },
     { type: 'steps', items: [

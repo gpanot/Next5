@@ -21,7 +21,7 @@ export const facelessTikTokIdeas: Article = {
       ['Screen text video', 'A calm clip with big text on top', 'Low'],
       ['Voiceover', 'Photos or clips with your voice, no face', 'Medium'],
     ] },
-    { type: 'p', text: 'Slideshows are the easiest place to start. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). A voiceover also solves the music problem, since a business account only gets [the Commercial Sounds library](/blog/tiktok-commercial-sounds-library). If you sell products through TikTok Shop, the rules are tighter than they are for the ideas below: see what TikTok allows for a [faceless TikTok Shop](/blog/faceless-tiktok-shop).' },
+    { type: 'p', text: 'Slideshows are the easiest place to start. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). A voiceover also solves the music problem, since a business account only gets [the Commercial Sounds library](/blog/tiktok-commercial-sounds-library). If you sell products through TikTok Shop, the rules are tighter than they are for the ideas below: see what TikTok allows for a [faceless TikTok Shop](/blog/faceless-tiktok-shop). And once the posts are up, see [how to get leads from TikTok](/blog/how-to-get-leads-from-tiktok) so the views turn into DMs.' },
     { type: 'h2', text: '20 faceless TikTok ideas for businesses' },
     { type: 'h3', text: 'Teach something' },
     { type: 'ol', items: [

@@ -4736,6 +4736,15 @@
     "alt": "Ceramic artist photographing a row of handmade mugs with her phone in her studio",
     "generatedAt": "2026-10-28T07:21:02.841Z"
   },
+  "public/images/guides/how-to-get-leads-from-tiktok.png": {
+    "prompt": "Reused from social-media-marketing-for-small-business.png: cover generation was blocked by a DeepInfra billing error, see docs/seo/RUN_LOG.md 2026-11-11.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 795866,
+    "alt": "Bike shop owner taking a phone photo of a repaired bicycle in his shop",
+    "generatedAt": "2026-10-28T07:21:03.080Z"
+  },
   "public/images/guides/social-media-marketing-for-small-business.png": {
     "prompt": "The owner of a small bicycle repair shop, a man in his 30s in a work apron, takes a photo with his phone of a freshly repaired bicycle on a stand in his open garage-style shop facing a quiet main street. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
     "model": "black-forest-labs/FLUX-2-pro",

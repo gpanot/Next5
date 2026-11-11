@@ -23,7 +23,7 @@ export const socialMediaMarketingSmallBusiness: Article = {
       '**Sales** — for shops and TikTok Shop sellers.',
       '**Visits** — for restaurants, cafes and local stores.',
     ] },
-    { type: 'p', text: 'Your goal decides what you post and what you ask people to do at the end of each post.' },
+    { type: 'p', text: 'Your goal decides what you post and what you ask people to do at the end of each post. If leads and DMs are the goal, see [how to get leads from TikTok](/blog/how-to-get-leads-from-tiktok) for the exact bio and DM setup.' },
     { type: 'h2', text: 'Step 2: Pick one or two apps' },
     { type: 'p', text: 'Do not try to be everywhere. Pick the apps where your buyers spend time.' },
     { type: 'table', head: ['App', 'Good for', 'Best post types'], rows: [
