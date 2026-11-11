@@ -47,16 +47,10 @@ interface Stat {
 }
 
 const NAR_2025 = 'https://www.nar.realtor/research-and-statistics/research-reports/realtor-technology-survey';
-const ROOFING_2025 = 'https://digitaledition.roofingcontractor.com/may-2025/homeowner-survey/';
-const MODERN_RETAIL = 'https://www.modernretail.co/operations/tiktok-shop-says-sales-from-u-s-small-businesses-climbed-66-in-2025/';
 
 const STATS: Stat[] = [
   { only: 'realtor', value: '39%', text: 'of realtors say social media brings their best leads. No other tool comes close.', source: 'NAR Technology Survey, 2025', href: 'https://houstonagentmagazine.com/2025/09/19/nar-technology-survey/' },
   { only: 'realtor', value: '66%', text: 'of realtors adopt new tech for one reason: to save time.', source: 'NAR Technology Survey, 2025', href: NAR_2025 },
-  { only: 'service', value: '40%', text: 'of millennial homeowners use social media to find roofing contractors.', source: 'Roofing Contractor homeowner survey, 2025', href: ROOFING_2025 },
-  { only: 'service', value: '67%', text: 'of homeowners say online reviews are very or extremely important when they hire.', source: 'Roofing Contractor homeowner survey, 2025', href: ROOFING_2025 },
-  { only: 'seller', value: '215,000+', text: 'US small businesses now sell on TikTok Shop. That’s who you compete with for views.', source: 'TikTok Shop via Modern Retail, 2026', href: MODERN_RETAIL },
-  { only: 'seller', value: '+66%', text: 'sales growth for US small businesses on TikTok Shop in 2025.', source: 'TikTok Shop via Modern Retail, 2026', href: MODERN_RETAIL },
   { value: '6+ hrs', text: 'a week is what 43% of small business owners spend on social media. Next5 takes 3 minutes.', source: 'VerticalResponse survey', href: 'https://verticalresponse.com/blog/how-much-time-should-your-small-business-spend-on-social-media-marketing/' },
 ];
 

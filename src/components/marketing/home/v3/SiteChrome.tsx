@@ -36,7 +36,7 @@ export function SiteFooter() {
       <div className="v3wrap">
         <div>
           <span className="v3logo">NEXT<span>5</span></span>
-          <p style={{ marginTop: '8px' }}>Videos and posts for realtors, home services and TikTok Shop sellers.</p>
+          <p style={{ marginTop: '8px' }}>Videos and posts for realtors, made from your Zillow listings.</p>
         </div>
         <nav aria-label="Footer">
           <a href="/legal/terms">Terms</a>

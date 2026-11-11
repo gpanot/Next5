@@ -14,6 +14,8 @@ import type { Audience } from './v3/copy';
 import { BASE_CSS } from './v3/styles';
 import { MOTION_CSS } from './v3/motionStyles';
 import { ART_CSS } from './v3/artStyles';
+import { LISTING_CSS } from './v3/listingStyles';
+import { ListingVideosSection } from './v3/ListingVideosSection';
 import { MonthRibbon } from './v3/MonthRibbon';
 import { buildHomeScript } from './v3/script';
 import { PromoBar, SiteNav, SiteFooter, StickyCta } from './v3/SiteChrome';
@@ -36,7 +38,7 @@ export function HomePageV3({ audience = 'realtor' }: { audience?: Audience }) {
         href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap"
         rel="stylesheet"
       />
-      <style dangerouslySetInnerHTML={{ __html: BASE_CSS + MOTION_CSS + ART_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: BASE_CSS + MOTION_CSS + ART_CSS + LISTING_CSS }} />
 
       <MotionPrepaint />
       {/* data-aud is set server-side so CSS hides other audiences before any JS runs. */}
@@ -46,6 +48,7 @@ export function HomePageV3({ audience = 'realtor' }: { audience?: Audience }) {
         <main id="top">
           <HeroSection audience={audience} />
           <MonthRibbon />
+          <ListingVideosSection />
           <PainSection audience={audience} />
           <WaysSection />
           <SwipeSection audience={audience} />

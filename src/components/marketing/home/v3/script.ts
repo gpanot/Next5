@@ -98,7 +98,7 @@ const CORE_JS = String.raw`
   qa("button[data-aud]").forEach(function(b){b.addEventListener("click",function(){setAud(b.dataset.aud)})});
   function submitLink(val){
     try{localStorage.setItem("next5-landing-link",val)}catch(x){}
-    location.href=(current==="seller"?"/start/shop":"/start/brand")+"?link="+encodeURIComponent(val);
+    location.href="/start/brand?link="+encodeURIComponent(val);
   }
   q(".js-form").addEventListener("submit",function(e){
     e.preventDefault();var val=q(".js-input").value.trim();

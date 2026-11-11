@@ -4,11 +4,9 @@ import { AUDIENCE_COPY, type Audience } from './copy';
 import { XIcon } from './icons';
 import { reveal } from './reveal';
 
-/** One phone-filmed still per audience on the top card. All three are in public/images/manifest.json. */
+/** Phone-filmed still on the top card. In public/images/manifest.json. */
 const DECK_STILLS: { only: Audience; src: string }[] = [
   { only: 'realtor', src: '/images/business/us/realtor-video.png' },
-  { only: 'service', src: '/images/business/us/service-video.png' },
-  { only: 'seller', src: '/images/business/us/shop-video.png' },
 ];
 
 const STEPS = ['Paste your link once.', 'Swipe through your week.', 'Post with the caption ready.'];

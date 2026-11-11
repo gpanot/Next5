@@ -94,6 +94,7 @@ export const BASE_CSS = String.raw`
 @media (max-width:900px){.v3hero-grid{grid-template-columns:1fr;gap:40px}}
 .v3aud{display:inline-flex;padding:4px;border-radius:999px;background:var(--soft);margin-bottom:28px}
 .v3aud button{border:0;background:transparent;font:600 14px/1 var(--font);color:var(--body);padding:0 16px;min-height:40px;border-radius:999px;cursor:pointer}
+.v3aud-chip{display:inline-flex;align-items:center;font:600 14px/1 var(--font);padding:0 16px;min-height:40px;border-radius:999px;background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .v3aud button[aria-pressed="true"]{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .v3hero h1{font-size:clamp(40px,6.4vw,74px)}
 .v3hero h1>span{display:block}
@@ -344,9 +345,7 @@ export const BASE_CSS = String.raw`
 }
 
 /* AUDIENCE VISIBILITY — key rule: uses root div data-aud, not body */
-[data-aud="realtor"] [data-only]:not([data-only~="realtor"]),
-[data-aud="service"] [data-only]:not([data-only~="service"]),
-[data-aud="seller"] [data-only]:not([data-only~="seller"]){display:none!important}
+[data-aud="realtor"] [data-only]:not([data-only~="realtor"]){display:none!important}
 
-@media (max-width:420px){.v3aud{display:flex;width:100%}.v3aud button{flex:1;padding:0 6px;min-height:44px;font-size:13px}}
+@media (max-width:420px){.v3aud button{flex:1;padding:0 6px;min-height:44px;font-size:13px}}
 `;

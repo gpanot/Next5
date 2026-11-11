@@ -1,28 +1,12 @@
-import Image from 'next/image';
 import { SplitWords } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY, type Audience } from './copy';
 import { CheckIcon, TikTokIcon, VolumeOffIcon, VolumeOnIcon } from './icons';
 
-/** Phone-filmed stills for the audiences without a demo video yet. Both are in public/images/manifest.json. */
-const DEMO_STILLS: { only: Audience; src: string; alt: string }[] = [
-  { only: 'service', src: '/images/business/us/service-video.png', alt: 'Electrician talking to the camera beside an open breaker panel, filmed on a phone' },
-  { only: 'seller', src: '/images/business/us/shop-video.png', alt: 'Young woman showing a beige trench coat to the camera in her bright bedroom' },
-];
-
-const AUDIENCE_LABELS: { id: Audience; label: string }[] = [
-  { id: 'realtor', label: 'Realtor' },
-  { id: 'service', label: 'Home services' },
-  { id: 'seller', label: 'TikTok Shop' },
-];
-
-function AudienceToggle({ audience }: { audience: Audience }) {
+/** Static "for realtors" chip where the audience toggle used to be (home services and TikTok Shop dropped 2026-11-11). */
+function AudienceChip() {
   return (
-    <div className="v3aud" role="group" aria-label="I am a" data-intro="1">
-      {AUDIENCE_LABELS.map(({ id, label }) => (
-        <button key={id} type="button" data-aud={id} aria-pressed={audience === id ? 'true' : 'false'}>
-          {label}
-        </button>
-      ))}
+    <div className="v3aud" data-intro="1">
+      <span className="v3aud-chip">For realtors</span>
     </div>
   );
 }
@@ -36,10 +20,6 @@ function HeroDemo({ audience }: { audience: Audience }) {
         <div className="v3phone-screen">
 
           {/* ── Background layer ── */}
-          {/* Non-realtor: a phone-filmed still of the kind of video we make */}
-          {DEMO_STILLS.map((still) => (
-            <Image key={still.only} className="v3photo" data-only={still.only} src={still.src} alt={still.alt} fill sizes="(max-width: 520px) 236px, 290px" />
-          ))}
           {/* Realtor: the actual UGC clone video — plays after build animation */}
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video
@@ -73,13 +53,8 @@ function HeroDemo({ audience }: { audience: Audience }) {
             <img src="/realtor-headshot.jpeg" alt="" />
           </div>
 
-          {/* ── Overlay: hook (service/seller only) + facts (all audiences) ── */}
+          {/* ── Overlay: listing facts ── */}
           <div className="v3video-ov">
-            {/* Hook text — hidden for realtor via data-only + CSS */}
-            <div data-only="service seller">
-              <div className="v3hook js-hook">{c.hooks[0]}</div>
-              <div className="v3hookdots"><i className="on" /><i /><i /></div>
-            </div>
             {/* Facts: price/beds/baths for realtor, service facts, product stats */}
             <div className="v3facts js-facts">
               {c.facts.map((fact) => <span key={fact}>{fact}</span>)}
@@ -121,7 +96,7 @@ export function HeroSection({ audience }: { audience: Audience }) {
     <section className="v3hero">
       <div className="v3wrap v3hero-grid">
         <div>
-          <AudienceToggle audience={audience} />
+          <AudienceChip />
           <h1 data-intro-split="">
             <SplitWords className="js-h1a" text={c.h1} />
             <SplitWords className="l2" text="Without filming a single one." />
