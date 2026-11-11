@@ -19,7 +19,7 @@ export const DELETE = adminRoute<Ctx>(async (_req, ctx) => {
   const { id } = await ctx.params;
   const pack = await loadPack(id);
   if (pack.status === 'claimed') throw new HttpError(409, 'claimed', 'This pack was claimed: it is the user’s workspace now.');
-  await deleteSlideshowWorkspace(pack.ownerUserId, pack.workspaceId);
+  await deleteSlideshowWorkspace(pack.ownerUserId, pack.workspaceId, { allowLast: true });
   await prisma.prospectPack.delete({ where: { id } });
   await audit('prospect_delete', 'prospect_pack', id, { workspaceId: pack.workspaceId });
   return json({ ok: true });

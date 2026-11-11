@@ -9,6 +9,8 @@
 // A 14-day batch takes the stage mix of the two campaign weeks it covers. A format says what each of a video's 5 story
 // beats tells (the shots keep their roles: beat 1 plays in the pain shot, beat 5 is always the bridge ending with ":"),
 // which list of the campaign's trigger bank it is about, and what footage fits each beat; its stage sets the CTA.
+// Blitz videos are TikTok / Instagram value content, not ads (user, 2026-10-20): beats 1–5 teach with no product,
+// business, app, ratings or press; only the CTA may name the business.
 
 import type { ContentGoal } from '../../types/admin/contentGoals';
 import type { StoryTexts } from '../slideshow/core/deckAssembly';
@@ -44,9 +46,9 @@ export type FormatDef = {
   intents?: Partial<Record<Beat, string>>;
 };
 
-const PROOF_BEAT = 'proof: see PROOF above.';
+const PROOF_BEAT = 'proof: the result once they do it, one concrete thing they see or feel. No reviews, ratings or press.';
 const BRIDGE_BEAT = 'inaction: the cost of leaving THIS problem as it is, then a short bridge ending with ":". Do not repeat beat 1.';
-const MECHANISM_RULE = 'Name the ONE thing the product does that fixes this exact problem. Never list everything it does.';
+const MECHANISM_RULE = 'ONE concrete thing they can do themselves today. Never the business, a product, an app or a tool to buy.';
 
 export const FORMAT_DEFS: Record<StoryFormat, FormatDef> = {
   problem_fix: {
@@ -55,7 +57,7 @@ export const FORMAT_DEFS: Record<StoryFormat, FormatDef> = {
     beats: {
       pain: 'pain: the problem in their own words, a moment from their day.',
       oldWay: 'oldWay: how they cope with it today.',
-      mechanism: `mechanism: what the product does about it. ${MECHANISM_RULE}`,
+      mechanism: `mechanism: the fix. ${MECHANISM_RULE}`,
       proof: PROOF_BEAT, inaction: BRIDGE_BEAT,
     },
   },
@@ -65,7 +67,7 @@ export const FORMAT_DEFS: Record<StoryFormat, FormatDef> = {
     beats: {
       pain: 'pain: the myth, said the way they believe it (no "myth" word).',
       oldWay: 'oldWay: why it fails them, one concrete result.',
-      mechanism: `mechanism: what actually works, with the product. ${MECHANISM_RULE}`,
+      mechanism: `mechanism: what actually works. ${MECHANISM_RULE}`,
       proof: PROOF_BEAT, inaction: BRIDGE_BEAT,
     },
     intents: { pain: 'confident person doing it the usual way', oldWay: 'it goes wrong, disappointed' },
@@ -76,7 +78,7 @@ export const FORMAT_DEFS: Record<StoryFormat, FormatDef> = {
     beats: {
       pain: 'pain: the mistake, as something they do ("You buy…").',
       oldWay: 'oldWay: what that mistake costs them (time, money, stress). No number unless printed in the profile.',
-      mechanism: `mechanism: the better way, with the product. ${MECHANISM_RULE}`,
+      mechanism: `mechanism: the better way. ${MECHANISM_RULE}`,
       proof: PROOF_BEAT, inaction: BRIDGE_BEAT,
     },
     intents: { pain: 'doing it wrong, small mistake at home or work', oldWay: 'annoyed, wasted, frustrated' },
@@ -86,8 +88,8 @@ export const FORMAT_DEFS: Record<StoryFormat, FormatDef> = {
     labels: { pain: 'Problem', oldWay: 'Step 1', mechanism: 'Step 2', proof: 'Proof', inaction: 'Why now' },
     beats: {
       pain: 'pain: the task and where it goes wrong, one line.',
-      oldWay: 'oldWay: step 1, a useful tip they can do today with no product.',
-      mechanism: `mechanism: step 2, the same job done with the product. ${MECHANISM_RULE}`,
+      oldWay: 'oldWay: step 1, a useful tip they can do today.',
+      mechanism: `mechanism: step 2, the next tip that finishes the job. ${MECHANISM_RULE}`,
       proof: PROOF_BEAT, inaction: BRIDGE_BEAT,
     },
     intents: { oldWay: 'hands doing a simple task, calm, step by step', mechanism: 'easy, organized, the task done well' },
@@ -107,33 +109,33 @@ export const FORMAT_DEFS: Record<StoryFormat, FormatDef> = {
     labels: { pain: 'Before', oldWay: 'The switch', mechanism: 'After', proof: 'Proof', inaction: 'Cost of waiting' },
     beats: {
       pain: 'pain: their day before, one concrete moment.',
-      oldWay: 'oldWay: the switch, what they start doing with the product.',
+      oldWay: 'oldWay: the switch, the one small habit they change.',
       mechanism: `mechanism: their day after, the same moment now easy. ${MECHANISM_RULE}`,
       proof: PROOF_BEAT, inaction: BRIDGE_BEAT,
     },
-    intents: { oldWay: 'starting something new, trying it, phone in hand', mechanism: 'relief, calm, happy, the same moment going well' },
+    intents: { oldWay: 'starting a new habit, hands doing a simple task', mechanism: 'relief, calm, happy, the same moment going well' },
   },
   objection: {
-    label: 'Objection answered', kind: 'objections', trigger: 'a doubt that stops them from trying the product',
+    label: 'Objection answered', kind: 'objections', trigger: 'a doubt that stops them from fixing this problem',
     labels: { pain: 'Doubt', oldWay: 'Why it makes sense', mechanism: 'Answer', proof: 'Proof', inaction: 'Cost of waiting' },
     beats: {
       pain: 'pain: the doubt in their words ("I don\'t have time to…").',
       oldWay: 'oldWay: why the doubt makes sense, said kindly.',
-      mechanism: `mechanism: the answer, how the product removes that doubt. ${MECHANISM_RULE}`,
+      mechanism: `mechanism: the answer, how to get past that doubt. ${MECHANISM_RULE}`,
       proof: PROOF_BEAT, inaction: BRIDGE_BEAT,
     },
     intents: { pain: 'skeptical, unsure, thinking', oldWay: 'busy, hesitant' },
   },
   offer: {
-    label: 'The offer', kind: 'reasons', trigger: 'the reason this audience should start now',
-    labels: { pain: 'Who it is for', oldWay: 'What you get', mechanism: 'First win', proof: 'Proof', inaction: 'Why now' },
+    label: 'Why now', kind: 'reasons', trigger: 'the reason this audience should fix this problem now',
+    labels: { pain: 'Who it is for', oldWay: 'What you gain', mechanism: 'First win', proof: 'Proof', inaction: 'Why now' },
     beats: {
       pain: 'pain: who this is for, by the problem they have.',
-      oldWay: 'oldWay: what they get: one benefit of the product, from the profile only. A gain, never a problem.',
-      mechanism: 'mechanism: the first easy win right after they start.',
+      oldWay: 'oldWay: what they gain once it is fixed, one concrete gain. A gain, never a problem, never a product.',
+      mechanism: `mechanism: the first easy win, a step they can take today. ${MECHANISM_RULE}`,
       proof: PROOF_BEAT, inaction: BRIDGE_BEAT,
     },
-    intents: { oldWay: 'the product in use, clear and simple', mechanism: 'quick win, smiling, relieved' },
+    intents: { oldWay: 'the gain showing, calm and in control', mechanism: 'quick win, smiling, relieved' },
   },
 };
 

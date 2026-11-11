@@ -8,6 +8,8 @@ import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { pipeline } from 'stream/promises';
 import { promisify } from 'util';
+import { recordCost } from '../costs/ledger';
+import { WHISPER_USD_PER_MIN } from '../shorts/wordTiming';
 
 const execFileAsync = promisify(execFile);
 
@@ -50,7 +52,8 @@ async function whisperTranscribe(wavPath: string, scriptHint?: string): Promise<
     throw new Error(`Whisper API error: ${res.status} ${await res.text()}`);
   }
 
-  const data = (await res.json()) as WhisperResponse;
+  const data = (await res.json()) as WhisperResponse & { duration?: number };
+  recordCost({ provider: 'openai', model: 'whisper-1', usdMicros: ((data.duration ?? 0) / 60) * WHISPER_USD_PER_MIN * 1e6 });
   return { words: data.words ?? [], text: data.text ?? '' };
 }
 

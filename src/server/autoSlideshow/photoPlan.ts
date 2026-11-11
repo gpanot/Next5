@@ -15,6 +15,10 @@ import type { CostMeter } from '../metaAds/cost';
 import { clip } from '../metaAds/text';
 import { creativeJson } from '../shorts/llm';
 import { PHOTO_RULES } from './bank/prompts';
+import { dressCodeOf, personNote } from '../brandCast/dressCode';
+import { CTA_PHOTO_RULE, productCtaPhoto } from './ctaPhoto';
+import { PLAN_SCENE_RULES } from './photoRules';
+import { cleanPhotoStyle } from '../companyIntel/slideshowStyle';
 
 /** Product photos per slideshow: one on the product slides or the CTA, two at most. */
 const MAX_PRODUCT_SLIDES = 2;
@@ -38,9 +42,10 @@ plan the photos behind them, so the slideshow looks like ONE story by this brand
   office, car...), picked from the brand's places. Never a photo studio or an empty loft: these are real moments, not a
   shoot. A slide may move to a second real place when its text needs it.
 - Vary the shots: never the same shot type twice in a row (wide, medium, detail of hands or product in use...).
-  Hook: the most striking shot. CTA: the main person enjoying the result.
+  Hook: the most striking shot. {CTA_RULE}
+- ${PLAN_SCENE_RULES.join('\n- ')}
 - The brand's own product photos (P1, P2...) may only go on slides marked "product allowed", and only when the slide
-  is about the product. Never on teaching slides: these are not ads.
+  is about the product{CTA_PRODUCT}. Never on teaching slides: these are not ads.
 - ${PHOTO_RULES}
 Return JSON with flat keys only:
 "setting": the main place, 5-12 words,
@@ -52,11 +57,17 @@ and for each slide N (1 = first slide):
 "slide_N_person": "main" | "other" | "none",
 "slide_N_product": "P1"... or "none".`;
 
+/** The plan's instructions with the CTA rule: the product in use (ctaPhoto.ts), or under CTA_PHOTO_MODE=legacy the old line. */
+const systemPrompt = () =>
+  productCtaPhoto()
+    ? SYSTEM.replace('{CTA_RULE}', CTA_PHOTO_RULE).replace('{CTA_PRODUCT}', ', or on the CTA slide, where the product should show when a photo fits')
+    : SYSTEM.replace('{CTA_RULE}', 'CTA: the main person enjoying the result.').replace('{CTA_PRODUCT}', '');
+
 const bibleText = (bible: VisualBible | null, profile: BrandProfile) =>
   bible
     ? `BRAND LOOK (Visual Bible):
   category: ${bible.business_category}
-  photo style: ${bible.visual_style}
+  photo style: ${cleanPhotoStyle(bible.visual_style)}
   places (pick from these, never a studio): ${bible.environments}
   wardrobe: ${bible.wardrobe}
   shot types: ${bible.shot_vocabulary}
@@ -73,7 +84,7 @@ const userText = (input: PlanInput, products: BrandPhotoFacts[]) => {
   return `BRAND: ${profile.brandName}. SELLS: ${profile.valueProp}
 AUDIENCE: ${profile.audience}
 ${bibleText(input.bible, profile)}
-MAIN PERSON: ${cast ? `${cast.name}, from the brand's cast` : 'none: people are "other" or "none"'}
+MAIN PERSON: ${cast ? `${cast.name}, from the brand's cast${dressCodeOf(cast.look) ? `, always wearing their dress code: ${dressCodeOf(cast.look)}` : ''}` : 'none: people are "other" or "none"'}
 SLIDESHOW GOAL: ${goal ?? 'teach'}
 BRAND PRODUCT PHOTOS: ${productLines.length ? `\n${productLines.join('\n')}` : 'none'}
 SLIDES:
@@ -93,12 +104,17 @@ const toPlan = (raw: Record<string, unknown>, input: PlanInput, products: BrandP
     const scene = str(raw[`slide_${n}_scene`], 400);
     if (!scene) return null;
     const said = str(raw[`slide_${n}_person`], 10).toLowerCase();
-    // Without a cast member, "main" is just someone in the scene.
-    const person: SlidePlan['person'] = said === 'main' ? (input.cast ? 'main' : 'other') : said === 'other' ? 'other' : 'none';
     const index = Number(str(raw[`slide_${n}_product`], 5).replace(/^P/i, '')) - 1;
     const wanted = Number.isInteger(index) ? (products[index] ?? null) : null;
     const product = wanted && productAllowed(slide, input.goal) && productSlides < MAX_PRODUCT_SLIDES ? wanted : null;
     if (product) productSlides += 1;
+    // A scene naming the main person is theirs whatever the label says: a wrong label sent "the main person" to the photo
+    // model with no reference image or look, so it drew a stranger (3 of 4 Muse photos on one run, 2026-11-02). A real brand
+    // photo used as it is needs no person, so its label stands.
+    const realPhoto = Boolean(product?.usableAsBackground && !product.looksLikeAd);
+    const isMain = said === 'main' || (!realPhoto && /\bmain person\b/i.test(scene));
+    // Without a cast member, "main" is just someone in the scene.
+    const person: SlidePlan['person'] = isMain ? (input.cast ? 'main' : 'other') : said === 'other' ? 'other' : 'none';
     return { scene, person, product } satisfies SlidePlan;
   });
   return { setting: str(raw.setting, 160), wardrobe: str(raw.wardrobe, 200), slides };
@@ -107,8 +123,7 @@ const toPlan = (raw: Record<string, unknown>, input: PlanInput, products: BrandP
 /** A product photo goes on the slide as it is only when it reads as a real photo, not an ad, and no person is asked for. */
 const usesPhotoAsIs = (plan: SlidePlan) => Boolean(plan.product?.usableAsBackground && !plan.product.looksLikeAd && plan.person !== 'main');
 
-const PERSON_NOTE = 'keep the SAME person (face, hair, skin tone, build); change the pose, place and clothes as described here';
-const PRODUCT_NOTE = 'show this EXACT product (same shape, colors and details); do not copy that photo\'s person, pose or background';
+export const PRODUCT_NOTE = 'show this EXACT product (same shape, colors and details); do not copy that photo\'s person, pose or background';
 
 /** The slide's photo fields from its plan: prompt, reference images and what they are, or the brand photo used as it is. */
 const planToSlide = (slide: Omit<AutoSlide, 'imageKey'>, plan: SlidePlan, all: Plan, cast: CastPick | null): Omit<AutoSlide, 'imageKey'> => {
@@ -117,12 +132,14 @@ const planToSlide = (slide: Omit<AutoSlide, 'imageKey'>, plan: SlidePlan, all: P
   const productRef = plan.product?.usableAsReference ? plan.product : null;
   const refs = [...(main ? [cast.imageKey] : []), ...(productRef ? [productRef.r2Key] : [])];
   const notes = [
-    ...(main ? [`Image 1 is the main person: ${PERSON_NOTE}.`] : []),
+    ...(main ? [`Image 1 is the main person: ${personNote(cast.look)}.`] : []),
     ...(productRef ? [`Image ${main ? 2 : 1} is the brand's product (${productRef.productName || 'the product'}): ${PRODUCT_NOTE}.`] : []),
   ];
-  // The member's own everyday style is for the anchor photo; in a slideshow they wear the planned clothes.
-  const look = all.wardrobe ? cast?.look.replace(/\s*(Everyday style|Outfit):.*$/, '') : cast?.look;
-  const scene = main ? `${plan.scene} The main person: ${look} Wearing ${all.wardrobe || 'everyday clothes'}.` : plan.scene;
+  // The member's own everyday style is for the anchor photo; in a slideshow they wear the planned clothes, or always
+  // their dress code when they have one.
+  const wearing = (cast && dressCodeOf(cast.look)) || all.wardrobe;
+  const look = wearing ? cast?.look.replace(/\s*(Everyday style|Outfit|Dress code):.*$/, '') : cast?.look;
+  const scene = main ? `${plan.scene} The main person: ${look} Wearing ${wearing || 'everyday clothes'}.` : plan.scene;
   const product = plan.product && !productRef ? ` The product shown: ${plan.product.productName || plan.product.description}.` : '';
   return {
     ...slide,
@@ -150,7 +167,7 @@ export const slidesFromReply = (raw: Record<string, unknown>, input: PlanInput):
  */
 export const planSlidePhotos = async (input: PlanInput, meter: CostMeter): Promise<Omit<AutoSlide, 'imageKey'>[]> => {
   try {
-    const raw = await creativeJson<Record<string, unknown>>(SYSTEM, userText(input, planProducts(input.photos)), meter, 'Photo plan');
+    const raw = await creativeJson<Record<string, unknown>>(systemPrompt(), userText(input, planProducts(input.photos)), meter, 'Photo plan');
     return slidesFromReply(raw, input);
   } catch (err) {
     console.warn('[auto-slideshow] photo plan failed, bank photo ideas kept:', err instanceof Error ? err.message.slice(0, 200) : err);
@@ -159,4 +176,8 @@ export const planSlidePhotos = async (input: PlanInput, meter: CostMeter): Promi
 };
 
 /** The brand look added to every generated photo: the Visual Bible's photo style, else the profile's. */
-export const brandLook = (profile: BrandProfile | null): string | undefined => profile?.visualBible?.visual_style || profile?.slideshowStyle?.photoStyle;
+/** Cleaned again here, so looks stored before a rule change (clutter words, 2026-10-21) follow it too. */
+export const brandLook = (profile: BrandProfile | null): string | undefined => {
+  const look = profile?.visualBible?.visual_style || profile?.slideshowStyle?.photoStyle;
+  return look ? cleanPhotoStyle(look) || look : undefined;
+};

@@ -5,6 +5,7 @@
 // direct (treg serves Seedance only with your own key;
 // reAPI is $0.036/s at 720p vs $0.076/s on OpenRouter, checked 2026-10-06).
 
+import { recordCost } from '../costs/ledger';
 import type { CostMeter } from '../metaAds/cost';
 import { presignObject } from '../storage/objectStore';
 import { DEFAULT_PHOTO_MODEL, SHORT_PHOTO_MODELS, type ShortPhotoModel, type ShortVideoModel } from '../../types/admin/shorts';
@@ -49,7 +50,9 @@ const reapiPhoto = async (model: ShortPhotoModel, prompt: string, meter: CostMet
     const status = (result?.status ?? '').toLowerCase();
     const url = result?.output?.image_urls?.[0];
     if (status === 'completed' && url) {
-      meter.add(`Photo · ${label} (reAPI)`, typeof result?.usage?.credits === 'number' ? result.usage.credits * 1_000 : request.usdMicros);
+      const micros = typeof result?.usage?.credits === 'number' ? result.usage.credits * 1_000 : request.usdMicros;
+      meter.add(`Photo · ${label} (reAPI)`, micros);
+      recordCost({ provider: 'reapi', model, usdMicros: micros });
       return withRetry(() => downloadUrl(url));
     }
     if (FAILED.has(status)) throw new Error(`${label} failed: ${JSON.stringify(result?.error ?? status).slice(0, 300)}`);
@@ -155,7 +158,9 @@ const seedanceClip = async ({ prompt, seconds, frameKey, onSource }: ClipInput, 
   onSource({ taskId: task.id });
   const done = await pollUntilDone(() => reapi(`/tasks/${task.id}`), 'Seedance');
   const url = done.output?.video_urls?.[0];
-  meter.add('Clips · Seedance 2.0 Mini (reAPI)', typeof done.usage?.credits === 'number' ? done.usage.credits * 1_000 : Math.round(seconds * 0.036 * 1e6));
+  const micros = typeof done.usage?.credits === 'number' ? done.usage.credits * 1_000 : Math.round(seconds * 0.036 * 1e6);
+  meter.add('Clips · Seedance 2.0 Mini (reAPI)', micros);
+  recordCost({ provider: 'reapi', model: 'seedance-2.0-mini', usdMicros: micros });
   if (!url) throw new Error('Seedance returned no video URL');
   onSource({ taskId: task.id, url });
   return withRetry(() => downloadUrl(url));
@@ -174,7 +179,9 @@ const omniClip = async ({ prompt, seconds, frameKey, onSource }: ClipInput, mete
   onSource({ taskId: task.id });
   const done = await pollUntilDone(() => reapi(`/tasks/${task.id}`), 'Gemini Omni');
   const url = done.output?.video_urls?.[0];
-  meter.add('Clips · Gemini Omni 1.1 (reAPI)', typeof done.usage?.credits === 'number' ? done.usage.credits * 1_000 : Math.round((OMNI_USD[seconds] ?? 0.693) * 1e6));
+  const micros = typeof done.usage?.credits === 'number' ? done.usage.credits * 1_000 : Math.round((OMNI_USD[seconds] ?? 0.693) * 1e6);
+  meter.add('Clips · Gemini Omni 1.1 (reAPI)', micros);
+  recordCost({ provider: 'reapi', model: 'gemini-omni-1.1', usdMicros: micros });
   if (!url) throw new Error('Gemini Omni returned no video URL');
   onSource({ taskId: task.id, url });
   return withRetry(() => downloadUrl(url));

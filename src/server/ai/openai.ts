@@ -1,5 +1,8 @@
 // server-only — never import from a 'use client' file.
 
+import { recordCost } from '../costs/ledger';
+import { openAiCostMicros } from '../metaAds/cost';
+
 type Content = string | ({ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string; detail: 'low' | 'high' } })[];
 export type ChatMessage = { role: 'system' | 'user'; content: Content };
 
@@ -77,6 +80,8 @@ export const chatJsonWithMeta = async <T>(
       usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
       model?: string;
     };
+    const u = data.usage;
+    if (u) recordCost({ provider: 'openai', model, usdMicros: openAiCostMicros(data.model ?? model, u.prompt_tokens ?? 0, u.completion_tokens ?? 0) });
     const text = data.choices?.[0]?.message?.content;
     if (!text) {
       // Log finish_reason so we know if it was a length cutoff or refusal
@@ -85,7 +90,6 @@ export const chatJsonWithMeta = async <T>(
       return { result: null, meta: { usage: null, elapsedMs, model } };
     }
     const result = JSON.parse(text) as T;
-    const u = data.usage;
     const usage: ChatUsage | null = u
       ? { promptTokens: u.prompt_tokens ?? 0, completionTokens: u.completion_tokens ?? 0, totalTokens: u.total_tokens ?? 0 }
       : null;

@@ -8,7 +8,9 @@ import type { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import type { CostMeter } from '../metaAds/cost';
 import { cleanPhotoStyle } from '../companyIntel/slideshowStyle';
+import { LOOK_RULE } from '../autoSlideshow/photoRules';
 import type { BrandProfile } from '../../types/admin/companyIntel';
+import { isTargetAge, TARGET_BIBLE_AGES } from '../../types/admin/targetClient';
 import { VISUAL_BIBLE_FIELDS, type VisualBible, type VisualBibleKey } from '../../types/admin/visualBible';
 import { creativeJson, smartModel, type UserContent } from './llm';
 
@@ -30,7 +32,7 @@ Return JSON with flat string keys only:
 "person_look": 15-30 words: build, styling, grooming, energy, as the brand's photos show its people,
 "wardrobe": 10-25 words: what people wear (the brand's own product when it is clothing),
 "environments": 6-8 REAL-LIFE places where this customer lives with the product, at the brand's price level, comma separated, specific. The brand's photo studio may be one of them, never most of them. No offices unless the brand is about offices,
-"visual_style": 15-30 words: photographic look (editorial lifestyle, polished, minimal, documentary...) at the brand's price level. Always bright, well-exposed daylight; never cinematic, moody or dark,
+"visual_style": 15-30 words: photographic look (editorial lifestyle, polished, minimal, documentary...) at the brand's price level. Always bright, well-exposed daylight; never cinematic, moody or dark. ${LOOK_RULE},
 "product_visibility": 10-25 words: how and how often the product appears,
 "shot_vocabulary": 6-8 shot types that fit THIS category, separated by " | " (for apparel: "full-body outfit in motion | fabric detail close-up | ..."),
 "consistency_rules": 15-30 words: what stays the same across all shots of one video,
@@ -112,6 +114,12 @@ const olderBible = async (workspaceId: string, skipId: string): Promise<VisualBi
   return runs.map((r) => (r.profile as unknown as BrandProfile).visualBible).find(Boolean) ?? null;
 };
 
+/** The owner's target client age (types/admin/targetClient.ts) wins over the age range read from the site. */
+const withTargetAge = async (workspaceId: string, bible: VisualBible): Promise<VisualBible> => {
+  const ws = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { targetAge: true } }).catch(() => null);
+  return isTargetAge(ws?.targetAge) ? { ...bible, person_age_range: TARGET_BIBLE_AGES[ws.targetAge] } : bible;
+};
+
 /** The workspace's bible: stored, else carried from an older run, else built now and stored. Null when it cannot be made. */
 export const ensureVisualBible = async (workspaceId: string, meter: CostMeter): Promise<VisualBible | null> => {
   const run = await latestRun(workspaceId);
@@ -122,8 +130,10 @@ export const ensureVisualBible = async (workspaceId: string, meter: CostMeter): 
     console.warn('[shorts] Visual Bible failed:', err instanceof Error ? err.message.slice(0, 200) : err);
     return null;
   }));
-  if (bible) await saveOnRun(run, bible);
-  return bible;
+  if (!bible) return null;
+  const aged = await withTargetAge(workspaceId, bible);
+  await saveOnRun(run, aged);
+  return aged;
 };
 
 /** For the admin editor: the stored bible (null when none yet). */

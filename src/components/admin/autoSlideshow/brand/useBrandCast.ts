@@ -12,10 +12,11 @@ const POLL_MS = 4_000;
 
 export type CastAction = 'swap' | 'retry' | 'intro';
 
-/** What the owner can do to an archived face, or to a name and age: done when the request answers. */
+/** What the owner can do to an archived face, to an active one ("Move to archive"), or to a name and age: done when the request answers. */
 export type ArchiveRequest =
   | { action: 'restore'; replace?: string }
   | { action: 'delete' }
+  | { action: 'archive' }
   | { action: 'edit'; name: string; age: number };
 
 /**
@@ -26,6 +27,7 @@ export type ArchiveRequest =
 export function useBrandCast(client: LabClient, path: string) {
   const [members, setMembers] = useState<BrandCastMemberDto[] | null>(null);
   const [archived, setArchived] = useState<BrandCastMemberDto[]>([]);
+  const [avatarConfirmedAt, setAvatarConfirmedAt] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -33,6 +35,7 @@ export function useBrandCast(client: LabClient, path: string) {
   const apply = useCallback((dto: BrandCastDto) => {
     setMembers(dto.members);
     setArchived(dto.archived ?? []);
+    setAvatarConfirmedAt(dto.avatarConfirmedAt ?? null);
   }, []);
 
   const fetchList = useCallback(
@@ -67,19 +70,19 @@ export function useBrandCast(client: LabClient, path: string) {
     return Boolean(res?.ok);
   }, [client, apply]);
 
-  /** Makes the people of the empty slots, or only one of them (a "+ Create Avatar" card). */
+  /** Makes the people of the empty slots, or only one of them. */
   const build = useCallback((one = false) => send('build', path, one ? { count: 1 } : {}), [send, path]);
   const act = useCallback((id: string, action: CastAction) => send(id, `${path}/${id}`, { action }), [send, path]);
   const manage = useCallback((id: string, request: ArchiveRequest) => send(id, `${path}/${id}`, request), [send, path]);
-  /** Starts the intro videos of these members as one click (1 credit in all; the videos are made in parallel). */
-  const makeIntros = useCallback((ids: string[]) => send('intros', path, { action: 'intros', ids }), [send, path]);
-  /** "New face" from the dialog: the note and the photo (made small first) go as a form. True when it started. */
-  const swap = useCallback(async (id: string, { note, file }: NewFaceRequest): Promise<boolean> => {
-    setBusy(id);
+  /** Sends the note and the photo (made small first) as a form, busy under `key`. True when it started. */
+  const sendForm = useCallback(async (key: string, url: string, { note, file, name, dressCode }: NewFaceRequest, extra: Record<string, string> = {}): Promise<boolean> => {
+    setBusy(key);
     setActionError(null);
     const form = new FormData();
-    form.append('action', 'swap');
+    Object.entries(extra).forEach(([k, v]) => form.append(k, v));
     form.append('note', note);
+    if (name) form.append('name', name);
+    if (dressCode) form.append('dressCode', dressCode);
     const small = file ? await shrinkPhoto(file) : null;
     if (small && small.size > MAX_RAW_BYTES) {
       setActionError('This photo is too big. Try a JPG or PNG.');
@@ -87,12 +90,26 @@ export function useBrandCast(client: LabClient, path: string) {
       return false;
     }
     if (small) form.append('file', small);
-    const res = await client.request<BrandCastDto>(`${path}/${id}`, { form }).catch(() => null);
+    const res = await client.request<BrandCastDto>(url, { form }).catch(() => null);
     if (res?.ok) apply(res.data);
     else setActionError(res ? errorOf(res) : OFFLINE);
     setBusy(null);
     return Boolean(res?.ok);
-  }, [client, path, apply]);
+  }, [client, apply]);
+  /** "New face" from the dialog. True when it started. */
+  const swap = useCallback((id: string, request: NewFaceRequest) => sendForm(id, `${path}/${id}`, request, { action: 'swap' }), [sendForm, path]);
+  /** "Create avatar" from the dialog: one new person from the note and/or photo (neither: "Surprise me"). True when it started. */
+  const create = useCallback((request: NewFaceRequest) => sendForm('build', path, request), [sendForm, path]);
+  /** Onboarding's avatar gate: keeps this candidate, drops the others and starts the first slideshow. True when saved. */
+  const confirmAvatar = useCallback((id: string) => send(id, `${path}/confirm`, { memberId: id }), [send, path]);
+  /** The person "Surprise me" would make, as text to edit; null with `actionError` set when it failed. */
+  const draft = useCallback(async (): Promise<string | null> => {
+    setActionError(null);
+    const res = await client.request<{ prompt: string }>(`${path}/draft`, { method: 'POST', json: {} }).catch(() => null);
+    if (res?.ok) return res.data.prompt;
+    setActionError(res ? errorOf(res) : OFFLINE);
+    return null;
+  }, [client, path]);
   const reload = useCallback(() => {
     setLoadError(null);
     void fetchList();
@@ -100,5 +117,5 @@ export function useBrandCast(client: LabClient, path: string) {
 
   const clearError = useCallback(() => setActionError(null), []);
 
-  return { members, archived, loadError, busy, actionError, build, act, manage, swap, makeIntros, reload, clearError };
+  return { members, archived, avatarConfirmedAt, loadError, busy, actionError, build, act, manage, swap, create, confirmAvatar, draft, reload, clearError };
 }

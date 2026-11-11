@@ -4,7 +4,7 @@
  * (/industries/mechanic, /industries/electrician), which Exa's text extraction drops.
  */
 import { describe, expect, it } from 'vitest';
-import { extractSiteLinks, linksFromHrefs } from '../../../src/server/studio/siteLinks';
+import { extractCounters, extractSiteLinks, linksFromHrefs } from '../../../src/server/studio/siteLinks';
 
 const HTML = `
 <nav>
@@ -68,5 +68,18 @@ describe('linksFromHrefs (Exa fallback when the site blocks our fetch)', () => {
       { url: 'https://www.kcautosolutions.com/services/brake-repair-and-service', label: 'brake repair and service' },
       { url: 'https://www.kcautosolutions.com/bad%E0%A4%A', label: 'bad%E0%A4%A' },
     ]);
+  });
+});
+
+describe('extractCounters', () => {
+  it('reads the real number of an animated counter', () => {
+    const html = '<span class="display-counter" data-value="100" data-direction="up">0</span><span class="unit">+</span></div><div class="counter-box-content">Google Reviews</div>'
+      + '<span data-to="1,500">0</span><p>Clients Served</p>';
+    const out = extractCounters(html);
+    expect(out.get('google reviews')).toBe('100+ Google Reviews');
+    expect(out.get('clients served')).toBe('1,500 Clients Served');
+  });
+  it('ignores other data attributes and a real zero', () => {
+    expect(extractCounters('<div data-value="5">Hello</div><span data-value="0">0</span><p>Reviews</p>').size).toBe(0);
   });
 });

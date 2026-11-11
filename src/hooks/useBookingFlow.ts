@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { PhotoRoute } from '../data/routes';
 import { getCreativeDirectors } from '../data/photographers';
 import type {
@@ -294,14 +294,16 @@ export const useBookingFlow = (options: UseBookingFlowOptions = {}) => {
   const activeOfferRef = useRef(activeOffer);
   const hasBookedBeforeRef = useRef(hasBookedBefore);
   const onBookingConfirmedRef = useRef(onBookingConfirmed);
-  routeRef.current = route;
-  directorRef.current = director;
-  detailsRef.current = details;
-  intentionRef.current = intention;
-  bookingIdRef.current = bookingId;
-  activeOfferRef.current = activeOffer;
-  hasBookedBeforeRef.current = hasBookedBefore;
-  onBookingConfirmedRef.current = onBookingConfirmed;
+  useLayoutEffect(() => {
+    routeRef.current = route;
+    directorRef.current = director;
+    detailsRef.current = details;
+    intentionRef.current = intention;
+    bookingIdRef.current = bookingId;
+    activeOfferRef.current = activeOffer;
+    hasBookedBeforeRef.current = hasBookedBefore;
+    onBookingConfirmedRef.current = onBookingConfirmed;
+  });
 
   const setPaymentStatusAndRecord = useCallback((status: PaymentStatus) => {
     setPaymentStatus(status);

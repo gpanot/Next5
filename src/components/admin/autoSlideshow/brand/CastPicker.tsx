@@ -6,6 +6,7 @@ import { ARCHIVE_MAX, CAST_SIZE, type BrandCastMemberDto } from '../../../../typ
 import { createWorkspaceLabClient } from '../../../labs/labClient';
 import { CreateAvatarCard } from './BrandCast';
 import { photoBox } from './CastMemberMedia';
+import { CreateAvatarDialog } from './CreateAvatarDialog';
 import { FaceTimer } from './FaceTimer';
 import { NewFaceDialog, type NewFaceRequest } from './NewFaceDialog';
 import { useBrandCast } from './useBrandCast';
@@ -81,7 +82,17 @@ type Props = {
  *  Brand page but without intro videos) and "Choose for me". */
 export function CastPicker({ token, workspaceId, value, onChange }: Props) {
   const client = useMemo(() => createWorkspaceLabClient(token, workspaceId), [token, workspaceId]);
-  const { members, archived, loadError, busy, actionError, build, act, swap, reload } = useBrandCast(client, '/brand-cast');
+  const { members, archived, loadError, busy, actionError, act, swap, create, draft, reload, clearError } = useBrandCast(client, '/brand-cast');
+  const [adding, setAdding] = useState(0);
+  const [addOpen, setAddOpen] = useState(false);
+  const openAdd = () => {
+    clearError();
+    setAdding((n) => n + 1);
+    setAddOpen(true);
+  };
+  const submitCreate = async (request: NewFaceRequest) => {
+    if (await create(request)) setAddOpen(false);
+  };
   const [editing, setEditing] = useState<BrandCastMemberDto | null>(null);
   // A swapped or failed face can no longer be picked: fall back to "Choose for me".
   const picked = members?.some((m) => m.id === value && m.status === 'ready' && m.imageUrl) ? value : null;
@@ -107,12 +118,13 @@ export function CastPicker({ token, workspaceId, value, onChange }: Props) {
             <FaceTile key={m.id} member={m} selected={picked === m.id} busy={busy === m.id} onSelect={() => onChange(m.id)} onNewFace={() => setEditing(m)} onRetry={() => void act(m.id, 'retry')} />
           ))}
           {Array.from({ length: Math.max(0, CAST_SIZE - members.length) }, (_, i) => (
-            <CreateAvatarCard key={`empty-${i}`} creating={busy === 'build' && i === 0} disabled={busy !== null} onCreate={() => void build(true)} />
+            <CreateAvatarCard key={`empty-${i}`} creating={busy === 'build' && i === 0} disabled={busy !== null} onCreate={openAdd} />
           ))}
         </ul>
       )}
-      {actionError && !editing && <p role="alert" className="text-sm text-app-danger">{actionError}</p>}
+      {actionError && !editing && !addOpen && <p role="alert" className="text-sm text-app-danger">{actionError}</p>}
       <NewFaceDialog key={editing?.id ?? 'closed'} member={editing} archiveFull={archived.length >= ARCHIVE_MAX} busy={editing !== null && busy === editing.id} error={editing ? actionError : null} onClose={() => setEditing(null)} onSubmit={(r) => void submitNewFace(r)} />
+      <CreateAvatarDialog key={`add-${adding}`} open={addOpen} busy={addOpen && busy === 'build'} error={addOpen ? actionError : null} onClose={() => setAddOpen(false)} onSubmit={(r) => void submitCreate(r)} onDraft={draft} />
     </div>
   );
 }

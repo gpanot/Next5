@@ -11,10 +11,16 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     '/api/admin/shorts/**': ['./node_modules/ffmpeg-static/ffmpeg', './assets/fonts/**'],
     '/api/admin/blitz/schedule': ['./node_modules/ffmpeg-static/ffmpeg'],
+    // Ideas deck voiceover: every TTS take is trimmed and paced with ffmpeg.
+    '/api/admin/blitz/voice-preview': ['./node_modules/ffmpeg-static/ffmpeg'],
     '/api/admin/auto-slideshow/**': ['./node_modules/ffmpeg-static/ffmpeg'],
     '/api/cron/**': ['./node_modules/ffmpeg-static/ffmpeg'],
     // Slide renders read the store badge SVGs from public/ at runtime.
     '/api/**': ['./public/images/store-badges/**'],
+  },
+  // Copy Viral runs on localhost only, but its dynamic paths make the tracer pull the whole project into these functions.
+  outputFileTracingExcludes: {
+    '/api/admin/copy-viral/**': ['./public/**', './tools/**', './tests/**', './docs/**', './clone test/**', './tsconfig.tsbuildinfo'],
   },
   // OAuth discovery for the Claude connector (/api/mcp): the well-known documents are served by API routes.
   async rewrites() {

@@ -4,23 +4,25 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import type { AutoSlideDto } from '../../../types/admin/autoSlideshow';
 
 /** `textLayer`: drawn over slide i's image (the ringed card's draggable text, and live edits not rendered yet).
- *  `corner`: a control in slide i's top right corner, beside the card (not inside its button). */
-type Props = { slides: AutoSlideDto[]; index: number; busy: string | null; onPick: (i: number) => void; textLayer?: (i: number) => ReactNode; corner?: (i: number) => ReactNode };
+ *  `corner`: a control in slide i's top right corner, beside the card (not inside its button). `footer`: one at the right
+ *  of its label, under the picture (the content slides' delete). */
+type Props = { slides: AutoSlideDto[]; index: number; busy: string | null; onPick: (i: number) => void; textLayer?: (i: number) => ReactNode; corner?: (i: number) => ReactNode; footer?: (i: number) => ReactNode };
 
 /** Hook, CTA, or Content for every other slide: the three groups the editor's tabs use. */
 export const roleGroup = (role: AutoSlideDto['role']) => (role === 'hook' ? 'Hook' : role === 'cta' ? 'CTA' : 'Content');
 
 /** Every slide as a numbered 9:16 card, big enough to read its text, with its role; the one being edited is ringed. Tapping a card edits it. */
-export function SlideStrip({ slides, index, busy, onPick, textLayer, corner }: Props) {
+export function SlideStrip({ slides, index, busy, onPick, textLayer, corner, footer }: Props) {
   const list = useRef<HTMLOListElement>(null);
   const selected = useRef<HTMLButtonElement>(null);
   // Keeps the edited card in view, sideways only (the page itself never scrolls), with no animation.
   useEffect(() => {
     const [box, card] = [list.current, selected.current];
     if (!box || !card) return;
-    const left = card.offsetLeft - box.offsetLeft;
-    if (left < box.scrollLeft) box.scrollLeft = left - 16;
-    else if (left + card.offsetWidth > box.scrollLeft + box.clientWidth) box.scrollLeft = left + card.offsetWidth - box.clientWidth + 16;
+    // Measured on screen: the card's offsetLeft is relative to its own <li>, so it can't place it in the strip.
+    const [b, c] = [box.getBoundingClientRect(), card.getBoundingClientRect()];
+    if (c.left < b.left) box.scrollLeft -= b.left - c.left + 16;
+    else if (c.right > b.right) box.scrollLeft += c.right - b.right + 16;
   }, [index]);
 
   return (
@@ -29,6 +31,7 @@ export function SlideStrip({ slides, index, busy, onPick, textLayer, corner }: P
         const on = i === index;
         const working = busy === `slide-${i}` || busy === `photo-${i}`;
         const control = corner?.(i);
+        const below = footer?.(i);
         return (
           <li key={s.imageKey ?? i} className="relative shrink-0">
             <button
@@ -55,6 +58,7 @@ export function SlideStrip({ slides, index, busy, onPick, textLayer, corner }: P
               <span className={`px-3 py-2 text-left text-sm font-medium ${on ? 'text-white' : 'text-white/60'}`}>{roleGroup(s.role)}</span>
             </button>
             {control && <span className="absolute top-2 right-2">{control}</span>}
+            {below && <span className="absolute right-1 bottom-0.5">{below}</span>}
           </li>
         );
       })}

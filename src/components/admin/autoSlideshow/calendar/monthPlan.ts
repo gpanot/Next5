@@ -7,10 +7,11 @@ import { MAX_PER_DAY, POST_TIMES } from '../../../../lib/postTimes';
  * - Live posts and pinned slideshows (`pins`: dragged, or kept in place when the plan changed) sit at their own time.
  * - `targets`: posts the user wants on a given day (1 to 5, set day by day). Waiting slideshows fill those slots first,
  *   in day order; empty ones are what "Generate" makes.
- * - Waiting slideshows left over (no target slot) go one a day at 7 PM on the next free days from tomorrow.
+ * - Waiting slideshows left over (no target slot) go one a day at 7 PM on the next free days from tomorrow. A free day
+ *   has no post at all: no fixed slot, campaign post or kept idea (`keptAt`).
  * - Blitz videos put on the calendar from the Content page (`blitz`) sit at their own time, like live posts.
  * - Campaign posts (`campaign`: planned ones wait for approval like ready slideshows, then scheduled ones) sit at their
- *   own time on top of the day: they never take a day's slot, so adding a campaign moves nothing else.
+ *   own time on top of the day: they never take a day's slot. Pinned slideshows stay put; an unpinned one leaves that day.
  * The page shows one calendar month (Monday to Sunday weeks; this month from today on, or from its 1st on request); targets and pins in any month count.
  */
 
@@ -18,12 +19,15 @@ export type DayItem =
   | { kind: 'post'; show: AutoSlideshowDto; post: AutoPostDto }
   | { kind: 'ready'; show: AutoSlideshowDto }
   | { kind: 'making'; show: AutoSlideshowDto | null }
+  /** A pack preview: only its first slide is made. It can be opened and moved, not approved. */
+  | { kind: 'preview'; show: AutoSlideshowDto }
   /** A kept Blitz video scheduled from the Content page: rendered near its time, then posted. */
   | { kind: 'blitz'; show: null; blitz: BlitzScheduleDto };
 
 type PostItem = Extract<DayItem, { kind: 'post' }>;
 
 export type PlanSlot = { at: Date; item: DayItem | null };
+/** `inMonth`: shown live (not faded); in the month starting at today, the next month's first days are too. */
 export type PlanDay = { key: string; date: Date; past: boolean; today: boolean; inMonth: boolean; slots: PlanSlot[] };
 
 /** `days`: the month grid (whole weeks). `all`: every day built, from the earliest shown or tomorrow to the last queued slot. */
@@ -48,16 +52,17 @@ export const addMonths = (d: Date, n: number) => new Date(d.getFullYear(), d.get
 
 /**
  * Monday on or before the 1st, through Sunday on or after the last day. The month holding today starts at today
- * instead (past days are not shown, unless `earlier`), still in whole weeks of 7 days.
+ * instead (past days are not shown, unless `earlier`), still in whole weeks of 7 days, and at least 2 weeks so the
+ * month's last days still show the next month's first ones (live there: posts can be dragged onto them).
  */
 const gridOf = (month: Date, today: Date, earlier = false) => {
   const first = monthOf(month);
   const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
   if (!earlier && today >= first && today <= last) {
-    const weeks = Math.ceil((last.getDate() - today.getDate() + 1) / 7);
-    return { start: today, end: addDays(today, weeks * 7 - 1) };
+    const weeks = Math.max(2, Math.ceil((last.getDate() - today.getDate() + 1) / 7));
+    return { start: today, end: addDays(today, weeks * 7 - 1), fromToday: true };
   }
-  return { start: addDays(first, -((first.getDay() + 6) % 7)), end: addDays(last, (7 - last.getDay()) % 7) };
+  return { start: addDays(first, -((first.getDay() + 6) % 7)), end: addDays(last, (7 - last.getDay()) % 7), fromToday: false };
 };
 
 /** "19:00" on that day, local time. */
@@ -79,8 +84,8 @@ const waitingQueue = (slideshows: AutoSlideshowDto[], pending: number, working: 
   const queue: DayItem[] = [];
   const pinned = new Map<string, PlanSlot[]>();
   for (const show of [...slideshows].sort((a, b) => a.position - b.position)) {
-    if (isLive(show) || show.status === 'failed' || (!working && show.status !== 'ready')) continue;
-    const item: DayItem = show.status === 'ready' ? { kind: 'ready', show } : { kind: 'making', show };
+    if (isLive(show) || show.status === 'failed' || (!working && show.status !== 'ready' && !show.coverOnly)) continue;
+    const item: DayItem = show.status === 'ready' ? { kind: 'ready', show } : show.coverOnly ? { kind: 'preview', show } : { kind: 'making', show };
     const pin = pins[show.id] ? new Date(pins[show.id]!) : null;
     if (pin && !Number.isNaN(pin.getTime()) && pin >= tomorrow) pinned.set(dayKey(pin), [...(pinned.get(dayKey(pin)) ?? []), { at: pin, item }]);
     else queue.push(item);
@@ -122,22 +127,27 @@ const draftDays = (from: Date, end: Date, tomorrow: Date, fixedOf: (key: string)
   return drafts;
 };
 
-/** Waiting slideshows fill target slots in day order; the rest go one a day on free days from tomorrow (adding days as needed). */
-const placeQueue = (drafts: Draft[], queue: DayItem[], tomorrow: Date) => {
+/** Waiting slideshows fill target slots in day order; the rest go one a day on free days from tomorrow (adding days as
+ *  needed). `busy`: days with a post outside the day's slots. */
+const placeQueue = (drafts: Draft[], queue: DayItem[], tomorrow: Date, busy: (key: string) => boolean) => {
   for (const d of drafts) for (const slot of d.open) slot.item = queue.shift() ?? null;
   for (let i = 0; queue.length > 0 && i < MAX_DAYS; i += 1) {
     const last = drafts[drafts.length - 1]!;
     const d = i < drafts.length ? drafts[i]! : { date: addDays(last.date, 1), key: dayKey(addDays(last.date, 1)), fixed: [], open: [] };
     if (i >= drafts.length) drafts.push(d);
-    if (d.date >= tomorrow && d.fixed.length === 0 && d.open.length === 0) d.open.push({ at: atTime(d.date, '19:00'), item: queue.shift()! });
+    if (d.date >= tomorrow && d.fixed.length === 0 && d.open.length === 0 && !busy(d.key)) d.open.push({ at: atTime(d.date, '19:00'), item: queue.shift()! });
   }
 };
 
 /** The workspace's campaign posts on the calendar: their slideshows, and the planned time of the ones not approved yet. */
 export type CampaignPlan = { slideshows: AutoSlideshowDto[]; planned: Pins };
 
-/** `earlier`: the month holding today shows from its 1st too (the days already gone, faded), not from today. */
-type PlanInput = { slideshows: AutoSlideshowDto[]; pending: number; month: Date; targets?: Targets; pins?: Pins; working?: boolean; now?: Date; blitz?: BlitzScheduleDto[]; campaign?: CampaignPlan; earlier?: boolean };
+/** `earlier`: the month holding today shows from its 1st too (the days already gone, faded), not from today.
+ *  `keptAt`: times of the kept ideas on the calendar (ISO). They are not slots, but their days are not free. */
+type PlanInput = { slideshows: AutoSlideshowDto[]; pending: number; month: Date; targets?: Targets; pins?: Pins; working?: boolean; now?: Date; blitz?: BlitzScheduleDto[]; campaign?: CampaignPlan; earlier?: boolean; keptAt?: string[] };
+
+/** Day keys of the kept ideas' times. */
+export const keptDays = (keptAt: string[]): Set<string> => new Set(keptAt.map((at) => dayKey(new Date(at))));
 
 /**
  * Campaign posts by day key: scheduled ones at their post time, planned ones at their time (or where they were dragged,
@@ -181,15 +191,16 @@ export const buildMonth = (input: PlanInput): MonthPlan => {
   const extraOf = (key: string) => extras.get(key) ?? [];
   const grid = gridOf(input.month, today, input.earlier);
   const from = grid.start < tomorrow ? grid.start : tomorrow;
-  const lastKey = [...pinned.keys(), ...extras.keys(), ...Object.keys(targets)].sort().at(-1);
+  const kept = keptDays(input.keptAt ?? []);
+  const lastKey = [...pinned.keys(), ...extras.keys(), ...kept, ...Object.keys(targets)].sort().at(-1);
   const lastDate = lastKey ? new Date(`${lastKey}T00:00`) : grid.end;
   const fixedOf = (key: string) =>
     [...(byDay.get(key) ?? []).map((p) => ({ at: new Date(p.post.scheduledAt), item: p as DayItem | null })), ...(videos.get(key) ?? []), ...(pinned.get(key) ?? [])].sort((a, b) => a.at.getTime() - b.at.getTime());
   const drafts = draftDays(from, lastDate > grid.end ? lastDate : grid.end, tomorrow, fixedOf, extraOf, targets);
-  placeQueue(drafts, queue, tomorrow);
+  placeQueue(drafts, queue, tomorrow, (key) => kept.has(key) || extraOf(key).length > 0);
   const month = input.month.getMonth();
   const all = drafts.map(({ date, key, fixed, open }) => ({
-    key, date, past: date < tomorrow, today: key === dayKey(today), inMonth: date.getMonth() === month,
+    key, date, past: date < tomorrow, today: key === dayKey(today), inMonth: date.getMonth() === month || (grid.fromToday && date > today),
     slots: [...fixed, ...extraOf(key), ...open].sort((a, b) => a.at.getTime() - b.at.getTime()),
   }));
   return { days: all.filter((d) => d.date >= grid.start && d.date <= grid.end), all };

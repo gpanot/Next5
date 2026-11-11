@@ -5,8 +5,9 @@
  */
 
 import { isHookStyleId } from '../hookStyle';
-import { isSlideLook, type TextAt, type TextLook } from '../slideText';
+import { isSlideLook, isTextSize, type TextAt, type TextLook } from '../slideText';
 import type { StoreBadge } from '../storeBadges';
+import type { PreviewSlide } from '../../components/admin/autoSlideshow/campaigns/previewSlides';
 import type { AutoSlideshowDto, HeadBox } from './autoSlideshow';
 
 /** Slides a new campaign starts with: 1 hook, 5 content, 1 CTA. */
@@ -29,7 +30,18 @@ export const SHOW_CARD_BODY = false;
  *  the one photo everywhere. `textAt`: where its text was dragged to (unset = the usual spot). */
 /** `badges`: the CTA's app store badges; unset = none. `badgesAt`: their row's top (share of the height), moved apart from
  *  the text; unset = HOME_BADGES_Y. */
-export type CampaignCard = { role: 'item' | 'cta'; title: string; body: string; photo: number | null; morePhotos?: number[]; textAt?: TextAt; badges?: StoreBadge[]; badgesAt?: number };
+/** `textFree`: a content card's text unlocked to move alone; unset = locked, so dragging it moves every locked content
+ *  card's text with it (as in the Brand Cast editor). */
+export type CampaignCard = { role: 'item' | 'cta'; title: string; body: string; photo: number | null; morePhotos?: number[]; textAt?: TextAt; textFree?: boolean; badges?: StoreBadge[]; badgesAt?: number };
+
+/** The cards whose text moves when card `index`'s text is dragged: every locked content card when it is one, else that
+ *  card alone. */
+export const linkedTextCards = (cards: Pick<CampaignCard, 'role' | 'textFree'>[], index: number): number[] => {
+  const locked = (c: Pick<CampaignCard, 'role' | 'textFree'>) => c.role === 'item' && !c.textFree;
+  const card = cards[index];
+  if (!card || !locked(card)) return [index];
+  return cards.flatMap((c, i) => (locked(c) ? [i] : []));
+};
 
 /** Photos one content card rotates through, the first included. */
 export const MAX_CARD_PHOTOS = 10;
@@ -59,6 +71,8 @@ export type CampaignDraft = {
   cards: CampaignCard[];
   /** The text style of each kind of slide: the hook, every content slide (one style for all), the CTA. */
   looks: CampaignLooks;
+  /** The text size of each kind of slide (TEXT_SIZES); a kind left out is Normal. */
+  textSizes?: CampaignTextSizes;
   /** Where the hook text was dragged to, on every hook photo; unset = the usual spot. */
   hookTextAt?: TextAt;
   /** The post caption every slideshow of the campaign gets (hashtags written in it). */
@@ -66,11 +80,29 @@ export type CampaignDraft = {
   /** Stock photo search for the hook photos ("woman cooking dinner"), written with the hooks: the Hook photos picker
    *  opens on it, and its "Choose for me" picks from its results. */
   hookPhotoQuery?: string;
+  /** Background music every slideshow of the campaign gets (an Assets Library track); unset = none. */
+  audioAssetId?: string;
 };
 
 /** Which kind of slide a text style applies to. */
 export type CampaignLookRole = 'hook' | 'content' | 'cta';
 export type CampaignLooks = Record<CampaignLookRole, TextLook>;
+
+export type CampaignTextSizes = Partial<Record<CampaignLookRole, number>>;
+
+/** The text sizes a client sent, without Normal (the default) or anything that is not a size. */
+export const parseTextSizes = (value: unknown): CampaignTextSizes => {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  const out: CampaignTextSizes = {};
+  for (const role of ['hook', 'content', 'cta'] as const) {
+    const size = raw[role];
+    if (isTextSize(size) && size !== 1) out[role] = size;
+  }
+  return out;
+};
+
+/** The text size a slide of this role is drawn at. */
+export const textSizeOfRole = (sizes: CampaignTextSizes | undefined, role: 'hook' | 'item' | 'cta'): number => sizes?.[role === 'item' ? 'content' : role] ?? 1;
 
 /** The looks of a stored draft. Drafts saved before 2026-10-11 had one `look` for the hook and the CTA. */
 export const looksOf = (d: { looks?: unknown; look?: unknown }): CampaignLooks => {
@@ -87,8 +119,21 @@ export const lookOfRole = (looks: CampaignLooks, role: 'hook' | 'item' | 'cta'):
 export const shownBody = (card: Pick<CampaignCard, 'body'>): string => (SHOW_CARD_BODY ? card.body : '');
 
 /** What the rendered slides depend on (the caption is not drawn): equal keys mean the made slideshows are current. */
+const withoutLock = (c: CampaignCard): CampaignCard => {
+  const rest = { ...c };
+  delete rest.textFree;
+  return rest;
+};
+
+/** Normal sizes are left out, so drafts that never picked one keep their key and need no new render. */
+const sizesKey = (d: CampaignDraft) => {
+  const textSizes = parseTextSizes(d.textSizes);
+  return Object.keys(textSizes).length > 0 ? { textSizes } : {};
+};
+
 export const renderKeyOf = (d: CampaignDraft): string =>
-  JSON.stringify({ hooks: d.hooks, hookPhotos: d.hookPhotos, cards: d.cards, looks: d.looks, ...(d.hookTextAt ? { hookTextAt: d.hookTextAt } : {}) });
+  // The text lock changes nothing on the slides: it is left out, so toggling it does not ask for a new render.
+  JSON.stringify({ hooks: d.hooks, hookPhotos: d.hookPhotos, cards: d.cards.map(withoutLock), looks: d.looks, ...sizesKey(d), ...(d.hookTextAt ? { hookTextAt: d.hookTextAt } : {}) });
 
 export const emptyCampaignDraft = (): CampaignDraft => ({
   hooks: [],
@@ -125,7 +170,8 @@ export type CampaignPhotoRef =
 
 /** Which slide the import is for: the hook (adds to the rotation), one card or several cards (replaces their photo), or
  *  one content card's rotation (adds to it). */
-export type CampaignPhotoTarget = { slot: 'hook' } | { slot: 'card'; card: number } | { slot: 'cards'; cards: number[] } | { slot: 'cardRotation'; card: number };
+/** `replace`: the hook photo (position in the rotation) the pick takes the place of; without it, picks join the rotation. */
+export type CampaignPhotoTarget = { slot: 'hook'; replace?: number } | { slot: 'card'; card: number } | { slot: 'cards'; cards: number[] } | { slot: 'cardRotation'; card: number };
 
 /** True when the import is for card `card`. */
 export const targetsCard = (target: CampaignPhotoTarget, card: number): boolean =>
@@ -143,7 +189,7 @@ export type CampaignSummaryDto = {
   coverUrl: string | null;
   /** The first hook drawn over a cover that is a bare photo (no slideshow made yet); null when the cover is a made
    *  slide (the hook is already on it) or there is no hook. */
-  coverHook: { title: string; look: TextLook; textAt?: TextAt } | null;
+  coverHook: { title: string; look: TextLook; textAt?: TextAt; textSize?: number } | null;
   /** False while the campaign still has the default name: lists then show its first hook instead. */
   named: boolean;
   firstHook: string | null;
@@ -151,6 +197,10 @@ export type CampaignSummaryDto = {
   postThumbs: (string | null)[];
   /** When each of those posts goes out (or went out) on the calendar, same order as postThumbs; null when not scheduled. */
   postDates: (string | null)[];
+  /** The first slideshow, played on its card: its slides (made, else drawn from the draft) and its music; null while
+   *  there is no photo. */
+  /** `fullSlides`: the same slides at full size, for the card's expanded playback (`slides` are thumbs). */
+  preview: { slides: PreviewSlide[]; fullSlides: PreviewSlide[]; audio: { url: string; startAt: number } | null } | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -186,9 +236,14 @@ export type CampaignPhotoJobRequest = { key: string; cards: number[] } & Campaig
 /** A campaign post on the Calendar, waiting for approval there: slideshow `position` (hook i) at `at` (ISO). */
 export type CampaignPlanItem = { position: number; at: string };
 
+/** A campaign post not on the Calendar yet (not planned, not scheduled): the day panel's Slideshows deck offers it for
+ *  a day. `position` is its hook, as the plan wants it. `made`: false while only the draft exists (the deck makes the
+ *  campaign first, free); `slides` are then the draft drawn in the browser. */
+export type CampaignWaitingDto = { campaignId: string; position: number; made: boolean; slides: PreviewSlide[]; audio: { url: string; startAt: number } | null };
+
 /** The workspace's campaign posts for the Calendar: slideshows planned there (`planned`: id → ISO time) or scheduled.
- *  `campaignOf`: slideshow id → its campaign, so a tap opens the campaign. */
-export type CampaignCalendarDto = { slideshows: AutoSlideshowDto[]; planned: Record<string, string>; campaignOf: Record<string, string> };
+ *  `campaignOf`: slideshow id → its campaign, so a tap opens the campaign. `waiting`: made ones not on it yet. */
+export type CampaignCalendarDto = { slideshows: AutoSlideshowDto[]; planned: Record<string, string>; campaignOf: Record<string, string>; waiting: CampaignWaitingDto[] };
 
 /** One photo of a picker tab (generated, brand, shared, Unsplash), with what importing it needs. */
 export type PhotoOptionDto = { key: string; thumbUrl: string; ref: CampaignPhotoRef; label: string; credit: CampaignCredit | null };
@@ -212,6 +267,9 @@ export const hookPhotoFor = (draft: Pick<CampaignDraft, 'hookPhotos'>, hookIndex
 /** What Auto writes on an empty CTA when the hook promises a number ("6 ways…": the CTA is the 6th), for the person to
  *  replace. Schedule waits until it is replaced. */
 export const CTA_PREFILL = 'Edit your CTA here';
+
+/** The CTA text "Generate the entire slideshows" puts on an empty CTA card. */
+export type CampaignCtaText = { title: string; body: string };
 export const isCtaPrefill = (title: string): boolean => /^\s*(?:\d+[.)]\s*)?edit your cta here\s*$/i.test(title);
 
 export const campaignProblems = (draft: CampaignDraft): string[] => {
@@ -281,11 +339,14 @@ export type AutoContentDto = {
   coverQuery: string;
   libraryRefs: (CampaignPhotoRef | null)[];
   coverRef: CampaignPhotoRef | null;
+  /** The CTA card's own AI photo scene (the product in use, ctaPhoto.ts), when the CTA text was sent; else it takes the cover. */
+  ctaScene?: string | null;
 };
 
 /** One photo for the auto content: an AI photo of a scene (matching the color and light of campaign photo `tonePhoto`,
- *  the first hook photo, when set), or the `nth` stock result of a search. */
-export type AutoPhotoRequest = { source: 'ai'; scene: string; tonePhoto?: number } | { source: 'stock'; query: string; nth: number };
+ *  the first hook photo, when set; `cta`: the CTA photo, made with the Brand Cast face and the product as references),
+ *  or the `nth` stock result of a search. */
+export type AutoPhotoRequest = { source: 'ai'; scene: string; tonePhoto?: number; cta?: boolean } | { source: 'stock'; query: string; nth: number };
 
 /** The number a hook line promises ("5 ways to…"), or null. */
 export const hookNumber = (hook: string): number | null => {

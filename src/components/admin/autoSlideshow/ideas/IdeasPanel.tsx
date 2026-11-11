@@ -67,6 +67,17 @@ function Header({ ideas, placeOf, onPickDate }: HeaderProps) {
   );
 }
 
+/** A pack's videos: where this one sits among them. */
+function ReviewHeader({ ideas }: { ideas: IdeasState }) {
+  const at = ideas.kept.findIndex((i) => i.id === ideas.current?.id);
+  return (
+    <header className="flex items-baseline gap-3">
+      <h1 className="min-w-0 flex-1 font-heading text-xl leading-tight font-normal text-app-ink lg:text-3xl">Review videos</h1>
+      {ideas.packStage === 'review' && at >= 0 && <span className="text-[13px] font-medium text-app-muted tabular-nums">{at + 1} / {ideas.kept.length}</span>}
+    </header>
+  );
+}
+
 /** The empty card while ideas are written: the slide animation and a countdown, so the wait never looks stuck. */
 type WritingProps = { since: string | null; lines: string[]; note: string; totalMs?: number };
 
@@ -97,9 +108,20 @@ function Kept({ ideas, maker }: { ideas: IdeasState; maker: Make }) {
   );
 }
 
+/** A pack in review: its videos one at a time, each editable (hook, voice, photos, captions), never kept or skipped. */
+function PackReview({ ideas, maker, idea }: { ideas: IdeasState; maker: Make; idea: IdeaDto }) {
+  const at = ideas.kept.findIndex((i) => i.id === idea.id);
+  const before = ideas.kept[at - 1];
+  const after = ideas.kept[at + 1];
+  const review = { onPrev: before ? () => ideas.setFocusId(before.id) : null, onNext: after ? () => ideas.setFocusId(after.id) : null };
+  return <LiveDeck ideas={ideas} maker={maker} idea={idea} next={after ?? null} size="page" review={review} />;
+}
+
 /** What the page shows for the filter: writing, empty (get more), the deck, or the kept list once all were looked at. */
 function Body({ ideas, maker, placeOf }: Props): ReactNode {
   if (ideas.loading) return <div className={`${deckBox} animate-pulse`} />;
+  if (ideas.packStage === 'locked' && ideas.kept.length > 0) return <p className="rounded-xl bg-app-sunken p-4 text-sm text-app-muted">These videos cannot be edited right now. In Admin, Prospects, tap Back to review to change them.</p>;
+  if (ideas.packStage === 'review' && ideas.current) return <PackReview ideas={ideas} maker={maker} idea={ideas.current} />;
   if (ideas.firstDeck) {
     // First setup: the profile, then the first deck, are built on their own. Nothing to click.
     const totalMs = ideas.building ? TYPICAL_RUN_MS + TYPICAL_IDEAS_MS : TYPICAL_IDEAS_MS;
@@ -129,7 +151,7 @@ export function IdeasPanel({ ideas, maker, placeOf }: Props) {
   const pickDate = (idea: IdeaDto, at: string) => setPicked((p) => ({ ...p, [idea.id]: at }));
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-2 lg:gap-4">
-      <Header ideas={ideas} placeOf={placeWith} onPickDate={pickDate} />
+      {ideas.packStage ? <ReviewHeader ideas={ideas} /> : <Header ideas={ideas} placeOf={placeWith} onPickDate={pickDate} />}
       {making > 0 && ideas.deck.length > 0 && (
         <p className="flex items-center gap-2 rounded-xl bg-app-sunken px-3 py-2 text-xs text-app-muted">
           <span aria-hidden className="h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-app-line border-t-app-accent" />
@@ -138,7 +160,7 @@ export function IdeasPanel({ ideas, maker, placeOf }: Props) {
       )}
       {ideas.error && ideas.deck.length + ideas.kept.length > 0 && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{ideas.error}</p>}
       <Body ideas={ideas} maker={maker} placeOf={placeWith} />
-      <MakeStatus kept={ideas.kept} maker={maker} />
+      {!ideas.packStage && <MakeStatus kept={ideas.kept} maker={maker} />}
       {/* Phones: hidden, so the card gets the height. */}
       {ideas.deck.length > 0 && <div className="max-lg:hidden"><CampaignsHint /></div>}
     </div>

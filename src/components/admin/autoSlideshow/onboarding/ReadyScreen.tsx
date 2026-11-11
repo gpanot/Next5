@@ -68,15 +68,15 @@ export function ReadyScreen({ profile, build, slow, onDone }: Props) {
       <Screen
         title="Finishing your calendar"
         titleClass="text-[30px]"
-        subtitle={slow && waiting ? "This is taking longer than usual. Your calendar fills in on its own when it's ready." : 'You can look around now. Your ideas fill in on their own.'}
-        cta={{ label: waiting ? 'See my ideas' : 'Go to my workspace', onClick: onDone }}
+        subtitle={slow && waiting ? "This is taking longer than usual. Your calendar fills in on its own when it's ready." : 'You can look around now. Your first slideshow shows up on its own.'}
+        cta={{ label: waiting ? 'See my slideshow' : 'Go to my workspace', onClick: onDone }}
       >
         <StageList stages={build.stages} compact />
       </Screen>
     );
   }
   return (
-    <Screen icon={<CalendarTile />} title={`Your next ${PLAN_DAYS} days are ready`} titleClass="text-[30px]" subtitle="Built around what you told us." cta={{ label: 'See my ideas', onClick: onDone }}>
+    <Screen icon={<CalendarTile />} title={`Your next ${PLAN_DAYS} days are ready`} titleClass="text-[30px]" subtitle="Built around what you told us." cta={{ label: 'See my slideshow', onClick: onDone }}>
       <Summary profile={profile} />
       <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
         Your first slideshow is on us.

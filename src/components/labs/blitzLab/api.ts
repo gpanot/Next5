@@ -1,5 +1,6 @@
 'use client';
 
+import type { SlideCamera } from '../../../remotion/types';
 import type { LabClient } from '../labClient';
 import type { BlitzAssetDto, BlitzProjectDto, BlitzTemplateDto } from '../../../server/admin/blitzStore';
 
@@ -104,7 +105,7 @@ export const blitzApi = {
       businessText?: string;
       muteVideoAudio?: boolean;
       /** Slide data for CAROUSEL templates — SlideData[] with per-slide backgroundKey support */
-      slides?: Array<{ text: string; backgroundKey?: string; durationSec?: number; trimStart?: number; positionY?: number }>;
+      slides?: Array<{ text: string; backgroundKey?: string; durationSec?: number; trimStart?: number; positionY?: number; camera?: SlideCamera }>;
       /** Remix data saved with the render (see slideshowSet.ts). */
       set?: object;
       /** Narrate the slideshow in this voice (replaces music; the server times the slides to the voiceover). */

@@ -8,9 +8,10 @@ export const bestTimeToPostTikTok: Article = {
   description: 'The best time to post on TikTok and Instagram is when your own buyers are online. Here is how to find your time in the app, and a simple 2-week test.',
   excerpt: 'Generic charts guess. Your own followers tell you. How to find your best posting time in the app, plus a 2-week test.',
   keyword: 'best time to post on tiktok',
+  hub: 'how-to',
   published: '2026-10-18',
-  cover: 'porsche-calmer',
-  coverAlt: 'TikTok slideshow made by Next5: "Last visit: overloaded. This year: calmer decisions and smoother drives."',
+  cover: '/images/guides/best-time-to-post-on-tiktok.png',
+  coverAlt: 'Food truck owner checking her phone at the counter during a quiet moment',
   blocks: [
     { type: 'p', text: 'You have seen the charts. "Post on Tuesday at 9 AM!" The problem: those charts mix millions of accounts. Your buyers are not millions of accounts. A bakery, a realtor and a gym all have different buyers who scroll at different times.' },
     { type: 'p', text: 'The best time to post is **when your own followers are online**. Both TikTok and Instagram show you that time for free.' },
@@ -51,7 +52,7 @@ export const bestTimeToPostTikTok: Article = {
     ] },
     { type: 'p', text: 'Compare views at the same age. A post that is 2 hours old will always look worse than one that is 2 days old.' },
     { type: 'h2', text: 'Time matters less than you think' },
-    { type: 'p', text: 'A great post at a so-so time beats a weak post at the perfect time. TikTok keeps showing good posts for days. Spend most of your energy on the hook. Read [TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business) for 40 you can copy.' },
+    { type: 'p', text: 'A great post at a so-so time beats a weak post at the perfect time. TikTok keeps showing good posts for days. Spend most of your energy on the hook. Read [TikTok hooks for small businesses](/blog/tiktok-hooks-for-small-business) for 40 you can copy. The same goes for tags: [how many hashtags to use on TikTok for business](/blog/how-many-hashtags-on-tiktok-for-business) shows how small that lever really is.' },
     { type: 'cta', title: 'Posts that go out on time, every day', text: 'Next5 makes your posts, puts them on a 30-day calendar and posts them on the day you pick. Your Analytics page shows views at 48 hours for every post.' },
   ],
   faq: [

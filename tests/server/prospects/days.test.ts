@@ -1,9 +1,9 @@
 // A Prospect Pack's days: one post a day from tomorrow at 9:00 in the prospect's time zone, videos every other day, and
-// a missing post's day taken by the next kind that has one.
+// a missing post's day taken by the next kind that has one. Only the free days' posts are made in full.
 
 import { describe, expect, it } from 'vitest';
-import { composeDays } from '../../../src/server/prospects/days';
-import { PROSPECT_ORDER } from '../../../src/types/admin/prospects';
+import { blitzDaysFrom, composeDays, daysFromPlan, rebaseDays } from '../../../src/server/prospects/days';
+import { fullCount, PROSPECT_FREE_DAYS, PROSPECT_ORDER } from '../../../src/types/admin/prospects';
 
 const ids = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => `${prefix}${i + 1}`);
 const NOW = new Date('2026-10-18T15:00:00.000Z');
@@ -27,5 +27,60 @@ describe('composeDays', () => {
     const days = composeDays({ blitz: ids('b', 2), cast: [], hooks: ids('h', 1) }, NOW, 0);
     expect(days.map((d) => d.refId)).toEqual(['b1', 'b2', 'h1']);
     expect(composeDays({ blitz: [], cast: [], hooks: [] }, NOW, 0)).toEqual([]);
+  });
+
+  it('marks previews, which land after the free days in a full pack', () => {
+    const blitz = ids('b', 7);
+    const cast = ids('c', 3);
+    const previews = new Set([...blitz.slice(fullCount('blitz')), ...cast.slice(fullCount('cast'))]);
+    const days = composeDays({ blitz, cast, hooks: ids('h', 4) }, NOW, 0, previews);
+    expect(days.filter((d) => d.preview).every((d) => d.day > PROSPECT_FREE_DAYS)).toBe(true);
+    expect(days.filter((d) => d.preview).map((d) => d.refId)).toEqual(['b5', 'c3', 'b6', 'b7']);
+  });
+});
+
+describe('fullCount', () => {
+  it('counts each kind in the free days', () => {
+    expect([fullCount('blitz'), fullCount('cast'), fullCount('hooks')]).toEqual([4, 2, 1]);
+  });
+});
+
+describe('days from the calendar', () => {
+  it('numbers the posts in time order', () => {
+    const days = daysFromPlan([{ at: '2026-11-05T02:00:00.000Z', kind: 'hooks', refId: 'h' }, { at: '2026-11-03T02:00:00.000Z', kind: 'blitz', refId: 'b', preview: true }]);
+    expect(days.map((d) => [d.day, d.refId, d.preview])).toEqual([[1, 'b', true], [2, 'h', undefined]]);
+  });
+
+  it('moves days from tomorrow on when the first one has passed, keeps them otherwise', () => {
+    const now = new Date('2026-11-02T10:00:00.000Z');
+    const past = [{ day: 1, at: '2026-10-22T09:00:00.000Z', kind: 'blitz' as const, refId: 'a' }, { day: 2, at: '2026-10-23T09:00:00.000Z', kind: 'cast' as const, refId: 'b' }];
+    expect(rebaseDays(past, now, 0).map((d) => [d.refId, d.at.slice(0, 10)])).toEqual([['a', '2026-11-03'], ['b', '2026-11-04']]);
+    const ahead = [{ ...past[0]!, at: '2026-11-06T09:00:00.000Z' }];
+    expect(rebaseDays(ahead, now, 0)).toEqual(ahead);
+  });
+});
+
+describe('blitzDaysFrom', () => {
+  const at = '2026-11-16T12:00:00.000Z';
+
+  it('adds an idea made into a post during review as a preview', () => {
+    expect(blitzDaysFrom([], new Map(), new Map([['idea', at]]))).toEqual([{ at, kind: 'blitz', refId: 'idea', preview: true }]);
+  });
+
+  it('keeps a rendered video on its project, at its post time when it has a post', () => {
+    const picked = [{ ideaId: 'idea', projectId: 'project' }];
+    expect(blitzDaysFrom(picked, new Map(), new Map([['idea', at]]))).toEqual([{ at, kind: 'blitz', refId: 'project' }]);
+    expect(blitzDaysFrom(picked, new Map([['idea', at]]), new Map())).toEqual([{ at, kind: 'blitz', refId: 'project' }]);
+  });
+
+  it('shows a held idea with a post as a preview, and drops one with neither a day nor a render', () => {
+    const held = [{ ideaId: 'idea', projectId: null, held: true }];
+    expect(blitzDaysFrom(held, new Map(), new Map([['idea', at]]))).toEqual([{ at, kind: 'blitz', refId: 'idea', preview: true }]);
+    expect(blitzDaysFrom(held, new Map([['idea', at]]), new Map())).toEqual([]);
+  });
+
+  it('never lists a picked idea twice', () => {
+    const picked = [{ ideaId: 'idea', projectId: null, preview: true }];
+    expect(blitzDaysFrom(picked, new Map([['idea', at]]), new Map([['idea', at]]))).toHaveLength(1);
   });
 });

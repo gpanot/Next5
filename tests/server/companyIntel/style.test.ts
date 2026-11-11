@@ -27,6 +27,7 @@ describe('slideshow style', () => {
   it('drops clauses that set the light or ask for text, and stops on a whole clause', () => {
     expect(cleanPhotoStyle('The car on coastal roads, moody cinematic dusk light, owners in tailored clothes.')).toBe('The car on coastal roads, owners in tailored clothes.');
     expect(cleanPhotoStyle('Cars at a dealership; price graphics on screen.')).toBe('Cars at a dealership.');
+    expect(cleanPhotoStyle('Bright daylight photography with clean framing, realistic trade surroundings, readable screens, and practical everyday detail.')).toBe('Bright daylight photography with clean framing, readable screens.');
     const long = Array.from({ length: 12 }, (_, i) => `scene number ${i} here,`).join(' ');
     expect(cleanPhotoStyle(long).split(/\s+/).length).toBeLessThanOrEqual(40);
   });

@@ -1,6 +1,12 @@
 /** Prospect Packs (admin outbound): 14 days of content made for an SME before they sign up, shared at /p/<token>. */
 
-export type ProspectStatus = 'building' | 'faces' | 'making' | 'ready' | 'failed' | 'claimed';
+/** 'review': every post is made and on the workspace's calendar, for the admin to check and edit. 'generating': the admin
+ *  tapped "Generate calendar": the videos render, then the days are read from the calendar and the link opens ('ready'). */
+export type ProspectStatus = 'queued' | 'building' | 'faces' | 'making' | 'review' | 'generating' | 'ready' | 'failed' | 'claimed';
+
+/** Packs made at once (reading the site, or making posts). More wait as 'queued' and start, oldest first, when one
+ *  finishes: the Blitz render worker, stock photo searches and the database are shared with every user. */
+export const PROSPECT_MAX_ACTIVE = 5;
 
 /** What one day of the pack posts: a Blitz video, a Brand Cast slideshow or a Hooks Volume slideshow. */
 export type ProspectKind = 'blitz' | 'cast' | 'hooks';
@@ -14,18 +20,32 @@ export const PROSPECT_DAYS = PROSPECT_BLITZ + PROSPECT_CAST + PROSPECT_HOOKS;
 /** Day order (day 1 first): videos every other day, the two slideshow kinds taking turns in between. */
 export const PROSPECT_ORDER: ProspectKind[] = ['blitz', 'cast', 'blitz', 'hooks', 'blitz', 'cast', 'blitz', 'hooks', 'blitz', 'cast', 'blitz', 'hooks', 'blitz', 'hooks'];
 
-/** One stored day: `refId` is the BlitzProject (blitz) or the AutoSlideshow (cast, hooks). `at`: ISO time. */
-export type ProspectDay = { day: number; at: string; kind: ProspectKind; refId: string };
+/** Days of the pack the prospect gets free when they claim it (the rest are paid like any post). Only these are made in
+ *  full; later days get a preview (see fullCount) until the pack is unlocked by a first payment. */
+export const PROSPECT_FREE_DAYS = 7;
 
-/** A picked Blitz idea and its render (null until queued). `retry`: it failed for a reason that may pass (the stock
- *  photo scraper was busy), so a later step tries it again; `tries` counts the attempts. */
-export type ProspectBlitz = { ideaId: string; projectId: string | null; error?: string; retry?: boolean; tries?: number };
+/** How many posts of a kind are made in full: the ones the free days show. The rest of that kind are previews. */
+export const fullCount = (kind: ProspectKind): number => PROSPECT_ORDER.slice(0, PROSPECT_FREE_DAYS).filter((k) => k === kind).length;
+
+/** One stored day: `refId` is the BlitzProject (blitz) or the AutoSlideshow (cast, hooks); for a Blitz preview, the
+ *  idea. `preview`: only its first shot or slide is made. `at`: ISO time. */
+export type ProspectDay = { day: number; at: string; kind: ProspectKind; refId: string; preview?: boolean };
+
+/** A picked Blitz idea and its render (null until queued). `preview`: its photos are filled but it is not rendered
+ *  until the pack is unlocked. `held`: its photos are filled and it renders on "Generate calendar", so edits made in
+ *  review cost no second render. `rendering`: that render is being queued. `cardHash`: the card its render was made from
+ *  (a card that changed renders again). `retry`: it failed for a reason that may pass (the stock photo scraper was
+ *  busy), so a later step tries it again; `tries` counts the attempts. */
+export type ProspectBlitz = { ideaId: string; projectId: string | null; preview?: boolean; held?: boolean; rendering?: boolean; cardHash?: string; error?: string; retry?: boolean; tries?: number };
 
 /** Attempts per Blitz idea before the pack goes on without it. */
 export const PROSPECT_BLITZ_TRIES = 3;
 
 /** True while a picked idea may still become a video. */
-export const blitzPending = (b: ProspectBlitz): boolean => !b.projectId && (!b.error || (!!b.retry && (b.tries ?? 1) < PROSPECT_BLITZ_TRIES));
+export const blitzPending = (b: ProspectBlitz): boolean => !b.projectId && !((b.preview || b.held) && !b.error) && (!b.error || (!!b.retry && (b.tries ?? 1) < PROSPECT_BLITZ_TRIES));
+
+/** One time a lead opened the pack's link. */
+export type ProspectOpen = { at: string; device: 'mobile' | 'desktop'; country: string | null };
 
 /** The admin list row. */
 export type ProspectPackDto = {
@@ -38,10 +58,31 @@ export type ProspectPackDto = {
   error: string | null;
   /** What each part has so far, for the progress line. */
   progress: { blitz: number; cast: number; hooks: number };
+  /** Ready, with a video still rendering or rendered after the days were planned: it joins the days on a later step. */
+  lateVideos: boolean;
   costUsd: number;
+  /** Make time in seconds, without the admin's face check: site read and faces (started → faces), then the posts
+   *  (approved → ready). Null while that part is not done. */
+  timing: { siteSec: number | null; postsSec: number | null };
+  /** Times the link was opened, with the latest ones (newest first). */
+  opens: { count: number; latest: ProspectOpen[] };
   createdAt: string;
   claimedAt: string | null;
 };
+
+/** One line of a pack's cost: the paid calls of one model for one part of the pack. */
+export type ProspectCostLine = { part: string; provider: string; model: string; calls: number; usd: number };
+
+/** GET /api/admin/prospects/[id]/costs. `source`: the owner's ledger, or (packs made before it) the brand run's steps. */
+export type ProspectCostsDto = { totalUsd: number; source: 'ledger' | 'run'; lines: ProspectCostLine[] };
+
+/** One task of a pack in the admin's progress panel. `detail`: why it waits, how far it is, or the error. */
+export type ProspectTaskState = 'waiting' | 'running' | 'done' | 'failed' | 'skipped';
+export type ProspectTask = { label: string; state: ProspectTaskState; detail: string | null };
+export type ProspectTaskGroup = { title: string; tasks: ProspectTask[] };
+
+/** GET /api/admin/prospects/[id]/tasks: the pack's parts, in the order they are made. */
+export type ProspectTasksDto = { groups: ProspectTaskGroup[] };
 
 /** "Why this one?" in the post sheet: the same reasons the Ideas deck shows on a card (its whyPanel). */
 export type ProspectWhy = { audience: string; hook: string; hookReason: string; story: Array<{ label: string; text: string }>; proof: string };
@@ -58,15 +99,30 @@ export type ProspectViewDay = {
   slides: string[];
   /** Blitz: the video's length in seconds, when known. */
   durationSec: number | null;
+  /** Slideshows: the TikTok sound it posts with (played with the slides), and where in the track it starts (s). */
+  audioUrl: string | null;
+  audioStart: number;
   caption: string;
   why: ProspectWhy | null;
+  /** A day after the free ones: only its first slide or shot is shown, the rest comes after purchase. */
+  locked: boolean;
+  /** What kind of post it is ("Education", "Story"...), shown on its thumbnail. Null when unknown. */
+  tag: string | null;
 };
+
+/** Thumbnail tags: a slideshow's content goal, or a Blitz story's format (labs/blitzFormats.ts), in words a shop owner
+ *  knows. Kept to a few tags so the 14 days read as a mix. */
+const GOAL_TAGS: Record<string, string> = { teach: 'Education', proof: 'Proof', myth: 'Myth buster', story: 'Story', product: 'Product' };
+const FORMAT_TAGS: Record<string, string> = {
+  problem_fix: 'Education', myth_truth: 'Myth buster', mistake: 'Common mistake', how_to: 'How-to',
+  signs: 'Education', before_after: 'Before & after', objection: 'Q&A', offer: 'Product',
+};
+
+export const goalTag = (goal: string | null | undefined): string | null => (goal ? GOAL_TAGS[goal] ?? null : null);
+export const formatTag = (format: string | null | undefined): string | null => (format ? FORMAT_TAGS[format] ?? null : null);
 
 /** GET /api/prospect/[token]. `heldUntil`: when the preview offer ends (7 days after the pack was made). */
 export type ProspectViewDto = { name: string; websiteUrl: string; status: 'ready' | 'claimed'; heldUntil: string; heldEnded: boolean; days: ProspectViewDay[] };
-
-/** Days of the pack the prospect gets free when they claim it (the rest are paid like any post). */
-export const PROSPECT_FREE_DAYS = 7;
 
 /** How long a pack's preview is held for the prospect. */
 export const PROSPECT_HOLD_DAYS = 7;
@@ -76,4 +132,4 @@ export const prospectPath = (shareToken: string): string => `/p/${shareToken}`;
 
 /** The DM the admin sends with the link (3rd-grade words). */
 export const prospectDm = (name: string, link: string): string =>
-  `Hey! I made your next 14 days of posts for ${name}: TikTok, Instagram and more. Take a look: ${link}\nLike them? They are yours. Just tap "Get my posts".`;
+  `Hey! I made your next 14 days of posts for ${name}: TikTok, Instagram and more. Take a look: ${link}\nLike them? They are yours. Just tap "Start now".`;

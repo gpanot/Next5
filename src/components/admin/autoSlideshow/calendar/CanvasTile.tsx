@@ -25,7 +25,7 @@ type Props = { day: PlanDay; entries: TileEntry[]; focused: boolean; onOpen: () 
  */
 export const countdownOf = (entries: TileEntry[]): (PostCountdown & { overCover: boolean }) | null => {
   const top = entries[0];
-  if (top?.status === 'making' && !top.cover && top.makingSince) return { since: top.makingSince, totalMs: TYPICAL_MAKE_MS, label: 'Making your slideshow', overCover: false };
+  if (top?.status === 'making' && !top.cover && top.makingSince) return { since: top.makingSince, totalMs: top.makingTotalMs ?? TYPICAL_MAKE_MS, label: 'Making your slideshow', overCover: false };
   const posting = entries.find((e) => e.countdown);
   return posting?.countdown ? { ...posting.countdown, overCover: Boolean(top?.cover) } : null;
 };

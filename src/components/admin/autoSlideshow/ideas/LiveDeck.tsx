@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { HookPicker } from './HookPicker';
 import { whenOf } from './ideaCards';
-import { IdeaDeck, type DeckClips, type DeckSize } from './IdeaDeck';
+import { IdeaDeck, type DeckClips, type DeckReview, type DeckSize } from './IdeaDeck';
 import type { Make } from './IdeasPanel';
 import { useKeepConfirm } from './KeepConfirm';
 import type { IdeasState } from './useIdeas';
@@ -44,13 +44,15 @@ type Props = {
   size?: DeckSize;
   /** Where a kept idea goes when not its own day (undefined: its own day). Shown as "Will be posted" too. */
   placeOf?: (idea: IdeaDto) => string | undefined;
+  /** Editing a pack's videos: see IdeaDeck. */
+  review?: DeckReview;
 };
 
 /**
  * The ideas deck wired to the ideas: swipe right asks once (it uses a credit), keeps the idea on its day (or where
  * `placeOf` says) and makes it right away; swipe left skips; undo, another first line and the hook's look (Hook, under the card), the voiceover (recorded for the top and next card; the mic swaps woman / man voice); paused, the shot's clip swaps (with undo) and its caption moves up or down; ⋯ (Ideas page, phones) filters the deck.
  */
-export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
+export function LiveDeck({ ideas, maker, idea, next, size, placeOf, review }: Props) {
   const [hookFor, setHookFor] = useState<IdeaDto | null>(null);
   const clips = useClipSwaps(ideas);
   const voices = useBlitzVoices(ideas.client);
@@ -81,11 +83,11 @@ export function LiveDeck({ ideas, maker, idea, next, size, placeOf }: Props) {
   const decide = (target: IdeaDto, status: 'kept' | 'discarded') => {
     if (status === 'discarded' || !maker) return ideas.decide(target, status);
     const at = placeOf?.(target);
-    void maker.make([{ ...target, status: 'kept', plannedAt: at ?? target.plannedAt, hookCta: hookStyle.hookCta }], () => ideas.keepNow(target, at));
+    void maker.make([{ ...target, status: 'kept', plannedAt: at ?? target.plannedAt, titleStyle: hookStyle.titleStyle }], () => ideas.keepNow(target, at));
   };
   return (
     <>
-      <IdeaDeck idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={(target) => void changeVoice(target)} voice={preview.stateOf(idea)} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1, whenOf(idea, placeOf?.(idea))) : undefined} hookStyle={hookStyle} clips={clips} onCaptionMove={(target, shot, y) => void ideas.moveCaption(target, shot, y)} />
+      <IdeaDeck review={review} idea={idea} next={next} canUndo={ideas.canUndo} onDecide={decide} onUndo={ideas.undo} onEditHook={setHookFor} onVoice={(target) => void changeVoice(target)} voice={preview.stateOf(idea)} size={size} plannedAt={placeOf?.(idea)} confirmKeep={maker ? () => confirm(1, whenOf(idea, placeOf?.(idea))) : undefined} hookStyle={hookStyle} clips={clips} onCaptionMove={(target, shot, y) => void ideas.moveCaption(target, shot, y)} />
       {hookFor && <HookPicker idea={hookFor} onPick={(id) => ideas.pickHook(hookFor, id)} onClose={() => setHookFor(null)} style={hookFor.card ? hookStyle : undefined} />}
       {dialog}
     </>

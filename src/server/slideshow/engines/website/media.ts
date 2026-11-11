@@ -128,6 +128,10 @@ export type WebsiteMediaInput = {
   /** The story's id and what each beat is in its format ("Myth", "Step 1"), for prompts written later. */
   storyId?: string;
   beatLabels?: Partial<Record<keyof StoryTexts, string>>;
+  /** Every shot but the business's own photos asks for an image, strong library match or not (free batches, 2026-10-20). */
+  allImages?: boolean;
+  /** 'video': the library search returns clips only (the footage cards of free batches, 2026-10-20). */
+  footage?: 'video';
 };
 
 export type WebsiteMedia = {
@@ -175,8 +179,8 @@ export async function searchWebsiteMedia(input: WebsiteMediaInput): Promise<Webs
   // The IDC leads every query so matches come from their world, not generic stock.
   const [ranked, products] = await Promise.all([
     searchShots(ctx, [
-      ...STORY_KEYS.map((k) => ({ rule: { ...STORY_RULES[k], intent: input.beatIntents?.[k] ?? STORY_RULES[k].intent }, text: `${input.idc}: ${input.story[k]}`, limit: STORY_POOL, categories: cats, categoryMode: 'boost' as const })),
-      ...input.hooks.map((h) => ({ rule: hookRule(h.archetype), text: `${input.idc}: ${h.text}`, limit: HOOK_POOL, categories: cats, categoryMode: 'boost' as const })),
+      ...STORY_KEYS.map((k) => ({ rule: { ...STORY_RULES[k], intent: input.beatIntents?.[k] ?? STORY_RULES[k].intent }, text: `${input.idc}: ${input.story[k]}`, limit: STORY_POOL, categories: cats, categoryMode: 'boost' as const, media: input.footage })),
+      ...input.hooks.map((h) => ({ rule: hookRule(h.archetype), text: `${input.idc}: ${h.text}`, limit: HOOK_POOL, categories: cats, categoryMode: 'boost' as const, media: input.footage })),
     ]),
     planProductShots(input.story, input.products ?? []),
   ]);
@@ -201,7 +205,8 @@ export async function pickWebsiteMedia(input: WebsiteMediaInput, { ranked, produ
     const key = STORY_KEYS[i]!;
     const fresh = freshFirst(ranked[i] ?? [], takenFor(key, used, input.spaced), recent);
     const pool = INDUSTRY_SHOTS.has(key) ? strongFirst(fresh, cats) : fresh;
-    const photos = products.shots[key as ProductShotKey];
+    // Blitz stories (storyId) are value content: the business's own photos play only behind the CTA.
+    const photos = !input.storyId || key === 'cta' ? products.shots[key as ProductShotKey] : undefined;
     if (photos) {
       shared.add(key);
       console.log(`[WebsiteMedia] ${input.idc}/${key}: product photo "${photos[0]!.description}"`);
@@ -211,7 +216,7 @@ export async function pickWebsiteMedia(input: WebsiteMediaInput, { ranked, produ
     const best = pool[0];
     const weak = !strongMatch(best, cats);
     if (INDUSTRY_SHOTS.has(key)) matches.push(`${key} ${best ? best.similarity.toFixed(2) : '-'}${weak ? ' → AI' : ''}`);
-    if (INDUSTRY_SHOTS.has(key) && weak) {
+    if (input.allImages || (INDUSTRY_SHOTS.has(key) && weak)) {
       const role = key as ImageNeed['role'];
       needs.push({
         key: `${input.idc}:${key}`, role, text: input.story[key], photo: input.photos?.[role],
@@ -224,7 +229,7 @@ export async function pickWebsiteMedia(input: WebsiteMediaInput, { ranked, produ
   }
   console.log(`[WebsiteMedia] ${input.idc.slice(0, 40)}: ${matches.join(', ')}`);
   // Result-first leads with the most striking product photo; without photos, with a clip.
-  const hero = products.hero ? await productShot([products.hero], []) : null;
+  const hero = products.hero && !input.storyId ? await productShot([products.hero], []) : null;
   const hooks = await directHooks(
     input.hooks.map((h) => h.archetype),
     ranked.slice(STORY_KEYS.length),
@@ -233,6 +238,10 @@ export async function pickWebsiteMedia(input: WebsiteMediaInput, { ranked, produ
     recent,
   );
   const perCard = await storyPerCard(ranked, input.hooks.length, cats, used, recent, shared);
+  const hook = input.hooks[0];
+  if (input.allImages && hook && !(hero && hooks[0]?.assetKey === hero.assetKey)) {
+    needs.unshift({ key: `${input.idc}:hook`, role: 'hook', text: hook.text, story: { id: input.storyId ?? input.idc, lines: Object.values(input.story).join(' / '), label: 'hook' } });
+  }
   return { story, perCard, hooks, needs, runnerUps };
 }
 

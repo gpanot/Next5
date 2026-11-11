@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { AutoRunSummary } from '../../../../types/admin/autoSlideshow';
 import type { CampaignSummaryDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch, useAdminApi } from '../../business/useAdminApi';
@@ -49,7 +49,8 @@ function Empty({ tab, onCreate }: { tab: Tab; onCreate: () => void }) {
  * One workspace's campaigns, the only place slideshows are made, in two tabs: Hooks Volume and Brand Cast. One toolbar
  * (All / On calendar, cards / list) serves both; each tab keeps its own view. "New campaign" asks which kind: Brand Cast (1-5 slideshows from the
  * Auto Slideshow engine) or Hooks Volume (an empty campaign opened in the campaign editor; `?campaign=` keeps it open on
- * reload and gives Back its way out).
+ * reload and gives Back its way out). `?tab=brand&play=first` (the end of onboarding) opens Brand Cast and plays its
+ * newest slideshow once, as soon as it is ready, while the user stays on this tab.
  */
 export function CampaignsPage({ token, workspaceId }: Props) {
   const list = useAdminApi<{ campaigns: CampaignSummaryDto[] }>(token, `/api/slideshow/campaigns?workspace=${workspaceId}`);
@@ -57,6 +58,8 @@ export function CampaignsPage({ token, workspaceId }: Props) {
   /** Back from Stripe after Add credits in the Brand Cast step: that step opens again. */
   const [resume] = useState(readBrandCastResume);
   const [choosing, setChoosing] = useState(resume !== null);
+  /** The Brand Cast tab's blank card opens the sheet on its Brand Cast step. */
+  const [brandFirst, setBrandFirst] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Bumped after Brand Cast slideshows were asked for: the Brand Cast section polls its latest run again. */
@@ -69,7 +72,29 @@ export function CampaignsPage({ token, workspaceId }: Props) {
   const setView = tab === 'hooks' ? setHooksView : setBrandView;
   const router = useRouter();
   const pathname = usePathname();
-  const openId = useSearchParams().get('campaign');
+  const params = useSearchParams();
+  const openId = params.get('campaign');
+  const playAsked = params.get('play') === 'first';
+  const [autoPlay, setAutoPlay] = useState(false);
+  const [seenPlay, setSeenPlay] = useState(false);
+  // Adjusting state while rendering: the page may already be mounted (hidden) when onboarding sends the user here.
+  if (playAsked !== seenPlay) {
+    setSeenPlay(playAsked);
+    if (playAsked) {
+      setAutoPlay(true);
+      setTab('brand');
+    }
+  }
+  if (autoPlay && !pathname.endsWith('/campaigns')) setAutoPlay(false);
+  // Read once: a reload does not play it again.
+  useEffect(() => {
+    if (playAsked) router.replace(pathname, { scroll: false });
+  }, [playAsked, pathname, router]);
+  const endAutoPlay = useCallback(() => setAutoPlay(false), []);
+  const pickTab = (id: Tab) => {
+    setTab(id);
+    setAutoPlay(false);
+  };
 
   const open = (id: string | null) => router.push(id ? `${pathname}?campaign=${id}` : pathname, { scroll: false });
 
@@ -91,18 +116,12 @@ export function CampaignsPage({ token, workspaceId }: Props) {
   const campaigns = list.data?.campaigns;
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
-      <div className="flex items-center gap-3">
-        <h1 className="min-w-0 font-heading text-2xl font-normal text-app-ink sm:text-3xl">Slideshow Campaigns</h1>
-        <button type="button" onClick={() => setChoosing(true)} className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-full bg-app-cta px-4 text-sm font-semibold text-app-cta-ink shadow-sm transition active:scale-95">
-          <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 4v12M4 10h12" /></svg>
-          New campaign
-        </button>
-      </div>
+      <h1 className="min-w-0 font-heading text-2xl font-normal text-app-ink sm:text-3xl">Slideshow Campaigns</h1>
       {(error ?? list.error) && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{error ?? list.error}</p>}
       <div className="flex flex-wrap items-center gap-2">
         <div role="tablist" aria-label="Campaign kind" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {TABS.map((t) => (
-            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => setTab(t.id)} className={tabClass(tab === t.id)}>
+            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} onClick={() => pickTab(t.id)} className={tabClass(tab === t.id)}>
               {t.label}
             </button>
           ))}
@@ -119,11 +138,11 @@ export function CampaignsPage({ token, workspaceId }: Props) {
         ) : campaigns.length === 0 ? (
           <Empty tab="hooks" onCreate={() => setChoosing(true)} />
         ) : (
-          <CampaignCollection campaigns={campaigns} calendarOnly={filter === 'calendar'} view={hooksView} onOpen={open} />
+          <CampaignCollection campaigns={campaigns} calendarOnly={filter === 'calendar'} view={hooksView} onOpen={open} onAdd={() => void create()} adding={creating} />
         )}
       </div>
       <div role="tabpanel" hidden={tab !== 'brand'}>
-        <SlideshowsTab token={token} workspaceId={workspaceId} filter={filter} view={brandView} reloadKey={brandReload} empty={<Empty tab="brand" onCreate={() => setChoosing(true)} />} />
+        <SlideshowsTab token={token} workspaceId={workspaceId} filter={filter} view={brandView} reloadKey={brandReload} empty={<Empty tab="brand" onCreate={() => setChoosing(true)} />} onAdd={() => { setBrandFirst(true); setChoosing(true); }} autoPlay={autoPlay && tab === 'brand' && !openId} onAutoPlayed={endAutoPlay} />
       </div>
       {choosing && (
         <NewCampaignSheet
@@ -131,17 +150,20 @@ export function CampaignsPage({ token, workspaceId }: Props) {
           workspaceId={workspaceId}
           brandRunId={runs.data ? (runs.data.runs[0]?.id ?? null) : undefined}
           resume={resume}
+          brandFirst={brandFirst}
           creatingHooks={creating}
           onHooksVolume={() => void create()}
           onBrandCastCreated={() => {
             clearBrandCastResume();
             setChoosing(false);
+            setBrandFirst(false);
             setTab('brand');
             setBrandReload((n) => n + 1);
           }}
           onClose={() => {
             clearBrandCastResume();
             setChoosing(false);
+            setBrandFirst(false);
           }}
         />
       )}

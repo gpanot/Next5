@@ -55,3 +55,10 @@ blitz-worker/nohup.out
 
 # Local script output (test renders, voiceovers)
 scripts/tmp/
+
+# vendored video engine: its packages and one-time runtime (Chrome, whisper model)
+/tools/video-agent-engine/engine/node_modules/
+/tools/video-agent-engine/.runtime/
+/tools/video-agent-engine/assets/music/*.mp3
+/tools/video-agent-engine/assets/icons/*
+!/tools/video-agent-engine/assets/icons/build-icons.mjs

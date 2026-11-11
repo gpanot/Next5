@@ -4,7 +4,7 @@
  * Startup sequence:
  *   1. bundle() the Remotion composition ONCE and cache serveUrl.
  *   2. Start a polling loop that claims PENDING BlitzProject rows, oldest first (FIFO),
- *      with a FOR UPDATE SKIP LOCKED pessimistic lock. One job at a time per worker.
+ *      with a FOR UPDATE SKIP LOCKED pessimistic lock. Up to JOB_SLOTS jobs at once per worker.
  *   3. For each job: render → upload to R2 → mark COMPLETED (or FAILED).
  *
  * Queue safety:
@@ -28,12 +28,16 @@ import { bundle } from '@remotion/bundler';
 import { prisma } from './db';
 import { makeCancelSignal } from '@remotion/renderer';
 import { renderProject } from './render';
-import { releaseDepthSession } from './depth';
 import { startWakeServer } from './wakeServer';
 
 const execFileAsync = promisify(execFile);
 
 const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS ?? '5000', 10);
+/**
+ * Renders run at once. One at a time made a Prospect Pack's 4 videos take ~8 min back to back. Each render is capped
+ * (render.ts RENDER_LIMITS), so memory and threads grow with this number: lower it if renders fail with EAGAIN or OOM.
+ */
+const JOB_SLOTS = Math.max(1, parseInt(process.env.JOB_SLOTS ?? '3', 10) || 3);
 /** A 30 s slideshow renders in about 2 min; 10 min means the job is stuck. */
 const JOB_TIMEOUT_MS = parseInt(process.env.JOB_TIMEOUT_MS ?? String(10 * 60_000), 10);
 const HEARTBEAT_MS = 30_000;
@@ -94,10 +98,29 @@ async function claimNextJob() {
 
 // ── Process one job ───────────────────────────────────────────────────────────
 
-/** Render time for stats (render_finished_at - render_started_at). Raw SQL: the worker's Prisma schema is a subset. */
-const markFinished = (jobId: string) =>
-  prisma.$executeRaw`UPDATE blitz_projects SET render_finished_at = now() WHERE id = ${jobId}`
+/** Render time for stats (render_finished_at - render_started_at), and why it failed (null on success: the admin's
+ *  Prospect progress panel shows it). Raw SQL: the worker's Prisma schema is a subset. */
+const markFinished = (jobId: string, error: string | null = null) =>
+  prisma.$executeRaw`UPDATE blitz_projects SET render_finished_at = now(), render_error = ${error?.slice(0, 1_000) ?? null} WHERE id = ${jobId}`
     .catch((err) => console.warn(`[blitz-worker] Could not record finish time for ${jobId}:`, err));
+
+/** Errors from a render's child process (Chrome, ffmpeg, compositor) dying mid-render, often when several renders share
+ *  the container: the same job usually renders fine on a second try. */
+const CRASH_CODES = new Set(['EPIPE', 'ECONNRESET', 'EAGAIN']);
+/** A frame fetch that hung (seen 2026-10-19: an 11 MB R2 clip that downloads in 1 s timed out at 88 s under load). */
+const STALL_MESSAGE = /delayRender\(\).*was called but not cleared/;
+const CRASH_RETRIES = 2;
+const crashTries = new Map<string, number>();
+
+/** True when the job should go back in line after this error (counted per job, in memory). */
+function crashRetry(jobId: string, err: unknown): boolean {
+  const code = (err as NodeJS.ErrnoException | null)?.code ?? '';
+  const message = err instanceof Error ? err.message : String(err);
+  const tries = crashTries.get(jobId) ?? 0;
+  if (!(CRASH_CODES.has(code) || STALL_MESSAGE.test(message)) || tries >= CRASH_RETRIES) return false;
+  crashTries.set(jobId, tries + 1);
+  return true;
+}
 
 async function processJob(jobId: string, serveUrl: string): Promise<void> {
   console.log(`[blitz-worker] Processing job: ${jobId}`);
@@ -116,6 +139,7 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
       where: { id: jobId },
       data: { renderStatus: 'FAILED' },
     });
+    await markFinished(jobId, `Template ${project.templateId} not found`);
     console.error(`[blitz-worker] Template not found for job ${jobId}`);
     return;
   }
@@ -147,16 +171,21 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
     await markFinished(jobId);
     console.log(`[blitz-worker] Job ${jobId} COMPLETED → ${r2Key}`);
   } catch (err) {
+    if (!timedOut && crashRetry(jobId, err)) {
+      console.warn(`[blitz-worker] Job ${jobId} crashed or stalled (${(err as NodeJS.ErrnoException).code ?? 'frame timeout'}) — back in line`);
+      await prisma.blitzProject.update({ where: { id: jobId }, data: { renderStatus: 'PENDING', updatedAt: new Date() } });
+      return;
+    }
     console.error(`[blitz-worker] Job ${jobId} FAILED${timedOut ? ' (time limit)' : ''}:`, err);
     await prisma.blitzProject.update({
       where: { id: jobId },
       data: { renderStatus: 'FAILED', updatedAt: new Date() },
     });
-    await markFinished(jobId);
+    const reason = err instanceof Error ? err.message : String(err);
+    await markFinished(jobId, timedOut ? `Time limit: ${reason}` : reason);
   } finally {
     clearTimeout(limit);
     clearInterval(heartbeat);
-    await releaseDepthSession();
   }
 }
 
@@ -165,6 +194,20 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
 let polling = false;
 /** Last job or wake: a wake that lands just before the idle check must not be lost. */
 let lastBusyAt = Date.now();
+/** Jobs rendering now (at most JOB_SLOTS). */
+let running = 0;
+
+/** Runs a claimed job without waiting for it, so the loop can claim the next one into a free slot. */
+function startJob(jobId: string, serveUrl: string): void {
+  running += 1;
+  lastBusyAt = Date.now();
+  processJob(jobId, serveUrl)
+    .catch((err) => console.error(`[blitz-worker] Job ${jobId} crashed:`, err))
+    .finally(() => {
+      running -= 1;
+      lastBusyAt = Date.now();
+    });
+}
 
 /** Stops polling and closes the DB connection so the container sends nothing and Railway can put it to sleep. */
 async function goIdle(): Promise<void> {
@@ -177,20 +220,20 @@ function startPollingLoop(serveUrl: string): void {
   lastBusyAt = Date.now();
   if (polling) return;
   polling = true;
-  console.log(`[blitz-worker] Polling every ${POLL_INTERVAL_MS} ms…`);
+  console.log(`[blitz-worker] Polling every ${POLL_INTERVAL_MS} ms, ${JOB_SLOTS} job slot(s)…`);
 
   const tick = async () => {
     try {
       await requeueStaleJobs();
-      const jobId = await claimNextJob();
-      if (jobId) {
-        await processJob(jobId, serveUrl);
-        lastBusyAt = Date.now();
+      while (running < JOB_SLOTS) {
+        const jobId = await claimNextJob();
+        if (!jobId) break;
+        startJob(jobId, serveUrl);
       }
     } catch (err) {
       console.error('[blitz-worker] Poll error:', err);
     }
-    if (WAKE_SECRET && Date.now() - lastBusyAt > IDLE_SLEEP_AFTER_MS) {
+    if (WAKE_SECRET && running === 0 && Date.now() - lastBusyAt > IDLE_SLEEP_AFTER_MS) {
       await goIdle();
       return;
     }

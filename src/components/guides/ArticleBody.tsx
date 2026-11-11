@@ -1,6 +1,5 @@
 import type { ArticleBlock } from '../../content/guides/types';
 import { slugify } from '../../content/guides/slugify';
-import { ArticleCta } from './ArticleCta';
 import { InlineText } from './InlineText';
 
 const pClass = 'my-4 text-[17px] leading-[1.7] text-zinc-700 dark:text-zinc-300';
@@ -64,8 +63,9 @@ function Block({ block }: { block: ArticleBlock }) {
           <p className="mt-1 text-[15px] leading-relaxed text-zinc-700 dark:text-zinc-300"><InlineText text={block.text} /></p>
         </aside>
       );
+    // One call to action per post, after its questions (ArticleSignupCta): the in-body CTA blocks stay in the content but show nothing.
     case 'cta':
-      return <ArticleCta title={block.title} text={block.text} />;
+      return null;
   }
 }
 

@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { MAX_CAMPAIGN_HOOK_PHOTOS, MAX_CAMPAIGN_HOOKS, MAX_HOOK_CHARS, type CampaignDraft, type CampaignPhotoDto } from '../../../../types/admin/slideshowCampaign';
 import { GenerateHooksDialog } from './GenerateHooksDialog';
 import { PhotoThumb } from './PhotoThumb';
+import type { HooksWritten } from './useGenerateAll';
 import { HookPhotoCredits } from './UnsplashCredit';
 import type { PendingPhoto } from './useCampaign';
 
@@ -16,6 +17,10 @@ type Props = {
   pending: PendingPhoto[];
   onChange: (update: (d: CampaignDraft) => CampaignDraft) => void;
   onAddPhotos: () => void;
+  /** Opens the picker to swap hook photo `i` (its place in the rotation). */
+  onReplacePhoto: (i: number) => void;
+  /** "Generate the entire slideshows": every slide written from the hooks just generated. */
+  onGenerateAll: (written: HooksWritten) => Promise<boolean>;
 };
 
 const chip = 'inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border border-white/15 bg-white/5 pr-1 pl-3 text-sm text-white/90';
@@ -63,12 +68,14 @@ function GenerateButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function HookPanel({ token, campaignId, draft, photos, pending, onChange, onAddPhotos }: Props) {
+export function HookPanel({ token, campaignId, draft, photos, pending, onChange, onAddPhotos, onReplacePhoto, onGenerateAll }: Props) {
+  const replacing = (i: number) => pending.find((p) => p.target.slot === 'hook' && p.target.replace === i);
+  const adding = pending.filter((p) => p.target.slot !== 'hook' || p.target.replace === undefined || p.target.replace >= draft.hookPhotos.length);
   const [generating, setGenerating] = useState(false);
   const fullHooks = draft.hooks.length >= MAX_CAMPAIGN_HOOKS;
-  const fullPhotos = draft.hookPhotos.length + pending.length >= MAX_CAMPAIGN_HOOK_PHOTOS;
+  const fullPhotos = draft.hookPhotos.length + adding.length >= MAX_CAMPAIGN_HOOK_PHOTOS;
   /** One photo per hook keeps every post looking new; fewer photos repeat in turn. */
-  const missingPhotos = Math.max(0, draft.hooks.length - draft.hookPhotos.length - pending.length);
+  const missingPhotos = Math.max(0, draft.hooks.length - draft.hookPhotos.length - adding.length);
   const addHook = (line: string) => onChange((d) => (d.hooks.includes(line) ? d : { ...d, hooks: [...d.hooks, line] }));
   const removeHook = (i: number) => onChange((d) => ({ ...d, hooks: d.hooks.filter((_, j) => j !== i) }));
   const removePhoto = (i: number) => onChange((d) => ({ ...d, hookPhotos: d.hookPhotos.filter((_, j) => j !== i) }));
@@ -102,12 +109,17 @@ export function HookPanel({ token, campaignId, draft, photos, pending, onChange,
               Add
             </button>
           </li>
-          {draft.hookPhotos.map((p, i) => (
-            <li key={`${p}-${i}`}>
-              <PhotoThumb url={photos[p]?.url ?? null} number={i + 1} onRemove={() => removePhoto(i)} />
-            </li>
-          ))}
-          {pending.map((p) => (
+          {draft.hookPhotos.map((p, i) => {
+            const swap = replacing(i);
+            return (
+              <li key={`${p}-${i}`}>
+                {swap
+                  ? <PhotoThumb url={swap.thumbUrl ?? photos[p]?.url ?? null} number={i + 1} loading />
+                  : <PhotoThumb url={photos[p]?.url ?? null} number={i + 1} onOpen={() => onReplacePhoto(i)} onRemove={() => removePhoto(i)} />}
+              </li>
+            );
+          })}
+          {adding.map((p) => (
             <li key={p.key}>
               <PhotoThumb url={p.thumbUrl} loading />
             </li>
@@ -131,6 +143,11 @@ export function HookPanel({ token, campaignId, draft, photos, pending, onChange,
           onDone={(hooks, photoQuery) => {
             setGenerating(false);
             onChange((d) => ({ ...d, hooks, ...(photoQuery ? { hookPhotoQuery: photoQuery } : {}) }));
+          }}
+          onDoneAll={async (written) => {
+            const ok = await onGenerateAll(written);
+            setGenerating(false);
+            return ok;
           }}
         />
       )}

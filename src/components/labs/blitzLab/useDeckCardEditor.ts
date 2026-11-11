@@ -41,6 +41,7 @@ export const toSlide = (shot: ShotView, i: number): SlideData => ({
   trimStart: shot.edit?.trimStart,
   positionY: shot.edit?.positionY,
   durationSec: shot.edit?.durationSec ?? SHOT_FORMAT[i]?.durationSec,
+  ...(shot.camera ? { camera: shot.camera } : {}),
 });
 
 /** The shot's own media first (so a swap can be undone), then the engine's runner-ups. */
@@ -172,7 +173,7 @@ export function useDeckCardEditor(o: Options) {
     // The card's own context first: a remixed Set keeps what it was made from.
     const context = editingCard?.check ?? o.checkContext;
     if (!editingCard || !context) return true;
-    const problems = await checkDeckCopy(client, context, o.slides.map((s) => s.text));
+    const problems = await checkDeckCopy(client, context, o.slides.map((s) => s.text), editingCard.shots.map((s) => s.text));
     setCopyProblems(problems);
     return problems.length === 0;
   };

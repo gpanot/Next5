@@ -28,6 +28,12 @@ const firstRunBuilding = async (workspaceId: string): Promise<boolean> => {
   return runs.length === 1 && runs[0]!.status !== 'COMPLETED' && runs[0]!.status !== 'FAILED';
 };
 
+/** True while the onboarding flow is (or is about to be) shown: it asks the target client itself. */
+export const onboardingOpen = async (workspaceId: string): Promise<boolean> => {
+  const row = await prisma.onboardingProfile.findUnique({ where: { workspaceId }, select: { completedAt: true } });
+  return row ? row.completedAt === null : firstRunBuilding(workspaceId);
+};
+
 /**
  * The workspace's answers. The row is made the first time the flow opens on the first run, so a reload or a later
  * visit resumes it. Null: this workspace does not get the flow (older workspaces, later runs).

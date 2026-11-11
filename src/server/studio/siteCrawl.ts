@@ -11,7 +11,8 @@
 // server-only
 import { chatJson } from '../ai/openai';
 import { crawlPages, EXA_CONTENTS_COST_MICROS } from './exa';
-import { fetchSiteLinks, linksFromHrefs, type SiteLink } from './siteLinks';
+import { isZeroCounter } from './grounding';
+import { fetchSiteHome, linksFromHrefs, type SiteLink } from './siteLinks';
 
 const MAX_SUBPAGES = 3;
 const HOME_CHARS = 3_500;
@@ -58,10 +59,20 @@ Return at most ${MAX_SUBPAGES} link numbers. Return JSON only: { "pages": [1, 4]
   return links.filter((l) => AUDIENCE_HINT.test(`${l.url} ${l.label}`)).map((l) => l.url).slice(0, MAX_SUBPAGES);
 }
 
+/** Pure: lines the crawl read as "0+ Google Reviews" get their real number from the HTML, or go when it has none. */
+export function fixCounters(text: string, counters: Map<string, string>): string {
+  return text.split('\n').flatMap((line) => {
+    if (!isZeroCounter(line)) return [line];
+    const label = line.replace(/^\s*0\s*\+?\s*/, '').trim().toLowerCase();
+    const real = counters.get(label);
+    return real ? [real] : [];
+  }).join('\n');
+}
+
 export async function crawlSite(sourceUrl: string): Promise<SiteCrawl> {
   const t0 = Date.now();
-  const [rawLinks, [homePage]] = await Promise.all([
-    fetchSiteLinks(sourceUrl),
+  const [{ links: rawLinks, counters }, [homePage]] = await Promise.all([
+    fetchSiteHome(sourceUrl),
     crawlPages([sourceUrl], { maxCharacters: HOME_CHARS, links: 60 }),
   ]);
   const home = homePage?.text ?? null;
@@ -89,5 +100,5 @@ export async function crawlSite(sourceUrl: string): Promise<SiteCrawl> {
     sections.push(`## Page ${new URL(p.url).pathname}\n${p.text}`);
   }
 
-  return { text: sections.join('\n\n'), pages: crawled, durationMs: Date.now() - t0, costUsdMicros };
+  return { text: fixCounters(sections.join('\n\n'), counters), pages: crawled, durationMs: Date.now() - t0, costUsdMicros };
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { BlitzAssetDto } from './api';
 import { CheckIcon, CloseIcon, MusicIcon, PauseIcon, PencilIcon, PlayIcon, TrashIcon } from './icons';
 
@@ -20,12 +20,14 @@ function AssetPreview({ asset, hovering }: { asset: BlitzAssetDto; hovering: boo
   const audioRef = useRef<HTMLAudioElement>(null);
 
   // Sync play/pause from the parent hover state
-  if (asset.mediaKind === 'audio') {
+  useEffect(() => {
     const el = audioRef.current;
-    if (el) {
-      if (hovering && el.paused) void el.play().catch(() => undefined);
-      else if (!hovering && !el.paused) el.pause();
-    }
+    if (!el) return;
+    if (hovering && el.paused) void el.play().catch(() => undefined);
+    else if (!hovering && !el.paused) el.pause();
+  }, [hovering]);
+
+  if (asset.mediaKind === 'audio') {
 
     return (
       <div className="flex h-full w-full items-center justify-center bg-orange-50 text-orange-600 dark:bg-neutral-800">

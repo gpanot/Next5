@@ -29,7 +29,7 @@ export function slotDates(cadence: Cadence, count: number): Date[] {
   start.setDate(start.getDate() + 1);
   start.setHours(9, 0, 0, 0);
 
-  let cursor = new Date(start);
+  const cursor = new Date(start);
   let safety = 0;
 
   while (dates.length < count && safety < 365) {

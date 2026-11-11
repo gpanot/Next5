@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, CircleHelp, Info, Mic, Pause, X } from 'lucide-react';
 
@@ -14,6 +14,9 @@ const seen = (): boolean => {
     return false;
   }
 };
+
+/** Storage is read once per render; nothing to listen to. */
+const noSubscribe = () => () => {};
 
 const rememberSeen = () => {
   try {
@@ -75,17 +78,19 @@ function HowToDialog({ onClose }: { onClose: () => void }) {
  * the first time the deck shows (once per browser).
  */
 export function IdeasHelp({ auto }: { auto: boolean }) {
-  const [open, setOpen] = useState(false);
-  useEffect(() => {
-    if (auto && !seen()) setOpen(true);
-  }, [auto]);
+  /** The server and the first render count it as seen, so the popup opens only once the browser has said otherwise. */
+  const seenBefore = useSyncExternalStore(noSubscribe, seen, () => true);
+  const [tapped, setTapped] = useState(false);
+  const [closed, setClosed] = useState(false);
+  const open = tapped || (auto && !seenBefore && !closed);
   const close = () => {
     rememberSeen();
-    setOpen(false);
+    setTapped(false);
+    setClosed(true);
   };
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-label="How to use ideas" title="How to?" className="-m-2 flex h-11 w-11 shrink-0 items-center justify-center self-center rounded-full text-app-muted transition hover:text-app-ink active:scale-90">
+      <button type="button" onClick={() => setTapped(true)} aria-label="How to use ideas" title="How to?" className="-m-2 flex h-11 w-11 shrink-0 items-center justify-center self-center rounded-full text-app-muted transition hover:text-app-ink active:scale-90">
         <CircleHelp aria-hidden className="h-5 w-5" />
       </button>
       {open && <HowToDialog onClose={close} />}

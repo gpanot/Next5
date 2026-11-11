@@ -38,7 +38,17 @@ export type BankHook = {
 
 export type BankCta = { id: string; angle: string; title: string; body: string; photo: string };
 
-export type SlideshowBankContent = { meats: BankMeat[]; hooks: BankHook[]; ctas: BankCta[] };
+/** `retired`: written for an audience the owner has since changed. Old slideshows still read it; nothing new picks it. */
+type Retirable = { retired?: boolean };
+
+export type SlideshowBankContent = { meats: (BankMeat & Retirable)[]; hooks: (BankHook & Retirable)[]; ctas: (BankCta & Retirable)[] };
+
+/** The parts new slideshows may use. */
+export const liveBank = (bank: SlideshowBankContent): SlideshowBankContent => ({
+  meats: bank.meats.filter((m) => !m.retired),
+  hooks: bank.hooks.filter((h) => !h.retired),
+  ctas: bank.ctas.filter((c) => !c.retired),
+});
 
 /** Which bank parts one slideshow uses. */
 export type BankCombo = { meatId: string; hookId: string; ctaId: string };

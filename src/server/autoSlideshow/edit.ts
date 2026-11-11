@@ -6,7 +6,7 @@ import type { AutoSlideshow, Prisma } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { linkedTextSlides, type AutoPhoto, type AutoPlan, type AutoSlide, type AutoStep } from '../../types/admin/autoSlideshow';
 import { isHookStyleId } from '../../types/hookStyle';
-import { isSlideLook, parseTextAt, type SlideLook, type TextAt } from '../../types/slideText';
+import { isSlideLook, isTextSize, parseTextAt, type SlideLook, type TextAt } from '../../types/slideText';
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
 import type { SlideshowBankContent } from '../../types/admin/slideshowBank';
@@ -14,14 +14,16 @@ import type { SlideshowPattern } from '../../types/admin/slideshowKnowledge';
 import { HttpError } from '../http';
 import { createMeter, type CostMeter } from '../metaAds/cost';
 import { chargeSlideshow } from '../slideshowCredits/charge';
-import { deleteObject, putObject } from '../storage/objectStore';
+import { deleteObject, presignObject, putObject } from '../storage/objectStore';
 import { loadUsage } from './bank/build';
 import { assembleCombo, swapCombo } from './bank/pick';
-import { headsFor } from './heads';
+import { headsFor, type HeadsCache } from './heads';
 import { isTrack } from './music';
-import { brandLook } from './photoPlan';
+import { personNote } from '../brandCast/dressCode';
+import { brandLook, PRODUCT_NOTE } from './photoPlan';
 import { makePhotos } from './photos';
 import { renderSlide, type BoxLook, type PhotoCache } from './render';
+import { alignsWithContent, contentTop, SLIDE_SIZE } from './textPlacement';
 import { writeSlideshow } from './write';
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
@@ -40,7 +42,7 @@ const photosOf = (run: { photos: Prisma.JsonValue }): AutoPhoto[] => (run.photos
 const styleOf = (run: { profile: Prisma.JsonValue }) => (run.profile as unknown as BrandProfile | null)?.slideshowStyle;
 
 /** Adds an edit's spend to a step, as its own line, so the run total stays what was really paid. */
-const addStepCost = async (runId: string, step: AutoStep, label: string, meter: CostMeter) => {
+export const addStepCost = async (runId: string, step: AutoStep, label: string, meter: CostMeter) => {
   const cost = meter.summary();
   if (cost.usdMicros === 0) return;
   const run = await prisma.autoSlideshowRun.findUniqueOrThrow({ where: { id: runId }, select: { stepCosts: true } });
@@ -50,15 +52,35 @@ const addStepCost = async (runId: string, step: AutoStep, label: string, meter: 
   await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { stepCosts: json({ ...costs, [step]: { usdMicros: current.usdMicros + cost.usdMicros, items } }) } });
 };
 
-/** Renders one slide onto its photo under a fresh key and removes the old image. */
-const renderInto = async (runId: string, showId: string, index: number, slide: AutoSlide, photos: AutoPhoto[], cache: PhotoCache, look?: BoxLook): Promise<AutoSlide> => {
+/** Renders one slide onto its photo under a fresh key and removes the old image. `top`: the spot (px) the content
+ *  slides share (renderAligned). */
+const renderInto = async (runId: string, showId: string, index: number, slide: AutoSlide, photos: AutoPhoto[], cache: PhotoCache, look?: BoxLook, top?: number): Promise<AutoSlide> => {
   const photo = photos[slide.photoIndex];
   if (!photo?.imageKey) throw new HttpError(409, 'photo_missing', 'That photo was not generated. Pick another one.');
   const key = editedKey(runId, showId, index);
-  const { jpeg, at } = await renderSlide(slide, photo.imageKey, cache, look, await headsFor(photo, cache, new Map()));
+  const { jpeg, at } = await renderSlide(slide, photo.imageKey, cache, look, await headsFor(photo, cache, new Map()), top);
   await putObject(key, jpeg, 'image/jpeg');
   if (slide.imageKey) await deleteObject(slide.imageKey).catch(() => undefined);
   return { ...slide, imageKey: key, placedAt: at };
+};
+
+/**
+ * Renders slides `changed` (already updated in `slides`) again, with the content slides lined up: their text shares the
+ * spot that suits all their photos (contentTop), so when an edit moves that spot (a new photo, longer text, a slide
+ * moved by hand leaving the group), every auto-placed content slide renders again at it. Returns the slides.
+ */
+export const renderAligned = async (runId: string, showId: string, slides: AutoSlide[], changed: number[], photos: AutoPhoto[], look?: BoxLook): Promise<AutoSlide[]> => {
+  const cache: PhotoCache = new Map();
+  const found: HeadsCache = new Map();
+  const heads = await Promise.all(slides.map((s) => (photos[s.photoIndex]?.imageKey ? headsFor(photos[s.photoIndex]!, cache, found) : null)));
+  const top = contentTop(slides.map((slide, i) => ({ slide, heads: heads[i] })));
+  // Together: one after the other, a new photo that moved the shared spot took about 15 s on a 7-slide slideshow.
+  return Promise.all(slides.map(async (slide, i) => {
+    const aligned = alignsWithContent(slide) && top !== undefined;
+    const moved = aligned && Math.abs((slide.placedAt?.y ?? -1) - top / SLIDE_SIZE.height) > 1e-6;
+    if (!changed.includes(i) && !moved) return slide;
+    return renderInto(runId, showId, i, slide, photos, cache, look, aligned ? top : undefined);
+  }));
 };
 
 const saveSlides = (show: AutoSlideshow, slides: AutoSlide[]) =>
@@ -114,8 +136,8 @@ export const updateSlide = async (runId: string, showId: string, index: number, 
     next.photoIndex = patch.photoIndex as number;
   }
   if (patch.textAt !== undefined) next.textAt = spotOf(patch.textAt);
-  slides[index] = await renderInto(runId, showId, index, next, photos, new Map(), styleOf(show.run));
-  await saveSlides(show, slides);
+  slides[index] = next;
+  await saveSlides(show, await renderAligned(runId, showId, slides, [index], photos, styleOf(show.run)));
 };
 
 /** Text dragged on one slide, kept centered: every locked content slide's text moves to the same height when it is
@@ -126,38 +148,72 @@ export const moveText = async (runId: string, showId: string, index: unknown, at
   if (!Number.isInteger(index) || !slides[index as number]) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
   const spot = spotOf(at);
   if (!spot) throw new HttpError(400, 'bad_text_at', 'The text position must be inside the slide.');
-  const photos = photosOf(show.run);
-  const cache: PhotoCache = new Map();
-  for (const i of linkedTextSlides(slides, index as number)) {
-    slides[i] = await renderInto(runId, showId, i, { ...slides[i]!, textAt: { x: 0.5, y: spot.y } }, photos, cache, styleOf(show.run));
-  }
-  await saveSlides(show, slides);
+  const moved = linkedTextSlides(slides, index as number);
+  for (const i of moved) slides[i] = { ...slides[i]!, textAt: { x: 0.5, y: spot.y } };
+  await saveSlides(show, await renderAligned(runId, showId, slides, moved, photosOf(show.run), styleOf(show.run)));
 };
 
-/** A new photo for one slide, made from the photo it replaces (so the mood stays), added to the run's set. */
-export const newPhotoForSlide = async (runId: string, showId: string, index: number): Promise<void> => {
+/** The prompt "Generate New" uses unless the owner edits it: the replaced photo's, as another moment of that scene. */
+const defaultPrompt = (show: Awaited<ReturnType<typeof loadShow>>, slide: AutoSlide): string => {
+  const base = photosOf(show.run)[slide.photoIndex]?.prompt ?? (show.run.plan as unknown as AutoPlan | null)?.photoPrompts[0] ?? 'A calm outdoor scene';
+  return `${base} Another moment of the same scene: different angle and framing.`;
+};
+
+/** The owner's choices in the "Generate New" dialog: their prompt, and the Brand Cast person (null: nobody). Unset: as before. */
+export type PhotoChoice = { prompt?: string; castId?: string | null };
+
+/** What the "Generate New" dialog opens with: the default prompt, the slide's person and the workspace's ready cast. */
+export const newPhotoOptions = async (runId: string, showId: string, index: number) => {
+  const show = await loadShow(runId, showId);
+  const slide = (show.slides as unknown as AutoSlide[])[index];
+  if (!slide) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
+  const cast = show.run.workspaceId
+    ? await prisma.brandCastMember.findMany({ where: { workspaceId: show.run.workspaceId, archivedAt: null, status: 'ready', imageKey: { not: null } }, orderBy: { slot: 'asc' } })
+    : [];
+  const people = await Promise.all(cast.map(async (m) => ({ id: m.id, name: m.name, look: m.look, imageUrl: await presignObject(m.imageKey!) })));
+  return { prompt: defaultPrompt(show, slide), castId: slide.castId ?? null, cast: people };
+};
+
+/** The slide's reference images with `castId`'s anchor photo in place of the person it had (product images stay). */
+const refsWithCast = async (show: Awaited<ReturnType<typeof loadShow>>, slide: AutoSlide, castId: string | null) => {
+  const others = (slide.castId ? slide.photoRefs?.slice(1) : slide.photoRefs) ?? [];
+  const member = castId
+    ? await prisma.brandCastMember.findFirst({ where: { id: castId, workspaceId: show.run.workspaceId ?? '', archivedAt: null, status: 'ready' } })
+    : null;
+  if (castId && !member?.imageKey) throw new HttpError(400, 'bad_cast', 'Pick one of your avatars.');
+  const refs = [...(member?.imageKey ? [member.imageKey] : []), ...others];
+  const notes = [
+    ...(member ? [`Image 1 is the main person: ${personNote(member.look)}.`] : []),
+    ...(others.length ? [`Image ${member ? 2 : 1} is the brand's product: ${PRODUCT_NOTE}.`] : []),
+  ];
+  return { photoRefs: refs.length ? refs : undefined, photoRefNote: notes.length ? notes.join(' ') : undefined, castId: member?.id };
+};
+
+/** A new photo for one slide, made from the photo it replaces (so the mood stays), added to the run's set. `choice`: the
+ *  owner's prompt and person from the "Generate New" dialog; the slide keeps that person for later photos. */
+export const newPhotoForSlide = async (runId: string, showId: string, index: number, choice: PhotoChoice = {}): Promise<void> => {
   const show = await loadShow(runId, showId);
   const slides = show.slides as unknown as AutoSlide[];
-  const slide = slides[index];
-  if (!slide) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
+  const original = slides[index];
+  if (!original) throw new HttpError(404, 'slide_not_found', 'Slide not found.');
+  const slide = choice.castId === undefined ? original : { ...original, ...(await refsWithCast(show, original, choice.castId)) };
   const photos = photosOf(show.run);
-  const base = photos[slide.photoIndex]?.prompt ?? (show.run.plan as unknown as AutoPlan | null)?.photoPrompts[0] ?? 'A calm outdoor scene';
-  const prompt = `${base} Another moment of the same scene: different angle and framing.`;
+  const prompt = choice.prompt?.trim() ? choice.prompt.trim().slice(0, 2000) : defaultPrompt(show, slide);
   const meter = createMeter();
   try {
     // Same reference images (brand cast member, product) as the photo it replaces, so the person and product stay.
-    const prior = photos[slide.photoIndex];
+    const prior = choice.castId === undefined ? photos[slide.photoIndex] : undefined;
     const refs = slide.photoRefs ?? prior?.refs;
     const spec = { prompt, ...(refs?.length ? { refs, refNote: slide.photoRefNote ?? prior?.refNote } : {}) };
-    const all = await makePhotos(runId, [...photos.map((p) => p.prompt), spec], photos, meter, { look: brandLook(show.run.profile as unknown as BrandProfile | null) });
+    const all = await makePhotos(runId, [...photos.map((p) => p.prompt), spec], photos, meter, { look: brandLook(show.run.profile as unknown as BrandProfile | null), onlyFrom: photos.length, oneRedo: true });
     // On bank runs the new photo belongs to this slide, not to the shared pool other slides fall back on.
     const fresh = { ...all[all.length - 1]!, altFor: showId };
     const made = show.bankHookId ? { ...fresh, kind: 'slide' as const } : fresh;
     all[all.length - 1] = made;
     if (!made.imageKey) throw new HttpError(502, 'photo_failed', made.error ?? 'The new photo failed.');
     await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { photos: json(all) } });
-    slides[index] = await renderInto(runId, showId, index, { ...slide, photoIndex: all.length - 1 }, all, new Map(), styleOf(show.run));
-    await saveSlides(show, slides);
+    slides[index] = { ...slide, photoIndex: all.length - 1 };
+    await saveSlides(show, await renderAligned(runId, showId, slides, [index], all, styleOf(show.run)));
   } finally {
     await addStepCost(runId, 5, 'New photo', meter);
   }
@@ -197,13 +253,34 @@ export const setTextStyle = async (runId: string, showId: string, patch: TextSty
   const style = pickedStyle(patch.look);
   const show = await loadShow(runId, showId);
   const slides = show.slides as unknown as AutoSlide[];
-  const photos = photosOf(show.run);
-  const cache: PhotoCache = new Map();
+  const changed: number[] = [];
   for (const [i, slide] of slides.entries()) {
     if (groupOf(slide) !== group || slide[part] === style) continue;
-    slides[i] = await renderInto(runId, showId, i, { ...slide, [part]: style }, photos, cache, styleOf(show.run));
+    slides[i] = { ...slide, [part]: style };
+    changed.push(i);
   }
-  await saveSlides(show, slides);
+  // A style changes the text's size, so the content slides' shared spot can move.
+  await saveSlides(show, await renderAligned(runId, showId, slides, changed, photosOf(show.run), styleOf(show.run)));
+};
+
+export type TextSizePatch = { group?: unknown; size?: unknown };
+
+/** The text size on every slide of a kind; only the slides it changes render again. */
+export const setTextSize = async (runId: string, showId: string, patch: TextSizePatch): Promise<void> => {
+  const group = TEXT_STYLE_GROUPS.find((g) => g === patch.group);
+  if (!group || !isTextSize(patch.size)) throw new HttpError(400, 'bad_text_size', 'Pick the slides and one of the text sizes.');
+  const size = patch.size;
+  const show = await loadShow(runId, showId);
+  const slides = show.slides as unknown as AutoSlide[];
+  const changed: number[] = [];
+  for (const [i, slide] of slides.entries()) {
+    if (groupOf(slide) !== group || (slide.textSize ?? 1) === size) continue;
+    // Normal: no size stored (undefined drops out of the saved JSON).
+    slides[i] = { ...slide, textSize: size === 1 ? undefined : size };
+    changed.push(i);
+  }
+  // A size changes the text's height, so the content slides' shared spot can move.
+  await saveSlides(show, await renderAligned(runId, showId, slides, changed, photosOf(show.run), styleOf(show.run)));
 };
 
 export type ShowPatch = { caption?: unknown; hashtags?: unknown; audioAssetId?: unknown };
@@ -273,14 +350,14 @@ export const rewriteSlideshow = async (runId: string, showId: string): Promise<v
     const old = show.slides as unknown as AutoSlide[];
     // The picked hook / CTA look stays on the rewritten hook and CTA.
     const look = old.find(takesLook)?.look;
-    const cache: PhotoCache = new Map();
-    const slides: AutoSlide[] = [];
-    for (const [i, s] of written.slides.entries()) {
+    const drafted = written.slides.map((s, i): AutoSlide => {
       // Same photo per position when there is one, the next photos of the set for extra slides.
       const photoIndex = old[i]?.photoIndex ?? available[(show.position * 3 + i) % available.length]!;
-      const next = { ...s, photoIndex, imageKey: old[i]?.imageKey ?? null, ...(look && takesLook(s) ? { look } : {}) };
-      slides.push(await renderInto(runId, showId, i, next, photos, cache, styleOf(show.run)));
-    }
+      // The picked text size stays on its kind of slide.
+      const textSize = old.find((o) => groupOf(o) === groupOf(s))?.textSize;
+      return { ...s, photoIndex, imageKey: old[i]?.imageKey ?? null, ...(look && takesLook(s) ? { look } : {}), ...(textSize ? { textSize } : {}) };
+    });
+    const slides = await renderAligned(runId, showId, drafted, drafted.map((_, i) => i), photos, styleOf(show.run));
     for (const extra of old.slice(slides.length)) if (extra.imageKey) await deleteObject(extra.imageKey).catch(() => undefined);
     await prisma.autoSlideshow.update({ where: { id: showId }, data: { slides: json(slides), caption: written.caption, hashtags: written.hashtags, status: 'ready', error: null } });
     // A failed slideshow made good here is charged now; one that was already ready was charged before (no-op).

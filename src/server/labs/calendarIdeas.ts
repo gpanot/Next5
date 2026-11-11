@@ -5,7 +5,9 @@
 // while the user swipes. Blitz cards that were not planned stay as a reserve: they refill a skipped day, fill a day's
 // "+", and serve as other first lines.
 
+import { packStageOf } from '../prospects/openPack';
 import type { Prisma, SlideshowVariant } from '@prisma/client';
+import { createHash } from 'crypto';
 import { prisma } from '../../lib/db';
 import { BLITZ_LIVE } from '../../types/admin/blitzSchedule';
 import { IDEAS_PER_BATCH, IDEA_DAYS, REQUESTED_SLIDESHOWS, type IdeaDayRequest, type IdeaDto, type IdeaPatch, type IdeasListDto, type MadeSlideshow } from '../../types/admin/calendarIdeas';
@@ -26,6 +28,7 @@ import { canSwap, nextClipOf, swapShotMedia, withMoreOptions } from '../../types
 import { moreOptions } from './ideaClips';
 import { adoptIdeaSlideshow, createIdeaRun, ideaSlideshowState } from './ideaSlideshowRun';
 import { claimIdeasBatch, ideasBatchSince, releaseIdeasBatch, waitForIdeasBatch } from './ideasBatchLock';
+import { replaceHookTitle } from './hookTitle';
 import { generateWebsiteDeck } from './websiteDeck';
 import { workspaceRunId } from './workspaceRun';
 
@@ -36,9 +39,17 @@ const SINCE_MS = 12 * 60 * 60 * 1000;
 const FINISH_MS = 10 * 60 * 1000;
 const asJson = (v: unknown) => v as Prisma.InputJsonValue;
 
-const firstLine = (card: DeckItem) => card.shots[0]?.text ?? card.hookStyle;
-/** Hook ids of a bank card's other first lines (its story's other hooks), by archetype. */
+const firstLine = (card: DeckItem) => card.hookLine ?? card.shots[0]?.text ?? card.hookStyle;
+/** Hook ids of a bank card's other first lines (its story's other hooks). */
 export const OTHER_HOOK = 'hook:';
+type OtherHook = NonNullable<NonNullable<DeckItem['script']>['otherHooks']>[number];
+/**
+ * One other first line's id: archetype + text, since a story can have two hooks of one archetype (and a swap puts the
+ * old hook back beside them). Ids from before 2026-10-19 were `hook:<archetype>` alone: still found, first of it.
+ */
+const otherHookId = (h: OtherHook) => `${OTHER_HOOK}${h.archetype}:${createHash('sha1').update(h.text).digest('hex').slice(0, 8)}`;
+const findOtherHook = (others: OtherHook[], hookId: string) =>
+  others.find((h) => otherHookId(h) === hookId) ?? others.find((h) => `${OTHER_HOOK}${h.archetype}` === hookId);
 
 /** Reserve Blitz cards (not planned), newest first. Content-page deck cards are saved without their full card: left out. */
 const loadReserve = async (workspaceId: string) => {
@@ -50,7 +61,7 @@ const blitzDto = (row: SlideshowVariant, reserve: SlideshowVariant[]): IdeaDto |
   const card = (row.plan as BlitzIdeaPlan).card;
   if (!card) return null;
   const hooks = card.script?.otherHooks
-    ? card.script.otherHooks.map((h) => ({ id: `${OTHER_HOOK}${h.archetype}`, text: h.text }))
+    ? [...new Map(card.script.otherHooks.filter((h) => h.text !== firstLine(card)).map((h) => [otherHookId(h), { id: otherHookId(h), text: h.text }])).values()]
     : reserve.filter((r) => r.lens === row.lens).map((r) => ({ id: r.id, text: firstLine((r.plan as BlitzIdeaPlan).card!) }));
   // The calendar shows photos only: the first shot that is a photo.
   const coverUrl = card.shots.find((shot) => shot.mediaKind === 'image' && shot.mediaUrl)?.mediaUrl ?? null;
@@ -77,13 +88,14 @@ const slideshowDto = async (row: SlideshowVariant): Promise<IdeaDto | null> => {
 
 /** The workspace's ideas from today on (skipped ones too, for "Look at skipped again"), soonest first. */
 export async function listIdeas(workspaceId: string): Promise<IdeasListDto> {
-  const [rows, reserve, ws] = await Promise.all([
+  const [rows, reserve, ws, packStage] = await Promise.all([
     prisma.slideshowVariant.findMany({ where: { workspaceId, status: { in: LISTED }, plannedAt: { gte: new Date(Date.now() - SINCE_MS) } }, orderBy: { plannedAt: 'asc' } }),
     loadReserve(workspaceId),
     prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ideaSlideshowPct: true, ideasBatchAt: true } }),
+    packStageOf(workspaceId),
   ]);
   const ideas = await Promise.all(rows.map((r) => (r.engine === 'bank' ? slideshowDto(r) : Promise.resolve(blitzDto(r, reserve)))));
-  return { ideas: ideas.filter((i): i is IdeaDto => i !== null), slideshowPct: ws?.ideaSlideshowPct ?? 10, reserve: reserve.length, batchSince: ideasBatchSince(ws?.ideasBatchAt) };
+  return { ideas: ideas.filter((i): i is IdeaDto => i !== null), slideshowPct: ws?.ideaSlideshowPct ?? 10, reserve: reserve.length, batchSince: ideasBatchSince(ws?.ideasBatchAt), packStage };
 }
 
 /** Posts and kept ideas on each of the viewer's days over the ideas window (waiting ideas do not hold a day, except
@@ -167,21 +179,34 @@ export const hasIdeas = async (workspaceId: string): Promise<boolean> => (await 
  * The batch itself, under the workspace's lock: Blitz ideas only. Slideshow ideas have their own job
  * (createSlideshowIdeas), started from the Ideas page's Slideshow filter. Returns the work to run after the response.
  */
-async function writeBatch(workspaceId: string, tzOffsetMin: unknown, have = 0, topUp = true): Promise<() => Promise<void>> {
+/**
+ * A new batch replaces the deck: the Blitz ideas of earlier batches that were not kept leave it (waiting ones go back
+ * to the reserve, skipped ones off the list), so the deck, its "3 / 14" and "Look at skipped again" show only the new
+ * batch. Kept ideas stay on the calendar; slideshow ideas are left alone.
+ */
+const retireEarlierIdeas = (workspaceId: string, newIds: string[]) =>
+  prisma.slideshowVariant.updateMany({
+    where: { workspaceId, engine: 'website', status: { in: ['proposed', 'discarded'] }, plannedAt: { not: null }, id: { notIn: newIds } },
+    data: { plannedAt: null },
+  });
+
+async function writeBatch(workspaceId: string, tzOffsetMin: unknown, have = 0, topUp = true, max = IDEAS_PER_BATCH): Promise<() => Promise<void>> {
   const started = Date.now();
   const secs = (from: number) => ((Date.now() - from) / 1000).toFixed(1);
   const tomorrow = new Date(Date.now() + 86_400_000);
   const weeks = batchQuotas(campaignWeek(tomorrow, await campaignStart(workspaceId, tomorrow)), []);
-  // The rest of a first batch whose first week is on the calendar already.
-  const quotas = have >= EARLY_STORIES ? weeks.slice(1) : weeks;
+  // The rest of a first batch whose first week is on the calendar already; only the weeks `max` needs (a week is 7).
+  const quotas = (have >= EARLY_STORIES ? weeks.slice(1) : weeks).slice(0, Math.ceil((max - have) / EARLY_STORIES));
   const deckAt = Date.now();
   const blitz = await blitzCards(workspaceId, quotas, topUp).catch((err: unknown) => {
     console.error('[calendar-ideas] Blitz deck failed:', err instanceof Error ? err.message : err);
     return { ids: [] as string[], grow: noWork };
   });
-  const planned = blitz.ids.slice(0, IDEAS_PER_BATCH - have);
+  const planned = blitz.ids.slice(0, max - have);
   if (planned.length === 0) throw new HttpError(502, 'no_ideas', 'Could not write ideas right now. Try again.');
   const planAt = Date.now();
+  // A first batch's second half joins its first half; any other batch replaces the deck.
+  if (have === 0) await retireEarlierIdeas(workspaceId, planned);
   await planOnDays(workspaceId, planned, tzOffsetMin, have > 0);
   console.log(`[calendar-ideas] batch for ${workspaceId}: start ${((deckAt - started) / 1000).toFixed(1)}s, deck ${((planAt - deckAt) / 1000).toFixed(1)}s, days ${secs(planAt)}s, total ${secs(started)}s`);
   return blitz.grow;
@@ -192,10 +217,11 @@ async function writeBatch(workspaceId: string, tzOffsetMin: unknown, have = 0, t
  * script bank). `runId` is kept for the route's contract; slideshow ideas come from createSlideshowIdeas.
  * One batch at a time: while another is being written, this waits for it and returns it instead.
  * `firstOnly`: the server's first batch, written in two halves while the Blitz bank is built: its first week as soon as
- * the bank has a week of stories, the rest on a later call; never past IDEAS_PER_BATCH ideas. `tzOffsetMin` defaults to the
- * offset the browser last sent.
+ * the bank has a week of stories, the rest on a later call; never past `max` ideas (IDEAS_PER_BATCH; a Prospect Pack's
+ * workspace takes only the Blitz ideas the pack uses, so no images or voiceover are made for the others). `tzOffsetMin`
+ * defaults to the offset the browser last sent.
  */
-export async function generateIdeas(workspaceId: string, runId: string, tzOffsetMin: unknown, opts: { firstOnly?: boolean } = {}): Promise<IdeasBatch> {
+export async function generateIdeas(workspaceId: string, runId: string, tzOffsetMin: unknown, opts: { firstOnly?: boolean; max?: number } = {}): Promise<IdeasBatch> {
   const offset = validOffset(tzOffsetMin);
   if (offset !== null) await prisma.workspace.update({ where: { id: workspaceId }, data: { ideaTzOffsetMin: offset } });
   if (!(await claimIdeasBatch(workspaceId))) {
@@ -205,10 +231,11 @@ export async function generateIdeas(workspaceId: string, runId: string, tzOffset
   let work: () => Promise<void> = noWork;
   try {
     const have = opts.firstOnly ? await ideaCount(workspaceId) : 0;
-    if (have < IDEAS_PER_BATCH) {
+    const max = opts.max ?? IDEAS_PER_BATCH;
+    if (have < max) {
       const saved = offset ?? (await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { ideaTzOffsetMin: true } }))?.ideaTzOffsetMin;
       // The server's first batch does not top the bank up: it was just written.
-      work = await writeBatch(workspaceId, saved ?? 0, have, !opts.firstOnly);
+      work = await writeBatch(workspaceId, saved ?? 0, have, !opts.firstOnly, max);
     }
   } finally {
     await releaseIdeasBatch(workspaceId);
@@ -226,8 +253,8 @@ const planOnDays = async (workspaceId: string, ids: string[], tzOffsetMin: unkno
  * "Create 3 slideshows": REQUESTED_SLIDESHOWS slideshow ideas made now (in the background, like a batch's), shown first
  * in the deck once ready. Free to make; each one kept is charged like any slideshow idea, so the balance must cover them.
  */
-export async function createSlideshowIdeas(workspaceId: string, userId: string, runId: string, tzOffsetMin: unknown): Promise<{ list: IdeasListDto; work: () => Promise<void> }> {
-  await requireCredits(userId, REQUESTED_SLIDESHOWS);
+export async function createSlideshowIdeas(workspaceId: string, userId: string, runId: string, tzOffsetMin: unknown, free = false): Promise<{ list: IdeasListDto; work: () => Promise<void> }> {
+  if (!free) await requireCredits(userId, REQUESTED_SLIDESHOWS);
   const slides = await startSlideshows(workspaceId, runId, REQUESTED_SLIDESHOWS, true);
   if (slides.ids.length === 0) throw new HttpError(502, 'no_ideas', 'Could not start new slideshows right now. Try again.');
   await planOnDays(workspaceId, slides.ids, tzOffsetMin);
@@ -253,19 +280,20 @@ const refill = async (workspaceId: string, at: Date | null) => {
  */
 const swapOtherHook = async (row: SlideshowVariant, card: DeckItem, hookId: string) => {
   const others = card.script?.otherHooks ?? [];
-  const next = others.find((h) => `${OTHER_HOOK}${h.archetype}` === hookId);
+  const next = findOtherHook(others, hookId);
   if (!card.script || !next) throw new HttpError(404, 'hook_not_found', 'That hook is gone. Pick another.');
   const previous = { archetype: card.archetype, text: firstLine(card) };
   const hookShot = card.shots[0] && { ...card.shots[0], text: next.text };
   const [fittedY] = hookShot ? await fitShotCaptions([hookShot]) : [null];
-  const swapped: DeckItem = {
+  const swapped: DeckItem = await replaceHookTitle({
     ...card,
+    hookLine: next.text,
     archetype: next.archetype,
     hookStyle: ARCHETYPE_LABELS[next.archetype],
     shots: card.shots.map((shot, i) => (i === 0 ? { ...shot, text: next.text, ...(fittedY != null ? { positionY: fittedY } : {}) } : shot)),
     whyPanel: { ...card.whyPanel, hookStyle: ARCHETYPE_LABELS[next.archetype], hookStyleReason: ARCHETYPE_WHY[next.archetype] },
     script: { ...card.script, archetype: next.archetype, otherHooks: [...others.filter((h) => h !== next), previous] },
-  };
+  });
   await prisma.slideshowVariant.update({
     where: { id: row.id },
     data: { archetype: next.archetype, plan: asJson({ ...(row.plan as object), shots: swapped.shots, hookStyle: swapped.hookStyle, card: swapped }) },
@@ -313,7 +341,9 @@ const moveCaption = async (row: SlideshowVariant, caption: NonNullable<IdeaPatch
   const card = row.engine === 'website' ? (row.plan as BlitzIdeaPlan).card : undefined;
   if (!card?.shots[caption.shot]) throw new HttpError(400, 'no_caption', 'Only videos move their captions.');
   const shots = card.shots.map((s, i) => (i === caption.shot ? { ...s, positionY: caption.positionY } : s));
-  await prisma.slideshowVariant.update({ where: { id: row.id }, data: { plan: asJson({ ...(row.plan as object), card: { ...card, shots } }) } });
+  // The hook title keeps clear of the hook caption and the next one: it moves with them.
+  const moved = caption.shot <= 1 ? await replaceHookTitle({ ...card, shots }) : { ...card, shots };
+  await prisma.slideshowVariant.update({ where: { id: row.id }, data: { plan: asJson({ ...(row.plan as object), card: moved }) } });
 };
 
 /**
@@ -396,12 +426,12 @@ export async function changeDay(workspaceId: string, req: IdeaDayRequest): Promi
  * Makes the kept slideshow ideas: each ready slideshow moves into run `runId` and is charged. Ideas still being made
  * stay kept (the reason comes back per idea). Returns the made ones with their days, so the calendar pins them there.
  */
-export async function makeSlideshowIdeas(workspaceId: string, userId: string, runId: string, ids: string[]): Promise<{ made: MadeSlideshow[]; errors: Record<string, string> }> {
+export async function makeSlideshowIdeas(workspaceId: string, userId: string, runId: string, ids: string[], free = false): Promise<{ made: MadeSlideshow[]; errors: Record<string, string> }> {
   const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, select: { workspaceId: true } });
   if (!run || run.workspaceId !== workspaceId) throw new HttpError(404, 'run_not_found', 'Run not found.');
   const rows = await prisma.slideshowVariant.findMany({ where: { id: { in: ids }, workspaceId, engine: 'bank', status: 'kept' } });
   if (rows.length === 0) throw new HttpError(400, 'nothing_kept', 'Keep a slideshow idea first.');
-  await requireCredits(userId, rows.length);
+  if (!free) await requireCredits(userId, rows.length);
   const made: MadeSlideshow[] = [];
   const errors: Record<string, string> = {};
   for (const row of rows) {

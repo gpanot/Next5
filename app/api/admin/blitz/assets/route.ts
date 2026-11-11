@@ -2,6 +2,10 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { labRoute, visibleTo } from '../../../../../src/server/labs/labAccess';
 import { BLITZ_UPLOAD_TYPES, isBlitzUploadKey, toAssetDto } from '../../../../../src/server/admin/blitzStore';
 import { prisma } from '../../../../../src/lib/db';
+import { isMp4Key, normalizeClip } from '../../../../../src/server/labs/blitzClip';
+
+// A video upload is re-encoded before it is registered (blitzClip.ts).
+export const maxDuration = 120;
 
 /**
  * GET /api/admin/blitz/assets?type=BACKGROUND|OVERLAY|AUDIO
@@ -25,7 +29,8 @@ type RegisterBody = { type?: string; r2Key?: string; name?: string };
  * POST /api/admin/blitz/assets
  * Body: { type, r2Key, name }
  * Registers a file the browser already uploaded to R2, so it shows up in the
- * library next time. Only keys under blitz/uploads/ are accepted.
+ * library next time. Only keys under blitz/uploads/ are accepted. An MP4 clip is re-encoded in place first, so
+ * renders do not stall on it; if that fails, the upload is kept as it came.
  */
 export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => {
   const body = (await req.json().catch(() => ({}))) as RegisterBody;
@@ -37,6 +42,9 @@ export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => 
     return NextResponse.json({ error: 'Invalid r2Key' }, { status: 400 });
   }
   const name = (body.name?.trim() || 'Upload').slice(0, 120);
+  if (type !== 'AUDIO' && isMp4Key(body.r2Key)) {
+    await normalizeClip(body.r2Key).catch((err: unknown) => console.warn(`[blitz/assets] ${body.r2Key} not re-encoded:`, err instanceof Error ? err.message : err));
+  }
 
   const asset = await prisma.blitzAsset.create({ data: { type, r2Key: body.r2Key, name, workspaceId: access.workspaceId } });
   return NextResponse.json({ asset: await toAssetDto(asset) }, { status: 201 });

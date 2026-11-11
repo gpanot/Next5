@@ -1,11 +1,15 @@
 // server-only — never import from a 'use client' file.
 // Turns paid Stripe sessions and charges into credits. The webhook and the return page can both report the same
-// payment; the ledger applies each payment once.
+// payment; the ledger applies each payment once. A payment also unlocks the previews of the Prospect Packs the payer
+// claimed (prospects/unlock.ts).
 
 import type Stripe from 'stripe';
 import { prisma } from '../../lib/db';
 import { stripe } from './stripe';
 import { addEntry } from './wallet';
+
+/** Dynamic import: prospects/unlock reaches the pipeline, whose charges import this file (through autoRecharge). */
+const unlockAfterPayment = async (userId: string) => (await import('../prospects/unlock')).unlockAfterPayment(userId);
 
 const pmId = (pm: string | Stripe.PaymentMethod | null | undefined): string | null => (typeof pm === 'string' ? pm : (pm?.id ?? null));
 
@@ -25,7 +29,7 @@ export const fulfillCheckoutSession = async (session: Stripe.Checkout.Session): 
     return;
   }
   if (session.mode !== 'payment' || session.payment_status !== 'paid' || !session.amount_total) return;
-  await addEntry({ userId, deltaCents: session.amount_total, reason: 'topup', ref: session.id, note: 'Card payment' });
+  if ((await addEntry({ userId, deltaCents: session.amount_total, reason: 'topup', ref: session.id, note: 'Card payment' })) !== null) await unlockAfterPayment(userId);
   if (session.payment_intent) {
     const intent = typeof session.payment_intent === 'string' ? await stripe().paymentIntents.retrieve(session.payment_intent) : session.payment_intent;
     await rememberCard(userId, pmId(intent.payment_method));
@@ -36,7 +40,7 @@ export const fulfillCheckoutSession = async (session: Stripe.Checkout.Session): 
 export const fulfillAutoRecharge = async (intent: Stripe.PaymentIntent): Promise<void> => {
   const userId = intent.metadata.userId;
   if (!userId || intent.metadata.kind !== 'auto_recharge' || intent.status !== 'succeeded') return;
-  await addEntry({ userId, deltaCents: intent.amount_received, reason: 'auto_recharge', ref: intent.id, note: 'Auto top up' });
+  if ((await addEntry({ userId, deltaCents: intent.amount_received, reason: 'auto_recharge', ref: intent.id, note: 'Auto top up' })) !== null) await unlockAfterPayment(userId);
   await prisma.slideshowWallet.update({ where: { userId }, data: { autoRechargeError: null } });
 };
 

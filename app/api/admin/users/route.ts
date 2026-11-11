@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '../../../../src/lib/admin-auth';
 import { prisma } from '../../../../src/lib/db';
 import { emailKind } from '../../../../src/lib/emailDomain';
+import { costTotalsByUser } from '../../../../src/server/costs/report';
 
 type CreditTotals = { balanceCents: number | null; usedCents: number; purchasedCents: number; givenCents: number };
 
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
   const denied = requireAdmin(req);
   if (denied) return denied;
 
-  const [users, credits] = await Promise.all([prisma.user.findMany({
+  const [users, credits, costs] = await Promise.all([prisma.user.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
       _count: { select: { bookings: true, photos: true } },
@@ -47,15 +48,18 @@ export async function GET(req: NextRequest) {
         select: { id: true, name: true, product: true, websiteUrl: true, deletedAt: true, createdAt: true },
       },
     },
-  }), creditTotals()]);
+  }), creditTotals(), costTotalsByUser()]);
 
   return NextResponse.json({
+    /** API spend tied to no user: admin, cron and system work. */
+    unattributed_cost_usd_micros: costs.get(null) ?? 0,
     users: users.map((u) => ({
       id: u.id,
       email: u.email,
       display_name: u.displayName,
       email_kind: emailKind(u.email),
       credits: credits.get(u.id) ?? { balanceCents: null, usedCents: 0, purchasedCents: 0, givenCents: 0 },
+      cost_usd_micros: costs.get(u.id) ?? 0,
       created_at: u.createdAt.toISOString(),
       booking_count: u._count.bookings,
       photo_count: u._count.photos,

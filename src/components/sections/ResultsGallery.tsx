@@ -58,7 +58,7 @@ function GalleryCard({ front, back, name, globalFrontIndex, onOpen }: CardProps)
   const [animating, setAnimating] = useState<'flip' | 'unflip' | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const scheduleFlip = useCallback(() => {
+  const scheduleFlip = useCallback(function schedule() {
     timerRef.current = setTimeout(() => {
       setAnimating('flip');
       setTimeout(() => {
@@ -69,7 +69,7 @@ function GalleryCard({ front, back, name, globalFrontIndex, onOpen }: CardProps)
           setTimeout(() => {
             setFlipped(false);
             setAnimating(null);
-            scheduleFlip();
+            schedule();
           }, 700);
         }, FLIP_INTERVAL_MS);
       }, 700);
@@ -284,14 +284,9 @@ type StripProps = {
 
 function MarqueeStrip({ onOpen }: StripProps) {
   // Build flat card list with global indices pointing at allPhotos
-  let globalCursor = 0;
-  const cards = people.flatMap((person) =>
-    person.cards.map((card) => {
-      const fi = globalCursor;
-      globalCursor += 2; // front + back
-      return { ...card, name: person.name, globalFrontIndex: fi };
-    }),
-  );
+  const cards = people
+    .flatMap((person) => person.cards.map((card) => ({ ...card, name: person.name })))
+    .map((card, i) => ({ ...card, globalFrontIndex: i * 2 })); // front + back
 
   // Duplicate the list for seamless looping
   const doubled = [...cards, ...cards];

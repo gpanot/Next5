@@ -26,13 +26,18 @@ import { AssetsLibraryTab } from '../../src/components/admin/business/AssetsLibr
 import { MetaAdsTab } from '../../src/components/admin/metaAds/MetaAdsTab';
 import { SlideshowKnowledgeTab } from '../../src/components/admin/slideshowKnowledge/SlideshowKnowledgeTab';
 import { AutoSlideshowTab } from '../../src/components/admin/autoSlideshow/AutoSlideshowTab';
+import { ScriptGeneratorTab } from '../../src/components/admin/scriptGenerator/ScriptGeneratorTab';
+import { MyBlueprintTab } from '../../src/components/admin/blueprint/MyBlueprintTab';
 import { ShortsPage } from '../../src/components/admin/shorts/ShortsPage';
+import { CopyViralTab } from '../../src/components/admin/copyViral/CopyViralTab';
+import { KallawayHooksTab } from '../../src/components/admin/kallaway/KallawayHooksTab';
+import { BRAND_NAT_STYLES_URL, BrandNatStylesTab } from '../../src/components/admin/brandNat/BrandNatStylesTab';
 
 type Tab =
   | 'overview' | 'workspaces' | 'prospects' | 'payments' | 'promise' | 'qa' | 'models'
   | 'users' | 'credits' | 'bookings' | 'prompts'
   | 'ugc-lab' | 'ugc-clone' | 'blitz-lab' | 'blitz-slideshow' | 'gallery-faces'
-  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow' | 'shorts'
+  | 'templates' | 'studio' | 'hooks' | 'meta-ads' | 'slideshow-knowledge' | 'auto-slideshow' | 'shorts' | 'copy-viral' | 'my-blueprint' | 'script-generator' | 'kallaway-hooks' | 'brand-nat-styles'
   | 'assets-library';
 
 type NavItem = { id: Tab; label: string; icon: string };
@@ -79,6 +84,26 @@ const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
       { id: 'slideshow-knowledge', label: 'Slideshow Knowledge', icon: '◧' },
       { id: 'auto-slideshow', label: 'Auto Slideshow', icon: '▤' },
       { id: 'shorts', label: 'Shorts', icon: '▶' },
+      { id: 'copy-viral', label: 'Copy Viral Post', icon: '⧉' },
+    ],
+  },
+  {
+    title: 'Jun Yuh',
+    items: [
+      { id: 'my-blueprint', label: 'My Blueprint', icon: '❖' },
+      { id: 'script-generator', label: 'Script Generator', icon: '✎' },
+    ],
+  },
+  {
+    title: 'Kallaway',
+    items: [
+      { id: 'kallaway-hooks', label: 'Hooks', icon: '⚓' },
+    ],
+  },
+  {
+    title: 'Brand Nat',
+    items: [
+      { id: 'brand-nat-styles', label: 'Style Guide', icon: '▣' },
     ],
   },
   {
@@ -95,16 +120,23 @@ const STANDALONE_ROUTES: Partial<Record<Tab, string>> = {
   'slideshow-knowledge': '/admin/slideshow-knowledge',
   'auto-slideshow': '/admin/auto-slideshow',
   shorts: '/admin/shorts',
+  'brand-nat-styles': BRAND_NAT_STYLES_URL,
 };
 
 export default function AdminPage() {
   const token = useAdminToken();
   const [tab, setTab] = useState<Tab>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  /** Script Generator keeps its script, chat and recording while another tab is open, once it has been opened. */
+  const [scriptGeneratorOpened, setScriptGeneratorOpened] = useState(false);
 
   const logout = useCallback(() => adminTokenStore.set(null), []);
   const handleToken = useCallback((t: string) => adminTokenStore.set(t), []);
-  const selectTab = useCallback((id: Tab) => { setTab(id); setSidebarOpen(false); }, []);
+  const selectTab = useCallback((id: Tab) => {
+    setTab(id);
+    setSidebarOpen(false);
+    if (id === 'script-generator') setScriptGeneratorOpened(true);
+  }, []);
 
   if (token === undefined) return null;
   if (!token) return <AdminLogin onToken={handleToken} />;
@@ -262,6 +294,11 @@ export default function AdminPage() {
           {tab === 'slideshow-knowledge' && <SlideshowKnowledgeTab token={token} />}
           {tab === 'auto-slideshow'   && <AutoSlideshowTab     token={token} />}
           {tab === 'shorts'           && <ShortsPage           token={token} />}
+          {tab === 'copy-viral'       && <CopyViralTab         token={token} />}
+          {tab === 'my-blueprint'     && <MyBlueprintTab token={token} />}
+          {tab === 'kallaway-hooks'   && <KallawayHooksTab token={token} />}
+          {tab === 'brand-nat-styles' && <BrandNatStylesTab />}
+          {scriptGeneratorOpened && <div hidden={tab !== 'script-generator'}><ScriptGeneratorTab token={token} /></div>}
           {tab === 'assets-library'   && <AssetsLibraryTab     token={token} />}
         </main>
       </div>

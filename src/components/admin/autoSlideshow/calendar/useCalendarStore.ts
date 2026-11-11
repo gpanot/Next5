@@ -41,6 +41,8 @@ const parseTargets = (raw: string | null): Targets => {
 /** Posts the user wants on each day, set day by day with − N +. */
 export const useTargets = (runId: string) => useRunStore<Targets>(`autoSlideshow.targets.${runId}`, parseTargets, (v) => JSON.stringify(v));
 
+const pinsKey = (runId: string) => `autoSlideshow.pins.${runId}`;
+
 const parsePins = (raw: string | null): Pins => {
   try {
     const value: unknown = JSON.parse(raw ?? '{}');
@@ -51,8 +53,9 @@ const parsePins = (raw: string | null): Pins => {
   }
 };
 
-/** Where each not-yet-approved slideshow is pinned (dragged, or kept in place when the plan changed). */
-export const usePins = (runId: string) => useRunStore<Pins>(`autoSlideshow.pins.${runId}`, parsePins, (v) => JSON.stringify(v));
+/** Where each not-yet-approved slideshow is pinned in this browser (dragged, or kept in place when the plan changed).
+ *  The run's own slideshows are also kept on the server (usePlannedPins). */
+export const useLocalPins = (runId: string) => useRunStore<Pins>(pinsKey(runId), parsePins, (v) => JSON.stringify(v));
 
 export type CalendarView = 'grid' | 'list';
 

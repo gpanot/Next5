@@ -108,8 +108,27 @@ export function linksFromHrefs(hrefs: string[], baseUrl: string): SiteLink[] {
   return out;
 }
 
-/** Fetch the homepage HTML and return its internal links. Empty on any failure (blocked, timeout). */
-export async function fetchSiteLinks(sourceUrl: string): Promise<SiteLink[]> {
+/** A counter element: its real number is an attribute, its text the "0" it counts up from in the browser. */
+const COUNTER = /<(\w+)\b[^>]*\bdata-(?:value|to|count|target|countup|number|end|final|counter)\s*=\s*["'](\d[\d,.]*)["'][^>]*>\s*0?\s*<\/\1>(?=([\s\S]{0,300}))/gi;
+const UNIT = /^[+%kKmM]+$/;
+
+/** Pure: animated counters as label → real text ("google reviews" → "100+ Google Reviews"). */
+export function extractCounters(html: string): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const m of html.matchAll(COUNTER)) {
+    if (m[2] === '0') continue;
+    const texts = decodeEntities(m[3]!).split(/<[^>]*>/).map((t) => t.trim()).filter(Boolean);
+    const unit = UNIT.test(texts[0] ?? '') ? texts.shift()! : '';
+    const label = texts[0] ?? '';
+    if (/^[a-z]/i.test(label) && label.length <= 40) out.set(label.toLowerCase(), `${m[2]}${unit} ${label}`);
+  }
+  return out;
+}
+
+export type SiteHome = { links: SiteLink[]; counters: Map<string, string> };
+
+/** Fetch the homepage HTML: its internal links and animated counters. Empty on any failure (blocked, timeout). */
+export async function fetchSiteHome(sourceUrl: string): Promise<SiteHome> {
   const t0 = Date.now();
   try {
     const res = await fetch(sourceUrl, {
@@ -119,14 +138,15 @@ export async function fetchSiteLinks(sourceUrl: string): Promise<SiteLink[]> {
     });
     if (!res.ok) {
       console.warn(`[studio/site] homepage HTML HTTP ${res.status} — using Exa links instead`);
-      return [];
+      return { links: [], counters: new Map() };
     }
-    const links = extractSiteLinks(await res.text(), res.url || sourceUrl);
+    const html = await res.text();
+    const links = extractSiteLinks(html, res.url || sourceUrl);
     console.log(`[studio/site] ${links.length} internal links in ${Date.now() - t0}ms`);
-    return links;
+    return { links, counters: extractCounters(html) };
   } catch (err) {
     const reason = err instanceof Error ? ((err.cause as { code?: string } | undefined)?.code ?? err.message) : String(err);
     console.warn(`[studio/site] homepage HTML fetch failed (${reason}) — using Exa links instead`);
-    return [];
+    return { links: [], counters: new Map() };
   }
 }

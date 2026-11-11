@@ -121,7 +121,8 @@ export const postsReadyEmail = (
   cta: { label: 'Open my calendar', url: appUrl('/app/brand/calendar') },
 });
 
-export type PostToApprove = { title: string; at: Date };
+/** `thumbUrl`: the post's cover as an absolute link, or null when it has none yet. */
+export type PostToApprove = { title: string; at: Date; thumbUrl: string | null };
 
 /** "7:00 PM" in the user's time, from a getTimezoneOffset value. */
 const localTime = (at: Date, offsetMin: number): string =>
@@ -139,12 +140,14 @@ export const approveTodayEmail = (workspaceId: string, day: string, posts: PostT
     heading: 'Approve today’s posts',
     body: [
       `${n} post${n === 1 ? ' is' : 's are'} set for today. ${n === 1 ? 'It will not' : 'They will not'} go out until you approve.`,
-      ...shown.map((p) => `${localTime(p.at, offsetMin)} · ${p.title}`),
-      ...(n > shown.length ? [`And ${n - shown.length} more.`] : []),
       `Approve before ${localTime(posts[0]!.at, offsetMin)} so the first one goes out on time.`,
     ],
+    items: [
+      ...shown.map((p) => ({ text: `${localTime(p.at, offsetMin)} · ${p.title}`, imageUrl: p.thumbUrl })),
+      ...(n > shown.length ? [{ text: `And ${n - shown.length} more.`, imageUrl: null }] : []),
+    ],
     cta: { label: `Approve & Publish (${n})`, url: appUrl(`/slideshow/${workspaceId}?view=list&day=${day}`) },
-    footnote: 'We only email you on days with posts to approve.',
+    footnote: 'We only email you on days with posts to approve. Turn this email off in Settings → Profile.',
     settingsUrl: appUrl(`/slideshow/${workspaceId}`),
   };
 };

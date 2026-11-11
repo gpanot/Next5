@@ -3,6 +3,7 @@
 // matched to what Whisper heard, so captions and cuts follow what is actually said, pauses included. Script words
 // Whisper missed get times between their matched neighbours. The words stay the script's (spelling, punctuation).
 
+import { recordCost } from '../costs/ledger';
 import type { CostMeter } from '../metaAds/cost';
 import type { WordTiming } from '../../types/admin/shorts';
 
@@ -16,6 +17,11 @@ const norm = (w: string) => w.toLowerCase().replace(/[^a-z0-9]/g, '');
 
 /** What Whisper heard, with word timestamps. `hint` (the script) steers names, numbers and prices. */
 export async function transcribe(wav: Buffer, hint: string): Promise<Heard[]> {
+  return (await transcribeWithText(wav, hint)).words;
+}
+
+/** Same call, also returning Whisper's punctuated text (the words carry no punctuation). */
+export async function transcribeWithText(wav: Buffer, hint: string): Promise<{ text: string; words: Heard[] }> {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error('OPENAI_API_KEY not set');
   const form = new FormData();
@@ -32,8 +38,9 @@ export async function transcribe(wav: Buffer, hint: string): Promise<Heard[]> {
     signal: AbortSignal.timeout(60_000),
   });
   if (!res.ok) throw new Error(`Whisper ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const data = (await res.json()) as { words?: Heard[] };
-  return data.words ?? [];
+  const data = (await res.json()) as { text?: string; words?: Heard[]; duration?: number };
+  recordCost({ provider: 'openai', model: 'whisper-1', usdMicros: ((data.duration ?? 0) / 60) * WHISPER_USD_PER_MIN * 1e6 });
+  return { text: data.text ?? '', words: data.words ?? [] };
 }
 
 /** Longest common subsequence of normalized words: script index → heard index, for the words both share. */

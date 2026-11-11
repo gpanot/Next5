@@ -54,21 +54,23 @@ export const useCampaignSchedule = (token: string, state: CampaignState) => {
     setAdded(false);
   };
 
-  const schedule = async () => {
-    if (!campaign) return;
+  const schedule = async (): Promise<boolean> => {
+    if (!campaign) return false;
     setAdded(false);
     const fresh = await state.prepare();
-    if (!fresh) return;
+    if (!fresh) return false;
     const items = times.flatMap(({ i, at }) => (at && fresh.slideshows[i] ? [{ position: i, at: at.toISOString() }] : []));
-    if (items.length === 0) return;
+    if (items.length === 0) return false;
     setPlanning(true);
     try {
       await planPosts(token, campaign.id, items);
       await state.reload();
       setOverrides({});
       setAdded(true);
+      return true;
     } catch (err) {
       state.setError(err instanceof Error ? err.message : 'Could not add the posts to the Calendar');
+      return false;
     } finally {
       setPlanning(false);
     }

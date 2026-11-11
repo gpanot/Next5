@@ -13,6 +13,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored video engine (Admin › Copy Viral Post), kept as upstream wrote it.
+    "tools/video-agent-engine/**",
   ]),
 ]);
 

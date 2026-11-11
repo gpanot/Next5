@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { lineWidths, placeText, textRects, textTop } from '../../../src/server/autoSlideshow/textPlacement';
+import { contentTop, headRect, lineWidths, MIN_HEAD_RATIO, placeText, sharedTop, textRects, textTop } from '../../../src/server/autoSlideshow/textPlacement';
 
 const meat = { role: 'item' as const, title: 'Check Charging, Not Just Range', body: 'Plan where you’ll charge, so trips feel easy.' };
 const hook = { role: 'hook' as const, title: '5 Things EV Owners Wish They Knew', body: '' };
@@ -15,6 +15,20 @@ describe('lineWidths', () => {
   it('wraps words onto new lines at the max width', () => {
     expect(lineWidths('aa bb cc', 10, 1, 50)).toEqual([50, 20]);
     expect(lineWidths('', 10, 1, 50)).toEqual([]);
+  });
+});
+
+describe('text size', () => {
+  it('grows the text blocks with the picked size, in every look', () => {
+    for (const look of ['tiktok-default', 'black-box', 'white-box', 'tiktok-red', 'all-caps'] as const) {
+      const height = (textSize?: number) => Math.max(...textRects({ ...meat, look, bodyLook: look, textSize }).map((r) => r.y + r.h));
+      expect(height(1.2)).toBeGreaterThan(height());
+      expect(height(0.8)).toBeLessThan(height());
+    }
+  });
+
+  it('keeps the blocks unchanged at Normal', () => {
+    expect(textRects({ ...meat, textSize: 1 })).toEqual(textRects(meat));
   });
 });
 
@@ -58,10 +72,25 @@ describe('placeText', () => {
 
   it('keeps moved text inside the slide', () => {
     const at = placeText({ ...meat, textAt: { x: 1, y: 1 } });
-    // Pushed to the right edge it wraps in the narrowest box (40% of the width), 3% from the edge.
+    // Pushed to the right edge it wraps in the narrowest box (40% of the width), TEXT_SIDE (13.6%) from the edge.
     const height = Math.max(...textRects(meat, 0.4 * 1080).map((r) => r.y + r.h)) / 1920;
-    expect(at.x).toBeCloseTo(0.77);
+    expect(at.x).toBeCloseTo(0.664);
     expect(at.y).toBeCloseTo(1 - height);
+  });
+});
+
+describe('flat head boxes', () => {
+  it('grows a box flatter than a head down to the chin (a face looking down, 2026-10-21)', () => {
+    const slide = { role: 'item' as const, title: 'Follow Up For Non-Responders', body: 'Send a gentle reminder a little later, so more customers finish it.' };
+    const flat = { top: 0.245, bottom: 0.305, left: 0.437, right: 0.597 };
+    const chin = 0.245 * 1920 + (0.597 - 0.437) * 1080 * MIN_HEAD_RATIO;
+    const top = textTop(slide, [flat]);
+    expect(top >= chin || blockBottom(slide, top) <= 0.245 * 1920).toBe(true);
+  });
+
+  it('leaves a box of a normal head shape as it is', () => {
+    const tall = { top: 0.2, bottom: 0.32, left: 0.4, right: 0.55 };
+    expect(headRect(tall).h).toBeCloseTo((0.32 - 0.2) * 1920 + 56);
   });
 });
 
@@ -75,5 +104,34 @@ describe('text looks', () => {
     const plain = textRects(meat)[1]!;
     const boxed = textRects({ ...meat, bodyLook: 'black-box' })[1]!;
     expect(boxed.h).toBeGreaterThan(plain.h);
+  });
+});
+
+describe('sharedTop', () => {
+  const other = { role: 'item' as const, title: 'Charge Overnight At Home', body: '' };
+
+  it('keeps the usual spot when it is clear on every photo', () => {
+    expect(sharedTop([{ slide: meat }, { slide: other, heads: [head(900, 1000)] }])).toBe(330 + SHIFT);
+    expect(sharedTop([])).toBeUndefined();
+  });
+
+  it('moves every slide to one spot clear of the heads on all the photos', () => {
+    const blocked = [head(430, 560)];
+    const top = sharedTop([{ slide: meat }, { slide: other, heads: blocked }])!;
+    expect(top).not.toBe(330 + SHIFT);
+    // The slide with no head moves too: one spot for both.
+    expect(top).toBe(textTop(other, blocked));
+  });
+
+  it('lines up only content slides not moved by hand', () => {
+    const moved = { ...other, textAt: { x: 0.5, y: 0.1 } };
+    const hookHead = [head(300, 700)];
+    expect(contentTop([{ slide: hook, heads: hookHead }, { slide: moved, heads: hookHead }, { slide: meat }])).toBe(330 + SHIFT);
+    expect(contentTop([{ slide: hook }])).toBeUndefined();
+  });
+
+  it('placeText takes the shared spot unless the text was moved by hand', () => {
+    expect(placeText(meat, [head(430, 560)], 700).y).toBeCloseTo(700 / 1920);
+    expect(placeText({ ...meat, textAt: { x: 0.5, y: 0.2 } }, null, 700).y).toBeCloseTo(0.2);
   });
 });

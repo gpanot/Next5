@@ -11,6 +11,7 @@
  *     skip this check; only LLM-generated queries are verified.
  */
 // server-only
+import { MAX_CUSTOMER_INDUSTRIES } from '../../lib/customerIndustries';
 import { chatJson } from '../ai/openai';
 import { getVerticalPack } from './verticalPacks';
 import type { StudioProfileData } from './types';
@@ -40,7 +41,7 @@ export function keywordInputFromProfile(p: StudioProfileData): DiscoverKeywordsI
     vertical: p.classification.vertical.value,
     audienceType: p.classification.businessModel.value === 'b2b' ? 'b2b' : 'b2c',
     promoting: p.positioning.promoting.value,
-    targetCustomerIndustries: idcTrusted ? idc.value : [],
+    targetCustomerIndustries: idcTrusted ? idc.value.slice(0, MAX_CUSTOMER_INDUSTRIES) : [],
   };
 }
 

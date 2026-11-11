@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
   && rm -rf /var/lib/apt/lists/*
 
 ENV CHROMIUM_PATH=/usr/bin/chromium
-# Fewer glibc malloc arenas: native memory freed by Chromium, the compositor and onnxruntime goes back to the OS
+# Fewer glibc malloc arenas: native memory freed by Chromium and the compositor goes back to the OS
 # instead of staying reserved per thread, so idle memory (billed per GB-hour) drops between jobs.
 ENV MALLOC_ARENA_MAX=2
 

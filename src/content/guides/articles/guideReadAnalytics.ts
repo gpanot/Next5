@@ -8,9 +8,10 @@ export const guideReadAnalytics: Article = {
   description: 'How to use the Next5 Analytics page: views at 48 hours, how each post compares to your typical post, and how to turn winning hooks into more posts.',
   excerpt: 'Compare every post to your typical post at 48 hours, spot the winning hooks, and make more like them.',
   keyword: 'tiktok analytics for business',
+  hub: 'product',
   published: '2026-10-18',
-  cover: 'slide-chapters',
-  coverAlt: 'TikTok slideshow made by Next5: "The clarity glow-up: your slideshow finally reads like chapters."',
+  cover: '/images/guides/read-your-analytics.png',
+  coverAlt: 'Florist reading numbers on a laptop at his desk, a notebook and flower buckets around him',
   blocks: [
     { type: 'p', text: 'Posting every day is step one. Step two is learning from it. The Analytics page shows which posts worked, so you can make more of them and drop what does not.' },
     { type: 'h2', text: 'What you see on the Analytics page' },

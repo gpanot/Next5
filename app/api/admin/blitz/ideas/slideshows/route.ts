@@ -15,7 +15,7 @@ export const POST = labRoute(async (req: NextRequest, _ctx: unknown, access) => 
   if (access.admin) throw new HttpError(400, 'user_only', 'Ideas belong to a workspace.');
   const body = (await req.json().catch(() => ({}))) as { runId?: unknown; tzOffsetMin?: unknown };
   if (typeof body.runId !== 'string') throw new HttpError(400, 'missing_run', 'runId is required.');
-  const { list, work } = await createSlideshowIdeas(access.workspaceId, access.userId, body.runId, body.tzOffsetMin);
+  const { list, work } = await createSlideshowIdeas(access.workspaceId, access.userId, body.runId, body.tzOffsetMin, access.impersonated);
   waitUntil(work().catch((err: unknown) => console.error('[calendar-ideas] requested slideshows failed:', err)));
   return NextResponse.json(list, { status: 201 });
 });

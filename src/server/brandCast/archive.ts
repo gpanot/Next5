@@ -1,7 +1,8 @@
 // server-only — never import from a 'use client' file.
 // The Brand Cast archive: "New face" parks the old person (cast.ts) instead of overwriting them. Parked people keep
 // their photo and intro video for ARCHIVE_DAYS, ARCHIVE_MAX at most (older ones are deleted). The owner can bring one
-// back, into a free slot or in place of an active person (who is parked in turn), or delete them. Also the owner's
+// back, into a free slot or in place of an active person (who is parked in turn), or delete them. An active person can
+// also be moved to the archive by hand. Also the owner's
 // "Edit name and age".
 
 import type { BrandCastMember, Prisma } from '@prisma/client';
@@ -74,6 +75,16 @@ export const restoreMember = async (workspaceId: string, memberId: string, repla
     return gone;
   });
   if (dropped) await dropFiles([dropped]);
+};
+
+/** "Move to archive" from the ⋮ menu: parks an active member, leaving their slot empty (a "+ Create Avatar" card). */
+export const archiveMember = async (workspaceId: string, memberId: string): Promise<void> => {
+  const member = await prisma.brandCastMember.findFirst({ where: { id: memberId, workspaceId, archivedAt: null } });
+  if (!member) throw new HttpError(404, 'not_found', 'This person is not in your cast.');
+  if (isBusy(member)) throw new HttpError(409, 'busy', 'This face is still being made.');
+  const dropped = await prisma.$transaction((tx) => vacate(tx, member));
+  if (dropped) await dropFiles([dropped]);
+  await tidyArchive(workspaceId);
 };
 
 /** Deletes a parked member for good, with their photo and video. */

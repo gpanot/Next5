@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { NextRequest, NextResponse } from 'next/server';
+import { enterCostContext, featureOf } from '../server/costs/ledger';
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret';
 const ADMIN_TTL_S = 8 * 60 * 60; // 8 hours
@@ -25,6 +26,8 @@ export function requireAdmin(req: NextRequest): NextResponse | null {
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
     verifyAdminToken(token);
+    // Admin work is not billed to a user; the route still shows up in the cost ledger.
+    enterCostContext({ userId: null, feature: featureOf(req) });
     return null;
   } catch {
     return NextResponse.json({ error: 'Invalid or expired admin token' }, { status: 401 });

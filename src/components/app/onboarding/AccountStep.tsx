@@ -117,7 +117,7 @@ export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onS
         sub="Takes about 3 minutes. No card needed."
         footer={<AppButton type="submit" size="lg" loading={busy}>Continue</AppButton>}
       >
-        {linkFailed && !signedIn && <p role="alert" className="rounded-xl bg-app-sunken px-4 py-3 text-[14px] text-app-ink">That link has expired or was already used. Enter your email again and we'll send a new one.</p>}
+        {linkFailed && !signedIn && <p role="alert" className="rounded-xl bg-app-sunken px-4 py-3 text-[14px] text-app-ink">That link has expired or was already used. Enter your email again and we’ll send a new one.</p>}
         {signedIn && (
           <p className="text-[14px] text-app-muted">
             Signed in as <span className="font-medium text-app-ink">{signedIn.email}</span>.{' '}

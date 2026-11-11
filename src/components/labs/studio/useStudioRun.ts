@@ -59,6 +59,7 @@ export function useStudioRun(token: string, runId: string | null) {
   // Poll while a job is running
   useEffect(() => {
     if (!runId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- first read of the run before polling starts
     void refresh();
     pollStartRef.current = null;
     // eslint-disable-next-line consistent-return

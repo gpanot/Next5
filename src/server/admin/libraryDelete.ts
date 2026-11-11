@@ -9,6 +9,7 @@ import { HttpError } from '../http';
 import { deleteDeckImage } from '../labs/deckImages';
 import { blitzMediaKind } from './blitzStore';
 import { deleteFiles } from './ugcStore';
+import { isInUse, loadPendingUses, pickReplacement, swapAsset, type PendingUses } from './libraryAssetSwap';
 import { audit } from './route';
 
 export const LIBRARY_SECTIONS = ['memes', 'videos', 'sounds', 'aiPictures', 'ugcVideos', 'hookVideos'] as const;
@@ -19,12 +20,6 @@ export const isLibrarySection = (value: unknown): value is LibrarySection =>
 
 /** Most assets one request may delete. */
 export const MAX_BULK_DELETE = 200;
-
-/** Scheduled posts still to be rendered read their files from R2 at render time. */
-const PENDING_POST_STATUSES = ['planned', 'scheduled', 'rendering'];
-
-/** Auto Slideshows not rendered yet still need their sound. */
-const PENDING_SLIDESHOW_STATUSES = ['written', 'rendering'];
 
 export type BulkDeleteResult = {
   deleted: string[];
@@ -42,35 +37,13 @@ function inSection(asset: BlitzAsset, section: LibrarySection): boolean {
   return false;
 }
 
-/**
- * Text of everything that still reads library files later: render bodies of pending posts and
- * the assets of queued or running renders. A file whose key shows up here is kept.
- */
-async function filesStillNeeded(): Promise<string[]> {
-  const posts = await prisma.$queryRaw<Array<{ body: string }>>`
-    SELECT render_body::text AS body FROM blitz_scheduled_posts
-    WHERE status = ANY(${PENDING_POST_STATUSES}::text[]) AND render_body IS NOT NULL`;
-  const renders = await prisma.blitzProject.findMany({
-    where: { renderStatus: { in: ['PENDING', 'PROCESSING'] } },
-    select: { currentAssets: true },
-  });
-  return [...posts.map((p) => p.body), ...renders.map((r) => JSON.stringify(r.currentAssets))];
-}
-
-/** Sound ids picked by Auto Slideshows that are not rendered yet. */
-async function soundsInPendingSlideshows(ids: string[]): Promise<Set<string>> {
-  const rows = await prisma.autoSlideshow.findMany({
-    where: { audioAssetId: { in: ids }, status: { in: PENDING_SLIDESHOW_STATUSES } },
-    select: { audioAssetId: true },
-  });
-  return new Set(rows.map((r) => r.audioAssetId).filter((id): id is string => Boolean(id)));
-}
-
-/** Why this Blitz asset must stay, or null when it can go. */
-function keepReason(asset: BlitzAsset | undefined, section: LibrarySection, needed: string[], sounds: Set<string>): string | null {
+/** Swaps a random stand-in into pending work that uses the asset. Returns why it must stay, or null when it can go. */
+async function freeForDelete(asset: BlitzAsset | undefined, section: LibrarySection, uses: PendingUses, ids: string[]): Promise<string | null> {
   if (!asset || !inSection(asset, section)) return 'Asset not found.';
-  if (needed.some((text) => text.includes(asset.r2Key))) return 'Used by a post or render that is not finished yet.';
-  if (sounds.has(asset.id)) return 'Used by an Auto Slideshow that is not rendered yet.';
+  if (!(await isInUse(asset, uses))) return null;
+  const replacement = await pickReplacement(asset, ids);
+  if (!replacement) return 'Used by a post or render that is not finished yet, and no other asset can replace it.';
+  await swapAsset(asset, replacement, uses);
   return null;
 }
 
@@ -86,17 +59,17 @@ async function deleteBlitzAsset(asset: BlitzAsset, section: LibrarySection): Pro
 async function deleteBlitzAssets(section: LibrarySection, ids: string[]): Promise<BulkDeleteResult> {
   const assets = await prisma.blitzAsset.findMany({ where: { id: { in: ids } } });
   const byId = new Map(assets.map((a) => [a.id, a]));
-  const [needed, sounds] = await Promise.all([filesStillNeeded(), soundsInPendingSlideshows(ids)]);
+  const uses = await loadPendingUses();
   const result: BulkDeleteResult = { deleted: [], failed: [] };
 
   for (const id of ids) {
     const asset = byId.get(id);
-    const reason = keepReason(asset, section, needed, sounds);
-    if (reason || !asset) {
-      result.failed.push({ id, error: reason ?? 'Asset not found.' });
-      continue;
-    }
     try {
+      const reason = await freeForDelete(asset, section, uses, ids);
+      if (reason || !asset) {
+        result.failed.push({ id, error: reason ?? 'Asset not found.' });
+        continue;
+      }
       await deleteBlitzAsset(asset, section);
       result.deleted.push(id);
       await audit(`library.${section}.delete`, 'blitz_asset', id, { r2Key: asset.r2Key, name: asset.name }).catch(() => undefined);
@@ -132,8 +105,8 @@ async function deleteUgcVideos(ids: string[]): Promise<BulkDeleteResult> {
 }
 
 /**
- * Deletes each asset of the section, one by one. An asset a pending post, a running render or an
- * unrendered Auto Slideshow still needs is kept and reported in `failed`; the others go.
+ * Deletes each asset of the section, one by one. When a pending post, a running render or an
+ * unrendered Auto Slideshow still uses an asset, a random asset of the same section replaces it there first.
  */
 export async function deleteLibraryAssets(section: LibrarySection, ids: string[]): Promise<BulkDeleteResult> {
   const unique = [...new Set(ids.filter((id) => typeof id === 'string' && id))];

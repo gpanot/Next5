@@ -13,26 +13,26 @@ export const PRICE_LABEL = SLIDESHOW_PRICE_LABEL;
 export const shortMoney = (cents: number): string => (cents % 100 === 0 ? `$${cents / 100}` : money(cents));
 
 /**
- * Value stack, per slideshow. `anchor` is what the piece typically costs to hire out.
+ * Value stack, per post. `anchor` is what the piece typically costs from an agency or a marketing hire.
  * These anchors are placeholders to confirm before launch: only claims a buyer can check herself.
  */
 export const VALUE_STACK: { title: string; detail: string; anchor: number }[] = [
-  { title: 'We read your website', detail: 'Your brand, your product, your voice. No forms to fill.', anchor: 50 },
-  { title: 'A format that already wins', detail: 'Every slideshow copies a layout that already pulls views on TikTok and Instagram.', anchor: 30 },
-  { title: 'Hook and slides, written', detail: 'A scroll-stopping first slide, then 5 to 9 short tips.', anchor: 25 },
-  { title: 'Fresh photos for your brand', detail: 'New photos made for each post. No stock look.', anchor: 20 },
-  { title: 'Caption, hashtags and music', detail: 'Ready to post. Nothing left to do.', anchor: 10 },
-  { title: 'Posted on autopilot', detail: 'Goes to your TikTok and Instagram every day. You approve with one tap.', anchor: 15 },
+  { title: 'We read your website', detail: 'Your brand, your product, your voice. No forms. No strategy calls.', anchor: 150 },
+  { title: 'A format that already wins', detail: 'Every post copies a layout that already pulls views on TikTok and Instagram.', anchor: 100 },
+  { title: 'Hook and script, written', detail: 'A scroll-stopping first second, then short tips people save.', anchor: 75 },
+  { title: 'Fresh photos and clips for your brand', detail: 'New visuals made for each post. No stock look. No photoshoot.', anchor: 200 },
+  { title: 'Voice, captions, hashtags', detail: 'Ready to post. Nothing left to do.', anchor: 40 },
+  { title: 'Posted on autopilot', detail: 'Goes to your TikTok and Instagram every day. You approve with one tap.', anchor: 60 },
 ];
 
 export const STACK_TOTAL = VALUE_STACK.reduce((sum, item) => sum + item.anchor, 0);
 
 export const FAQ: { q: string; a: string }[] = [
-  { q: 'Is this a subscription?', a: `No. You add money, and each slideshow takes ${PRICE_LABEL} from it. No monthly bill. No contract.` },
-  { q: 'Why $10 to start?', a: `That is your balance, not a fee. $10 makes ${Math.floor(MIN_DEPOSIT_CENTS / PRICE_CENTS)} slideshows. Every cent goes to slideshows.` },
+  { q: 'Is this a subscription?', a: `No. You add money, and each post takes ${PRICE_LABEL} from it. No monthly bill. No contract.` },
+  { q: 'Why $10 to start?', a: `That is your balance, not a fee. $10 makes ${Math.floor(MIN_DEPOSIT_CENTS / PRICE_CENTS)} posts. Every cent goes to posts.` },
   { q: 'Can I post more than one a day?', a: `Yes. 2 a day is ${money(PRICE_CENTS * 2)}. 3 a day is ${money(PRICE_CENTS * 3)}. Change it any day.` },
   { q: 'What if my balance runs out?', a: 'Autopilot stops. Nothing is charged. Top up and it starts again.' },
   { q: 'Can I stop any time?', a: 'Yes. Pause autopilot and you pay $0. No calls, no forms.' },
-  { q: 'Can’t I just use ChatGPT?', a: 'ChatGPT writes words. It does not pick a proven format, make the photos, put text on slides, add music or post for you every day. We do all of it.' },
-  { q: 'Do I have to film or show my face?', a: 'No. Slideshows are photos and text. No camera, no editing.' },
+  { q: 'Can’t I just use ChatGPT?', a: 'ChatGPT writes words. It does not pick a proven format, make the photos and clips, edit the video or post for you every day. We do all of it.' },
+  { q: 'Do I have to film or show my face?', a: 'No. We make the photos and clips. No camera, no editing.' },
 ];

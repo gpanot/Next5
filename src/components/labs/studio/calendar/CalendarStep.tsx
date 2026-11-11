@@ -93,6 +93,7 @@ export function CalendarStep({ token, runId }: { token: string; runId: string })
   };
 
   // Load on mount
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount: load() flags loading before its request
   useEffect(() => { void load(); }, [load]);
 
   return (

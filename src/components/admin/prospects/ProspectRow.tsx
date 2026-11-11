@@ -3,11 +3,19 @@
 import { useState } from 'react';
 import { PROSPECT_BLITZ, PROSPECT_CAST, PROSPECT_HOOKS, prospectDm, prospectPath, type ProspectPackDto, type ProspectStatus } from '../../../types/admin/prospects';
 import { CastPanel } from '../workspaceDetail/CastPanel';
+import { useImpersonation } from '../workspaceDetail/useImpersonation';
+import { CostDialog } from './CostDialog';
+import { OpensLine } from './OpensLine';
+import { TasksPanel } from './TasksPanel';
+import { formatDuration, makeSec } from './timing';
 
 const STATUS: Record<ProspectStatus, { label: string; tone: string }> = {
+  queued: { label: 'Waiting', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
   building: { label: 'Reading site', tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
-  faces: { label: 'Check faces', tone: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
+  faces: { label: 'Create avatar', tone: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
   making: { label: 'Making posts', tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
+  review: { label: 'Review calendar', tone: 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' },
+  generating: { label: 'Generating', tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300' },
   ready: { label: 'Ready to send', tone: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300' },
   failed: { label: 'Failed', tone: 'bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300' },
   claimed: { label: 'Claimed', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' },
@@ -16,7 +24,7 @@ const STATUS: Record<ProspectStatus, { label: string; tone: string }> = {
 const button =
   'min-h-11 rounded-xl border border-app-line px-4 text-[13px] font-semibold text-app-ink transition hover:bg-zinc-50 active:scale-95 disabled:opacity-50 dark:hover:bg-zinc-800';
 
-type Props = { token: string; pack: ProspectPackDto; onApprove: (id: string) => Promise<void>; onDelete: (id: string) => Promise<void> };
+type Props = { token: string; pack: ProspectPackDto; hideCost?: boolean; onApprove: (id: string) => Promise<void>; onDelete: (id: string) => Promise<void>; onGenerate: (id: string) => Promise<void>; onReopen: (id: string) => Promise<void> };
 
 /** Copies `text`; shows "Copied" on the button for a moment. */
 function CopyButton({ label, text }: { label: string; text: string }) {
@@ -28,18 +36,30 @@ function CopyButton({ label, text }: { label: string; text: string }) {
   return <button type="button" onClick={copy} className={button}>{done ? 'Copied' : label}</button>;
 }
 
-/** What each part has made, against the pack's mix. */
-function Progress({ pack }: { pack: ProspectPackDto }) {
+/** What each part has made, against the pack's mix, then the cost (tap for the detail) and the make time. */
+function Progress({ token, pack, hideCost }: { token: string; pack: ProspectPackDto; hideCost?: boolean }) {
+  const [costsOpen, setCostsOpen] = useState(false);
   const { blitz, cast, hooks } = pack.progress;
+  const sec = makeSec(pack);
+  const { siteSec, postsSec } = pack.timing;
   return (
+    <>
     <p className="text-[12px] tabular-nums text-app-muted">
-      {blitz}/{PROSPECT_BLITZ} videos · {cast}/{PROSPECT_CAST} Brand Cast · {hooks}/{PROSPECT_HOOKS} Hooks Volume · ${pack.costUsd.toFixed(2)}
+      {blitz}/{PROSPECT_BLITZ} videos · {cast}/{PROSPECT_CAST} Brand Cast · {hooks}/{PROSPECT_HOOKS} Hooks Volume
+      {!hideCost && <>{' · '}<button type="button" onClick={() => setCostsOpen(true)} className="-my-2 rounded-md px-1 py-2 font-semibold text-app-ink underline decoration-dotted underline-offset-2 transition hover:bg-zinc-100 active:scale-95 dark:hover:bg-zinc-800">
+        ${pack.costUsd.toFixed(2)}
+      </button></>}
+      {sec !== null && (
+        <span title={`Site + faces ${formatDuration(siteSec ?? 0)} · posts ${formatDuration(postsSec ?? 0)} (face check wait not counted)`}> · {formatDuration(sec)}</span>
+      )}
     </p>
+    {costsOpen && <CostDialog token={token} pack={pack} onClose={() => setCostsOpen(false)} />}
+    </>
   );
 }
 
 /** The face check: the cast as the user sees it (swap a face, retry), then "Approve faces". */
-function FaceCheck({ token, pack, onApprove }: Omit<Props, 'onDelete'>) {
+function FaceCheck({ token, pack, onApprove }: Pick<Props, 'token' | 'pack' | 'onApprove'>) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const approve = async () => {
@@ -53,18 +73,58 @@ function FaceCheck({ token, pack, onApprove }: Omit<Props, 'onDelete'>) {
       <CastPanel token={token} workspaceId={pack.workspaceId} />
       {error && <p role="alert" className="text-[13px] text-app-danger">{error}</p>}
       <button type="button" onClick={() => void approve()} disabled={busy} className="min-h-11 w-full rounded-xl bg-app-ink px-4 text-[14px] font-semibold text-app-bg shadow-sm transition active:scale-95 disabled:opacity-50 sm:w-auto">
-        {busy ? 'Starting…' : 'Faces look good: make the posts'}
+        {busy ? 'Starting…' : 'Avatar looks good: make the posts'}
       </button>
     </div>
   );
 }
 
+/** The review step: check and edit the 14 posts in the user's calendar, then make the videos and open the link. */
+function ReviewActions({ token, pack, onGenerate }: Pick<Props, 'token' | 'pack' | 'onGenerate'>) {
+  const { openAsUser, error: openError } = useImpersonation(token, pack.workspaceId);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const generate = async () => {
+    setBusy(true);
+    setError(null);
+    await onGenerate(pack.id).catch((err: unknown) => setError(err instanceof Error ? err.message : 'Could not generate.'));
+    setBusy(false);
+  };
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={() => openAsUser(`/slideshow/${pack.workspaceId}`)} className={button}>Review in user calendar ↗</button>
+        <button type="button" onClick={() => void generate()} disabled={busy} className="min-h-11 rounded-xl bg-app-ink px-4 text-[13px] font-semibold text-app-bg shadow-sm transition active:scale-95 disabled:opacity-50">
+          {busy ? 'Starting…' : 'Generate calendar'}
+        </button>
+      </div>
+      {(error ?? openError) && <p role="alert" className="text-[13px] text-app-danger">{error ?? openError}</p>}
+    </div>
+  );
+}
+
+/** "See progress" (or what failed): opens the tasks panel. */
+function TasksButton({ token, pack }: { token: string; pack: ProspectPackDto }) {
+  const [open, setOpen] = useState(false);
+  const busy = pack.status === 'queued' || pack.status === 'building' || pack.status === 'making' || pack.status === 'generating';
+  const label = pack.status === 'failed' ? 'See what failed' : busy ? 'See progress' : 'Details';
+  return (
+    <>
+      <button type="button" onClick={() => setOpen(true)} className={`${button} ${pack.status === 'failed' ? 'text-app-danger' : ''}`}>{label}</button>
+      {open && <TasksPanel token={token} pack={pack} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
 /** One prospect: status, progress and cost, then what the admin can do at this point. */
-export function ProspectRow({ token, pack, onApprove, onDelete }: Props) {
+export function ProspectRow({ token, pack, hideCost, onApprove, onDelete, onGenerate, onReopen }: Props) {
   const status = STATUS[pack.status];
   const link = typeof window === 'undefined' ? prospectPath(pack.shareToken) : `${window.location.origin}${prospectPath(pack.shareToken)}`;
   const remove = () => {
     if (window.confirm(`Delete the pack for ${pack.name}? The link stops working and its workspace goes to the trash.`)) void onDelete(pack.id);
+  };
+  const reopen = () => {
+    if (window.confirm(`Send ${pack.name} back to review? The link stops working until you tap Generate calendar again.`)) void onReopen(pack.id);
   };
   return (
     <li className="space-y-3 rounded-xl border border-app-line bg-app-panel p-4 shadow-sm">
@@ -75,10 +135,14 @@ export function ProspectRow({ token, pack, onApprove, onDelete }: Props) {
         </div>
         <span className={`shrink-0 rounded-md px-2 py-1 text-[11px] font-bold uppercase ${status.tone}`}>{status.label}</span>
       </div>
-      <Progress pack={pack} />
+      <Progress token={token} pack={pack} hideCost={hideCost} />
+      <OpensLine pack={pack} />
       {pack.error && <p className="text-[12px] text-app-danger">{pack.error}</p>}
       {pack.status === 'faces' && <FaceCheck token={token} pack={pack} onApprove={onApprove} />}
+      {pack.status === 'review' && <ReviewActions token={token} pack={pack} onGenerate={onGenerate} />}
       <div className="flex flex-wrap gap-2">
+        <TasksButton token={token} pack={pack} />
+        <a href={`/admin/workspaces/${pack.workspaceId}#brand`} target="_blank" rel="noopener noreferrer" className={`${button} inline-flex items-center`}>Brand extraction ↗</a>
         {(pack.status === 'ready' || pack.status === 'claimed') && (
           <>
             <a href={link} target="_blank" rel="noopener noreferrer" className={`${button} inline-flex items-center`}>Open link ↗</a>
@@ -86,6 +150,7 @@ export function ProspectRow({ token, pack, onApprove, onDelete }: Props) {
             <CopyButton label="Copy DM" text={prospectDm(pack.name, link)} />
           </>
         )}
+        {pack.status === 'ready' && <button type="button" onClick={reopen} className={button}>Back to review</button>}
         {pack.status !== 'claimed' && <button type="button" onClick={remove} className={`${button} text-app-danger`}>Delete</button>}
       </div>
     </li>

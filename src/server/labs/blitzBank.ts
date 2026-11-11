@@ -26,13 +26,17 @@ import { contentWords, wordOverlap } from '../slideshow/core/copyGuards';
 import { STAGES, STAGE_FORMATS, STAGE_HOOKS, STAGE_TARGET, WEEK_MIX, orderByStage, totalQuota, type Stage, type StoryFormat } from './blitzFormats';
 import { writeTriggerBank, type CampaignGoal, type TriggerBank } from './blitzCampaign';
 import { NO_LEARNING, loadLearning, scoreOf, type BlitzLearning } from './blitzLearning';
-import { briefProofNote, deckFromScripts, loadWebsiteSource, photoBrand, type BriefScript } from './websiteDeck';
+import { briefProofNote, deckFromScripts, loadWebsiteSource, photoBrandFor, type BriefScript } from './websiteDeck';
 import { writeStories } from './blitzStoryWriter';
 import { categoriesForAudience } from '../slideshow/core/audienceCategories';
 import type { DeckItem } from '../slideshow/core/deckAssembly';
 import { workspaceRunId } from './workspaceRun';
-import { writeStoryPhotos, type StoryPhotos } from './blitzStoryPhotos';
+import type { StoryPhotos } from './blitzStoryPhotos';
+import { backfillStoryPhotos, batchStoryPhotos, carryPhotos, updateBankContent } from './blitzBankPhotos';
 import { finishIdeaCards } from './ideaFinish';
+import { getsPaidImages, PAID_LIKE_FREE } from '../slideshow/core/imageNeeds';
+import { isOpenProspect } from '../prospects/openPack';
+import { holdPreviewImages, plannedIdeas } from './packPreviews';
 
 type BankHook = { archetype: HookArchetype; text: string };
 type BankStory = {
@@ -213,8 +217,9 @@ async function build(brandProfileId: string, source: WebsiteSource, onEnough?: (
   try {
     const week = (await writeAudiences(source, WEEK_MIX[0]!, undefined, NO_LEARNING, progress)).filter((a) => a.stories.length > 0);
     console.log(`[BlitzBank] profile ${brandProfileId}: first week (${storyCount({ audiences: week })} stories) in ${Date.now() - t0}ms`);
+    // An unclaimed Prospect Pack shows one week of Blitz ideas: the rest is written by the first batch after the claim.
     const rest = missingByStage({ audiences: week }, new Map(), STAGE_TARGET);
-    const later = await writeAudiences(source, rest, { audiences: week }, NO_LEARNING, (audiences) => progress(merged(week, audiences)));
+    const later = (await isOpenProspect(source.workspaceId)) ? [] : await writeAudiences(source, rest, { audiences: week }, NO_LEARNING, (audiences) => progress(merged(week, audiences)));
     const audiences = merged(week, later).filter((a) => a.stories.length > 0);
     await saving;
     if (audiences.length === 0) throw new Error('No Blitz story could be written for this site');
@@ -261,7 +266,9 @@ export async function blitzBankReady(workspaceId: string): Promise<boolean> {
 /** Builds the workspace's bank ahead of its first ideas (`onEnough`: see build). Never throws (it runs in the background). */
 export async function prepareBlitzBank(workspaceId: string, onEnough?: () => void): Promise<void> {
   try {
-    await ensureBlitzBank(await workspaceRunId(workspaceId), { onEnough });
+    const studioRunId = await workspaceRunId(workspaceId);
+    await ensureBlitzBank(studioRunId, { onEnough });
+    await backfillPhotos(studioRunId, workspaceId, await loadWebsiteSource(studioRunId));
   } catch (err) {
     console.error(`[BlitzBank] not prepared for workspace ${workspaceId}:`, err instanceof Error ? err.message : err);
   }
@@ -360,7 +367,8 @@ async function growIfSpent(studioRunId: string, workspaceId: string, target: Rec
     try {
       const audiences = await writeAudiences(await loadWebsiteSource(studioRunId), missing, content, learning);
       const next: BlitzBankContent = { audiences: audiences.filter((a) => a.stories.length > 0) };
-      await prisma.blitzScriptBank.update({ where: { brandProfileId }, data: { content: next as unknown as Prisma.InputJsonValue } });
+      // Photo prompts saved while these stories were written (batch time, backfill) are kept.
+      await updateBankContent(brandProfileId, (current) => carryPhotos(next, current));
       console.log(`[BlitzBank] grew profile ${brandProfileId} by ${JSON.stringify(missing)}: ${next.audiences.map((a) => `${a.idc}×${a.stories.length}`).join(', ')}`);
     } finally {
       await prisma.blitzScriptBank.update({ where: { brandProfileId }, data: { status: 'ready' } });
@@ -370,38 +378,75 @@ async function growIfSpent(studioRunId: string, workspaceId: string, target: Rec
   }
 }
 
-/** Unused stories given photo prompts per run (new stories are written without them). */
-const PHOTO_BACKFILL = 60;
+/** Claims a ready bank for an edit, waiting while another request writes to it. False when it stays busy or does not exist. */
+async function claimForEdit(brandProfileId: string): Promise<boolean> {
+  const deadline = Date.now() + MAX_WAIT_MS;
+  for (;;) {
+    const { count } = await prisma.blitzScriptBank.updateMany({
+      where: { brandProfileId, OR: [{ status: 'ready' }, { status: 'growing', updatedAt: { lt: staleBefore() } }] },
+      data: { status: 'growing' },
+    });
+    if (count === 1) return true;
+    const row = await prisma.blitzScriptBank.findUnique({ where: { brandProfileId }, select: { status: true } });
+    if (!row || row.status === 'failed' || Date.now() > deadline) return false;
+    await sleep(WAIT_POLL_MS);
+  }
+}
 
-/** Photo prompts for the next unused stories that lack them (so batches only render images). Never throws. */
-async function backfillPhotos(studioRunId: string, workspaceId: string, source: WebsiteSource): Promise<void> {
+/**
+ * Makes the bank match an edited list of client types: stories of a removed one stop being picked at once, and a new one
+ * gets a week of stories, so the next batch already speaks to it. No bank yet: it is built from the new list anyway.
+ * Busy for too long: the next top-up still rebuilds the audiences from the list. Never throws (it runs after the response).
+ */
+export async function syncBankAudiences(brandProfileId: string, source: WebsiteSource): Promise<void> {
   try {
-    const brandProfileId = await brandProfileOf(studioRunId);
-    const usage = await storyUsage(workspaceId);
-    const lacking = (c: BlitzBankContent) => c.audiences.flatMap((a) => a.stories.filter((s) => !s.photos && !usage.has(s.id)).map((s) => ({ a, s }))).slice(0, PHOTO_BACKFILL);
-    const before = (await prisma.blitzScriptBank.findUnique({ where: { brandProfileId } }))?.content as unknown as BlitzBankContent | null;
-    if (!before || lacking(before).length === 0) return;
-    const { count } = await prisma.blitzScriptBank.updateMany({ where: { brandProfileId, status: 'ready' }, data: { status: 'growing' } });
-    if (count === 0) return;
+    if (!(await claimForEdit(brandProfileId))) return;
     try {
-      const content = (await prisma.blitzScriptBank.findUniqueOrThrow({ where: { brandProfileId } })).content as unknown as BlitzBankContent;
-      const todo = lacking(content);
-      const brand = photoBrand(source);
-      await Promise.all(content.audiences.map(async (a) => {
-        const mine = todo.filter((t) => t.a === a).map((t) => t.s);
-        if (mine.length === 0) return;
-        const photos = await writeStoryPhotos(brand, a.idc, a.categories, mine);
-        mine.forEach((s) => { s.photos = photos.get(s.id); });
+      const briefs = websiteEngine.briefs(source);
+      const keep = new Set(briefs.map((b) => b.idc));
+      let known = new Set<string>();
+      await updateBankContent(brandProfileId, (content) => {
+        known = new Set(content.audiences.map((a) => a.idc));
+        return { audiences: content.audiences.filter((a) => keep.has(a.idc)) };
+      });
+      const added = briefs.filter((b) => !known.has(b.idc));
+      if (added.length === 0) return;
+      const field = source.profile.market.targetCustomerIndustries;
+      const only: WebsiteSource = {
+        ...source,
+        profile: { ...source.profile, market: { ...source.profile.market, targetCustomerIndustries: { ...field, value: added.map((b) => b.idc), evidence: added.map((b) => b.idcEvidence) } } },
+      };
+      const written = (await writeAudiences(only, WEEK_MIX[0]!)).filter((a) => a.stories.length > 0);
+      await updateBankContent(brandProfileId, (content) => ({
+        audiences: [...content.audiences, ...written.map((a) => ({ ...a, slot: briefs.findIndex((b) => b.idc === a.idc) }))],
       }));
-      await prisma.blitzScriptBank.update({ where: { brandProfileId }, data: { content: content as unknown as Prisma.InputJsonValue } });
-      console.log(`[BlitzBank] photo prompts for ${todo.filter((t) => t.s.photos).length}/${todo.length} story(ies) of profile ${brandProfileId}`);
+      console.log(`[BlitzBank] client types edited on profile ${brandProfileId}: kept ${[...keep].join(', ')}; wrote ${written.map((a) => `${a.idc}×${a.stories.length}`).join(', ')}`);
     } finally {
       await prisma.blitzScriptBank.update({ where: { brandProfileId }, data: { status: 'ready' } });
     }
   } catch (err) {
+    console.error(`[BlitzBank] could not follow the client types edit on profile ${brandProfileId}:`, err instanceof Error ? err.message : err);
+  }
+}
+
+/** Photo prompts for the next unused stories (blitzBankPhotos.ts), so the next batch only renders images. Never throws.
+ *  None for an unclaimed Prospect Pack: it may never have a next batch. */
+async function backfillPhotos(studioRunId: string, workspaceId: string, source: WebsiteSource): Promise<void> {
+  try {
+    if (await isOpenProspect(workspaceId)) return;
+    const brandProfileId = await brandProfileOf(studioRunId);
+    const row = await prisma.blitzScriptBank.findUnique({ where: { brandProfileId }, select: { content: true } });
+    const content = row?.content as unknown as BlitzBankContent | null;
+    if (!content) return;
+    const [usage, brand] = await Promise.all([storyUsage(workspaceId), photoBrandFor(source)]);
+    await backfillStoryPhotos(brandProfileId, content, usage, brand);
+  } catch (err) {
     console.error(`[BlitzBank] photo prompts not backfilled for workspace ${workspaceId}:`, err instanceof Error ? err.message : err);
   }
 }
+
+/** Free batches: cards 1-3 images only, 4-6 library footage (with images where it is weak), 7-9 images only… */
+export const imagesOnlyCard = (script: number) => Math.floor(script / 3) % 2 === 0;
 
 /**
  * A Blitz deck for the workspace's calendar ideas from its bank: one card per story, each week's `quotas` stories per
@@ -429,14 +474,28 @@ export async function bankDeck(workspaceId: string, quotas: Array<Record<Stage, 
   const scripts = pickScripts(content, usage, quotas, learning);
   if (scripts.length === 0) throw new Error('The Blitz Script Bank has no story');
   const scriptsAt = Date.now();
-  const cards = await deckFromScripts(source, scripts, undefined, { later: true });
+  // Free workspaces (2026-10-20 experiment), and paid ones while PAID_LIKE_FREE: 3 cards of images only, then 3 with
+  // library footage, and so on.
+  const paid = await getsPaidImages(workspaceId);
+  // An unpaid workspace pays for images once: its first batch makes them (they are saved to its own library), and every
+  // batch after it reuses those by search and takes stock photos for what is left. Paid workspaces keep making images.
+  const reuseOnly = !paid && opts.topUp !== false;
+  const free = (PAID_LIKE_FREE || !paid) && !reuseOnly;
+  // An unclaimed Prospect Pack's preview cards make only their hook image now (packPreviews.ts).
+  const firstPreview = (await isOpenProspect(workspaceId)) ? await plannedIdeas(workspaceId) : null;
+  const deck = await deckFromScripts(source, scripts, undefined, { later: true, allImages: free ? imagesOnlyCard : undefined });
+  const cards = firstPreview === null ? deck : holdPreviewImages(deck, firstPreview);
   console.log(`[BlitzBank] deck for workspace ${workspaceId}: scripts ${((scriptsAt - started) / 1000).toFixed(1)}s${short ? ' (stories written first)' : ''}, footage ${((Date.now() - scriptsAt) / 1000).toFixed(1)}s`);
   const ids = cards.flatMap((c) => (c.variantId ? [c.variantId] : []));
-  // After the response: the cards' AI images and caption Auto Fit, and the stories the next batch will need.
+  // After the response: the cards' AI images (their stories' photo prompts from the bank, written now when missing) and
+  // caption Auto Fit, the stories the next batch will need, and those stories' photo prompts (one batch ahead).
   const grow = async () => {
+    const [brand, brandProfileId] = await Promise.all([photoBrandFor(source), brandProfileOf(studioRunId)]);
+    const imaged = cards.flatMap((c) => (c.pendingImages && c.script?.storyId ? [c.script.storyId] : []));
+    const photos = batchStoryPhotos(brandProfileId, content, imaged, brand);
     await Promise.all([
-      finishIdeaCards(ids, workspaceId, photoBrand(source)),
-      opts.topUp === false ? Promise.resolve() : growIfSpent(studioRunId, workspaceId).then(() => backfillPhotos(studioRunId, workspaceId, source)),
+      finishIdeaCards(ids, workspaceId, brand, photos, reuseOnly),
+      (opts.topUp === false ? Promise.resolve() : growIfSpent(studioRunId, workspaceId)).then(() => backfillPhotos(studioRunId, workspaceId, source)),
     ]);
   };
   return { cards, grow };

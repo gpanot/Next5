@@ -25,7 +25,7 @@ const statusOf = (show: AutoSlideshowDto): string => {
   const post = show.post;
   if (post?.status === 'posted') return `Posted ${day(post.scheduledAt)}`;
   if (post?.status === 'scheduled') return `Scheduled ${day(post.scheduledAt)}`;
-  return `${show.slides.length} slides · ready`;
+  return show.status === 'ready' ? `${show.slides.length} slides · ready` : 'Preview · first slide';
 };
 
 function Row({ show, face, onOpen, onRetry, retrying }: { show: AutoSlideshowDto; face: Face | null; onOpen: () => void; onRetry?: () => void; retrying: boolean }) {
@@ -35,7 +35,7 @@ function Row({ show, face, onOpen, onRetry, retrying }: { show: AutoSlideshowDto
       <span className="block truncate text-xs text-app-muted">{show.modelName}</span>
     </span>
   );
-  if (show.status === 'ready') {
+  if (show.status === 'ready' || (show.coverOnly && show.slides[0]?.imageUrl)) {
     return (
       <button type="button" onClick={onOpen} aria-label={`Edit ${show.topic}`} className={rowClass}>
         <span className="relative shrink-0">

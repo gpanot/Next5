@@ -95,6 +95,18 @@ describe('renderKeyOf', () => {
   });
 });
 
+describe('text sizes', () => {
+  it('counts a picked size as a slide change, and Normal as none', () => {
+    expect(renderKeyOf({ ...ready(), textSizes: { content: 1.1 } })).not.toBe(renderKeyOf(ready()));
+    expect(renderKeyOf({ ...ready(), textSizes: { content: 1 } })).toBe(renderKeyOf(ready()));
+  });
+
+  it('keeps real sizes only when a draft is saved', () => {
+    expect(parseDraft({ ...ready(), textSizes: { hook: 1.2, content: 1, cta: 9 } }, 5).textSizes).toEqual({ hook: 1.2 });
+    expect(parseDraft(ready(), 5).textSizes).toBeUndefined();
+  });
+});
+
 describe('hookNumber', () => {
   it('reads the count a hook promises, within the content slide limits', () => {
     expect(hookNumber('7 ways to fix your slice')).toBe(7);

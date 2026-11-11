@@ -7,8 +7,10 @@ import { ArticleBody } from './ArticleBody';
 import { ArticleCard } from './ArticleCard';
 import { ArticleCover } from './ArticleCover';
 import { ArticleFaq } from './ArticleFaq';
+import { ArticleSignupCta } from './ArticleSignupCta';
 import { articleJsonLd } from './articleJsonLd';
 import { ArticleToc } from './ArticleToc';
+import { InlineText } from './InlineText';
 
 function Breadcrumbs({ article }: { article: Article }) {
   const section = article.kind === 'guide' ? { label: 'Guides', href: GUIDES_HUB } : { label: 'Blog', href: BLOG_ANCHOR };
@@ -28,13 +30,24 @@ function ArticleHeader({ article }: { article: Article }) {
   return (
     <header>
       <Breadcrumbs article={article} />
-      <h1 className="mt-4 text-[2rem] leading-[1.1] font-extrabold tracking-tight text-balance text-ink md:text-5xl md:leading-[1.05] dark:text-zinc-100">{article.title}</h1>
+      <h1 className="mt-4 font-display text-[2rem] leading-[1.1] font-bold tracking-tight text-balance text-ink md:text-5xl md:leading-[1.05] dark:text-zinc-100">{article.title}</h1>
       <p className="mt-4 text-lg leading-relaxed text-muted dark:text-zinc-400">{article.excerpt}</p>
       <p className="mt-5 text-sm text-muted dark:text-zinc-500">
         By the Next5 team · <time dateTime={updated ?? article.published}>{updated ? `Updated ${formatDate(updated)}` : formatDate(article.published)}</time> · {readMinutes(article)} min read
       </p>
+      {article.answer && <AnswerBox answer={article.answer} />}
       <ArticleCover article={article} sizes="(min-width: 768px) 300px, 60vw" priority className="mt-8 aspect-[16/10] rounded-2xl shadow-sm md:aspect-[16/9]" />
     </header>
+  );
+}
+
+/** The direct answer to the search, above the fold: readers who only need that get it at once. */
+function AnswerBox({ answer }: { answer: string }) {
+  return (
+    <aside aria-label="Short answer" className="mt-6 rounded-2xl border border-line bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+      <p className="text-xs font-bold tracking-wide text-blue-700 uppercase dark:text-blue-300">Short answer</p>
+      <p className="mt-2 text-[17px] leading-[1.6] text-ink dark:text-zinc-100"><InlineText text={answer} /></p>
+    </aside>
   );
 }
 
@@ -50,6 +63,7 @@ export function ArticlePage({ article }: { article: Article }) {
           <ArticleToc blocks={article.blocks} />
           <ArticleBody blocks={article.blocks} />
           {article.faq && article.faq.length > 0 && <ArticleFaq items={article.faq} />}
+          <ArticleSignupCta source={`${article.kind}/${article.slug}`} />
         </article>
         <section aria-labelledby="keep-reading" className="mx-auto mt-20 max-w-6xl">
           <h2 id="keep-reading" className="text-2xl font-extrabold tracking-tight text-ink dark:text-zinc-100">Keep reading</h2>

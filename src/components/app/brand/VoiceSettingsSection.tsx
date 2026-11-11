@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { apiFetch } from '../../../lib/apiClient';
 import type { ProductLineDto, WorkspaceAngleDto } from '../../../types/business/me';
 
@@ -69,9 +69,11 @@ export const VoiceSettingsSection = ({ angles, mentionFrequency, genderFilter, p
   // ── Weight updates (live, no server call until save) ────────────────────
   const [localAngles, setLocalAngles] = useState<WorkspaceAngleDto[]>(angles);
   // Sync when parent sends fresh angles (e.g. after regeneration)
-  useEffect(() => {
+  const [syncedAngles, setSyncedAngles] = useState(angles);
+  if (syncedAngles !== angles) {
+    setSyncedAngles(angles);
     setLocalAngles(angles);
-  }, [angles]);
+  }
 
   const totalWeight = localAngles.reduce((s, a) => s + a.weight, 0);
 

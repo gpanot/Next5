@@ -10,9 +10,11 @@ type Props = {
   idea: IdeaDto;
   onPick: (hookId: string) => Promise<void>;
   onClose: () => void;
-  /** Blitz ideas: the hook + CTA look (Default, White box, TikTok Red), under the first lines. */
+  /** Blitz ideas: the hook title look (Auto, White box, TikTok Red), under the first lines. */
   style?: HookStyleState;
 };
+
+const AUTO_LABEL = { default: 'Auto' };
 
 /** "Hook" under the card: same idea, another first line, and (Blitz) the hook + CTA look. A bottom sheet on phones, a dialog on wider screens. */
 export function HookPicker({ idea, onPick, onClose, style }: Props) {
@@ -50,8 +52,9 @@ export function HookPicker({ idea, onPick, onClose, style }: Props) {
         </ul>
         {style && (
           <section className="space-y-1.5 border-t border-line pt-3 dark:border-zinc-800">
-            <h4 className="text-[10px] font-semibold tracking-widest text-zinc-500 uppercase dark:text-zinc-400">Hook + CTA style</h4>
-            <HookStyleOptions activeId={style.id} onPick={style.set} />
+            <h4 className="text-[10px] font-semibold tracking-widest text-zinc-500 uppercase dark:text-zinc-400">Title style</h4>
+            <p className="text-xs text-muted">Auto picks the look that reads best on each photo.</p>
+            <HookStyleOptions activeId={style.id} onPick={style.set} labels={AUTO_LABEL} />
           </section>
         )}
       </div>

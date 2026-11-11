@@ -68,6 +68,7 @@ Be strict: a hook that states the slides' fix or answer gets curiosity 2 at most
 Return JSON: {"scores":[{"i":number,"curiosity":number,"clarity":number,"fit":number}]}`;
 
 export const CTA_SYSTEM = `You write 3 CTA slides (last slide) for TikTok slideshows of a business. Simple words.
+- Always in English for a US audience, even when the business's site is in another language.
 - title: max 7 words. Names the business and how people really get it (book, join, try free, shop). Say "download" or
   "App Store" only if "Sells" says it is an app.
 - body: max 70 characters, ONE idea. Use at most one claim from "Proven claims", reworded lightly, numbers kept exact.

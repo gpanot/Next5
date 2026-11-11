@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { DEFAULT_POSTING_MODE, ONBOARDING_LAST_STEP, type OnboardingPatch, type OnboardingProfileDto, type OnboardingResponse } from '../../../../types/admin/onboarding';
+import { ONBOARDING_LAST_STEP, type OnboardingPatch, type OnboardingProfileDto, type OnboardingResponse } from '../../../../types/admin/onboarding';
 import { adminFetch } from '../../business/useAdminApi';
 
 export type Direction = 'forward' | 'back';
@@ -55,13 +55,6 @@ export const useOnboarding = (token: string, workspaceId: string) => {
     goTo(step + 1, 'forward', answers);
   }, [goTo, step]);
 
-  /** Skip: nothing answered, except the hands-on screen, which saves its default. */
-  const skip = useCallback(() => {
-    const answers = step === 3 ? { postingMode: DEFAULT_POSTING_MODE } : {};
-    setProfile((p) => (p ? { ...p, ...answers, skippedSteps: [...new Set([...p.skippedSteps, step])] } : p));
-    goTo(step + 1, 'forward', { ...answers, skippedStep: step });
-  }, [goTo, step]);
-
   const back = useCallback(() => goTo(step - 1, 'back', {}), [goTo, step]);
 
   /** Ends the flow. `skippedSteps`: screens passed over by "Jump to my calendar". */
@@ -71,7 +64,7 @@ export const useOnboarding = (token: string, workspaceId: string) => {
     return send(token, `${base}/complete`, 'POST', { skippedSteps, lastStep: step });
   }, [token, base, step]);
 
-  return { phase, profile, step, dir, flowStartedAt, next, skip, back, complete };
+  return { phase, profile, step, dir, flowStartedAt, next, back, complete };
 };
 
 export type OnboardingState = ReturnType<typeof useOnboarding>;

@@ -9,6 +9,7 @@ import type { IdeaDto } from '../../../../types/admin/calendarIdeas';
 import { VideoSheet } from '../../../labs/blitzLab/schedule/VideoSheet';
 import { LabClientProvider } from '../../../labs/LabClientProvider';
 import { createWorkspaceLabClient } from '../../../labs/labClient';
+import { NewCampaignSheet } from '../campaigns/NewCampaignSheet';
 import { IdeasPanel } from '../ideas/IdeasPanel';
 import { useCalendarIdeas, type CalendarIdeasUi } from '../ideas/useCalendarIdeas';
 import { PostQueue } from '../PostQueue';
@@ -27,10 +28,12 @@ import { useAdd, useMonth, useWatchPosts } from './postingHooks';
 import { SlideshowDnd } from './SlideshowDnd';
 import { SlideshowSheet } from './SlideshowSheet';
 import { StatusLegend } from './StatusLegend';
+import { runMakeEstimateMs } from './MakingCountdown';
 import { entriesOf } from './tileModel';
 import { useBlitzOnCalendar } from './useBlitzOnCalendar';
 import { useCampaignsOnCalendar } from './useCampaignsOnCalendar';
-import { useCalendarView, usePins, useTargets } from './useCalendarStore';
+import { useCalendarView, useTargets } from './useCalendarStore';
+import { usePlannedPins } from './usePlannedPins';
 import { useIsWide } from './useIsWide';
 import { useLinkedApproval } from './useLinkedApproval';
 import { useLinkedDay } from './useLinkedDay';
@@ -91,12 +94,12 @@ const useRail = (ui: CalendarIdeasUi | null, ideasHref: string, onRailOpen?: () 
 export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled = false, onRailOpen }: Props) {
   const [approving, setApproving] = useState<string | null>(null);
   const [targets, setTargets] = useTargets(run.id);
-  const [pins, setPins] = usePins(run.id);
+  const [pins, setPins] = usePlannedPins(token, run, onRunChanged);
   const posting = usePosting(token, run.id, onRunChanged);
   useWatchPosts(run, onRunChanged);
   const { adding, error, add } = useAdd(token, run.id, onRunChanged);
   const { month, step, canPrev, canNext } = useMonth(run);
-  const { items: blitz, reload: reloadBlitz } = useBlitzOnCalendar(token, run.workspaceId);
+  const { items: blitz, keptAt, reload: reloadBlitz } = useBlitzOnCalendar(token, run.workspaceId);
   // Campaign posts: planned ones wait for the approval below like ready slideshows; scheduled ones show as posts.
   const campaigns = useCampaignsOnCalendar(token, run.workspaceId);
   const slideshows = useMemo(() => [...run.slideshows, ...campaigns.slideshows], [run.slideshows, campaigns.slideshows]);
@@ -108,6 +111,8 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
     else onOpen(id);
   };
   const [openBlitz, setOpenBlitz] = useState<BlitzScheduleDto | null>(null);
+  /** The Slideshows tab's "Create slideshows": Brand Cast slideshows made into this run, without leaving the Calendar. */
+  const [creatingShows, setCreatingShows] = useState(false);
   // The Calendar stays mounted while another workspace page shows (its "Edit" leads to Content): close the video sheet
   // when it is hidden, so coming back shows the calendar, not a sheet for a video that may have changed.
   useLayoutEffect(() => () => setOpenBlitz(null), []);
@@ -119,8 +124,8 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const [earlier, setEarlier] = useState(false);
   const hasEarlier = month.getTime() === monthOf(new Date()).getTime() && new Date().getDate() > 1;
   const { days, all } = useMemo(
-    () => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins, blitz, campaign: { slideshows: campaigns.slideshows, planned: campaigns.planned }, earlier: earlier && hasEarlier }),
-    [run.slideshows, pending, working, month, targets, pins, blitz, campaigns.slideshows, campaigns.planned, earlier, hasEarlier],
+    () => buildMonth({ slideshows: run.slideshows, pending, working, month, targets, pins, blitz, campaign: { slideshows: campaigns.slideshows, planned: campaigns.planned }, keptAt, earlier: earlier && hasEarlier }),
+    [run.slideshows, pending, working, month, targets, pins, blitz, keptAt, campaigns.slideshows, campaigns.planned, earlier, hasEarlier],
   );
   const counts = monthCounts(days);
   const approve = toApprove(all);
@@ -168,7 +173,9 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const openAll = useCallback(() => setApproving(ALL), []);
   useLinkedApproval({ pins, setPins, toApproveCount, openAll });
   const ideasOn = (day: PlanDay) => ui?.byDay.get(day.key) ?? [];
-  const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day), run.startedAt);
+  // The same wait the Campaigns grid shows: one estimate for the run, not a fixed two minutes.
+  const makingTotalMs = runMakeEstimateMs(run);
+  const entriesFor = (day: PlanDay) => entriesOf(day, ideasOn(day), run.startedAt, makingTotalMs);
   // A kept idea fills the soonest empty day (no slideshow, video or kept idea yet); only a full calendar stacks days.
   // Times on a day: its posts and kept ideas, plus keeps still being saved (so fast swipes never share a time).
   // Live posts by day, any month: the days past the built ones have no slots, so their posts are counted from here.
@@ -179,7 +186,8 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
   const detail = (day: PlanDay, onBack?: () => void) => (
     <DayDetail key={day.key} day={day} entries={entriesFor(day)} taken={takenOn(day)} ideas={ui?.ideas ?? null} maker={ui?.maker ?? null}
       onOpen={openShow} onOpenBlitz={setOpenBlitz} onSetCount={onSetCount} onOpenIdea={rail.openIdea} onBack={onBack}
-      approveCount={toApprove([day]).length + videosOn(day.key).length} onApprove={() => setApproving(day.key)} />
+      approveCount={toApprove([day]).length + videosOn(day.key).length} onApprove={() => setApproving(day.key)}
+      slideshows={{ token, waiting: campaigns.waiting, loaded: campaigns.loaded, onCreate: () => setCreatingShows(true) }} />
   );
   const approval = approving ? approvalOf(approving) : null;
   const selected = all.concat(days).find((d) => d.key === rail.selectedKey) ?? null;
@@ -243,6 +251,11 @@ export function PostingCalendar({ token, run, onOpen, onRunChanged, ideasEnabled
           onMove={(at) => moveShow(openReady.show.id, dayKey(at))}
           onDone={() => { onRunChanged(); campaigns.reload(); }}
           onClose={() => setOpenReadyId(null)} />
+      )}
+      {creatingShows && run.workspaceId && (
+        <NewCampaignSheet token={token} workspaceId={run.workspaceId} brandRunId={run.id} brandOnly creatingHooks={false} onHooksVolume={() => setCreatingShows(false)}
+          onBrandCastCreated={() => { setCreatingShows(false); onRunChanged(); }}
+          onClose={() => setCreatingShows(false)} />
       )}
       {approval && <ApproveSheet token={token} run={run} items={approval.items} videos={approval.videos} onVideosChanged={reloadBlitz} posting={posting} onClose={() => { setApproving(null); onRunChanged(); campaigns.reload(); }} />}
     </section>

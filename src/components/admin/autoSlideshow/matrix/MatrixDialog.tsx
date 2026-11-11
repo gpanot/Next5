@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { BankCta, BankMatrixDto, BankUseDto } from '../../../../types/admin/slideshowBank';
+import { liveBank } from '../../../../types/admin/slideshowBank';
 import { useAdminApi } from '../../business/useAdminApi';
 import { MeatCard } from './MeatCard';
 import { indexUses, type HookFilter, type OpenUse, type UseIndex } from './matrixUse';
@@ -46,7 +47,7 @@ function CtaList({ ctas, uses, runId, onOpen }: { ctas: BankCta[]; uses: UseInde
 export function MatrixBody({ matrix, runId, onOpen }: { matrix: BankMatrixDto; runId: string; onOpen: OpenUse }) {
   const [filter, setFilter] = useState<HookFilter>('all');
   const uses = useMemo(() => indexUses(matrix.used), [matrix.used]);
-  const bank = matrix.bank;
+  const bank = matrix.bank && liveBank(matrix.bank);
   if (!bank) return <p className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted dark:border-zinc-700">The matrix is made with the first slideshows. Come back once they are planned.</p>;
   const combos = bank.meats.reduce((n, m) => n + bank.hooks.filter((h) => h.meatId === m.id).length, 0) * bank.ctas.length;
   const usedCombos = new Set(matrix.used.map((u) => `${u.meatId}|${u.hookId}|${u.ctaId}`)).size;

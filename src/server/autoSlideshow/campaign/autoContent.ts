@@ -18,9 +18,15 @@ import {
   type AutoContentRequest,
   type AutoFormat,
 } from '../../../types/admin/slideshowCampaign';
+import { recordCost } from '../../costs/ledger';
 import { HttpError } from '../../http';
+import { openAiCostMicros } from '../../metaAds/cost';
 import { metaAdsJson } from '../../metaAds/llm';
 import { clip } from '../../metaAds/text';
+import { PLAN_SCENE_RULES } from '../photoRules';
+
+/** The photo plan's scene rules (photoRules.ts), so Hooks Volume photos are as clean as Brand Cast's. */
+const SCENE_RULES = PLAN_SCENE_RULES.map((rule) => `- ${rule}`).join('\n');
 
 const TONES: Record<AutoContentRequest['tone'], string> = {
   plain: 'plain and clear, like a friend explaining',
@@ -38,7 +44,9 @@ come right after it and must deliver exactly what the hook promises. Simple word
   Never invent studies, statistics or percentages.
 - Every hook line below opens its own slideshow with these same slides, so the slides must fit all of them.
 - scenes: for each slide, one sentence describing a real-looking background photo that shows the slide's subject.
-  Bright daytime light, natural framing, seen from the side or behind. Never night, dusk or moody light. No text, no close-up faces.
+  Bright daytime light. Never night, dusk or moody light. No text. When a person is in it, call them "the main person"
+  (the same person on every slide); never describe their face or body.
+{SCENE_RULES}
 - queries: for each slide, a 2-4 word stock photo search for that background (concrete things, not ideas).
 - cover_scene and cover_query: one photo that fits every slide at once.
 Return JSON: {"titles":[string],"scenes":[string],"queries":[string],"cover_scene":string,"cover_query":string}`;
@@ -72,23 +80,31 @@ const strings = (v: unknown, max: number): string[] => (Array.isArray(v) ? v.map
 
 /** The model behind "Search the web" (the user's pick, 2026-10-11): it supports the web_search tool. */
 const RESEARCH_MODEL = 'gpt-6.1-sol';
+/** OpenAI web_search tool: $10 per 1,000 searches. */
+const WEB_SEARCH_MICROS = 10_000;
 
 /** Facts and numbers about the topic from a web search (OpenAI Responses API, web_search tool). */
 const research = async (topic: string): Promise<string> => {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new HttpError(503, 'research_unavailable', 'Web search is not set up. Turn Research off.');
+  const model = process.env.CAMPAIGN_RESEARCH_MODEL ?? RESEARCH_MODEL;
   const res = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     signal: AbortSignal.timeout(90_000),
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
     body: JSON.stringify({
-      model: process.env.CAMPAIGN_RESEARCH_MODEL ?? RESEARCH_MODEL,
+      model,
       tools: [{ type: 'web_search' }],
       input: `Search the web and list 8-12 short, accurate facts with numbers (and their source site) for TikTok slides about: ${topic}`,
     }),
   });
   if (!res.ok) throw new HttpError(502, 'research_failed', 'Web search failed. Try again, or turn Research off.');
-  const data = (await res.json()) as { output?: { type?: string; content?: { type?: string; text?: string }[] }[] };
+  const data = (await res.json()) as {
+    output?: { type?: string; content?: { type?: string; text?: string }[] }[];
+    usage?: { input_tokens?: number; output_tokens?: number };
+  };
+  const searches = (data.output ?? []).filter((o) => o.type === 'web_search_call').length;
+  recordCost({ provider: 'openai', model, usdMicros: openAiCostMicros(model, data.usage?.input_tokens ?? 0, data.usage?.output_tokens ?? 0) + searches * WEB_SEARCH_MICROS });
   const text = (data.output ?? []).flatMap((o) => (o.type === 'message' ? (o.content ?? []) : [])).map((c) => (c.type === 'output_text' ? c.text ?? '' : '')).join('\n');
   return clip(text.trim(), 6_000);
 };
@@ -117,7 +133,7 @@ export const writeAutoContent = async (req: AutoContentRequest, hooks: string[],
   const [min, max] = AUTO_LENGTH_WORDS[req.length];
   const fixed = autoSlideCount(hooks);
   const most = Math.max(AUTO_MIN_SLIDES, Math.min(AUTO_MAX_SLIDES, maxSlides));
-  const system = SYSTEM.replace('{COUNT}', countRule(fixed, most)).replace('{MIN}', String(min)).replace('{MAX}', String(max)).replace('{TONE}', TONES[req.tone]);
+  const system = SYSTEM.replace('{SCENE_RULES}', SCENE_RULES).replace('{COUNT}', countRule(fixed, most)).replace('{MIN}', String(min)).replace('{MAX}', String(max)).replace('{TONE}', TONES[req.tone]);
   let problem = '';
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     const raw = await metaAdsJson<Raw>(

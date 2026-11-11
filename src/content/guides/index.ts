@@ -1,18 +1,50 @@
 import { bestTimeToPostTikTok } from './articles/bestTimeToPostTikTok';
 import { chatgptForSocialMedia } from './articles/chatgptForSocialMedia';
+import { christmasSocialMediaPostIdeas } from './articles/christmasSocialMediaPostIdeas';
+import { comingSoonRealEstatePost } from './articles/comingSoonRealEstatePost';
 import { facelessTikTokIdeas } from './articles/facelessTikTokIdeas';
+import { facelessTikTokShop } from './articles/facelessTikTokShop';
 import { guideFillCalendar } from './articles/guideFillCalendar';
 import { guideFirstSlideshows } from './articles/guideFirstSlideshows';
 import { guideReadAnalytics } from './articles/guideReadAnalytics';
+import { howToGetLeadsFromTikTok } from './articles/howToGetLeadsFromTikTok';
 import { howToMakeTikTokSlideshow } from './articles/howToMakeTikTokSlideshow';
 import { howToSellOnTikTokShop } from './articles/howToSellOnTikTokShop';
+import { hvacSocialMediaMarketing } from './articles/hvacSocialMediaMarketing';
+import { instagramPostIdeasForSmallBusiness } from './articles/instagramPostIdeasForSmallBusiness';
 import { marketingIdeasSmallBusiness } from './articles/marketingIdeasSmallBusiness';
+import { openHouseSocialMediaPost } from './articles/openHouseSocialMediaPost';
+import { realEstateInstagramCaptions } from './articles/realEstateInstagramCaptions';
+import { smallBusinessSaturdayPostIdeas } from './articles/smallBusinessSaturdayPostIdeas';
+import { realEstateSocialMediaStatistics } from './articles/realEstateSocialMediaStatistics';
 import { socialMediaContentCalendar } from './articles/socialMediaContentCalendar';
+import { socialMediaForAutoRepairShops } from './articles/socialMediaForAutoRepairShops';
+import { socialMediaForCleaningBusiness } from './articles/socialMediaForCleaningBusiness';
+import { socialMediaForGyms } from './articles/socialMediaForGyms';
+import { socialMediaForHairSalons } from './articles/socialMediaForHairSalons';
 import { socialMediaForRealtors } from './articles/socialMediaForRealtors';
+import { socialMediaForRestaurants } from './articles/socialMediaForRestaurants';
 import { socialMediaManagerCost } from './articles/socialMediaManagerCost';
 import { socialMediaMarketingSmallBusiness } from './articles/socialMediaMarketingSmallBusiness';
+import { tiktokCommercialSounds } from './articles/tiktokCommercialSounds';
+import { tiktokForPlumbers } from './articles/tiktokForPlumbers';
+import { tiktokHashtagsForBusiness } from './articles/tiktokHashtagsForBusiness';
 import { tiktokHooks } from './articles/tiktokHooks';
-import type { Article, ArticleBlock, ArticleKind } from './types';
+import { tiktokSlideshowMaker } from './articles/tiktokSlideshowMaker';
+import { whatToPostOnTikTokAsARealtor } from './articles/whatToPostOnTikTokAsARealtor';
+import type { Article, ArticleBlock, ArticleHub, ArticleKind } from './types';
+
+/** Short topic label shown on cards. */
+export const HUB_LABELS: Record<ArticleHub, string> = {
+  'post-ideas': 'Post ideas',
+  'how-to': 'How-to',
+  'get-customers': 'Get customers',
+  'cost-alternatives': 'Costs',
+  industry: 'By industry',
+  realtors: 'Realtors',
+  'tiktok-shop': 'TikTok Shop',
+  product: 'Next5',
+};
 
 /** Step-by-step guides to Next5 itself, in reading order. */
 export const GUIDES: readonly Article[] = [guideFirstSlideshows, guideFillCalendar, guideReadAnalytics];
@@ -23,13 +55,33 @@ export const BLOG_POSTS: readonly Article[] = [
   socialMediaMarketingSmallBusiness,
   socialMediaContentCalendar,
   bestTimeToPostTikTok,
+  tiktokHashtagsForBusiness,
+  tiktokCommercialSounds,
   howToSellOnTikTokShop,
+  facelessTikTokShop,
   socialMediaForRealtors,
+  realEstateSocialMediaStatistics,
+  comingSoonRealEstatePost,
+  openHouseSocialMediaPost,
+  realEstateInstagramCaptions,
   marketingIdeasSmallBusiness,
+  christmasSocialMediaPostIdeas,
+  smallBusinessSaturdayPostIdeas,
   tiktokHooks,
   socialMediaManagerCost,
   facelessTikTokIdeas,
   chatgptForSocialMedia,
+  socialMediaForRestaurants,
+  socialMediaForGyms,
+  socialMediaForHairSalons,
+  tiktokForPlumbers,
+  hvacSocialMediaMarketing,
+  tiktokSlideshowMaker,
+  socialMediaForAutoRepairShops,
+  whatToPostOnTikTokAsARealtor,
+  instagramPostIdeasForSmallBusiness,
+  socialMediaForCleaningBusiness,
+  howToGetLeadsFromTikTok,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];
@@ -41,7 +93,14 @@ export const articleHref = ({ kind, slug }: Pick<Article, 'kind' | 'slug'>): str
 
 export const findArticle = (kind: ArticleKind, slug: string): Article | undefined => ALL_ARTICLES.find((a) => a.kind === kind && a.slug === slug);
 
-export const coverSrc = (article: Pick<Article, 'cover'>): string => `/images/auto-slideshow/${article.cover}/1.jpg`;
+const isGeneratedCover = (cover: string): boolean => cover.startsWith('/images/');
+
+export const coverSrc = (article: Pick<Article, 'cover'>): string =>
+  isGeneratedCover(article.cover) ? article.cover : `/images/auto-slideshow/${article.cover}/1.jpg`;
+
+/** Pixel size of the cover file: generated covers are 1024x1280, slideshow slides 1080x1350. */
+export const coverSize = (article: Pick<Article, 'cover'>): { width: number; height: number } =>
+  isGeneratedCover(article.cover) ? { width: 1024, height: 1280 } : { width: 1080, height: 1350 };
 
 const blockText = (block: ArticleBlock): string => {
   switch (block.type) {
@@ -66,10 +125,11 @@ export const readMinutes = (article: Article): number => {
   return Math.max(1, Math.round(text.split(/\s+/).length / 200));
 };
 
-/** Up to `count` other articles: same kind first, then the rest. */
+/** Up to `count` other articles: same hub first, then same kind, then the rest. */
 export const relatedArticles = (article: Article, count = 3): Article[] => {
   const others = ALL_ARTICLES.filter((a) => a.slug !== article.slug);
-  return [...others.filter((a) => a.kind === article.kind), ...others.filter((a) => a.kind !== article.kind)].slice(0, count);
+  const rank = (a: Article): number => (a.hub === article.hub ? 0 : a.kind === article.kind ? 1 : 2);
+  return [...others].sort((a, b) => rank(a) - rank(b)).slice(0, count);
 };
 
 export const formatDate = (iso: string): string =>

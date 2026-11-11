@@ -15,7 +15,7 @@ type Ctx = { params: Promise<{ id: string }> };
  * POST /api/admin/brand-cast/[id] — "swap" gives this slot a new person and parks the old one in the archive, following
  * the "New face" dialog (multipart: action, note, file = a reference photo of the person);
  * { action: "edit", name, age }; { action: "restore", replace? } brings an archived face back (in place of `replace`
- * when the cast is full); { action: "delete" } deletes an archived face;
+ * when the cast is full); { action: "delete" } deletes an archived face; { action: "archive" } parks an active face;
  * { action: "retry" } makes the same person's photo again; { action: "intro" } makes their ~6 s intro video
  * (Veo 3.1 with its own voice, about a minute; 1 credit, free in an "Open as user" tab). The work follows in the background.
  */

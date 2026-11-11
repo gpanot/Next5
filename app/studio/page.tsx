@@ -42,6 +42,7 @@ export default function StudioPage() {
     const bookingIdParam = params.get('bookingId');
     const emailParam = params.get('email');
     if (emailParam) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- URL params and localStorage are read after hydration
       setPrefillEmail(decodeURIComponent(emailParam));
       const url = new URL(window.location.href);
       url.searchParams.delete('email');
@@ -118,6 +119,7 @@ export default function StudioPage() {
   // Fetch bookings once authenticated
   useEffect(() => {
     if (auth.phase !== 'authenticated') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset to loading when a new session starts fetching
     setStudio({ phase: 'loading' });
     loadBookings(auth.token);
   }, [auth, loadBookings]);

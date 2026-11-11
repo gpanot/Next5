@@ -4600,5 +4600,378 @@
     "bytes": 7145,
     "alt": "Get it on Google Play",
     "addedAt": "2026-10-14T05:12:07.495Z"
+  },
+  "public/images/guides/coming-soon-real-estate-post.png": {
+    "prompt": "A real estate agent in his 40s in a light blazer stands on the front lawn of a two-story American suburban home, holding a phone up to photograph the house, a white wooden yard sign on a post in the foreground reads COMING SOON. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 883460,
+    "alt": "Realtor photographing a house behind a Coming Soon yard sign",
+    "generatedAt": "2026-10-28T07:21:32.116Z"
+  },
+  "public/images/guides/social-media-for-gyms.png": {
+    "prompt": "A coach in his 30s films a client doing a kettlebell swing on his phone inside a small independent gym with rubber floors, a rack of kettlebells and a rowing machine, the client a woman in her 30s mid-swing. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 861686,
+    "alt": "Gym coach filming a client's kettlebell swing on his phone",
+    "generatedAt": "2026-10-28T07:21:50.128Z"
+  },
+  "public/images/guides/social-media-for-hair-salons.png": {
+    "prompt": "A hair stylist in her 30s takes a phone photo of the back of a client's fresh haircut, the client seated in the salon chair, mirror, brushes and blow-dryer on the station, front window of the neighborhood salon behind. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 781425,
+    "alt": "Stylist taking a phone photo of a client's finished haircut in the salon chair",
+    "generatedAt": "2026-10-28T07:21:49.304Z"
+  },
+  "public/images/og/home/booking-ugc.jpg": {
+    "prompt": "Frame at 1.2s of public/videos/perfect-ads/booking-ugc.mp4 (ffmpeg), used as a still in the home page Open Graph card.",
+    "model": "video-frame/ffmpeg",
+    "size": "432x768",
+    "outputSize": "432x768",
+    "bytes": 31410,
+    "alt": "Still from a UGC video about online booking: woman talking to camera at her desk",
+    "generatedAt": "2026-10-22T04:20:00.000Z"
+  },
+  "public/images/og/home/r1.jpg": {
+    "prompt": "Frame at 1.2s of public/videos/perfect-ads/r1.mp4 (ffmpeg), used as a still in the home page Open Graph card.",
+    "model": "video-frame/ffmpeg",
+    "size": "432x768",
+    "outputSize": "432x768",
+    "bytes": 39809,
+    "alt": "Still from a UGC video: person working at a desk in a brick-walled startup office",
+    "generatedAt": "2026-10-22T04:20:00.000Z"
+  },
+  "public/images/og/home/reminders-ugc.jpg": {
+    "prompt": "Frame at 1.2s of public/videos/perfect-ads/reminders-ugc.mp4 (ffmpeg), used as a still in the home page Open Graph card.",
+    "model": "video-frame/ffmpeg",
+    "size": "432x768",
+    "outputSize": "432x768",
+    "bytes": 29218,
+    "alt": "Still from a UGC video about appointment reminders: man talking to camera in a workshop",
+    "generatedAt": "2026-10-22T04:20:00.000Z"
+  },
+  "public/images/guides/tiktok-for-plumbers.png": {
+    "prompt": "A plumber in his 30s in a work shirt kneels under an open kitchen sink in a US home tightening a pipe with a wrench, a phone on a small tripod on the floor beside him filming the repair, toolbox open. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 823305,
+    "alt": "Plumber fixing a pipe under a kitchen sink while a phone on a tripod films the repair",
+    "generatedAt": "2026-10-28T07:21:50.481Z"
+  },
+  "public/images/guides/how-many-hashtags-on-tiktok-for-business.png": {
+    "prompt": "A small business owner in his 30s stands behind the counter of a bright independent coffee shop, typing on a smartphone held in both hands, the screen angled away from the camera, espresso machine and pastries behind. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 898472,
+    "alt": "Coffee shop owner typing a caption on his phone behind the counter",
+    "generatedAt": "2026-10-28T07:21:19.056Z"
+  },
+  "public/images/guides/social-media-for-restaurants.png": {
+    "prompt": "A cook in a white apron plating a finished pasta dish on the stainless steel pass of a small neighborhood restaurant kitchen, warm plated food in focus, bright daylight coming from a side window, clean counter, realistic documentary photo, 4:5",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 488819,
+    "alt": "Cook in a white apron finishing a plate of spaghetti on the stainless steel pass of a small restaurant kitchen, daylight from a window",
+    "generatedAt": "2026-10-25T01:22:42.767Z"
+  },
+  "public/images/guides/open-house-social-media-post-ideas.png": {
+    "prompt": "Real estate agent in a blazer placing a white OPEN HOUSE yard sign into the front lawn of a suburban American home, bright midday daylight, green lawn, porch and front door visible behind, realistic documentary photograph, 4:5 vertical",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 586802,
+    "alt": "Real estate agent placing an OPEN HOUSE yard sign on the front lawn of a suburban home in bright daylight",
+    "generatedAt": "2026-10-26T01:06:17.656Z"
+  },
+  "public/images/guides/christmas-social-media-post-ideas.png": {
+    "prompt": "A small shop owner holding a phone up to photograph the shop counter, which is decorated for Christmas with a small lit tree, pine garland and a few wrapped gift boxes, bright daylight coming through the storefront window behind, realistic photo, 4:5",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 524721,
+    "alt": "Shop owner photographing a Christmas-decorated shop counter with a phone, a small lit tree and wrapped gifts on the counter, daylight through the storefront window",
+    "generatedAt": "2026-10-27T01:05:50.091Z"
+  },
+  "public/images/guides/first-tiktok-slideshows-with-next5.png": {
+    "prompt": "A bakery owner in her 30s with flour on her apron stands behind the counter of her small neighborhood bakery early in the morning, looking down at a laptop on the counter while choosing photos, trays of fresh bread and croissants beside her. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 801954,
+    "alt": "Bakery owner choosing photos on a laptop behind her counter, fresh bread beside her",
+    "generatedAt": "2026-10-28T07:21:05.593Z"
+  },
+  "public/images/guides/read-your-analytics.png": {
+    "prompt": "A florist in his 40s sits at a small wooden desk in the back room of his flower shop, reading a laptop with a pen and paper notebook open next to it, buckets of fresh tulips and eucalyptus around him. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 804907,
+    "alt": "Florist reading numbers on a laptop at his desk, a notebook and flower buckets around him",
+    "generatedAt": "2026-10-28T07:21:04.922Z"
+  },
+  "public/images/guides/fill-your-30-day-calendar.png": {
+    "prompt": "A clothing boutique owner in her late 20s at a worktable in her shop writing in a large paper monthly planner, colorful sticky notes on the page, a phone and a coffee cup beside it, a rail of clothes in the background. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 849694,
+    "alt": "Boutique owner writing post ideas in a paper monthly planner at her shop worktable",
+    "generatedAt": "2026-10-28T07:21:04.680Z"
+  },
+  "public/images/guides/how-to-make-a-slideshow-on-tiktok.png": {
+    "prompt": "Over-the-shoulder view of a ceramic artist in her 30s photographing a row of handmade glazed mugs on a wooden table with her phone, in her small pottery studio with shelves of pots behind. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 844273,
+    "alt": "Ceramic artist photographing a row of handmade mugs with her phone in her studio",
+    "generatedAt": "2026-10-28T07:21:02.841Z"
+  },
+  "public/images/guides/how-to-get-leads-from-tiktok.png": {
+    "prompt": "Reused from social-media-marketing-for-small-business.png: cover generation was blocked by a DeepInfra billing error, see docs/seo/RUN_LOG.md 2026-11-11.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 795866,
+    "alt": "Bike shop owner taking a phone photo of a repaired bicycle in his shop",
+    "generatedAt": "2026-10-28T07:21:03.080Z"
+  },
+  "public/images/guides/social-media-marketing-for-small-business.png": {
+    "prompt": "The owner of a small bicycle repair shop, a man in his 30s in a work apron, takes a photo with his phone of a freshly repaired bicycle on a stand in his open garage-style shop facing a quiet main street. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 795866,
+    "alt": "Bike shop owner taking a phone photo of a repaired bicycle in his shop",
+    "generatedAt": "2026-10-28T07:21:03.080Z"
+  },
+  "public/images/guides/social-media-content-calendar.png": {
+    "prompt": "Two cafe co-owners, a man and a woman in their 30s, sit at a corner table of their cafe before opening, planning with a printed month calendar sheet, pens and two cups of coffee, chairs still stacked behind them. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 792494,
+    "alt": "Two cafe owners planning a month of posts on a printed calendar before opening",
+    "generatedAt": "2026-10-28T07:21:21.200Z"
+  },
+  "public/images/guides/best-time-to-post-on-tiktok.png": {
+    "prompt": "A food truck owner in her 30s leans on the service counter of her food truck during a quiet moment after the lunch rush, checking her phone, a sunny city street and a parked line of trees behind. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 765588,
+    "alt": "Food truck owner checking her phone at the counter during a quiet moment",
+    "generatedAt": "2026-10-28T07:21:17.240Z"
+  },
+  "public/images/guides/how-to-sell-on-tiktok-shop.png": {
+    "prompt": "A woman in her late 20s packs online orders at her kitchen table at home, small cardboard boxes, tissue paper and a few glass skincare bottles, a stack of shipping labels face down, plants on the windowsill. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 757094,
+    "alt": "Online seller packing skincare orders into boxes at her kitchen table",
+    "generatedAt": "2026-10-28T07:21:20.228Z"
+  },
+  "public/images/guides/social-media-for-realtors.png": {
+    "prompt": "A real estate agent in her 30s films a walkthrough video with a phone on a small handheld gimbal inside an empty, freshly staged living room of an American home, wood floors, big windows, a sofa and a plant. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 750933,
+    "alt": "Realtor filming a walkthrough video with her phone in a staged living room",
+    "generatedAt": "2026-10-28T07:21:19.007Z"
+  },
+  "public/images/guides/what-to-post-on-tiktok-as-a-realtor.png": {
+    "prompt": "Reused from social-media-for-realtors.png: DeepInfra billing blocked generation for this slug on 2026-11-06, so the file is a copy of that cover under its own path per the cover fallback rule.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 750933,
+    "alt": "Realtor filming a walkthrough video with her phone in a staged living room",
+    "generatedAt": "2026-11-06T00:00:00.000Z"
+  },
+  "public/images/guides/marketing-ideas-for-small-business.png": {
+    "prompt": "The owner of a small plant shop, a woman in her 40s, kneels on the sidewalk outside her shop drawing a simple leaf with chalk on a wooden A-frame chalkboard sign, potted plants lining the storefront. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 900391,
+    "alt": "Plant shop owner drawing on a sidewalk chalkboard sign outside her store",
+    "generatedAt": "2026-10-28T07:21:35.292Z"
+  },
+  "public/images/guides/tiktok-hooks-for-small-business.png": {
+    "prompt": "A candle maker in her 30s pours melted wax from a metal pitcher into glass jars on her workbench while a phone on a small tripod films the pour, jars, wicks and labels around her in a small home workshop. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 778848,
+    "alt": "Candle maker filming herself pouring wax into jars with a phone on a tripod",
+    "generatedAt": "2026-10-28T07:21:35.305Z"
+  },
+  "public/images/guides/how-much-does-a-social-media-manager-cost.png": {
+    "prompt": "A landscaping business owner in his 40s sits at his kitchen table in the evening light with a laptop, a printed quote and a calculator, rubbing his chin while thinking, work gloves and a cap on the chair beside him. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 765443,
+    "alt": "Business owner comparing a printed quote and costs on a laptop at his kitchen table",
+    "generatedAt": "2026-10-28T07:21:42.439Z"
+  },
+  "public/images/guides/faceless-tiktok-ideas-for-business.png": {
+    "prompt": "Overhead top-down view of two hands piping frosting onto a row of cupcakes on a marble counter, a phone held on an overhead arm above filming the hands, sprinkles and a piping bag nearby, only hands visible. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 804727,
+    "alt": "Top-down view of hands frosting cupcakes while a phone films from above",
+    "generatedAt": "2026-10-28T07:21:36.708Z"
+  },
+  "public/images/guides/instagram-post-ideas-for-small-business.png": {
+    "prompt": "Reused from faceless-tiktok-ideas-for-business.png (same phone-filming-the-work setup, fits an Instagram post-making topic). DeepInfra returned a 402 billing error on 2 generation attempts for this slug.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 804727,
+    "alt": "Overhead shot of a baker piping frosting on cupcakes while a phone on a tripod records the process for a post",
+    "generatedAt": "2026-10-28T07:21:36.708Z"
+  },
+  "public/images/guides/chatgpt-for-social-media.png": {
+    "prompt": "Over-the-shoulder view of a dog groomer in her 30s in a grooming apron typing on a laptop on the front desk of her small grooming salon, screen out of focus and unreadable, a fluffy freshly groomed dog waiting in the background. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 822036,
+    "alt": "Dog groomer typing on a laptop at her front desk, a groomed dog in the background",
+    "generatedAt": "2026-10-28T07:21:48.485Z"
+  },
+  "public/images/guides/tiktok-commercial-sounds-library.png": {
+    "prompt": "A barber in his small shop, one earbud in, holding his phone and scrolling a list of music while his clippers rest on the counter beside him. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 837792,
+    "alt": "Barber in his shop scrolling a list of music on his phone, clippers resting on the counter",
+    "generatedAt": "2026-10-28T07:43:48.932Z"
+  },
+  "public/images/guides/faceless-tiktok-shop.png": {
+    "prompt": "A small online shop owner at home holding a ceramic mug up to a phone mounted on a small tripod on the dining table, only their hands and the product in the phone frame, a few boxed orders stacked beside them. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 833354,
+    "alt": "Seller seen from behind holding a grey ceramic mug in front of a phone on a tripod, stacked shipping boxes on the table",
+    "generatedAt": "2026-10-29T03:06:15.349Z"
+  },
+  "public/images/guides/small-business-saturday-post-ideas.png": {
+    "prompt": "A small shop owner taping a handwritten \"Shop Small\" sign onto the inside of their storefront window, boxes of inventory nearby, does not look at camera. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 909329,
+    "alt": "Shop owner taping a handwritten Shop Small sign to the inside of their storefront window, boxes of inventory nearby",
+    "generatedAt": "2026-10-30T01:03:07.686Z"
+  },
+  "public/images/guides/hvac-social-media-marketing.png": {
+    "prompt": "HVAC technician kneeling beside an outdoor condenser unit in a residential backyard, checking a gauge with a wrench in hand. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 846833,
+    "alt": "HVAC technician kneeling beside an outdoor condenser unit, checking a gauge during a service call",
+    "generatedAt": "2026-10-31T01:04:38.104Z"
+  },
+  "public/images/guides/social-media-for-auto-repair-shops.png": {
+    "prompt": "Reused from public/images/guides/hvac-social-media-marketing.png: image generation failed (DeepInfra API billing error), cover reused as a fallback per run process, to replace.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 846833,
+    "alt": "A technician in a work uniform kneeling outdoors to repair an HVAC unit with a wrench and gauge",
+    "generatedAt": "2026-10-31T01:04:38.104Z"
+  },
+  "public/images/guides/tiktok-slideshow-maker.png": {
+    "prompt": "A flower shop owner in her 30s stands behind her counter choosing photos on a laptop to turn into a TikTok slideshow, fresh bouquets and a phone propped on a small tripod beside her. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 771492,
+    "alt": "Flower shop owner choosing photos on a laptop for a TikTok slideshow, bouquets on the counter beside her",
+    "generatedAt": "2026-11-01T04:01:56.794Z"
+  },
+  "public/images/guides/real-estate-instagram-captions.png": {
+    "prompt": "A real estate agent standing outside a house with a 'For Sale' sign in the yard, typing a caption into her phone. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 834615,
+    "alt": "Realtor standing by a For Sale sign, typing an Instagram caption into her phone",
+    "generatedAt": "2026-11-02T03:08:48.889Z"
+  },
+  "public/images/guides/real-estate-social-media-statistics.png": {
+    "prompt": "A real estate agent in her 30s in a light blazer stands on the porch of a two-story American suburban house, checking her phone, a white wooden yard sign on a post in the front yard behind her reads FOR SALE. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 805321,
+    "alt": "A real estate agent checks her phone on the front lawn of a house, next to a for sale sign",
+    "generatedAt": "2026-11-03T06:49:10.018Z"
+  },
+  "public/images/prospect/blueprint/cal-poster.jpg": {
+    "prompt": "HyperFrames animation still, website to 14-day calendar",
+    "model": "screenshot/hyperframes",
+    "size": "720x900",
+    "outputSize": "720x900",
+    "alt": "Animation: a website address turns into 14 days of posts, each one approved",
+    "generatedAt": "2026-11-03T07:30:00.000Z"
+  },
+  "public/images/prospect/blueprint/slides-poster.jpg": {
+    "prompt": "HyperFrames animation still, hook and brand slideshows",
+    "model": "screenshot/hyperframes",
+    "size": "720x900",
+    "outputSize": "720x900",
+    "alt": "Animation: a hook slideshow and a brand slideshow, side by side",
+    "generatedAt": "2026-11-03T07:30:00.000Z"
+  },
+  "public/images/prospect/blueprint/formats-poster.jpg": {
+    "prompt": "HyperFrames animation still, mini Blitz and split screen",
+    "model": "screenshot/hyperframes",
+    "size": "720x900",
+    "outputSize": "720x900",
+    "alt": "Animation: a mini Blitz video, then a split screen video",
+    "generatedAt": "2026-11-03T07:30:00.000Z"
+  },
+  "public/images/prospect/blueprint/approve.jpg": {
+    "prompt": "Phone screenshot of the logged-in Next5 approve sheet, supplied by the owner, cropped",
+    "model": "screenshot",
+    "size": "640x942",
+    "outputSize": "640x942",
+    "alt": "Next5 approve screen: pick where a post goes, then approve it",
+    "generatedAt": "2026-11-03T07:45:00.000Z"
+  },
+  "public/images/prospect/blueprint/app-calendar.jpg": {
+    "prompt": "Phone screenshot of the logged-in Next5 calendar, supplied by the owner, cropped",
+    "model": "screenshot",
+    "size": "640x1230",
+    "outputSize": "640x1230",
+    "alt": "Next5 calendar: posts on their days, with one button to approve them all",
+    "generatedAt": "2026-11-03T07:45:00.000Z"
+  },
+  "public/images/guides/social-media-for-cleaning-business.png": {
+    "prompt": "Reused from public/images/guides/hvac-social-media-marketing.png: image generation failed (DeepInfra API billing error, no balance), cover reused as a fallback per run process, to replace.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 846833,
+    "alt": "A home service technician kneeling to work on equipment during a service call at a client home",
+    "generatedAt": "2026-10-31T01:04:38.104Z"
   }
 }

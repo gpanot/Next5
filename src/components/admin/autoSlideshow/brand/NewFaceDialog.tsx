@@ -7,7 +7,10 @@ import { Dialog } from '../../../ui/Dialog';
 
 const MAX_NOTE = 300;
 
-export type NewFaceRequest = { note: string; file: File | null };
+/** "Create an avatar" with a photo: `auto` dresses the person for the brand, `photo` keeps the photo's clothes. */
+export type DressCode = 'auto' | 'photo';
+
+export type NewFaceRequest = { note: string; file: File | null; name?: string; dressCode?: DressCode };
 
 type Props = {
   member: BrandCastMemberDto | null;
@@ -19,8 +22,8 @@ type Props = {
   onSubmit: (request: NewFaceRequest) => void;
 };
 
-/** The photo picked as a reference, shown small with ✕ to remove it. */
-function PhotoPick({ file, onPick, onClear }: { file: File | null; onPick: (f: File) => void; onClear: () => void }) {
+/** The photo picked as a reference, shown small with ✕ to remove it. Also used by the "Create avatar" dialog. */
+export function PhotoPick({ file, onPick, onClear }: { file: File | null; onPick: (f: File) => void; onClear: () => void }) {
   const input = useRef<HTMLInputElement>(null);
   const preview = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
   useEffect(() => () => {

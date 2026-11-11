@@ -390,6 +390,7 @@ const CreateFaceTab = ({ token, onLibraryChanged }: { token: string; onLibraryCh
   // Load drafts from localStorage + refresh their presigned URLs on mount
   useEffect(() => {
     const stored = loadDrafts();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- drafts live in localStorage, read after hydration
     if (stored.length === 0) { setDrafts([]); return; }
     setRefreshingUrls(true);
     void (async () => {
@@ -670,7 +671,7 @@ const CreateFaceTab = ({ token, onLibraryChanged }: { token: string; onLibraryCh
           {refreshingUrls && <Loader2 className="h-3 w-3 animate-spin text-muted" />}
         </div>
         {drafts.length === 0 && !refreshingUrls && (
-          <p className="text-[13px] text-muted">No drafts yet. Generate a portrait and choose "Save as Draft".</p>
+          <p className="text-[13px] text-muted">No drafts yet. Generate a portrait and choose “Save as Draft”.</p>
         )}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {drafts.map((draft) => (

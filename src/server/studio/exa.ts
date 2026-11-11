@@ -4,6 +4,8 @@
  */
 // server-only
 
+import { recordCost } from '../costs/ledger';
+
 export async function exaFetch<T>(endpoint: string, body: object): Promise<T | null> {
   const key = process.env.EXA_API_KEY;
   if (!key) {
@@ -23,7 +25,8 @@ export async function exaFetch<T>(endpoint: string, body: object): Promise<T | n
       console.error(`[studio/exa] ${endpoint} HTTP ${res.status} in ${Date.now() - t0}ms`);
       return null;
     }
-    const data = (await res.json()) as T;
+    const data = (await res.json()) as T & { costDollars?: { total?: number } };
+    recordCost({ provider: 'exa', model: endpoint, usdMicros: (data.costDollars?.total ?? 0) * 1e6 });
     console.log(`[studio/exa] ${endpoint} OK in ${Date.now() - t0}ms`);
     return data;
   } catch (err) {

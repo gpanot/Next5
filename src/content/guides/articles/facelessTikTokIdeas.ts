@@ -8,11 +8,12 @@ export const facelessTikTokIdeas: Article = {
   description: '20 faceless TikTok content ideas for small businesses. Grow on TikTok without showing your face or filming, using slideshows, hands-only clips and screen text.',
   excerpt: 'No camera, no dancing. 20 faceless post ideas that still sell, and the formats that work best.',
   keyword: 'faceless tiktok ideas',
+  hub: 'post-ideas',
   published: '2026-10-18',
-  cover: 'pantry-gaps',
-  coverAlt: 'TikTok slideshow made by Next5: "3 ways to avoid empty gaps (without double-buying)"',
+  cover: '/images/guides/faceless-tiktok-ideas-for-business.png',
+  coverAlt: 'Top-down view of hands frosting cupcakes while a phone films from above',
   blocks: [
-    { type: 'p', text: 'Many owners do not want to be on camera. That is fine. Some of the biggest business accounts on TikTok never show a face. They use photos, text, products and hands.' },
+    { type: 'p', text: 'Many owners do not want to be on camera. That is fine. Some of the biggest business accounts on TikTok never show a face. They use photos, text, products and hands. The same ideas work on Instagram too, see [Instagram post ideas for small business](/blog/instagram-post-ideas-for-small-business) for captions to go with them.' },
     { type: 'h2', text: 'The 4 best faceless formats' },
     { type: 'table', head: ['Format', 'What it looks like', 'Effort'], rows: [
       ['Slideshow', '5 to 9 photos with one line of text each', 'Low'],
@@ -20,7 +21,7 @@ export const facelessTikTokIdeas: Article = {
       ['Screen text video', 'A calm clip with big text on top', 'Low'],
       ['Voiceover', 'Photos or clips with your voice, no face', 'Medium'],
     ] },
-    { type: 'p', text: 'Slideshows are the easiest place to start. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok).' },
+    { type: 'p', text: 'Slideshows are the easiest place to start. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). A voiceover also solves the music problem, since a business account only gets [the Commercial Sounds library](/blog/tiktok-commercial-sounds-library). If you sell products through TikTok Shop, the rules are tighter than they are for the ideas below: see what TikTok allows for a [faceless TikTok Shop](/blog/faceless-tiktok-shop). And once the posts are up, see [how to get leads from TikTok](/blog/how-to-get-leads-from-tiktok) so the views turn into DMs.' },
     { type: 'h2', text: '20 faceless TikTok ideas for businesses' },
     { type: 'h3', text: 'Teach something' },
     { type: 'ol', items: [
@@ -63,7 +64,7 @@ export const facelessTikTokIdeas: Article = {
       'End every post with the same kind of ask.',
     ] },
     { type: 'h2', text: 'Does faceless content sell?' },
-    { type: 'p', text: 'Yes, if it is useful. People buy from accounts that solve their problems. A clear tip with a clear ask beats a selfie video with no point. Track your views and messages for 30 days and see for yourself.' },
+    { type: 'p', text: 'Yes, if it is useful. People buy from accounts that solve their problems. A clear tip with a clear ask beats a selfie video with no point. Track your views and messages for 30 days and see for yourself. A gym, for example, can run mostly on equipment shots and member quotes, see [social media for gyms](/blog/social-media-for-gyms). A hair salon can run on before-and-afters and formula shots with no talking, see [social media for hair salons](/blog/social-media-for-hair-salons). A plumber can run on tool shots and a cleared-pipe before-and-after with no face at all, see [TikTok for plumbers](/blog/tiktok-for-plumbers). An auto repair shop can run on parts-in-hand and lift before-and-afters the same way, see [social media for auto repair shops](/blog/social-media-for-auto-repair-shops). A cleaning business can run almost entirely on before-and-after shots of the surface, not the person, see [social media for a cleaning business](/blog/social-media-for-cleaning-business). Most of the [Christmas posts a small business needs](/blog/christmas-social-media-post-ideas) are faceless too: wrapping an order, the shop at 7am, the hours in the image.' },
     { type: 'cta', title: 'Faceless posts, made for you', text: 'Next5 makes TikTok slideshows and videos for your business with no filming. You never have to be on camera. You approve every post.' },
   ],
   faq: [

@@ -7,6 +7,8 @@
  *   - blitz-worker/src/render.ts   (server-side renderMedia inputProps)
  */
 
+import type { HookTitleStyleId } from '../types/hookStyle';
+
 export type TextConfig = {
   /** CSS font-family, e.g. "sans-serif" */
   font: string;
@@ -48,7 +50,12 @@ export type TextConfig = {
    * Style fields only (font, size, weight, colors, box); the position stays per slide.
    */
   hookCtaStyle?: HookCtaStyle;
+  /** Slideshow only: the written hook as a fixed title over the hook slide and ~1 s of the next (remotion/hookTitle.ts). */
+  hookTitle?: HookTitle;
 };
+
+/** The hook title: its text, its look and its height (bottom edge, same scale as TextConfig.positionY). */
+export type HookTitle = { text: string; style: HookTitleStyleId; positionY: number };
 
 /** The caption fields the hook and CTA may change. */
 export type HookCtaStyle = Partial<Pick<TextConfig,
@@ -79,8 +86,6 @@ export type SlideshowSlide = {
   fit?: 'cover' | 'contain';
   /** Photo slides only: the camera move picked for this still (src/server/labs/blitzCamera.ts). Absent = static photo. */
   camera?: SlideCamera;
-  /** Photo slides only: displacement maps from the worker's depth model. Absent = zoom/pan without parallax. */
-  depth?: SlideDepth;
 };
 
 export type CameraMove = 'push_in' | 'pull_out' | 'drift_left' | 'drift_right';
@@ -93,20 +98,8 @@ export type SlideCamera = {
   focusY: number;
   /** How much zoom. */
   strength: 'subtle' | 'medium' | 'strong';
-  /** How much the depth map bends the photo. */
-  parallax: 'low' | 'medium' | 'high';
   /** Optional slight sideways move on push_in / pull_out. */
   pan: 'none' | 'left' | 'right';
-};
-
-/** Displacement maps made from one photo's depth map (blitz-worker/src/depth.ts). */
-export type SlideDepth = {
-  /** R,G = 0.5 + 0.5·depth·(x,y from centre): a depth-weighted zoom. */
-  radialUrl: string;
-  /** R = depth: near pixels slide against far ones. */
-  truckUrl: string;
-  /** 5th–95th percentile depth spread (0–1): a wide spread warps more, so it lowers the parallax. */
-  spread: number;
 };
 
 /** Props for the Slideshow (CAROUSEL) Remotion composition. */

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { WorkspaceDetailDto } from '../../../types/admin/workspaceDetail';
 import { useAdminApi } from '../business/useAdminApi';
 import { AnalyticsPanel } from './AnalyticsPanel';
+import { AssetsPanel } from './AssetsPanel';
 import { BlitzMatrixPanel } from './BlitzMatrixPanel';
 import { BrandPanel } from './BrandPanel';
 import { CastPanel } from './CastPanel';
@@ -12,7 +13,7 @@ import { OverviewPanel } from './OverviewPanel';
 import { PanelError, PanelSkeleton } from './PanelStates';
 import { useImpersonation } from './useImpersonation';
 
-type TabId = 'overview' | 'analytics' | 'brand' | 'cast' | 'matrix' | 'blitzMatrix';
+type TabId = 'overview' | 'analytics' | 'brand' | 'cast' | 'matrix' | 'blitzMatrix' | 'assets';
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'overview', label: 'Overview' },
@@ -21,6 +22,7 @@ const TABS: { id: TabId; label: string }[] = [
   { id: 'cast', label: 'Cast' },
   { id: 'matrix', label: 'Matrix' },
   { id: 'blitzMatrix', label: 'Blitz Matrix' },
+  { id: 'assets', label: 'Assets' },
 ];
 
 function ExternalIcon() {
@@ -58,11 +60,17 @@ function Header({ detail, onOpen, openError }: { detail: WorkspaceDetailDto; onO
   );
 }
 
-/** Admin view of one workspace: header with "Open as user", then Overview, Analytics, Brand extraction, Cast, Matrix and Blitz Matrix tabs. */
+/** Admin view of one workspace: header with "Open as user", then Overview, Analytics, Brand extraction, Cast, Matrix, Blitz Matrix and Assets tabs. */
 export function WorkspaceDetailPage({ token, workspaceId }: { token: string; workspaceId: string }) {
   const { data, error, refresh } = useAdminApi<WorkspaceDetailDto>(token, `/api/admin/workspaces/${workspaceId}`);
   const { openAsUser, error: openError } = useImpersonation(token, workspaceId);
   const [tab, setTab] = useState<TabId>('overview');
+  // A link ending in #brand (or another tab id) opens that tab, e.g. a Prospect's "Brand extraction" button.
+  useEffect(() => {
+    const wanted = window.location.hash.slice(1);
+    const found = TABS.find((t) => t.id === wanted);
+    if (found) setTab(found.id);
+  }, []);
   const openRun = (runId: string) => openAsUser(`/slideshow/${workspaceId}?run=${runId}`);
 
   if (error) return <PanelError message={error} onRetry={refresh} />;
@@ -85,6 +93,7 @@ export function WorkspaceDetailPage({ token, workspaceId }: { token: string; wor
         {tab === 'cast' && <CastPanel token={token} workspaceId={workspaceId} />}
         {tab === 'matrix' && <MatrixPanel token={token} workspaceId={workspaceId} onOpenRun={openRun} />}
         {tab === 'blitzMatrix' && <BlitzMatrixPanel token={token} workspaceId={workspaceId} />}
+        {tab === 'assets' && <AssetsPanel token={token} workspaceId={workspaceId} />}
       </div>
     </div>
   );

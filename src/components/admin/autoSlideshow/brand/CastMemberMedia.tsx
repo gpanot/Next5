@@ -1,10 +1,11 @@
 'use client';
 
-import { Play } from 'lucide-react';
+import { Maximize2, Play } from 'lucide-react';
 import { useRef, useState } from 'react';
 import type { BrandCastMemberDto } from '../../../../types/admin/brandCast';
 import { ExpandedIntroVideo } from './ExpandedIntroVideo';
 import { FaceTimer } from './FaceTimer';
+import { PhotoLightbox } from './PhotoLightbox';
 
 // 9:16 like the intro video, cropped the same way (cover, centered), so playing it looks like the photo coming alive.
 export const photoBox = 'relative aspect-[9/16] overflow-hidden rounded-xl bg-app-sunken';
@@ -35,6 +36,7 @@ export function CastMemberMedia({ member }: { member: BrandCastMemberDto }) {
   // Where the photo was when play was tapped: the video grows out of there.
   const [playingFrom, setPlayingFrom] = useState<DOMRect | null>(null);
   const playing = playingFrom !== null;
+  const [zoomed, setZoomed] = useState(false);
   const photoRef = useRef<HTMLDivElement>(null);
   if (member.status === 'pending') {
     return (
@@ -55,6 +57,17 @@ export function CastMemberMedia({ member }: { member: BrandCastMemberDto }) {
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={member.imageUrl} alt={`${member.name}, from your brand cast`} loading="lazy" className={`h-full w-full object-cover ${playing ? 'opacity-0' : ''}`} />
       {!playing && <IntroOverlay member={member} onPlay={() => photoRef.current && setPlayingFrom(photoRef.current.getBoundingClientRect())} />}
+      {!playing && (
+        <button
+          type="button"
+          onClick={() => setZoomed(true)}
+          aria-label={`See ${member.name}'s photo bigger`}
+          className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white transition hover:bg-black/70 active:scale-90"
+        >
+          <Maximize2 aria-hidden className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {zoomed && <PhotoLightbox src={member.imageUrl} alt={`${member.name}, from your brand cast`} onClose={() => setZoomed(false)} />}
       {playingFrom && member.introUrl && (
         <ExpandedIntroVideo
           src={member.introUrl}

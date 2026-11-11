@@ -26,8 +26,10 @@ export const AUTO_STEP_LABELS: Record<AutoStep, string> = {
   6: 'Render',
 };
 
-/** 'HELD': a Prospect Pack's run waiting after step 3 for the admin to approve its Brand Cast faces. */
-export type AutoRunStatus = `STEP_${AutoStep}_RUNNING` | 'HELD' | 'COMPLETED' | 'FAILED';
+/** 'HELD': a Prospect Pack's run waiting after step 3 for the admin to approve its Brand Cast faces.
+ *  'WAITING_TARGET': a new workspace's first run waiting after step 3 for the owner to pick the target client.
+ *  'WAITING_AVATAR': the same run waiting, once its brand avatar candidates are made, for the owner to pick one. */
+export type AutoRunStatus = `STEP_${AutoStep}_RUNNING` | 'HELD' | 'WAITING_TARGET' | 'WAITING_AVATAR' | 'COMPLETED' | 'FAILED';
 
 export const MIN_SLIDESHOWS = 1;
 export const MAX_SLIDESHOWS = 20;
@@ -95,7 +97,9 @@ export type AutoPhoto = {
 /** How a photo was made, kept so it can be made again for a test. `prompt` above is only the scene; `sentPrompt` is the
  *  full text the model got (scene + brand look + style). Missing on photos made before 2026-10-02. */
 /** `refs`: how many reference images went with the prompt. */
-export type PhotoGen = { sentPrompt: string; model: string; ratio: string; highRes: boolean; taskId: string; styleVersion: string; createdAt: string; refs?: number };
+/** `flaw`: the body mistake the check found on the first try (heads.ts), when the photo was made again; `flawLeft`: the
+ *  one still found on the redo (kept anyway). */
+export type PhotoGen = { sentPrompt: string; model: string; ratio: string; highRes: boolean; taskId: string; styleVersion: string; createdAt: string; refs?: number; flaw?: string; flawLeft?: string; failed?: string[] };
 
 /** One human head in a photo, as shares (0-1) of its width and height. Step 6 keeps the slide text off these. */
 export type HeadBox = { top: number; left: number; bottom: number; right: number };
@@ -123,6 +127,8 @@ export type AutoSlide = {
   textFree?: boolean;
   /** The line under the headline's own look, picked apart from the headline's (`look`). Unset = plain white text. */
   bodyLook?: TextLook;
+  /** The text size picked for this kind of slide (TEXT_SIZES), a share of the look's font size. Unset = Normal. */
+  textSize?: number;
   /** CTA slides made from a campaign: the app store badges, in a centered row apart from the text. Unset = none. */
   badges?: StoreBadge[];
   /** The badge row's top, as a share of the height; unset = HOME_BADGES_Y. */
@@ -137,7 +143,35 @@ export type AutoSlide = {
  *  was made for (its slide photo or a "New" one); null for the run's shared pool. */
 export type AutoPhotoDto = { index: number; prompt: string; url: string | null; showId: string | null };
 
-export type AutoSlideshowStatus = 'written' | 'rendering' | 'ready' | 'failed';
+/** 'draft': a Brand Cast slideshow made by hand, still being reviewed (story, then first photo); 'finishing': its other
+ *  photos are being made. Both stay out of the run's slideshows until it is ready (server/autoSlideshow/manual). */
+export type AutoSlideshowStatus = 'written' | 'rendering' | 'ready' | 'failed' | 'draft' | 'finishing';
+
+export const DRAFT_STATUSES: AutoSlideshowStatus[] = ['draft', 'finishing'];
+
+/** Free redos of a hand-made slideshow's first photo. */
+export const MANUAL_PHOTO_REDOS = 5;
+
+/** Where a hand-made slideshow stands: story review, first photo review, other photos being made, or done. */
+export type ManualStage = 'story' | 'photo' | 'finishing' | 'ready';
+
+/** A hand-made Brand Cast slideshow in the wizard. `photoUrl`: the first slide rendered on its photo (photo stage on). */
+export type ManualDraftDto = {
+  id: string;
+  runId: string;
+  stage: ManualStage;
+  slides: { role: SlideRole; title: string; body: string }[];
+  photoUrl: string | null;
+  redosLeft: number;
+  /** The brand face telling it; null when the brand has none. */
+  castId: string | null;
+  castName: string | null;
+  /** The last try that failed (a rewrite, a photo, finishing); the draft stays where it was. */
+  error: string | null;
+  /** When Finish was tapped (stage 'finishing'), for the card's countdown; null otherwise. */
+  finishingSince: string | null;
+  createdAt: string;
+};
 
 export type AutoSlideDto = AutoSlide & { imageUrl: string | null };
 
@@ -155,7 +189,8 @@ export const linkedTextSlides = (slides: Pick<AutoSlide, 'role' | 'textFree'>[],
 
 /** A background track from the Assets Library; `url` plays in the browser. */
 /** `durationSec`: full track length, measured when the track was described; null when not described yet. */
-export type AutoTrackDto = { assetId: string; name: string; url: string; startAt: number; durationSec?: number | null };
+/** `tiktok`: a sound taken from TikTok (shown with "(TikTok)"); false for our own library sounds. */
+export type AutoTrackDto = { assetId: string; name: string; url: string; startAt: number; durationSec?: number | null; tiktok?: boolean };
 
 export type AutoSlideshowDto = {
   id: string;
@@ -178,8 +213,12 @@ export type AutoSlideshowDto = {
   post: AutoPostDto | null;
   /** Every platform this slideshow was approved for. */
   posts: AutoPostDto[];
+  /** Where it waits on the Calendar for approval (ISO); null: the Calendar places it in the next free slot. */
+  plannedAt: string | null;
   status: AutoSlideshowStatus;
   error: string | null;
+  /** A Prospect Pack preview: only its first slide is made until the pack is unlocked. */
+  coverOnly?: boolean;
 };
 
 export type AutoRunDto = {
@@ -219,6 +258,8 @@ export type AutoRunSummary = {
 export type PostPlatform = 'tiktok' | 'instagram' | 'youtube';
 export const POST_PLATFORMS: readonly PostPlatform[] = ['tiktok', 'instagram', 'youtube'];
 export const PLATFORM_LABELS: Record<PostPlatform, string> = { tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube Shorts' };
+/** Platforms shown as "Coming soon": not live yet, so they cannot be connected or picked. */
+export const SOON_PLATFORMS: readonly string[] = ['instagram'];
 export const isPostPlatform = (v: unknown): v is PostPlatform => v === 'tiktok' || v === 'instagram' || v === 'youtube';
 
 /** Who can see a YouTube Short. Until Google audits the app, YouTube keeps every upload private whatever is picked. */
@@ -287,7 +328,7 @@ export const PRIVACY_LABELS: Record<string, string> = {
 
 export const isTerminalAutoStatus = (s: AutoRunStatus) => s === 'COMPLETED' || s === 'FAILED';
 
-export const currentAutoStep = (s: AutoRunStatus): number => (s === 'COMPLETED' ? 7 : s === 'FAILED' ? 0 : s === 'HELD' ? 4 : Number(s.charAt(5)));
+export const currentAutoStep = (s: AutoRunStatus): number => (s === 'COMPLETED' ? 7 : s === 'FAILED' ? 0 : s === 'HELD' || s === 'WAITING_TARGET' || s === 'WAITING_AVATAR' ? 4 : Number(s.charAt(5)));
 
 /** Most live workspaces one user can have. */
 export const MAX_WORKSPACES = 10;
@@ -310,8 +351,14 @@ export type SlideshowMeDto = {
   connections: ConnectionDto[];
   /** Platforms whose developer keys are set on our side. */
   available: SocialProviderDto[];
+  /** Settings → Profile: the 8 am email about today's posts waiting for approval. */
+  approvalEmailEnabled: boolean;
   /** Testing switch: Ideas-page Blitz cards get stock photos even when paid. Null when this user may not see it. */
   stockImagesOnly: boolean | null;
+  /** Testing setting: percent of Blitz photo prompts written as a 50/50 split-screen picture. Null when this user may not see it. */
+  splitSlidesPercent: number | null;
+  /** Testing switch: Hooks Volume's "Generate the entire slideshows" uses stock photos even when paid. Null when this user may not see it. */
+  hooksVolumeStockOnly: boolean | null;
 };
 
 /** One generated photo of a user's runs, as listed in Settings → Photos. */

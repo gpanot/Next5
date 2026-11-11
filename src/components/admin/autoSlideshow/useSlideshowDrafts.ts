@@ -9,7 +9,7 @@ type CaptionDraft = { caption: string; tags: string };
 export const parseTags = (text: string) => text.split(/[\s,]+/).map((t) => t.replace(/^#+/, '')).filter(Boolean);
 
 /**
- * Unsaved edits of the on-screen slide's text and of the caption, so one Save button can store both.
+ * Edits of the on-screen slide's text and of the caption, saved by useSlideshowAutosave.
  * A null draft means "not edited": the field shows the saved value.
  */
 export const useSlideshowDrafts = (show: AutoSlideshowDto, slideIndex: number) => {
@@ -31,10 +31,10 @@ export const useSlideshowDrafts = (show: AutoSlideshowDto, slideIndex: number) =
     body,
     caption,
     tags,
+    /** The text being edited and the slide it is on, also after moving to another slide. */
+    textDraft: text,
     textDirty,
     captionDirty,
-    dirty: textDirty || captionDirty,
-    valid: !textDirty || title.trim().length > 0,
     setTitle: (value: string) => setText({ index: slideIndex, title: value, body }),
     setBody: (value: string) => setText({ index: slideIndex, title, body: value }),
     setCaption: (value: string) => setCaptionDraft({ caption: value, tags }),

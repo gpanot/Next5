@@ -278,6 +278,7 @@ export function AssetsLibraryTab({ token }: { token: string }) {
     }
   }, [token]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch on mount: load() flags loading before its request
   useEffect(() => { void load(); }, [load]);
 
   /** Optimistically prepend a just-uploaded asset into the right bucket and bump the count. */

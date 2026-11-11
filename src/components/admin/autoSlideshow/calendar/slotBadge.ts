@@ -18,6 +18,7 @@ const POST_BADGE: Record<AutoPostStatus, Badge> = {
 /** Ready waits for the user's approval: the one strong pill. */
 const READY: Badge = { label: 'Approve slideshow', short: 'Approve', tone: 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900' };
 const MAKING: Badge = { label: 'Making…', short: 'Making', tone: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400' };
+const PREVIEW: Badge = { label: 'Preview · first slide', short: 'Preview', tone: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200' };
 
 const neutral = 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200';
 /** A Blitz video: made about an hour before its time, then posted like the others. */
@@ -34,7 +35,7 @@ const BLITZ_BADGE: Record<BlitzScheduleStatus, Badge> = {
 };
 
 export const badgeOf = (item: DayItem): Badge =>
-  item.kind === 'post' ? POST_BADGE[item.post.status] : item.kind === 'blitz' ? BLITZ_BADGE[item.blitz.status] : item.kind === 'ready' ? READY : MAKING;
+  item.kind === 'post' ? POST_BADGE[item.post.status] : item.kind === 'blitz' ? BLITZ_BADGE[item.blitz.status] : item.kind === 'ready' ? READY : item.kind === 'preview' ? PREVIEW : MAKING;
 
 /** The slideshow's hook photo (a video's first slide), or null while it is being made. */
 /** True when the cover is a video (shown as its first frame). */

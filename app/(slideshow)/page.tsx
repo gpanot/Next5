@@ -7,7 +7,7 @@ const title = 'Next5: TikTok & Instagram Content for Small Businesses';
 const description = `Paste your website. Next5 makes TikTok and Instagram slideshows and videos for your small business, on formats that already get views. ${SLIDESHOW_PRICE_LABEL} a post.`;
 
 // Setting openGraph here drops the root opengraph-image, so it is listed again (same alt as app/opengraph-image.tsx).
-const ogImage = { url: '/opengraph-image', width: 1200, height: 630, alt: 'Auto Slideshow: three TikTok slideshow covers made by Next5. Slideshows that bring you customers.' };
+const ogImage = { url: '/opengraph-image', width: 1200, height: 630, alt: 'Next5 for TikTok, Instagram and YouTube. Videos that bring you customers. No filming. No editing. No content team.' };
 
 export const metadata: Metadata = {
   title,

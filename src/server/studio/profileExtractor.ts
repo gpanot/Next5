@@ -12,11 +12,13 @@ import { KNOWN_VERTICALS } from './verticalPacks';
 import { crawlSite } from './siteCrawl';
 import { findCompetitors } from './competitors';
 import { discoverKeywords, keywordInputSignature } from './keywordDiscovery';
-import { groundIndustries, groundProofPoints } from './grounding';
+import { inferClientTypes } from './inferClientTypes';
+import { groundIndustries, groundProofPoints, MAX_GROUNDED_INDUSTRIES, rankIndustries } from './grounding';
 import { classifyVertical } from './verticalClassifier';
 import { readSiteStyle, type SiteStyle } from '../companyIntel/palette';
 import { summarizeBrand, type BrandSummary } from '../companyIntel/profile';
 import { createMeter } from '../metaAds/cost';
+import { MAX_CUSTOMER_INDUSTRIES } from '../../lib/customerIndustries';
 
 /** Dedicated vertical call (verticalClassifier.ts): ~$0.0001. */
 const VERTICAL_COST_MICROS = 100;
@@ -44,11 +46,12 @@ Rules:
 - audienceDescription: who the typical customer is, max 20 words.
 - targetCustomerIndustries: CRITICAL for B2B — the specific industry niches this business sells TO, as shown ON THIS PAGE. These are the END CUSTOMER industries, not the vendor's own.
   Each item is an object: { "industry": "auto mechanics", "evidence": "<exact words copied from the page that name this industry>" }.
-  The evidence must be copied verbatim from the text and must itself mention the industry (e.g. "Owner at Nash Street Mechanical" for "auto mechanics"). A generic phrase like "service-based businesses" is NOT evidence for any specific industry.
+  The evidence must be copied verbatim from the text and must mention the industry (e.g. "Owner at Nash Street Mechanical" for "auto mechanics"), or be the sentence right under a heading naming it (under "### Real Estate": "Trusted plumbing services for rental and investment properties"). A generic phrase like "service-based businesses" is NOT evidence for any specific industry.
   Only list industries the page actually evidences. Do NOT add industries that a business like this "usually" serves — if the page only evidences one industry, return one item.
   Best sources: the "Site menu and links" section (e.g. an "Industries" menu listing "Mechanics", "Electricians" — quote the menu label as evidence), industry pages, testimonials, case studies, client logos, "trusted by" sections, "built for X" statements.
   Write plain-English industry names (e.g. "auto mechanics", never "automotive"). NEVER reuse a value from the "vertical" list above.
-  Empty array [] if B2C, or if no industry is evidenced. Max 5 items.
+  When the site has a page or menu listing the sectors it serves, include every one of them.
+  Empty array [] if B2C, or if no industry is evidenced. Max ${MAX_GROUNDED_INDUSTRIES} items.
 - tone: one of [casual, casual_professional, professional, witty, authoritative, friendly].
 - suggestedHooks: 2–3 hook patterns for TikTok written for the END CUSTOMER (the IDC), each 5–10 words.
 - proofPoints: real proof printed on the site — testimonials, metrics, client counts, ratings, years in business.
@@ -117,7 +120,7 @@ async function inferProfile(text: string, url: string): Promise<{ result: InferR
       { role: 'system', content: INFER_SYSTEM_PROMPT },
       { role: 'user', content: text.slice(0, MAX_INFER_CHARS) },
     ],
-    { maxTokens: 900, temperature: 0.2, model: 'gpt-4o-mini' },
+    { maxTokens: 1_300, temperature: 0.2, model: 'gpt-4o-mini' },
   );
 
   const durationMs = Date.now() - t0;
@@ -247,10 +250,16 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
 
   // Target customer industries: kept only when a verbatim quote from the crawl backs them up.
   // Also drop vertical-enum slugs the model sometimes echoes ("automotive" instead of "auto mechanics").
-  const grounded = groundIndustries(inferred.targetCustomerIndustries, crawlResult.text);
+  // Ranked by what the homepage stresses, since only the first few get content until the owner confirms the list.
+  const grounded = rankIndustries(groundIndustries(inferred.targetCustomerIndustries, crawlResult.text), crawlResult.text);
   const keep = grounded.industries.map((n) => !KNOWN_VERTICALS.includes(n.toLowerCase()) && n.toLowerCase() !== 'generic');
-  const targetCustomerIndustries = grounded.industries.filter((_, i) => keep[i]);
-  const industryEvidence = grounded.evidence.filter((_, i) => keep[i]);
+  const quoted = grounded.industries.filter((_, i) => keep[i]);
+  // The site names no client industry word for word: guess who buys, so the list is never empty (no quote, owner can edit).
+  const guessed = quoted.length === 0
+    ? await inferClientTypes({ businessName, promoting, description: str(inferred.description), geography, businessModel })
+    : [];
+  const targetCustomerIndustries = quoted.length > 0 ? quoted : guessed;
+  const industryEvidence = quoted.length > 0 ? grounded.evidence.filter((_, i) => keep[i]) : guessed.map(() => '');
   console.log(`[studio/profile] targetCustomerIndustries raw=${JSON.stringify(inferred.targetCustomerIndustries ?? [])} grounded=${JSON.stringify(targetCustomerIndustries)}`);
 
   // ── Stage 4: keyword discovery — seeded from IDC niches, relevance-verified ─
@@ -260,7 +269,7 @@ export async function extractProfile(input: ExtractProfileInput): Promise<Extrac
     vertical,
     audienceType: businessModel === 'b2b' ? 'b2b' : 'b2c',
     promoting,
-    targetCustomerIndustries,
+    targetCustomerIndustries: targetCustomerIndustries.slice(0, MAX_CUSTOMER_INDUSTRIES),
   };
   const { keywords, durationMs: keywordMs, verified: keywordsVerified } = input.skipMarketResearch
     ? { keywords: [] as string[], durationMs: 0, verified: false }

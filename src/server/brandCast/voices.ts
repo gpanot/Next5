@@ -18,6 +18,7 @@ import { sampleLine } from '../shorts/voice';
 import { GEMINI_VOICES } from '../shorts/voices';
 import { presignObject, putObject } from '../storage/objectStore';
 import { isMan } from './intro';
+import { ageOf } from './personas';
 import { closestVoice, extractIntroVoice } from './introVoice';
 
 const OPTIONS = 6;
@@ -71,7 +72,7 @@ const latestProfile = async (workspaceId: string): Promise<BrandProfile | null> 
 const sampleText = (m: BrandCastMember) => m.introScript || `Hi, I'm ${firstName(m)}! I'll share easy tips you can use every day. See you on your feed!`;
 
 const direction = (m: BrandCastMember, gender: VoiceGender) =>
-  `A friendly ${gender === 'male' ? 'man' : 'woman'} (${m.name.split(',')[1]?.trim() || 'about 25'}) talking to followers like a friend: warm, natural, clear, never salesy.`;
+  `A friendly ${gender === 'male' ? 'man' : 'woman'} (${ageOf(m) ?? 'about 25'}) talking to followers like a friend: warm, natural, clear, never salesy.`;
 
 /** The intro's audio (when ready) and its closest Gemini voice, alongside the planner. */
 const planVoices = async (m: BrandCastMember, gender: VoiceGender, meter: CostMeter) => {

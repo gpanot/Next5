@@ -14,7 +14,7 @@ import { writeAutoContent } from '../autoSlideshow/campaign/autoContent';
 import { generateCampaign } from '../autoSlideshow/campaign/generate';
 import { autoPhoto, importPhoto } from '../autoSlideshow/campaign/photos';
 import { matchLibrary } from '../autoSlideshow/campaign/stockMatch';
-import { createCampaign, storeDraft } from '../autoSlideshow/campaign/store';
+import { createCampaign, draftOf, storeDraft } from '../autoSlideshow/campaign/store';
 import { writeCampaignHooks } from '../autoSlideshow/campaign/writeHooks';
 
 /** Most content slides: a short read keeps the 4 slideshows light. */
@@ -94,7 +94,9 @@ export const buildHooksVolume = async (access: UserAccess, workspaceId: string, 
   const runId = await createCampaign(workspaceId, name);
   await onCreated(runId);
   const { cards, coverQuery } = await contentCards(runId, workspaceId, topic);
-  const draft: CampaignDraft = { ...emptyCampaignDraft(), cards };
+  // Keeps the TikTok sound createCampaign picked: a fresh draft would leave the slideshows without music.
+  const { audioAssetId } = draftOf(await prisma.autoSlideshowRun.findUniqueOrThrow({ where: { id: runId }, select: { campaign: true } }));
+  const draft: CampaignDraft = { ...emptyCampaignDraft(), cards, audioAssetId };
   const { hooks, photoQuery } = await writeCampaignHooks(workspaceId, runId, name, draft, PROSPECT_HOOKS);
   const queries = hookQueries(photoQuery, coverQuery);
   const found = (await inTurn(hooks, (_, i) => hookPhoto(runId, workspaceId, queries, i))).filter((p): p is number => p !== null);

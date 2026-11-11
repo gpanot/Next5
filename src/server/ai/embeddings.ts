@@ -1,9 +1,13 @@
 // server-only — never import from a 'use client' file.
 // Text embeddings for semantic asset search (pgvector column asset_descriptors.embedding).
 
+import { recordCost } from '../costs/ledger';
+
 /** OpenAI text-embedding-3-small: 1536 dims, matches the vector(1536) column. */
 export const EMBEDDING_MODEL = 'text-embedding-3-small';
 export const EMBEDDING_DIMS = 1536;
+/** text-embedding-3-small list price: $0.02 per million tokens. */
+const EMBEDDING_USD_MICROS_PER_TOKEN = 0.02;
 
 /** OpenAI caps one request at 2048 inputs; smaller batches keep failures cheap. */
 const BATCH_SIZE = 100;
@@ -32,7 +36,8 @@ async function embedBatch(texts: string[]): Promise<number[][] | null> {
       console.error(`[embeddings] OpenAI returned ${res.status}: ${(await res.text().catch(() => '')).slice(0, 200)}`);
       return null;
     }
-    const data = (await res.json()) as { data?: Array<{ index: number; embedding: number[] }> };
+    const data = (await res.json()) as { data?: Array<{ index: number; embedding: number[] }>; usage?: { total_tokens?: number } };
+    recordCost({ provider: 'openai', model: EMBEDDING_MODEL, usdMicros: (data.usage?.total_tokens ?? 0) * EMBEDDING_USD_MICROS_PER_TOKEN });
     const rows = [...(data.data ?? [])].sort((a, b) => a.index - b.index);
     return rows.length === texts.length ? rows.map((r) => r.embedding) : null;
   } catch (err) {

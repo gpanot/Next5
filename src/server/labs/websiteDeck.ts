@@ -12,7 +12,7 @@
 //      twice in a deck
 //   4. batchShotImages: images for story shots the library can't cover (parallel, one per moment of the deck), AI
 //      once the workspace has paid, stock photos before, saved to the library with categories so the next deck reuses them
-// Then interleave (no music since 2026-10-12: the videos are narrated, blitzVoice.ts), caption Auto Fit on every shot (captionFit.tsx), persist.
+// Then interleave (no music since 2026-10-12: the videos are narrated, blitzVoice.ts), caption Auto Fit on hook and CTA shots (captionFit.tsx), persist.
 // Steps 1–2 can also come ready-made from the workspace's Blitz Script Bank (blitzBank.ts): deckFromScripts runs 3–4.
 
 import { prisma } from '../../lib/db';
@@ -27,6 +27,7 @@ import { categoriesForAudience } from '../slideshow/core/audienceCategories';
 import type { ImageNeed } from '../slideshow/core/generatedAssets';
 import { batchShotImages, type BatchNeed } from '../slideshow/core/imageNeeds';
 import type { PhotoBrand, ShotPhoto } from '../slideshow/core/shotPhotos';
+import { targetOf, targetPeople } from '../autoSlideshow/targetClient';
 import { fitDeckCaptions } from '../slideshow/core/captionFit';
 import type { StudioProfileData } from '../studio/types';
 import type { HookArchetype, ProofPoint, Tone } from '../slideshow/core/types';
@@ -77,6 +78,25 @@ export const photoBrand = (source: WebsiteSource): PhotoBrand => {
     look: style?.photoStyle ?? null,
     productAsSubject: style?.productAsSubject ?? false,
   };
+};
+
+/** The owner's 50/50 split-screen share (Settings → Profile testing setting), 0-1; undefined when unreadable. */
+const splitShareOf = async (workspaceId: string | null): Promise<number | undefined> => {
+  if (!workspaceId) return undefined;
+  const workspace = await prisma.workspace.findUnique({ where: { id: workspaceId }, select: { owner: { select: { splitSlidesPercent: true } } } }).catch(() => null);
+  return workspace ? workspace.owner.splitSlidesPercent / 100 : undefined;
+};
+
+/**
+ * photoBrand with the people the owner targets (age, gender; without them when not picked or unreadable) and the
+ * owner's split-screen share.
+ */
+export const photoBrandFor = async (source: WebsiteSource): Promise<PhotoBrand> => {
+  const [target, splitShare] = await Promise.all([
+    source.workspaceId ? targetOf(source.workspaceId).catch(() => null) : null,
+    splitShareOf(source.workspaceId),
+  ]);
+  return { ...photoBrand(source), people: targetPeople(target), ...(splitShare !== undefined ? { splitShare } : {}) };
 };
 
 /** Share of a numbered hook's words that must come from one proof quote: the hook may restate proof, never add to it. */
@@ -192,9 +212,9 @@ export async function generateWebsiteDeck(runId: string, opts: { contentDeck?: b
  * Footage half of a deck: library search, AI images for the shots the library lacks, caption Auto Fit, saved.
  * `deckRunId`: a Content-page batch of that run (workspaceDeck.ts). `later`: no model call before the response — shots
  * the library lacks keep their best library match (the card lists them in `pendingImages`) and captions are placed from
- * saved fits; the caller runs finishIdeaCards after the response.
+ * saved fits; the caller runs finishIdeaCards after the response. `allImages`: the scripts whose every shot gets an image.
  */
-export async function deckFromScripts(source: WebsiteSource, written: BriefScript[], deckRunId?: string, opts: { later?: boolean } = {}): Promise<DeckItem[]> {
+export async function deckFromScripts(source: WebsiteSource, written: BriefScript[], deckRunId?: string, opts: { later?: boolean; allImages?: (script: number) => boolean } = {}): Promise<DeckItem[]> {
   const started = Date.now();
   const laps: string[] = [];
   const lap = (step: string) => laps.push(`${step} ${((Date.now() - started) / 1000).toFixed(1)}s`);
@@ -203,11 +223,14 @@ export async function deckFromScripts(source: WebsiteSource, written: BriefScrip
   // does not repeat the last one. Bank decks (one card a day) may show a fix or proof file again a few days later.
   const used = new Set<string>();
   const spacedAt = written.every((b) => b.storyId) ? new Map<string, number>() : null;
-  const inputs: WebsiteMediaInput[] = written.map((b) => ({
+  const inputs: WebsiteMediaInput[] = written.map((b, i) => ({
     idc: b.idc, categories: b.categories, tone: b.tone, story: b.story, hooks: b.hooks,
     workspaceId: source.workspaceId, used, products: source.profile.products?.value,
     beatIntents: b.format ? FORMAT_DEFS[b.format].intents : undefined,
     photos: b.photos, storyId: b.storyId, beatLabels: b.format ? FORMAT_DEFS[b.format].labels : undefined,
+    allImages: opts.allImages?.(i),
+    // The other cards of an images-only batch are its footage cards: clips, not the library's photos.
+    footage: opts.allImages && !opts.allImages(i) ? 'video' as const : undefined,
   }));
   const [recent, searches] = await Promise.all([
     recentClips(source.workspaceId).catch((err: unknown) => {
@@ -228,7 +251,7 @@ export async function deckFromScripts(source: WebsiteSource, written: BriefScrip
   // the workspace has paid, stock photos before).
   // `later`: none now, the cards keep their library match and list what they still need.
   const needs: BatchNeed[] = media.flatMap((m, i) => m.needs.map((need) => ({ script: i, audience: written[i]!.idc, categories: written[i]!.categories, need })));
-  const generated = opts.later ? written.map(() => new Map<string, LibraryAsset>()) : await batchShotImages(needs, written.length, source.workspaceId, photoBrand(source));
+  const generated = opts.later ? written.map(() => new Map<string, LibraryAsset>()) : await batchShotImages(needs, written.length, source.workspaceId, await photoBrandFor(source));
   lap('images');
 
   const decks = await Promise.all(written.map(async (b, i) => {
@@ -236,7 +259,7 @@ export async function deckFromScripts(source: WebsiteSource, written: BriefScrip
     const pending = media[i]!.needs;
     return opts.later ? cards.map((c) => ({ ...c, finishing: true, ...(pending.length ? { pendingImages: { audience: b.idc, categories: b.categories, needs: pending } } : {}) })) : cards;
   }));
-  // Quality first: every shot's caption is placed by the vision Auto Fit on its real frame (~$0.006 per unique shot),
+  // Hook and CTA captions are placed by the vision Auto Fit on their real frame (~$0.006 per unique shot),
   // so no card shows its caption over a face. A shot that cannot be fitted keeps its text-safe-zone position.
   // `later`: saved fits and known heads only, the Auto Fit runs after the response.
   const fitted = await fitDeckCaptions(interleave(decks), { models: !opts.later });

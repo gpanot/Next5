@@ -5,8 +5,9 @@
 //   1. one call writes every story (each slot: its stage's CTA and its format's beats), checked by the same rules as a
 //      single story (meatCheck.ts); one more call fixes the stories that broke a hard rule, the rest are dropped
 //   2. then hooks (generateStoryHooks, HOOK_GROUP stories a call, in parallel)
-// A story is handed to `onReady` as soon as its hooks are written. Photo prompts are not written here: free cards use
-// stock photos, and the bank writes them after it is built (blitzBank.ts backfillPhotos) or when an AI image needs one.
+// A story is handed to `onReady` as soon as its hooks are written. Photo prompts are not written here: the bank writes
+// them right after (blitzBank.ts backfillPhotos), one batch ahead of the deck.
+// Value content, not ads (2026-10-20): a story or hook that pitches before the CTA is fixed or dropped (blitzPitchGuard.ts).
 
 import { chatJsonWithMeta } from '../ai/openai';
 import { contentWords, noEmDash } from '../slideshow/core/copyGuards';
@@ -18,6 +19,7 @@ import { websiteEngine, type WebsiteBrief } from '../slideshow/engines/website/e
 import { lineGuard } from '../slideshow/engines/website/guardrails';
 import { buildWebsiteStoriesPrompt, type StoryPromptSlot } from '../slideshow/engines/website/prompts';
 import { FORMAT_DEFS, STAGE_CTA, type Stage, type StoryFormat } from './blitzFormats';
+import { pitchGuard } from './blitzPitchGuard';
 import { hookClaimIsProven } from './websiteDeck';
 
 export type WriteSlot = { stage: Stage; format: StoryFormat; followUpOf?: string; /** A follow-up's chosen problem. */ problem?: string };
@@ -51,9 +53,24 @@ const askStories = async (system: string, user: string, count: number): Promise<
   return result?.stories ?? [];
 };
 
-/** Errors that block a story (a number not on the site, a claim, an empty line); a line only too long is kept for the editor. */
-const hardErrors = (d: Draft, brief: WebsiteBrief) =>
-  checkMeatDraft(d.story, d.story.cta, lineGuard(brief.facts)).filter((e) => !e.startsWith(LENGTH_ERROR_PREFIX));
+/** Story lines that must not pitch: every one but the CTA. */
+const VALUE_LINES = ['pain', 'oldWay', 'mechanism', 'proof', 'inaction'] as const;
+
+/** Lines 1–5 that pitch the business (name, app, ratings, press), as errors the fix call can read. */
+const pitchErrors = (d: Draft, brief: WebsiteBrief) => {
+  const guard = pitchGuard(brief.business.name);
+  return VALUE_LINES.flatMap((key) => {
+    const reason = guard(d.story[key]);
+    return reason ? [`${key} ${reason}: rewrite it as pure value, no business, product, app or reviews.`] : [];
+  });
+};
+
+/** Errors that block a story (a number not on the site, a claim, an empty line, a pitch before the CTA); a line only
+ *  too long is kept for the editor. */
+const hardErrors = (d: Draft, brief: WebsiteBrief) => [
+  ...checkMeatDraft(d.story, d.story.cta, lineGuard(brief.facts)).filter((e) => !e.startsWith(LENGTH_ERROR_PREFIX)),
+  ...pitchErrors(d, brief),
+];
 
 /** Step 1: every story in one call, then one call to fix the ones that broke a hard rule. */
 async function writeDrafts(brief: WebsiteBrief, slots: WriteSlot[], avoid: string[]): Promise<Draft[]> {
@@ -83,13 +100,20 @@ export async function writeStories({ brief, slots, avoid, onReady }: WriteInput)
   const t0 = Date.now();
   const drafts = await writeDrafts(brief, slots, avoid);
   const ids = drafts.map((_, i) => `w${i}`);
-  const rules = websiteEngine.hookRules(brief);
-  const hookInput = { audience: brief.idc, proofLine: brief.proofPoints[0]?.claim ?? null, lensLine: brief.idcEvidence ? `Site says: "${brief.idcEvidence}"` : undefined, rules };
+  // Hooks get no proof quote and drop result-first: a hook never cites the business's ratings or press.
+  const base = websiteEngine.hookRules(brief);
+  const rules = {
+    ...base,
+    droppedArchetypes: [...(base.droppedArchetypes ?? []), 'proof_result' as const],
+    extraInstruction: `${base.extraInstruction ?? ''} Never name the business or its product, never say "app", and never cite ratings, reviews or press: the video is value content, not an ad.`.trim(),
+  };
+  const pitches = pitchGuard(brief.business.name);
+  const hookInput = { audience: brief.idc, proofLine: null, lensLine: brief.idcEvidence ? `Site says: "${brief.idcEvidence}"` : undefined, rules };
   const hookStories = drafts.map((d, i) => ({ id: ids[i]!, lines: Object.values(d.story).join(' / '), specifics: [...contentWords(d.story.pain), ...contentWords(d.story.mechanism)] }));
   const hookCalls = groups(hookStories, HOOK_GROUP).map((g) => generateStoryHooks(hookInput, g));
   await Promise.all(drafts.map(async (d, i) => {
     const hooks = await hookCalls[Math.floor(i / HOOK_GROUP)]!;
-    const kept = (hooks.get(ids[i]!) ?? []).filter((h) => hookClaimIsProven(h.text, brief.proofPoints)).map((h) => ({ ...h, text: noEmDash(h.text) }));
+    const kept = (hooks.get(ids[i]!) ?? []).filter((h) => hookClaimIsProven(h.text, brief.proofPoints) && !pitches(h.text)).map((h) => ({ ...h, text: noEmDash(h.text) }));
     if (kept.length === 0) return;
     onReady({ slot: d.slot, problem: d.problem, story: d.story, hooks: kept });
   }));

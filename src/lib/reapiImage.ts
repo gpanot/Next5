@@ -7,6 +7,7 @@
 // No webhooks: callers poll. Failed or moderated tasks are not charged.
 
 import { REAPI_MODELS, reapiPixelSize, type ReapiModelId } from '../config/reapiModels';
+import { recordCost } from '../server/costs/ledger';
 import type { PollResult } from './wavespeed';
 
 const REAPI_BASE = 'https://reapi.ai/api/v1';
@@ -85,7 +86,9 @@ export const submitReapiImage = async (params: SubmitReapiParams): Promise<{ tas
   });
   const id = res.id ?? res.task_id;
   if (!id) throw new Error('reAPI returned no task id');
-  return { taskId: `${REAPI_TASK_PREFIX}${id}`, cost: spec.priceUsdMicros[params.highRes && spec.supports2k ? '2k' : '1k'] };
+  const cost = spec.priceUsdMicros[params.highRes && spec.supports2k ? '2k' : '1k'];
+  recordCost({ provider: 'reapi', model: spec.apiModel, usdMicros: cost });
+  return { taskId: `${REAPI_TASK_PREFIX}${id}`, cost };
 };
 
 export type SubmitGeminiParams = {
@@ -108,6 +111,7 @@ export const submitGeminiImage = async (params: SubmitGeminiParams): Promise<str
   });
   const id = res.id ?? res.task_id;
   if (!id) throw new Error('reAPI returned no task id');
+  recordCost({ provider: 'reapi', model: REAPI_MODEL, usdMicros: GEMINI_PRO_IMAGE_USD_MICROS });
   return `${REAPI_TASK_PREFIX}${id}`;
 };
 

@@ -7,6 +7,7 @@ import type { ImageNeed } from './generatedAssets';
 import type { ShotMedia } from './media';
 import type { HookArchetype, ShotRole } from './types';
 import { createVariants } from './variants';
+import type { HookTitle, SlideCamera } from '../../../remotion/types';
 import type { BlitzVoiceName } from '../../../types/admin/blitzVoice';
 
 // ── Types (JSON-safe, sent to the client) ────────────────────────────────────
@@ -17,6 +18,8 @@ export type DeckShot = ShotMedia & {
   text: string;
   textZone: 'top' | 'middle' | 'bottom';
   durationSec: number;
+  /** Photo shots of finished calendar ideas: the zoom/pan the card plays and the render uses (labs/blitzCamera.ts). */
+  camera?: SlideCamera;
 };
 
 /** One card = one hook archetype on its brief's shared story + CTA. */
@@ -54,10 +57,20 @@ export type DeckItem = {
     stage?: string;
     format?: string;
   };
+  /** The written hook. The hook shot's text later becomes the spoken line (labs/ideaFinish.ts); this stays for the title. */
+  hookLine?: string;
+  /** The hook title the video shows (remotion/hookTitle.ts), set when the card is finished (labs/hookTitle.ts). */
+  hookTitle?: HookTitle;
+  /** Why the title has its look, from the style pick (admin only). */
+  hookTitleReason?: string;
   /** Calendar ideas: still being finished after the batch answered (AI images, caption Auto Fit). The deck re-reads. */
   finishing?: boolean;
   /** Story shots showing a weak library match until their AI image is made (labs/ideaFinish.ts). */
   pendingImages?: { audience: string; categories: string[]; needs: ImageNeed[] };
+  /** Prospect Pack preview (labs/packPreviews.ts): only its first shot is shown until the pack is unlocked. */
+  packPreview?: boolean;
+  /** A preview's AI images held until the pack is unlocked, then made like `pendingImages`. */
+  laterImages?: { audience: string; categories: string[]; needs: ImageNeed[] };
 };
 
 export type StoryTexts = { pain: string; oldWay: string; mechanism: string; proof: string; inaction: string; cta: string };
@@ -133,6 +146,7 @@ export function buildBriefCards(input: BriefCardsInput): DeckItem[] {
       archetype: hook.archetype,
       hookStyle: ARCHETYPE_LABELS[hook.archetype],
       shots:     [shot('hook', hook.text, input.hookMedia[i]!, 0), ...storyShots],
+      hookLine:  hook.text,
       hue:       input.hue,
       audio:     null,
       whyPanel: {

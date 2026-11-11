@@ -3,6 +3,7 @@
   "regions": ["sin1"],
   "buildCommand": "bash scripts/vercel-build.sh",
   "installCommand": "npm ci",
+  "ignoreCommand": "bash scripts/vercel-ignore.sh",
   "functions": {
     "app/api/app/workspace/angles/generate/route.ts": {
       "maxDuration": 60
@@ -18,6 +19,15 @@
     },
     "app/api/app/batches/[batchId]/zip/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/admin/blueprint/days/[day]/script/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/admin/blueprint/days/[day]/script/refine/route.ts": {
+      "maxDuration": 120
+    },
+    "app/api/admin/blueprint/days/[day]/hooks/route.ts": {
+      "maxDuration": 120
     }
   },
   "crons": [

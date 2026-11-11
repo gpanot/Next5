@@ -109,7 +109,7 @@ export function validateMeat(meat: Omit<MeatLines, 'cta'>, cta: string, facts: Z
 }
 
 /** Re-checks a card after the user edited it (format + every guardrail). Empty = ok to render. */
-export function checkEditedShots(texts: string[], facts: ZillowFacts): string[] {
+export function checkEditedShots(texts: string[], facts: ZillowFacts, baseline?: string[]): string[] {
   const allowed = allowedNumbers(facts);
-  return checkShotTexts(texts, (t) => guardLine(t, allowed));
+  return checkShotTexts(texts, (t) => guardLine(t, allowed), baseline);
 }

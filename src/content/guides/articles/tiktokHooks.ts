@@ -8,9 +8,10 @@ export const tiktokHooks: Article = {
   description: '40 TikTok hook examples for small businesses, sorted by type: mistakes, lists, secrets, before and after, and questions. Plus how to write your own.',
   excerpt: 'The first line decides if people stay. 40 hooks sorted by type, and a 3-part formula to write your own.',
   keyword: 'tiktok hooks',
+  hub: 'how-to',
   published: '2026-10-18',
-  cover: 'first-slide-signs',
-  coverAlt: 'TikTok slideshow made by Next5: "3 signs you\'re losing first-slide reads. Number 3 is crucial."',
+  cover: '/images/guides/tiktok-hooks-for-small-business.png',
+  coverAlt: 'Candle maker filming herself pouring wax into jars with a phone on a tripod',
   blocks: [
     { type: 'p', text: 'A hook is the first line of your post. On a slideshow, it is the text on slide 1. On a video, it is the first thing you say or show.' },
     { type: 'p', text: 'People decide to stay or scroll in about a second. If the hook is weak, nothing else matters. The good news: hooks follow patterns. You can copy the pattern and fill in your business.' },
@@ -20,7 +21,7 @@ export const tiktokHooks: Article = {
       '**A problem or a want** — "losing money", "want more bookings".',
       '**A promise of a quick answer** — "3 fixes", "in 30 seconds", "nobody tells you".',
     ] },
-    { type: 'p', text: 'Example: "**Salon owners**: **3 fixes** for **no-show clients**."' },
+    { type: 'p', text: 'Example: "**Salon owners**: **3 fixes** for **no-show clients**." A gym could do "**New lifters**: **3 cues** for **a safer squat**." A salon could do "**Salon owners**: tag the stylist who did it." An auto shop could do "**Car owners**: this noise means your brakes are done." See more ideas in [social media for gyms](/blog/social-media-for-gyms), [social media for hair salons](/blog/social-media-for-hair-salons) and [social media for auto repair shops](/blog/social-media-for-auto-repair-shops).' },
     { type: 'h2', text: 'Mistake hooks' },
     { type: 'p', text: 'People hate losing money or time. Mistake hooks often get the most views.' },
     { type: 'ol', items: [
@@ -80,7 +81,7 @@ export const tiktokHooks: Article = {
     { type: 'tip', title: 'Only promise what the post gives', text: 'If the hook says "5 tips", give 5 real tips. Hooks that trick people get swiped away, and TikTok learns from that.' },
     { type: 'h2', text: 'How to test your hooks' },
     { type: 'p', text: 'Make the same post with 2 or 3 different hooks. Post them on different days. Compare views at 48 hours. The hook with the most views wins. Use that pattern again.' },
-    { type: 'p', text: 'This is the fastest way to grow. You are not guessing. You are letting your buyers vote.' },
+    { type: 'p', text: 'This is the fastest way to grow. You are not guessing. You are letting your buyers vote. Test the hook before you touch anything else: posts with a hashtag get about 5% more views, so tags are a rounding error next to your first line, as [how many hashtags to use on TikTok for business](/blog/how-many-hashtags-on-tiktok-for-business) lays out. A winning hook still needs somewhere to send the viewer: see [how to get leads from TikTok](/blog/how-to-get-leads-from-tiktok) for the bio and DM setup that catches them.' },
     { type: 'cta', title: 'Hooks that already win in your market', text: 'Next5 finds hook formats that already pull views in your niche and writes them for your business. Your Analytics page shows which hooks beat your usual post.' },
   ],
   faq: [

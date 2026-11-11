@@ -45,14 +45,15 @@ export type CopyCheckContext =
 
 /**
  * Server re-check of an edited card (format + the engine's guardrails).
+ * `baseline` = the texts before the edit: lines left as they were skip the format checks.
  * Returns the problems; a network failure returns a single problem so the render waits.
  */
-export async function checkDeckCopy(client: LabClient, context: CopyCheckContext, texts: string[]): Promise<string[]> {
+export async function checkDeckCopy(client: LabClient, context: CopyCheckContext, texts: string[], baseline?: string[]): Promise<string[]> {
   try {
     const res = await fetch(client.url('/blitz/slideshow-deck/check'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...client.authHeaders() },
-      body: JSON.stringify({ ...context, texts }),
+      body: JSON.stringify({ ...context, texts, baseline }),
     });
     if (!res.ok) return [`Could not check the copy (error ${res.status}). Try again.`];
     const data = (await res.json()) as { problems?: string[] };

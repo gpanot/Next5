@@ -3,7 +3,10 @@
 import type { ReactNode } from 'react';
 import type { AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
 import { makeEstimateMs, MakingCountdown } from './calendar/MakingCountdown';
+import { calendarLine } from './campaigns/campaignSummary';
+import { CoverMeta } from './campaigns/CoverMeta';
 import { FaceBadge, type Face } from './content/CastStrip';
+import { CoverPlayback, EXPANDABLE_CELL } from './CoverPlayback';
 
 type Props = {
   slideshows: AutoSlideshowDto[];
@@ -15,12 +18,21 @@ type Props = {
   onRetry?: (slideshowId: string) => void;
   /** An extra slot after the slideshows (the "Get more" card once the run is done). */
   more?: ReactNode;
-  /** When the work began: slideshows still being made show the 3:00 countdown instead of a grey box. */
+  /** When the work began: slideshows still being made show the countdown instead of a grey box. */
   since?: string;
+  /** The wait to count down (runMakeEstimateMs), so the Calendar and this grid show the same clock. Left out: this
+   *  grid's own slots are counted. */
+  totalMs?: number;
   /** Cells only (the `ul` is `display: contents`): several runs share the parent's COVER_GRID, on one set of lines. */
   flat?: boolean;
   /** Brand Cast: the face telling each story, shown on its cover's corner. */
   faceOf?: (show: AutoSlideshowDto) => Face | null;
+  /** Campaigns: under each cover, when it posts (or "Add to Calendar") instead of the model it was made from. */
+  calendarMeta?: boolean;
+  /** With `calendarMeta`: where the Calendar shows slideshows with no stored spot (it places them in the next free slot). */
+  spots?: Record<string, string>;
+  /** Slots still being made come first (Campaigns lists newest first, so new ones show without scrolling). */
+  newestFirst?: boolean;
 };
 
 /** The covers' grid: 2 columns on phones, more as the screen widens. */
@@ -28,17 +40,18 @@ export const COVER_GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5 
 
 const frame = 'relative aspect-[9/16] w-full overflow-hidden rounded-xl bg-zinc-100 shadow-sm dark:bg-zinc-800';
 
-/** Ready: a button that opens the editor. Failed: its reason and a Retry. Otherwise: what it is waiting for. */
+/** Ready, or a pack preview with its first slide: a button that opens the editor. Failed: its reason and a Retry.
+ *  Otherwise: what it is waiting for. */
 type CardProps = { show: AutoSlideshowDto; onOpen: () => void; onRetry?: () => void; retrying: boolean; since?: string; totalMs?: number };
 
 function Cover({ show, onOpen, onRetry, retrying, since, totalMs }: CardProps) {
   const cover = show.slides[0];
-  if (show.status === 'ready' && cover?.imageUrl) {
+  if ((show.status === 'ready' || show.coverOnly) && cover?.imageUrl) {
     return (
       <button onClick={onOpen} aria-label={`Edit ${show.topic}`} className={`${frame} group block transition active:scale-[0.98]`}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={cover.imageUrl} alt={cover.title} loading="lazy" className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
-        <span className="absolute right-2 bottom-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">{show.slides.length} slides · Edit</span>
+        {show.status !== 'ready' && <span className="absolute right-2 bottom-2 rounded-full bg-black/70 px-2.5 py-1 text-[11px] font-semibold text-white">Preview</span>}
       </button>
     );
   }
@@ -63,37 +76,74 @@ function Cover({ show, onOpen, onRetry, retrying, since, totalMs }: CardProps) {
   );
 }
 
-function Card({ face, ...props }: CardProps & { face: Face | null }) {
+/** A ready slideshow plays on its cover (slides and music); the others show their still state. */
+function PlayableCover(props: CardProps) {
+  const { show } = props;
+  const frames = show.slides.flatMap((s) => (s.imageUrl ? [s.imageUrl] : []));
+  if (show.status !== 'ready' || frames.length === 0) return <Cover {...props} />;
+  return (
+    <CoverPlayback
+      id={show.id}
+      count={frames.length}
+      // eslint-disable-next-line @next/next/no-img-element
+      renderFrame={(i) => <img src={frames[i]} alt="" className="h-full w-full object-cover" />}
+      audio={show.audio}
+    >
+      <Cover {...props} />
+    </CoverPlayback>
+  );
+}
+
+/** Where a slideshow stands on the Calendar, as Hooks Volume covers show it; null when it is not on it yet. */
+function whenOf(show: AutoSlideshowDto, spot: string | undefined): string | null {
+  const post = show.post;
+  if (post?.status === 'posted') return calendarLine(post.scheduledAt, 'Posted');
+  if (post && post.status !== 'failed' && post.status !== 'canceled') return calendarLine(post.scheduledAt, 'Scheduled');
+  return calendarLine(show.plannedAt ?? spot ?? null, 'On Calendar');
+}
+
+function Card({ face, calendarMeta, spot, ...props }: CardProps & { face: Face | null; calendarMeta: boolean; spot?: string }) {
+  const { show } = props;
   return (
     <div>
       <div className="relative">
-        <Cover {...props} />
+        <PlayableCover {...props} />
         {face && <FaceBadge face={face} className="pointer-events-none absolute top-2 left-2" />}
       </div>
-      <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-ink dark:text-zinc-100">{props.show.topic}</p>
-      <p className="line-clamp-1 text-[11px] text-muted">{props.show.modelName}</p>
+      {calendarMeta && (show.status === 'ready' || show.coverOnly) ? (
+        <CoverMeta title={show.topic} when={whenOf(show, spot)} onOpen={props.onOpen} />
+      ) : calendarMeta ? (
+        <p className="mt-2 truncate text-sm font-semibold text-app-ink">{show.topic}</p>
+      ) : (
+        <>
+          <p className="mt-1.5 line-clamp-1 text-xs font-semibold text-ink dark:text-zinc-100">{show.topic}</p>
+          <p className="line-clamp-1 text-[11px] text-muted">{show.modelName}</p>
+        </>
+      )}
     </div>
   );
 }
 
 /** Slideshows as 9:16 covers; skeletons stand in for the ones not written yet. */
-export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, faceOf, flat = false }: Props) {
+export function SlideshowGrid({ slideshows, expected, writing, retrying, onOpen, onRetry, more, since, totalMs: runTotalMs, faceOf, flat = false, calendarMeta = false, spots, newestFirst = false }: Props) {
   const missing = writing ? Math.max(0, expected - slideshows.length) : 0;
-  const totalMs = makeEstimateMs(missing + slideshows.filter((s) => s.status === 'written' || s.status === 'rendering').length);
+  const totalMs = runTotalMs ?? makeEstimateMs(missing + slideshows.filter((s) => s.status === 'written' || s.status === 'rendering').length);
   if (slideshows.length === 0 && missing === 0 && !more) {
     if (flat) return null;
     return <p className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted dark:border-zinc-800">Slideshows show up here once they are written.</p>;
   }
+  const placeholders = Array.from({ length: missing }, (_, i) => (
+    <li key={`s${i}`}>{since ? <div className={frame}><MakingCountdown since={since} totalMs={totalMs} /></div> : <div className="aspect-[9/16] animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />}</li>
+  ));
   return (
     <ul className={flat ? 'contents' : COVER_GRID}>
+      {newestFirst && placeholders}
       {slideshows.map((show, i) => (
-        <li key={show.id}>
-          <Card show={show} face={faceOf?.(show) ?? null} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} since={since} totalMs={totalMs} />
+        <li key={show.id} className={EXPANDABLE_CELL}>
+          <Card show={show} face={faceOf?.(show) ?? null} calendarMeta={calendarMeta} spot={spots?.[show.id]} onOpen={() => onOpen(i)} onRetry={onRetry ? () => onRetry(show.id) : undefined} retrying={retrying === show.id} since={since} totalMs={totalMs} />
         </li>
       ))}
-      {Array.from({ length: missing }, (_, i) => (
-        <li key={`s${i}`}>{since ? <div className={frame}><MakingCountdown since={since} totalMs={totalMs} /></div> : <div className="aspect-[9/16] animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-800" />}</li>
-      ))}
+      {!newestFirst && placeholders}
       {more && <li>{more}</li>}
     </ul>
   );

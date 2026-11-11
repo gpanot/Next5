@@ -61,13 +61,14 @@ const pickNumber = (recent: number[]): number => {
 /**
  * The number every hook starts with: every slideshow shares the same content and CTA slides, so "5 ways…" on one hook
  * and "6 ways…" on another cannot both be true. With content written, it is the content slides plus the CTA (5 content
- * slides + CTA = "6 ways…", see campaignNumbering.ts). Without, the campaign's hooks so far keep theirs; else it is
- * picked here (pickNumber), and the content written later follows it.
+ * slides + CTA = "6 ways…", see campaignNumbering.ts). Without, it is picked here (pickNumber), skipping the number of
+ * the hooks being replaced so "Regenerate" rotates too, and the content written later follows it.
  */
 const hookCount = async (workspaceId: string, campaignId: string, draft: CampaignDraft, contentCount: number): Promise<number> => {
   if (contentCount >= 2) return contentCount + 1;
   const own = draft.hooks.map(hookNumber).find((n) => n !== null);
-  return own ?? pickNumber(await recentNumbers(workspaceId, campaignId));
+  const recent = await recentNumbers(workspaceId, campaignId);
+  return pickNumber(own !== undefined ? [own, ...recent] : recent);
 };
 
 const numberRule = (n: number): string =>

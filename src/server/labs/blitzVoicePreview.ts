@@ -17,7 +17,8 @@ const MAX_SLIDES = 10;
 const MAX_TEXT = 200;
 
 /** `words`: each shot's spoken line, word by word, timed from the shot's start (the deck shows it as it is said). */
-export type VoicePreview = { url: string; durations: number[]; lines: string[]; words: SpokenWord[][] };
+/** Debug (2026-10-20): `cached` replay or new recording, `misread` per line (see CachedNarration). */
+export type VoicePreview = { url: string; durations: number[]; lines: string[]; words: SpokenWord[][]; cached: boolean; misread?: string[][] };
 
 const quotaKey = (workspaceId: string) => `blitz/voiceovers/quota/${workspaceId}/${new Date().toISOString().slice(0, 10)}.json`;
 
@@ -58,15 +59,18 @@ const adoptLines = async (workspaceId: string, ideaId: string, texts: string[], 
 
 const recordedPreview = async (access: LabAccess, texts: string[], voice: string | undefined): Promise<VoicePreview> => {
   const hit = await cachedNarration(texts, voice, access.workspaceId);
-  if (hit) return { url: await blitzBrowserUrl(hit.audioKey), durations: hit.durations, lines: hit.lines, words: hit.words };
+  if (hit) return { url: await blitzBrowserUrl(hit.audioKey), durations: hit.durations, lines: hit.lines, words: hit.words, cached: true, misread: hit.misread };
   const capped = !access.admin && !(await workspaceHasPaid(access.workspaceId));
   if (capped && (await usedToday(access.workspaceId!)) >= FREE_PREVIEWS_PER_DAY) {
     throw new HttpError(429, 'voice_limit', `You heard ${FREE_PREVIEWS_PER_DAY} new voiceovers today. Top up to hear more, or come back tomorrow.`);
   }
   const narration = await narrateSlides(texts.map((text) => ({ text })), voice, access.workspaceId).catch((err: unknown) => {
-    console.warn('[blitz/voice-preview] recording failed:', err instanceof Error ? err.message.slice(0, 200) : err);
-    throw new HttpError(503, 'voice_busy', 'The voice is busy right now. Tap the mic again in a moment.');
+    const reason = err instanceof Error ? err.message.slice(0, 600) : String(err);
+    console.error('[blitz/voice-preview] recording failed:', reason, err instanceof Error ? err.cause ?? err.stack : '');
+    // Debug: admins see why in the response body.
+    throw new HttpError(503, 'voice_busy', 'The voice is busy right now. Tap the mic again in a moment.', access.admin ? { reason } : undefined);
   });
   if (capped) await countOne(access.workspaceId!);
-  return { url: await blitzBrowserUrl(narration.audioKey), durations: narration.slides.map((s) => s.durationSec), lines: narration.lines, words: narration.slides.map((s) => s.words) };
+  const saved = await cachedNarration(texts, voice, access.workspaceId);
+  return { url: await blitzBrowserUrl(narration.audioKey), durations: narration.slides.map((s) => s.durationSec), lines: narration.lines, words: narration.slides.map((s) => s.words), cached: false, misread: saved?.misread };
 };

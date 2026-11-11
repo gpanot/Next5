@@ -8,9 +8,10 @@ export const chatgptForSocialMedia: Article = {
   description: 'Using ChatGPT for social media posts as a small business: what it does well, where it falls short, 5 prompts that work, and what you still have to do yourself.',
   excerpt: 'ChatGPT writes words fast. Here is what it does well, what it cannot do, and 5 prompts that work for small businesses.',
   keyword: 'chatgpt for social media',
+  hub: 'cost-alternatives',
   published: '2026-10-18',
-  cover: 'trading-gaps',
-  coverAlt: 'TikTok slideshow made by Next5: "How to enter faster when gaps reopen — without rushing spikes."',
+  cover: '/images/guides/chatgpt-for-social-media.png',
+  coverAlt: 'Dog groomer typing on a laptop at her front desk, a groomed dog in the background',
   blocks: [
     { type: 'p', text: 'Many owners ask: "Why pay for social media help when ChatGPT is right there?" Fair question. ChatGPT is a great writing helper. But writing is only one part of social media.' },
     { type: 'h2', text: 'What ChatGPT does well' },
@@ -29,7 +30,7 @@ export const chatgptForSocialMedia: Article = {
       ['Post for you every day', 'No', 'A scheduler or a tool'],
       ['Show what worked', 'No', 'Your analytics, checked every week'],
     ] },
-    { type: 'p', text: 'The hard part of social media is not the words. It is doing it every day, with posts that look good, based on what already works.' },
+    { type: 'p', text: 'The hard part of social media is not the words. It is doing it every day, with posts that look good, based on what already works. For the slides themselves, see [TikTok slideshow maker: do you need one](/blog/tiktok-slideshow-maker) before you add a paid app to the ChatGPT prompt.' },
     { type: 'h2', text: 'The "sounds like AI" problem' },
     { type: 'p', text: 'ChatGPT text often sounds the same: long, polite and full of words like "elevate" and "unlock". People scroll past it. If you use it, edit hard:' },
     { type: 'ol', items: [

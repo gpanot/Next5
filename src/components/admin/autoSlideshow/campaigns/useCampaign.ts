@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { cardPhotos, renderKeyOf, targetsCard, withCardPhotos, type CampaignDraft, type CampaignDto, type CampaignPhotoDto, type CampaignPhotoJobDto, type CampaignPhotoJobRequest, type CampaignPhotoTarget, type PhotoOptionDto } from '../../../../types/admin/slideshowCampaign';
 import { adminFetch } from '../../business/useAdminApi';
+import { CAMPAIGN_PLAN_EVENT } from '../calendar/useCampaignsOnCalendar';
 
 /** Typing settles this long before the draft is saved. */
 const SAVE_DELAY_MS = 700;
@@ -30,10 +31,13 @@ const withPhotos = (photos: CampaignPhotoDto[], added: CampaignPhotoDto[]): Camp
 /** Imports that join a rotation: they land together, in pick order, once all are in. */
 const isRotation = (target: CampaignPhotoTarget) => target.slot === 'hook' || target.slot === 'cardRotation';
 
-/** Puts imported photos on their slide: hook photos and a card's rotation photos join the rotation, a card's photo is
- *  replaced by the last one. */
+/** Puts imported photos on their slide: hook photos and a card's rotation photos join the rotation (or a picked hook
+ *  photo is replaced), a card's photo is replaced by the last one. */
 const placePhotos = (draft: CampaignDraft, target: CampaignPhotoTarget, indexes: number[]): CampaignDraft => {
   if (indexes.length === 0) return draft;
+  if (target.slot === 'hook' && target.replace !== undefined && target.replace < draft.hookPhotos.length) {
+    return { ...draft, hookPhotos: draft.hookPhotos.map((p, i) => (i === target.replace ? indexes[indexes.length - 1]! : p)) };
+  }
   if (target.slot === 'hook') return { ...draft, hookPhotos: [...draft.hookPhotos, ...indexes] };
   if (target.slot === 'cardRotation') return { ...draft, cards: draft.cards.map((c, i) => (i === target.card ? withCardPhotos(c, [...cardPhotos(c), ...indexes]) : c)) };
   return { ...draft, cards: draft.cards.map((c, i) => (targetsCard(target, i) ? { ...c, photo: indexes[indexes.length - 1]! } : c)) };
@@ -88,8 +92,17 @@ export const useCampaign = (token: string, id: string) => {
     }
   }, [token, base]);
 
-  // Saves what is left when the editor closes.
-  useEffect(() => () => void flush(), [flush]);
+  /** True when posts of this campaign wait on the Calendar with slideshows older than the draft. */
+  const remakeOnClose = useRef(false);
+
+  // Saves what is left when the editor closes, then remakes planned slideshows so the Calendar shows the edit.
+  useEffect(() => () => {
+    void flush().then(async () => {
+      if (!remakeOnClose.current) return;
+      await adminFetch(token, `${base}/generate`, { method: 'POST', body: '{}' }).catch(() => undefined);
+      window.dispatchEvent(new Event(CAMPAIGN_PLAN_EVENT));
+    });
+  }, [flush, token, base]);
 
   const setDraft = useCallback((update: (d: CampaignDraft) => CampaignDraft) => {
     setCampaign((c) => {
@@ -222,6 +235,7 @@ export const useCampaign = (token: string, id: string) => {
   }, [token, base]);
 
   const stale = !campaign || madeKey === null || renderKeyOf(campaign.draft) !== madeKey;
+  remakeOnClose.current = !!campaign && campaign.plan.length > 0 && stale;
 
   const shown = [...pending, ...(jobs ?? []).filter((j) => j.status === 'running').map(jobPending)];
 

@@ -81,6 +81,7 @@ export function toShotView(shot: DeckItem['shots'][number]): ShotView {
     mediaKind:  shot.mediaKind,
     mediaLabel: shot.mediaLabel,
     photoTag:   shot.photoTag,
+    camera:     shot.camera,
     edit: {
       source:       shot.source,
       assetKey:     shot.assetKey,

@@ -3,6 +3,7 @@
 // otherwise it moves up or down to the nearest clear spot. Satori cannot measure text before it renders, so the text's
 // boxes are estimated from character counts, on the wide side. render.tsx draws with the same sizes.
 
+import { TEXT_SIDE } from '../../config/tiktokSafeZone';
 import type { AutoSlide, HeadBox } from '../../types/admin/autoSlideshow';
 import { bodyKind, clampTextX, textSpan, titleKind, type TextAt } from '../../types/slideText';
 
@@ -13,13 +14,15 @@ export const SLIDE_SIZE = { width: 1080, height: 1920 };
  * so the text stays where it showed on screen, and inside a 4:5 center crop (Instagram, see media route).
  */
 const TALL_SHIFT = 285;
+/** Every look's side margin (px): TikTok's right rail covers no more than 15% of the text block's reach (TEXT_SIDE). */
+const SIDE = Math.round(TEXT_SIDE * SLIDE_SIZE.width);
 
 /** Hook: big white outlined text. */
-export const HOOK_TEXT = { top: 360 + TALL_SHIFT, side: 70, lineHeight: 1.08, fontSize: (title: string) => (title.length > 40 ? 76 : 90) };
+export const HOOK_TEXT = { top: 360 + TALL_SHIFT, side: SIDE, lineHeight: 1.08, fontSize: (title: string) => (title.length > 40 ? 76 : 90) };
 /** Meat and CTA: headline in a box, one plain line under it. `big` is the CTA. */
 export const BOX_TEXT = {
   top: (big: boolean) => (big ? 300 : 330) + TALL_SHIFT,
-  side: 80,
+  side: SIDE,
   gap: 36,
   titleSize: (big: boolean) => (big ? 62 : 54),
   titleLineHeight: 1.12,
@@ -30,31 +33,33 @@ export const BOX_TEXT = {
 };
 
 /** All caps: white Montserrat ExtraBold Italic capitals with a soft shadow; its glyphs run wider than Inter's. */
-export const CAPS_TEXT = { side: 70, lineHeight: 1.15, char: 0.74, bodySize: 38, bodyLineHeight: 1.25, fontSize: (role: string, title: string) => (role === 'hook' ? (title.length > 40 ? 60 : 72) : role === 'cta' ? 58 : 52) };
+export const CAPS_TEXT = { side: SIDE, lineHeight: 1.15, char: 0.74, bodySize: 38, bodyLineHeight: 1.25, fontSize: (role: string, title: string) => (role === 'hook' ? (title.length > 40 ? 60 : 72) : role === 'cta' ? 58 : 52) };
 
 /** Hook / CTA in the TikTok Red look: white text on a red highlight behind each line. */
-export const RED_TEXT = { side: 80, fontSize: 60, lineHeight: 1.3, padX: 18, color: '#E8453C' };
+export const RED_TEXT = { side: SIDE, fontSize: 60, lineHeight: 1.3, padX: 18, color: '#E8453C' };
 
 /** The line under the headline in its own look: in a box (black or white) or TikTok Red (red behind each line). */
 export const BODY_LOOK = { boxPadY: 12, boxPadX: 22, radius: 14, redLineHeight: 1.3, redPadX: 14 };
 
 /** The line under the headline: its width and height in px, in its look. */
-export const bodySize = (body: string, look: AutoSlide['bodyLook'], wrap?: number): { w: number; h: number } => {
+export const bodySize = (body: string, look: AutoSlide['bodyLook'], wrap?: number, scale = 1): { w: number; h: number } => {
   const inner = wrap ?? SLIDE_SIZE.width - BOX_TEXT.side * 2;
   const kind = bodyKind(look);
+  const plainSize = BOX_TEXT.bodySize * scale;
   if (kind === 'all-caps') {
-    const lines = lineWidths(body.toUpperCase(), CAPS_TEXT.bodySize, CAPS_TEXT.char, inner);
-    return { w: Math.max(0, ...lines), h: lines.length * CAPS_TEXT.bodySize * CAPS_TEXT.bodyLineHeight };
+    const size = CAPS_TEXT.bodySize * scale;
+    const lines = lineWidths(body.toUpperCase(), size, CAPS_TEXT.char, inner);
+    return { w: Math.max(0, ...lines), h: lines.length * size * CAPS_TEXT.bodyLineHeight };
   }
   if (kind === 'plain') {
-    const lines = lineWidths(body, BOX_TEXT.bodySize, SEMI_CHAR, inner);
-    return { w: Math.max(0, ...lines), h: lines.length * BOX_TEXT.bodySize * BOX_TEXT.bodyLineHeight };
+    const lines = lineWidths(body, plainSize, SEMI_CHAR, inner);
+    return { w: Math.max(0, ...lines), h: lines.length * plainSize * BOX_TEXT.bodyLineHeight };
   }
   const boxed = kind !== 'tiktok-red';
   const padX = boxed ? BODY_LOOK.boxPadX : BODY_LOOK.redPadX;
-  const lines = lineWidths(body, BOX_TEXT.bodySize, SEMI_CHAR, inner - padX * 2);
+  const lines = lineWidths(body, plainSize, SEMI_CHAR, inner - padX * 2);
   const lineHeight = boxed ? BOX_TEXT.bodyLineHeight : BODY_LOOK.redLineHeight;
-  return { w: Math.max(0, ...lines) + padX * 2, h: lines.length * BOX_TEXT.bodySize * lineHeight + (boxed ? BODY_LOOK.boxPadY * 2 : 0) };
+  return { w: Math.max(0, ...lines) + padX * 2, h: lines.length * plainSize * lineHeight + (boxed ? BODY_LOOK.boxPadY * 2 : 0) };
 };
 
 /** Below TikTok's top tabs ("Following | For You"). */
@@ -69,7 +74,10 @@ export const BOLD_CHAR = 0.6;
 export const SEMI_CHAR = 0.54;
 
 type Rect = { x: number; y: number; w: number; h: number };
-type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'> & { textAt?: TextAt; bodyLook?: AutoSlide['bodyLook'] };
+type SlideText = Pick<AutoSlide, 'role' | 'title' | 'body' | 'look'> & { textAt?: TextAt; bodyLook?: AutoSlide['bodyLook']; textSize?: number };
+
+/** The share of its look's font size the slide's text is drawn at (the editors' Text size). */
+export const textScale = (slide: { textSize?: number }): number => slide.textSize ?? 1;
 
 /** Greedy word wrap on estimated widths: each line's words and px width. */
 export const wrapLines = (text: string, fontSize: number, charShare: number, maxWidth: number): { text: string; width: number }[] => {
@@ -104,14 +112,18 @@ export const isBig = (slide: SlideText) => slide.role === 'hook' || slide.role =
 export const titleKindOf = (slide: SlideText) => titleKind(slide.role, slide.look);
 
 /** Outlined headline size: the hook's big text, a little smaller on other slides. */
-export const outlineSize = (slide: SlideText) => (slide.role === 'hook' ? HOOK_TEXT.fontSize(slide.title) : isBig(slide) ? 68 : 60);
+export const outlineSize = (slide: SlideText) => (slide.role === 'hook' ? HOOK_TEXT.fontSize(slide.title) : isBig(slide) ? 68 : 60) * textScale(slide);
+
+/** All caps headline size. */
+export const capsSize = (slide: SlideText) => CAPS_TEXT.fontSize(slide.role, slide.title) * textScale(slide);
 
 /** The red highlight lines' widths (text plus padding) and height. */
 const redRects = (slide: SlideText, wrap?: number): Rect[] => {
-  const lines = lineWidths(slide.title, RED_TEXT.fontSize, BOLD_CHAR, (wrap ?? SLIDE_SIZE.width - RED_TEXT.side * 2) - RED_TEXT.padX * 2);
-  const rects = [centered(Math.max(0, ...lines) + RED_TEXT.padX * 2, 0, lines.length * RED_TEXT.fontSize * RED_TEXT.lineHeight)];
+  const size = RED_TEXT.fontSize * textScale(slide);
+  const lines = lineWidths(slide.title, size, BOLD_CHAR, (wrap ?? SLIDE_SIZE.width - RED_TEXT.side * 2) - RED_TEXT.padX * 2);
+  const rects = [centered(Math.max(0, ...lines) + RED_TEXT.padX * 2, 0, lines.length * size * RED_TEXT.lineHeight)];
   if (slide.body) {
-    const body = bodySize(slide.body, slide.bodyLook, wrap);
+    const body = bodySize(slide.body, slide.bodyLook, wrap, textScale(slide));
     rects.push(centered(body.w, rects[0]!.h + BOX_TEXT.gap, body.h));
   }
   return rects;
@@ -127,7 +139,7 @@ export const textRects = (slide: SlideText, wrap?: number): Rect[] => {
   const title = kind === 'outline' ? outlineRect(slide, wrap) : kind === 'all-caps' ? capsRect(slide, wrap) : boxRect(slide, wrap);
   const rects = [title];
   if (slide.body) {
-    const body = bodySize(slide.body, slide.bodyLook, wrap);
+    const body = bodySize(slide.body, slide.bodyLook, wrap, textScale(slide));
     rects.push(centered(body.w, title.h + BOX_TEXT.gap, body.h));
   }
   return rects;
@@ -142,43 +154,53 @@ const outlineRect = (slide: SlideText, wrap?: number): Rect => {
 
 /** The All caps headline. */
 const capsRect = (slide: SlideText, wrap?: number): Rect => {
-  const size = CAPS_TEXT.fontSize(slide.role, slide.title);
+  const size = capsSize(slide);
   const lines = lineWidths(slide.title.toUpperCase(), size, CAPS_TEXT.char, wrap ?? SLIDE_SIZE.width - CAPS_TEXT.side * 2);
   return centered(Math.max(0, ...lines), 0, lines.length * size * CAPS_TEXT.lineHeight);
 };
 
 /** The boxed headline (brand, black or white box). */
 const boxRect = (slide: SlideText, wrap?: number): Rect => {
-  const titleSize = BOX_TEXT.titleSize(isBig(slide));
+  const titleSize = BOX_TEXT.titleSize(isBig(slide)) * textScale(slide);
   const titleLines = lineWidths(slide.title, titleSize, BOLD_CHAR, (wrap ?? SLIDE_SIZE.width - BOX_TEXT.side * 2) - BOX_TEXT.padX * 2);
   return centered(Math.max(0, ...titleLines) + BOX_TEXT.padX * 2, 0, titleLines.length * titleSize * BOX_TEXT.titleLineHeight + BOX_TEXT.padY * 2);
 };
 
 const homeTop = (slide: SlideText) => (slide.role === 'hook' && ['outline', 'all-caps'].includes(titleKindOf(slide)) ? HOOK_TEXT.top : BOX_TEXT.top(isBig(slide)));
 
-/** A head in slide px, grown by the margin. */
-const headRect = (h: HeadBox): Rect => ({
-  x: h.left * SLIDE_SIZE.width - HEAD_MARGIN,
-  y: h.top * SLIDE_SIZE.height - HEAD_MARGIN,
-  w: (h.right - h.left) * SLIDE_SIZE.width + HEAD_MARGIN * 2,
-  h: (h.bottom - h.top) * SLIDE_SIZE.height + HEAD_MARGIN * 2,
-});
+/**
+ * A head is taller than wide: a box flatter than this (height / width) stopped short of the chin (seen 2026-10-21 on a
+ * face looking down: hair to nose only), so it is grown down to it.
+ */
+export const MIN_HEAD_RATIO = 1.25;
+
+/** A head in slide px, at least MIN_HEAD_RATIO tall, grown by the margin. */
+export const headRect = (h: HeadBox): Rect => {
+  const w = (h.right - h.left) * SLIDE_SIZE.width;
+  const height = Math.max((h.bottom - h.top) * SLIDE_SIZE.height, w * MIN_HEAD_RATIO);
+  return { x: h.left * SLIDE_SIZE.width - HEAD_MARGIN, y: h.top * SLIDE_SIZE.height - HEAD_MARGIN, w: w + HEAD_MARGIN * 2, h: height + HEAD_MARGIN * 2 };
+};
 
 const overlap = (a: Rect, b: Rect) =>
   Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
 
+/** A slide and the heads on its photo. */
+export type PlacedSlide = { slide: SlideText; heads?: HeadBox[] | null };
+
 /**
- * The text block's top in px. Its usual spot when no head is known or that spot is clear; else the clear spot nearest to
- * it between TikTok's top tabs and bottom caption; when no spot is clear (heads everywhere), the one that covers the least.
+ * One top (px) for slides whose text should line up (a slideshow's content slides): their usual spot when it is clear
+ * on every photo; else the spot nearest to it, between TikTok's top tabs and bottom caption, that covers the fewest
+ * heads over all the photos at once. Each slide counts its own text size and heads. Undefined for no slides.
  */
-export const textTop = (slide: SlideText, heads?: HeadBox[] | null): number => {
-  const home = homeTop(slide);
-  if (!heads?.length) return home;
-  const rects = textRects(slide);
-  const height = Math.max(...rects.map((r) => r.y + r.h));
-  const blocks = heads.map(headRect);
+export const sharedTop = (group: PlacedSlide[]): number | undefined => {
+  if (group.length === 0) return undefined;
+  const home = homeTop(group[0]!.slide);
+  if (group.every((g) => !g.heads?.length)) return home;
+  const parts = group.map((g) => ({ rects: textRects(g.slide), blocks: (g.heads ?? []).map(headRect) }));
+  const height = Math.max(...parts.flatMap((p) => p.rects.map((r) => r.y + r.h)));
   // Rounded: float noise must not beat a closer spot that covers the same area.
-  const coverAt = (top: number) => Math.round(rects.reduce((sum, r) => sum + blocks.reduce((s, b) => s + overlap({ ...r, y: r.y + top }, b), 0), 0));
+  const coverAt = (top: number) =>
+    Math.round(parts.reduce((total, p) => total + p.rects.reduce((sum, r) => sum + p.blocks.reduce((s, b) => s + overlap({ ...r, y: r.y + top }, b), 0), 0), 0));
   let best = { top: home, cover: coverAt(home), distance: 0 };
   for (let top = TOP_MIN; top <= Math.max(TOP_MIN, BOTTOM_MAX - height); top += SCAN_STEP) {
     const cover = coverAt(top);
@@ -188,14 +210,27 @@ export const textTop = (slide: SlideText, heads?: HeadBox[] | null): number => {
   return best.top;
 };
 
+/**
+ * The text block's top in px. Its usual spot when no head is known or that spot is clear; else the clear spot nearest to
+ * it between TikTok's top tabs and bottom caption; when no spot is clear (heads everywhere), the one that covers the least.
+ */
+export const textTop = (slide: SlideText, heads?: HeadBox[] | null): number => sharedTop([{ slide, heads }])!;
+
+/** Content slides placed automatically (not moved by hand): their text lines up at one sharedTop. */
+export const alignsWithContent = (slide: SlideText): boolean => slide.role === 'item' && !slide.textAt;
+
+/** The one top every auto-placed content slide of `group` shares (other slides are left out). */
+export const contentTop = (group: PlacedSlide[]): number | undefined => sharedTop(group.filter((g) => alignsWithContent(g.slide)));
+
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), Math.max(min, max));
 
 /**
  * Where the text block goes, as shares of the slide: the spot it was moved to in an editor (kept inside the slide by its
- * estimated size, heads ignored: the person chose it), else centered at textTop's spot.
+ * estimated size, heads ignored: the person chose it), else centered at `top` (px: the slideshow's content slides share
+ * one, contentTop) or textTop's spot.
  */
-export const placeText = (slide: SlideText, heads?: HeadBox[] | null): TextAt => {
-  if (!slide.textAt) return { x: 0.5, y: textTop(slide, heads) / SLIDE_SIZE.height };
+export const placeText = (slide: SlideText, heads?: HeadBox[] | null, top?: number): TextAt => {
+  if (!slide.textAt) return { x: 0.5, y: (top ?? textTop(slide, heads)) / SLIDE_SIZE.height };
   const x = clampTextX(slide.textAt.x);
   const span = textSpan(x, sideOf(slide) / SLIDE_SIZE.width);
   const rects = textRects(slide, (1 - span.left - span.right) * SLIDE_SIZE.width);

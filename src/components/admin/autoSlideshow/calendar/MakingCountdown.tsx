@@ -1,5 +1,6 @@
 'use client';
 
+import { isTerminalAutoStatus, type AutoRunDto } from '../../../../types/admin/autoSlideshow';
 import { formatElapsed, useNow } from '../../shared/runClock';
 
 /** How long `count` slideshows take: about 30 s to plan, 40 s per wave of 10 photos (8 per slideshow), 15 s to render. */
@@ -7,6 +8,16 @@ export const makeEstimateMs = (count: number): number => 30_000 + Math.ceil((Mat
 
 /** A first post on the calendar: one slideshow, plus a little for the site read on a new run. */
 export const TYPICAL_MAKE_MS = 120_000;
+
+/**
+ * The one estimate for a run's slideshows still being made, so the Calendar and the Campaigns grid count the same
+ * wait down: the slideshows not written yet (the run's count less what it has) plus the ones written or rendering.
+ */
+export const runMakeEstimateMs = (run: Pick<AutoRunDto, 'count' | 'status' | 'slideshows'>): number => {
+  const unwritten = isTerminalAutoStatus(run.status) ? 0 : Math.max(0, run.count - run.slideshows.length);
+  const inFlight = run.slideshows.filter((s) => s.status === 'written' || s.status === 'rendering').length;
+  return makeEstimateMs(unwritten + inFlight);
+};
 
 /** Three slides fanning in and out, one after the other: the slideshow being put together. */
 function Shuffle({ small }: { small: boolean }) {

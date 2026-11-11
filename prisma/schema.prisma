@@ -43,6 +43,14 @@ model User {
 
   /// Testing switch: Blitz cards on the Ideas page get stock photos even when the owner has paid (Settings → Profile).
   stockImagesOnly Boolean @default(false) @map("stock_images_only")
+  /// Was a testing switch (Blitz cards always get AI images); its switch was removed 2026-10-20, no longer read.
+  aiImagesOnly    Boolean @default(false) @map("ai_images_only")
+  /// Testing setting: share (percent) of Blitz photo prompts written as a 50/50 split-screen picture (Settings → Profile).
+  splitSlidesPercent Int @default(10) @map("split_slides_percent")
+  /// Testing switch: Hooks Volume's "Generate the entire slideshows" uses stock photos even when paid (Settings → Profile).
+  hooksVolumeStockOnly Boolean @default(false) @map("hooks_volume_stock_only")
+  /// Settings → Profile: the 8 am email about today's posts waiting for approval. On for new sign-ups, off for accounts made before 2026-10-19.
+  approvalEmailEnabled Boolean @default(true) @map("approval_email_enabled")
 
   bookings Booking[]
   photos   Photo[]
@@ -51,6 +59,7 @@ model User {
   workspaces Workspace[]
   consents   ConsentRecord[]
   payments   Payment[]
+  brandBlueprints BrandBlueprint[]
 
   @@map("users")
 }
@@ -259,6 +268,16 @@ model Workspace {
   brandExtractAt        DateTime?     @map("brand_extract_at")
   /// Share of slideshows (0-100) in a batch of calendar ideas; the rest are Blitz videos. Settings › Content.
   ideaSlideshowPct      Int           @default(10) @map("idea_slideshow_pct")
+  /// Target client (src/types/admin/targetClient.ts), picked on the first onboarding screen, editable on the Brand page:
+  /// "20_30" | "30_40" | "40_50" | "50_plus"; null until picked. The Brand Cast is cast from it.
+  targetAge             String?       @map("target_age")
+  /// "female" | "male" | "both"; null until picked
+  targetGender          String?       @map("target_gender")
+  /// When the owner first picked the target client; null: a new workspace's first run waits for it after step 3
+  targetConfirmedAt     DateTime?     @map("target_confirmed_at")
+  /// When the owner picked their brand avatar in onboarding; null: the first run waits for the pick once the cast is
+  /// made (status 'WAITING_AVATAR', src/server/brandCast/gate.ts)
+  avatarConfirmedAt     DateTime?     @map("avatar_confirmed_at")
   /// The browser's UTC offset (minutes, as Date.getTimezoneOffset): the server plans the first ideas batch on its days.
   ideaTzOffsetMin       Int?          @map("idea_tz_offset_min")
   /// Set while a batch of calendar ideas is being written (lock; stale after 5 min).
@@ -304,6 +323,7 @@ model Workspace {
   userUploads         UserUpload[]
   brandCast           BrandCastMember[]
   onboardingProfile   OnboardingProfile?
+  brandBlueprints     BrandBlueprint[]
 
   // One Brand and one Shop studio per user: a partial unique index in SQL (db/migrations, *_slideshow_workspaces.sql)
   // that skips 'slideshow' workspaces. Prisma cannot express it, so it is not declared here.
@@ -1328,6 +1348,8 @@ model BlitzProject {
   renderStartedAt      DateTime?         @map("render_started_at")
   /// Set by the blitz-worker when the job ends (COMPLETED or FAILED). Render time = renderFinishedAt - renderStartedAt.
   renderFinishedAt     DateTime?         @map("render_finished_at")
+  /// Why the last render failed (set by the blitz-worker; null once one succeeds)
+  renderError          String?           @map("render_error")
   /// Hard-blocks any future export path; set manually for real-person test footage.
   isIdentifiablePerson Boolean           @default(false) @map("is_identifiable_person")
   createdAt            DateTime          @default(now()) @map("created_at")
@@ -2330,7 +2352,7 @@ model AutoSlideshowRun {
   count           Int
   /// Workspace whose TikTok account will post; null for admin test runs
   workspaceId     String?   @map("workspace_id")
-  /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'COMPLETED' | 'FAILED'
+  /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'HELD' | 'WAITING_TARGET' | 'WAITING_AVATAR' | 'COMPLETED' | 'FAILED'
   status          String    @default("STEP_1_RUNNING")
   /// Step 1: BrandProfile (flat copy of the shared profile below)
   profile         Json?
@@ -2354,6 +2376,11 @@ model AutoSlideshowRun {
   photoJobs       Json?     @map("photo_jobs")
   /// Prospect Pack runs: stop after step 3 (status 'HELD') until the admin approves the Brand Cast faces
   holdBeforeStep4 Boolean   @default(false) @map("hold_before_step4")
+  /// A new workspace's first run: stop after step 3 (status 'WAITING_TARGET') until the owner picks the target client,
+  /// then again (status 'WAITING_AVATAR') until they pick their brand avatar
+  waitForTarget   Boolean   @default(false) @map("wait_for_target")
+  /// Prospect Pack runs: positions of slideshows made with only their first slide until the pack is unlocked
+  coverOnlyPositions Int[]  @default([]) @map("cover_only_positions")
   stepTimings     Json      @default("{}") @map("step_timings")
   stepCosts       Json      @default("{}") @map("step_costs")
   failedStep      Int?      @map("failed_step")
@@ -2397,9 +2424,11 @@ model AutoSlideshow {
   bankMeatId              String?  @map("bank_meat_id")
   bankHookId              String?  @map("bank_hook_id")
   bankCtaId               String?  @map("bank_cta_id")
-  /// 'written' | 'rendering' | 'ready' | 'failed'
+  /// 'written' | 'rendering' | 'ready' | 'failed' | 'draft' | 'finishing' (hand-made, src/server/autoSlideshow/manual)
   status                  String   @default("written")
   error                   String?
+  /// Where it waits on the Calendar for approval (dragged, or scheduled from the editor); null: the next free slot
+  plannedAt               DateTime? @map("planned_at")
   createdAt               DateTime @default(now()) @map("created_at")
   updatedAt               DateTime @updatedAt @map("updated_at")
 
@@ -2677,7 +2706,7 @@ model ProspectPack {
   ownerUserId     String    @map("owner_user_id")
   websiteUrl      String    @map("website_url")
   name            String
-  /// 'building' | 'faces' | 'making' | 'ready' | 'failed' | 'claimed'
+  /// 'queued' | 'building' | 'faces' | 'making' | 'ready' | 'failed' | 'claimed'
   status          String    @default("building")
   shareToken      String    @unique @map("share_token")
   brandRunId      String?   @map("brand_run_id")
@@ -2691,9 +2720,95 @@ model ProspectPack {
   error           String?
   claimedAt       DateTime? @map("claimed_at")
   claimedByUserId String?   @map("claimed_by_user_id")
+  /// When the previews (days 8-14) started being made in full, after the first payment of the person who claimed it
+  unlockedAt      DateTime? @map("unlocked_at")
+  /// When the faces were ready to check, the admin approved them, and the pack was ready to share (its make time)
+  /// When its making started (after waiting as 'queued' when too many were being made)
+  startedAt       DateTime? @map("started_at")
+  facesAt         DateTime? @map("faces_at")
+  approvedAt      DateTime? @map("approved_at")
+  readyAt         DateTime? @map("ready_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
+  opens           ProspectPackOpen[]
 
   @@index([createdAt(sort: Desc)], map: "prospect_packs_created_idx")
   @@map("prospect_packs")
+}
+
+/// One time a lead opened a pack's link (src/server/prospects/opens.ts). No IP or full user agent kept.
+model ProspectPackOpen {
+  id       String       @id @default(cuid())
+  packId   String       @map("pack_id")
+  pack     ProspectPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  openedAt DateTime     @default(now()) @map("opened_at")
+  /// 'mobile' | 'desktop'
+  device   String
+  /// Two-letter country from the host's geo header. Null when unknown (localhost).
+  country  String?
+
+  @@index([packId, openedAt(sort: Desc)], map: "prospect_pack_opens_pack_idx")
+  @@map("prospect_pack_opens")
+}
+
+/// One paid provider call (OpenAI, OpenRouter, reAPI, treg, WaveSpeed, Exa, Apify). userId comes from the session that
+/// started the work; null = admin, cron or other system work. Admin → Users sums it per user and per day.
+model ApiCostEvent {
+  id            BigInt   @id @default(autoincrement())
+  createdAt     DateTime @default(now()) @map("created_at")
+  userId        String?  @map("user_id")
+  provider      String
+  model         String
+  /// The API route that started the work, ids replaced by ":id" (e.g. "POST /api/app/campaigns/:id/generate").
+  feature       String?
+  costUsdMicros Int      @map("cost_usd_micros")
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("api_cost_events")
+}
+
+/// Brand Blueprint (/app/{studio}/blueprint): topics per pillar, the About card and a 7-day plan with a script per day.
+/// One active row per workspace, enforced in code (get-or-create). `version` is bumped on every write and checked on
+/// PATCH so two open tabs never overwrite each other. Shapes are validated with Zod (src/lib/blueprint/schema.ts).
+model BrandBlueprint {
+  id          String    @id @default(cuid())
+  /// Null: the admin's own blueprint (Admin › Jun Yuh › My Blueprint).
+  workspaceId String?    @map("workspace_id")
+  createdBy   String?    @map("created_by")
+  /// { skills | passions | story: 5 slots of { text, main } }, at most 3 main per pillar.
+  topics      Json
+  about       Json      @default("{\"aud\":\"\",\"off\":\"\",\"cred\":\"\",\"voice\":\"\"}")
+  plan        Json
+  step        Int       @default(0) @db.SmallInt
+  version     Int       @default(1)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @default(now()) @map("updated_at")
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  creator     User?      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId], map: "brand_blueprints_workspace_idx")
+  @@map("brand_blueprints")
+}
+
+/// Admin › Jun Yuh › Script Generator: one saved script (video or carousel) with its answers, refine chat and photos.
+model ScriptGeneratorDraft {
+  id        String   @id @default(cuid())
+  title     String
+  format    String
+  structure String
+  model     String
+  /// The wizard answers (GenerateScriptInput).
+  input     Json
+  /// The GeneratedScript.
+  script    Json
+  /// [{ you, reply, refused }]
+  chat      Json     @default("[]")
+  /// { slot: r2Key }. Slot "3" = slide 4, "3b" = its bottom half on a split screen.
+  photos    Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([updatedAt(sort: Desc)], map: "script_generator_drafts_updated_idx")
+  @@map("script_generator_drafts")
 }

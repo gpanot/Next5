@@ -18,9 +18,14 @@ export type PhotoBrand = {
   look: string | null;
   /** The product itself may be a photo's subject. */
   productAsSubject: boolean;
+  /** Age and gender of the people shown, from the owner's target client (targetPeople). Absent = not picked. */
+  people?: string | null;
+  /** Share (0-1) of shots written as a 50/50 split-screen picture: the owner's testing setting. SPLIT_SHARE when absent. */
+  splitShare?: number;
 };
 
-export type ShotPhoto = { prompt: string; description: string };
+/** `people`: the PhotoBrand.people it was written for; a prompt written for other people is written again. */
+export type ShotPhoto = { prompt: string; description: string; people?: string };
 
 /** One shot to picture: `label` says what the beat is in this story's format ("Myth", "Step 1", "After"). */
 export type PhotoShot = { id: string; role: string; label: string; text: string; intent?: string };
@@ -34,17 +39,24 @@ For each shot, a prompt of 40-70 words:
 - The exact moment of its line, with the concrete things the line names (the food, the tool, the place, the gesture).
 - Real-looking photography of a person or place in the audience's world. Follow the brand's Visual style for who and what
   appears, the setting and the clothes: the pictures must feel like this brand, not like stock.
+- PEOPLE, when given, is a hard rule for the age and gender of everyone shown; it wins over the Visual style. Write
+  the age into every prompt that shows a person.
 - One story = one main character and one home or workplace: describe them the same way in every shot of the story
   (age range, look, clothes, the room), so the shots feel like one video.
 - A different camera on every shot of a story: wide scene, medium shot, close-up on hands and objects in action,
   over-the-shoulder, low angle, high angle, view through a doorway... Never the same framing twice in a story.
 - Body language fits the beat: problem and old way = real, specific frustration; fix = ease and control; proof and
   result = visible relief, the result in the frame; cost of waiting = the loss showing.
-- When the line is about the product, show it in use as it really looks (an app on a phone held naturally, the product
-  in its real setting). When "Product as subject" is yes, the product may be the subject. The brand may appear.
+- Only the cta shot may show the product, in use as it really looks (an app on a phone held naturally, the product in
+  its real setting); "Product as subject" applies to the cta shot only. Every other shot shows the audience's real
+  moment with no product, no app screen and no brand: the video is value content, not an ad.
 - Bright daylight. Never: dusk, night, golden hour, moody or cinematic light, close-up faces, readable text, captions,
   documents, clipboards, paper or a lone object as the whole subject.
 - Describe only what is in the photo (no "no text").
+- A shot marked SPLIT is one photo made of two scenes stacked: top half and bottom half, split by a clean horizontal
+  line. Same main character in both halves, two different moments or angles of the line (e.g. top: wide shot of the
+  character at work, bottom: close-up of their hands on the task; or top: the problem, bottom: the struggle up close).
+  Start the prompt with "Split-screen photo, top half: ..., bottom half: ...". Each half bright and readable on its own.
 Also "description": one plain sentence of what the picture shows (for search).
 Return JSON only, one item per shot, "key" copied exactly: {"items":[{"key":"...","prompt":"...","description":"..."}]}`;
 
@@ -53,12 +65,22 @@ const brandBlock = (brand: PhotoBrand, audience: string, categories: string[]) =
   `AUDIENCE: ${audience}${categories.length ? ` (${categories.map(categoryLabel).join(', ')})` : ''}`,
   `Visual style: ${brand.look || 'everyday scenes of the audience at home or at work'}`,
   `Product as subject: ${brand.productAsSubject ? 'yes' : 'no'}`,
+  ...(brand.people ? [`PEOPLE: ${brand.people}`] : []),
 ].join('\n');
 
-const storyBlock = (story: PhotoStory, keyOf: (shot: PhotoShot) => string) => [
+/**
+ * Default share of shots drawn as a split-screen photo (two stacked scenes in one generated image). User, 2026-10-20:
+ * a 50/50 slide seen once stopped the scroll. Never the cta shot: the product must read clearly there.
+ */
+const SPLIT_SHARE = 0.1;
+
+const storyBlock = (story: PhotoStory, keyOf: (shot: PhotoShot) => string, splitShare: number) => {
+  const splitShot = (shot: PhotoShot) => shot.role !== 'cta' && Math.random() < splitShare;
+  return [
   `STORY ${story.id}: ${story.lines}`,
-  ...story.shots.map((s) => `${keyOf(s)} | ${s.label} (${s.role} shot) | line: "${s.text}"${s.intent ? ` | wanted: ${s.intent}` : ''}`),
-].join('\n');
+    ...story.shots.map((s) => `${keyOf(s)} | ${s.label} (${s.role} shot)${splitShot(s) ? ' | SPLIT' : ''} | line: "${s.text}"${s.intent ? ` | wanted: ${s.intent}` : ''}`),
+  ].join('\n');
+};
 
 /**
  * One call: a prompt per shot of every story, by `${story.id}:${shot.id}`. Shots the model skipped are missing.
@@ -70,7 +92,7 @@ export async function writeShotPhotos(brand: PhotoBrand, audience: string, categ
   // Short keys ("s0") survive the round trip; free-text keys came back reworded.
   const keys: string[] = [];
   const keyOf = (story: PhotoStory) => (shot: PhotoShot) => `s${keys.push(`${story.id}:${shot.id}`) - 1}`;
-  const user = [brandBlock(brand, audience, categories), ...stories.map((s) => storyBlock(s, keyOf(s)))].join('\n\n');
+  const user = [brandBlock(brand, audience, categories), ...stories.map((s) => storyBlock(s, keyOf(s), brand.splitShare ?? SPLIT_SHARE))].join('\n\n');
   const result = await chatJson<{ items?: Array<{ key?: string; prompt?: string; description?: string }> }>(
     [{ role: 'system', content: RULES }, { role: 'user', content: user }],
     { model: 'gpt-5.5', reasoningEffort: 'low', maxTokens: 6_000, timeoutMs: 90_000 },
@@ -81,7 +103,7 @@ export async function writeShotPhotos(brand: PhotoBrand, audience: string, categ
   for (const item of result?.items ?? []) {
     const id = keys[Number(item.key?.replace(/^s/, ''))];
     const prompt = item.prompt?.trim();
-    if (id && prompt) out.set(id, { prompt, description: item.description?.trim() || prompt.slice(0, 120) });
+    if (id && prompt) out.set(id, { prompt, description: item.description?.trim() || prompt.slice(0, 120), ...(brand.people ? { people: brand.people } : {}) });
   }
   return out;
 }

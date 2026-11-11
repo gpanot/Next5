@@ -1,0 +1,629 @@
+<title>Personal Brand Blueprint</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Layout: one working column, a sticky step bar, one step visible at a time. Brand tree is the spine of the page. */
+:root{
+  --bg:#faf7f4; --surface:#ffffff; --sunk:#f1ece7; --fg:#241a1d; --muted:#6d5f63; --line:#e3dad4;
+  --accent:#8a1f45; --accent-fg:#ffffff; --blush:#f7d9dd; --blush-fg:#5c1630; --lav:#e6e8fb; --lav-fg:#2e3470;
+  --ok:#2f7a4f;
+  --display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  --body:"Hanken Grotesk","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#171114; --surface:#211a1d; --sunk:#2a2124; --fg:#f3ebe8; --muted:#b3a5a9; --line:#3a2f33;
+  --accent:#e0698f; --accent-fg:#1a0d12; --blush:#4a2331; --blush-fg:#f7d9dd; --lav:#2a2d52; --lav-fg:#d9dcff; --ok:#6fcf97; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#171114; --surface:#211a1d; --sunk:#2a2124; --fg:#f3ebe8; --muted:#b3a5a9; --line:#3a2f33;
+  --accent:#e0698f; --accent-fg:#1a0d12; --blush:#4a2331; --blush-fg:#f7d9dd; --lav:#2a2d52; --lav-fg:#d9dcff; --ok:#6fcf97; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:880px;margin:0 auto}
+h1,h2,h3{font-family:var(--display);line-height:1.08;margin:0;text-wrap:balance;letter-spacing:-.015em}
+h1{font-size:clamp(34px,7vw,56px);font-weight:800}
+h2{font-size:clamp(26px,4.5vw,36px);font-weight:700}
+h3{font-size:20px;font-weight:700}
+p{margin:0}
+.eyebrow{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:600}
+.lead{color:var(--muted);font-size:18px;max-width:60ch}
+button,textarea,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+/* sticky step bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:10px max(16px,env(safe-area-inset-left,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+.steps{display:flex;gap:6px;overflow-x:auto;max-width:880px;margin:0 auto;scrollbar-width:none}
+.steps button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-size:14px;font-weight:500;cursor:pointer;color:var(--muted)}
+.steps button[aria-current="step"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.steps button.done:not([aria-current="step"]){color:var(--fg)}
+.steps button .n{font-variant-numeric:tabular-nums;opacity:.7;margin-right:6px}
+
+section.step{padding-top:36px;display:flex;flex-direction:column;gap:24px}
+.head{display:flex;flex-direction:column;gap:10px}
+
+/* tree */
+.tree{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:0}
+.root{background:var(--lav);color:var(--lav-fg);border:2px solid color-mix(in srgb,var(--lav-fg) 25%,transparent);border-radius:999px;padding:12px 28px;font-family:var(--display);font-weight:700;font-size:18px;text-align:center}
+.stem{width:2px;height:18px;background:var(--fg)}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;width:100%;border-top:2px solid var(--fg);padding-top:0;position:relative}
+.col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.col::before{content:"";width:2px;height:18px;background:var(--fg)}
+.pill{background:var(--blush);color:var(--blush-fg);border-radius:999px;padding:8px 18px;font-weight:600;font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;min-height:28px}
+.chip{background:var(--accent);color:var(--accent-fg);border-radius:999px;padding:5px 12px;font-size:13px;font-weight:500;overflow-wrap:anywhere}
+.empty{color:var(--muted);font-size:13px;font-style:italic;text-align:center}
+@media(max-width:560px){.cols{grid-template-columns:1fr;border-top:0}.col::before{display:none}.col{border-top:1px solid var(--line);padding-top:12px}}
+
+.eq{display:flex;gap:12px;align-items:stretch;flex-wrap:wrap}
+.eq .box{flex:1 1 200px;background:var(--lav);color:var(--lav-fg);border-radius:18px;padding:18px 20px}
+.eq .box b{font-family:var(--display);font-size:24px;display:block}
+.eq .plus{align-self:center;font-family:var(--display);font-size:28px;color:var(--muted)}
+.callout{background:var(--sunk);border-radius:16px;padding:16px 18px;color:var(--muted)}
+.callout b{color:var(--fg)}
+
+/* nav buttons */
+.nav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:8px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 20px;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.btn:hover{filter:brightness(.96)}
+
+/* pillar cards */
+.timer{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 18px}
+.clock{font-family:var(--display);font-weight:800;font-size:40px;font-variant-numeric:tabular-nums;min-width:2.2ch}
+.timer p{flex:1 1 220px;color:var(--muted);font-size:15px}
+.pillars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media(max-width:820px){.pillars{grid-template-columns:1fr}}
+.pc{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.pc .def{color:var(--muted);font-size:15px}
+.pc ul{margin:0;padding-left:18px;font-weight:500}
+.pc li{margin:2px 0}
+textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;resize:vertical;min-height:130px;line-height:1.45}
+.count{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ex{font-size:13px;color:var(--muted)}
+
+/* formats */
+.formats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+@media(max-width:820px){.formats{grid-template-columns:1fr}}
+.fc{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.fc .tag{align-self:flex-start;background:var(--lav);color:var(--lav-fg);border-radius:999px;padding:4px 12px;font-size:13px;font-weight:600}
+.fc dl{margin:0;display:grid;gap:8px;font-size:15px}
+.fc dt{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.fc dd{margin:0}
+.gb{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:620px){.gb{grid-template-columns:1fr}}
+.gb>div{border-radius:18px;padding:18px 20px}
+.gb .good{background:var(--lav);color:var(--lav-fg)}
+.gb .bad{background:var(--sunk)}
+.gb ul{margin:10px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.gb li{padding-left:26px;position:relative}
+.gb li::before{position:absolute;left:0;font-weight:800}
+.gb .good li::before{content:"\2713";color:var(--ok)}
+.gb .bad li::before{content:"\00d7";color:var(--accent)}
+
+/* criteria */
+.crit{display:grid;gap:12px}
+.crit>div{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:grid;grid-template-columns:auto 1fr;gap:4px 16px;align-items:start}
+.crit .k{grid-row:span 2;font-family:var(--display);font-weight:800;font-size:28px;color:var(--accent);width:2ch}
+.crit p{color:var(--muted);font-size:15px}
+.crit h3{font-size:18px}
+
+/* plan */
+.plan{display:grid;gap:14px}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px 18px;display:grid;gap:12px;grid-template-columns:90px repeat(3,minmax(0,1fr));align-items:start}
+.day.ready{border-color:var(--ok)}
+.dl{font-family:var(--display);font-weight:800;font-size:22px;line-height:1}
+.dl small{display:block;font-family:var(--body);font-weight:500;font-size:12px;color:var(--muted);margin-top:6px}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f label,.f .lb{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+select,.f input[type=text]{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:0}
+.day .wide{grid-column:2 / -1}
+.checks{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:14px}
+.checks label{display:flex;gap:6px;align-items:center;text-transform:none;letter-spacing:0;font-size:14px;color:var(--fg);font-weight:500;cursor:pointer}
+@media(max-width:700px){.day{grid-template-columns:1fr}.day .wide{grid-column:auto}.dl small{display:inline;margin-left:8px}}
+.prog{font-variant-numeric:tabular-nums;color:var(--muted);font-weight:500}
+
+pre.out{background:var(--sunk);border-radius:14px;padding:16px;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--body);font-size:14px;margin:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.toast{color:var(--ok);font-weight:600;font-size:14px}
+.reset{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0;font-size:14px}
+/* about card */
+.about{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:12px}
+.about .g{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.about .def{color:var(--muted);font-size:15px}
+@media(max-width:620px){.about .g{grid-template-columns:1fr}}
+/* scripts */
+.script{background:var(--sunk);border-radius:16px;padding:14px;display:grid;gap:12px;min-width:0}
+.script h4{margin:0;font-family:var(--display);font-size:19px;line-height:1.2}
+.stack,.beat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.stack{border-color:var(--accent)}
+.script .bl{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.script dl{margin:0;display:grid;gap:6px}
+.script dt{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.script dd{margin:0;overflow-wrap:anywhere}
+.script ul{margin:0;padding-left:18px}
+.sacts,.rf{display:flex;gap:8px;flex-wrap:wrap}
+.rf input{flex:1 1 200px;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:0}
+.writing{display:flex;align-items:center;gap:12px;color:var(--muted);flex-wrap:wrap}
+.errmsg{color:var(--accent);font-size:14px;margin-top:6px}
+pre.cp{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--body);font-size:13px;margin:0}
+/* record mode */
+.tp{position:fixed;inset:0;z-index:30;background:var(--bg);color:var(--fg);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.tpbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px max(16px,env(safe-area-inset-left,0px));border-bottom:1px solid var(--line)}
+.tpbar .spd{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--muted)}
+.tpbody{flex:1;overflow-y:auto;padding:0 max(20px,env(safe-area-inset-left,0px));font-family:var(--display);font-size:34px;line-height:1.3;max-width:900px;width:100%;margin:0 auto}
+.tppad{height:40vh}
+.tpi{margin-bottom:1.1em}
+.tpt{display:block;font-family:var(--body);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:4px}
+.tpx{margin:0;font-weight:700;overflow-wrap:anywhere}
+.tps{margin:6px 0 0;font-family:var(--body);font-size:.5em;color:var(--muted);font-weight:500}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header style="padding-top:44px;display:flex;flex-direction:column;gap:14px;padding-bottom:22px">
+    <span class="eyebrow">Day 1 blueprint, after Jun Yuh</span>
+    <h1>My Personal Brand</h1>
+    <p class="lead">You start with no audience and no plan. By the end of this page you will have a topic bank and a week of posts to film. Your answers save in this browser.</p>
+  </header>
+</div>
+
+<div class="bar"><nav class="steps" id="steps" aria-label="Steps"></nav></div>
+
+<div class="wrap">
+
+<!-- STEP 1 -->
+<section class="step" id="s0">
+  <div class="head"><span class="eyebrow">Step 1 of 6</span><h2>Your brand is a tree</h2>
+  <p class="lead">You are the root. Three branches hold everything you can talk about. Every leaf is a topic, and each topic becomes content.</p></div>
+  <div class="tree" aria-label="Your brand tree">
+    <div class="root">My Personal Brand</div><div class="stem"></div>
+    <div class="cols" id="tree"></div>
+  </div>
+  <div class="head"><h3>Every post has two parts</h3></div>
+  <div class="eq">
+    <div class="box"><b>Topic</b>What you say</div><div class="plus">+</div><div class="box"><b>Format</b>How you say it</div>
+  </div>
+  <div class="callout"><b>Rule for today:</b> don't overthink. A rough list in 60 seconds beats a perfect list next week. You can edit everything later.</div>
+  <div class="nav"><span></span><button class="btn primary" data-go="1">Find my topics</button></div>
+</section>
+
+<!-- STEP 2 -->
+<section class="step" id="s1" hidden>
+  <div class="head"><span class="eyebrow">Step 2 of 6</span><h2>Find your topics in 60 seconds</h2>
+  <p class="lead">Type one topic per line in each branch. Short phrases are enough. Use the two questions as prompts.</p></div>
+  <div class="timer">
+    <div class="clock" id="clock" aria-live="off">60</div>
+    <p id="timerMsg">Press start, then write as fast as you can across all three branches.</p>
+    <button class="btn primary" id="timerBtn">Start 60s</button>
+  </div>
+  <div class="pillars">
+    <div class="pc"><span class="pill" style="align-self:flex-start">Skills</span>
+      <p class="def">What you can teach. You don't need to be an expert. Being a few steps ahead of someone is enough to help them.</p>
+      <ul><li>What do people ask me about?</li><li>What am I learning right now?</li></ul>
+      <textarea id="t-skills" data-p="skills" aria-label="Skill topics" placeholder="One per line. Example: storytelling that sells&#10;building discipline&#10;planning a launch"></textarea>
+      <span class="count" id="c-skills">0 topics</span></div>
+    <div class="pc"><span class="pill" style="align-self:flex-start">Passions</span>
+      <p class="def">The people and things you love. A stranger decides if they like you through these, and people buy from people they like.</p>
+      <ul><li>What do I spend my own money or time on?</li><li>Who drives my purpose?</li></ul>
+      <textarea id="t-passions" data-p="passions" aria-label="Passion topics" placeholder="One per line. Example: my kittens&#10;my faith&#10;my community"></textarea>
+      <span class="count" id="c-passions">0 topics</span></div>
+    <div class="pc"><span class="pill" style="align-self:flex-start">Story</span>
+      <p class="def">The moments that changed you. They don't have to be dramatic, vulnerable or private.</p>
+      <ul><li>How did I get here?</li><li>What did I used to believe?</li></ul>
+      <textarea id="t-story" data-p="story" aria-label="Story topics" placeholder="One per line. Example: our first vacation&#10;the years I struggled&#10;why I left my old career"></textarea>
+      <span class="count" id="c-story">0 topics</span></div>
+  </div>
+  <p class="ex">The placeholders are Jun Yuh's own examples. Replace them with yours.</p>
+  <div class="nav"><button class="btn" data-go="0">Back</button><button class="btn primary" data-go="2">Choose formats</button></div>
+</section>
+
+<!-- STEP 3 -->
+<section class="step" id="s2" hidden>
+  <div class="head"><span class="eyebrow">Step 3 of 6</span><h2>Pick how you say it</h2>
+  <p class="lead">Jun Yuh uses three formats. Any topic can go into any of them.</p></div>
+  <div class="formats">
+    <div class="fc"><span class="tag">1. Talking</span><h3>Talking head</h3>
+      <dl><div><dt>What it is</dt><dd>You speak to the camera, with captions and a few cutaway visuals.</dd></div>
+      <div><dt>His example</dt><dd>Skill: storytelling + talking head = "10/10 habits of a disgustingly good storyteller".</dd></div>
+      <div><dt>Best for</dt><dd>Skills. Teaching builds trust fastest when people hear you.</dd></div></dl></div>
+    <div class="fc"><span class="tag">2. Carousels</span><h3>Carousel</h3>
+      <dl><div><dt>What it is</dt><dd>A few photos or clips with short text on each. Swipe to see the next one.</dd></div>
+      <div><dt>His example</dt><dd>Skill: discipline + carousel. "i'm so lazy" is struck out, then "i just need to do five minutes".</dd></div>
+      <div><dt>Best for</dt><dd>Skills and passions. Easy to make with photos you already have.</dd></div></dl></div>
+    <div class="fc"><span class="tag">3. Non-talking</span><h3>B-roll with text</h3>
+      <dl><div><dt>What it is</dt><dd>Footage of your life with words on screen. You never speak.</dd></div>
+      <div><dt>His example</dt><dd>Story: struggle growing up + non-talking. A single line over one image: 14: "dad, it's not your fault".</dd></div>
+      <div><dt>Best for</dt><dd>Stories and moods. Good for days when you don't want to be on camera.</dd></div></dl></div>
+  </div>
+  <div class="head"><h3>Good format vs. bad format</h3></div>
+  <div class="gb">
+    <div class="good"><b>Good format</b><ul><li>Starts with a strong hook that makes the audience curious</li><li>Shares value through education or relatability</li><li>Re-hooks the audience throughout to keep them watching</li></ul></div>
+    <div class="bad"><b>Bad format</b><ul><li>Takes too long to get to the point</li><li>Has little to no value for the viewer</li><li>Has no structure to keep people engaged</li></ul></div>
+  </div>
+  <div class="nav"><button class="btn" data-go="1">Back</button><button class="btn primary" data-go="3">See the criteria</button></div>
+</section>
+
+<!-- STEP 4 -->
+<section class="step" id="s3" hidden>
+  <div class="head"><span class="eyebrow">Step 4 of 6</span><h2>Three checks for every post</h2>
+  <p class="lead">Run each planned post against these before you film it. The plan in the next step has a checkbox for each.</p></div>
+  <div class="crit">
+    <div><span class="k">1</span><h3>Strong hook</h3><p>Keeps people watching past the first 3 seconds, so they reach your actual message.</p></div>
+    <div><span class="k">2</span><h3>Real value</h3><p>Earns comments and shares, which push your post to more people.</p></div>
+    <div><span class="k">3</span><h3>Re-hooks</h3><p>Drives high watch time, which tells the algorithm it is a quality post.</p></div>
+  </div>
+  <div class="callout"><b>Quick test for a hook:</b> would a stranger stop scrolling if this were the only line they saw? If not, rewrite it before you film.</div>
+  <div class="nav"><button class="btn" data-go="2">Back</button><button class="btn primary" data-go="4">Build my week</button></div>
+</section>
+
+<!-- STEP 5 -->
+<section class="step" id="s4" hidden>
+  <div class="head"><span class="eyebrow">Step 5 of 6</span><h2>Your 7-day plan, with scripts</h2>
+  <p class="lead">Each day gets a branch and a format. The starting pattern is Jun Yuh's: four skill posts, two stories, one passion. Pick a topic from your bank, let Claude write the script, record from the teleprompter, then tick the three checks.</p></div>
+  <div class="about" id="about">
+    <h3>Tell the script writer about you</h3>
+    <p class="def">Fill this in once. All seven scripts use it. Claude only uses the facts you give it and leaves [brackets] where a personal detail is missing.</p>
+    <div class="g">
+      <div class="f"><label for="me-aud">Who do you want to reach?</label><input type="text" id="me-aud" placeholder="e.g. busy parents starting a side business"></div>
+      <div class="f"><label for="me-off">What do you do or offer, in one line?</label><input type="text" id="me-off" placeholder="e.g. I help beginners make their first video"></div>
+      <div class="f"><label for="me-cred">Proof or credibility (optional)</label><input type="text" id="me-cred" placeholder="e.g. 10 years in sales, 2 products shipped"></div>
+      <div class="f"><label for="me-voice">How you talk (optional)</label><input type="text" id="me-voice" placeholder="e.g. calm, direct, a bit dry"></div>
+    </div>
+  </div>
+  <div class="row"><span class="prog" id="prog">0 of 7 days ready to record</span></div>
+  <div class="plan" id="plan"></div>
+  <div class="nav"><button class="btn" data-go="3">Back</button><button class="btn primary" data-go="5">Review and copy</button></div>
+</section>
+
+<!-- STEP 6 -->
+<section class="step" id="s5" hidden>
+  <div class="head"><span class="eyebrow">Step 6 of 6</span><h2>Your blueprint</h2>
+  <p class="lead">Copy this into your notes app or send it to yourself. Come back and edit any time.</p></div>
+  <pre class="out" id="out"></pre>
+  <div class="row"><button class="btn primary" id="copy">Copy blueprint</button><span class="toast" id="toast" role="status"></span></div>
+  <div class="nav"><button class="btn" data-go="4">Back</button><button class="reset" id="reset">Clear all my answers</button></div>
+</section>
+
+</div>
+
+<script>
+(function(){
+  var KEY="brand-blueprint-v1";
+  var PILLARS={skills:"Skill",passions:"Passion",story:"Story"};
+  var FORMATS={talking:"Talking head",carousel:"Carousel",broll:"Non-talking B-roll with text"};
+  var DEF_P=["skills","story","skills","skills","passions","skills","story"];
+  var DEF_F=["talking","broll","carousel","talking","carousel","broll","broll"];
+  var STEPS=["My Brand","Topics","Formats","Criteria","Plan + scripts","Blueprint"];
+
+  function fresh(){
+    var plan=[];for(var i=0;i<7;i++)plan.push({p:DEF_P[i],f:DEF_F[i],t:"",h:"",n:"",s:null,c:[false,false,false]});
+    return {topics:{skills:"",passions:"",story:""},plan:plan,me:{aud:"",off:"",cred:"",voice:""},step:0};
+  }
+  var S=fresh();
+  try{var raw=localStorage.getItem(KEY);if(raw){var o=JSON.parse(raw);if(o&&o.topics&&o.plan&&o.plan.length===7)S=o;}}catch(e){}
+  if(!S.me)S.me={aud:"",off:"",cred:"",voice:""};
+  function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+  function $(id){return document.getElementById(id);}
+  function lines(k){return (S.topics[k]||"").split("\n").map(function(x){return x.trim();}).filter(Boolean);}
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+
+  /* step bar */
+  var bar=$("steps");
+  STEPS.forEach(function(n,i){
+    var b=document.createElement("button");b.type="button";b.dataset.i=i;
+    b.innerHTML='<span class="n">'+(i+1)+'</span>'+n;
+    b.addEventListener("click",function(){go(i);});
+    bar.appendChild(b);
+  });
+  function go(i){
+    S.step=i;save();
+    for(var k=0;k<6;k++){$("s"+k).hidden=(k!==i);}
+    [].forEach.call(bar.children,function(b,k){
+      if(k===i)b.setAttribute("aria-current","step");else b.removeAttribute("aria-current");
+      b.classList.toggle("done",k<i);
+    });
+    var cur=bar.children[i];if(cur&&cur.scrollIntoView)cur.scrollIntoView({inline:"center",block:"nearest"});
+    if(i===5)renderOut();
+    window.scrollTo(0,0);
+  }
+  [].forEach.call(document.querySelectorAll("[data-go]"),function(b){
+    b.addEventListener("click",function(){go(+b.dataset.go);});
+  });
+
+  /* tree */
+  function renderTree(){
+    var h="";
+    Object.keys(PILLARS).forEach(function(k){
+      var l=lines(k);
+      h+='<div class="col"><span class="pill">'+({skills:"Skills",passions:"Passions",story:"Story"})[k]+'</span><div class="chips">';
+      h+=l.length?l.map(function(t){return '<span class="chip">'+esc(t)+'</span>';}).join(""):'<span class="empty">No topics yet</span>';
+      h+='</div></div>';
+    });
+    $("tree").innerHTML=h;
+  }
+
+  /* topic textareas */
+  Object.keys(PILLARS).forEach(function(k){
+    var ta=$("t-"+k);ta.value=S.topics[k]||"";
+    ta.addEventListener("input",function(){
+      S.topics[k]=ta.value;save();updCount(k);renderTree();refreshOptions();renderStatus();
+    });
+    updCount(k);
+  });
+  function updCount(k){var n=lines(k).length;$("c-"+k).textContent=n+(n===1?" topic":" topics");}
+
+  /* timer */
+  var tInt=null,left=60;
+  function showClock(){$("clock").textContent=left;}
+  $("timerBtn").addEventListener("click",function(){
+    if(tInt){clearInterval(tInt);tInt=null;left=60;showClock();$("timerBtn").textContent="Start 60s";$("timerMsg").textContent="Press start, then write as fast as you can across all three branches.";return;}
+    left=60;showClock();$("timerBtn").textContent="Reset";$("timerMsg").textContent="Go. One topic per line, no editing.";
+    $("t-skills").focus();
+    tInt=setInterval(function(){
+      left--;showClock();
+      if(left<=0){clearInterval(tInt);tInt=null;$("timerBtn").textContent="Start 60s";$("timerMsg").textContent="Time. Keep what you have. You can add more topics any time.";left=60;}
+    },1000);
+  });
+
+  /* plan */
+  var planEl=$("plan");
+  function opts(p,sel){
+    var l=lines(p),h='<option value="">Choose a topic</option>',found=false;
+    l.forEach(function(t){var s=t===sel;if(s)found=true;h+='<option'+(s?' selected':'')+' value="'+esc(t)+'">'+esc(t)+'</option>';});
+    if(sel&&!found)h+='<option selected value="'+esc(sel)+'">'+esc(sel)+' (removed from bank)</option>';
+    return h;
+  }
+  function buildPlan(){
+    planEl.innerHTML="";
+    S.plan.forEach(function(d,i){
+      var el=document.createElement("div");el.className="day";el.id="day"+i;
+      var pOpts=Object.keys(PILLARS).map(function(k){return '<option value="'+k+'"'+(d.p===k?' selected':'')+'>'+PILLARS[k]+'</option>';}).join("");
+      var fOpts=Object.keys(FORMATS).map(function(k){return '<option value="'+k+'"'+(d.f===k?' selected':'')+'>'+FORMATS[k]+'</option>';}).join("");
+      el.innerHTML=
+        '<div class="dl">Day '+(i+1)+'<small id="st'+i+'"></small></div>'+
+        '<div class="f"><label for="p'+i+'">Branch</label><select id="p'+i+'">'+pOpts+'</select></div>'+
+        '<div class="f"><label for="t'+i+'">Topic</label><select id="t'+i+'">'+opts(d.p,d.t)+'</select></div>'+
+        '<div class="f"><label for="f'+i+'">Format</label><select id="f'+i+'">'+fOpts+'</select></div>'+
+        '<div class="f wide"><label for="h'+i+'">Hook idea (optional, Claude writes one if blank)</label><input type="text" id="h'+i+'" value="'+esc(d.h)+'" placeholder="A line or angle you already have in mind"></div>'+
+        '<div class="f wide"><label for="n'+i+'">Details only you know (optional)</label><input type="text" id="n'+i+'" value="'+esc(d.n||"")+'" placeholder="A true moment, a number, a name, what you used to believe"></div>'+
+        '<div class="wide" id="sc'+i+'"></div>'+
+        '<div class="f wide"><span class="lb">Checks</span><div class="checks">'+
+          ['Strong hook','Real value','Re-hooks'].map(function(n,j){return '<label><input type="checkbox" id="c'+i+'_'+j+'"'+(d.c[j]?' checked':'')+'> '+n+'</label>';}).join("")+
+        '</div></div>';
+      planEl.appendChild(el);
+      el.querySelector("#p"+i).addEventListener("change",function(e){d.p=e.target.value;d.t="";el.querySelector("#t"+i).innerHTML=opts(d.p,"");save();renderStatus();renderScript(i);});
+      el.querySelector("#t"+i).addEventListener("change",function(e){d.t=e.target.value;save();renderStatus();renderScript(i);});
+      el.querySelector("#f"+i).addEventListener("change",function(e){d.f=e.target.value;save();renderStatus();});
+      el.querySelector("#h"+i).addEventListener("input",function(e){d.h=e.target.value;save();});
+      el.querySelector("#n"+i).addEventListener("input",function(e){d.n=e.target.value;save();});
+      renderScript(i);
+      [0,1,2].forEach(function(j){el.querySelector("#c"+i+"_"+j).addEventListener("change",function(e){d.c[j]=e.target.checked;save();renderStatus();});});
+    });
+  }
+  function refreshOptions(){
+    S.plan.forEach(function(d,i){var s=$("t"+i);if(s)s.innerHTML=opts(d.p,d.t);});
+  }
+  function statusOf(d){
+    if(!d.t)return "Pick a topic";
+    if(!d.s)return "Write the script";
+    if(!(d.c[0]&&d.c[1]&&d.c[2]))return "Run the checks";
+    return "Ready to record";
+  }
+  function ready(d){return statusOf(d)==="Ready to record";}
+  function renderStatus(){
+    var n=0;
+    S.plan.forEach(function(d,i){
+      var r=!!ready(d);if(r)n++;
+      var el=$("day"+i);if(el)el.classList.toggle("ready",r);
+      var st=$("st"+i);if(st)st.textContent=statusOf(d);
+    });
+    $("prog").textContent=n+" of 7 days ready to record";
+  }
+
+  /* output */
+  function outText(){
+    var t="MY PERSONAL BRAND BLUEPRINT\n\n";
+    Object.keys(PILLARS).forEach(function(k){
+      var l=lines(k);t+=PILLARS[k].toUpperCase()+" TOPICS\n"+(l.length?l.map(function(x){return "- "+x;}).join("\n"):"- (none yet)")+"\n\n";
+    });
+    t+="7-DAY CONTENT PLAN\n";
+    S.plan.forEach(function(d,i){
+      t+="\nDay "+(i+1)+": "+PILLARS[d.p]+" + "+FORMATS[d.f]+"\n";
+      t+="  Topic: "+(d.t||"(not chosen)")+"\n";
+      t+="  Hook: "+(d.h.trim()||"(not written)")+"\n";
+      t+="  Checks: hook "+(d.c[0]?"yes":"no")+", value "+(d.c[1]?"yes":"no")+", re-hooks "+(d.c[2]?"yes":"no")+"\n";
+      if(d.s)t+="\n"+scriptText(d.s,d.f).replace(/^/gm,"  ")+"\n";
+    });
+    return t;
+  }
+  function renderOut(){$("out").textContent=outText();}
+  $("copy").addEventListener("click",function(){
+    var txt=outText(),toast=$("toast");
+    function ok(){toast.textContent="Copied";setTimeout(function(){toast.textContent="";},2000);}
+    function fallback(){
+      var r=document.createRange();r.selectNodeContents($("out"));var s=window.getSelection();s.removeAllRanges();s.addRange(r);
+      toast.textContent="Press copy on your device to finish";
+    }
+    try{navigator.clipboard.writeText(txt).then(ok,fallback);}catch(e){fallback();}
+  });
+  $("reset").addEventListener("click",function(){
+    if(!$("reset").dataset.armed){$("reset").dataset.armed="1";$("reset").textContent="Tap again to clear everything";setTimeout(function(){delete $("reset").dataset.armed;$("reset").textContent="Clear all my answers";},4000);return;}
+    S=fresh();save();
+    Object.keys(PILLARS).forEach(function(k){$("t-"+k).value="";updCount(k);});
+    renderTree();buildPlan();renderStatus();renderOut();loadAbout();
+    delete $("reset").dataset.armed;$("reset").textContent="Clear all my answers";
+    go(0);
+  });
+
+  /* ---------- about card ---------- */
+  var ME=["aud","off","cred","voice"];
+  function loadAbout(){ME.forEach(function(k){var el=$("me-"+k);if(el)el.value=S.me[k]||"";});}
+  ME.forEach(function(k){var el=$("me-"+k);el.addEventListener("input",function(){S.me[k]=el.value;save();});});
+  loadAbout();
+
+  /* ---------- script writer (runs on the viewer's Claude via the sample capability) ---------- */
+  var SAMPLE=null,sampleReady=false,busy={},ctl={},err={};
+  var FORMAT_BRIEF={
+    talking:"TALKING HEAD video, about 30 to 45 seconds. The creator speaks to camera. 'spoken' holds the exact words for each beat. 'onScreen' is a short caption (max 8 words) or empty. 'visual' is an optional cutaway or gesture.",
+    carousel:"CAROUSEL of 5 to 7 slides (photos or short clips with text). Each beat is one slide. 'onScreen' is the text on the slide (max 14 words). 'visual' says what the photo or clip shows. 'spoken' is empty.",
+    broll:"NON-TALKING B-ROLL video, about 15 to 25 seconds. The creator never speaks. Each beat is one shot. 'onScreen' is the line of text over the shot (max 12 words). 'visual' says what the shot shows. 'spoken' is empty."
+  };
+  var SHAPE='{"title":"working title","hook":{"visual":"what the first frame shows","onScreen":"short on-screen line","spoken":"spoken line, empty if the creator does not speak"},"beats":[{"label":"VALUE","spoken":"","onScreen":"","visual":"","rehook":"the line in this beat that renews curiosity, or empty"}],"cta":"one clear closing line","caption":"post caption under 150 characters","tips":["3 short filming tips for this exact post"]}';
+  function str(x){return typeof x==="string"?x:"";}
+  function normalize(r){
+    return {title:str(r.title),hook:{visual:str(r.hook.visual),onScreen:str(r.hook.onScreen),spoken:str(r.hook.spoken)},
+      beats:r.beats.map(function(b){b=b||{};return {label:str(b.label),spoken:str(b.spoken),onScreen:str(b.onScreen),visual:str(b.visual),rehook:str(b.rehook)};}),
+      cta:str(r.cta),caption:str(r.caption),tips:Array.isArray(r.tips)?r.tips.map(str).filter(Boolean):[]};
+  }
+  function buildPrompt(i,instruction,cur){
+    var d=S.plan[i],m=S.me;
+    var p="You write short-form video scripts (TikTok, Reels, Shorts) for a beginner creator. Follow these rules:\n"+
+    "- One idea per video. Give real value early, then keep it moving.\n"+
+    "- Stack the hook: in the first 3 seconds the first frame (visual), a short on-screen line and the spoken line each add something different, and all point at the same promise.\n"+
+    "- Put a re-hook (a line that renews curiosity) roughly every 8 to 10 seconds, or on every slide or shot after the first. For talking head, the re-hook line is part of 'spoken'. Use 'rehook' only to repeat that line so the creator can see it.\n"+
+    "- Conversational, short sentences, concrete details over generalities. No filler openers like 'Hey guys'. No hashtags in the script.\n"+
+    "- Never invent facts, numbers, results, names or personal stories. Use only the details given below. Where a personal detail is needed and not given, write a bracketed placeholder such as [the moment you decided to quit].\n"+
+    "- Do not use em dashes.\n\n"+
+    "FORMAT: "+FORMAT_BRIEF[d.f]+"\n\n"+
+    "BRANCH: "+PILLARS[d.p]+"\nTOPIC: "+d.t+"\n"+
+    "CREATOR: audience: "+(m.aud||"(not given)")+"; what they do or offer: "+(m.off||"(not given)")+"; proof: "+(m.cred||"(none given)")+"; speaking style: "+(m.voice||"(natural and direct)")+"\n"+
+    "HOOK IDEA FROM THE CREATOR: "+(d.h.trim()||"(none, write one)")+"\n"+
+    "DETAILS ONLY THE CREATOR KNOWS: "+((d.n||"").trim()||"(none given)")+"\n\n";
+    if(instruction)p+="CURRENT SCRIPT (JSON):\n"+JSON.stringify(cur)+"\n\nCHANGE REQUESTED: "+instruction+"\nReturn the full updated script. Only edit this script. If the request is not about editing this script, return it unchanged.\n\n";
+    return p+"Reply with only one JSON object, no other text, in this shape:\n"+SHAPE;
+  }
+  function errCopy(c){
+    var m={not_granted:"Claude access was declined for this page. Allow it from the page's Permissions menu to write scripts.",
+      rate_limited:"Too many requests, or your usage limit was reached. Wait a bit, then try again.",
+      cancelled:"",invalid_json:"The script came back in an unreadable shape. Try again.",
+      refused:"Claude declined this input. Change the topic or details and try again.",session_expired:"Sign in again to continue."};
+    return (c in m)?m[c]:"Something went wrong. Try again.";
+  }
+  function generate(i,instruction){
+    if(!SAMPLE||busy[i])return;
+    var d=S.plan[i],cur=d.s;
+    busy[i]=true;err[i]="";ctl[i]=new AbortController();renderScript(i);
+    SAMPLE.json(buildPrompt(i,instruction,cur),{signal:ctl[i].signal,cache:false}).then(function(r){
+      if(!r||!r.hook||!Array.isArray(r.beats)||!r.beats.length)throw {code:"invalid_json"};
+      d.s=normalize(r);save();
+    }).catch(function(e){err[i]=errCopy(e&&e.code);}).then(function(){
+      busy[i]=false;delete ctl[i];renderScript(i);renderStatus();
+    });
+  }
+  function head(f,b,k){return f==="talking"?(b.label||"Beat"):(f==="carousel"?"Slide ":"Shot ")+(k+1);}
+  function scriptText(s,f){
+    var t=(s.title||"Script")+"\nHOOK\n  First frame: "+s.hook.visual+"\n  On screen: "+s.hook.onScreen+(s.hook.spoken?"\n  Say: "+s.hook.spoken:"")+"\n";
+    s.beats.forEach(function(b,k){
+      t+="\n"+head(f,b,k).toUpperCase()+"\n";
+      if(b.spoken)t+="  Say: "+b.spoken+"\n";
+      if(b.onScreen)t+="  On screen: "+b.onScreen+"\n";
+      if(b.visual)t+="  Show: "+b.visual+"\n";
+    });
+    t+="\nCLOSE: "+s.cta+"\nCAPTION: "+s.caption+"\n";
+    if(s.tips.length)t+="TIPS\n"+s.tips.map(function(x){return "  - "+x;}).join("\n")+"\n";
+    return t;
+  }
+  function row(k,v){return v?'<div><dt>'+k+'</dt><dd>'+esc(v)+'</dd></div>':"";}
+  function scriptHTML(s,f){
+    var h='<div class="script"><h4>'+esc(s.title||"Your script")+'</h4>';
+    h+='<div class="stack"><span class="bl">Hook, first 3 seconds</span><dl>'+row("First frame",s.hook.visual)+row("On screen",s.hook.onScreen)+row("Say",s.hook.spoken)+'</dl></div>';
+    s.beats.forEach(function(b,k){
+      h+='<div class="beat"><span class="bl">'+esc(head(f,b,k))+'</span><dl>'+row("Say",b.spoken)+row("On screen",b.onScreen)+row("Show",b.visual)+(f==="talking"?"":row("Re-hook",b.rehook))+'</dl></div>';
+    });
+    h+='<dl>'+row("Close",s.cta)+row("Caption",s.caption)+'</dl>';
+    if(s.tips.length)h+='<div><span class="bl">Filming tips</span><ul>'+s.tips.map(function(x){return '<li>'+esc(x)+'</li>';}).join("")+'</ul></div>';
+    return h+'</div>';
+  }
+  function renderScript(i){
+    var box=$("sc"+i);if(!box)return;
+    if(!sampleReady){box.innerHTML="";return;}
+    var d=S.plan[i],h="";
+    if(!SAMPLE){box.innerHTML='<p class="ex">Script writing runs inside Claude. Open this page in Claude to use it. The rest of your plan works without it.</p>';return;}
+    if(busy[i]){h='<div class="writing"><span>Writing your script. This can take up to a minute.</span><button type="button" class="btn" data-a="stop">Stop</button></div>';}
+    else if(!d.s){h='<button type="button" class="btn primary" data-a="gen"'+(d.t?'':' disabled')+'>Write my script</button>'+(d.t?'':' <span class="ex">Pick a topic first.</span>');}
+    else{
+      h=scriptHTML(d.s,d.f)+
+      '<div class="sacts" style="margin-top:10px"><button type="button" class="btn primary" data-a="rec">Record mode</button><button type="button" class="btn" data-a="copy">Copy script</button><button type="button" class="btn" data-a="gen">Write a new version</button></div>'+
+      '<div class="rf" style="margin-top:8px"><input type="text" id="rf'+i+'" aria-label="Change the script" placeholder="Change it: make the hook punchier, cut 10 seconds, less formal"><button type="button" class="btn" data-a="refine">Update</button></div>';
+    }
+    if(err[i])h+='<p class="errmsg">'+esc(err[i])+'</p>';
+    box.innerHTML=h;
+    box.onclick=function(e){
+      var b=e.target.closest("[data-a]");if(!b)return;var a=b.dataset.a;
+      if(a==="gen"){d.s=null;generate(i);}
+      else if(a==="stop"){if(ctl[i])ctl[i].abort();}
+      else if(a==="rec")openRec(i);
+      else if(a==="copy")copyScript(i,b);
+      else if(a==="refine"){var v=$("rf"+i).value.trim();if(v)generate(i,v);}
+    };
+    var rf=$("rf"+i);
+    if(rf)rf.onkeydown=function(e){if(e.key==="Enter"){var v=rf.value.trim();if(v)generate(i,v);}};
+  }
+  function copyScript(i,btn){
+    var d=S.plan[i],txt=scriptText(d.s,d.f),old=btn.textContent;
+    function ok(){btn.textContent="Copied";setTimeout(function(){btn.textContent=old;},1800);}
+    function fb(){
+      var box=$("sc"+i),pre=box.querySelector("pre.cp");
+      if(!pre){pre=document.createElement("pre");pre.className="cp";box.appendChild(pre);}
+      pre.textContent=txt;var r=document.createRange();r.selectNodeContents(pre);var s=window.getSelection();s.removeAllRanges();s.addRange(r);
+      btn.textContent="Select and copy below";
+    }
+    try{navigator.clipboard.writeText(txt).then(ok,fb);}catch(e){fb();}
+  }
+
+  /* ---------- record mode (teleprompter) ---------- */
+  function readout(s,f){
+    var o=[];
+    if(f==="talking"){
+      if(s.hook.spoken)o.push({tag:"Hook",text:s.hook.spoken});
+      s.beats.forEach(function(b,k){if(b.spoken)o.push({tag:head(f,b,k),text:b.spoken});});
+    }else{
+      o.push({tag:"Opening",text:s.hook.onScreen,sub:s.hook.visual});
+      s.beats.forEach(function(b,k){o.push({tag:head(f,b,k),text:b.onScreen,sub:b.visual});});
+    }
+    if(s.cta)o.push({tag:"Close",text:s.cta});
+    return o;
+  }
+  function openRec(i){
+    var d=S.plan[i];if(!d.s)return;
+    var items=readout(d.s,d.f),fs=34,timer=null,pos=0;
+    var ov=document.createElement("div");ov.className="tp";ov.setAttribute("role","dialog");ov.setAttribute("aria-label","Record mode");
+    ov.innerHTML='<div class="tpbar"><button type="button" class="btn" data-t="close">Close</button><button type="button" class="btn" data-t="minus" aria-label="Smaller text">A-</button><button type="button" class="btn" data-t="plus" aria-label="Larger text">A+</button><label class="spd">Speed <input type="range" id="tpspd" min="1" max="10" value="3"></label><button type="button" class="btn primary" data-t="play">Start scroll</button></div>'+
+      '<div class="tpbody" id="tpbody"><div class="tppad"></div>'+
+      items.map(function(x){return '<div class="tpi"><span class="tpt">'+esc(x.tag)+'</span><p class="tpx">'+esc(x.text)+'</p>'+(x.sub?'<p class="tps">Show: '+esc(x.sub)+'</p>':'')+'</div>';}).join("")+
+      '<div class="tppad"></div></div>';
+    document.body.appendChild(ov);
+    var prevOv=document.body.style.overflow;document.body.style.overflow="hidden";
+    var body=ov.querySelector("#tpbody"),play=ov.querySelector('[data-t="play"]');
+    function stop(){if(timer){clearInterval(timer);timer=null;}play.textContent="Start scroll";}
+    function close(){stop();document.removeEventListener("keydown",onKey);document.body.style.overflow=prevOv;ov.remove();}
+    function onKey(e){if(e.key==="Escape")close();}
+    document.addEventListener("keydown",onKey);
+    ov.addEventListener("click",function(e){
+      var b=e.target.closest("[data-t]");if(!b)return;var a=b.dataset.t;
+      if(a==="close")close();
+      else if(a==="plus"){fs=Math.min(72,fs+4);body.style.fontSize=fs+"px";}
+      else if(a==="minus"){fs=Math.max(20,fs-4);body.style.fontSize=fs+"px";}
+      else if(a==="play"){
+        if(timer){stop();return;}
+        pos=body.scrollTop;play.textContent="Pause";
+        timer=setInterval(function(){
+          var sp=+ov.querySelector("#tpspd").value;
+          pos+=sp*0.45;body.scrollTop=pos;
+          if(body.scrollTop+body.clientHeight>=body.scrollHeight-2)stop();
+        },30);
+      }
+    });
+    body.addEventListener("touchstart",stop,{passive:true});
+    body.addEventListener("wheel",function(){if(timer)pos=body.scrollTop;},{passive:true});
+    ov.querySelector('[data-t="close"]').focus();
+  }
+
+  if(window.claude&&window.claude.use){
+    window.claude.use("sample").then(function(s){SAMPLE=s||null;sampleReady=true;for(var i=0;i<7;i++)renderScript(i);}).catch(function(){SAMPLE=null;sampleReady=true;for(var i=0;i<7;i++)renderScript(i);});
+  }else{sampleReady=true;SAMPLE=null;for(var j=0;j<7;j++)renderScript(j);}
+
+  renderTree();buildPlan();renderStatus();go(Math.min(5,Math.max(0,S.step|0)));
+})();
+</script>

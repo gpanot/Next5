@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { linkedTextSlides, type AutoSlideDto, type AutoSlideshowDto } from '../../../types/admin/autoSlideshow';
 import type { SlideLook, TextAt } from '../../../types/slideText';
 
-/** What the editor shows on a slide before its new image is in: where its text was dropped, its new text styles. */
-export type LiveEdit = { textAt?: TextAt; look?: SlideLook; bodyLook?: SlideLook };
+/** What the editor shows on a slide before its new image is in: where its text was dropped, its new text styles and
+ *  text, the photo picked. */
+export type LiveEdit = { textAt?: TextAt; look?: SlideLook; bodyLook?: SlideLook; textSize?: number; title?: string; body?: string; photoIndex?: number };
 type Edits = Record<number, LiveEdit>;
 
 /** Slides of one kind, as the text style menu groups them. */
@@ -35,6 +36,9 @@ const settle = (edits: Edits, done: Edits): Edits => {
 type Save = {
   placeText: (index: number, at: TextAt) => Promise<AutoSlideshowDto | null>;
   styleText: (group: StyleGroup, part: 'look' | 'bodyLook', look: SlideLook) => Promise<AutoSlideshowDto | null>;
+  sizeText: (group: StyleGroup, size: number) => Promise<AutoSlideshowDto | null>;
+  pickPhoto: (index: number, photoIndex: number) => Promise<AutoSlideshowDto | null>;
+  saveText: (index: number, title: string, body: string) => Promise<AutoSlideshowDto | null>;
 };
 
 /**
@@ -73,12 +77,36 @@ export const useLiveEdits = (slides: AutoSlideDto[], save: Save) => {
     apply(patch, () => save.styleText(group, part, look));
   };
 
+  /** A text size picked: on every slide of the kind at once. */
+  const size = (group: StyleGroup, textSize: number) => {
+    const patch: Edits = {};
+    slides.forEach((s, i) => {
+      if (styleGroupOf(s) === group) patch[i] = { textSize };
+    });
+    apply(patch, () => save.sizeText(group, textSize));
+  };
+
+  /** A photo picked for slide `index`: on the slide at once (the row's copy is already in the browser). */
+  const pickPhoto = (index: number, photoIndex: number) => apply({ [index]: { photoIndex } }, () => save.pickPhoto(index, photoIndex));
+
+  /** Slide text typed: it stays drawn over the slide until the new image is in. */
+  const saveText = (index: number, title: string, body: string) => apply({ [index]: { title, body } }, () => save.saveText(index, title, body));
+
   /** Slide i as it shows now: its saved fields with the live edits on top. */
   const slideAt = (i: number): AutoSlideDto | undefined => {
     const s = slides[i];
     const e = edits[i];
-    return s && e ? { ...s, ...(e.look ? { look: e.look } : {}), ...(e.bodyLook ? { bodyLook: e.bodyLook } : {}) } : s;
+    if (!s || !e) return s;
+    return {
+      ...s,
+      ...(e.look ? { look: e.look } : {}),
+      ...(e.bodyLook ? { bodyLook: e.bodyLook } : {}),
+      ...(e.textSize !== undefined ? { textSize: e.textSize } : {}),
+      ...(e.title !== undefined ? { title: e.title } : {}),
+      ...(e.body !== undefined ? { body: e.body } : {}),
+      ...(e.photoIndex !== undefined ? { photoIndex: e.photoIndex } : {}),
+    };
   };
 
-  return { edits, move, style, slideAt };
+  return { edits, move, style, size, pickPhoto, saveText, slideAt };
 };

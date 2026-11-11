@@ -7,7 +7,7 @@
 import type { Prisma } from '@prisma/client';
 import { signAdminToken } from '../../lib/admin-auth';
 import { prisma } from '../../lib/db';
-import type { AutoPhoto, AutoPlan, AutoRunStatus, AutoSlide, AutoStep, SlideshowPick } from '../../types/admin/autoSlideshow';
+import { DRAFT_STATUSES, type AutoPhoto, type AutoPlan, type AutoRunStatus, type AutoSlide, type AutoStep, type SlideshowPick } from '../../types/admin/autoSlideshow';
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import { assignGoals, GOAL_LABELS, type ContentGoal } from '../../types/admin/contentGoals';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
@@ -22,15 +22,19 @@ import { profileForSite } from '../studio/siteProfile';
 import { putObject } from '../storage/objectStore';
 import type { VisualBible } from '../../types/admin/visualBible';
 import { castForShows, prepareCast } from '../brandCast/cast';
+import { castWaitsForAvatar, holdForAvatar } from '../brandCast/gate';
 import { brandPhotoFacts, productLooks } from '../brandContent/productPhotos';
 import { ensureVisualBible } from '../shorts/visualBible';
-import { bankForSite, loadUsage } from './bank/build';
+import { holdForTarget } from './targetClient';
+import { bankForSite, loadUsage, refreshBank } from './bank/build';
 import { assembleCombo, pickCombos } from './bank/pick';
 import { headsFor, withDetectedHeads, type HeadsCache } from './heads';
 import { matchTracks } from './music';
 import { brandLook, planSlidePhotos } from './photoPlan';
+import { castStory } from './storyCast';
 import { makePhotos } from './photos';
 import { renderSlide, slidePhotoIndexes, type PhotoCache } from './render';
+import { alignsWithContent, contentTop } from './textPlacement';
 import { ownPhotoEntries, photosPending, withOwnPhotos } from './slidePhotos';
 import { dropQueuedMore, savePlanKeepingQueue, startQueuedMore } from './more';
 
@@ -97,7 +101,10 @@ const planStep: StepFn = async (runId, meter, { append }) => {
   const [profile, levers] = [checkpoint<BrandProfile>(run.profile, 1), checkpoint<BrandLever[]>(run.levers, 2)];
   const workspaceId = await contentWorkspaceId(run);
   const looks = workspaceId ? productLooks(await brandPhotoFacts(workspaceId)) : [];
-  const bank = await bankForSite(run.url, profile, levers, meter, looks);
+  let bank = await bankForSite(run.url, profile, levers, meter, looks);
+  // The owner changed their client types while the bank was being written: it is rewritten for them now.
+  const latest = checkpoint<BrandProfile>((await loadRun(runId)).profile, 1);
+  if (bank.built && latest.audience !== profile.audience) bank = (await refreshBank(run.url, latest, levers, meter, looks)) ?? bank;
   const before = append > 0 ? checkpoint<AutoPlan>(run.plan, 3) : null;
   // A full re-plan replaces this run's slideshows, so they do not count as used.
   const usage = await loadUsage(run.url, append > 0 ? undefined : runId);
@@ -151,9 +158,11 @@ const startWarmUp = (runId: string) => {
     const profile = run.profile as unknown as BrandProfile | null;
     const workspaceId = await contentWorkspaceId(run);
     if (!profile || !workspaceId) return;
-    // The cast reads the Visual Bible, so it comes second.
+    // The cast reads the Visual Bible, so it comes second. A new workspace's first run leaves it to the avatar gate
+    // (brandCast/gate.ts), which makes it as the candidate the owner validates.
     await runBible(runId, profile, workspaceId, meter);
-    await prepareCast(workspaceId, meter);
+    // A Prospect Pack's run (hold_before_step4) leaves the face to the admin, who creates the avatar first.
+    if (!run.holdBeforeStep4 && !(await castWaitsForAvatar(runId))) await prepareCast(workspaceId, meter);
   })()
     .catch((err: unknown) => console.warn(`[auto-slideshow] run ${runId}: warm-up failed (${err instanceof Error ? err.message : err})`))
     .then(() => meter.summary());
@@ -185,7 +194,10 @@ const planPhotos = async (runId: string, shows: (Assembled | Error)[], picks: Sl
   const planned = [...shows];
   await runPool(ok.map((i, k) => ({ i, k })), 4, async ({ i, k }) => {
     const show = shows[i] as Assembled;
-    const slides = await planSlidePhotos({ slides: show.slides, goal: picks[i]?.goal ?? null, profile, bible, cast: cast[k] ?? null, photos }, meter);
+    const goal = picks[i]?.goal ?? null;
+    // A story names its person in the bank text: it takes the cast member's name, so text and photos match.
+    const texts = goal === 'story' ? await castStory(show.slides, cast[k] ?? null, meter) : show.slides;
+    const slides = await planSlidePhotos({ slides: texts, goal, profile, bible, cast: cast[k] ?? null, photos }, meter);
     planned[i] = { ...show, slides };
   });
   return planned;
@@ -212,17 +224,13 @@ const writeStep: StepFn = async (runId, meter, { append }) => {
     }
   });
   const shows = await planPhotos(runId, assembled, picks, meter, append > 0 ? plan.castId : undefined);
-  // Same music pick as Blitz cards: Jev fit, not what the workspace used lately, no repeat in the run; changeable in the editor.
-  const tracks = await matchTracks(
-    shows.map((show, i) => (show instanceof Error ? { goal: null, slides: [] } : { goal: picks[i]!.goal ?? null, slides: show.slides })),
-    run.profile as unknown as BrandProfile | null,
-    await contentWorkspaceId(run),
-  );
+  // Same music pick as Blitz cards: a random TikTok sound, not what the workspace used lately, no repeat in the run; changeable in the editor.
+  const tracks = await matchTracks(shows.length, await contentWorkspaceId(run));
   for (const [i, pick] of picks.entries()) {
     const track = tracks[i];
     const base = {
       runId, position: start + i, modelId: null, modelName: pick.modelName, hookPattern: pick.hookPattern, topic: pick.topic, goal: pick.goal ?? null,
-      ...(track ? { audioAssetId: track.assetId, audioStart: track.startAt, recommendedAudioAssetId: track.recommended ? track.assetId : null } : {}),
+      ...(track ? { audioAssetId: track.assetId, audioStart: track.startAt, recommendedAudioAssetId: null } : {}),
     };
     try {
       const show = shows[i]!;
@@ -239,17 +247,23 @@ const writeStep: StepFn = async (runId, meter, { append }) => {
   return {};
 };
 
-/** On Vercel, step 5 stops starting photos after this long, so render still fits; the rest go to a fresh invocation. */
-const PHOTO_BUDGET_MS = 170_000;
+/** On Vercel, step 5 stops starting photos after this long; the rest go to a fresh invocation. Muse Image takes about 100 s
+ *  a photo, and a flawed photo is made once more: a photo started at 90 s still lands inside the 300 s function limit, fallback included. */
+const PHOTO_BUDGET_MS = 90_000;
+/** A step 5 slower than this leaves step 6 (1-3 min) to a fresh invocation, so render does not hit the 300 s limit. */
+const RENDER_HANDOFF_MS = 120_000;
 
 const photoStep: StepFn = async (runId, meter, { continued }) => {
   const run = await loadRun(runId);
   const plan = checkpoint<AutoPlan>(run.plan, 3);
   const pool = plan.photoPrompts.length;
   const existing = (run.photos as AutoPhoto[] | null) ?? [];
-  const rows = await prisma.autoSlideshow.findMany({ where: { runId, status: { not: 'failed' } }, orderBy: { position: 'asc' } });
+  // Hand-made drafts make their own photos (manual/photo.ts).
+  const rows = await prisma.autoSlideshow.findMany({ where: { runId, status: { notIn: ['failed', ...DRAFT_STATUSES] } }, orderBy: { position: 'asc' } });
   const shows = rows.map((r) => ({ id: r.id, status: r.status, slides: r.slides as unknown as AutoSlide[], bank: r.bankHookId !== null }));
-  const entries = ownPhotoEntries(pool, existing, shows);
+  // A cover-only slideshow (a Prospect Pack preview) gets the photo of its first slide only.
+  const covers = new Set(rows.filter((r) => run.coverOnlyPositions.includes(r.position)).map((r) => r.id));
+  const entries = ownPhotoEntries(pool, existing, shows.map((s) => (covers.has(s.id) ? { ...s, slides: s.slides.slice(0, 1) } : s)));
   const deadline = process.env.VERCEL === '1' ? Date.now() + PHOTO_BUDGET_MS : undefined;
   const look = brandLook(run.profile as unknown as BrandProfile | null);
   const made = await makePhotos(runId, [...plan.photoPrompts, ...entries], existing, meter, { deadline, skipFailed: continued, look });
@@ -267,33 +281,44 @@ const photoStep: StepFn = async (runId, meter, { continued }) => {
 const RENDER_CONCURRENCY = 4;
 export const slideKey = (runId: string, slideshowId: string, index: number) => `admin/auto-slideshow/${runId}/${slideshowId}/${index}.jpg`;
 
-/** Renders slideshows not rendered yet (all of them again when step 6 is re-run directly). Heads found on photos made
- *  before head detection existed are stored with the photos. */
+type RenderCtx = { runId: string; photos: AutoPhoto[]; cache: PhotoCache; heads: HeadsCache; look: BrandProfile['slideshowStyle'] | undefined };
+
+/** The slideshow's slides rendered together (each waits on its own photo, heads and upload); only the first `upTo`. */
+const renderSlides = async (ctx: RenderCtx, show: { id: string; position: number; slides: AutoSlide[] }, upTo: number): Promise<AutoSlide[]> => {
+  const indexes = slidePhotoIndexes(show.slides, show.position, ctx.photos);
+  if (indexes.slice(0, upTo).some((i) => i === null)) throw new Error('No photo was made for this slideshow');
+  // Every photo's heads first: the content slides' text lines up at the one spot that suits all of them.
+  const heads = await Promise.all(show.slides.map((_, i) => (indexes[i] === null ? null : headsFor(ctx.photos[indexes[i]!]!, ctx.cache, ctx.heads))));
+  const top = contentTop(show.slides.map((slide, i) => ({ slide, heads: heads[i] })));
+  return Promise.all(
+    show.slides.map(async (slide, i) => {
+      if (i >= upTo) return slide;
+      const key = slideKey(ctx.runId, show.id, i);
+      const photo = ctx.photos[indexes[i]!]!;
+      const { jpeg, at } = await renderSlide(slide, photo.imageKey!, ctx.cache, ctx.look, heads[i], alignsWithContent(slide) ? top : undefined);
+      await putObject(key, jpeg, 'image/jpeg');
+      return { ...slide, photoIndex: indexes[i]!, imageKey: key, placedAt: at };
+    }),
+  );
+};
+
+/** Renders slideshows not rendered yet (all of them again when step 6 is re-run directly). A cover-only slideshow (a
+ *  Prospect Pack preview) renders its first slide and stays 'written', uncharged, so a later run makes the rest.
+ *  Heads found on photos made before head detection existed are stored with the photos. */
 const renderStep: StepFn = async (runId, _meter, { rerender }) => {
   const run = await loadRun(runId);
   const photos = checkpoint<AutoPhoto[]>(run.photos, 5);
   const shows = await prisma.autoSlideshow.findMany({ where: { runId, status: rerender ? { not: 'failed' } : { in: ['written', 'rendering'] } }, orderBy: { position: 'asc' } });
-  const cache: PhotoCache = new Map();
   const heads: HeadsCache = new Map();
-  const look = (run.profile as unknown as BrandProfile | null)?.slideshowStyle;
+  const ctx: RenderCtx = { runId, photos, cache: new Map(), heads, look: (run.profile as unknown as BrandProfile | null)?.slideshowStyle };
   await runPool(shows, RENDER_CONCURRENCY, async (show) => {
     try {
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { status: 'rendering', error: null } });
       const slides = show.slides as unknown as AutoSlide[];
-      const indexes = slidePhotoIndexes(slides, show.position, photos);
-      if (indexes.some((i) => i === null)) throw new Error('No photo was made for this slideshow');
-      // A slideshow's slides render together: each waits on its own photo, heads and upload.
-      const rendered: AutoSlide[] = await Promise.all(
-        slides.map(async (slide, i) => {
-          const key = slideKey(runId, show.id, i);
-          const photo = photos[indexes[i]!]!;
-          const { jpeg, at } = await renderSlide(slide, photo.imageKey!, cache, look, await headsFor(photo, cache, heads));
-          await putObject(key, jpeg, 'image/jpeg');
-          return { ...slide, photoIndex: indexes[i]!, imageKey: key, placedAt: at };
-        }),
-      );
-      await prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(rendered), status: 'ready' } });
-      await chargeSlideshow(runId, show.id);
+      const cover = run.coverOnlyPositions.includes(show.position);
+      const rendered = await renderSlides(ctx, { id: show.id, position: show.position, slides }, cover ? 1 : slides.length);
+      await prisma.autoSlideshow.update({ where: { id: show.id }, data: { slides: json(rendered), status: cover ? 'written' : 'ready' } });
+      if (!cover) await chargeSlideshow(runId, show.id);
     } catch (err) {
       await prisma.autoSlideshow.update({ where: { id: show.id }, data: { status: 'failed', error: clip(err instanceof Error ? err.message : String(err), 500) } });
     }
@@ -310,7 +335,7 @@ const STEPS: Record<AutoStep, StepFn> = { 1: profileStep, 2: leverStep, 3: planS
  * another 2-3 min, so step 5 starts in a fresh invocation via the continue route; a step 5 that ran out of its time
  * budget hands off again. Locally it just keeps going. True when the new invocation took the work.
  */
-const handOff = async (runId: string): Promise<boolean> => {
+export const handOff = async (runId: string): Promise<boolean> => {
   if (process.env.VERCEL !== '1') return false;
   try {
     await prisma.autoSlideshowRun.update({ where: { id: runId }, data: { status: running(5) } });
@@ -366,6 +391,8 @@ const photosLeft = async (runId: string) => photosPending(((await loadRun(runId)
 export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, append = 0, continued = false): Promise<void> => {
   const opts: RunOpts = { append, rerender: fromStep === 6, continued };
   for (let step = fromStep; step <= 6; step = (step + 1) as AutoStep) {
+    // Before step 4 of a new workspace's first run: the owner validates their brand avatar first (brandCast/gate.ts).
+    if (step === 4 && append === 0 && (await holdForAvatar(runId))) return;
     const t0 = Date.now();
     const meter = createMeter();
     try {
@@ -377,9 +404,9 @@ export const runAutoPipeline = async (runId: string, fromStep: AutoStep = 1, app
         startWarmUp(runId);
         await kickIdeas(runId, 'bank');
       }
-      if (step === 3 && append === 0 && (await holdForCast(runId))) return;
+      if (step === 3 && append === 0 && ((await holdForCast(runId)) || (await holdForTarget(runId)))) return;
       if (step === 4 && (await handOff(runId))) return;
-      if (step === 5 && (await photosLeft(runId)) && (await handOff(runId))) return;
+      if (step === 5 && (Date.now() - t0 > RENDER_HANDOFF_MS || (await photosLeft(runId))) && (await handOff(runId))) return;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(`[auto-slideshow] run ${runId} step ${step} FAILED:`, message);

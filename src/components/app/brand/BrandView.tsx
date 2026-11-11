@@ -63,7 +63,7 @@ export const BrandView = () => {
   });
 
   // If workspace is mid-generation, poll until done — also refreshes brandExtract + wsProfile
-  const pollAngles = useCallback(async () => {
+  const pollAngles = useCallback(async function poll(): Promise<void> {
     if (!product) return;
     try {
       const data = await apiFetch<AngleState>(
@@ -80,7 +80,7 @@ export const BrandView = () => {
         });
       }
       if (data.genState === 'pending') {
-        pollingRef.current = setTimeout(() => void pollAngles(), 2500);
+        pollingRef.current = setTimeout(() => void poll(), 2500);
       }
     } catch {
       // silently ignore poll failures

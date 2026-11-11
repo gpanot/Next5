@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { isNumbered, numberCards } from '../../../../types/admin/campaignNumbering';
 import { titlePick, type TextAt } from '../../../../types/slideText';
-import { targetsCard, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
+import { linkedTextCards, MIN_CAMPAIGN_CONTENT, targetsCard, textSizeOfRole, type CampaignCard, type CampaignDraft, type CampaignLookRole, type CampaignPhotoTarget } from '../../../../types/admin/slideshowCampaign';
 import { isAdminView } from '../../../../lib/adminToken';
 import { adminFetch } from '../../business/useAdminApi';
 import { LookMenu } from '../LookMenu';
+import { TextSizeMenu } from '../TextSizeMenu';
 import { announceCreditsChanged, CREDITS_HINT } from '../creditsEvents';
 import { SettingsModal } from '../settings/SettingsModal';
 import { useCheckoutReturn } from '../settings/credits/useCheckoutReturn';
@@ -14,6 +15,9 @@ import { SafeZoneButton, useSafeZone } from '../SafeZone';
 import { GenerateVideoButton } from '../VideoButton';
 import { EditorAlert, EditorAside, EditorBody, EditorFrame, EditorPlaceholder, editorCard, topBarButton } from '../editor/EditorShell';
 import { RoleTabBar } from '../editor/RoleTabBar';
+import { SlideDeleteButton } from '../SlideDeleteButton';
+import { TextLockButton } from '../TextLockButton';
+import { playerAudio, SlideshowMusic, useMusicTracks } from '../SlideshowMusic';
 import { CampaignPlayer } from './CampaignPlayer';
 import { CampaignPosts } from './CampaignPosts';
 import { CampaignPreview } from './CampaignPreview';
@@ -24,10 +28,11 @@ import { CampaignMenu } from './CampaignMenu';
 import { Checklist, ContentModeTabs, NameInput, type ContentMode } from './EditorParts';
 import { HookPanel } from './HookPanel';
 import { PhotoLibraryDialog } from './PhotoLibraryDialog';
-import { previewShows } from './previewSlides';
+import { previewShows, type PickedThumbs } from './previewSlides';
 import { useAutoContent } from './useAutoContent';
 import { useCampaign, type PendingPhoto } from './useCampaign';
 import { useCampaignVideo } from './useCampaignVideo';
+import { useGenerateAll } from './useGenerateAll';
 import { ScheduleButton } from './ScheduleButton';
 import { useCampaignSchedule } from './useCampaignSchedule';
 
@@ -35,15 +40,30 @@ type Props = { token: string; workspaceId: string; campaignId: string; onClose: 
 
 /** The slides (0 = hook, i = card i - 1) whose shown photo is on its way: a card's photo being replaced, or the first
  *  photo of an empty hook or card. Photos added to a rotation behind a shown one change nothing on screen. */
+const slidesOf = ({ target: t }: PendingPhoto, draft: CampaignDraft | undefined): number[] => {
+  if (t.slot === 'hook') return draft?.hookPhotos.length && t.replace !== 0 ? [] : [0];
+  if (t.slot === 'cards') return t.cards.map((c) => c + 1);
+  if (t.slot === 'cardRotation' && draft?.cards[t.card]?.photo != null) return [];
+  return [t.card + 1];
+};
+
+/** Slides waiting with nothing to show yet: a photo still being made has no thumb. */
 const loadingSlides = (pending: PendingPhoto[], draft: CampaignDraft | undefined): Set<number> =>
-  new Set(
-    pending.flatMap(({ target: t }) => {
-      if (t.slot === 'hook') return draft?.hookPhotos.length ? [] : [0];
-      if (t.slot === 'cards') return t.cards.map((c) => c + 1);
-      if (t.slot === 'cardRotation' && draft?.cards[t.card]?.photo != null) return [];
-      return [t.card + 1];
-    }),
-  );
+  new Set(pending.filter((p) => !p.thumbUrl).flatMap((p) => slidesOf(p, draft)));
+
+/** A picked photo shows at once, from the thumb the picker already loaded, while it is copied in behind the scenes. */
+const pickedThumbs = (pending: PendingPhoto[], draft: CampaignDraft | undefined): PickedThumbs => {
+  const slides = new Map<number, string>();
+  const hook = new Map<number, string>();
+  for (const p of pending) {
+    if (!p.thumbUrl) continue;
+    if (p.target.slot === 'hook') {
+      const at = p.target.replace ?? (draft?.hookPhotos.length ? null : 0);
+      if (at !== null) hook.set(at, p.thumbUrl);
+    } else for (const s of slidesOf(p, draft)) slides.set(s, p.thumbUrl);
+  }
+  return { slides, hook };
+};
 
 /** Slide 0 is the hook; slide i >= 1 is card i - 1 (the CTA last). */
 const roleTab = (draft: CampaignDraft, slide: number): CampaignLookRole => (slide === 0 ? 'hook' : slide === draft.cards.length ? 'cta' : 'content');
@@ -66,17 +86,21 @@ const startMode = (draft: CampaignDraft | undefined): ContentMode => (draft?.car
 export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Props) {
   const state = useCampaign(token, campaignId);
   const [slide, setSlide] = useState(0);
+  /** Which hook's slideshow the player and the strip show. */
+  const [pickedHook, setPickedHook] = useState(0);
   const [picker, setPicker] = useState<CampaignPhotoTarget | null>(null);
   /** The slideshow the preview opens on; null when closed. */
   const [previewing, setPreviewing] = useState<number | null>(null);
   const { campaign, setDraft } = state;
   const [mode, setMode] = useState<ContentMode | null>(null);
   const auto = useAutoContent(token, campaignId, state);
+  const generateAll = useGenerateAll(token, campaignId, state, auto);
   const video = useCampaignVideo(token, campaignId, state);
   const plan = useCampaignSchedule(token, state);
   /** Video render is admin-only: the admin token, or an "Open as user" tab. */
   const admin = isAdminView(token);
   const safeZone = useSafeZone();
+  const tracks = useMusicTracks(token);
   const [addingCredit, setAddingCredit] = useState(false);
   const needsCredit = state.error?.endsWith(CREDITS_HINT) ?? false;
   /** Back from Stripe (checkout opened from Add Credit): confirms the payment here, no Settings popup. */
@@ -94,7 +118,9 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
 
   const draft = campaign?.draft;
   const loading = loadingSlides(state.pending, draft);
+  const thumbs = pickedThumbs(state.pending, draft);
   const at = draft ? Math.min(slide, draft.cards.length) : 0;
+  const hook = draft ? Math.min(pickedHook, Math.max(draft.hooks.length - 1, 0)) : 0;
   const tab = draft ? roleTab(draft, at) : 'hook';
   const contentMode = mode ?? startMode(draft);
   /** A slide picked in the strip opens it; a content slide opens in Slide by slide. */
@@ -114,12 +140,35 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   /** The draft with its cards replaced, numbered again when the headlines were numbered. */
   const withCards = (d: CampaignDraft, cards: CampaignCard[]): CampaignDraft => ({ ...d, cards: isNumbered(d.cards) ? numberCards({ hooks: d.hooks, cards }, true) : cards });
   const addCard = () => {
-    setDraft((d) => withCards(d, [...d.cards.slice(0, -1), { role: 'item', title: '', body: '', photo: null }, d.cards[d.cards.length - 1]!]));
+    setDraft((d) => {
+      // A new slide is locked: its text starts where the other locked content slides' text sits.
+      const at = d.cards.find((c) => c.role === 'item' && !c.textFree)?.textAt;
+      const card: CampaignCard = { role: 'item', title: '', body: '', photo: null, ...(at ? { textAt: at } : {}) };
+      return withCards(d, [...d.cards.slice(0, -1), card, d.cards[d.cards.length - 1]!]);
+    });
     setSlide(draft ? draft.cards.length : 1);
   };
-  /** Slide i's text dragged to `at` (undefined: back to its usual spot). Slide 0 is the hook, on every hook photo. */
+  /** Slide i's text dragged to `at` (undefined: back to its usual spot). Slide 0 is the hook, on every hook photo; a
+   *  locked content slide moves every locked content slide's text with it. */
   const moveText = (i: number, at: TextAt | undefined) =>
-    setDraft((d) => (i === 0 ? { ...d, hookTextAt: at } : { ...d, cards: d.cards.map((c, j) => (j === i - 1 ? { ...c, textAt: at } : c)) }));
+    setDraft((d) => {
+      if (i === 0) return { ...d, hookTextAt: at };
+      const linked = new Set(linkedTextCards(d.cards, i - 1));
+      return { ...d, cards: d.cards.map((c, j) => (linked.has(j) ? { ...c, textAt: at } : c)) };
+    });
+  /** Content slides' text lock on the strip, once there are two content slides to lock together. */
+  const textLock = (i: number) => {
+    const card = draft?.cards[i - 1];
+    if (!draft || !card || card.role !== 'item' || draft.cards.length - 1 < 2) return null;
+    return <TextLockButton locked={!card.textFree} onToggle={() => patchCard(i - 1, { textFree: card.textFree ? undefined : true })} />;
+  };
+  /** Content slides' bin, under their picture in the strip. */
+  const deleteControl = (i: number) => {
+    const card = draft?.cards[i - 1];
+    if (!draft || !card || card.role !== 'item') return null;
+    const contentCount = draft.cards.length - 1;
+    return <SlideDeleteButton number={i + 1} onDelete={() => removeCard(i - 1)} disabled={contentCount <= MIN_CAMPAIGN_CONTENT} reason="A campaign needs at least one content slide" />;
+  };
   /** Slide i's store badge row dragged to `y` (undefined: back to its usual spot). Only the CTA has badges. */
   const moveBadges = (i: number, y: number | undefined) => {
     if (i > 0) patchCard(i - 1, { badgesAt: y });
@@ -132,7 +181,8 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
   };
   const removeCard = (i: number) => {
     setDraft((d) => withCards(d, d.cards.filter((_, j) => j !== i)));
-    setSlide((s) => Math.max(1, s - 1));
+    // Slide i + 1 went: the slides after it move back one, and the deleted one's place goes to the slide before it.
+    setSlide((s) => (s > i + 1 ? s - 1 : s === i + 1 ? Math.max(1, s - 1) : s));
   };
 
   const header = (
@@ -168,7 +218,8 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
         <EditorBody
           player={
             <>
-              <CampaignPlayer draft={draft} photos={campaign.photos} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} onRemoveCard={removeCard} safeZone={safeZone.on} loading={loading} />
+              <CampaignPlayer draft={draft} photos={campaign.photos} hook={hook} onHook={setPickedHook} index={at} onIndex={setSlide} onMoveText={moveText} onMoveBadges={moveBadges} safeZone={safeZone.on} loading={loading} thumbs={thumbs} audio={playerAudio(draft.audioAssetId, tracks)} />
+              <SlideshowMusic compact value={draft.audioAssetId ?? null} tracks={tracks} onPick={(id) => setDraft((d) => ({ ...d, audioAssetId: id ?? undefined }))} />
               {admin && (
                 <GenerateVideoButton
                   rendering={video.rendering}
@@ -181,7 +232,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
               )}
             </>
           }
-          strip={<CampaignStrip draft={draft} photos={campaign.photos} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} onMoveBadges={moveBadges} loading={loading} />}
+          strip={<CampaignStrip draft={draft} photos={campaign.photos} hook={hook} index={at} onPick={pickSlide} onAdd={addCard} onMoveText={moveText} onMoveBadges={moveBadges} loading={loading} thumbs={thumbs} corner={textLock} footer={deleteControl} />}
           main={
             <>
               <section aria-label="Slide" className={editorCard}>
@@ -190,13 +241,16 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                   onPick={(role) => setSlide(role === 'hook' ? 0 : role === 'content' ? 1 : draft.cards.length)}
                   after={tab === 'content' && contentMode === 'slides' && <span className="text-xs text-white/40">Slide {at + 1}</span>}
                   end={
-                    <LookMenu
-                      label="Title style"
-                      scope={STYLE_SCOPE[tab]}
-                      align="right"
-                      active={titlePick(TAB_ROLE[tab], draft.looks[tab])}
-                      onPick={(look) => setDraft((d) => ({ ...d, looks: { ...d.looks, [tab]: look } }))}
-                    />
+                    <>
+                      <TextSizeMenu scope={STYLE_SCOPE[tab]} value={textSizeOfRole(draft.textSizes, TAB_ROLE[tab])} onPick={(size) => setDraft((d) => ({ ...d, textSizes: { ...d.textSizes, [tab]: size } }))} />
+                      <LookMenu
+                        label="Title style"
+                        scope={STYLE_SCOPE[tab]}
+                        align="right"
+                        active={titlePick(TAB_ROLE[tab], draft.looks[tab])}
+                        onPick={(look) => setDraft((d) => ({ ...d, looks: { ...d.looks, [tab]: look } }))}
+                      />
+                    </>
                   }
                 />
                 {paid && !paidSeen && !state.error && (
@@ -225,7 +279,7 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
                     onRun={() => void runAuto()}
                   />
                 ) : at === 0 ? (
-                  <HookPanel token={token} campaignId={campaignId} draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} />
+                  <HookPanel token={token} campaignId={campaignId} draft={draft} photos={campaign.photos} pending={state.pending.filter((p) => p.target.slot === 'hook')} onChange={setDraft} onAddPhotos={() => setPicker({ slot: 'hook' })} onReplacePhoto={(i) => setPicker({ slot: 'hook', replace: i })} onGenerateAll={generateAll} />
                 ) : (
                   <CardPanel
                     card={draft.cards[at - 1]!}
@@ -259,11 +313,12 @@ export function CampaignEditor({ token, workspaceId, campaignId, onClose }: Prop
           token={token}
           workspaceId={workspaceId}
           campaignId={campaignId}
-          multiple={picker.slot === 'hook' || picker.slot === 'cardRotation'}
+          multiple={(picker.slot === 'hook' && picker.replace === undefined) || picker.slot === 'cardRotation'}
           title={picker.slot === 'hook' ? 'Hook photos' : picker.slot === 'cardRotation' ? 'Slide photos' : 'Slide photo'}
-          recommended={picker.slot === 'hook' && draft ? draft.hooks.length - draft.hookPhotos.length - state.pending.filter((p) => p.target.slot === 'hook').length : 0}
+          recommended={picker.slot === 'hook' && picker.replace === undefined && draft ? draft.hooks.length - draft.hookPhotos.length - state.pending.filter((p) => p.target.slot === 'hook').length : 0}
           startTab={picker.slot === 'card' && draft?.cards[picker.card]?.role === 'cta' ? 'appshot' : 'search'}
-          chooseForMe={picker.slot === 'hook' && draft ? { query: draft.hookPhotoQuery ?? '', count: draft.hooks.length, writeQuery: () => writeHookQuery(draft.hooks) } : undefined}
+          chooseForMe={picker.slot === 'hook' && picker.replace === undefined && draft ? { query: draft.hookPhotoQuery ?? '', count: draft.hooks.length, writeQuery: () => writeHookQuery(draft.hooks) } : undefined}
+          initialQuery={picker.slot === 'hook' ? (draft?.hookPhotoQuery ?? '') : ''}
           onClose={() => setPicker(null)}
           onDone={(picks) => {
             setPicker(null);

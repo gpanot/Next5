@@ -51,21 +51,25 @@ export function checkMeatDraft(meat: Omit<MeatLines, 'cta'>, cta: string, guard:
 /**
  * Re-checks a card after the user edited it: format (count, word limits, no "!" on the hook,
  * bridge colon) and the engine's guard. Returns readable problems; empty = ok to render.
+ * `baseline` = the card's texts before this edit: a line left as it was skips the format checks
+ * (generation keeps a line that is only too long, so an untouched card must not block a caption move).
  */
-export function checkShotTexts(texts: string[], guard: LineGuard): string[] {
+export function checkShotTexts(texts: string[], guard: LineGuard, baseline?: string[]): string[] {
   if (texts.length !== SHOT_ORDER.length) return [`A deck video has ${SHOT_ORDER.length} shots, got ${texts.length}.`];
   const problems: string[] = [];
+  const untouched = (i: number) => baseline?.[i]?.trim() === texts[i]!.trim();
   SHOT_ORDER.forEach((role, i) => {
     const def = SHOT_BY_ROLE[role];
     const text = texts[i]!.trim();
     if (!text) { problems.push(`${def.label}: empty.`); return; }
+    const reason = guard(text);
+    if (reason) problems.push(`${def.label}: ${reason}.`);
+    if (untouched(i)) return;
     const n = wordCount(text);
     if (n > def.maxWords) problems.push(`${def.label}: ${n} words, max ${def.maxWords}.`);
     if (role === 'hook' && text.includes('!')) problems.push('Hook: remove "!".');
-    const reason = guard(text);
-    if (reason) problems.push(`${def.label}: ${reason}.`);
   });
-  if (!INACTION_BRIDGE_PATTERN.test(texts[5]!.trim())) {
+  if (!untouched(5) && !INACTION_BRIDGE_PATTERN.test(texts[5]!.trim())) {
     problems.push(`${SHOT_BY_ROLE.inaction.label}: end with ":" so the CTA answers it.`);
   }
   return problems;

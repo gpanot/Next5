@@ -10,6 +10,8 @@ type Props = {
   disabled?: boolean;
   /** `dark`: on an always-dark surface (the slideshow editor), whatever the site theme. */
   tone?: 'auto' | 'dark';
+  /** Names in place of the usual ones (the Ideas deck calls "Default" "Auto"). */
+  labels?: Partial<Record<HookStyleId, string>>;
 };
 
 const item = 'flex min-h-11 w-full items-center gap-2.5 rounded-xl border px-2 py-1.5 text-left transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100';
@@ -28,7 +30,7 @@ const TONES = {
 } as const;
 
 /** The hook / CTA looks (Default, White box, TikTok Red) as picks: the Ideas deck's Hook sheet and both editors. */
-export function HookStyleOptions({ activeId, onPick, disabled = false, tone = 'auto' }: Props) {
+export function HookStyleOptions({ activeId, onPick, disabled = false, tone = 'auto', labels }: Props) {
   const colors = TONES[tone];
   return (
     <div role="radiogroup" aria-label="Hook + CTA style" className="flex flex-col gap-0.5">
@@ -45,7 +47,7 @@ export function HookStyleOptions({ activeId, onPick, disabled = false, tone = 'a
             className={`${item} ${active ? colors.on : colors.off}`}
           >
             <StyleThumb style={style} />
-            <span className={`text-[12px] font-medium ${colors.label}`}>{style.label}</span>
+            <span className={`text-[12px] font-medium ${colors.label}`}>{labels?.[style.id] ?? style.label}</span>
             {active && <span aria-hidden className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-orange-500" />}
           </button>
         );

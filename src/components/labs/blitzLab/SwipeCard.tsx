@@ -17,12 +17,14 @@
  * The caller supplies shot data, tags and callbacks.
  */
 
-import { ChevronDown, Info, Pause } from 'lucide-react';
-import { slideTextConfig } from '../../../remotion/slideTextConfig';
-import type { TextConfig } from '../../../remotion/types';
-import { ShotLayers } from './ShotLayers';
+import { ChevronDown, Info, Pause, Play } from 'lucide-react';
+import { hookTitleOf } from '../../../remotion/hookTitle';
+import { slideTextConfig, spokenTextConfig } from '../../../remotion/slideTextConfig';
+import type { SlideCamera, TextConfig } from '../../../remotion/types';
+import { moveShotCamera, ShotLayers } from './ShotLayers';
 import { SlideCaption } from './SlideCaption';
 import { SpokenDeckCaption } from './SpokenDeckCaption';
+import { DeckHookTitle } from './DeckHookTitle';
 import type { ShotEditData } from './shotFormat';
 import { useNarrationAudio, type CardNarration } from './useNarrationAudio';
 import { WhyDrawer } from './WhyDrawer';
@@ -66,6 +68,8 @@ export type ShotView = {
   photoTag?: string;
   /** Editor data (library asset, trim, caption position, swaps). The card reads only positionY, with captionConfig. */
   edit?: ShotEditData;
+  /** Photo shots: the zoom/pan the card plays, same as its render (src/remotion/slideCamera.ts). */
+  camera?: SlideCamera;
 };
 
 export type SwipeCardTag = {
@@ -172,6 +176,9 @@ export function SwipeCard({
   const durations: readonly number[] = voiced?.durations ?? SHOT_DURATIONS;
   const durationsRef = useRef(durations);
   useEffect(() => { durationsRef.current = durations; }, [durations]);
+  // A finishing card gets its camera moves after it is on screen: the ticker reads the latest shots.
+  const shotsRef = useRef(shots);
+  useEffect(() => { shotsRef.current = shots; }, [shots]);
 
   // ── Shot player state ──────────────────────────────────────────────────────
   const [shotIdx, setShotIdx] = useState(0);
@@ -223,43 +230,6 @@ export function SwipeCard({
     });
   }
 
-  // RAF ticker — only runs when this card is top
-  useEffect(() => {
-    if (!isTop) return;
-
-    const tick = (now: number) => {
-      if (lastTsRef.current === 0) lastTsRef.current = now;
-      const dt = (now - lastTsRef.current) / 1000;
-      lastTsRef.current = now;
-
-      const isDrawerOpen = whyOpenRef.current;
-      if (ready && !paused && !externalPause && !isDrawerOpen) {
-        elapsedRef.current += dt;
-        const dur = durationsRef.current[shotIdxRef.current] ?? 4;
-        if (elapsedRef.current >= dur) {
-          elapsedRef.current = 0;
-          const next = (shotIdxRef.current + 1) % shots.length;
-          shotIdxRef.current = next;
-          setShotIdx(next);
-        }
-      }
-      setBarsFromRef();
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    lastTsRef.current = 0;
-    rafRef.current = requestAnimationFrame(tick);
-    return () => { cancelAnimationFrame(rafRef.current); lastTsRef.current = 0; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isTop, paused, externalPause, ready]);
-
-  function jumpShot(delta: number) {
-    const next = Math.max(0, Math.min(shots.length - 1, shotIdxRef.current + delta));
-    elapsedRef.current = 0;
-    shotIdxRef.current = next;
-    setShotIdx(next);
-  }
-
   // ── "Why this?" drawer ────────────────────────────────────────────────────
   const [whyOpen, setWhyOpen] = useState(false);
   const whyOpenRef = useRef(false);
@@ -275,7 +245,48 @@ export function SwipeCard({
     elapsedRef.current = 0;
     shotIdxRef.current = 0;
   }, [voiceUrl]);
-  useNarrationAudio({ narration: voiced, shotIdx, elapsedRef, playing: isTop && ready && !paused && !externalPause && !whyOpen, muted: !soundOn });
+  const voice = useNarrationAudio({ narration: voiced, shotIdx, elapsedRef, playing: isTop && ready && !paused && !externalPause && !whyOpen, muted: !soundOn });
+  // The card holds its first shot (clips too) until the voice can start with it, as while the voice records.
+  const held = externalPause || voice.waiting || voice.blocked;
+
+  // RAF ticker — only runs when this card is top
+  useEffect(() => {
+    if (!isTop) return;
+
+    const tick = (now: number) => {
+      if (lastTsRef.current === 0) lastTsRef.current = now;
+      const dt = (now - lastTsRef.current) / 1000;
+      lastTsRef.current = now;
+
+      const isDrawerOpen = whyOpenRef.current;
+      if (ready && !paused && !held && !isDrawerOpen) {
+        elapsedRef.current += dt;
+        const dur = durationsRef.current[shotIdxRef.current] ?? 4;
+        if (elapsedRef.current >= dur) {
+          elapsedRef.current = 0;
+          const next = (shotIdxRef.current + 1) % shots.length;
+          shotIdxRef.current = next;
+          setShotIdx(next);
+        }
+      }
+      setBarsFromRef();
+      // Photo shots move like the render: same zoom/pan at the same point of the shot.
+      moveShotCamera(cardRef.current, shotsRef.current, shotIdxRef.current, elapsedRef.current / (durationsRef.current[shotIdxRef.current] ?? 4));
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    lastTsRef.current = 0;
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(rafRef.current); lastTsRef.current = 0; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTop, paused, held, ready]);
+
+  function jumpShot(delta: number) {
+    const next = Math.max(0, Math.min(shots.length - 1, shotIdxRef.current + delta));
+    elapsedRef.current = 0;
+    shotIdxRef.current = next;
+    setShotIdx(next);
+  }
 
   function toggleWhy() {
     setWhyOpen((o) => {
@@ -367,6 +378,7 @@ export function SwipeCard({
   const displayedShotIdx = isTop ? shotIdx : 0;
   const displayedShot = shots[displayedShotIdx] ?? shots[0];
   const spokenWords = isTop ? voiced?.words?.[displayedShotIdx] : undefined;
+  const hookTitle = hookTitleOf(captionConfig);
   const captionMove = isTop && paused && onCaptionMove ? (y: number) => onCaptionMove(displayedShotIdx, y) : undefined;
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -406,13 +418,14 @@ export function SwipeCard({
           // The top card loads its first shot alone, so it is not slowed by the other clips.
           loadAll={position === 'back1' || (isTop && ready)}
           playing={isTop}
-          muted={!soundOn || !isTop || paused || externalPause || Boolean(voiced)}
+          held={held}
+          muted={!soundOn || !isTop || paused || held || Boolean(voiced)}
           fallback={(i) => tint(hue, i)}
           onFirstReady={markReady}
         />
 
-        {/* ── Loading: the first shot is not on screen yet ─────────────────── */}
-        {isTop && !ready && (
+        {/* ── Loading: the first shot is not on screen yet, or its voice is still buffering ── */}
+        {isTop && (!ready || (voice.waiting && !externalPause)) && (
           <div role="status" aria-label="Loading video" className="pointer-events-none absolute inset-0 z-[3] grid place-items-center bg-black/25">
             <span aria-hidden className="h-8 w-8 animate-spin rounded-full border-[3px] border-white/30 border-t-white" />
           </div>
@@ -441,12 +454,14 @@ export function SwipeCard({
         {/* A voiced card shows what the voice says, as it says it. Keyed by shot so each line starts fresh. */}
         {/* Paused, the caption moves up or down: a voiced card's spoken line on screen shows whole, else the shot's line. */}
         {displayedShot && captionConfig && (spokenWords ? (
-          <SpokenDeckCaption key={`${voiceUrl}-${displayedShotIdx}`} words={spokenWords} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} elapsedRef={elapsedRef} onMove={captionMove} />
+          <SpokenDeckCaption key={`${voiceUrl}-${displayedShotIdx}`} words={spokenWords} config={spokenTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} elapsedRef={elapsedRef} onMove={captionMove} />
         ) : captionMove ? (
           <DraggableCaption key={displayedShotIdx} text={displayedShot.text} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} onMove={captionMove} />
         ) : (
           <SlideCaption text={displayedShot.text} config={slideTextConfig(captionConfig, displayedShotIdx, shots.length)} positionY={displayedShot.edit?.positionY} />
         ))}
+        {/* The hook title: fixed over the hook shot and the start of the next, like the render. */}
+        {hookTitle && captionConfig && <DeckHookTitle key={displayedShotIdx} title={hookTitle} config={captionConfig} shot={displayedShotIdx} elapsedRef={elapsedRef} />}
         {displayedShot && !captionConfig && (
           <div
             className={[
@@ -465,6 +480,16 @@ export function SwipeCard({
               <span>{displayedShot.text}</span>
             )}
           </div>
+        )}
+
+        {/* ── Voice blocked by the browser (no tap yet on this page): one tap starts card and voice ── */}
+        {isTop && ready && voice.blocked && !externalPause && (
+          <button type="button" data-no-swipe onClick={(e) => { e.stopPropagation(); voice.unblock(); }} className="absolute inset-0 z-[5] grid place-items-center bg-black/35 text-white">
+            <span className="flex flex-col items-center gap-2 text-[13px] font-semibold">
+              <span className="grid h-16 w-16 place-items-center rounded-full bg-black/50"><Play aria-hidden className="h-6 w-6" /></span>
+              Tap to play with sound
+            </span>
+          </button>
         )}
 
         {/* ── Pause overlay ───────────────────────────────────────────────── */}

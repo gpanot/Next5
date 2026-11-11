@@ -6,12 +6,21 @@ import { PlayIcon } from './PostCard';
 /** How long each slide stays when the slideshow plays, like a TikTok photo post. */
 const SLIDE_MS = 2_500;
 
-/** A slideshow in the post sheet: swipe one slide at a time, or tap play to run it like the post will (a tap while it
- *  plays pauses it). Only here: the strip's cards stay still, so the page is not a wall of play buttons. */
-export function SlidePlayer({ slides }: { slides: string[] }) {
+/** A slideshow in the post sheet: swipe one slide at a time, or tap play to run it like the post will, with its music
+ *  (a tap while it plays pauses both). Only here: the strip's cards stay still, so the page is not a wall of play buttons. */
+export function SlidePlayer({ slides, audioUrl, audioStart = 0 }: { slides: string[]; audioUrl?: string | null; audioStart?: number }) {
   const track = useRef<HTMLDivElement>(null);
+  const audio = useRef<HTMLAudioElement>(null);
   const [current, setCurrent] = useState(0);
   const [playing, setPlaying] = useState(false);
+
+  // The music follows play and pause; it starts over (at the track's start point) with the slideshow.
+  useEffect(() => {
+    const el = audio.current;
+    if (!el) return;
+    if (playing) void el.play().catch(() => undefined);
+    else el.pause();
+  }, [playing]);
 
   const goTo = (i: number) => {
     const el = track.current;
@@ -29,12 +38,15 @@ export function SlidePlayer({ slides }: { slides: string[] }) {
 
   const play = () => {
     // From the last slide, play starts over.
-    if (current >= slides.length - 1) goTo(0);
+    const restart = current >= slides.length - 1;
+    if (restart) goTo(0);
+    if (audio.current && (restart || current === 0)) audio.current.currentTime = audioStart;
     setPlaying(true);
   };
 
   return (
     <div className="space-y-2">
+      {audioUrl && <audio ref={audio} src={audioUrl} preload="auto" loop />}
       <div className="relative">
         <div
           ref={track}

@@ -27,7 +27,8 @@ export async function deckRenderBody(client: LabClient, card: DeckCardData, slid
   if (!ctx.template) return { error: 'No slideshow template loaded.' };
   if (slides.some((s) => !s.backgroundKey)) return { error: 'Some shots have no photo. Tap Edit to pick one.' };
   const context = card.check ?? ctx.checkContext;
-  const problems = context ? await checkDeckCopy(client, context, slides.map((s) => s.text)) : [];
+  // The card's own texts are the baseline: they passed generation or the editor's check already.
+  const problems = context ? await checkDeckCopy(client, context, slides.map((s) => s.text), card.shots.map((s) => s.text)) : [];
   if (problems.length > 0) return { error: `Fix before rendering: ${problems.join(' ')}` };
   return {
     body: {

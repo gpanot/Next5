@@ -16,15 +16,15 @@ type Props = {
 
 const field = 'w-full rounded-xl border border-app-line bg-app-panel px-3 py-2.5 text-base text-app-ink transition focus:border-app-ink focus:outline-none sm:text-sm';
 
-/** "Maya, 28" → name and age. */
-const split = (full: string) => {
-  const [name = '', age = ''] = full.split(',').map((p) => p.trim());
+/** "Maya, 28" → name and age. A face made from a photo has only a name: its age comes from its look ("28 years old. …"). */
+const split = (full: string, look: string) => {
+  const [name = '', age = look.match(/^(\d+) years old\./)?.[1] ?? ''] = full.split(',').map((p) => p.trim());
   return { name, age };
 };
 
 /** "Edit name and age" from the ⋮ menu. The photo stays the same. Mount it with `key={member.id}`. */
 export function EditMemberDialog({ member, busy, error, onClose, onSubmit }: Props) {
-  const start = split(member?.name ?? '');
+  const start = split(member?.name ?? '', member?.look ?? '');
   const [name, setName] = useState(start.name);
   const [age, setAge] = useState(start.age);
   const ageNumber = Number(age);

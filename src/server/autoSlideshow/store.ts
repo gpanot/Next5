@@ -3,7 +3,7 @@
 
 import type { AutoSlideshow, AutoSlideshowPost, AutoSlideshowRun, BlitzAsset } from '@prisma/client';
 import { prisma } from '../../lib/db';
-import type { AutoPhoto, AutoPhotoDto, AutoPlan, AutoRunDto, AutoRunStatus, AutoRunSummary, AutoSlide, AutoSlideshowDto, AutoSlideshowStatus, AutoStep } from '../../types/admin/autoSlideshow';
+import { DRAFT_STATUSES, type AutoPhoto, type AutoPhotoDto, type AutoPlan, type AutoRunDto, type AutoRunStatus, type AutoRunSummary, type AutoSlide, type AutoSlideshowDto, type AutoSlideshowStatus, type AutoStep } from '../../types/admin/autoSlideshow';
 import type { BrandProfile } from '../../types/admin/companyIntel';
 import { isContentGoal } from '../../types/admin/contentGoals';
 import type { BrandLever, StepCost } from '../../types/admin/metaAds';
@@ -37,6 +37,7 @@ export const toSlideshowDto = async (s: ShowRow): Promise<AutoSlideshowDto> => (
   recommendedAudioId: s.recommendedAudioAssetId,
   post: (() => { const p = primaryPost(s.posts ?? []); return p ? toPostDto(p) : null; })(),
   posts: (s.posts ?? []).map(toPostDto),
+  plannedAt: s.plannedAt?.toISOString() ?? null,
   status: s.status as AutoSlideshowStatus,
   error: s.error,
 });
@@ -55,14 +56,15 @@ export const toRunDto = async (run: AutoSlideshowRun & { slideshows: ShowRow[] }
   photos: run.photos as unknown as AutoPhoto[] | null,
   stepTimings: run.stepTimings as Partial<Record<AutoStep, number>>,
   stepCosts: run.stepCosts as unknown as Partial<Record<AutoStep, StepCost>>,
-  slideshows: await Promise.all(run.slideshows.map(toSlideshowDto)),
+  slideshows: await Promise.all(run.slideshows.map(async (s) => ({ ...(await toSlideshowDto(s)), ...(s.status === 'written' && run.coverOnlyPositions.includes(s.position) ? { coverOnly: true } : {}) }))),
   createdAt: run.createdAt.toISOString(),
   startedAt: run.startedAt.toISOString(),
   finishedAt: run.finishedAt?.toISOString() ?? null,
 });
 
 export const getRunDto = async (runId: string): Promise<AutoRunDto | null> => {
-  const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, include: { slideshows: { orderBy: { position: 'asc' }, include: SHOW_INCLUDE } } });
+  // Hand-made drafts stay out until they are ready: the wizard reads them (manual/draft.ts).
+  const run = await prisma.autoSlideshowRun.findUnique({ where: { id: runId }, include: { slideshows: { where: { status: { notIn: DRAFT_STATUSES } }, orderBy: { position: 'asc' }, include: SHOW_INCLUDE } } });
   return run ? toRunDto(run) : null;
 };
 
