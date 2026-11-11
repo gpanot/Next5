@@ -12,8 +12,12 @@ const STUDIOS: { id: ProductLineDto; icon: typeof Camera; hint: string }[] = [
 ];
 
 /** Two studios, one account. Shows both; the one you don't have yet links to its setup. */
+/** Hidden while Shop Studio is off: one studio, nothing to switch. */
+const SHOP_STUDIO_ENABLED = false;
+
 export const StudioSwitcher = ({ compact = false }: { compact?: boolean }) => {
   const { me, product } = useWorkspace();
+  if (!SHOP_STUDIO_ENABLED) return null;
   const owned = new Set(me?.workspaces.map((w) => w.product) ?? []);
   return (
     <div role="tablist" aria-label="Studio" className={`grid grid-cols-2 gap-1 rounded-xl bg-app-sunken p-1 ${compact ? 'w-full' : ''}`}>

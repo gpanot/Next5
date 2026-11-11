@@ -26,9 +26,9 @@ const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export const WorkspaceProvider = ({ token, children }: { token: string; children: ReactNode }) => {
   const params = useParams<{ studio?: string }>();
-  const routeStudio = isStudio(params?.studio) ? params.studio : null;
+  const routeStudio = isStudio(params?.studio) && params.studio !== 'shop' ? params.studio : null;
   const stored = productStore.useValue();
-  const preferred: ProductLineDto | null = routeStudio ?? (isStudio(stored) ? stored : null);
+  const preferred: ProductLineDto | null = routeStudio ?? (isStudio(stored) && stored !== 'shop' ? stored : null);
   const [nonce, setNonce] = useState(0);
   const [state, setState] = useState<MeState | null>(null);
   const key = `${token}:${preferred ?? ''}:${nonce}`;

@@ -15,7 +15,8 @@ const studioForPath = async (path: string, fallback: ProductLineDto): Promise<Pr
   if (!batchId) return fallback;
   try {
     const { batch } = await apiFetch<{ batch: BatchDetailDto }>(`/api/app/batches/${batchId}`);
-    return batch.kind === 'shop_products' || batch.products.length > 0 ? 'shop' : 'brand';
+    void batch; // Shop Studio hidden: every old link lands in Brand.
+    return 'brand';
   } catch {
     return fallback;
   }
