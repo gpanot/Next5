@@ -13,7 +13,8 @@ export type AnalyticsEvent =
   | 'post_marked' | 'post_published' | 'calendar_planned'
   | 'onboarding_step_viewed' | 'onboarding_step_answered' | 'onboarding_step_skipped' | 'onboarding_jump_to_calendar'
   | 'onboarding_build_ready' | 'onboarding_completed' | 'onboarding_build_failed' | 'onboarding_target_picked'
-  | 'onboarding_avatar_made' | 'onboarding_avatar_picked';
+  | 'onboarding_avatar_made' | 'onboarding_avatar_picked'
+  | 'listing_videos_started';
 
 export type AnalyticsProps = Record<string, string | number | boolean | null>;
 

@@ -306,6 +306,7 @@ model Workspace {
   postMaterials       PostMaterial[]
   postSlots           PostSlot[]
   listings            Listing[]
+  listingVideos       ListingVideo[]
   socialConnections   SocialConnection[]
   socialPosts         SocialPost[]
   angles              WorkspaceAngle[]
@@ -1145,10 +1146,40 @@ model Listing {
   batches   Batch[]
   campaigns Campaign[]
 
+  videos    ListingVideo[]
+
   @@unique([workspaceId, zpid])
   @@index([workspaceId, createdAt])
   @@index([runId])
   @@map("listings")
+}
+
+/// Brand create: a voiced listing video (Editorial or "Rate this house"). App prepares, blitz-worker renders.
+model ListingVideo {
+  id               String    @id @default(cuid())
+  workspaceId      String    @map("workspace_id")
+  listingId        String    @map("listing_id")
+  /// editorial | rate
+  preset           String
+  /// preparing | queued | rendering | ready | failed
+  status           String    @default("preparing")
+  /// VoicedProps; asset fields hold "r2:<key>" until the worker signs them
+  props            Json?
+  videoKey         String?   @map("video_key")
+  error            String?
+  durationS        Float?    @map("duration_s")
+  costUsdMicros    Int?      @map("cost_usd_micros")
+  renderStartedAt  DateTime? @map("render_started_at")
+  renderFinishedAt DateTime? @map("render_finished_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([listingId, createdAt(sort: Desc)])
+  @@map("listing_videos")
 }
 
 /// UGC Lab: a saved on-screen character — an AI portrait or an uploaded photo (cropped to 9:16).

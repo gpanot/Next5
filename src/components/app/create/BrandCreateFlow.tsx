@@ -25,6 +25,7 @@ import { FormatPicker } from './FormatPicker';
 import { useInfluencers } from '../sets/influencers/useInfluencers';
 import { InfluencerPicker, type FaceChoice } from './InfluencerPicker';
 import { ListingPicker, type WhoMode } from './ListingPicker';
+import { ListingVideosPanel } from './ListingVideosPanel';
 import { OccasionPicker } from './OccasionPicker';
 import { SetPicker } from './SetPicker';
 import { StyleLine, type Style } from './StyleLine';
@@ -184,6 +185,11 @@ export const BrandCreateFlow = () => {
               <StyleLine value={style} onChange={setStyle} fallback={styleFallback} />
             </div>
           </CreateSection>
+          {listing.source === 'zillow' && (
+            <CreateSection step={5} title="Videos of this home" sub="Two 25-second videos for TikTok and Reels, made from its Zillow photos. Voice, music and captions included.">
+              <ListingVideosPanel listingId={listing.id} />
+            </CreateSection>
+          )}
         </>
       ) : (
         <>
