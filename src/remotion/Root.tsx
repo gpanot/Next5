@@ -11,6 +11,7 @@ import { Composition, registerRoot } from 'remotion';
 import { GreenScreenComposition } from './GreenScreenComposition';
 import { SlideshowComposition } from './SlideshowComposition';
 import type { GreenScreenProps, SlideshowProps } from './types';
+import { RealtorVoicedCompositions } from './realtor/compositions';
 
 // Default props used by Remotion Studio for previewing without live data
 const STUDIO_DEFAULT_PROPS: GreenScreenProps = {
@@ -73,6 +74,8 @@ export const RemotionRoot = () => {
         defaultProps={SLIDESHOW_DEFAULT_PROPS}
         calculateMetadata={({ props }) => ({ durationInFrames: props.durationInFrames, fps: props.fps })}
       />
+      {/* Brand create listing videos (rendered from listing_videos rows). */}
+      <RealtorVoicedCompositions />
     </>
   );
 };

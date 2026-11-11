@@ -29,6 +29,7 @@ import { prisma } from './db';
 import { makeCancelSignal } from '@remotion/renderer';
 import { renderProject } from './render';
 import { startWakeServer } from './wakeServer';
+import { claimNextListingVideo, processListingVideo, requeueStaleListingVideos, type ListingVideoJob } from './listingVideos';
 
 const execFileAsync = promisify(execFile);
 
@@ -37,6 +38,7 @@ const POLL_INTERVAL_MS = parseInt(process.env.POLL_INTERVAL_MS ?? '5000', 10);
  * Renders run at once. One at a time made a Prospect Pack's 4 videos take ~8 min back to back. Each render is capped
  * (render.ts RENDER_LIMITS), so memory and threads grow with this number: lower it if renders fail with EAGAIN or OOM.
  */
+const LISTING_VIDEOS_ONLY = process.env.LISTING_VIDEOS_ONLY === '1';
 const JOB_SLOTS = Math.max(1, parseInt(process.env.JOB_SLOTS ?? '3', 10) || 3);
 /** A 30 s slideshow renders in about 2 min; 10 min means the job is stuck. */
 const JOB_TIMEOUT_MS = parseInt(process.env.JOB_TIMEOUT_MS ?? String(10 * 60_000), 10);
@@ -189,6 +191,17 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
   }
 }
 
+/** A listing video takes the same slot and time limit as a Blitz render. */
+async function processListingJob(job: ListingVideoJob, serveUrl: string): Promise<void> {
+  const { cancelSignal, cancel } = makeCancelSignal();
+  const limit = setTimeout(cancel, JOB_TIMEOUT_MS);
+  try {
+    await processListingVideo(job, serveUrl, cancelSignal);
+  } finally {
+    clearTimeout(limit);
+  }
+}
+
 // ── Polling loop ──────────────────────────────────────────────────────────────
 
 let polling = false;
@@ -199,9 +212,13 @@ let running = 0;
 
 /** Runs a claimed job without waiting for it, so the loop can claim the next one into a free slot. */
 function startJob(jobId: string, serveUrl: string): void {
+  startTracked(jobId, () => processJob(jobId, serveUrl));
+}
+
+function startTracked(jobId: string, run: () => Promise<void>): void {
   running += 1;
   lastBusyAt = Date.now();
-  processJob(jobId, serveUrl)
+  run()
     .catch((err) => console.error(`[blitz-worker] Job ${jobId} crashed:`, err))
     .finally(() => {
       running -= 1;
@@ -224,11 +241,18 @@ function startPollingLoop(serveUrl: string): void {
 
   const tick = async () => {
     try {
-      await requeueStaleJobs();
-      while (running < JOB_SLOTS) {
+      // LISTING_VIDEOS_ONLY=1: a local test worker that must not take real Blitz renders from the shared DB.
+      if (!LISTING_VIDEOS_ONLY) await requeueStaleJobs();
+      while (!LISTING_VIDEOS_ONLY && running < JOB_SLOTS) {
         const jobId = await claimNextJob();
         if (!jobId) break;
         startJob(jobId, serveUrl);
+      }
+      await requeueStaleListingVideos();
+      while (running < JOB_SLOTS) {
+        const job = await claimNextListingVideo();
+        if (!job) break;
+        startTracked(job.id, () => processListingJob(job, serveUrl));
       }
     } catch (err) {
       console.error('[blitz-worker] Poll error:', err);
