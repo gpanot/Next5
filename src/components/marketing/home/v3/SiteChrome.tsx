@@ -1,15 +1,5 @@
-/** Promo bar, nav, footer and sticky mobile CTA for homepage v3. */
+/** Nav, footer and sticky mobile CTA for homepage v3. */
 import Link from 'next/link';
-
-export function PromoBar() {
-  return (
-    <div className="v3promo">
-      <span className="long">Founding price: $249/month, locked for life for the first 50 businesses. Then $349.</span>
-      <span className="short">$249/month for life. First 50 only.</span>{' '}
-      <a href="#offer">See the offer</a>
-    </div>
-  );
-}
 
 export function SiteNav() {
   return (

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authedRoute } from '../../../../../../src/server/api';
-import { listListingVideos, startListingVideos } from '../../../../../../src/server/realtorVideo/jobs';
+import { listListingVideos, parsePresets, startListingVideos } from '../../../../../../src/server/realtorVideo/jobs';
 import { requireWorkspace } from '../../../../../../src/server/workspaces/workspaces';
 
 // The prep (photo tags, script, two voiceovers with read-back checks) runs in after() and takes about 1–2 min.
@@ -15,10 +15,11 @@ export const GET = authedRoute(async (_req, session, { params }: Ctx) => {
   return NextResponse.json({ videos: await listListingVideos(ws, listingId) });
 });
 
-/** POST — make both videos for this listing (no-op while a pair is already being made). */
-export const POST = authedRoute(async (_req, session, { params }: Ctx) => {
+/** POST { presets?: ('editorial' | 'rate')[] } — make the picked videos (both by default); a preset already in progress is skipped. */
+export const POST = authedRoute(async (req, session, { params }: Ctx) => {
   const ws = await requireWorkspace(session.userId, 'brand');
   const { listingId } = await params;
-  await startListingVideos(ws, listingId);
+  const body = (await req.json().catch(() => ({}))) as { presets?: unknown };
+  await startListingVideos(ws, listingId, parsePresets(body.presets));
   return NextResponse.json({ videos: await listListingVideos(ws, listingId) });
 });

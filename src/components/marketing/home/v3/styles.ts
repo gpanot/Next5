@@ -321,11 +321,6 @@ export const BASE_CSS = String.raw`
 @media (max-width:760px){.v3sticky-cta{display:block}}
 
 /* PROMO BAR */
-.v3promo{background:var(--ink);color:var(--btn-ink);text-align:center;font-size:14px;padding:9px 16px;line-height:1.4}
-.v3promo a{color:var(--btn-ink);font-weight:700;margin-left:6px;white-space:nowrap}
-.v3promo .long{display:inline}
-.v3promo .short{display:none}
-@media (max-width:600px){.v3promo{font-size:13px}.v3promo .long{display:none}.v3promo .short{display:inline}}
 
 /* SHARED UTILS */
 .v3stars{margin-top:22px;font-size:14.5px;color:var(--body);display:flex;gap:8px;align-items:flex-start;flex-direction:column;max-width:470px}

@@ -2,15 +2,6 @@ import { SplitWords } from '../../../motion/SplitWords';
 import { AUDIENCE_COPY, type Audience } from './copy';
 import { CheckIcon, TikTokIcon, VolumeOffIcon, VolumeOnIcon, ZillowIcon } from './icons';
 
-/** Static "for realtors" chip where the audience toggle used to be (home services and TikTok Shop dropped 2026-11-11). */
-function AudienceChip() {
-  return (
-    <div className="v3aud" data-intro="1">
-      <span className="v3aud-chip">For realtors</span>
-    </div>
-  );
-}
-
 function HeroDemo({ audience }: { audience: Audience }) {
   const c = AUDIENCE_COPY[audience];
   return (
@@ -96,10 +87,9 @@ export function HeroSection({ audience }: { audience: Audience }) {
     <section className="v3hero">
       <div className="v3wrap v3hero-grid">
         <div>
-          <AudienceChip />
           <h1 data-intro-split="">
             <SplitWords className="js-h1a" text={c.h1} />
-            <SplitWords className="l2" text="Without filming a single one." />
+            <SplitWords className="l2" text="Zero editing." />
           </h1>
           <p className="v3lede js-sub" data-intro="3">{c.sub}</p>
 

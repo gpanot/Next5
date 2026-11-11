@@ -1,6 +1,6 @@
 'use client';
 
-import { History, Home, Loader2, Plus, User } from 'lucide-react';
+import { History, Home, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
 import type { ListingDto } from '../../../types/business/listings';
@@ -11,11 +11,7 @@ import { RecentPropertiesSheet } from '../listings/RecentPropertiesSheet';
 import { ZillowImportSheet } from '../listings/ZillowImportSheet';
 import { ZillowLinkStep } from '../listings/ZillowLinkStep';
 
-export type WhoMode = 'property' | 'me';
-
 type Props = {
-  mode: WhoMode;
-  onMode: (mode: WhoMode) => void;
   listings: ListingDto[];
   value: string | null;
   onChange: (listingId: string | null) => void;
@@ -23,9 +19,6 @@ type Props = {
   /** A property was added from Zillow (its photos may still be loading). */
   onAdded: (listing: ListingDto) => void;
 };
-
-const tabClass = (on: boolean) =>
-  `flex h-10 items-center gap-1.5 rounded-full px-4 text-[13px] font-medium transition-colors duration-200 ${on ? 'bg-app-cta text-app-cta-ink' : 'border border-app-line text-app-muted hover:bg-app-sunken hover:text-app-ink'}`;
 
 /** No Zillow link: name the home, confirm she represents it, then add its photos in the panel. */
 const UploadForm = ({ onCreated, onBack }: { onCreated: (label: string) => Promise<void>; onBack: () => void }) => {
@@ -65,11 +58,10 @@ const UploadForm = ({ onCreated, onBack }: { onCreated: (label: string) => Promi
 };
 
 /**
- * Realtors first: "+ Property" is the default and shows the Zillow link form right here, no modal.
- * "Just me" makes photos without a home. Photos are only ever made from photos of the property she gives us
+ * Realtors only: the Zillow link form shows right here, no modal. Everything is made from the listing
  * (docs/business-studios/12-listing-mode-plan.md).
  */
-export const ListingPicker = ({ mode, onMode, listings, value, onChange, onRefresh, onAdded }: Props) => {
+export const ListingPicker = ({ listings, value, onChange, onRefresh, onAdded }: Props) => {
   const [resume, setResume] = useState<ListingDto | null>(null);
   const [recentsOpen, setRecentsOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -98,28 +90,15 @@ export const ListingPicker = ({ mode, onMode, listings, value, onChange, onRefre
     setUploading(false);
   };
 
-  const pickMode = (next: WhoMode) => {
-    onMode(next);
-    if (next === 'me') onChange(null);
-  };
-
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Who is it for?">
-        <button type="button" aria-pressed={mode === 'property'} onClick={() => pickMode('property')} className={tabClass(mode === 'property')}>
-          <Plus aria-hidden className="h-4 w-4" /> Property
+      {listings.length > 0 && !selected && (
+        <button type="button" onClick={() => setRecentsOpen(true)} className="flex h-10 w-fit items-center gap-1.5 rounded-full border border-app-line px-4 text-[13px] text-app-muted transition-colors duration-200 hover:bg-app-sunken hover:text-app-ink">
+          <History aria-hidden className="h-4 w-4" /> Your listings ({listings.length})
         </button>
-        <button type="button" aria-pressed={mode === 'me'} onClick={() => pickMode('me')} className={tabClass(mode === 'me')}>
-          <User aria-hidden className="h-4 w-4" /> Just me
-        </button>
-        {listings.length > 0 && (
-          <button type="button" onClick={() => setRecentsOpen(true)} className="flex h-10 items-center gap-1.5 rounded-full px-3 text-[13px] text-app-muted transition-colors duration-200 hover:bg-app-sunken hover:text-app-ink">
-            <History aria-hidden className="h-4 w-4" /> Recents…
-          </button>
-        )}
-      </div>
+      )}
 
-      {mode === 'property' && selected && (
+      {selected && (
         <>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="flex min-w-0 items-center gap-2 text-[14px] font-semibold text-app-ink">
@@ -134,7 +113,7 @@ export const ListingPicker = ({ mode, onMode, listings, value, onChange, onRefre
         </>
       )}
 
-      {mode === 'property' && !selected && (
+      {!selected && (
         <div className="rounded-2xl border border-app-line bg-app-panel p-4 sm:p-5">
           {uploading
             ? <UploadForm onCreated={createByName} onBack={() => setUploading(false)} />
@@ -149,7 +128,6 @@ export const ListingPicker = ({ mode, onMode, listings, value, onChange, onRefre
           onClose={() => setRecentsOpen(false)}
           onPick={(id) => {
             setRecentsOpen(false);
-            onMode('property');
             onChange(id);
           }}
         />

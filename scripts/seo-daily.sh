@@ -14,10 +14,14 @@
 #
 # Marker ~/.next5-seo/YYYY-MM-DD, first word:
 #   done | skipped  -> nothing more today
+#   retry           -> the run ended with no article; the next slot tries again (new target)
 #   started         -> a run is in progress; retried only when it is older than 2 hours
 #   failed          -> retried next hour, at most 3 attempts a day
 # SEO_DAILY_CHECK=1 runs a tool check instead of the daily run (changes nothing, writes no marker).
 set -uo pipefail
+
+# Long-lived Claude token (from `claude setup-token`), so the headless run never hits an expired login.
+[[ -f "$HOME/.next5-seo/secrets.env" ]] && { set -a; source "$HOME/.next5-seo/secrets.env"; set +a; }
 
 export PATH="$HOME/.nvm/versions/node/v20.20.2/bin:$HOME/.local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 STATE_DIR="$HOME/.next5-seo"
@@ -27,6 +31,7 @@ TODAY="$(TZ=Asia/Ho_Chi_Minh date +%F)"
 MARKER="$STATE_DIR/$TODAY"
 ATTEMPTS="$STATE_DIR/$TODAY.attempts"
 REPORT="$STATE_DIR/$TODAY.report"
+SKIPS="$STATE_DIR/$TODAY.skips"
 LOG="$LOG_DIR/$TODAY.log"
 STALE_SECONDS=7200
 MAX_ATTEMPTS=3
@@ -98,6 +103,11 @@ publish_steps() {
   check ok "Only article files changed"
   npx vitest run tests/content >> "$LOG" 2>&1 || { check fail "Content tests failed: not published"; return 1; }
   check ok "Content tests pass"
+  # Whole-repo tsc has unrelated errors in this clone, so only errors in article files block the merge.
+  if npx tsc --noEmit 2>&1 | grep -E '^src/content/guides/' >> "$LOG"; then
+    check fail "Type errors in article files: not published"; return 1
+  fi
+  check ok "No type errors in article files"
   gh pr merge "$pr_url" --squash >> "$LOG" 2>&1 || { check fail "Merge failed: not published"; return 1; }
   check ok "PR merged"
   wait_live "$page" || { check fail "Page not live after 20 minutes: check the Vercel deploy"; return 1; }
@@ -112,25 +122,29 @@ publish_steps() {
 }
 
 ALLOWED_TOOLS=(
-  Read Edit Write Glob Grep WebFetch WebSearch Agent Skill
-  "mcp__treg__catalog_search" "mcp__treg__catalog_get" "mcp__treg__call" "mcp__treg__review"
+  Read Edit Write Glob Grep WebFetch WebSearch Agent
   "Bash(git:*)" "Bash(gh pr create:*)" "Bash(gh pr view:*)" "Bash(gh pr list:*)" "Bash(gh auth status:*)"
-  "Bash(gum:*)" "Bash($HOME/.local/bin/gum:*)" "mcp__gum__*" "Bash(npx vitest:*)" "Bash(npx tsc:*)" "Bash(node:*)" "Bash(python3:*)"
+  "Bash(gum:*)" "Bash($HOME/.local/bin/gum:*)" "Bash(npx vitest:*)" "Bash(node:*)" "Bash(python3:*)"
+  "Bash($STATE_DIR/make-cover.sh:*)" "Bash(~/.next5-seo/make-cover.sh:*)"
   "Bash(ls:*)" "Bash(cat:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(grep:*)" "Bash(wc:*)" "Bash(mkdir:*)"
   "Bash(cp:*)" "Bash(mv:*)" "Bash(date:*)" "Bash(curl -s:*)" "Bash(jq:*)"
 )
+# Lean flags (2026-11-03): only these tools, no plugins, skills, user settings or MCP servers.
+# Sonnet is set by name because user settings no longer load.
 run_claude() {
   claude -p "$1" \
+    --model claude-sonnet-5 --effort medium \
     --permission-mode acceptEdits \
-    --add-dir "$HOME/.claude/skills" \
+    --strict-mcp-config --setting-sources project --disable-slash-commands \
+    --tools Read Edit Write Bash Glob Grep WebFetch WebSearch Agent \
     --allowedTools "${ALLOWED_TOOLS[@]}" \
-    --output-format text >> "$LOG" 2>&1
+    --output-format text < /dev/null >> "$LOG" 2>&1
 }
 
 if [[ "${SEO_DAILY_CHECK:-0}" == 1 ]]; then
   log "tool check start"
   cd "$REPO" || { log "repo missing: $REPO"; exit 1; }
-  run_claude "Tool check for the daily SEO run. Change nothing, commit nothing. Run: gum doctor; gum read searchconsole.sites.list --output json --args '{}'; gh auth status; npx vitest run tests/content; call mcp__treg__catalog_search with query 'keyword search volume'. Then print one line per check: OK or FAIL with the reason."
+  run_claude "Tool check for the daily SEO run. Change nothing, commit nothing. Run: gum doctor; gum read searchconsole.sites.list --output json --args '{}'; gh auth status; npx vitest run tests/content. Then print one line per check: OK or FAIL with the reason."
   log "tool check end (exit $?)"
   exit 0
 fi
@@ -143,12 +157,15 @@ if [[ -n "${SEO_PUBLISH_PR:-}" ]]; then
   exit 0
 fi
 
+# Daily (owner's call, 2026-11-05): one article every day. Monday also emails the weekly ranking.
+
 state="" ; started_at=0
 if [[ -f "$MARKER" ]]; then
   read -r state started_at < "$MARKER"
 fi
 case "$state" in
   done|skipped) exit 0 ;;
+  retry) log "earlier attempt today shipped nothing, trying again" ;;
   started)
     (( $(date +%s) - ${started_at:-0} < STALE_SECONDS )) && exit 0
     log "previous run started at $started_at looks stuck, retrying" ;;
@@ -167,14 +184,46 @@ cd "$REPO" || { log "repo missing: $REPO"; print "failed $(date +%s)" > "$MARKER
 git fetch -q origin && git checkout -q --detach origin/main && git reset -q --hard origin/main \
   && git clean -fdq -e node_modules -e .env.local || { log "git refresh failed"; print "failed $(date +%s)" > "$MARKER"; exit 1; }
 
-run_claude "Today is $TODAY. Follow docs/seo/DAILY_RUN.md. Ship at most 1 article as a PR. Never merge. Log the run in RUN_LOG.md. End your reply with exactly one last line: 'RESULT: shipped <PR url>' if you opened an article PR, or 'RESULT: skipped <one-line reason>' if you shipped no article."
+# Prep costs no Claude tokens: the shell gathers the data, Claude gets one prompt with all of it.
+export COVER_STYLE="Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third"
+BRIEF="$STATE_DIR/$TODAY.brief.md"
+python3 "$STATE_DIR/seo-prep.py" --site "$SITE" --mode ts --path blog --geo "2840" --date "$TODAY" > "$BRIEF" 2>> "$LOG" \
+  || log "prep failed, partial brief"
+RETRY_NOTE=""
+if [[ -s "$SKIPS" ]]; then
+  RETRY_NOTE="
+# Earlier attempts today (attempt $attempts of $MAX_ATTEMPTS) shipped nothing, for these reasons:
+$(sed 's/^/- /' "$SKIPS")
+Do not repeat them. Pick a different target than those attempts used. Salvage instead of
+discarding: fix or cut the failing part and ship a article that passes the bar today."
+fi
+PROMPT="Today is $TODAY.
+
+$(cat "$STATE_DIR/LEAN_RUN.md")
+
+# Brief
+$(cat docs/seo/AGENT_BRIEF.md)
+
+# Quality bar
+$(cat docs/seo/QUALITY_BAR.md)
+
+$(cat "$BRIEF")
+$RETRY_NOTE
+
+End your reply with exactly one last line: 'RESULT: shipped <PR url>' if you opened an article PR, or 'RESULT: skipped <one-line reason>' if you shipped no article."
+run_claude "$PROMPT"
 code=$?
 
 result="$(grep -E '^RESULT: (shipped|skipped)' "$LOG" | tail -1)"
 if (( code == 0 )) && [[ "$result" == "RESULT: shipped"* ]]; then
   print "done $(date +%s)" > "$MARKER"
 elif (( code == 0 )) && [[ "$result" == "RESULT: skipped"* ]]; then
-  print "skipped $(date +%s)" > "$MARKER"
+  print -r -- "${result#RESULT: skipped }" >> "$SKIPS"
+  if (( attempts < MAX_ATTEMPTS )); then
+    print "retry $(date +%s)" > "$MARKER"
+  else
+    print "skipped $(date +%s)" > "$MARKER"
+  fi
 else
   print "failed $(date +%s)" > "$MARKER"
 fi
@@ -185,6 +234,7 @@ log "run end (exit $code) -> $(cut -d' ' -f1 "$MARKER") ${result:-no RESULT line
 : > "$REPORT"
 case "$(cut -d' ' -f1 "$MARKER")" in
   done) publish_article "${result#RESULT: shipped }" ;;
-  skipped) check skip "No article today: ${result#RESULT: skipped }"; send_report ;;
+  retry) log "attempt $attempts shipped nothing (${result#RESULT: skipped }), the next slot tries again" ;;
+  skipped) check skip "No article today after $attempts attempts: ${result#RESULT: skipped }"; send_report ;;
   failed) (( attempts == MAX_ATTEMPTS )) && { check fail "Run failed $MAX_ATTEMPTS times (exit $code), no article today"; send_report; } ;;
 esac

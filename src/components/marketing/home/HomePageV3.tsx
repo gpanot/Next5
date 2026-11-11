@@ -18,7 +18,7 @@ import { LISTING_CSS } from './v3/listingStyles';
 import { ListingVideosSection } from './v3/ListingVideosSection';
 import { MonthRibbon } from './v3/MonthRibbon';
 import { buildHomeScript } from './v3/script';
-import { PromoBar, SiteNav, SiteFooter, StickyCta } from './v3/SiteChrome';
+import { SiteNav, SiteFooter, StickyCta } from './v3/SiteChrome';
 import { HeroSection } from './v3/HeroSection';
 import { PainSection, WaysSection } from './v3/ProblemSections';
 import { SwipeSection } from './v3/SwipeSection';
@@ -43,7 +43,6 @@ export function HomePageV3({ audience = 'realtor' }: { audience?: Audience }) {
       <MotionPrepaint />
       {/* data-aud is set server-side so CSS hides other audiences before any JS runs. */}
       <div id="home-v3-root" data-aud={audience}>
-        <PromoBar />
         <SiteNav />
         <main id="top">
           <HeroSection audience={audience} />

@@ -9,3 +9,6 @@ export type ListingVideoDto = {
   downloadUrl: string | null;
   createdAt: string;
 };
+
+/** A listing video with the home it belongs to (Library and the progress pill). */
+export type WorkspaceListingVideoDto = ListingVideoDto & { listingId: string; listingLabel: string };

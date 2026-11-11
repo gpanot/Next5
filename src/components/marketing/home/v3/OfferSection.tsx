@@ -26,7 +26,7 @@ export function OfferSection({ audience }: { audience: Audience }) {
           <p className="v3lede">Every month, for one price.</p>
         </div>
         <div className="v3stack">
-          <OfferRow value="$800" index={0}><b>20 videos a month</b> made from your <span className="js-noun">{c.noun}</span> photos</OfferRow>
+          <OfferRow value="$800" index={0}><b>Unlimited listings.</b> Every <span className="js-noun">{c.noun}</span> turned into videos</OfferRow>
           <OfferRow value="$400" index={1}><b>10 <span className="js-photos">{c.photos}</span></b> for the days between videos</OfferRow>
           <OfferRow value="Included" index={2}><b>Your month planned</b>, one post for every day</OfferRow>
           <OfferRow value="Included" index={3}><b>Hooks, captions and hashtags</b> written for every post</OfferRow>
@@ -37,9 +37,9 @@ export function OfferSection({ audience }: { audience: Audience }) {
           <div className="v3total" {...reveal()}><span>Total value</span><s data-count="">$1,450</s></div>
           <div className="v3price-row" {...reveal()}>
             <div>
-              <div className="v3today">Founding price, locked for life</div>
-              <div className="v3price-big"><span data-count="">$249</span><small>/month</small></div>
-              <div className="v3per">That&rsquo;s about $8 a post. Goes to $349 after the first 50 businesses.</div>
+              <div className="v3today">One simple price</div>
+              <div className="v3price-big"><span data-count="">$99</span><small>/month</small></div>
+              <div className="v3per">Unlimited listings. Cancel in 2 clicks.</div>
             </div>
             <a className="v3btn v3btn-signal v3btn-lg" href="#top">Start with a free video</a>
           </div>

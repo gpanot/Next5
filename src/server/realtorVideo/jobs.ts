@@ -17,7 +17,8 @@ import type { RealtorFacts } from './script';
 import type { ListingVideoDto } from '../../types/business/listingVideos';
 
 export const LISTING_VIDEO_PRESETS: RealtorPreset[] = ['editorial', 'rate'];
-const ACTIVE = ['preparing', 'queued', 'rendering'];
+export const ACTIVE_VIDEO_STATUSES = ['preparing', 'queued', 'rendering'];
+const ACTIVE = ACTIVE_VIDEO_STATUSES;
 const VOICE_KEY = (id: string) => `listing-videos/${id}/voice.wav`;
 
 
@@ -81,20 +82,29 @@ export const prepareListingVideos = async (listing: Listing, rows: ListingVideo[
   }
 };
 
-/** Starts both videos for a listing. A listing already in progress keeps its rows (no double spend). */
-export const startListingVideos = async (ws: Workspace, listingId: string): Promise<void> => {
+/** Picks the asked presets, defaulting to both; unknown names are dropped. */
+export const parsePresets = (value: unknown): RealtorPreset[] => {
+  if (!Array.isArray(value)) return LISTING_VIDEO_PRESETS;
+  const picked = LISTING_VIDEO_PRESETS.filter((p) => value.includes(p));
+  if (picked.length === 0) throw new HttpError(400, 'no_preset', 'Pick at least one video.');
+  return picked;
+};
+
+/** Starts the picked videos for a listing. A preset already in progress keeps its row (no double spend). */
+export const startListingVideos = async (ws: Workspace, listingId: string, presets: RealtorPreset[] = LISTING_VIDEO_PRESETS): Promise<void> => {
   const listing = await getListing(ws.id, listingId);
-  const busy = await prisma.listingVideo.count({ where: { listingId, status: { in: ACTIVE } } });
-  if (busy > 0) return;
+  const busy = await prisma.listingVideo.findMany({ where: { listingId, status: { in: ACTIVE } }, select: { preset: true } });
+  const todo = presets.filter((p) => !busy.some((b) => b.preset === p));
+  if (todo.length === 0) return;
   galleryOf(listing);
   await factsOf(listing);
   const rows = await Promise.all(
-    LISTING_VIDEO_PRESETS.map((preset) => prisma.listingVideo.create({ data: { workspaceId: ws.id, listingId, preset } })),
+    todo.map((preset) => prisma.listingVideo.create({ data: { workspaceId: ws.id, listingId, preset } })),
   );
   after(() => prepareListingVideos(listing, rows));
 };
 
-const toDto = async (row: ListingVideo): Promise<ListingVideoDto> => {
+export const toListingVideoDto = async (row: ListingVideo): Promise<ListingVideoDto> => {
   const ready = row.status === 'ready' && row.videoKey;
   return {
     id: row.id,
@@ -114,5 +124,5 @@ export const listListingVideos = async (ws: Workspace, listingId: string): Promi
   const rows = await prisma.listingVideo.findMany({ where: { workspaceId: ws.id, listingId }, orderBy: { createdAt: 'desc' }, take: 20 });
   const latest = LISTING_VIDEO_PRESETS.map((p) => rows.find((r) => r.preset === p)).filter((r): r is ListingVideo => Boolean(r));
   if (latest.some((r) => r.status === 'queued')) wakeBlitzWorker({ throttle: true });
-  return Promise.all(latest.map(toDto));
+  return Promise.all(latest.map(toListingVideoDto));
 };

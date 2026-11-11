@@ -13,6 +13,17 @@ import { NoWorkspace } from './NoWorkspace';
 import { StudioSwitcher } from './StudioSwitcher';
 import { SidebarNav } from './SidebarNav';
 import { useWorkspace } from './WorkspaceProvider';
+import { VideoProgressPill } from '../listingVideos/VideoProgressPill';
+
+/** Header shortcut: realtors (brand) add a listing; shops create photos. */
+const CreateButton = () => {
+  const { product } = useWorkspace();
+  return (
+    <Link href="/app/create" className="hidden h-9 items-center gap-1.5 rounded-xl bg-app-cta px-3 text-[13px] font-medium text-app-cta-ink transition-opacity duration-200 hover:opacity-90 sm:flex">
+      <Plus aria-hidden className="h-4 w-4" /> {product === 'brand' ? 'New listing' : 'Create'}
+    </Link>
+  );
+};
 
 type PageFrameProps = { title: string; actions?: ReactNode; children: ReactNode; /** Show the studio switcher on phones (the sidebar has it on desktop). */ studioSwitcher?: boolean };
 
@@ -24,9 +35,7 @@ export const AppPage = ({ title, actions, children, studioSwitcher = false }: Pa
       <div className="flex items-center gap-2">
         {actions}
         <CreditsPill />
-        <Link href="/app/create" className="hidden h-9 items-center gap-1.5 rounded-xl bg-app-cta px-3 text-[13px] font-medium text-app-cta-ink transition-opacity duration-200 hover:opacity-90 sm:flex">
-          <Plus aria-hidden className="h-4 w-4" /> Create
-        </Link>
+        <CreateButton />
       </div>
     </header>
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-5 pb-28 pt-6 sm:px-8 lg:pb-12">
@@ -58,6 +67,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       <SidebarNav />
       {children}
       <BottomTabBar />
+      <VideoProgressPill />
     </div>
   );
 };

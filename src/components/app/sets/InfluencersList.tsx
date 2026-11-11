@@ -22,8 +22,8 @@ const NewInfluencerTile = () => (
     <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-app-accent-soft text-app-accent">
       <Plus aria-hidden className="h-5 w-5" />
     </span>
-    <span className="text-[14px] font-semibold text-app-ink">New influencer</span>
-    <span className="max-w-[200px] text-[12px] text-app-muted">Make a face with AI, use a photo, or pick one from our gallery</span>
+    <span className="text-[14px] font-semibold text-app-ink">Add a face</span>
+    <span className="max-w-[200px] text-[12px] text-app-muted">Your own photo, or an AI face if you prefer not to show yours</span>
   </AppLink>
 );
 
@@ -87,8 +87,8 @@ export const InfluencersList = ({ showArchived }: Props) => {
       return (
         <EmptyState
           illustration={<ArchiveRestore className="h-10 w-10" />}
-          title="No archived influencers"
-          body="Influencers you archive will appear here. You can restore them any time."
+          title="No archived faces"
+          body="Faces you archive show up here. You can restore them any time."
         />
       );
     }
@@ -103,9 +103,9 @@ export const InfluencersList = ({ showArchived }: Props) => {
     return (
       <EmptyState
         illustration={<UserRound className="h-10 w-10" />}
-        title="Create your first AI influencer"
-        body="No need to show your face. Make one with AI, use a photo, or pick one from our gallery. Then use them in every post."
-        action={{ label: 'New influencer', iconLeft: <Plus className="h-4 w-4" />, onClick: () => router.push('/app/sets/new') }}
+        title="Add your face"
+        body="The house is the star of your posts. Your face signs them off, so viewers know who to call. Use your own photo, or an AI face."
+        action={{ label: 'Add a face', iconLeft: <Plus className="h-4 w-4" />, onClick: () => router.push('/app/sets/new') }}
       />
     );
   }

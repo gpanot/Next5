@@ -1,19 +1,29 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { LibraryPhotosView } from './LibraryPhotosView';
 import { LibrarySeriesView } from './LibrarySeriesView';
+import { LibraryVideosView } from './LibraryVideosView';
 
-type View = 'series' | 'photos';
+type View = 'videos' | 'series' | 'photos';
+const VIEWS: readonly { value: View; label: string }[] = [
+  { value: 'videos', label: 'Videos' },
+  { value: 'series', label: 'Series' },
+  { value: 'photos', label: 'All photos' },
+];
 
-/** Brand library: series first (one per generation, labelled by what it was made for), every photo one tap away. */
+/** Brand library: listing videos first (realtors), then photo series, every photo one tap away. ?view= picks the tab. */
 export const LibraryView = () => {
-  const [view, setView] = useState<View>('series');
+  const asked = useSearchParams().get('view');
+  const [view, setView] = useState<View>(VIEWS.some((v) => v.value === asked) ? (asked as View) : 'videos');
   return (
     <div className="flex flex-col gap-4">
-      <SegmentedControl<View> options={[{ value: 'series', label: 'Series' }, { value: 'photos', label: 'All photos' }]} value={view} onChange={setView} className="self-start" />
-      {view === 'series' ? <LibrarySeriesView /> : <LibraryPhotosView />}
+      <SegmentedControl<View> options={VIEWS} value={view} onChange={setView} className="self-start" />
+      {view === 'videos' && <LibraryVideosView />}
+      {view === 'series' && <LibrarySeriesView />}
+      {view === 'photos' && <LibraryPhotosView />}
     </div>
   );
 };

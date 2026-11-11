@@ -27,8 +27,8 @@ export interface AudienceCopy {
 
 export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
   realtor: {
-    h1: 'Every listing, turned into a month of videos.',
-    sub: "Paste your Zillow link. In 2 minutes you're watching your first video. Your whole month is planned before you finish your coffee.",
+    h1: 'Your new listing on social media in 2 minutes.',
+    sub: 'Paste your Zillow link. We put your home in proven real estate video templates, made to stop the scroll and bring you leads.',
     ph: 'zillow.com/homedetails/...',
     demo: 'https://www.zillow.com/homedetails/1204-Oak-Ridge-Dr-Austin-TX',
     hooks: ['Wait till you see the kitchen.', 'This backyard sold me.', '3 bd in Austin. Come look.'],

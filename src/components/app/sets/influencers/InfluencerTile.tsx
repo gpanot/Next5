@@ -1,11 +1,10 @@
 'use client';
 
-import { Archive, Loader2, Sparkles, Trash2, User } from 'lucide-react';
+import { Archive, House, Loader2, Trash2, User } from 'lucide-react';
 import { useState } from 'react';
 import type { InfluencerDto } from '../../../../types/business/influencers';
 import { apiFetch } from '../../../../lib/apiClient';
 import { AppLink } from '../../shell/AppLink';
-import { AddStyleSheet } from './AddStyleSheet';
 import { VariationStrip } from './VariationStrip';
 
 const SOURCE_LABEL: Record<InfluencerDto['source'], string> = {
@@ -20,30 +19,23 @@ const traitsOf = (inf: InfluencerDto): string =>
 const statusOf = (inf: InfluencerDto): string => {
   if (inf.pendingCount > 0) return `Making ${inf.pendingCount} photo${inf.pendingCount === 1 ? '' : 's'}…`;
   const n = inf.variations.length;
-  if (n === 0) return 'No style photos yet · tap + Style';
+  if (n === 0) return 'Your face for your listing posts';
   return `${n} photo${n === 1 ? '' : 's'} · tap one to use it`;
 };
 
 const failedText = (count: number): string =>
-  `${count} style${count === 1 ? '' : 's'} could not be made. Credits are back. Tap + Style to try again.`;
+  `${count} photo${count === 1 ? '' : 's'} could not be made. Credits are back.`;
 
 type Props = { influencer: InfluencerDto; onArchive: () => void; onStylesAdded: () => void };
 
 /** One influencer: the face in use, the variations to pick from, and a way to create with it. */
 export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) => {
   const [photoId, setPhotoId] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [restyleTemplateId, setRestyleTemplateId] = useState<string | undefined>(undefined);
   const selectedVariation = influencer.variations.find((v) => v.id === photoId) ?? null;
   const chosen = selectedVariation?.url ?? influencer.portraitUrl;
   const traits = traitsOf(influencer);
   const createHref = `/app/create?influencerId=${influencer.id}${photoId ? `&photo=${photoId}` : ''}`;
-
-  const handleRestyle = (_variationId: string, templateId: string | undefined) => {
-    setRestyleTemplateId(templateId);
-    setAdding(true);
-  };
 
   const handleDeleteVariation = async () => {
     if (!selectedVariation) return;
@@ -115,8 +107,6 @@ export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) 
             pendingCount={influencer.pendingCount}
             value={photoId}
             onChange={setPhotoId}
-            onAddStyle={() => { setRestyleTemplateId(undefined); setAdding(true); }}
-            onRestyle={handleRestyle}
           />
           {influencer.failedCount > 0 && influencer.pendingCount === 0 && (
             <p role="status" className="text-[12px] text-app-danger">{failedText(influencer.failedCount)}</p>
@@ -127,11 +117,10 @@ export const InfluencerTile = ({ influencer, onArchive, onStylesAdded }: Props) 
           href={createHref}
           className="mt-auto inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-app-cta px-4 text-[13px] font-medium text-app-cta-ink transition-opacity duration-200 hover:opacity-90"
         >
-          <Sparkles aria-hidden className="h-4 w-4" />
-          Use this influencer
+          <House aria-hidden className="h-4 w-4" />
+          Use on a listing
         </AppLink>
       </div>
-      {adding && <AddStyleSheet influencer={influencer} preselectedTemplateId={restyleTemplateId} onClose={() => setAdding(false)} onAdded={() => { setAdding(false); onStylesAdded(); }} />}
     </article>
   );
 };
