@@ -44,7 +44,7 @@ export function ClipsGatePanel({ short, token, onContinue }: { short: ShortDetai
         {(['simple', 'detailed'] as const).map((m) => (
           <label key={m} className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-app-ink">
             <input type="radio" name="videoPromptMode" checked={mode === m} onChange={() => setMode(m)} className="h-4 w-4" />
-            {m === 'simple' ? 'Simple: the action and the camera only (Veo reads the photo)' : 'Detailed: the photo prompt, action, camera and speed'}
+            {m === 'simple' ? 'Motion only: what happens next, precisely (Veo reads the photo)' : 'Detailed: the photo prompt too, then the action'}
           </label>
         ))}
       </fieldset>

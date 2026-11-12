@@ -9,7 +9,7 @@ import type { CostMeter } from '../metaAds/cost';
 import type { MotionHint, ShortBeat, ShortInputs, ShotBoard } from '../../types/admin/shorts';
 import type { VisualBible } from '../../types/admin/visualBible';
 import { creativeJson, smartModel } from './llm';
-import { PHOTO_FORMULA } from './photoFormula';
+import { MOTION_ACTION_RULES, PHOTO_FORMULA } from './photoFormula';
 import { LIGHT_WORDS } from './visualBible';
 import { MOTIONS, sanitizeImagePrompt } from './visuals';
 
@@ -102,13 +102,8 @@ COMPOSITION (non-negotiable):
 ${PHOTO_FORMULA}
 
 MOTION: "motion_hint" one of static | slow_zoom_in | slow_zoom_out | pan_left | pan_right | ken_burns (hook: slow_zoom_in,
-payoff: static). "motion_action": ONE sentence (8-20 words) of what visibly happens next at real-life speed, using only
-people and objects in the photo. Never "slowly", "gently", "in slow motion".
-MOTION ACTION RULES (the clip is 4-6 s from this photo; Veo adds artifacts on fine detail):
-  - ONE big, simple movement a viewer sees clearly from THIS camera angle: walk, turn, stand up, open a door, lift, nod.
-  - Never fine hand-object contact (buckles, handles, laces, zippers, small buttons, typing), never an action behind glass
-    or inside a car seen from outside, never two things moving at once.
-  - No new object, person or part of the car that is not already in the photo.
+payoff: static).
+${MOTION_ACTION_RULES}
 
 Return JSON: {"image_prompt": string, "motion_hint": string, "motion_action": string}`;
 

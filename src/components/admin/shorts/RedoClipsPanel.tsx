@@ -41,13 +41,13 @@ export function RedoClipsPanel({ short, token, onStarted }: { short: ShortDetail
         {(['simple', 'detailed'] as const).map((m) => (
           <label key={m} className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-app-ink">
             <input type="radio" name="redoPromptMode" checked={mode === m} onChange={() => setMode(m)} className="h-4 w-4" />
-            {m === 'simple' ? 'Simple: the action and the camera only' : 'Detailed: the photo prompt, action, camera and speed'}
+            {m === 'simple' ? 'Motion only: what happens next, precisely' : 'Detailed: the photo prompt too, then the action'}
           </label>
         ))}
       </fieldset>
       <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-app-ink">
         <input type="checkbox" checked={rewrite} onChange={(e) => setRewrite(e.target.checked)} className="h-4 w-4" />
-        Rewrite each shot’s action with the new simple-motion rules
+        Rewrite each shot’s motion with the new motion-only rules
       </label>
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={go} disabled={busy} className="min-h-11 rounded-lg bg-app-ink px-4 text-sm font-bold text-app-panel transition hover:opacity-90 active:scale-[0.98] disabled:opacity-40">
