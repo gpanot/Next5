@@ -22,19 +22,19 @@ export const navFor = (studio: ProductLineDto): NavItem[] => {
     : [
         { href: s(''), label: 'Home', icon: Home },
         { href: s('/calendar'), label: 'Calendar', icon: CalendarDays },
-        { href: s('/automations'), label: 'Campaigns', icon: Sparkles },
+        { href: s('/automation'), label: 'Autopilot', icon: Sparkles },
         { href: s('/create'), label: 'Listings', icon: House, primary: true },
         { href: s('/billing'), label: 'Billing', icon: CreditCard, bottom: true },
         { href: '/app/settings', label: 'Settings', icon: Settings, bottom: true },
       ];
 };
 
-/** Bottom bar on phones: Home · Library/Campaigns · Create/Listings · Store/Calendar, then a More button (see BottomTabBar). */
+/** Bottom bar on phones: Home · Library/Autopilot · Create/Listings · Store/Calendar, then a More button (see BottomTabBar). */
 export const mobileTabsFor = (studio: ProductLineDto): NavItem[] => {
   const s = (path: string) => studioHref(studio, path);
   return [
     { href: s(''), label: 'Home', icon: Home },
-    studio === 'shop' ? { href: s('/library'), label: 'Library', icon: Images } : { href: s('/automations'), label: 'Campaigns', icon: Sparkles },
+    studio === 'shop' ? { href: s('/library'), label: 'Library', icon: Images } : { href: s('/automation'), label: 'Autopilot', icon: Sparkles },
     studio === 'shop'
       ? { href: s('/create'), label: 'Create', icon: Plus, primary: true }
       : { href: s('/create'), label: 'Listings', icon: House, primary: true },

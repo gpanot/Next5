@@ -42,6 +42,10 @@ export type ListingDto = {
   facts: string | null;
   status: string | null;
   statusLabel: string | null;
+  /** Asking price in whole dollars (Price drop prefills its "old price"). */
+  priceUsd: number | null;
+  /** Zillow open house times, wall-clock "YYYY-MM-DDTHH:mm" (Open house prefills its time). */
+  openHouses: { start: string; end: string | null }[];
   /**
    * The occasion Create starts from, only when Zillow says it (just listed, open house…).
    * Null for uploaded homes and off-market ones: she picks.

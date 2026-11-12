@@ -1,10 +1,9 @@
 'use client';
 
-import { Archive, ArchiveRestore, ChevronDown, Loader2, Sparkles, Trash2, UserRound } from 'lucide-react';
+import { Archive, ArchiveRestore, ChevronDown, Loader2, Trash2, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { apiFetch } from '../../../lib/apiClient';
 import type { InfluencerDto } from '../../../types/business/influencers';
-import { AppLink } from '../shell/AppLink';
 
 export const ROW_BUTTON = 'inline-flex h-9 items-center gap-1.5 rounded-xl border border-app-line px-3 text-[13px] font-medium text-app-ink transition-colors duration-200 hover:bg-app-sunken disabled:opacity-50';
 
@@ -43,32 +42,19 @@ const RestoreButton = ({ influencer, onDone }: { influencer: InfluencerDto; onDo
   );
 };
 
-/** Expanded panel: every thumbnail of this face; pick one, then create with it. */
+/** Expanded panel: every photo of this face, 9:16 like the posts it appears in. */
 const FaceThumbs = ({ influencer }: { influencer: InfluencerDto }) => {
   const thumbs = thumbsOf(influencer);
-  const [picked, setPicked] = useState<string | null>(null);
-  const href = `/app/create?influencerId=${influencer.id}${picked ? `&photo=${picked}` : ''}`;
   if (thumbs.length === 0) return <p className="pb-3 text-[13px] text-app-muted">No photos yet. They show up here when ready.</p>;
   return (
-    <div className="flex flex-col gap-3 pb-4">
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
-        {thumbs.map((t) => (
-          <button
-            key={t.id ?? 'base'}
-            type="button"
-            onClick={() => setPicked(t.id)}
-            aria-pressed={picked === t.id}
-            className={`relative aspect-[4/5] overflow-hidden rounded-xl bg-app-sunken ring-offset-2 ring-offset-app-panel transition duration-200 ${picked === t.id ? 'ring-2 ring-app-accent' : 'hover:opacity-90'}`}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URL */}
-            <img src={t.url} alt={t.id ? 'Generated photo' : 'Base portrait'} className="h-full w-full object-cover object-top" />
-          </button>
-        ))}
-      </div>
-      <AppLink href={href} className="inline-flex h-10 w-fit items-center gap-2 rounded-xl bg-app-cta px-4 text-[14px] font-semibold text-app-cta-ink shadow-sm transition-colors duration-200 hover:bg-app-cta/90">
-        <Sparkles aria-hidden className="h-4 w-4" /> Create with this photo
-      </AppLink>
-    </div>
+    <ul className="grid grid-cols-3 gap-2 pb-4 sm:grid-cols-5 lg:grid-cols-6">
+      {thumbs.map((t) => (
+        <li key={t.id ?? 'base'} className="aspect-[9/16] overflow-hidden rounded-xl bg-app-sunken">
+          {/* eslint-disable-next-line @next/next/no-img-element -- signed storage URL */}
+          <img src={t.url} alt={t.id ? 'Generated photo' : 'Base portrait'} loading="lazy" className="h-full w-full object-cover object-top" />
+        </li>
+      ))}
+    </ul>
   );
 };
 

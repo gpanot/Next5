@@ -10,7 +10,8 @@ type Props = {
   busy: boolean;
   error: string | null;
   onSubmit: (url: string) => void;
-  onUploadInstead: () => void;
+  /** Omit to hide the upload button (flows that need Zillow photos). */
+  onUploadInstead?: () => void;
 };
 
 /** Paste the Zillow link and say she represents the home. Upload stays one tap away — not every agent uses Zillow. */
@@ -66,12 +67,16 @@ export const ZillowLinkStep = ({ busy, error, onSubmit, onUploadInstead }: Props
       <Checkbox checked={attest} onChange={setAttest} label={<span className="text-[13px] text-app-ink">I represent this property.</span>} />
       <AppButton type="submit" size="lg" fullWidth loading={busy} disabled={!valid || !attest}>Add property</AppButton>
 
-      <div className="flex items-center gap-3 text-[12px] text-app-muted">
-        <span className="h-px flex-1 bg-app-line" /> or <span className="h-px flex-1 bg-app-line" />
-      </div>
-      <AppButton type="button" variant="ghost" fullWidth iconLeft={<Upload aria-hidden className="h-4 w-4" />} onClick={onUploadInstead}>
-        Upload photos instead
-      </AppButton>
+      {onUploadInstead && (
+        <>
+          <div className="flex items-center gap-3 text-[12px] text-app-muted">
+            <span className="h-px flex-1 bg-app-line" /> or <span className="h-px flex-1 bg-app-line" />
+          </div>
+          <AppButton type="button" variant="ghost" fullWidth iconLeft={<Upload aria-hidden className="h-4 w-4" />} onClick={onUploadInstead}>
+            Upload photos instead
+          </AppButton>
+        </>
+      )}
     </form>
   );
 };

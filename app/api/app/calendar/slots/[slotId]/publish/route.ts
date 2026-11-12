@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { SLOT_INCLUDE } from '../../../../../../../src/server/calendar/calendar';
 import { prisma } from '../../../../../../../src/lib/db';
 import { authedRoute } from '../../../../../../../src/server/api';
 import { toSlotDto } from '../../../../../../../src/server/calendar/dto';
@@ -21,10 +22,7 @@ export const POST = authedRoute<Ctx>(async (req, session, ctx) => {
   await publishSlot(ws.id, slotId, body.provider);
   const slot = await prisma.postSlot.findFirstOrThrow({
     where: { id: slotId, workspaceId: ws.id },
-    include: {
-      item: { select: { id: true, batchId: true, r2Key: true, postKit: true, score: true, scoreDetails: true, sceneId: true, batch: { select: { name: true } } } },
-      material: { select: { id: true, label: true } },
-    },
+    include: SLOT_INCLUDE,
   });
   return NextResponse.json({ slot: await toSlotDto(slot) });
 });

@@ -1,6 +1,6 @@
 // server-only — never import from a 'use client' file.
-// Brand create → "Listing videos": one Editorial + one "Rate this house" video per click.
-// The request creates two rows (preparing) and answers at once; after() does the paid prep
+// Brand create → "Listing videos": the picked templates (presets.ts) at the picked length, one row each.
+// The request creates the rows (preparing) and answers at once; after() does the paid prep
 // (tags, plan, script, voice → R2), then queues the rows for the blitz-worker, which renders them.
 
 import { after } from 'next/server';
@@ -11,11 +11,15 @@ import { HttpError } from '../http';
 import { getListing } from '../listings/listings';
 import { wakeBlitzWorker } from '../labs/blitzWorkerWake';
 import { createMeter } from '../metaAds/cost';
-import { R2_ASSETS, buildVoicedProps, type RealtorPreset } from './build';
-import { cleanVoice, planAndWrite, type GalleryInput } from './pipeline';
-import type { RealtorFacts } from './script';
+import { workspaceHasPaid } from '../slideshowCredits/paid';
+import { R2_ASSETS, buildPresetProps, buildVoicedProps } from './build';
+import { cleanPresetVoice, cleanVoice, planAndWrite, planAndWritePreset, type GalleryInput } from './pipeline';
+import { LENGTH_META, REALTOR_PRESETS, isVideoLength, type RealtorPreset, type VideoLength } from './presets';
+import type { RealtorFacts, ScriptPack } from './script';
+import type { ShotPlan } from './shotPlan';
 import type { ListingVideoDto } from '../../types/business/listingVideos';
 
+/** The default pick when none is sent (the first two templates, as before 2026-11-12). */
 export const LISTING_VIDEO_PRESETS: RealtorPreset[] = ['editorial', 'rate'];
 export const ACTIVE_VIDEO_STATUSES = ['preparing', 'queued', 'rendering'];
 const ACTIVE = ACTIVE_VIDEO_STATUSES;
@@ -25,17 +29,21 @@ const VOICE_KEY = (id: string) => `listing-videos/${id}/voice.wav`;
 type Address = { city?: string | null; state?: string | null };
 type Candidate = { url: string; thumbUrl: string; tag?: string | null };
 
-const factsOf = async (listing: Listing): Promise<RealtorFacts> => {
+export const factsOf = async (listing: Listing): Promise<RealtorFacts> => {
   const address = (listing.address ?? {}) as Address;
   if (!address.city || !address.state || !listing.priceCents) {
     throw new HttpError(400, 'listing_incomplete', 'This home needs a city, state and price from Zillow to make a video.');
   }
   // The listing description lives on the scrape cache (blitz_listing_runs), not on the listing row.
   const run = listing.zpid ? await prisma.blitzListingRun.findFirst({ where: { zpid: listing.zpid }, orderBy: { createdAt: 'desc' } }) : null;
-  const description = ((run?.facts ?? {}) as { description?: string | null }).description ?? '';
+  const extra = (run?.facts ?? {}) as Partial<Pick<RealtorFacts, 'description' | 'street' | 'yearBuilt' | 'lotSqft' | 'homeType' | 'neighborhood' | 'highlights'>>;
   return {
     city: address.city, state: address.state, priceUsd: listing.priceCents / 100,
-    beds: listing.beds ?? 0, baths: listing.baths ?? 0, sqft: listing.sqft ?? 0, status: listing.status, description,
+    beds: listing.beds ?? 0, baths: listing.baths ?? 0, sqft: listing.sqft ?? 0, status: listing.status,
+    description: extra.description ?? '',
+    street: extra.street ?? null, yearBuilt: extra.yearBuilt ?? null, lotSqft: extra.lotSqft ?? null,
+    homeType: extra.homeType ?? null, neighborhood: extra.neighborhood ?? null,
+    highlights: Array.isArray(extra.highlights) ? extra.highlights : [],
   };
 };
 
@@ -51,25 +59,50 @@ const fail = (ids: string[], error: unknown) =>
     data: { status: 'failed', error: (error instanceof Error ? error.message : String(error)).slice(0, 1_000) },
   });
 
-/** The paid part, run after the response: one plan + script, then a voice per preset, then queue for the worker. */
+/** The length a row was asked at; it rides in props from creation (no column for it). */
+export const lengthOf = (row: Pick<ListingVideo, 'props'>): VideoLength => {
+  const value = (row.props as { length?: unknown } | null)?.length;
+  return isVideoLength(value) ? value : 'standard';
+};
+
+/** Editorial and Rate at 25 s share one plan + script (the original writer); every other pick writes its own. */
+const usesSharedScript = (preset: RealtorPreset, length: VideoLength) => (preset === 'editorial' || preset === 'rate') && length === 'standard';
+
+type Shared = () => Promise<{ plan: ShotPlan; script: ScriptPack }>;
+
+const prepareOne = async (row: ListingVideo, facts: RealtorFacts, gallery: GalleryInput[], shared: Shared): Promise<void> => {
+  const preset = row.preset as RealtorPreset;
+  const length = lengthOf(row);
+  const meter = createMeter();
+  const voicePath = `r2:${VOICE_KEY(row.id)}`;
+  let props;
+  if (usesSharedScript(preset, length)) {
+    const { plan, script } = await shared();
+    const narration = await cleanVoice(script, preset, meter);
+    await uploadToR2(VOICE_KEY(row.id), narration.wav, 'audio/wav');
+    props = buildVoicedProps({ preset, facts, plan, script, words: narration.words, voiceDurationS: narration.durationS, voicePath, assets: R2_ASSETS });
+  } else {
+    const { plan, script } = await planAndWritePreset(facts, gallery, preset, length);
+    const narration = await cleanPresetVoice(script, preset, meter);
+    await uploadToR2(VOICE_KEY(row.id), narration.wav, 'audio/wav');
+    props = buildPresetProps({ preset, length, facts, plan, script, words: narration.words, voiceDurationS: narration.durationS, voicePath, assets: R2_ASSETS });
+  }
+  await prisma.listingVideo.update({
+    where: { id: row.id },
+    data: { status: 'queued', props: { ...props, length } as object, durationS: props.durationS, costUsdMicros: meter.summary().usdMicros },
+  });
+};
+
+/** The paid part, run after the response: a script and a voice per row, then queue for the worker. */
 export const prepareListingVideos = async (listing: Listing, rows: ListingVideo[]): Promise<void> => {
   try {
     const facts = await factsOf(listing);
-    const { plan, script } = await planAndWrite(facts, galleryOf(listing));
+    const gallery = galleryOf(listing);
+    let sharedRun: ReturnType<Shared> | null = null;
+    const shared: Shared = () => (sharedRun ??= planAndWrite(facts, gallery));
     await Promise.all(rows.map(async (row) => {
-      const preset = row.preset as RealtorPreset;
-      const meter = createMeter();
       try {
-        const narration = await cleanVoice(script, preset, meter);
-        await uploadToR2(VOICE_KEY(row.id), narration.wav, 'audio/wav');
-        const props = buildVoicedProps({
-          preset, facts, plan, script, words: narration.words, voiceDurationS: narration.durationS,
-          voicePath: `r2:${VOICE_KEY(row.id)}`, assets: R2_ASSETS,
-        });
-        await prisma.listingVideo.update({
-          where: { id: row.id },
-          data: { status: 'queued', props: props as object, durationS: props.durationS, costUsdMicros: meter.summary().usdMicros },
-        });
+        await prepareOne(row, facts, gallery, shared);
       } catch (err) {
         console.error(`[realtor-video] ${row.id} prep failed:`, err);
         await fail([row.id], err);
@@ -85,23 +118,41 @@ export const prepareListingVideos = async (listing: Listing, rows: ListingVideo[
 /** Picks the asked presets, defaulting to both; unknown names are dropped. */
 export const parsePresets = (value: unknown): RealtorPreset[] => {
   if (!Array.isArray(value)) return LISTING_VIDEO_PRESETS;
-  const picked = LISTING_VIDEO_PRESETS.filter((p) => value.includes(p));
+  const picked = REALTOR_PRESETS.filter((p) => value.includes(p));
   if (picked.length === 0) throw new HttpError(400, 'no_preset', 'Pick at least one video.');
   return picked;
 };
 
-/** Starts the picked videos for a listing. A preset already in progress keeps its row (no double spend). */
-export const startListingVideos = async (ws: Workspace, listingId: string, presets: RealtorPreset[] = LISTING_VIDEO_PRESETS): Promise<void> => {
+/** Workspaces that never paid only get 15 s videos. No length sent: 25 s for paid, 15 s otherwise. */
+export const allowedLength = async (ws: Workspace, value: unknown): Promise<VideoLength> => {
+  const paid = await workspaceHasPaid(ws.id);
+  if (!paid) {
+    if (isVideoLength(value) && LENGTH_META[value].paidOnly) throw new HttpError(402, 'length_paid_only', 'Longer videos come with a paid plan. The 15 s video is free.');
+    return 'short';
+  }
+  return isVideoLength(value) ? value : 'standard';
+};
+
+/**
+ * Starts the picked videos for a listing. A preset already in progress keeps its row (no double spend).
+ * Returns the row of every picked preset (new or already in progress), so a campaign post can point at it.
+ */
+export const startListingVideos = async (
+  ws: Workspace, listingId: string, presets: RealtorPreset[] = LISTING_VIDEO_PRESETS, length?: VideoLength,
+): Promise<ListingVideo[]> => {
+  const len = length ?? (await allowedLength(ws, undefined));
   const listing = await getListing(ws.id, listingId);
-  const busy = await prisma.listingVideo.findMany({ where: { listingId, status: { in: ACTIVE } }, select: { preset: true } });
+  const busy = await prisma.listingVideo.findMany({ where: { listingId, status: { in: ACTIVE } }, orderBy: { createdAt: 'desc' } });
   const todo = presets.filter((p) => !busy.some((b) => b.preset === p));
-  if (todo.length === 0) return;
+  const kept = presets.map((p) => busy.find((b) => b.preset === p)).filter((r): r is ListingVideo => Boolean(r));
+  if (todo.length === 0) return kept;
   galleryOf(listing);
   await factsOf(listing);
   const rows = await Promise.all(
-    todo.map((preset) => prisma.listingVideo.create({ data: { workspaceId: ws.id, listingId, preset } })),
+    todo.map((preset) => prisma.listingVideo.create({ data: { workspaceId: ws.id, listingId, preset, props: { length: len } } })),
   );
   after(() => prepareListingVideos(listing, rows));
+  return [...kept, ...rows];
 };
 
 export const toListingVideoDto = async (row: ListingVideo): Promise<ListingVideoDto> => {
@@ -109,6 +160,7 @@ export const toListingVideoDto = async (row: ListingVideo): Promise<ListingVideo
   return {
     id: row.id,
     preset: row.preset as RealtorPreset,
+    length: lengthOf(row),
     status: row.status as ListingVideoDto['status'],
     error: row.status === 'failed' ? 'This video could not be made. Try again.' : null,
     durationS: row.durationS,
@@ -121,8 +173,8 @@ export const toListingVideoDto = async (row: ListingVideo): Promise<ListingVideo
 /** Latest video per preset for this listing (older takes stay in the table). */
 export const listListingVideos = async (ws: Workspace, listingId: string): Promise<ListingVideoDto[]> => {
   await getListing(ws.id, listingId);
-  const rows = await prisma.listingVideo.findMany({ where: { workspaceId: ws.id, listingId }, orderBy: { createdAt: 'desc' }, take: 20 });
-  const latest = LISTING_VIDEO_PRESETS.map((p) => rows.find((r) => r.preset === p)).filter((r): r is ListingVideo => Boolean(r));
+  const rows = await prisma.listingVideo.findMany({ where: { workspaceId: ws.id, listingId }, orderBy: { createdAt: 'desc' }, take: 40 });
+  const latest = REALTOR_PRESETS.map((p) => rows.find((r) => r.preset === p)).filter((r): r is ListingVideo => Boolean(r));
   if (latest.some((r) => r.status === 'queued')) wakeBlitzWorker({ throttle: true });
   return Promise.all(latest.map(toListingVideoDto));
 };

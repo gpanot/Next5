@@ -18,7 +18,16 @@ import { getPresignedUrl, uploadToR2 } from './r2';
 
 const execFileAsync = promisify(execFile);
 
-const COMPOSITIONS: Record<string, string> = { editorial: 'RealtorEditorialVoiced', rate: 'RealtorRateVoiced' };
+// Mirrors PRESET_META in src/server/realtorVideo/presets.ts (the worker has its own package).
+const COMPOSITIONS: Record<string, string> = {
+  editorial: 'RealtorEditorialVoiced',
+  rate: 'RealtorRateVoiced',
+  pov: 'RealtorPovVoiced',
+  day: 'RealtorDayVoiced',
+  top3: 'RealtorTop3Voiced',
+  alert: 'RealtorAlertVoiced',
+  luxe: 'RealtorLuxeVoiced',
+};
 const VIDEO_KEY = (id: string) => `listing-videos/${id}/video.mp4`;
 const R2_PREFIX = 'r2:';
 const STALE_AFTER = '2 minutes';
@@ -32,12 +41,15 @@ export async function requeueStaleListingVideos(): Promise<void> {
   );
 }
 
+/** Only presets this worker can render: an older worker on the same DB leaves new templates for a newer one. */
 export async function claimNextListingVideo(): Promise<ListingVideoJob | null> {
   const rows = await prisma.$queryRaw<ListingVideoJob[]>`
     UPDATE listing_videos
     SET status = 'rendering', updated_at = now(), render_started_at = now(), render_finished_at = NULL
     WHERE id = (
-      SELECT id FROM listing_videos WHERE status = 'queued' ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED
+      SELECT id FROM listing_videos
+      WHERE status = 'queued' AND preset = ANY(${Object.keys(COMPOSITIONS)})
+      ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED
     )
     RETURNING id, preset, props
   `;

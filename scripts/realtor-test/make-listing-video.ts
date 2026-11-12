@@ -1,9 +1,10 @@
 /**
- * Zillow listing → voiced Editorial + "Rate this house" videos, end to end.
- * Run: npx tsx --env-file=.env.local scripts/realtor-test/make-listing-video.ts <zillow url | zpid> [editorial,rate]
+ * Zillow listing → voiced listing videos, end to end, any template at any length.
+ * Run: npx tsx --env-file=.env.local scripts/realtor-test/make-listing-video.ts <zillow url | zpid> [editorial,rate,pov,day,top3,alert,luxe] [--length=short|standard|auto]
+ * Standard Editorial / Rate use the app's writer (script.ts); everything else uses storyScript.ts.
  * Steps: listing (DB cache, else Apify scrape) → photo tags → shot plan → script (1 vision call)
  *        → voice per preset (Gemini TTS + Whisper) → Remotion render → -14 LUFS.
- * Output: out/realtor/<zpid>/<preset>.mp4 (+ props JSON). Voice files: public/realtor-videos/<zpid>/.
+ * Output: out/realtor/<zpid>/<preset>-<length>.mp4 (+ props JSON). Voice files: public/realtor-videos/<zpid>/.
  */
 import { execFile } from 'child_process';
 import { mkdir, writeFile } from 'fs/promises';
@@ -12,16 +13,21 @@ import { promisify } from 'util';
 import { prisma } from '../../src/lib/db';
 import { parseZillowUrl } from '../../src/lib/listingPhotos';
 import { createMeter } from '../../src/server/metaAds/cost';
-import { PUBLIC_ASSETS, buildVoicedProps, narrationOf, type RealtorPreset } from '../../src/server/realtorVideo/build';
-import { cleanVoice, planAndWrite } from '../../src/server/realtorVideo/pipeline';
+import { PUBLIC_ASSETS, buildPresetProps, buildVoicedProps, narrationOf, presetNarration } from '../../src/server/realtorVideo/build';
+import { cleanPresetVoice, cleanVoice, planAndWrite, planAndWritePreset } from '../../src/server/realtorVideo/pipeline';
+import { PRESET_META, isRealtorPreset, isVideoLength, type RealtorPreset, type VideoLength } from '../../src/server/realtorVideo/presets';
 import type { RealtorFacts } from '../../src/server/realtorVideo/script';
+import type { VoicedProps } from '../../src/remotion/realtor/voiced';
+import type { CostMeter } from '../../src/server/metaAds/cost';
 import { scrapeListing } from './scrapeListing';
 
 const run = promisify(execFile);
 
-const COMPOSITION: Record<RealtorPreset, string> = { editorial: 'RealtorEditorialVoiced', rate: 'RealtorRateVoiced' };
-
-type StoredFacts = { city?: string | null; state?: string | null; priceUsd?: number | null; beds?: number | null; baths?: number | null; sqft?: number | null; status?: string | null; description?: string | null };
+type StoredFacts = {
+  address?: string | null; city?: string | null; state?: string | null; priceUsd?: number | null; beds?: number | null; baths?: number | null;
+  sqft?: number | null; status?: string | null; description?: string | null; street?: string | null; yearBuilt?: number | null;
+  lotSqft?: number | null; homeType?: string | null; neighborhood?: string | null; highlights?: string[];
+};
 type StoredCandidate = { url: string; thumbUrl: string };
 
 const loadListing = async (input: string) => {
@@ -36,7 +42,11 @@ const loadListing = async (input: string) => {
 
 const toFacts = (f: StoredFacts): RealtorFacts => {
   if (!f.city || !f.state || !f.priceUsd) throw new Error('Listing is missing city, state or price.');
-  return { city: f.city, state: f.state, priceUsd: f.priceUsd, beds: f.beds ?? 0, baths: f.baths ?? 0, sqft: f.sqft ?? 0, status: f.status ?? null, description: f.description ?? '' };
+  return {
+    city: f.city, state: f.state, priceUsd: f.priceUsd, beds: f.beds ?? 0, baths: f.baths ?? 0, sqft: f.sqft ?? 0, status: f.status ?? null,
+    description: f.description ?? '', street: f.street ?? f.address?.split(',')[0] ?? null, yearBuilt: f.yearBuilt, lotSqft: f.lotSqft,
+    homeType: f.homeType, neighborhood: f.neighborhood, highlights: f.highlights ?? [],
+  };
 };
 
 const render = async (composition: string, propsFile: string, out: string) => {
@@ -46,31 +56,46 @@ const render = async (composition: string, propsFile: string, out: string) => {
   await run('rm', [raw]);
 };
 
+type Job = { zpid: string; facts: RealtorFacts; candidates: StoredCandidate[]; length: VideoLength; outDir: string; meter: CostMeter };
+
+/** One template at one length: words, voice, props. Standard Editorial / Rate keep the app's writer. */
+const makeProps = async (preset: RealtorPreset, { zpid, facts, candidates, length, outDir, meter }: Job): Promise<VoicedProps> => {
+  const voicePath = `realtor-videos/${zpid}/${preset}-${length}-voice.wav`;
+  if (length === 'standard' && (preset === 'editorial' || preset === 'rate')) {
+    const { plan, script } = await planAndWrite(facts, candidates);
+    console.log(`\n[${preset}] ${narrationOf(script, preset)}`);
+    const n = await cleanVoice(script, preset, meter);
+    await writeFile(path.join('public', voicePath), n.wav);
+    return buildVoicedProps({ preset, facts, plan, script, words: n.words, voiceDurationS: n.durationS, voicePath, assets: PUBLIC_ASSETS });
+  }
+  const { plan, script } = await planAndWritePreset(facts, candidates, preset, length);
+  await writeFile(path.join(outDir, `${preset}-${length}.plan.json`), JSON.stringify({ plan, script }, null, 1));
+  console.log(`\n[${preset}/${length}] shots: ${plan.beats.map((b) => `${b.role}:${b.tag}${b.url2 ? '+2' : ''}`).join(' ')}`);
+  console.log(`[${preset}/${length}] highlights: ${script.highlights.join(' · ')}`);
+  console.log(`[${preset}/${length}] ${presetNarration(script)}`);
+  const n = await cleanPresetVoice(script, preset, meter);
+  await writeFile(path.join('public', voicePath), n.wav);
+  return buildPresetProps({ preset, length, facts, plan, script, words: n.words, voiceDurationS: n.durationS, voicePath, assets: PUBLIC_ASSETS });
+};
+
 const main = async () => {
-  const [input, presetArg] = process.argv.slice(2);
-  if (!input) throw new Error('Usage: make-listing-video.ts <zillow url | zpid> [editorial,rate]');
-  const presets = (presetArg ?? 'editorial,rate').split(',') as RealtorPreset[];
+  const args = process.argv.slice(2);
+  const [input, presetArg] = args.filter((a) => !a.startsWith('--'));
+  const lengthArg = args.find((a) => a.startsWith('--length='))?.split('=')[1] ?? 'standard';
+  if (!input || !isVideoLength(lengthArg)) throw new Error('Usage: make-listing-video.ts <zillow url | zpid> [editorial,rate,pov,day,top3,alert,luxe] [--length=short|standard|auto]');
+  const presets = (presetArg ?? 'editorial,rate').split(',').filter(isRealtorPreset);
   const meter = createMeter();
   const { zpid, facts: stored, candidates } = await loadListing(input);
-  const facts = toFacts(stored);
-  const { plan, script } = await planAndWrite(facts, candidates);
-  console.log('Shots:', plan.beats.map((b) => `${b.role}:${b.tag}`).join(' '), '| end:', plan.end.tag);
   const outDir = path.join('out', 'realtor', zpid);
-  const voiceDir = path.join('public', 'realtor-videos', zpid);
   await mkdir(outDir, { recursive: true });
-  await mkdir(voiceDir, { recursive: true });
-  await writeFile(path.join(outDir, 'plan.json'), JSON.stringify({ plan, script }, null, 1));
+  await mkdir(path.join('public', 'realtor-videos', zpid), { recursive: true });
+  const job: Job = { zpid, facts: toFacts(stored), candidates, length: lengthArg, outDir, meter };
   for (const preset of presets) {
-    console.log(`\n[${preset}] ${narrationOf(script, preset)}`);
-    const narration = await cleanVoice(script, preset, meter);
-    const voicePath = `realtor-videos/${zpid}/${preset}-voice.wav`;
-    await writeFile(path.join('public', voicePath), narration.wav);
-    const props = buildVoicedProps({ preset, facts, plan, script, words: narration.words, voiceDurationS: narration.durationS, voicePath, assets: PUBLIC_ASSETS });
-    const propsFile = path.join(outDir, `${preset}.props.json`);
-    await writeFile(propsFile, JSON.stringify(props));
-    const out = path.join(outDir, `${preset}.mp4`);
-    await render(COMPOSITION[preset], propsFile, out);
-    console.log(`[${preset}] voice ${narration.durationS.toFixed(1)} s → ${out} (${props.durationS} s)`);
+    const props = await makeProps(preset, job);
+    const base = path.join(outDir, `${preset}-${lengthArg}`);
+    await writeFile(`${base}.props.json`, JSON.stringify(props));
+    await render(PRESET_META[preset].composition, `${base}.props.json`, `${base}.mp4`);
+    console.log(`[${preset}/${lengthArg}] → ${base}.mp4 (${props.durationS} s)`);
   }
   console.log('\nCost:', meter.summary());
   await prisma.$disconnect();

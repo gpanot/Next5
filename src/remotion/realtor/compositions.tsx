@@ -1,14 +1,25 @@
 /**
- * The two voiced listing-video compositions, registered in the worker's Root.tsx (production renders)
+ * The voiced listing-video compositions, registered in the worker's Root.tsx (production renders)
  * and in realtor/index.tsx (local CLI tests). No test-data imports here: the worker image has no public/ folder.
  */
+import type { ComponentType } from 'react';
 import { Composition } from 'remotion';
+import { PRESET_META, type RealtorPreset } from '../../server/realtorVideo/presets';
+import { AlertVoiced } from './AlertVoiced';
+import { DayVoiced } from './DayVoiced';
 import { EditorialVoiced } from './EditorialVoiced';
+import { LuxeVoiced } from './LuxeVoiced';
+import { PovVoiced } from './PovVoiced';
 import { RateVoiced } from './RateVoiced';
+import { Top3Voiced } from './Top3Voiced';
 import { FPS, H, W } from './shared';
 import { VOICED_DURATION_S, type VoicedProps } from './voiced';
 
-export const REALTOR_COMPOSITIONS = { editorial: 'RealtorEditorialVoiced', rate: 'RealtorRateVoiced' } as const;
+export const REALTOR_COMPOSITIONS = Object.fromEntries(Object.entries(PRESET_META).map(([k, m]) => [k, m.composition])) as Record<RealtorPreset, string>;
+
+const COMPONENTS: Record<RealtorPreset, ComponentType<VoicedProps>> = {
+  editorial: EditorialVoiced, rate: RateVoiced, pov: PovVoiced, day: DayVoiced, top3: Top3Voiced, alert: AlertVoiced, luxe: LuxeVoiced,
+};
 
 /** Studio preview only; real renders always pass their own props. */
 const SAMPLE: VoicedProps = {
@@ -23,12 +34,23 @@ const SAMPLE: VoicedProps = {
   durationS: VOICED_DURATION_S,
 };
 
-/** Voiced videos last as long as their props say (25 s minimum, longer when the voice runs long). */
+/** Voiced videos last as long as their props say (15 s, 25 s or up to 60 s for Auto). */
 const voicedMetadata = ({ props }: { props: VoicedProps }) => ({ durationInFrames: Math.round(props.durationS * FPS) });
 
-export const RealtorVoicedCompositions = ({ editorialDefaults = SAMPLE, rateDefaults = SAMPLE }: { editorialDefaults?: VoicedProps; rateDefaults?: VoicedProps }) => (
+export const RealtorVoicedCompositions = ({ defaults = {} }: { defaults?: Partial<Record<RealtorPreset, VoicedProps>> }) => (
   <>
-    <Composition id={REALTOR_COMPOSITIONS.editorial} component={EditorialVoiced} calculateMetadata={voicedMetadata} durationInFrames={VOICED_DURATION_S * FPS} fps={FPS} width={W} height={H} defaultProps={editorialDefaults} />
-    <Composition id={REALTOR_COMPOSITIONS.rate} component={RateVoiced} calculateMetadata={voicedMetadata} durationInFrames={VOICED_DURATION_S * FPS} fps={FPS} width={W} height={H} defaultProps={rateDefaults} />
+    {(Object.keys(COMPONENTS) as RealtorPreset[]).map((preset) => (
+      <Composition
+        key={preset}
+        id={REALTOR_COMPOSITIONS[preset]}
+        component={COMPONENTS[preset]}
+        calculateMetadata={voicedMetadata}
+        durationInFrames={VOICED_DURATION_S * FPS}
+        fps={FPS}
+        width={W}
+        height={H}
+        defaultProps={defaults[preset] ?? SAMPLE}
+      />
+    ))}
   </>
 );

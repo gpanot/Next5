@@ -141,7 +141,7 @@ const ingest = async (listing: Listing, datasetId: string, now: Date): Promise<v
     data: {
       ...(first ? { importStatus: 'ready', label: (data.address?.street ?? listing.label).slice(0, 120), importedAt: now } : {}),
       address: data.address ?? Prisma.DbNull, priceCents: data.priceCents, beds: data.beds, baths: data.baths, sqft: data.sqft,
-      status: data.status, daysOnMarket: data.daysOnMarket, candidates: candidates as unknown as Prisma.InputJsonValue,
+      status: data.status, daysOnMarket: data.daysOnMarket, openHouses: data.openHouses as unknown as Prisma.InputJsonValue, candidates: candidates as unknown as Prisma.InputJsonValue,
       runId: null, importError: null, syncedAt: now,
     },
   });

@@ -127,20 +127,20 @@ describe('swapping a day', () => {
 });
 
 describe('scheduling', () => {
-  it('writes one slot per post per channel, and counts posts not slots', async () => {
+  it('writes one slot per post, whatever the channels', async () => {
     const ws = await workspace();
     const campaign = await updateDraft(ws.id, (await draft(ws, ['tiktok', 'instagram'])).id, { assetMethod: 'library' });
 
     expect(campaign.postCount).toBe(7);
-    expect(campaign.slotCount).toBe(14);
+    expect(campaign.slotCount).toBe(7);
 
     const scheduled = await scheduleCampaign(ws.id, campaign.id);
     expect(scheduled.status).toBe('scheduled');
 
     const slots = await prisma.postSlot.findMany({ where: { workspaceId: ws.id } });
-    expect(slots).toHaveLength(14);
+    expect(slots).toHaveLength(7);
     expect(slots.every((s) => s.source === 'campaign' && s.campaignPostId !== null)).toBe(true);
-    expect(new Set(slots.map((s) => s.platform))).toEqual(new Set(['tiktok', 'instagram']));
+    expect(new Set(slots.map((s) => s.campaignPostId)).size).toBe(7);
   });
 
   it('records template usage once, on accept', async () => {

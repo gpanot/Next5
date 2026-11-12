@@ -1,7 +1,10 @@
+import type { RealtorPreset, VideoLength } from '../../server/realtorVideo/presets';
+
 /** Brand create → listing videos (src/server/realtorVideo/jobs.ts). */
 export type ListingVideoDto = {
   id: string;
-  preset: 'editorial' | 'rate';
+  preset: RealtorPreset;
+  length: VideoLength;
   status: 'preparing' | 'queued' | 'rendering' | 'ready' | 'failed';
   error: string | null;
   durationS: number | null;
@@ -11,4 +14,7 @@ export type ListingVideoDto = {
 };
 
 /** A listing video with the home it belongs to (Library and the progress pill). */
+/** GET /api/app/listings/:id/videos. */
+export type ListingVideosResponse = { videos: ListingVideoDto[]; paid: boolean };
+
 export type WorkspaceListingVideoDto = ListingVideoDto & { listingId: string; listingLabel: string };

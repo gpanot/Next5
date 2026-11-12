@@ -206,6 +206,7 @@ export const addPhotosToDay = async (ws: Workspace, date: string, itemIds: reado
 export const removeSlot = async (workspaceId: string, slotId: string): Promise<PostSlot> => {
   const slot = await ownedSlot(workspaceId, slotId);
   if (slot.status === 'posted') throw new HttpError(409, 'already_posted', 'This one is already posted.');
+  await prisma.postSlot.updateMany({ where: twinsOf(slot), data: { status: 'removed' } });
   return prisma.postSlot.update({ where: { id: slot.id }, data: { status: 'removed' } });
 };
 
@@ -247,18 +248,37 @@ export const replanUpcoming = async (ws: Workspace, schedule: PostSchedule, now 
   );
 };
 
+/** What every slot DTO needs; slot routes use it too, so toSlotDto always gets the same shape. */
+export const SLOT_INCLUDE = {
+  item: { select: { id: true, batchId: true, r2Key: true, postKit: true, score: true, scoreDetails: true, sceneId: true, batch: { select: { name: true } } } },
+  material: { select: { id: true, label: true } },
+  campaignPost: {
+    select: {
+      campaignId: true, format: true, idea: true, beatKey: true, caption: true, mediaStatus: true, slides: true,
+      listingVideo: { select: { status: true, videoKey: true } },
+    },
+  },
+} as const;
+
 export type SlotWithItem = PostSlot & {
   item: ({ id: string; batchId: string; r2Key: string | null; postKit: unknown; score: number | null; scoreDetails: unknown; sceneId: string | null; batch: { name: string } }) | null;
   material: { id: string; label: string | null } | null;
+  campaignPost: {
+    campaignId: string;
+    format: string;
+    idea: string | null;
+    beatKey: string | null;
+    caption: string | null;
+    mediaStatus: string;
+    slides: unknown;
+    listingVideo: { status: string; videoKey: string | null } | null;
+  } | null;
 };
 
 export const listSlots = async (workspaceId: string, from: Date, to: Date): Promise<SlotWithItem[]> =>
   prisma.postSlot.findMany({
     where: { workspaceId, scheduledFor: { gte: startOfDay(from), lte: startOfDay(to) }, status: { not: 'removed' } },
-    include: {
-      item: { select: { id: true, batchId: true, r2Key: true, postKit: true, score: true, scoreDetails: true, sceneId: true, batch: { select: { name: true } } } },
-      material: { select: { id: true, label: true } },
-    },
+    include: SLOT_INCLUDE,
     orderBy: [{ scheduledFor: 'asc' }, { slotOfDay: 'asc' }],
   });
 
@@ -276,6 +296,15 @@ export const postedLinks = async (workspaceId: string, days = PROMISE.windowDays
   });
   return rows.map((r) => r.postUrl).filter((u): u is string => Boolean(u));
 };
+
+/**
+ * Older Autopilot plans booked one slot per channel for the same post; the calendar shows only one of them.
+ * Moving, skipping or removing it carries the hidden twins along so they never reappear on the old day.
+ */
+const twinsOf = (slot: PostSlot): Prisma.PostSlotWhereInput =>
+  slot.campaignPostId
+    ? { workspaceId: slot.workspaceId, campaignPostId: slot.campaignPostId, id: { not: slot.id }, status: { not: 'posted' } }
+    : { id: { in: [] } };
 
 const ownedSlot = async (workspaceId: string, slotId: string): Promise<PostSlot> => {
   const slot = await prisma.postSlot.findFirst({ where: { id: slotId, workspaceId } });
@@ -301,7 +330,8 @@ export const undoPosted = async (workspaceId: string, slotId: string): Promise<P
 };
 
 export const skipSlot = async (workspaceId: string, slotId: string): Promise<PostSlot> => {
-  await ownedSlot(workspaceId, slotId);
+  const slot = await ownedSlot(workspaceId, slotId);
+  await prisma.postSlot.updateMany({ where: twinsOf(slot), data: { status: 'skipped' } });
   return prisma.postSlot.update({ where: { id: slotId }, data: { status: 'skipped' } });
 };
 
@@ -312,7 +342,9 @@ export const moveSlot = async (workspaceId: string, slotId: string, date: string
   if (date < isoDate(now)) throw new HttpError(400, 'past_date', 'Pick today or a day ahead.');
   // A post she already published happened on its day; moving it would rewrite what she did.
   if (slot.status === 'posted') throw new HttpError(409, 'already_posted', 'This one is already posted.');
-  return prisma.postSlot.update({ where: { id: slot.id }, data: { scheduledFor: new Date(`${date}T00:00:00.000Z`), status: 'planned' } });
+  const scheduledFor = new Date(`${date}T00:00:00.000Z`);
+  await prisma.postSlot.updateMany({ where: twinsOf(slot), data: { scheduledFor } });
+  return prisma.postSlot.update({ where: { id: slot.id }, data: { scheduledFor, status: 'planned' } });
 };
 
 /** Swaps the photo in a slot for another of hers — the "not this one" escape hatch. */

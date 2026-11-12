@@ -15,11 +15,13 @@ import { CalendarDnd } from './CalendarDnd';
 import { DayRow } from './DayRow';
 import { MonthGrid } from './MonthGrid';
 import { PhotoPickerSheet } from './PhotoPickerSheet';
+import { PlaybookPostSheet } from '../autopilot/PlaybookPostSheet';
 import { PostSheet } from './PostSheet';
 import { ProgressHeader } from './ProgressHeader';
 import { PropertiesCard } from './PropertiesCard';
 import { useSearchParams } from 'next/navigation';
 import { AppLink as Link, useAppRouter } from '../shell/AppLink';
+import { useOptionalWorkspace } from '../shell/WorkspaceProvider';
 
 /** Empty posting days show this far ahead, so there is always somewhere to add a photo. */
 const EMPTY_DAYS_AHEAD = 14;
@@ -37,7 +39,7 @@ const daysToShow = (calendar: CalendarDto, focused: string | null): { date: stri
 };
 
 /**
- * Her month on one page (also on the brand home, as `variant="home"`: the month only, without "What's next" or the settings cards): the month at a glance, then each day as a row of photos she can add to
+ * Her month on one page (`variant="home"` = the month only, without "What's next" or the settings cards; no longer on the brand home): the month at a glance, then each day as a row of photos she can add to
  * or take from. Opening a post and adding photos are sheets — nothing here navigates away.
  */
 export const CalendarView = ({ variant = 'full' }: { variant?: 'full' | 'home' }) => {
@@ -46,6 +48,9 @@ export const CalendarView = ({ variant = 'full' }: { variant?: 'full' | 'home' }
   const [open, setOpen] = useState<SlotDto | null>(null);
   const [pickerDate, setPickerDate] = useState<string | null>(null);
   const router = useAppRouter();
+  const workspace = useOptionalWorkspace();
+  // Realtors fill empty days with the Autopilot's tip posts (docs/business-studios/15-realtor-autopilot-plan.md §3.1).
+  const fill = workspace?.product === 'brand' ? (day: string) => router.push(`${workspace.href('/automation')}?moment=evergreen&date=${day}`) : undefined;
   // Opened from a day tapped on the home month: start on that day's row.
   const dayParam = useSearchParams().get('day');
   const [focused, setFocused] = useState<string | null>(variant === 'full' && dayParam && /^\d{4}-\d{2}-\d{2}$/.test(dayParam) ? dayParam : null);
@@ -149,6 +154,7 @@ export const CalendarView = ({ variant = 'full' }: { variant?: 'full' | 'home' }
                 onAdd={setPickerDate}
                 onRemove={(slot) => void remove(slot)}
                 busySlotId={removing}
+                onFill={fill}
               />
             ))}
           </div>
@@ -166,8 +172,14 @@ export const CalendarView = ({ variant = 'full' }: { variant?: 'full' | 'home' }
         </Link>
       )}
 
+      {open?.playbook && (
+        <PlaybookPostSheet
+          post={{ title: open.playbook.idea ?? 'Post', format: open.playbook.format, videoUrl: open.playbook.videoUrl, slideUrls: open.playbook.slideUrls, caption: open.playbook.caption }}
+          onClose={() => setOpen(null)}
+        />
+      )}
       <PostSheet
-        slot={open}
+        slot={open?.playbook ? null : open}
         postKitAllowed={calendar.postKitAllowed}
         onClose={() => setOpen(null)}
         onChanged={applySlot}

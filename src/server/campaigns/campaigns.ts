@@ -56,6 +56,12 @@ export const toPostDto = (row: PostRow): CampaignPostDto => {
     recommendedEngine: row.template.recommendedEngine,
     assetRequirements,
     requiredUploads: assetRequirements.filter((a) => a.required && a.fulfilment === 'upload'),
+    format: row.format === 'listing_video' ? 'listing_video' : 'slideshow',
+    beatKey: row.beatKey,
+    idea: row.idea,
+    mediaStatus: row.mediaStatus as CampaignPostDto['mediaStatus'],
+    mediaError: row.mediaError,
+    media: null,
   };
 };
 
@@ -81,12 +87,13 @@ export const toCampaignDto = (row: CampaignRow): CampaignDto => {
     assetMethod: row.assetMethod,
     assetUrl: row.assetUrl,
     status: row.status,
+    playbook: row.playbook,
     step: row.step,
     scheduledAt: row.scheduledAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     posts,
     postCount: live.length,
-    slotCount: live.length * Math.max(1, row.channels.length),
+    slotCount: live.length,
   };
 };
 

@@ -1,8 +1,9 @@
 /**
  * Turning an approved plan into calendar days.
  *
- * One `CampaignPost` becomes one `PostSlot` per channel: posting can succeed on Instagram and fail
- * on TikTok, and `SocialPost` records the result per slot, so each channel needs its own row.
+ * One `CampaignPost` becomes one `PostSlot`: the calendar shows each post once. Posting to Instagram and
+ * TikTok happens from that one slot (`SocialPost` keeps one row per provider), so a slot per channel
+ * only showed every post twice.
  */
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { prisma } from '../../lib/db';
@@ -44,19 +45,17 @@ export const assetGaps = (campaign: CampaignDto): AssetGap[] => {
 const slotRows = (campaign: CampaignDto, workspaceId: string, scheduleId: string): Prisma.PostSlotCreateManyInput[] =>
   campaign.posts
     .filter((p) => !p.skipped)
-    .flatMap((post) =>
-      campaign.channels.map((platform) => ({
-        workspaceId,
-        scheduleId,
-        campaignPostId: post.id,
-        scheduledFor: new Date(`${post.date}T00:00:00.000Z`),
-        slotOfDay: post.slotOfDay,
-        platform,
-        status: 'planned',
-        source: 'campaign',
-        captionOverride: post.caption,
-      })),
-    );
+    .map((post) => ({
+      workspaceId,
+      scheduleId,
+      campaignPostId: post.id,
+      scheduledFor: new Date(`${post.date}T00:00:00.000Z`),
+      slotOfDay: post.slotOfDay,
+      platform: campaign.channels[0] ?? 'instagram',
+      status: 'planned',
+      source: 'campaign',
+      captionOverride: post.caption,
+    }));
 
 /**
  * Books the campaign. Writes one slot per post per channel, records what the Template Engine

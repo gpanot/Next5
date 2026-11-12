@@ -4,6 +4,7 @@ import type { PostSchedule } from '@prisma/client';
 import { PROMISE } from '../../config/promise';
 import type { PostKitDto, ScoreDetailsDto } from '../../types/business/batches';
 import type { CalendarDto, PlatformDto, ScheduleDto, SlotDto, SlotOfDayDto, SlotStatusDto } from '../../types/business/calendar';
+import { playbookOf } from './playbookSlot';
 import { presignObject } from '../storage/objectStore';
 import type { SlotWithItem } from './calendar';
 import { isoDate } from './schedule';
@@ -28,6 +29,7 @@ export const toSlotDto = async (slot: SlotWithItem): Promise<SlotDto> => ({
         scoreDetails: (slot.item.scoreDetails as ScoreDetailsDto | null) ?? null,
       }
     : null,
+  playbook: await playbookOf(slot),
 });
 
 export const toScheduleDto = (schedule: PostSchedule, platform: PlatformDto, baseUrl: string): ScheduleDto => ({
@@ -42,7 +44,18 @@ export const toScheduleDto = (schedule: PostSchedule, platform: PlatformDto, bas
   paused: Boolean(schedule.pausedAt),
 });
 
-export const toCalendarDto = async (
+/** Older Autopilot plans booked one slot per channel; keep one per post (the posted one when there is one). */
+const onePerPost = (slots: SlotWithItem[]): SlotWithItem[] => {
+  const kept = new Map<string, SlotWithItem>();
+  for (const slot of slots) {
+    if (!slot.campaignPostId) continue;
+    const prev = kept.get(slot.campaignPostId);
+    if (!prev || (slot.status === 'posted' && prev.status !== 'posted')) kept.set(slot.campaignPostId, slot);
+  }
+  return slots.filter((s) => !s.campaignPostId || kept.get(s.campaignPostId) === s);
+};
+
+const calendarOf = async (
   schedule: PostSchedule,
   slots: SlotWithItem[],
   posted: number,
@@ -54,3 +67,11 @@ export const toCalendarDto = async (
   progress: { posted, planned: slots.filter((s) => s.status === 'planned').length, required: PROMISE.postsRequired },
   postKitAllowed,
 });
+
+export const toCalendarDto = async (
+  schedule: PostSchedule,
+  slots: SlotWithItem[],
+  posted: number,
+  postKitAllowed: boolean,
+  baseUrl: string,
+): Promise<CalendarDto> => calendarOf(schedule, onePerPost(slots), posted, postKitAllowed, baseUrl);

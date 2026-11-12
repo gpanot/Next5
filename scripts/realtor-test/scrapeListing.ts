@@ -36,6 +36,12 @@ export const scrapeListing = async (rawUrl: string) => {
     sqft: listing.sqft,
     status: listing.status,
     description: listing.description,
+    street: listing.address?.street ?? null,
+    yearBuilt: listing.yearBuilt,
+    lotSqft: listing.lotSqft,
+    homeType: listing.homeType,
+    neighborhood: listing.neighborhood,
+    highlights: listing.highlights,
   };
   await prisma.blitzListingRun.create({
     data: { zillowUrl: link.url, zpid: link.zpid, address: facts.address, facts, candidates: listing.candidates as object, angles: [] },

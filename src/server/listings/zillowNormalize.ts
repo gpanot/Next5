@@ -27,8 +27,19 @@ export type NormalizedZillowListing = {
   priceHistory: PriceHistoryEntry[] | null;
   /** True when listingType.isOpenHouse is true (Apify field). */
   isOpenHouse: boolean;
+  /** Upcoming open houses from openHouseSchedule, local wall time "YYYY-MM-DDTHH:mm" (no zone: Zillow gives none). */
+  openHouses: OpenHouseTime[];
   candidates: ZillowCandidate[];
+  /** Story facts for the long (Auto) listing video. Null when the scrape does not carry them. */
+  yearBuilt: number | null;
+  lotSqft: number | null;
+  homeType: string | null;
+  neighborhood: string | null;
+  /** Zillow's "What's special" chips, when present in the row. */
+  highlights: string[];
 };
+
+export type OpenHouseTime = { start: string; end: string | null };
 
 const JUST_LISTED_DAYS = 14;
 
@@ -93,6 +104,48 @@ const priceHistoryOf = (row: ApifyRow): PriceHistoryEntry[] | null => {
   return entries.length > 0 ? entries : null;
 };
 
+/** "2026-11-15 13:00:00", "2026-11-15T13:00" or epoch ms → "2026-11-15T13:00". */
+const wallTime = (value: unknown): string | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return new Date(value).toISOString().slice(0, 16);
+  const m = typeof value === 'string' ? value.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/) : null;
+  return m ? `${m[1]}T${m[2]}` : null;
+};
+
+const openHousesOf = (row: ApifyRow): OpenHouseTime[] => {
+  const list = Array.isArray(row.openHouseSchedule) ? row.openHouseSchedule : [];
+  return list
+    .map((item) => ({ start: wallTime(obj(item).startTime), end: wallTime(obj(item).endTime) }))
+    .filter((t): t is OpenHouseTime => Boolean(t.start))
+    .slice(0, 4);
+};
+
+const SQFT_PER_ACRE = 43_560;
+
+/** Lot size: a plain sqft number, or a value + unit pair ("0.34", "Acres"). */
+const lotOf = (row: ApifyRow): number | null => {
+  const direct = num(row.lotSize) ?? num(obj(row.resoFacts).lotSize);
+  if (direct !== null) return direct;
+  const value = num(row.lotAreaValue) ?? num(obj(row.resoFacts).lotAreaValue);
+  const unit = (str(row.lotAreaUnits) ?? str(obj(row.resoFacts).lotAreaUnits) ?? '').toLowerCase();
+  if (value === null) return null;
+  return unit.startsWith('acre') ? Math.round(value * SQFT_PER_ACRE) : value;
+};
+
+const HOME_TYPES: Record<string, string> = {
+  SINGLE_FAMILY: 'Single family home', CONDO: 'Condo', TOWNHOUSE: 'Townhome', MULTI_FAMILY: 'Multi-family home', MANUFACTURED: 'Manufactured home', LOT: 'Lot',
+};
+
+/** "What's special" lives under different keys depending on the actor version; take the first list of strings. */
+const highlightsOf = (row: ApifyRow): string[] => {
+  for (const key of ['whatsSpecial', 'highlights', 'homeHighlights', 'keyFeatures']) {
+    const v = (row as Record<string, unknown>)[key];
+    const list = Array.isArray(v) ? v : Array.isArray(obj(v).tags) ? (obj(v).tags as unknown[]) : null;
+    const strings = list?.map((x) => str(x) ?? str(obj(x).text) ?? str(obj(x).label)).filter((x): x is string => Boolean(x));
+    if (strings?.length) return strings.slice(0, 10);
+  }
+  return [];
+};
+
 export const normalizeZillowRow = (row: ApifyRow | undefined): NormalizedZillowListing | null => {
   if (!row || row.zpid === undefined || row.zpid === null) return null;
   const price = num(obj(row.listingPrice).amount);
@@ -110,7 +163,13 @@ export const normalizeZillowRow = (row: ApifyRow | undefined): NormalizedZillowL
     description: str(row.description),
     priceHistory: priceHistoryOf(row),
     isOpenHouse: type.isOpenHouse === true,
+    openHouses: openHousesOf(row),
     candidates: candidatesOf(row),
+    yearBuilt: num(row.yearBuilt) ?? num(obj(row.resoFacts).yearBuilt),
+    lotSqft: lotOf(row),
+    homeType: HOME_TYPES[str(row.homeType) ?? ''] ?? null,
+    neighborhood: str(obj(row.listingAddress).subdivision) ?? str(obj(row.resoFacts).subdivisionName),
+    highlights: highlightsOf(row),
   };
 };
 

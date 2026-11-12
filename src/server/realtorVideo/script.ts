@@ -16,6 +16,14 @@ export type RealtorFacts = {
   sqft: number;
   status: string | null;
   description: string;
+  /** Richer Zillow facts for the story (Auto length). All optional: older scrapes do not have them. */
+  street?: string | null;
+  yearBuilt?: number | null;
+  lotSqft?: number | null;
+  homeType?: string | null;
+  neighborhood?: string | null;
+  /** Zillow's "What's special" chips when the scrape has them. */
+  highlights?: string[];
 };
 
 export type BeatWords = { kicker: string; title: string; rateItem: string };

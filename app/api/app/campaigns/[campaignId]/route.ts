@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authedRoute } from '../../../../../src/server/api';
 import { archiveCampaign, getCampaign, updateDraft, type CampaignPatch } from '../../../../../src/server/campaigns/campaigns';
+import { attachMedia } from '../../../../../src/server/campaigns/playbook';
 import { HttpError, readJsonObject } from '../../../../../src/server/http';
 import { isProductLine, requireWorkspace } from '../../../../../src/server/workspaces/workspaces';
 
@@ -15,7 +16,8 @@ const workspaceFor = async (userId: string, product: unknown) => {
 export const GET = authedRoute(async (req, session, { params }: Ctx) => {
   const ws = await workspaceFor(session.userId, new URL(req.url).searchParams.get('product'));
   const { campaignId } = await params;
-  return NextResponse.json({ campaign: await getCampaign(ws.id, campaignId) });
+  const campaign = await getCampaign(ws.id, campaignId);
+  return NextResponse.json({ campaign: campaign.playbook ? await attachMedia(campaign) : campaign });
 });
 
 const STRINGS = ['campaignSubject', 'campaignMessage', 'promo', 'notes', 'assetMethod', 'assetUrl', 'productId', 'listingId'] as const;

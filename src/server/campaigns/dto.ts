@@ -2,7 +2,8 @@
  * Wire shapes for campaigns. Every post carries its template's asset requirements, so the wizard
  * never has to ask the library a second question to render a day.
  */
-import type { Campaign, CampaignPost, CampaignStatus, ContentPurpose, ContentSource } from '@prisma/client';
+import type { Campaign, CampaignPlaybook, CampaignPost, CampaignStatus, ContentPurpose, ContentSource } from '@prisma/client';
+import type { MediaStatusDto, PostMediaDto } from '../../types/business/campaigns';
 import type { AssetRequirementDto } from '../templates/dto';
 
 export type CampaignPostDto = {
@@ -27,6 +28,14 @@ export type CampaignPostDto = {
   assetRequirements: AssetRequirementDto[];
   /** Only what she must supply herself — the subset that can block scheduling. */
   requiredUploads: AssetRequirementDto[];
+  /** Realtor playbook posts (defaults on old wizard posts). */
+  format: 'slideshow' | 'listing_video';
+  beatKey: string | null;
+  idea: string | null;
+  mediaStatus: MediaStatusDto;
+  mediaError: string | null;
+  /** Signed URLs, filled only by attachMedia (playbook routes). */
+  media: PostMediaDto | null;
 };
 
 export type CampaignDto = {
@@ -48,6 +57,7 @@ export type CampaignDto = {
   assetMethod: string | null;
   assetUrl: string | null;
   status: CampaignStatus;
+  playbook: CampaignPlaybook | null;
   step: number;
   scheduledAt: string | null;
   createdAt: string;

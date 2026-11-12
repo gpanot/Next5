@@ -14,11 +14,28 @@ import { EmptyState } from '../../ui/EmptyState';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonText } from '../../ui/Skeleton';
 import { useWorkspace } from '../shell/WorkspaceProvider';
+import { ActivityPanel } from './ActivityPanel';
 import { PaymentsTable } from './PaymentsTable';
 import { PlanPicker } from './PlanPicker';
 
+/** Activity (our API cost per generation) is for testing on localhost only; production builds never show it. */
+const SHOW_ACTIVITY = process.env.NODE_ENV !== 'production';
+
+const TabTitle = ({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => (
+  <button
+    type="button"
+    role="tab"
+    aria-selected={active}
+    onClick={onClick}
+    className={`min-h-11 border-b-2 text-[17px] font-semibold transition-colors duration-200 ${active ? 'border-app-ink text-app-ink' : 'border-transparent text-app-muted hover:text-app-ink'}`}
+  >
+    {children}
+  </button>
+);
+
 export const BillingView = () => {
   const { me, product, refresh } = useWorkspace();
+  const [tab, setTab] = useState<'payments' | 'activity'>('payments');
   const payments = useApi<{ payments: PaymentDto[] }>(product ? `/api/app/payments?product=${product}` : null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [request, setRequest] = useState<CheckoutRequest | null>(null);
@@ -74,11 +91,20 @@ export const BillingView = () => {
       <PromiseCard product={product} />
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-[17px] font-semibold text-app-ink">Payments</h2>
-        {payments.loading && <SkeletonText lines={3} />}
-        {payments.error && <ErrorState message={payments.error} onRetry={payments.refresh} />}
-        {payments.data && payments.data.payments.length === 0 && <EmptyState title="No payments yet" body="Your receipts will appear here." />}
-        {payments.data && payments.data.payments.length > 0 && <PaymentsTable payments={payments.data.payments} onResume={setResume} />}
+        <div role="tablist" aria-label="Billing history" className="flex items-baseline gap-5">
+          <TabTitle active={tab === 'payments'} onClick={() => setTab('payments')}>Payments</TabTitle>
+          {SHOW_ACTIVITY && <TabTitle active={tab === 'activity'} onClick={() => setTab('activity')}>Activity</TabTitle>}
+        </div>
+        {tab === 'activity' && SHOW_ACTIVITY ? (
+          <ActivityPanel product={product} />
+        ) : (
+          <>
+            {payments.loading && <SkeletonText lines={3} />}
+            {payments.error && <ErrorState message={payments.error} onRetry={payments.refresh} />}
+            {payments.data && payments.data.payments.length === 0 && <EmptyState title="No payments yet" body="Your receipts will appear here." />}
+            {payments.data && payments.data.payments.length > 0 && <PaymentsTable payments={payments.data.payments} onResume={setResume} />}
+          </>
+        )}
       </section>
 
       <PlanPicker open={pickerOpen} product={product} currentPlanId={sub?.planId ?? null} onClose={() => setPickerOpen(false)} onChoose={choosePlan} />

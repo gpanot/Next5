@@ -152,6 +152,8 @@ export const toListingDto = async (listing: Listing & { materials?: PostMaterial
     facts: listing.source === 'zillow' ? factsLine(listing) : null,
     status: listing.status,
     statusLabel: statusLabel(listing.status),
+    priceUsd: listing.priceCents ? Math.round(listing.priceCents / 100) : null,
+    openHouses: Array.isArray(listing.openHouses) ? (listing.openHouses as { start: string; end: string | null }[]) : [],
     occasion: listing.source === 'zillow' ? occasionForStatus(listing.status) : null,
     candidates: candidateDtos(listing, materials),
     rooms: await Promise.all(

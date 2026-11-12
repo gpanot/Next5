@@ -35,7 +35,7 @@ const loadFamily = ({ name, style, url }: (typeof FONT_CSS)[number]): Promise<Fo
     .catch(() => []);
 
 /** Every font, fetched once per instance. */
-const loadFonts = (): Promise<Font[]> => {
+export const loadFonts = (): Promise<Font[]> => {
   fontsPromise ??= Promise.all(FONT_CSS.map(loadFamily)).then((families) => families.flat());
   return fontsPromise;
 };

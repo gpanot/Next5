@@ -283,6 +283,11 @@ model Workspace {
   /// Set while a batch of calendar ideas is being written (lock; stale after 5 min).
   ideasBatchAt          DateTime?     @map("ideas_batch_at")
   /// Auto Slideshow only: deleted by the user, restorable until the daily cron purges it 30 days later
+  /// Realtor Autopilot "Where do you sell?": { city, state, zips?, neighborhoods? } (src/lib/marketArea.ts)
+  marketArea            Json?         @map("market_area")
+  /// Brokerage disclosure on listing captions: "Listed by {agentName}, {brokerage}" (Autopilot §5.5)
+  agentName             String?       @map("agent_name")
+  brokerage             String?
   deletedAt             DateTime?     @map("deleted_at")
   /// Set by "Delete forever": the workspace is purged at this time (2 minutes later, undoable until then)
   purgeAt               DateTime?     @map("purge_at")
@@ -1129,6 +1134,8 @@ model Listing {
   /// coming_soon | just_listed | for_sale | open_house | pending | sold | off_market
   status       String?
   daysOnMarket Int?      @map("days_on_market")
+  /// Zillow open house times: { start, end }[] ISO strings (openHouseSchedule)
+  openHouses   Json?     @map("open_houses")
   /// Every photo of the Zillow gallery: { id, url, thumbUrl, tag }[]
   candidates   Json?
   /// fetching | failed while importing; ready once the photos are in
@@ -1176,6 +1183,7 @@ model ListingVideo {
 
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  campaignPosts CampaignPost[]
 
   @@index([status, createdAt])
   @@index([listingId, createdAt(sort: Desc)])
@@ -1881,6 +1889,18 @@ enum CampaignGoal {
   @@map("campaign_goal")
 }
 
+/// Realtor Autopilot playbooks (docs/business-studios/15-realtor-autopilot-plan.md). Null on old wizard campaigns.
+enum CampaignPlaybook {
+  just_listed
+  open_house
+  price_drop
+  just_sold
+  market_update
+  evergreen
+
+  @@map("campaign_playbook")
+}
+
 enum CampaignStatus {
   draft
   generated
@@ -1945,6 +1965,16 @@ model Campaign {
   assetMethod String? @map("asset_method")
   assetUrl    String? @map("asset_url")
 
+  /// Realtor playbook this campaign follows; null = the old generic wizard.
+  playbook CampaignPlaybook?
+  /// Open house start / end, and where the time came from: zillow | typed (Autopilot §3.2.1)
+  eventAt       DateTime? @map("event_at")
+  eventEndAt    DateTime? @map("event_end_at")
+  eventSource   String?   @map("event_source")
+  /// Price drop: the new and the old asking price
+  newPriceCents Int?      @map("new_price_cents")
+  oldPriceCents Int?      @map("old_price_cents")
+
   status CampaignStatus @default(draft)
   /// How far through the wizard she got, so a draft reopens where she left it.
   step   Int            @default(1)
@@ -1982,14 +2012,28 @@ model CampaignPost {
   skipped      Boolean        @default(false)
   caption      String?
   position     Int            @default(0)
+  /// slideshow | listing_video
+  format         String       @default("slideshow")
+  /// Playbook beat, e.g. "just_listed.room_by_room" (src/lib/realtorPlaybooks.ts)
+  beatKey        String?      @map("beat_key")
+  /// One-line idea shown on the plan card
+  idea           String?
+  listingVideoId String?      @map("listing_video_id")
+  /// PlaybookSlide[] once rendered (src/types/business/campaigns.ts)
+  slides         Json?
+  /// planned | generating | ready | failed
+  mediaStatus    String       @default("planned") @map("media_status")
+  mediaError     String?      @map("media_error")
   createdAt    DateTime       @default(now()) @map("created_at")
 
-  campaign Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaign     Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  listingVideo ListingVideo?          @relation(fields: [listingVideoId], references: [id], onDelete: SetNull)
   template ContentTemplate        @relation(fields: [templateId], references: [id])
   version  ContentTemplateVersion @relation(fields: [versionId], references: [id])
   slots    PostSlot[]
 
   @@index([campaignId, position])
+  @@index([listingVideoId])
   @@map("campaign_posts")
 }
 
@@ -2842,4 +2886,23 @@ model ScriptGeneratorDraft {
 
   @@index([updatedAt(sort: Desc)], map: "script_generator_drafts_updated_idx")
   @@map("script_generator_drafts")
+}
+
+/// Realtor Autopilot: one web-searched research result per area + period, shared across workspaces
+/// (docs/business-studios/15-realtor-autopilot-plan.md §4.6, §4.7).
+model MarketSnapshot {
+  id            String   @id @default(cuid())
+  /// normalized "city|state|zips" (src/lib/marketArea.ts)
+  areaKey       String   @map("area_key")
+  /// market | neighborhood
+  kind          String
+  /// "2026-W46" (weekly market) | "nbhd" (90-day neighborhood cache)
+  period        String
+  /// accepted items only, each with sourceName, sourceUrl, asOf
+  items         Json     @default("[]")
+  costUsdMicros Int?     @map("cost_usd_micros")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([areaKey, kind, period])
+  @@map("market_snapshots")
 }

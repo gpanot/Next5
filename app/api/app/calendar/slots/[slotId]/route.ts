@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authedRoute } from '../../../../../../src/server/api';
-import { markPosted, moveSlot, removeSlot, skipSlot, swapPhoto, undoPosted } from '../../../../../../src/server/calendar/calendar';
+import { markPosted, moveSlot, removeSlot, skipSlot, swapPhoto, undoPosted, SLOT_INCLUDE } from '../../../../../../src/server/calendar/calendar';
 import { toSlotDto } from '../../../../../../src/server/calendar/dto';
 import { HttpError, readJsonObject } from '../../../../../../src/server/http';
 import { prisma } from '../../../../../../src/lib/db';
@@ -11,10 +11,7 @@ type Ctx = { params: Promise<{ slotId: string }> };
 const withItem = async (workspaceId: string, slotId: string) => {
   const slot = await prisma.postSlot.findFirstOrThrow({
     where: { id: slotId, workspaceId },
-    include: {
-      item: { select: { id: true, batchId: true, r2Key: true, postKit: true, score: true, scoreDetails: true, sceneId: true, batch: { select: { name: true } } } },
-      material: { select: { id: true, label: true } },
-    },
+    include: SLOT_INCLUDE,
   });
   return toSlotDto(slot);
 };

@@ -10,3 +10,8 @@
 !/src/config/
 /src/config/*
 !/src/config/blitzLab.ts
+!/src/server/
+/src/server/*
+!/src/server/realtorVideo/
+/src/server/realtorVideo/*
+!/src/server/realtorVideo/presets.ts

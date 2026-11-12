@@ -32,6 +32,8 @@ export type ListingFacts = {
   hookBottom: string;
   locationLine: string;
   ctaKeyword: string;
+  street?: string;
+  yearBuilt?: number;
 };
 
 export type ListingVideoProps = {

@@ -51,7 +51,7 @@ export const BrandCreateFlow = () => {
       </CreateSection>
 
       {listing && fromZillow && (
-        <CreateSection step={2} title="Videos of this home" sub="Two 25-second videos for TikTok and Reels. Voice, music and captions included.">
+        <CreateSection step={2} title="Videos of this home" sub="Pick a length, then make any style. Voice, music and captions included.">
           <ListingVideosPanel listingId={listing.id} />
         </CreateSection>
       )}

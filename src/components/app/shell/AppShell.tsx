@@ -25,14 +25,23 @@ const CreateButton = () => {
   );
 };
 
-type PageFrameProps = { title: string; actions?: ReactNode; children: ReactNode; /** Show the studio switcher on phones (the sidebar has it on desktop). */ studioSwitcher?: boolean };
+type PageFrameProps = {
+  title: string;
+  actions?: ReactNode;
+  children: ReactNode;
+  /** Show the studio switcher on phones (the sidebar has it on desktop). */
+  studioSwitcher?: boolean;
+  /** A step tracker shown in the top bar (wizards). */
+  progress?: ReactNode;
+};
 
 /** Page chrome inside the shell: title row, credits pill, banner, content. */
-export const AppPage = ({ title, actions, children, studioSwitcher = false }: PageFrameProps) => (
+export const AppPage = ({ title, actions, children, studioSwitcher = false, progress }: PageFrameProps) => (
   <div className="flex min-w-0 flex-1 flex-col">
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-app-line bg-app-bg/90 px-5 backdrop-blur-md sm:px-8">
       <h1 className="truncate text-[20px] font-semibold text-app-ink sm:text-[22px]">{title}</h1>
-      <div className="flex items-center gap-2">
+      {progress && <div className="flex min-w-0 flex-1 justify-center">{progress}</div>}
+      <div className="flex shrink-0 items-center gap-2">
         {actions}
         <CreditsPill />
         <CreateButton />

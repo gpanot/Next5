@@ -30,6 +30,8 @@ WORKDIR /app
 # Copy shared Remotion source first (rarely changes → good layer cache)
 COPY src/remotion/ src/remotion/
 COPY src/config/blitzLab.ts src/config/
+# Template names, compositions and lengths (pure data) imported by src/remotion/realtor/compositions.tsx
+COPY src/server/realtorVideo/presets.ts src/server/realtorVideo/
 
 # Install worker dependencies (copy package files before full source for cache)
 COPY blitz-worker/package.json blitz-worker/package-lock.json blitz-worker/

@@ -51,9 +51,12 @@ const MonthDayCell = ({ date, inMonth, slots, onDay, onAdd }: CellProps) => {
         dropRing || (today ? 'ring-2 ring-app-accent' : allPosted ? 'ring-1 ring-emerald-600/50' : 'ring-1 ring-app-line')
       } ${inMonth ? '' : 'opacity-60'}`}
     >
-      {first.photo?.url && (
+      {(first.photo?.url ?? first.playbook?.coverUrl) && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={first.photo.url} alt="" draggable={false} className="absolute inset-0 h-full w-full object-cover" />
+        <img src={(first.photo?.url ?? first.playbook?.coverUrl)!} alt="" draggable={false} className="absolute inset-0 h-full w-full object-cover" />
+      )}
+      {!first.photo?.url && !first.playbook?.coverUrl && first.playbook && (
+        <span aria-hidden className="absolute inset-0 bg-app-accent-soft" />
       )}
       {/* The day number has to stay readable on top of any photo. */}
       <span className="absolute inset-x-0 top-0 bg-gradient-to-b from-black/60 to-transparent px-1 pb-2 pt-0.5 text-left text-[11px] font-semibold tabular-nums text-white">

@@ -4,7 +4,6 @@ import { Package } from 'lucide-react';
 import { AppLink as Link } from '../shell/AppLink';
 import { useAppRouter } from '../shell/AppLink';
 import { EmptyState } from '../../ui/EmptyState';
-import { CalendarView } from '../calendar/CalendarView';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { CreditsCard } from './CreditsCard';
 import { QuickstartCard } from './QuickstartCard';
@@ -33,11 +32,8 @@ export const DashboardView = () => {
         </div>
       )}
       {product === 'brand' ? (
-        <>
-          {/* Quickstart onboarding widget, then the month calendar. */}
-          <QuickstartCard me={me} />
-          <CalendarView variant="home" />
-        </>
+        // Quickstart checklist only: the calendar has its own page.
+        <QuickstartCard me={me} />
       ) : (
         <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
           <CreditsCard me={me} />

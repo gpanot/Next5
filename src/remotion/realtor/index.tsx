@@ -32,7 +32,7 @@ const RealtorRoot = () => (
     {PRESETS.map(({ id, component }) => (
       <Composition key={id} id={id} component={component} durationInFrames={15 * FPS} fps={FPS} width={W} height={H} defaultProps={CAROLYN_TEST} />
     ))}
-    <RealtorVoicedCompositions editorialDefaults={EDITORIAL_VOICED} rateDefaults={RATE_VOICED} />
+    <RealtorVoicedCompositions defaults={{ editorial: EDITORIAL_VOICED, rate: RATE_VOICED }} />
   </>
 );
 

@@ -27,6 +27,19 @@ export type SlotDto = {
     score: number | null;
     scoreDetails: ScoreDetailsDto | null;
   } | null;
+  /** Realtor Autopilot post (a listing video or a slideshow); null for photo slots. */
+  playbook: SlotPlaybookDto | null;
+};
+
+export type SlotPlaybookDto = {
+  campaignId: string;
+  format: 'slideshow' | 'listing_video';
+  idea: string | null;
+  status: 'planned' | 'generating' | 'ready' | 'failed';
+  caption: string | null;
+  coverUrl: string | null;
+  videoUrl: string | null;
+  slideUrls: string[];
 };
 
 export type ScheduleDto = {

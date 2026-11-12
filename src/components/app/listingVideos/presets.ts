@@ -1,9 +1,17 @@
+import { LENGTH_META, PRESET_META, REALTOR_PRESETS, VIDEO_LENGTHS, type VideoLength } from '../../../server/realtorVideo/presets';
 import type { ListingVideoDto } from '../../../types/business/listingVideos';
 
-export const VIDEO_PRESETS: { id: ListingVideoDto['preset']; name: string; line: string }[] = [
-  { id: 'editorial', name: 'Editorial tour', line: 'Calm magazine look, warm voice, price reveal.' },
-  { id: 'rate', name: 'Rate this house', line: 'Room-by-room checklist, asks viewers for a 1–10.' },
-];
+/** Every template, in the order the picker shows them (presets.ts is pure data, safe on the client). */
+export const VIDEO_PRESETS: { id: ListingVideoDto['preset']; name: string; line: string }[] = REALTOR_PRESETS.map((id) => ({
+  id, name: PRESET_META[id].name, line: PRESET_META[id].line,
+}));
+
+export const LENGTH_OPTIONS: { value: VideoLength; label: string; line: string; paidOnly: boolean }[] = VIDEO_LENGTHS.map((value) => ({
+  value, ...LENGTH_META[value],
+}));
+
+export const lengthLabel = (length: VideoLength, durationS: number | null): string =>
+  durationS ? `${Math.round(durationS)} s` : LENGTH_META[length].label;
 
 export const presetName = (id: ListingVideoDto['preset']): string => VIDEO_PRESETS.find((p) => p.id === id)?.name ?? 'Video';
 

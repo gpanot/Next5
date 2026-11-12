@@ -1,8 +1,9 @@
 'use client';
 
-import { Check, Plus, X } from 'lucide-react';
+import { Check, Plus, Sparkles, X } from 'lucide-react';
 import { dayLabel, isPast, isToday } from '../../../lib/calendarDates';
 import type { SlotDto } from '../../../types/business/calendar';
+import { PostMedia } from '../autopilot/PostMedia';
 import { NO_LONG_PRESS_MENU, useCalendarDrag, useDraggableSlot, useDroppableDay } from './CalendarDnd';
 
 type Props = {
@@ -14,6 +15,8 @@ type Props = {
   onAdd: (date: string) => void;
   onRemove: (slot: SlotDto) => void;
   busySlotId?: string | null;
+  /** Realtors: an empty day offers "Fill", which plans tip posts from that day (Autopilot §3.1). */
+  onFill?: (date: string) => void;
 };
 
 /** About four and a half thumbnails fit, so a cut-off one says "scroll for more". */
@@ -25,7 +28,8 @@ const DayThumb = ({ slot, date, onOpen, onRemove, busy }: ThumbProps) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggableSlot(slot);
   const { justDropped } = useCalendarDrag();
   const posted = slot.status === 'posted';
-  const label = slot.photo?.postKit?.hook ?? slot.materialLabel ?? slot.photo?.batchName ?? 'Post';
+  const label = slot.playbook?.idea ?? slot.photo?.postKit?.hook ?? slot.materialLabel ?? slot.photo?.batchName ?? 'Post';
+  const playbook = slot.playbook;
 
   return (
     <li className={`relative ${THUMB} transition-opacity duration-150 ${isDragging ? 'opacity-30' : ''}`}>
@@ -42,7 +46,9 @@ const DayThumb = ({ slot, date, onOpen, onRemove, busy }: ThumbProps) => {
         aria-roledescription={posted ? undefined : 'Photo you can hold and drag to another day'}
         className={`block aspect-[4/5] w-full overflow-hidden rounded-xl bg-app-sunken ${NO_LONG_PRESS_MENU}`}
       >
-        {slot.photo?.url && (
+        {playbook ? (
+          <PostMedia format={playbook.format} status={playbook.status} coverUrl={playbook.coverUrl} videoUrl={playbook.videoUrl} slideCount={playbook.slideUrls.length} className="pointer-events-none h-full !aspect-auto" />
+        ) : slot.photo?.url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={slot.photo.url} alt="" loading="lazy" draggable={false} className="pointer-events-none h-full w-full object-cover" />
         )}
@@ -72,7 +78,7 @@ const DayThumb = ({ slot, date, onOpen, onRemove, busy }: ThumbProps) => {
  * Hold a photo to carry it to another day; the day under her finger lights up.
  * No score here — she picked these photos already; the score helped then, not now.
  */
-export const DayRow = ({ date, slots, highlighted = false, onOpen, onAdd, onRemove, busySlotId = null }: Props) => {
+export const DayRow = ({ date, slots, highlighted = false, onOpen, onAdd, onRemove, busySlotId = null, onFill }: Props) => {
   const past = isPast(date);
   const { activeId } = useCalendarDrag();
   const { setNodeRef, isOver } = useDroppableDay(date, past, 'row');
@@ -106,6 +112,19 @@ export const DayRow = ({ date, slots, highlighted = false, onOpen, onAdd, onRemo
             >
               <Plus aria-hidden className="h-5 w-5" />
               <span className="text-[11px] font-medium">Add</span>
+            </button>
+          </li>
+        )}
+        {!past && slots.length === 0 && onFill && (
+          <li className={THUMB}>
+            <button
+              type="button"
+              onClick={() => onFill(date)}
+              aria-label={`Fill ${dayLabel(date)} and the empty days after it`}
+              className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-1 rounded-xl border border-app-accent/40 bg-app-accent-soft text-app-accent transition-colors duration-200 hover:border-app-accent"
+            >
+              <Sparkles aria-hidden className="h-5 w-5" />
+              <span className="text-[11px] font-semibold">Fill</span>
             </button>
           </li>
         )}

@@ -38,7 +38,7 @@ export const createWorkspace = async (input: CreateWorkspaceInput): Promise<Stud
         industry: input.industry ?? null,
         handle: input.handle ?? null,
         visibleAiTag: input.product === 'shop',
-        defaultFormats: input.product === 'shop' ? ['square_1_1'] : ['portrait_4_5'],
+        defaultFormats: input.product === 'shop' ? ['square_1_1'] : ['story_9_16'],
       },
     })) as StudioWorkspace;
   } catch (err) {
