@@ -14,7 +14,7 @@ import type { CostMeter } from '../metaAds/cost';
 import type { MotionHint, ShortBeat, ShortInputs, VideoPromptMode } from '../../types/admin/shorts';
 import { planCast, type BeatCast } from './cast';
 import { VISUAL_RULES } from './guidelines';
-import { PHOTO_FORMULA } from './photoFormula';
+import { MOTION_ACTION_RULES, PHOTO_FORMULA } from './photoFormula';
 import { creativeJson, smartModel } from './llm';
 
 export const MOTIONS: MotionHint[] = ['static', 'slow_zoom_in', 'slow_zoom_out', 'pan_left', 'pan_right', 'ken_burns'];
@@ -89,17 +89,7 @@ REEL ESSENCE:
   evidence   :
 ${(inputs.evidence ?? []).map((e, i) => `    ${i + 1}. ${e}`).join('\n')}
 
-MOTION ACTION — the photo becomes the first frame of a short video clip. In "motion_action", write ONE sentence (8-20
-words) of what visibly happens in the next few seconds at REAL-LIFE SPEED, as if filmed on a phone: ordinary, brisk,
-everyday movements (she types a line and glances up; he picks up the box and turns it over). Never "slowly", "gently",
-"gracefully", "in slow motion" or dreamy floating. A beat with no person: what moves naturally (steam, a hand, traffic).
-Use ONLY people and objects your image_prompt puts in the frame: never pick up, open or reveal something that is not in
-the photo (a phone that is not on the desk would pop out of nowhere).
-MOTION ACTION RULES (the clip is 4-6 s from this photo; Veo adds artifacts on fine detail):
-  - ONE big, simple movement a viewer sees clearly from THIS camera angle: walk, turn, stand up, open a door, lift, nod.
-  - Never fine hand-object contact (buckles, handles, laces, zippers, small buttons, typing), never an action behind glass
-    or inside a car seen from outside, never two things moving at once.
-  - No new object, person or part of the car that is not already in the photo.
+${MOTION_ACTION_RULES}
 
 Return JSON with exactly these keys: {"image_prompt": string, "motion_hint": string, "motion_action": string, "visual_anchor": string}`;
 
@@ -209,9 +199,10 @@ const REAL_TIME =
 const DEFAULT_ACTION = 'Natural small everyday movement';
 
 /**
- * The video prompt. 'simple' (default since 2026-10-22): the action, the camera and the speed only; the long prompt
- * (the whole photo prompt again) gave weird AI artifacts on 4-6 s clips, and Veo 3.1 reads the first frame itself.
- * 'detailed': the photo's prompt, the action, the camera and real-time speed (the earlier prompt).
+ * The video prompt. 'simple' (default since 2026-10-22): only what happens NEXT (the clip starts from the photo, which
+ * Veo 3.1 already sees): the planner's motion cues, the camera and the speed. No scene description: the long prompt
+ * repeated the photo and gave weird AI artifacts on 4-6 s clips.
+ * 'detailed': the whole photo prompt, the action, the camera and real-time speed (the earlier prompt).
  */
 export const videoPrompt = (beat: ShortBeat, mode: VideoPromptMode = 'simple'): string => {
   const action = beat.motionAction?.replace(/\.$/, '');

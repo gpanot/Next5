@@ -18,9 +18,18 @@ softly blurred background. Preserve the cotton weave of her sweater, visible ski
 Clean whites and warm neutrals, calm and practical. Natural imperfections, believable background geometry, no unwanted
 text or logos.`;
 
-/** What a clip's `motion_action` may be (the clip is 4-6 s from one photo; Veo adds artifacts on fine detail). */
-export const MOTION_ACTION_RULES = `  - ONE big, simple movement a viewer sees clearly from THIS camera angle: walk, turn, stand up, open a door, lift, nod.
-  - Never fine hand-object contact (buckles, handles, laces, zippers, small buttons, typing), never an action behind glass
-    or inside a car seen from outside, never two things moving at once.
-  - No new object, person or part of the car that is not already in the photo.
-  - 8-16 words, real-life speed, never "slowly", "gently" or "in slow motion".`;
+/**
+ * How `motion_action` is written (user, 2026-10-22). The clip starts FROM the photo, so the prompt only says what happens
+ * next, never what the photo shows. Since it no longer repeats the photo, it can be precise: 50-80 words of exact motion.
+ */
+export const MOTION_ACTION_RULES = `MOTION ACTION (the clip starts from this photo, so never describe what the photo shows; say only what happens NEXT):
+  - 50-80 words, real-life speed (never "slowly", "gently", "in slow motion"), in the order it happens over the 4-6 seconds.
+  - Be precise: which body part moves, in which direction, in what order, how far (the left hand grips the door edge and
+    pulls it outward; she turns her shoulders toward the seat and lowers herself in).
+  - Cover three layers: (1) the main action of the subject, step by step; (2) the subject's secondary motion (head and
+    eye direction, blinking, breathing, weight shift, fabric and hair following the body); (3) the surroundings (leaves,
+    grass, passing light and shadow, distant traffic, reflections moving on the bodywork).
+  - Say how the camera move interacts with the action when it matters (the push in tightens on her face as she sits).
+  - Refer to people and objects by role ("the woman", "the car"), never by appearance, outfit or brand.
+  - Choose actions a viewer can see from THIS camera angle. Use only people and objects already in the photo: nothing
+    new appears, nothing is picked up that is not in frame.`;

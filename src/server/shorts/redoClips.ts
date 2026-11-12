@@ -13,8 +13,7 @@ import { runShortPipeline } from './pipeline';
 
 const json = (v: unknown) => v as Prisma.InputJsonValue;
 
-const SYSTEM = `You write ONE motion action per shot for a short video clip. The clip starts from the shot's photo and lasts 4-6 seconds.
-RULES:
+const SYSTEM = `You write the "motion action" of each shot of a short video clip. The clip starts from the shot's photo and lasts 4-6 seconds.
 ${MOTION_ACTION_RULES}
 Return flat JSON keys only: {"action_0": string, "action_1": string, ...}`;
 
