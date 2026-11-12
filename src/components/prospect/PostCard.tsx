@@ -50,8 +50,9 @@ export function Thumb({ day }: { day: ProspectViewDay }) {
   );
 }
 
-/** A 9:16 post: its still, a play mark on videos, and "Yours when you claim" at the bottom
- *  ("After you buy" on a locked day). `showState` false for the copies in the post sheet and the compare section. */
+/** A 9:16 post: its still, its tag ("Education", "Story"...), a play mark on videos, and "After you buy" at the
+ *  bottom of a locked day (the free days are theirs to download, so they carry no lock). `showState` false for the
+ *  copies in the post sheet and the compare section. */
 export function PostFrame({ day, showState = true, extra }: { day: ProspectViewDay; showState?: boolean; extra?: React.ReactNode }) {
   return (
     <>
@@ -62,12 +63,15 @@ export function PostFrame({ day, showState = true, extra }: { day: ProspectViewD
         </span>
       )}
       {extra}
-      {showState && (
+      {showState && day.tag && (
+        <span className="absolute left-2.5 top-2.5 z-[1] rounded-full bg-black/55 px-2 py-1 text-[11px] font-semibold text-white backdrop-blur-md">{day.tag}</span>
+      )}
+      {showState && day.locked && (
         <>
           <span className="absolute inset-x-0 bottom-0 h-[30%] bg-gradient-to-t from-black/75 to-transparent" aria-hidden />
           <span className="absolute inset-x-2.5 bottom-2.5 z-[1] flex items-center gap-1.5 text-[12px] font-semibold text-white">
             <LockIcon />
-            {day.locked ? 'After you buy' : 'Yours when you claim'}
+            After you buy
           </span>
         </>
       )}
