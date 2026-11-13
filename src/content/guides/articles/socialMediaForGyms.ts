@@ -45,7 +45,7 @@ export const socialMediaForGyms: Article = {
       'Equipment tour for someone who has never used a rack or a sled',
       'A real review, word for word, as a slideshow',
     ] },
-    { type: 'tip', title: 'Turn tips into slideshows', text: 'Each idea above works as a 5 to 7 slide TikTok slideshow: gym photos or short clips plus one short line per slide, no filming a whole video. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). Not every coach wants to be on camera either, see [faceless TikTok ideas for businesses](/blog/faceless-tiktok-ideas-for-business).' },
+    { type: 'tip', title: 'Turn tips into slideshows', text: 'Each idea above works as a 5 to 7 slide TikTok slideshow: gym photos or short clips plus one short line per slide, no filming a whole video. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). Not every coach wants to be on camera either, see [faceless TikTok ideas for businesses](/blog/faceless-tiktok-ideas-for-business). For the Instagram Reels specifically, see [Instagram Reel ideas for small business](/blog/instagram-reel-ideas-for-small-business) for the hook lines and shot list.' },
     { type: 'h2', text: 'Which platform actually brings in new members?' },
     { type: 'ul', items: [
       '**Instagram** is where people check you out before they book a trial. Keep your bio and highlights current.',

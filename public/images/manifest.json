@@ -4808,6 +4808,15 @@
     "alt": "Plant shop owner drawing on a sidewalk chalkboard sign outside her store",
     "generatedAt": "2026-10-28T07:21:35.292Z"
   },
+  "public/images/guides/instagram-reel-ideas-for-small-business.png": {
+    "prompt": "Reused from marketing-ideas-for-small-business.png. DeepInfra returned a 402 billing error on generation attempt for this slug.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 900391,
+    "alt": "Plant shop owner drawing on a sidewalk chalkboard sign outside her store",
+    "generatedAt": "2026-11-13T00:00:00.000Z"
+  },
   "public/images/guides/tiktok-hooks-for-small-business.png": {
     "prompt": "A candle maker in her 30s pours melted wax from a metal pitcher into glass jars on her workbench while a phone on a small tripod films the pour, jars, wicks and labels around her in a small home workshop. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
     "model": "black-forest-labs/FLUX-2-pro",
