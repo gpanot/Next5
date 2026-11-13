@@ -12,6 +12,7 @@ import { howToMakeTikTokSlideshow } from './articles/howToMakeTikTokSlideshow';
 import { howToSellOnTikTokShop } from './articles/howToSellOnTikTokShop';
 import { hvacSocialMediaMarketing } from './articles/hvacSocialMediaMarketing';
 import { instagramPostIdeasForSmallBusiness } from './articles/instagramPostIdeasForSmallBusiness';
+import { instagramReelIdeasForSmallBusiness } from './articles/instagramReelIdeasForSmallBusiness';
 import { marketingIdeasSmallBusiness } from './articles/marketingIdeasSmallBusiness';
 import { openHouseSocialMediaPost } from './articles/openHouseSocialMediaPost';
 import { realEstateInstagramCaptions } from './articles/realEstateInstagramCaptions';
@@ -82,6 +83,7 @@ export const BLOG_POSTS: readonly Article[] = [
   instagramPostIdeasForSmallBusiness,
   socialMediaForCleaningBusiness,
   howToGetLeadsFromTikTok,
+  instagramReelIdeasForSmallBusiness,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];

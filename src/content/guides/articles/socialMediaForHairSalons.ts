@@ -42,7 +42,7 @@ export const socialMediaForHairSalons: Article = {
       'A quick myth corrected: what a stylist actually hears at the chair',
       '"2 openings this week" stated plainly, with how to grab one',
     ] },
-    { type: 'tip', title: 'Turn ideas into slideshows', text: 'Most of these work as a 5 to 7 slide TikTok slideshow built from photos you already have on your phone, no extra filming. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). If a stylist does not want to be on camera, a chair, a formula and a result still make a full post, see [faceless TikTok ideas for businesses](/blog/faceless-tiktok-ideas-for-business).' },
+    { type: 'tip', title: 'Turn ideas into slideshows', text: 'Most of these work as a 5 to 7 slide TikTok slideshow built from photos you already have on your phone, no extra filming. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). If a stylist does not want to be on camera, a chair, a formula and a result still make a full post, see [faceless TikTok ideas for businesses](/blog/faceless-tiktok-ideas-for-business). For the same before-and-after as an Instagram Reel, see [Instagram Reel ideas for small business](/blog/instagram-reel-ideas-for-small-business).' },
     { type: 'h2', text: 'Always ask before you post a client\'s photo' },
     { type: 'p', text: 'A before-and-after is a photo of a real person. Ask every time, even for regulars, and keep a quick note of who said yes, a notes app list is enough. Most clients say yes on the spot when you ask right after the reveal, while they are still happy with the result.' },
     { type: 'h2', text: 'Who should post: the salon account, the stylist, or both?' },

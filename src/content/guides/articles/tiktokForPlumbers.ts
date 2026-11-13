@@ -28,7 +28,7 @@ export const tiktokForPlumbers: Article = {
       { title: 'Tools of the trade', text: 'A drain camera, a pipe inspection snake, a specific part, explained like you would to a neighbor, not a trade magazine.' },
       { title: 'The worst install you have fixed', text: 'A recurring series. Every plumber has seen a DIY job gone wrong. Show it, explain the right way, no names or addresses.' },
     ] },
-    { type: 'tip', title: 'Turn a job into a slideshow', text: 'No filming required: 5 to 7 photos from the job (the problem, the part, the fix) with one line of text on each works as well as video for most of these. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). If you would rather not be on camera at all, tools and job photos carry a full post on their own, see [faceless TikTok ideas for businesses](/blog/faceless-tiktok-ideas-for-business).' },
+    { type: 'tip', title: 'Turn a job into a slideshow', text: 'No filming required: 5 to 7 photos from the job (the problem, the part, the fix) with one line of text on each works as well as video for most of these. See [how to make a slideshow on TikTok](/blog/how-to-make-a-slideshow-on-tiktok). If you would rather not be on camera at all, tools and job photos carry a full post on their own, see [faceless TikTok ideas for businesses](/blog/faceless-tiktok-ideas-for-business). For posting the same job as an Instagram Reel instead, see [Instagram Reel ideas for small business](/blog/instagram-reel-ideas-for-small-business).' },
     { type: 'h2', text: 'What to never film' },
     { type: 'p', text: 'You are working inside someone else\'s home. That changes the rules from a gym or a shop.' },
     { type: 'ul', items: [
