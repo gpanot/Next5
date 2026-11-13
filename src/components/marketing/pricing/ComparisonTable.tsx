@@ -1,22 +1,20 @@
 import { Check, Minus } from 'lucide-react';
 import { plansForProduct, type Plan, type ProductLineId } from '../../../config/plans';
-import { ugcTableValue } from '../../../content/business/ugc';
 
 type Row = { label: string; value: (plan: Plan) => string | boolean };
 
 const ROWS: readonly Row[] = [
-  { label: 'Photos every month', value: (p) => p.monthlyCredits.toLocaleString('en-US') },
-  { label: 'UGC videos every month, made by our team', value: ugcTableValue },
+  { label: 'Videos every month', value: (p) => p.monthlyCredits.toLocaleString('en-US') },
   { label: 'Products imported from your store', value: (p) => (p.storeProducts ? String(p.storeProducts) : false) },
   { label: 'Weekly drops + weekly store sync', value: (p) => p.drops },
   { label: 'TikTok listing packs', value: (p) => p.product === 'shop' },
   { label: 'All formats (4:5, 9:16, 1:1, 3:4)', value: () => true },
-  { label: 'Free redos (2 per photo)', value: () => true },
-  { label: 'Scroll-Stop Score on every photo', value: () => true },
-  { label: 'Big 2K photos', value: (p) => p.highRes },
+  { label: 'Free redos (2 per video)', value: () => true },
+  { label: 'Scroll-Stop Score on every video', value: () => true },
+  { label: 'Big 2K videos', value: (p) => p.highRes },
   { label: 'Post Kit (hooks, captions, hashtags)', value: (p) => p.postKit },
   { label: 'All 30 Studio models', value: (p) => p.allStudioModels },
-  { label: 'Photos made first', value: (p) => p.priority },
+  { label: 'Videos made first', value: (p) => p.priority },
   { label: 'Setup call with our team', value: (p) => p.id.endsWith('_agency') },
 ];
 

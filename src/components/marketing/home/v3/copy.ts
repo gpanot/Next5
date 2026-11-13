@@ -22,7 +22,6 @@ export interface AudienceCopy {
   src: string;
   pain1: string;
   fit1: string;
-  dd: string;
 }
 
 export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
@@ -30,10 +29,10 @@ export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
     h1: 'Your new listing on social media in 2 minutes.',
     sub: 'Paste your Zillow link. We put your home in proven real estate video templates, made to stop the scroll and bring you leads.',
     ph: 'zillow.com/homedetails/...',
-    demo: 'https://www.zillow.com/homedetails/1204-Oak-Ridge-Dr-Austin-TX',
+    demo: 'https://www.zillow.com/homedetails/2784-Bell-Dr-SE-Smyrna-GA-30080',
     hooks: ['Wait till you see the kitchen.', 'This backyard sold me.', '3 bd in Austin. Come look.'],
-    facts: ['$649,000', '3 bd', '2 ba', 'Austin, TX'],
-    s0: 'Pulling your 24 listing photos',
+    facts: ['$525,000', '3 bd', '3 ba', 'Smyrna, GA'],
+    s0: 'Pulling your 25 listing photos',
     noun: 'listing',
     photos: 'photos of you',
     statNum: '39%',
@@ -41,6 +40,5 @@ export const AUDIENCE_COPY: Record<Audience, AudienceCopy> = {
     src: 'NAR Technology Survey, 2025',
     pain1: 'Showings, calls, paperwork. Posting is always tomorrow.',
     fit1: 'You have listings and want more people to see them',
-    dd: "You're gonna fall in love with this one.",
   },
 };

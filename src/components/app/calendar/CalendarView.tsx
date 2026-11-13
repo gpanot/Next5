@@ -193,7 +193,7 @@ export const CalendarView = ({ variant = 'full' }: { variant?: 'full' | 'home' }
           const date = pickerDate;
           setLocal(next);
           setPickerDate(null);
-          toast(`Added ${count} photo${count === 1 ? '' : 's'}${date ? ` to ${dayLabel(date)}` : ''}`, 'success');
+          toast(`Added ${count} post${count === 1 ? '' : 's'}${date ? ` to ${dayLabel(date)}` : ''}`, 'success');
         }}
       />
       <ToastContainer toasts={toasts} onDismiss={dismiss} />

@@ -4,6 +4,7 @@
 import { getPresignedUrl } from '../../lib/r2';
 import type { PlaybookSlide } from '../../types/business/campaigns';
 import type { SlotPlaybookDto } from '../../types/business/calendar';
+import { PRESET_META, type RealtorPreset } from '../realtorVideo/presets';
 import type { SlotWithItem } from './calendar';
 
 const SIGN_SECONDS = 24 * 3600;
@@ -14,7 +15,22 @@ const statusOf = (post: NonNullable<SlotWithItem['campaignPost']>): SlotPlaybook
   return post.mediaStatus as SlotPlaybookDto['status'];
 };
 
+const presetName = (preset: string): string => PRESET_META[preset as RealtorPreset]?.name ?? 'Listing video';
+
+/** A listing video she put on the day by hand: shown and posted like an Autopilot video. */
+const manualVideoOf = async (video: NonNullable<SlotWithItem['listingVideo']>, caption: string | null): Promise<SlotPlaybookDto> => ({
+  campaignId: null,
+  format: 'listing_video',
+  idea: `${presetName(video.preset)} · ${video.listing.label}`,
+  status: video.status === 'ready' ? 'ready' : video.status === 'failed' ? 'failed' : 'generating',
+  caption,
+  coverUrl: null,
+  videoUrl: video.status === 'ready' && video.videoKey ? await getPresignedUrl(video.videoKey, SIGN_SECONDS) : null,
+  slideUrls: [],
+});
+
 export const playbookOf = async (slot: SlotWithItem): Promise<SlotPlaybookDto | null> => {
+  if (slot.listingVideo && !slot.campaignPost) return manualVideoOf(slot.listingVideo, slot.captionOverride);
   const post = slot.campaignPost;
   if (!post?.beatKey) return null;
   const slides = (Array.isArray(post.slides) ? post.slides : []) as PlaybookSlide[];

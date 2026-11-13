@@ -28,7 +28,7 @@ type CheckoutSheetProps = {
 const titleFor = (request: CheckoutRequest | null, payment: PaymentDto | null): string => {
   if (payment?.isRequest) return payment.purpose === 'topup' ? 'Request a top-up' : `Request ${payment.itemLabel}`;
   if (payment) return payment.purpose === 'topup' ? 'Top up photos' : `Pay for ${payment.itemLabel}`;
-  if (request?.purpose === 'topup' && isTopupId(request.topupId)) return `Top up ${TOPUPS[request.topupId].credits} photos`;
+  if (request?.purpose === 'topup' && isTopupId(request.topupId)) return `Top up ${TOPUPS[request.topupId].credits} videos`;
   return 'Checkout';
 };
 

@@ -7,24 +7,22 @@
 import { plansForProduct, type ProductLineId } from '../../config/plans';
 import { formatUsd } from '../../lib/money';
 import type { FaqItem } from './marketing';
-import { UGC_VIDEOS_PER_MONTH } from './ugc';
 
 const US = '/images/business/us';
 
 /** Cheapest self-serve plan for a product: price, photos and videos a month. */
 const starterFor = (product: ProductLineId) => {
   const plan = [...plansForProduct(product)].sort((a, b) => a.monthlyUsdCents - b.monthlyUsdCents)[0]!;
-  const videos = UGC_VIDEOS_PER_MONTH[plan.id];
-  return { price: formatUsd(plan.monthlyUsdCents), photos: plan.monthlyCredits, videos, planProduct: product };
+  return { price: formatUsd(plan.monthlyUsdCents), videos: plan.monthlyCredits, planProduct: product };
 };
 
 const plural = (count: number, word: string): string => `${count.toLocaleString('en-US')} ${word}${count === 1 ? '' : 's'}`;
 
 export const STARTER = { brand: starterFor('brand'), shop: starterFor('shop') };
 
-/** "30 photos + 1 video a month" */
+/** "30 videos a month" */
 export const includesLine = (product: ProductLineId): string =>
-  `${plural(STARTER[product].photos, 'photo')} + ${plural(STARTER[product].videos, 'video')} a month`;
+  `${plural(STARTER[product].videos, 'video')} a month`;
 
 export type HomeDoor = { id: ProductLineId; href: string; label: string; line: string; image: string };
 
@@ -126,11 +124,11 @@ const shop = STARTER.shop;
 
 export const HOME_FAQ: FaqItem[] = [
   { q: 'Who is Next5 for?', a: 'Two groups. Realtors who need new photos and videos of themselves. And TikTok Shop sellers who need photos and videos of their products.' },
-  { q: 'What are UGC videos?', a: `Short videos for TikTok, Reels and Shorts. They look like videos people film on their phones. Our team makes them for you each month. Growth gets ${UGC_VIDEOS_PER_MONTH.brand_pro} a month.` },
+  { q: 'What are UGC videos?', a: `Short videos for TikTok, Reels and Shorts. They look like videos people film on their phones. Your plan gives you a number of videos each month, and top-ups cost $1.50 per video.` },
   { q: 'How much does it cost?', a: `Realtors start at ${brand.price} a month for ${includesLine('brand')}. TikTok Shop starts at ${shop.price} a month for ${includesLine('shop')}. Your first 3 photos are free. Videos come with a paid plan.` },
   { q: 'Will it look like me, or like my product?', a: 'Yes. We use your selfies or your product photo every time. If a photo looks wrong, we redo it for free. You get 2 free redos per photo.' },
   { q: 'Can’t I just use ChatGPT?', a: 'You can make one photo. But your face or product changes each time. You still write every post. And it will not make your videos. Next5 does all of that for you.' },
-  { q: 'How do I pay?', a: 'Pay monthly, or pay once a year and save 20%. Nothing renews on its own. We remind you before your plan ends.' },
+  { q: 'How do I pay?', a: 'Pay monthly, or pay once a year and save 10%. Nothing renews on its own. We remind you before your plan ends.' },
   { q: 'Who owns the photos and videos?', a: 'You do. Use them on social media, your website, your listings and your ads. Each photo has an AI label inside, as TikTok and Meta ask.' },
 ];
 

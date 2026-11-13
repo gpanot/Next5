@@ -30,7 +30,7 @@ export function OfferSection({ audience }: { audience: Audience }) {
           <OfferRow value="$400" index={1}><b>10 <span className="js-photos">{c.photos}</span></b> for the days between videos</OfferRow>
           <OfferRow value="Included" index={2}><b>Your month planned</b>, one post for every day</OfferRow>
           <OfferRow value="Included" index={3}><b>Hooks, captions and hashtags</b> written for every post</OfferRow>
-          <OfferRow value="Included" index={4}><b>Up to 5 options a day.</b> Swipe until you love it.</OfferRow>
+          <OfferRow value="Included" index={4}><b>6 Autopilots:</b> just listed, open house, price drop, just sold, market update, tips</OfferRow>
           <OfferRow value="Free" bonus index={0}><b>Your first video free</b>, before you pay anything</OfferRow>
           <OfferRow value="$100" bonus index={1}><b>A 15-minute setup call</b> with the founder to plan your first month</OfferRow>
           <OfferRow value="$150" bonus index={2}><b>Profile makeover:</b> new bio and a pro headshot</OfferRow>

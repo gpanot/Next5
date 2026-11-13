@@ -6,7 +6,7 @@
 import type { Listing, PostMaterial, Workspace } from '@prisma/client';
 import type { CandidateDto, ListingDto, ListingImportStatus } from '../../types/business/listings';
 import { occasionForStatus } from '../../lib/listingOccasions';
-import { factsLine, isLowRes, isWeakTag, statusLabel, tagLabel } from '../../lib/listingPhotos';
+import { LISTING_STATUSES, factsLine, isLowRes, isWeakTag, statusLabel, tagLabel } from '../../lib/listingPhotos';
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
 import { materialKey } from '../storage/keys';
@@ -67,16 +67,35 @@ export const createListing = async (
   return prisma.listing.create({ data: { workspaceId: ws.id, label, visibleAiTag: input.visibleAiTag, attestedAt: new Date() } });
 };
 
+/** Home facts she types for an uploaded property (Zillow ones come from the import). */
+export type ListingDetailsInput = { status: string | null; city: string; state: string; priceUsd: number | null; beds: number | null; baths: number | null; sqft: number | null };
+
+const detailsData = (current: Listing, d: ListingDetailsInput) => {
+  const city = d.city.trim().slice(0, 80);
+  const state = d.state.trim().toUpperCase().slice(0, 2);
+  const old = (current.address ?? {}) as Record<string, unknown>;
+  return {
+    address: { ...old, city, state, full: [city, state].filter(Boolean).join(', ') },
+    status: d.status && (LISTING_STATUSES as readonly string[]).includes(d.status) ? d.status : current.status,
+    priceCents: d.priceUsd && d.priceUsd > 0 ? Math.round(d.priceUsd * 100) : null,
+    beds: d.beds, baths: d.baths, sqft: d.sqft,
+  };
+};
+
 export const updateListing = async (
   workspaceId: string,
   listingId: string,
-  input: { label?: string; visibleAiTag?: boolean },
+  input: { label?: string; visibleAiTag?: boolean; details?: ListingDetailsInput },
 ): Promise<Listing> => {
-  await getListing(workspaceId, listingId);
+  const current = await getListing(workspaceId, listingId);
   const label = input.label?.trim().slice(0, 120);
   return prisma.listing.update({
     where: { id: listingId },
-    data: { ...(label ? { label } : {}), ...(input.visibleAiTag === undefined ? {} : { visibleAiTag: input.visibleAiTag }) },
+    data: {
+      ...(label ? { label } : {}),
+      ...(input.visibleAiTag === undefined ? {} : { visibleAiTag: input.visibleAiTag }),
+      ...(input.details ? detailsData(current, input.details) : {}),
+    },
   });
 };
 
@@ -149,6 +168,9 @@ export const toListingDto = async (listing: Listing & { materials?: PostMaterial
     importError: listing.importError,
     syncing: listing.importStatus === 'ready' && listing.runId !== null,
     address: (listing.address as { full?: string } | null)?.full ?? null,
+    city: (listing.address as { city?: string } | null)?.city ?? null,
+    state: (listing.address as { state?: string } | null)?.state ?? null,
+    beds: listing.beds, baths: listing.baths, sqft: listing.sqft,
     facts: listing.source === 'zillow' ? factsLine(listing) : null,
     status: listing.status,
     statusLabel: statusLabel(listing.status),

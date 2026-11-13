@@ -24,7 +24,7 @@ export type Plan = {
   monthlyUsdCents: number;
   monthlyCredits: number;
   highRes: boolean;
-  /** Post Kit: hook, caption, hashtags (and a product description on Shop) for every photo. */
+  /** Post Kit: hook, caption, hashtags (and a product description on Shop) for every video. */
   postKit: boolean;
   allStudioModels: boolean;
   priority: boolean;
@@ -41,7 +41,7 @@ export const PLANS: Record<PlanId, Plan> = {
     id: 'brand_starter',
     product: 'brand',
     name: 'Starter',
-    tagline: 'New photos of you for your weekly posts.',
+    tagline: 'New videos of you for your weekly posts.',
     audience: 'To get started',
     monthlyUsdCents: 2_900,
     monthlyCredits: 30,
@@ -52,7 +52,7 @@ export const PLANS: Record<PlanId, Plan> = {
     mostPopular: false,
     storeProducts: 0,
     drops: false,
-    features: ['30 photos every month', 'Your posting calendar, planned for you', 'Scroll-Stop Score on every photo', 'Every monthly trend theme', 'All social sizes'],
+    features: ['30 videos every month', 'Your posting calendar, planned for you', 'Scroll-Stop Score on every video', 'Every monthly trend theme', 'All social sizes'],
   },
   brand_pro: {
     id: 'brand_pro',
@@ -70,22 +70,22 @@ export const PLANS: Record<PlanId, Plan> = {
     storeProducts: 0,
     drops: false,
     features: [
-      '120 photos every month',
+      '120 videos every month',
       'Your posting calendar, planned and made for you',
-      'Post Kit: a hook, caption and hashtags for every photo',
-      'Scroll-Stop Score and tips on every photo',
+      'Post Kit: a hook, caption and hashtags for every video',
+      'Scroll-Stop Score and tips on every video',
       'Every trend theme',
-      'Big 2K photos, made first',
+      'Big 2K videos, made first',
     ],
   },
   brand_agency: {
     id: 'brand_agency',
     product: 'brand',
-    name: 'Agency',
-    tagline: 'Photos and posts for your whole team.',
+    name: 'Pro',
+    tagline: 'Videos and posts for your whole team.',
     audience: 'For brokerages and teams',
-    monthlyUsdCents: 75_900,
-    monthlyCredits: 1_200,
+    monthlyUsdCents: 19_900,
+    monthlyCredits: 300,
     highRes: true,
     postKit: true,
     allStudioModels: false,
@@ -94,7 +94,7 @@ export const PLANS: Record<PlanId, Plan> = {
     storeProducts: 0,
     drops: false,
     features: [
-      '1,200 photos every month',
+      '300 videos every month',
       'Everything in Growth',
       'Setup call with our team',
       'Priority support',
@@ -104,10 +104,10 @@ export const PLANS: Record<PlanId, Plan> = {
     id: 'shop_starter',
     product: 'shop',
     name: 'Starter',
-    tagline: 'Photos for your new stock.',
+    tagline: 'Videos for your new stock.',
     audience: 'For small shops',
     monthlyUsdCents: 4_900,
-    monthlyCredits: 100,
+    monthlyCredits: 50,
     highRes: false,
     postKit: false,
     allStudioModels: false,
@@ -115,16 +115,16 @@ export const PLANS: Record<PlanId, Plan> = {
     mostPopular: false,
     storeProducts: 50,
     drops: false,
-    features: ['100 photos every month', 'Import up to 50 products from your store', 'TikTok listing packs', 'Scroll-Stop Score on every photo', 'You or 1 Studio model'],
+    features: ['50 videos every month', 'Import up to 50 products from your store', 'TikTok listing packs', 'Scroll-Stop Score on every video', 'You or 1 Studio model'],
   },
   shop_pro: {
     id: 'shop_pro',
     product: 'shop',
     name: 'Growth',
-    tagline: 'Your new drops, photographed every week.',
+    tagline: 'Your new drops, made every week.',
     audience: 'For shops with 100–500 products',
     monthlyUsdCents: 19_900,
-    monthlyCredits: 400,
+    monthlyCredits: 240,
     highRes: true,
     postKit: true,
     allStudioModels: true,
@@ -133,11 +133,11 @@ export const PLANS: Record<PlanId, Plan> = {
     storeProducts: 500,
     drops: true,
     features: [
-      '400 photos every month',
+      '240 videos every month',
       'Weekly drops: new products picked for you',
       'Store sync every week, up to 500 products',
       'Post Kit: hook, product description and hashtags',
-      'All 30 Studio models, big 2K photos',
+      'All 30 Studio models, big 2K videos',
     ],
   },
   shop_scale: {
@@ -147,7 +147,7 @@ export const PLANS: Record<PlanId, Plan> = {
     tagline: 'For big catalogs and fast restocks.',
     audience: 'For shops with 500+ products',
     monthlyUsdCents: 39_900,
-    monthlyCredits: 1_000,
+    monthlyCredits: 600,
     highRes: true,
     postKit: true,
     allStudioModels: true,
@@ -156,9 +156,9 @@ export const PLANS: Record<PlanId, Plan> = {
     storeProducts: 500,
     drops: true,
     features: [
-      '1,000 photos every month',
+      '600 videos every month',
       'Everything in Growth',
-      'Photos made first',
+      'Videos made first',
       'First access to automatic TikTok Shop sync',
     ],
   },
@@ -166,7 +166,7 @@ export const PLANS: Record<PlanId, Plan> = {
 
 export const TERMS: readonly TermMonths[] = [1, 12];
 
-export const TERM_DISCOUNT: Record<TermMonths, number> = { 1: 0, 12: 0.2 };
+export const TERM_DISCOUNT: Record<TermMonths, number> = { 1: 0, 12: 0.1 };
 
 /** Term shown by default on pricing and plan pickers. */
 export const DEFAULT_TERM: TermMonths = 12;
@@ -174,14 +174,15 @@ export const DEFAULT_TERM: TermMonths = 12;
 /** "Monthly" / "Yearly"; any other stored length (older 3- or 6-month plans) reads "N months". */
 export const termLabel = (months: number): string => (months === 1 ? 'Monthly' : months === 12 ? 'Yearly' : `${months} months`);
 
-export type TopupId = 'topup_20' | 'topup_60' | 'topup_150';
+export type TopupId = 'topup_10' | 'topup_30' | 'topup_90';
 
 export type Topup = { id: TopupId; credits: number; usdCents: number; validityMonths: number };
 
+/** $1.50 per video. */
 export const TOPUPS: Record<TopupId, Topup> = {
-  topup_20: { id: 'topup_20', credits: 20, usdCents: 600, validityMonths: 12 },
-  topup_60: { id: 'topup_60', credits: 60, usdCents: 1_500, validityMonths: 12 },
-  topup_150: { id: 'topup_150', credits: 150, usdCents: 3_200, validityMonths: 12 },
+  topup_10: { id: 'topup_10', credits: 10, usdCents: 1_500, validityMonths: 12 },
+  topup_30: { id: 'topup_30', credits: 30, usdCents: 4_500, validityMonths: 12 },
+  topup_90: { id: 'topup_90', credits: 90, usdCents: 13_500, validityMonths: 12 },
 };
 
 export const isPlanId = (value: string): value is PlanId => value in PLANS;
@@ -205,8 +206,8 @@ export const getTermSavingsUsdCents = (planId: PlanId, term: TermMonths): number
 export const getEffectiveMonthlyUsdCents = (planId: PlanId, term: TermMonths): number =>
   Math.round(getTermPriceUsdCents(planId, term) / term);
 
-/** Price per photo at the monthly rate, in cents (rounded to the cent). */
-export const getPricePerPhotoUsdCents = (planId: PlanId): number =>
+/** Price per video at the monthly rate, in cents (rounded to the cent). */
+export const getPricePerVideoUsdCents = (planId: PlanId): number =>
   Math.round(PLANS[planId].monthlyUsdCents / PLANS[planId].monthlyCredits);
 
 export const plansForProduct = (product: ProductLineId): readonly Plan[] =>

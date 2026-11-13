@@ -68,19 +68,19 @@ describe('subscription payments', () => {
 describe('top-up payments', () => {
   it('grants top-up credits valid for 12 months', async () => {
     const ws = await createTestWorkspace('shop');
-    const payment = await createTopupPayment({ userId: ws.ownerUserId, workspaceId: ws.id }, 'topup_60');
+    const payment = await createTopupPayment({ userId: ws.ownerUserId, workspaceId: ws.id }, 'topup_30');
     const paidAt = new Date('2026-09-14T00:00:00Z');
     await markPaidAndFulfil(payment.id, payment.amountVnd, new Date(payment.expiresAt.getTime() - 60_000));
     const balance = await getBalance(ws.id, paidAt);
-    expect(balance.byBucket.topup).toBe(60);
-    expect(balance.nextExpiry?.credits).toBe(60);
+    expect(balance.byBucket.topup).toBe(30);
+    expect(balance.nextExpiry?.credits).toBe(30);
   });
 });
 
 describe('getPaymentForUser', () => {
   it('hides other users payments and expires stale ones on read', async () => {
     const ws = await createTestWorkspace('brand');
-    const payment = await createTopupPayment({ userId: ws.ownerUserId, workspaceId: ws.id }, 'topup_20');
+    const payment = await createTopupPayment({ userId: ws.ownerUserId, workspaceId: ws.id }, 'topup_10');
     await expect(getPaymentForUser(payment.id, 'someone-else')).rejects.toMatchObject({ status: 404 });
     const later = new Date(payment.expiresAt.getTime() + 1_000);
     expect((await getPaymentForUser(payment.id, ws.ownerUserId, later)).state).toBe('expired');

@@ -21,12 +21,12 @@ export const isWeakTag = (tag: string | null | undefined): boolean => isPhotoTag
 export const LOW_RES_WIDTH = 1000;
 export const isLowRes = (width: number | null | undefined): boolean => typeof width === 'number' && width < LOW_RES_WIDTH;
 
-export const LISTING_STATUSES = ['coming_soon', 'just_listed', 'for_sale', 'open_house', 'pending', 'sold', 'off_market'] as const;
+export const LISTING_STATUSES = ['coming_soon', 'just_listed', 'for_sale', 'open_house', 'pending', 'sold', 'off_market', 'price_drop'] as const;
 export type ListingStatus = (typeof LISTING_STATUSES)[number];
 
 const STATUS_LABELS: Record<ListingStatus, string> = {
   coming_soon: 'Coming soon', just_listed: 'Just listed', for_sale: 'For sale', open_house: 'Open house',
-  pending: 'Under contract', sold: 'Just sold', off_market: 'Off market',
+  pending: 'Under contract', sold: 'Just sold', off_market: 'Off market', price_drop: 'Price drop',
 };
 
 export const statusLabel = (status: string | null | undefined): string | null =>

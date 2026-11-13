@@ -38,6 +38,12 @@ export type ListingDto = {
   /** A "Refresh from Zillow" run is in flight. */
   syncing: boolean;
   address: string | null;
+  /** Typed by her for uploaded homes; from the import for Zillow ones. */
+  city: string | null;
+  state: string | null;
+  beds: number | null;
+  baths: number | null;
+  sqft: number | null;
   /** "$399,000 · 3 bd · 2 ba · 1,350 sqft" */
   facts: string | null;
   status: string | null;

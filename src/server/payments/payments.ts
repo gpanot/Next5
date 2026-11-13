@@ -80,7 +80,7 @@ export const listPaymentsForWorkspace = async (workspaceId: string, take = 50): 
 /** Human label for a payment line item, e.g. "Brand Growth · Yearly" or "60 photos top-up". */
 export const describePaymentItem = (payment: Pick<Payment, 'purpose' | 'itemId'>): string => {
   if (payment.purpose === 'topup' && payment.itemId in TOPUPS) {
-    return `${TOPUPS[payment.itemId as TopupId].credits} photos top-up`;
+    return `${TOPUPS[payment.itemId as TopupId].credits} videos top-up`;
   }
   const [planId, term] = payment.itemId.split(':');
   if (planId && planId in PLANS) {

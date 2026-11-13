@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   getEffectiveMonthlyUsdCents,
-  getPricePerPhotoUsdCents,
+  getPricePerVideoUsdCents,
   getTermPriceUsdCents,
   getTermSavingsUsdCents,
   isTermMonths,
@@ -14,26 +14,27 @@ import { addMonths } from '../../src/lib/dates';
 describe('term pricing', () => {
   it.each([
     ['brand_starter', 1, 2_900],
-    ['brand_starter', 12, 27_600], // $23.20/mo rounds to $23 × 12
-    ['brand_pro', 12, 94_800], // $79 × 12
-    ['brand_agency', 12, 728_400], // $607 × 12
-    ['shop_starter', 12, 46_800], // $39 × 12
-    ['shop_pro', 12, 190_800], // $159 × 12
+    ['brand_starter', 12, 31_200], // $26.10/mo rounds to $26 × 12
+    ['brand_pro', 12, 106_800], // $89 × 12
+    ['brand_agency', 1, 19_900],
+    ['brand_agency', 12, 214_800], // $179 × 12
+    ['shop_starter', 12, 52_800], // $44 × 12
+    ['shop_pro', 12, 214_800], // $179 × 12
     ['shop_scale', 1, 39_900],
-    ['shop_scale', 12, 382_800], // $319 × 12
+    ['shop_scale', 12, 430_800], // $359 × 12
   ] as const)('%s × %i months = %i cents', (planId, term, cents) => {
     expect(getTermPriceUsdCents(planId, term)).toBe(cents);
   });
 
   it('computes savings and effective monthly price', () => {
-    expect(getTermSavingsUsdCents('brand_pro', 12)).toBe(24_000);
-    expect(getEffectiveMonthlyUsdCents('brand_pro', 12)).toBe(7_900);
+    expect(getTermSavingsUsdCents('brand_pro', 12)).toBe(12_000);
+    expect(getEffectiveMonthlyUsdCents('brand_pro', 12)).toBe(8_900);
     expect(getTermSavingsUsdCents('brand_starter', 1)).toBe(0);
   });
 
-  it('computes price per photo', () => {
-    expect(getPricePerPhotoUsdCents('brand_starter')).toBe(97);
-    expect(getPricePerPhotoUsdCents('shop_starter')).toBe(49);
+  it('computes price per video', () => {
+    expect(getPricePerVideoUsdCents('brand_starter')).toBe(97);
+    expect(getPricePerVideoUsdCents('shop_starter')).toBe(98);
   });
 
   it('offers monthly or yearly only', () => {

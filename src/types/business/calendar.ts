@@ -32,7 +32,8 @@ export type SlotDto = {
 };
 
 export type SlotPlaybookDto = {
-  campaignId: string;
+  /** Null for a listing video she put on the day by hand. */
+  campaignId: string | null;
   format: 'slideshow' | 'listing_video';
   idea: string | null;
   status: 'planned' | 'generating' | 'ready' | 'failed';

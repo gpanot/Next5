@@ -4,6 +4,7 @@ import { Info } from 'lucide-react';
 import { useState } from 'react';
 import { apiFetch } from '../../../lib/apiClient';
 import type { ListingDto } from '../../../types/business/listings';
+import { HomeDetailsForm } from './HomeDetailsForm';
 import { PropertyPhotos } from './PropertyPhotos';
 import { ZillowFacts } from './ZillowFacts';
 import { ZillowImportStatus } from './ZillowImportStatus';
@@ -55,6 +56,9 @@ export const PropertyPanel = ({ listing, onRefresh, onAddFromZillow, onRemoved }
 
       <PropertyPhotos listing={listing} onRefresh={onRefresh} />
 
+      {listing.source !== 'zillow' && listing.rooms.length > 0 && <HomeDetailsForm key={listing.id} listing={listing} onSaved={onRefresh} />}
+
+      {listing.source === 'zillow' && (
       <label className="flex items-start gap-2">
         <input id={`listing-ai-label-${listing.id}`} type="checkbox" checked={labelOn} onChange={(e) => void toggleLabel(e.target.checked)} className="mt-1 h-4 w-4 accent-[var(--app-accent)]" />
         <span>
@@ -64,6 +68,7 @@ export const PropertyPanel = ({ listing, onRefresh, onAddFromZillow, onRemoved }
           </span>
         </span>
       </label>
+      )}
       {error && <p className="text-[13px] text-app-danger">{error}</p>}
     </div>
   );

@@ -3,7 +3,7 @@ import { prisma } from '../../src/lib/db';
 import { prepareListingVideos, LISTING_VIDEO_PRESETS } from '../../src/server/realtorVideo/jobs';
 
 const main = async () => {
-  const listing = await prisma.listing.findFirst({ where: { source: 'zillow', archivedAt: null, priceCents: { not: null } }, orderBy: { createdAt: 'desc' } });
+  const listing = await prisma.listing.findFirst({ where: { source: 'zillow', archivedAt: null, priceCents: { not: null } }, include: { materials: true }, orderBy: { createdAt: 'desc' } });
   if (!listing) throw new Error('No Zillow listing in the DB');
   console.log('listing', listing.id, listing.label, (listing.candidates as unknown[] | null)?.length);
   const rows = await Promise.all(LISTING_VIDEO_PRESETS.map((preset) => prisma.listingVideo.create({ data: { workspaceId: listing.workspaceId, listingId: listing.id, preset } })));

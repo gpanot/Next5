@@ -56,7 +56,7 @@ export const PlanPicker = ({ open, product, currentPlanId, onClose, onChoose }: 
             );
           })}
         </div>
-        <p className="text-[12px] text-app-muted">Same plan: your renewal starts when your current plan ends. Different plan: it starts right away and replaces the current one (no proration). Your remaining photos this month stay until they expire.</p>
+        <p className="text-[12px] text-app-muted">Same plan: your renewal starts when your current plan ends. Different plan: it starts right away and replaces the current one (no proration). Your remaining videos this month stay until they expire.</p>
       </div>
     </Sheet>
   );

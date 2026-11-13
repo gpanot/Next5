@@ -14,7 +14,7 @@ export const PromiseBlock = ({ matchPromise }: { matchPromise: string }) => (
       <ShieldCheck aria-hidden className="h-8 w-8 text-app-accent" />
       <h3 className="font-display text-[22px] font-medium leading-tight sm:text-[28px] text-app-ink">Every photo looks right, or it’s free</h3>
       <p className="text-[16px] leading-relaxed text-app-muted">{matchPromise}</p>
-      <p className="text-[14px] text-app-muted">If a photo fails, you get your photo credit back. You pay first, and nothing renews on its own.</p>
+      <p className="text-[14px] text-app-muted">If a video fails, you get your video credit back. You pay first, and nothing renews on its own.</p>
     </div>
   </div>
 );

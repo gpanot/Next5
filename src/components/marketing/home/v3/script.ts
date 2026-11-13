@@ -1,6 +1,6 @@
 /**
  * Inline vanilla JS for homepage v3 (the page stays a server component).
- * Handles: audience toggle, hero build demo, link forms, swipe deck loop,
+ * Handles: audience toggle, hero build demo, link forms,
  * nav shadow and the sticky mobile CTA. Scroll reveals, count-ups and the hero
  * intro live in the GSAP layer (src/components/motion), smooth scroll in Lenis.
  * Audience copy is injected as JSON from copy.ts so server and client agree.
@@ -36,7 +36,7 @@ const CORE_JS = String.raw`
     setText(".js-s0",c.s0);
     setText(".js-statnum",c.statNum);setText(".js-stattext"," "+c.statText);setText(".js-src",c.src);
     setText(".js-noun",c.noun);setText(".js-photos",c.photos);
-    setText(".js-pain1",c.pain1);setText(".js-fit1",c.fit1);setText(".js-ddhook",c.dd);
+    setText(".js-pain1",c.pain1);setText(".js-fit1",c.fit1);
     q(".js-input").value="";runDemo(false);
   }
   function clearT(){timers.forEach(clearTimeout);timers=[];clearInterval(hookTimer)}
@@ -113,26 +113,6 @@ const CORE_JS = String.raw`
 `;
 
 const MOTION_JS = String.raw`
-  function swipeDeck(){
-    var dd=q(".js-ddcard"),yes=q(".v3dd-yes"),no=q(".v3dd-no"),n=0,loop=0;
-    if(!dd||reduce)return;
-    function step(){
-      var right=(n++%3!==2),btn=right?yes:no,dir=right?1:-1;
-      btn.classList.add("hit");setTimeout(function(){btn.classList.remove("hit")},450);
-      dd.style.transition="transform .5s cubic-bezier(.2,.7,.2,1), opacity .5s";
-      dd.style.transform="translateX("+dir*120+"%) rotate("+dir*14+"deg)";dd.style.opacity="0";
-      setTimeout(function(){
-        dd.style.transition="none";dd.style.transform="translateY(10px) scale(.95)";dd.style.opacity="1";
-        requestAnimationFrame(function(){requestAnimationFrame(function(){
-          dd.style.transition="transform .35s cubic-bezier(.2,.7,.2,1)";dd.style.transform="";
-        })});
-      },520);
-    }
-    new IntersectionObserver(function(e){
-      if(e[0].isIntersecting&&!loop){loop=setInterval(step,2400)}
-      else if(!e[0].isIntersecting&&loop){clearInterval(loop);loop=0}
-    }).observe(dd);
-  }
   function chrome(){
     var nav=q(".v3nav"),sc=q(".js-sticky-cta"),form=q(".js-form"),fin=q(".v3final-box"),formOut=false,finIn=false;
     function upd(){sc.classList.toggle("on",formOut&&!finIn)}
@@ -144,7 +124,7 @@ const MOTION_JS = String.raw`
     var inp=q(".js-input");if(!inp)return;e.preventDefault();
     inp.focus({preventScroll:true});smoothTo(inp,-Math.round(innerHeight/2-inp.offsetHeight/2)+(parseFloat(getComputedStyle(inp).scrollMarginTop)||0));
   })});
-  chrome();swipeDeck();
+  chrome();
   // Start the build demo when the phone is on screen. On phones it sits below
   // the fold, so running it on load would finish before anyone sees it.
   var demoIO=new IntersectionObserver(function(e){

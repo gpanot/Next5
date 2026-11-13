@@ -15,13 +15,14 @@ import { BASE_CSS } from './v3/styles';
 import { MOTION_CSS } from './v3/motionStyles';
 import { ART_CSS } from './v3/artStyles';
 import { LISTING_CSS } from './v3/listingStyles';
+import { OUTCOME_CSS } from './v3/outcomeStyles';
 import { ListingVideosSection } from './v3/ListingVideosSection';
-import { MonthRibbon } from './v3/MonthRibbon';
+import { MonthCalendar } from './v3/MonthCalendar';
 import { buildHomeScript } from './v3/script';
 import { SiteNav, SiteFooter, StickyCta } from './v3/SiteChrome';
 import { HeroSection } from './v3/HeroSection';
 import { PainSection, WaysSection } from './v3/ProblemSections';
-import { SwipeSection } from './v3/SwipeSection';
+import { AutopilotSection } from './v3/AutopilotSection';
 import { OfferSection } from './v3/OfferSection';
 import { GuaranteeSection, NumbersSection, FitSection } from './v3/TrustSections';
 import { FaqSection, FinalCtaSection } from './v3/ClosingSections';
@@ -38,7 +39,7 @@ export function HomePageV3({ audience = 'realtor' }: { audience?: Audience }) {
         href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap"
         rel="stylesheet"
       />
-      <style dangerouslySetInnerHTML={{ __html: BASE_CSS + MOTION_CSS + ART_CSS + LISTING_CSS }} />
+      <style dangerouslySetInnerHTML={{ __html: BASE_CSS + MOTION_CSS + ART_CSS + LISTING_CSS + OUTCOME_CSS }} />
 
       <MotionPrepaint />
       {/* data-aud is set server-side so CSS hides other audiences before any JS runs. */}
@@ -46,11 +47,11 @@ export function HomePageV3({ audience = 'realtor' }: { audience?: Audience }) {
         <SiteNav />
         <main id="top">
           <HeroSection audience={audience} />
-          <MonthRibbon />
           <ListingVideosSection />
+          <MonthCalendar />
           <PainSection audience={audience} />
           <WaysSection />
-          <SwipeSection audience={audience} />
+          <AutopilotSection />
           <OfferSection audience={audience} />
           <GuaranteeSection />
           <NumbersSection />

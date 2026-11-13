@@ -4973,5 +4973,59 @@
     "bytes": 846833,
     "alt": "A home service technician kneeling to work on equipment during a service call at a client home",
     "generatedAt": "2026-10-31T01:04:38.104Z"
+  },
+  "public/videos/listing/bell-editorial.jpg": {
+    "prompt": "Frame from the 'Editorial tour' listing video rendered by the realtor video pipeline from the 2784 Bell Dr SE, Smyrna Zillow listing (not generated).",
+    "model": "frame-extract (ffmpeg)",
+    "size": "720x1280",
+    "outputSize": "720x1280",
+    "bytes": 105837,
+    "alt": "Editorial tour video frame from the 2784 Bell Dr listing",
+    "generatedAt": "2026-11-13T03:41:08.636885Z"
+  },
+  "public/videos/listing/bell-rate.jpg": {
+    "prompt": "Frame from the 'Rate this house' listing video rendered by the realtor video pipeline from the 2784 Bell Dr SE, Smyrna Zillow listing (not generated).",
+    "model": "frame-extract (ffmpeg)",
+    "size": "720x1280",
+    "outputSize": "720x1280",
+    "bytes": 138286,
+    "alt": "Rate this house video frame from the 2784 Bell Dr listing",
+    "generatedAt": "2026-11-13T03:41:08.637026Z"
+  },
+  "public/videos/listing/bell-pov.jpg": {
+    "prompt": "Frame from the 'POV: you live here' listing video rendered by the realtor video pipeline from the 2784 Bell Dr SE, Smyrna Zillow listing (not generated).",
+    "model": "frame-extract (ffmpeg)",
+    "size": "720x1280",
+    "outputSize": "720x1280",
+    "bytes": 104971,
+    "alt": "POV: you live here video frame from the 2784 Bell Dr listing",
+    "generatedAt": "2026-11-13T03:41:08.637033Z"
+  },
+  "public/videos/listing/bell-top3.jpg": {
+    "prompt": "Frame from the '3 things I love' listing video rendered by the realtor video pipeline from the 2784 Bell Dr SE, Smyrna Zillow listing (not generated).",
+    "model": "frame-extract (ffmpeg)",
+    "size": "720x1280",
+    "outputSize": "720x1280",
+    "bytes": 113051,
+    "alt": "3 things I love video frame from the 2784 Bell Dr listing",
+    "generatedAt": "2026-11-13T03:41:08.637038Z"
+  },
+  "public/videos/listing/bell-alert.jpg": {
+    "prompt": "Frame from the 'New listing alert' listing video rendered by the realtor video pipeline from the 2784 Bell Dr SE, Smyrna Zillow listing (not generated).",
+    "model": "frame-extract (ffmpeg)",
+    "size": "720x1280",
+    "outputSize": "720x1280",
+    "bytes": 96969,
+    "alt": "New listing alert video frame from the 2784 Bell Dr listing",
+    "generatedAt": "2026-11-13T03:41:08.637043Z"
+  },
+  "public/videos/listing/bell-luxe.jpg": {
+    "prompt": "Frame from the 'Luxury showcase' listing video rendered by the realtor video pipeline from the 2784 Bell Dr SE, Smyrna Zillow listing (not generated).",
+    "model": "frame-extract (ffmpeg)",
+    "size": "720x1280",
+    "outputSize": "720x1280",
+    "bytes": 76100,
+    "alt": "Luxury showcase video frame from the 2784 Bell Dr listing",
+    "generatedAt": "2026-11-13T03:41:08.637048Z"
   }
 }

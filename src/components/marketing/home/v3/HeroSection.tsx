@@ -11,12 +11,13 @@ function HeroDemo({ audience }: { audience: Audience }) {
         <div className="v3phone-screen">
 
           {/* ── Background layer ── */}
-          {/* Realtor: the actual UGC clone video — plays after build animation */}
+          {/* Realtor: a real listing video (2784 Bell Dr, POV template) — plays after build animation */}
           {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video
             className="v3ugc-vid js-realtor-video"
             data-only="realtor"
-            src="/realtor-ugc-clone.mp4"
+            src="/videos/listing/bell-rate.mp4"
+            poster="/videos/listing/bell-rate.jpg"
             playsInline
             muted
             loop
@@ -38,11 +39,6 @@ function HeroDemo({ audience }: { audience: Audience }) {
             <span className="v3mute-off"><VolumeOffIcon /></span>
             <span className="v3mute-on"><VolumeOnIcon /></span>
           </button>
-          {/* Realtor headshot inset — bottom-right corner */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <div className="v3headshot" data-only="realtor" aria-hidden="true">
-            <img src="/realtor-headshot.jpeg" alt="" />
-          </div>
 
           {/* ── Overlay: listing facts ── */}
           <div className="v3video-ov">

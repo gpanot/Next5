@@ -1080,6 +1080,8 @@ model PostSlot {
   slotOfDay       String    @default("evening") @map("slot_of_day")
   itemId          String?   @map("item_id")
   materialId      String?   @map("material_id")
+  /// A listing video she put on this day by hand.
+  listingVideoId  String?   @map("listing_video_id")
   /// Reserved for a Shop calendar; unused in P19.
   productId       String?   @map("product_id")
   platform        String    @default("instagram")
@@ -1098,15 +1100,18 @@ model PostSlot {
   workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   schedule     PostSchedule? @relation(fields: [scheduleId], references: [id])
   item         BatchItem?    @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  listingVideo ListingVideo? @relation(fields: [listingVideoId], references: [id], onDelete: Cascade)
   material     PostMaterial? @relation(fields: [materialId], references: [id])
   campaignPost CampaignPost? @relation(fields: [campaignPostId], references: [id], onDelete: Cascade)
   product      Product?      @relation(fields: [productId], references: [id])
   socialPosts  SocialPost[]
 
   @@unique([workspaceId, itemId])
+  @@unique([workspaceId, listingVideoId])
   @@index([workspaceId, scheduledFor])
   @@index([workspaceId, status, postedAt])
   @@index([itemId])
+  @@index([listingVideoId])
   @@index([campaignPostId])
   @@map("post_slots")
 }
@@ -1184,6 +1189,7 @@ model ListingVideo {
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
   campaignPosts CampaignPost[]
+  slots         PostSlot[]
 
   @@index([status, createdAt])
   @@index([listingId, createdAt(sort: Desc)])

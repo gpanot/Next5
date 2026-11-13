@@ -202,6 +202,42 @@ export const addPhotosToDay = async (ws: Workspace, date: string, itemIds: reado
   return added;
 };
 
+/** Puts the listing videos she picked on this day. Videos still rendering are fine: the post shows them when ready. */
+export const addVideosToDay = async (ws: Workspace, date: string, videoIds: readonly string[], now = new Date()): Promise<number> => {
+  const schedule = await getOrCreateSchedule(ws);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`))) throw new HttpError(400, 'invalid_date', 'Pick a day.');
+  if (date < isoDate(now)) throw new HttpError(400, 'past_date', 'Pick today or a day ahead.');
+  const ids = [...new Set(videoIds)].slice(0, MAX_PHOTOS_PER_ADD);
+  if (ids.length === 0) return 0;
+
+  const videos = await prisma.listingVideo.findMany({
+    where: { id: { in: ids }, workspaceId: ws.id, status: { not: 'failed' } },
+    select: { id: true, slots: { select: { id: true, status: true } } },
+  });
+  const scheduledFor = new Date(`${date}T00:00:00.000Z`);
+  let added = 0;
+  for (const video of videos) {
+    const slot = video.slots[0];
+    if (slot?.status === 'posted') continue;
+    if (slot) {
+      await prisma.postSlot.update({ where: { id: slot.id }, data: { scheduledFor, status: 'planned', source: 'manual' } });
+    } else {
+      await prisma.postSlot.create({ data: { workspaceId: ws.id, scheduleId: schedule.id, scheduledFor, listingVideoId: video.id, source: 'manual' } });
+    }
+    added += 1;
+  }
+  return added;
+};
+
+/** Listing videos she can add to a day: not failed, and not already planned or posted. Newest first. */
+export const listAddableVideos = async (workspaceId: string, take = 60) =>
+  prisma.listingVideo.findMany({
+    where: { workspaceId, status: { not: 'failed' }, slots: { none: { status: { notIn: OFF_CALENDAR } } } },
+    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    take,
+    select: { id: true, preset: true, status: true, videoKey: true, listing: { select: { label: true } } },
+  });
+
 /** Takes one post off her calendar by its slot. */
 export const removeSlot = async (workspaceId: string, slotId: string): Promise<PostSlot> => {
   const slot = await ownedSlot(workspaceId, slotId);
@@ -252,6 +288,7 @@ export const replanUpcoming = async (ws: Workspace, schedule: PostSchedule, now 
 export const SLOT_INCLUDE = {
   item: { select: { id: true, batchId: true, r2Key: true, postKit: true, score: true, scoreDetails: true, sceneId: true, batch: { select: { name: true } } } },
   material: { select: { id: true, label: true } },
+  listingVideo: { select: { id: true, preset: true, status: true, videoKey: true, listing: { select: { label: true } } } },
   campaignPost: {
     select: {
       campaignId: true, format: true, idea: true, beatKey: true, caption: true, mediaStatus: true, slides: true,
@@ -263,6 +300,7 @@ export const SLOT_INCLUDE = {
 export type SlotWithItem = PostSlot & {
   item: ({ id: string; batchId: string; r2Key: string | null; postKit: unknown; score: number | null; scoreDetails: unknown; sceneId: string | null; batch: { name: string } }) | null;
   material: { id: string; label: string | null } | null;
+  listingVideo: { id: string; preset: string; status: string; videoKey: string | null; listing: { label: string } } | null;
   campaignPost: {
     campaignId: string;
     format: string;

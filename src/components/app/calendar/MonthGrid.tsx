@@ -11,8 +11,8 @@ type Props = { slots: SlotDto[]; onDay: (date: string) => void; onAdd: (date: st
 type CellProps = { date: string; inMonth: boolean; slots: readonly SlotDto[]; onDay: (date: string) => void; onAdd: (date: string) => void };
 
 /**
- * One day in the month. Tapping a day with posts jumps to its row; tapping an empty day from today on
- * adds photos to it, like "Add" on its row. Dropping a photo on it moves the post there.
+ * One day in the month. Tapping any day from today on opens the add sheet (videos and photos), like "Add"
+ * on its row; tapping a past day with posts jumps to its row. Dropping a post on it moves it there.
  */
 const MonthDayCell = ({ date, inMonth, slots, onDay, onAdd }: CellProps) => {
   const first = slots[0];
@@ -31,7 +31,7 @@ const MonthDayCell = ({ date, inMonth, slots, onDay, onAdd }: CellProps) => {
         type="button"
         onClick={() => onAdd(date)}
         disabled={!canAdd}
-        aria-label={canAdd ? `Add photos to ${date}` : date}
+        aria-label={canAdd ? `Add posts to ${date}` : date}
         className={`flex aspect-square items-center justify-center rounded-lg text-[12px] tabular-nums transition duration-150 disabled:cursor-default ${dropRing} ${
           isOver ? 'bg-app-accent-soft font-semibold text-app-accent' : today ? 'bg-app-accent-soft font-semibold text-app-accent ring-1 ring-app-accent' : inMonth ? 'text-app-muted enabled:hover:bg-app-sunken' : 'text-app-muted/40'
         }`}
@@ -45,11 +45,11 @@ const MonthDayCell = ({ date, inMonth, slots, onDay, onAdd }: CellProps) => {
     <button
       ref={setNodeRef}
       type="button"
-      onClick={() => onDay(date)}
-      aria-label={`${slots.length} post${slots.length === 1 ? '' : 's'} on ${date}`}
-      className={`relative aspect-square overflow-hidden rounded-lg bg-app-sunken ring-offset-1 ring-offset-app-panel transition duration-150 hover:scale-[1.04] ${
+      onClick={() => (canAdd ? onAdd(date) : onDay(date))}
+      aria-label={`${slots.length} post${slots.length === 1 ? '' : 's'} on ${date}${canAdd ? '. Add more' : ''}`}
+      className={`relative aspect-square overflow-hidden rounded-lg bg-app-sunken ring-offset-1 ring-offset-app-panel transition duration-150 ${canAdd ? 'hover:scale-[1.04]' : ''} ${
         dropRing || (today ? 'ring-2 ring-app-accent' : allPosted ? 'ring-1 ring-emerald-600/50' : 'ring-1 ring-app-line')
-      } ${inMonth ? '' : 'opacity-60'}`}
+      } ${canAdd ? '' : 'opacity-50 grayscale hover:scale-100'} ${inMonth ? '' : 'opacity-60'}`}
     >
       {(first.photo?.url ?? first.playbook?.coverUrl) && (
         // eslint-disable-next-line @next/next/no-img-element

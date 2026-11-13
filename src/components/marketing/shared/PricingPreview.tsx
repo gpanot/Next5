@@ -20,7 +20,7 @@ export const PricingPreview = ({ product }: { product: ProductLineId }) => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <TermToggle value={term} onChange={setTerm} />
         <Link href={`${TTZILLOW_PRICING}?for=${product === 'brand' ? 'professionals' : 'shops'}`} className="text-[14px] font-medium text-app-accent transition-colors duration-200 hover:text-app-ink">
-          Compare plans and extra photos →
+          Compare plans and extra videos →
         </Link>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

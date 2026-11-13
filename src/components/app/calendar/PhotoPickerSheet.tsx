@@ -6,11 +6,26 @@ import { ApiError, apiFetch } from '../../../lib/apiClient';
 import { dayLabel } from '../../../lib/calendarDates';
 import type { CalendarDto } from '../../../types/business/calendar';
 import { AppButton } from '../../ui/AppButton';
+import { SegmentedControl } from '../../ui/SegmentedControl';
 import { Sheet } from '../../ui/Sheet';
 import { AppLink as Link } from '../shell/AppLink';
+import { VideoPickGrid } from './VideoPickGrid';
 
 type Photo = { id: string; url: string | null; batchName: string };
 type Page = { photos: Photo[]; nextCursor: string | null };
+type Kind = 'videos' | 'photos';
+const KINDS: readonly { value: Kind; label: string }[] = [
+  { value: 'videos', label: 'Videos' },
+  { value: 'photos', label: 'Photos' },
+];
+
+const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
+
+/** "Add 2 videos and 1 photo" — what the button will put on the day. */
+const addLabel = (videos: number, photos: number): string => {
+  const parts = [videos > 0 ? plural(videos, 'video') : null, photos > 0 ? plural(photos, 'photo') : null].filter(Boolean);
+  return parts.length === 0 ? 'Pick videos or photos' : `Add ${parts.join(' and ')}`;
+};
 
 type Props = {
   /** The day she is adding to; null when closed. */
@@ -19,10 +34,12 @@ type Props = {
   onAdded: (calendar: CalendarDto, count: number) => void;
 };
 
-/** Pick any number of her photos not already on the calendar, and put them all on one day. */
+/** Pick any number of her videos and photos not already on the calendar, and put them all on one day. */
 export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
   const [page, setPage] = useState<{ date: string; photos: Photo[]; nextCursor: string | null; loading: boolean; error: string | null } | null>(null);
+  const [kind, setKind] = useState<Kind>('videos');
   const [picked, setPicked] = useState<string[]>([]);
+  const [pickedVideos, setPickedVideos] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,16 +67,18 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
   };
 
   const toggle = (id: string) => setPicked((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+  const toggleVideo = (id: string) => setPickedVideos((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+  const total = picked.length + pickedVideos.length;
 
   const save = async () => {
-    if (!date || picked.length === 0) return;
+    if (!date || total === 0) return;
     setSaving(true);
     setError(null);
     try {
-      const calendar = await apiFetch<CalendarDto>(`/api/app/calendar/days/${date}`, { method: 'POST', json: { itemIds: picked } });
-      onAdded(calendar, picked.length);
+      const calendar = await apiFetch<CalendarDto>(`/api/app/calendar/days/${date}`, { method: 'POST', json: { itemIds: picked, videoIds: pickedVideos } });
+      onAdded(calendar, total);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not add those photos.');
+      setError(err instanceof ApiError ? err.message : 'Could not add those posts.');
     } finally {
       setSaving(false);
     }
@@ -71,7 +90,7 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
     <Sheet
       open={date !== null}
       onClose={onClose}
-      title={date ? `Add to ${dayLabel(date)}` : 'Add photos'}
+      title={date ? `Add to ${dayLabel(date)}` : 'Add posts'}
       actions={
         <Link href="/app/create" className="inline-flex h-9 items-center gap-1.5 rounded-full bg-app-cta px-3.5 text-[13px] font-medium text-app-cta-ink transition-opacity duration-200 hover:opacity-90">
           <Plus aria-hidden className="h-4 w-4" /> Create
@@ -81,8 +100,11 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
       className="sm:mx-auto sm:max-w-lg"
     >
       <div className="flex flex-col">
+        <SegmentedControl<Kind> options={KINDS} value={kind} onChange={setKind} className="mb-4 self-start" />
         <div className="pb-4">
-          {!current || (current.loading && current.photos.length === 0) ? (
+          {kind === 'videos' ? (
+            <VideoPickGrid picked={pickedVideos} onToggle={toggleVideo} />
+          ) : !current || (current.loading && current.photos.length === 0) ? (
             <div className="grid grid-cols-3 gap-2">
               {Array.from({ length: 9 }, (_, i) => <div key={i} className="aspect-[4/5] animate-pulse rounded-xl bg-app-sunken" />)}
             </div>
@@ -136,8 +158,8 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
         {/* Pinned to the bottom of the sheet's scroll area, so the button never scrolls away. */}
         <div className="sticky -bottom-6 -mx-6 -mb-6 flex flex-col gap-2 border-t border-app-line bg-app-panel px-6 pb-[max(env(safe-area-inset-bottom),24px)] pt-3">
           {error && <p className="text-[13px] text-app-danger">{error}</p>}
-          <AppButton size="lg" fullWidth loading={saving} disabled={picked.length === 0} onClick={() => void save()}>
-            {picked.length === 0 ? 'Pick photos' : `Add ${picked.length} photo${picked.length === 1 ? '' : 's'}`}
+          <AppButton size="lg" fullWidth loading={saving} disabled={total === 0} onClick={() => void save()}>
+            {addLabel(pickedVideos.length, picked.length)}
           </AppButton>
         </div>
       </div>

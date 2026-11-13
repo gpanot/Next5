@@ -5,31 +5,11 @@
  * Image paths must exist in public/images/manifest.json.
  */
 
-import type { Plan, PlanId } from '../../config/plans';
+import { PLANS } from '../../config/plans';
 
 const IMG = '/images/business';
 
-/** UGC videos per month for each plan. */
-export const UGC_VIDEOS_PER_MONTH: Record<PlanId, number> = {
-  brand_starter: 1,
-  brand_pro: 4,
-  brand_agency: 40,
-  shop_starter: 1,
-  shop_pro: 4,
-  shop_scale: 4,
-};
-
 const videoCount = (count: number): string => `${count} UGC video${count === 1 ? '' : 's'}`;
-
-/** Plan-card line, shown right after the monthly photo count. */
-export const ugcFeatureLine = (plan: Plan): string => {
-  return `${videoCount(UGC_VIDEOS_PER_MONTH[plan.id])} every month, made by our team`;
-};
-
-/** Comparison-table cell. */
-export const ugcTableValue = (plan: Plan): string => {
-  return String(UGC_VIDEOS_PER_MONTH[plan.id]);
-};
 
 export type UgcVideoExample = {
   poster: string;
@@ -58,7 +38,7 @@ export const UGC: { brand: UgcOffer; shop: UgcOffer } = {
     eyebrow: 'Videos too',
     title: 'Short videos for Reels and TikTok. Made for you.',
     sub: 'Short videos are how new buyers and sellers find you. Each month our team makes UGC videos for your page: a strong hook, a short script and captions on screen.',
-    points: [`${videoCount(UGC_VIDEOS_PER_MONTH.brand_pro)} a month on Growth. 1 on Starter.`, 'Hooks taken from real estate videos that already do well.', ...SHARED_POINTS],
+    points: [`${videoCount(PLANS.brand_pro.monthlyCredits)} a month on Growth. ${PLANS.brand_starter.monthlyCredits} on Starter.`, 'Hooks taken from real estate videos that already do well.', ...SHARED_POINTS],
     video: {
       poster: `${IMG}/us/realtor-video.png`,
       handle: 'your.name',
@@ -70,7 +50,7 @@ export const UGC: { brand: UgcOffer; shop: UgcOffer } = {
     eyebrow: 'Videos too',
     title: 'UGC videos that sell your products.',
     sub: 'On TikTok Shop, people find products in videos. Each month our team makes UGC videos for your best sellers: a strong hook, a short script and captions on screen.',
-    points: [`${videoCount(UGC_VIDEOS_PER_MONTH.shop_pro)} a month on Growth. 1 on Starter.`, 'Hooks taken from TikTok Shop videos that already sell.', ...SHARED_POINTS],
+    points: [`${videoCount(PLANS.shop_pro.monthlyCredits)} a month on Growth. ${PLANS.shop_starter.monthlyCredits} on Starter.`, 'Hooks taken from TikTok Shop videos that already sell.', ...SHARED_POINTS],
     video: {
       poster: `${IMG}/us/shop-video.png`,
       handle: 'your.shop',
@@ -85,7 +65,7 @@ export const UGC_HOME = {
   title: 'Plus UGC videos, made by our team.',
   sub: 'Short videos are how new people find you on TikTok and Reels. We make them for you.',
   points: [
-    `${videoCount(UGC_VIDEOS_PER_MONTH.brand_pro)} a month on Growth. 1 on Starter.`,
+    `${videoCount(PLANS.brand_pro.monthlyCredits)} a month on Growth. ${PLANS.brand_starter.monthlyCredits} on Starter.`,
     'Realtors get videos for their page. Sellers get videos of their products.',
     SHARED_POINTS[0]!,
   ],

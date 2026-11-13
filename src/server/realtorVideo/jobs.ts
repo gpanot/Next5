@@ -8,7 +8,8 @@ import type { Listing, ListingVideo, Workspace } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { getPresignedUrl, uploadToR2 } from '../../lib/r2';
 import { HttpError } from '../http';
-import { getListing } from '../listings/listings';
+import { getListing, roomsFor, type ListingWithMaterials } from '../listings/listings';
+import { presignObject } from '../storage/objectStore';
 import { wakeBlitzWorker } from '../labs/blitzWorkerWake';
 import { createMeter } from '../metaAds/cost';
 import { workspaceHasPaid } from '../slideshowCredits/paid';
@@ -32,7 +33,7 @@ type Candidate = { url: string; thumbUrl: string; tag?: string | null };
 export const factsOf = async (listing: Listing): Promise<RealtorFacts> => {
   const address = (listing.address ?? {}) as Address;
   if (!address.city || !address.state || !listing.priceCents) {
-    throw new HttpError(400, 'listing_incomplete', 'This home needs a city, state and price from Zillow to make a video.');
+    throw new HttpError(400, 'listing_incomplete', listing.source === 'zillow' ? 'This home needs a city, state and price from Zillow to make a video.' : 'Add the city, state and price of this home to make a video.');
   }
   // The listing description lives on the scrape cache (blitz_listing_runs), not on the listing row.
   const run = listing.zpid ? await prisma.blitzListingRun.findFirst({ where: { zpid: listing.zpid }, orderBy: { createdAt: 'desc' } }) : null;
@@ -47,9 +48,22 @@ export const factsOf = async (listing: Listing): Promise<RealtorFacts> => {
   };
 };
 
-const galleryOf = (listing: Listing): GalleryInput[] => {
-  const photos = ((listing.candidates ?? []) as Candidate[]).filter((c) => c.url && c.thumbUrl);
-  if (photos.length < 4) throw new HttpError(400, 'listing_no_photos', 'Import this home from Zillow first: a video needs its photo gallery.');
+const absolute = (url: string) => (url.startsWith('/') ? `${process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'}${url}` : url);
+
+/** Uploaded homes: her own room photos, signed so the worker can fetch them. */
+const uploadedGallery = async (listing: ListingWithMaterials): Promise<GalleryInput[]> => {
+  const rooms = roomsFor(listing);
+  const urls = await Promise.all(rooms.map((m) => presignObject(m.r2Key, 3 * 24 * 60 * 60)));
+  return rooms.flatMap((m, i) => (urls[i] ? [{ url: absolute(urls[i] as string), thumbUrl: absolute(urls[i] as string), tag: m.tag }] : []));
+};
+
+const galleryOf = async (listing: ListingWithMaterials): Promise<GalleryInput[]> => {
+  const photos = listing.source === 'zillow'
+    ? ((listing.candidates ?? []) as Candidate[]).filter((c) => c.url && c.thumbUrl)
+    : await uploadedGallery(listing);
+  if (photos.length < 4) {
+    throw new HttpError(400, 'listing_no_photos', listing.source === 'zillow' ? 'Import this home from Zillow first: a video needs its photo gallery.' : 'Add at least 4 photos of this home to make a video.');
+  }
   return photos;
 };
 
@@ -94,10 +108,10 @@ const prepareOne = async (row: ListingVideo, facts: RealtorFacts, gallery: Galle
 };
 
 /** The paid part, run after the response: a script and a voice per row, then queue for the worker. */
-export const prepareListingVideos = async (listing: Listing, rows: ListingVideo[]): Promise<void> => {
+export const prepareListingVideos = async (listing: ListingWithMaterials, rows: ListingVideo[]): Promise<void> => {
   try {
     const facts = await factsOf(listing);
-    const gallery = galleryOf(listing);
+    const gallery = await galleryOf(listing);
     let sharedRun: ReturnType<Shared> | null = null;
     const shared: Shared = () => (sharedRun ??= planAndWrite(facts, gallery));
     await Promise.all(rows.map(async (row) => {
@@ -146,7 +160,7 @@ export const startListingVideos = async (
   const todo = presets.filter((p) => !busy.some((b) => b.preset === p));
   const kept = presets.map((p) => busy.find((b) => b.preset === p)).filter((r): r is ListingVideo => Boolean(r));
   if (todo.length === 0) return kept;
-  galleryOf(listing);
+  await galleryOf(listing);
   await factsOf(listing);
   const rows = await Promise.all(
     todo.map((preset) => prisma.listingVideo.create({ data: { workspaceId: ws.id, listingId, preset, props: { length: len } } })),
