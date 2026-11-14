@@ -2,10 +2,9 @@
 
 /** Client calls for the realtor Autopilot (playbook campaigns). */
 import { apiFetch } from '../../../lib/apiClient';
-import type { MarketArea } from '../../../lib/marketArea';
+import type { MarketCity, MarketPlaces } from '../../../lib/marketPlaces';
 import type { PlaybookId } from '../../../lib/realtorPlaybooks';
 import { isDisclosureValid, type DisclosureDraft } from './DisclosureForm';
-import type { AreaDraft } from './MarketAreaForm';
 import type { MarketInfo } from './WhatStep';
 import type { CampaignDto } from '../../../types/business/campaigns';
 
@@ -40,19 +39,19 @@ export const approvePost = (id: string, postId: string, approved: boolean) =>
 export const discardPlaybook = (id: string) => apiFetch<{ ok: boolean }>(`/api/app/campaigns/${id}?product=brand`, { method: 'DELETE' });
 
 export type MarketAreaResponse = {
-  marketArea: MarketArea | null;
-  suggested: MarketArea | null;
+  places: MarketPlaces | null;
+  /** Her listings' city, else her IP city: a first guess with no location prompt. */
+  suggestedBase: MarketCity | null;
   paid: boolean;
   disclosure: { agentName: string; brokerage: string };
 };
 
-/** Saved area first, else the city of her listings, else blank. */
 export const toMarketInfo = (r: MarketAreaResponse | null): MarketInfo | null => {
   if (!r) return null;
-  const a = r.marketArea ?? r.suggested;
   return {
     paid: r.paid,
-    area: { city: a?.city ?? '', state: a?.state ?? '', zips: a?.zips.join(', ') ?? '' },
+    places: r.places,
+    suggestedBase: r.suggestedBase,
     disclosure: r.disclosure,
     hasDisclosure: isDisclosureValid(r.disclosure),
   };
@@ -61,8 +60,9 @@ export const toMarketInfo = (r: MarketAreaResponse | null): MarketInfo | null =>
 export const saveDisclosure = (d: DisclosureDraft) =>
   apiFetch<{ disclosure: DisclosureDraft }>('/api/app/autopilot/disclosure', { method: 'PUT', json: { agentName: d.agentName, brokerage: d.brokerage } });
 
-export const saveMarketArea = (a: AreaDraft) =>
-  apiFetch<{ marketArea: MarketArea }>('/api/app/autopilot/market-area', {
-    method: 'PUT',
-    json: { city: a.city, state: a.state, zips: a.zips.split(/[\s,]+/).filter(Boolean) },
-  });
+export const saveMarketPlaces = (p: MarketPlaces) =>
+  apiFetch<{ places: MarketPlaces }>('/api/app/autopilot/market-area', { method: 'PUT', json: { cities: p.cities, state: p.state } });
+
+/** Her city (from a point or a typed city) and the cities around it, closest first. */
+export const findNearby = (from: { lat: number; lng: number } | MarketCity) =>
+  apiFetch<{ base: MarketCity; nearby: MarketCity[] }>('/api/app/autopilot/market-area/nearby', { method: 'POST', json: from });

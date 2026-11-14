@@ -1,6 +1,8 @@
 // Pure: the Autopilot UI and the server share the "Where do you sell?" shape and the cache keys.
 // Plan: docs/business-studios/15-realtor-autopilot-plan.md §4.6, §4.8.
 
+import { US_STATES as STATE_NAMES } from './marketPlaces';
+
 export type MarketArea = { city: string; state: string; zips: string[]; neighborhoods: string[] };
 
 const MAX_EXTRAS = 3;
@@ -28,7 +30,8 @@ export const parseMarketArea = (raw: unknown): MarketArea | null => {
 export const areaKey = (a: MarketArea): string =>
   [a.city.toLowerCase(), a.state.toLowerCase(), [...a.zips].sort().join(','), [...a.neighborhoods].map((n) => n.toLowerCase()).sort().join(',')].join('|');
 
-export const areaLabel = (a: MarketArea): string => `${a.city}, ${a.state}`;
+/** "Austin, TX", or the state's name for a whole-state area (city ''). */
+export const areaLabel = (a: MarketArea): string => (a.city ? `${a.city}, ${a.state}` : `the state of ${STATE_NAMES[a.state] ?? a.state}`);
 
 /** ISO week, e.g. "2026-W46": one market snapshot per area per week. */
 export const isoWeek = (date: Date): string => {

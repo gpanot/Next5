@@ -1,19 +1,23 @@
 'use client';
 
 import { Sparkles } from 'lucide-react';
+import { useCallback } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import type { ListingDto } from '../../../types/business/listings';
 import { Chip } from '../../ui/Chip';
 import { SkeletonText } from '../../ui/Skeleton';
 import { DisclosureForm, type DisclosureDraft } from './DisclosureForm';
 import { HomePicker } from './HomePicker';
-import { MarketAreaForm, type AreaDraft } from './MarketAreaForm';
+import type { MarketCity, MarketPlaces } from '../../../lib/marketPlaces';
+import { MarketPlacesPicker } from './MarketPlacesPicker';
+import type { PlacesDraft } from './placesDraft';
+import { useMarketPlaces } from './useMarketPlaces';
 import { MomentCards } from './MomentCards';
 import { OpenHouseForm, zillowEventOf, type EventDraft } from './OpenHouseForm';
 import { PriceDropForm, type PriceDraft } from './PriceDropForm';
 
 /**
- * `area` and `disclosure` stay null until she edits them; the forms show her saved values (or a suggestion) until then.
+ * `places` and `disclosure` stay null until set; the place picker fills `places` from her saved or guessed city; the forms show her saved values (or a suggestion) until then.
  * `event` is filled from Zillow when she picks a home that has an open house, else typed.
  */
 export type WhatValue = {
@@ -21,12 +25,12 @@ export type WhatValue = {
   listingId: string | null;
   startDate: string;
   channels: string[];
-  area: AreaDraft | null;
+  places: PlacesDraft | null;
   event: EventDraft | null;
   price: PriceDraft;
   disclosure: DisclosureDraft | null;
 };
-export type MarketInfo = { paid: boolean; area: AreaDraft; disclosure: DisclosureDraft; hasDisclosure: boolean };
+export type MarketInfo = { paid: boolean; places: MarketPlaces | null; suggestedBase: MarketCity | null; disclosure: DisclosureDraft; hasDisclosure: boolean };
 
 export const LISTING_MOMENTS = ['just_listed', 'open_house', 'price_drop', 'just_sold'];
 
@@ -67,13 +71,23 @@ const MomentExtra = ({ value, onChange, today }: Pick<Props, 'value' | 'onChange
   return null;
 };
 
+/** Market update places: saved, guessed (listings / IP) or from her location. */
+const AreaPicker = ({ value, market, onChange }: Pick<Props, 'value' | 'market' | 'onChange'>) => {
+  const setPlaces = useCallback((places: PlacesDraft) => onChange({ places }), [onChange]);
+  const { busy, error, locate, typeBase, more } = useMarketPlaces({ draft: value.places, market, active: true, onChange: setPlaces });
+  // Saved places or a guessed city are about to fill the picker: show the skeleton, not the location ask.
+  const pending = !market || (!value.places && !error && Boolean(market.places || market.suggestedBase));
+  return (
+    <MarketPlacesPicker draft={value.places} busy={busy || pending} error={error} onChange={setPlaces} onLocate={() => void locate()} onTypeBase={(c) => void typeBase(c)} onMore={() => void more()} />
+  );
+};
+
 /** Step 1: what is happening, which home (or area), when, where. */
 export const WhatStep = ({ value, market, onChange, onLocked }: Props) => {
   const listings = useApi<{ listings: ListingDto[] }>('/api/app/listings');
   const isMarket = value.moment === 'market_update';
   const isEvergreen = value.moment === 'evergreen';
   const needsHome = LISTING_MOMENTS.includes(value.moment);
-  const area = value.area ?? market?.area ?? { city: '', state: '', zips: '' };
   const disclosure = value.disclosure ?? market?.disclosure ?? { agentName: '', brokerage: '' };
   const today = new Date().toISOString().slice(0, 10);
 
@@ -95,7 +109,7 @@ export const WhatStep = ({ value, market, onChange, onLocked }: Props) => {
 
       {isMarket && (
         <Section title="Your area">
-          <MarketAreaForm value={area} onChange={(patch) => onChange({ area: { ...area, ...patch } })} />
+          <AreaPicker value={value} market={market} onChange={onChange} />
         </Section>
       )}
       {isEvergreen && <EvergreenNote />}

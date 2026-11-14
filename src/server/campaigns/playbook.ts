@@ -6,6 +6,7 @@ import type { Listing, Prisma, Workspace } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { getPresignedUrl } from '../../lib/r2';
 import { parseMarketArea } from '../../lib/marketArea';
+import { areaForBeat, beatKeysFor, parseMarketPlaces, placeName, type MarketPlaces } from '../../lib/marketPlaces';
 import { disclosureLine, eventDay, eventHours, priceLabel } from '../../lib/playbookMoment';
 import { fillIdea, PLAYBOOKS, type PlaceFill, type Playbook, type PlaybookId } from '../../lib/realtorPlaybooks';
 import type { PlaybookSlide, PostMediaDto } from '../../types/business/campaigns';
@@ -45,7 +46,7 @@ const CHANNELS = ['instagram', 'tiktok'];
 const WALL_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const wallDate = (value: string) => new Date(`${value}:00.000Z`);
 
-type Source = { listing: Listing | null; place: PlaceFill; hasArea: boolean };
+type Source = { listing: Listing | null; place: PlaceFill; hasArea: boolean; places: MarketPlaces | null };
 
 const requireDisclosure = (ws: Workspace) => {
   if (!disclosureLine(ws.agentName, ws.brokerage)) throw new HttpError(400, 'no_disclosure', 'Add your name and brokerage first: listing posts must say who lists the home.');
@@ -56,16 +57,17 @@ const sourceOf = async (ws: Workspace, playbook: Playbook, listingId: string | n
   if (playbook.paidOnly && !(await getActivePlan(ws.id))) throw new HttpError(402, 'plan_required', `${playbook.name} is on paid plans.`);
   const area = parseMarketArea(ws.marketArea);
   if (playbook.needsArea) {
-    if (!area) throw new HttpError(400, 'no_market_area', 'Tell us where you sell first.');
-    return { listing: null, place: { street: '', city: area.city }, hasArea: true };
+    const places = parseMarketPlaces(ws.marketArea);
+    if (!places) throw new HttpError(400, 'no_market_area', 'Tell us where you sell first.');
+    return { listing: null, place: { street: '', city: area?.city ?? '' }, hasArea: true, places };
   }
-  if (!playbook.needsListing) return { listing: null, place: { street: '', city: area?.city ?? '' }, hasArea: Boolean(area) };
+  if (!playbook.needsListing) return { listing: null, place: { street: '', city: area?.city ?? '' }, hasArea: Boolean(area), places: null };
   if (!listingId) throw new HttpError(400, 'no_listing', 'Pick a home.');
   requireDisclosure(ws);
   const listing = await getListing(ws.id, listingId);
   const photos = Array.isArray(listing.candidates) ? listing.candidates.length : 0;
   if (photos < MIN_PHOTOS) throw new HttpError(400, 'listing_no_photos', 'Import this home from Zillow first: the posts need its photos.');
-  return { listing, place: placeOf(listing.address), hasArea: Boolean(area) };
+  return { listing, place: placeOf(listing.address), hasArea: Boolean(area), places: null };
 };
 
 type MomentData = { eventAt: Date | null; eventEndAt: Date | null; eventSource: string | null; newPriceCents: number | null; oldPriceCents: number | null };
@@ -99,16 +101,30 @@ const fillOf = (place: PlaceFill, m: MomentData): PlaceFill => ({
   oldPrice: priceLabel(m.oldPriceCents) || undefined,
 });
 
+/** Market update: only the beats of the places she kept (up to 3 cities + 1 state). */
+const withPlaces = (playbook: Playbook, places: MarketPlaces | null): Playbook => {
+  if (!places) return playbook;
+  const keys = beatKeysFor(places);
+  return { ...playbook, beats: playbook.beats.filter((b) => keys.includes(b.key)) };
+};
+
+/** Each market update card names its own place. */
+const cityFill = (fill: PlaceFill, places: MarketPlaces | null, beatKey: string): PlaceFill => {
+  const area = places ? areaForBeat(places, beatKey) : null;
+  return area ? { ...fill, city: placeName(area) } : fill;
+};
+
 /** Creates the campaign and its plan in one go. Costs nothing; nothing is made until she approves. */
 export const createPlaybookCampaign = async (ws: Workspace, input: PlaybookInput): Promise<CampaignDto> => {
   const playbook = PLAYBOOKS[input.playbook];
   const channels = input.channels.filter((c) => CHANNELS.includes(c));
   if (channels.length === 0) throw new HttpError(400, 'no_channels', 'Pick at least one channel.');
-  const { listing, place, hasArea } = await sourceOf(ws, playbook, input.listingId);
+  const source = await sourceOf(ws, playbook, input.listingId);
+  const { listing, place, hasArea } = source;
   const moment = await momentOf(playbook, input, listing);
 
   const today = new Date().toISOString().slice(0, 10);
-  const placed = await placePlaybook(playbook, {
+  const placed = await placePlaybook(withPlaces(playbook, source.places), {
     workspaceId: ws.id, startDate: input.startDate, today, hasArea,
     eventDate: moment.eventAt?.toISOString().slice(0, 10) ?? null,
     hasFace: playbook.placement === 'fill' ? await hasBrandFace(ws.id) : false,
@@ -139,7 +155,7 @@ export const createPlaybookCampaign = async (ws: Workspace, input: PlaybookInput
           position: i,
           format: beat.format,
           beatKey: beat.key,
-          idea: fillIdea(beat.idea, fill),
+          idea: fillIdea(beat.idea, cityFill(fill, source.places, beat.key)),
         })),
       },
     },

@@ -20,7 +20,7 @@ import { AutomationWizard } from '../automation/AutomationWizard';
 import * as api from './api';
 import { toMarketInfo, type MarketAreaResponse } from './api';
 import { isDisclosureValid } from './DisclosureForm';
-import { isAreaDraftValid } from './MarketAreaForm';
+import { draftPlaces, isDraftValid } from './placesDraft';
 import { isEventValid } from './OpenHouseForm';
 import { dollars, isPriceValid } from './PriceDropForm';
 import { MadeDays } from './MadeDays';
@@ -57,10 +57,7 @@ const PLAN_LABEL: Record<PlaybookId, string> = {
 const canPlanWith = (what: WhatValue, market: MarketInfo | null): boolean => {
   if (what.channels.length === 0) return false;
   if (what.moment === 'evergreen') return true;
-  if (what.moment === 'market_update') {
-    const area = what.area ?? market?.area ?? null;
-    return Boolean(area && isAreaDraftValid(area));
-  }
+  if (what.moment === 'market_update') return isDraftValid(what.places);
   if (!what.listingId) return false;
   const disclosure = what.disclosure ?? market?.disclosure ?? null;
   if (!market?.hasDisclosure && !(disclosure && isDisclosureValid(disclosure))) return false;
@@ -104,7 +101,7 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
   const startMoment = moment && isPlaybookId(moment) ? moment : 'just_listed';
   const [what, setWhat] = useState<WhatValue>({
     moment: startMoment, listingId, startDate: startFor(startMoment, date), channels: ['instagram', 'tiktok'],
-    area: null, event: null, price: { newPrice: '', oldPrice: '' }, disclosure: null,
+    places: null, event: null, price: { newPrice: '', oldPrice: '' }, disclosure: null,
   });
   const marketApi = useApi<MarketAreaResponse>(campaignId ? null : '/api/app/autopilot/market-area');
   const market = toMarketInfo(marketApi.data);
@@ -129,13 +126,12 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
   };
 
   const isMarket = what.moment === 'market_update';
-  const area = what.area ?? market?.area ?? null;
   const canPlan = canPlanWith(what, market);
 
   const createPlan = async () => {
     if (!canPlan) return;
     const created = await run(async () => {
-      if (isMarket && area) await api.saveMarketArea(area);
+      if (isMarket && what.places) await api.saveMarketPlaces(draftPlaces(what.places));
       if (LISTING_MOMENTS.includes(what.moment) && what.disclosure && !market?.hasDisclosure) await api.saveDisclosure(what.disclosure);
       return api.createPlaybook(bodyOf(what));
     });

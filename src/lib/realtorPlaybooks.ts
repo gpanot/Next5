@@ -95,16 +95,24 @@ export const JUST_LISTED: Playbook = {
   ],
 };
 
+const MU_EXTRA: Partial<Beat> = { slideshow: 'market_stats', templateId: 'tpl_rp_mu_stats', versionId: 'tplv_rp_mu_stats' };
+
 export const MARKET_UPDATE: Playbook = {
   id: 'market_update',
   name: 'Market update',
-  pitch: 'This week’s numbers for your area',
-  windowDays: 7,
+  pitch: '3 cities + your state, one post every 2 days',
+  windowDays: 10,
   needsListing: false,
   needsArea: true,
   placement: 'start',
   paidOnly: true,
-  beats: [beat('market_update.stats', 0, 'slideshow', 'Market update', '{city}: this week’s housing numbers, sourced', { slideshow: 'market_stats' })],
+  // One post per place she keeps (src/lib/marketPlaces.ts), every 2 days. All share the one seeded template.
+  beats: [
+    beat('market_update.stats', 0, 'slideshow', 'Market update', '{city}: this week’s housing numbers, sourced', MU_EXTRA),
+    beat('market_update.stats_2', 2, 'slideshow', 'Market update', '{city}: this week’s housing numbers, sourced', MU_EXTRA),
+    beat('market_update.stats_3', 4, 'slideshow', 'Market update', '{city}: this week’s housing numbers, sourced', MU_EXTRA),
+    beat('market_update.state', 6, 'slideshow', 'State update', '{city}: this week’s housing numbers, sourced', MU_EXTRA),
+  ],
 };
 
 export const OPEN_HOUSE: Playbook = {

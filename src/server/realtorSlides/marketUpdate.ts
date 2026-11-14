@@ -3,7 +3,8 @@
 
 import { prisma } from '../../lib/db';
 import { uploadToR2 } from '../../lib/r2';
-import { parseMarketArea, type MarketArea } from '../../lib/marketArea';
+import type { MarketArea } from '../../lib/marketArea';
+import { areaForBeat, parseMarketPlaces, placeName } from '../../lib/marketPlaces';
 import type { PlaybookSlide } from '../../types/business/campaigns';
 import { getMarketSnapshot } from '../realtor/marketResearch';
 import { shortSource, type MarketStat } from '../realtor/marketStats';
@@ -19,9 +20,10 @@ const pick = (stats: MarketStat[]): MarketStat[] =>
   [...stats.filter((s) => s.cadence === 'weekly').slice(0, 2), ...stats.filter((s) => s.cadence === 'monthly')].slice(0, MAX_CARDS);
 
 const captionOf = (area: MarketArea, stats: MarketStat[], sources: string): string => {
-  const city = area.city.replace(/\s+/g, '');
+  const name = placeName(area);
+  const city = name.replace(/[^A-Za-z]/g, '');
   const lines = stats.slice(0, 3).map((s) => `• ${s.name}: ${s.value}${s.change ? ` (${s.change})` : ''}`);
-  return [`${area.city} housing market, this week:`, ...lines, '', 'Thinking of selling? DM VALUE for what your home is worth now.', sources, `#${city}RealEstate #${city}Homes #HousingMarket #RealEstate`].join('\n');
+  return [`${name} housing market, this week:`, ...lines, '', 'Thinking of selling? DM VALUE for what your home is worth now.', sources, `#${city}RealEstate #${city}Homes #HousingMarket #RealEstate`].join('\n');
 };
 
 const asOfLabel = (stats: MarketStat[]) => {
@@ -33,7 +35,7 @@ export const cardsFor = (area: MarketArea, stats: MarketStat[], postDate: Date):
   const chosen = pick(stats);
   const sources = `Sources: ${[...new Set(chosen.map((s) => shortSource(s.sourceName)))].join(', ')} · data as of ${asOfLabel(chosen)}`;
   const cards: Card[] = [
-    { kind: 'hook', city: area.city, weekLabel: weekLabel(postDate), count: chosen.length },
+    { kind: 'hook', city: placeName(area), weekLabel: weekLabel(postDate), count: chosen.length },
     ...chosen.map((stat, i): Card => ({ kind: 'stat', stat, index: i + 1, total: chosen.length })),
     { kind: 'cta', title: 'What is your home worth now?', body: 'Prices move every week. I will send you a free, real number for your home.', sources },
   ];
@@ -47,11 +49,12 @@ const fail = (postId: string, message: string) =>
 export const makeMarketUpdate = async (postId: string, workspaceId: string): Promise<void> => {
   try {
     const [post, ws] = await Promise.all([
-      prisma.campaignPost.findUniqueOrThrow({ where: { id: postId }, select: { scheduledFor: true } }),
+      prisma.campaignPost.findUniqueOrThrow({ where: { id: postId }, select: { scheduledFor: true, beatKey: true } }),
       prisma.workspace.findUniqueOrThrow({ where: { id: workspaceId }, select: { marketArea: true } }),
     ]);
-    const area = parseMarketArea(ws.marketArea);
-    if (!area) return void (await fail(postId, 'Add where you sell first.'));
+    const places = parseMarketPlaces(ws.marketArea);
+    const area = places ? areaForBeat(places, post.beatKey) : null;
+    if (!area) return void (await fail(postId, 'This place is no longer in your list. Add it back in Where do you sell.'));
     const snapshot = await getMarketSnapshot(area);
     if (!snapshot.publishable) return void (await fail(postId, 'Not enough sourced numbers for your area this week. Try again later.'));
 

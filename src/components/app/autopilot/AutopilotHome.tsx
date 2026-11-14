@@ -40,7 +40,7 @@ const MarketCard = ({ to }: { to: string }) => (
     </span>
     <span className="flex min-w-0 flex-1 flex-col">
       <span className="text-[15px] font-semibold text-app-ink">Weekly market update</span>
-      <span className="text-[13px] text-app-muted">Your area’s numbers, every Monday. Every stat sourced.</span>
+      <span className="text-[13px] text-app-muted">3 cities + your state, one post every 2 days. Every stat sourced.</span>
     </span>
     <ArrowRight aria-hidden className="h-4 w-4 shrink-0 text-app-accent" />
   </Link>
