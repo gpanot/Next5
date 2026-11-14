@@ -297,14 +297,22 @@ export const setPostFlags = async (
   workspaceId: string,
   campaignId: string,
   postId: string,
-  flags: { skipped?: boolean; source?: 'real' | 'mix' | 'generated'; caption?: string | null },
+  flags: { skipped?: boolean; source?: 'real' | 'mix' | 'generated'; caption?: string | null; date?: string },
   db: Db = prisma,
 ): Promise<CampaignDto> => {
   const campaign = await load(db, workspaceId, campaignId);
   requireDraft(campaign);
   if (!campaign.posts.some((p) => p.id === postId)) throw new HttpError(404, 'not_found', 'Post not found.');
 
-  await db.campaignPost.update({ where: { id: postId }, data: flags });
+  const { date, ...rest } = flags;
+  const data: Prisma.CampaignPostUpdateInput = { ...rest };
+  if (date !== undefined) {
+    const today = new Date().toISOString().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < today) throw new HttpError(400, 'invalid_date', 'Pick a day from today on.');
+    data.scheduledFor = new Date(`${date}T00:00:00.000Z`);
+    data.dayIndex = Math.round((Date.parse(`${date}T00:00:00.000Z`) - campaign.startDate.getTime()) / 86_400_000);
+  }
+  await db.campaignPost.update({ where: { id: postId }, data });
   return getCampaign(workspaceId, campaignId, db);
 };
 

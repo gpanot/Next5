@@ -26,10 +26,11 @@ export const PATCH = authedRoute(async (req, session, { params }: Ctx) => {
     return NextResponse.json({ campaign: await swapTemplate(ws.id, campaignId, postId, body.templateId) });
   }
 
-  const flags: { skipped?: boolean; source?: 'real' | 'mix' | 'generated'; caption?: string | null } = {};
+  const flags: { skipped?: boolean; source?: 'real' | 'mix' | 'generated'; caption?: string | null; date?: string } = {};
   if (typeof body.skipped === 'boolean') flags.skipped = body.skipped;
   if (body.source === 'real' || body.source === 'mix' || body.source === 'generated') flags.source = body.source;
   if (body.caption !== undefined) flags.caption = body.caption === null ? null : String(body.caption);
+  if (typeof body.date === 'string') flags.date = body.date;
   if (Object.keys(flags).length === 0) throw new HttpError(400, 'no_changes', 'Nothing to update.');
 
   return NextResponse.json({ campaign: await setPostFlags(ws.id, campaignId, postId, flags) });

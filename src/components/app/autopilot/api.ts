@@ -31,6 +31,9 @@ export const getPlaybook = (id: string) =>
 export const skipPost = (id: string, postId: string, skipped: boolean) =>
   apiFetch<{ campaign: CampaignDto }>(`/api/app/campaigns/${id}/posts/${postId}`, { method: 'PATCH', json: { product: 'brand', skipped } }).then((r) => r.campaign);
 
+export const movePost = (id: string, postId: string, date: string) =>
+  apiFetch<{ campaign: CampaignDto }>(`/api/app/campaigns/${id}/posts/${postId}`, { method: 'PATCH', json: { product: 'brand', date } }).then((r) => r.campaign);
+
 export const approvePlaybook = (id: string) =>
   apiFetch<{ campaign: CampaignDto }>(`/api/app/campaigns/${id}/approve`, { method: 'POST' }).then((r) => r.campaign);
 
