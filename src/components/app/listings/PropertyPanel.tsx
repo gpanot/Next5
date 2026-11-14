@@ -1,8 +1,6 @@
 'use client';
 
 import { Info } from 'lucide-react';
-import { useState } from 'react';
-import { apiFetch } from '../../../lib/apiClient';
 import type { ListingDto } from '../../../types/business/listings';
 import { HomeDetailsForm } from './HomeDetailsForm';
 import { PropertyPhotos } from './PropertyPhotos';
@@ -18,13 +16,8 @@ type Props = {
   onRemoved: () => void;
 };
 
-/** The picked property: its facts, its photos, and the visible-label choice. */
+/** The picked property: its facts, and its photos. */
 export const PropertyPanel = ({ listing, onRefresh, onAddFromZillow, onRemoved }: Props) => {
-  const [error, setError] = useState<string | null>(null);
-  // The label ticks the moment she taps it; the server catches up behind.
-  const [labelOverride, setLabelOverride] = useState<boolean | null>(null);
-  const labelOn = labelOverride ?? listing.visibleAiTag;
-
   if (listing.importStatus !== 'ready') {
     return (
       <div className="rounded-2xl border border-app-line p-4">
@@ -32,17 +25,6 @@ export const PropertyPanel = ({ listing, onRefresh, onAddFromZillow, onRemoved }
       </div>
     );
   }
-
-  const toggleLabel = async (on: boolean) => {
-    setLabelOverride(on);
-    try {
-      await apiFetch(`/api/app/listings/${listing.id}`, { method: 'PATCH', json: { visibleAiTag: on } });
-      onRefresh();
-    } catch {
-      setLabelOverride(!on);
-      setError('Could not change the label. Try again.');
-    }
-  };
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-app-line p-4">
@@ -58,18 +40,6 @@ export const PropertyPanel = ({ listing, onRefresh, onAddFromZillow, onRemoved }
 
       {listing.source !== 'zillow' && listing.rooms.length > 0 && <HomeDetailsForm key={listing.id} listing={listing} onSaved={onRefresh} />}
 
-      {listing.source === 'zillow' && (
-      <label className="flex items-start gap-2">
-        <input id={`listing-ai-label-${listing.id}`} type="checkbox" checked={labelOn} onChange={(e) => void toggleLabel(e.target.checked)} className="mt-1 h-4 w-4 accent-[var(--app-accent)]" />
-        <span>
-          <span className="block text-[13px] text-app-ink">Put a visible “AI” label on these photos</span>
-          <span className="block text-[12px] text-app-muted">
-            Some states and MLSs ask for a label you can see on listing photos. Every file already carries a hidden one.
-          </span>
-        </span>
-      </label>
-      )}
-      {error && <p className="text-[13px] text-app-danger">{error}</p>}
     </div>
   );
 };

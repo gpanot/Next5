@@ -1,6 +1,6 @@
 'use client';
 
-import { Film, RotateCcw } from 'lucide-react';
+import { Eye, Film, RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
@@ -10,15 +10,16 @@ import type { ListingVideoDto, ListingVideosResponse } from '../../../types/busi
 import { AppButton } from '../../ui/AppButton';
 import { LengthPicker } from '../listingVideos/LengthPicker';
 import { LENGTH_OPTIONS, VIDEO_PRESETS, announceVideosStarted, isVideoBusy, lengthLabel } from '../listingVideos/presets';
+import { PresetPreviewDialog } from '../listingVideos/PresetPreviewDialog';
 import { DownloadLink, VideoFrame } from '../listingVideos/VideoFrame';
 
 const POLL_MS = 5_000;
 type Preset = ListingVideoDto['preset'];
 
-type CardProps = { name: string; line: string; idle: string; video: ListingVideoDto | undefined; starting: boolean; onMake: () => void };
+type CardProps = { name: string; line: string; idle: string; video: ListingVideoDto | undefined; starting: boolean; onMake: () => void; onPreview: () => void };
 
 /** One video style: its player or progress, and its own button, so she can make just this one. */
-const VideoCard = ({ name, line, idle, video, starting, onMake }: CardProps) => {
+const VideoCard = ({ name, line, idle, video, starting, onMake, onPreview }: CardProps) => {
   const busy = Boolean(video && isVideoBusy(video));
   const failed = video?.status === 'failed';
   return (
@@ -31,6 +32,14 @@ const VideoCard = ({ name, line, idle, video, starting, onMake }: CardProps) => 
             {video?.status === 'ready' && <span className="ml-1.5 font-normal text-app-muted">· {lengthLabel(video.length, video.durationS)}</span>}
           </p>
           <p className="text-[12px] leading-snug text-app-muted">{line}</p>
+          <button
+            type="button"
+            onClick={onPreview}
+            className="mt-1 inline-flex min-h-[32px] items-center gap-1 rounded-lg text-[12px] font-medium text-app-accent transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-app-accent"
+          >
+            <Eye aria-hidden className="h-3.5 w-3.5" />
+            See preview
+          </button>
         </div>
         {video?.downloadUrl && <DownloadLink url={video.downloadUrl} name={name} />}
       </div>
@@ -57,6 +66,8 @@ export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<VideoLength | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [previewing, setPreviewing] = useState<Preset | null>(null);
+  const previewMeta = VIDEO_PRESETS.find((p) => p.id === previewing);
   const videos = api.data?.videos ?? [];
   const paid = api.data?.paid ?? false;
   const length: VideoLength = picked ?? (paid ? 'standard' : 'short');
@@ -105,11 +116,13 @@ export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
             video={videos.find((v) => v.preset === p.id)}
             starting={starting.includes(p.id)}
             onMake={() => void start([p.id])}
+            onPreview={() => setPreviewing(p.id)}
           />
         ))}
       </div>
       {(api.error || error) && <p className="text-[13px] text-app-danger">{error ?? api.error}</p>}
       {busy && <p className="text-[13px] text-app-muted">About 2–4 minutes. You can leave this page; it keeps going and shows in your Library.</p>}
+      <PresetPreviewDialog preset={previewing} name={previewMeta?.name ?? ''} line={previewMeta?.line ?? ''} onClose={() => setPreviewing(null)} />
     </div>
   );
 };
