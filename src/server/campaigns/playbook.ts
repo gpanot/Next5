@@ -144,7 +144,7 @@ export const createPlaybookCampaign = async (ws: Workspace, input: PlaybookInput
     eventDate: moment.eventAt?.toISOString().slice(0, 10) ?? null,
     hasFace: playbook.placement === 'fill' ? await hasBrandFace(ws.id) : false,
   });
-  if (placed.length === 0) throw new HttpError(409, 'no_free_days', playbook.placement === 'fill' ? 'Every day that week already has a post.' : 'Your calendar is full on those days.');
+  if (placed.length === 0) throw new HttpError(409, 'no_free_days', playbook.placement === 'fill' ? 'Every day that week already has a post.' : 'Nothing to plan for those days. Try another one.');
   const startDate = placed[0]!.date;
   const fill = fillOf(place, moment);
 

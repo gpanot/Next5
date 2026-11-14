@@ -64,7 +64,9 @@ export const placePlaybook = async (playbook: Playbook, ctx: PlanContext): Promi
     return fillBeats(playbook.beats, ctx.startDate, busy, playbook.windowDays, { hasFace: ctx.hasFace, hasArea: ctx.hasArea, recent }, picked);
   }
   if (picked) return placeOnDates(playbook.beats, picked);
-  return placeBeats(playbook.beats, ctx.startDate, busy, playbook.windowDays);
+  const placed = placeBeats(playbook.beats, ctx.startDate, busy, playbook.windowDays);
+  // Step 1 never checks dates: a full window still gets a plan on the beats' own days; she adjusts them on Step 2.
+  return placed.length > 0 ? placed : placeBeats(playbook.beats, ctx.startDate, new Set(), playbook.windowDays);
 };
 
 export const dayIndexOf = (date: string, startDate: string) => Math.round((Date.parse(`${date}T00:00:00.000Z`) - Date.parse(`${startDate}T00:00:00.000Z`)) / DAY);
