@@ -3,7 +3,7 @@
 
 export { grant, listActiveGrants, type ActiveGrant, type CreditBucket, type GrantInput } from './grants';
 export { getBalance, type Balance } from './balance';
-export { reserveForBatch, chargeRedo, chargePosts, chargePostRetry, InsufficientCreditsError } from './spend';
+export { reserveForBatch, chargeRedo, chargePosts, chargePostRetry, chargeItems, InsufficientCreditsError } from './spend';
 export { refundItem } from './refund';
 export { expireDue } from './expiry';
 export { refundFailedPosts, refundFailedPostsQuietly } from './postRefund';

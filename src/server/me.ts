@@ -5,6 +5,7 @@ import { PLANS, isPlanId, type Plan } from '../config/plans';
 import { prisma } from '../lib/db';
 import type { BannerDto, BrandExtractData, MeDto, SubscriptionDto, WorkspaceDto } from '../types/business/me';
 import { getBalance, refundFailedPostsQuietly, type Balance } from './credits/ledger';
+import { ensureWelcomeCredits, refundFailedItemsQuietly } from './credits/itemCharge';
 import { givenConsents } from './onboarding/account';
 import { getActiveSubscription, getQueuedRenewal } from './subscriptions/subscriptions';
 import { studioWhere, type StudioWorkspace } from './workspaces/workspaces';
@@ -93,7 +94,11 @@ export const buildMe = async (userId: string, product?: 'brand' | 'shop', now = 
   if (!ws) return { ...base, workspace: null, subscription: null, queuedRenewal: null, plan: null, balance: emptyBalance, banners: [] };
 
   // Realtor Autopilot: failed posts give their credit back before the pill reads the balance.
-  if (ws.product === 'brand') await refundFailedPostsQuietly(ws.id);
+  // Brand create items (listing videos, slideshows) refund the same way; new workspaces get their free credits here.
+  if (ws.product === 'brand') {
+    await ensureWelcomeCredits(ws).catch((err: unknown) => console.error('[credits] welcome grant failed:', err));
+    await Promise.all([refundFailedPostsQuietly(ws.id), refundFailedItemsQuietly(ws.id)]);
+  }
   const [active, queued, balance, workspace] = await Promise.all([getActiveSubscription(ws.id, now), getQueuedRenewal(ws.id, now), getBalance(ws.id, now), toWorkspaceDto(ws)]);
   const plan = active && isPlanId(active.planId) ? PLANS[active.planId] : null;
   return {

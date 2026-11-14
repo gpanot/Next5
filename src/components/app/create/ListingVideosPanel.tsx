@@ -4,6 +4,8 @@ import { Eye, Film, RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
+import { useWorkspace } from '../shell/WorkspaceProvider';
+import { StartError } from './StartError';
 import { track } from '../../../lib/analytics';
 import type { VideoLength } from '../../../server/realtorVideo/presets';
 import type { ListingVideoDto, ListingVideosResponse } from '../../../types/business/listingVideos';
@@ -64,6 +66,8 @@ export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
   const api = useApi<ListingVideosResponse>(`/api/app/listings/${listingId}/videos`);
   const [starting, setStarting] = useState<Preset[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [noCredits, setNoCredits] = useState(false);
+  const { refresh: refreshMe } = useWorkspace();
   const [picked, setPicked] = useState<VideoLength | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<Preset | null>(null);
@@ -84,13 +88,16 @@ export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
   const start = async (presets: Preset[]) => {
     setStarting(presets);
     setError(null);
+    setNoCredits(false);
     try {
       await apiFetch(`/api/app/listings/${listingId}/videos`, { method: 'POST', json: { presets, length } });
       track('listing_videos_started', { listingId, presets: presets.join(','), length });
       announceVideosStarted();
       refresh();
+      refreshMe();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not start the video.');
+      setNoCredits(err instanceof ApiError && err.code === 'insufficient_credits');
     } finally {
       setStarting([]);
     }
@@ -120,7 +127,7 @@ export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
           />
         ))}
       </div>
-      {(api.error || error) && <p className="text-[13px] text-app-danger">{error ?? api.error}</p>}
+      {(api.error || error) && <StartError message={error ?? api.error ?? ''} noCredits={noCredits} />}
       {busy && <p className="text-[13px] text-app-muted">About 2–4 minutes. You can leave this page; it keeps going and shows in your Library.</p>}
       <PresetPreviewDialog preset={previewing} name={previewMeta?.name ?? ''} line={previewMeta?.line ?? ''} onClose={() => setPreviewing(null)} />
     </div>

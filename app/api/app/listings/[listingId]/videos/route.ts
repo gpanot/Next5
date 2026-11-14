@@ -20,11 +20,12 @@ export const GET = authedRoute(async (_req, session, { params }: Ctx) => {
 /**
  * POST { presets?: RealtorPreset[], length?: 'short' | 'standard' | 'auto' } — make the picked videos
  * (Editorial + Rate by default); a preset already in progress is skipped. Unpaid workspaces get 15 s only (402 otherwise).
+ * Each new video costs 1 credit (402 insufficient_credits when the balance is short).
  */
 export const POST = authedRoute(async (req, session, { params }: Ctx) => {
   const ws = await requireWorkspace(session.userId, 'brand');
   const { listingId } = await params;
   const body = (await req.json().catch(() => ({}))) as { presets?: unknown; length?: unknown };
-  await startListingVideos(ws, listingId, parsePresets(body.presets), await allowedLength(ws, body.length));
+  await startListingVideos(ws, listingId, parsePresets(body.presets), await allowedLength(ws, body.length), { charge: true });
   return NextResponse.json({ videos: await listListingVideos(ws, listingId) });
 });

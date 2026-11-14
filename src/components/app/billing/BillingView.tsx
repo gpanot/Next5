@@ -7,7 +7,6 @@ import { formatShortDate } from '../../../lib/dates';
 import { formatUsd } from '../../../lib/money';
 import type { PaymentDto } from '../../../types/business/payments';
 import { CheckoutSheet, type CheckoutRequest } from '../../checkout/CheckoutSheet';
-import { PromiseCard } from '../promise/PromiseCard';
 import { AppButton } from '../../ui/AppButton';
 import { Card, CardBody } from '../../ui/Card';
 import { EmptyState } from '../../ui/EmptyState';
@@ -73,7 +72,7 @@ export const BillingView = () => {
       <Card>
         <CardBody className="flex flex-col gap-4">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-[17px] font-semibold text-app-ink">{me.balance.total} videos available</p>
+            <p className="text-[17px] font-semibold text-app-ink">{me.balance.total + me.balance.trial} videos available</p>
             <p className="text-[13px] text-app-muted">Plan {me.balance.plan} · Top-up {me.balance.topup + me.balance.bonus}{me.balance.trial ? ` · Free ${me.balance.trial}` : ''}</p>
           </div>
           {me.balance.nextExpiry && <p className="text-[13px] text-app-muted">{me.balance.nextExpiry.credits} videos expire on {formatShortDate(me.balance.nextExpiry.at)}.</p>}
@@ -87,8 +86,6 @@ export const BillingView = () => {
           </div>
         </CardBody>
       </Card>
-
-      <PromiseCard product={product} />
 
       <section className="flex flex-col gap-3">
         <div role="tablist" aria-label="Billing history" className="flex items-baseline gap-5">

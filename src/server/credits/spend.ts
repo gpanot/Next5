@@ -103,6 +103,16 @@ export const chargePosts = async (tx: Tx, input: { workspaceId: string; postIds:
   }
 };
 
+/** 1 credit per item (a listing video or slideshow made outside Autopilot), any bucket, trial credits last. Throws InsufficientCreditsError. */
+export const chargeItems = async (tx: Tx, input: { workspaceId: string; refType: string; refIds: readonly string[]; now?: Date }): Promise<void> => {
+  const now = input.now ?? new Date();
+  const available = (await listActiveGrants(tx, input.workspaceId, now)).reduce((sum, g) => sum + Math.max(0, g.remaining), 0);
+  if (available < input.refIds.length) throw new InsufficientCreditsError(input.refIds.length, available);
+  for (const refId of input.refIds) {
+    await spend(tx, { workspaceId: input.workspaceId, credits: 1, reason: 'batch_reserve', refType: input.refType, refId, trialOnly: 'any', now });
+  }
+};
+
 /** "Try again" on a failed post: its first credit came back, so the new attempt costs 1 credit. Throws InsufficientCreditsError. */
 export const chargePostRetry = async (tx: Tx, input: { workspaceId: string; postId: string; now?: Date }): Promise<void> => {
   const charges = await tx.creditLedger.count({

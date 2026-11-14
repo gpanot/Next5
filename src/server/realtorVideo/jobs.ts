@@ -7,6 +7,8 @@ import { after } from 'next/server';
 import type { Listing, ListingVideo, Workspace } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { getPresignedUrl, uploadToR2 } from '../../lib/r2';
+import { createPaidItems, LISTING_VIDEO_REF } from '../credits/itemCharge';
+import type { Tx } from '../db/transaction';
 import { HttpError } from '../http';
 import { getListing, roomsFor, type ListingWithMaterials } from '../listings/listings';
 import { presignObject } from '../storage/objectStore';
@@ -153,6 +155,7 @@ export const allowedLength = async (ws: Workspace, value: unknown): Promise<Vide
  */
 export const startListingVideos = async (
   ws: Workspace, listingId: string, presets: RealtorPreset[] = LISTING_VIDEO_PRESETS, length?: VideoLength,
+  options: { charge?: boolean } = {},
 ): Promise<ListingVideo[]> => {
   const len = length ?? (await allowedLength(ws, undefined));
   const listing = await getListing(ws.id, listingId);
@@ -162,9 +165,10 @@ export const startListingVideos = async (
   if (todo.length === 0) return kept;
   await galleryOf(listing);
   await factsOf(listing);
-  const rows = await Promise.all(
-    todo.map((preset) => prisma.listingVideo.create({ data: { workspaceId: ws.id, listingId, preset, props: { length: len } } })),
-  );
+  // Brand create pays 1 credit per video here; Autopilot plans pay per post when approved, so they skip this.
+  const create = (db: Tx | typeof prisma) =>
+    Promise.all(todo.map((preset) => db.listingVideo.create({ data: { workspaceId: ws.id, listingId, preset, props: { length: len } } })));
+  const rows = options.charge ? await createPaidItems(ws, LISTING_VIDEO_REF, create) : await create(prisma);
   after(() => prepareListingVideos(listing, rows));
   return [...kept, ...rows];
 };

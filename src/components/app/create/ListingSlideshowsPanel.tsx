@@ -4,6 +4,8 @@ import { Images, Layers, RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
+import { useWorkspace } from '../shell/WorkspaceProvider';
+import { StartError } from './StartError';
 import { DEFAULT_SLIDE_THEME, SLIDE_THEME_INFO, type SlideTheme } from '../../../lib/slideThemes';
 import { HOME_SLIDESHOW_INFO, HOME_SLIDESHOW_KINDS, type HomeSlideshowKind, type ListingSlideshowDto, type ListingSlideshowsResponse } from '../../../types/business/listingSlideshows';
 import { AppButton } from '../../ui/AppButton';
@@ -77,6 +79,8 @@ export const ListingSlideshowsPanel = ({ listingId }: { listingId: string }) => 
   const [theme, setTheme] = useState<SlideTheme>(DEFAULT_SLIDE_THEME);
   const [starting, setStarting] = useState<HomeSlideshowKind[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [noCredits, setNoCredits] = useState(false);
+  const { refresh: refreshMe } = useWorkspace();
   const [open, setOpen] = useState<ListingSlideshowDto | null>(null);
   const [playing, setPlaying] = useState<HomeSlideshowKind | null>(null);
   const shows = api.data?.slideshows ?? [];
@@ -92,17 +96,24 @@ export const ListingSlideshowsPanel = ({ listingId }: { listingId: string }) => 
   const start = async (kinds: HomeSlideshowKind[]) => {
     setStarting(kinds);
     setError(null);
+    setNoCredits(false);
     try {
       await apiFetch(url, { method: 'POST', json: { kinds, theme } });
       refresh();
+      refreshMe();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not start the slideshow.');
+      setNoCredits(err instanceof ApiError && err.code === 'insufficient_credits');
     } finally {
       setStarting([]);
     }
   };
 
-  const idle = HOME_SLIDESHOW_KINDS.filter((k) => shows.find((s) => s.kind === k)?.status !== 'making');
+  // Kinds already made in the picked theme are skipped, so "make the rest" never redoes them.
+  const doneInTheme = HOME_SLIDESHOW_KINDS.filter((k) => shows.some((s) => s.kind === k && s.status === 'ready' && s.theme === theme));
+  const todo = HOME_SLIDESHOW_KINDS.filter((k) => !doneInTheme.includes(k) && shows.find((s) => s.kind === k)?.status !== 'making');
+  const themeName = SLIDE_THEME_INFO[theme].name;
+  const showBulk = todo.length > 1 || (todo.length === 1 && doneInTheme.length > 0);
 
   return (
     <div className="flex flex-col gap-4">
@@ -128,12 +139,12 @@ export const ListingSlideshowsPanel = ({ listingId }: { listingId: string }) => 
           ))}
         </div>
       )}
-      {idle.length > 1 && (
-        <AppButton variant="secondary" className="self-start" loading={starting.length > 1} onClick={() => void start(idle)} iconLeft={<Layers className="h-4 w-4" />}>
-          Make all {idle.length} in {SLIDE_THEME_INFO[theme].name}
+      {showBulk && (
+        <AppButton variant="secondary" className="self-start" loading={starting.length > 1} onClick={() => void start(todo)} iconLeft={<Layers className="h-4 w-4" />}>
+          {doneInTheme.length > 0 ? `Make ${todo.length} more ${themeName}` : `Make all ${todo.length} in ${themeName}`}
         </AppButton>
       )}
-      {(api.error || error) && <p className="text-[13px] text-app-danger" role="alert">{error ?? api.error}</p>}
+      {(api.error || error) && <StartError message={error ?? api.error ?? ''} noCredits={noCredits} />}
       {busy && <p className="text-[13px] text-app-muted">About a minute each. You can leave this page; it keeps going.</p>}
       {open && <PlaybookPostSheet post={previewOf(open)} onClose={() => setOpen(null)} />}
     </div>
