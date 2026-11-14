@@ -7,33 +7,32 @@ import { MoreSheet } from './MoreSheet';
 import { useWorkspace } from './WorkspaceProvider';
 import { isActive, mobileTabsFor, moreItemsFor, MORE_ICON as MoreIcon } from './nav';
 
-const TAB_CLASS = 'flex h-16 w-full flex-col items-center justify-center gap-1 text-[11px] transition-colors duration-200';
+const TAB_CLASS = 'flex h-16 w-full flex-col items-center justify-center gap-1 text-[11px] leading-none transition-colors duration-200';
 
 export const BottomTabBar = () => {
   const pathname = usePathname();
   const { product } = useWorkspace();
   const [moreOpen, setMoreOpen] = useState(false);
   if (!product) return null;
+  const tabs = mobileTabsFor(product);
   const moreItems = moreItemsFor(product);
   const moreActive = moreOpen || moreItems.some((item) => isActive(pathname, item.href));
 
   return (
     <>
       <nav aria-label="App" className="fixed inset-x-0 bottom-0 z-30 border-t border-app-line bg-app-panel/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden">
-        <ul className="mx-auto grid max-w-md grid-cols-5">
-          {mobileTabsFor(product).map(({ href, label, icon: Icon, primary }) => {
+        <ul className="mx-auto grid max-w-md" style={{ gridTemplateColumns: `repeat(${tabs.length + 1}, minmax(0, 1fr))` }}>
+          {tabs.map(({ href, label, icon: Icon, primary }) => {
             const active = isActive(pathname, href);
             return (
               <li key={href}>
                 <Link href={href} aria-current={active ? 'page' : undefined} className={TAB_CLASS}>
                   {primary ? (
-                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-app-cta text-app-cta-ink shadow-sm"><Icon aria-hidden className="h-5 w-5" /></span>
+                    <span className="flex h-7 w-12 items-center justify-center rounded-full bg-app-cta text-app-cta-ink shadow-sm"><Icon aria-hidden className="h-5 w-5" /></span>
                   ) : (
-                    <>
-                      <Icon aria-hidden className={`h-5 w-5 ${active ? 'text-app-accent' : 'text-app-muted'}`} />
-                      <span className={active ? 'font-medium text-app-accent' : 'text-app-muted'}>{label}</span>
-                    </>
+                    <Icon aria-hidden className={`h-5 w-5 ${active ? 'text-app-accent' : 'text-app-muted'}`} />
                   )}
+                  <span className={active ? 'font-medium text-app-accent' : 'text-app-muted'}>{label}</span>
                 </Link>
               </li>
             );
