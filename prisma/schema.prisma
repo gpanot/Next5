@@ -245,6 +245,9 @@ model Workspace {
   signupIntent          String?       @map("signup_intent")
   goals                 String[]      @default([])
   attribution           String[]      @default([])
+  postingFrequency      String?       @map("posting_frequency")
+  contentStruggles      String[]      @default([]) @map("content_struggles")
+  contentExpectations   String[]      @default([]) @map("content_expectations")
   // Brand intelligence — extracted from the business website
   websiteUrl            String?       @map("website_url")
   /// "never" | "rarely" | "sometimes" | "often" | "always"

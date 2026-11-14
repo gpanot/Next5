@@ -10,6 +10,9 @@ export type StepProps = {
 
 export const STEP_LABELS = ['Account', 'Your Business', 'About You', 'Start'] as const;
 
+/** Brand (real estate only): no business step, "About You" holds the consents. */
+export const BRAND_STEP_LABELS = ['Account', 'About You', 'Start'] as const;
+
 /**
  * Maps each server-side onboarding step (1-indexed) to the visual stepper
  * step that should be highlighted. Server steps 3–6 all map to display step 3
@@ -26,6 +29,18 @@ export const SERVER_TO_DISPLAY_STEP: Record<number, number | null> = {
   6: 3,
   7: null, // Reviews: shown inline, not a stepper step
   8: 4,
+};
+
+/** Brand: server steps 2–6 all sit under "About You"; step 8 is "Start". */
+export const BRAND_SERVER_TO_DISPLAY_STEP: Record<number, number | null> = {
+  1: 1,
+  2: 2,
+  3: 2,
+  4: 2,
+  5: 2,
+  6: 2,
+  7: null,
+  8: 3,
 };
 
 export const stepError = (err: unknown, fallback: string): string =>

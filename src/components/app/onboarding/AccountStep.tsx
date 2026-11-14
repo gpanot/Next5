@@ -3,7 +3,7 @@
 import { MailCheck } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
-import { onboardingDraftStore, onboardingWebsiteStore, sessionTokenStore } from '../../../lib/localStore';
+import { onboardingDraftStore, sessionTokenStore } from '../../../lib/localStore';
 import type { ProductLineDto } from '../../../types/business/me';
 import { AppButton } from '../../ui/AppButton';
 import { Field } from '../../ui/Field';
@@ -12,7 +12,7 @@ import { TextInput } from '../../ui/TextInput';
 import { StepCard } from './StepCard';
 
 type AccountResponse = { status: 'session'; token: string } | { status: 'check_email' };
-type Draft = { product: ProductLineDto; firstName: string; websiteUrl: string };
+type Draft = { product: ProductLineDto; firstName: string };
 
 export type SignedInUser = { email: string; displayName: string | null };
 
@@ -48,7 +48,7 @@ const FIELD_ERRORS = ['invalid_email'];
 
 export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onSession }: AccountStepProps) => {
   const draft = readDraft(onboardingDraftStore.useValue(), product);
-  const [form, setForm] = useState({ email: '', websiteUrl: draft?.websiteUrl ?? '' });
+  const [form, setForm] = useState({ email: '' });
   const [error, setError] = useState<{ field?: string; message: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
@@ -74,13 +74,11 @@ export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onS
       const firstName = signedIn?.displayName ?? deriveFirstName(signedIn?.email ?? form.email);
       if (signedIn) {
         await apiFetch('/api/app/onboarding/workspace', { method: 'POST', json: { product, firstName } });
-        if (form.websiteUrl) onboardingWebsiteStore.set(form.websiteUrl);
         onSession();
         return;
       }
-      const newDraft: Draft = { product, firstName, websiteUrl: form.websiteUrl };
+      const newDraft: Draft = { product, firstName };
       onboardingDraftStore.set(JSON.stringify(newDraft satisfies Draft));
-      if (form.websiteUrl) onboardingWebsiteStore.set(form.websiteUrl);
       const res = await apiFetch<AccountResponse>('/api/app/onboarding/account', { method: 'POST', json: { product, firstName, email: form.email } });
       if (res.status === 'session') {
         sessionTokenStore.set(res.token);
@@ -130,9 +128,6 @@ export const AccountStep = ({ product, signedIn, linkFailed, hasOtherStudio, onS
               <TextInput id="ob-email" type="email" autoComplete="email" required value={form.email} onChange={(e) => set('email')(e.target.value)} />
             </Field>
           )}
-          <Field label="Your Website URL" htmlFor="ob-website" helper="Optional">
-            <TextInput id="ob-website" type="url" autoComplete="url" value={form.websiteUrl} onChange={(e) => set('websiteUrl')(e.target.value)} placeholder="https://yourbusiness.com" />
-          </Field>
         </div>
         {error && !FIELD_ERRORS.includes(error.field ?? '') && <p role="alert" className="text-[14px] text-app-danger">{error.message}</p>}
       </StepCard>

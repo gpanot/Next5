@@ -1,15 +1,14 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { INDUSTRIES, SHOP_CATEGORIES } from '../../../content/business/catalog/types';
 import { hasRequiredConsents } from '../../../config/consents';
 import { apiFetch } from '../../../lib/apiClient';
 import { onboardingWebsiteStore } from '../../../lib/localStore';
 import { AppButton } from '../../ui/AppButton';
-import { Checkbox } from '../../ui/Checkbox';
 import { ChipGroup } from '../../ui/Chip';
 import { SkeletonText } from '../../ui/Skeleton';
+import { ConsentChecks } from './ConsentChecks';
 import { StepCard } from './StepCard';
 import { stepError, type StepProps } from './types';
 
@@ -108,19 +107,7 @@ export const ConsentStep = ({ product, me, advance }: StepProps) => {
         </div>
 
         {/* Consent checkboxes — hidden if already accepted */}
-        {!alreadyGiven && (
-          <div className="flex flex-col gap-4 border-t border-app-line pt-5">
-            <p className="text-[13px] text-app-muted">A couple of things to confirm before we start.</p>
-            <Checkbox checked={labels} onChange={setLabels} label={
-              <span className="text-[14px] text-app-ink">
-                <strong className="font-semibold">I understand my photos are AI-generated.</strong> Every file carries an AI label, and I’ll follow platform rules when posting.
-              </span>
-            } />
-            <Checkbox checked={terms} onChange={setTerms} label={
-              <span className="text-[14px] text-app-ink">I agree to the Next5 <Link href="/legal/terms" target="_blank" className="text-app-accent underline">Terms</Link>, <Link href="/legal/privacy" target="_blank" className="text-app-accent underline">Privacy Policy</Link> and <Link href="/legal/ai-and-face-data" target="_blank" className="text-app-accent underline">AI & face data</Link> notice.</span>
-            } />
-          </div>
-        )}
+        {!alreadyGiven && <ConsentChecks labels={labels} terms={terms} onLabels={setLabels} onTerms={setTerms} />}
       </div>
       {error && <p role="alert" className="text-[14px] text-app-danger">{error}</p>}
     </StepCard>

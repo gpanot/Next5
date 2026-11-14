@@ -29,6 +29,10 @@ export const PATCH = authedRoute(async (req, session) => {
   // Step 3 — team + revenue
   if (typeof body.teamSize === 'string' && body.teamSize) qualData.teamSize = body.teamSize;
   if (typeof body.monthlyRevenue === 'string' && body.monthlyRevenue) qualData.monthlyRevenue = body.monthlyRevenue;
+  // Brand "About you" — content habits
+  if (typeof body.postingFrequency === 'string' && body.postingFrequency) qualData.postingFrequency = body.postingFrequency;
+  if (Array.isArray(body.contentStruggles)) qualData.contentStruggles = body.contentStruggles.map(String);
+  if (Array.isArray(body.contentExpectations)) qualData.contentExpectations = body.contentExpectations.map(String);
   // Step 4 — role
   if (typeof body.role === 'string' && body.role) qualData.obRole = body.role;
   // Step 5 — intent + goals

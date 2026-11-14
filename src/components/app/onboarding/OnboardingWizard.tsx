@@ -15,6 +15,7 @@ import { BusinessLogo } from '../../marketing/shared/MarketingHeader';
 import { ErrorState } from '../../ui/ErrorState';
 import { SkeletonText } from '../../ui/Skeleton';
 import { Stepper } from '../../ui/Stepper';
+import { AboutYouStep } from './AboutYouStep';
 import { AccountStep } from './AccountStep';
 import { AttributionStep } from './AttributionStep';
 import { ConsentStep } from './ConsentStep';
@@ -23,7 +24,7 @@ import { ProductIntroStep } from './ProductIntroStep';
 import { RoleStep } from './RoleStep';
 import { SocialProofStep } from './SocialProofStep';
 import { TeamRevenueStep } from './TeamRevenueStep';
-import { SERVER_TO_DISPLAY_STEP, STEP_LABELS, type StepProps } from './types';
+import { BRAND_SERVER_TO_DISPLAY_STEP, BRAND_STEP_LABELS, SERVER_TO_DISPLAY_STEP, STEP_LABELS, type StepProps } from './types';
 
 // Server steps 2–8 (step 1 = AccountStep, rendered separately).
 // Index 0 here = server step 2, index 6 = server step 8.
@@ -36,6 +37,10 @@ const STEPS: readonly ((props: StepProps) => React.ReactNode)[] = [
   SocialProofStep,  // server step 7 — displayed but not counted in stepper
   ProductIntroStep, // server step 8
 ];
+
+// Brand (real estate only): server steps 2 and 3 are one "About you" screen (consents + content habits).
+// It advances straight to step 3, so step 3 only shows when going back.
+const BRAND_STEPS: readonly ((props: StepProps) => React.ReactNode)[] = [AboutYouStep, AboutYouStep, ...STEPS.slice(2)];
 
 // Total server steps (unchanged — the back-end flow is identical).
 const TOTAL_SERVER_STEPS = 8;
@@ -52,7 +57,9 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
   const current = viewStep !== null && viewStep < serverStep ? viewStep : serverStep;
 
   // Display step for the stepper (null = Reviews screen, no stepper highlight)
-  const displayStep = SERVER_TO_DISPLAY_STEP[current] ?? null;
+  const isBrand = product === 'brand';
+  const stepLabels = isBrand ? BRAND_STEP_LABELS : STEP_LABELS;
+  const displayStep = (isBrand ? BRAND_SERVER_TO_DISPLAY_STEP : SERVER_TO_DISPLAY_STEP)[current] ?? null;
 
   useEffect(() => {
     if (workspace?.onboardingCompleted) router.replace(studioHref(product));
@@ -78,11 +85,12 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
 
   const hasOtherStudio = Boolean(me.data && me.data.workspaces.length > 0);
   const loading = token === undefined || verifying || (Boolean(token) && me.loading && !me.data);
-  const StepComponent = current > 1 && me.data ? STEPS[current - 2] : null;
+  const StepComponent = current > 1 && me.data ? (isBrand ? BRAND_STEPS : STEPS)[current - 2] : null;
 
   // Back button: hide on first step, last step, and the Reviews screen (step 7)
   // which has no dedicated stepper slot and flows directly forward.
-  const showBack = current > 1 && current < TOTAL_SERVER_STEPS && current !== 7;
+  const firstQuestionStep = isBrand ? 3 : 1;
+  const showBack = current > firstQuestionStep && current < TOTAL_SERVER_STEPS && current !== 7;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-5 pb-16 pt-6 sm:px-8">
@@ -97,7 +105,7 @@ export const OnboardingWizard = ({ product }: { product: ProductLineDto }) => {
           </button>
         )}
         {/* When displayStep is null (Reviews screen), show step 4 "Start" as next-up */}
-        <Stepper steps={STEP_LABELS} current={displayStep ?? STEP_LABELS.length} />
+        <Stepper steps={stepLabels} current={displayStep ?? stepLabels.length} />
       </div>
       {loading && <SkeletonText lines={6} />}
       {!loading && me.error && <ErrorState message={me.error} onRetry={me.refresh} />}
