@@ -15,8 +15,7 @@ export const GET = authedRoute(async (req, session) => {
  * DELETE /api/app/me
  *
  * Permanently deletes:
- *  - All workspace data (same as DELETE /api/app/me/data)
- *  - The user account itself
+ *  - All workspace data *  - The user account itself
  *
  * The client must clear the session token and redirect to the home page after calling this.
  */
@@ -60,18 +59,30 @@ export const DELETE = authedRoute(async (_req, session) => {
     await Promise.allSettled(influencers.filter((i) => i.baseImageKey).map((i) => deleteObject(i.baseImageKey!)));
 
     // ── Delete DB data ────────────────────────────────────────────────────────
-    await prisma.payment.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
-    await prisma.creditLedger.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
-    await prisma.subscription.deleteMany({ where: { workspaceId: { in: workspaceIds } } });
-    await prisma.workspace.deleteMany({ where: { id: { in: workspaceIds } } });
+    // Several workspace FKs are ON DELETE RESTRICT: clear them first, all in one transaction.
+    const inWs = { workspaceId: { in: workspaceIds } };
+    await prisma.$transaction([
+      prisma.studioSet.deleteMany({ where: inWs }),
+      prisma.batch.deleteMany({ where: inWs }),
+      prisma.influencer.deleteMany({ where: inWs }),
+      prisma.product.deleteMany({ where: inWs }),
+      prisma.payment.deleteMany({ where: inWs }),
+      prisma.creditLedger.deleteMany({ where: inWs }),
+      prisma.subscription.deleteMany({ where: inWs }),
+      prisma.workspace.deleteMany({ where: { id: { in: workspaceIds } } }),
+    ]);
   }
 
-  // ── Delete remaining user-scoped rows ──────────────────────────────────────
-  await prisma.consentRecord.deleteMany({ where: { userId } });
-  await prisma.payment.deleteMany({ where: { userId, workspaceId: null } });
-
-  // ── Delete the user account ────────────────────────────────────────────────
-  await prisma.user.delete({ where: { id: userId } });
+  // ── Delete remaining user-scoped rows, then the user ──────────────────────
+  const bookings = await prisma.booking.findMany({ where: { userId }, select: { id: true } });
+  const bookingIds = bookings.map((b) => b.id);
+  await prisma.$transaction([
+    prisma.photo.deleteMany({ where: { OR: [{ userId }, { bookingId: { in: bookingIds } }] } }),
+    prisma.booking.deleteMany({ where: { userId } }),
+    prisma.consentRecord.deleteMany({ where: { userId } }),
+    prisma.payment.deleteMany({ where: { userId } }),
+    prisma.user.delete({ where: { id: userId } }),
+  ]);
 
   return NextResponse.json({ deleted: true });
 });

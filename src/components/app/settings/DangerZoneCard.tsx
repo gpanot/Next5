@@ -70,7 +70,7 @@ const ConfirmDialog = ({ title, body, confirmLabel, confirmPhrase, onCancel, onC
 
 // ─── Danger zone card ─────────────────────────────────────────────────────────
 
-type Dialog = 'data' | 'account' | null;
+type Dialog = 'account' | null;
 
 export const DangerZoneCard = () => {
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -78,20 +78,6 @@ export const DangerZoneCard = () => {
   const [error, setError] = useState<string | null>(null);
 
   const close = () => { setDialog(null); setError(null); };
-
-  const handleDeleteData = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      await apiFetch('/api/app/me/data', { method: 'DELETE' });
-      close();
-      // Reload the app so workspace context is re-initialised from scratch.
-      window.location.href = '/app';
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Something went wrong. Please try again.');
-      setBusy(false);
-    }
-  };
 
   const handleDeleteAccount = async () => {
     setBusy(true);
@@ -112,25 +98,6 @@ export const DangerZoneCard = () => {
       <Card>
         <CardBody className="flex flex-col gap-4">
           <p className="text-[16px] font-semibold text-app-ink">Danger zone</p>
-
-          {/* Delete all data */}
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-app-line p-4">
-            <div className="flex flex-col gap-0.5">
-              <p className="text-[13px] font-medium text-app-ink">Delete all my data</p>
-              <p className="text-[12px] text-app-muted">
-                Permanently removes all your photos, batches, products, sets and workspace settings.
-                Your login is kept so you can start fresh.
-              </p>
-            </div>
-            <AppButton
-              variant="secondary"
-              size="sm"
-              className="mt-3 shrink-0 border-red-300 text-red-600 hover:bg-red-50 sm:mt-0 sm:ml-4"
-              onClick={() => { setError(null); setDialog('data'); }}
-            >
-              Delete all data
-            </AppButton>
-          </div>
 
           {/* Delete account */}
           <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between rounded-xl border border-red-200 bg-red-50/40 p-4">
@@ -155,17 +122,6 @@ export const DangerZoneCard = () => {
       </Card>
 
       {/* Confirmation dialogs */}
-      {dialog === 'data' && (
-        <ConfirmDialog
-          title="Delete all your data?"
-          body="This will permanently delete all your photos, batches, products, influencers, sets and workspace settings. Your login email is kept — you can create a new workspace afterwards. This action cannot be undone."
-          confirmLabel="Yes, delete all data"
-          confirmPhrase="delete my data"
-          onCancel={close}
-          onConfirm={handleDeleteData}
-          busy={busy}
-        />
-      )}
       {dialog === 'account' && (
         <ConfirmDialog
           title="Delete your account?"
