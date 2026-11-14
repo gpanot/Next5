@@ -45,6 +45,8 @@ export type CampaignPostDto = {
   idea: string | null;
   mediaStatus: MediaStatusDto;
   mediaError: string | null;
+  /** ISO time she approved this made post; null = still to approve. */
+  approvedAt: string | null;
   media: PostMediaDto | null;
 };
 

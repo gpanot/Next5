@@ -13,6 +13,7 @@ export const GET = authedRoute(async (_req, session) => {
   const videos = await Promise.all(
     rows.map(async (r) => ({
       id: r.id,
+      posted: r.slots.length > 0,
       preset: r.preset,
       listingLabel: r.listing.label,
       ready: r.status === 'ready',

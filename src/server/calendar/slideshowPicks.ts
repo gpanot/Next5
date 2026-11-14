@@ -4,18 +4,24 @@
 import type { Workspace } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { HttpError } from '../http';
-import { OFF_CALENDAR, getOrCreateSchedule } from './calendar';
+import { getOrCreateSchedule } from './calendar';
 import { isoDate } from './schedule';
 
 const MAX_PER_ADD = 30;
 
-/** Ready slideshows with no active slot (she took them off, or skipped them). Newest first. */
+/**
+ * Every ready slideshow, same as the Library: off the calendar, posted (ready to repost), or planned
+ * (picking it moves it to the new day). Newest first.
+ */
 export const listAddableSlideshows = async (workspaceId: string, take = 60) =>
   prisma.campaignPost.findMany({
-    where: { campaign: { workspaceId }, format: 'slideshow', mediaStatus: 'ready', slots: { none: { status: { notIn: OFF_CALENDAR } } } },
+    where: { campaign: { workspaceId }, format: 'slideshow', mediaStatus: 'ready', skipped: false },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take,
-    select: { id: true, idea: true, slides: true },
+    select: {
+      id: true, idea: true, slides: true,
+      slots: { where: { status: { in: ['planned', 'posted'] } }, select: { status: true, scheduledFor: true }, orderBy: { scheduledFor: 'asc' } },
+    },
   });
 
 /** Puts the picked slideshows on one day. Returns how many were added. */
@@ -33,11 +39,14 @@ export const addSlideshowsToDay = async (ws: Workspace, date: string, postIds: r
   const scheduledFor = new Date(`${date}T00:00:00.000Z`);
   let added = 0;
   for (const post of posts) {
-    if (post.slots.some((s) => s.status === 'posted')) continue;
-    await prisma.postSlot.updateMany({ where: { campaignPostId: post.id, workspaceId: ws.id }, data: { scheduledFor, status: 'planned', source: 'manual' } });
-    if (post.slots.length === 0) {
-      await prisma.postSlot.create({ data: { workspaceId: ws.id, scheduleId: schedule.id, scheduledFor, campaignPostId: post.id, source: 'manual' } });
+    if (post.slots.some((s) => s.status === 'planned')) {
+      // Already on another day: move it here.
+      await prisma.postSlot.updateMany({ where: { campaignPostId: post.id, workspaceId: ws.id, status: 'planned' }, data: { scheduledFor, source: 'manual' } });
+      added += 1;
+      continue;
     }
+    // Otherwise a fresh slot: a posted slideshow keeps its history and goes out again.
+    await prisma.postSlot.create({ data: { workspaceId: ws.id, scheduleId: schedule.id, scheduledFor, campaignPostId: post.id, source: 'manual' } });
     added += 1;
   }
   return added;

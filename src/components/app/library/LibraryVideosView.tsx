@@ -16,7 +16,7 @@ const VideoTile = ({ video }: { video: WorkspaceListingVideoDto }) => {
   const name = presetName(video.preset);
   return (
     <article className="flex flex-col gap-2">
-      <VideoFrame video={video} />
+      <VideoFrame video={video} tapToPlay />
       <div className="flex items-start justify-between gap-2">
         <AppLink href={`/app/create?listing=${video.listingId}`} className="min-w-0 transition-opacity duration-200 hover:opacity-70">
           <p className="truncate text-[13px] font-semibold text-app-ink">{video.listingLabel}</p>

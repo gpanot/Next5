@@ -6,8 +6,9 @@ import { AppButton } from '../../ui/AppButton';
 import { presetName } from '../listingVideos/presets';
 import type { ListingVideoDto } from '../../../types/business/listingVideos';
 import { AppLink as Link } from '../shell/AppLink';
+import { PostedTag } from './PostedTag';
 
-export type PickableVideo = { id: string; preset: ListingVideoDto['preset']; listingLabel: string; ready: boolean; url: string | null };
+export type PickableVideo = { id: string; posted: boolean; preset: ListingVideoDto['preset']; listingLabel: string; ready: boolean; url: string | null };
 
 type Props = { picked: readonly string[]; onToggle: (id: string) => void };
 
@@ -27,6 +28,7 @@ const VideoTile = ({ video, on, onToggle }: { video: PickableVideo; on: boolean;
         <span className="text-[11px]">Making…</span>
       </span>
     )}
+    {video.posted && <PostedTag />}
     <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5 text-left">
       <span className="block truncate text-[11px] font-semibold text-white">{presetName(video.preset)}</span>
       <span className="block truncate text-[10px] text-white/80">{video.listingLabel}</span>

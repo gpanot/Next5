@@ -4,10 +4,18 @@ import { Check, Images } from 'lucide-react';
 import { useApi } from '../../../hooks/useApi';
 import { AppButton } from '../../ui/AppButton';
 import { AppLink as Link } from '../shell/AppLink';
+import { PostedTag } from './PostedTag';
 
-type PickableSlideshow = { id: string; idea: string | null; slideCount: number; coverUrl: string | null };
+type PickableSlideshow = { id: string; posted: boolean; plannedFor: string | null; idea: string | null; slideCount: number; coverUrl: string | null };
 
 type Props = { picked: readonly string[]; onToggle: (id: string) => void };
+
+/** "On Nov 23": already planned; picking it moves it to this day. */
+const PlannedTag = ({ date }: { date: string }) => (
+  <span className="absolute left-1.5 top-1.5 z-10 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm">
+    On {new Date(`${date}T00:00:00.000Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
+  </span>
+);
 
 const SlideshowTile = ({ show, on, onToggle }: { show: PickableSlideshow; on: boolean; onToggle: () => void }) => (
   <button
@@ -21,6 +29,7 @@ const SlideshowTile = ({ show, on, onToggle }: { show: PickableSlideshow; on: bo
       // eslint-disable-next-line @next/next/no-img-element
       <img src={show.coverUrl} alt="" loading="lazy" className={`h-full w-full object-cover transition-opacity duration-200 ${on ? 'opacity-80' : ''}`} />
     )}
+    {show.plannedFor ? <PlannedTag date={show.plannedFor} /> : show.posted && <PostedTag />}
     <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-1.5 pt-5 text-left">
       <span className="block truncate text-[11px] font-semibold text-white">{show.idea ?? 'Slideshow'}</span>
       <span className="block truncate text-[10px] text-white/80">{show.slideCount} slides</span>
@@ -31,7 +40,7 @@ const SlideshowTile = ({ show, on, onToggle }: { show: PickableSlideshow; on: bo
   </button>
 );
 
-/** The Slideshows tab of the add sheet: her ready slideshows that are not on the calendar. */
+/** The Slideshows tab of the add sheet: all her ready slideshows. Planned ones show their day and move when picked. */
 export const SlideshowPickGrid = ({ picked, onToggle }: Props) => {
   const { data, error, loading, refresh } = useApi<{ slideshows: PickableSlideshow[] }>('/api/app/calendar/slideshows');
 
@@ -56,7 +65,7 @@ export const SlideshowPickGrid = ({ picked, onToggle }: Props) => {
       <div className="flex flex-col items-center gap-3 py-8 text-center">
         <Images aria-hidden className="h-9 w-9 text-app-muted" />
         <p className="text-[15px] font-medium text-app-ink">No slideshows to add</p>
-        <p className="text-[13px] text-app-muted">Slideshows from Autopilot that are off your calendar show up here.</p>
+        <p className="text-[13px] text-app-muted">Slideshows from Autopilot show up here.</p>
         <Link href="/app/automation" className="inline-flex h-10 items-center rounded-xl bg-app-cta px-4 text-[13px] font-medium text-app-cta-ink hover:opacity-90">Open Autopilot</Link>
       </div>
     );

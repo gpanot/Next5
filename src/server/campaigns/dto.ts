@@ -34,6 +34,8 @@ export type CampaignPostDto = {
   idea: string | null;
   mediaStatus: MediaStatusDto;
   mediaError: string | null;
+  /** ISO time she approved this made post; null = still to approve. */
+  approvedAt: string | null;
   /** Signed URLs, filled only by attachMedia (playbook routes). */
   media: PostMediaDto | null;
 };

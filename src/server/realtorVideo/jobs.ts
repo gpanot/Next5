@@ -169,6 +169,14 @@ export const startListingVideos = async (
   return [...kept, ...rows];
 };
 
+/** The video's first photo, shown as its thumbnail so a grid never loads the videos themselves. */
+const posterOf = async (props: unknown): Promise<string | null> => {
+  const beats = (props as { beats?: unknown } | null)?.beats;
+  const first = Array.isArray(beats) ? (beats[0] as { photo?: unknown } | undefined)?.photo : undefined;
+  if (typeof first !== 'string' || first.length === 0) return null;
+  return first.startsWith('r2:') ? getPresignedUrl(first.slice(3), 24 * 3600) : first;
+};
+
 export const toListingVideoDto = async (row: ListingVideo): Promise<ListingVideoDto> => {
   const ready = row.status === 'ready' && row.videoKey;
   return {
@@ -180,6 +188,7 @@ export const toListingVideoDto = async (row: ListingVideo): Promise<ListingVideo
     durationS: row.durationS,
     videoUrl: ready ? await getPresignedUrl(row.videoKey!, 24 * 3600) : null,
     downloadUrl: ready ? await getPresignedUrl(row.videoKey!, 24 * 3600, `${row.preset}-listing-video.mp4`) : null,
+    posterUrl: ready ? await posterOf(row.props) : null,
     createdAt: row.createdAt.toISOString(),
   };
 };

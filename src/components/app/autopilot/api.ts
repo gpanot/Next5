@@ -34,6 +34,9 @@ export const approvePlaybook = (id: string) =>
 export const retryPost = (id: string, postId: string) =>
   apiFetch<{ campaign: CampaignDto }>(`/api/app/campaigns/${id}/posts/${postId}/retry`, { method: 'POST' }).then((r) => r.campaign);
 
+export const approvePost = (id: string, postId: string, approved: boolean) =>
+  apiFetch<{ campaign: CampaignDto }>(`/api/app/campaigns/${id}/posts/${postId}/approve`, { method: 'POST', json: { approved } }).then((r) => r.campaign);
+
 export const discardPlaybook = (id: string) => apiFetch<{ ok: boolean }>(`/api/app/campaigns/${id}?product=brand`, { method: 'DELETE' });
 
 export type MarketAreaResponse = {

@@ -9,6 +9,6 @@ export const GET = authedRoute(async (req, session) => {
   const ws = await requireWorkspace(session.userId, 'brand');
   const cursor = new URL(req.url).searchParams.get('cursor');
   const { rows, nextCursor } = await listAddablePhotos(ws.id, cursor);
-  const photos = await Promise.all(rows.map(async (r) => ({ id: r.id, url: r.r2Key ? await presignObject(r.r2Key) : null, batchName: r.batch.name })));
+  const photos = await Promise.all(rows.map(async (r) => ({ id: r.id, posted: r.slots.length > 0, url: r.r2Key ? await presignObject(r.r2Key) : null, batchName: r.batch.name })));
   return NextResponse.json({ photos, nextCursor });
 });

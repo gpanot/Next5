@@ -191,9 +191,9 @@ export const addPhotosToDay = async (ws: Workspace, date: string, itemIds: reado
   let added = 0;
   for (const item of items) {
     const slot = item.slots[0];
-    if (slot?.status === 'posted') continue;
     if (slot) {
-      await prisma.postSlot.update({ where: { id: slot.id }, data: { scheduledFor, status: 'planned', source: 'manual' } });
+      // A posted photo comes back as a repost: same slot, planned again.
+      await prisma.postSlot.update({ where: { id: slot.id }, data: { scheduledFor, status: 'planned', source: 'manual', postUrl: null, postedAt: null } });
     } else {
       await prisma.postSlot.create({ data: { workspaceId: ws.id, scheduleId: schedule.id, scheduledFor, itemId: item.id, source: 'manual' } });
     }
@@ -218,9 +218,9 @@ export const addVideosToDay = async (ws: Workspace, date: string, videoIds: read
   let added = 0;
   for (const video of videos) {
     const slot = video.slots[0];
-    if (slot?.status === 'posted') continue;
     if (slot) {
-      await prisma.postSlot.update({ where: { id: slot.id }, data: { scheduledFor, status: 'planned', source: 'manual' } });
+      // A posted video comes back as a repost: same slot, planned again.
+      await prisma.postSlot.update({ where: { id: slot.id }, data: { scheduledFor, status: 'planned', source: 'manual', postUrl: null, postedAt: null } });
     } else {
       await prisma.postSlot.create({ data: { workspaceId: ws.id, scheduleId: schedule.id, scheduledFor, listingVideoId: video.id, source: 'manual' } });
     }
@@ -229,13 +229,13 @@ export const addVideosToDay = async (ws: Workspace, date: string, videoIds: read
   return added;
 };
 
-/** Listing videos she can add to a day: not failed, and not already planned or posted. Newest first. */
+/** Listing videos she can add to a day: not failed, and not planned (posted ones can be reposted). Newest first. */
 export const listAddableVideos = async (workspaceId: string, take = 60) =>
   prisma.listingVideo.findMany({
-    where: { workspaceId, status: { not: 'failed' }, slots: { none: { status: { notIn: OFF_CALENDAR } } } },
+    where: { workspaceId, status: { not: 'failed' }, slots: { none: { status: 'planned' } } },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take,
-    select: { id: true, preset: true, status: true, videoKey: true, listing: { select: { label: true } } },
+    select: { id: true, preset: true, status: true, videoKey: true, listing: { select: { label: true } }, slots: { where: { status: 'posted' }, select: { id: true }, take: 1 } },
   });
 
 /** Takes one post off her calendar by its slot. */
@@ -246,14 +246,14 @@ export const removeSlot = async (workspaceId: string, slotId: string): Promise<P
   return prisma.postSlot.update({ where: { id: slot.id }, data: { status: 'removed' } });
 };
 
-/** Photos she can add to a day: ready, kept, and not already planned or posted. Newest first. */
+/** Photos she can add to a day: ready, kept, and not planned (posted ones can be reposted). Newest first. */
 export const listAddablePhotos = async (workspaceId: string, cursor: string | null, take = 30) => {
   const rows = await prisma.batchItem.findMany({
-    where: { batch: { workspaceId, preview: false, variation: false }, status: 'ready', r2Key: { not: null }, archivedAt: null, slots: { none: { status: { notIn: OFF_CALENDAR } } } },
+    where: { batch: { workspaceId, preview: false, variation: false }, status: 'ready', r2Key: { not: null }, archivedAt: null, slots: { none: { status: 'planned' } } },
     orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
     take: take + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-    select: { id: true, r2Key: true, batch: { select: { name: true } } },
+    select: { id: true, r2Key: true, batch: { select: { name: true } }, slots: { where: { status: 'posted' }, select: { id: true }, take: 1 } },
   });
   return { rows: rows.slice(0, take), nextCursor: rows.length > take ? rows[take - 1]!.id : null };
 };
@@ -291,7 +291,7 @@ export const SLOT_INCLUDE = {
   listingVideo: { select: { id: true, preset: true, status: true, videoKey: true, listing: { select: { label: true } } } },
   campaignPost: {
     select: {
-      campaignId: true, format: true, idea: true, beatKey: true, caption: true, mediaStatus: true, slides: true,
+      campaignId: true, format: true, idea: true, beatKey: true, caption: true, mediaStatus: true, slides: true, approvedAt: true,
       listingVideo: { select: { status: true, videoKey: true } },
     },
   },
@@ -309,6 +309,7 @@ export type SlotWithItem = PostSlot & {
     caption: string | null;
     mediaStatus: string;
     slides: unknown;
+    approvedAt: Date | null;
     listingVideo: { status: string; videoKey: string | null } | null;
   } | null;
 };

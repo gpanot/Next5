@@ -108,3 +108,13 @@ export const retryPlaybookPost = async (ws: Workspace, campaignId: string, postI
   after(() => runSlideshows([{ id: post.id, beatKey: post.beatKey }], listingId, ws.id));
   return getPlaybookCampaign(ws.id, campaign.id);
 };
+
+/** Approves (or un-approves) one made post of a booked plan. Only a ready post can be approved. */
+export const setPlaybookPostApproved = async (ws: Workspace, campaignId: string, postId: string, approved: boolean): Promise<CampaignDto> => {
+  const campaign = await getPlaybookCampaign(ws.id, campaignId);
+  const post = campaign.posts.find((p) => p.id === postId);
+  if (!post || post.skipped) throw new HttpError(404, 'not_found', 'Post not found.');
+  if (approved && post.mediaStatus !== 'ready') throw new HttpError(409, 'not_ready', 'This post is still being made.');
+  await prisma.campaignPost.update({ where: { id: postId }, data: { approvedAt: approved ? new Date() : null } });
+  return getPlaybookCampaign(ws.id, campaign.id);
+};

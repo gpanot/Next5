@@ -61,6 +61,7 @@ export const toPostDto = (row: PostRow): CampaignPostDto => {
     idea: row.idea,
     mediaStatus: row.mediaStatus as CampaignPostDto['mediaStatus'],
     mediaError: row.mediaError,
+    approvedAt: row.approvedAt?.toISOString() ?? null,
     media: null,
   };
 };

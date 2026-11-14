@@ -52,6 +52,9 @@ const DayThumb = ({ slot, date, onOpen, onRemove, busy }: ThumbProps) => {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={slot.photo.url} alt="" loading="lazy" draggable={false} className="pointer-events-none h-full w-full object-cover" />
         )}
+        {!posted && playbook?.needsApproval && (
+          <span className="absolute bottom-1 left-1 rounded-full bg-amber-400 px-1.5 py-0.5 text-[9px] font-semibold text-black shadow-sm">To approve</span>
+        )}
         {posted && (
           <span className="absolute inset-0 flex items-center justify-center rounded-xl bg-emerald-600/55">
             <Check aria-hidden className="h-6 w-6 text-white" />

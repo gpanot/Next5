@@ -37,6 +37,8 @@ export type SlotPlaybookDto = {
   format: 'slideshow' | 'listing_video';
   idea: string | null;
   status: 'planned' | 'generating' | 'ready' | 'failed';
+  /** Autopilot post made but not approved yet. Always false for a hand-added video. */
+  needsApproval: boolean;
   caption: string | null;
   coverUrl: string | null;
   videoUrl: string | null;

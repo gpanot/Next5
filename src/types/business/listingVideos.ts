@@ -10,6 +10,8 @@ export type ListingVideoDto = {
   durationS: number | null;
   videoUrl: string | null;
   downloadUrl: string | null;
+  /** First photo of the video, for tap-to-play thumbnails; null when unknown. */
+  posterUrl: string | null;
   createdAt: string;
 };
 

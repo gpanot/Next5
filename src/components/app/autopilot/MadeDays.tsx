@@ -1,6 +1,6 @@
 'use client';
 
-import { RotateCcw } from 'lucide-react';
+import { Check, RotateCcw } from 'lucide-react';
 import { beatOf } from '../../../lib/realtorPlaybooks';
 import type { CampaignPostDto } from '../../../types/business/campaigns';
 import { PostMedia } from './PostMedia';
@@ -13,12 +13,31 @@ type Props = {
   busyPostId: string | null;
   onRetry: (post: CampaignPostDto) => void;
   onOpen: (post: CampaignPostDto) => void;
+  onApprove: (post: CampaignPostDto, approved: boolean) => void;
   /** Approve time: video cards count down 3 minutes from it. */
   startedAt: string | null;
 };
 
 /** Step 3 after approve: each post fills in as it is made. */
-export const MadeDays = ({ posts, busyPostId, onRetry, onOpen, startedAt }: Props) => (
+/** Approve on a made post; tap again to take it back. */
+const ApproveButton = ({ post, busy, onApprove }: { post: CampaignPostDto; busy: boolean; onApprove: Props['onApprove'] }) => {
+  const approved = post.approvedAt !== null;
+  return (
+    <button
+      type="button"
+      onClick={() => onApprove(post, !approved)}
+      disabled={busy}
+      aria-pressed={approved}
+      className={`flex h-9 items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium transition-colors duration-200 disabled:opacity-50 ${
+        approved ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-app-cta text-app-cta-ink hover:opacity-90'
+      }`}
+    >
+      <Check aria-hidden className="h-4 w-4" /> {approved ? 'Approved' : 'Approve'}
+    </button>
+  );
+};
+
+export const MadeDays = ({ posts, busyPostId, onRetry, onOpen, onApprove, startedAt }: Props) => (
   <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
     {posts.filter((p) => !p.skipped).map((post) => {
       const failed = post.mediaStatus === 'failed';
@@ -37,6 +56,7 @@ export const MadeDays = ({ posts, busyPostId, onRetry, onOpen, startedAt }: Prop
           </button>
           <span className="text-[11px] font-semibold uppercase text-app-muted">{dayLabel(post.date)}</span>
           <span className="truncate text-[12px] text-app-ink">{beatOf(post.beatKey)?.label ?? post.templateName}</span>
+          {post.mediaStatus === 'ready' && <ApproveButton post={post} busy={busyPostId === post.id} onApprove={onApprove} />}
           {failed && post.format === 'slideshow' && (
             <button
               type="button"

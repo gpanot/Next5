@@ -23,6 +23,7 @@ const manualVideoOf = async (video: NonNullable<SlotWithItem['listingVideo']>, c
   format: 'listing_video',
   idea: `${presetName(video.preset)} · ${video.listing.label}`,
   status: video.status === 'ready' ? 'ready' : video.status === 'failed' ? 'failed' : 'generating',
+  needsApproval: false,
   caption,
   coverUrl: null,
   videoUrl: video.status === 'ready' && video.videoKey ? await getPresignedUrl(video.videoKey, SIGN_SECONDS) : null,
@@ -37,11 +38,13 @@ export const playbookOf = async (slot: SlotWithItem): Promise<SlotPlaybookDto | 
   const slideUrls = (await Promise.all(slides.map((s) => getPresignedUrl(s.key, SIGN_SECONDS)))).filter((u): u is string => Boolean(u));
   const video = post.listingVideo;
   const videoUrl = video?.status === 'ready' && video.videoKey ? await getPresignedUrl(video.videoKey, SIGN_SECONDS) : null;
+  const status = statusOf(post);
   return {
     campaignId: post.campaignId,
     format: post.format === 'listing_video' ? 'listing_video' : 'slideshow',
     idea: post.idea,
-    status: statusOf(post),
+    status,
+    needsApproval: status === 'ready' && post.approvedAt === null,
     caption: slot.captionOverride ?? post.caption,
     coverUrl: slideUrls[0] ?? null,
     videoUrl,

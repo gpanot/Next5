@@ -2030,6 +2030,8 @@ model CampaignPost {
   /// planned | generating | ready | failed
   mediaStatus    String       @default("planned") @map("media_status")
   mediaError     String?      @map("media_error")
+  /// When she approved this made post (Autopilot step 3). Null = still to approve.
+  approvedAt     DateTime?    @map("approved_at")
   createdAt    DateTime       @default(now()) @map("created_at")
 
   campaign     Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)

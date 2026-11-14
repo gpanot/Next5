@@ -4,7 +4,7 @@
  * Realtor Autopilot: 3 steps instead of the old 8 (docs/business-studios/15-realtor-autopilot-plan.md §3.2).
  * 1 What's happening → 2 Your plan (real dates, skip a day) → 3 Approve, then watch the posts get made.
  */
-import { ArrowLeft, CalendarDays, Plus, Sparkles } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Check, Plus, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { ApiError } from '../../../lib/apiClient';
@@ -170,7 +170,16 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
   const step = !campaign ? 1 : campaign.status === 'draft' ? 2 : 3;
   const live = campaign?.posts.filter((p) => !p.skipped) ?? [];
   // Approved and made: every step is done, not just the first two.
-  const barStep = step === 3 && !making ? STEPS.length + 1 : step;
+  // Made posts she still has to approve, one by one or all at once.
+  const toApprove = live.filter((p) => p.mediaStatus === 'ready' && p.approvedAt === null);
+  const barStep = step === 3 && !making && toApprove.length === 0 ? STEPS.length + 1 : step;
+
+  const approveAll = () =>
+    void run(async () => {
+      let next = campaign!;
+      for (const post of toApprove) next = await api.approvePost(campaign!.id, post.id, true);
+      return next;
+    });
 
   return (
     <Frame step={barStep}>
@@ -191,7 +200,9 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
             <p className="text-[14px] text-app-muted">
               {making
                 ? 'Making your posts. Videos take about 3 minutes. You can leave: Autopilot brings you back here.'
-                : 'Your posts are on the calendar. Tap one to see it.'}
+                : toApprove.length > 0
+                  ? 'Your posts are on the calendar. Tap one to see it, then approve it.'
+                  : 'All approved. Your posts are on the calendar.'}
             </p>
             <MadeDays
               posts={campaign.posts}
@@ -199,6 +210,7 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
               startedAt={campaign.scheduledAt}
               onOpen={(post) => setPreview(previewOf(post))}
               onRetry={(post) => void postAction(post, () => api.retryPost(campaign.id, post.id))}
+              onApprove={(post, approved) => void postAction(post, () => api.approvePost(campaign.id, post.id, approved))}
             />
           </>
         )}
@@ -219,7 +231,12 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
             {step === 3 && !making && (
               <AppButton variant="ghost" iconLeft={<Plus aria-hidden className="h-4 w-4" />} onClick={freshPlan}>New plan</AppButton>
             )}
-            {step === 3 && (
+            {step === 3 && !making && toApprove.length > 0 && (
+              <AppButton fullWidth size="lg" loading={busy} iconLeft={<Check aria-hidden className="h-4 w-4" />} onClick={approveAll}>
+                {toApprove.length === 1 ? 'Approve post' : `Approve all ${toApprove.length}`}
+              </AppButton>
+            )}
+            {step === 3 && (making || toApprove.length === 0) && (
               <AppButton fullWidth size="lg" variant="secondary" disabled={making} iconLeft={<CalendarDays aria-hidden className="h-4 w-4" />} onClick={() => router.push(href('/calendar'))}>
                 {making ? 'Making your posts…' : 'Open calendar'}
               </AppButton>

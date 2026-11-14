@@ -9,10 +9,11 @@ import { AppButton } from '../../ui/AppButton';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { Sheet } from '../../ui/Sheet';
 import { AppLink as Link } from '../shell/AppLink';
+import { PostedTag } from './PostedTag';
 import { SlideshowPickGrid } from './SlideshowPickGrid';
 import { VideoPickGrid } from './VideoPickGrid';
 
-type Photo = { id: string; url: string | null; batchName: string };
+type Photo = { id: string; posted: boolean; url: string | null; batchName: string };
 type Page = { photos: Photo[]; nextCursor: string | null };
 type Kind = 'videos' | 'slideshows' | 'photos';
 const KINDS: readonly { value: Kind; label: string }[] = [
@@ -145,6 +146,7 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={photo.url} alt="" loading="lazy" className={`h-full w-full object-cover transition-opacity duration-200 ${on ? 'opacity-80' : ''}`} />
                         )}
+                        {photo.posted && <PostedTag />}
                         <span className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-colors duration-200 ${on ? 'border-white bg-app-cta text-app-cta-ink' : 'border-white/90 bg-black/25'}`}>
                           {on && <Check aria-hidden className="h-3.5 w-3.5" />}
                         </span>

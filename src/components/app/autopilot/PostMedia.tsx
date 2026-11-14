@@ -15,6 +15,8 @@ type Props = {
   className?: string;
   /** When the video started being made: shows a 3-minute countdown while it renders. */
   startedAt?: string | null;
+  /** False shows the cover only (no slide stepping), e.g. the Library grid. */
+  autoplay?: boolean;
 };
 
 const SLIDE_MS = 1800;
@@ -32,9 +34,9 @@ const useSlidePlayer = (count: number, enabled: boolean) => {
 };
 
 /** A 9:16 thumbnail of a playbook post in any state: planned, being made, ready (video or slides), or failed. */
-export const PostMedia = ({ format, status, coverUrl, videoUrl, slideCount = 0, slideUrls = [], className = '', startedAt = null }: Props) => {
+export const PostMedia = ({ format, status, coverUrl, videoUrl, slideCount = 0, slideUrls = [], className = '', startedAt = null, autoplay = true }: Props) => {
   const Icon = format === 'listing_video' ? Clapperboard : Images;
-  const isShow = format === 'slideshow' && status === 'ready' && !videoUrl && slideUrls.length > 1;
+  const isShow = autoplay && format === 'slideshow' && status === 'ready' && !videoUrl && slideUrls.length > 1;
   const player = useSlidePlayer(slideUrls.length, isShow);
   return (
     <div className={`relative aspect-[9/16] overflow-hidden rounded-xl bg-app-sunken ${className}`}>
