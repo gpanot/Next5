@@ -9,22 +9,25 @@ import { AppButton } from '../../ui/AppButton';
 import { SegmentedControl } from '../../ui/SegmentedControl';
 import { Sheet } from '../../ui/Sheet';
 import { AppLink as Link } from '../shell/AppLink';
+import { SlideshowPickGrid } from './SlideshowPickGrid';
 import { VideoPickGrid } from './VideoPickGrid';
 
 type Photo = { id: string; url: string | null; batchName: string };
 type Page = { photos: Photo[]; nextCursor: string | null };
-type Kind = 'videos' | 'photos';
+type Kind = 'videos' | 'slideshows' | 'photos';
 const KINDS: readonly { value: Kind; label: string }[] = [
   { value: 'videos', label: 'Videos' },
+  { value: 'slideshows', label: 'Slideshows' },
   { value: 'photos', label: 'Photos' },
 ];
 
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-/** "Add 2 videos and 1 photo" — what the button will put on the day. */
-const addLabel = (videos: number, photos: number): string => {
-  const parts = [videos > 0 ? plural(videos, 'video') : null, photos > 0 ? plural(photos, 'photo') : null].filter(Boolean);
-  return parts.length === 0 ? 'Pick videos or photos' : `Add ${parts.join(' and ')}`;
+/** "Add 2 videos, 1 slideshow and 1 photo" — what the button will put on the day. */
+const addLabel = (videos: number, slideshows: number, photos: number): string => {
+  const parts = [videos > 0 ? plural(videos, 'video') : null, slideshows > 0 ? plural(slideshows, 'slideshow') : null, photos > 0 ? plural(photos, 'photo') : null].filter((p): p is string => p !== null);
+  if (parts.length === 0) return 'Pick videos, slideshows or photos';
+  return `Add ${parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0]}`;
 };
 
 type Props = {
@@ -40,6 +43,7 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
   const [kind, setKind] = useState<Kind>('videos');
   const [picked, setPicked] = useState<string[]>([]);
   const [pickedVideos, setPickedVideos] = useState<string[]>([]);
+  const [pickedShows, setPickedShows] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,14 +72,15 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
 
   const toggle = (id: string) => setPicked((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
   const toggleVideo = (id: string) => setPickedVideos((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
-  const total = picked.length + pickedVideos.length;
+  const toggleShow = (id: string) => setPickedShows((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]));
+  const total = picked.length + pickedVideos.length + pickedShows.length;
 
   const save = async () => {
     if (!date || total === 0) return;
     setSaving(true);
     setError(null);
     try {
-      const calendar = await apiFetch<CalendarDto>(`/api/app/calendar/days/${date}`, { method: 'POST', json: { itemIds: picked, videoIds: pickedVideos } });
+      const calendar = await apiFetch<CalendarDto>(`/api/app/calendar/days/${date}`, { method: 'POST', json: { itemIds: picked, videoIds: pickedVideos, slideshowIds: pickedShows } });
       onAdded(calendar, total);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not add those posts.');
@@ -104,6 +109,8 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
         <div className="pb-4">
           {kind === 'videos' ? (
             <VideoPickGrid picked={pickedVideos} onToggle={toggleVideo} />
+          ) : kind === 'slideshows' ? (
+            <SlideshowPickGrid picked={pickedShows} onToggle={toggleShow} />
           ) : !current || (current.loading && current.photos.length === 0) ? (
             <div className="grid grid-cols-3 gap-2">
               {Array.from({ length: 9 }, (_, i) => <div key={i} className="aspect-[4/5] animate-pulse rounded-xl bg-app-sunken" />)}
@@ -159,7 +166,7 @@ export const PhotoPickerSheet = ({ date, onClose, onAdded }: Props) => {
         <div className="sticky -bottom-6 -mx-6 -mb-6 flex flex-col gap-2 border-t border-app-line bg-app-panel px-6 pb-[max(env(safe-area-inset-bottom),24px)] pt-3">
           {error && <p className="text-[13px] text-app-danger">{error}</p>}
           <AppButton size="lg" fullWidth loading={saving} disabled={total === 0} onClick={() => void save()}>
-            {addLabel(pickedVideos.length, picked.length)}
+            {addLabel(pickedVideos.length, pickedShows.length, picked.length)}
           </AppButton>
         </div>
       </div>

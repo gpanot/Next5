@@ -169,9 +169,11 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
 
   const step = !campaign ? 1 : campaign.status === 'draft' ? 2 : 3;
   const live = campaign?.posts.filter((p) => !p.skipped) ?? [];
+  // Approved and made: every step is done, not just the first two.
+  const barStep = step === 3 && !making ? STEPS.length + 1 : step;
 
   return (
-    <Frame step={step}>
+    <Frame step={barStep}>
       <div className="flex flex-col gap-6">
         {error && <p className="rounded-xl bg-app-accent-soft px-3 py-2 text-[13px] text-app-danger" role="alert">{error}</p>}
 

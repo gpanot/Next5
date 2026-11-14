@@ -6,7 +6,7 @@ type Props = { steps: readonly string[]; /** 1-indexed. */ current: number };
 
 /** Compact step tracker for the page top bar: dots on phones, numbered pills with labels from `sm`. */
 export const TopBarSteps = ({ steps, current }: Props) => (
-  <ol aria-label={`Step ${current} of ${steps.length}`} className="flex items-center gap-1.5 sm:gap-2">
+  <ol aria-label={current > steps.length ? 'All steps done' : `Step ${current} of ${steps.length}`} className="flex items-center gap-1.5 sm:gap-2">
     {steps.map((label, i) => {
       const step = i + 1;
       const done = step < current;

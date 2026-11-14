@@ -19,7 +19,7 @@ type Props = {
 
 /** Step 3 after approve: each post fills in as it is made. */
 export const MadeDays = ({ posts, busyPostId, onRetry, onOpen, startedAt }: Props) => (
-  <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 lg:grid-cols-7">
+  <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
     {posts.filter((p) => !p.skipped).map((post) => {
       const failed = post.mediaStatus === 'failed';
       return (
@@ -31,6 +31,7 @@ export const MadeDays = ({ posts, busyPostId, onRetry, onOpen, startedAt }: Prop
               coverUrl={post.media?.coverUrl ?? null}
               videoUrl={post.media?.videoUrl ?? null}
               slideCount={post.media?.slideUrls.length ?? 0}
+              slideUrls={post.media?.slideUrls ?? []}
               startedAt={startedAt}
             />
           </button>

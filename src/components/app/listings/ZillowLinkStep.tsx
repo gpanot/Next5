@@ -45,7 +45,6 @@ export const ZillowLinkStep = ({ busy, error, onSubmit, onUploadInstead }: Props
         <label htmlFor="zillow-link" className="flex items-center gap-2 text-[15px] font-semibold text-app-ink">
           <Link2 aria-hidden className="h-4 w-4 text-app-accent" /> Paste your Zillow link
         </label>
-        <p className="text-[13px] text-app-muted">We add all the photos of your listing. Then you remove the ones you don’t want to be in.</p>
       </div>
       <div className="flex gap-2">
         <input

@@ -11,6 +11,8 @@ import { BrandCreateFlow } from '../create/BrandCreateFlow';
 import { PropertyList } from './PropertyList';
 
 const NEW = 'new';
+/** Phones only: show the property list instead of the open property. */
+const LIST = 'list';
 
 /** ?listing= drives the page, so the back button and shared links land on the same property. */
 const useListingParam = () => {
@@ -53,9 +55,10 @@ export const PropertiesView = () => {
     return <BrandCreateFlow listings={[]} onRefresh={refresh} listingId={null} onSelect={(id) => set(id ?? NEW)} />;
   }
 
-  const picked = param === NEW ? null : param ?? listings[0]!.id;
-  // Phones show the list until she opens a property (or "New property").
-  const detailOpen = param !== null;
+  // Landing (no ?listing=) shows the "Add a property" form; she picks a property from the list.
+  const picked = param === null || param === NEW || param === LIST ? null : param;
+  // Phones show the form or property; "All properties" brings the list back.
+  const detailOpen = param !== LIST;
 
   return (
     <div className="grid items-start gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
@@ -65,7 +68,7 @@ export const PropertiesView = () => {
       <div className={`min-w-0 flex-col gap-3 ${detailOpen ? 'flex' : 'hidden lg:flex'}`}>
         <button
           type="button"
-          onClick={() => set(null)}
+          onClick={() => set(LIST)}
           className="flex h-9 w-fit items-center gap-1 rounded-lg pr-2 text-[14px] font-medium text-app-muted transition-colors duration-200 hover:text-app-ink lg:hidden"
         >
           <ChevronLeft aria-hidden className="h-4 w-4" /> All properties

@@ -7,7 +7,7 @@ import { ProgressMeter } from '../../ui/ProgressMeter';
 import { useWorkspace } from './WorkspaceProvider';
 
 export const CreditsPill = () => {
-  const { me } = useWorkspace();
+  const { me, product } = useWorkspace();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -26,7 +26,7 @@ export const CreditsPill = () => {
   if (!me) return null;
   const { balance, subscription } = me;
   const monthly = subscription?.monthlyCredits ?? 0;
-  const label = balance.trial > 0 && balance.total === 0 ? `${balance.trial} free` : `${balance.total} photos`;
+  const label = balance.trial > 0 && balance.total === 0 ? `${balance.trial} free` : `${balance.total} ${product === 'brand' ? 'videos' : 'photos'}`;
 
   return (
     <div ref={ref} className="relative">
