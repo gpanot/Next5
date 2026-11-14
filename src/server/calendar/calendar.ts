@@ -289,6 +289,7 @@ export const SLOT_INCLUDE = {
   item: { select: { id: true, batchId: true, r2Key: true, postKit: true, score: true, scoreDetails: true, sceneId: true, batch: { select: { name: true } } } },
   material: { select: { id: true, label: true } },
   listingVideo: { select: { id: true, preset: true, status: true, videoKey: true, listing: { select: { label: true } } } },
+  listingSlideshow: { select: { id: true, kind: true, status: true, slides: true, caption: true, listing: { select: { label: true } } } },
   campaignPost: {
     select: {
       campaignId: true, format: true, idea: true, beatKey: true, caption: true, mediaStatus: true, slides: true, approvedAt: true,
@@ -301,6 +302,7 @@ export type SlotWithItem = PostSlot & {
   item: ({ id: string; batchId: string; r2Key: string | null; postKit: unknown; score: number | null; scoreDetails: unknown; sceneId: string | null; batch: { name: string } }) | null;
   material: { id: string; label: string | null } | null;
   listingVideo: { id: string; preset: string; status: string; videoKey: string | null; listing: { label: string } } | null;
+  listingSlideshow: { id: string; kind: string; status: string; slides: unknown; caption: string; listing: { label: string } } | null;
   campaignPost: {
     campaignId: string;
     format: string;

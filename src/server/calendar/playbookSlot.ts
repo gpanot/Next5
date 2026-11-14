@@ -4,6 +4,7 @@
 import { getPresignedUrl } from '../../lib/r2';
 import type { PlaybookSlide } from '../../types/business/campaigns';
 import type { SlotPlaybookDto } from '../../types/business/calendar';
+import { HOME_SLIDESHOW_INFO, isHomeSlideshowKind } from '../../types/business/listingSlideshows';
 import { PRESET_META, type RealtorPreset } from '../realtorVideo/presets';
 import type { SlotWithItem } from './calendar';
 
@@ -30,12 +31,34 @@ const manualVideoOf = async (video: NonNullable<SlotWithItem['listingVideo']>, c
   slideUrls: [],
 });
 
+const signSlides = async (raw: unknown): Promise<string[]> => {
+  const slides = (Array.isArray(raw) ? raw : []) as PlaybookSlide[];
+  return (await Promise.all(slides.map((s) => getPresignedUrl(s.key, SIGN_SECONDS)))).filter((u): u is string => Boolean(u));
+};
+
+/** A listing page slideshow she put on the day by hand. */
+const manualSlideshowOf = async (show: NonNullable<SlotWithItem['listingSlideshow']>, caption: string | null): Promise<SlotPlaybookDto> => {
+  const slideUrls = show.status === 'ready' ? await signSlides(show.slides) : [];
+  const name = isHomeSlideshowKind(show.kind) ? HOME_SLIDESHOW_INFO[show.kind].name : 'Slideshow';
+  return {
+    campaignId: null,
+    format: 'slideshow',
+    idea: `${name} · ${show.listing.label}`,
+    status: show.status === 'ready' ? 'ready' : show.status === 'failed' ? 'failed' : 'generating',
+    needsApproval: false,
+    caption: caption ?? show.caption,
+    coverUrl: slideUrls[0] ?? null,
+    videoUrl: null,
+    slideUrls,
+  };
+};
+
 export const playbookOf = async (slot: SlotWithItem): Promise<SlotPlaybookDto | null> => {
   if (slot.listingVideo && !slot.campaignPost) return manualVideoOf(slot.listingVideo, slot.captionOverride);
+  if (slot.listingSlideshow && !slot.campaignPost) return manualSlideshowOf(slot.listingSlideshow, slot.captionOverride);
   const post = slot.campaignPost;
   if (!post?.beatKey) return null;
-  const slides = (Array.isArray(post.slides) ? post.slides : []) as PlaybookSlide[];
-  const slideUrls = (await Promise.all(slides.map((s) => getPresignedUrl(s.key, SIGN_SECONDS)))).filter((u): u is string => Boolean(u));
+  const slideUrls = await signSlides(post.slides);
   const video = post.listingVideo;
   const videoUrl = video?.status === 'ready' && video.videoKey ? await getPresignedUrl(video.videoKey, SIGN_SECONDS) : null;
   const status = statusOf(post);

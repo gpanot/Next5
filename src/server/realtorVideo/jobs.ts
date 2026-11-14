@@ -21,6 +21,7 @@ import { LENGTH_META, REALTOR_PRESETS, isVideoLength, type RealtorPreset, type V
 import type { RealtorFacts, ScriptPack } from './script';
 import type { ShotPlan } from './shotPlan';
 import type { ListingVideoDto } from '../../types/business/listingVideos';
+import { videoCalendars } from '../calendar/listingSlots';
 
 /** The default pick when none is sent (the first two templates, as before 2026-11-12). */
 export const LISTING_VIDEO_PRESETS: RealtorPreset[] = ['editorial', 'rate'];
@@ -203,5 +204,6 @@ export const listListingVideos = async (ws: Workspace, listingId: string): Promi
   const rows = await prisma.listingVideo.findMany({ where: { workspaceId: ws.id, listingId }, orderBy: { createdAt: 'desc' }, take: 40 });
   const latest = REALTOR_PRESETS.map((p) => rows.find((r) => r.preset === p)).filter((r): r is ListingVideo => Boolean(r));
   if (latest.some((r) => r.status === 'queued')) wakeBlitzWorker({ throttle: true });
-  return Promise.all(latest.map(toListingVideoDto));
+  const calendars = await videoCalendars(ws.id, latest.map((r) => r.id));
+  return Promise.all(latest.map(async (r) => ({ ...(await toListingVideoDto(r)), calendar: calendars.get(r.id) ?? null })));
 };

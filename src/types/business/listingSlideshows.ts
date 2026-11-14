@@ -1,5 +1,6 @@
 import type { ListingSlideshowKind } from '../../lib/realtorPlaybooks';
 import type { SlideTheme } from '../../lib/slideThemes';
+import type { ItemCalendarDto } from './calendar';
 
 /** The slideshows she can make from the listing page, in card order. Moment kinds (open house, price drop, sold) stay in Autopilot. */
 export const HOME_SLIDESHOW_KINDS = ['room_by_room', 'coming_soon', 'buyers_miss', 'neighborhood', 'status'] as const satisfies readonly ListingSlideshowKind[];
@@ -25,6 +26,8 @@ export type ListingSlideshowDto = {
   slideUrls: string[];
   caption: string;
   createdAt: string;
+  /** Its place on the calendar, or null when it is not on it. */
+  calendar: ItemCalendarDto | null;
 };
 
 export type ListingSlideshowsResponse = { slideshows: ListingSlideshowDto[] };

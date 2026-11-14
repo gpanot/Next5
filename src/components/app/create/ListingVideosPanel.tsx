@@ -1,6 +1,8 @@
 'use client';
 
 import { Eye, Film, RotateCcw } from 'lucide-react';
+import { CalendarCta } from './calendar/CalendarCta';
+import { ListingCalendarSheet, type CalendarTarget } from './calendar/ListingCalendarSheet';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
@@ -18,10 +20,13 @@ import { DownloadLink, VideoFrame } from '../listingVideos/VideoFrame';
 const POLL_MS = 5_000;
 type Preset = ListingVideoDto['preset'];
 
-type CardProps = { name: string; line: string; idle: string; video: ListingVideoDto | undefined; starting: boolean; onMake: () => void; onPreview: () => void };
+type CardProps = {
+  name: string; line: string; idle: string; video: ListingVideoDto | undefined; starting: boolean;
+  onMake: () => void; onPreview: () => void; onCalendar: () => void;
+};
 
 /** One video style: its player or progress, and its own button, so she can make just this one. */
-const VideoCard = ({ name, line, idle, video, starting, onMake, onPreview }: CardProps) => {
+const VideoCard = ({ name, line, idle, video, starting, onMake, onPreview, onCalendar }: CardProps) => {
   const busy = Boolean(video && isVideoBusy(video));
   const failed = video?.status === 'failed';
   return (
@@ -45,14 +50,10 @@ const VideoCard = ({ name, line, idle, video, starting, onMake, onPreview }: Car
         </div>
         {video?.downloadUrl && <DownloadLink url={video.downloadUrl} name={name} />}
       </div>
-      {!busy && (
-        <AppButton
-          variant={video && !failed ? 'secondary' : 'primary'}
-          loading={starting}
-          onClick={onMake}
-          iconLeft={video ? <RotateCcw className="h-4 w-4" /> : <Film className="h-4 w-4" />}
-        >
-          {!video ? 'Make this video' : failed ? 'Try again' : 'New version'}
+      {video?.status === 'ready' && <CalendarCta calendar={video.calendar} onClick={onCalendar} />}
+      {(!video || failed) && !busy && (
+        <AppButton variant="primary" loading={starting} onClick={onMake} iconLeft={video ? <RotateCcw className="h-4 w-4" /> : <Film className="h-4 w-4" />}>
+          {video ? 'Try again' : 'Make this video'}
         </AppButton>
       )}
     </div>
@@ -71,6 +72,7 @@ export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
   const [picked, setPicked] = useState<VideoLength | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<Preset | null>(null);
+  const [scheduling, setScheduling] = useState<CalendarTarget | null>(null);
   const previewMeta = VIDEO_PRESETS.find((p) => p.id === previewing);
   const videos = api.data?.videos ?? [];
   const paid = api.data?.paid ?? false;
@@ -124,11 +126,16 @@ export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
             starting={starting.includes(p.id)}
             onMake={() => void start([p.id])}
             onPreview={() => setPreviewing(p.id)}
+            onCalendar={() => {
+              const video = videos.find((v) => v.preset === p.id);
+              if (video) setScheduling({ kind: 'video', id: video.id, calendar: video.calendar });
+            }}
           />
         ))}
       </div>
       {(api.error || error) && <StartError message={error ?? api.error ?? ''} noCredits={noCredits} />}
       {busy && <p className="text-[13px] text-app-muted">About 2–4 minutes. You can leave this page; it keeps going and shows in your Library.</p>}
+      {scheduling && <ListingCalendarSheet target={scheduling} onDone={refresh} onClose={() => setScheduling(null)} />}
       <PresetPreviewDialog preset={previewing} name={previewMeta?.name ?? ''} line={previewMeta?.line ?? ''} onClose={() => setPreviewing(null)} />
     </div>
   );

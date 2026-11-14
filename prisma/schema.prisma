@@ -42,11 +42,11 @@ model User {
   activeOfferRouteIds String[] @default([]) @map("active_offer_route_ids")
 
   /// Testing switch: Blitz cards on the Ideas page get stock photos even when the owner has paid (Settings → Profile).
-  stockImagesOnly Boolean @default(false) @map("stock_images_only")
+  stockImagesOnly      Boolean @default(false) @map("stock_images_only")
   /// Was a testing switch (Blitz cards always get AI images); its switch was removed 2026-10-20, no longer read.
-  aiImagesOnly    Boolean @default(false) @map("ai_images_only")
+  aiImagesOnly         Boolean @default(false) @map("ai_images_only")
   /// Testing setting: share (percent) of Blitz photo prompts written as a 50/50 split-screen picture (Settings → Profile).
-  splitSlidesPercent Int @default(10) @map("split_slides_percent")
+  splitSlidesPercent   Int     @default(10) @map("split_slides_percent")
   /// Testing switch: Hooks Volume's "Generate the entire slideshows" uses stock photos even when paid (Settings → Profile).
   hooksVolumeStockOnly Boolean @default(false) @map("hooks_volume_stock_only")
   /// Settings → Profile: the 8 am email about today's posts waiting for approval. On for new sign-ups, off for accounts made before 2026-10-19.
@@ -56,9 +56,9 @@ model User {
   photos   Photo[]
 
   // Business studios (Brand / Shop)
-  workspaces Workspace[]
-  consents   ConsentRecord[]
-  payments   Payment[]
+  workspaces      Workspace[]
+  consents        ConsentRecord[]
+  payments        Payment[]
   brandBlueprints BrandBlueprint[]
 
   @@map("users")
@@ -1076,46 +1076,51 @@ model PostMaterial {
 
 /// One dated post. The photo is optional until autopilot or auto-fill lands one in it.
 model PostSlot {
-  id              String    @id @default(cuid())
-  workspaceId     String    @map("workspace_id")
-  scheduleId      String?   @map("schedule_id")
-  scheduledFor    DateTime  @map("scheduled_for") @db.Date
+  id                 String    @id @default(cuid())
+  workspaceId        String    @map("workspace_id")
+  scheduleId         String?   @map("schedule_id")
+  scheduledFor       DateTime  @map("scheduled_for") @db.Date
   /// morning | midday | evening
-  slotOfDay       String    @default("evening") @map("slot_of_day")
-  itemId          String?   @map("item_id")
-  materialId      String?   @map("material_id")
+  slotOfDay          String    @default("evening") @map("slot_of_day")
+  itemId             String?   @map("item_id")
+  materialId         String?   @map("material_id")
   /// A listing video she put on this day by hand.
-  listingVideoId  String?   @map("listing_video_id")
+  listingVideoId     String?   @map("listing_video_id")
+  /// A listing page slideshow she put on this day by hand.
+  listingSlideshowId String?   @map("listing_slideshow_id")
   /// Reserved for a Shop calendar; unused in P19.
-  productId       String?   @map("product_id")
-  platform        String    @default("instagram")
+  productId          String?   @map("product_id")
+  platform           String    @default("instagram")
   /// planned | posted | skipped
-  status          String    @default("planned")
-  postUrl         String?   @map("post_url")
-  postedAt        DateTime? @map("posted_at")
-  captionOverride String?   @map("caption_override")
+  status             String    @default("planned")
+  postUrl            String?   @map("post_url")
+  postedAt           DateTime? @map("posted_at")
+  captionOverride    String?   @map("caption_override")
   /// auto | manual | drop | campaign
-  source          String    @default("auto")
+  source             String    @default("auto")
   /// Set when this slot belongs to a campaign. One campaign post owns one slot per channel.
-  campaignPostId  String?   @map("campaign_post_id")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  campaignPostId     String?   @map("campaign_post_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
-  workspace    Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  schedule     PostSchedule? @relation(fields: [scheduleId], references: [id])
-  item         BatchItem?    @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  listingVideo ListingVideo? @relation(fields: [listingVideoId], references: [id], onDelete: Cascade)
-  material     PostMaterial? @relation(fields: [materialId], references: [id])
-  campaignPost CampaignPost? @relation(fields: [campaignPostId], references: [id], onDelete: Cascade)
-  product      Product?      @relation(fields: [productId], references: [id])
-  socialPosts  SocialPost[]
+  workspace        Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  schedule         PostSchedule?     @relation(fields: [scheduleId], references: [id])
+  item             BatchItem?        @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  listingVideo     ListingVideo?     @relation(fields: [listingVideoId], references: [id], onDelete: Cascade)
+  listingSlideshow ListingSlideshow? @relation(fields: [listingSlideshowId], references: [id], onDelete: Cascade)
+  material         PostMaterial?     @relation(fields: [materialId], references: [id])
+  campaignPost     CampaignPost?     @relation(fields: [campaignPostId], references: [id], onDelete: Cascade)
+  product          Product?          @relation(fields: [productId], references: [id])
+  socialPosts      SocialPost[]
 
   @@unique([workspaceId, itemId])
   @@unique([workspaceId, listingVideoId])
+  @@unique([workspaceId, listingSlideshowId])
   @@index([workspaceId, scheduledFor])
   @@index([workspaceId, status, postedAt])
   @@index([itemId])
   @@index([listingVideoId])
+  @@index([listingSlideshowId])
   @@index([campaignPostId])
   @@map("post_slots")
 }
@@ -1162,7 +1167,7 @@ model Listing {
   batches   Batch[]
   campaigns Campaign[]
 
-  videos    ListingVideo[]
+  videos     ListingVideo[]
   slideshows ListingSlideshow[]
 
   @@unique([workspaceId, zpid])
@@ -1191,8 +1196,8 @@ model ListingVideo {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listing       Listing        @relation(fields: [listingId], references: [id], onDelete: Cascade)
   campaignPosts CampaignPost[]
   slots         PostSlot[]
 
@@ -1219,8 +1224,9 @@ model ListingSlideshow {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  workspace Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listing   Listing    @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  slots     PostSlot[]
 
   @@index([listingId, createdAt(sort: Desc)])
   @@map("listing_slideshows")
@@ -2002,16 +2008,16 @@ model Campaign {
   assetUrl    String? @map("asset_url")
 
   /// Realtor playbook this campaign follows; null = the old generic wizard.
-  playbook CampaignPlaybook?
+  playbook      CampaignPlaybook?
   /// Look of its listing slideshows (src/lib/slideThemes.ts); null = the default theme
-  slideTheme String? @map("slide_theme")
+  slideTheme    String?           @map("slide_theme")
   /// Open house start / end, and where the time came from: zillow | typed (Autopilot §3.2.1)
-  eventAt       DateTime? @map("event_at")
-  eventEndAt    DateTime? @map("event_end_at")
-  eventSource   String?   @map("event_source")
+  eventAt       DateTime?         @map("event_at")
+  eventEndAt    DateTime?         @map("event_end_at")
+  eventSource   String?           @map("event_source")
   /// Price drop: the new and the old asking price
-  newPriceCents Int?      @map("new_price_cents")
-  oldPriceCents Int?      @map("old_price_cents")
+  newPriceCents Int?              @map("new_price_cents")
+  oldPriceCents Int?              @map("old_price_cents")
 
   status CampaignStatus @default(draft)
   /// How far through the wizard she got, so a draft reopens where she left it.
@@ -2035,42 +2041,42 @@ model Campaign {
 /// One piece of content. The same content goes to every campaign channel, so one row here owns
 /// one PostSlot per channel — posting can succeed on Instagram and fail on TikTok.
 model CampaignPost {
-  id           String         @id @default(cuid())
-  campaignId   String         @map("campaign_id")
-  dayIndex     Int            @map("day_index")
-  slotOfDay    String         @default("evening") @map("slot_of_day")
-  scheduledFor DateTime       @map("scheduled_for") @db.Date
-  templateId   String         @map("template_id")
+  id             String         @id @default(cuid())
+  campaignId     String         @map("campaign_id")
+  dayIndex       Int            @map("day_index")
+  slotOfDay      String         @default("evening") @map("slot_of_day")
+  scheduledFor   DateTime       @map("scheduled_for") @db.Date
+  templateId     String         @map("template_id")
   /// Locked when the plan was proposed. Editing the template afterwards never changes this post.
-  versionId    String         @map("version_id")
-  purpose      ContentPurpose
-  source       ContentSource  @default(real)
+  versionId      String         @map("version_id")
+  purpose        ContentPurpose
+  source         ContentSource  @default(real)
   /// True when the matcher had to relax the slot's purpose to fill it.
-  widened      Boolean        @default(false)
-  skipped      Boolean        @default(false)
-  caption      String?
-  position     Int            @default(0)
+  widened        Boolean        @default(false)
+  skipped        Boolean        @default(false)
+  caption        String?
+  position       Int            @default(0)
   /// slideshow | listing_video
-  format         String       @default("slideshow")
+  format         String         @default("slideshow")
   /// Playbook beat, e.g. "just_listed.room_by_room" (src/lib/realtorPlaybooks.ts)
-  beatKey        String?      @map("beat_key")
+  beatKey        String?        @map("beat_key")
   /// One-line idea shown on the plan card
   idea           String?
-  listingVideoId String?      @map("listing_video_id")
+  listingVideoId String?        @map("listing_video_id")
   /// PlaybookSlide[] once rendered (src/types/business/campaigns.ts)
   slides         Json?
   /// planned | generating | ready | failed
-  mediaStatus    String       @default("planned") @map("media_status")
-  mediaError     String?      @map("media_error")
+  mediaStatus    String         @default("planned") @map("media_status")
+  mediaError     String?        @map("media_error")
   /// When she approved this made post (Autopilot step 3). Null = still to approve.
-  approvedAt     DateTime?    @map("approved_at")
-  createdAt    DateTime       @default(now()) @map("created_at")
+  approvedAt     DateTime?      @map("approved_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
 
   campaign     Campaign               @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   listingVideo ListingVideo?          @relation(fields: [listingVideoId], references: [id], onDelete: SetNull)
-  template ContentTemplate        @relation(fields: [templateId], references: [id])
-  version  ContentTemplateVersion @relation(fields: [versionId], references: [id])
-  slots    PostSlot[]
+  template     ContentTemplate        @relation(fields: [templateId], references: [id])
+  version      ContentTemplateVersion @relation(fields: [versionId], references: [id])
+  slots        PostSlot[]
 
   @@index([campaignId, position])
   @@index([listingVideoId])
@@ -2462,48 +2468,48 @@ model SlideshowReference {
 
 /// One run: each step saves its output so it can be inspected and resumed.
 model AutoSlideshowRun {
-  id              String    @id @default(cuid())
-  url             String
-  count           Int
+  id                 String    @id @default(cuid())
+  url                String
+  count              Int
   /// Workspace whose TikTok account will post; null for admin test runs
-  workspaceId     String?   @map("workspace_id")
+  workspaceId        String?   @map("workspace_id")
   /// 'STEP_1_RUNNING' … 'STEP_6_RUNNING' | 'HELD' | 'WAITING_TARGET' | 'WAITING_AVATAR' | 'COMPLETED' | 'FAILED'
-  status          String    @default("STEP_1_RUNNING")
+  status             String    @default("STEP_1_RUNNING")
   /// Step 1: BrandProfile (flat copy of the shared profile below)
-  profile         Json?
+  profile            Json?
   /// The shared company profile (studio_brand_profiles) step 1 used; null on runs made before 2026-10-02
-  brandProfileId  String?   @map("brand_profile_id")
+  brandProfileId     String?   @map("brand_profile_id")
   /// Hidden run making one calendar slideshow idea (no workspace, never charged); the workspace run it belongs to
-  ideaForRunId    String?   @map("idea_for_run_id")
+  ideaForRunId       String?   @map("idea_for_run_id")
   /// 'auto' (the 6-step pipeline) | 'campaign' (built by hand in the campaign editor; never on the Calendar's run list)
-  kind            String    @default("auto")
+  kind               String    @default("auto")
   /// Campaign runs: the name the person gave it
-  name            String?
+  name               String?
   /// Campaign runs: CampaignDraft (src/types/admin/slideshowCampaign.ts)
-  campaign        Json?
+  campaign           Json?
   /// Step 2: BrandLever[]
-  levers          Json?
+  levers             Json?
   /// Step 3: AutoPlan
-  plan            Json?
+  plan               Json?
   /// Step 5: AutoPhoto[]
-  photos          Json?
+  photos             Json?
   /// Campaign runs: Content "Auto" photos made in the background (CampaignPhotoJob[], src/server/autoSlideshow/campaign/photoJobs.ts)
-  photoJobs       Json?     @map("photo_jobs")
+  photoJobs          Json?     @map("photo_jobs")
   /// Prospect Pack runs: stop after step 3 (status 'HELD') until the admin approves the Brand Cast faces
-  holdBeforeStep4 Boolean   @default(false) @map("hold_before_step4")
+  holdBeforeStep4    Boolean   @default(false) @map("hold_before_step4")
   /// A new workspace's first run: stop after step 3 (status 'WAITING_TARGET') until the owner picks the target client,
   /// then again (status 'WAITING_AVATAR') until they pick their brand avatar
-  waitForTarget   Boolean   @default(false) @map("wait_for_target")
+  waitForTarget      Boolean   @default(false) @map("wait_for_target")
   /// Prospect Pack runs: positions of slideshows made with only their first slide until the pack is unlocked
-  coverOnlyPositions Int[]  @default([]) @map("cover_only_positions")
-  stepTimings     Json      @default("{}") @map("step_timings")
-  stepCosts       Json      @default("{}") @map("step_costs")
-  failedStep      Int?      @map("failed_step")
-  error           String?
-  startedAt       DateTime  @default(now()) @map("started_at")
-  finishedAt      DateTime? @map("finished_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  coverOnlyPositions Int[]     @default([]) @map("cover_only_positions")
+  stepTimings        Json      @default("{}") @map("step_timings")
+  stepCosts          Json      @default("{}") @map("step_costs")
+  failedStep         Int?      @map("failed_step")
+  error              String?
+  startedAt          DateTime  @default(now()) @map("started_at")
+  finishedAt         DateTime? @map("finished_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
 
   brandProfile StudioBrandProfile? @relation(fields: [brandProfileId], references: [id], onDelete: SetNull)
   slideshows   AutoSlideshow[]
@@ -2517,35 +2523,35 @@ model AutoSlideshowRun {
 
 /// One generated slideshow: step 4 writes its slides, step 6 renders them.
 model AutoSlideshow {
-  id                      String   @id @default(cuid())
-  runId                   String   @map("run_id")
+  id                      String    @id @default(cuid())
+  runId                   String    @map("run_id")
   position                Int
-  modelId                 String?  @map("model_id")
-  modelName               String   @map("model_name")
-  hookPattern             String   @map("hook_pattern")
+  modelId                 String?   @map("model_id")
+  modelName               String    @map("model_name")
+  hookPattern             String    @map("hook_pattern")
   topic                   String
   /// 'teach' | 'proof' | 'myth' | 'story' | 'product' (src/types/admin/contentGoals.ts); null before goals existed
   goal                    String?
   /// AutoSlide[]
-  slides                  Json     @default("[]")
-  caption                 String   @default("")
-  hashtags                String[] @default([])
+  slides                  Json      @default("[]")
+  caption                 String    @default("")
+  hashtags                String[]  @default([])
   /// Background music from the Assets Library (preview + ZIP; TikTok's photo API cannot attach it)
-  audioAssetId            String?  @map("audio_asset_id")
-  audioStart              Float    @default(0) @map("audio_start") @db.Real
+  audioAssetId            String?   @map("audio_asset_id")
+  audioStart              Float     @default(0) @map("audio_start") @db.Real
   /// Track Jev matched to this slideshow at generation (tagged "Recommended" in the editor); null when Jev was unavailable
-  recommendedAudioAssetId String?  @map("recommended_audio_asset_id")
+  recommendedAudioAssetId String?   @map("recommended_audio_asset_id")
   /// Slideshow Bank parts this slideshow uses (src/types/admin/slideshowBank.ts); null before the bank
-  bankMeatId              String?  @map("bank_meat_id")
-  bankHookId              String?  @map("bank_hook_id")
-  bankCtaId               String?  @map("bank_cta_id")
+  bankMeatId              String?   @map("bank_meat_id")
+  bankHookId              String?   @map("bank_hook_id")
+  bankCtaId               String?   @map("bank_cta_id")
   /// 'written' | 'rendering' | 'ready' | 'failed' | 'draft' | 'finishing' (hand-made, src/server/autoSlideshow/manual)
-  status                  String   @default("written")
+  status                  String    @default("written")
   error                   String?
   /// Where it waits on the Calendar for approval (dragged, or scheduled from the editor); null: the next free slot
   plannedAt               DateTime? @map("planned_at")
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
 
   run            AutoSlideshowRun             @relation(fields: [runId], references: [id], onDelete: Cascade)
   model          SlideshowModel?              @relation(fields: [modelId], references: [id], onDelete: SetNull)
@@ -2816,35 +2822,35 @@ model McpOauthToken {
 /// Admin outbound: 14 days of content made for an SME before they sign up, shown at /p/<shareToken>. The workspace
 /// belongs to a placeholder user (ownerUserId) until the prospect claims it.
 model ProspectPack {
-  id              String    @id @default(cuid())
-  workspaceId     String    @unique @map("workspace_id")
-  ownerUserId     String    @map("owner_user_id")
-  websiteUrl      String    @map("website_url")
+  id              String             @id @default(cuid())
+  workspaceId     String             @unique @map("workspace_id")
+  ownerUserId     String             @map("owner_user_id")
+  websiteUrl      String             @map("website_url")
   name            String
   /// 'queued' | 'building' | 'faces' | 'making' | 'ready' | 'failed' | 'claimed'
-  status          String    @default("building")
-  shareToken      String    @unique @map("share_token")
-  brandRunId      String?   @map("brand_run_id")
-  hooksRunId      String?   @map("hooks_run_id")
+  status          String             @default("building")
+  shareToken      String             @unique @map("share_token")
+  brandRunId      String?            @map("brand_run_id")
+  hooksRunId      String?            @map("hooks_run_id")
   /// Set when the Hooks Volume campaign starts being built (a lock; stale after 10 minutes)
-  hooksStartedAt  DateTime? @map("hooks_started_at")
+  hooksStartedAt  DateTime?          @map("hooks_started_at")
   /// ProspectBlitz[]: the Blitz ideas picked for the pack and their renders
-  blitz           Json      @default("[]")
+  blitz           Json               @default("[]")
   /// ProspectDay[] (src/types/admin/prospects.ts)
-  days            Json      @default("[]")
+  days            Json               @default("[]")
   error           String?
-  claimedAt       DateTime? @map("claimed_at")
-  claimedByUserId String?   @map("claimed_by_user_id")
+  claimedAt       DateTime?          @map("claimed_at")
+  claimedByUserId String?            @map("claimed_by_user_id")
   /// When the previews (days 8-14) started being made in full, after the first payment of the person who claimed it
-  unlockedAt      DateTime? @map("unlocked_at")
+  unlockedAt      DateTime?          @map("unlocked_at")
   /// When the faces were ready to check, the admin approved them, and the pack was ready to share (its make time)
   /// When its making started (after waiting as 'queued' when too many were being made)
-  startedAt       DateTime? @map("started_at")
-  facesAt         DateTime? @map("faces_at")
-  approvedAt      DateTime? @map("approved_at")
-  readyAt         DateTime? @map("ready_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  startedAt       DateTime?          @map("started_at")
+  facesAt         DateTime?          @map("faces_at")
+  approvedAt      DateTime?          @map("approved_at")
+  readyAt         DateTime?          @map("ready_at")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
   opens           ProspectPackOpen[]
 
   @@index([createdAt(sort: Desc)], map: "prospect_packs_created_idx")
@@ -2887,18 +2893,18 @@ model ApiCostEvent {
 /// One active row per workspace, enforced in code (get-or-create). `version` is bumped on every write and checked on
 /// PATCH so two open tabs never overwrite each other. Shapes are validated with Zod (src/lib/blueprint/schema.ts).
 model BrandBlueprint {
-  id          String    @id @default(cuid())
+  id          String     @id @default(cuid())
   /// Null: the admin's own blueprint (Admin › Jun Yuh › My Blueprint).
   workspaceId String?    @map("workspace_id")
   createdBy   String?    @map("created_by")
   /// { skills | passions | story: 5 slots of { text, main } }, at most 3 main per pillar.
   topics      Json
-  about       Json      @default("{\"aud\":\"\",\"off\":\"\",\"cred\":\"\",\"voice\":\"\"}")
+  about       Json       @default("{\"aud\":\"\",\"off\":\"\",\"cred\":\"\",\"voice\":\"\"}")
   plan        Json
-  step        Int       @default(0) @db.SmallInt
-  version     Int       @default(1)
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @default(now()) @map("updated_at")
+  step        Int        @default(0) @db.SmallInt
+  version     Int        @default(1)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @default(now()) @map("updated_at")
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   creator     User?      @relation(fields: [createdBy], references: [id], onDelete: Cascade)
 

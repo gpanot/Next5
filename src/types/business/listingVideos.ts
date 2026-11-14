@@ -1,3 +1,4 @@
+import type { ItemCalendarDto } from './calendar';
 import type { RealtorPreset, VideoLength } from '../../server/realtorVideo/presets';
 
 /** Brand create → listing videos (src/server/realtorVideo/jobs.ts). */
@@ -13,6 +14,8 @@ export type ListingVideoDto = {
   /** First photo of the video, for tap-to-play thumbnails; null when unknown. */
   posterUrl: string | null;
   createdAt: string;
+  /** Its place on the calendar; only set by the listing page list. */
+  calendar?: ItemCalendarDto | null;
 };
 
 /** A listing video with the home it belongs to (Library and the progress pill). */

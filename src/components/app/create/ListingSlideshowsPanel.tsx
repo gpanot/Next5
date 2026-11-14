@@ -1,6 +1,8 @@
 'use client';
 
 import { Images, Layers, RotateCcw } from 'lucide-react';
+import { CalendarCta } from './calendar/CalendarCta';
+import { ListingCalendarSheet, type CalendarTarget } from './calendar/ListingCalendarSheet';
 import { useEffect, useState } from 'react';
 import { useApi } from '../../../hooks/useApi';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
@@ -15,7 +17,10 @@ import { SlideThemePicker } from '../slideThemes/SlideThemePicker';
 
 const POLL_MS = 4_000;
 
-type CardProps = { kind: HomeSlideshowKind; show: ListingSlideshowDto | undefined; starting: boolean; onMake: () => void; onOpen: () => void; playing: boolean; onPlay: (play: boolean) => void };
+type CardProps = {
+  kind: HomeSlideshowKind; show: ListingSlideshowDto | undefined; starting: boolean;
+  onMake: () => void; onOpen: () => void; onCalendar: () => void; playing: boolean; onPlay: (play: boolean) => void;
+};
 
 type PlayProps = { playing: boolean; onPlay: (play: boolean) => void };
 
@@ -48,7 +53,7 @@ const Cover = ({ show, onOpen, playing, onPlay }: { show: ListingSlideshowDto | 
   );
 };
 
-const SlideshowCard = ({ kind, show, starting, onMake, onOpen, playing, onPlay }: CardProps) => {
+const SlideshowCard = ({ kind, show, starting, onMake, onOpen, onCalendar, playing, onPlay }: CardProps) => {
   const info = HOME_SLIDESHOW_INFO[kind];
   const failed = show?.status === 'failed';
   return (
@@ -61,9 +66,10 @@ const SlideshowCard = ({ kind, show, starting, onMake, onOpen, playing, onPlay }
         </p>
         <p className="text-[12px] leading-snug text-app-muted">{info.line}</p>
       </div>
-      {show?.status !== 'making' && (
-        <AppButton variant={show && !failed ? 'secondary' : 'primary'} loading={starting} onClick={onMake} iconLeft={show ? <RotateCcw className="h-4 w-4" /> : <Images className="h-4 w-4" />}>
-          {!show ? 'Make slideshow' : failed ? 'Try again' : 'New version'}
+      {show?.status === 'ready' && <CalendarCta calendar={show.calendar} onClick={onCalendar} />}
+      {(!show || failed) && (
+        <AppButton variant="primary" loading={starting} onClick={onMake} iconLeft={show ? <RotateCcw className="h-4 w-4" /> : <Images className="h-4 w-4" />}>
+          {show ? 'Try again' : 'Make slideshow'}
         </AppButton>
       )}
     </div>
@@ -83,6 +89,7 @@ export const ListingSlideshowsPanel = ({ listingId }: { listingId: string }) => 
   const { refresh: refreshMe } = useWorkspace();
   const [open, setOpen] = useState<ListingSlideshowDto | null>(null);
   const [playing, setPlaying] = useState<HomeSlideshowKind | null>(null);
+  const [scheduling, setScheduling] = useState<CalendarTarget | null>(null);
   const shows = api.data?.slideshows ?? [];
   const busy = shows.some((s) => s.status === 'making');
   const { refresh } = api;
@@ -133,6 +140,10 @@ export const ListingSlideshowsPanel = ({ listingId }: { listingId: string }) => 
               starting={starting.includes(k)}
               onMake={() => void start([k])}
               onOpen={() => setOpen(shows.find((s) => s.kind === k) ?? null)}
+              onCalendar={() => {
+                const show = shows.find((s) => s.kind === k);
+                if (show) setScheduling({ kind: 'slideshow', id: show.id, calendar: show.calendar });
+              }}
               playing={playing === k}
               onPlay={(play) => setPlaying(play ? k : null)}
             />
@@ -147,6 +158,7 @@ export const ListingSlideshowsPanel = ({ listingId }: { listingId: string }) => 
       {(api.error || error) && <StartError message={error ?? api.error ?? ''} noCredits={noCredits} />}
       {busy && <p className="text-[13px] text-app-muted">About a minute each. You can leave this page; it keeps going.</p>}
       {open && <PlaybookPostSheet post={previewOf(open)} onClose={() => setOpen(null)} />}
+      {scheduling && <ListingCalendarSheet target={scheduling} onDone={refresh} onClose={() => setScheduling(null)} />}
     </div>
   );
 };

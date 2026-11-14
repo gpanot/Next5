@@ -28,13 +28,17 @@ export type AddToCalendarProps = {
   title?: string;
   /** Extra options for this kind of content, shown under the calendar. */
   children?: ReactNode;
+  /** Day picked when the sheet opens (no current place). */
+  initialDay?: Date | null;
+  /** Hides "Auto schedule" (when the open day is already the suggestion). */
+  hideAuto?: boolean;
 };
 
 const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
 /** Day, busy state and actions. No time picker for now: a moved item keeps its time, a new one posts at 7 PM. */
-function useAddToCalendar({ posts, current, onSchedule, onClose }: AddToCalendarProps) {
-  const [day, setDay] = useState<Date | null>(current?.at ?? null);
+function useAddToCalendar({ posts, current, onSchedule, onClose, initialDay }: AddToCalendarProps) {
+  const [day, setDay] = useState<Date | null>(current?.at ?? initialDay ?? null);
   const [time] = useState(current && TIME_OPTIONS.includes(hhmm(current.at)) ? hhmm(current.at) : DEFAULT_TIME);
   const [busy, setBusy] = useState<'pick' | 'auto' | 'remove' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +83,7 @@ function CurrentRow({ current, busy, onRemove }: { current: CalendarCurrent; bus
  * Content-agnostic: the caller says what is already on the calendar and what scheduling does.
  */
 export function AddToCalendarSheet(props: AddToCalendarProps) {
-  const { current, onClose, title = 'Add to calendar', children } = props;
+  const { current, onClose, title = 'Add to calendar', children, hideAuto = false } = props;
   const f = useAddToCalendar(props);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -104,9 +108,11 @@ export function AddToCalendarSheet(props: AddToCalendarProps) {
           {f.error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-[13px] text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">{f.error}</p>}
         </div>
         <footer className="flex gap-2 border-t border-[var(--line,#e8e5e1)] p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-neutral-800">
-          <button type="button" onClick={f.auto} disabled={!f.ready} className={ghost}>
-            {f.busy === 'auto' ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <Sparkles aria-hidden className="h-4 w-4" />} Auto schedule
-          </button>
+          {!hideAuto && (
+            <button type="button" onClick={f.auto} disabled={!f.ready} className={ghost}>
+              {f.busy === 'auto' ? <Loader2 aria-hidden className="h-4 w-4 animate-spin" /> : <Sparkles aria-hidden className="h-4 w-4" />} Auto schedule
+            </button>
+          )}
           <button type="button" onClick={f.confirm} disabled={!f.canConfirm} className="flex min-h-12 flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--ready,#1e8049)] px-4 text-[14px] font-semibold text-white shadow-sm transition active:scale-95 disabled:opacity-40">
             {f.busy === 'pick' && <Loader2 aria-hidden className="h-4 w-4 animate-spin" />}
             {f.picked ? `Schedule ${f.picked.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : 'Pick a day'}

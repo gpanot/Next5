@@ -3,6 +3,9 @@
 import type { PostKitDto, ScoreDetailsDto } from './batches';
 
 export type SlotStatusDto = 'planned' | 'posted' | 'skipped' | 'removed';
+/** Where one video or slideshow sits on her calendar (listing page "Add to calendar"). */
+export type ItemCalendarDto = { slotId: string; date: string; status: 'planned' | 'posted' };
+
 export type SlotOfDayDto = 'morning' | 'midday' | 'evening';
 export type PlatformDto = 'instagram' | 'tiktok' | 'facebook' | 'linkedin' | 'other';
 
