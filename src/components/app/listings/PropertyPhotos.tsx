@@ -1,14 +1,16 @@
 'use client';
 
-import { Home, Plus, RefreshCw, X } from 'lucide-react';
+import { ChevronDown, Home, Plus, RefreshCw, X } from 'lucide-react';
 import { useState } from 'react';
 import { ApiError, apiFetch } from '../../../lib/apiClient';
 import type { ListingDto, RoomDto } from '../../../types/business/listings';
 
 type Props = { listing: ListingDto; onRefresh: () => void };
 
-const PhotoTile = ({ room, busy, onRemove, onReplace }: { room: RoomDto; busy: boolean; onRemove: () => void; onReplace: (file: File) => void }) => (
-  <li className="relative">
+type TileProps = { room: RoomDto; busy: boolean; className: string; onRemove: () => void; onReplace: (file: File) => void };
+
+const PhotoTile = ({ room, busy, className, onRemove, onReplace }: TileProps) => (
+  <li className={`relative ${className}`}>
     <div className={`relative aspect-square overflow-hidden rounded-xl bg-app-sunken transition-opacity duration-200 ${busy ? 'opacity-50' : ''}`}>
       {room.url ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -49,12 +51,20 @@ const PhotoTile = ({ room, busy, onRemove, onReplace }: { room: RoomDto; busy: b
   </li>
 );
 
+// Photos that fit in the first grid row next to the "add" tile (3 columns on phones, 5 from sm).
+const PER_ROW_MOBILE = 2;
+const PER_ROW_DESKTOP = 4;
+
+/** Collapsed grid: hide every photo past the first row. */
+const collapsedClass = (index: number) => (index >= PER_ROW_DESKTOP ? 'hidden' : index >= PER_ROW_MOBILE ? 'max-sm:hidden' : '');
+
 /** Her photos of the property as a grid, so cleaning up an imported gallery is quick: remove, replace, add. */
 export const PropertyPhotos = ({ listing, onRefresh }: Props) => {
   const [busy, setBusy] = useState<string | null>(null);
   // Removed photos disappear at once; the server catches up behind.
   const [removed, setRemoved] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const rooms = listing.rooms.filter((r) => !removed.includes(r.id));
   const anyLowRes = rooms.some((r) => r.fromZillow && r.lowRes);
 
@@ -101,7 +111,6 @@ export const PropertyPhotos = ({ listing, onRefresh }: Props) => {
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-0.5">
         <p className="text-[13px] font-medium text-app-ink">{rooms.length} photo{rooms.length === 1 ? '' : 's'}</p>
-        {listing.source === 'zillow' && rooms.length > 0 && <p className="text-[12px] text-app-muted">Tap × on the photos you don’t want to be in.</p>}
       </div>
       <ul className="grid grid-cols-3 gap-3 pr-1.5 pt-1.5 sm:grid-cols-5">
         <li>
@@ -121,10 +130,21 @@ export const PropertyPhotos = ({ listing, onRefresh }: Props) => {
             />
           </label>
         </li>
-        {rooms.map((room) => (
-          <PhotoTile key={room.id} room={room} busy={busy === room.id} onRemove={() => void remove(room.id)} onReplace={(file) => void replace(room.id, file)} />
+        {rooms.map((room, i) => (
+          <PhotoTile key={room.id} room={room} busy={busy === room.id} className={expanded ? '' : collapsedClass(i)} onRemove={() => void remove(room.id)} onReplace={(file) => void replace(room.id, file)} />
         ))}
       </ul>
+      {rooms.length > PER_ROW_MOBILE && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className={`flex items-center gap-1 self-start text-[13px] font-medium text-app-ink underline-offset-2 transition-colors duration-200 hover:underline ${rooms.length <= PER_ROW_DESKTOP ? 'sm:hidden' : ''}`}
+        >
+          {expanded ? 'Show less' : `See all ${rooms.length} photos`}
+          <ChevronDown aria-hidden className={`h-4 w-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+        </button>
+      )}
       {anyLowRes && (
         <p className="text-[12px] text-app-muted">
           <RefreshCw aria-hidden className="mr-1 inline h-3 w-3" />

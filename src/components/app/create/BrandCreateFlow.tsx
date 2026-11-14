@@ -49,13 +49,13 @@ export const BrandCreateFlow = ({ listings, onRefresh, listingId, onSelect }: Pr
       </CreateSection>
 
       {listing && ready && (fromZillow || listing.rooms.length > 0) && (
-        <CreateSection step={2} title="Videos of this home" sub="Pick a length, then make any style. Voice, music and captions included.">
+        <CreateSection step={2} title="Create videos of this home" sub="Pick a length, then make any style. Voice, music and captions included.">
           <ListingVideosPanel key={listing.id} listingId={listing.id} />
         </CreateSection>
       )}
 
       {listing && ready && fromZillow && (
-        <CreateSection step={3} title="Slideshows of this home" sub="Pick a theme, then make any slideshow. Real photos, words and caption included.">
+        <CreateSection step={3} title="Create slideshows of this home" sub="Pick a theme, then make any slideshow. Real photos, words and caption included.">
           <ListingSlideshowsPanel key={listing.id} listingId={listing.id} />
         </CreateSection>
       )}
