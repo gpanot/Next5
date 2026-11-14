@@ -2,13 +2,16 @@
 
 import { cityId, MAX_CITIES, type MarketCity, type MarketPlaces } from '../../../lib/marketPlaces';
 
-/** Her picks plus what "Suggest more cities" rotates through. `shown` = city ids already offered. */
-export type PlacesDraft = MarketPlaces & { base: MarketCity | null; nearby: MarketCity[]; shown: string[] };
+/**
+ * Her picks plus what "Suggest more cities" rotates through. `shown` = city ids already offered.
+ * `dates` = post days she picked herself (place id → YYYY-MM-DD); the others are suggested by `postDates`.
+ */
+export type PlacesDraft = MarketPlaces & { base: MarketCity | null; nearby: MarketCity[]; shown: string[]; dates: Record<string, string> };
 
-export const emptyDraft = (): PlacesDraft => ({ cities: [], state: null, base: null, nearby: [], shown: [] });
+export const emptyDraft = (): PlacesDraft => ({ cities: [], state: null, base: null, nearby: [], shown: [], dates: {} });
 
 /** Saved places, with her first city as the base for more suggestions. */
-export const draftFromSaved = (p: MarketPlaces): PlacesDraft => ({ ...p, base: p.cities[0] ?? null, nearby: [], shown: p.cities.map(cityId) });
+export const draftFromSaved = (p: MarketPlaces): PlacesDraft => ({ ...p, base: p.cities[0] ?? null, nearby: [], shown: p.cities.map(cityId), dates: {} });
 
 /** Next nearby cities not picked and not offered yet; once all were offered, starts over. */
 const nextUnseen = (d: PlacesDraft, count: number, keep: MarketCity[]): MarketCity[] => {
@@ -20,7 +23,7 @@ const nextUnseen = (d: PlacesDraft, count: number, keep: MarketCity[]): MarketCi
 
 /** A new base city: it + the 2 closest cities + its state. */
 export const draftFromBase = (base: MarketCity, nearby: MarketCity[]): PlacesDraft => {
-  const start: PlacesDraft = { cities: [base], state: base.state, base, nearby, shown: [cityId(base)] };
+  const start: PlacesDraft = { cities: [base], state: base.state, base, nearby, shown: [cityId(base)], dates: {} };
   const more = nextUnseen(start, MAX_CITIES - 1, start.cities);
   return { ...start, cities: [base, ...more], shown: [...start.shown, ...more.map(cityId)] };
 };
@@ -45,3 +48,30 @@ export const canSuggestMore = (d: PlacesDraft): boolean => d.base !== null && (d
 
 export const draftPlaces = (d: PlacesDraft): MarketPlaces => ({ cities: d.cities, state: d.state });
 export const isDraftValid = (d: PlacesDraft | null): boolean => Boolean(d && (d.cities.length > 0 || d.state));
+
+/** One id per post, in posting order: the cities, then the state. */
+export const placeIds = (d: MarketPlaces): string[] => [...d.cities.map(cityId), ...(d.state ? [`state:${d.state}`] : [])];
+
+/** Minimum days between two suggested posts. */
+export const POST_GAP_DAYS = 2;
+
+const addDays = (date: string, n: number) => new Date(Date.parse(`${date}T00:00:00.000Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * A post day per place (same order as `placeIds`): her own pick, else the next day with no post on her calendar,
+ * at least 2 days after the previous one, never two places on one day.
+ */
+export const postDates = (d: PlacesDraft, busy: ReadonlySet<string>, today: string): string[] => {
+  const ids = placeIds(d);
+  const taken = new Set(ids.map((id) => d.dates[id]).filter(Boolean));
+  let next = today;
+  return ids.map((id) => {
+    const own = d.dates[id];
+    if (own) return own;
+    let date = next;
+    while (busy.has(date) || taken.has(date)) date = addDays(date, 1);
+    taken.add(date);
+    next = addDays(date, POST_GAP_DAYS);
+    return date;
+  });
+};

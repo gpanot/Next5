@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { areaForBeat, beatKeysFor, parseMarketPlaces, stateCode, storedMarketArea } from '../../src/lib/marketPlaces';
-import { addCity, canSuggestMore, draftFromBase, removeCity, suggestMore } from '../../src/components/app/autopilot/placesDraft';
+import { addCity, canSuggestMore, draftFromBase, placeIds, postDates, removeCity, suggestMore } from '../../src/components/app/autopilot/placesDraft';
 
 const austin = { city: 'Austin', state: 'TX' };
 const near = ['Round Rock', 'Cedar Park', 'Pflugerville', 'Georgetown', 'San Marcos'].map((city) => ({ city, state: 'TX' }));
@@ -52,5 +52,15 @@ describe('places draft', () => {
     d = addCity(d, { city: 'Dallas', state: 'TX' });
     expect(addCity(d, { city: 'Waco', state: 'TX' }).cities).toHaveLength(3);
     expect(addCity(d, austin)).toBe(d);
+  });
+});
+
+describe('post dates', () => {
+  it('takes the next free days, 2 days apart, and keeps her own pick', () => {
+    const d = draftFromBase(austin, near);
+    const busy = new Set(['2026-11-16', '2026-11-19']);
+    expect(postDates(d, busy, '2026-11-16')).toEqual(['2026-11-17', '2026-11-20', '2026-11-22', '2026-11-24']);
+    const own = { ...d, dates: { [placeIds(d)[1]!]: '2026-11-18' } };
+    expect(postDates(own, busy, '2026-11-16')).toEqual(['2026-11-17', '2026-11-18', '2026-11-20', '2026-11-22']);
   });
 });

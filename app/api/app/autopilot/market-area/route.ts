@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server';
 import { parseMarketPlaces, storedMarketArea } from '../../../../../src/lib/marketPlaces';
 import { prisma } from '../../../../../src/lib/db';
 import { authedRoute } from '../../../../../src/server/api';
+import { busyDates } from '../../../../../src/server/campaigns/playbookPlan';
 import { cityFromIp } from '../../../../../src/server/realtor/nearbyCities';
 import { getActivePlan } from '../../../../../src/server/generation/createBatch';
 import { HttpError, readJsonObject } from '../../../../../src/server/http';
 import { requireWorkspace } from '../../../../../src/server/workspaces/workspaces';
+
+/** How far ahead the post dates are suggested from. */
+const BUSY_DAYS = 42;
 
 type Address = { city?: string | null; state?: string | null };
 
@@ -25,13 +29,14 @@ const suggestedArea = async (workspaceId: string) => {
 
 /**
  * GET — her saved places, else a base city guessed with no prompt (her listings' city, else her IP city), whether
- * market updates are open to her plan, and her brokerage line.
+ * market updates are open to her plan, her brokerage line, and the days of the next 6 weeks that already hold a post.
  */
 export const GET = authedRoute(async (req, session) => {
   const ws = await requireWorkspace(session.userId, 'brand');
-  const [plan, fromListings] = await Promise.all([getActivePlan(ws.id), suggestedArea(ws.id)]);
+  const today = new Date().toISOString().slice(0, 10);
+  const [plan, fromListings, busy] = await Promise.all([getActivePlan(ws.id), suggestedArea(ws.id), busyDates(ws.id, today, BUSY_DAYS)]);
   return NextResponse.json({
-    places: parseMarketPlaces(ws.marketArea), suggestedBase: fromListings ?? cityFromIp(req.headers), paid: Boolean(plan),
+    places: parseMarketPlaces(ws.marketArea), busyDates: [...busy].sort(), suggestedBase: fromListings ?? cityFromIp(req.headers), paid: Boolean(plan),
     disclosure: { agentName: ws.agentName ?? '', brokerage: ws.brokerage ?? '' },
   });
 });

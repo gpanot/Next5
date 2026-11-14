@@ -10,7 +10,7 @@ import { DisclosureForm, type DisclosureDraft } from './DisclosureForm';
 import { HomePicker } from './HomePicker';
 import type { MarketCity, MarketPlaces } from '../../../lib/marketPlaces';
 import { MarketPlacesPicker } from './MarketPlacesPicker';
-import type { PlacesDraft } from './placesDraft';
+import { postDates, type PlacesDraft } from './placesDraft';
 import { useMarketPlaces } from './useMarketPlaces';
 import { MomentCards } from './MomentCards';
 import { OpenHouseForm, zillowEventOf, type EventDraft } from './OpenHouseForm';
@@ -30,7 +30,7 @@ export type WhatValue = {
   price: PriceDraft;
   disclosure: DisclosureDraft | null;
 };
-export type MarketInfo = { paid: boolean; places: MarketPlaces | null; suggestedBase: MarketCity | null; disclosure: DisclosureDraft; hasDisclosure: boolean };
+export type MarketInfo = { paid: boolean; places: MarketPlaces | null; suggestedBase: MarketCity | null; busyDates: string[]; disclosure: DisclosureDraft; hasDisclosure: boolean };
 
 export const LISTING_MOMENTS = ['just_listed', 'open_house', 'price_drop', 'just_sold'];
 
@@ -77,8 +77,10 @@ const AreaPicker = ({ value, market, onChange }: Pick<Props, 'value' | 'market' 
   const { busy, error, locate, typeBase, more } = useMarketPlaces({ draft: value.places, market, active: true, onChange: setPlaces });
   // Saved places or a guessed city are about to fill the picker: show the skeleton, not the location ask.
   const pending = !market || (!value.places && !error && Boolean(market.places || market.suggestedBase));
+  const today = new Date().toISOString().slice(0, 10);
+  const dates = value.places ? postDates(value.places, new Set(market?.busyDates ?? []), today) : [];
   return (
-    <MarketPlacesPicker draft={value.places} busy={busy || pending} error={error} onChange={setPlaces} onLocate={() => void locate()} onTypeBase={(c) => void typeBase(c)} onMore={() => void more()} />
+    <MarketPlacesPicker draft={value.places} dates={dates} today={today} busy={busy || pending} error={error} onChange={setPlaces} onLocate={() => void locate()} onTypeBase={(c) => void typeBase(c)} onMore={() => void more()} />
   );
 };
 
@@ -127,8 +129,8 @@ export const WhatStep = ({ value, market, onChange, onLocked }: Props) => {
       )}
 
       <div className="grid gap-6 sm:grid-cols-2">
-        {value.moment !== 'open_house' && (
-          <Section title={isMarket ? 'Post on' : isEvergreen ? 'Fill from' : 'Start'}>
+        {value.moment !== 'open_house' && !isMarket && (
+          <Section title={isEvergreen ? 'Fill from' : 'Start'}>
             <input
               type="date"
               min={today}

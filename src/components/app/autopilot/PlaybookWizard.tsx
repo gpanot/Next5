@@ -20,7 +20,7 @@ import { AutomationWizard } from '../automation/AutomationWizard';
 import * as api from './api';
 import { toMarketInfo, type MarketAreaResponse } from './api';
 import { isDisclosureValid } from './DisclosureForm';
-import { draftPlaces, isDraftValid } from './placesDraft';
+import { draftPlaces, isDraftValid, postDates } from './placesDraft';
 import { isEventValid } from './OpenHouseForm';
 import { dollars, isPriceValid } from './PriceDropForm';
 import { MadeDays } from './MadeDays';
@@ -133,7 +133,8 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
     const created = await run(async () => {
       if (isMarket && what.places) await api.saveMarketPlaces(draftPlaces(what.places));
       if (LISTING_MOMENTS.includes(what.moment) && what.disclosure && !market?.hasDisclosure) await api.saveDisclosure(what.disclosure);
-      return api.createPlaybook(bodyOf(what));
+      const placeDates = isMarket && what.places ? postDates(what.places, new Set(market?.busyDates ?? []), today()) : null;
+      return api.createPlaybook({ ...bodyOf(what), placeDates });
     });
     if (created) router.replace(`${href('/automation')}?id=${created.id}`);
   };

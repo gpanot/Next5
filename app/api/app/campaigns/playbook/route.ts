@@ -15,7 +15,7 @@ const eventOf = (raw: unknown): EventInput | null => {
 };
 
 /**
- * POST /api/app/campaigns/playbook { playbook, listingId, startDate, channels, event?, newPriceUsd?, oldPriceUsd? } — a realtor playbook and its plan,
+ * POST /api/app/campaigns/playbook { playbook, listingId, startDate, channels, event?, newPriceUsd?, oldPriceUsd?, placeDates? } — a realtor playbook and its plan,
  * placed on her free days. Costs nothing; nothing is made until she approves.
  */
 export const POST = authedRoute(async (req, session) => {
@@ -32,6 +32,7 @@ export const POST = authedRoute(async (req, session) => {
     event: eventOf(body.event),
     newPriceUsd: typeof body.newPriceUsd === 'number' ? body.newPriceUsd : null,
     oldPriceUsd: typeof body.oldPriceUsd === 'number' ? body.oldPriceUsd : null,
+    placeDates: Array.isArray(body.placeDates) ? body.placeDates.map(String) : null,
   });
   return NextResponse.json({ campaign }, { status: 201 });
 });

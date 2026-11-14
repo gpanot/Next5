@@ -16,6 +16,8 @@ export type CreatePlaybookBody = {
   event?: { start: string; end: string | null; source: 'zillow' | 'typed' } | null;
   newPriceUsd?: number | null;
   oldPriceUsd?: number | null;
+  /** Market update: one post day per place, cities then the state (placesDraft.postDates). */
+  placeDates?: string[] | null;
 };
 
 export const createPlaybook = (body: CreatePlaybookBody) =>
@@ -42,6 +44,8 @@ export type MarketAreaResponse = {
   places: MarketPlaces | null;
   /** Her listings' city, else her IP city: a first guess with no location prompt. */
   suggestedBase: MarketCity | null;
+  /** Days (YYYY-MM-DD) of the next 6 weeks that already hold a post. */
+  busyDates: string[];
   paid: boolean;
   disclosure: { agentName: string; brokerage: string };
 };
@@ -52,6 +56,7 @@ export const toMarketInfo = (r: MarketAreaResponse | null): MarketInfo | null =>
     paid: r.paid,
     places: r.places,
     suggestedBase: r.suggestedBase,
+    busyDates: r.busyDates ?? [],
     disclosure: r.disclosure,
     hasDisclosure: isDisclosureValid(r.disclosure),
   };

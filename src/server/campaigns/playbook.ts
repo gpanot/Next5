@@ -16,7 +16,7 @@ import { getListing } from '../listings/listings';
 import { getCampaign } from './campaigns';
 import { hasBrandFace } from '../realtorSlides/tips';
 import type { CampaignDto } from './dto';
-import { dayIndexOf, placePlaybook } from './playbookPlan';
+import { dayIndexOf, placePlaybook, type Placed } from './playbookPlan';
 
 const MIN_PHOTOS = 4;
 const SIGN_SECONDS = 24 * 3600;
@@ -40,6 +40,8 @@ export type PlaybookInput = {
   /** Price drop, whole dollars. The old price defaults to the listing's price. */
   newPriceUsd?: number | null;
   oldPriceUsd?: number | null;
+  /** Market update: the day she picked for each place, cities then the state. Missing or invalid → placed from startDate. */
+  placeDates?: string[] | null;
 };
 
 const CHANNELS = ['instagram', 'tiktok'];
@@ -114,6 +116,14 @@ const cityFill = (fill: PlaceFill, places: MarketPlaces | null, beatKey: string)
   return area ? { ...fill, city: placeName(area) } : fill;
 };
 
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+
+/** Market update days she saw on Step 1 (one per beat, not past), earliest first; null when they do not fit the beats. */
+const pickedDays = (playbook: Playbook, dates: string[] | null | undefined, today: string): Placed[] | null => {
+  if (!dates || dates.length !== playbook.beats.length || !dates.every((d) => ISO_DAY.test(d) && d >= today)) return null;
+  return playbook.beats.map((beat, i) => ({ beat, date: dates[i]! })).sort((a, b) => a.date.localeCompare(b.date));
+};
+
 /** Creates the campaign and its plan in one go. Costs nothing; nothing is made until she approves. */
 export const createPlaybookCampaign = async (ws: Workspace, input: PlaybookInput): Promise<CampaignDto> => {
   const playbook = PLAYBOOKS[input.playbook];
@@ -124,7 +134,8 @@ export const createPlaybookCampaign = async (ws: Workspace, input: PlaybookInput
   const moment = await momentOf(playbook, input, listing);
 
   const today = new Date().toISOString().slice(0, 10);
-  const placed = await placePlaybook(withPlaces(playbook, source.places), {
+  const planned = withPlaces(playbook, source.places);
+  const placed = pickedDays(planned, input.placeDates, today) ?? await placePlaybook(planned, {
     workspaceId: ws.id, startDate: input.startDate, today, hasArea,
     eventDate: moment.eventAt?.toISOString().slice(0, 10) ?? null,
     hasFace: playbook.placement === 'fill' ? await hasBrandFace(ws.id) : false,
@@ -141,7 +152,7 @@ export const createPlaybookCampaign = async (ws: Workspace, input: PlaybookInput
       listingId: listing?.id ?? null,
       channels,
       startDate: new Date(`${startDate}T00:00:00.000Z`),
-      weeks: Math.ceil(playbook.windowDays / 7),
+      weeks: Math.max(Math.ceil(playbook.windowDays / 7), Math.ceil((dayIndexOf(placed.at(-1)!.date, startDate) + 1) / 7)),
       step: 2,
       ...moment,
       posts: {
