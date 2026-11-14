@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { prisma } from '../../../src/lib/db';
 import {
+  chargePosts,
   chargeRedo,
   expireDue,
   getBalance,
@@ -116,6 +117,27 @@ describe('reserveForBatch', () => {
     );
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(2);
     expect((await getBalance(ws.id, NOW)).total).toBe(2);
+  });
+});
+
+describe('chargePosts', () => {
+  it('spends 1 credit per post, trial credits last', async () => {
+    const ws = await createTestWorkspace();
+    await grantPlan(ws.id, 2, 'p', '2026-11-01T00:00:00Z');
+    await withSerializable((tx) =>
+      grant(tx, { workspaceId: ws.id, bucket: 'trial', amount: 3, reason: 'trial_grant', refType: 'trial', refId: ws.id, expiresAt: null }),
+    );
+    await withSerializable((tx) => chargePosts(tx, { workspaceId: ws.id, postIds: ['a', 'b', 'c'], now: NOW }));
+    const balance = await getBalance(ws.id, NOW);
+    expect(balance.total).toBe(0);
+    expect(balance.trial).toBe(2);
+  });
+
+  it('throws InsufficientCreditsError and writes nothing', async () => {
+    const ws = await createTestWorkspace();
+    await grantPlan(ws.id, 1, 'p', '2026-11-01T00:00:00Z');
+    await expect(withSerializable((tx) => chargePosts(tx, { workspaceId: ws.id, postIds: ['a', 'b'], now: NOW }))).rejects.toBeInstanceOf(InsufficientCreditsError);
+    expect((await getBalance(ws.id, NOW)).total).toBe(1);
   });
 });
 

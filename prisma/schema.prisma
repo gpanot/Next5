@@ -312,6 +312,7 @@ model Workspace {
   postSlots           PostSlot[]
   listings            Listing[]
   listingVideos       ListingVideo[]
+  listingSlideshows   ListingSlideshow[]
   socialConnections   SocialConnection[]
   socialPosts         SocialPost[]
   angles              WorkspaceAngle[]
@@ -1159,6 +1160,7 @@ model Listing {
   campaigns Campaign[]
 
   videos    ListingVideo[]
+  slideshows ListingSlideshow[]
 
   @@unique([workspaceId, zpid])
   @@index([workspaceId, createdAt])
@@ -1194,6 +1196,31 @@ model ListingVideo {
   @@index([status, createdAt])
   @@index([listingId, createdAt(sort: Desc)])
   @@map("listing_videos")
+}
+
+/// "Slideshows of this home": a photo slideshow made from one listing, outside any Autopilot plan.
+model ListingSlideshow {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  listingId   String   @map("listing_id")
+  /// ListingSlideshowKind (src/lib/realtorPlaybooks.ts)
+  kind        String
+  /// SlideTheme (src/lib/slideThemes.ts)
+  theme       String
+  /// making | ready | failed
+  status      String   @default("making")
+  /// PlaybookSlide[]
+  slides      Json     @default("[]")
+  caption     String   @default("")
+  error       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listing   Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId, createdAt(sort: Desc)])
+  @@map("listing_slideshows")
 }
 
 /// UGC Lab: a saved on-screen character — an AI portrait or an uploaded photo (cropped to 9:16).
@@ -1973,6 +2000,8 @@ model Campaign {
 
   /// Realtor playbook this campaign follows; null = the old generic wizard.
   playbook CampaignPlaybook?
+  /// Look of its listing slideshows (src/lib/slideThemes.ts); null = the default theme
+  slideTheme String? @map("slide_theme")
   /// Open house start / end, and where the time came from: zillow | typed (Autopilot §3.2.1)
   eventAt       DateTime? @map("event_at")
   eventEndAt    DateTime? @map("event_end_at")

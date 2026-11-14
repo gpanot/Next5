@@ -128,18 +128,7 @@ export const WhatStep = ({ value, market, onChange, onLocked }: Props) => {
         </Section>
       )}
 
-      <div className="grid gap-6 sm:grid-cols-2">
-        {value.moment !== 'open_house' && !isMarket && (
-          <Section title={isEvergreen ? 'Fill from' : 'Start'}>
-            <input
-              type="date"
-              min={today}
-              value={value.startDate}
-              onChange={(e) => onChange({ startDate: e.target.value || today })}
-              className="h-11 rounded-xl border border-app-line bg-app-panel px-3 text-[14px] text-app-ink transition-colors duration-200 focus:border-app-accent focus:outline-none"
-            />
-          </Section>
-        )}
+      <div className="grid gap-6">
         <Section title="Channels">
           <div className="flex flex-wrap gap-2">
             {CHANNELS.map((c) => {

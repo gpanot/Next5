@@ -15,16 +15,18 @@ type Props = {
   className?: string;
   /** When the video started being made: shows a 3-minute countdown while it renders. */
   startedAt?: string | null;
-  /** False shows the cover only (no slide stepping), e.g. the Library grid. */
+  /** False shows the cover only (no slide stepping). */
   autoplay?: boolean;
+  /** False shows the dots and play button but waits for a tap, e.g. the Library grid. */
+  startPlaying?: boolean;
 };
 
 const SLIDE_MS = 1800;
 
 /** Current slide index, stepping on a timer while playing. Starts paused for people who ask for less motion. */
-const useSlidePlayer = (count: number, enabled: boolean) => {
+const useSlidePlayer = (count: number, enabled: boolean, startPlaying: boolean) => {
   const [index, setIndex] = useState(0);
-  const [playing, setPlaying] = useState(() => typeof window === 'undefined' || !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const [playing, setPlaying] = useState(() => startPlaying && (typeof window === 'undefined' || !window.matchMedia('(prefers-reduced-motion: reduce)').matches));
   useEffect(() => {
     if (!enabled || !playing || count < 2) return;
     const timer = window.setInterval(() => setIndex((i) => (i + 1) % count), SLIDE_MS);
@@ -34,10 +36,10 @@ const useSlidePlayer = (count: number, enabled: boolean) => {
 };
 
 /** A 9:16 thumbnail of a playbook post in any state: planned, being made, ready (video or slides), or failed. */
-export const PostMedia = ({ format, status, coverUrl, videoUrl, slideCount = 0, slideUrls = [], className = '', startedAt = null, autoplay = true }: Props) => {
+export const PostMedia = ({ format, status, coverUrl, videoUrl, slideCount = 0, slideUrls = [], className = '', startedAt = null, autoplay = true, startPlaying = true }: Props) => {
   const Icon = format === 'listing_video' ? Clapperboard : Images;
   const isShow = autoplay && format === 'slideshow' && status === 'ready' && !videoUrl && slideUrls.length > 1;
-  const player = useSlidePlayer(slideUrls.length, isShow);
+  const player = useSlidePlayer(slideUrls.length, isShow, startPlaying);
   return (
     <div className={`relative aspect-[9/16] overflow-hidden rounded-xl bg-app-sunken ${className}`}>
       {status === 'ready' && videoUrl && (

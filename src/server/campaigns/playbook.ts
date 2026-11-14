@@ -10,6 +10,7 @@ import { areaForBeat, beatKeysFor, parseMarketPlaces, placeName, type MarketPlac
 import { disclosureLine, eventDay, eventHours, priceLabel } from '../../lib/playbookMoment';
 import { fillIdea, PLAYBOOKS, type PlaceFill, type Playbook, type PlaybookId } from '../../lib/realtorPlaybooks';
 import type { PlaybookSlide, PostMediaDto } from '../../types/business/campaigns';
+import { refundFailedPostsQuietly } from '../credits/ledger';
 import { getActivePlan } from '../generation/createBatch';
 import { HttpError } from '../http';
 import { getListing } from '../listings/listings';
@@ -42,6 +43,8 @@ export type PlaybookInput = {
   oldPriceUsd?: number | null;
   /** Market update: the day she picked for each place, cities then the state. Missing or invalid → placed from startDate. */
   placeDates?: string[] | null;
+  /** Other moments: the days she picked on the Dates step, a day can repeat. Missing or invalid → placed from startDate. */
+  postDates?: string[] | null;
 };
 
 const CHANNELS = ['instagram', 'tiktok'];
@@ -137,6 +140,7 @@ export const createPlaybookCampaign = async (ws: Workspace, input: PlaybookInput
   const planned = withPlaces(playbook, source.places);
   const placed = pickedDays(planned, input.placeDates, today) ?? await placePlaybook(planned, {
     workspaceId: ws.id, startDate: input.startDate, today, hasArea,
+    pickedDates: input.postDates?.every((d) => ISO_DAY.test(d) && d >= today) ? input.postDates : null,
     eventDate: moment.eventAt?.toISOString().slice(0, 10) ?? null,
     hasFace: playbook.placement === 'fill' ? await hasBrandFace(ws.id) : false,
   });
@@ -207,5 +211,8 @@ export const attachMedia = async (campaign: CampaignDto): Promise<CampaignDto> =
 const videoStatus = (status: string): CampaignDto['posts'][number]['mediaStatus'] =>
   status === 'ready' ? 'ready' : status === 'failed' ? 'failed' : 'generating';
 
-export const getPlaybookCampaign = async (workspaceId: string, campaignId: string): Promise<CampaignDto> =>
-  attachMedia(await getCampaign(workspaceId, campaignId));
+/** Also gives back the credit of any post that failed since the last look. */
+export const getPlaybookCampaign = async (workspaceId: string, campaignId: string): Promise<CampaignDto> => {
+  await refundFailedPostsQuietly(workspaceId);
+  return attachMedia(await getCampaign(workspaceId, campaignId));
+};

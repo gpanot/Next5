@@ -15,6 +15,9 @@ export const planToResume = (campaigns: CampaignDto[], now = Date.now()): Campai
   campaigns.find((c) => {
     if (!c.playbook) return false;
     if (c.status === 'draft') return now - Date.parse(c.createdAt) < DRAFT_KEEP_MS;
+    // Every post approved: the plan is done, a bare Autopilot visit starts a new one.
+    const live = c.posts?.filter((p) => !p.skipped) ?? [];
+    if (live.length > 0 && live.every((p) => p.approvedAt !== null)) return false;
     return c.status === 'scheduled' && c.scheduledAt !== null && now - Date.parse(c.scheduledAt) < MAKING_KEEP_MS;
   }) ?? null;
 

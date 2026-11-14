@@ -5036,5 +5036,320 @@
     "bytes": 76100,
     "alt": "Luxury showcase video frame from the 2784 Bell Dr listing",
     "generatedAt": "2026-11-13T03:41:08.637048Z"
+  },
+  "public/images/slide-themes/photos/exterior.jpg": {
+    "prompt": "Front exterior of a two-story colonial-style US home with white columns, a covered front porch, dark shutters, a green lawn and a brick walkway, blue sky with soft clouds. Real estate listing photo, vertical. Soft natural daylight, eye-level 24mm lens, crisp true colors, professional listing photography. No people, no text, no signs, no logos, no watermarks.",
+    "model": "reapi-nano-banana-2.1",
+    "size": "9:16",
+    "outputSize": "1080w",
+    "bytes": 503407,
+    "alt": "Front of a two-story colonial home with a covered porch",
+    "generatedAt": "2026-11-14T02:21:46.021Z"
+  },
+  "public/images/slide-themes/photos/dining.jpg": {
+    "prompt": "Elegant dining room in a horizontal composition: a dark wood table with six upholstered chairs, a crystal chandelier, a large window with soft curtains, a sideboard with a round mirror, wainscoting, oak floors. Real estate listing photo, vertical. Soft natural daylight, eye-level 24mm lens, crisp true colors, professional listing photography. No people, no text, no signs, no logos, no watermarks.",
+    "model": "reapi-nano-banana-2.1",
+    "size": "9:16",
+    "outputSize": "1080w",
+    "bytes": 264528,
+    "alt": "Dining room with a wood table and crystal chandelier",
+    "generatedAt": "2026-11-14T02:21:52.201Z"
+  },
+  "public/images/slide-themes/photos/bedroom.jpg": {
+    "prompt": "Calm primary bedroom: a wooden four-poster bed with white linens and sage pillows, a tray ceiling with a fan, two tall windows with sheer curtains, a cream bench, a soft green rug on oak floors. Real estate listing photo, vertical. Soft natural daylight, eye-level 24mm lens, crisp true colors, professional listing photography. No people, no text, no signs, no logos, no watermarks.",
+    "model": "reapi-nano-banana-2.1",
+    "size": "9:16",
+    "outputSize": "1080w",
+    "bytes": 264660,
+    "alt": "Primary bedroom with a four-poster bed and tray ceiling",
+    "generatedAt": "2026-11-14T02:21:52.490Z"
+  },
+  "public/images/slide-themes/photos/bath.jpg": {
+    "prompt": "Bright primary bathroom: a white freestanding soaking tub under a window, a glass walk-in shower with white marble tile, a double vanity with brass faucets, round mirrors, light gray hexagon floor tile. Real estate listing photo, vertical. Soft natural daylight, eye-level 24mm lens, crisp true colors, professional listing photography. No people, no text, no signs, no logos, no watermarks.",
+    "model": "reapi-nano-banana-2.1",
+    "size": "9:16",
+    "outputSize": "1080w",
+    "bytes": 172102,
+    "alt": "Bright bathroom with a soaking tub and glass shower",
+    "generatedAt": "2026-11-14T02:21:52.630Z"
+  },
+  "public/images/slide-themes/photos/kitchen.jpg": {
+    "prompt": "Modern white kitchen: white shaker cabinets, a large island with a light quartz top and three wood stools, brass pendant lights, a window over the sink, light oak floors. Real estate listing photo, vertical. Soft natural daylight, eye-level 24mm lens, crisp true colors, professional listing photography. No people, no text, no signs, no logos, no watermarks.",
+    "model": "reapi-nano-banana-2.1",
+    "size": "9:16",
+    "outputSize": "1080w",
+    "bytes": 191433,
+    "alt": "White kitchen with a large island and brass pendant lights",
+    "generatedAt": "2026-11-14T02:21:53.124Z"
+  },
+  "public/images/slide-themes/photos/backyard.jpg": {
+    "prompt": "Backyard at golden hour: a stone patio with an outdoor dining table and string lights, a rectangular blue pool, green lawn, trimmed hedges, the back of a white house with glass doors. Real estate listing photo, vertical. Soft natural daylight, eye-level 24mm lens, crisp true colors, professional listing photography. No people, no text, no signs, no logos, no watermarks.",
+    "model": "reapi-nano-banana-2.1",
+    "size": "9:16",
+    "outputSize": "1080w",
+    "bytes": 485117,
+    "alt": "Backyard with a pool and stone patio at golden hour",
+    "generatedAt": "2026-11-14T02:21:59.025Z"
+  },
+  "public/images/slide-themes/photos/living.jpg": {
+    "prompt": "Bright staged living room: white built-in shelves on both sides of a white fireplace, tall windows with plantation shutters, oak floors, a red and navy area rug, a white sofa with blue pillows. Real estate listing photo, vertical. Soft natural daylight, eye-level 24mm lens, crisp true colors, professional listing photography. No people, no text, no signs, no logos, no watermarks.",
+    "model": "reapi-nano-banana-2.1",
+    "size": "9:16",
+    "outputSize": "1080w",
+    "bytes": 283556,
+    "alt": "Bright living room with white built-ins and a fireplace",
+    "generatedAt": "2026-11-14T02:21:59.066Z"
+  },
+  "public/images/slide-themes/classic-1.jpg": {
+    "prompt": "Rendered Classic theme example, slide 1 of 4, over public/images/slide-themes/photos/exterior.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 27294,
+    "alt": "Classic theme example, slide 1: Just listed: a 5-bed colonial",
+    "generatedAt": "2026-11-14T02:24:25.610Z"
+  },
+  "public/images/slide-themes/paper-card-1.jpg": {
+    "prompt": "Rendered Paper card theme example, slide 1 of 4, over public/images/slide-themes/photos/exterior.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 58239,
+    "alt": "Paper card theme example, slide 1: Just listed: a 5-bed colonial",
+    "generatedAt": "2026-11-14T02:24:25.610Z"
+  },
+  "public/images/slide-themes/classic-4.jpg": {
+    "prompt": "Rendered Classic theme example, slide 4 of 4, over public/images/slide-themes/photos/backyard.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 26821,
+    "alt": "Classic theme example, slide 4: Want a private tour?",
+    "generatedAt": "2026-11-14T02:24:25.610Z"
+  },
+  "public/images/slide-themes/paper-card-2.jpg": {
+    "prompt": "Rendered Paper card theme example, slide 2 of 4, over public/images/slide-themes/photos/living.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 40336,
+    "alt": "Paper card theme example, slide 2: The living room",
+    "generatedAt": "2026-11-14T02:24:25.610Z"
+  },
+  "public/images/slide-themes/paper-card-3.jpg": {
+    "prompt": "Rendered Paper card theme example, slide 3 of 4, over public/images/slide-themes/photos/kitchen.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 28094,
+    "alt": "Paper card theme example, slide 3: A kitchen made to cook in",
+    "generatedAt": "2026-11-14T02:24:25.610Z"
+  },
+  "public/images/slide-themes/color-band-2.jpg": {
+    "prompt": "Rendered Color band theme example, slide 2 of 4, over public/images/slide-themes/photos/living.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 41624,
+    "alt": "Color band theme example, slide 2: The living room",
+    "generatedAt": "2026-11-14T02:24:25.610Z"
+  },
+  "public/images/slide-themes/color-band-1.jpg": {
+    "prompt": "Rendered Color band theme example, slide 1 of 4, over public/images/slide-themes/photos/exterior.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 51315,
+    "alt": "Color band theme example, slide 1: Just listed: a 5-bed colonial",
+    "generatedAt": "2026-11-14T02:24:25.610Z"
+  },
+  "public/images/slide-themes/paper-card-4.jpg": {
+    "prompt": "Rendered Paper card theme example, slide 4 of 4, over public/images/slide-themes/photos/backyard.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 58842,
+    "alt": "Paper card theme example, slide 4: Want a private tour?",
+    "generatedAt": "2026-11-14T02:24:25.610Z"
+  },
+  "public/images/slide-themes/classic-3.jpg": {
+    "prompt": "Rendered Classic theme example, slide 3 of 4, over public/images/slide-themes/photos/kitchen.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 18099,
+    "alt": "Classic theme example, slide 3: A kitchen made to cook in",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/classic-2.jpg": {
+    "prompt": "Rendered Classic theme example, slide 2 of 4, over public/images/slide-themes/photos/living.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 20343,
+    "alt": "Classic theme example, slide 2: The living room",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/color-band-3.jpg": {
+    "prompt": "Rendered Color band theme example, slide 3 of 4, over public/images/slide-themes/photos/kitchen.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 30075,
+    "alt": "Color band theme example, slide 3: A kitchen made to cook in",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/color-band-4.jpg": {
+    "prompt": "Rendered Color band theme example, slide 4 of 4, over public/images/slide-themes/photos/backyard.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 54614,
+    "alt": "Color band theme example, slide 4: Want a private tour?",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/editorial-3.jpg": {
+    "prompt": "Rendered Editorial theme example, slide 3 of 4, over public/images/slide-themes/photos/kitchen.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 24507,
+    "alt": "Editorial theme example, slide 3: A kitchen made to cook in",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/editorial-4.jpg": {
+    "prompt": "Rendered Editorial theme example, slide 4 of 4, over public/images/slide-themes/photos/backyard.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 52156,
+    "alt": "Editorial theme example, slide 4: Want a private tour?",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/glass-2.jpg": {
+    "prompt": "Rendered Glass theme example, slide 2 of 4, over public/images/slide-themes/photos/living.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 37370,
+    "alt": "Glass theme example, slide 2: The living room",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/glass-1.jpg": {
+    "prompt": "Rendered Glass theme example, slide 1 of 4, over public/images/slide-themes/photos/exterior.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 61897,
+    "alt": "Glass theme example, slide 1: Just listed: a 5-bed colonial",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/glass-3.jpg": {
+    "prompt": "Rendered Glass theme example, slide 3 of 4, over public/images/slide-themes/photos/kitchen.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 28506,
+    "alt": "Glass theme example, slide 3: A kitchen made to cook in",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/big-number-1.jpg": {
+    "prompt": "Rendered Big number theme example, slide 1 of 4, over public/images/slide-themes/photos/exterior.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 57491,
+    "alt": "Big number theme example, slide 1: Just listed: a 5-bed colonial",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/glass-4.jpg": {
+    "prompt": "Rendered Glass theme example, slide 4 of 4, over public/images/slide-themes/photos/backyard.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 62600,
+    "alt": "Glass theme example, slide 4: Want a private tour?",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/editorial-1.jpg": {
+    "prompt": "Rendered Editorial theme example, slide 1 of 4, over public/images/slide-themes/photos/exterior.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 53462,
+    "alt": "Editorial theme example, slide 1: Just listed: a 5-bed colonial",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/editorial-2.jpg": {
+    "prompt": "Rendered Editorial theme example, slide 2 of 4, over public/images/slide-themes/photos/living.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 29014,
+    "alt": "Editorial theme example, slide 2: The living room",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/big-number-3.jpg": {
+    "prompt": "Rendered Big number theme example, slide 3 of 4, over public/images/slide-themes/photos/kitchen.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 28718,
+    "alt": "Big number theme example, slide 3: A kitchen made to cook in",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/big-number-4.jpg": {
+    "prompt": "Rendered Big number theme example, slide 4 of 4, over public/images/slide-themes/photos/backyard.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 57515,
+    "alt": "Big number theme example, slide 4: Want a private tour?",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/poster-2.jpg": {
+    "prompt": "Rendered Poster theme example, slide 2 of 4, over public/images/slide-themes/photos/living.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 40357,
+    "alt": "Poster theme example, slide 2: The living room",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/big-number-2.jpg": {
+    "prompt": "Rendered Big number theme example, slide 2 of 4, over public/images/slide-themes/photos/living.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 39218,
+    "alt": "Big number theme example, slide 2: The living room",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/poster-3.jpg": {
+    "prompt": "Rendered Poster theme example, slide 3 of 4, over public/images/slide-themes/photos/kitchen.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 29399,
+    "alt": "Poster theme example, slide 3: A kitchen made to cook in",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/poster-1.jpg": {
+    "prompt": "Rendered Poster theme example, slide 1 of 4, over public/images/slide-themes/photos/exterior.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 61211,
+    "alt": "Poster theme example, slide 1: Just listed: a 5-bed colonial",
+    "generatedAt": "2026-11-14T02:24:25.611Z"
+  },
+  "public/images/slide-themes/poster-4.jpg": {
+    "prompt": "Rendered Poster theme example, slide 4 of 4, over public/images/slide-themes/photos/backyard.jpg",
+    "model": "render (themeRender.tsx)",
+    "size": "1080x1920",
+    "outputSize": "360x640",
+    "bytes": 59368,
+    "alt": "Poster theme example, slide 4: Want a private tour?",
+    "generatedAt": "2026-11-14T02:24:25.617Z"
   }
 }

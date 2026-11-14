@@ -7,6 +7,7 @@ import { CreateSection } from './CreateSection';
 import type { FaceChoice } from './InfluencerPicker';
 import { ListingPhotosSection } from './ListingPhotosSection';
 import { ListingPicker } from './ListingPicker';
+import { ListingSlideshowsPanel } from './ListingSlideshowsPanel';
 import { ListingVideosPanel } from './ListingVideosPanel';
 
 type Props = {
@@ -52,7 +53,13 @@ export const BrandCreateFlow = ({ listings, onRefresh, listingId, onSelect }: Pr
       )}
 
       {listing && fromZillow && (
-        <ListingPhotosSection key={listing.id} listing={listing} step={3} initialFace={initialFace} defaultOpen={false} />
+        <CreateSection step={3} title="Slideshows of this home" sub="Pick a theme, then make any slideshow. Real photos, words and caption included.">
+          <ListingSlideshowsPanel key={listing.id} listingId={listing.id} />
+        </CreateSection>
+      )}
+
+      {listing && fromZillow && (
+        <ListingPhotosSection key={listing.id} listing={listing} step={4} initialFace={initialFace} defaultOpen={false} />
       )}
     </div>
   );

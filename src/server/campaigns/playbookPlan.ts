@@ -4,7 +4,7 @@
 // the open house days, which are fixed. Plan: docs/business-studios/15-realtor-autopilot-plan.md §3–4.
 
 import { prisma } from '../../lib/db';
-import { fillBeats, placeBeats, placeEventBeats, type Beat, type Playbook } from '../../lib/realtorPlaybooks';
+import { fillBeats, placeBeats, placeEventBeats, placeOnDates, type Beat, type Playbook } from '../../lib/realtorPlaybooks';
 import { OFF_CALENDAR } from '../calendar/calendar';
 import { HttpError } from '../http';
 
@@ -47,6 +47,8 @@ export type PlanContext = {
   eventDate: string | null;
   hasFace: boolean;
   hasArea: boolean;
+  /** Days she picked on the Dates step (a day can repeat). Null → placed on the free days from startDate. */
+  pickedDates?: string[] | null;
 };
 
 export const placePlaybook = async (playbook: Playbook, ctx: PlanContext): Promise<Placed[]> => {
@@ -55,11 +57,13 @@ export const placePlaybook = async (playbook: Playbook, ctx: PlanContext): Promi
     if (ctx.eventDate < ctx.today) throw new HttpError(400, 'event_past', 'That open house day is past.');
     return placeEventBeats(playbook.beats, ctx.eventDate, ctx.today);
   }
+  const picked = ctx.pickedDates?.length ? ctx.pickedDates : null;
   const busy = await busyDates(ctx.workspaceId, ctx.startDate, playbook.windowDays);
   if (playbook.placement === 'fill') {
     const recent = await recentEvergreen(ctx.workspaceId, ctx.today);
-    return fillBeats(playbook.beats, ctx.startDate, busy, playbook.windowDays, { hasFace: ctx.hasFace, hasArea: ctx.hasArea, recent });
+    return fillBeats(playbook.beats, ctx.startDate, busy, playbook.windowDays, { hasFace: ctx.hasFace, hasArea: ctx.hasArea, recent }, picked);
   }
+  if (picked) return placeOnDates(playbook.beats, picked);
   return placeBeats(playbook.beats, ctx.startDate, busy, playbook.windowDays);
 };
 

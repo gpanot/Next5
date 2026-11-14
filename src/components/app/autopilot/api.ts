@@ -18,6 +18,8 @@ export type CreatePlaybookBody = {
   oldPriceUsd?: number | null;
   /** Market update: one post day per place, cities then the state (placesDraft.postDates). */
   placeDates?: string[] | null;
+  /** Days picked on the Dates step; a day can repeat (two posts the same day). */
+  postDates?: string[] | null;
 };
 
 export const createPlaybook = (body: CreatePlaybookBody) =>

@@ -241,13 +241,14 @@ export type FillContext = { hasFace: boolean; hasArea: boolean; recent: Readonly
  * Evergreen: one pool beat per free day in the window. Beats she cannot use (no face / no area) are left out; the
  * rest go least recently used first (`recent` = beatKey → last date used), so nothing repeats while others wait.
  */
-export const fillBeats = (pool: readonly Beat[], startDate: string, busy: ReadonlySet<string>, windowDays: number, ctx: FillContext): { beat: Beat; date: string }[] => {
+export const fillBeats = (pool: readonly Beat[], startDate: string, busy: ReadonlySet<string>, windowDays: number, ctx: FillContext, dates?: readonly string[] | null): { beat: Beat; date: string }[] => {
   const usable = pool
     .filter((b) => (!b.needsFace || ctx.hasFace) && (!b.needsArea || ctx.hasArea))
     .map((b, i) => ({ b, i, last: ctx.recent.get(b.key) ?? '' }))
     .sort((x, y) => x.last.localeCompare(y.last) || x.i - y.i)
     .map((x) => x.b);
-  const free = Array.from({ length: windowDays }, (_, i) => addDays(startDate, i)).filter((d) => !busy.has(d));
+  // `dates` = the days she picked herself (a day can repeat: two posts the same day).
+  const free = dates ? [...dates].sort() : Array.from({ length: windowDays }, (_, i) => addDays(startDate, i)).filter((d) => !busy.has(d));
   return free.slice(0, usable.length).map((date, i) => ({ beat: usable[i]!, date }));
 };
 
@@ -268,4 +269,10 @@ export const placeBeats = (beats: readonly Beat[], startDate: string, busy: Read
     cursor = offset + 1;
   }
   return placed;
+};
+
+/** Each beat on a day she picked, in order (earliest day first). A day can repeat. Beats without a day are dropped. */
+export const placeOnDates = (beats: readonly Beat[], dates: readonly string[]): { beat: Beat; date: string }[] => {
+  const sorted = [...dates].sort();
+  return beats.slice(0, sorted.length).map((beat, i) => ({ beat, date: sorted[i]! }));
 };

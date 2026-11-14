@@ -2,7 +2,7 @@
 
 /**
  * Realtor Autopilot: 3 steps instead of the old 8 (docs/business-studios/15-realtor-autopilot-plan.md §3.2).
- * 1 What's happening → 2 Your plan (real dates, skip a day) → 3 Approve, then watch the posts get made.
+ * 1 What's happening → 2 Dates (empty days picked for her) → 3 Your plan (skip a post) → 4 Approve, then watch the posts get made.
  */
 import { ArrowLeft, CalendarDays, Check, Plus, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -23,8 +23,11 @@ import { isDisclosureValid } from './DisclosureForm';
 import { draftPlaces, isDraftValid, postDates } from './placesDraft';
 import { isEventValid } from './OpenHouseForm';
 import { dollars, isPriceValid } from './PriceDropForm';
+import { DatesStep } from './DatesStep';
 import { MadeDays } from './MadeDays';
 import { PlanDays } from './PlanDays';
+import { PlanThemeSection } from './PlanThemeSection';
+import { defaultDays, isPickValid, skipsDates } from './postDays';
 import { PlaybookPostSheet, type PlaybookPreview } from './PlaybookPostSheet';
 import { TopBarSteps } from './TopBarSteps';
 import { usePlaybook } from './usePlaybook';
@@ -32,6 +35,7 @@ import { useResumePlan } from './useResumePlan';
 import { LISTING_MOMENTS, WhatStep, type MarketInfo, type WhatValue } from './WhatStep';
 
 const STEPS = ['What', 'Plan', 'Approve'] as const;
+const STEPS_WITH_DATES = ['What', 'Dates', 'Plan', 'Approve'] as const;
 const today = () => new Date().toISOString().slice(0, 10);
 
 type Props = {
@@ -66,13 +70,14 @@ const canPlanWith = (what: WhatValue, market: MarketInfo | null): boolean => {
   return true;
 };
 
-const bodyOf = (what: WhatValue): api.CreatePlaybookBody => {
+const bodyOf = (what: WhatValue, postDates: string[] | null): api.CreatePlaybookBody => {
   const playbook = (isPlaybookId(what.moment) ? what.moment : 'just_listed') as PlaybookId;
   const e = what.event;
   return {
     playbook,
     listingId: LISTING_MOMENTS.includes(playbook) ? what.listingId : null,
     startDate: what.startDate,
+    postDates,
     channels: what.channels,
     event: playbook === 'open_house' && e ? { start: `${e.date}T${e.start}`, end: e.end ? `${e.date}T${e.end}` : null, source: e.source } : null,
     newPriceUsd: playbook === 'price_drop' ? dollars(what.price.newPrice) : null,
@@ -89,13 +94,13 @@ const previewOf = (post: CampaignPostDto): PlaybookPreview => ({
 });
 
 /** The page frame: title, and the 3 steps in the top bar. */
-const Frame = ({ step, children }: { step: number; children: ReactNode }) => (
-  <AppPage title="Plan my week" progress={<TopBarSteps steps={STEPS} current={step} />}>{children}</AppPage>
+const Frame = ({ step, withDates = false, children }: { step: number; withDates?: boolean; children: ReactNode }) => (
+  <AppPage title="Plan my week" progress={<TopBarSteps steps={withDates ? STEPS_WITH_DATES : STEPS} current={step} />}>{children}</AppPage>
 );
 
 export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: Props) {
   const router = useRouter();
-  const { href } = useWorkspace();
+  const { href, refresh: refreshCredits } = useWorkspace();
   const resuming = useResumePlan(resume && !campaignId, (id) => router.replace(`${href('/automation')}?id=${id}`));
   const { campaign, setCampaign, loading, error: loadError, reload, making } = usePlaybook(campaignId);
   const startMoment = moment && isPlaybookId(moment) ? moment : 'just_listed';
@@ -109,6 +114,9 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
   const [busyPostId, setBusyPostId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PlaybookPreview | null>(null);
+  // Pre-plan screens: What, then Dates. `picked` stays null until she opens Dates, then holds her days (a day can repeat).
+  const [onDates, setOnDates] = useState(false);
+  const [picked, setPicked] = useState<string[] | null>(null);
 
   const run = async (fn: () => Promise<CampaignDto>) => {
     setBusy(true);
@@ -129,12 +137,12 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
   const canPlan = canPlanWith(what, market);
 
   const createPlan = async () => {
-    if (!canPlan) return;
+    if (!canPlan || (!skipsDates(what.moment) && !(picked && isPickValid(what.moment, picked)))) return;
     const created = await run(async () => {
       if (isMarket && what.places) await api.saveMarketPlaces(draftPlaces(what.places));
       if (LISTING_MOMENTS.includes(what.moment) && what.disclosure && !market?.hasDisclosure) await api.saveDisclosure(what.disclosure);
       const placeDates = isMarket && what.places ? postDates(what.places, new Set(market?.busyDates ?? []), today()) : null;
-      return api.createPlaybook({ ...bodyOf(what), placeDates });
+      return api.createPlaybook({ ...bodyOf(what, skipsDates(what.moment) ? null : picked), placeDates });
     });
     if (created) router.replace(`${href('/automation')}?id=${created.id}`);
   };
@@ -142,7 +150,10 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
   const changeWhat = (patch: Partial<WhatValue>) =>
     setWhat((prev) => {
       const next = { ...prev, ...patch };
-      if (patch.moment && patch.moment !== prev.moment) next.startDate = startFor(patch.moment, date);
+      if (patch.moment && patch.moment !== prev.moment) {
+        next.startDate = startFor(patch.moment, date);
+        setPicked(null);
+      }
       return next;
     });
 
@@ -165,11 +176,19 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
   if (campaign && !campaign.playbook) return <AppPage title="Plan my week"><AutomationWizard campaignId={campaign.id} /></AppPage>;
 
   const step = !campaign ? 1 : campaign.status === 'draft' ? 2 : 3;
+  const withDates = !skipsDates(campaign?.playbook ?? what.moment);
+  const showDates = step === 1 && onDates && withDates;
+  const openDates = () => {
+    setPicked((prev) => prev ?? defaultDays(what.moment, today(), new Set(market?.busyDates ?? [])));
+    setOnDates(true);
+  };
   const live = campaign?.posts.filter((p) => !p.skipped) ?? [];
   // Approved and made: every step is done, not just the first two.
   // Made posts she still has to approve, one by one or all at once.
   const toApprove = live.filter((p) => p.mediaStatus === 'ready' && p.approvedAt === null);
-  const barStep = step === 3 && !making && toApprove.length === 0 ? STEPS.length + 1 : step;
+  const total = withDates ? STEPS_WITH_DATES.length : STEPS.length;
+  const done = step === 3 && !making && toApprove.length === 0;
+  const barStep = done ? total + 1 : showDates ? 2 : step + (withDates && step > 1 ? 1 : 0);
 
   const approveAll = () =>
     void run(async () => {
@@ -179,16 +198,21 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
     });
 
   return (
-    <Frame step={barStep}>
+    <Frame step={barStep} withDates={withDates}>
       <div className="flex flex-col gap-6">
         {error && <p className="rounded-xl bg-app-accent-soft px-3 py-2 text-[13px] text-app-danger" role="alert">{error}</p>}
 
-        {step === 1 && <WhatStep value={what} market={market} onChange={changeWhat} onLocked={() => router.push(href('/billing'))} />}
+        {step === 1 && !showDates && <WhatStep value={what} market={market} onChange={changeWhat} onLocked={() => router.push(href('/billing'))} />}
+
+        {showDates && (
+          <DatesStep moment={what.moment} today={today()} busyDates={market?.busyDates ?? []} value={picked ?? []} onChange={setPicked} />
+        )}
 
         {step === 2 && campaign && (
           <>
-            <p className="text-[14px] text-app-muted">{live.length} posts on your free days. Turn off any you don&apos;t want.</p>
+            <p className="text-[14px] text-app-muted">{live.length} post{live.length === 1 ? '' : 's'} on the days you picked. Turn off any you don&apos;t want.</p>
             <PlanDays posts={campaign.posts} busyPostId={busyPostId} onToggle={(post, keep) => void postAction(post, () => api.skipPost(campaign.id, post.id, !keep))} />
+            <PlanThemeSection campaign={campaign} />
           </>
         )}
 
@@ -207,7 +231,6 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
               startedAt={campaign.scheduledAt}
               onOpen={(post) => setPreview(previewOf(post))}
               onRetry={(post) => void postAction(post, () => api.retryPost(campaign.id, post.id))}
-              onApprove={(post, approved) => void postAction(post, () => api.approvePost(campaign.id, post.id, approved))}
             />
           </>
         )}
@@ -217,12 +240,18 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
             {step === 2 && (
               <AppButton variant="ghost" iconLeft={<ArrowLeft aria-hidden className="h-4 w-4" />} onClick={() => void startOver()} disabled={busy}>Start over</AppButton>
             )}
-            {step === 1 && (
-              <AppButton fullWidth size="lg" loading={busy} disabled={!canPlan} onClick={() => void createPlan()}>{isPlaybookId(what.moment) ? PLAN_LABEL[what.moment] : 'Plan my week'}</AppButton>
+            {showDates && (
+              <AppButton variant="ghost" iconLeft={<ArrowLeft aria-hidden className="h-4 w-4" />} onClick={() => setOnDates(false)} disabled={busy}>Back</AppButton>
+            )}
+            {step === 1 && !showDates && withDates && (
+              <AppButton fullWidth size="lg" disabled={!canPlan || !market} onClick={openDates}>Choose dates</AppButton>
+            )}
+            {step === 1 && (showDates || !withDates) && (
+              <AppButton fullWidth size="lg" loading={busy} disabled={!canPlan || (showDates && !isPickValid(what.moment, picked ?? []))} onClick={() => void createPlan()}>{isPlaybookId(what.moment) ? PLAN_LABEL[what.moment] : 'Plan my week'}</AppButton>
             )}
             {step === 2 && (
-              <AppButton fullWidth size="lg" loading={busy} disabled={live.length === 0} iconLeft={<Sparkles aria-hidden className="h-4 w-4" />} onClick={() => void run(() => api.approvePlaybook(campaign!.id))}>
-                Approve and make {live.length} posts
+              <AppButton fullWidth size="lg" loading={busy} disabled={live.length === 0} iconLeft={<Sparkles aria-hidden className="h-4 w-4" />} onClick={() => void run(() => api.approvePlaybook(campaign!.id)).then(refreshCredits)}>
+                Approve and make {live.length} posts · {live.length} credit{live.length === 1 ? '' : 's'}
               </AppButton>
             )}
             {step === 3 && !making && (

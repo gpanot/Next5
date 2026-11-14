@@ -4,7 +4,7 @@ import type { Subscription } from '@prisma/client';
 import { PLANS, isPlanId, type Plan } from '../config/plans';
 import { prisma } from '../lib/db';
 import type { BannerDto, BrandExtractData, MeDto, SubscriptionDto, WorkspaceDto } from '../types/business/me';
-import { getBalance, type Balance } from './credits/ledger';
+import { getBalance, refundFailedPostsQuietly, type Balance } from './credits/ledger';
 import { givenConsents } from './onboarding/account';
 import { getActiveSubscription, getQueuedRenewal } from './subscriptions/subscriptions';
 import { studioWhere, type StudioWorkspace } from './workspaces/workspaces';
@@ -92,6 +92,8 @@ export const buildMe = async (userId: string, product?: 'brand' | 'shop', now = 
   const base = { user: { ...user, consents }, workspaces: workspaces.map((w) => ({ id: w.id, product: w.product, name: w.name })), hasConsumerBookings: bookings > 0 };
   if (!ws) return { ...base, workspace: null, subscription: null, queuedRenewal: null, plan: null, balance: emptyBalance, banners: [] };
 
+  // Realtor Autopilot: failed posts give their credit back before the pill reads the balance.
+  if (ws.product === 'brand') await refundFailedPostsQuietly(ws.id);
   const [active, queued, balance, workspace] = await Promise.all([getActiveSubscription(ws.id, now), getQueuedRenewal(ws.id, now), getBalance(ws.id, now), toWorkspaceDto(ws)]);
   const plan = active && isPlanId(active.planId) ? PLANS[active.planId] : null;
   return {

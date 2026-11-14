@@ -47,7 +47,7 @@ export const LibrarySlideshowsView = () => {
               onClick={() => setPreview({ title: s.title, format: 'slideshow', videoUrl: null, slideUrls: s.slideUrls, caption: s.caption })}
               className="block w-full transition-opacity duration-200 hover:opacity-90"
             >
-              <PostMedia format="slideshow" status="ready" coverUrl={s.slideUrls[0] ?? null} videoUrl={null} slideCount={s.slideUrls.length} slideUrls={s.slideUrls} autoplay={false} />
+              <PostMedia format="slideshow" status="ready" coverUrl={s.slideUrls[0] ?? null} videoUrl={null} slideCount={s.slideUrls.length} slideUrls={s.slideUrls} startPlaying={false} />
             </button>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-semibold text-app-ink">{s.title}</p>

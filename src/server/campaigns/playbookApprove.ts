@@ -7,6 +7,8 @@ import { after } from 'next/server';
 import { prisma } from '../../lib/db';
 import { disclosureLine, momentLine } from '../../lib/playbookMoment';
 import { beatOf, isCardKind, type VideoPreset } from '../../lib/realtorPlaybooks';
+import { chargePostRetry, chargePosts, getBalance, InsufficientCreditsError } from '../credits/ledger';
+import { withSerializable } from '../db/transaction';
 import { HttpError } from '../http';
 import { getListing } from '../listings/listings';
 import { startListingVideos } from '../realtorVideo/jobs';
@@ -74,12 +76,33 @@ const captionVideos = async (ws: Workspace, campaignId: string, listingId: strin
   );
 };
 
+const notEnoughCredits = (needed: number, available: number) =>
+  new HttpError(402, 'insufficient_credits', `This plan has ${needed} posts and each one uses 1 credit. You have ${available} left.`);
+
+/** Fails before anything starts when the plan costs more credits than the workspace has (trial credits count). */
+const assertCredits = async (workspaceId: string, needed: number): Promise<void> => {
+  const balance = await getBalance(workspaceId);
+  const available = balance.total + balance.trial;
+  if (available < needed) throw notEnoughCredits(needed, available);
+};
+
+/** 1 credit per post. One ledger row per post, so the same post is never charged twice. */
+const chargePlan = async (workspaceId: string, postIds: string[]): Promise<void> => {
+  try {
+    await withSerializable((tx) => chargePosts(tx, { workspaceId, postIds }));
+  } catch (err) {
+    if (err instanceof InsufficientCreditsError) throw notEnoughCredits(err.needed, err.available);
+    throw err;
+  }
+};
+
 export const approvePlaybook = async (ws: Workspace, campaignId: string): Promise<CampaignDto> => {
   const campaign = await getPlaybookCampaign(ws.id, campaignId);
   if (!campaign.playbook) throw new HttpError(400, 'not_playbook', 'This campaign is not a playbook.');
   if (campaign.status !== 'draft') throw new HttpError(409, 'already_scheduled', 'This plan is already approved.');
   const live = campaign.posts.filter((p) => !p.skipped);
   const videos = live.filter((p) => p.format === 'listing_video');
+  await assertCredits(ws.id, live.length);
 
   // Videos first: they check the listing (city, price, photos) and throw a clear error before anything is booked.
   if (videos.length > 0) {
@@ -87,6 +110,7 @@ export const approvePlaybook = async (ws: Workspace, campaignId: string): Promis
     await startVideos(ws, campaign.listingId, videos);
     await captionVideos(ws, campaign.id, campaign.listingId, videos);
   }
+  await chargePlan(ws.id, live.map((p) => p.id));
   await scheduleCampaign(ws.id, campaign.id);
 
   const jobs = live.filter((p) => p.format === 'slideshow').map((p) => ({ id: p.id, beatKey: p.beatKey }));
@@ -103,6 +127,13 @@ export const retryPlaybookPost = async (ws: Workspace, campaignId: string, postI
   const post = campaign.posts.find((p) => p.id === postId);
   if (!post) throw new HttpError(404, 'not_found', 'Post not found.');
   if (post.format !== 'slideshow' || post.mediaStatus !== 'failed') throw new HttpError(409, 'not_failed', 'Only a failed slideshow can be made again.');
+  // Its first credit came back when it failed (getPlaybookCampaign above), so this attempt costs 1 credit.
+  try {
+    await withSerializable((tx) => chargePostRetry(tx, { workspaceId: ws.id, postId }));
+  } catch (err) {
+    if (err instanceof InsufficientCreditsError) throw new HttpError(402, 'insufficient_credits', 'Trying again uses 1 credit. You have none left.');
+    throw err;
+  }
   await prisma.campaignPost.update({ where: { id: postId }, data: { mediaStatus: 'generating', mediaError: null } });
   const listingId = campaign.listingId;
   after(() => runSlideshows([{ id: post.id, beatKey: post.beatKey }], listingId, ws.id));
