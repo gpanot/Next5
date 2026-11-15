@@ -1,5 +1,5 @@
 // server-only — never import from a 'use client' file.
-// Brand create → "Listing videos": the picked templates (presets.ts) at the picked length, one row each.
+// Brand create → "Listing videos": the picked templates (presets.ts), auto length, one row each.
 // The request creates the rows (preparing) and answers at once; after() does the paid prep
 // (tags, plan, script, voice → R2), then queues the rows for the blitz-worker, which renders them.
 
@@ -14,10 +14,9 @@ import { getListing, roomsFor, type ListingWithMaterials } from '../listings/lis
 import { presignObject } from '../storage/objectStore';
 import { wakeBlitzWorker } from '../labs/blitzWorkerWake';
 import { createMeter } from '../metaAds/cost';
-import { workspaceHasPaid } from '../slideshowCredits/paid';
 import { R2_ASSETS, buildPresetProps, buildVoicedProps } from './build';
 import { cleanPresetVoice, cleanVoice, planAndWrite, planAndWritePreset, type GalleryInput } from './pipeline';
-import { LENGTH_META, REALTOR_PRESETS, isVideoLength, type RealtorPreset, type VideoLength } from './presets';
+import { REALTOR_PRESETS, isVideoLength, type RealtorPreset, type VideoLength } from './presets';
 import type { RealtorFacts, ScriptPack } from './script';
 import type { ShotPlan } from './shotPlan';
 import type { ListingVideoDto } from '../../types/business/listingVideos';
@@ -140,15 +139,8 @@ export const parsePresets = (value: unknown): RealtorPreset[] => {
   return picked;
 };
 
-/** Workspaces that never paid only get 15 s videos. No length sent: 25 s for paid, 15 s otherwise. */
-export const allowedLength = async (ws: Workspace, value: unknown): Promise<VideoLength> => {
-  const paid = await workspaceHasPaid(ws.id);
-  if (!paid) {
-    if (isVideoLength(value) && LENGTH_META[value].paidOnly) throw new HttpError(402, 'length_paid_only', 'Longer videos come with a paid plan. The 15 s video is free.');
-    return 'short';
-  }
-  return isVideoLength(value) ? value : 'standard';
-};
+/** Every new video is 'auto' on every plan (free included): the style's story sets the length, up to 60 s. */
+const NEW_VIDEO_LENGTH: VideoLength = 'auto';
 
 /**
  * Starts the picked videos for a listing. A preset already in progress keeps its row (no double spend).
@@ -158,7 +150,7 @@ export const startListingVideos = async (
   ws: Workspace, listingId: string, presets: RealtorPreset[] = LISTING_VIDEO_PRESETS, length?: VideoLength,
   options: { charge?: boolean } = {},
 ): Promise<ListingVideo[]> => {
-  const len = length ?? (await allowedLength(ws, undefined));
+  const len = length ?? NEW_VIDEO_LENGTH;
   const listing = await getListing(ws.id, listingId);
   const busy = await prisma.listingVideo.findMany({ where: { listingId, status: { in: ACTIVE } }, orderBy: { createdAt: 'desc' } });
   const todo = presets.filter((p) => !busy.some((b) => b.preset === p));

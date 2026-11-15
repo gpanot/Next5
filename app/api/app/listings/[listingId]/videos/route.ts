@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { authedRoute } from '../../../../../../src/server/api';
-import { allowedLength, listListingVideos, parsePresets, startListingVideos } from '../../../../../../src/server/realtorVideo/jobs';
+import { listListingVideos, parsePresets, startListingVideos } from '../../../../../../src/server/realtorVideo/jobs';
 import { workspaceHasPaid } from '../../../../../../src/server/slideshowCredits/paid';
 import { requireWorkspace } from '../../../../../../src/server/workspaces/workspaces';
 
@@ -9,7 +9,7 @@ export const maxDuration = 300;
 
 type Ctx = { params: Promise<{ listingId: string }> };
 
-/** GET — the latest video of each template for this listing, with its status, and whether longer lengths are open. */
+/** GET — the latest video of each template for this listing, with its status. */
 export const GET = authedRoute(async (_req, session, { params }: Ctx) => {
   const ws = await requireWorkspace(session.userId, 'brand');
   const { listingId } = await params;
@@ -18,14 +18,14 @@ export const GET = authedRoute(async (_req, session, { params }: Ctx) => {
 });
 
 /**
- * POST { presets?: RealtorPreset[], length?: 'short' | 'standard' | 'auto' } — make the picked videos
- * (Editorial + Rate by default); a preset already in progress is skipped. Unpaid workspaces get 15 s only (402 otherwise).
+ * POST { presets?: RealtorPreset[] } — make the picked videos (Editorial + Rate by default); a preset already in
+ * progress is skipped. Every video is 'auto' length on every plan: the style's story sets it.
  * Each new video costs 1 credit (402 insufficient_credits when the balance is short).
  */
 export const POST = authedRoute(async (req, session, { params }: Ctx) => {
   const ws = await requireWorkspace(session.userId, 'brand');
   const { listingId } = await params;
-  const body = (await req.json().catch(() => ({}))) as { presets?: unknown; length?: unknown };
-  await startListingVideos(ws, listingId, parsePresets(body.presets), await allowedLength(ws, body.length), { charge: true });
+  const body = (await req.json().catch(() => ({}))) as { presets?: unknown };
+  await startListingVideos(ws, listingId, parsePresets(body.presets), undefined, { charge: true });
   return NextResponse.json({ videos: await listListingVideos(ws, listingId) });
 });

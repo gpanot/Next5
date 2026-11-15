@@ -13,7 +13,7 @@ type Props = {
   busyPostId: string | null;
   onRetry: (post: CampaignPostDto) => void;
   onOpen: (post: CampaignPostDto) => void;
-  /** Approve time: video cards count down 3 minutes from it. */
+  /** Approve time: video cards count down 5 minutes from it. */
   startedAt: string | null;
 };
 
@@ -33,6 +33,7 @@ export const MadeDays = ({ posts, busyPostId, onRetry, onOpen, startedAt }: Prop
               slideCount={post.media?.slideUrls.length ?? 0}
               slideUrls={post.media?.slideUrls ?? []}
               startedAt={startedAt}
+              playVideo
             />
           </button>
           <span className="text-[11px] font-semibold uppercase text-app-muted">{dayLabel(post.date)}</span>

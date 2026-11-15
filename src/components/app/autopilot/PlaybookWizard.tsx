@@ -4,7 +4,7 @@
  * Realtor Autopilot: 3 steps instead of the old 8 (docs/business-studios/15-realtor-autopilot-plan.md §3.2).
  * 1 What's happening → 2 Your plan (empty days already picked; tap a date to move a post, or skip it) → 3 Approve, then watch the posts get made.
  */
-import { ArrowLeft, CalendarDays, Check, Plus, Sparkles } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Check, Save, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 import { ApiError } from '../../../lib/apiClient';
@@ -203,7 +203,7 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
           <>
             <p className="text-[14px] text-app-muted">
               {making
-                ? 'Making your posts. Videos take about 3 minutes. You can leave: Autopilot brings you back here.'
+                ? 'Making your posts. Videos take about 5 minutes. You can leave: Autopilot brings you back here.'
                 : toApprove.length > 0
                   ? 'Your posts are on the calendar. Tap one to see it, then approve it.'
                   : 'All approved. Your posts are on the calendar.'}
@@ -231,8 +231,8 @@ export function PlaybookWizard({ campaignId, listingId, moment, date, resume }: 
                 Approve and make {live.length} posts · {live.length} credit{live.length === 1 ? '' : 's'}
               </AppButton>
             )}
-            {step === 3 && !making && (
-              <AppButton variant="ghost" iconLeft={<Plus aria-hidden className="h-4 w-4" />} onClick={freshPlan}>New plan</AppButton>
+            {step === 3 && !making && toApprove.length > 0 && (
+              <AppButton variant="ghost" iconLeft={<Save aria-hidden className="h-4 w-4" />} onClick={() => router.push(href('/calendar'))}>Save drafts</AppButton>
             )}
             {step === 3 && !making && toApprove.length > 0 && (
               <AppButton fullWidth size="lg" loading={busy} iconLeft={<Check aria-hidden className="h-4 w-4" />} onClick={approveAll}>

@@ -11,11 +11,14 @@ import { StartError } from './StartError';
 import { DEFAULT_SLIDE_THEME, SLIDE_THEME_INFO, type SlideTheme } from '../../../lib/slideThemes';
 import { HOME_SLIDESHOW_INFO, HOME_SLIDESHOW_KINDS, type HomeSlideshowKind, type ListingSlideshowDto, type ListingSlideshowsResponse } from '../../../types/business/listingSlideshows';
 import { AppButton } from '../../ui/AppButton';
+import { WorksWellTag } from '../../ui/WorksWellTag';
 import { PlaybookPostSheet, type PlaybookPreview } from '../autopilot/PlaybookPostSheet';
 import { SlideLoopControls, SlideStack, useSlideLoop } from '../slideThemes/SlideLoop';
 import { SlideThemePicker } from '../slideThemes/SlideThemePicker';
 
 const POLL_MS = 4_000;
+/** Slideshow kinds that perform best: they get a "Works well" tag. */
+const WORKS_WELL_KINDS: readonly HomeSlideshowKind[] = ['room_by_room', 'coming_soon'];
 
 type CardProps = {
   kind: HomeSlideshowKind; show: ListingSlideshowDto | undefined; starting: boolean;
@@ -64,6 +67,7 @@ const SlideshowCard = ({ kind, show, starting, onMake, onOpen, onCalendar, playi
           {info.name}
           {show?.status === 'ready' && <span className="ml-1.5 font-normal text-app-muted">· {SLIDE_THEME_INFO[show.theme].name}</span>}
         </p>
+        {WORKS_WELL_KINDS.includes(kind) && <WorksWellTag className="my-0.5" />}
         <p className="text-[12px] leading-snug text-app-muted">{info.line}</p>
       </div>
       {show?.status === 'ready' && <CalendarCta calendar={show.calendar} onClick={onCalendar} />}

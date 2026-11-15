@@ -17,6 +17,9 @@ export const SLIDE_THEME_INFO: Record<SlideTheme, { name: string; line: string }
   classic: { name: 'Classic', line: 'Whole photo framed, text on top' },
 };
 
+/** Themes that perform best: they get a "Works well" tag in the picker. */
+export const WORKS_WELL_THEMES: readonly SlideTheme[] = ['editorial', 'classic'];
+
 export const isSlideTheme = (v: unknown): v is SlideTheme => SLIDE_THEMES.some((t) => t === v);
 
 /** A stored theme, or the default when unset or unknown. */

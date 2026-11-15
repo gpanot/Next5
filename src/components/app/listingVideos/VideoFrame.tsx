@@ -3,6 +3,7 @@
 import { Download, Film, Loader2, Play } from 'lucide-react';
 import { useState } from 'react';
 import type { ListingVideoDto } from '../../../types/business/listingVideos';
+import { MakingTimer } from '../autopilot/MakingTimer';
 import { STEP_LABEL, isVideoBusy } from './presets';
 
 /**
@@ -43,7 +44,7 @@ const PosterButton = ({ posterUrl, onPlay }: { posterUrl: string | null; onPlay:
 );
 
 /** 9:16 player, or the step it is at while being made. */
-export const VideoFrame = ({ video, idle = '25 s · 9:16', tapToPlay = false }: FrameProps) => {
+export const VideoFrame = ({ video, idle = 'Auto length · 9:16', tapToPlay = false }: FrameProps) => {
   const src = useStableUrl(video?.status === 'ready' ? video.id : undefined, video?.videoUrl);
   const [playing, setPlaying] = useState(false);
   return (
@@ -56,6 +57,7 @@ export const VideoFrame = ({ video, idle = '25 s · 9:16', tapToPlay = false }: 
         <div className="flex h-full flex-col items-center justify-center gap-2 p-3 text-center text-app-muted">
           {video && isVideoBusy(video) ? <Loader2 aria-hidden className="h-6 w-6 animate-spin" /> : <Film aria-hidden className="h-6 w-6" />}
           <span className="text-[12px]">{video ? STEP_LABEL[video.status] : idle}</span>
+          {video && isVideoBusy(video) && <MakingTimer startedAt={video.createdAt} />}
         </div>
       )}
     </div>

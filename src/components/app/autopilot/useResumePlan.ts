@@ -7,7 +7,7 @@ import type { CampaignDto } from '../../../types/business/campaigns';
 const MIN = 60_000;
 /** A plan she left on step 2 (not yet approved) comes back for 3 days. */
 const DRAFT_KEEP_MS = 3 * 24 * 60 * MIN;
-/** After approve, posts take up to ~3 minutes; reopening Autopilot shows them being made for a while after. */
+/** After approve, videos take about 5 minutes; reopening Autopilot shows them being made for a while after. */
 const MAKING_KEEP_MS = 20 * MIN;
 
 /** The plan to reopen when she comes back to Autopilot: a recent draft, or one whose posts are still being made. */

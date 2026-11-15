@@ -9,11 +9,10 @@ import { ApiError, apiFetch } from '../../../lib/apiClient';
 import { useWorkspace } from '../shell/WorkspaceProvider';
 import { StartError } from './StartError';
 import { track } from '../../../lib/analytics';
-import type { VideoLength } from '../../../server/realtorVideo/presets';
 import type { ListingVideoDto, ListingVideosResponse } from '../../../types/business/listingVideos';
 import { AppButton } from '../../ui/AppButton';
-import { LengthPicker } from '../listingVideos/LengthPicker';
-import { LENGTH_OPTIONS, VIDEO_PRESETS, announceVideosStarted, isVideoBusy, lengthLabel } from '../listingVideos/presets';
+import { WorksWellTag } from '../../ui/WorksWellTag';
+import { VIDEO_PRESETS, WORKS_WELL_PRESETS, announceVideosStarted, isVideoBusy, lengthLabel } from '../listingVideos/presets';
 import { PresetPreviewDialog } from '../listingVideos/PresetPreviewDialog';
 import { DownloadLink, VideoFrame } from '../listingVideos/VideoFrame';
 
@@ -21,12 +20,12 @@ const POLL_MS = 5_000;
 type Preset = ListingVideoDto['preset'];
 
 type CardProps = {
-  name: string; line: string; idle: string; video: ListingVideoDto | undefined; starting: boolean;
+  name: string; line: string; idle: string; worksWell: boolean; video: ListingVideoDto | undefined; starting: boolean;
   onMake: () => void; onPreview: () => void; onCalendar: () => void;
 };
 
 /** One video style: its player or progress, and its own button, so she can make just this one. */
-const VideoCard = ({ name, line, idle, video, starting, onMake, onPreview, onCalendar }: CardProps) => {
+const VideoCard = ({ name, line, idle, worksWell, video, starting, onMake, onPreview, onCalendar }: CardProps) => {
   const busy = Boolean(video && isVideoBusy(video));
   const failed = video?.status === 'failed';
   return (
@@ -38,6 +37,7 @@ const VideoCard = ({ name, line, idle, video, starting, onMake, onPreview, onCal
             {name}
             {video?.status === 'ready' && <span className="ml-1.5 font-normal text-app-muted">· {lengthLabel(video.length, video.durationS)}</span>}
           </p>
+          {worksWell && <WorksWellTag className="my-0.5" />}
           <p className="text-[12px] leading-snug text-app-muted">{line}</p>
           <button
             type="button"
@@ -60,26 +60,26 @@ const VideoCard = ({ name, line, idle, video, starting, onMake, onPreview, onCal
   );
 };
 
-const LOCKED_NOTE = 'Longer videos come with a paid plan. The 15 s video is free.';
+const IDLE = 'Auto length · 9:16';
 
-/** Brand create, property mode: voiced videos made from the listing's Zillow photos, in any template, at the picked length. */
+/** Brand create, property mode: voiced videos made from the listing's Zillow photos, in any template. Length is auto: the style sets it. */
 export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
   const api = useApi<ListingVideosResponse>(`/api/app/listings/${listingId}/videos`);
   const [starting, setStarting] = useState<Preset[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [noCredits, setNoCredits] = useState(false);
   const { refresh: refreshMe } = useWorkspace();
-  const [picked, setPicked] = useState<VideoLength | null>(null);
-  const [note, setNote] = useState<string | null>(null);
   const [previewing, setPreviewing] = useState<Preset | null>(null);
   const [scheduling, setScheduling] = useState<CalendarTarget | null>(null);
   const previewMeta = VIDEO_PRESETS.find((p) => p.id === previewing);
   const videos = api.data?.videos ?? [];
-  const paid = api.data?.paid ?? false;
-  const length: VideoLength = picked ?? (paid ? 'standard' : 'short');
-  const idle = `${LENGTH_OPTIONS.find((o) => o.value === length)?.label ?? ''} · 9:16`;
   const busy = videos.some(isVideoBusy);
   const { refresh } = api;
+  // Same rule as the card button: no video yet, or the last one failed.
+  const canMake = (preset: Preset | null) => {
+    const video = videos.find((v) => v.preset === preset);
+    return Boolean(preset) && (!video || video.status === 'failed');
+  };
 
   useEffect(() => {
     if (!busy) return;
@@ -92,8 +92,8 @@ export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
     setError(null);
     setNoCredits(false);
     try {
-      await apiFetch(`/api/app/listings/${listingId}/videos`, { method: 'POST', json: { presets, length } });
-      track('listing_videos_started', { listingId, presets: presets.join(','), length });
+      await apiFetch(`/api/app/listings/${listingId}/videos`, { method: 'POST', json: { presets } });
+      track('listing_videos_started', { listingId, presets: presets.join(','), length: 'auto' });
       announceVideosStarted();
       refresh();
       refreshMe();
@@ -111,17 +111,14 @@ export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1.5">
-        <LengthPicker value={length} paid={paid} onChange={(v) => { setPicked(v); setNote(null); }} onLocked={() => setNote(LOCKED_NOTE)} />
-        {note && <p className="text-[12px] text-app-muted">{note}</p>}
-      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:max-w-3xl">
         {VIDEO_PRESETS.map((p) => (
           <VideoCard
             key={p.id}
             name={p.name}
             line={p.line}
-            idle={idle}
+            idle={IDLE}
+            worksWell={WORKS_WELL_PRESETS.includes(p.id)}
             video={videos.find((v) => v.preset === p.id)}
             starting={starting.includes(p.id)}
             onMake={() => void start([p.id])}
@@ -134,9 +131,15 @@ export const ListingVideosPanel = ({ listingId }: { listingId: string }) => {
         ))}
       </div>
       {(api.error || error) && <StartError message={error ?? api.error ?? ''} noCredits={noCredits} />}
-      {busy && <p className="text-[13px] text-app-muted">About 2–4 minutes. You can leave this page; it keeps going and shows in your Library.</p>}
+      {busy && <p className="text-[13px] text-app-muted">About 5 minutes. You can leave this page; it keeps going and shows in your Library.</p>}
       {scheduling && <ListingCalendarSheet target={scheduling} onDone={refresh} onClose={() => setScheduling(null)} />}
-      <PresetPreviewDialog preset={previewing} name={previewMeta?.name ?? ''} line={previewMeta?.line ?? ''} onClose={() => setPreviewing(null)} />
+      <PresetPreviewDialog
+        preset={previewing}
+        name={previewMeta?.name ?? ''}
+        line={previewMeta?.line ?? ''}
+        onClose={() => setPreviewing(null)}
+        onMake={canMake(previewing) ? () => { const preset = previewing; setPreviewing(null); if (preset) void start([preset]); } : undefined}
+      />
     </div>
   );
 };

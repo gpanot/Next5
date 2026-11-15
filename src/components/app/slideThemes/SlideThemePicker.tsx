@@ -2,7 +2,8 @@
 
 import { Check } from 'lucide-react';
 import { useState } from 'react';
-import { DEFAULT_SLIDE_THEME, SLIDE_THEME_INFO, SLIDE_THEMES, type SlideTheme } from '../../../lib/slideThemes';
+import { DEFAULT_SLIDE_THEME, SLIDE_THEME_INFO, SLIDE_THEMES, WORKS_WELL_THEMES, type SlideTheme } from '../../../lib/slideThemes';
+import { WorksWellTag } from '../../ui/WorksWellTag';
 import { SlideLoopControls, SlideStack, useSlideLoop } from './SlideLoop';
 
 type Props = {
@@ -37,10 +38,11 @@ const ThemeCard = ({ theme, active, playing, disabled, onPick, onPlay }: CardPro
         <SlideLoopControls count={EXAMPLE_SLIDES} index={index} playing={playing} label={info.name} onIndex={setIndex} onPlay={onPlay} />
       </div>
       <button type="button" onClick={onPick} disabled={disabled} className="flex flex-col gap-0.5 text-left disabled:opacity-60">
-        <span className="flex items-center gap-1.5 text-[13px] font-semibold text-app-ink">
+        <span className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-app-ink">
           {info.name}
-          {theme === DEFAULT_SLIDE_THEME && <span className="rounded-md bg-app-accent-soft px-1.5 py-px text-[10px] font-medium text-app-accent">Default</span>}
+          {theme === DEFAULT_SLIDE_THEME && <span className="rounded-md bg-app-sunken px-1.5 py-px text-[10px] font-medium text-app-muted">Default</span>}
         </span>
+        {WORKS_WELL_THEMES.includes(theme) && <WorksWellTag className="self-start" />}
         <span className="text-[11px] leading-snug text-app-muted">{info.line}</span>
       </button>
     </div>

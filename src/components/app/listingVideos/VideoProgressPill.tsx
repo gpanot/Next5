@@ -28,7 +28,7 @@ export const VideoProgressPill = () => {
           <Loader2 aria-hidden className="h-5 w-5 shrink-0 animate-spin text-app-muted" />
           <span className="min-w-0">
             <span className="block text-[14px] font-semibold text-app-ink">Making {plural(active.length, 'video')}</span>
-            <span className="block truncate text-[12px] text-app-muted">{labels.join(', ')} · about 2–3 min</span>
+            <span className="block truncate text-[12px] text-app-muted">{labels.join(', ')} · about 5 min</span>
           </span>
         </AppLink>
       )}

@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertCircle, Clapperboard, Images, Loader2, Pause, Play } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MakingTimer } from './MakingTimer';
 
 type Props = {
@@ -13,12 +13,14 @@ type Props = {
   /** Ready slideshows with 2+ slides autoplay with dots and a play/stop button. */
   slideUrls?: readonly string[];
   className?: string;
-  /** When the video started being made: shows a 3-minute countdown while it renders. */
+  /** When the video started being made: shows a 5-minute countdown while it renders. */
   startedAt?: string | null;
   /** False shows the cover only (no slide stepping). */
   autoplay?: boolean;
   /** False shows the dots and play button but waits for a tap, e.g. the Library grid. */
   startPlaying?: boolean;
+  /** A ready video plays muted on a loop in the card, with a play/stop button (Autopilot step 3). */
+  playVideo?: boolean;
 };
 
 const SLIDE_MS = 1800;
@@ -35,14 +37,47 @@ const useSlidePlayer = (count: number, enabled: boolean, startPlaying: boolean) 
   return { index, playing, toggle: () => setPlaying((p) => !p) };
 };
 
+/** Play/stop chip in the top-right corner; stops the tap reaching the card. */
+const PlayToggle = ({ playing, label, onToggle }: { playing: boolean; label: string; onToggle: () => void }) => (
+  <span
+    role="button"
+    tabIndex={0}
+    aria-label={playing ? `Stop ${label}` : `Play ${label}`}
+    onClick={(e) => { e.stopPropagation(); onToggle(); }}
+    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onToggle(); } }}
+    className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/80"
+  >
+    {playing ? <Pause aria-hidden className="h-3 w-3" /> : <Play aria-hidden className="h-3 w-3" />}
+  </span>
+);
+
+/** A made video playing muted on a loop, so she sees it the moment it is ready. */
+const LoopVideo = ({ src, poster, startPlaying }: { src: string; poster: string | null; startPlaying: boolean }) => {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(() => startPlaying && (typeof window === 'undefined' || !window.matchMedia('(prefers-reduced-motion: reduce)').matches));
+  useEffect(() => {
+    const video = ref.current;
+    if (!video) return;
+    if (playing) void video.play().catch(() => setPlaying(false));
+    else video.pause();
+  }, [playing]);
+  return (
+    <>
+      <video ref={ref} src={src} poster={poster ?? undefined} muted loop playsInline preload="auto" className="h-full w-full object-cover" />
+      <PlayToggle playing={playing} label="video" onToggle={() => setPlaying((p) => !p)} />
+    </>
+  );
+};
+
 /** A 9:16 thumbnail of a playbook post in any state: planned, being made, ready (video or slides), or failed. */
-export const PostMedia = ({ format, status, coverUrl, videoUrl, slideCount = 0, slideUrls = [], className = '', startedAt = null, autoplay = true, startPlaying = true }: Props) => {
+export const PostMedia = ({ format, status, coverUrl, videoUrl, slideCount = 0, slideUrls = [], className = '', startedAt = null, autoplay = true, startPlaying = true, playVideo = false }: Props) => {
   const Icon = format === 'listing_video' ? Clapperboard : Images;
   const isShow = autoplay && format === 'slideshow' && status === 'ready' && !videoUrl && slideUrls.length > 1;
   const player = useSlidePlayer(slideUrls.length, isShow, startPlaying);
   return (
     <div className={`relative aspect-[9/16] overflow-hidden rounded-xl bg-app-sunken ${className}`}>
-      {status === 'ready' && videoUrl && (
+      {status === 'ready' && videoUrl && playVideo && <LoopVideo src={videoUrl} poster={coverUrl} startPlaying={startPlaying} />}
+      {status === 'ready' && videoUrl && !playVideo && (
         <video src={`${videoUrl}#t=0.5`} muted playsInline preload="metadata" className="h-full w-full object-cover" />
       )}
       {status === 'ready' && !videoUrl && (isShow ? slideUrls[player.index] : coverUrl) && (
@@ -56,16 +91,7 @@ export const PostMedia = ({ format, status, coverUrl, videoUrl, slideCount = 0, 
               <span key={url} className={`h-1.5 rounded-full transition-all duration-200 ${i === player.index ? 'w-3 bg-white' : 'w-1.5 bg-white/55'}`} />
             ))}
           </span>
-          <span
-            role="button"
-            tabIndex={0}
-            aria-label={player.playing ? 'Stop slideshow' : 'Play slideshow'}
-            onClick={(e) => { e.stopPropagation(); player.toggle(); }}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); player.toggle(); } }}
-            className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm transition-colors duration-200 hover:bg-black/80"
-          >
-            {player.playing ? <Pause aria-hidden className="h-3 w-3" /> : <Play aria-hidden className="h-3 w-3" />}
-          </span>
+          <PlayToggle playing={player.playing} label="slideshow" onToggle={player.toggle} />
         </>
       )}
       {status !== 'ready' && (

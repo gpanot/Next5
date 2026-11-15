@@ -32,7 +32,7 @@ export const PRESET_META: Record<RealtorPreset, PresetMeta> = {
 export const LENGTH_META: Record<VideoLength, { label: string; line: string; paidOnly: boolean }> = {
   short: { label: '15 s', line: 'Hook + 3 rooms', paidOnly: false },
   standard: { label: '25 s', line: 'The full tour', paidOnly: true },
-  auto: { label: 'Auto', line: 'The home’s story, up to 60 s', paidOnly: true },
+  auto: { label: 'Auto', line: 'The home’s story, up to 60 s', paidOnly: false },
 };
 
 /** Shortest video per length; auto has no floor (the story sets it) and stops at 60 s. */
