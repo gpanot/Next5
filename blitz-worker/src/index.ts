@@ -191,10 +191,19 @@ async function processJob(jobId: string, serveUrl: string): Promise<void> {
   }
 }
 
-/** A listing video takes the same slot and time limit as a Blitz render. */
+/**
+ * A voiced listing video renders at roughly 10 s of wall time per video second with two in parallel, so an 'auto'
+ * length video (45-55 s) needs more than the Blitz limit. Its limit scales with its length: 25 s per second + 2 min.
+ */
+function listingTimeoutMs(job: ListingVideoJob): number {
+  const durationS = Number((job.props as { durationS?: unknown } | null)?.durationS) || 0;
+  return Math.max(JOB_TIMEOUT_MS, Math.round(durationS * 25_000 + 2 * 60_000));
+}
+
+/** A listing video takes a Blitz render slot, with a time limit sized to its length. */
 async function processListingJob(job: ListingVideoJob, serveUrl: string): Promise<void> {
   const { cancelSignal, cancel } = makeCancelSignal();
-  const limit = setTimeout(cancel, JOB_TIMEOUT_MS);
+  const limit = setTimeout(cancel, listingTimeoutMs(job));
   try {
     await processListingVideo(job, serveUrl, cancelSignal);
   } finally {
