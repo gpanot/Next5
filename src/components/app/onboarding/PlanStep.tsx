@@ -40,7 +40,7 @@ export const PlanStep = ({ product, advance }: StepProps) => {
   return (
     <StepCard
       title="Keep creating every month"
-      sub="Prepaid by bank transfer. Nothing renews automatically."
+      sub="Prepaid by card. Nothing renews automatically."
       footer={<AppButton variant="ghost" loading={leaving} onClick={() => finish(false)}>Not now — go to my workspace</AppButton>}
     >
       <TermToggle value={term} onChange={setTerm} />

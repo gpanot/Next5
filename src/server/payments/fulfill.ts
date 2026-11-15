@@ -43,7 +43,8 @@ const markPaidInTx = async (paymentId: string, paidVnd: number, now: Date): Prom
     if (!payment) throw new HttpError(404, 'payment_not_found', 'Payment not found.');
 
     if (payment.state === 'paid' || payment.fulfilledAt) return { payment, outcome: 'duplicate' };
-    const isRequest = payment.provider === 'request';
+    // Requests are activated by an admin; card payments are already captured by Stripe — both skip the transfer checks.
+    const isRequest = payment.provider === 'request' || payment.provider === 'stripe';
     if (!isRequest && payment.expiresAt.getTime() + LATE_PAYMENT_WINDOW_MS < now.getTime()) {
       const expired = await tx.payment.update({ where: { id: payment.id }, data: { state: 'expired' } });
       return { payment: expired, outcome: 'too_late' };
@@ -63,7 +64,7 @@ const markPaidInTx = async (paymentId: string, paidVnd: number, now: Date): Prom
 
 /**
  * Records a received transfer against a payment and fulfils it exactly once, then emails a receipt.
- * Used by the mock "simulate transfer" action now and by the SePay webhook later.
+ * Used by the Stripe webhook / return page, the mock "simulate transfer" action and admin "Mark paid".
  */
 export const markPaidAndFulfil = async (paymentId: string, paidVnd: number, now = new Date()): Promise<MarkPaidResult> => {
   const result = await markPaidInTx(paymentId, paidVnd, now);
@@ -71,7 +72,7 @@ export const markPaidAndFulfil = async (paymentId: string, paidVnd: number, now 
     const p = result.payment;
     const content = p.provider === 'request'
       ? planActivatedEmail(describePaymentItem(p))
-      : paymentReceiptEmail(describePaymentItem(p), p.amountUsdCents, p.paidVnd ?? p.amountVnd, p.reference);
+      : paymentReceiptEmail(describePaymentItem(p), p.amountUsdCents, p.provider === 'stripe' ? null : (p.paidVnd ?? p.amountVnd), p.reference);
     sendOnceQuietly({ userId: p.userId, workspaceId: p.workspaceId, template: p.provider === 'request' ? 'request_activated' : 'payment_receipt', dedupeKey: `receipt:${p.id}`, content });
   }
   return result;

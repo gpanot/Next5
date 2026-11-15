@@ -1,7 +1,7 @@
 // server-only — never import from a 'use client' file.
-// Payments are not live yet (decision D7). Two stand-ins:
+// Real payments: 'stripe' (card, Stripe Checkout) when STRIPE_SECRET_KEY is set. Two stand-ins otherwise:
 // - 'mock'    — a "Simulate transfer" action (local, or production with NEXT5_MOCK_PAYMENTS=true);
-// - 'request' — production default: the checkout records an early-access request that an admin activates with "Mark paid".
+// - 'request' — production fallback when Stripe is not set up: the checkout records an early-access request that an admin activates with "Mark paid".
 
 /** NEXT5_MOCK_PAYMENTS=true|false wins; unset → simulated outside production, early-access requests in production. */
 export const isMockPaymentsEnabled = (): boolean => {
@@ -10,13 +10,22 @@ export const isMockPaymentsEnabled = (): boolean => {
   return process.env.NODE_ENV !== 'production';
 };
 
-export type PaymentProvider = 'mock' | 'request';
+export type PaymentProvider = 'mock' | 'request' | 'stripe';
+
+/** Card payments through Stripe Checkout whenever a Stripe key is set, unless NEXT5_MOCK_PAYMENTS=true forces the mock. */
+export const isCardPaymentsEnabled = (): boolean => Boolean(process.env.STRIPE_SECRET_KEY) && process.env.NEXT5_MOCK_PAYMENTS !== 'true';
 
 /** Provider stamped on new payments. */
-export const currentPaymentProvider = (): PaymentProvider => (isMockPaymentsEnabled() ? 'mock' : 'request');
+export const currentPaymentProvider = (): PaymentProvider => {
+  if (isCardPaymentsEnabled()) return 'stripe';
+  return isMockPaymentsEnabled() ? 'mock' : 'request';
+};
 
 /** Early-access requests stay open for an admin to activate. */
 export const REQUEST_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** A Stripe Checkout page stays open this long (Stripe's own maximum is 24 h). */
+export const CARD_TTL_MS = 23 * 60 * 60 * 1000;
 
 export type BankDetails = { bank: string; accountNumber: string; accountName: string };
 

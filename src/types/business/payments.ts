@@ -21,10 +21,15 @@ export type PaymentDto = {
   bank: { bank: string; accountNumber: string; accountName: string } | null;
   /** Early-access request: no transfer; an admin activates it and the customer gets an email. */
   isRequest: boolean;
+  /** Card payment through Stripe Checkout (USD): the sheet sends the browser to Stripe instead of a QR. */
+  isCard: boolean;
   /** True while payments are simulated (decision D7) — the sheet shows "Simulate transfer". */
   canSimulate: boolean;
 };
 
 export type CreatePaymentBody =
-  | { purpose: 'subscription'; planId: string; termMonths: number }
-  | { purpose: 'topup'; topupId: string; product: 'brand' | 'shop' };
+  | { purpose: 'subscription'; planId: string; termMonths: number; returnPath?: string }
+  | { purpose: 'topup'; topupId: string; product: 'brand' | 'shop'; returnPath?: string };
+
+/** POST /api/app/payments → the payment, plus the Stripe Checkout URL for card payments. */
+export type CreatePaymentResponse = { payment: PaymentDto; checkoutUrl: string | null };

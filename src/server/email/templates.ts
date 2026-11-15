@@ -18,10 +18,11 @@ export const trialNudgeEmail = (product: 'brand' | 'shop'): EmailContent => ({
   cta: { label: 'Pick a plan', url: appUrl('/app/billing') },
 });
 
-export const paymentReceiptEmail = (item: string, usdCents: number | null, vnd: number, reference: string): EmailContent => ({
+/** `vnd` is null for card payments (charged in USD). */
+export const paymentReceiptEmail = (item: string, usdCents: number | null, vnd: number | null, reference: string): EmailContent => ({
   subject: `Receipt: ${item}`,
   heading: 'Payment received — thank you',
-  body: [`${item}`, `${usdCents !== null ? `${formatUsd(usdCents, { showCents: true })} · ` : ''}${formatVnd(vnd)} · reference ${reference}`],
+  body: [`${item}`, [usdCents !== null ? formatUsd(usdCents, { showCents: true }) : null, vnd !== null ? formatVnd(vnd) : null, `reference ${reference}`].filter(Boolean).join(' · ')],
   cta: { label: 'Go to my workspace', url: appUrl('/app') },
 });
 

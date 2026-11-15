@@ -22,7 +22,8 @@ const rememberCard = async (userId: string, paymentMethodId: string | null) => {
 /** A completed Checkout session: credits a paid top up, or remembers a newly saved card. */
 export const fulfillCheckoutSession = async (session: Stripe.Checkout.Session): Promise<void> => {
   const userId = session.metadata?.userId;
-  if (!userId) return;
+  // Plan / video top-up payments are fulfilled by payments/stripeCheckout, never as slideshow credits.
+  if (!userId || session.metadata?.kind === 'app_payment') return;
   if (session.mode === 'setup' && session.setup_intent) {
     const intent = typeof session.setup_intent === 'string' ? await stripe().setupIntents.retrieve(session.setup_intent) : session.setup_intent;
     await rememberCard(userId, pmId(intent.payment_method));

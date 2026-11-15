@@ -3,14 +3,16 @@
 import { track } from '../../lib/analytics';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getTermSavingsUsdCents, isPlanId, isTermMonths, TOPUPS, isTopupId } from '../../config/plans';
+import { useCheckoutReturn } from '../../hooks/useCheckoutReturn';
 import { usePaymentStatus } from '../../hooks/usePaymentStatus';
 import { ApiError, apiFetch } from '../../lib/apiClient';
 import { formatVnd } from '../../lib/money';
-import type { CreatePaymentBody, PaymentDto } from '../../types/business/payments';
+import type { CreatePaymentBody, CreatePaymentResponse, PaymentDto } from '../../types/business/payments';
 import { AppButton } from '../ui/AppButton';
 import { ErrorState } from '../ui/ErrorState';
 import { Sheet } from '../ui/Sheet';
 import { SkeletonText } from '../ui/Skeleton';
+import { CardCheckout } from './CardCheckout';
 import { CheckoutSummary, PaidStatus, QrAndBank, RequestReceived, WaitingStatus } from './CheckoutParts';
 
 export type CheckoutRequest = CreatePaymentBody;
@@ -27,7 +29,7 @@ type CheckoutSheetProps = {
 
 const titleFor = (request: CheckoutRequest | null, payment: PaymentDto | null): string => {
   if (payment?.isRequest) return payment.purpose === 'topup' ? 'Request a top-up' : `Request ${payment.itemLabel}`;
-  if (payment) return payment.purpose === 'topup' ? 'Top up photos' : `Pay for ${payment.itemLabel}`;
+  if (payment) return `Pay for ${payment.itemLabel}`;
   if (request?.purpose === 'topup' && isTopupId(request.topupId)) return `Top up ${TOPUPS[request.topupId].credits} videos`;
   return 'Checkout';
 };
@@ -48,10 +50,12 @@ const useCreatedPayment = (request: CheckoutRequest | null, existing: PaymentDto
   useEffect(() => {
     if (existing || !request) return;
     let cancelled = false;
-    apiFetch<{ payment: PaymentDto }>('/api/app/payments', { method: 'POST', json: request })
+    apiFetch<CreatePaymentResponse>('/api/app/payments', { method: 'POST', json: { ...request, returnPath: window.location.pathname } })
       .then((data) => {
-        if (!cancelled) setResult({ key, payment: data.payment, error: null });
         track(data.payment.isRequest ? 'plan_requested' : 'checkout_opened', { purpose: data.payment.purpose, item: data.payment.itemLabel });
+        // Card payments go straight to Stripe's hosted page; the sheet shows "Opening secure checkout" meanwhile.
+        if (data.checkoutUrl && !cancelled) window.location.assign(data.checkoutUrl);
+        if (!cancelled) setResult({ key, payment: data.payment, error: null });
       })
       .catch((err: unknown) => {
         const message = err instanceof ApiError ? err.message : "We couldn't open the payment.";
@@ -71,8 +75,11 @@ const useCreatedPayment = (request: CheckoutRequest | null, existing: PaymentDto
 };
 
 export const CheckoutSheet = ({ request, existingPayment = null, onClose, onPaid, onRequested }: CheckoutSheetProps) => {
-  const open = request !== null || existingPayment !== null;
-  const { created, error: createError, retry } = useCreatedPayment(request, existingPayment);
+  // Back from Stripe Checkout: reopen the sheet on that payment (paid, confirming, or cancelled).
+  const { returned, clearReturned } = useCheckoutReturn();
+  const existing = existingPayment ?? (request ? null : returned);
+  const open = request !== null || existing !== null;
+  const { created, error: createError, retry } = useCreatedPayment(request, existing);
   const { payment, error: statusError, simulate, simulating } = usePaymentStatus(created);
   const notifiedFor = useRef<string | null>(null);
 
@@ -88,7 +95,10 @@ export const CheckoutSheet = ({ request, existingPayment = null, onClose, onPaid
     }
   }, [payment, onPaid, onRequested]);
 
-  const handleClose = useCallback(() => onClose(), [onClose]);
+  const handleClose = useCallback(() => {
+    clearReturned();
+    onClose();
+  }, [onClose, clearReturned]);
 
   return (
     <Sheet open={open} onClose={handleClose} title={titleFor(request, payment)} side="bottom" className="sm:left-1/2 sm:right-auto sm:w-full sm:max-w-xl sm:-translate-x-1/2">
@@ -126,7 +136,7 @@ const CheckoutBody = ({ payment, createError, statusError, savingsCents, simulat
   if (payment.state === 'paid') {
     return (
       <>
-        <PaidStatus title={payment.isRequest ? 'Plan activated' : 'Payment received'} body="Your photos are ready to use. Thanks for choosing Next5." />
+        <PaidStatus title={payment.isRequest ? 'Plan activated' : 'Payment received'} body={`${payment.itemLabel} is active. Your videos are ready to use. A receipt is on its way to your inbox.`} />
         <AppButton fullWidth size="lg" onClick={onDone}>Continue</AppButton>
       </>
     );
@@ -134,6 +144,14 @@ const CheckoutBody = ({ payment, createError, statusError, savingsCents, simulat
   if (payment.state === 'underpaid') {
     const missing = payment.amountVnd - (payment.paidVnd ?? 0);
     return <ErrorState message={`We received ${formatVnd(payment.paidVnd ?? 0)} — ${formatVnd(missing)} is missing. Contact us and we'll sort it out.`} supportHref="mailto:hello@next5.studio" />;
+  }
+  if (payment.isCard && payment.state === 'pending') {
+    return (
+      <>
+        <CheckoutSummary payment={payment} savingsCents={savingsCents} />
+        <CardCheckout payment={payment} />
+      </>
+    );
   }
   if (payment.isRequest && payment.state === 'pending') {
     return (
@@ -146,6 +164,9 @@ const CheckoutBody = ({ payment, createError, statusError, savingsCents, simulat
   }
   if (payment.state === 'expired' && payment.isRequest) {
     return <ErrorState message="This request has expired. Send a new one and we'll get back to you within 24 hours." onRetry={onRetry} />;
+  }
+  if (payment.state === 'expired' && payment.isCard) {
+    return <ErrorState message="This checkout has expired. Start a new one — you were not charged." onRetry={onRetry} />;
   }
   if (payment.state === 'expired') {
     return <ErrorState message="This QR code has expired. Already transferred? It will still be matched automatically within 72 hours." onRetry={onRetry} />;

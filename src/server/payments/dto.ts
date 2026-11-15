@@ -19,7 +19,8 @@ export const toPaymentDto = (payment: Payment): PaymentDto => ({
   paidAt: payment.paidAt?.toISOString() ?? null,
   createdAt: payment.createdAt.toISOString(),
   qrImageUrl: null,
-  bank: payment.provider === 'request' ? null : bankDetails(),
+  bank: payment.provider === 'mock' ? bankDetails() : null,
   isRequest: payment.provider === 'request',
+  isCard: payment.provider === 'stripe',
   canSimulate: payment.provider === 'mock' && isMockPaymentsEnabled(),
 });

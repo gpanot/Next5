@@ -18,7 +18,9 @@ export const CheckoutSummary = ({ payment, savingsCents }: { payment: PaymentDto
       )}
       {savingsCents > 0 && <span className="text-[13px] font-medium text-app-success">You save {formatUsd(savingsCents)}</span>}
     </div>
-    {payment.isRequest ? (
+    {payment.isCard ? (
+      <p className="mt-1 text-[13px] text-app-muted">One-time card payment in USD. Nothing renews automatically.</p>
+    ) : payment.isRequest ? (
       <p className="mt-1 text-[13px] text-app-muted">
         Paid by bank transfer when activated: <span className="font-semibold tabular-nums text-app-ink">{formatVnd(payment.amountVnd)}</span>
       </p>

@@ -10,6 +10,7 @@ const LABEL: Record<PaymentDto['state'], string> = { paid: 'Paid', pending: 'Wai
 const labelFor = (p: PaymentDto): string => {
   if (p.isRequest && p.state === 'pending') return 'Requested';
   if (p.isRequest && p.state === 'paid') return 'Activated';
+  if (p.isCard && p.state === 'pending') return 'Not paid';
   return LABEL[p.state];
 };
 
@@ -21,10 +22,10 @@ export const PaymentsTable = ({ payments, onResume }: { payments: PaymentDto[]; 
         <span className="order-first col-span-2 text-[14px] font-medium text-app-ink sm:order-none sm:col-span-1">{p.itemLabel}</span>
         <span className="text-[13px] tabular-nums text-app-ink">
           {p.amountUsdCents !== null ? formatUsd(p.amountUsdCents, { showCents: true }) : formatVnd(p.amountVnd)}
-          <span className="block text-[11px] text-app-muted">{formatVnd(p.amountVnd)} · {p.reference}</span>
+          <span className="block text-[11px] text-app-muted">{p.isCard ? `Card · ${p.reference}` : `${formatVnd(p.amountVnd)} · ${p.reference}`}</span>
         </span>
         <span><Badge tone={TONE[p.state]}>{labelFor(p)}</Badge></span>
-        <span className="text-right">{p.state === 'pending' && !p.isRequest && <AppButton size="sm" variant="secondary" onClick={() => onResume(p)}>Resume</AppButton>}</span>
+        <span className="text-right">{p.state === 'pending' && !p.isRequest && <AppButton size="sm" variant="secondary" onClick={() => onResume(p)}>{p.isCard ? 'Pay' : 'Resume'}</AppButton>}</span>
       </li>
     ))}
   </ul>

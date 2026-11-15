@@ -1,10 +1,11 @@
 /**
- * POST /api/webhooks/stripe — Stripe events for Auto Slideshow credits. Signed with STRIPE_WEBHOOK_SECRET.
- * checkout.session.completed → top up credited or card saved; payment_intent.succeeded → auto top up credited.
+ * POST /api/webhooks/stripe — Stripe events. Signed with STRIPE_WEBHOOK_SECRET.
+ * checkout.session.completed → plan / video top-up payment fulfilled (metadata.kind app_payment), else Auto Slideshow top up credited or card saved; payment_intent.succeeded → auto top up credited.
  */
 import { NextResponse, type NextRequest } from 'next/server';
 import { fulfillAutoRecharge, fulfillCheckoutSession } from '../../../../src/server/slideshowCredits/fulfill';
 import { stripe } from '../../../../src/server/slideshowCredits/stripe';
+import { fulfillAppCheckoutSession, isAppPaymentSession } from '../../../../src/server/payments/stripeCheckout';
 
 export async function POST(req: NextRequest) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -17,7 +18,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'bad_signature' }, { status: 400 });
   }
   try {
-    if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') await fulfillCheckoutSession(event.data.object);
+    if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
+      const session = event.data.object;
+      if (isAppPaymentSession(session)) await fulfillAppCheckoutSession(session);
+      else await fulfillCheckoutSession(session);
+    }
     if (event.type === 'payment_intent.succeeded') await fulfillAutoRecharge(event.data.object);
   } catch (err) {
     // 500 makes Stripe retry; crediting is idempotent.

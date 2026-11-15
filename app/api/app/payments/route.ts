@@ -5,6 +5,9 @@ import { enforceRateLimit } from '../../../../src/server/rateLimit';
 import { HttpError, readJsonObject } from '../../../../src/server/http';
 import { toPaymentDto } from '../../../../src/server/payments/dto';
 import { afterPaymentCreated } from '../../../../src/server/payments/requests';
+import { appReturnPathOf, openPaymentCheckout } from '../../../../src/server/payments/stripeCheckout';
+import type { Payment } from '@prisma/client';
+import type { Session } from '../../../../src/server/auth/session';
 import {
   createSubscriptionPayment,
   createTopupPayment,
@@ -12,7 +15,14 @@ import {
 } from '../../../../src/server/payments/payments';
 import { isProductLine, requireWorkspace } from '../../../../src/server/workspaces/workspaces';
 
-/** POST /api/app/payments — create a subscription or top-up payment (QR sheet, or an early-access request in production). */
+/** The created payment, plus a Stripe Checkout URL when it is paid by card. */
+const created = async (payment: Payment, session: Session, returnPath: unknown) => {
+  afterPaymentCreated(payment);
+  const checkoutUrl = payment.provider === 'stripe' ? await openPaymentCheckout(payment, session.email, appReturnPathOf(returnPath)) : null;
+  return NextResponse.json({ payment: toPaymentDto(payment), checkoutUrl }, { status: 201 });
+};
+
+/** POST /api/app/payments — create a subscription or top-up payment: Stripe card checkout (QR mock locally without Stripe, early-access request as last fallback). */
 export const POST = authedRoute(async (req, session) => {
   await enforceRateLimit(`payment:${session.userId}`, 10, 3600);
   const body = await readJsonObject(req);
@@ -25,8 +35,7 @@ export const POST = authedRoute(async (req, session) => {
     }
     const workspace = await requireWorkspace(session.userId, PLANS[planId].product);
     const payment = await createSubscriptionPayment({ userId: session.userId, workspaceId: workspace.id }, { planId, termMonths });
-    afterPaymentCreated(payment);
-    return NextResponse.json({ payment: toPaymentDto(payment) }, { status: 201 });
+    return created(payment, session, body.returnPath);
   }
 
   if (body.purpose === 'topup') {
@@ -36,8 +45,7 @@ export const POST = authedRoute(async (req, session) => {
     }
     const workspace = await requireWorkspace(session.userId, body.product);
     const payment = await createTopupPayment({ userId: session.userId, workspaceId: workspace.id }, topupId);
-    afterPaymentCreated(payment);
-    return NextResponse.json({ payment: toPaymentDto(payment) }, { status: 201 });
+    return created(payment, session, body.returnPath);
   }
 
   throw new HttpError(400, 'invalid_purpose', 'Unknown payment type.');
