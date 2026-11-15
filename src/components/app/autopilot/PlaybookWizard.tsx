@@ -27,6 +27,7 @@ import { MadeDays } from './MadeDays';
 import { PlanDays } from './PlanDays';
 import { PlanThemeSection } from './PlanThemeSection';
 import { PlaybookPostSheet, type PlaybookPreview } from './PlaybookPostSheet';
+import { whyOfBeat } from '../../../lib/realtorBeatWhy';
 import { TopBarSteps } from './TopBarSteps';
 import { usePlaybook } from './usePlaybook';
 import { useResumePlan } from './useResumePlan';
@@ -88,6 +89,7 @@ const previewOf = (post: CampaignPostDto): PlaybookPreview => ({
   videoUrl: post.media?.videoUrl ?? null,
   slideUrls: post.media?.slideUrls ?? [],
   caption: post.caption,
+  why: whyOfBeat(post.beatKey),
 });
 
 /** The page frame: title, and the 3 steps in the top bar. */

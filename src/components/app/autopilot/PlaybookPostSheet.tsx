@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Copy, Download } from 'lucide-react';
+import { Check, Copy, Download, Lightbulb } from 'lucide-react';
 import { useState } from 'react';
 import { AppButton } from '../../ui/AppButton';
 import { Sheet } from '../../ui/Sheet';
@@ -11,6 +11,8 @@ export type PlaybookPreview = {
   videoUrl: string | null;
   slideUrls: string[];
   caption: string | null;
+  /** "Why it works?" note shown beside the caption (Autopilot posts). */
+  why?: string | null;
 };
 
 type Props = { post: PlaybookPreview; onClose: () => void };
@@ -46,12 +48,10 @@ export const PlaybookPostSheet = ({ post, onClose }: Props) => {
           </ul>
         )}
 
-        {post.caption && (
-          <div className="flex flex-col gap-2 rounded-xl bg-app-sunken p-3">
-            <p className="whitespace-pre-line text-[13px] leading-relaxed text-app-ink">{post.caption}</p>
-            <AppButton variant="secondary" size="sm" className="self-start" onClick={() => void copy()} iconLeft={copied ? <Check aria-hidden className="h-4 w-4" /> : <Copy aria-hidden className="h-4 w-4" />}>
-              {copied ? 'Copied' : 'Copy caption'}
-            </AppButton>
+        {(post.caption || post.why) && (
+          <div className={`grid gap-3 ${post.why && post.caption ? 'sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]' : ''}`}>
+            {post.why && <WhyItWorks text={post.why} />}
+            {post.caption && <CaptionBox caption={post.caption} copied={copied} onCopy={() => void copy()} />}
           </div>
         )}
 
@@ -66,3 +66,21 @@ export const PlaybookPostSheet = ({ post, onClose }: Props) => {
     </Sheet>
   );
 };
+
+const WhyItWorks = ({ text }: { text: string }) => (
+  <section aria-label="Why it works" className="flex flex-col gap-1.5 self-start rounded-xl border border-app-line p-3">
+    <h4 className="m-0 flex items-center gap-1.5 text-[13px] font-semibold text-app-ink">
+      <Lightbulb aria-hidden className="h-3.5 w-3.5 text-app-accent" /> Why it works?
+    </h4>
+    <p className="m-0 text-[13px] leading-relaxed text-app-muted">{text}</p>
+  </section>
+);
+
+const CaptionBox = ({ caption, copied, onCopy }: { caption: string; copied: boolean; onCopy: () => void }) => (
+  <div className="flex flex-col gap-2 rounded-xl bg-app-sunken p-3">
+    <p className="whitespace-pre-line text-[13px] leading-relaxed text-app-ink">{caption}</p>
+    <AppButton variant="secondary" size="sm" className="self-start" onClick={onCopy} iconLeft={copied ? <Check aria-hidden className="h-4 w-4" /> : <Copy aria-hidden className="h-4 w-4" />}>
+      {copied ? 'Copied' : 'Copy caption'}
+    </AppButton>
+  </div>
+);

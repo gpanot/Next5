@@ -139,7 +139,7 @@ export const parsePresets = (value: unknown): RealtorPreset[] => {
   return picked;
 };
 
-/** Every new video is 'auto' on every plan (free included): the style's story sets the length, up to 60 s. */
+/** Every new video is 'auto' on every plan (free included): the style's story sets the length, 15 to 45 s. */
 const NEW_VIDEO_LENGTH: VideoLength = 'auto';
 
 /**

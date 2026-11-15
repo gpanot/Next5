@@ -17,39 +17,44 @@ type Props = {
   startedAt: string | null;
 };
 
-/** Step 3 after approve: each post fills in as it is made. */
-export const MadeDays = ({ posts, busyPostId, onRetry, onOpen, startedAt }: Props) => (
-  <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-    {posts.filter((p) => !p.skipped).map((post) => {
-      const failed = post.mediaStatus === 'failed';
-      return (
-        <li key={post.id} className="flex flex-col gap-1.5">
-          <button type="button" onClick={() => onOpen(post)} disabled={post.mediaStatus !== 'ready'} className="block w-full transition-opacity duration-200 enabled:hover:opacity-90">
-            <PostMedia
-              format={post.format}
-              status={post.mediaStatus}
-              coverUrl={post.media?.coverUrl ?? null}
-              videoUrl={post.media?.videoUrl ?? null}
-              slideCount={post.media?.slideUrls.length ?? 0}
-              slideUrls={post.media?.slideUrls ?? []}
-              startedAt={startedAt}
-              playVideo
-            />
-          </button>
-          <span className="text-[11px] font-semibold uppercase text-app-muted">{dayLabel(post.date)}</span>
-          <span className="truncate text-[12px] text-app-ink">{beatOf(post.beatKey)?.label ?? post.templateName}</span>
-          {failed && post.format === 'slideshow' && (
-            <button
-              type="button"
-              onClick={() => onRetry(post)}
-              disabled={busyPostId === post.id}
-              className="flex items-center gap-1 text-[12px] font-medium text-app-accent transition-opacity duration-200 disabled:opacity-50"
-            >
-              <RotateCcw aria-hidden className="h-3 w-3" /> Try again
+/** Step 3 after approve: each post fills in as it is made. Only the first slideshow plays on its own; the rest wait for a tap. */
+export const MadeDays = ({ posts, busyPostId, onRetry, onOpen, startedAt }: Props) => {
+  const shown = posts.filter((p) => !p.skipped);
+  const firstShowId = shown.find((p) => p.format === 'slideshow')?.id ?? null;
+  return (
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      {shown.map((post) => {
+        const failed = post.mediaStatus === 'failed';
+        return (
+          <li key={post.id} className="flex flex-col gap-1.5">
+            <button type="button" onClick={() => onOpen(post)} disabled={post.mediaStatus !== 'ready'} className="block w-full transition-opacity duration-200 enabled:hover:opacity-90">
+              <PostMedia
+                format={post.format}
+                status={post.mediaStatus}
+                coverUrl={post.media?.coverUrl ?? null}
+                videoUrl={post.media?.videoUrl ?? null}
+                slideCount={post.media?.slideUrls.length ?? 0}
+                slideUrls={post.media?.slideUrls ?? []}
+                startedAt={startedAt}
+                startPlaying={post.format !== 'slideshow' || post.id === firstShowId}
+                playVideo
+              />
             </button>
-          )}
-        </li>
-      );
-    })}
-  </ul>
-);
+            <span className="text-[11px] font-semibold uppercase text-app-muted">{dayLabel(post.date)}</span>
+            <span className="truncate text-[12px] text-app-ink">{beatOf(post.beatKey)?.label ?? post.templateName}</span>
+            {failed && post.format === 'slideshow' && (
+              <button
+                type="button"
+                onClick={() => onRetry(post)}
+                disabled={busyPostId === post.id}
+                className="flex items-center gap-1 text-[12px] font-medium text-app-accent transition-opacity duration-200 disabled:opacity-50"
+              >
+                <RotateCcw aria-hidden className="h-3 w-3" /> Try again
+              </button>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+};

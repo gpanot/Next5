@@ -4,7 +4,7 @@
 export const REALTOR_PRESETS = ['editorial', 'rate', 'pov', 'day', 'top3', 'alert', 'luxe'] as const;
 export type RealtorPreset = (typeof REALTOR_PRESETS)[number];
 
-/** short = 15 s (free plan), standard = 25 s, auto = the full story, up to 60 s. */
+/** short = 15 s (free plan), standard = 25 s, auto = the full story, 15 to 45 s. */
 export const VIDEO_LENGTHS = ['short', 'standard', 'auto'] as const;
 export type VideoLength = (typeof VIDEO_LENGTHS)[number];
 
@@ -32,21 +32,21 @@ export const PRESET_META: Record<RealtorPreset, PresetMeta> = {
 export const LENGTH_META: Record<VideoLength, { label: string; line: string; paidOnly: boolean }> = {
   short: { label: '15 s', line: 'Hook + 3 rooms', paidOnly: false },
   standard: { label: '25 s', line: 'The full tour', paidOnly: true },
-  auto: { label: 'Auto', line: 'The home’s story, up to 60 s', paidOnly: false },
+  auto: { label: 'Auto', line: 'The home’s story, up to 45 s', paidOnly: false },
 };
 
-/** Shortest video per length; auto has no floor (the story sets it) and stops at 60 s. */
+/** Shortest video per length; auto is the story's own length, 15 to 45 s (longer renders take too long for now). */
 export const LENGTH_FLOOR_S: Record<VideoLength, number> = { short: 15, standard: 25, auto: 15 };
-export const MAX_DURATION_S = 60;
+export const MAX_DURATION_S = 45;
 
 /**
  * Spoken words (end lines included) that fit each length. Measured 2026-11-12 on Gemini TTS: ~2.6 words/s,
  * plus ~2 s of tail. Over the top number, room beats are dropped from the end (storyScript.fitBudget).
  */
-export const WORD_BUDGET: Record<VideoLength, [number, number]> = { short: [28, 34], standard: [54, 62], auto: [110, 140] };
+export const WORD_BUDGET: Record<VideoLength, [number, number]> = { short: [28, 34], standard: [54, 62], auto: [85, 102] };
 
 /** Room photos after the hook (and location) beat. */
-export const ROOM_BEATS: Record<VideoLength, number> = { short: 3, standard: 6, auto: 8 };
+export const ROOM_BEATS: Record<VideoLength, number> = { short: 3, standard: 6, auto: 7 };
 
 export const isRealtorPreset = (v: unknown): v is RealtorPreset => typeof v === 'string' && (REALTOR_PRESETS as readonly string[]).includes(v);
 export const isVideoLength = (v: unknown): v is VideoLength => typeof v === 'string' && (VIDEO_LENGTHS as readonly string[]).includes(v);

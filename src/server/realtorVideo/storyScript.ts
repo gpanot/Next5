@@ -1,5 +1,5 @@
 // server-only — never import from a 'use client' file.
-// One vision call writes the words of one template at one length (15 s, 25 s or the Auto story up to 60 s).
+// One vision call writes the words of one template at one length (15 s, 25 s or the Auto story, 15 to 45 s).
 // The old writer (script.ts) still makes the standard 25 s Editorial and Rate videos; this one makes everything else.
 // Flat top-level keys only (small models drop nested objects). One beat = one photo, so cuts land on sentence starts.
 
