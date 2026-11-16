@@ -32,6 +32,7 @@ import { tiktokForPlumbers } from './articles/tiktokForPlumbers';
 import { tiktokHashtagsForBusiness } from './articles/tiktokHashtagsForBusiness';
 import { tiktokHooks } from './articles/tiktokHooks';
 import { tiktokSlideshowMaker } from './articles/tiktokSlideshowMaker';
+import { whatToPostOnSocialMediaAsADentist } from './articles/whatToPostOnSocialMediaAsADentist';
 import { whatToPostOnTikTokAsARealtor } from './articles/whatToPostOnTikTokAsARealtor';
 import type { Article, ArticleBlock, ArticleHub, ArticleKind } from './types';
 
@@ -84,6 +85,7 @@ export const BLOG_POSTS: readonly Article[] = [
   socialMediaForCleaningBusiness,
   howToGetLeadsFromTikTok,
   instagramReelIdeasForSmallBusiness,
+  whatToPostOnSocialMediaAsADentist,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];
