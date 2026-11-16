@@ -4983,6 +4983,15 @@
     "alt": "A home service technician kneeling to work on equipment during a service call at a client home",
     "generatedAt": "2026-10-31T01:04:38.104Z"
   },
+  "public/images/guides/what-to-post-on-social-media-as-a-dentist.png": {
+    "prompt": "Reused from public/images/guides/hvac-social-media-marketing.png: image generation failed (DeepInfra API 402 billing error, no balance), cover reused as a fallback per run process, to replace.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 846833,
+    "alt": "An HVAC technician kneeling beside an outdoor condenser unit, checking a gauge during a service call",
+    "generatedAt": "2026-11-16T00:00:00.000Z"
+  },
   "public/videos/listing/bell-editorial.jpg": {
     "prompt": "Frame from the 'Editorial tour' listing video rendered by the realtor video pipeline from the 2784 Bell Dr SE, Smyrna Zillow listing (not generated).",
     "model": "frame-extract (ffmpeg)",

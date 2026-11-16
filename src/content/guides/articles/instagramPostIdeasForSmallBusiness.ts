@@ -47,6 +47,7 @@ export const instagramPostIdeasForSmallBusiness: Article = {
       ['Hair salon', 'Before/after, finished look, meet the team', '[Social media for hair salons](/blog/social-media-for-hair-salons)'],
       ['Gym', 'Day in the business, milestone, customer result', '[Social media for gyms](/blog/social-media-for-gyms)'],
       ['Restaurant', 'New stock/menu item, behind the scenes, local tie-in', '[Social media for restaurants](/blog/social-media-for-restaurants)'],
+      ['Dentist', 'Oral health tips, team, myth vs fact', '[What to post on social media as a dentist](/blog/what-to-post-on-social-media-as-a-dentist)'],
       ['Retail shop', 'New stock, price breakdown, FAQ as a post', '[Marketing ideas for small business](/blog/marketing-ideas-for-small-business)'],
     ] },
     { type: 'p', text: 'If you would rather not be on camera at all, every one of these ideas works as a faceless post too: product shots, hands-only clips and text over a photo. See [faceless post ideas](/blog/faceless-tiktok-ideas-for-business) for the formats that need zero filming.' },

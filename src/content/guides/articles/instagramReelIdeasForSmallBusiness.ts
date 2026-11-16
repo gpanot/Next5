@@ -49,6 +49,7 @@ export const instagramReelIdeasForSmallBusiness: Article = {
       ['Hair salon', 'The reveal, the speed run', '[Social media for hair salons](/blog/social-media-for-hair-salons)'],
       ['Gym', 'The day in the life, the testimonial', '[Social media for gyms](/blog/social-media-for-gyms)'],
       ['Restaurant', 'The new arrival, the walkthrough', '[Social media for restaurants](/blog/social-media-for-restaurants)'],
+      ['Dentist', 'The one-tip video, myth vs fact', '[What to post on social media as a dentist](/blog/what-to-post-on-social-media-as-a-dentist)'],
       ['Cleaning business', 'The reveal, the quick answer', '[Social media for cleaning business](/blog/social-media-for-cleaning-business)'],
     ] },
     { type: 'p', text: 'If you do not want to be on camera, swap the talking shots for hands-only clips or text over a photo. The same 4-part structure still works. See [faceless post ideas](/blog/faceless-tiktok-ideas-for-business) for more formats that need zero filming.' },
