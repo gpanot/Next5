@@ -242,6 +242,8 @@ model Workspace {
   teamSize              String?       @map("team_size")
   monthlyRevenue        String?       @map("monthly_revenue")
   obRole                String?       @map("ob_role")
+  /// Brand (realtor): "1_5" | "5_10" | "10_plus" listings at a time
+  listingCount          String?       @map("listing_count")
   signupIntent          String?       @map("signup_intent")
   goals                 String[]      @default([])
   attribution           String[]      @default([])

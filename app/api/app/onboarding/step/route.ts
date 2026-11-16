@@ -35,6 +35,9 @@ export const PATCH = authedRoute(async (req, session) => {
   if (Array.isArray(body.contentExpectations)) qualData.contentExpectations = body.contentExpectations.map(String);
   // Step 4 — role
   if (typeof body.role === 'string' && body.role) qualData.obRole = body.role;
+  if (body.listingCount === '1_5' || body.listingCount === '5_10' || body.listingCount === '10_plus') {
+    qualData.listingCount = body.listingCount;
+  }
   // Step 5 — intent + goals
   if (typeof body.signupIntent === 'string' && body.signupIntent) qualData.signupIntent = body.signupIntent;
   if (Array.isArray(body.goals)) qualData.goals = body.goals.map(String);

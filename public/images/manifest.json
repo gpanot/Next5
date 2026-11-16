@@ -5351,5 +5351,32 @@
     "bytes": 59368,
     "alt": "Poster theme example, slide 4: Want a private tour?",
     "generatedAt": "2026-11-14T02:24:25.617Z"
+  },
+  "public/images/business/us/testimonials/realtor-jessica.jpg": {
+    "prompt": "Candid smartphone head and shoulders photo of a white American woman in her mid 30s, real estate agent, shoulder-length light brown hair, warm genuine smile, navy blazer over a white tee, standing on the front porch of a suburban house, natural daylight, real skin texture with small imperfections, not airbrushed, face centered, slight background blur. No text, no logos.",
+    "model": "reapi/gemini-3-pro-image-preview",
+    "size": "1024x1024",
+    "outputSize": "192x192",
+    "bytes": 18418,
+    "alt": "Jessica, solo realtor",
+    "generatedAt": "2026-11-16T03:12:09.743Z"
+  },
+  "public/images/business/us/testimonials/realtor-marcus.jpg": {
+    "prompt": "Candid smartphone head and shoulders photo of a Black American man in his late 30s, real estate broker leading a small team, short cropped hair and neat beard, relaxed confident smile, light blue button-down shirt with open collar, in a bright modern kitchen of a staged home, natural daylight, real skin texture with small imperfections, not airbrushed, face centered, slight background blur. No text, no logos.",
+    "model": "reapi/gemini-3-pro-image-preview",
+    "size": "1024x1024",
+    "outputSize": "192x192",
+    "bytes": 15511,
+    "alt": "Marcus, small agency team lead",
+    "generatedAt": "2026-11-16T03:12:09.929Z"
+  },
+  "public/images/business/us/testimonials/realtor-elena.jpg": {
+    "prompt": "Candid smartphone head and shoulders photo of a Latina American woman in her early 40s, real estate agency owner, long dark wavy hair, friendly smile, cream blouse, standing outside a Spanish-style home with a palm tree behind her, natural daylight, real skin texture with small imperfections, not airbrushed, face centered, slight background blur. No text, no logos.",
+    "model": "reapi/gemini-3-pro-image-preview",
+    "size": "1024x1024",
+    "outputSize": "192x192",
+    "bytes": 16560,
+    "alt": "Elena, agency owner",
+    "generatedAt": "2026-11-16T03:12:09.779Z"
   }
 }

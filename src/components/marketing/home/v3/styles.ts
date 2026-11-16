@@ -144,9 +144,22 @@ export const BASE_CSS = String.raw`
 .v3hookdots i{width:6px;height:6px;border-radius:50%;background:rgba(0,0,0,.25)}
 .v3hookdots i.on{background:var(--signal);width:18px;border-radius:4px}
 /* ── Realtor hero video ── */
-.v3ugc-vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0}
+.v3phone-screen:has(.v3ugc-vid){background:#000}
+.v3ugc-vid{position:absolute;top:28px;left:0;width:100%;height:calc(100% - 78px);object-fit:contain;background:#000;z-index:0}
+.v3sbar{position:absolute;top:0;left:0;right:0;height:28px;z-index:3;display:flex;align-items:flex-end;justify-content:space-between;padding:0 18px 5px;color:#fff;font-size:11px;font-weight:700;background:#000;opacity:0;transition:opacity .4s ease;pointer-events:none}
+.v3sbar-r{display:flex;align-items:center;gap:5px}
+.v3tknav{position:absolute;bottom:0;left:0;right:0;height:50px;z-index:3;display:flex;align-items:flex-start;justify-content:space-around;padding:6px 4px 0;background:#000;color:rgba(255,255,255,.6);font-size:10px;font-weight:600;opacity:0;transition:opacity .4s ease;pointer-events:none}
+.v3tknav .on{color:#fff}
+.v3tknav span{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;position:relative}
+.v3tknav-ib em{position:absolute;top:-4px;left:50%;margin-left:4px;background:#fe2c55;color:#fff;font-style:normal;font-size:8px;font-weight:700;line-height:1;padding:2px 4px;border-radius:8px}
+.v3tknav-plus{display:flex;justify-content:center}
+.v3tknav-plus i{display:block;width:34px;height:24px;margin-top:2px;border-radius:8px;background:#c8c8cc;box-shadow:-3px 0 0 #25f4ee,3px 0 0 #fe2c55;position:relative}
+.v3tknav-plus i:before,.v3tknav-plus i:after{content:"";position:absolute;left:50%;top:50%;background:#000;transform:translate(-50%,-50%)}
+.v3tknav-plus i:before{width:14px;height:2.5px}
+.v3tknav-plus i:after{width:2.5px;height:14px}
+.v3phone.playing .v3sbar,.v3phone.playing .v3tknav{opacity:1}
 /* Mute/unmute toggle button */
-.v3mute-btn{position:absolute;top:12px;right:12px;z-index:3;display:none;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.52);color:#fff;border:none;cursor:pointer;backdrop-filter:blur(4px);padding:0;transition:background .2s ease}
+.v3mute-btn{position:absolute;top:36px;right:10px;z-index:3;display:none;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.52);color:#fff;border:none;cursor:pointer;backdrop-filter:blur(4px);padding:0;transition:background .2s ease}
 .v3mute-btn:hover{background:rgba(0,0,0,.75)}
 .v3mute-btn .v3mute-on{display:none}
 .v3mute-btn .v3mute-off{display:flex}
@@ -155,7 +168,7 @@ export const BASE_CSS = String.raw`
 /* Show the button only once the video is playing */
 .v3phone.playing .v3mute-btn{display:flex}
 /* TikTok badge — top-left of phone screen */
-.v3tktk-badge{position:absolute;top:12px;left:12px;z-index:1;display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.58);color:#fff;font-size:11px;font-weight:600;padding:5px 9px;border-radius:999px;backdrop-filter:blur(4px);pointer-events:none}
+.v3tktk-badge{position:absolute;top:36px;left:10px;z-index:1;display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.58);color:#fff;font-size:11px;font-weight:600;padding:5px 9px;border-radius:999px;backdrop-filter:blur(4px);pointer-events:none}
 /* Realtor headshot inset — bottom-right corner, above facts */
 .v3headshot{position:absolute;bottom:46px;right:8px;z-index:1;width:26%;aspect-ratio:9/16;overflow:hidden;border-radius:8px;box-shadow:0 0 0 2px #fff,0 2px 10px rgba(0,0,0,.3);pointer-events:none}
 .v3headshot img{width:100%;height:100%;object-fit:cover;object-position:top}

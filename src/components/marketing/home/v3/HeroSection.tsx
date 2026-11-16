@@ -25,6 +25,35 @@ function HeroDemo({ audience }: { audience: Audience }) {
           />
 
           {/* ── Realtor-only decorations (sit above video, below build overlay) ── */}
+          {/* Status bar */}
+          <div className="v3sbar" data-only="realtor" aria-hidden="true">
+            <span>9:41</span>
+            <span className="v3sbar-r">
+              <svg width="16" height="10" viewBox="0 0 16 10" fill="currentColor"><rect x="0" y="6" width="3" height="4" rx=".6"/><rect x="4.3" y="4" width="3" height="6" rx=".6"/><rect x="8.6" y="2" width="3" height="8" rx=".6"/><rect x="12.9" y="0" width="3" height="10" rx=".6"/></svg>
+              <svg width="22" height="10" viewBox="0 0 22 10" fill="none"><rect x=".5" y=".5" width="18" height="9" rx="2.5" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="15" height="6" rx="1.5" fill="currentColor"/><rect x="19.8" y="3.3" width="1.6" height="3.4" rx=".8" fill="currentColor" opacity=".5"/></svg>
+            </span>
+          </div>
+          {/* TikTok bottom navigation */}
+          <div className="v3tknav" data-only="realtor" aria-hidden="true">
+            <span className="on">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.6 2.5 11a1 1 0 0 0 .7 1.7H5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-7.3h1.8a1 1 0 0 0 .7-1.7z"/></svg>
+              Home
+            </span>
+            <span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8M9 13h.01M15 13h.01"/></svg>
+              Shop
+            </span>
+            <span className="v3tknav-plus"><i /></span>
+            <span className="v3tknav-ib">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01"/></svg>
+              <em>24</em>
+              Inbox
+            </span>
+            <span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5"/></svg>
+              Profile
+            </span>
+          </div>
           {/* TikTok badge */}
           <div className="v3tktk-badge" data-only="realtor" aria-hidden="true">
             <TikTokIcon /> TikTok

@@ -16,7 +16,7 @@ const dayLabel = (date: string) =>
 
 const GRID = 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4';
 
-/** Every slideshow Autopilot made, newest first. Tap one to read the slides and copy the caption. */
+/** Every slideshow Autopilot and her listing pages made, newest first. Tap one to read the slides and copy the caption. */
 export const LibrarySlideshowsView = () => {
   const { data, loading, error, refresh } = useApi<{ slideshows: Slideshow[] }>('/api/app/library/slideshows');
   const router = useAppRouter();
@@ -32,7 +32,7 @@ export const LibrarySlideshowsView = () => {
       <EmptyState
         illustration={<Images className="h-10 w-10" />}
         title="No slideshows yet"
-        body="Autopilot makes slideshows for your posts. Plan a week to get some."
+        body="Make one from a property page, or let Autopilot plan a week."
         action={{ label: 'Open Autopilot', onClick: () => router.push('/app/automation') }}
       />
     );

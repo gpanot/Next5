@@ -21,6 +21,8 @@ import { AttributionStep } from './AttributionStep';
 import { ConsentStep } from './ConsentStep';
 import { IntentGoalsStep } from './IntentGoalsStep';
 import { ProductIntroStep } from './ProductIntroStep';
+import { RealtorRoleStep } from './RealtorRoleStep';
+import { RealtorSocialProofStep } from './RealtorSocialProofStep';
 import { RoleStep } from './RoleStep';
 import { SocialProofStep } from './SocialProofStep';
 import { TeamRevenueStep } from './TeamRevenueStep';
@@ -40,7 +42,17 @@ const STEPS: readonly ((props: StepProps) => React.ReactNode)[] = [
 
 // Brand (real estate only): server steps 2 and 3 are one "About you" screen (consents + content habits).
 // It advances straight to step 3, so step 3 only shows when going back.
-const BRAND_STEPS: readonly ((props: StepProps) => React.ReactNode)[] = [AboutYouStep, AboutYouStep, ...STEPS.slice(2)];
+// Step 4 asks business type + listing count; the reviews screen (step 7) finishes onboarding,
+// so the "Two ways to create content" screen (step 8) never shows for realtors.
+const BRAND_STEPS: readonly ((props: StepProps) => React.ReactNode)[] = [
+  AboutYouStep,
+  AboutYouStep,
+  RealtorRoleStep,
+  IntentGoalsStep,
+  AttributionStep,
+  RealtorSocialProofStep,
+  RealtorSocialProofStep,
+];
 
 // Total server steps (unchanged — the back-end flow is identical).
 const TOTAL_SERVER_STEPS = 8;
