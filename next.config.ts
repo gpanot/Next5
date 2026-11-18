@@ -20,6 +20,19 @@ const nextConfig: NextConfig = {
   },
   // Copy Viral runs on localhost only, but its dynamic paths make the tracer pull the whole project into these functions.
   outputFileTracingExcludes: {
+    // Cuts Vercel Functions Storage (~45% per function). None of these are read at runtime on Vercel:
+    // Prisma uses the native Postgres query engine, not the per-database WASM engines;
+    // sharp uses native libvips on Linux, not the WASM fallback;
+    // realtor audio is served from R2, the files are only traced because Remotion imports JSON next to them.
+    '/**': [
+      './node_modules/@prisma/client/runtime/*.wasm*',
+      './node_modules/@prisma/client/runtime/query_engine_bg.*',
+      './node_modules/@prisma/client/runtime/query_compiler_bg.*',
+      './node_modules/@prisma/client/runtime/*.map',
+      './node_modules/@img/sharp-wasm32/**',
+      './public/realtor-videos/**',
+      './public/realtor-test/**',
+    ],
     '/api/admin/copy-viral/**': ['./public/**', './tools/**', './tests/**', './docs/**', './clone test/**', './tsconfig.tsbuildinfo'],
   },
   // OAuth discovery for the Claude connector (/api/mcp): the well-known documents are served by API routes.
