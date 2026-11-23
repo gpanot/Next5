@@ -13,6 +13,7 @@ import { howToSellOnTikTokShop } from './articles/howToSellOnTikTokShop';
 import { hvacSocialMediaMarketing } from './articles/hvacSocialMediaMarketing';
 import { instagramPostIdeasForSmallBusiness } from './articles/instagramPostIdeasForSmallBusiness';
 import { instagramReelIdeasForSmallBusiness } from './articles/instagramReelIdeasForSmallBusiness';
+import { justListedPostIdeas } from './articles/justListedPostIdeas';
 import { marketingIdeasSmallBusiness } from './articles/marketingIdeasSmallBusiness';
 import { openHouseSocialMediaPost } from './articles/openHouseSocialMediaPost';
 import { realEstateInstagramCaptions } from './articles/realEstateInstagramCaptions';
@@ -64,6 +65,7 @@ export const BLOG_POSTS: readonly Article[] = [
   socialMediaForRealtors,
   realEstateSocialMediaStatistics,
   comingSoonRealEstatePost,
+  justListedPostIdeas,
   openHouseSocialMediaPost,
   realEstateInstagramCaptions,
   marketingIdeasSmallBusiness,
