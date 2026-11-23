@@ -4601,6 +4601,15 @@
     "alt": "Get it on Google Play",
     "addedAt": "2026-10-14T05:12:07.495Z"
   },
+  "public/images/guides/just-listed-post-ideas.png": {
+    "prompt": "Reused from public/images/guides/coming-soon-real-estate-post.png: image generation failed (DeepInfra API 402 billing error, no balance), cover reused as a fallback per run process, to replace.",
+    "model": "black-forest-labs/FLUX-2-pro",
+    "size": "1024x1280",
+    "outputSize": "1024x1280",
+    "bytes": 883460,
+    "alt": "Realtor photographing a house behind a yard sign, reused cover for the just listed post ideas article",
+    "generatedAt": "2026-10-28T07:21:32.116Z"
+  },
   "public/images/guides/coming-soon-real-estate-post.png": {
     "prompt": "A real estate agent in his 40s in a light blazer stands on the front lawn of a two-story American suburban home, holding a phone up to photograph the house, a white wooden yard sign on a post in the foreground reads COMING SOON. Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third",
     "model": "black-forest-labs/FLUX-2-pro",
