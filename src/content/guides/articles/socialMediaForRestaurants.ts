@@ -77,7 +77,7 @@ export const socialMediaForRestaurants: Article = {
       ['Facebook', '2 to 4 posts a week', 'Regulars, events and anything with a date'],
       ['Google Business Profile', 'Photos whenever you shoot, menu kept current', 'The "restaurants near me" search that happens first'],
     ] },
-    { type: 'p', text: 'Batch it. One photo pass plus one sitting for captions covers the week. The [free 30-day content calendar](/blog/social-media-content-calendar) is built for that sitting, and [25 low-cost marketing ideas](/blog/marketing-ideas-for-small-business) cover the non-social half of a slow month.' },
+    { type: 'p', text: 'Batch it. One photo pass plus one sitting for captions covers the week. The [free 30-day content calendar](/blog/social-media-content-calendar) is built for that, and [what to post when business is slow](/blog/what-to-post-when-business-is-slow) covers days with no new dish.' },
     { type: 'h2', text: 'Know which post actually filled seats' },
     { type: 'p', text: 'Likes tell you nothing about covers. Give each promoted post its own promo code or link, then count what comes back. It works for walk-ins too: "say short rib at the counter" is a code.' },
     { type: 'h2', text: 'Common mistakes' },

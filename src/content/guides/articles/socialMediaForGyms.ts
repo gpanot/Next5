@@ -66,7 +66,7 @@ export const socialMediaForGyms: Article = {
     { type: 'ul', items: [
       'Posting only workouts: non-members do not care what Tuesday\'s class did. Show them what joining gets them.',
       'No clear ask: a post with no CTA gets likes, not trial bookings.',
-      'Disappearing after a slow month: an empty page for 6 weeks reads as "maybe this gym closed."',
+      'Disappearing after a slow month: an empty page for 6 weeks reads as "maybe this gym closed." See [what to post when business is slow](/blog/what-to-post-when-business-is-slow) for what to film instead of going quiet.',
       'Copying a big chain\'s content: a 1-location gym cannot out-produce Planet Fitness. Lean into being the gym where people know your name instead.',
     ] },
     { type: 'h2', text: 'Sources' },

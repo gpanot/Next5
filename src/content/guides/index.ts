@@ -35,6 +35,7 @@ import { tiktokHooks } from './articles/tiktokHooks';
 import { tiktokSlideshowMaker } from './articles/tiktokSlideshowMaker';
 import { whatToPostOnSocialMediaAsADentist } from './articles/whatToPostOnSocialMediaAsADentist';
 import { whatToPostOnTikTokAsARealtor } from './articles/whatToPostOnTikTokAsARealtor';
+import { whatToPostWhenBusinessIsSlow } from './articles/whatToPostWhenBusinessIsSlow';
 import type { Article, ArticleBlock, ArticleHub, ArticleKind } from './types';
 
 /** Short topic label shown on cards. */
@@ -88,6 +89,7 @@ export const BLOG_POSTS: readonly Article[] = [
   howToGetLeadsFromTikTok,
   instagramReelIdeasForSmallBusiness,
   whatToPostOnSocialMediaAsADentist,
+  whatToPostWhenBusinessIsSlow,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];
