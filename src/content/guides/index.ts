@@ -103,12 +103,15 @@ export const findArticle = (kind: ArticleKind, slug: string): Article | undefine
 
 const isGeneratedCover = (cover: string): boolean => cover.startsWith('/images/');
 
-export const coverSrc = (article: Pick<Article, 'cover'>): string =>
-  isGeneratedCover(article.cover) ? article.cover : `/images/auto-slideshow/${article.cover}/1.jpg`;
+/** The cover URL, or undefined for an article with no cover. */
+export const coverSrc = ({ cover }: Pick<Article, 'cover'>): string | undefined => {
+  if (!cover) return undefined;
+  return isGeneratedCover(cover) ? cover : `/images/auto-slideshow/${cover}/1.jpg`;
+};
 
 /** Pixel size of the cover file: generated covers are 1024x1280, slideshow slides 1080x1350. */
-export const coverSize = (article: Pick<Article, 'cover'>): { width: number; height: number } =>
-  isGeneratedCover(article.cover) ? { width: 1024, height: 1280 } : { width: 1080, height: 1350 };
+export const coverSize = (cover: string): { width: number; height: number } =>
+  isGeneratedCover(cover) ? { width: 1024, height: 1280 } : { width: 1080, height: 1350 };
 
 const blockText = (block: ArticleBlock): string => {
   switch (block.type) {

@@ -72,11 +72,14 @@ describe('every article', () => {
         }
       });
 
-      it('has its own cover, not shared with another article', () => {
+      it('has its own cover, not shared with another article (when it has one)', () => {
+        if (!a.cover) return;
         expect(ALL_ARTICLES.filter((other) => other.cover === a.cover).map((other) => other.slug)).toEqual([a.slug]);
       });
 
-      it('uses a real cover: a Next5 slideshow, or a generated photo listed in the manifest', () => {
+      it('uses a real cover with alt text, a Next5 slideshow or a generated photo in the manifest (when it has one)', () => {
+        if (!a.cover) return;
+        expect(a.coverAlt?.trim()).toBeTruthy();
         if (a.cover.startsWith('/images/')) {
           expect(existsSync(join(process.cwd(), 'public', a.cover))).toBe(true);
           expect(Object.keys(MANIFEST)).toContain(`public${a.cover}`);

@@ -81,19 +81,8 @@ audience ("tiktok memes"). Check the keyword is not already an article's `keywor
 - Write the research notes to `docs/seo/research/<slug>.md`: the query and its data, the top 5 and
   what they miss, the "People also ask" questions, and every fact you will state with its source URL.
   The reviewer checks the draft against this file.
-- Make the cover: one photo of the same trade or topic as the article, generated with the
-  web-imagery skill. Bright daylight, realistic, 4:5, no text other than what the scene needs (a
-  yard sign is fine). Never reuse another article's cover. Never use an unrelated one.
-  Every cover shares one look: a small business owner of the article's trade, busy with a real
-  task, in their own place. Write the subject sentence, then append the style sentence unchanged.
-  ```bash
-  STYLE="Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third"
-  node ~/.claude/skills/web-imagery/gen-image.mjs --prompt "<who, doing what, where>. $STYLE" \
-    --out public/images/guides/<slug>.png --size 1024x1280 --model black-forest-labs/FLUX-2-pro --alt "<alt>"
-  ```
-  Then compress it under 1 MB (sharp `png({ palette: true, quality: 95, dither: 1 })` gives about
-  800 KB) and update `bytes` in the manifest entry (`public/images/manifest.json`). The test fails
-  when the cover is not in the manifest. Next5 slideshows are not needed for articles.
+- No cover image: new articles ship text only since 2026-11-25 (owner's call). Leave `cover` and
+  `coverAlt` out, and add nothing under `public/images/`.
 - Look for real post results in Next5 data. Never invent numbers.
 
 ## 5. Write the draft (writer pass)

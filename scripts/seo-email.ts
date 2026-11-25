@@ -67,11 +67,12 @@ const renderReport = (steps: readonly Step[]): string =>
 
 const renderArticle = (article: Article, prUrl: string): string => {
   const url = SITE + articleHref(article);
+  const cover = coverSrc(article);
   const faq = (article.faq ?? []).map((f) => `<p><strong>${inline(f.q)}</strong><br>${inline(f.a)}</p>`).join('');
   return `<p><a href="${url}">Open the live page</a> · <a href="${prUrl}">PR</a> (to undo: press Revert on the PR, or ask Claude to revert it)</p>
 <hr>
 <p style="color:#666;font-size:13px">Keyword: ${escapeHtml(article.keyword)} · Hub: ${article.hub}<br>Google title: ${escapeHtml(article.seoTitle ?? article.title)}<br>Description: ${escapeHtml(article.description)}</p>
-<img src="${SITE}${coverSrc(article)}" alt="${escapeHtml(article.coverAlt)}" width="320" style="border-radius:12px;max-width:100%">
+${cover ? `<img src="${SITE}${cover}" alt="${escapeHtml(article.coverAlt ?? '')}" width="320" style="border-radius:12px;max-width:100%">` : ''}
 <h1>${inline(article.title)}</h1>
 ${article.answer ? `<div style="${box}">${inline(article.answer)}</div>` : ''}
 ${article.blocks.map(renderBlock).join('\n')}
