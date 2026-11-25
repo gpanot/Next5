@@ -12,7 +12,7 @@ For every article published from `QUALITY_BAR_SINCE` (`src/content/guides/qualit
 - Links to at least 3 other articles, and at least 1 existing article links to it.
 - At least 5 FAQ answers.
 - No banned filler phrases, no em dashes.
-- Unique keyword, search-sized title and description, real cover, a CTA, no broken links.
+- Unique keyword, search-sized title and description, no cover image, a CTA, no broken links.
 
 ## Checked by the reviewer (a separate pass that did not write the draft)
 
@@ -38,7 +38,7 @@ Score each line pass or fail. Any fail means one rewrite; a second fail means sk
 | 6 | One reader | It tries to talk to every business at once instead of the one in the keyword |
 | 7 | Not a duplicate | Another article already serves the same intent (improve that one instead) |
 | 8 | Reads like a person | Repetitive structure, padded sections, list for the sake of a list, or the same skeleton as another article |
-| 9 | Right cover | The cover does not show the same trade or topic, is shared with another article, or `coverAlt` does not match the image |
+| 9 | No image | A new article sets `cover` or `coverAlt`, or adds an image file (articles ship text only since 2026-11-25) |
 
 The reviewer writes its verdict in the PR description: each check with pass or fail and one line why.
 

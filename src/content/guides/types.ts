@@ -45,11 +45,14 @@ export type Article = {
   published: string;
   updated?: string;
   /**
-   * The cover, 4:5. Either a folder under public/images/auto-slideshow/ (a real slideshow Next5 made),
-   * or a generated photo path under /images/guides/ that is listed in public/images/manifest.json.
+   * The cover, 4:5, optional. Either a folder under public/images/auto-slideshow/ (a real slideshow Next5
+   * made), or a generated photo path under /images/guides/ that is listed in public/images/manifest.json.
+   * Articles from the SEO run ship with no cover since 2026-11-25 (owner's call): pages, cards, the
+   * social preview and the report email then show text only.
    */
-  cover: string;
-  coverAlt: string;
+  cover?: string;
+  /** Required when `cover` is set. */
+  coverAlt?: string;
   blocks: readonly ArticleBlock[];
   faq?: readonly ArticleFaq[];
 };

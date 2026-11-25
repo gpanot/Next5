@@ -17,7 +17,7 @@ Read [vaultaire.app/guides](https://vaultaire.app/guides/) once before changing 
 | --- | --- |
 | One narrow question per guide, in the searcher's words ("Does CarPlay show your photos?") | Same. Prefer the narrow question over the broad head term |
 | The direct answer in the first lines | The `answer` box |
-| An image per guide, and the product shown where it solves the problem | A generated cover photo for the same trade or topic, and a short "How Next5 does this" part |
+| The product shown where it solves the problem | A short "How Next5 does this" part (no cover image since 2026-11-25) |
 | A sources list on facts that matter ("What this is based on") | A `Sources` section with primary sources |
 | 4 or more links to sibling guides inside the body | 3 or more in the body, plus 3 to 5 links in from pages with traffic |
 | Scenario pages ("My kid found my private photos") and free tools | Later (see Next steps). Not part of the daily run yet |

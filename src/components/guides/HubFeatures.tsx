@@ -10,9 +10,9 @@ function GuideStep({ article, step }: { article: Article; step: number }) {
   return (
     <li className="snap-start">
       <Link href={articleHref(article)} className={`group block rounded-2xl ${focusRing}`}>
-        <div className="relative">
+        <div className={article.cover ? 'relative' : ''}>
           <ArticleCover article={article} sizes="(min-width: 768px) 360px, 78vw" className="aspect-[4/5] rounded-2xl" />
-          <span aria-hidden className="absolute top-3 left-3 flex h-10 min-w-10 items-center justify-center rounded-full bg-white/90 px-3 font-display text-sm font-bold text-ink shadow-sm backdrop-blur dark:bg-zinc-950/80 dark:text-zinc-100">
+          <span aria-hidden className={`${article.cover ? 'absolute top-3 left-3 bg-white/90 shadow-sm backdrop-blur dark:bg-zinc-950/80' : 'bg-zinc-100 dark:bg-zinc-900'} flex h-10 min-w-10 items-center justify-center rounded-full px-3 font-display text-sm font-bold text-ink dark:text-zinc-100`}>
             {String(step).padStart(2, '0')}
           </span>
         </div>
@@ -32,10 +32,10 @@ export function GuideSteps({ guides }: { guides: readonly Article[] }) {
   );
 }
 
-/** The first blog post, big: photo and text side by side from md up. */
+/** The first blog post, big: photo and text side by side from md up (text only when it has no cover). */
 export function LeadStory({ article }: { article: Article }) {
   return (
-    <Link href={articleHref(article)} className={`group grid items-center gap-5 rounded-2xl md:grid-cols-[1.1fr_1fr] md:gap-10 ${focusRing}`}>
+    <Link href={articleHref(article)} className={`group grid items-center gap-5 rounded-2xl ${article.cover ? 'md:grid-cols-[1.1fr_1fr]' : ''} md:gap-10 ${focusRing}`}>
       <ArticleCover article={article} sizes="(min-width: 768px) 560px, 92vw" priority className="aspect-[4/3] rounded-2xl md:aspect-[5/4]" />
       <div>
         <ArticleMeta article={article} />

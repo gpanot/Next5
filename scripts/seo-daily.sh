@@ -40,7 +40,7 @@ mkdir -p "$LOG_DIR"
 log() { print -r -- "[$(TZ=Asia/Ho_Chi_Minh date '+%F %T')] $*" >> "$LOG"; }
 
 SITE="https://next5.giinger.com"
-ARTICLE_PATHS='^(src/content/guides/|docs/seo/|public/images/guides/|public/images/manifest\.json$)'
+ARTICLE_PATHS='^(src/content/guides/|docs/seo/)'
 
 # Polls the article URL until it answers 200, up to 20 minutes (the Vercel deploy after the merge).
 wait_live() {
@@ -125,7 +125,6 @@ ALLOWED_TOOLS=(
   Read Edit Write Glob Grep WebFetch WebSearch Agent
   "Bash(git:*)" "Bash(gh pr create:*)" "Bash(gh pr view:*)" "Bash(gh pr list:*)" "Bash(gh auth status:*)"
   "Bash(gum:*)" "Bash($HOME/.local/bin/gum:*)" "Bash(npx vitest:*)" "Bash(node:*)" "Bash(python3:*)"
-  "Bash($STATE_DIR/make-cover.sh:*)" "Bash(~/.next5-seo/make-cover.sh:*)"
   "Bash(ls:*)" "Bash(cat:*)" "Bash(head:*)" "Bash(tail:*)" "Bash(grep:*)" "Bash(wc:*)" "Bash(mkdir:*)"
   "Bash(cp:*)" "Bash(mv:*)" "Bash(date:*)" "Bash(curl -s:*)" "Bash(jq:*)"
 )
@@ -157,7 +156,12 @@ if [[ -n "${SEO_PUBLISH_PR:-}" ]]; then
   exit 0
 fi
 
-# Daily (owner's call, 2026-11-05): one article every day. Monday also emails the weekly ranking.
+# Schedule (owner's call, 2026-11-09): 3 posts a week, Monday, Wednesday and Friday (Saigon day), to cut
+# Claude usage. Other days exit before any work. Monday also emails the weekly ranking.
+case "$(TZ=Asia/Ho_Chi_Minh date +%u)" in
+  1|3|5) ;;
+  *) exit 0 ;;
+esac
 
 state="" ; started_at=0
 if [[ -f "$MARKER" ]]; then
@@ -185,7 +189,6 @@ git fetch -q origin && git checkout -q --detach origin/main && git reset -q --ha
   && git clean -fdq -e node_modules -e .env.local || { log "git refresh failed"; print "failed $(date +%s)" > "$MARKER"; exit 1; }
 
 # Prep costs no Claude tokens: the shell gathers the data, Claude gets one prompt with all of it.
-export COVER_STYLE="Candid documentary photograph for a magazine feature, the person is busy with the task and does not look at the camera, ordinary real-looking people with natural skin texture and everyday clothes, real lived-in place, plain walls and surfaces free of papers, signs and labels, bright soft natural daylight, true-to-life muted colors, shot on a 35mm lens at eye level, gentle depth of field, subtle film grain, vertical 4:5 frame with the subject in the middle third"
 BRIEF="$STATE_DIR/$TODAY.brief.md"
 python3 "$STATE_DIR/seo-prep.py" --site "$SITE" --mode ts --path blog --geo "2840" --date "$TODAY" > "$BRIEF" 2>> "$LOG" \
   || log "prep failed, partial brief"

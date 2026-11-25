@@ -15,7 +15,9 @@ export const loadArticle = async (kind: ArticleKind, params: Promise<{ slug: str
 export const articleMetadata = (article: Article): Metadata => {
   const title = article.seoTitle ?? article.title;
   const url = articleHref(article);
-  const images = [{ url: coverSrc(article), ...coverSize(article), alt: article.coverAlt }];
+  const src = coverSrc(article);
+  // No cover: leave images out, so the site-wide app/opengraph-image is the preview.
+  const images = src && article.cover ? [{ url: src, ...coverSize(article.cover), alt: article.coverAlt ?? article.title }] : undefined;
   return {
     title,
     description: article.description,

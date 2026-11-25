@@ -22,9 +22,9 @@ export function ArticleMeta({ article }: { article: Article }) {
  */
 export function ArticleCard({ article }: { article: Article }) {
   return (
-    <Link href={articleHref(article)} className={`group grid grid-cols-[6.5rem_1fr] items-start gap-4 rounded-xl sm:flex sm:flex-col sm:items-stretch sm:gap-0 ${focusRing}`}>
+    <Link href={articleHref(article)} className={`group ${article.cover ? 'grid grid-cols-[6.5rem_1fr] items-start gap-4 sm:flex sm:flex-col sm:items-stretch sm:gap-0' : 'flex flex-col'} rounded-xl ${focusRing}`}>
       <ArticleCover article={article} sizes="(min-width: 1024px) 380px, (min-width: 640px) 45vw, 104px" className="aspect-square rounded-xl sm:aspect-[4/3]" />
-      <div className="flex flex-col sm:pt-4">
+      <div className={`flex flex-col ${article.cover ? 'sm:pt-4' : ''}`}>
         <ArticleMeta article={article} />
         <h3 className="mt-1.5 font-display text-[1.05rem] leading-snug font-bold tracking-tight text-ink decoration-2 underline-offset-4 group-hover:underline sm:mt-2 sm:text-xl dark:text-zinc-100">{article.title}</h3>
         <p className="mt-2 hidden text-sm leading-relaxed text-muted sm:line-clamp-2 dark:text-zinc-400">{article.excerpt}</p>

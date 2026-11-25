@@ -8,13 +8,14 @@ const siteUrl = (): string => process.env.NEXT_PUBLIC_APP_URL ?? 'http://localho
 export function articleJsonLd(article: Article): string {
   const base = siteUrl();
   const url = `${base}${articleHref(article)}`;
+  const cover = coverSrc(article);
   const section = article.kind === 'guide' ? { name: 'Guides', url: `${base}${GUIDES_HUB}` } : { name: 'Blog', url: `${base}${BLOG_ANCHOR}` };
   const graph: object[] = [
     {
       '@type': article.kind === 'guide' ? 'Article' : 'BlogPosting',
       headline: article.title,
       description: article.description,
-      image: `${base}${coverSrc(article)}`,
+      image: cover ? `${base}${cover}` : `${base}/opengraph-image`,
       datePublished: article.published,
       dateModified: article.updated ?? article.published,
       inLanguage: 'en-US',
