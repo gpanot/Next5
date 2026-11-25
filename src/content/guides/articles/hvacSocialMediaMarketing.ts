@@ -38,7 +38,7 @@ export const hvacSocialMediaMarketing: Article = {
     { type: 'table', head: ['When', 'Push', 'Post types'], rows: [
       ['Late winter (Feb)', 'Get the page ready', 'Catch up on before-and-afters from winter calls, post the team, clear old offers'],
       ['Spring (Mar-Apr)', 'AC tune-up season', 'Tune-up booking posts, filter reminders, "beat the heat wave rush" push'],
-      ['Summer (Jun-Aug)', 'Keep it light', 'Noise translator series, team shots, slow-day availability'],
+      ['Summer (Jun-Aug)', 'Keep it light', 'Noise translator series, team shots, slow-day availability (see [what to post when business is slow](/blog/what-to-post-when-business-is-slow) for more ideas for a quiet stretch)'],
       ['Fall (Sep-Oct)', 'Furnace tune-up season', 'Furnace-specific tune-up push, filter reminder again, "before the first cold night" urgency'],
       ['Winter (Nov-Jan)', 'Emergency-ready', 'Emergency heat posts, testimonials, holiday hours'],
     ] },
