@@ -33,6 +33,7 @@ import { tiktokForPlumbers } from './articles/tiktokForPlumbers';
 import { tiktokHashtagsForBusiness } from './articles/tiktokHashtagsForBusiness';
 import { tiktokHooks } from './articles/tiktokHooks';
 import { tiktokSlideshowMaker } from './articles/tiktokSlideshowMaker';
+import { whatToPostOnInstagramAsANewRealtor } from './articles/whatToPostOnInstagramAsANewRealtor';
 import { whatToPostOnSocialMediaAsADentist } from './articles/whatToPostOnSocialMediaAsADentist';
 import { whatToPostOnTikTokAsARealtor } from './articles/whatToPostOnTikTokAsARealtor';
 import { whatToPostWhenBusinessIsSlow } from './articles/whatToPostWhenBusinessIsSlow';
@@ -90,6 +91,7 @@ export const BLOG_POSTS: readonly Article[] = [
   instagramReelIdeasForSmallBusiness,
   whatToPostOnSocialMediaAsADentist,
   whatToPostWhenBusinessIsSlow,
+  whatToPostOnInstagramAsANewRealtor,
 ];
 
 export const ALL_ARTICLES: readonly Article[] = [...GUIDES, ...BLOG_POSTS];
